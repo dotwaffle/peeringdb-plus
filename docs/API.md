@@ -11,8 +11,8 @@ All routes are registered in `cmd/peeringdb-plus/main.go` and pass through the
 production middleware chain:
 
 ```
-Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> Readiness ->
-SecurityHeaders -> CSP -> Caching -> Gzip -> mux
+Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier ->
+Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
 ```
 
 The server speaks HTTP/1.1 and h2c (HTTP/2 cleartext) on the same listener so
@@ -76,6 +76,11 @@ when running outside Fly.io.
 The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`,
 `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`,
 `netixlan`, `org`, `poc`.
+
+There is no `/metrics` endpoint. Prometheus / Grafana metrics are exported
+via OTLP to the configured collector (see `docs/CONFIGURATION.md`'s
+`OTEL_*` variables); no Prometheus scrape endpoint is exposed by the
+process. <!-- VERIFY: OTLP collector endpoint configured for the peeringdb-plus.fly.dev deployment -->
 
 ## 1. Web UI (`/ui/`)
 
@@ -245,16 +250,92 @@ Valid `{type}` values are the same 13 constants defined in
 | Parameter | Applies to | Description |
 |-----------|------------|-------------|
 | `q` | List | Case-insensitive substring search across the type's search fields. For `/api/net`, an ASN literal (e.g. `8075` or `AS8075`) also matches `net.asn` exactly in addition to the text fields |
-| `limit` | List | Page size. Parsed by `ParsePaginationParams` (see `internal/pdbcompat/filter.go`) |
-| `skip` | List | Offset for pagination |
-| `depth` | Detail | Edge expansion depth. Accepted values: `0` (default, flat object) and `2` (embed related `_set` collections). Any other value is silently ignored |
+| `limit` | List | Page size. Default `250`, clamped to `1000`. `limit=0` is honoured as **unlimited** (matches upstream `rest.py:494-497`) and is gated only by the response memory budget — see "Response memory budget" below. Negative values are ignored. Constants: `DefaultLimit=250`, `MaxLimit=1000` (`internal/pdbcompat/response.go`) |
+| `skip` | List | Offset for pagination. Negative values are ignored |
+| `depth` | Detail | Edge expansion depth. Accepted values: `0` (default, flat object) and `2` (embed related `_set` collections). Any other value is silently ignored. **List endpoints silently drop `?depth=`** — see § Known Divergences |
 | `fields` | Both | Comma-separated projection — only the listed JSON keys are returned after retrieval |
-| `since` | List | Only return rows with `updated` greater than the given timestamp (Unix seconds). Invalid input returns `400` |
-| `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__startswith`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. Typed against the field; invalid types (e.g. `asn__contains`) return `400` |
+| `since` | List | Only return rows with `updated` greater than the given timestamp (Unix seconds). Invalid input returns `400`. Activates the upstream "since matrix" — see "Soft-delete tombstones" below |
+| `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream `rest.py:638-641`. Typed against the field; invalid types (e.g. `asn__contains`) return `400` |
 
 Unknown query parameters that are not in the reserved set (`limit`, `skip`,
 `depth`, `since`, `q`, `fields`) are treated as field filters and validated
-against the type's schema.
+against the type's schema. Unknown filter keys (including over-cap traversal
+keys) are silently ignored — they do not cause `400` — and a debug-level slog
+record plus an `pdbplus.filter.unknown_fields` OTel span attribute are
+emitted so operators can observe them. See § Cross-entity traversal for the
+2-hop cap and § Validation Notes for the rationale.
+
+`__in` accepts a CSV value and binds as a single JSON array via SQLite's
+`json_each()`, sidestepping the variable-binding limit. An empty `__in`
+(`?asn__in=`) short-circuits the request to an empty `data: []` envelope
+without running SQL (Phase 69 IN-02). Malformed `__in` values for typed
+fields (e.g. non-integer in `asn__in=`) return `400`.
+
+### Diacritic-insensitive substring / prefix search
+
+`?<field>__contains=` and `?<field>__startswith=` (and their `__icontains` /
+`__istartswith` aliases) on the following 16 fields are diacritic-insensitive
+— they match `Köln` and `koln` interchangeably:
+
+| Entity | Folded fields |
+|--------|---------------|
+| `org` | `name`, `aka`, `city` |
+| `net` | `name`, `aka`, `name_long` |
+| `fac` | `name`, `aka`, `city` |
+| `ix` | `name`, `aka`, `name_long`, `city` |
+| `carrier` | `name`, `aka` |
+| `campus` | `name` |
+
+Implementation: each row carries a sibling `<field>_fold` shadow column
+populated at sync time via `internal/unifold.Fold` (NFKD decomposition + a
+ligature map). Filter routing happens in `internal/pdbcompat/filter.go`
+`buildContains` / `buildStartsWith` — when `tc.FoldedFields[<field>]` is
+`true` the predicate runs against `<field>_fold` with `unifold.Fold(value)`
+on the RHS. The shadow columns carry `entgql.Skip(SkipAll)` and
+`entrest.WithSkip(true)` so they are invisible to GraphQL, REST, and proto
+wire surfaces — they exist only to power pdbcompat folding. See § Known
+Divergences for the upstream-parity comparison and § Validation Notes for
+why MySQL collation is *not* the upstream mechanism.
+
+### Soft-delete tombstones (Phase 68)
+
+Sync soft-deletes rows by setting `status='deleted'` rather than physically
+removing them. The list path applies the upstream `rest.py:694-727` status
+matrix as the final predicate via `applyStatusMatrix`:
+
+| Request shape | Admitted statuses |
+|---------------|-------------------|
+| List, no `?since` | `status='ok'` only |
+| List with `?since=N` | `status IN ('ok', 'deleted')`; `pending` additionally admitted on `/api/campus` |
+| Single-object GET `/api/<type>/<id>` | `status IN ('ok', 'pending')` — tombstones return `404` |
+
+`?status=<value>` is dropped at the filter layer (the key is absent from
+every type's `Fields` map in `internal/pdbcompat/registry.go`) — the
+observable outcome is identical to upstream's effective behaviour. See
+§ Known Divergences for the explicit comparison.
+
+### Response memory budget
+
+Every list response is gated by a pre-flight 413 budget check before any
+SQL is executed. `serveList` in `internal/pdbcompat/handler.go` runs a
+`SELECT COUNT(*)` against the filtered query, multiplies by the per-entity
+typical row size, and refuses up-front if the projected response exceeds
+`PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MiB`). `0` disables the check
+(local-dev escape hatch only).
+
+A budget-exceeded request returns:
+
+- `413 Request Entity Too Large`
+- `Content-Type: application/problem+json`
+- `type: https://peeringdb-plus.fly.dev/errors/response-too-large`
+- Body extension fields `max_rows` (the largest result set that *would* fit)
+  and `budget_bytes` (the configured ceiling)
+
+Operators receiving a 413 should narrow their filters or page smaller — the
+budget is request-shape, not transient resource pressure, so retrying the
+identical request returns the same 413. The budget is enforced only on the
+pdbcompat list path; entrest, GraphQL, ConnectRPC, and Web UI have their own
+memory stories (see `docs/ARCHITECTURE.md § Response Memory Envelope`).
 
 ### Examples
 
@@ -275,8 +356,14 @@ curl "https://peeringdb-plus.fly.dev/api/ix?country=DE&limit=50"
 # Only return id and name
 curl "https://peeringdb-plus.fly.dev/api/ix?country=DE&fields=id,name"
 
-# Networks updated since 2024-01-01 (Unix seconds)
+# Networks updated since 2024-01-01 (Unix seconds) — admits tombstones
 curl "https://peeringdb-plus.fly.dev/api/net?since=1704067200"
+
+# Diacritic-insensitive substring match against organization names
+curl "https://peeringdb-plus.fly.dev/api/org?name__contains=koln"
+
+# 2-hop traversal: facilities whose parent organization is named "DE-CIX"
+curl "https://peeringdb-plus.fly.dev/api/fac?org__name=DE-CIX"
 ```
 
 ### Response envelope
@@ -300,8 +387,9 @@ with `Content-Type: application/problem+json`. Typical status codes:
 
 | Status | Cause |
 |--------|-------|
-| `400` | Invalid filter operator, malformed `since`, non-integer ID, filter type mismatch |
-| `404` | Unknown `{type}` or missing `{id}` |
+| `400` | Invalid filter operator, malformed `since`, non-integer ID, filter type mismatch, malformed `__in` value |
+| `404` | Unknown `{type}`, missing `{id}`, or detail GET on a tombstoned row |
+| `413` | Pre-flight response memory budget exceeded — see "Response memory budget" above |
 | `500` | Database error (details redacted from response body, full error logged) |
 
 Responses include an `X-Powered-By` header identifying the server as
@@ -365,15 +453,24 @@ such as `asn` and `org_id` are validated to be positive; invalid values return
 
 ### Streaming semantics
 
-`Stream{Type}` RPCs use **batched keyset pagination** under the hood
-(`StreamEntities` in `internal/grpcserver/generic.go`), fetching
-`streamBatchSize` (500) rows per database round-trip and emitting one proto
-message per row.
+`Stream{Type}` RPCs use **batched compound keyset pagination** under the
+hood (`StreamEntities` in `internal/grpcserver/generic.go`), fetching
+`streamBatchSize` (`500`) rows per database round-trip and emitting one proto
+message per row. The cursor is the compound `(updated, id)` pair; under the
+default `(-updated, -created, -id)` order each batch resumes via:
+
+```sql
+WHERE (updated < cursor.updated)
+   OR (updated = cursor.updated AND id < cursor.id)
+```
+
+The `id` tiebreaker keeps progress monotonic when multiple rows share a
+timestamp.
 
 | Field | Semantics |
 |-------|-----------|
-| `since_id` | Resume cursor — only rows with `id > since_id` are emitted |
-| `updated_since` | Timestamp filter — only rows with `updated > updated_since` are emitted |
+| `since_id` | Filter — emits only rows with `id > since_id`. Applied as a `WHERE` predicate; **does not seed the keyset cursor** |
+| `updated_since` | Filter — emits only rows with `updated > updated_since`. Applied as a `WHERE` predicate; **does not seed the keyset cursor** |
 
 Every stream is capped by `PDBPLUS_STREAM_TIMEOUT` (default `60s`) enforced via
 `context.WithTimeout` at the handler. Exceeding the timeout closes the stream
@@ -425,6 +522,34 @@ curl -X POST https://peeringdb-plus.fly.dev/peeringdb.v1.NetworkService/GetNetwo
   -H "Content-Type: application/json" \
   -d '{"id": 20}'
 ```
+
+## Field-level privacy (Phase 64)
+
+PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker for
+the IX-F member list URL: `ixlan.ixf_ixp_member_list_url` is gated by the
+sibling `ixlan.ixf_ixp_member_list_url_visible` enum (`Public` / `Users` /
+`Private`). Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public`
+deployment) receive the value only when `_visible = Public`; for `Users` or
+`Private` the value is omitted across all five surfaces while the `_visible`
+companion field is **still emitted** (upstream parity, Phase 64 D-05).
+
+The single source of truth is `internal/privfield.Redact(ctx, visible,
+value)`. Every serializer calls it, and `internal/middleware.PrivacyTier`
+stamps the resolved tier on the request context — unstamped contexts
+fail-closed to `TierPublic`.
+
+| Surface | Mechanism |
+|---------|-----------|
+| `/api/` (pdbcompat) | `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`; the JSON struct tag `,omitempty` produces wire absence |
+| `/rest/v1/ix-lans*` (entrest) | `restFieldRedactMiddleware` in `cmd/peeringdb-plus/main.go` buffers the JSON response and deletes the key in-place when `Redact` returns `omit=true`. Wraps INSIDE `restErrorMiddleware` so error bodies pass through |
+| `/peeringdb.v1.IxLanService/*` (ConnectRPC) | `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)` returns `nil *wrapperspb.StringValue` — wire absence under proto3 optional |
+| `/graphql` | `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns Go `nil` → GraphQL `null` |
+| `/ui/` | No render path renders the URL today; future templates must call `privfield.Redact` in the data-prep step |
+
+Operators who run a private deployment can flip `PDBPLUS_PUBLIC_TIER=users`
+to make anonymous callers behave as authenticated users — the startup logger
+emits a `WARN` with `public_tier=users` so the override is visible in deploy
+logs.
 
 ## Infrastructure endpoints
 
@@ -519,6 +644,7 @@ only operational limits are:
 | Stream timeout | ConnectRPC `Stream{Type}` | `60s` | `PDBPLUS_STREAM_TIMEOUT` |
 | Graceful drain timeout | Shutdown | `10s` | `PDBPLUS_DRAIN_TIMEOUT` |
 | Sync memory ceiling | Sync worker heap | `400MB` | `PDBPLUS_SYNC_MEMORY_LIMIT` |
+| Response memory budget | pdbcompat `/api/` list | `128MiB` | `PDBPLUS_RESPONSE_MEMORY_LIMIT` |
 | GraphQL query complexity | `POST /graphql` | `500` | `FixedComplexityLimit` (hardcoded) |
 | GraphQL query depth | `POST /graphql` | `15` | `FixedDepthLimit` (hardcoded) |
 
@@ -542,9 +668,8 @@ requests for `/rest/v1/*` are handled even if another middleware short-circuits.
 PeeringDB Plus strives for behavioural parity with the upstream PeeringDB API
 (`peeringdb/peeringdb`) at the `/api/` surface. Divergences are documented
 here with upstream source-line citations so operators can audit the
-boundaries intentionally. This section is the Phase 68 seed; Phase 72's
-upstream-parity regression work will expand it into a full divergence
-registry.
+boundaries intentionally. Each row cross-references a parity test under
+`internal/pdbcompat/parity/*_test.go` — typically a `DIVERGENCE_<…>` sub-test.
 
 | Request | Upstream behaviour | peeringdb-plus behaviour | Rationale | Since |
 |---------|-------------------|-------------------------|-----------|-------|
@@ -552,7 +677,7 @@ registry.
 | `GET /api/<type>?status=deleted&since=N` for a row hard-deleted by sync cycles before v1.16 | Upstream returns the tombstone row with its deletion timestamp (upstream has always soft-deleted). | peeringdb-plus returns empty for such rows. Tombstone population begins at the first post-upgrade sync cycle; anything hard-deleted before v1.16 shipped is gone forever. Rows deleted from v1.16 onwards are visible via both `?since=N` windows and pk lookup (pk admits `status IN (ok, pending)`; tombstones are reachable only via the `since` window). | No retroactive reconstruction is possible — PeeringDB's public API does not expose historical state, and we did not persist deleted rows prior to the Phase 68 soft-delete flip (D-03). Documented intentional one-time gap. See `peeringdb/peeringdb@99e92c726172ead7d224ce34c344eff0bccb3e63:src/peeringdb_server/rest.py:694-727` for upstream status matrix. Parity-locked by `TestParity_Status/STATUS-04_list_since_admits_deleted_excludes_pending_noncampus`. | v1.16 (Phase 68; locked in Phase 72) |
 | `?limit=0` interpreted as "return a count envelope only" (pdbfe claim) | Upstream `rest.py:494-497` treats `limit=0` as **unlimited** (`if limit == 0: limit = None` — Python `None` means no SQL `LIMIT`). There is no count-only semantic upstream — pdbfe's gotchas doc is simply wrong on this point. | peeringdb-plus matches upstream: `limit=0` returns all matching rows unbounded, gated only by the Phase 71 `PDBPLUS_RESPONSE_MEMORY_LIMIT` budget (default 128 MiB). Callers wanting a count should use the `meta.count` field on a depth=0 list response, not `limit=0`. | We match upstream semantics verbatim rather than codifying an invalid-pdbfe-claim as a behavioural divergence. See § Validation Notes entry 2. Parity-locked by `TestParity_Limit/LIMIT-01_zero_returns_all_rows_unbounded` and `TestParity_Limit/LIMIT-01b_zero_over_budget_returns_413_problem_json`. | v1.16 (Phase 68; locked in Phase 72) |
 | `?depth=N` on list endpoints (any `/api/<type>` without a pk) | Upstream `rest.py:744-748` accepts `?depth=` on list requests and caps row count at `API_DEPTH_ROW_LIMIT=250`. | peeringdb-plus silently drops `?depth=` on list endpoints with a `slog.DebugContext` paper trail (Phase 68 LIMIT-02 guardrail — `opts.Depth` is never threaded into list closures). `?depth=` on single-object GET (`/api/<type>/<id>`) works as upstream specifies. Functional list+depth is deferred indefinitely — the Phase 71 `budget.go` memory envelope would refuse the resulting response sizes on 256 MB replicas anyway. | Memory envelope on 256 MB replicas (Phase 71 D-06 — 13-entity × 2-depth worst case exceeds the 128 MiB budget for any realistic row count). `docs/ARCHITECTURE.md § Response Memory Envelope` documents the per-entity ceiling. Parity-locked by `TestParity_Limit/LIMIT-02_depth_on_list_silently_dropped_DIVERGENCE`. | v1.16 (Phase 68 guardrail; locked in Phase 72) |
-| `?<field>__contains=<non-ASCII>` / `?<field>__startswith=<non-ASCII>` against searchable text fields on `network`, `facility`, `ix`, `organization`, `campus`, `carrier` (16 fields total — `name`, `aka`, `name_long`, `city` per entity) | Upstream applies `unidecode.unidecode(v)` to BOTH the query value and the column at query time (`rest.py:576`), producing diacritic-insensitive matches in a single SQL pass. | peeringdb-plus precomputes the folded value into a sibling `<field>_fold` shadow column at sync time (via `internal/unifold.Fold` — NFKD normalisation + a small ligature map for `ß`/`æ`/`ø`/`ł`/`þ`/`đ`), then routes `__contains` / `__startswith` to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS. The end-state semantic match is identical, but it is staged differently: a brief one-time ASCII-only window exists between v1.16 deploy and the first post-deploy sync cycle (≤1h with default `PDBPLUS_SYNC_INTERVAL=1h`) during which rows have `<field>_fold = ''` and return no match for non-ASCII queries. ASCII queries continue to work via the non-folded columns throughout the window. No manual backfill is required — the next sync cycle's `OnConflict().UpdateNewValues()` path rewrites every row's `_fold` columns. | Shadow columns let SQLite use a single indexable comparison path (no per-query `unidecode` call), and Phase 69 benchstat (n=6, 10k rows) shows the shadow path within ±1% of the direct path so the trade-off is invisible at production scale. The folded columns carry `entgql.Skip(SkipAll)` + `entrest.WithSkip(true)` annotations and are never exposed on the GraphQL / REST / proto wire surfaces — they are server-side plumbing only. | v1.16 (Phase 69) |
+| `?<field>__contains=<non-ASCII>` / `?<field>__startswith=<non-ASCII>` against searchable text fields on `network`, `facility`, `ix`, `organization`, `campus`, `carrier` (16 fields total — see "Diacritic-insensitive substring / prefix search" above) | Upstream applies `unidecode.unidecode(v)` to BOTH the query value and the column at query time (`rest.py:576`), producing diacritic-insensitive matches in a single SQL pass. | peeringdb-plus precomputes the folded value into a sibling `<field>_fold` shadow column at sync time (via `internal/unifold.Fold` — NFKD normalisation + a small ligature map for `ß`/`æ`/`ø`/`ł`/`þ`/`đ`), then routes `__contains` / `__startswith` to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS. The end-state semantic match is identical, but it is staged differently: a brief one-time ASCII-only window exists between v1.16 deploy and the first post-deploy sync cycle (≤1h with default `PDBPLUS_SYNC_INTERVAL=1h`) during which rows have `<field>_fold = ''` and return no match for non-ASCII queries. ASCII queries continue to work via the non-folded columns throughout the window. No manual backfill is required — the next sync cycle's `OnConflict().UpdateNewValues()` path rewrites every row's `_fold` columns. | Shadow columns let SQLite use a single indexable comparison path (no per-query `unidecode` call), and Phase 69 benchstat (n=6, 10k rows) shows the shadow path within ±1% of the direct path so the trade-off is invisible at production scale. The folded columns carry `entgql.Skip(SkipAll)` + `entrest.WithSkip(true)` annotations and are never exposed on the GraphQL / REST / proto wire surfaces — they are server-side plumbing only. | v1.16 (Phase 69) |
 | `GET /api/<type>?a__b__c__d=X` (3+ `__`-separated relation segments) | Upstream walks arbitrary Django ORM chains — no hard depth cap (bounded only by the Django ORM query planner). | peeringdb-plus silently ignores the filter (HTTP 200, unfiltered) per Phase 70 D-04. One aggregated `slog.DebugContext("pdbcompat: unknown filter fields silently ignored (Phase 70 TRAVERSAL-04)", ...)` plus OTel span attribute `pdbplus.filter.unknown_fields` record the dropped key. Keys with exactly 1 or 2 relation segments resolve normally via Path A (explicit allowlist) or Path B (ent edge introspection). | DoS protection: 3+-hop joins in SQLite can trigger super-linear query plan scans at scale, and the replica memory envelope (256 MB post-Phase-65) cannot absorb unbounded Cartesian-product row counts. The 2-hop cap trades limitless traversal for a predictable cost ceiling gated in CI by `internal/pdbcompat/bench_traversal_test.go` (`<50ms/op @ 10k rows`). | v1.16 (Phase 70) |
 | `GET /api/fac?ixlan__ix__fac_count__gt=0` (DEFER-70-verifier-01; upstream citation `pdb_api_test.py:2340, 2348`) | Upstream resolves via a per-serializer `prepare_query` that joins `fac → ixfac → ix → fac_count` (3-hop bespoke SQL). | peeringdb-plus silently ignores the filter (HTTP 200, unfiltered result) because `fac` has no direct `ixlan` edge in the ent schema — `ixlan` belongs to `ix`, not to `fac` — and the 3-hop walk via `ixfac` exceeds the hard 2-hop cap (Phase 70 D-04). The generic 2-hop mechanism continues to work for entity pairs with direct edges (e.g. `/api/ixpfx?ixlan__ix__id=20` resolves correctly). | Relaxing the 2-hop cap re-opens cost-ceiling concerns that D-04 was designed to contain (unbounded Cartesian-product joins in SQLite under 256 MB replica memory envelope). Adding a bespoke per-serializer hook for this single upstream citation case doesn't fit the generic D-01/D-04 model cleanly. See `.planning/milestones/v1.16-phases/70-cross-entity-traversal/deferred-items.md` § DEFER-70-verifier-01. | v1.16 (Phase 70; locked by `TestParity_Traversal/DIVERGENCE_fac_ixlan_ix_fac_count_silent_ignore` in Phase 72) |
 
@@ -607,6 +732,14 @@ annotations at `go generate` time:
   codegen-time static map — no runtime ent-client introspection, no
   `sync.Once`, no init-order coupling (Phase 70 D-02 as amended
   2026-04-19).
+
+The resolution order is implemented in
+`internal/pdbcompat/filter.go` `buildTraversalPredicate`: Path A
+first; on a soft miss (allowlist hit but downstream introspection
+unavailable) the parser falls through to Path B rather than
+suppressing the key (Phase 70 REVIEW WR-03). `parseFieldOp` returns
+the 3-tuple `(relationSegments, finalField, op)` so the same machinery
+serves 1-hop and 2-hop paths with a single split (Phase 70 D-06).
 
 ### Supported shapes per entity (1-hop + 2-hop)
 
