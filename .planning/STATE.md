@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: null
 milestone_name: null
 status: between-milestones
-last_updated: "2026-04-27T18:00:00Z"
-last_activity: 2026-04-27 -- Completed quick task 260427-ojm: pdbplus_data_type_count gauge live row counts
+last_updated: "2026-04-27T23:25:00Z"
+last_activity: 2026-04-27 -- Completed quick task 260427-vvx: build-tag-gated cmd/loadtest tool for deployed instances
 progress:
   total_phases: 0
   completed_phases: 0
@@ -50,6 +50,7 @@ These were surfaced during v1.18.0 execution and are not required for milestone 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260427-ojm | replace OnSyncComplete `len(items)` with current-table `Count(ctx)` for `pdbplus_data_type_count` gauge | 2026-04-27 | 18b2337 | [260427-ojm-replace-onsynccomplete-len-items-with-cu](./quick/260427-ojm-replace-onsynccomplete-len-items-with-cu/) |
+| 260427-vvx | build-tag-gated `cmd/loadtest` tool — endpoints sweep + sync simulator + soak mode for deployed instances on Fly.io | 2026-04-27 | d68a8eb | [260427-vvx-loadtest-script](./quick/260427-vvx-loadtest-script/) |
 
 ## Accumulated Context
 
