@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.18.0
 milestone_name: Cleanup & Observability Polish
-status: executing
-last_updated: "2026-04-27T01:50:39.706Z"
-last_activity: 2026-04-27 -- Phase 76 execution started
+status: paused
+last_updated: "2026-04-27T02:15:00Z"
+last_activity: 2026-04-27 -- Phase 76 shipped (OBS-03 dashboard hardening + OBS-05 confirmed via inline investigation + regex remediation)
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
-  percent: 89
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -21,19 +21,22 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 76 — dashboard-hardening
+**Current focus:** Phase 77 next — telemetry-audit (CONTEXT.md already locked)
 
 ## Current Position
 
-Phase: 76 (dashboard-hardening) — EXECUTING
-Plan: 1 of 1
-Milestone: v1.18.0 — half done (3/6 phases complete: 73 ✓, 74 ✓, 75 ✓).
-Status: Executing Phase 76
-Last activity: 2026-04-27 -- Phase 76 execution started
+Phase: 76 (dashboard-hardening) — ✓ SHIPPED 2026-04-27
+Plan: 1 of 1 complete
+Milestone: v1.18.0 — 4/6 phases done (73 ✓, 74 ✓, 75 ✓, 76 ✓). 2 phases remain: 77 (Telemetry Audit) + 78 (UAT Closeout).
+Status: Paused after Phase 76 ship; ready to advance to Phase 77.
+Last activity: 2026-04-27 -- Phase 76 shipped (commits c2ff758 RED, c2abc93 GREEN, d514b1c initial SUMMARY, 90a11f9 OBS-05 confirmed + regex remediation + PII scrub)
 
-**Resume command (tomorrow):** `/gsd-autonomous --from 76` (continues with Phases 76 → 77 → 78 → audit → complete → cleanup; all CONTEXT.md already locked, no discuss needed).
+**Resume commands:**
+- `/gsd-next` — advances to Phase 77 (CONTEXT.md ready → routes to plan-phase) per workflow.auto_advance.
+- `/gsd-autonomous --from 77` — runs all remaining phases (77 → 78 → audit → complete → cleanup) without further checkpoints except Phase 78's UAT-01 manual DevTools step.
+- Phase-by-phase: `/gsd-plan-phase 77` then `/gsd-execute-phase 77` then `/gsd-plan-phase 78` etc.
 
-Alternative if you want phase-by-phase control: `/gsd-plan-phase 76` then `/gsd-execute-phase 76` then `/gsd-plan-phase 77` etc. Phase 78's UAT-01 will pause for your manual CSP DevTools step.
+**Outstanding manual step from Phase 76:** Push the updated `deploy/grafana/dashboards/pdbplus-overview.json` (commit c2abc93) to the operator's Grafana stack so the new $service template var + 5 panel filter sweeps render in the live UI. The repo JSON is the source of truth (`deploy/grafana/alerts/README.md` documents the same convention for alerts: manual operator-applied via mimirtool / grizzly / UI import). Local dashboard tests pass against the file; the live Grafana copy is still the unfiltered version until pushed.
 
 ## v1.18.0 Phase Map
 
@@ -42,7 +45,7 @@ Alternative if you want phase-by-phase control: `/gsd-plan-phase 76` then `/gsd-
 | 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — | ✓ shipped 2026-04-26 |
 | 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — | ✓ shipped 2026-04-27 (3/3 plans, 13/13 verified, 3 review warnings auto-fixed) |
 | 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | ✓ shipped 2026-04-27 (3/3 plans, 10/10 codebase truths verified, human_needed for live confirmation, 4 review warnings auto-fixed) |
-| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | Ready to plan |
+| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | ✓ shipped 2026-04-27 (1/1 plans, 4/4 dashboard tests pass, OBS-05 confirmed live count=13 with corrected regex; ROADMAP success criterion #3 explicitly overridden by CONTEXT.md D-02; needs manual `pdbplus-overview.json` push to operator Grafana stack) |
 | 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Ready to plan (Phase 75 dep satisfied — OBS-04 http.route empirically populates) |
 | 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan (UAT-01 will need your manual DevTools step) |
 
