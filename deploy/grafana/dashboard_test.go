@@ -451,3 +451,31 @@ func TestDashboard_ProvisioningYAMLExists(t *testing.T) {
 		t.Fatalf("provisioning YAML not found: %v", err)
 	}
 }
+
+// TestDashboard_GoMetricsFilterByService asserts that every PromQL expression
+// referencing a go_* metric carries a {service_name="$service"} filter. Phase 76
+// OBS-03 (per D-01) — collision-safety against shared Prometheus tenants where
+// another scrape target may emit go_* metrics with overlapping names.
+//
+// The literal substring match on `service_name="$service"` (not just
+// `service_name`) is intentional: it catches mid-rename / partial edits as well
+// as complete omissions. The `\bgo_[a-z_]+` regex won't false-positive on
+// substrings like `lego_*` or `go_template`.
+func TestDashboard_GoMetricsFilterByService(t *testing.T) {
+	t.Parallel()
+	d := loadDashboard(t)
+
+	goMetricRe := regexp.MustCompile(`\bgo_[a-z_]+`)
+	for _, p := range allPanels(d) {
+		for _, tgt := range p.Targets {
+			if !goMetricRe.MatchString(tgt.Expr) {
+				continue
+			}
+			if !strings.Contains(tgt.Expr, `service_name="$service"`) {
+				t.Errorf("panel %q target references a go_* metric but lacks "+
+					`service_name="$service" filter (Phase 76 OBS-03): %s`,
+					p.Title, tgt.Expr)
+			}
+		}
+	}
+}
