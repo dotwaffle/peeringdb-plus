@@ -374,24 +374,48 @@ type syncStep struct {
 	deleteFn func(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (marked int, err error)
 }
 
+// canonicalStepOrder is the single source of truth for sync step
+// ordering (FK dependency order per D-06). syncSteps() zips this with
+// the per-type delete-fns; StepOrder() exposes a defensive copy for
+// out-of-package consumers (e.g. cmd/loadtest's sync mode parity test).
+var canonicalStepOrder = []string{
+	"org", "campus", "fac", "carrier", "carrierfac",
+	"ix", "ixlan", "ixpfx", "ixfac",
+	"net", "poc", "netfac", "netixlan",
+}
+
+// StepOrder returns a copy of the canonical 13-name sync step
+// ordering. Out-of-package callers (cmd/loadtest sync mode) use it
+// as the parity reference; mutating the returned slice is safe.
+func StepOrder() []string {
+	out := make([]string, len(canonicalStepOrder))
+	copy(out, canonicalStepOrder)
+	return out
+}
+
 // syncSteps returns the ordered list of sync steps in FK dependency order per D-06.
 // Upserts are processed in this order (parents first); deletes in reverse (children first).
 func (w *Worker) syncSteps() []syncStep {
-	return []syncStep{
-		{"org", markStaleDeletedOrganizations},
-		{"campus", markStaleDeletedCampuses},
-		{"fac", markStaleDeletedFacilities},
-		{"carrier", markStaleDeletedCarriers},
-		{"carrierfac", markStaleDeletedCarrierFacilities},
-		{"ix", markStaleDeletedInternetExchanges},
-		{"ixlan", markStaleDeletedIxLans},
-		{"ixpfx", markStaleDeletedIxPrefixes},
-		{"ixfac", markStaleDeletedIxFacilities},
-		{"net", markStaleDeletedNetworks},
-		{"poc", markStaleDeletedPocs},
-		{"netfac", markStaleDeletedNetworkFacilities},
-		{"netixlan", markStaleDeletedNetworkIxLans},
+	deleteFns := map[string]func(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error){
+		"org":        markStaleDeletedOrganizations,
+		"campus":     markStaleDeletedCampuses,
+		"fac":        markStaleDeletedFacilities,
+		"carrier":    markStaleDeletedCarriers,
+		"carrierfac": markStaleDeletedCarrierFacilities,
+		"ix":         markStaleDeletedInternetExchanges,
+		"ixlan":      markStaleDeletedIxLans,
+		"ixpfx":      markStaleDeletedIxPrefixes,
+		"ixfac":      markStaleDeletedIxFacilities,
+		"net":        markStaleDeletedNetworks,
+		"poc":        markStaleDeletedPocs,
+		"netfac":     markStaleDeletedNetworkFacilities,
+		"netixlan":   markStaleDeletedNetworkIxLans,
 	}
+	steps := make([]syncStep, len(canonicalStepOrder))
+	for i, name := range canonicalStepOrder {
+		steps[i] = syncStep{name: name, deleteFn: deleteFns[name]}
+	}
+	return steps
 }
 
 // Sync executes a synchronization from PeeringDB to the local database.
