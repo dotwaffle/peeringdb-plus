@@ -75,3 +75,54 @@ One phase, ~2-3 plans. Small code delta (litefs.yml edit + possibly a `PDBPLUS_S
 - LiteFS candidacy: `litefs.yml` line with `lease.candidate: ${FLY_REGION == PRIMARY_REGION}`
 - v1.15 Phase 65 asymmetric fleet: `.planning/phases/65-asymmetric-fly-fleet/65-CONTEXT.md` (deliberately left primary as single-region)
 - Related: SEED-001 (incremental sync) — orthogonal. SEED-002 (asymmetric fleet) — shipped via Phase 65.
+
+## 2026-04-27 update — IAD-preferred variant
+
+Specific shape we'd most likely implement when this seed flips: **IAD as preferred primary, LHR as standby candidate** (rather than the original "LHR primary + somewhere standby" framing).
+
+### Rationale
+
+- PeeringDB upstream runs in AWS us-east-1 (Virginia). IAD (Ashburn, VA) is the closest Fly region — ~10ms RTT vs ~75ms from LHR. Primary→upstream RTT is the only cost paid per sync cycle that scales with API call count, so post-Phase-73 (incremental sync, smaller deltas, more frequent fetches) this matters slightly more than it did at v1.15.
+- Geographical-diversity argument from SEED-003's original sketch (LHR + FRA) doesn't help availability: if AWS us-east-1 is down, PeeringDB upstream is down, and the sync worker is idle regardless of which Fly region holds the lease.
+- IAD and LHR are both in Fly's NA/EU pricing group — egress cost neutral.
+
+### Cost analysis (verified 2026-04-27 from `fly status`)
+
+Current fleet: primary in lhr; replicas in iad, lax, nrt, sin, syd, gru, jnb.
+
+Moving to IAD-primary + LHR-standby (8 receivers total):
+
+- Cold-sync fanout (88 MB DB × 8 receivers @ $0.006/GB egress, NA group): **~$0.0042/event** vs current $0.0037. Sub-cent delta.
+- Steady-state LiteFS WAL streaming: same $0.006/GB egress source rate, one extra receiver. Sub-cent/month delta.
+- Second persistent volume for LHR standby: **+$0.15/mo** (1 GB at $0.15/GB/mo). This is the entire incremental cost.
+- Asymmetric pricing groups stay neutral: APAC/Oceania/SA replicas (nrt/sin/syd/gru) still receive at $0.015/GB equivalent (billed at source per Fly's egress-from-source model — confirm with Fly support before committing, the docs don't disambiguate cross-group).
+
+Cost is essentially free. The decision is operational, not financial.
+
+### Smaller config change than originally sketched
+
+SEED-003's body says "Consul election tuning, sync-worker contention-check" — implying Consul wasn't configured. Re-check on 2026-04-27 confirmed `litefs.yml:18-26` already has `type: consul` + `promote: true`. The candidate filter on line 20 is `${FLY_REGION == PRIMARY_REGION}` — that's the single-line gate.
+
+To unlock IAD+LHR candidacy:
+
+1. `litefs.yml` candidate predicate: broaden to allow both regions, e.g.
+   ```yaml
+   candidate: ${FLY_REGION == "iad" || FLY_REGION == "lhr"}
+   ```
+   Or set `PRIMARY_REGION` per-machine and keep the `==` form (cleaner, leaves litefs.yml region-agnostic).
+2. `fly.toml` primary process group: `regions = ["iad", "lhr"]`, `count = 2`. Existing `[[mounts]] processes = ["primary"]` automatically scopes a volume to each primary-eligible machine — no change needed.
+3. `PRIMARY_REGION` env: change from `lhr` to `iad` so IAD wins lease on cold start; LHR sits as candidate.
+
+### Asymmetric-fleet erosion (the real cost)
+
+Phase 65's design intent is "1 pet (LHR) + 7 cattle." This variant is "2 pets (IAD, LHR) + 6 cattle." Recovery semantics bifurcate: replicas remain destroy-and-recreate; primary candidates need volume-management discipline (snapshots, reattach during machine replacement, etc.). Worth an explicit ADR rather than rolling into a phase as an implementation detail.
+
+### Split-brain bound
+
+Already mitigated by Consul-arbitrated leases — only one candidate holds the write lease at a time, contingent on Consul being reachable. Failure mode requiring two-primary write windows: asymmetric partition where one candidate can reach Consul and the other can't, AND that partition resolves with a stale primary still believing it's authoritative. LiteFS lease TTL bounds this; Consul defaults are sane. Non-zero risk but small.
+
+### When to flip
+
+Original SEED-003 triggers still apply (LHR extended outage, maintenance burden, compliance). Add one IAD-specific trigger:
+
+- **Sync upstream-RTT regression**: if PeeringDB sync wall-clock grows materially due to upstream latency (post-Phase-73 incremental cycles getting chatty enough that the 65ms LHR→us-east-1 RTT is the bottleneck). Signal: `pdbplus.sync.duration_seconds` p95 trending up while `pdbplus.sync.peak_heap_bytes` stays flat.
