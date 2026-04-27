@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"slices"
 	"testing"
 )
 
@@ -44,15 +45,33 @@ func TestPeeringDBEntityTypes_Cardinality(t *testing.T) {
 	}
 }
 
-// TestPeeringDBEntityTypes_ParityNote is a documentation-only test that
-// records the parity contract with internal/sync/worker.go syncSteps().
-// internal/otel cannot import internal/sync (cycle), so this stays as
-// a manual-review invariant enforced by grep in Phase 75 Plan 02
-// acceptance criteria. If a 14th entity is added to syncSteps without
-// updating PeeringDBEntityTypes, TestPeeringDBEntityTypes_Cardinality
-// fails on the cardinality check (count flips off 13).
-func TestPeeringDBEntityTypes_ParityNote(t *testing.T) {
-	// No assertion — see comment above. The cardinality gate in the
-	// sibling test catches the most common drift mode (count change).
-	t.Log("PeeringDBEntityTypes parity with internal/sync/worker.go syncSteps() is a manual-review invariant")
+// TestPeeringDBEntityTypes_Parity enforces the Phase 75 D-02 invariant:
+// internal/otel.PeeringDBEntityTypes MUST stay in lock-step with the
+// canonical 13-entity list used by internal/sync/initialcounts.go (the
+// `queries` slice — the per-entity Count(ctx) closures keyed by the
+// PeeringDB type name). internal/otel cannot import internal/sync
+// (would create a cycle), so the canonical list below is the same
+// hand-copied golden the _Cardinality sibling uses; this test adds a
+// set-equality (order-agnostic) assertion on top of the count check
+// so a same-cardinality rename (e.g. DEFER-70-06-01's "campus" →
+// "campuses") does not silently split the metric series.
+//
+// REVIEW WR-04. Cites Phase 75 D-02
+// (.planning/phases/75-code-side-observability/CONTEXT.md).
+func TestPeeringDBEntityTypes_Parity(t *testing.T) {
+	t.Parallel()
+	// Canonical 13 entity type names. Source of truth:
+	// internal/sync/initialcounts.go `queries` slice (the names the
+	// startup-time Count(ctx) helpers key into the gauge cache by).
+	canonical := []string{
+		"org", "campus", "fac", "carrier", "carrierfac",
+		"ix", "ixlan", "ixpfx", "ixfac",
+		"net", "poc", "netfac", "netixlan",
+	}
+	gotSorted := slices.Sorted(slices.Values(PeeringDBEntityTypes))
+	wantSorted := slices.Sorted(slices.Values(canonical))
+	if !slices.Equal(gotSorted, wantSorted) {
+		t.Errorf("PeeringDBEntityTypes drift vs canonical (Phase 75 D-02):\n  got  (sorted) = %v\n  want (sorted) = %v\nUpdate internal/otel/prewarm.go AND internal/sync/initialcounts.go together.",
+			gotSorted, wantSorted)
+	}
 }
