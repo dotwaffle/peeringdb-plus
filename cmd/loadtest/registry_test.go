@@ -13,7 +13,7 @@ import (
 func TestRegistry_AllReturnsAtLeast100(t *testing.T) {
 	t.Parallel()
 
-	eps := registryAll()
+	eps := registryAll(nil)
 	if got := len(eps); got < 100 {
 		t.Fatalf("registry.All() returned %d endpoints, want >= 100", got)
 	}
@@ -45,7 +45,7 @@ func TestRegistry_PerEntitySurfaceCoverage(t *testing.T) {
 	surfaces := []Surface{
 		SurfacePdbCompat, SurfaceEntRest, SurfaceGraphQL, SurfaceConnectRPC,
 	}
-	eps := registryAll()
+	eps := registryAll(nil)
 	for _, typ := range types {
 		for _, surf := range surfaces {
 			found := false
@@ -67,7 +67,7 @@ func TestRegistry_PerEntitySurfaceCoverage(t *testing.T) {
 func TestRegistry_PdbCompatNetURLs(t *testing.T) {
 	t.Parallel()
 
-	eps := registryAll()
+	eps := registryAll(nil)
 	var sawListDefault, sawAsnFilter bool
 	for _, ep := range eps {
 		if ep.Surface != SurfacePdbCompat || ep.EntityType != peeringdb.TypeNet {
@@ -106,7 +106,7 @@ func TestRegistry_PdbCompatNetURLs(t *testing.T) {
 func TestRegistry_ConnectRPCNetworkGet(t *testing.T) {
 	t.Parallel()
 
-	eps := registryAll()
+	eps := registryAll(nil)
 	for _, ep := range eps {
 		if ep.Surface != SurfaceConnectRPC || ep.EntityType != peeringdb.TypeNet {
 			continue
@@ -171,7 +171,7 @@ func TestRegistry_WebUIThreeRoutes(t *testing.T) {
 		"/ui/about":      false,
 		"/ui/asn/15169":  false,
 	}
-	for _, ep := range registryAll() {
+	for _, ep := range registryAll(nil) {
 		if ep.Surface != SurfaceWebUI {
 			continue
 		}

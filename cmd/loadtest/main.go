@@ -136,7 +136,8 @@ func run(argv []string, stdout, stderr *os.File) error {
 	var err error
 	switch mode {
 	case "endpoints":
-		err = runEndpoints(ctx, cfg, registryAll(), rep, stdout)
+		ids := discoverIDs(ctx, cfg, stdout)
+		err = runEndpoints(ctx, cfg, registryAll(ids), rep, stdout)
 	case "sync":
 		var since time.Time
 		since, err = parseSinceFlag(cfg.SyncMode, cfg.SinceFlag)
@@ -145,7 +146,8 @@ func run(argv []string, stdout, stderr *os.File) error {
 		}
 		err = runSync(ctx, cfg, cfg.SyncMode, since, rep, stdout)
 	case "soak":
-		err = runSoak(ctx, cfg, cfg.SoakDuration, cfg.SoakConcurrency, cfg.SoakQPS, registryAll(), rep)
+		ids := discoverIDs(ctx, cfg, stdout)
+		err = runSoak(ctx, cfg, cfg.SoakDuration, cfg.SoakConcurrency, cfg.SoakQPS, registryAll(ids), rep)
 	default:
 		return fmt.Errorf("unknown mode %q (want endpoints|sync|soak)", mode)
 	}

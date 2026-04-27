@@ -46,7 +46,7 @@ var rpcServiceNames = map[string]string{
 }
 
 // rpcMethodNames maps each entity short name to its ConnectRPC PascalCase
-// method noun (Get<Method>, List<Method>s).
+// singular noun (used for Get<Noun> methods).
 var rpcMethodNames = map[string]string{
 	peeringdb.TypeOrg:        "Organization",
 	peeringdb.TypeNet:        "Network",
@@ -61,6 +61,26 @@ var rpcMethodNames = map[string]string{
 	peeringdb.TypeCarrier:    "Carrier",
 	peeringdb.TypeCarrierFac: "CarrierFacility",
 	peeringdb.TypeCampus:     "Campus",
+}
+
+// rpcListMethods maps each entity short name to its full ConnectRPC
+// List method name. Naive `+s` pluralisation produces invalid names
+// for several types (Campuses, Facilities, IxPrefixes, etc.) — this
+// map is the source of truth, mirroring proto/peeringdb/v1/services.proto.
+var rpcListMethods = map[string]string{
+	peeringdb.TypeOrg:        "ListOrganizations",
+	peeringdb.TypeNet:        "ListNetworks",
+	peeringdb.TypeFac:        "ListFacilities",
+	peeringdb.TypeIX:         "ListInternetExchanges",
+	peeringdb.TypePoc:        "ListPocs",
+	peeringdb.TypeIXLan:      "ListIxLans",
+	peeringdb.TypeIXPfx:      "ListIxPrefixes",
+	peeringdb.TypeNetIXLan:   "ListNetworkIxLans",
+	peeringdb.TypeNetFac:     "ListNetworkFacilities",
+	peeringdb.TypeIXFac:      "ListIxFacilities",
+	peeringdb.TypeCarrier:    "ListCarriers",
+	peeringdb.TypeCarrierFac: "ListCarrierFacilities",
+	peeringdb.TypeCampus:     "ListCampuses",
 }
 
 // foldedEntities is the set of 6 PeeringDB types whose name/aka/city
@@ -106,6 +126,12 @@ func jsonHeader() http.Header {
 // registryAll builds the full inventory of endpoints for sweep mode.
 // It is also the source pool for soak mode random selection.
 //
+// `ids` supplies a per-type id to use for get-by-id / Get<Type> shapes
+// — a real id discovered at startup via `discoverIDs`. When nil or
+// missing for a given type, defaults to 1 (sufficient for tests +
+// local dev with seed data; production runs should always pass a
+// discovered map because lower IDs are sparse on the live mirror).
+//
 // Per-entity shapes:
 //   - pdbcompat: list-default, list-filtered, get-by-id (3)
 //   - entrest:   list-default, get-by-id (2)
@@ -116,15 +142,23 @@ func jsonHeader() http.Header {
 // plus an extra pdbcompat startswith filter for each of 6 folded
 // entities (6), plus a 2-hop traversal shape for net (1). Total
 // ~114, well above the ≥100 pin in the test.
-func registryAll() []Endpoint {
+func registryAll(ids map[string]int) []Endpoint {
 	eps := make([]Endpoint, 0, 128)
 	sinceUnix := time.Now().Add(-time.Hour).Unix()
 
+	idFor := func(t string) int {
+		if v, ok := ids[t]; ok && v > 0 {
+			return v
+		}
+		return 1
+	}
+
 	for _, t := range allEntityTypes {
-		eps = append(eps, pdbCompatEndpoints(t, sinceUnix)...)
-		eps = append(eps, entrestEndpoints(t)...)
+		id := idFor(t)
+		eps = append(eps, pdbCompatEndpoints(t, sinceUnix, id)...)
+		eps = append(eps, entrestEndpoints(t, id)...)
 		eps = append(eps, graphqlEndpoints(t)...)
-		eps = append(eps, connectRPCEndpoints(t)...)
+		eps = append(eps, connectRPCEndpoints(t, id)...)
 	}
 
 	// Surface-wide Web UI endpoints — content-negotiation requires a
@@ -142,7 +176,7 @@ func registryAll() []Endpoint {
 // pdbCompatEndpoints generates the pdbcompat (/api/<short>...)
 // shapes: list-default, list-filtered (per-type), get-by-id, plus
 // optional folded-prefix and 2-hop traversal shapes.
-func pdbCompatEndpoints(t string, sinceUnix int64) []Endpoint {
+func pdbCompatEndpoints(t string, sinceUnix int64, id int) []Endpoint {
 	out := []Endpoint{
 		{
 			Surface:    SurfacePdbCompat,
@@ -156,7 +190,7 @@ func pdbCompatEndpoints(t string, sinceUnix int64) []Endpoint {
 			EntityType: t,
 			Shape:      "get-by-id",
 			Method:     "GET",
-			Path:       fmt.Sprintf("/api/%s/1", t),
+			Path:       fmt.Sprintf("/api/%s/%d", t, id),
 		},
 	}
 
@@ -221,7 +255,7 @@ func pdbCompatFilterPath(t string, sinceUnix int64) string {
 
 // entrestEndpoints generates the entrest (/rest/v1/<plural>...) list
 // and get-by-id shapes.
-func entrestEndpoints(t string) []Endpoint {
+func entrestEndpoints(t string, id int) []Endpoint {
 	plural := restPlurals[t]
 	return []Endpoint{
 		{
@@ -236,7 +270,7 @@ func entrestEndpoints(t string) []Endpoint {
 			EntityType: t,
 			Shape:      "get-by-id",
 			Method:     "GET",
-			Path:       fmt.Sprintf("/rest/v1/%s/1", plural),
+			Path:       fmt.Sprintf("/rest/v1/%s/%d", plural, id),
 		},
 	}
 }
@@ -301,9 +335,16 @@ func graphqlFieldName(t string) string {
 
 // connectRPCEndpoints generates rpc-get and rpc-list shapes per
 // entity. URL form: /peeringdb.v1.<Service>/<Method>.
-func connectRPCEndpoints(t string) []Endpoint {
+//
+// List method names come from rpcListMethods (proto-defined plurals)
+// rather than `+s` because several types have irregular plurals
+// (Facilities, Campuses, IxPrefixes, etc.). Get method bodies use the
+// per-type discovered id rather than a hardcoded `id:1` because the
+// live mirror has sparse low-id ranges for org/poc/netfac/netixlan.
+func connectRPCEndpoints(t string, id int) []Endpoint {
 	svc := rpcServiceNames[t]
 	method := rpcMethodNames[t]
+	listMethod := rpcListMethods[t]
 	return []Endpoint{
 		{
 			Surface:    SurfaceConnectRPC,
@@ -311,7 +352,7 @@ func connectRPCEndpoints(t string) []Endpoint {
 			Shape:      "rpc-get",
 			Method:     "POST",
 			Path:       fmt.Sprintf("/peeringdb.v1.%s/Get%s", svc, method),
-			Body:       []byte(`{"id":1}`),
+			Body:       fmt.Appendf(nil, `{"id":%d}`, id),
 			Header:     jsonHeader(),
 		},
 		{
@@ -319,7 +360,7 @@ func connectRPCEndpoints(t string) []Endpoint {
 			EntityType: t,
 			Shape:      "rpc-list",
 			Method:     "POST",
-			Path:       fmt.Sprintf("/peeringdb.v1.%s/List%ss", svc, method),
+			Path:       fmt.Sprintf("/peeringdb.v1.%s/%s", svc, listMethod),
 			Body:       []byte(`{"limit":10}`),
 			Header:     jsonHeader(),
 		},
