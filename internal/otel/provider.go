@@ -56,13 +56,34 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating span exporter: %w", err)
 	}
+	// Per CONTEXT.md D-02 / Phase 77 OBS-07: per-route sampler dispatches
+	// on URL path prefix so /healthz + /readyz drop to 1% (Fly health
+	// probes dominate trace volume) while /api/* /rest/v1/* /peeringdb.v1.*
+	// stay at full sampling. Wrapped in sdktrace.ParentBased so children
+	// inherit the parent decision — preserves cross-service trace continuity.
+	// Ratios mirror .planning/phases/77-telemetry-audit/AUDIT.md
+	// § Recommended sampling matrix; update both together.
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(spanExporter,
 			sdktrace.WithBatchTimeout(5*time.Second),
 			sdktrace.WithMaxExportBatchSize(512),
 		),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(in.SampleRate)),
+		sdktrace.WithSampler(sdktrace.ParentBased(NewPerRouteSampler(PerRouteSamplerInput{
+			DefaultRatio: in.SampleRate,
+			Routes: map[string]float64{
+				"/healthz":                0.01,
+				"/readyz":                 0.01,
+				"/grpc.health.v1.Health/": 0.01,
+				"/api/":                   1.0,
+				"/rest/v1/":               1.0,
+				"/peeringdb.v1.":          1.0,
+				"/graphql":                1.0,
+				"/ui/":                    0.5,
+				"/static/":                0.01,
+				"/favicon.ico":            0.01,
+			},
+		}))),
 	)
 	otel.SetTracerProvider(tp)
 
