@@ -21,7 +21,7 @@ Tight, mechanical phase. Five `go_*` PromQL expressions across five panels need 
 
   The current dashboard relies on a fragile coincidence — syncthing on the local laptop scrapes `go_goroutines` (plural) while peeringdb-plus emits `go_goroutine_count` (singular), so the namespaces don't currently collide. Any future scrape target sharing metric names would silently double-count without this fix.
 
-- **D-02 — OBS-05: confirm only.** Verify `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1.17.0|v1.18.*"})` returns non-zero during normal pdbcompat list traffic. No code changes expected unless flow is broken. **No documentation in panel description, no Prom drop rule for the legacy `_kib_KiB_bucket` series** — user explicitly chose "confirm only" over the recommended "confirm + document". Rationale: retention will expire the legacy series naturally; documentation in panel-text would just be noise.
+- **D-02 — OBS-05: confirm only.** Verify `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1\.1[78]\..*"})` returns non-zero during normal pdbcompat list traffic. No code changes expected unless flow is broken. **No documentation in panel description, no Prom drop rule for the legacy `_kib_KiB_bucket` series** — user explicitly chose "confirm only" over the recommended "confirm + document". Rationale: retention will expire the legacy series naturally; documentation in panel-text would just be noise.
 
 ### Claude's Discretion
 
@@ -186,7 +186,7 @@ The grafana-cloud MCP server is available in-session. The OBS-05 confirmation is
 ```
 query_prometheus(
   datasource_uid: <prom datasource uid>,
-  expr: 'count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1.17.0|v1.18.*"})',
+  expr: 'count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1\.1[78]\..*"})',
   query_type: "instant"
 )
 ```
@@ -201,7 +201,7 @@ export GRAFANA_CLOUD_API_KEY="$YOUR_API_KEY"
 
 curl -sG "$GRAFANA_CLOUD_PROM_URL/api/v1/query" \
   -H "Authorization: Bearer $GRAFANA_CLOUD_API_KEY" \
-  --data-urlencode 'query=count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1.17.0|v1.18.*"})' \
+  --data-urlencode 'query=count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1\.1[78]\..*"})' \
   | jq '.data.result[0].value[1]'
 ```
 

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.18.0
 milestone_name: Cleanup & Observability Polish
 status: executing
-last_updated: "2026-04-27T01:49:15.632Z"
-last_activity: 2026-04-27 -- Phase 76 planning complete
+last_updated: "2026-04-27T01:50:39.706Z"
+last_activity: 2026-04-27 -- Phase 76 execution started
 progress:
   total_phases: 6
   completed_phases: 3
@@ -21,13 +21,15 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** v1.18.0 paused after Phase 75. 3 phases remain (76, 77, 78) + milestone lifecycle.
+**Current focus:** Phase 76 — dashboard-hardening
 
 ## Current Position
 
+Phase: 76 (dashboard-hardening) — EXECUTING
+Plan: 1 of 1
 Milestone: v1.18.0 — half done (3/6 phases complete: 73 ✓, 74 ✓, 75 ✓).
-Status: Ready to execute
-Last activity: 2026-04-27 -- Phase 76 planning complete
+Status: Executing Phase 76
+Last activity: 2026-04-27 -- Phase 76 execution started
 
 **Resume command (tomorrow):** `/gsd-autonomous --from 76` (continues with Phases 76 → 77 → 78 → audit → complete → cleanup; all CONTEXT.md already locked, no discuss needed).
 
@@ -276,7 +278,7 @@ d2acb43  docs(planning): retarget next milestone to v1.18.0
 
 The user said "/clear before I continue" — review the 22 commits and push when appropriate. Phase 73 fixes are NOT deployed until pushed and `fly deploy` runs.
 
-**Production state:** v1.17.0 deployed across 8-machine asymmetric Fly fleet (1 primary lhr + 7 replicas). Default sync mode = `incremental` running ~15min cadence. BUG-01 + BUG-02 fixes are local-only; production still has the bugs (campus traversal returns 500; poc.role NotEmpty would block any future role-empty tombstone). Dashboard at `https://dotwaffle.grafana.net/d/pdbplus-overview` (do NOT commit URL to repo per memory `feedback_no_pii_in_repo.md`).
+**Production state:** v1.17.0 deployed across 8-machine asymmetric Fly fleet (1 primary lhr + 7 replicas). Default sync mode = `incremental` running ~15min cadence. BUG-01 + BUG-02 fixes are local-only; production still has the bugs (campus traversal returns 500; poc.role NotEmpty would block any future role-empty tombstone). Operator dashboard URL kept out of repo per memory `feedback_no_pii_in_repo.md`.
 
 **Ready for next session:** any of `/gsd-plan-phase 74`, `/gsd-plan-phase 75`, or `/gsd-plan-phase 78` (all three independent — could plan all three in parallel sessions). Phase 76 plan can also start (its dep on 75 is soft); Phase 77 should wait until 75 ships (OBS-07 hard-deps on OBS-04's `http.route` populating). All five remaining phases have CONTEXT.md locked (committed `fe724fc`) — no need to re-discuss.
 

@@ -100,11 +100,11 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 **Requirements**: OBS-03, OBS-05
 **Success Criteria** (what must be TRUE):
   1. Every `go_*` PromQL query in `deploy/grafana/dashboards/pdbplus-overview.json` carries a `service_name="peeringdb-plus"` filter; a query against a shared Prom tenant emitting `go_*` from another application shows clean panels without double-counting
-  2. `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1.17.0|v1.18.*"})` returns non-zero during normal pdbcompat list traffic, confirming the post-bytes-canonicalisation series flows on the live binary
-  3. The dashboard panel description for the response-heap-delta series captures the legacy `pdbplus_response_heap_delta_kib_KiB_bucket` series as expiring retention data, so future operators understand the duplicate metric name
+  2. `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1\.1[78]\..*"})` returns non-zero during normal pdbcompat list traffic, confirming the post-bytes-canonicalisation series flows on the live binary *(regex corrected 2026-04-27 — original `v1.17.0|v1.18.*` failed against prod's git-describe label format `v1.17.0-64-g565b762` because Prom anchors `=~` matches)*
+  3. ~~The dashboard panel description for the response-heap-delta series captures the legacy `pdbplus_response_heap_delta_kib_KiB_bucket` series as expiring retention data, so future operators understand the duplicate metric name~~ *(OVERRIDDEN by CONTEXT.md D-02 "confirm only — no documentation in panel description, no Prom drop rule"; user explicitly chose to let retention expire the legacy series naturally)*
   4. The `deploy/grafana/dashboard_test.go` invariants (no forbidden content, panel structure) stay green after the JSON edits
 **Plans** (1 plan, Wave 1 — task ordering inside the plan: Task 1 RED test → Task 2 GREEN JSON edits → Task 3 OBS-05 manual confirm):
-- [ ] 76-01-PLAN.md — OBS-03 service_name filter sweep on 5 go_* panels + $service template var + new TestDashboard_GoMetricsFilterByService invariant; OBS-05 live Prom confirm-only per D-02
+- [x] 76-01-PLAN.md — OBS-03 service_name filter sweep on 5 go_* panels + $service template var + new TestDashboard_GoMetricsFilterByService invariant; OBS-05 live Prom confirm-only per D-02
 **UI hint**: yes
 
 ### Phase 77: Telemetry Audit & Cleanup

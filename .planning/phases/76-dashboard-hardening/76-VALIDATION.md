@@ -54,8 +54,8 @@ created: 2026-04-27
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1.17.0\|v1.18.*"}) > 0` against live Grafana Cloud Prom | OBS-05 | Confirms metric flow on prod binary; Prom endpoint requires GC API token | Per RESEARCH.md § Live confirmation — `mimirtool query instant` against Mimir endpoint with `GRAFANA_CLOUD_API_TOKEN` |
-| Visual confirmation: `$service` dropdown appears in dashboard chrome with `peeringdb-plus` selected by default | OBS-03 | Grafana UI render; cannot be unit-tested from JSON shape alone | Open `https://dotwaffle.grafana.net/d/<uid>/pdbplus-overview` after panel JSON pushed |
+| `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1\\.1[78]\\..*"}) > 0` against live Grafana Cloud Prom | OBS-05 | Confirms metric flow on prod binary; Prom endpoint requires GC API token | Per RESEARCH.md § Live confirmation — `mimirtool query instant` against Mimir endpoint with `GRAFANA_CLOUD_API_TOKEN` |
+| Visual confirmation: `$service` dropdown appears in dashboard chrome with `peeringdb-plus` selected by default | OBS-03 | Grafana UI render; cannot be unit-tested from JSON shape alone | Open the `pdbplus-overview` dashboard in your operator-internal Grafana stack after panel JSON pushed (URL kept out of repo per global no-PII rule) |
 
 ---
 

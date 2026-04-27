@@ -26,7 +26,9 @@ Make the `pdbplus-overview` dashboard immune to cross-application metric collisi
   
   The current dashboard relies on a fragile coincidence — syncthing on the local laptop scrapes `go_goroutines` (plural) while peeringdb-plus emits `go_goroutine_count` (singular), so the namespaces don't currently collide. Any future scrape target sharing metric names would silently double-count without this fix.
 
-- **D-02 — OBS-05: confirm only.** Verify `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1.17.0|v1.18.*"})` returns non-zero during normal pdbcompat list traffic. No code changes expected unless flow is broken. **No documentation in panel description, no Prom drop rule for the legacy `_kib_KiB_bucket` series** — user explicitly chose "confirm only" over the recommended "confirm + document". Rationale: retention will expire the legacy series naturally; documentation in panel-text would just be noise.
+- **D-02 — OBS-05: confirm only.** Verify `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1\.1[78]\..*"})` returns non-zero during normal pdbcompat list traffic. No code changes expected unless flow is broken. **No documentation in panel description, no Prom drop rule for the legacy `_kib_KiB_bucket` series** — user explicitly chose "confirm only" over the recommended "confirm + document". Rationale: retention will expire the legacy series naturally; documentation in panel-text would just be noise.
+  
+  *(Regex correction 2026-04-27: original `v1.17.0|v1.18.*` was anchored, which Prom evaluates as `^v1.17.0$|^v1.18.*$` — would fail to match real prod build labels like `v1.17.0-64-g565b762` (git-describe format). Corrected to `v1\.1[78]\..*` covering v1.17.x and v1.18.x with any suffix.)*
 
 ## Out of scope
 
@@ -53,4 +55,4 @@ Make the `pdbplus-overview` dashboard immune to cross-application metric collisi
   - `jq '.panels[].targets[].expr | select(test("go_"))' deploy/grafana/dashboards/pdbplus-overview.json` returns expressions, ALL containing `service_name`
   - `go test ./deploy/grafana/...` clean (with the new invariant test)
   - Live verification: query a `go_*` metric in Grafana with the `$service` filter set vs unset; results identical for `peeringdb-plus` (no cross-contamination cleanup needed since none currently flowing)
-  - Live verification: `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1.17.0|v1.18.*"}) > 0` during normal `/api/*` traffic (OBS-05 confirmation)
+  - Live verification: `count(pdbplus_response_heap_delta_bytes_bucket{service_version=~"v1\.1[78]\..*"}) > 0` during normal `/api/*` traffic (OBS-05 confirmation)
