@@ -91,7 +91,7 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
 **Plans** (3 plans, sequential due to shared cmd/peeringdb-plus/main.go edits — Wave 1 / Wave 2 / Wave 3):
 - [x] 75-01-PLAN.md — OBS-01: synchronous one-shot Count(ctx) per entity at startup; new internal/sync/initialcounts.go helper + main.go wire-up before InitObjectCountGauges (per D-01)
 - [x] 75-02-PLAN.md — OBS-02: pre-warm 4 per-type counters × 13 types + RoleTransitions × 2 directions = 54 baseline series; new internal/otel/prewarm.go + main.go call after InitMetrics (per D-02)
-- [ ] 75-03-PLAN.md — OBS-04: investigate root cause of http.route only populating /healthz, then ship minimal fix in routeTagMiddleware or buildMiddlewareChain; OBS-04-INVESTIGATION.md + new route_tag_e2e_test.go (per D-03)
+- [x] 75-03-PLAN.md — OBS-04: investigate root cause of http.route only populating /healthz, then ship minimal fix in routeTagMiddleware or buildMiddlewareChain; OBS-04-INVESTIGATION.md + new route_tag_e2e_test.go (per D-03)
 **UI hint**: yes
 
 ### Phase 76: Dashboard Hardening

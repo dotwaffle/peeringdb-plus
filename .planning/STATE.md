@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.18.0
 milestone_name: Cleanup & Observability Polish
-status: executing
-last_updated: "2026-04-26T23:36:04.966Z"
-last_activity: 2026-04-26 -- Phase 75 Plan 02 (OBS-02 zero-rate counter pre-warm) shipped
+status: verifying
+last_updated: "2026-04-27T00:02:05.306Z"
+last_activity: 2026-04-27
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 7
-  percent: 88
+  completed_plans: 8
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 ## Current Position
 
-Phase: 75 (Code-side Observability Fixes) — EXECUTING
-Plan: 3 of 3
-Status: Plans 01 (OBS-01) + 02 (OBS-02) shipped — ready to execute Plan 03 (OBS-04 http.route fix)
-Last activity: 2026-04-26 -- Phase 75 Plan 02 (OBS-02 zero-rate counter pre-warm) shipped (commits f2dcacc, 9cd30f6, 49edf98)
+Phase: 75 (Code-side Observability Fixes) — COMPLETE
+Plan: 3 of 3 — all shipped (OBS-01, OBS-02, OBS-04)
+Status: Phase complete — ready for verification
+Last activity: 2026-04-27 -- Phase 75 Plan 03 (OBS-04 http.route investigation) shipped (commits beb870d, 1734fe6)
 
 ## v1.18.0 Phase Map
 
@@ -36,7 +36,7 @@ Last activity: 2026-04-26 -- Phase 75 Plan 02 (OBS-02 zero-rate counter pre-warm
 |-------|------|--------------|------------|--------|
 | 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — | ✓ shipped 2026-04-26 |
 | 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — | Ready to plan |
-| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | In Progress (2/3 plans shipped: OBS-01 ✓, OBS-02 ✓) |
+| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | ✓ Phase complete 2026-04-27 (3/3 plans shipped: OBS-01 ✓, OBS-02 ✓, OBS-04 ✓) |
 | 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | Ready to plan (planning before 75 complete is OK; Phase 75 dep is soft) |
 | 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Plan after Phase 75 ships (OBS-07 needs http.route populated) |
 | 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan |
@@ -63,7 +63,7 @@ All 6 phase CONTEXT.md committed `fe724fc` 2026-04-26. Full decisions live in ea
 
 - **D-01**: OBS-01 — synchronous one-shot `COUNT(*)` per-table at process init (~1-2s startup cost acceptable); seeds the same cache currently primed by sync-completion. **✓ SHIPPED Plan 75-01 2026-04-26 (commits `0c8ca6d`..`5ea3e19`):** new `internal/sync/initialcounts.go` `InitialObjectCounts(ctx, *ent.Client)` helper (status-agnostic counts, fail-fast on error per GO-CFG-1) wired into `cmd/peeringdb-plus/main.go` between `database.Open` and `pdbotel.InitObjectCountGauges`. 3 unit tests lock the contract. OnSyncComplete unchanged.
 - **D-02**: OBS-02 — pre-warm 13 types × 4 per-type metrics + 2 directions × RoleTransitions = 54 baseline series (CONTEXT.md's "65" was a miscount; PLAN.md `must_haves.truths` corrected to 52 + 2 = 54). Status dimension self-populates. **✓ SHIPPED Plan 75-02 2026-04-26 (commits `f2dcacc`..`49edf98`):** new `internal/otel/prewarm.go` `PrewarmCounters(ctx)` + `PeeringDBEntityTypes` exports; single call site in `cmd/peeringdb-plus/main.go` between syncWorker construction and StartScheduler spawn; 3 unit tests lock the contract. Plan 75-02 deviations: 1 acceptance-gate-fix (PLAN's A7 grep regex too loose for self-documenting file; tighter `\.Add\(` anchored regex returns expected 5 — no source change, recorded as patterns-established for future plans).
-- **D-03**: OBS-04 — investigate root cause + fix `routeTagMiddleware`. Suspects: `r.Pattern` empty for non-`METHOD /path` routes, middleware ordering, or labeler-context replacement downstream.
+- **D-03**: OBS-04 — investigate root cause + fix `routeTagMiddleware`. Suspects: `r.Pattern` empty for non-`METHOD /path` routes, middleware ordering, or labeler-context replacement downstream. **✓ SHIPPED Plan 75-03 2026-04-27 (commits `beb870d`, `1734fe6`):** empirical evidence (in-process slog probe + standalone sdkmetric.NewManualReader test through production-shaped chain) refutes all 3 code-bug hypotheses; root cause is sparse-traffic / Prometheus-staleness artifact. Fix shape: defensive E2E test (cmd/peeringdb-plus/route_tag_e2e_test.go — 3 tests, 5 sub-tests for /healthz, /api/{rest...}, /rest/v1/, /graphql, /ui/{rest...}) + doc-comment expansion on routeTagMiddleware documenting WHY the middleware exists despite otelhttp v0.68.0 emitting http.route natively (intervening r.WithContext middleware hides r.Pattern from otelhttp's local r). No body change. No new instrumentation library. OBS-04-INVESTIGATION.md captures the full evidence trail with otelhttp v0.68.0 source-line citations. Plan 75-03 deviations: 3 transient diagnostic auto-fixes (slog.LevelDebug bumped to LevelInfo, sync_status pre-seeded to bypass readiness gate, transient zzz_metric_probe_test.go for direct metric-record verification) — all reverted before commit.
 
 Plan 75-01 deviations: 1 lint auto-fix (revive package-comments detached) folded into GREEN commit; 1 stale acceptance baseline (`os.Exit(1)` count `<=12` was based on 11+1; actual file has 13+1=14 — structural intent preserved, recorded as patterns-established note for future plans to use structural rather than count-equality assertions).
 
