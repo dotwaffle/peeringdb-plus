@@ -116,8 +116,9 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   2. Production Loki log volume is measurably down (or qualitatively cleaner) post-merge — operator can grep for "WARN" in a 24h window without per-redaction or per-step-progress noise
   3. Empirical Tempo inspection of normal-traffic traces shows max per-trace size <2 MB; the FK-orphan WARN-spam regression mode that breached 7.5 MB is confirmed not present
   4. `OTEL_BSP_SCHEDULE_DELAY=5s` and `OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512` are confirmed appropriate for current cardinality (or adjusted with documented justification); sampling ratio remains at 1.0 unless cardinality requires reduction
-**Plans** (1 plan, Wave 1 — task ordering inside the plan: Task 1 RED test → Task 2 GREEN JSON edits → Task 3 OBS-05 manual confirm):
-- [ ] 76-01-PLAN.md — OBS-03 service_name filter sweep on 5 go_* panels + $service template var + new TestDashboard_GoMetricsFilterByService invariant; OBS-05 live Prom confirm-only per D-02
+**Plans** (2 plans across 2 waves — 77-02 depends on 77-01 because both edit AUDIT.md):
+- [ ] 77-01-PLAN.md — Wave 1 — OBS-06: Loki log-level audit (operator-driven Grafana MCP sample) + slog level changes inline (per-step sync INFO→DEBUG, /readyz pre-first-sync WARN→DEBUG, security signals KEEP); produces AUDIT.md
+- [ ] 77-02-PLAN.md — Wave 2 — OBS-07: Tempo audit appendix to AUDIT.md + new internal/otel/sampler.go perRouteSampler wired through sdktrace.ParentBased; docs/ARCHITECTURE.md gains Sampling Matrix subsection
 
 ### Phase 78: UAT Closeout
 **Goal**: All three v1.13 / v1.5 outstanding human-verification items are signed off against live production and recorded; no stale deferred-items pointers remain in the planning tree.
