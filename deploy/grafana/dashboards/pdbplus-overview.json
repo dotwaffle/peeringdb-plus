@@ -97,6 +97,32 @@
         "type": "datasource"
       },
       {
+        "current": {
+          "selected": false,
+          "text": "peeringdb-plus",
+          "value": "peeringdb-plus"
+        },
+        "datasource": {
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(service_name)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Service",
+        "multi": false,
+        "name": "service",
+        "options": [],
+        "query": {
+          "query": "label_values(service_name)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
         "current": {},
         "datasource": {
           "uid": "${datasource}"
@@ -1367,7 +1393,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_goroutine_count)",
+              "expr": "sum by(instance)(go_goroutine_count{service_name=\"$service\"})",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -1441,7 +1467,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_memory_used_bytes)",
+              "expr": "sum by(instance)(go_memory_used_bytes{service_name=\"$service\"})",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -1515,7 +1541,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(rate(go_memory_allocated_bytes_total[$__rate_interval]))",
+              "expr": "sum by(instance)(rate(go_memory_allocated_bytes_total{service_name=\"$service\"}[$__rate_interval]))",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -1589,7 +1615,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_memory_gc_goal_bytes)",
+              "expr": "sum by(instance)(go_memory_gc_goal_bytes{service_name=\"$service\"})",
               "legendFormat": "{{instance}}",
               "refId": "A"
             }
@@ -2043,7 +2069,7 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum by (service_namespace, cloud_region) (go_memory_used_bytes{service_name=\"peeringdb-plus\", service_namespace=~\"$process_group\"})",
+          "expr": "sum by (service_namespace, cloud_region) (go_memory_used_bytes{service_name=\"$service\", service_namespace=~\"$process_group\"})",
           "legendFormat": "{{service_namespace}}/{{cloud_region}}",
           "refId": "A"
         }
