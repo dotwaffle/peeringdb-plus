@@ -260,15 +260,38 @@ func main() {
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IsPrimary: isPrimaryFn,
 		SyncMode:  cfg.SyncMode,
-		OnSyncComplete: func(counts map[string]int, syncTime time.Time) {
-			m := make(map[string]int64, len(counts))
-			for k, v := range counts {
-				m[k] = int64(v)
+		OnSyncComplete: func(ctx context.Context, syncTime time.Time) {
+			// Quick task 260427-ojm: refresh the gauge cache from live
+			// row counts instead of the per-cycle upsert deltas the
+			// callback used to receive. The old shape under-counted
+			// every type after incremental syncs (delta != total) and
+			// always under-counted Poc by however many visible="Users"
+			// rows existed (the upsert-side count was raw but the
+			// gauge cache was previously primed from a TierPublic
+			// Count(ctx) at startup, so the two values flipped between
+			// "filtered" and "raw" — hence "doubling-halving").
+			//
+			// InitialObjectCounts elevates to TierUsers internally so
+			// Poc rows with visible="Users" are included.
+			//
+			// Failure mode: log+skip the cache update. Keeping the
+			// previous value renders the dashboard with a stale (but
+			// correct) total rather than a flat-zero, which would
+			// trigger ops alerts that aren't actually fires.
+			counts, err := pdbsync.InitialObjectCounts(ctx, entClient)
+			if err != nil {
+				logger.LogAttrs(ctx, slog.LevelWarn,
+					"failed to refresh object counts after sync",
+					slog.Any("error", err))
+			} else {
+				objectCountCache.Store(&counts)
 			}
-			objectCountCache.Store(&m)
 			// PERF-07: swap the cached ETag using the exact completion
 			// timestamp the worker persisted to sync_status. One SHA-256
-			// per sync, zero per request.
+			// per sync, zero per request. Kept outside the err branch
+			// because ETag freshness is decoupled from gauge cache —
+			// even if InitialObjectCounts fails the sync itself
+			// succeeded.
 			cachingState.UpdateETag(syncTime)
 		},
 		SyncMemoryLimit: cfg.SyncMemoryLimit,
