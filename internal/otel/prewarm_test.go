@@ -10,6 +10,12 @@ func TestPrewarmCounters_NoError(t *testing.T) {
 	// InitMetrics(). Calling on nil counters panics — this test locks
 	// the contract that InitMetrics() must run first AND that a clean
 	// post-InitMetrics call doesn't error.
+	//
+	// Match the package-wide convention (see internal/otel/metrics_test.go:
+	// 10 occurrences) of pinning OTEL_METRICS_EXPORTER=none so InitMetrics()
+	// does not attempt to dial an OTLP endpoint via autoexport during the
+	// test — REVIEW WR-01.
+	t.Setenv("OTEL_METRICS_EXPORTER", "none")
 	if err := InitMetrics(); err != nil {
 		t.Fatalf("InitMetrics: %v", err)
 	}
