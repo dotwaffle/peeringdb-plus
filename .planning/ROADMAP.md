@@ -128,9 +128,10 @@ All shipped milestones are summarised in [MILESTONES.md](./MILESTONES.md). Per-m
   1. With `PDBPLUS_CSP_ENFORCE=true` set on the live `peeringdb-plus.fly.dev` deployment, Chrome DevTools shows zero CSP violation reports against `/ui/`, `/ui/asn/13335`, and `/ui/compare`; a `UAT-RESULTS.md` artefact under the phase directory records the human-runtime check (including the Tailwind v4 JIT runtime confirmation that was the original Phase 52 concern)
   2. `curl -I https://peeringdb-plus.fly.dev/{ui,api/net,rest/v1/networks}` confirms `Strict-Transport-Security`, `X-Frame-Options`, and `X-Content-Type-Options` headers per the v1.13 Phase 53 scope; the 2 MB body cap blocks oversize POSTs on REST/pdbcompat surfaces while gRPC/ConnectRPC streams pass through; a slowloris TCP slow-write smoke test does not exhaust the connection pool
   3. `.planning/milestones/v1.5-phases/20-deferred-human-verification/` is relocated to the consumed-style archive (matching the seed convention); STATE.md "Outstanding Human Verification" section is updated to reflect closure of all three UAT items; the v1.13 phase 52 + 53 deferred-items entries are flipped to resolved
-**Plans** (1 plan, Wave 1 — task ordering inside the plan: Task 1 RED test → Task 2 GREEN JSON edits → Task 3 OBS-05 manual confirm):
-- [ ] 76-01-PLAN.md — OBS-03 service_name filter sweep on 5 go_* panels + $service template var + new TestDashboard_GoMetricsFilterByService invariant; OBS-05 live Prom confirm-only per D-02
-**UI hint**: yes
+**Plans** (3 plans across 2 waves):
+- [ ] 78-01-PLAN.md — Wave 1 — UAT-02: Claude-driven curl headers + body cap + slowloris probe against peeringdb-plus.fly.dev; new cmd/peeringdb-plus/security_e2e_test.go regression lock; UAT-RESULTS.md ## UAT-02 evidence (per D-01 hybrid split)
+- [ ] 78-02-PLAN.md — Wave 2 — UAT-01: produce DevTools step-list in UAT-RESULTS.md ## UAT-01; operator checkpoint runs Chrome DevTools CSP enforcement check on /ui/, /ui/asn/13335, /ui/compare with PDBPLUS_CSP_ENFORCE=true Fly secret; verdict captured (depends on 78-01 — both edit UAT-RESULTS.md)
+- [ ] 78-03-PLAN.md — Wave 1 — UAT-03: git mv .planning/milestones/v1.5-phases/20-deferred-human-verification/ to .archived/ sibling; STATE.md outstanding-verification update; incidental 2 MB→1 MB body-cap doc drift fix (per D-02 — no re-verification of the 26 items)
 
 ## Backlog
 
