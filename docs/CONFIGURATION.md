@@ -9,10 +9,10 @@ configuration is treated as immutable after `config.Load()` returns
 
 The authoritative loader is `internal/config/config.go` (function `Load`,
 struct `Config`). Values not parsed there — most notably the OpenTelemetry
-exporter selection and the LiteFS/Fly.io attribution variables — are
-consumed directly by `internal/otel/provider.go`,
-`internal/litefs/primary.go`, or the `autoexport` SDK package and are
-documented in their own sections below.
+exporter selection, the `PDBPLUS_LOG_LEVEL` filter, and the LiteFS/Fly.io
+attribution variables — are consumed directly by `internal/otel/provider.go`,
+`internal/otel/logger.go`, `internal/litefs/primary.go`, or the `autoexport`
+SDK package and are documented in their own sections below.
 
 ## Environment Variables
 
@@ -25,7 +25,7 @@ documented in their own sections below.
 | `PDBPLUS_DB_PATH` | No | `./peeringdb-plus.db` | path | SQLite database file path. Empty string is rejected at startup. In production (Fly.io) this is set to `/litefs/peeringdb-plus.db` via `fly.toml`. |
 | `PDBPLUS_PEERINGDB_URL` | No | `https://api.peeringdb.com` | URL | PeeringDB API base URL. Must use `https://`, or `http://` against loopback (`localhost`, `127.0.0.1`, `::1`) or RFC 1918 private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Other `http://` hosts and any non-http(s) scheme are rejected at startup. |
 | `PDBPLUS_PEERINGDB_API_KEY` | No | (empty) | secret | **Recommended.** Optional PeeringDB API key. Empty value means unauthenticated requests. Also read directly by the `pdbcompat-check` CLI and the live conformance / client tests. See [Privacy & Tiers](#privacy--tiers) for the operational implication. |
-| `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values: `public` (default — anonymous callers see only rows with `visible="Public"`), `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too; logged with WARN at startup). See [Privacy & Tiers](#privacy--tiers). |
+| `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values are case-sensitive lowercase only: `public` (default — anonymous callers see only rows with `visible="Public"`) or `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too; the application logs `slog.Warn("public tier override active", …)` at startup). Any other value (including case variants like `Users` / `PUBLIC` and whitespace-padded forms) is rejected at startup per GO-CFG-1 — the strict switch is a fail-safe-closed choice so a typo cannot silently default to either tier. See [Privacy & Tiers](#privacy--tiers). |
 | `PDBPLUS_CORS_ORIGINS` | No | `*` | string | Comma-separated list of allowed CORS origins. |
 | `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only` — enforcement is opt-in per deploy through v1.13 (SEC-07 rollout). |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown drain timeout. Must be greater than 0. |
@@ -69,9 +69,9 @@ line (`sync interval configured`) — the API key itself is never logged.
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
 | `PDBPLUS_OTEL_SAMPLE_RATE` | No | `1.0` | float | Trace sampling ratio passed to `sdktrace.TraceIDRatioBased`. Must be in the inclusive range `[0.0, 1.0]`. Values outside this range are rejected at startup. |
-| `PDBPLUS_LOG_LEVEL` | No | `INFO` | enum | Minimum severity for log records shipped via the OTel logging pipeline (and from there to Loki). Accepted values (case-insensitive): `DEBUG`, `INFO`, `WARN`, `ERROR`. The stdout (Fly log) handler is independently gated at INFO and is not affected by this variable. Default `INFO` was chosen so DEBUG records remain local for opt-in debugging without polluting production Loki ingestion volume — Phase 77 OBS-06 audit found 52 DEBUG records / 30 min / 8 machines reaching Loki under the prior unfiltered configuration. Invalid values fall back to `INFO` with no error (logging-level config is operator-friendly; CLAUDE.md GO-CFG-1 normally prefers fail-fast, but a malformed log level should not take production down). Consumed by `internal/otel/logger.go` `otelLevelFromEnv()`. |
-| `PDBPLUS_HEAP_WARN_MIB` | No | `400` | integer (MiB) | Peak Go heap (MiB) threshold checked at end of every sync cycle. When `runtime.MemStats.HeapInuse` exceeds this value, the worker emits `slog.Warn("heap threshold crossed", …)` with typed attrs (`peak_heap_bytes`, `heap_warn_bytes`, `heap_over`, etc.). The OTel span attribute `pdbplus.sync.peak_heap_bytes` (Prometheus gauge `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless. `0` disables the warn. Sustained breach across multiple cycles re-fires the SEED-001 trigger (revisit incremental-sync defaults / phase planning). Default sits comfortably under the 512 MB Fly VM cap so the failure order is `log → app crash → Fly OOM-kill`. Observed v1.17.0 baseline (2026-04-17): primary peak ~84 MiB, replicas 58–59 MiB — ~4.5× headroom. |
-| `PDBPLUS_RSS_WARN_MIB` | No | `384` | integer (MiB) | Peak OS RSS (MiB) threshold derived from `/proc/self/status` `VmHWM` (Linux only). Same warn semantics as `PDBPLUS_HEAP_WARN_MIB`. The OTel span attr `pdbplus.sync.peak_rss_bytes` (Prometheus gauge `pdbplus_sync_peak_rss_bytes`) is omitted on non-Linux platforms (RSS not available). `0` disables the warn. |
+| `PDBPLUS_LOG_LEVEL` | No | `INFO` | enum | Minimum severity for log records shipped via the OTel logging pipeline (and from there to Loki). Accepted values (case-insensitive, parsed via `slog.Level.UnmarshalText`): `DEBUG`, `INFO`, `WARN`, `ERROR`. The stdout (Fly log) handler is independently gated at INFO and is not affected by this variable. Default `INFO` was chosen so DEBUG records remain local for opt-in debugging without polluting production Loki ingestion volume — Phase 77 OBS-06 audit found 52 DEBUG records / 30 min / 8 machines reaching Loki under the prior unfiltered configuration. Invalid values fall back to `INFO` with no error (logging-level config is operator-friendly; CLAUDE.md GO-CFG-1 normally prefers fail-fast, but a malformed log level should not take production down). Consumed by `internal/otel/logger.go` `otelLevelFromEnv()` — not parsed by `internal/config`. |
+| `PDBPLUS_HEAP_WARN_MIB` | No | `400` | integer (MiB) | Peak Go heap (MiB) threshold checked at end of every sync cycle. When `runtime.MemStats.HeapInuse` exceeds this value, the worker emits `slog.Warn("heap threshold crossed", …)` with typed attrs (`peak_heap_bytes`, `heap_warn_bytes`, `heap_over`, etc.). The OTel span attribute `pdbplus.sync.peak_heap_bytes` (Prometheus gauge `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless. `0` disables the warn. Sustained breach across multiple cycles re-fires the SEED-001 trigger (revisit incremental-sync defaults / phase planning). Default sits comfortably under the 512 MB Fly VM cap so the failure order is `log → app crash → Fly OOM-kill`. Observed v1.17.0 baseline (2026-04-17): primary peak ~84 MiB, replicas 58–59 MiB — ~4.5× headroom. **Bare integer only** — no unit suffix (the variable name encodes the unit); `400MB` is rejected. Negative values are rejected at startup. |
+| `PDBPLUS_RSS_WARN_MIB` | No | `384` | integer (MiB) | Peak OS RSS (MiB) threshold derived from `/proc/self/status` `VmHWM` (Linux only). Same warn semantics as `PDBPLUS_HEAP_WARN_MIB`. The OTel span attr `pdbplus.sync.peak_rss_bytes` (Prometheus gauge `pdbplus_sync_peak_rss_bytes`) is omitted on non-Linux platforms (RSS not available). `0` disables the warn. Bare integer only — no unit suffix. |
 
 ### LiteFS / Primary Detection
 
@@ -86,14 +86,23 @@ read at startup by `internal/otel/provider.go` and by the `/sync`
 write-forwarding handler in `cmd/peeringdb-plus/main.go`, but are never
 loaded via `internal/config`. The application never sets them itself.
 
-| Variable | Consumed by | Purpose |
-|----------|-------------|---------|
-| `FLY_REGION` | OTel resource (`fly.region`); `POST /sync` handler | Determines whether the node is running on Fly.io. When set on a replica, `POST /sync` returns a `fly-replay: region=${PRIMARY_REGION}` header with HTTP 307 to forward writes to the primary region. |
-| `FLY_MACHINE_ID` | OTel resource (`fly.machine_id`, traces and logs only) | Per-VM attribution for traces and logs. **Deliberately omitted from the metric resource** to keep cardinality low. |
-| `FLY_APP_NAME` | OTel resource (`fly.app_name`); `litefs.yml` | Fly application name. |
-| `PRIMARY_REGION` | `POST /sync` handler; `litefs.yml` lease candidacy | Three-letter Fly region designated as the LiteFS primary candidate. `fly.toml` sets this to `lhr`. <!-- VERIFY: PRIMARY_REGION is fixed at lhr per fly.toml; any override must be reconciled with LiteFS lease configuration --> |
-| `FLY_CONSUL_URL` | `litefs.yml` Consul lease backend | Consul URL used by LiteFS for leader election. Injected by `fly consul attach`. <!-- VERIFY: FLY_CONSUL_URL is provisioned out-of-band via fly consul attach --> |
-| `HOSTNAME` | `litefs.yml` advertise URL | Used to build the LiteFS advertise URL `http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202`. |
+The OTel resource attributes emitted by `buildResourceFiltered` use OTel
+semconv keys (not custom `fly.*` keys) for everything except `fly.app_name`,
+because Grafana Cloud's hosted OTLP receiver only promotes a small allowlist
+of resource attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`,
+`k8s.*`); custom `fly.*` keys are silently dropped on the metrics path.
+
+| Env var | Resource attr (semconv) | On metrics? | On traces/logs? | Consumer |
+|---------|-------------------------|-------------|-----------------|----------|
+| `FLY_REGION` | `cloud.region` (`semconv.CloudRegion`) | yes | yes | OTel resource; `POST /sync` handler — when set on a replica, returns `fly-replay: region=${PRIMARY_REGION}` HTTP 307 to forward writes to the primary region. |
+| `FLY_PROCESS_GROUP` | `service.namespace` (`semconv.ServiceNamespace`) | yes | yes | OTel resource. 2-cardinality: `primary` / `replica`. Drives the dashboard's `process_group` template variable. |
+| `FLY_MACHINE_ID` | `service.instance.id` (`semconv.ServiceInstanceID`) | **no** (per-VM cardinality stripped) | yes | OTel resource (traces and logs only). Deliberately omitted from the metric resource via the `includeInstanceID` gate to keep cardinality low. |
+| `FLY_APP_NAME` | `fly.app_name` (custom key) | dropped by Grafana Cloud allowlist | yes (human grep) | OTel resource; `litefs.yml` substitution. |
+| (constant) | `cloud.provider="fly_io"` (`semconv.CloudProviderKey`) | yes | yes | Always-on, 1-cardinality. |
+| (constant) | `cloud.platform="fly_io_apps"` (`semconv.CloudPlatformKey`) | yes | yes | Always-on, 1-cardinality. |
+| `PRIMARY_REGION` | (not a resource attr) | — | — | `POST /sync` handler; `litefs.yml` lease candidacy. Three-letter Fly region designated as the LiteFS primary candidate. `fly.toml` sets this to `lhr`. <!-- VERIFY: PRIMARY_REGION is fixed at lhr per fly.toml; any override must be reconciled with LiteFS lease configuration --> |
+| `FLY_CONSUL_URL` | (not a resource attr) | — | — | `litefs.yml` Consul lease backend. Injected by `fly consul attach`. <!-- VERIFY: FLY_CONSUL_URL is provisioned out-of-band via fly consul attach --> |
+| `HOSTNAME` | (not a resource attr) | — | — | `litefs.yml` advertise URL `http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202`. |
 
 ### Standard OpenTelemetry Variables (autoexport)
 
@@ -168,8 +177,8 @@ recommended production configuration (see
 Setting `PDBPLUS_PUBLIC_TIER=users` elevates anonymous callers to Users-tier
 for private-instance deployments where the mirror is not reachable from the
 public internet. In this mode the privacy policy admits `Users`-tier rows for
-anonymous callers. Startup logs a WARN line naming the override so the
-elevated default is never silent; the OTel attribute
+anonymous callers. Startup logs `slog.Warn("public tier override active", …)`
+naming the override so the elevated default is never silent; the OTel attribute
 `pdbplus.privacy.tier=users` also appears on read spans.
 
 Only use this for deployments you would not want indexed by a search engine.
@@ -207,9 +216,17 @@ Validation errors (which do abort startup) are produced for:
 | `PDBPLUS_LISTEN_ADDR` | Contains `:` | `PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')` |
 | `PDBPLUS_PEERINGDB_URL` | Non-empty; `https://` always allowed; `http://` only to loopback or RFC 1918; scheme must be set; host must be set | Multiple messages, one per rejection class (empty, missing scheme, unsupported scheme, empty host, non-local `http://`). |
 | `PDBPLUS_DRAIN_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_DRAIN_TIMEOUT must be greater than 0` |
+| `PDBPLUS_PUBLIC_TIER` | Case-sensitive lowercase `public` or `users` only; any other value (including `Users`, `PUBLIC`, whitespace-padded forms) rejected | `invalid value %q for PDBPLUS_PUBLIC_TIER: must be 'public' or 'users'` |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
 | `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_RESPONSE_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
+| `PDBPLUS_HEAP_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `400MB` rejected | `PDBPLUS_HEAP_WARN_MIB must be non-negative (0 = disabled)`, plus parse-level messages. |
+| `PDBPLUS_RSS_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `384MB` rejected | `PDBPLUS_RSS_WARN_MIB must be non-negative (0 = disabled)`, plus parse-level messages. |
 | `PDBPLUS_SYNC_MODE` | Must be `full` or `incremental` | `invalid sync mode %q for PDBPLUS_SYNC_MODE: must be 'full' or 'incremental'` |
+
+`PDBPLUS_LOG_LEVEL` is **not** in this table by design — invalid values fall
+back to `INFO` rather than aborting startup, because a malformed log-level
+string is operator-friendly and should not take production down (Phase 77
+OBS-06 explicit deviation from GO-CFG-1).
 
 Duration-typed variables accept any value parseable by
 [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) (e.g., `500ms`,
@@ -228,6 +245,10 @@ fallbacks rather than startup validation:
   silently treated as `true` (primary) for safety. The variable is consulted
   only when neither `/litefs/.primary` nor the `/litefs/` directory is
   present, so on Fly.io it is effectively ignored.
+- **`PDBPLUS_LOG_LEVEL`** — Parsed once at logger construction by
+  `internal/otel/logger.go` `otelLevelFromEnv()`. Invalid values silently
+  default to `INFO` (operator-friendly fallback, intentional deviation from
+  GO-CFG-1). Changes take effect only on next startup.
 - **`FLY_REGION` / `PRIMARY_REGION`** — Read per-request inside the
   `POST /sync` handler. Empty `FLY_REGION` indicates local development; an
   empty `PRIMARY_REGION` produces a `fly-replay: region=` header (behaviour
@@ -251,9 +272,10 @@ language-level environment manager. Environment values are supplied by:
   production values come from Fly.io.
 - **Fly.io production** — The `[env]` block of `fly.toml` sets
   `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`, and `PRIMARY_REGION`.
-  `FLY_REGION`, `FLY_MACHINE_ID`, `FLY_APP_NAME`, and `FLY_CONSUL_URL` are
-  injected by the Fly.io runtime. Secrets such as `PDBPLUS_SYNC_TOKEN` and
-  `PDBPLUS_PEERINGDB_API_KEY` are managed with `fly secrets set`.
+  `FLY_REGION`, `FLY_PROCESS_GROUP`, `FLY_MACHINE_ID`, `FLY_APP_NAME`, and
+  `FLY_CONSUL_URL` are injected by the Fly.io runtime. Secrets such as
+  `PDBPLUS_SYNC_TOKEN` and `PDBPLUS_PEERINGDB_API_KEY` are managed with
+  `fly secrets set`.
   <!-- VERIFY: Production secret names (PDBPLUS_SYNC_TOKEN, PDBPLUS_PEERINGDB_API_KEY) are configured via `fly secrets set` for app `peeringdb-plus` — this cannot be inferred from the repository alone -->
 - **OpenTelemetry collector endpoint** — Set at deploy time through
   `fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=...` (or the individual
@@ -262,6 +284,7 @@ language-level environment manager. Environment values are supplied by:
 ## Related Documentation
 
 - `internal/config/config.go` — authoritative loader and validator.
-- `internal/otel/provider.go` — OTel pipeline setup and metric views.
+- `internal/otel/provider.go` — OTel pipeline setup, resource attribute mapping, and metric views.
+- `internal/otel/logger.go` — `PDBPLUS_LOG_LEVEL` parser and OTel log handler filter.
 - `internal/litefs/primary.go` — primary detection and env fallback.
 - `fly.toml`, `litefs.yml`, `Dockerfile.prod` — deployment manifests.

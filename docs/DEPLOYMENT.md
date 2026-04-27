@@ -3,10 +3,10 @@
 
 PeeringDB Plus is designed to be deployed to [Fly.io](https://fly.io/) with
 [LiteFS](https://fly.io/docs/litefs/) providing edge-local SQLite replication.
-The production topology is a small fleet of Fly machines in one or more
-regions, with a single Consul-elected LiteFS primary handling the sync worker's
-writes and all other machines serving read-only traffic from a local FUSE
-mount.
+The production topology is an [asymmetric fleet](#asymmetric-fleet): one
+Consul-elected LiteFS primary in `lhr` (persistent volume, runs the sync
+worker) and a set of ephemeral, read-only replicas in other regions that
+cold-sync from the primary on boot.
 
 ## Deployment targets
 
@@ -17,15 +17,20 @@ mount.
 
 - `fly.toml` — app (`peeringdb-plus`), primary region (`lhr`), rolling deploy
   strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases,
-  512 MB `shared-cpu-2x` machines, a 1 GB auto-extending `litefs_data`
-  volume mounted at `/var/lib/litefs`, and an HTTP health check on
-  `GET /healthz` every 15s.
+  two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]`
+  blocks (`shared-cpu-2x` / 512 MB for `primary`, `shared-cpu-1x` / 256 MB
+  for `replica`), a 1 GB auto-extending `litefs_data` volume mounted at
+  `/var/lib/litefs` **scoped to `processes = ["primary"]`** (replicas have
+  no volume), and an HTTP health check on `GET /healthz` every 15s.
 - `Dockerfile.prod` — LiteFS-aware production image. Chainguard
-  `glibc-dynamic` runtime with `fuse3` installed, copies the LiteFS 0.5
-  binary from `flyio/litefs:0.5`, copies `litefs.yml` to `/etc/litefs.yml`,
-  creates the `/litefs` mount point, and sets `ENTRYPOINT ["litefs", "mount"]`.
-  The application binary is built with `CGO_ENABLED` unset (pure Go via
-  `modernc.org/sqlite`) and `-trimpath -ldflags="-s -w"`.
+  `glibc-dynamic` runtime with `fuse3` and `sqlite` (CLI for incident
+  response — see [Incident-response debug shell](#sync-memory-watch-seed-001))
+  installed, copies the LiteFS 0.5 binary from `flyio/litefs:0.5`, copies
+  `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point, and
+  sets `ENTRYPOINT ["litefs", "mount"]`. The application binary is built
+  with `CGO_ENABLED` unset (pure Go via `modernc.org/sqlite`) and
+  `-trimpath -ldflags="-s -w …"` (the version string is injected via
+  `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
 - `Dockerfile` — development image. Chainguard `glibc-dynamic` runtime, same
   build flags but with `CGO_ENABLED=0` explicitly set. No LiteFS. Runs the
   binary directly as `ENTRYPOINT ["/usr/local/bin/peeringdb-plus"]` with
@@ -146,11 +151,17 @@ Standard `OTEL_*` environment variables apply via the
 `go.opentelemetry.io/contrib/exporters/autoexport` package used in
 `internal/otel/provider.go`. See [Monitoring](#monitoring) below.
 
+The default sync mode is `incremental` (flipped from `full` on 2026-04-26
+post-SEED-001 — see [CONFIGURATION.md](CONFIGURATION.md#sync-mode) for the
+full rationale). Set `PDBPLUS_SYNC_MODE=full` only as an operator
+escape-hatch (first-sync hydration, recovery from a corrupt incremental
+state).
+
 ## LiteFS
 
 LiteFS is in maintenance mode — stable but no longer actively supported by
 Fly.io. There is no drop-in alternative for edge SQLite replication, so the
-project continues to use it.
+project continues to use it. <!-- VERIFY: LiteFS Cloud subscription / hosted-control-plane state for this deployment is not encoded in the repository -->
 
 - **FUSE mount.** `Dockerfile.prod`'s entrypoint is `litefs mount`, which
   starts the LiteFS FUSE process, mounts the database directory at
@@ -163,12 +174,14 @@ project continues to use it.
   and uses `${FLY_CONSUL_URL}` as the backend. Only machines in
   `PRIMARY_REGION` are lease candidates (`candidate: ${FLY_REGION == PRIMARY_REGION}`).
 - **Replication state volume.** A 1 GB `litefs_data` volume is mounted at
-  `/var/lib/litefs` per `fly.toml`'s `[mounts]` block, auto-extending up to
-  10 GB when 80 percent full.
+  `/var/lib/litefs` per `fly.toml`'s `[[mounts]]` block, auto-extending up
+  to 10 GB when 80 percent full. The mount is scoped to
+  `processes = ["primary"]` — replicas have no volume and cold-sync to
+  ephemeral rootfs.
 - **Direct HTTP on :8080 with h2c.** The LiteFS proxy is intentionally not
   used; the app serves traffic directly on port 8080 with HTTP/2 cleartext
-  so that gRPC/ConnectRPC requests work end-to-end (the LiteFS proxy does
-  not support HTTP/2 for gRPC). `fly.toml` enables
+  so that gRPC/ConnectRPC streaming requests work end-to-end (the LiteFS
+  proxy does not support HTTP/2 for gRPC). `fly.toml` enables
   `[http_service.http_options] h2_backend = true` so the Fly edge talks
   h2c to the backend.
 - **Inverted `.primary` file semantics.** The file at `/litefs/.primary`
@@ -194,26 +207,25 @@ completes. The `grace_period = "30s"` on the `/healthz` check in `fly.toml`
 is sized to accommodate this.
 
 `fly.toml` sets `strategy = "rolling"` with `max_unavailable = 0.5`, which
-replaces roughly half the fleet at a time (approximately four machines out
-of nine in the tuned production topology). Blue-green deploys are not
+replaces roughly half the fleet at a time. <!-- VERIFY: exact production fleet size (currently documented as 1 primary + 7 replicas) is not encoded in fly.toml — counts are managed via `fly scale count` against the live app --> Blue-green deploys are not
 usable here because running two parallel fleets would conflict with the
 LiteFS + Consul primary election.
 
 ## Asymmetric fleet
 
 As of v1.15 (Phase 65), the fleet is split into two Fly process groups
-with different VM sizing and mount policies:
+with different VM sizing and mount policies (declared in `fly.toml`'s
+`[processes]` and per-group `[[vm]]` blocks):
 
 - **`primary` group** — 1 machine in `lhr`, `shared-cpu-2x` / 512 MB,
   persistent `litefs_data` volume mounted at `/var/lib/litefs`. Runs the
   sync worker, holds the LiteFS Consul lease, source of LiteFS HTTP
   replication.
-- **`replica` group** — 7 machines (iad, nrt, syd, lax, jnb, sin, gru),
-  `shared-cpu-1x` / 256 MB, **no persistent volume** (ephemeral rootfs).
-  On boot, LiteFS cold-syncs the 88 MB database from the primary via
-  HTTP. Typical hydration window is 5-45 seconds per region; `/readyz`
-  returns 503 during this window so Fly Proxy routes around the machine
-  until it is ready.
+- **`replica` group** — read-only edge machines, `shared-cpu-1x` / 256 MB,
+  **no persistent volume** (ephemeral rootfs). On boot, LiteFS cold-syncs
+  the database from the primary via HTTP. `/readyz` returns 503 during
+  this hydration window so Fly Proxy routes around the machine until it
+  is ready. <!-- VERIFY: current replica count and region list (documented as 7 machines: iad, nrt, syd, lax, jnb, sin, gru) is managed via `fly scale count --region <r>` and is not encoded in fly.toml -->
 
 **Volume-only-on-primary contract:** `[[mounts]]` in `fly.toml` is
 scoped to `processes = ["primary"]`. Only the LHR primary machine has a
@@ -222,13 +234,15 @@ mount. Replica machines are cattle — a damaged replica is recovered by
 schedules has no volume concern, cold-syncs from the primary, and
 becomes live when `/readyz` flips to 200.
 
-**Replica cold-sync expectations:**
+**Replica cold-sync expectations:** <!-- VERIFY: hydration windows below are observed values from the v1.15 rollout, not encoded in the repository -->
 
 | Region | Expected hydration | Notes |
 |--------|--------------------|-------|
 | iad, lax | 5-15s | Low-latency path to LHR |
 | nrt, sin | 15-30s | Transpacific |
 | syd, gru, jnb | 30-45s | Furthest edges; long-haul to LHR |
+
+Typical hydration window is 5-45 seconds per region. <!-- VERIFY: current production database size (documented as ~88 MB) is observed at runtime and not encoded in the repository -->
 
 If a replica stays on 503 >5 minutes with logs showing successful DB
 pings, the `sync_status` row (replicated from the primary via LiteFS
@@ -243,7 +257,7 @@ it runs the sync worker whose memory profile was characterised in v1.13
 and v1.14.
 
 **Cost:** Asymmetric fleet is ~$20.75/mo vs the previous uniform
-~$57.20/mo — saves ~$36/mo. Real win is operational simplicity (no
+~$57.20/mo — saves ~$36/mo. <!-- VERIFY: monthly cost figures depend on Fly.io's current billing tiers and observed traffic volume — not derivable from the repository --> Real win is operational simplicity (no
 replica-volume orphans, destroy-and-recreate recovery in seconds).
 
 ## Regional rollout
@@ -253,21 +267,22 @@ replicas. To add a region:
 
 ```bash
 fly regions add <region>
-fly scale count <n> --region <region>
+fly scale count <n> --process-group replica --region <region>
 ```
 
-To scale the total fleet size (for example, to grow the `lhr` fleet):
+To scale total fleet size (per process group):
 
 ```bash
-fly scale count <n>                 # total machines across all regions
-fly scale count <n> --region lhr    # regional scale
-fly scale vm shared-cpu-2x --memory 512   # resize (matches fly.toml defaults)
+fly scale count <n> --process-group replica           # total replica machines across regions
+fly scale count <n> --process-group replica --region lhr   # regional scale
+fly scale vm shared-cpu-1x --memory 256 --process-group replica   # resize replica group
+fly scale vm shared-cpu-2x --memory 512 --process-group primary   # resize primary group (matches fly.toml defaults)
 ```
 
 Only machines in `PRIMARY_REGION=lhr` are eligible to hold the LiteFS
-write lease, so scaling the primary region higher than one replica
-increases primary-election redundancy but does not add write capacity
-(LiteFS is single-writer).
+write lease, so the primary group is sized at exactly 1 — running multiple
+primary candidates wastes the persistent volume on the standby and does
+not add write capacity (LiteFS is single-writer).
 
 ## Monitoring
 
@@ -288,23 +303,26 @@ environment variables documented at
 
 A Grafana dashboard is provided in `deploy/grafana/dashboards/pdbplus-overview.json`
 with a provisioning manifest at `deploy/grafana/provisioning/dashboards.yaml`
-for self-hosted Grafana instances.
+for self-hosted Grafana instances. Production alert rules live in
+`deploy/grafana/alerts/pdbplus-alerts.yaml` and are applied via
+`mimirtool rules sync` (see `deploy/grafana/alerts/README.md` for the
+workflow). <!-- VERIFY: production Grafana / Mimir tenant target for `mimirtool rules sync` is operator-specific and not encoded in the repository -->
 
 ### Sync memory watch (SEED-001)
 
 Every sync cycle, the worker samples `runtime.MemStats.HeapInuse` and (on Linux) `/proc/self/status` VmHWM, attaches both as OTel span attrs (`pdbplus.sync.peak_heap_bytes`, `pdbplus.sync.peak_rss_bytes`) on the `sync-full` / `sync-incremental` span, and fires `slog.Warn("heap threshold crossed", ...)` when either breaches its configured threshold. The same values are exported as Prometheus gauges (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`) for dashboard timeseries. Bytes is the canonical Prom unit (per the 2026-04-26 audit unit canonicalisation); Grafana formats MiB / GiB at render time.
 
-Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Zero disables the warn for that metric (attrs still fire).
+Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Defaults sit under the Fly 512 MB VM cap with margin so the order under pressure is: log → app crash → Fly OOM-kill. Zero disables the warn for that metric (attrs still fire). A sustained breach of `PDBPLUS_HEAP_WARN_MIB` re-fires the SEED-001 trigger.
 
 **Dashboard.** The `Sync Memory (SEED-001 watch)` row in `deploy/grafana/dashboards/pdbplus-overview.json` contains three panels:
 
-- `Peak Heap (MiB)` — threshold line at 400
-- `Peak RSS (MiB)` — threshold line at 384
-- `Peak Heap by Process Group` — primary vs replica breakdown (post-Phase-65 asymmetric fleet)
+- `Peak Heap` — threshold line at 400 MiB (Grafana auto-formats MiB / GiB from the `bytes` field unit)
+- `Peak RSS` — threshold line at 384 MiB
+- `Live Heap by Instance` — sourced from the `go_memory_used_bytes` OTel runtime gauge, plots all fleet machines (primary + replicas) post-Phase-65 asymmetric fleet
 
-**SEED-001 escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, SEED-001 (`.planning/seeds/SEED-001-incremental-sync-evaluation.md`) trigger has fired — revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work documented in the seed. Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB.
+**SEED-001 escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, SEED-001 (`.planning/seeds/SEED-001-incremental-sync-evaluation.md`) trigger has fired — revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work documented in the seed. Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB. <!-- VERIFY: post-incremental-flip (2026-04-26) memory baseline has not yet been captured into the repository -->
 
-**Incident-response debug shell (OBS-04).** The prod image ships with the `sqlite3` binary (added 2026-04-18, quick task `260418-1cn`). Run interactive queries via:
+**Incident-response debug shell (OBS-04).** The prod image ships with the `sqlite3` binary (added 2026-04-18, quick task `260418-1cn`; declared in `Dockerfile.prod` via `apk add --no-cache fuse3 sqlite`). Run interactive queries via:
 
     fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
 
@@ -323,7 +341,9 @@ Runtime health:
 
 - `GET /healthz` — liveness probe, used by `fly.toml`'s HTTP service check.
 - `GET /readyz` — readiness probe that turns unready during graceful
-  shutdown drain (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`).
+  shutdown drain (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`) **and during
+  LiteFS cold-sync hydration on replica boot** (Phase 65) so Fly Proxy
+  routes around the machine until the database is live.
 
 ## Rollback
 
@@ -364,7 +384,7 @@ Initial setup (one-time, per app):
 ```bash
 fly apps create peeringdb-plus
 fly consul attach                                          # populates FLY_CONSUL_URL
-fly volumes create litefs_data --size 1 --region lhr       # one volume per machine
+fly volumes create litefs_data --size 1 --region lhr       # primary group only — replicas have no volume
 fly secrets set PDBPLUS_PEERINGDB_API_KEY=... PDBPLUS_SYNC_TOKEN=...
 fly deploy
 ```

@@ -59,6 +59,7 @@ Common types seen in the log: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
 Before opening a pull request, run the full local gate:
 
 ```bash
+gofmt -s -w .
 go vet ./...
 go test -race ./...
 golangci-lint run
@@ -103,6 +104,44 @@ Always commit generated output alongside the source changes that produced it (sc
 ### Lint Configuration
 
 See `.golangci.yml` for the enabled linters. Notable ones: `contextcheck`, `exhaustive`, `gocritic`, `gosec`, `misspell`, `nolintlint`, `revive`. Coverage excludes `ent/` and `gen/` (generated).
+
+## Contributor Gotchas
+
+These two pitfalls catch new contributors most often. Read both before editing schemas or anything privacy-adjacent.
+
+### Sibling-file convention for ent schemas
+
+The per-entity files in `ent/schema/{type}.go` (e.g. `network.go`, `organization.go`, `poc.go`) are **regenerated from `schema/peeringdb.json`** by `cmd/pdb-schema-generate` on every `go generate ./...` run. Anything hand-edited inside those files — `Hooks`, `Policy`, `Annotations`, `Edges`, `Mixin` — is silently stripped.
+
+The fix is architectural: keep hand-edits in **sibling files** the generator never touches. The generator only writes files named after the model type, so any sibling with an additional `_suffix` is invisible to it. ent's codegen still discovers the methods via reflection on the schema type — the file split is transparent to ent.
+
+Existing siblings to model your changes on:
+
+- `ent/schema/poc_policy.go` — `(Poc).Policy()` privacy rule
+- `ent/schema/fold_mixin.go` + `ent/schema/{type}_fold.go` — `(Entity).Mixin()` wiring for the 6 folded entities (`organization`, `network`, `facility`, `internetexchange`, `carrier`, `campus`)
+- `ent/schema/pdb_allowlists.go` — `schema.PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist`
+- `ent/schema/campus_annotations.go` — entity-level annotation overrides
+
+If you add new hand-edited methods (Hooks, Policy, Annotations, Edges, Mixin) to any generated schema file, **move them to a sibling named `{type}_{method}.go`** instead. If you don't, your changes will vanish the next time anyone runs `go generate ./...` and the CI drift check will not catch it (because the regenerated file is what gets committed).
+
+### Privacy-touching changes (`*_visible` companion fields)
+
+PeeringDB Plus enforces field-level privacy via `internal/privfield.Redact(ctx, visible, value)`. This is the **single source of truth** — every API serializer must call it for each gated field. Today there are 5 serializer surfaces, and missing **any one** of them is a privacy leak:
+
+1. `internal/pdbcompat/serializer.go` — `/api` (PeeringDB-compat surface)
+2. `internal/grpcserver/ixlan.go` — ConnectRPC / `/peeringdb.v1.*`
+3. `graph/schema.resolvers.go` — GraphQL `/graphql`
+4. `cmd/peeringdb-plus/main.go` `restFieldRedactMiddleware` — entrest `/rest/v1/`
+5. Web UI templates — `/ui/` (when/if a render path is added)
+
+If you add a new `<field>_visible` companion field to a schema:
+
+- Add the ent schema fields (`field.String` for the `_visible` column, plus the value field with `,omitempty` json tag).
+- Call `privfield.Redact` at **all five** surfaces above.
+- Update `internal/testutil/seed.Full` to seed both a gated row (e.g. `_visible=Users`) and a `Public` row.
+- Extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with matching `Redacted{Anon,UsersTier}` sub-tests plus a `fail-closed-bypass-middleware` assertion on the ConnectRPC handler.
+
+The existing `ixlan.ixf_ixp_member_list_url_visible` field is a complete worked example — grep for its uses across the 5 surfaces to see the pattern.
 
 ## Repository Layout Notes
 
