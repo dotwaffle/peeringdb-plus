@@ -2,7 +2,9 @@ package otel
 
 import (
 	"context"
+	"fmt"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -43,24 +45,58 @@ var PeeringDBEntityTypes = []string{
 // Total baseline series introduced: 52 + 2 = 54.
 //
 // MUST be called AFTER InitMetrics() has populated the counter package
-// vars — calling on nil counters will panic. The call site in
-// cmd/peeringdb-plus/main.go enforces this ordering: InitMetrics() at
-// line ~96, PrewarmCounters() after the syncWorker is constructed but
-// before StartScheduler spawns its goroutine.
+// vars. The call site in cmd/peeringdb-plus/main.go enforces this
+// ordering: InitMetrics() runs first, PrewarmCounters() runs after the
+// syncWorker is constructed but before StartScheduler spawns its
+// goroutine. If a future refactor reorders the call site, the per-counter
+// nil-guard below surfaces the misordering via otel.Handle (a
+// no-counter-pre-warm WARN in startup logs) instead of panicking on
+// counter.Add against a nil instrument. REVIEW WR-03.
 //
 // Per GO-CTX-1: ctx is the first parameter.
 // Per GO-OBS-5: attribute.String() typed-attr setter rather than raw KV.
 func PrewarmCounters(ctx context.Context) {
+	// Defensive guard: a nil counter means InitMetrics() did not run (or
+	// did not populate this var). Surface via otel.Handle so the failure
+	// is grep-able in startup logs and skip the pre-warm for that
+	// counter rather than panicking inside the OTel SDK's Add internals.
+	// REVIEW WR-03.
+	checked := []struct {
+		name string
+		c    metric.Int64Counter
+	}{
+		{"SyncTypeFallback", SyncTypeFallback},
+		{"SyncTypeFetchErrors", SyncTypeFetchErrors},
+		{"SyncTypeUpsertErrors", SyncTypeUpsertErrors},
+		{"SyncTypeDeleted", SyncTypeDeleted},
+		{"RoleTransitions", RoleTransitions},
+	}
+	for _, e := range checked {
+		if e.c == nil {
+			otel.Handle(fmt.Errorf("prewarm: counter %q is nil — InitMetrics() must run first", e.name))
+		}
+	}
+
 	for _, t := range PeeringDBEntityTypes {
 		typeAttr := metric.WithAttributes(attribute.String("type", t))
-		SyncTypeFallback.Add(ctx, 0, typeAttr)
-		SyncTypeFetchErrors.Add(ctx, 0, typeAttr)
-		SyncTypeUpsertErrors.Add(ctx, 0, typeAttr)
-		SyncTypeDeleted.Add(ctx, 0, typeAttr)
+		if SyncTypeFallback != nil {
+			SyncTypeFallback.Add(ctx, 0, typeAttr)
+		}
+		if SyncTypeFetchErrors != nil {
+			SyncTypeFetchErrors.Add(ctx, 0, typeAttr)
+		}
+		if SyncTypeUpsertErrors != nil {
+			SyncTypeUpsertErrors.Add(ctx, 0, typeAttr)
+		}
+		if SyncTypeDeleted != nil {
+			SyncTypeDeleted.Add(ctx, 0, typeAttr)
+		}
 	}
 	// RoleTransitions labels by direction, not type — match the wire
 	// shape established by internal/sync/worker.go:1634/1651.
-	for _, d := range []string{"promoted", "demoted"} {
-		RoleTransitions.Add(ctx, 0, metric.WithAttributes(attribute.String("direction", d)))
+	if RoleTransitions != nil {
+		for _, d := range []string{"promoted", "demoted"} {
+			RoleTransitions.Add(ctx, 0, metric.WithAttributes(attribute.String("direction", d)))
+		}
 	}
 }
