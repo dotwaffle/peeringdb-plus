@@ -237,6 +237,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - `PDBPLUS_RESPONSE_MEMORY_LIMIT=128MiB` — pdbcompat list pre-flight 413 budget; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected except literal `0` (disabled — dev only)
 - `PDBPLUS_SYNC_MEMORY_LIMIT=400MB` — sync-cycle peak heap ceiling; unit suffix required; `0` disables
 - `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384` — sync-cycle telemetry warn thresholds (Fly 512 MB cap; sustained breach re-fires SEED-001 trigger)
+- `PDBPLUS_LOG_LEVEL=INFO` — minimum severity for the OTel logging branch (Loki). Stdout handler stays at INFO independently. Phase 77 OBS-06 added this filter; previously the otelslog handler had no gate, so DEBUG records reached Loki unconditionally. Set `DEBUG` for opt-in deep debugging; invalid values fall back to INFO without crashing.
 - `PDBPLUS_CSP_ENFORCE=false` — defaults to report-only; flip to `true` after v1.13 UAT-01 verification
 - `PDBPLUS_PUBLIC_TIER=public` — set `users` only for private deployments (WARN at startup)
 - `PDBPLUS_IS_PRIMARY=true` — fallback primary detection when LiteFS not present
