@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.18.0
 milestone_name: Cleanup & Observability Polish
-status: verifying
-last_updated: "2026-04-27T00:02:05.306Z"
+status: paused
+last_updated: "2026-04-27T01:30:00.000Z"
 last_activity: 2026-04-27
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 8
   completed_plans: 8
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -21,25 +21,28 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
-**Current focus:** Phase 75 — Code-side Observability Fixes
+**Current focus:** v1.18.0 paused after Phase 75. 3 phases remain (76, 77, 78) + milestone lifecycle.
 
 ## Current Position
 
-Phase: 75 (Code-side Observability Fixes) — COMPLETE
-Plan: 3 of 3 — all shipped (OBS-01, OBS-02, OBS-04)
-Status: Phase complete — ready for verification
-Last activity: 2026-04-27 -- Phase 75 Plan 03 (OBS-04 http.route investigation) shipped (commits beb870d, 1734fe6)
+Milestone: v1.18.0 — half done (3/6 phases complete: 73 ✓, 74 ✓, 75 ✓).
+Status: PAUSED — user stopped autonomous run after Phase 75 to resume tomorrow.
+Last activity: 2026-04-27 -- Phase 75 code review fixes applied (commit c710ac6); awaiting Phases 76/77/78 + lifecycle.
+
+**Resume command (tomorrow):** `/gsd-autonomous --from 76` (continues with Phases 76 → 77 → 78 → audit → complete → cleanup; all CONTEXT.md already locked, no discuss needed).
+
+Alternative if you want phase-by-phase control: `/gsd-plan-phase 76` then `/gsd-execute-phase 76` then `/gsd-plan-phase 77` etc. Phase 78's UAT-01 will pause for your manual CSP DevTools step.
 
 ## v1.18.0 Phase Map
 
 | Phase | Goal | Requirements | Depends on | Status |
 |-------|------|--------------|------------|--------|
 | 73 — Code Defect Fixes | Fix campus inflection 500 + drop `poc.role` NotEmpty validator | BUG-01, BUG-02 | — | ✓ shipped 2026-04-26 |
-| 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — | Ready to plan |
-| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | ✓ Phase complete 2026-04-27 (3/3 plans shipped: OBS-01 ✓, OBS-02 ✓, OBS-04 ✓) |
-| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | Ready to plan (planning before 75 complete is OK; Phase 75 dep is soft) |
-| 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Plan after Phase 75 ships (OBS-07 needs http.route populated) |
-| 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan |
+| 74 — Test & CI Debt | Three deferred test failures + 5 lint findings cleared | TEST-01, TEST-02, TEST-03 | — | ✓ shipped 2026-04-27 (3/3 plans, 13/13 verified, 3 review warnings auto-fixed) |
+| 75 — Code-side Observability Fixes | Cold-start gauge, zero-rate counter pre-warm, http.route middleware | OBS-01, OBS-02, OBS-04 | — | ✓ shipped 2026-04-27 (3/3 plans, 10/10 codebase truths verified, human_needed for live confirmation, 4 review warnings auto-fixed) |
+| 76 — Dashboard Hardening | `service_name` filter sweep + post-canonicalisation metric flow confirmation | OBS-03, OBS-05 | Phase 75 (soft) | Ready to plan |
+| 77 — Telemetry Audit & Cleanup | Loki log-level audit + Tempo trace sampling/batching review | OBS-06, OBS-07 | Phase 75 (hard for OBS-07) | Ready to plan (Phase 75 dep satisfied — OBS-04 http.route empirically populates) |
+| 78 — UAT Closeout | v1.13 CSP + headers verification, v1.5 Phase 20 archive | UAT-01, UAT-02, UAT-03 | — | Ready to plan (UAT-01 will need your manual DevTools step) |
 
 Phase numbering continues from v1.16 (last phase 72). v1.17.0 was a release tag (quick task 260426-pms), not a milestone — no phases consumed.
 
@@ -140,7 +143,93 @@ None.
 
 ## Session Continuity
 
-**This session 2026-04-26 (Phase 73 plan→execute→verify arc):**
+**Session 2026-04-27 (continuation — Phases 74 + 75 shipped via /gsd-autonomous):**
+
+User invoked `/gsd-autonomous` to drive remaining phases end-to-end. Workflow shipped Phase 74 and Phase 75, then user requested stop after Phase 75 to resume tomorrow.
+
+**Phase 74 — Test & CI Debt (shipped 2026-04-27)**
+
+- 3 plans in single Wave 1 (parallel via worktree isolation, disjoint files_modified):
+  - 74-01 (TEST-01): exported `ExpectedIndexesFor(apiPath, ot)` in `cmd/pdb-schema-generate/main.go` (thin wrapper over `generateIndexes`); rewrote `TestGenerateIndexes` as derivation-driven with `legacy_net_fixture` + `per_entity_from_schema_source` sub-tests across all 13 entities. Hand-rolled `slicesEqual` later replaced by stdlib `slices.Equal` indirectly via review fix. Commits `0d8fa18`, `45a7a5d`, `6de3c94`, `378fe65`.
+  - 74-02 (TEST-02): dropped `$region` template variable from `pdbplus-overview.json` along with all 5 `{cloud_region=~"$region"}` panel selectors (introduced same day by commit `e0fc349`). Replaced `TestDashboard_RegionVariableUsed` with `TestDashboard_NoOrphanTemplateVars` structural invariant. Discovered 2nd orphan (`process_group`) and wired into panel 35's `service_namespace=~"$process_group"` selector instead of silently exempting. Commits `9df8fd2`, `5713d93`, `aeb3bc4`.
+  - 74-03 (TEST-03): applied `filepath.Clean()` + canonical "operator-supplied by contract" leading comments at G304 sites in `internal/visbaseline/{redactcli,reportcli,checkpoint}.go`. Removed stale `//nolint:gosec` directives at 4/5 sites (Clean satisfies gosec → directives become nolintlint-stale). One targeted `//nolint:gosec // G122` retained at the WalkDir TOCTOU site. Commits `f3e0056`, `9f5aacb`, `96b249a`.
+- Verification 13/13 must-haves passed (commit `97b2ca1`).
+- Code review found 3 warnings + 4 info, auto-fix applied 3/3 warnings (`b67afef`, `33a6e79`, `7f31e06` + meta `46a95a1`):
+  - WR-01: boundary-aware regex for orphan-template-var match (was unbounded `strings.Contains`)
+  - WR-02: orphan check now walks raw JSON tree covering all string leaves (not just expr + datasource UID)
+  - WR-03: dropped tautological `ExpectedIndexesFor` round-trip assertions (helper literally wraps generator)
+
+**Phase 75 — Code-side Observability Fixes (shipped 2026-04-27)**
+
+- 3 plans across 3 sequential waves (all 3 plans modify `cmd/peeringdb-plus/main.go` so worktree parallel execution would conflict):
+  - 75-01 (OBS-01) per D-01: new `internal/sync/initialcounts.go` `InitialObjectCounts(ctx, *ent.Client)` (status-agnostic Count(ctx) on all 13 entity tables, fail-fast on error per GO-CFG-1). Wired into `cmd/peeringdb-plus/main.go:199` between `database.Open` and `pdbotel.InitObjectCountGauges`. 3 unit tests lock the contract. Commits `0c8ca6d`, `0eae6a1`, `5ea3e19`, `fca765d`.
+  - 75-02 (OBS-02) per D-02: new `internal/otel/prewarm.go` `PrewarmCounters(ctx)` + `PeeringDBEntityTypes` exports. Pre-warms 4 per-type counters × 13 types + RoleTransitions × 2 directions = 54 baseline series (CONTEXT.md's "65" was a miscount; PLAN corrected to 52 + 2 = 54). Wired between syncWorker construction and StartScheduler spawn at `cmd/peeringdb-plus/main.go:293`. 3 unit tests. Commits `f2dcacc`, `9cd30f6`, `49edf98`, `5cf8e02`.
+  - 75-03 (OBS-04) per D-03: empirical investigation refuted all 3 code-bug hypotheses for the production-only-/healthz observation. `routeTagMiddleware` works correctly for all 5 production route families. Root cause: sparse-traffic / Prometheus-staleness artifact. Fix shape (Shape 2 + doc-only): new 3-test E2E suite at `cmd/peeringdb-plus/route_tag_e2e_test.go` locks the http.route contract through production-shaped middleware chain (`captureLabelerMW → privacyTierLikeMW → routeTagMiddleware → mux`); doc-comment expansion on `routeTagMiddleware` documents WHY the middleware exists despite otelhttp v0.68.0 emitting `http.route` natively. Body unchanged. Investigation evidence trail in `OBS-04-INVESTIGATION.md` (207 lines). Commits `beb870d`, `1734fe6`, `23caf55`.
+- Verification status: `human_needed` — 10/10 codebase truths green; 3/4 roadmap success criteria require post-deploy operator confirmation (gauge populates within 30s, zero-rate panels render `0` not `No data`, `count by(http_route)(...)` returns ≥5 distinct routes during normal traffic). Commit `c5119b7`.
+- Code review found 4 warnings + 3 info, auto-fix applied 4/4 warnings (`c7d6657`, `0d6f01c`, `b430973`, `9210bf2` + meta `c710ac6`):
+  - WR-01: TestPrewarmCounters_NoError now sets `OTEL_METRICS_EXPORTER=none` (consistent with sibling tests)
+  - WR-02: InitialObjectCounts now checks `ctx.Err()` between 13 sequential queries (GO-CTX-2)
+  - WR-03: PrewarmCounters guards against nil counters via `otel.Handle` (no panic, no docs lie)
+  - WR-04: TestPeeringDBEntityTypes_ParityNote replaced with real set-equality assertion citing Phase 75 D-02
+
+**Phase 75 deferred items for follow-up:**
+
+- 3 INFO findings from review (out of `--auto` scope): IN-01 (slicesEqual reinvents stdlib), IN-02 (process_group var queries primary-only metric), IN-03 (filepath.Clean comments overstate Clean's role). Run `/gsd-code-review-fix 75 --all` to address if desired.
+- 75-VERIFICATION.md "human_needed" operator checklist: 4 post-deploy queries to run after `fly deploy` to confirm OBS-01/02/04 land correctly in production. The phase is "verified" from a codebase contract perspective; live confirmation is deployment-time.
+
+**Phase 76/77/78 status entering tomorrow's session:**
+
+All three remaining phases have CONTEXT.md committed (`fe724fc` 2026-04-26) — no discuss step needed. Phase 77's hard dependency on Phase 75's OBS-04 is satisfied (E2E test proves http.route populates through production-shaped chain). Phase 76 (dashboard) and Phase 77 (telemetry audit) overlap on `deploy/grafana/` JSON edits — sequence carefully or accept potential re-merge work. Phase 78's UAT-01 (CSP DevTools) requires manual user step.
+
+**Local commits since session start (Phase 74 + 75 work, 28 commits NOT YET PUSHED):**
+
+```
+c710ac6  docs(phase-75): code review fixes applied — 4/4 warnings fixed
+9210bf2  fix(75-WR-04): replace TestPeeringDBEntityTypes_ParityNote with real assertion
+b430973  fix(75-WR-03): PrewarmCounters guards against nil counters via otel.Handle
+0d6f01c  fix(75-WR-02): InitialObjectCounts checks ctx.Err() between queries
+c7d6657  fix(75-WR-01): TestPrewarmCounters_NoError sets OTEL_METRICS_EXPORTER=none
+1747691  docs(phase-75): code review — 0 blocker, 4 warning, 3 info
+c5119b7  docs(phase-75): verification — 10/10 codebase truths green, human_needed
+23caf55  docs(75-03): complete OBS-04 http.route investigation plan
+1734fe6  feat(75-03): lock OBS-04 http.route invariant via E2E + clarify doc
+beb870d  docs(75-03): OBS-04 investigation — sparse-traffic, not a code bug
+5cf8e02  docs(75-02): complete OBS-02 zero-rate counter pre-warm plan
+49edf98  feat(75-02): wire PrewarmCounters into startup ordering
+9cd30f6  feat(75-02): implement PrewarmCounters helper (GREEN)
+f2dcacc  test(75-02): add failing prewarm tests (RED)
+fca765d  docs(75-01): complete cold-start gauge population plan
+5ea3e19  feat(75-01): seed objectCountCache from InitialObjectCounts at startup
+0eae6a1  feat(75-01): add InitialObjectCounts helper for cold-start gauge
+0c8ca6d  test(75-01): add failing tests for InitialObjectCounts (RED)
+c1a4adc  docs(75): plan phase 75 — code-side observability fixes
+46a95a1  docs(phase-74): code review fixes applied — 3/3 warnings fixed
+7f31e06  fix(74-WR-03): drop tautological ExpectedIndexesFor assertions
+33a6e79  fix(74-WR-02): orphan check walks raw JSON tree, covers all string leaves
+b67afef  fix(74-WR-01): boundary-aware regex for orphan template-var match
+5a1285d  docs(phase-74): code review — 0 blocker, 3 warning, 4 info
+97b2ca1  docs(phase-74): verification passed — 13/13 must-haves verified
+514654a  docs(phase-74): update tracking after wave 1 — all 3 plans complete
+4c9d483  chore: merge executor worktree (worktree-agent-affe5281e4ccff6ce)
+28c627d  chore: merge executor worktree (worktree-agent-ac164fad9e9353af2)
+92a0a27  docs(74): create phase plan
+```
+
+Plus the prior 22 Phase 73 commits still local-only since `634c96a` — **50 unpushed commits total** as of stop time.
+
+**Resume protocol for tomorrow's session:**
+
+1. `/clear` to reset context (recommended — current run accumulated significant context).
+2. Run `/gsd-autonomous --from 76` to drive remaining 3 phases + lifecycle in one continuous run. CONTEXT.md is locked for all 3 — no discuss prompts. Phase 78 will pause for the CSP DevTools step.
+3. Alternatively run phase-by-phase: `/gsd-plan-phase 76` → `/gsd-execute-phase 76` → repeat for 77 and 78.
+4. After all phases complete: `/gsd-audit-milestone` → `/gsd-complete-milestone v1.18.0` → `/gsd-cleanup`.
+5. Push when ready: 50 local commits awaiting push. The Phase 75 OBS-01/02/04 fixes are NOT in production until pushed and `fly deploy` runs. Production `pdbplus_data_type_count` will continue to show false zeros until deploy. You can push partial milestone progress (commits already on main locally) without breaking anything since each commit is atomic.
+
+**Pre-existing untracked editor dirs in working tree:** `.idea/`, `.vscode/` — pre-existed at session start, not created by this session. Add to `.gitignore` if desired or leave alone.
+
+---
+
+**Prior session 2026-04-26 (Phase 73 plan→execute→verify arc):**
 
 1. `/gsd-next` after `/clear` → routed to `/gsd-plan-phase 73` (CONTEXT.md locked, no plans yet).
 2. Skipped research (rich CONTEXT.md, well-understood bug fix); skipped pattern-mapper (CONTEXT.md plan hints already named analogue files including `260426-pms` precedent + `cmd/pdb-schema-generate/main.go` `isNameField`).
