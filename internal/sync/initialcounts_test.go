@@ -35,6 +35,19 @@ func TestInitialObjectCounts_AllThirteenTypes(t *testing.T) {
 			t.Errorf("counts[%q] = 0, want non-zero (seed.Full should populate every type)", name)
 		}
 	}
+
+	// Quick task 260427-ojm: assert Poc count includes the Users-tier rows.
+	// seed.Full creates 1 Public Poc + 2 Users Pocs (UsersPoc, UsersPoc2 —
+	// see internal/testutil/seed/seed.go IDs 9000/9001). Without the
+	// privctx.TierUsers stamp inside InitialObjectCounts the Poc privacy
+	// policy filters them out and we'd get 1, not 3 — that's the exact
+	// bug the cache was hitting after every full sync ("poc count
+	// doubling-halving"). Hardcoded 3 (not "> 1") so a future seed change
+	// that adds another Public Poc forces a deliberate test update.
+	if got := counts["poc"]; got != 3 {
+		t.Errorf("counts[poc] = %d, want 3 (1 Public + 2 Users via seed.Full); "+
+			"InitialObjectCounts must elevate to TierUsers internally", got)
+	}
 }
 
 // TestInitialObjectCounts_EmptyDB asserts that on an empty DB the helper
