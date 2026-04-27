@@ -8,11 +8,12 @@
 > **mirror** at `https://peeringdb-plus.fly.dev` (default) or your
 > own local deployment via `--base http://localhost:8080`.
 >
-> **Do NOT run this tool from CI.** It is intentionally build-tag
-> isolated behind `//go:build loadtest` so `go build ./...`,
-> `go test ./...`, `golangci-lint run`, and the GitHub Actions CI
-> jobs ignore the package entirely. Only operators with a clear
-> intent should ever produce a binary.
+> **Do NOT run this tool from CI.** The package compiles as a normal
+> `cmd/` binary, but the binary is never invoked by CI / Dockerfiles
+> / deployment scripts — only by operators against deployed
+> instances. Unit tests in this directory are hermetic
+> (`httptest`-based, no outbound calls) and are safe to run in CI as
+> part of the standard `go test ./...` sweep.
 
 ## What it does
 
@@ -34,12 +35,13 @@ or `DELETE` anywhere — peeringdb-plus is a read-only mirror.
 ## Build
 
 ```bash
-go build -tags loadtest -o loadtest ./cmd/loadtest
+go build -o loadtest ./cmd/loadtest
 ```
 
-The binary is **not committed** and `go build ./...` (without `-tags
-loadtest`) will not produce it. CI does not include the tag, so
-`go test ./...` and lint runs ignore the package.
+The binary is **not committed** and `go build ./...` only compiles
+it (it does not run it). CI compiles + lints + tests this package
+along with the rest of the repository, but never invokes the
+resulting binary.
 
 ## Modes
 
@@ -161,24 +163,25 @@ observed distribution; a single anomalous outlier in 100 requests
 will surface only at p100, which is intentionally not printed (read
 the `err` column to surface anomalies).
 
-## CI exclusion
+## CI behaviour
 
-The `//go:build loadtest` constraint at the top of every `.go` file
-in this directory means:
+This package is a regular `cmd/` binary — no build tags. CI:
 
-- `go build ./...` — does not compile the package. Verified.
-- `go test ./...` — does not see `*_test.go` files in the package.
-  Verified.
-- `golangci-lint run` — skips tag-gated files by default.
-  Verified.
-- `.github/workflows/ci.yml` — does not pass `-tags loadtest`. The
-  loadtest binary never ships in CI artefacts, never appears in
-  Docker images, and never runs in production deployments.
+- `go build ./...` — compiles `cmd/loadtest/loadtest` along with
+  every other binary. The artefact is discarded.
+- `go test -race ./...` — runs the unit tests. They use
+  `httptest.NewServer` for the server side; nothing reaches a real
+  Fly.io endpoint.
+- `golangci-lint run` — lints the package as part of the default
+  sweep.
+- `.github/workflows/ci.yml` — never invokes the resulting binary.
+  The loadtest binary never ships in Docker images and never runs
+  in production deployments.
 
 To run loadtest's own tests locally during development:
 
 ```bash
-go test -tags loadtest -race ./cmd/loadtest/...
+go test -race ./cmd/loadtest/...
 ```
 
 ## Out of scope
@@ -202,4 +205,4 @@ go test -tags loadtest -race ./cmd/loadtest/...
 - `sync.go` — `runSync` 13-step ordered driver + `syncOrder` parity mirror
 - `soak.go` — `runSoak` errgroup × rate-limited worker pool
 - `report.go` — per-surface aggregation, percentile calculation, table printer
-- `*_test.go` — TDD tests, all `//go:build loadtest`-gated
+- `*_test.go` — hermetic httptest-based unit tests

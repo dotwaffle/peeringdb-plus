@@ -1,5 +1,3 @@
-//go:build loadtest
-
 package main
 
 import (

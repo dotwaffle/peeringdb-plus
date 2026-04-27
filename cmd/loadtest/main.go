@@ -1,15 +1,13 @@
-//go:build loadtest
-
 // Command loadtest is an operator tool that exercises every API
 // surface of a peeringdb-plus deployment (default
 // https://peeringdb-plus.fly.dev) for capacity validation, dashboard
 // warmup, and load reproduction.
 //
-// SAFETY: this binary is build-tag-isolated (see the build
-// constraint at the top of every file in this package) so
-// `go build ./...`, `go test ./...`, and CI never compile or run
-// it. NEVER point --base at https://www.peeringdb.com — upstream
-// PeeringDB enforces 1 req/hour per IP and will block your address.
+// SAFETY: this binary is compiled by `go build ./...` but is NEVER
+// invoked by CI, Dockerfiles, or deployment scripts — only by
+// operators against a deployed peeringdb-plus instance. NEVER point
+// --base at https://www.peeringdb.com — upstream PeeringDB enforces
+// 1 req/hour per IP and will block your address.
 //
 // Three modes are supported:
 //
@@ -17,7 +15,7 @@
 //	loadtest sync       [flags]  replay the 13-step ordered sync sequence
 //	loadtest soak       [flags]  sustained QPS-capped mixed-surface load
 //
-// Build:  go build -tags loadtest -o loadtest ./cmd/loadtest
+// Build:  go build -o loadtest ./cmd/loadtest
 package main
 
 import (
@@ -46,8 +44,9 @@ NEVER point --base at https://www.peeringdb.com — upstream PeeringDB
 enforces a 1-request-per-hour rate limit per IP address and will
 block your IP if you exceed it. This tool is for the MIRROR only.
 
-Do NOT run this tool from CI. It is intentionally build-tag-isolated
-(loadtest tag) so that go build ./... and go test ./... ignore it.
+Do NOT run this tool from CI. The unit tests in this package are
+hermetic (httptest-based) and CI-safe, but the binary itself is for
+operator use only against deployed instances.
 
 `
 
