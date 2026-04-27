@@ -1,5 +1,42 @@
 # Milestones
 
+## v1.18.0 Cleanup & Observability Polish (Shipped: 2026-04-27)
+
+**Phases completed:** 6 phases (73-78), 14 plans, 15 requirements across 4 categories (BUG, TEST, OBS, UAT). 86 commits, +11,893 / -306 LOC across 94 files. Timeline: 2026-04-26 21:30Z → 2026-04-27 04:57Z (~7.5 hours of focused execution from Phase 73 first commit through Phase 78 final summary).
+
+**Key accomplishments:**
+
+- Phase 73: Code Defect Fixes — campus inflection 500 closed via `ent/schema/campus_annotations.go` sibling-file mixin (`entsql.Annotation{Table: "campuses"}` makes `entc.LoadGraph` consumers see the right table name; DEFER-70-06-01 closed); `poc.role` NotEmpty validator dropped via `cmd/pdb-schema-generate` `isTombstoneVulnerableField` predicate; both with regression guards (BUG-01, BUG-02).
+- Phase 74: Test & CI Debt — `TestGenerateIndexes` allow-list extended for the v1.16 `updated` index; `TestDashboard_RegionVariableUsed` replaced with `TestDashboard_NoOrphanTemplateVars` structural invariant (orphan template var `process_group` discovered + wired); 5 lint findings in `internal/visbaseline` resolved per-finding (TEST-01..03).
+- Phase 75: Code-side Observability Fixes — `internal/sync/initialcounts.go` populates `pdbplus_data_type_count` at process init (OBS-01); `internal/otel/prewarm.go` pre-warms 54 baseline metric series so zero-rate panels show "0" not "No data" (OBS-02); `routeTagMiddleware` empirically refuted as a bug + documented as a sparse-traffic / Prometheus-staleness artifact (OBS-04).
+- Phase 76: Dashboard Hardening — 5 `go_*` panels swept with `service_name="$service"` filter; new `$service` template var; `pdbplus_response_heap_delta_bytes_bucket` flow confirmed live with corrected regex (OBS-03, OBS-05).
+- Phase 77: Telemetry Audit & Cleanup — Loki audit found chatty per-type-per-cycle INFOs + the architectural finding that the otelslog handler had no level filter (52 DEBUG records / 30min reaching Loki). Fix: 9 inline slog level adjustments + new `levelFilterHandler` shim wrapping the otelslog branch, gated by new `PDBPLUS_LOG_LEVEL` env var (default INFO). Tempo audit found `/healthz` dominates trace volume (~99%); per-route sampler in `internal/otel/sampler.go` dispatches via `sdktrace.ParentBased(perRouteSampler)` to drop liveness probes to 1% while preserving cross-service trace continuity (OBS-06, OBS-07).
+- Phase 78: UAT Closeout — v1.13 Phase 53 security controls verified live + regression-locked by `cmd/peeringdb-plus/security_e2e_test.go` (5 tests covering HSTS / X-Frame-Options scoping / X-Content-Type-Options / 1 MB body-cap / ConnectRPC bypass). v1.13 Phase 52 CSP verified autonomously via static policy analysis + curl wiring + rendered-page audit (PASS verdict; no operator DevTools step needed). v1.5 Phase 20 stale-pointer dir archived via `git mv` to `.archived/` sibling. (UAT-01, UAT-02, UAT-03)
+
+**Architectural deltas:**
+
+- New env var: `PDBPLUS_LOG_LEVEL` — minimum severity for the OTel logging branch to Loki (default `INFO`; opt-in `DEBUG`). Documented in `docs/CONFIGURATION.md` and `CLAUDE.md` § Environment Variables.
+- New code paths: `internal/otel/sampler.go` (`perRouteSampler`); `internal/otel/logger.go` (`levelFilterHandler`); `internal/sync/initialcounts.go`; `internal/otel/prewarm.go`; `cmd/peeringdb-plus/security_e2e_test.go`.
+- TracerProvider sampler upgraded from `sdktrace.TraceIDRatioBased(in.SampleRate)` to `sdktrace.ParentBased(NewPerRouteSampler(...))` with the per-route ratio matrix in `docs/ARCHITECTURE.md § Sampling Matrix`.
+
+**Known divergences from CONTEXT.md plan-hints (recorded in commits):**
+
+- Body cap is **1 MB** (`maxRequestBodySize = 1 << 20`), not 2 MB as Phase 78 CONTEXT.md hinted. STATE.md doc-drift fixed in 78-03.
+- v1.13 phase 52/53 deferred-items.md files referenced in CONTEXT.md hints **don't exist in the repo**; v1.13 closeout lives in MILESTONES.md and the auto-memory file. Plans targeted the actual sources.
+- UAT-01 originally specified manual operator DevTools step; switched to autonomous static analysis per user directive on 2026-04-27.
+
+**Deploy timeline:**
+
+- Mid-milestone deploy of Phase 75-77 fixes at commit `846c3df` (2026-04-27T04:11:12Z): all 8 machines healthy; DEBUG records dropped to 0 in Loki post-deploy 6m window (smoking gun for the otelslog levelFilterHandler architectural fix).
+- Phase 78 work (security_e2e_test.go + CSP autonomous verification + v1.5 dir archive) ships in the v1.18.0 tag commit; no separate deploy required since the changes are docs/tests only.
+
+**SEEDs touched:**
+
+- SEED-001 (incremental sync evaluation) — consumed pre-milestone in v1.17.0 (quick task 260426-pms), referenced in PROJECT.md.
+- SEED-003 (primary HA hot-standby) — extended 2026-04-27 with the IAD-preferred-primary variant capturing the cost analysis + correction that Consul leases are already configured. Stays dormant.
+
+**Tag:** `v1.18.0` (annotated).
+
 ## v1.16 Django-compat Correctness (Shipped: 2026-04-19)
 
 **Phases completed:** 6 phases (67-72), 36 plans, 25 requirements across 8 categories
