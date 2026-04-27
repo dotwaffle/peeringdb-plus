@@ -162,14 +162,14 @@ func TestDiffNeverEmitsLengths(t *testing.T) {
 	// non-value meaning (e.g. ValueSetDrift is a boolean drift flag over the
 	// controlled `visible` enum, not a leaked value). Use exact field names
 	// plus fuzzy-match for Length/Size/Hash/Digest.
-	typ := reflect.TypeOf(FieldDelta{})
+	typ := reflect.TypeFor[FieldDelta]()
 	forbiddenSubstring := []string{"Length", "Size", "Hash", "Digest"}
 	forbiddenExact := map[string]struct{}{
 		"Value":  {},
 		"Values": {},
 	}
-	for i := 0; i < typ.NumField(); i++ {
-		name := typ.Field(i).Name
+	for field := range typ.Fields() {
+		name := field.Name
 		for _, bad := range forbiddenSubstring {
 			if strings.Contains(name, bad) {
 				t.Errorf("FieldDelta has forbidden field %q (signal-rich, PII-leaking)", name)

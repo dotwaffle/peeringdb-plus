@@ -219,7 +219,7 @@ func TestWriteMarkdownNoRawValues(t *testing.T) {
 // golden comparison.
 func stripGeneratedLine(s string) string {
 	var out []string
-	for _, line := range strings.Split(s, "\n") {
+	for line := range strings.SplitSeq(s, "\n") {
 		if strings.HasPrefix(line, "_Generated:") {
 			out = append(out, "_Generated: <STRIPPED>_")
 			continue

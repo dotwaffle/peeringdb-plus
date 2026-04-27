@@ -52,7 +52,7 @@ func parseIn(srcBytes []byte) []Fixture {
 	seedLine := findSeedLine(srcBytes, "Network", "InBulkNet")
 
 	out := make([]Fixture, 0, inBulkNetworkCount+1)
-	for i := 0; i < inBulkNetworkCount; i++ {
+	for i := range inBulkNetworkCount {
 		out = append(out, Fixture{
 			Entity: "net",
 			ID:     inBulkBaseID + i,

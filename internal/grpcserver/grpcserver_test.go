@@ -5361,7 +5361,7 @@ func TestCursorResume_CompoundKeyset(t *testing.T) {
 	svc := &NetworkService{Client: entClient}
 	var pagedIDs []int64
 	token := ""
-	for iter := 0; iter < 20; iter++ { // iteration bound guards against infinite loops in regressions.
+	for iter := range 20 { // iteration bound guards against infinite loops in regressions.
 		resp, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{
 			PageSize:  3,
 			PageToken: token,

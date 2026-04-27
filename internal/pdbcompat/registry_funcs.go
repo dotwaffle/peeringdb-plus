@@ -80,10 +80,7 @@ func applySince(opts QueryOptions) func(*sql.Selector) {
 // CountFunc so the pre-flight budget math stays consistent across the
 // 13 entities.
 func servedRowCount(total int, opts QueryOptions) int {
-	served := total - opts.Skip
-	if served < 0 {
-		served = 0
-	}
+	served := max(total-opts.Skip, 0)
 	if opts.Limit > 0 && served > opts.Limit {
 		served = opts.Limit
 	}

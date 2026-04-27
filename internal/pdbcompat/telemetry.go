@@ -64,10 +64,7 @@ func memStatsHeapInuseBytes() int64 {
 // and would confuse operators reading the dashboard.
 func recordResponseHeapDelta(ctx context.Context, endpoint, entity string, startBytes int64) {
 	endBytes := memStatsHeapInuseBytes()
-	delta := endBytes - startBytes
-	if delta < 0 {
-		delta = 0
-	}
+	delta := max(endBytes-startBytes, 0)
 	// OTel span attribute. SpanFromContext on a ctx without a tracer
 	// provider returns a noop span whose SetAttributes is safe; the
 	// IsValid guard is for clarity and to skip the alloc on the

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -140,7 +141,7 @@ func TestServeList_UnderBudgetStreams(t *testing.T) {
 	}
 
 	var env struct {
-		Meta json.RawMessage `json:"meta"`
+		Meta json.RawMessage   `json:"meta"`
 		Data []json.RawMessage `json:"data"`
 	}
 	if err := json.Unmarshal(body, &env); err != nil {
@@ -309,10 +310,7 @@ func seedBulkNetworks(tb testing.TB, client *ent.Client, n int) {
 
 	const chunk = 500
 	for start := 0; start < n; start += chunk {
-		end := start + chunk
-		if end > n {
-			end = n
-		}
+		end := min(start+chunk, n)
 		builders := make([]*ent.NetworkCreate, 0, end-start)
 		for i := start; i < end; i++ {
 			id := i + 1
@@ -420,13 +418,7 @@ func TestServeList_StreamingThroughGzipMiddleware(t *testing.T) {
 	// net/http populates resp.TransferEncoding from the Transfer-Encoding
 	// response header (lower-level than Header.Get) and clears the
 	// header itself — inspect the slice instead.
-	chunked := false
-	for _, te := range resp.TransferEncoding {
-		if te == "chunked" {
-			chunked = true
-			break
-		}
-	}
+	chunked := slices.Contains(resp.TransferEncoding, "chunked")
 	if !chunked {
 		t.Errorf("Transfer-Encoding: got %v, want to contain \"chunked\" (flush cadence not preserved through gzip middleware)", resp.TransferEncoding)
 	}

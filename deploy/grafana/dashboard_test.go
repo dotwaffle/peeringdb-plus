@@ -16,12 +16,13 @@ type dashboard struct {
 }
 
 type panel struct {
-	ID      int      `json:"id"`
-	Type    string   `json:"type"`
-	Title   string   `json:"title"`
-	Targets []target `json:"targets"`
-	Options *options `json:"options,omitempty"`
-	Panels  []panel  `json:"panels,omitempty"`
+	ID          int      `json:"id"`
+	Type        string   `json:"type"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Targets     []target `json:"targets"`
+	Options     *options `json:"options,omitempty"`
+	Panels      []panel  `json:"panels,omitempty"`
 }
 
 type target struct {
@@ -145,51 +146,30 @@ func TestDashboard_NoHardcodedDatasourceUIDs(t *testing.T) {
 	}
 }
 
-func TestDashboard_EachRowHasTextPanel(t *testing.T) {
+// TestDashboard_EachMetricPanelHasDescription enforces that every
+// metric panel (timeseries, stat, bargauge, gauge) carries a
+// non-empty description field. Documentation moved out of standalone
+// "Guide" text panels into panel-level descriptions during the
+// dashboard cleanup (commit a3a3acf) — operators get help via the
+// (?) hover tooltip rather than guide-row screen real-estate.
+func TestDashboard_EachMetricPanelHasDescription(t *testing.T) {
 	t.Parallel()
 	d := loadDashboard(t)
 
-	// Track which rows have doc panels. For collapsed rows, text panels are
-	// nested inside the row's panels array. For non-collapsed rows, text
-	// panels follow the row panel at the top level.
-	rowHasDoc := make(map[string]bool)
+	metricPanelTypes := map[string]bool{
+		"timeseries": true,
+		"stat":       true,
+		"bargauge":   true,
+		"gauge":      true,
+	}
 
-	for _, p := range d.Panels {
-		if p.Type != "row" {
+	for _, p := range allPanels(d) {
+		if !metricPanelTypes[p.Type] {
 			continue
 		}
-		// Check nested panels (collapsed rows).
-		for _, nested := range p.Panels {
-			if nested.Type == "text" {
-				rowHasDoc[p.Title] = true
-				break
-			}
-		}
-	}
-
-	// Also check non-collapsed rows where text panels follow at top level.
-	var currentRow string
-	for _, p := range d.Panels {
-		if p.Type == "row" {
-			currentRow = p.Title
-			continue
-		}
-		if p.Type == "text" && currentRow != "" {
-			rowHasDoc[currentRow] = true
-		}
-	}
-
-	requiredRows := []string{
-		"Sync Health",
-		"HTTP RED Metrics",
-		"Per-Type Sync Detail",
-		"Go Runtime",
-		"Business Metrics",
-	}
-
-	for _, row := range requiredRows {
-		if !rowHasDoc[row] {
-			t.Errorf("row %q has no documentation text panel", row)
+		if strings.TrimSpace(p.Description) == "" {
+			t.Errorf("panel id=%d title=%q (type=%s) has empty description",
+				p.ID, p.Title, p.Type)
 		}
 	}
 }
@@ -220,8 +200,8 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"pdbplus_sync_freshness_seconds", "sync freshness gauge"},
 		{"pdbplus_sync_duration_seconds", "sync duration histogram"},
 		{"pdbplus_sync_operations_total", "sync operations counter"},
-		{"pdbplus_sync_type_duration_seconds", "per-type sync duration"},
-		{"pdbplus_sync_type_objects_total", "per-type object count"},
+		{"pdbplus_sync_type_objects_total", "per-type object count (also drives Sync Throughput)"},
+		{"pdbplus_response_heap_delta_bytes", "per-request pdbcompat heap delta histogram"},
 		{"pdbplus_sync_type_deleted_total", "per-type delete count"},
 		{"pdbplus_sync_type_fetch_errors_total", "per-type fetch errors"},
 		{"pdbplus_sync_type_upsert_errors_total", "per-type upsert errors"},

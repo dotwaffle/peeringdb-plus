@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"sort"
+	"slices"
 	"sync"
+	"text/tabwriter"
 	"time"
 )
 
@@ -71,18 +72,15 @@ func percentilesFromSorted(s []time.Duration, p float64) time.Duration {
 	if n == 1 {
 		return s[0]
 	}
-	idx := int(math.Ceil(p/100*float64(n))) - 1
-	if idx < 0 {
-		idx = 0
-	}
-	if idx >= n {
-		idx = n - 1
-	}
+	idx := max(int(math.Ceil(p/100*float64(n)))-1, 0)
+	idx = min(idx, n-1)
 	return s[idx]
 }
 
-// Print emits a tab-separated per-surface breakdown plus an overall
-// summary footer to w. Header is `column -t -s$'\t'` friendly.
+// Print emits a per-surface breakdown plus an overall summary footer
+// to w. Columns are aligned via text/tabwriter so longer surface
+// names (e.g. "connectrpc") and longer latency values (e.g.
+// "1.234ms") don't break alignment under the standard 8-char tab.
 func (r *Report) Print(w io.Writer, mode string) {
 	rows, wall := r.Snapshot()
 
@@ -108,28 +106,32 @@ func (r *Report) Print(w io.Writer, mode string) {
 		overall.latency = append(overall.latency, res.Latency)
 	}
 	for _, b := range buckets {
-		sort.Slice(b.latency, func(i, j int) bool { return b.latency[i] < b.latency[j] })
+		slices.Sort(b.latency)
 	}
-	sort.Slice(overall.latency, func(i, j int) bool { return overall.latency[i] < overall.latency[j] })
+	slices.Sort(overall.latency)
 
 	fmt.Fprintf(w, "\n=== loadtest %s summary ===\n", mode)
-	fmt.Fprintf(w, "wall-clock\t%s\n", wall.Round(time.Millisecond))
+	fmt.Fprintf(w, "wall-clock     %s\n", wall.Round(time.Millisecond))
 	if overall.count > 0 && wall > 0 {
 		rps := float64(overall.count) / wall.Seconds()
-		fmt.Fprintf(w, "observed-rps\t%.2f req/s\n", rps)
+		fmt.Fprintf(w, "observed-rps   %.2f req/s\n", rps)
 	}
 	fmt.Fprintln(w)
 
-	fmt.Fprintln(w, "surface\tcount\tok\terr\tsuccess%\tp50\tp95\tp99")
-	// Stable surface order in output.
+	// minwidth=0, tabwidth=2, padding=2, padchar=' ', flags=AlignRight on
+	// numeric columns. Defining one tabwriter for the whole table keeps
+	// alignment consistent across the per-surface rows + TOTAL footer.
+	tw := tabwriter.NewWriter(w, 0, 2, 2, ' ', 0)
+	fmt.Fprintln(tw, "SURFACE\tCOUNT\tOK\tERR\tSUCCESS%\tP50\tP95\tP99")
 	for _, surf := range []Surface{SurfacePdbCompat, SurfaceEntRest, SurfaceGraphQL, SurfaceConnectRPC, SurfaceWebUI} {
 		b, ok := buckets[surf]
 		if !ok {
 			continue
 		}
-		printBucket(w, string(surf), b)
+		printBucket(tw, string(surf), b)
 	}
-	printBucket(w, "TOTAL", overall)
+	printBucket(tw, "TOTAL", overall)
+	_ = tw.Flush()
 }
 
 func printBucket(w io.Writer, label string, b *surfaceBucket) {

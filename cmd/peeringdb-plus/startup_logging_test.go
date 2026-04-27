@@ -164,7 +164,6 @@ func TestStartup_WarnsOnUsersTier(t *testing.T) {
 		{"authenticated", "secret-token-value", "authenticated"},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			recs := runStartupClassification(t, classificationInput{
@@ -193,7 +192,6 @@ func TestStartup_NoWarnOnPublicTier(t *testing.T) {
 		{"authenticated", "secret-token-value"},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			recs := runStartupClassification(t, classificationInput{
@@ -234,7 +232,6 @@ func TestStartupLogging(t *testing.T) {
 		{"auth_users", "secret", privctx.TierUsers, "authenticated", "users", 2},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			recs := runStartupClassification(t, classificationInput{

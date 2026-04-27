@@ -1,7 +1,7 @@
 package main
 
 import (
-	"sort"
+	"slices"
 	"testing"
 	"time"
 )
@@ -27,7 +27,7 @@ func TestPercentilesFromSorted(t *testing.T) {
 		in = append(in, 1*time.Millisecond)
 	}
 	in = append(in, 100*time.Millisecond)
-	sort.Slice(in, func(i, j int) bool { return in[i] < in[j] })
+	slices.Sort(in)
 
 	cases := []struct {
 		p    float64

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -42,10 +43,8 @@ var rowSizeDriverOnce sync.Once
 
 func registerRowSizeSQLiteDriver() {
 	rowSizeDriverOnce.Do(func() {
-		for _, d := range sql.Drivers() {
-			if d == "sqlite3" {
-				return
-			}
+		if slices.Contains(sql.Drivers(), "sqlite3") {
+			return
 		}
 		sql.Register("sqlite3", &sqlite.Driver{})
 	})

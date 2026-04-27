@@ -187,7 +187,6 @@ func TestPrivacyTier_SetsOTelAttribute(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			// No t.Parallel: installInMemoryTracer mutates the global
 			// OTel TracerProvider and concurrent subtests would race.

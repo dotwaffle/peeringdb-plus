@@ -136,7 +136,7 @@ func parseModes(mode string) ([]string, error) {
 func resolveTypes(typesFlag, target string) []string {
 	if typesFlag != "" {
 		var out []string
-		for _, t := range strings.Split(typesFlag, ",") {
+		for t := range strings.SplitSeq(typesFlag, ",") {
 			t = strings.TrimSpace(t)
 			if t != "" {
 				out = append(out, t)

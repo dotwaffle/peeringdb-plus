@@ -46,8 +46,8 @@ func phase69FetchIDs(t *testing.T, url string) []int {
 		t.Fatalf("GET %s: status %d", url, resp.StatusCode)
 	}
 	var env struct {
-		Meta json.RawMessage          `json:"meta"`
-		Data []map[string]interface{} `json:"data"`
+		Meta json.RawMessage  `json:"meta"`
+		Data []map[string]any `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
 		t.Fatalf("decode envelope: %v", err)
@@ -159,10 +159,7 @@ func TestInJsonEach_Large_Bypasses_SQLite_Limit(t *testing.T) {
 	const n = 1500
 	const chunk = 100
 	for start := 0; start < n; start += chunk {
-		end := start + chunk
-		if end > n {
-			end = n
-		}
+		end := min(start+chunk, n)
 		builders := make([]*ent.NetworkCreate, 0, end-start)
 		for i := start; i < end; i++ {
 			builders = append(builders, client.Network.Create().
@@ -182,7 +179,7 @@ func TestInJsonEach_Large_Bypasses_SQLite_Limit(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	asns := make([]string, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		asns[i] = fmt.Sprintf("%d", i+1)
 	}
 	query := "asn__in=" + strings.Join(asns, ",") + "&limit=0"
@@ -408,4 +405,3 @@ func sameIDs(a, b []int) bool {
 	}
 	return true
 }
-

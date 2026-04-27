@@ -214,7 +214,6 @@ func TestAllFixtures_UpstreamCitationPresent(t *testing.T) {
 		{"traversal", TraversalFixtures},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			for i, f := range tc.fixtures {
@@ -336,7 +335,6 @@ func TestAllFixtures_NoDuplicateIDsWithinCategoryAllSix(t *testing.T) {
 		{"traversal", TraversalFixtures},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			seen := map[string]int{}

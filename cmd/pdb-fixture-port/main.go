@@ -446,7 +446,7 @@ func resolveUpstream(opts *runOptions, logger *slog.Logger) ([]byte, string, err
 
 	// `gh api … --jq .content` returns base64-encoded content. gh
 	// wraps long base64 bodies with newlines; strip before decoding.
-	contentB64, err := runGhAPI("repos/peeringdb/peeringdb/contents/" + upstreamPath + "?ref=" + opts.UpstreamRef, "--jq", ".content")
+	contentB64, err := runGhAPI("repos/peeringdb/peeringdb/contents/"+upstreamPath+"?ref="+opts.UpstreamRef, "--jq", ".content")
 	if err != nil {
 		return nil, "", fmt.Errorf("gh api contents: %w", err)
 	}
@@ -930,8 +930,8 @@ func readHeaderHash(path string) (string, error) {
 	sc := bufio.NewScanner(f)
 	for i := 0; i < 20 && sc.Scan(); i++ {
 		line := sc.Text()
-		if strings.HasPrefix(line, "// UpstreamHash: sha256:") {
-			return strings.TrimPrefix(line, "// UpstreamHash: sha256:"), nil
+		if after, ok := strings.CutPrefix(line, "// UpstreamHash: sha256:"); ok {
+			return after, nil
 		}
 	}
 	return "", fmt.Errorf("no UpstreamHash header in %s", path)

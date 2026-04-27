@@ -861,7 +861,6 @@ func TestFixturePort_CategoryAll_DeterminismSixVars(t *testing.T) {
 func TestFixturePort_NewCategoriesUpstreamCitation(t *testing.T) {
 	t.Parallel()
 	for _, category := range []string{"unicode", "in", "traversal"} {
-		category := category
 		t.Run(category, func(t *testing.T) {
 			t.Parallel()
 			tmp := filepath.Join(t.TempDir(), "fixtures.go")

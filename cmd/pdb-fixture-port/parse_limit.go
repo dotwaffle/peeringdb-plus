@@ -60,7 +60,7 @@ func parseLimit(srcBytes []byte) []Fixture {
 
 	// Bulk Network rows for LIMIT-01.
 	netOffset := entityOffset["net"]
-	for i := 0; i < limitBulkNetworkCount; i++ {
+	for i := range limitBulkNetworkCount {
 		out = append(out, Fixture{
 			Entity: "net",
 			// Use a deterministic increasing ID range above the
@@ -80,7 +80,7 @@ func parseLimit(srcBytes []byte) []Fixture {
 
 	// Org rows for LIMIT-02 depth-on-list guardrail.
 	orgOffset := entityOffset["org"]
-	for i := 0; i < limitDepthOrgCount; i++ {
+	for i := range limitDepthOrgCount {
 		out = append(out, Fixture{
 			Entity: "org",
 			ID:     orgOffset + 5000 + i,
@@ -94,7 +94,7 @@ func parseLimit(srcBytes []byte) []Fixture {
 
 	// IX rows for LIMIT-02 depth-on-list guardrail.
 	ixOffset := entityOffset["ix"]
-	for i := 0; i < limitDepthIxCount; i++ {
+	for i := range limitDepthIxCount {
 		out = append(out, Fixture{
 			Entity: "ix",
 			ID:     ixOffset + 5000 + i,

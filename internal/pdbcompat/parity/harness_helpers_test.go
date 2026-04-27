@@ -161,7 +161,7 @@ func unquote(s string) string {
 // pass of seedFixtures to look up persisted parent IDs.
 func fkRefs(raw string) map[string]int {
 	out := make(map[string]int)
-	for _, part := range strings.Split(unquote(raw), ",") {
+	for part := range strings.SplitSeq(unquote(raw), ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
@@ -541,4 +541,3 @@ func atoiOrZero(raw string) int {
 	}
 	return n
 }
-

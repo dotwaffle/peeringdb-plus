@@ -42,7 +42,6 @@ func TestRedact(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			gotOut, gotOmit := privfield.Redact(tc.ctx, tc.visible, tc.value)

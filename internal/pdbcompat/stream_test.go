@@ -85,10 +85,10 @@ func TestStreamListResponse_CommaPlacement(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name    string
-		rows    []any
-		want    string
-		commas  int
+		name   string
+		rows   []any
+		want   string
+		commas int
 	}{
 		{
 			name: "zero-rows",
@@ -113,7 +113,6 @@ func TestStreamListResponse_CommaPlacement(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			rec := httptest.NewRecorder()
@@ -144,9 +143,9 @@ func TestStreamListResponse_FlushCadence(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name          string
-		rowCount      int
-		wantFlushes   int
+		name        string
+		rowCount    int
+		wantFlushes int
 	}{
 		// 250 rows with FlushEvery=100: periodic at row 100, 200; final flush at end = 3.
 		{name: "250-rows-3-flushes", rowCount: 250, wantFlushes: 3},
@@ -157,7 +156,6 @@ func TestStreamListResponse_FlushCadence(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			rows := make([]any, tc.rowCount)

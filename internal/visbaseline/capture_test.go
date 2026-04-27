@@ -189,9 +189,9 @@ func TestCaptureAdvancesCheckpointAfterWrite(t *testing.T) {
 func TestCaptureRespectsRateLimit(t *testing.T) {
 	t.Parallel()
 
-	var hitCount int32
+	var hitCount atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		if atomic.AddInt32(&hitCount, 1) == 1 {
+		if hitCount.Add(1) == 1 {
 			w.Header().Set("Retry-After", "1")
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
@@ -230,8 +230,8 @@ func TestCaptureRespectsRateLimit(t *testing.T) {
 	if _, err := capt.Run(ctx); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if atomic.LoadInt32(&hitCount) != 2 {
-		t.Errorf("server hits = %d, want 2 (one 429 then one 200)", atomic.LoadInt32(&hitCount))
+	if hitCount.Load() != 2 {
+		t.Errorf("server hits = %d, want 2 (one 429 then one 200)", hitCount.Load())
 	}
 	logMu.Lock()
 	gotLog := logBuf.String()
@@ -500,7 +500,6 @@ func TestCaptureConfigValidates(t *testing.T) {
 		{"nil logger", func(c *visbaseline.Config) { c.Logger = nil }},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			cfg := base
