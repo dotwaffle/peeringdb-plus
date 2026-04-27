@@ -278,8 +278,13 @@ func TestHealth_GenericResponse(t *testing.T) {
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
 			logAssert: func(_ *testing.T, records []slog.Record) string {
+				// Phase 77 OBS-06: "readyz no sync completed" demoted
+				// from WARN to DEBUG — fires on every Fly health probe
+				// during the 5-15min pre-first-sync window and is not
+				// operator-actionable (the 503 already drives proxy
+				// failover). See AUDIT.md.
 				for _, r := range records {
-					if r.Level != slog.LevelWarn {
+					if r.Level != slog.LevelDebug {
 						continue
 					}
 					comp, ok := findAttr(r, "component")
@@ -288,7 +293,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 					}
 					return ""
 				}
-				return "expected a component=sync warn record for no-sync-yet"
+				return "expected a component=sync debug record for no-sync-yet"
 			},
 		},
 	}
