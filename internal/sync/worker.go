@@ -391,19 +391,22 @@ func (w *Worker) fkMarkSkipped(typeName string, id int) {
 }
 
 // syncStep defines a single step in the sync process. Upserts run in
-// parent-first FK order; deletes run in reverse (child-first) order.
+// parent-first FK order.
 //
 // After PERF-05 (Plan 54-02 Commit D), the fetch and upsert paths dispatch
 // via fetchOneTypeFull / fetchOneTypeIncremental / upsertOneType type
 // switches on step.name — the old upsertFn/incrementalFn fields were
-// removed because fetch now runs outside the tx. The deleteFn closure
-// soft-deletes rows (Phase 68 D-02): rows absent from the remote response
-// are marked status='deleted' with updated=cycleStart rather than physically
-// removed, so upstream rest.py:700-712 status × since matrix queries can
-// return tombstones.
+// removed because fetch now runs outside the tx.
+//
+// Quick task 260428-2zl Task 6: the deleteFn closure (Phase 68 D-02
+// inference-by-absence soft-delete) was removed. With Task 2's
+// bootstrap-with-?since=1 + Task 3's live FK backfill, deletes arrive
+// explicitly from upstream as status='deleted' rows in ?since=N
+// payloads — no inference needed. Existing tombstones in the live DB
+// are preserved (no schema change, no row mutation by this commit);
+// SEED-004 still owns the eventual GC story.
 type syncStep struct {
-	name     string
-	deleteFn func(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (marked int, err error)
+	name string
 }
 
 // canonicalStepOrder is the single source of truth for sync step
@@ -425,27 +428,16 @@ func StepOrder() []string {
 	return out
 }
 
-// syncSteps returns the ordered list of sync steps in FK dependency order per D-06.
-// Upserts are processed in this order (parents first); deletes in reverse (children first).
+// syncSteps returns the ordered list of sync steps in FK dependency
+// order per D-06. Quick task 260428-2zl Task 6: the per-type deleteFn
+// machinery is gone — sync no longer infers deletions from absence;
+// upstream sends explicit status='deleted' tombstones in ?since=N
+// payloads (Task 2 bootstrap), and the live FK backfill (Task 3)
+// handles missing parents.
 func (w *Worker) syncSteps() []syncStep {
-	deleteFns := map[string]func(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error){
-		"org":        markStaleDeletedOrganizations,
-		"campus":     markStaleDeletedCampuses,
-		"fac":        markStaleDeletedFacilities,
-		"carrier":    markStaleDeletedCarriers,
-		"carrierfac": markStaleDeletedCarrierFacilities,
-		"ix":         markStaleDeletedInternetExchanges,
-		"ixlan":      markStaleDeletedIxLans,
-		"ixpfx":      markStaleDeletedIxPrefixes,
-		"ixfac":      markStaleDeletedIxFacilities,
-		"net":        markStaleDeletedNetworks,
-		"poc":        markStaleDeletedPocs,
-		"netfac":     markStaleDeletedNetworkFacilities,
-		"netixlan":   markStaleDeletedNetworkIxLans,
-	}
 	steps := make([]syncStep, len(canonicalStepOrder))
 	for i, name := range canonicalStepOrder {
-		steps[i] = syncStep{name: name, deleteFn: deleteFns[name]}
+		steps[i] = syncStep{name: name}
 	}
 	return steps
 }
@@ -576,13 +568,9 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		return fkErr
 	}
 
-	// === Phase B — SINGLE REAL TX ===
-	objectCounts, remoteIDsByType, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
+	// === Phase B — SINGLE REAL TX === (260428-2zl T6: no delete pass.)
+	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
 	if err != nil {
-		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
-		return err
-	}
-	if err := w.syncDeletePass(ctx, tx, remoteIDsByType, start); err != nil {
 		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
 		return err
 	}
@@ -977,17 +965,19 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 // double during the handover between chunks. DO NOT remove the
 // batch-free line.
 //
-// The remoteIDsByType map is populated from scratch via a final
-// `SELECT id FROM scratch.{type}` after the chunked upsert completes —
-// this gives the delete pass the complete remote-ID set for full syncs.
-// Incremental syncs skip delete (fromIncremental[name] == true).
+// Quick task 260428-2zl Task 6: the per-type remoteIDsByType map and
+// the final `SELECT id FROM scratch.{type}` collection step are gone
+// alongside the inference-by-absence delete pass. Sync no longer
+// infers deletions from absence; upstream sends explicit
+// status='deleted' tombstones.
+// fromIncremental is retained only as a defensive parameter — the
+// per-step branching it used to gate is also gone.
 //
 // D-19 atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
-func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratchDB, fromIncremental map[string]bool) (
-	objectCounts map[string]int,
-	remoteIDsByType map[string][]int,
-	err error,
+func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratchDB, _ map[string]bool) (
+	map[string]int,
+	error,
 ) {
 	// Reset the per-sync FK orphan-filter state before the first
 	// dispatchScratchChunk call populates it. Kept here rather than in
@@ -995,8 +985,7 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 	// enforced by TestWorkerSync_LineBudget.
 	w.resetFKState()
 	steps := w.syncSteps()
-	objectCounts = make(map[string]int, len(steps))
-	remoteIDsByType = make(map[string][]int, len(steps))
+	objectCounts := make(map[string]int, len(steps))
 	// batches carries one decoded chunk at a time; the map entry is
 	// cleared after each chunk upsert for the PERF-05 memory bound.
 	batches := make(map[string]syncBatch, 1)
@@ -1011,37 +1000,11 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 
 		if stepErr != nil {
 			pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
-			return nil, nil, fmt.Errorf("upsert %s: %w", step.name, stepErr)
+			return nil, fmt.Errorf("upsert %s: %w", step.name, stepErr)
 		}
 
 		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 		objectCounts[step.name] = count
-
-		// Full-sync batches contribute a complete remote-ID set used by
-		// the delete pass. Incremental batches are a delta only — skip
-		// delete. The remote IDs are read from scratch directly so the
-		// ID set does not inflate Go heap during the upsert phase.
-		//
-		// Subtract any IDs dropped by the upsert-time fkFilter so the
-		// delete pass picks up previously-inserted rows whose FK is now
-		// orphaned — this prevents parent-delete-while-child-remains FK
-		// violations at commit in steady-state syncs.
-		if !fromIncremental[step.name] {
-			ids, idErr := w.collectScratchIDs(ctx, scratch, step.name)
-			if idErr != nil {
-				return nil, nil, fmt.Errorf("collect remote ids %s: %w", step.name, idErr)
-			}
-			if skipped := w.fkSkippedIDs[step.name]; len(skipped) > 0 {
-				filtered := ids[:0]
-				for _, id := range ids {
-					if _, drop := skipped[id]; !drop {
-						filtered = append(filtered, id)
-					}
-				}
-				ids = filtered
-			}
-			remoteIDsByType[step.name] = ids
-		}
 
 		// PERF-05 hard gate (400 MB): force a GC cycle between types
 		// to deterministically reclaim the chunked decode buffers and
@@ -1059,7 +1022,7 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 		)
 	}
 
-	return objectCounts, remoteIDsByType, nil
+	return objectCounts, nil
 }
 
 // drainAndUpsertType reads scratch[type] in chunks of scratchChunkSize
@@ -1116,31 +1079,6 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 		afterID = lastID
 	}
 	return total, nil
-}
-
-// collectScratchIDs reads the full set of row ids from scratch[type].
-// Used to build the remote-ID set for the Phase B delete pass without
-// keeping the typed slice in Go heap. The id set for netixlan at 200K
-// rows is only ~1.6 MB (8 bytes per int64) — well inside the heap
-// budget even for the largest type.
-func (w *Worker) collectScratchIDs(ctx context.Context, scratch *scratchDB, name string) ([]int, error) {
-	rows, err := scratch.db.QueryContext(ctx, fmt.Sprintf("SELECT id FROM %q ORDER BY id", name))
-	if err != nil {
-		return nil, fmt.Errorf("query scratch ids %s: %w", name, err)
-	}
-	defer func() { _ = rows.Close() }()
-	var ids []int
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("scan scratch id %s: %w", name, err)
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate scratch ids %s: %w", name, err)
-	}
-	return ids, nil
 }
 
 // syncIncrementalInput bundles the per-type parameters for
@@ -1506,50 +1444,6 @@ func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field st
 		Action:     "null",
 	}, childID, parentID)
 	*ptr = nil
-}
-
-// syncDeletePass runs the per-type soft-delete loop in child-first (reverse
-// FK) order, skipping types that have no remoteIDs (incremental sync
-// succeeded). cycleStart is the single timestamp stamped on every row marked
-// status='deleted' during this cycle (Phase 68 D-02) — reused from the
-// Worker.Sync-entry time.Now() so all 13 types see identical timestamps.
-// The orchestrator handles rollback + recordFailure on error.
-func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType map[string][]int, cycleStart time.Time) error {
-	steps := w.syncSteps()
-	for i := len(steps) - 1; i >= 0; i-- {
-		step := steps[i]
-		remoteIDs, ok := remoteIDsByType[step.name]
-		if !ok {
-			// Incremental sync succeeded for this type — no delete needed.
-			continue
-		}
-
-		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-delete-"+step.name)
-
-		marked, stepErr := step.deleteFn(ctx, tx, remoteIDs, cycleStart)
-
-		stepSpan.End()
-
-		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
-
-		if stepErr != nil {
-			return fmt.Errorf("mark stale deleted %s: %w", step.name, stepErr)
-		}
-
-		// Record per-type delete metrics per D-08. The metric name stays
-		// SyncTypeDeleted — operator semantics for a row absent from the
-		// visible list are still "it's gone", even though the row physically
-		// remains as a tombstone post-Phase-68 D-02.
-		pdbotel.SyncTypeDeleted.Add(ctx, int64(marked), typeAttr)
-
-		if marked > 0 {
-			w.logger.LogAttrs(ctx, slog.LevelDebug, "marked stale deleted",
-				slog.String("type", step.name),
-				slog.Int("marked", marked),
-			)
-		}
-	}
-	return nil
 }
 
 // recordFailure records a failed sync in the sync_status table and metrics.

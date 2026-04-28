@@ -278,14 +278,20 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	}
 }
 
-// TestSyncSoftDeletesStale verifies sync marks rows absent from the remote
-// response as status='deleted' (Phase 68 D-02) rather than hard-deleting
-// them. The row count stays 3 after cycle 2; org 2 transitions from 'ok'
-// to 'deleted' while org 1 and org 3 retain status='ok'.
-func TestSyncSoftDeletesStale(t *testing.T) {
+// TestSyncPersistsExplicitTombstone verifies sync persists explicit
+// status='deleted' rows from upstream as tombstones in the local DB.
+// Quick task 260428-2zl Task 6: pre-2zl this test asserted the
+// inference-by-absence soft-delete path (org omitted from response →
+// local row marked deleted). That inference was structurally wrong
+// against PeeringDB's serializer-side filtering and is removed in T6.
+// Post-2zl, deletes arrive as explicit `{"id": N, "status":"deleted"}`
+// payloads in ?since=N responses; this test seeds that payload
+// directly and asserts the upsert path persists it without needing
+// a separate delete pass.
+func TestSyncPersistsExplicitTombstone(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
-	// First sync with 3 orgs.
+	// First sync with 3 orgs (all 'ok').
 	f.responses["org"] = []any{
 		makeOrg(1, "Org1", "ok"),
 		makeOrg(2, "Org2", "ok"),
@@ -301,32 +307,34 @@ func TestSyncSoftDeletesStale(t *testing.T) {
 		t.Fatalf("expected 3 orgs, got %d", count)
 	}
 
-	// Second sync with only 2 orgs (org 2 removed).
+	// Second sync: upstream returns org 2 with status='deleted'
+	// (mirrors the rest.py:694-727 ?since= response shape).
 	f.responses["org"] = []any{
 		makeOrg(1, "Org1", "ok"),
+		makeOrg(2, "Org2", "deleted"),
 		makeOrg(3, "Org3", "ok"),
 	}
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
-	// Post-Phase-68 soft-delete: row count unchanged, org 2 transitions to
-	// status='deleted'. Org 1 and org 3 stay 'ok'.
+	// Row count unchanged, org 2 transitioned to 'deleted' via the
+	// explicit upstream payload (no inference involved).
 	count, _ = w.entClient.Organization.Query().Count(t.Context())
 	if count != 3 {
-		t.Errorf("expected 3 orgs after soft-delete, got %d", count)
+		t.Errorf("expected 3 orgs, got %d", count)
 	}
 	okCount, _ := w.entClient.Organization.Query().Where(organization.Status("ok")).Count(t.Context())
 	if okCount != 2 {
-		t.Errorf("expected 2 orgs with status='ok' after soft-delete, got %d", okCount)
+		t.Errorf("expected 2 orgs with status='ok', got %d", okCount)
 	}
 	deletedCount, _ := w.entClient.Organization.Query().Where(organization.Status("deleted")).Count(t.Context())
 	if deletedCount != 1 {
-		t.Errorf("expected 1 org with status='deleted' after soft-delete, got %d", deletedCount)
+		t.Errorf("expected 1 org with status='deleted', got %d", deletedCount)
 	}
 	org2, err := w.entClient.Organization.Get(t.Context(), 2)
 	if err != nil {
-		t.Fatalf("org 2 should still exist after soft-delete: %v", err)
+		t.Fatalf("org 2 should still exist: %v", err)
 	}
 	if org2.Status != "deleted" {
 		t.Errorf("org 2 status: want 'deleted', got %q", org2.Status)
