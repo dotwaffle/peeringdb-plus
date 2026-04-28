@@ -3,7 +3,6 @@
 package organization
 
 import (
-	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 )
@@ -146,13 +145,7 @@ func ValidColumn(column string) bool {
 	return false
 }
 
-// Note that the variables below are initialized by the runtime
-// package on the initialization of the application. Therefore,
-// it should be imported in the main as follows:
-//
-//	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
-	Hooks [1]ent.Hook
 	// DefaultNameFold holds the default value on creation for the "name_fold" field.
 	DefaultNameFold string
 	// DefaultAkaFold holds the default value on creation for the "aka_fold" field.

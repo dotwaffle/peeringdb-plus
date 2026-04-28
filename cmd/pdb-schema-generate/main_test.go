@@ -231,7 +231,6 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 				`entrest.WithIncludeOperations`,
 				`entrest.WithEagerLoad(true)`,
 				`edge.To("networks"`,
-				`otelMutationHook("Organization")`,
 				// GraphQL OrderField is emitted for "name" fields whether
 				// or not the column is UNIQUE — see generator fieldAnnotations.
 				// organizations.name is deliberately non-unique because PeeringDB
@@ -261,7 +260,6 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 				`Nillable()`,
 				`edge.From("organization"`,
 				`entrest.WithFilter(entrest.FilterEQ`,
-				`otelMutationHook("Network")`,
 			},
 		},
 		{
@@ -279,7 +277,6 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 				`field.String("role")`,
 				`entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)`,
 				`index.Fields("role")`,
-				`otelMutationHook("Poc")`,
 			},
 			notWantParts: []string{
 				// The literal NotEmpty() emission shape — formatted exactly

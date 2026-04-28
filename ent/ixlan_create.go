@@ -253,9 +253,7 @@ func (_c *IxLanCreate) Mutation() *IxLanMutation {
 
 // Save creates the IxLan in the database.
 func (_c *IxLanCreate) Save(ctx context.Context) (*IxLan, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -282,7 +280,7 @@ func (_c *IxLanCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *IxLanCreate) defaults() error {
+func (_c *IxLanCreate) defaults() {
 	if _, ok := _c.mutation.Descr(); !ok {
 		v := ixlan.DefaultDescr
 		_c.mutation.SetDescr(v)
@@ -319,7 +317,6 @@ func (_c *IxLanCreate) defaults() error {
 		v := ixlan.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

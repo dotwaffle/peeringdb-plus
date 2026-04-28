@@ -250,9 +250,7 @@ func (_c *CarrierCreate) Mutation() *CarrierMutation {
 
 // Save creates the Carrier in the database.
 func (_c *CarrierCreate) Save(ctx context.Context) (*Carrier, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -279,7 +277,7 @@ func (_c *CarrierCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *CarrierCreate) defaults() error {
+func (_c *CarrierCreate) defaults() {
 	if _, ok := _c.mutation.NameFold(); !ok {
 		v := carrier.DefaultNameFold
 		_c.mutation.SetNameFold(v)
@@ -316,7 +314,6 @@ func (_c *CarrierCreate) defaults() error {
 		v := carrier.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

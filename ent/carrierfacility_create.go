@@ -129,9 +129,7 @@ func (_c *CarrierFacilityCreate) Mutation() *CarrierFacilityMutation {
 
 // Save creates the CarrierFacility in the database.
 func (_c *CarrierFacilityCreate) Save(ctx context.Context) (*CarrierFacility, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -158,7 +156,7 @@ func (_c *CarrierFacilityCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *CarrierFacilityCreate) defaults() error {
+func (_c *CarrierFacilityCreate) defaults() {
 	if _, ok := _c.mutation.Name(); !ok {
 		v := carrierfacility.DefaultName
 		_c.mutation.SetName(v)
@@ -167,7 +165,6 @@ func (_c *CarrierFacilityCreate) defaults() error {
 		v := carrierfacility.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

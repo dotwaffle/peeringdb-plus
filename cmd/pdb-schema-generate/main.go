@@ -735,11 +735,18 @@ func ({{.ModelName}}) Annotations() []schema.Annotation {
 	}
 }
 
-// Hooks returns {{.ModelName}} mutation hooks for OTel tracing per D-46.
+// Hooks returns {{.ModelName}} mutation hooks. Removed 2026-04-28
+// (post v1.18.5): the prior otelMutationHook created one OTel span per
+// mutation, which exploded the parent sync trace to >7.5MB during
+// large catch-up cycles (270k upserts → 270k child spans → Tempo
+// rejected the trace with TRACE_TOO_LARGE). Per-type and per-cycle
+// observability is already covered by:
+//   - pdbplus.sync.type.objects counter (per-type cumulative)
+//   - pdbplus.sync.duration histogram (per-cycle)
+//   - sync-fetch-{type} / sync-upsert-{type} per-step spans
+// Restore on a per-Op basis only if a specific debugging need surfaces.
 func ({{.ModelName}}) Hooks() []ent.Hook {
-	return []ent.Hook{
-		otelMutationHook("{{.ModelName}}"),
-	}
+	return nil
 }
 `
 

@@ -77,7 +77,7 @@ func ValidColumn(column string) bool {
 //
 //	import _ "github.com/dotwaffle/peeringdb-plus/ent/runtime"
 var (
-	Hooks  [2]ent.Hook
+	Hooks  [1]ent.Hook
 	Policy ent.Policy
 	// DefaultEmail holds the default value on creation for the "email" field.
 	DefaultEmail string

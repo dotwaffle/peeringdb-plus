@@ -644,9 +644,7 @@ func (_c *FacilityCreate) Mutation() *FacilityMutation {
 
 // Save creates the Facility in the database.
 func (_c *FacilityCreate) Save(ctx context.Context) (*Facility, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -673,7 +671,7 @@ func (_c *FacilityCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *FacilityCreate) defaults() error {
+func (_c *FacilityCreate) defaults() {
 	if _, ok := _c.mutation.NameFold(); !ok {
 		v := facility.DefaultNameFold
 		_c.mutation.SetNameFold(v)
@@ -782,7 +780,6 @@ func (_c *FacilityCreate) defaults() error {
 		v := facility.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

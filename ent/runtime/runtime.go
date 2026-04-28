@@ -29,8 +29,6 @@ import (
 // to their package variables.
 func init() {
 	campusMixin := schema.Campus{}.Mixin()
-	campusHooks := schema.Campus{}.Hooks()
-	campus.Hooks[0] = campusHooks[0]
 	campusMixinFields0 := campusMixin[0].Fields()
 	_ = campusMixinFields0
 	campusFields := schema.Campus{}.Fields()
@@ -76,8 +74,6 @@ func init() {
 	// campus.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	campus.IDValidator = campusDescID.Validators[0].(func(int) error)
 	carrierMixin := schema.Carrier{}.Mixin()
-	carrierHooks := schema.Carrier{}.Hooks()
-	carrier.Hooks[0] = carrierHooks[0]
 	carrierMixinFields0 := carrierMixin[0].Fields()
 	_ = carrierMixinFields0
 	carrierFields := schema.Carrier{}.Fields()
@@ -122,8 +118,6 @@ func init() {
 	carrierDescID := carrierFields[0].Descriptor()
 	// carrier.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	carrier.IDValidator = carrierDescID.Validators[0].(func(int) error)
-	carrierfacilityHooks := schema.CarrierFacility{}.Hooks()
-	carrierfacility.Hooks[0] = carrierfacilityHooks[0]
 	carrierfacilityFields := schema.CarrierFacility{}.Fields()
 	_ = carrierfacilityFields
 	// carrierfacilityDescName is the schema descriptor for name field.
@@ -139,8 +133,6 @@ func init() {
 	// carrierfacility.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	carrierfacility.IDValidator = carrierfacilityDescID.Validators[0].(func(int) error)
 	facilityMixin := schema.Facility{}.Mixin()
-	facilityHooks := schema.Facility{}.Hooks()
-	facility.Hooks[0] = facilityHooks[0]
 	facilityMixinFields0 := facilityMixin[0].Fields()
 	_ = facilityMixinFields0
 	facilityFields := schema.Facility{}.Fields()
@@ -258,8 +250,6 @@ func init() {
 	// facility.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	facility.IDValidator = facilityDescID.Validators[0].(func(int) error)
 	internetexchangeMixin := schema.InternetExchange{}.Mixin()
-	internetexchangeHooks := schema.InternetExchange{}.Hooks()
-	internetexchange.Hooks[0] = internetexchangeHooks[0]
 	internetexchangeMixinFields0 := internetexchangeMixin[0].Fields()
 	_ = internetexchangeMixinFields0
 	internetexchangeFields := schema.InternetExchange{}.Fields()
@@ -384,8 +374,6 @@ func init() {
 	internetexchangeDescID := internetexchangeFields[0].Descriptor()
 	// internetexchange.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	internetexchange.IDValidator = internetexchangeDescID.Validators[0].(func(int) error)
-	ixfacilityHooks := schema.IxFacility{}.Hooks()
-	ixfacility.Hooks[0] = ixfacilityHooks[0]
 	ixfacilityFields := schema.IxFacility{}.Fields()
 	_ = ixfacilityFields
 	// ixfacilityDescName is the schema descriptor for name field.
@@ -408,8 +396,6 @@ func init() {
 	ixfacilityDescID := ixfacilityFields[0].Descriptor()
 	// ixfacility.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	ixfacility.IDValidator = ixfacilityDescID.Validators[0].(func(int) error)
-	ixlanHooks := schema.IxLan{}.Hooks()
-	ixlan.Hooks[0] = ixlanHooks[0]
 	ixlanFields := schema.IxLan{}.Fields()
 	_ = ixlanFields
 	// ixlanDescDescr is the schema descriptor for descr field.
@@ -452,8 +438,6 @@ func init() {
 	ixlanDescID := ixlanFields[0].Descriptor()
 	// ixlan.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	ixlan.IDValidator = ixlanDescID.Validators[0].(func(int) error)
-	ixprefixHooks := schema.IxPrefix{}.Hooks()
-	ixprefix.Hooks[0] = ixprefixHooks[0]
 	ixprefixFields := schema.IxPrefix{}.Fields()
 	_ = ixprefixFields
 	// ixprefixDescInDfz is the schema descriptor for in_dfz field.
@@ -477,8 +461,6 @@ func init() {
 	// ixprefix.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	ixprefix.IDValidator = ixprefixDescID.Validators[0].(func(int) error)
 	networkMixin := schema.Network{}.Mixin()
-	networkHooks := schema.Network{}.Hooks()
-	network.Hooks[0] = networkHooks[0]
 	networkMixinFields0 := networkMixin[0].Fields()
 	_ = networkMixinFields0
 	networkFields := schema.Network{}.Fields()
@@ -599,8 +581,6 @@ func init() {
 	networkDescID := networkFields[0].Descriptor()
 	// network.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	network.IDValidator = networkDescID.Validators[0].(func(int) error)
-	networkfacilityHooks := schema.NetworkFacility{}.Hooks()
-	networkfacility.Hooks[0] = networkfacilityHooks[0]
 	networkfacilityFields := schema.NetworkFacility{}.Fields()
 	_ = networkfacilityFields
 	// networkfacilityDescName is the schema descriptor for name field.
@@ -623,8 +603,6 @@ func init() {
 	networkfacilityDescID := networkfacilityFields[0].Descriptor()
 	// networkfacility.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	networkfacility.IDValidator = networkfacilityDescID.Validators[0].(func(int) error)
-	networkixlanHooks := schema.NetworkIxLan{}.Hooks()
-	networkixlan.Hooks[0] = networkixlanHooks[0]
 	networkixlanFields := schema.NetworkIxLan{}.Fields()
 	_ = networkixlanFields
 	// networkixlanDescAsn is the schema descriptor for asn field.
@@ -660,8 +638,6 @@ func init() {
 	// networkixlan.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	networkixlan.IDValidator = networkixlanDescID.Validators[0].(func(int) error)
 	organizationMixin := schema.Organization{}.Mixin()
-	organizationHooks := schema.Organization{}.Hooks()
-	organization.Hooks[0] = organizationHooks[0]
 	organizationMixinFields0 := organizationMixin[0].Fields()
 	_ = organizationMixinFields0
 	organizationFields := schema.Organization{}.Fields()
@@ -743,9 +719,6 @@ func init() {
 			return next.Mutate(ctx, m)
 		})
 	}
-	pocHooks := schema.Poc{}.Hooks()
-
-	poc.Hooks[1] = pocHooks[0]
 	pocFields := schema.Poc{}.Fields()
 	_ = pocFields
 	// pocDescEmail is the schema descriptor for email field.

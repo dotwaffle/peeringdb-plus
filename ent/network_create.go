@@ -658,9 +658,7 @@ func (_c *NetworkCreate) Mutation() *NetworkMutation {
 
 // Save creates the Network in the database.
 func (_c *NetworkCreate) Save(ctx context.Context) (*Network, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -687,7 +685,7 @@ func (_c *NetworkCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *NetworkCreate) defaults() error {
+func (_c *NetworkCreate) defaults() {
 	if _, ok := _c.mutation.NameFold(); !ok {
 		v := network.DefaultNameFold
 		_c.mutation.SetNameFold(v)
@@ -796,7 +794,6 @@ func (_c *NetworkCreate) defaults() error {
 		v := network.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

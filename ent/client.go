@@ -451,8 +451,7 @@ func (c *CampusClient) QueryOrganization(_m *Campus) *OrganizationQuery {
 
 // Hooks returns the client hooks.
 func (c *CampusClient) Hooks() []Hook {
-	hooks := c.hooks.Campus
-	return append(hooks[:len(hooks):len(hooks)], campus.Hooks[:]...)
+	return c.hooks.Campus
 }
 
 // Interceptors returns the client interceptors.
@@ -617,8 +616,7 @@ func (c *CarrierClient) QueryOrganization(_m *Carrier) *OrganizationQuery {
 
 // Hooks returns the client hooks.
 func (c *CarrierClient) Hooks() []Hook {
-	hooks := c.hooks.Carrier
-	return append(hooks[:len(hooks):len(hooks)], carrier.Hooks[:]...)
+	return c.hooks.Carrier
 }
 
 // Interceptors returns the client interceptors.
@@ -783,8 +781,7 @@ func (c *CarrierFacilityClient) QueryFacility(_m *CarrierFacility) *FacilityQuer
 
 // Hooks returns the client hooks.
 func (c *CarrierFacilityClient) Hooks() []Hook {
-	hooks := c.hooks.CarrierFacility
-	return append(hooks[:len(hooks):len(hooks)], carrierfacility.Hooks[:]...)
+	return c.hooks.CarrierFacility
 }
 
 // Interceptors returns the client interceptors.
@@ -997,8 +994,7 @@ func (c *FacilityClient) QueryOrganization(_m *Facility) *OrganizationQuery {
 
 // Hooks returns the client hooks.
 func (c *FacilityClient) Hooks() []Hook {
-	hooks := c.hooks.Facility
-	return append(hooks[:len(hooks):len(hooks)], facility.Hooks[:]...)
+	return c.hooks.Facility
 }
 
 // Interceptors returns the client interceptors.
@@ -1179,8 +1175,7 @@ func (c *InternetExchangeClient) QueryOrganization(_m *InternetExchange) *Organi
 
 // Hooks returns the client hooks.
 func (c *InternetExchangeClient) Hooks() []Hook {
-	hooks := c.hooks.InternetExchange
-	return append(hooks[:len(hooks):len(hooks)], internetexchange.Hooks[:]...)
+	return c.hooks.InternetExchange
 }
 
 // Interceptors returns the client interceptors.
@@ -1345,8 +1340,7 @@ func (c *IxFacilityClient) QueryInternetExchange(_m *IxFacility) *InternetExchan
 
 // Hooks returns the client hooks.
 func (c *IxFacilityClient) Hooks() []Hook {
-	hooks := c.hooks.IxFacility
-	return append(hooks[:len(hooks):len(hooks)], ixfacility.Hooks[:]...)
+	return c.hooks.IxFacility
 }
 
 // Interceptors returns the client interceptors.
@@ -1527,8 +1521,7 @@ func (c *IxLanClient) QueryNetworkIxLans(_m *IxLan) *NetworkIxLanQuery {
 
 // Hooks returns the client hooks.
 func (c *IxLanClient) Hooks() []Hook {
-	hooks := c.hooks.IxLan
-	return append(hooks[:len(hooks):len(hooks)], ixlan.Hooks[:]...)
+	return c.hooks.IxLan
 }
 
 // Interceptors returns the client interceptors.
@@ -1677,8 +1670,7 @@ func (c *IxPrefixClient) QueryIxLan(_m *IxPrefix) *IxLanQuery {
 
 // Hooks returns the client hooks.
 func (c *IxPrefixClient) Hooks() []Hook {
-	hooks := c.hooks.IxPrefix
-	return append(hooks[:len(hooks):len(hooks)], ixprefix.Hooks[:]...)
+	return c.hooks.IxPrefix
 }
 
 // Interceptors returns the client interceptors.
@@ -1875,8 +1867,7 @@ func (c *NetworkClient) QueryPocs(_m *Network) *PocQuery {
 
 // Hooks returns the client hooks.
 func (c *NetworkClient) Hooks() []Hook {
-	hooks := c.hooks.Network
-	return append(hooks[:len(hooks):len(hooks)], network.Hooks[:]...)
+	return c.hooks.Network
 }
 
 // Interceptors returns the client interceptors.
@@ -2041,8 +2032,7 @@ func (c *NetworkFacilityClient) QueryNetwork(_m *NetworkFacility) *NetworkQuery 
 
 // Hooks returns the client hooks.
 func (c *NetworkFacilityClient) Hooks() []Hook {
-	hooks := c.hooks.NetworkFacility
-	return append(hooks[:len(hooks):len(hooks)], networkfacility.Hooks[:]...)
+	return c.hooks.NetworkFacility
 }
 
 // Interceptors returns the client interceptors.
@@ -2207,8 +2197,7 @@ func (c *NetworkIxLanClient) QueryNetwork(_m *NetworkIxLan) *NetworkQuery {
 
 // Hooks returns the client hooks.
 func (c *NetworkIxLanClient) Hooks() []Hook {
-	hooks := c.hooks.NetworkIxLan
-	return append(hooks[:len(hooks):len(hooks)], networkixlan.Hooks[:]...)
+	return c.hooks.NetworkIxLan
 }
 
 // Interceptors returns the client interceptors.
@@ -2421,8 +2410,7 @@ func (c *OrganizationClient) QueryNetworks(_m *Organization) *NetworkQuery {
 
 // Hooks returns the client hooks.
 func (c *OrganizationClient) Hooks() []Hook {
-	hooks := c.hooks.Organization
-	return append(hooks[:len(hooks):len(hooks)], organization.Hooks[:]...)
+	return c.hooks.Organization
 }
 
 // Interceptors returns the client interceptors.

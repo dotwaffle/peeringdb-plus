@@ -129,9 +129,7 @@ func (_c *IxPrefixCreate) Mutation() *IxPrefixMutation {
 
 // Save creates the IxPrefix in the database.
 func (_c *IxPrefixCreate) Save(ctx context.Context) (*IxPrefix, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -158,7 +156,7 @@ func (_c *IxPrefixCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *IxPrefixCreate) defaults() error {
+func (_c *IxPrefixCreate) defaults() {
 	if _, ok := _c.mutation.InDfz(); !ok {
 		v := ixprefix.DefaultInDfz
 		_c.mutation.SetInDfz(v)
@@ -171,7 +169,6 @@ func (_c *IxPrefixCreate) defaults() error {
 		v := ixprefix.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

@@ -281,9 +281,7 @@ func (_c *NetworkIxLanCreate) Mutation() *NetworkIxLanMutation {
 
 // Save creates the NetworkIxLan in the database.
 func (_c *NetworkIxLanCreate) Save(ctx context.Context) (*NetworkIxLan, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -310,7 +308,7 @@ func (_c *NetworkIxLanCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *NetworkIxLanCreate) defaults() error {
+func (_c *NetworkIxLanCreate) defaults() {
 	if _, ok := _c.mutation.BfdSupport(); !ok {
 		v := networkixlan.DefaultBfdSupport
 		_c.mutation.SetBfdSupport(v)
@@ -335,7 +333,6 @@ func (_c *NetworkIxLanCreate) defaults() error {
 		v := networkixlan.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

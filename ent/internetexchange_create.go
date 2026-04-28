@@ -588,9 +588,7 @@ func (_c *InternetExchangeCreate) Mutation() *InternetExchangeMutation {
 
 // Save creates the InternetExchange in the database.
 func (_c *InternetExchangeCreate) Save(ctx context.Context) (*InternetExchange, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -617,7 +615,7 @@ func (_c *InternetExchangeCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *InternetExchangeCreate) defaults() error {
+func (_c *InternetExchangeCreate) defaults() {
 	if _, ok := _c.mutation.NameFold(); !ok {
 		v := internetexchange.DefaultNameFold
 		_c.mutation.SetNameFold(v)
@@ -734,7 +732,6 @@ func (_c *InternetExchangeCreate) defaults() error {
 		v := internetexchange.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

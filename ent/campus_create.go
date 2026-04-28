@@ -278,9 +278,7 @@ func (_c *CampusCreate) Mutation() *CampusMutation {
 
 // Save creates the Campus in the database.
 func (_c *CampusCreate) Save(ctx context.Context) (*Campus, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -307,7 +305,7 @@ func (_c *CampusCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *CampusCreate) defaults() error {
+func (_c *CampusCreate) defaults() {
 	if _, ok := _c.mutation.NameFold(); !ok {
 		v := campus.DefaultNameFold
 		_c.mutation.SetNameFold(v)
@@ -344,7 +342,6 @@ func (_c *CampusCreate) defaults() error {
 		v := campus.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

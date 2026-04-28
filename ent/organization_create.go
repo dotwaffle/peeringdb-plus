@@ -406,9 +406,7 @@ func (_c *OrganizationCreate) Mutation() *OrganizationMutation {
 
 // Save creates the Organization in the database.
 func (_c *OrganizationCreate) Save(ctx context.Context) (*Organization, error) {
-	if err := _c.defaults(); err != nil {
-		return nil, err
-	}
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -435,7 +433,7 @@ func (_c *OrganizationCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *OrganizationCreate) defaults() error {
+func (_c *OrganizationCreate) defaults() {
 	if _, ok := _c.mutation.NameFold(); !ok {
 		v := organization.DefaultNameFold
 		_c.mutation.SetNameFold(v)
@@ -500,7 +498,6 @@ func (_c *OrganizationCreate) defaults() error {
 		v := organization.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
-	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

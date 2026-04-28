@@ -9,9 +9,6 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schema"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
-	"go.opentelemetry.io/otel"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 // testTimestamp provides a consistent timestamp for all tests.
@@ -738,70 +735,13 @@ func TestEdgeTraversal(t *testing.T) {
 	})
 }
 
-// TestOtelMutationHook_ErrorPath verifies that the otelMutationHook records
-// errors on the span when a mutation fails (hooks.go line 28). Uses an
-// in-memory span exporter to capture and inspect span events.
-func TestOtelMutationHook_ErrorPath(t *testing.T) {
-	// Set up in-memory span exporter to capture spans.
-	exporter := tracetest.NewInMemoryExporter()
-	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
-	prev := otel.GetTracerProvider()
-	otel.SetTracerProvider(tp)
-	t.Cleanup(func() {
-		_ = tp.Shutdown(t.Context())
-		otel.SetTracerProvider(prev)
-	})
-
-	client := testutil.SetupClient(t)
-	ctx := t.Context()
-
-	// Create an Organization to establish ID=1.
-	_, err := client.Organization.Create().
-		SetID(1).
-		SetName("First").
-		SetCreated(testTimestamp).
-		SetUpdated(testTimestamp).
-		Save(ctx)
-	if err != nil {
-		t.Fatalf("first create: %v", err)
-	}
-
-	// Attempt duplicate ID -- triggers mutation error through hook.
-	_, err = client.Organization.Create().
-		SetID(1).
-		SetName("Dupe").
-		SetCreated(testTimestamp).
-		SetUpdated(testTimestamp).
-		Save(ctx)
-	if err == nil {
-		t.Fatal("expected error on duplicate ID")
-	}
-
-	// Flush the tracer provider so spans are exported.
-	if err := tp.ForceFlush(ctx); err != nil {
-		t.Fatalf("force flush: %v", err)
-	}
-
-	// Verify the hook recorded the error on the span.
-	// The hook names spans "ent.{Type}.{Op}" where Op.String() returns "OpCreate".
-	spans := exporter.GetSpans()
-	var found bool
-	for _, s := range spans {
-		if s.Name == "ent.Organization.OpCreate" {
-			for _, evt := range s.Events {
-				if evt.Name == "exception" {
-					found = true
-				}
-			}
-		}
-	}
-	if !found {
-		t.Error("expected span with RecordError event for ent.Organization.OpCreate")
-		for _, s := range spans {
-			t.Logf("  span: %s (events: %d)", s.Name, len(s.Events))
-		}
-	}
-}
+// TestOtelMutationHook_ErrorPath was removed 2026-04-28 alongside the
+// otelMutationHook itself. The hook created one OTel span per mutation
+// which inflated sync traces past Tempo's 7.5MB cap. Per-cycle tracing
+// (sync-fetch-{type}, sync-upsert-{type} spans + per-type counters)
+// remains in place and is the appropriate granularity for bulk ent
+// operations. If a per-mutation tracing need re-emerges, restore at a
+// coarser level (per-batch rather than per-mutation).
 
 // TestFKConstraintViolation verifies that FK constraint violations are caught
 // when foreign_keys pragma is enabled. Table-driven per T-1.
