@@ -46,10 +46,18 @@ type Endpoint struct {
 }
 
 // Result captures the outcome of a single Hit.
+//
+// Latency is the total request time — from client.Do() entry through
+// full body drain — so it reflects the response transfer cost, not
+// just time-to-first-byte. Bytes is the size of the response body
+// (after content-encoding decoding by the http stdlib transport).
+// Both metrics matter for sizing dashboards: large responses with
+// fast TTFB still cost CPU and bandwidth on the streaming path.
 type Result struct {
 	Endpoint Endpoint
 	Status   int
 	Latency  time.Duration
+	Bytes    int64
 	Err      error
 }
 
@@ -87,18 +95,42 @@ func Hit(ctx context.Context, client *http.Client, base, authToken string, ep En
 
 	start := time.Now()
 	resp, err := client.Do(req)
-	res.Latency = time.Since(start)
 	if err != nil {
+		res.Latency = time.Since(start)
 		res.Err = fmt.Errorf("do %s %s: %w", ep.Method, url, err)
 		return res
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Drain the body so the connection is reusable (mirror the
-	// project's own internal/peeringdb/client.go pattern).
-	_, _ = io.Copy(io.Discard, resp.Body)
+	// project's own internal/peeringdb/client.go pattern). Record
+	// byte count for verbose output + capacity sizing dashboards.
+	n, _ := io.Copy(io.Discard, resp.Body)
+	res.Latency = time.Since(start)
+	res.Bytes = n
 	res.Status = resp.StatusCode
 	return res
+}
+
+// humanBytes formats a byte count as a short human-readable string
+// using IEC binary prefixes (KiB / MiB / GiB). Sub-KiB values render
+// as plain "<n> B". Single decimal place for ≥KiB; rounds half-up.
+//
+// Used by verbose loggers in endpoints.go / sync.go / soak.go so
+// operators can eyeball response-size variation per endpoint without
+// reading the raw byte counts.
+func humanBytes(n int64) string {
+	const k = 1024
+	switch {
+	case n < k:
+		return fmt.Sprintf("%d B", n)
+	case n < k*k:
+		return fmt.Sprintf("%.1f KiB", float64(n)/k)
+	case n < k*k*k:
+		return fmt.Sprintf("%.1f MiB", float64(n)/(k*k))
+	default:
+		return fmt.Sprintf("%.1f GiB", float64(n)/(k*k*k))
+	}
 }
 
 // OK reports whether a Result represents a successful request: no

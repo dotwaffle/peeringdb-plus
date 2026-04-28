@@ -101,8 +101,9 @@ func runSync(ctx context.Context, cfg Config, mode string, since time.Time, rep 
 		res := Hit(ctx, cfg.HTTPClient, cfg.Base, cfg.AuthToken, ep)
 		rep.Append(res)
 		if cfg.Verbose {
-			fmt.Fprintf(out, "  [%2d/%d] %-7s %s -> %d (%s)\n",
-				i+1, len(eps), ep.Method, ep.Path, res.Status, res.Latency.Round(0))
+			fmt.Fprintf(out, "  [%2d/%d] %-7s %s -> %d (%s, %s)\n",
+				i+1, len(eps), ep.Method, ep.Path, res.Status,
+				res.Latency.Round(0), humanBytes(res.Bytes))
 		}
 	}
 	return nil

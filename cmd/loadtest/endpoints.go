@@ -25,8 +25,9 @@ func runEndpoints(ctx context.Context, cfg Config, eps []Endpoint, rep *Report, 
 		res := Hit(ctx, cfg.HTTPClient, cfg.Base, cfg.AuthToken, ep)
 		rep.Append(res)
 		if cfg.Verbose {
-			fmt.Fprintf(out, "  [%3d/%d] %-10s %-7s %s -> %d (%s)\n",
-				i+1, len(eps), ep.Surface, ep.Method, ep.Path, res.Status, res.Latency.Round(0))
+			fmt.Fprintf(out, "  [%3d/%d] %-10s %-7s %s -> %d (%s, %s)\n",
+				i+1, len(eps), ep.Surface, ep.Method, ep.Path, res.Status,
+				res.Latency.Round(0), humanBytes(res.Bytes))
 		}
 	}
 	return nil
