@@ -29,11 +29,13 @@ func TestSync_OrderingMatchesWorker(t *testing.T) {
 
 // TestSync_BuildSyncEndpointsFull asserts full-mode produces 39
 // pdbcompat GETs (13 types × 3 depths) against
-// /api/<short>?depth=N, mirroring internal/peeringdb/stream.go
-// StreamAll's full-sync URL shape exactly — single unpaginated
-// request per (type, depth), no limit/skip. Depth bands cover the
-// project's own sync (depth=0) plus the two depth levels real
-// PeeringDB API clients commonly request.
+// /api/<short>?depth=N&limit=0. The `limit=0` sentinel is the
+// upstream-compatible "unlimited" marker (parity-locked by
+// internal/pdbcompat/parity/limit_test.go LIMIT-01); without it the
+// mirror's DefaultLimit=250 would cap each response at 250 rows,
+// defeating the purpose of a full-sync loadtest. See the
+// loadtest-body-size-mismatch debug session (.planning/debug/, 2026-04-28)
+// for the root-cause investigation.
 func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 	t.Parallel()
 
@@ -55,7 +57,7 @@ func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 			if ep.Method != "GET" {
 				t.Errorf("ep[%d].Method = %q, want GET", i, ep.Method)
 			}
-			want := fmt.Sprintf("/api/%s?depth=%d", ty, depth)
+			want := fmt.Sprintf("/api/%s?depth=%d&limit=0", ty, depth)
 			if ep.Path != want {
 				t.Errorf("ep[%d].Path = %q, want %q", i, ep.Path, want)
 			}
@@ -63,11 +65,16 @@ func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 				t.Errorf("ep[%d].Path = %q: full mode should not have since=",
 					i, ep.Path)
 			}
-			if strings.Contains(ep.Path, "limit=") ||
-				strings.Contains(ep.Path, "skip=") {
+			if strings.Contains(ep.Path, "skip=") {
 				t.Errorf("ep[%d].Path = %q: full mode must NOT include "+
-					"limit/skip (StreamAll issues a single unpaginated request)",
+					"skip (a single unbounded request, not paginated)",
 					i, ep.Path)
+			}
+			if !strings.Contains(ep.Path, "limit=0") {
+				t.Errorf("ep[%d].Path = %q: full mode MUST include "+
+					"limit=0 (mirror DefaultLimit=250 would cap "+
+					"otherwise — see LIMIT-01 / debug-session "+
+					"loadtest-body-size-mismatch)", i, ep.Path)
 			}
 		}
 	}

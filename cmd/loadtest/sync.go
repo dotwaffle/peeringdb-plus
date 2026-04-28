@@ -29,16 +29,24 @@ var syncOrder = []string{
 var syncDepths = []int{0, 1, 2}
 
 // buildSyncEndpoints returns a 39-entry pdbcompat sequence (13 types ×
-// 3 depths) in syncOrder using the same URL shapes that
-// internal/peeringdb/stream.go StreamAll uses against upstream
-// PeeringDB:
+// 3 depths) in syncOrder using URL shapes designed to exercise the
+// mirror at full scale:
 //
-//   - Full mode: /api/<type>?depth=N — single unpaginated request per
-//     (type, depth). The server streams the entire dataset (no
-//     limit/skip).
+//   - Full mode: /api/<type>?depth=N&limit=0 — `limit=0` is the
+//     upstream-compatible "unlimited" sentinel (see
+//     internal/pdbcompat/parity/limit_test.go LIMIT-01 + upstream
+//     rest.py:494-497). Without it the mirror's DefaultLimit=250 caps
+//     each response at 250 rows, which was the symptom of the
+//     loadtest-body-size-mismatch debug session (2026-04-28): bare
+//     /api/org?depth=2 was returning 122 KiB / 250 rows instead of
+//     the expected ~14 MiB / 33k rows. The Phase 71 response-memory
+//     budget (default 128 MiB; PDBPLUS_RESPONSE_MEMORY_LIMIT) is the
+//     real DoS gate — `limit=0` exercises that path, which is the
+//     point of a loadtest.
 //   - Incremental mode: /api/<type>?limit=250&skip=0&depth=N&since=M
 //     — first page of the production paginated incremental fetch per
-//     (type, depth).
+//     (type, depth). Mirrors internal/peeringdb/stream.go's
+//     paginated branch verbatim, so this URL shape stays unchanged.
 //
 // Issuing all three depths per type matches the diversity of real
 // client traffic the mirror serves: depth=0 (the project's own sync,
@@ -47,11 +55,23 @@ var syncDepths = []int{0, 1, 2}
 // syncOrder so FK dependency parents come before children within
 // each depth band.
 //
+// Note: pdbcompat silently drops `?depth=N` on list endpoints (LIMIT-02
+// divergence — see docs/API.md § Known Divergences), so depth=0/1/2
+// produce identical bodies for any given type. The depth band still
+// has value for surfacing if/when that divergence is reverted.
+//
 // Earlier revisions emitted ?limit=250&skip=0&depth=0 for full mode,
 // inadvertently mirroring FetchRawPage (used only by the fixture
-// extractor in internal/visbaseline) instead of StreamAll. That made
-// full sync finish suspiciously fast because the server returned at
-// most 250 rows per type rather than the entire table.
+// extractor in internal/visbaseline) instead of StreamAll. A later
+// revision dropped the limit/skip entirely thinking that mirrored
+// StreamAll's against-upstream behaviour; that turned out to be wrong
+// because the mirror enforces DefaultLimit=250 even when the caller
+// intends a full unbounded stream (the upstream PeeringDB DRF
+// pagination has the same default but the project's own sync against
+// upstream still works because StreamAll's full-sync path issues a
+// single request expecting the upstream-side defaults; against the
+// mirror, the explicit `limit=0` sentinel is required to reach the
+// unbounded path).
 func buildSyncEndpoints(mode string, since time.Time) []Endpoint {
 	out := make([]Endpoint, 0, len(syncOrder)*len(syncDepths))
 	for _, depth := range syncDepths {
@@ -61,7 +81,7 @@ func buildSyncEndpoints(mode string, since time.Time) []Endpoint {
 				path = fmt.Sprintf("/api/%s?limit=250&skip=0&depth=%d&since=%d",
 					t, depth, since.Unix())
 			} else {
-				path = fmt.Sprintf("/api/%s?depth=%d", t, depth)
+				path = fmt.Sprintf("/api/%s?depth=%d&limit=0", t, depth)
 			}
 			out = append(out, Endpoint{
 				Surface:    SurfacePdbCompat,
