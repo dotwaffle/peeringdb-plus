@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -274,6 +275,45 @@ func FetchType[T any](ctx context.Context, c *Client, objectType string, opts ..
 		return nil, err
 	}
 	return items, nil
+}
+
+// FetchRaw issues a single non-paginated request with the given query
+// params and returns each top-level data element as a json.RawMessage
+// clone. Quick task 260428-2zl Task 3 — used by the sync FK-backfill
+// path (fetch one row at a time via ?since=1&id__in=N to recover
+// missing parents from upstream before declaring an orphan).
+//
+// The request goes through doWithRetry (so it observes the rate
+// limiter, the WAF detector, and the bounded 429 ladder). The decoder
+// clones each raw element because json.Decoder reuses its internal
+// buffer between Decode calls — without the clone, every slice entry
+// would alias the same memory.
+//
+// Empty data → returns an empty slice (not nil) so callers can range
+// over the result without a separate len-check.
+func (c *Client) FetchRaw(ctx context.Context, objectType string, params url.Values) ([]json.RawMessage, error) {
+	u := fmt.Sprintf("%s/api/%s", c.baseURL, objectType)
+	if len(params) > 0 {
+		u += "?" + params.Encode()
+	}
+	resp, err := c.doWithRetry(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var env struct {
+		Data []json.RawMessage `json:"data"`
+	}
+	if decErr := json.NewDecoder(resp.Body).Decode(&env); decErr != nil {
+		return nil, fmt.Errorf("decode %s: %w", u, decErr)
+	}
+	out := make([]json.RawMessage, 0, len(env.Data))
+	for _, raw := range env.Data {
+		clone := make(json.RawMessage, len(raw))
+		copy(clone, raw)
+		out = append(out, clone)
+	}
+	return out, nil
 }
 
 // FetchRawPage fetches a single page of objects for the given type and

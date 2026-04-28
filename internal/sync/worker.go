@@ -105,6 +105,15 @@ type WorkerConfig struct {
 	// Linux; skipped on other OSes (the RSS attr is then omitted — it
 	// is not set to zero). Zero disables only the Warn.
 	RSSWarnBytes int64
+
+	// FKBackfillMaxPerCycle caps the number of live FK-backfill HTTP
+	// fetches per sync cycle. Quick task 260428-2zl: when fkCheckParent
+	// finds a missing parent, sync attempts one fetch via
+	// ?since=1&id__in=<id> to recover the row before declaring the
+	// child orphaned. Default 200 (PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE).
+	// 0 disables backfill entirely — legacy drop-on-miss behavior,
+	// preserved as an operator escape-hatch for misbehaving cycles.
+	FKBackfillMaxPerCycle int
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -147,6 +156,23 @@ type Worker struct {
 	// 7.5 MB per-trace cap (audit 2026-04-26). Reset alongside fkRegistry
 	// in resetFKState.
 	fkOrphanCounts map[fkOrphanKey]int
+	// fkBackfillTried is the per-cycle dedup cache for live FK backfills
+	// (quick task 260428-2zl). Keyed by (parent type, parent ID) — if the
+	// same missing parent is referenced by N child rows, we issue exactly
+	// ONE backfill HTTP fetch and short-circuit the next N-1 lookups.
+	// Reset alongside fkRegistry in resetFKState.
+	fkBackfillTried map[fkBackfillKey]struct{}
+	// fkBackfillCount is the per-cycle attempted-fetch counter, compared
+	// against fkBackfillCap. Bumped before the HTTP fetch (so cap-hit
+	// detection fires deterministically across goroutines that might
+	// race the cap on the same cycle, even though Worker.Sync is
+	// single-writer today).
+	fkBackfillCount int
+	// fkBackfillCap is the per-cycle hard cap on FK backfill HTTP
+	// fetches. Captured once in NewWorker from
+	// WorkerConfig.FKBackfillMaxPerCycle; 0 disables backfill entirely
+	// (legacy drop-on-miss behavior, preserved for operator escape-hatch).
+	fkBackfillCap int
 }
 
 // fkOrphanKey is the dimension grouping a single class of FK-orphan
@@ -173,6 +199,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		config:        cfg,
 		logger:        logger,
 		retryBackoffs: defaultRetryBackoffs,
+		fkBackfillCap: cfg.FKBackfillMaxPerCycle,
 	}
 }
 
@@ -189,6 +216,11 @@ func (w *Worker) resetFKState() {
 	w.fkRegistry = make(map[string]map[int]struct{}, 13)
 	w.fkSkippedIDs = make(map[string]map[int]struct{}, 13)
 	w.fkOrphanCounts = make(map[fkOrphanKey]int)
+	// Quick task 260428-2zl: reset per-cycle FK-backfill dedup cache and
+	// counter alongside the rest of the FK state. The cap is captured
+	// once at NewWorker time; only the per-cycle bookkeeping resets.
+	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
+	w.fkBackfillCount = 0
 }
 
 // recordOrphan tracks one FK-orphan observation for the per-cycle
@@ -1397,13 +1429,22 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 
 // fkCheckParent is the per-row FK validation helper called from the
 // fkFilter closures in dispatchScratchChunk. Returns true if parentID
-// is registered for parentType (or is a zero/null FK); otherwise records
-// the orphan via Worker.recordOrphan (DEBUG log + per-cycle counter),
-// marks the child id in fkSkippedIDs so the delete pass can reconcile,
-// and returns false so syncIncremental drops the row from the chunk.
-// emitOrphanSummary surfaces the per-cycle aggregate at WARN.
+// is registered for parentType (or is a zero/null FK), or if the live
+// backfill (quick task 260428-2zl) recovered the parent from upstream.
+// Otherwise records the orphan via Worker.recordOrphan (DEBUG log +
+// per-cycle counter), marks the child id in fkSkippedIDs so the delete
+// pass can reconcile, and returns false so syncIncremental drops the
+// row from the chunk. emitOrphanSummary surfaces the per-cycle
+// aggregate at WARN.
+//
+// Backfill is gated on fkBackfillCap > 0 — operators who set
+// PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE=0 retain the legacy drop-on-miss
+// behavior (no upstream traffic; child rows simply dropped).
 func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string, childID int, parentType string, parentID int, field string) bool {
 	if w.fkHasParent(ctx, tx, parentType, parentID) {
+		return true
+	}
+	if w.fkBackfillCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return true
 	}
 	w.fkMarkSkipped(childType, childID)
