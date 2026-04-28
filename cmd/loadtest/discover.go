@@ -79,6 +79,91 @@ func discoverIDs(ctx context.Context, cfg Config, out io.Writer) map[string]int 
 	return ids
 }
 
+// discoverRampIDs prefetches a stable set of real IDs (and ASNs for
+// entity=="net") from the deployed mirror so that the ramp loop can
+// round-robin through them without warming a single row's cache. The
+// fetch is one HTTP call: GET /api/<entity>?limit=<count>.
+//
+// For entity=="net" the asns slice is populated in parallel with ids
+// (one ASN per network row) so the Web UI surface can hit
+// /ui/asn/<asn> rather than /ui/net/<id> — the project's network
+// detail page is keyed on ASN per the templ route table. For
+// entity=="org" asns is returned nil; the Web UI surface uses
+// /ui/org/<id> directly.
+//
+// The 5s timeout matches lookupFirstID's per-type budget; ramp's
+// total prefetch wall-clock is bounded by this single call. An empty
+// data array is fatal — the operator has pointed --target at a
+// deployment that has no rows of this entity, and the ramp cannot
+// proceed without IDs to drive against.
+func discoverRampIDs(ctx context.Context, cfg Config, entity string, count int) ([]int, []int, error) {
+	if count <= 0 {
+		return nil, nil, fmt.Errorf("count must be > 0, got %d", count)
+	}
+	switch entity {
+	case "net", "org":
+	default:
+		return nil, nil, fmt.Errorf("unsupported entity %q (want net|org)", entity)
+	}
+
+	u, err := url.Parse(cfg.Base)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parse base: %w", err)
+	}
+	u.Path = "/api/" + entity
+	u.RawQuery = fmt.Sprintf("limit=%d", count)
+
+	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	if cfg.AuthToken != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+	}
+	resp, err := cfg.HTTPClient.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ramp prefetch: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode/100 != 2 {
+		return nil, nil, fmt.Errorf("ramp prefetch %s: status %d", u.String(), resp.StatusCode)
+	}
+
+	var body struct {
+		Data []struct {
+			ID  int `json:"id"`
+			ASN int `json:"asn"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		return nil, nil, fmt.Errorf("ramp prefetch decode: %w", err)
+	}
+	if len(body.Data) == 0 {
+		return nil, nil, fmt.Errorf("ramp prefetch %s: empty data array (target has no %s rows)", u.String(), entity)
+	}
+
+	ids := make([]int, 0, len(body.Data))
+	var asns []int
+	if entity == "net" {
+		asns = make([]int, 0, len(body.Data))
+	}
+	for _, row := range body.Data {
+		if row.ID <= 0 {
+			continue
+		}
+		ids = append(ids, row.ID)
+		if entity == "net" {
+			asns = append(asns, row.ASN)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, nil, fmt.Errorf("ramp prefetch %s: no positive ids in %d-row response", u.String(), len(body.Data))
+	}
+	return ids, asns, nil
+}
+
 // lookupFirstID fetches /api/<t>?limit=1 and returns the id of the
 // first record. Tolerates the wrapper `{"data":[{...}],"meta":{}}`
 // shape used by pdbcompat.
