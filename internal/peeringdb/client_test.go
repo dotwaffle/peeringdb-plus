@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -776,7 +777,6 @@ func TestDoWithRetryRecordsRetryEvents(t *testing.T) {
 	assertEventAttr(t, retryEvent.Attributes, "status", attribute.IntValue(502))
 }
 
-
 func TestWithAPIKeyHeader(t *testing.T) {
 	t.Parallel()
 
@@ -1395,5 +1395,203 @@ func TestDoWithRetry_ContextCancellation(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "context") {
 		t.Errorf("error = %q, want substring %q", err, "context")
+	}
+}
+
+// fetchByIDsRecorder is a small per-server URL recorder for the
+// TestClientFetchByIDs_* family. Keeps the captured query strings
+// behind a sync.Mutex so the test handler is goroutine-safe even
+// though the FetchByIDs loop is sequential.
+type fetchByIDsRecorder struct {
+	mu     sync.Mutex
+	urls   []string
+	idIns  []string
+	calls  atomic.Int32
+	respFn func(idIn string) []byte
+}
+
+func (r *fetchByIDsRecorder) handler(w http.ResponseWriter, req *http.Request) {
+	r.calls.Add(1)
+	r.mu.Lock()
+	r.urls = append(r.urls, req.URL.String())
+	r.idIns = append(r.idIns, req.URL.Query().Get("id__in"))
+	r.mu.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	if r.respFn == nil {
+		_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+		return
+	}
+	_, _ = w.Write(r.respFn(req.URL.Query().Get("id__in")))
+}
+
+// TestClientFetchByIDs_SingleChunk: <=100 IDs => exactly ONE HTTP
+// request with the IDs concatenated in the order written.
+func TestClientFetchByIDs_SingleChunk(t *testing.T) {
+	t.Parallel()
+
+	rec := &fetchByIDsRecorder{
+		respFn: func(idIn string) []byte {
+			// Echo one row per requested ID so the order check has data.
+			ids := strings.Split(idIn, ",")
+			items := make([]string, 0, len(ids))
+			for _, id := range ids {
+				items = append(items, fmt.Sprintf(`{"id":%s,"name":"row %s","status":"ok"}`, id, id))
+			}
+			return []byte(`{"meta":{},"data":[` + strings.Join(items, ",") + `]}`)
+		},
+	}
+	server := httptest.NewServer(http.HandlerFunc(rec.handler))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(rate.Inf)
+	client.limiter.SetBurst(1000)
+
+	raws, err := client.FetchByIDs(t.Context(), "org", []int{1, 2, 3, 50})
+	if err != nil {
+		t.Fatalf("FetchByIDs: %v", err)
+	}
+	if got := rec.calls.Load(); got != 1 {
+		t.Errorf("HTTP calls = %d, want 1", got)
+	}
+	rec.mu.Lock()
+	gotIDIn := rec.idIns[0]
+	rec.mu.Unlock()
+	if gotIDIn != "1,2,3,50" {
+		t.Errorf("id__in = %q, want %q (order preserved)", gotIDIn, "1,2,3,50")
+	}
+	if len(raws) != 4 {
+		t.Fatalf("len(raws) = %d, want 4", len(raws))
+	}
+	// Verify response order is upstream order (which mirrors request order here).
+	for i, want := range []int{1, 2, 3, 50} {
+		var v struct {
+			ID int `json:"id"`
+		}
+		if err := json.Unmarshal(raws[i], &v); err != nil {
+			t.Fatalf("unmarshal raws[%d]: %v", i, err)
+		}
+		if v.ID != want {
+			t.Errorf("raws[%d].id = %d, want %d", i, v.ID, want)
+		}
+	}
+}
+
+// TestClientFetchByIDs_ChunksAt100: 250 IDs => 3 sequential HTTP
+// requests with chunk sizes 100+100+50.
+func TestClientFetchByIDs_ChunksAt100(t *testing.T) {
+	t.Parallel()
+
+	rec := &fetchByIDsRecorder{
+		respFn: func(idIn string) []byte {
+			ids := strings.Split(idIn, ",")
+			items := make([]string, 0, len(ids))
+			for _, id := range ids {
+				items = append(items, fmt.Sprintf(`{"id":%s,"status":"ok"}`, id))
+			}
+			return []byte(`{"meta":{},"data":[` + strings.Join(items, ",") + `]}`)
+		},
+	}
+	server := httptest.NewServer(http.HandlerFunc(rec.handler))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(rate.Inf)
+	client.limiter.SetBurst(1000)
+
+	ids := make([]int, 250)
+	for i := range ids {
+		ids[i] = i + 1
+	}
+	raws, err := client.FetchByIDs(t.Context(), "org", ids)
+	if err != nil {
+		t.Fatalf("FetchByIDs: %v", err)
+	}
+	if got := rec.calls.Load(); got != 3 {
+		t.Fatalf("HTTP calls = %d, want 3 (100+100+50)", got)
+	}
+	rec.mu.Lock()
+	chunkSizes := []int{
+		len(strings.Split(rec.idIns[0], ",")),
+		len(strings.Split(rec.idIns[1], ",")),
+		len(strings.Split(rec.idIns[2], ",")),
+	}
+	rec.mu.Unlock()
+	want := []int{100, 100, 50}
+	for i, n := range chunkSizes {
+		if n != want[i] {
+			t.Errorf("chunk[%d] size = %d, want %d", i, n, want[i])
+		}
+	}
+	if len(raws) != 250 {
+		t.Errorf("len(raws) = %d, want 250", len(raws))
+	}
+	// First row from each chunk should be the chunk-start ID (response order = request order).
+	checkID := func(i int, want int) {
+		t.Helper()
+		var v struct {
+			ID int `json:"id"`
+		}
+		if err := json.Unmarshal(raws[i], &v); err != nil {
+			t.Fatalf("unmarshal raws[%d]: %v", i, err)
+		}
+		if v.ID != want {
+			t.Errorf("raws[%d].id = %d, want %d (chunks concatenated in fetch order)", i, v.ID, want)
+		}
+	}
+	checkID(0, 1)     // chunk 1 starts at id 1
+	checkID(100, 101) // chunk 2 starts at id 101
+	checkID(200, 201) // chunk 3 starts at id 201
+}
+
+// TestClientFetchByIDs_EmptyShortCircuits: empty/nil ids => 0 HTTP calls.
+func TestClientFetchByIDs_EmptyShortCircuits(t *testing.T) {
+	t.Parallel()
+
+	rec := &fetchByIDsRecorder{}
+	server := httptest.NewServer(http.HandlerFunc(rec.handler))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(rate.Inf)
+	client.limiter.SetBurst(1000)
+
+	for _, ids := range [][]int{nil, {}} {
+		raws, err := client.FetchByIDs(t.Context(), "org", ids)
+		if err != nil {
+			t.Fatalf("FetchByIDs(%v): %v", ids, err)
+		}
+		if raws != nil {
+			t.Errorf("raws = %v, want nil for empty input", raws)
+		}
+	}
+	if got := rec.calls.Load(); got != 0 {
+		t.Errorf("HTTP calls = %d, want 0 (empty/nil short-circuit)", got)
+	}
+}
+
+// TestClientFetchByIDs_ErrorPropagates: a 500 mid-loop bubbles up
+// without returning partial results.
+func TestClientFetchByIDs_ErrorPropagates(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, slog.Default())
+	client.limiter.SetLimit(rate.Inf)
+	client.limiter.SetBurst(1000)
+	client.retryBaseDelay = 0
+
+	raws, err := client.FetchByIDs(t.Context(), "org", []int{1, 2, 3})
+	if err == nil {
+		t.Fatal("FetchByIDs: expected error on 500, got nil")
+	}
+	if raws != nil {
+		t.Errorf("raws = %v, want nil on error (no partial returns)", raws)
 	}
 }

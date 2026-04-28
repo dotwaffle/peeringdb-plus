@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -312,6 +313,62 @@ func (c *Client) FetchRaw(ctx context.Context, objectType string, params url.Val
 		clone := make(json.RawMessage, len(raw))
 		copy(clone, raw)
 		out = append(out, clone)
+	}
+	return out, nil
+}
+
+// fetchByIDsChunk caps the number of IDs concatenated into a single
+// ?id__in= query value so the assembled URL stays well under typical
+// 8 KiB request-line limits. PeeringDB does not document an explicit
+// id__in cardinality limit, but 100 IDs at ~7 characters each (decimal
+// + comma) keeps the query string under 1 KiB with comfortable
+// headroom for path + other params. Quick task 260428-5xt.
+const fetchByIDsChunk = 100
+
+// FetchByIDs issues one or more ?since=1&id__in=<csv> requests against
+// the named object type and returns the concatenated raw rows in fetch
+// order (chunk-1 rows then chunk-2 rows then chunk-3 rows). Each chunk
+// of up to fetchByIDsChunk IDs becomes ONE HTTP request through the
+// rate-limited transport (consuming ONE limiter token regardless of
+// chunk size). 250 IDs => 3 sequential requests through the limiter.
+//
+// Quick task 260428-5xt — the FK-backfill dataloader path uses this
+// to collapse N per-row HTTP requests (the old worst-case during
+// truncate-and-resync recovery) into ⌈N/100⌉ batched requests, well
+// under upstream's API_THROTTLE_REPEATED_REQUEST cap.
+//
+// Empty / nil ids returns (nil, nil) without issuing any HTTP request.
+// On any chunk error, returns (nil, err) — partial results from prior
+// chunks are NOT returned (callers treat this as a transport failure
+// and fall back to drop-on-miss for the affected IDs).
+//
+// Order within a chunk follows upstream's response order; the function
+// does NOT sort or deduplicate ids — callers are responsible for any
+// upstream-side ordering they need.
+func (c *Client) FetchByIDs(ctx context.Context, objectType string, ids []int) ([]json.RawMessage, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var out []json.RawMessage
+	for start := 0; start < len(ids); start += fetchByIDsChunk {
+		end := start + fetchByIDsChunk
+		if end > len(ids) {
+			end = len(ids)
+		}
+		chunk := ids[start:end]
+		// Build "1,2,3,…" without fmt.Sprintf allocations on the hot path.
+		parts := make([]string, len(chunk))
+		for i, id := range chunk {
+			parts[i] = strconv.Itoa(id)
+		}
+		params := url.Values{}
+		params.Set("since", "1")
+		params.Set("id__in", strings.Join(parts, ","))
+		raws, err := c.FetchRaw(ctx, objectType, params)
+		if err != nil {
+			return nil, fmt.Errorf("fetch %s id__in chunk [%d:%d]: %w", objectType, start, end, err)
+		}
+		out = append(out, raws...)
 	}
 	return out, nil
 }
