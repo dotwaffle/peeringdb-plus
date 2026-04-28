@@ -48,9 +48,13 @@ func TestGetCursor_NoRows(t *testing.T) {
 	}
 }
 
+// 260428-eda CHANGE 2: UpsertCursor now takes *ent.Tx (in-tx semantic).
+// Tests open a tx from the same in-memory shared SQLite DB, call
+// UpsertCursor, then commit, then read back via the original *sql.DB —
+// proving the cursor row is visible after commit.
 func TestUpsertCursor_InsertAndGet(t *testing.T) {
 	t.Parallel()
-	_, db := testutil.SetupClientWithDB(t)
+	client, db := testutil.SetupClientWithDB(t)
 	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
@@ -58,8 +62,16 @@ func TestUpsertCursor_InsertAndGet(t *testing.T) {
 	}
 
 	ts := time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC)
-	if err := sync.UpsertCursor(ctx, db, "net", ts, "success"); err != nil {
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx: %v", err)
+	}
+	if err := sync.UpsertCursor(ctx, tx, "net", ts, "success"); err != nil {
+		_ = tx.Rollback()
 		t.Fatalf("UpsertCursor: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
 	}
 
 	got, err := sync.GetCursor(ctx, db, "net")
@@ -73,7 +85,7 @@ func TestUpsertCursor_InsertAndGet(t *testing.T) {
 
 func TestUpsertCursor_UpdateExisting(t *testing.T) {
 	t.Parallel()
-	_, db := testutil.SetupClientWithDB(t)
+	client, db := testutil.SetupClientWithDB(t)
 	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
@@ -83,11 +95,28 @@ func TestUpsertCursor_UpdateExisting(t *testing.T) {
 	ts1 := time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC)
 	ts2 := time.Date(2026, 3, 23, 13, 0, 0, 0, time.UTC)
 
-	if err := sync.UpsertCursor(ctx, db, "ix", ts1, "success"); err != nil {
+	tx1, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx1: %v", err)
+	}
+	if err := sync.UpsertCursor(ctx, tx1, "ix", ts1, "success"); err != nil {
+		_ = tx1.Rollback()
 		t.Fatalf("UpsertCursor first: %v", err)
 	}
-	if err := sync.UpsertCursor(ctx, db, "ix", ts2, "success"); err != nil {
+	if err := tx1.Commit(); err != nil {
+		t.Fatalf("commit tx1: %v", err)
+	}
+
+	tx2, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx2: %v", err)
+	}
+	if err := sync.UpsertCursor(ctx, tx2, "ix", ts2, "success"); err != nil {
+		_ = tx2.Rollback()
 		t.Fatalf("UpsertCursor second: %v", err)
+	}
+	if err := tx2.Commit(); err != nil {
+		t.Fatalf("commit tx2: %v", err)
 	}
 
 	got, err := sync.GetCursor(ctx, db, "ix")
@@ -106,7 +135,7 @@ func TestUpsertCursor_UpdateExisting(t *testing.T) {
 // v1.18.2 bootstrap regression).
 func TestGetCursor_ReturnsRegardlessOfStatus(t *testing.T) {
 	t.Parallel()
-	_, db := testutil.SetupClientWithDB(t)
+	client, db := testutil.SetupClientWithDB(t)
 	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
@@ -114,8 +143,16 @@ func TestGetCursor_ReturnsRegardlessOfStatus(t *testing.T) {
 	}
 
 	ts := time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC)
-	if err := sync.UpsertCursor(ctx, db, "fac", ts, "failed"); err != nil {
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx: %v", err)
+	}
+	if err := sync.UpsertCursor(ctx, tx, "fac", ts, "failed"); err != nil {
+		_ = tx.Rollback()
 		t.Fatalf("UpsertCursor: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
 	}
 
 	got, err := sync.GetCursor(ctx, db, "fac")
@@ -163,20 +200,33 @@ func TestGetCursor_DBError(t *testing.T) {
 	}
 }
 
+// TestUpsertCursor_DBError preserves fault-injection coverage of the
+// in-tx UpsertCursor by opening a tx, immediately rolling it back, and
+// then attempting an UpsertCursor against the dead tx. modernc surfaces
+// use-after-rollback as an error, which UpsertCursor wraps with the
+// "upsert cursor for" prefix.
+//
+// 260428-eda CHANGE 2 W6: rewritten to match the *ent.Tx-based signature.
 func TestUpsertCursor_DBError(t *testing.T) {
 	t.Parallel()
-	_, db := testutil.SetupClientWithDB(t)
+	client, db := testutil.SetupClientWithDB(t)
 	ctx := t.Context()
 
 	if err := sync.InitStatusTable(ctx, db); err != nil {
 		t.Fatalf("InitStatusTable: %v", err)
 	}
 
-	db.Close()
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx: %v", err)
+	}
+	if err := tx.Rollback(); err != nil {
+		t.Fatalf("rollback: %v", err)
+	}
 
-	err := sync.UpsertCursor(ctx, db, "net", time.Now(), "success")
+	err = sync.UpsertCursor(ctx, tx, "net", time.Now(), "success")
 	if err == nil {
-		t.Fatal("expected error for closed DB, got nil")
+		t.Fatal("expected error for use-after-rollback tx, got nil")
 	}
 	if !strings.Contains(err.Error(), "upsert cursor for") {
 		t.Errorf("error = %q, want substring %q", err.Error(), "upsert cursor for")

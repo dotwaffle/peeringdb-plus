@@ -607,8 +607,10 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		return err
 	}
 
-	// === Phase B — SINGLE REAL TX === (260428-2zl T6: no delete pass.)
-	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
+	// === Phase B — SINGLE REAL TX === (260428-2zl T6: no delete pass.
+	// 260428-eda CHANGE 2: cursor writes inside this tx — see
+	// syncUpsertPass godoc for the failure-mode shift.)
+	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental, cursorUpdates)
 	if err != nil {
 		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
 		return err
@@ -619,7 +621,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		return syncErr
 	}
 
-	w.recordSuccess(ctx, mode, statusID, start, objectCounts, cursorUpdates)
+	w.recordSuccess(ctx, mode, statusID, start, objectCounts)
 	return nil
 }
 
@@ -840,29 +842,21 @@ func (w *Worker) recordSuccess(
 	statusID int64,
 	start time.Time,
 	objectCounts map[string]int,
-	cursorUpdates map[string]time.Time,
 ) {
 	// 260428-eda CHANGE 1: wrap the post-commit bookkeeping in a
 	// sync-finalize span and ctx-reassign so the sub-spans below parent
 	// under sync-finalize rather than the root.
+	//
+	// 260428-eda CHANGE 2: the prior sync-cursor-updates loop here has
+	// migrated into syncUpsertPass (inside the main tx). The span name
+	// is preserved there — it now parents under the sync-cycle span
+	// rather than sync-finalize, but the search/grep continuity holds.
 	ctx, finalizeSpan := otel.Tracer("sync").Start(ctx, "sync-finalize")
 	defer finalizeSpan.End()
 
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	w.emitOrphanSummary(ctx)
-
-	// 260428-eda CHANGE 1: sync-cursor-updates span. Task 5 will move
-	// the cursor-write loop INTO syncUpsertPass (inside the main tx) and
-	// remove this span — the span migrates with the loop.
-	_, cursorSpan := otel.Tracer("sync").Start(ctx, "sync-cursor-updates")
-	for typeName, generated := range cursorUpdates {
-		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
-			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
-				slog.String("type", typeName), slog.Any("error", err))
-		}
-	}
-	cursorSpan.End()
 
 	elapsed := time.Since(start)
 	// SEED-001 (260426-pms): label sync metrics with mode={full,incremental} so
@@ -1071,7 +1065,28 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 //
 // D-19 atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
-func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratchDB, _ map[string]bool) (
+//
+// 260428-eda CHANGE 2: cursorUpdates is now threaded in and the per-type
+// cursor rows are written inside this tx via UpsertCursor(ctx, tx, ...)
+// before the function returns. This closes the failure window where ent
+// upserts were durable but the post-commit cursor write was not (the
+// next cycle would re-fetch already-applied rows).
+//
+// Failure-mode shift: a cursor-write failure now rolls back the entire
+// tx — including any FK-backfill HTTP work that already happened in it.
+// Intentional: rollback after wasted FK backfills is strictly better
+// than the prior upserts-durable / cursor-not-advanced divergence.
+// SyncWithRetry handles transient failures by re-running the whole
+// cycle. The OTel span attr pdbplus.sync.cursor_write_caused_rollback
+// is set on the root span when a cursor-write failure causes rollback —
+// makes the failure mode visible in Tempo postmortems.
+func (w *Worker) syncUpsertPass(
+	ctx context.Context,
+	tx *ent.Tx,
+	scratch *scratchDB,
+	_ map[string]bool,
+	cursorUpdates map[string]time.Time,
+) (
 	map[string]int,
 	error,
 ) {
@@ -1117,6 +1132,22 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 			slog.Int("count", count),
 		)
 	}
+
+	// 260428-eda CHANGE 2: cursor writes commit atomically with the
+	// upserts. Per-row failure rolls back the whole tx; the root span is
+	// stamped with pdbplus.sync.cursor_write_caused_rollback so the
+	// failure mode is visible in Tempo postmortems.
+	_, cursorSpan := otel.Tracer("sync").Start(ctx, "sync-cursor-updates")
+	for typeName, generated := range cursorUpdates {
+		if err := UpsertCursor(ctx, tx, typeName, generated, "success"); err != nil {
+			cursorSpan.End()
+			if rootSpan := trace.SpanFromContext(ctx); rootSpan.IsRecording() {
+				rootSpan.SetAttributes(attribute.Bool("pdbplus.sync.cursor_write_caused_rollback", true))
+			}
+			return nil, fmt.Errorf("write cursor for %s: %w", typeName, err)
+		}
+	}
+	cursorSpan.End()
 
 	return objectCounts, nil
 }
