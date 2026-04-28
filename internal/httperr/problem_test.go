@@ -11,14 +11,14 @@ func TestWriteProblem(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		input          WriteProblemInput
-		wantStatus     int
-		wantType       string
-		wantTitle      string
-		wantDetail     string
-		wantInstance   string
-		detailPresent  bool
+		name            string
+		input           WriteProblemInput
+		wantStatus      int
+		wantType        string
+		wantTitle       string
+		wantDetail      string
+		wantInstance    string
+		detailPresent   bool
 		instancePresent bool
 	}{
 		{

@@ -211,8 +211,8 @@ func organizationToProto(o *ent.Organization) *pb.Organization {
 		// Organization schema. The protobuf message still carries the
 		// fields (proto is frozen since v1.6); they serialize as the
 		// zero-value pointer (absent on the wire).
-		Created:   timestampVal(o.Created),
-		Updated:   timestampVal(o.Updated),
-		Status:    o.Status,
+		Created: timestampVal(o.Created),
+		Updated: timestampVal(o.Updated),
+		Status:  o.Status,
 	}
 }

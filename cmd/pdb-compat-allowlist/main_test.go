@@ -74,10 +74,10 @@ func TestBuildAllowlistEntry(t *testing.T) {
 func TestBuildAllowlistEntry_DropsInvalidHops(t *testing.T) {
 	t.Parallel()
 	got := buildAllowlistEntry("net", []string{
-		"org__name",               // valid direct
-		"noSeparator",             // 1-segment — dropped
-		"a__b__c__d",              // 4-segment — D-04 violation, dropped
-		"netfac__fac__name",       // valid via
+		"org__name",         // valid direct
+		"noSeparator",       // 1-segment — dropped
+		"a__b__c__d",        // 4-segment — D-04 violation, dropped
+		"netfac__fac__name", // valid via
 	})
 	want := &NodeEntry{
 		GoName:  "Network",

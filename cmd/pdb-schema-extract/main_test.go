@@ -34,9 +34,9 @@ func setupTestRepo(t *testing.T) string {
 	// Copy test fixtures.
 	fixtures := map[string]string{
 		"testdata/serializers.py": filepath.Join(repoDir, "peeringdb_server", "serializers.py"),
-		"testdata/abstract.py":   filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "models", "abstract.py"),
-		"testdata/concrete.py":   filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "models", "concrete.py"),
-		"testdata/const.py":      filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "const.py"),
+		"testdata/abstract.py":    filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "models", "abstract.py"),
+		"testdata/concrete.py":    filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "models", "concrete.py"),
+		"testdata/const.py":       filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "const.py"),
 	}
 	for src, dst := range fixtures {
 		data, err := os.ReadFile(src)
@@ -166,13 +166,13 @@ func TestParseModelFields(t *testing.T) {
 	modelFields := parseModelFields(string(abstractSrc), string(concreteSrc))
 
 	tests := []struct {
-		model     string
-		field     string
-		wantType  string
-		wantMaxL  int
-		wantUniq  bool
-		wantRef   string
-		wantHelp  string
+		model    string
+		field    string
+		wantType string
+		wantMaxL int
+		wantUniq bool
+		wantRef  string
+		wantHelp string
 	}{
 		{
 			model:    "Organization",
@@ -248,9 +248,9 @@ func TestParseChoiceConstants(t *testing.T) {
 	consts := parseChoiceConstants(string(src))
 
 	tests := []struct {
-		name       string
-		wantCount  int
-		wantFirst  string
+		name      string
+		wantCount int
+		wantFirst string
 	}{
 		{name: "POC_ROLES", wantCount: 7, wantFirst: "Abuse"},
 		{name: "VISIBILITY", wantCount: 3, wantFirst: "Private"},

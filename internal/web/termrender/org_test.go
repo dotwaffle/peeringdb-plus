@@ -75,9 +75,9 @@ func TestRenderOrgDetail_Header(t *testing.T) {
 		"101 Townsend St",
 		"San Francisco",
 		"US",
-		"280",  // IXCount
-		"300",  // FacCount
-		"2",    // NetCount
+		"280", // IXCount
+		"300", // FacCount
+		"2",   // NetCount
 	}
 
 	for _, want := range checks {

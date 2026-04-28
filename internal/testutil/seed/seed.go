@@ -33,15 +33,15 @@ const (
 
 // Result holds typed references to all entities created by seed functions.
 type Result struct {
-	Org             *ent.Organization
-	Network         *ent.Network
-	Network2        *ent.Network          // second network, only in Full
-	IX              *ent.InternetExchange
-	Facility        *ent.Facility
-	Facility2       *ent.Facility         // campus-assigned facility, only in Full
-	Campus          *ent.Campus
-	Carrier         *ent.Carrier
-	IxLan           *ent.IxLan
+	Org       *ent.Organization
+	Network   *ent.Network
+	Network2  *ent.Network // second network, only in Full
+	IX        *ent.InternetExchange
+	Facility  *ent.Facility
+	Facility2 *ent.Facility // campus-assigned facility, only in Full
+	Campus    *ent.Campus
+	Carrier   *ent.Carrier
+	IxLan     *ent.IxLan
 	// IxLanPublic is the second ixlan (id=101) seeded by Full: URL
 	// populated with ixf_ixp_member_list_url_visible="Public". Phase 64
 	// (VIS-09) Plan 02 revision mandates two rows so Plan 03's E2E

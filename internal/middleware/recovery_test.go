@@ -28,8 +28,8 @@ func (h *recoveryCaptureHandler) Handle(_ context.Context, r slog.Record) error 
 }
 
 func (h *recoveryCaptureHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
-func (h *recoveryCaptureHandler) WithAttrs(_ []slog.Attr) slog.Handler                { return h }
-func (h *recoveryCaptureHandler) WithGroup(_ string) slog.Handler                     { return h }
+func (h *recoveryCaptureHandler) WithAttrs(_ []slog.Attr) slog.Handler         { return h }
+func (h *recoveryCaptureHandler) WithGroup(_ string) slog.Handler              { return h }
 
 func TestRecovery_NoPanic(t *testing.T) {
 	t.Parallel()

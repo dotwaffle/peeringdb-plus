@@ -299,11 +299,11 @@ func main() {
 			// succeeded.
 			cachingState.UpdateETag(syncTime)
 		},
-		SyncMemoryLimit:       cfg.SyncMemoryLimit,
-		HeapWarnBytes:         cfg.HeapWarnBytes,
-		RSSWarnBytes:          cfg.RSSWarnBytes,
+		SyncMemoryLimit:               cfg.SyncMemoryLimit,
+		HeapWarnBytes:                 cfg.HeapWarnBytes,
+		RSSWarnBytes:                  cfg.RSSWarnBytes,
 		FKBackfillMaxRequestsPerCycle: cfg.FKBackfillMaxRequestsPerCycle,
-		FKBackfillTimeout:     cfg.FKBackfillTimeout,
+		FKBackfillTimeout:             cfg.FKBackfillTimeout,
 	}, logger)
 
 	// Phase 75 OBS-02 (D-02): pre-warm the 5 zero-rate counters so dashboard

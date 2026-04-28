@@ -9,9 +9,9 @@ func TestIsPIIField(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		field    string
-		wantPII  bool
+		name    string
+		field   string
+		wantPII bool
 	}{
 		// Contact fields — PII.
 		{name: "email is PII", field: "email", wantPII: true},

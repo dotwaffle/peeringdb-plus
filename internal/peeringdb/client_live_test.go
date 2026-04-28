@@ -15,7 +15,7 @@ var peeringdbLive = flag.Bool("peeringdb-live", false, "run live meta.generated 
 
 // apiResponse is the envelope structure for PeeringDB API responses.
 type apiResponse struct {
-	Meta json.RawMessage `json:"meta"`
+	Meta json.RawMessage   `json:"meta"`
 	Data []json.RawMessage `json:"data"`
 }
 

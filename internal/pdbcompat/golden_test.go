@@ -3,10 +3,10 @@ package pdbcompat
 import (
 	"flag"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"maps"
 	"path/filepath"
 	"slices"
 	"testing"

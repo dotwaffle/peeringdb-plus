@@ -14,11 +14,11 @@ func TestParseFieldOp(t *testing.T) {
 	// Max len(relationSegments) == 2 (caller enforces D-04 cap via
 	// len>2 rejection — parser returns the raw split so caller sees it).
 	tests := []struct {
-		name         string
-		input        string
-		wantRelSegs  []string
-		wantField    string
-		wantOp       string
+		name        string
+		input       string
+		wantRelSegs []string
+		wantField   string
+		wantOp      string
 	}{
 		// Pre-Phase-70 cases (no traversal).
 		{
@@ -174,11 +174,11 @@ func TestParseFilters(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		params         url.Values
-		wantCount      int
-		wantErr        bool
-		wantEmptyRes   bool
+		name         string
+		params       url.Values
+		wantCount    int
+		wantErr      bool
+		wantEmptyRes bool
 	}{
 		{
 			name:      "exact match on string field",
@@ -739,9 +739,9 @@ func TestParseFilters_UnknownFieldsAppendToCtx(t *testing.T) {
 	tc := Registry["net"]
 	ctx := WithUnknownFields(context.Background())
 	params := url.Values{
-		"totally_bogus":     {"x"},
-		"a__b__c__d":        {"y"}, // over-cap 3-hop per D-04
-		"bogus_edge__name":  {"z"},
+		"totally_bogus":    {"x"},
+		"a__b__c__d":       {"y"}, // over-cap 3-hop per D-04
+		"bogus_edge__name": {"z"},
 	}
 	preds, emptyResult, err := ParseFiltersCtx(ctx, params, tc)
 	if err != nil {

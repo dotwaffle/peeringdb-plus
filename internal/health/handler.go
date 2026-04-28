@@ -188,4 +188,3 @@ func evaluateSyncAge(ctx context.Context, lastSyncAt time.Time, staleThreshold t
 	}
 	return true
 }
-

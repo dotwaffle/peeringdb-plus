@@ -178,7 +178,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 			name: "sync_lookup_fails",
 			// DB is open but sync_status table does not exist, so
 			// GetLastStatus will return a non-nil error.
-			setupDB: openTestDB,
+			setupDB:    openTestDB,
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
 			logAssert: func(_ *testing.T, records []slog.Record) string {

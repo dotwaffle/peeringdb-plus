@@ -353,4 +353,3 @@ func buildSearchPredicate(search string, searchFields []string) func(*sql.Select
 		}
 	}
 }
-

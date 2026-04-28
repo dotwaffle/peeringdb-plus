@@ -733,9 +733,9 @@ func TestSearchTextStillWorks(t *testing.T) {
 func TestParseASNQuery(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		in      string
-		wantN   int64
-		wantOK  bool
+		in     string
+		wantN  int64
+		wantOK bool
 	}{
 		{"8075", 8075, true},
 		{"AS8075", 8075, true},

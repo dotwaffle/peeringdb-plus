@@ -52,9 +52,9 @@ const (
 
 // AllowlistData is the template input assembled by main() before render.
 type AllowlistData struct {
-	Entries        []NodeEntry     // sorted by PDBType (Path A — per-entity prepare_query allowlist)
-	FilterExcludes []ExcludeEntry  // sorted by entity+edge (upstream FILTER_EXCLUDE parity)
-	EdgeEntries    []EdgeMapEntry  // sorted by PDBType (Path B — codegen-emitted edge map, Phase 70 D-02 amended)
+	Entries        []NodeEntry    // sorted by PDBType (Path A — per-entity prepare_query allowlist)
+	FilterExcludes []ExcludeEntry // sorted by entity+edge (upstream FILTER_EXCLUDE parity)
+	EdgeEntries    []EdgeMapEntry // sorted by PDBType (Path B — codegen-emitted edge map, Phase 70 D-02 amended)
 }
 
 // NodeEntry carries one PeeringDB type's Path A allowlist.
@@ -98,10 +98,10 @@ type EdgeMapEntry struct {
 //   - TargetTable    = edge.Type.Table()
 //   - TargetIDColumn = edge.Type.ID.StorageKey() (typically "id")
 //   - OwnFK          = (edge.Rel.Type == gen.M2O); true when ParentFKColumn
-//                      lives on the PARENT table, false when it lives on
-//                      the CHILD table. Used by the runtime subquery
-//                      builder to pick the correct WHERE/IN pairing.
-//                      See Phase 70 REVIEW CR-01.
+//     lives on the PARENT table, false when it lives on
+//     the CHILD table. Used by the runtime subquery
+//     builder to pick the correct WHERE/IN pairing.
+//     See Phase 70 REVIEW CR-01.
 //
 // Per Phase 70 D-02 amended: this map is emitted once at `go generate`
 // time and read-only at runtime. No sync.Once, no init-order coupling.

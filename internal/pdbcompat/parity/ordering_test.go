@@ -104,7 +104,7 @@ func TestParity_Ordering(t *testing.T) {
 		if _, err := c.Network.Create().
 			SetID(11).SetName("Newer").SetNameFold(unifold.Fold("Newer")).
 			SetAsn(64511).SetStatus("ok").SetOrgID(org.ID).
-			SetCreated(t0.Add(1*time.Hour)).SetUpdated(sameUpdated).
+			SetCreated(t0.Add(1 * time.Hour)).SetUpdated(sameUpdated).
 			Save(ctx); err != nil {
 			t.Fatalf("seed net 11: %v", err)
 		}

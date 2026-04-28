@@ -54,7 +54,7 @@ func setupTestServer(t *testing.T) *httptest.Server {
 type gqlResponse struct {
 	Data   json.RawMessage `json:"data"`
 	Errors []struct {
-		Message    string                 `json:"message"`
+		Message    string         `json:"message"`
 		Path       []any          `json:"path"`
 		Extensions map[string]any `json:"extensions"`
 	} `json:"errors"`
@@ -545,7 +545,6 @@ func TestGraphQLAPI_OffsetLimitList(t *testing.T) {
 	}
 }
 
-
 // seedFullTestServer creates an httptest.Server with all 13 entity types seeded
 // via seed.Full and a completed sync_status entry.
 func seedFullTestServer(t *testing.T) *httptest.Server {
@@ -793,7 +792,7 @@ func TestGraphQLAPI_SyncStatus_WithObjectCounts(t *testing.T) {
 
 	var data struct {
 		SyncStatus struct {
-			Status       string                 `json:"status"`
+			Status       string         `json:"status"`
 			ObjectCounts map[string]any `json:"objectCounts"`
 		} `json:"syncStatus"`
 	}

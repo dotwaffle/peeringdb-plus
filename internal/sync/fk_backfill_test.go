@@ -678,7 +678,7 @@ func TestFKCheckParent_BackfillDeadlineFallsBackToDrop(t *testing.T) {
 	// 1ns timeout — first backfill attempt fires past deadline.
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
 		FKBackfillMaxRequestsPerCycle: 10,
-		FKBackfillTimeout:     1 * time.Nanosecond,
+		FKBackfillTimeout:             1 * time.Nanosecond,
 	}, slog.Default())
 
 	if err := w.Sync(t.Context(), "full"); err != nil {
@@ -1226,7 +1226,7 @@ func TestFKBackfill_BatchedFetch_RespectsDeadline(t *testing.T) {
 	// 1ns timeout — pre-flight deadline check fires before any HTTP.
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
 		FKBackfillMaxRequestsPerCycle: numNets * 2,
-		FKBackfillTimeout:     1 * time.Nanosecond,
+		FKBackfillTimeout:             1 * time.Nanosecond,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)

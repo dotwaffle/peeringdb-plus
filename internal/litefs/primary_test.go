@@ -12,8 +12,8 @@ func TestIsPrimaryAt(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		setup      func(t *testing.T) string
+		name        string
+		setup       func(t *testing.T) string
 		wantPrimary bool
 	}{
 		{

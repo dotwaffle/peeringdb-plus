@@ -56,3 +56,7 @@ Thumbs.db
 /tmp/pdb-vis-capture-*
 testdata/visibility-baseline/**/.raw-auth/
 testdata/visibility-baseline/**/.raw-auth
+
+# Block .idea/.vscode as files too (existing entries with trailing slash only block dirs)
+.idea
+.vscode

@@ -81,7 +81,7 @@ func TestFKFilter_NetworkIxLan_NullsSideFKOnMiss(t *testing.T) {
 				"net_count": 0, "fac_count": 0, "ixf_net_count": 0,
 				"ixf_last_import": nil, "ixf_import_request": nil,
 				"ixf_import_request_status": "",
-				"service_level": "", "terms": "",
+				"service_level":             "", "terms": "",
 				"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
 				"status": "ok",
 			}})
@@ -91,7 +91,7 @@ func TestFKFilter_NetworkIxLan_NullsSideFKOnMiss(t *testing.T) {
 				"mtu": 9000, "dot1q_support": false, "rs_asn": 65500,
 				"arp_sponge": nil, "ixf_ixp_member_list_url_visible": "Public",
 				"ixf_ixp_import_enabled": true,
-				"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
+				"created":                "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
 				"status": "ok",
 			}})
 		case "netixlan":

@@ -224,14 +224,14 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		cfg.IsPrimary = func() bool { return true }
 	}
 	return &Worker{
-		pdbClient:         pdbClient,
-		entClient:         entClient,
-		db:                db,
-		config:            cfg,
-		logger:            logger,
-		retryBackoffs:     defaultRetryBackoffs,
-		fkBackfillRequestCap:     cfg.FKBackfillMaxRequestsPerCycle,
-		fkBackfillTimeout: cfg.FKBackfillTimeout,
+		pdbClient:            pdbClient,
+		entClient:            entClient,
+		db:                   db,
+		config:               cfg,
+		logger:               logger,
+		retryBackoffs:        defaultRetryBackoffs,
+		fkBackfillRequestCap: cfg.FKBackfillMaxRequestsPerCycle,
+		fkBackfillTimeout:    cfg.FKBackfillTimeout,
 	}
 }
 

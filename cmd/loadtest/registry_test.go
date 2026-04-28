@@ -167,9 +167,9 @@ func TestRegistry_WebUIThreeRoutes(t *testing.T) {
 	t.Parallel()
 
 	want := map[string]bool{
-		"/ui/":           false,
-		"/ui/about":      false,
-		"/ui/asn/15169":  false,
+		"/ui/":          false,
+		"/ui/about":     false,
+		"/ui/asn/15169": false,
 	}
 	for _, ep := range registryAll(nil) {
 		if ep.Surface != SurfaceWebUI {

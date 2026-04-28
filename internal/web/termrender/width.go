@@ -20,7 +20,7 @@ var columnThresholds = map[string]map[string]int{
 	},
 	"ix-participants": {
 		"name":  0,
-		"asn":   0,   // always (it's the crossref)
+		"asn":   0, // always (it's the crossref)
 		"speed": 50,
 		"ipv4":  80,
 		"rs":    70,
