@@ -1409,14 +1409,18 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
-				// Required FKs: net_id, ix_id, ixlan_id. Drop on miss
-				// after backfill attempt (legacy behavior).
+				// Required FKs: net_id, ixlan_id. Drop on miss after
+				// backfill attempt (legacy behavior).
+				//
+				// NOTE: ix_id is NOT an independent FK upstream — it is
+				// serializer-computed from ixlan.ix_id (peeringdb_server/
+				// serializers.py NetworkIxLanSerializer). Validating
+				// ixlan_id (below) is sufficient. Quick task 260428-2zl
+				// removed the redundant ix_id check that was producing
+				// false-positive orphans whenever an ix mid-sync was a
+				// missing parent for an otherwise-valid netixlan row.
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id") {
-					return false
-				}
-				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
-					peeringdb.TypeIX, v.IXID, "ix_id") {
 					return false
 				}
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
