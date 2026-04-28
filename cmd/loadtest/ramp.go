@@ -8,11 +8,18 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 )
+
+// verboseMu serialises writes to the verbose stdout from worker
+// goroutines. *bytes.Buffer (used in tests) is not goroutine-safe;
+// *os.File.Write is, but a single mutex is the cheapest way to make
+// the emission correct for any io.Writer the caller chooses.
+var verboseMu sync.Mutex
 
 // RampConfig captures the tunable parameters of one ramp invocation.
 //
@@ -281,6 +288,20 @@ func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, 
 // than stashing it in cfg or RampConfig) keeps the runtime
 // dependency explicit at every call site.
 func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Surface, ids, asns []int, stdout io.Writer) ([]surfaceLabel, string, error) {
+	if cfg.Verbose {
+		verboseMu.Lock()
+		if rcfg.Entity == "net" {
+			fmt.Fprintf(stdout, "[ramp] %s entity=%s ids=%v asns=%v\n",
+				surface, rcfg.Entity, ids, asns)
+		} else {
+			// asns is nil for entity=org; printing asns=[] would be
+			// noise, so omit the token entirely.
+			fmt.Fprintf(stdout, "[ramp] %s entity=%s ids=%v\n",
+				surface, rcfg.Entity, ids)
+		}
+		verboseMu.Unlock()
+	}
+
 	// 1. Baseline at C=Start.
 	baseline, err := runRampStep(ctx, cfg, rcfg, surface, rcfg.Start, rcfg.StepDuration, ids, asns, stdout)
 	if err != nil {
@@ -363,7 +384,7 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 // Hit() picking endpoints round-robin from the prefetched ID list;
 // the step terminates when stepCtx fires. Workers honour gctx so a
 // cancelled outer ctx propagates promptly.
-func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surface, concurrency int, dur time.Duration, ids, asns []int, _ io.Writer) (stepStats, error) {
+func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surface, concurrency int, dur time.Duration, ids, asns []int, stdout io.Writer) (stepStats, error) {
 	if concurrency < 1 {
 		return stepStats{}, fmt.Errorf("concurrency must be >= 1, got %d", concurrency)
 	}
@@ -392,6 +413,16 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 				}
 				ep := rampEndpointFor(surface, rcfg.Entity, id, asn)
 				res := Hit(gctx, cfg.HTTPClient, cfg.Base, cfg.AuthToken, ep)
+				// Emit a per-error line only for real failures —
+				// suppress step-boundary cancellations to match the
+				// summariseStep filter (so displayed errors match
+				// counted errors).
+				if cfg.Verbose && !res.OK() && !errors.Is(res.Err, context.Canceled) {
+					verboseMu.Lock()
+					fmt.Fprintf(stdout, "[ramp] %s C=%d %s %s status=%d err=%v\n",
+						surface, concurrency, ep.Method, ep.Path, res.Status, res.Err)
+					verboseMu.Unlock()
+				}
 				select {
 				case sampleCh <- res:
 				case <-gctx.Done():
