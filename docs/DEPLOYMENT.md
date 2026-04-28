@@ -345,6 +345,31 @@ Runtime health:
   LiteFS cold-sync hydration on replica boot** (Phase 65) so Fly Proxy
   routes around the machine until the database is live.
 
+## Capacity probing
+
+`cmd/loadtest` is an operator binary (NOT shipped in the prod image,
+NOT invoked by CI) that drives read-only traffic against a deployed
+mirror to validate capacity, warm dashboards, and reproduce load.
+Build with `go build -o loadtest ./cmd/loadtest`.
+
+Four subcommands:
+
+- `loadtest endpoints` — one-shot inventory sweep across all 5 API
+  surfaces (~114 requests).
+- `loadtest sync` — replays the 13-step ordered sync GET sequence.
+- `loadtest soak` — sustained QPS-capped mixed-surface load.
+- `loadtest ramp` — finds the per-surface inflection point by
+  ramping concurrency C=1 ×1.5/2s, triggering on p95 > 2× baseline
+  OR p99 > 1s OR error rate > 1%, holding past inflection, then
+  emitting a markdown table per surface to stdout (paste into
+  capacity-planning docs / incident reports).
+
+Default `--target` is `https://peeringdb-plus.fly.dev`. **Never**
+point any subcommand at `https://www.peeringdb.com` — upstream
+PeeringDB enforces a 1-req/hour-per-IP cap and will block your IP.
+See `cmd/loadtest/README.md` for full flag documentation and
+example output.
+
 ## Rollback
 
 Fly.io tracks every deployed image as a release. To roll back:
