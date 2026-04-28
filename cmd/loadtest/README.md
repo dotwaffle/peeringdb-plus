@@ -17,7 +17,7 @@
 
 ## What it does
 
-Three modes drive read-only HTTP traffic against a peeringdb-plus
+Four modes drive read-only HTTP traffic against a peeringdb-plus
 mirror, exercising every entity type across all five API surfaces
 (pdbcompat `/api`, entrest `/rest/v1`, GraphQL `/graphql`,
 ConnectRPC `/peeringdb.v1.*`, Web UI `/ui`):
@@ -27,6 +27,7 @@ ConnectRPC `/peeringdb.v1.*`, Web UI `/ui`):
 | `endpoints` | One-shot inventory sweep (~114 distinct requests). Validates every API surface returns 2xx. |
 | `sync`      | Replays the 13-step ordered sync sequence (full or incremental). Mirrors `internal/sync/worker.go syncSteps()`. |
 | `soak`      | Sustained QPS-capped mixed-surface load. Defaults to 30 s × 4 workers × 5 req/s. |
+| `ramp`      | Per-surface concurrency ramp; finds the inflection point where p95/p99 latency or error rate degrades. Sequential per surface (no cross-surface contention). |
 
 Read-only verbs only: `GET` for pdbcompat / entrest / Web UI, `POST`
 for GraphQL queries and ConnectRPC unary calls. No `PUT`, `PATCH`,
@@ -126,6 +127,89 @@ replicas. Reasonable knobs:
   without coordinating — middleware rate limiting and Fly Proxy
   back-pressure both cut in.
 
+### `ramp` — find inflection point per surface
+
+Per-surface concurrency ramp that discovers, surface by surface,
+the concurrency level at which p95/p99 latency or error rate
+visibly degrades. Replaces ad-hoc operator probing with a
+deterministic, scriptable, per-surface capacity probe.
+
+```bash
+./loadtest ramp --target http://localhost:8080 --entity net --max-concurrency 64
+./loadtest ramp --target https://peeringdb-plus.fly.dev --entity org --surfaces pdbcompat,graphql
+```
+
+Ramp loop per surface:
+
+1. **Baseline** at `--start` concurrency for `--step-duration`.
+2. Multiply concurrency by `--growth` each step (capped at `--max-concurrency`).
+3. **Inflection** triggers on the first step where:
+   - `p95 > baseline.p95 × --p95-multiplier`, OR
+   - `p99 > --p99-absolute`, OR
+   - `error rate > --error-rate-threshold`.
+4. **Hold** at the inflection concurrency for `--hold-duration` to
+   gather a stable p99 reading.
+5. **Past-inflection**: 1-2 additional steps (concurrency permitting)
+   so the operator can see how badly things degrade just past the knee.
+6. Print a markdown table for the surface to stdout, then move on.
+
+Surfaces are exercised **sequentially** (in `--surfaces` order) so
+cross-surface contention does not bias results. Each surface fetches
+the same prefetched ID list (round-robin) so requests don't all hit
+a single hot row.
+
+| flag                         | default                          | description                                                                                          |
+| ---------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `--target`                   | `https://peeringdb-plus.fly.dev` | Alias for `--base`. Either flag works.                                                                |
+| `--entity`                   | `net`                            | Entity type for the ramp: `net` (uses `/ui/asn/<asn>` for webui) or `org` (uses `/ui/org/<id>`).      |
+| `--start`                    | `1`                              | Initial concurrency level (the baseline step).                                                       |
+| `--growth`                   | `1.5`                            | Per-step concurrency multiplier (`next = ceil(prev * growth)`).                                       |
+| `--step-duration`            | `2s`                             | Wall-clock time at each ramp step.                                                                    |
+| `--hold-duration`            | `10s`                            | Wall-clock time held at the inflection step for stable p99.                                           |
+| `--max-concurrency`          | `256`                            | Upper bound on per-step concurrency. Ramp terminates once a step would exceed this cap.               |
+| `--p95-multiplier`           | `2.0`                            | Inflection trigger: step.p95 > baseline.p95 × this multiplier.                                        |
+| `--p99-absolute`             | `1s`                             | Inflection trigger: step.p99 > this absolute duration.                                                |
+| `--error-rate-threshold`     | `0.01`                           | Inflection trigger: step error rate > this fraction (0.01 = 1%).                                      |
+| `--surfaces`                 | (all five)                       | Comma-separated surfaces in execution order. Valid: `pdbcompat,entrest,graphql,connectrpc,webui`.     |
+| `--prefetch-count`           | `20`                             | Number of IDs to prefetch via `/api/<entity>?limit=N` for round-robin selection across ramp steps.    |
+
+#### Ramp vs soak — when to use which
+
+- **Soak** is for **sustained known-rate validation**: "does the
+  mirror handle 20 req/s × 5 minutes without dropping responses?"
+  You set the rate, run for a duration, and check the success
+  percentage and latency tail. The traffic mix is randomly drawn
+  from the full registry — every surface contributes.
+- **Ramp** is for **capacity discovery**: "at what concurrency does
+  the pdbcompat surface fall over?" You don't know the answer in
+  advance; ramp finds it. Per-surface ramps tell you that, e.g.,
+  the GraphQL surface tips at C=24 while the pdbcompat surface
+  doesn't tip until C=64 — useful for capacity planning and for
+  knowing which surface dominates your incident response when
+  load spikes hit.
+
+#### Sample output
+
+```markdown
+### pdbcompat (entity=net)
+
+| label              |   C |     p50 |     p95 |     p99 |  err % |     rps |
+|--------------------|----:|--------:|--------:|--------:|-------:|--------:|
+| baseline           |   1 |    12ms |    29ms |    41ms |  0.00% |    54.2 |
+| inflection         |   8 |    74ms |   412ms |  1.21s  |  0.00% |   189.3 |
+| hold               |   8 |    79ms |   428ms |  1.18s  |  0.00% |   192.6 |
+| past-inflection    |  12 |   156ms |   891ms |  2.04s  |  0.42% |   201.0 |
+
+inflection reason: p99 1.21s > 1s absolute
+```
+
+The output is markdown verbatim — paste directly into incident
+reports, capacity-planning docs, or `tee` to a file:
+
+```bash
+./loadtest ramp --target http://localhost:8080 | tee ramp-results.md
+```
+
 ## Auth
 
 Set `PDBPLUS_LOADTEST_AUTH_TOKEN` to send `Authorization: Bearer
@@ -201,8 +285,10 @@ go test -race ./cmd/loadtest/...
 - `main.go` — flag parsing + mode dispatch
 - `surfaces.go` — `Surface` enum + `Hit()` request executor
 - `registry.go` — 13-entity × 5-surface inventory (~114 endpoints)
+- `discover.go` — `discoverIDs` + `discoverRampIDs` (id/asn prefetch)
 - `endpoints.go` — `runEndpoints` sequential sweep driver
 - `sync.go` — `runSync` 13-step ordered driver + `syncOrder` parity mirror
 - `soak.go` — `runSoak` errgroup × rate-limited worker pool
+- `ramp.go` — `runRamp` per-surface concurrency ramp + inflection detector + markdown emitter
 - `report.go` — per-surface aggregation, percentile calculation, table printer
 - `*_test.go` — hermetic httptest-based unit tests
