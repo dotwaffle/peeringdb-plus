@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
 // Quick task 260428-2zl Task 3: when fkCheckParent finds a missing
@@ -112,6 +114,26 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 		return false
 	}
 
+	// v1.18.3 recursive backfill: before upserting the parent, walk its
+	// own FK fields and recursively backfill any missing grandparents.
+	// Bounded by the per-cycle dedup cache (each (type,id) pair fires
+	// exactly once) and the per-cycle cap. Max effective depth is the
+	// schema's longest FK chain (currently 3-hop: netixlan → ixlan → ix
+	// → org). Grandparent failures don't block parent insert — the
+	// schema's Optional().Nillable() FKs accept dangling references, so
+	// "parent with maybe-dangling FK" is strictly better than "missing
+	// parent + dropped child".
+	for _, gp := range parentFKsOf(parentType, raw) {
+		if gp.ID == 0 {
+			continue
+		}
+		if w.fkHasParent(ctx, tx, gp.ParentType, gp.ID) {
+			continue
+		}
+		// Best-effort: ignore return value (see comment above).
+		w.fkBackfillParent(ctx, tx, parentType, gp.ParentType, gp.ID)
+	}
+
 	if _, upsertErr := upsertSingleRaw(ctx, tx, parentType, raw); upsertErr != nil {
 		w.recordBackfill(ctx, childType, parentType, fkBackfillError)
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill upsert failed",
@@ -155,6 +177,70 @@ func (w *Worker) fetchSingleByID(ctx context.Context, typeName string, id int) (
 		return nil, nil
 	}
 	return raws[0], nil
+}
+
+// parentFKRef names a single FK on a child type's row.
+type parentFKRef struct {
+	FieldName  string // JSON key on the upstream record
+	ParentType string // peeringdb.Type* constant
+	ID         int    // populated by parentFKsOf decode
+}
+
+// parentFKSpec maps each entity type to its required-non-null parent
+// FK fields, mirroring the upstream Django on_delete=CASCADE FKs in
+// peeringdb_server/models.py. Nullable FKs (Facility.campus_id,
+// NetworkIXLan.net_side_id / ix_side_id) are handled by the existing
+// fkFilter null-on-miss path in worker.go; they're omitted here so the
+// recursive backfill doesn't gratuitously chase optional references.
+//
+// Mirrors the upstream FK audit table in CLAUDE.md § Soft-delete
+// tombstones — keep these two in sync when a new FK is added.
+var parentFKSpec = map[string][]parentFKRef{
+	peeringdb.TypeOrg:        {},
+	peeringdb.TypeCampus:     {{FieldName: "org_id", ParentType: peeringdb.TypeOrg}},
+	peeringdb.TypeFac:        {{FieldName: "org_id", ParentType: peeringdb.TypeOrg}},
+	peeringdb.TypeIX:         {{FieldName: "org_id", ParentType: peeringdb.TypeOrg}},
+	peeringdb.TypeIXLan:      {{FieldName: "ix_id", ParentType: peeringdb.TypeIX}},
+	peeringdb.TypeIXPfx:      {{FieldName: "ixlan_id", ParentType: peeringdb.TypeIXLan}},
+	peeringdb.TypeIXFac:      {{FieldName: "ix_id", ParentType: peeringdb.TypeIX}, {FieldName: "fac_id", ParentType: peeringdb.TypeFac}},
+	peeringdb.TypeCarrier:    {{FieldName: "org_id", ParentType: peeringdb.TypeOrg}},
+	peeringdb.TypeCarrierFac: {{FieldName: "carrier_id", ParentType: peeringdb.TypeCarrier}, {FieldName: "fac_id", ParentType: peeringdb.TypeFac}},
+	peeringdb.TypeNet:        {{FieldName: "org_id", ParentType: peeringdb.TypeOrg}},
+	peeringdb.TypePoc:        {{FieldName: "net_id", ParentType: peeringdb.TypeNet}},
+	peeringdb.TypeNetFac:     {{FieldName: "net_id", ParentType: peeringdb.TypeNet}, {FieldName: "fac_id", ParentType: peeringdb.TypeFac}},
+	peeringdb.TypeNetIXLan:   {{FieldName: "net_id", ParentType: peeringdb.TypeNet}, {FieldName: "ixlan_id", ParentType: peeringdb.TypeIXLan}},
+}
+
+// parentFKsOf decodes the upstream JSON for one row and returns the
+// list of (FK field, parent type, parent id) tuples for required FKs.
+// Returns nil for entity types with no parent FKs (e.g. org), or when
+// JSON decoding fails (caller proceeds without recursive backfill —
+// the parent upsert still happens via the existing path).
+func parentFKsOf(parentType string, raw []byte) []parentFKRef {
+	spec, ok := parentFKSpec[parentType]
+	if !ok || len(spec) == 0 {
+		return nil
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil
+	}
+	out := make([]parentFKRef, 0, len(spec))
+	for _, fk := range spec {
+		rawVal, present := fields[fk.FieldName]
+		if !present || string(rawVal) == "null" {
+			continue
+		}
+		var id int
+		if err := json.Unmarshal(rawVal, &id); err != nil {
+			continue
+		}
+		if id <= 0 {
+			continue
+		}
+		out = append(out, parentFKRef{FieldName: fk.FieldName, ParentType: fk.ParentType, ID: id})
+	}
+	return out
 }
 
 // recordBackfill emits the per-attempt fk_backfill counter.
