@@ -908,25 +908,23 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // Returns the cursor update timestamp, a flag indicating whether the
 // successful run was incremental, and any error.
 //
-// Quick task 260428-2zl: bootstrap path — when incremental mode is
-// active but no prior cursor exists (fresh DB, or first incremental
-// after the v1.17 default flip when no full sync has run yet), use
-// time.Unix(1,0) so the upstream URL becomes ?since=1. Per upstream
-// rest.py:694-727 status × since matrix, ?since=N>0 returns BOTH 'ok'
-// AND 'deleted' rows — capturing the full historical state including
-// tombstones from before our cursor existed. Without this, the bare
-// /api/<type> path filters to status='ok' only, leaving permanent gaps
-// for rows that became status='deleted' before we started observing.
+// Bootstrap reversal (v1.18.3): the v1.18.2 bootstrap path that used
+// time.Unix(1,0) to fetch ?since=1 on a zero cursor was reverted because
+// it tripped upstream's API_THROTTLE_REPEATED_REQUEST throttle (1MB
+// threshold, 10/min cap — see upstream main_settings.py) plus AWS WAF
+// limits invisible in upstream code. The full-historical fetch returned
+// retry-after values up to 54 minutes, blocking sync indefinitely.
+//
+// Current behaviour: cursor zero → full sync via bare list (status='ok'
+// only, smaller responses). Historical-delete capture for fresh installs
+// is deferred to a proper multi-cycle bootstrap design (v1.19+);
+// FK backfill (260428-2zl Task 3) catches the orphans that matter on
+// demand, including via recursive grandparent backfill (v1.18.3).
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, start time.Time, stepSpan trace.Span) (time.Time, bool, error) {
-	// Incremental attempt with fallback to full on error.
-	if mode == config.SyncModeIncremental {
-		sinceCursor := cursor
-		if sinceCursor.IsZero() {
-			sinceCursor = time.Unix(1, 0)
-			w.logger.LogAttrs(ctx, slog.LevelInfo, "incremental bootstrap with since=1",
-				slog.String("type", name))
-		}
-		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, sinceCursor)
+	// Incremental attempt requires a populated cursor. Zero cursor falls
+	// through to the full-sync path below (bare list, status='ok' only).
+	if mode == config.SyncModeIncremental && !cursor.IsZero() {
+		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
 		if incErr == nil {
 			return generated, true, nil
 		}
