@@ -689,7 +689,7 @@ func TestGetFreshness_WithSyncRecord(t *testing.T) {
 	}
 
 	startedAt := time.Now().Add(-time.Hour)
-	id, err := sync.RecordSyncStart(ctx, db, startedAt)
+	id, err := sync.RecordSyncStart(ctx, db, startedAt, "incremental")
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}

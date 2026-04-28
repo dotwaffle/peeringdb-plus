@@ -130,6 +130,18 @@ type WorkerConfig struct {
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
 	// deadline (only the cap applies).
 	FKBackfillTimeout time.Duration
+
+	// FullSyncInterval is the interval after which a sync cycle forces
+	// a full bare-list refetch of every type, regardless of the
+	// per-table MAX(updated) cursor. Defends against pathological
+	// upstream cross-row inconsistency where a `?since=` response
+	// includes row R' (updated=M) but is missing earlier row R
+	// (updated < M); R is permanently missed under any since-based
+	// design without periodic full refetch. Wired from
+	// PDBPLUS_FULL_SYNC_INTERVAL (default 24h). Zero disables the
+	// escape hatch (only the per-cycle MAX(updated) cursor applies).
+	// 260428-mu0.
+	FullSyncInterval time.Duration
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -527,6 +539,49 @@ func (w *Worker) syncSteps() []syncStep {
 // upsert helper, or any HTTP path. Tier elevation for non-sync callers
 // goes through internal/privctx.WithTier (TierUsers), a different
 // mechanism.
+// resolveEffectiveMode applies the PDBPLUS_FULL_SYNC_INTERVAL escape hatch
+// (260428-mu0): if the configured mode is incremental AND the configured
+// FullSyncInterval is positive AND the most recent successful full sync is
+// older than that interval, the cycle's effective mode upgrades to full —
+// every per-type fetch issues a bare list (no since=).
+//
+// Single GetLastSuccessfulFullSyncTime call per cycle by design (NOT once
+// per type) — the per-step loop in syncFetchPass receives the resolved
+// SyncMode and never re-queries sync_status.
+//
+// Fail-soft on sync_status read errors: a transient query failure logs
+// at INFO and falls through with the configured mode, never blocking sync.
+//
+// Returns "full" when FullSyncInterval == 0 is unchanged from the
+// configured mode (zero is the documented "disabled" sentinel, mirroring
+// PDBPLUS_FK_BACKFILL_TIMEOUT semantics).
+func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.SyncMode) config.SyncMode {
+	if configured != config.SyncModeIncremental {
+		return configured
+	}
+	if w.config.FullSyncInterval <= 0 {
+		return configured
+	}
+	lastFull, err := GetLastSuccessfulFullSyncTime(ctx, w.db)
+	if err != nil {
+		// Fail-soft: log and continue with configured mode. A
+		// sync_status read failure is not a reason to block sync.
+		w.logger.LogAttrs(ctx, slog.LevelInfo,
+			"failed to read last full sync time, skipping full-sync interval check",
+			slog.Any("error", err),
+		)
+		return configured
+	}
+	if lastFull.IsZero() || time.Since(lastFull) >= w.config.FullSyncInterval {
+		w.logger.LogAttrs(ctx, slog.LevelInfo, "forcing full bare-list refetch",
+			slog.Time("last_full_sync", lastFull),
+			slog.Duration("full_sync_interval", w.config.FullSyncInterval),
+		)
+		return config.SyncModeFull
+	}
+	return configured
+}
+
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // VIS-05 bypass — sole call site (D-08/D-09)
 	if !w.running.CompareAndSwap(false, true) {
@@ -539,7 +594,10 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	defer span.End()
 
 	start := time.Now()
-	statusID, err := RecordSyncStart(ctx, w.db, start)
+	// 260428-mu0: resolve effective mode (PDBPLUS_FULL_SYNC_INTERVAL
+	// escape hatch) BEFORE recording the status row.
+	effectiveMode := w.resolveEffectiveMode(ctx, mode)
+	statusID, err := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
 			slog.Any("error", err))
@@ -575,23 +633,23 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 	scratch, err := openScratchDB(ctx)
 	if err != nil {
-		w.recordFailure(ctx, mode, statusID, start, err)
+		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
 	defer closeScratchDB(ctx, scratch, w.logger)
 
 	// === Phase A — NO TX HELD ===
 	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.
-	cursorUpdates, fromIncremental, err := w.syncFetchPass(ctx, scratch, mode, start)
+	fromIncremental, err := w.syncFetchPass(ctx, scratch, effectiveMode)
 	if err != nil {
-		w.recordFailure(ctx, mode, statusID, start, err)
+		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
 	// Commit F guardrail: see checkMemoryLimit godoc (defense-in-depth).
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
-		w.recordFailure(ctx, mode, statusID, start, memErr)
+		w.recordFailure(ctx, effectiveMode, statusID, start, memErr)
 		return memErr
 	}
 	// === Fetch Barrier ===
@@ -599,29 +657,29 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
 		beginErr := fmt.Errorf("begin sync transaction: %w", err)
-		w.recordFailure(ctx, mode, statusID, start, beginErr)
+		w.recordFailure(ctx, effectiveMode, statusID, start, beginErr)
 		return beginErr
 	}
 	if err := prepareTxPragmas(ctx, tx); err != nil {
-		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
 
 	// === Phase B — SINGLE REAL TX === (260428-2zl T6: no delete pass.
-	// 260428-eda CHANGE 2: cursor writes inside this tx — see
-	// syncUpsertPass godoc for the failure-mode shift.)
-	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental, cursorUpdates)
+	// 260428-mu0: cursor writes are gone — cursor is derived from
+	// MAX(updated) per table on the next cycle.)
+	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
 	if err != nil {
-		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
 	if commitErr := commitWithSpan(ctx, tx); commitErr != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", commitErr)
-		w.recordFailure(ctx, mode, statusID, start, syncErr)
+		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
 		return syncErr
 	}
 
-	w.recordSuccess(ctx, mode, statusID, start, objectCounts)
+	w.recordSuccess(ctx, effectiveMode, statusID, start, objectCounts)
 	return nil
 }
 
@@ -847,10 +905,9 @@ func (w *Worker) recordSuccess(
 	// sync-finalize span and ctx-reassign so the sub-spans below parent
 	// under sync-finalize rather than the root.
 	//
-	// 260428-eda CHANGE 2: the prior sync-cursor-updates loop here has
-	// migrated into syncUpsertPass (inside the main tx). The span name
-	// is preserved there — it now parents under the sync-cycle span
-	// rather than sync-finalize, but the search/grep continuity holds.
+	// 260428-mu0: the prior sync-cursor-updates loop is fully gone —
+	// cursor advancement is now implicit via MAX(updated) on the entity
+	// tables themselves (see internal/sync/cursor.go GetMaxUpdated).
 	ctx, finalizeSpan := otel.Tracer("sync").Start(ctx, "sync-finalize")
 	defer finalizeSpan.End()
 
@@ -936,28 +993,35 @@ type syncBatch struct{}
 // absence of *ent.Tx from the signature is a compile-time guard against
 // accidental tx-in-fetch drift.
 //
-// Returns per-type cursor update timestamps and a map flagging which
-// types came from an incremental fetch (those skip the Phase B delete
-// pass because incremental sync does not compute a complete remote-ID
-// set). On error, no ent.Tx has been opened yet; the caller records
-// failure and returns without touching the real database. The scratch
-// file is unlinked by the caller's `defer closeScratchDB(...)`.
+// Returns a map flagging which types came from an incremental fetch
+// (those skip the Phase B delete pass because incremental sync does not
+// compute a complete remote-ID set). On error, no ent.Tx has been opened
+// yet; the caller records failure and returns without touching the real
+// database. The scratch file is unlinked by the caller's
+// `defer closeScratchDB(...)`.
 //
 // Fallback-to-full-on-incremental-error semantics preserved: if the
 // incremental stage fails mid-way, the scratch table is truncated and
 // the full-mode stage is retried. The final batch for that type is
 // flagged as full so the delete pass runs.
 //
+// 260428-mu0: the cursor is derived from MAX(updated) on the entity
+// table instead of reading a sync_cursors row keyed on meta.generated.
+// PeeringDB does not include meta.generated on ?since= responses (see
+// internal/peeringdb/client_live_test.go TestMetaGeneratedLive/
+// paginated_incremental); the prior design stored the absent zero-time,
+// which alternated every cycle into a full bare-list re-fetch. The new
+// derivation reads MAX(updated) once per type via the indexed query in
+// internal/sync/cursor.go GetMaxUpdated.
+//
 // PERF-05 option (b): this helper is the fetch-outside-tx pass that
 // splits fetch from upsert. Commit D' (this commit) routes Phase A
 // through an isolated scratch SQLite DB so the Go heap stays bounded.
-func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode, start time.Time) (
-	cursorUpdates map[string]time.Time,
+func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) (
 	fromIncremental map[string]bool,
 	err error,
 ) {
 	steps := w.syncSteps()
-	cursorUpdates = make(map[string]time.Time, len(steps))
 	fromIncremental = make(map[string]bool, len(steps))
 
 	for _, step := range steps {
@@ -968,37 +1032,56 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
 
-		cursor, cursorErr := GetCursor(ctx, w.db, step.name)
+		// 260428-mu0: derive cursor from MAX(updated) on the entity
+		// table instead of reading sync_cursors. Replaces the v1.13
+		// meta.generated-based design that alternated every cycle into
+		// a full bare-list re-fetch (PeeringDB ?since= responses omit
+		// meta.generated — see internal/peeringdb/client_live_test.go).
+		table, ok := entityTables[step.name]
+		if !ok {
+			stepSpan.End()
+			return nil, fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
+		}
+		cursor, cursorErr := GetMaxUpdated(ctx, w.db, table)
 		if cursorErr != nil {
-			w.logger.LogAttrs(ctx, slog.LevelInfo, "failed to get cursor, using full sync",
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "failed to get max(updated), using full sync",
 				slog.String("type", step.name),
 				slog.Any("error", cursorErr),
 			)
+			// Fall through with zero cursor → full bare-list path. This
+			// mirrors the prior GetCursor error behaviour and is the
+			// correct fail-soft response (full path is always safe).
 		}
 
-		cursorUpdate, incremental, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, start, stepSpan)
+		incremental, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, stepSpan)
 
 		stepSpan.End()
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
 
 		if stepErr != nil {
 			pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
-			return nil, nil, fmt.Errorf("fetch %s: %w", step.name, stepErr)
+			return nil, fmt.Errorf("fetch %s: %w", step.name, stepErr)
 		}
 
-		cursorUpdates[step.name] = cursorUpdate
 		fromIncremental[step.name] = incremental
 	}
 
-	return cursorUpdates, fromIncremental, nil
+	return fromIncremental, nil
 }
 
 // stageOneTypeToScratch streams a single PeeringDB type into its scratch
 // staging table, handling the incremental-with-fallback-to-full
 // semantics. On incremental error the scratch table for this type is
 // truncated (to drop any partial insert) and a full stage is retried.
-// Returns the cursor update timestamp, a flag indicating whether the
-// successful run was incremental, and any error.
+// Returns a flag indicating whether the successful run was incremental.
+//
+// 260428-mu0: the cursor is derived from MAX(updated) by the caller
+// (syncFetchPass). The previous design returned a per-call cursor
+// update derived from meta.generated; with that field absent on
+// ?since= responses it stored zero, which then alternated every cycle
+// into a full bare-list re-fetch. Cursor advancement is now implicit:
+// once the upsert tx commits the new rows, the next cycle's
+// GetMaxUpdated picks up the boundary automatically.
 //
 // Bootstrap reversal (v1.18.3): the v1.18.2 bootstrap path that used
 // time.Unix(1,0) to fetch ?since=1 on a zero cursor was reverted because
@@ -1012,13 +1095,13 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // is deferred to a proper multi-cycle bootstrap design (v1.19+);
 // FK backfill (260428-2zl Task 3) catches the orphans that matter on
 // demand, including via recursive grandparent backfill (v1.18.3).
-func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, start time.Time, stepSpan trace.Span) (time.Time, bool, error) {
+func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (bool, error) {
 	// Incremental attempt requires a populated cursor. Zero cursor falls
 	// through to the full-sync path below (bare list, status='ok' only).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
-		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
+		_, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
 		if incErr == nil {
-			return generated, true, nil
+			return true, nil
 		}
 		// Fallback: clear partial incremental state and retry as full.
 		typeAttr := metric.WithAttributes(attribute.String("type", name))
@@ -1034,14 +1117,14 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 			slog.Any("error", incErr),
 		)
 		if _, delErr := scratch.db.ExecContext(ctx, fmt.Sprintf("DELETE FROM %q", name)); delErr != nil {
-			return time.Time{}, false, fmt.Errorf("clear partial incremental scratch %s: %w", name, delErr)
+			return false, fmt.Errorf("clear partial incremental scratch %s: %w", name, delErr)
 		}
 	}
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
 	if _, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
-		return time.Time{}, false, err
+		return false, err
 	}
-	return start, false, nil
+	return false, nil
 }
 
 // syncUpsertPass runs Phase B upserts inside the single tx. It drains
@@ -1066,26 +1149,19 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 // D-19 atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
 //
-// 260428-eda CHANGE 2: cursorUpdates is now threaded in and the per-type
-// cursor rows are written inside this tx via UpsertCursor(ctx, tx, ...)
-// before the function returns. This closes the failure window where ent
-// upserts were durable but the post-commit cursor write was not (the
-// next cycle would re-fetch already-applied rows).
-//
-// Failure-mode shift: a cursor-write failure now rolls back the entire
-// tx — including any FK-backfill HTTP work that already happened in it.
-// Intentional: rollback after wasted FK backfills is strictly better
-// than the prior upserts-durable / cursor-not-advanced divergence.
-// SyncWithRetry handles transient failures by re-running the whole
-// cycle. The OTel span attr pdbplus.sync.cursor_write_caused_rollback
-// is set on the root span when a cursor-write failure causes rollback —
-// makes the failure mode visible in Tempo postmortems.
+// 260428-mu0: the per-type sync_cursors writes that 260428-eda CHANGE 2
+// folded into this tx have been removed. The cursor is now a derived
+// quantity (MAX(updated) per table — see internal/sync/cursor.go); once
+// the tx commits the new rows, the next cycle's GetMaxUpdated picks up
+// the boundary automatically. The atomicity guarantee is unchanged: the
+// data state IS the cursor, so the row-and-cursor divergence the eda
+// in-tx-cursor-write protected against is now impossible by
+// construction (no separate row to lag).
 func (w *Worker) syncUpsertPass(
 	ctx context.Context,
 	tx *ent.Tx,
 	scratch *scratchDB,
 	_ map[string]bool,
-	cursorUpdates map[string]time.Time,
 ) (
 	map[string]int,
 	error,
@@ -1133,22 +1209,13 @@ func (w *Worker) syncUpsertPass(
 		)
 	}
 
-	// 260428-eda CHANGE 2: cursor writes commit atomically with the
-	// upserts. Per-row failure rolls back the whole tx; the root span is
-	// stamped with pdbplus.sync.cursor_write_caused_rollback so the
-	// failure mode is visible in Tempo postmortems.
-	_, cursorSpan := otel.Tracer("sync").Start(ctx, "sync-cursor-updates")
-	for typeName, generated := range cursorUpdates {
-		if err := UpsertCursor(ctx, tx, typeName, generated, "success"); err != nil {
-			cursorSpan.End()
-			if rootSpan := trace.SpanFromContext(ctx); rootSpan.IsRecording() {
-				rootSpan.SetAttributes(attribute.Bool("pdbplus.sync.cursor_write_caused_rollback", true))
-			}
-			return nil, fmt.Errorf("write cursor for %s: %w", typeName, err)
-		}
-	}
-	cursorSpan.End()
-
+	// 260428-mu0: the per-type sync_cursors writes are gone. Cursor
+	// advancement is implicit — once this tx commits the new rows, the
+	// next cycle's syncFetchPass derives the cursor from MAX(updated) on
+	// each entity table (internal/sync/cursor.go GetMaxUpdated). The
+	// sync-cursor-updates span name no longer applies; the
+	// pdbplus.sync.cursor_write_caused_rollback OTel attribute is also
+	// retired (the failure mode it surfaced is no longer reachable).
 	return objectCounts, nil
 }
 

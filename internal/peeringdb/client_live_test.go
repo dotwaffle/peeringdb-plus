@@ -28,8 +28,10 @@ type apiResponse struct {
 //   - paginated_incremental: GET /api/{type}?depth=0&limit=250&skip=0&since=T (live query, meta.generated absent)
 //   - empty_result: GET /api/{type}?depth=0&since=future (empty data, meta.generated absent)
 //
-// DATA-02: Confirms parseMeta returns zero time for paginated responses, which
-// triggers the 5-minute fallback in fetchIncremental (worker.go:731-733).
+// DATA-02: Confirms parseMeta returns zero time for paginated responses.
+// Sync no longer relies on meta.generated for cursor advancement —
+// cursors are derived from MAX(updated) per table (see
+// internal/sync/cursor.go). 260428-mu0.
 func TestMetaGeneratedLive(t *testing.T) {
 	if !*peeringdbLive {
 		t.Skip("skipping live meta.generated test (use -peeringdb-live to enable)")
@@ -86,7 +88,9 @@ func TestMetaGeneratedLive(t *testing.T) {
 	// Subtest 2: paginated_incremental - verifies meta.generated is absent on
 	// parameterized queries. Any request with limit, skip, or since parameters
 	// bypasses PeeringDB's cache and returns meta: {}.
-	// DATA-02: This confirms the zero-time fallback path in fetchIncremental.
+	// DATA-02: Historical: this used to feed worker.go's meta.generated-based
+	// cursor; the 260428-mu0 cursor rewrite no longer reads meta.generated
+	// for advancement. The test stays as documentation of upstream behaviour.
 	t.Run("paginated_incremental", func(t *testing.T) {
 		types := []string{"net", "ix", "fac"}
 		since := time.Now().Add(-7 * 24 * time.Hour).Unix()

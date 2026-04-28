@@ -14,7 +14,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	stdsync "sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -876,7 +878,37 @@ type fixtureWithMeta struct {
 	failIncremental map[string]bool // fail all requests with ?since= for this type
 	callCounts      map[string]*atomic.Int64
 	sinceSeen       map[string]*atomic.Bool // tracks if ?since= was seen per type
-	generated       float64                 // meta.generated epoch
+	// 260428-mu0: per-type slice of `since` query-param values seen across
+	// the lifetime of the fixture. Captures the FIRST request per cycle by
+	// inspection (the per-page paginator may issue follow-up requests with
+	// the same since=). Used by TestSyncFetchPass_UsesMaxUpdatedAsCursor /
+	// TestSync_TwoCycle_NoFullRefetch to assert the cursor advanced.
+	sinceValues map[string]*sinceLog
+	generated   float64 // meta.generated epoch
+}
+
+// sinceLog accumulates `since=N` query-param values seen on first-page
+// requests for a single PeeringDB type. The slice is append-only across the
+// fixture's lifetime so a multi-cycle test can read both cycle 1 and cycle
+// 2 values. Guarded by mu so the httptest server's concurrent request
+// dispatch is data-race clean (-race detects unsynchronised slice growth).
+type sinceLog struct {
+	mu     stdsync.Mutex
+	values []string
+}
+
+func (s *sinceLog) add(v string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.values = append(s.values, v)
+}
+
+func (s *sinceLog) snapshot() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]string, len(s.values))
+	copy(out, s.values)
+	return out
 }
 
 func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
@@ -888,6 +920,7 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 		failIncremental: make(map[string]bool),
 		callCounts:      make(map[string]*atomic.Int64),
 		sinceSeen:       make(map[string]*atomic.Bool),
+		sinceValues:     make(map[string]*sinceLog),
 		generated:       generatedEpoch,
 	}
 	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -904,9 +937,24 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 		if _, ok := f.sinceSeen[objType]; !ok {
 			f.sinceSeen[objType] = &atomic.Bool{}
 		}
-		hasSince := r.URL.Query().Get("since") != ""
+		sinceParam := r.URL.Query().Get("since")
+		hasSince := sinceParam != ""
 		if hasSince {
 			f.sinceSeen[objType].Store(true)
+		}
+		// 260428-mu0: capture per-type since-value log on first-page
+		// requests only (skip=0 or empty) so multi-cycle tests can assert
+		// the cursor advanced between cycles. Empty string is recorded for
+		// bare-list calls so callers can distinguish "no request" from
+		// "request with no since" — both have utility for the regression
+		// lock in TestSync_TwoCycle_NoFullRefetch. Lazily registered so
+		// existing tests (which never read sinceValues) pay no cost.
+		skip := r.URL.Query().Get("skip")
+		if skip == "" || skip == "0" {
+			if _, ok := f.sinceValues[objType]; !ok {
+				f.sinceValues[objType] = &sinceLog{}
+			}
+			f.sinceValues[objType].add(sinceParam)
 		}
 
 		// Permanent failure.
@@ -928,7 +976,7 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 		}
 
 		// Only return data on the first page (skip=0).
-		skip := r.URL.Query().Get("skip")
+		// `skip` already captured above for the sinceValues log.
 		if skip != "" && skip != "0" {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
@@ -993,13 +1041,15 @@ func TestIncrementalSync(t *testing.T) {
 		t.Fatalf("expected 1 org after first sync, got %d", orgCount)
 	}
 
-	// Verify cursor was established.
-	cursor, err := GetCursor(ctx, db, "org")
+	// 260428-mu0: cursor is now derived from MAX(updated) on the entity
+	// table — assert there's at least one row so the next cycle's
+	// GetMaxUpdated returns non-zero (which drives the ?since= path).
+	cursor, err := GetMaxUpdated(ctx, db, "organizations")
 	if err != nil {
-		t.Fatalf("get cursor: %v", err)
+		t.Fatalf("GetMaxUpdated: %v", err)
 	}
 	if cursor.IsZero() {
-		t.Fatal("expected non-zero cursor after first sync")
+		t.Fatal("expected non-zero MAX(updated) after first sync (drives next cycle's ?since=)")
 	}
 
 	// Reset since tracking.
@@ -1159,12 +1209,13 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 		t.Fatalf("expected 2 orgs after cycle 1, got %d", orgCount)
 	}
 
-	cursor, err := GetCursor(ctx, db, "org")
+	// 260428-mu0: cursor derived from MAX(updated) on the org table.
+	cursor, err := GetMaxUpdated(ctx, db, "organizations")
 	if err != nil {
-		t.Fatalf("get cursor after cycle 1: %v", err)
+		t.Fatalf("GetMaxUpdated after cycle 1: %v", err)
 	}
 	if cursor.IsZero() {
-		t.Fatal("expected non-zero cursor after cycle 1 (UpsertCursor stamps meta.generated)")
+		t.Fatal("expected non-zero MAX(updated) after cycle 1 (drives next cycle's ?since=)")
 	}
 
 	// Reset since-tracking before cycle 2 so we can prove the incremental
@@ -1286,12 +1337,13 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 		t.Fatalf("expected 2 pocs after cycle 1, got %d", pocCount)
 	}
 
-	cursor, err := GetCursor(ctx, db, "poc")
+	// 260428-mu0: cursor derived from MAX(updated) on the poc table.
+	cursor, err := GetMaxUpdated(ctx, db, "pocs")
 	if err != nil {
-		t.Fatalf("get cursor after cycle 1: %v", err)
+		t.Fatalf("GetMaxUpdated after cycle 1: %v", err)
 	}
 	if cursor.IsZero() {
-		t.Fatal("expected non-zero cursor after cycle 1 (UpsertCursor stamps meta.generated)")
+		t.Fatal("expected non-zero MAX(updated) after cycle 1 (drives next cycle's ?since=)")
 	}
 
 	// Reset since-tracking before cycle 2 so we can prove the incremental
@@ -1363,13 +1415,22 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 	}
 }
 
-// TestCursorsUpdatedAfterCommit verifies that cursors are updated for all types
-// after a successful sync commit.
+// TestCursorsUpdatedAfterCommit verifies that the derived cursor (MAX(updated)
+// per entity table) is non-zero after a successful sync for each type that
+// received rows. 260428-mu0: cursor was previously a sync_cursors row written
+// per-type by the sync; it is now derived from the entity table itself, so
+// only types with at least one synced row will have a non-zero cursor.
 func TestCursorsUpdatedAfterCommit(t *testing.T) {
 	t.Parallel()
 	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
 	f := newFixtureWithMeta(t, generated)
+	// Seed at least one row per type so MAX(updated) is non-zero everywhere
+	// after the sync. Empty types would yield zero cursors under the new
+	// design (the data IS the cursor).
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	f.responses["fac"] = []any{makeFac(1, 1, "Fac1", "ok")}
+	f.responses["net"] = []any{makeNet(1, 1, 64500, "Net1", "ok")}
+	f.responses["poc"] = []any{makePoc(1, 1, "Alice", "Tech", "ok")}
 
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeFull)
 	ctx := t.Context()
@@ -1378,22 +1439,36 @@ func TestCursorsUpdatedAfterCommit(t *testing.T) {
 		t.Fatalf("sync: %v", err)
 	}
 
-	// Check that cursors exist for all 13 types.
-	typeNames := []string{"org", "campus", "fac", "carrier", "carrierfac", "ix", "ixlan", "ixpfx", "ixfac", "net", "poc", "netfac", "netixlan"}
-	for _, typeName := range typeNames {
-		cursor, err := GetCursor(ctx, db, typeName)
+	// 260428-mu0: cursor derived from MAX(updated). Types with at least one
+	// row land a non-zero cursor; types with empty fixtures stay at zero
+	// (which is the correct fall-through-to-bare-list signal).
+	cases := []struct {
+		typeName  string
+		tableName string
+		seeded    bool
+	}{
+		{"org", "organizations", true},
+		{"fac", "facilities", true},
+		{"net", "networks", true},
+		{"poc", "pocs", true},
+	}
+	for _, c := range cases {
+		cursor, err := GetMaxUpdated(ctx, db, c.tableName)
 		if err != nil {
-			t.Errorf("get cursor for %s: %v", typeName, err)
+			t.Errorf("GetMaxUpdated for %s (%s): %v", c.typeName, c.tableName, err)
 			continue
 		}
-		if cursor.IsZero() {
-			t.Errorf("expected non-zero cursor for %s after successful sync", typeName)
+		if c.seeded && cursor.IsZero() {
+			t.Errorf("expected non-zero MAX(updated) for %s after successful sync", c.typeName)
 		}
 	}
 }
 
-// TestCursorsNotUpdatedOnRollback verifies that cursors are NOT updated
-// when the sync transaction is rolled back due to an error.
+// TestCursorsNotUpdatedOnRollback verifies that the derived cursor (MAX
+// (updated) per entity table) stays at zero when the sync transaction is
+// rolled back due to an error. 260428-mu0: under the MAX(updated) model the
+// data IS the cursor, so rolling back the upsert tx automatically reverts
+// the cursor — no separate sync_cursors row to check.
 func TestCursorsNotUpdatedOnRollback(t *testing.T) {
 	t.Parallel()
 	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
@@ -1410,16 +1485,27 @@ func TestCursorsNotUpdatedOnRollback(t *testing.T) {
 		t.Fatal("expected error from failed sync")
 	}
 
-	// Verify no cursors were updated.
-	typeNames := []string{"org", "campus", "fac", "carrier", "carrierfac", "ix", "ixlan", "ixpfx", "ixfac", "net", "poc", "netfac", "netixlan"}
-	for _, typeName := range typeNames {
-		cursor, err := GetCursor(ctx, db, typeName)
+	// 260428-mu0: rollback semantic — no rows committed → MAX(updated) is
+	// zero on every entity table, including org (whose fixture WAS staged
+	// but the tx rolled back before the upserts landed).
+	cases := []struct {
+		typeName  string
+		tableName string
+	}{
+		{"org", "organizations"},
+		{"fac", "facilities"},
+		{"net", "networks"},
+		{"ix", "internet_exchanges"},
+		{"poc", "pocs"},
+	}
+	for _, c := range cases {
+		cursor, err := GetMaxUpdated(ctx, db, c.tableName)
 		if err != nil {
-			t.Errorf("get cursor for %s: %v", typeName, err)
+			t.Errorf("GetMaxUpdated for %s: %v", c.typeName, err)
 			continue
 		}
 		if !cursor.IsZero() {
-			t.Errorf("expected zero cursor for %s after rollback, got %v", typeName, cursor)
+			t.Errorf("expected zero MAX(updated) for %s after rollback, got %v", c.typeName, cursor)
 		}
 	}
 }
@@ -1519,7 +1605,7 @@ func TestSchedulerSkipsSyncWithExistingData(t *testing.T) {
 
 	// Record a successful sync that completed recently (within the interval).
 	now := time.Now()
-	id, err := RecordSyncStart(ctx, db, now.Add(-10*time.Minute))
+	id, err := RecordSyncStart(ctx, db, now.Add(-10*time.Minute), "incremental")
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}
@@ -1603,7 +1689,7 @@ func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 
 	// Record a successful sync from 2 hours ago (with 1h interval, it's overdue).
 	twoHoursAgo := time.Now().Add(-2 * time.Hour)
-	id, err := RecordSyncStart(ctx, db, twoHoursAgo)
+	id, err := RecordSyncStart(ctx, db, twoHoursAgo, "incremental")
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}
@@ -2933,5 +3019,397 @@ func TestReadLinuxVmHWM(t *testing.T) {
 	}
 	if b <= 0 {
 		t.Errorf("readLinuxVMHWM returned %d bytes, want > 0", b)
+	}
+}
+
+// TestSyncFetchPass_UsesMaxUpdatedAsCursor asserts the new 260428-mu0
+// contract: after a row is committed with a known `updated` timestamp, the
+// next incremental cycle issues `?since=N` where N >= upstream-row.Unix()
+// (modulo SQLite µs rounding to a 1-second tolerance). This is the
+// load-bearing assertion that proves syncFetchPass derives the cursor
+// from MAX(updated) rather than meta.generated.
+func TestSyncFetchPass_UsesMaxUpdatedAsCursor(t *testing.T) {
+	t.Parallel()
+	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
+	generated := float64(t1.Unix())
+	f := newFixtureWithMeta(t, generated)
+	// Seed parent org so the poc FK chain resolves; bump updated to t1
+	// so MAX(updated) on `pocs` lands at t1 after cycle 1.
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1", "ok"), t1.Format(time.RFC3339))}
+	f.responses["net"] = []any{bumpUpdated(makeNet(50, 1, 64500, "ParentNet", "ok"), t1.Format(time.RFC3339))}
+	f.responses["poc"] = []any{bumpUpdated(makePoc(10, 50, "Alice", "Tech", "ok"), t1.Format(time.RFC3339))}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
+	ctx := t.Context()
+
+	// Cycle 1: cursor zero → bare list. Lands the seed rows; advances the
+	// derived MAX(updated) on each table to t1.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 1 sync: %v", err)
+	}
+	maxPoc, err := GetMaxUpdated(ctx, db, "pocs")
+	if err != nil {
+		t.Fatalf("GetMaxUpdated pocs: %v", err)
+	}
+	if maxPoc.IsZero() {
+		t.Fatal("expected non-zero MAX(updated) on pocs after cycle 1")
+	}
+
+	// Cycle 2: cursor present → request URL must include since=N where N
+	// parses back to a time >= t1 (the cursor was at t1 entering cycle 2;
+	// the query `>= since` is inclusive so the boundary row is re-fetched
+	// and the upsert is a no-op via the skip-on-unchanged predicate).
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 2 sync: %v", err)
+	}
+
+	pocLog, ok := f.sinceValues["poc"]
+	if !ok {
+		t.Fatal("no since-log captured for poc")
+	}
+	values := pocLog.snapshot()
+	if len(values) < 2 {
+		t.Fatalf("expected ≥2 first-page poc requests across 2 cycles, got %d (%v)", len(values), values)
+	}
+	cycle2Since := values[len(values)-1]
+	if cycle2Since == "" {
+		t.Fatalf("cycle 2 poc request had no ?since= param; values=%v", values)
+	}
+	cycle2Unix, parseErr := strconv.ParseInt(cycle2Since, 10, 64)
+	if parseErr != nil {
+		t.Fatalf("parse cycle 2 since=%q: %v", cycle2Since, parseErr)
+	}
+	cycle2T := time.Unix(cycle2Unix, 0).UTC()
+	// Allow 1s tolerance for SQLite µs rounding when the boundary is right
+	// at t1 — accept any cursor within ±1s of t1.
+	delta := cycle2T.Sub(t1)
+	if delta < -time.Second || delta > time.Second {
+		t.Errorf("cycle 2 since=%v not within ±1s of expected MAX(updated)=%v", cycle2T, t1)
+	}
+}
+
+// TestSync_TwoCycle_NoFullRefetch is the REGRESSION LOCK for the v1.13
+// alternating-full-refetch bug. Pre-260428-mu0: meta.generated was absent
+// on ?since= responses, so the cursor stored zero, so the next cycle
+// fell through to a full bare-list re-fetch — alternating big/small
+// total_objects every 15 minutes. Post-260428-mu0: cursor derived from
+// MAX(updated), so the bug is structurally impossible.
+//
+// This test seeds 5 poc rows on cycle 1, then mocks upstream returning 0
+// new rows on cycle 2, and asserts:
+//
+//  1. Cycle 2's `poc` first-page request uses ?since=<non-empty>. NOT a
+//     bare list — that would mean the cursor wasn't derived correctly and
+//     we re-fetched the whole table.
+//  2. Cycle 2's per-type total_objects is small (the empty response yields
+//     zero net new rows, NOT 5+ which would prove a re-fetch happened).
+func TestSync_TwoCycle_NoFullRefetch(t *testing.T) {
+	t.Parallel()
+	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
+	generated := float64(t1.Unix())
+	f := newFixtureWithMeta(t, generated)
+	// Seed FK parents + 5 pocs. updated=t1 on every row so MAX advances
+	// past t1 after cycle 1 commits.
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1", "ok"), t1.Format(time.RFC3339))}
+	f.responses["net"] = []any{bumpUpdated(makeNet(50, 1, 64500, "Net50", "ok"), t1.Format(time.RFC3339))}
+	pocs := make([]any, 0, 5)
+	for i := range 5 {
+		pocs = append(pocs, bumpUpdated(makePoc(100+i, 50, fmt.Sprintf("P%d", i), "Tech", "ok"), t1.Format(time.RFC3339)))
+	}
+	f.responses["poc"] = pocs
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
+	ctx := t.Context()
+
+	// Cycle 1.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 1: %v", err)
+	}
+
+	// Confirm the seeded data committed and MAX(updated) advanced.
+	cnt, err := w.entClient.Poc.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("poc count after cycle 1: %v", err)
+	}
+	if cnt != 5 {
+		t.Fatalf("expected 5 pocs after cycle 1, got %d", cnt)
+	}
+	maxPoc, err := GetMaxUpdated(ctx, db, "pocs")
+	if err != nil || maxPoc.IsZero() {
+		t.Fatalf("MAX(updated) pocs after cycle 1: %v err=%v", maxPoc, err)
+	}
+
+	// Cycle 2: upstream returns ZERO new poc rows (steady state — no
+	// upstream activity since t1). Pre-260428-mu0: cursor would re-fetch
+	// the whole table because meta.generated was zero. Post: cursor uses
+	// MAX(updated) so since= advances correctly.
+	f.responses["poc"] = []any{}
+
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 2: %v", err)
+	}
+
+	// Assert (1): cycle 2's last poc first-page request used since=<value>.
+	pocLog, ok := f.sinceValues["poc"]
+	if !ok {
+		t.Fatal("no since-log captured for poc")
+	}
+	values := pocLog.snapshot()
+	if len(values) < 2 {
+		t.Fatalf("expected ≥2 first-page poc requests, got %d (values=%v)", len(values), values)
+	}
+	cycle2Since := values[len(values)-1]
+	if cycle2Since == "" {
+		t.Errorf("REGRESSION: cycle 2 poc request issued bare list (no since=); values=%v — "+
+			"this is the v1.13 alternating-full-refetch bug", values)
+	}
+
+	// Assert (2): cycle 2 poc count unchanged at 5 — no new rows fetched.
+	cnt, err = w.entClient.Poc.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("poc count after cycle 2: %v", err)
+	}
+	if cnt != 5 {
+		t.Errorf("expected 5 pocs after cycle 2 (no upstream changes), got %d", cnt)
+	}
+}
+
+// TestSync_FullSyncIntervalForcesBareList locks the 260428-mu0 escape
+// hatch: when the configured PDBPLUS_FULL_SYNC_INTERVAL has elapsed since
+// the last successful full sync, the next cycle ignores cursors and
+// every per-type request is bare-list (no `?since=` parameter).
+//
+// Seed: full success @ T-25h, then cycle a sync with FullSyncInterval=24h
+// → expect bare list. The cycle records as 'full' so a follow-up sync
+// (now with last_full ≈ now) goes back to using ?since=.
+func TestSync_FullSyncIntervalForcesBareList(t *testing.T) {
+	t.Parallel()
+	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
+	generated := float64(t1.Unix())
+	f := newFixtureWithMeta(t, generated)
+	// Seed minimal fixtures so each cycle commits something — driving
+	// MAX(updated) past zero on the org table so cursor would otherwise
+	// advance.
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1", "ok"), t1.Format(time.RFC3339))}
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, f.server.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		SyncMode:         config.SyncModeIncremental,
+		FullSyncInterval: 24 * time.Hour, // 260428-mu0 escape hatch active
+	}, slog.Default())
+
+	ctx := t.Context()
+
+	// Seed pre-history: a successful full sync from 25 hours ago, plus a
+	// recent incremental success — proves we filter on mode='full'.
+	twentyFiveHoursAgo := time.Now().Add(-25 * time.Hour)
+	pastFullID, err := RecordSyncStart(ctx, db, twentyFiveHoursAgo, "full")
+	if err != nil {
+		t.Fatalf("seed past full RecordSyncStart: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, pastFullID, Status{
+		LastSyncAt: twentyFiveHoursAgo.Add(time.Minute),
+		Duration:   time.Minute,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("seed past full RecordSyncComplete: %v", err)
+	}
+	recentIncrID, err := RecordSyncStart(ctx, db, time.Now().Add(-15*time.Minute), "incremental")
+	if err != nil {
+		t.Fatalf("seed incr RecordSyncStart: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, recentIncrID, Status{
+		LastSyncAt: time.Now().Add(-14 * time.Minute),
+		Duration:   time.Minute,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("seed incr RecordSyncComplete: %v", err)
+	}
+
+	// Pre-populate org with a row so MAX(updated) is non-zero entering
+	// cycle 1 — without this the test couldn't distinguish "forced full"
+	// from "first sync, cursor zero, bare list anyway".
+	if _, err := client.Organization.Create().
+		SetID(99).SetName("Pre").SetCreated(t1).SetUpdated(t1).SetStatus("ok").
+		Save(ctx); err != nil {
+		t.Fatalf("seed pre-existing org: %v", err)
+	}
+	maxOrg, err := GetMaxUpdated(ctx, db, "organizations")
+	if err != nil || maxOrg.IsZero() {
+		t.Fatalf("expected non-zero MAX(updated) before cycle: %v err=%v", maxOrg, err)
+	}
+
+	// Cycle 1: forced full (last full > 24h). Expect bare list (no
+	// since=).
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 1: %v", err)
+	}
+	orgLog, ok := f.sinceValues["org"]
+	if !ok {
+		t.Fatal("no since-log captured for org on cycle 1")
+	}
+	values := orgLog.snapshot()
+	if len(values) == 0 {
+		t.Fatalf("no first-page org request seen on cycle 1")
+	}
+	cycle1Since := values[len(values)-1]
+	if cycle1Since != "" {
+		t.Errorf("cycle 1 (forced full) should issue bare list; got since=%q", cycle1Since)
+	}
+
+	// Confirm cycle 1 recorded as 'full' in sync_status.
+	var lastMode string
+	if err := db.QueryRowContext(ctx,
+		`SELECT mode FROM sync_status WHERE status = 'success' ORDER BY id DESC LIMIT 1`,
+	).Scan(&lastMode); err != nil {
+		t.Fatalf("read last mode: %v", err)
+	}
+	if lastMode != "full" {
+		t.Errorf("expected last sync_status.mode = 'full' after forced full, got %q", lastMode)
+	}
+
+	// Cycle 2: last full is now ~recent, FullSyncInterval=24h not
+	// elapsed → cursor-driven incremental. Expect since=.
+	prevLen := len(orgLog.snapshot())
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 2: %v", err)
+	}
+	values2 := orgLog.snapshot()
+	if len(values2) <= prevLen {
+		t.Fatalf("cycle 2 emitted no new org first-page request (got %d total, prev %d)",
+			len(values2), prevLen)
+	}
+	cycle2Since := values2[len(values2)-1]
+	if cycle2Since == "" {
+		t.Errorf("cycle 2 should resume incremental (since=N); got bare list")
+	}
+}
+
+// TestSync_FullSyncIntervalDisabled asserts FullSyncInterval=0 disables
+// the escape hatch — even with the most recent full sync 1000 hours
+// in the past, cycle uses ?since= as long as cursor is non-zero.
+// Mirrors PDBPLUS_FK_BACKFILL_TIMEOUT=0 semantics.
+func TestSync_FullSyncIntervalDisabled(t *testing.T) {
+	t.Parallel()
+	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
+	generated := float64(t1.Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1", "ok"), t1.Format(time.RFC3339))}
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, f.server.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		SyncMode:         config.SyncModeIncremental,
+		FullSyncInterval: 0, // 260428-mu0 escape hatch DISABLED
+	}, slog.Default())
+	ctx := t.Context()
+
+	// Seed: ancient full success (1000 hours ago) and a pre-existing org
+	// row so MAX(updated) is non-zero entering the cycle.
+	ancient := time.Now().Add(-1000 * time.Hour)
+	id, err := RecordSyncStart(ctx, db, ancient, "full")
+	if err != nil {
+		t.Fatalf("seed ancient RecordSyncStart: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, id, Status{
+		LastSyncAt: ancient.Add(time.Minute),
+		Duration:   time.Minute,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("seed ancient RecordSyncComplete: %v", err)
+	}
+	if _, err := client.Organization.Create().
+		SetID(99).SetName("Pre").SetCreated(t1).SetUpdated(t1).SetStatus("ok").
+		Save(ctx); err != nil {
+		t.Fatalf("seed pre-existing org: %v", err)
+	}
+
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	orgLog, ok := f.sinceValues["org"]
+	if !ok {
+		t.Fatal("no since-log captured for org")
+	}
+	values := orgLog.snapshot()
+	if len(values) == 0 {
+		t.Fatal("no first-page org request seen")
+	}
+	last := values[len(values)-1]
+	if last == "" {
+		t.Errorf("FullSyncInterval=0 should disable forced full; got bare list")
+	}
+
+	// And the cycle should be recorded as 'incremental', not 'full'.
+	var mode string
+	if err := db.QueryRowContext(ctx,
+		`SELECT mode FROM sync_status WHERE status = 'success' ORDER BY id DESC LIMIT 1`,
+	).Scan(&mode); err != nil {
+		t.Fatalf("read mode: %v", err)
+	}
+	if mode != "incremental" {
+		t.Errorf("expected last mode = 'incremental' (escape hatch disabled), got %q", mode)
+	}
+}
+
+// TestSync_TombstoneCapture_AcrossCycles asserts MAX(updated) advances
+// past tombstone events too — `status='deleted'` rows are still rows in
+// the table and their `updated` reflects the upstream deletion event.
+//
+// Without this property, a tombstone-only cycle would not advance the
+// cursor and the next cycle would re-fetch the same tombstones.
+func TestSync_TombstoneCapture_AcrossCycles(t *testing.T) {
+	t.Parallel()
+	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
+	t2 := t1.Add(1 * time.Hour)
+	generated := float64(t1.Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1", "ok"), t1.Format(time.RFC3339))}
+
+	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
+	ctx := t.Context()
+
+	// Cycle 1: live row at t1. MAX(updated) → t1.
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 1: %v", err)
+	}
+	maxOrg1, err := GetMaxUpdated(ctx, db, "organizations")
+	if err != nil || maxOrg1.IsZero() {
+		t.Fatalf("MAX after cycle 1: %v err=%v", maxOrg1, err)
+	}
+
+	// Cycle 2: same row arrives as a tombstone with updated=t2.
+	f.generated = float64(t2.Unix())
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "", "deleted"), t2.Format(time.RFC3339))}
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 2: %v", err)
+	}
+
+	// Tombstone landed AND MAX(updated) advanced to t2.
+	org, err := w.entClient.Organization.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("get org 1 after cycle 2: %v", err)
+	}
+	if org.Status != "deleted" {
+		t.Errorf("expected status=deleted, got %q", org.Status)
+	}
+
+	maxOrg2, err := GetMaxUpdated(ctx, db, "organizations")
+	if err != nil {
+		t.Fatalf("MAX after cycle 2: %v", err)
+	}
+	if !maxOrg2.After(maxOrg1) {
+		t.Errorf("expected MAX(updated) to advance past tombstone event (t1=%v → t2=%v); got %v → %v",
+			t1, t2, maxOrg1, maxOrg2)
 	}
 }

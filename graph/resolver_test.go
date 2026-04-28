@@ -96,7 +96,7 @@ func seedTestData(t *testing.T) *httptest.Server {
 	}
 
 	// Seed sync_status with a completed entry for syncStatus query test.
-	id, err := pdbsync.RecordSyncStart(ctx, db, testTimestamp)
+	id, err := pdbsync.RecordSyncStart(ctx, db, testTimestamp, "incremental")
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}
@@ -559,7 +559,7 @@ func seedFullTestServer(t *testing.T) *httptest.Server {
 	_ = seed.Full(t, client)
 
 	// Seed sync_status with a completed entry.
-	id, err := pdbsync.RecordSyncStart(ctx, db, testTimestamp)
+	id, err := pdbsync.RecordSyncStart(ctx, db, testTimestamp, "incremental")
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}

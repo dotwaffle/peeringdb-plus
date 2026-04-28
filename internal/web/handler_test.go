@@ -784,7 +784,7 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 			name: "newer_running_row",
 			extraRows: func(t *testing.T, db *sql.DB, successTime time.Time) {
 				runningTime := successTime.Add(time.Hour)
-				if _, err := pdbsync.RecordSyncStart(t.Context(), db, runningTime); err != nil {
+				if _, err := pdbsync.RecordSyncStart(t.Context(), db, runningTime, "incremental"); err != nil {
 					t.Fatalf("record sync start (running): %v", err)
 				}
 			},
@@ -795,7 +795,7 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 			name: "newer_failed_row",
 			extraRows: func(t *testing.T, db *sql.DB, successTime time.Time) {
 				failedTime := successTime.Add(time.Hour)
-				failedID, err := pdbsync.RecordSyncStart(t.Context(), db, failedTime)
+				failedID, err := pdbsync.RecordSyncStart(t.Context(), db, failedTime, "incremental")
 				if err != nil {
 					t.Fatalf("record sync start (failed): %v", err)
 				}
@@ -815,7 +815,7 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 			name: "failed_then_running",
 			extraRows: func(t *testing.T, db *sql.DB, successTime time.Time) {
 				failedTime := successTime.Add(time.Hour)
-				failedID, err := pdbsync.RecordSyncStart(t.Context(), db, failedTime)
+				failedID, err := pdbsync.RecordSyncStart(t.Context(), db, failedTime, "incremental")
 				if err != nil {
 					t.Fatalf("record sync start (failed): %v", err)
 				}
@@ -828,7 +828,7 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 					t.Fatalf("record sync complete (failed): %v", err)
 				}
 				runningTime := successTime.Add(2 * time.Hour)
-				if _, err := pdbsync.RecordSyncStart(t.Context(), db, runningTime); err != nil {
+				if _, err := pdbsync.RecordSyncStart(t.Context(), db, runningTime, "incremental"); err != nil {
 					t.Fatalf("record sync start (running): %v", err)
 				}
 			},
@@ -847,7 +847,7 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 			}
 
 			successTime := time.Date(2026, 4, 11, 10, 0, 0, 0, time.UTC)
-			successID, err := pdbsync.RecordSyncStart(t.Context(), db, successTime)
+			successID, err := pdbsync.RecordSyncStart(t.Context(), db, successTime, "incremental")
 			if err != nil {
 				t.Fatalf("record sync start (success): %v", err)
 			}

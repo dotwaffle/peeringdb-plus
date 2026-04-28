@@ -22,6 +22,13 @@ type Status struct {
 
 // InitStatusTable creates the sync_status and sync_cursors tables if they don't exist.
 // These are not ent-managed entities; they store operational metadata via raw SQL.
+//
+// 260428-mu0: a `mode TEXT NOT NULL DEFAULT 'incremental'` column is added
+// to sync_status. Fresh databases get the column via a future CREATE TABLE
+// adjustment (kept off the schema literal here for rollback simplicity);
+// existing databases get it via an idempotent ALTER TABLE probed against
+// pragma_table_info. GetLastSuccessfulFullSyncTime reads the column to
+// implement the PDBPLUS_FULL_SYNC_INTERVAL escape hatch.
 func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS sync_status (
@@ -38,6 +45,34 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 		return fmt.Errorf("create sync_status table: %w", err)
 	}
 
+	// 260428-mu0: idempotent migration — add the `mode` column if it's
+	// missing. SQLite does not support `IF NOT EXISTS` on `ALTER TABLE
+	// ADD COLUMN`, so we probe via pragma_table_info first. Existing
+	// primary instances upgrade their table in-place; fresh databases
+	// also get the column the same way (the CREATE TABLE schema literal
+	// above is intentionally NOT updated — keeping the existing schema
+	// stable simplifies rollback to a pre-mu0 binary, which would still
+	// run against a column it doesn't know about because the column has
+	// a non-NULL DEFAULT).
+	hasMode, err := columnExists(ctx, db, "sync_status", "mode")
+	if err != nil {
+		return fmt.Errorf("probe sync_status.mode column: %w", err)
+	}
+	if !hasMode {
+		if _, err := db.ExecContext(ctx,
+			`ALTER TABLE sync_status ADD COLUMN mode TEXT NOT NULL DEFAULT 'incremental'`,
+		); err != nil {
+			return fmt.Errorf("add sync_status.mode column: %w", err)
+		}
+	}
+
+	// DEPRECATED v1.18.10 (260428-mu0): the sync_cursors table is no
+	// longer written to — cursors are now derived from MAX(updated) per
+	// table by internal/sync/cursor.go GetMaxUpdated. The CREATE TABLE
+	// statement is preserved so an emergency rollback to a binary that
+	// reads sync_cursors continues to function (it will see whatever
+	// rows the prior run last wrote, which are still valid high-water-
+	// mark timestamps). Slated for removal in v1.19.
 	_, err = db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS sync_cursors (
 			type TEXT PRIMARY KEY,
@@ -52,6 +87,13 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
+// DEPRECATED v1.18.10 (260428-mu0): cursor is now derived from
+// MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
+// Slated for removal in v1.19. Do not call from new code. The
+// sync_cursors table CREATE TABLE in InitStatusTable is preserved for
+// rollback safety; existing rows are ignored by the production sync
+// path.
+//
 // GetCursor returns the last sync timestamp for a type. Returns zero
 // time only if no cursor row exists for the type.
 //
@@ -77,6 +119,13 @@ func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, erro
 	return lastSyncAt, nil
 }
 
+// DEPRECATED v1.18.10 (260428-mu0): cursor is now derived from
+// MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
+// Slated for removal in v1.19. Do not call from new code. The
+// sync_cursors table CREATE TABLE in InitStatusTable is preserved for
+// rollback safety; existing rows are ignored by the production sync
+// path.
+//
 // UpsertCursor updates or inserts the sync cursor for a type.
 //
 // 260428-eda CHANGE 2: called WITHIN the main sync transaction (via *ent.Tx)
@@ -148,10 +197,17 @@ func ReapStaleRunningRows(ctx context.Context, db *sql.DB) (int, error) {
 }
 
 // RecordSyncStart inserts a new running sync status row and returns its ID.
-func RecordSyncStart(ctx context.Context, db *sql.DB, startedAt time.Time) (int64, error) {
+//
+// 260428-mu0: mode is "full" or "incremental" — persisted in the
+// sync_status.mode column so GetLastSuccessfulFullSyncTime can find the
+// most recent full-sync completion (used by the
+// PDBPLUS_FULL_SYNC_INTERVAL escape hatch). The mode parameter MUST
+// reflect the cycle's effective behaviour, not the configured default
+// — a forced bare-list refetch should be recorded as "full".
+func RecordSyncStart(ctx context.Context, db *sql.DB, startedAt time.Time, mode string) (int64, error) {
 	result, err := db.ExecContext(ctx,
-		`INSERT INTO sync_status (started_at, status) VALUES (?, 'running')`,
-		startedAt,
+		`INSERT INTO sync_status (started_at, status, mode) VALUES (?, 'running', ?)`,
+		startedAt, mode,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("record sync start: %w", err)
@@ -161,6 +217,53 @@ func RecordSyncStart(ctx context.Context, db *sql.DB, startedAt time.Time) (int6
 		return 0, fmt.Errorf("get sync status id: %w", err)
 	}
 	return id, nil
+}
+
+// GetLastSuccessfulFullSyncTime returns the completion time of the most
+// recent successful FULL sync, or zero time if no full sync has been
+// recorded. Used by the PDBPLUS_FULL_SYNC_INTERVAL escape hatch in
+// syncFetchPass to force a periodic bare-list refetch — defends against
+// pathological upstream cross-row inconsistency where a since= response
+// includes row R' (updated=M) but is missing earlier row R (updated < M);
+// R is permanently missed under any since-based design.
+//
+// 260428-mu0.
+func GetLastSuccessfulFullSyncTime(ctx context.Context, db *sql.DB) (time.Time, error) {
+	var completedAt time.Time
+	err := db.QueryRowContext(ctx,
+		`SELECT completed_at FROM sync_status
+		 WHERE status = 'success' AND mode = 'full'
+		 ORDER BY id DESC LIMIT 1`,
+	).Scan(&completedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, fmt.Errorf("get last successful full sync time: %w", err)
+	}
+	return completedAt, nil
+}
+
+// columnExists reports whether the named column is present on the named
+// table. Implemented via pragma_table_info — the only built-in SQLite
+// way to introspect a column without parsing CREATE TABLE statements.
+// Used by InitStatusTable to make the sync_status.mode migration
+// idempotent (260428-mu0).
+func columnExists(ctx context.Context, db *sql.DB, table, column string) (bool, error) {
+	// #nosec G201 — table/column are package-internal constants, not
+	// caller-supplied; SQL injection is not possible. Same justification
+	// pattern as internal/sync/cursor.go GetMaxUpdated.
+	query := fmt.Sprintf(`SELECT 1 FROM pragma_table_info(%q) WHERE name = ?`, table)
+	rows, err := db.QueryContext(ctx, query, column)
+	if err != nil {
+		return false, fmt.Errorf("query pragma_table_info(%s): %w", table, err)
+	}
+	defer func() { _ = rows.Close() }()
+	exists := rows.Next()
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("iterate pragma_table_info(%s): %w", table, err)
+	}
+	return exists, nil
 }
 
 // RecordSyncComplete updates the sync status row with results.
