@@ -100,9 +100,15 @@ Proto is frozen since v1.6 (`entproto.SkipGenFile` in `ent/entc.go`); dropped en
 
 ### Soft-delete tombstones
 
-Sync uses soft-delete (`UPDATE … SET status='deleted', updated=<cycleStart>`) across all 13 entity types via `markStaleDeleted*` in `internal/sync/delete.go`. `cycleStart` is captured once at the top of `Worker.Sync` and plumbed through `syncStep.deleteFn` — one timestamp per cycle so `?since=N` windows stay atomic. **Do NOT** call `time.Now()` inside per-entity closures.
+Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit signal — the `?since=N` matrix returns `['ok', 'deleted']` (per `peeringdb_server/rest.py:694-727`). Inference-by-absence (the prior `markStaleDeleted*` family + `internal/sync/delete.go`) was removed in quick task 260428-2zl: it mis-classified rows missing from partial responses and dropped children whose upstream-deleted parents we never synced. SEED-004 (tombstone GC) stays dormant.
 
-For a new entity, follow the existing pattern: `deleteStaleChunked` + `tx.Foo.Update().Where(foo.IDNotIn(chunk...)).SetStatus("deleted").SetUpdated(cycleStart)`.
+**Bootstrap:** when incremental sync runs with no prior cursor for a type (fresh DB), `stageOneTypeToScratch` uses `?since=1` so the first sync captures the full ok+deleted state in one shot. Existing deployments with a populated cursor never hit this path.
+
+**FK backfill on miss:** `fkCheckParent` (`internal/sync/worker.go`) calls `fkBackfillParent` (`internal/sync/fk_backfill.go`) when the parent isn't in our DB. Backfill fetches `/api/<parent>?since=1&id__in=<id>` (returns deleted rows), inserts via `upsertSingleRaw` (`internal/sync/upsert.go`). Per-cycle dedup cache (`Worker.fkBackfillTried`); per-cycle cap (`Worker.fkBackfillCap`, env `PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE` default 200; set to 0 to disable backfill entirely and revert to drop-on-miss). Backfill goes through the rate-limited transport. Recursive parent backfill is **not** chained — a backfilled parent with its own missing grandparent inserts with a dangling FK (SQLite doesn't enforce; matches upstream behaviour for that edge case). `cycleStart` is still captured once at the top of `Worker.Sync` for memory-telemetry timestamps and `fkBackfillTried` reset; **do NOT** call `time.Now()` inside per-entity closures.
+
+**NetworkIxLan side FKs:** `net_side_id` and `ix_side_id` are nullable upstream (`null=True, on_delete=SET_NULL`). On miss, `fkFilter` calls `fkBackfillParent` first; if backfill fails or is disabled, the FK is nulled out (mirrors the existing `fac → campus` pattern at line 1234). Action recorded as `null` in the orphan summary.
+
+**Rate-limited transport** (`internal/peeringdb/transport.go`): every PeeringDB call goes through a `*rate.Limiter` (env `PDBPLUS_PEERINGDB_RPS` default 2, burst 1 — no concurrency). On 429, parses `Retry-After` (numeric or HTTP-date), bounded retry (3 attempts) with cap. On 403 with WAF body signature (`AWS WAF`, `Request blocked`), logs WARN with headers and returns error (no retry). Telemetry: `pdbplus.peeringdb.requests{status_class}`, `pdbplus.peeringdb.rate_limit_wait_ms`, `pdbplus.peeringdb.retries{cause}`.
 
 **pdbcompat invariants** (security-load-bearing):
 - List path (`internal/pdbcompat/registry_funcs.go`) MUST append `applyStatusMatrix(isCampus, opts.Since != nil)` LAST in `preds` — mirrors upstream `rest.py:694-727` status × since matrix.
@@ -208,6 +214,8 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - `PDBPLUS_RESPONSE_MEMORY_LIMIT=128MiB` — pdbcompat list pre-flight 413 budget; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected except literal `0` (disabled — dev only)
 - `PDBPLUS_SYNC_MEMORY_LIMIT=400MB` — sync-cycle peak heap ceiling; unit suffix required; `0` disables
 - `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384` — sync-cycle telemetry warn thresholds (Fly 512 MB cap; sustained breach re-fires SEED-001 trigger)
+- `PDBPLUS_PEERINGDB_RPS=2` — sustained req/sec cap on every upstream PeeringDB call (sync + FK backfill share the budget); burst hardcoded at 1 to forbid concurrency; 429s honored via `Retry-After` (3-retry cap)
+- `PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE=200` — per-cycle cap on parent-backfill fetches; `0` disables backfill (orphan children fall back to drop-on-miss)
 - `PDBPLUS_LOG_LEVEL=INFO` — minimum severity for the OTel logging branch (Loki). Stdout handler stays at INFO independently. Set `DEBUG` for opt-in deep debugging; invalid values fall back to INFO without crashing.
 - `PDBPLUS_CSP_ENFORCE=false` — defaults to report-only; flip to `true` after v1.13 UAT-01 verification
 - `PDBPLUS_PUBLIC_TIER=public` — set `users` only for private deployments (WARN at startup)
