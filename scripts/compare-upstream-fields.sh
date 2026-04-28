@@ -4,16 +4,27 @@
 # both sides — eliminates Phase 64 POC-privacy-filter as a confound.
 #
 # Usage:
-#   PDB_API_KEY=<your-key> ./scripts/compare-upstream-fields.sh > /tmp/field-diff.txt
+#   ./scripts/compare-upstream-fields.sh > /tmp/field-diff.txt
+#
+# Optional: PDB_API_KEY=<key> if you want to compare authenticated-tier
+# responses. Without the key, both sides are queried as ANONYMOUS —
+# which is what the mirror serves to public callers anyway, so the
+# anonymous-vs-anonymous comparison is the most accurate test of
+# parity between upstream and the mirror's public-facing surface.
+#
+# Upstream's anonymous rate limit is 100/second (mainsite/settings.py
+# API_THROTTLE_RATE_ANON), with a 10/minute soft cap on responses
+# larger than 1 MB. The 6-7 probes this script issues are well below
+# either limit.
 #
 # Three probe records picked to cover the field surface:
 #   /api/net/15169         — Google, dense POC + ixlan relations
-#   /api/org/10796         — ARIN, classic test org
+#   /api/org/1989          — ARIN, classic test org
 #   /api/ix/26             — DE-CIX, dense IX with many fac/ixlan refs
 #
 # Output for each: top-level keys present in upstream but not mirror,
 # vice versa, and which top-level keys differ in size (sub-arrays of
-# different length, suggesting authenticated-only data we don't have).
+# different length, suggesting tier-filtered data).
 
 set -u
 
@@ -21,15 +32,15 @@ UPSTREAM="${UPSTREAM_BASE:-https://www.peeringdb.com}"
 MIRROR="${MIRROR_BASE:-https://peeringdb-plus.fly.dev}"
 KEY="${PDB_API_KEY:-}"
 
-if [ -z "$KEY" ]; then
-  echo "Set PDB_API_KEY for upstream auth (otherwise upstream will rate-limit)." >&2
-  exit 2
+# Auth header is empty when PDB_API_KEY is unset — both sides queried
+# anonymously, which is the apples-to-apples comparison of public
+# surfaces. With a key, both sides see authenticated-tier responses.
+auth=()
+auth_label="anonymous (both sides)"
+if [ -n "$KEY" ]; then
+  auth=(-H "Authorization: Api-Key $KEY")
+  auth_label="authenticated via PDB_API_KEY (both sides)"
 fi
-
-# Same Authorization header to both endpoints.  The mirror accepts the
-# upstream's API key format (Api-Key prefix) per the OAuth tier
-# middleware; if not, set PDBPLUS_LOADTEST_AUTH_TOKEN separately.
-auth=(-H "Authorization: Api-Key $KEY")
 
 probe() {
   local label="$1" path="$2"
@@ -86,13 +97,17 @@ probe() {
 }
 
 printf "Field-shape comparison (host: $(hostname); date: $(date -u +%Y-%m-%dT%H:%M:%SZ))\n"
-printf "Both sides authenticated with PDB_API_KEY.\n\n"
+printf "Auth tier: %s\n\n" "$auth_label"
 
 probe "google-net"      "/api/net/15169?depth=2"
-probe "arin-org"        "/api/org/10796?depth=2"
+probe "arin-org"        "/api/org/1989?depth=2"
 probe "decix-ix"        "/api/ix/26?depth=2"
 
-printf "Done. If the only differing field across all three is poc_set length\n"
-printf "(with upstream's count = mirror's Public count + Users count),\n"
-printf "then Phase 64 POC privacy filtering is the sole explanation for the\n"
-printf "single-id size delta — not a parity bug.\n"
+printf "Done.\n\n"
+printf "Interpretation:\n"
+printf "  - If sizes match (delta near zero): mirror's anonymous tier\n"
+printf "    correctly filters the same fields upstream's anonymous tier\n"
+printf "    filters — Phase 64/58 privacy enforcement is parity-correct.\n"
+printf "  - If sizes still differ: there is a real parity gap independent\n"
+printf "    of POC visibility filtering — investigate the field diff +\n"
+printf "    list-length section above to identify the missing data.\n"
