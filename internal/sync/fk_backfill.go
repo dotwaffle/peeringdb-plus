@@ -159,10 +159,7 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	//    ratelimited. SEMANTIC SHIFT (260428-5xt): cap is now per-row,
 	//    so a single batch with N IDs consumes N units of cap budget.
 	//    See godoc above.
-	available := w.fkBackfillCap - w.fkBackfillCount
-	if available < 0 {
-		available = 0
-	}
+	available := max(w.fkBackfillCap-w.fkBackfillCount, 0)
 	idsToFetch := remaining
 	if len(idsToFetch) > available {
 		dropped := idsToFetch[available:]

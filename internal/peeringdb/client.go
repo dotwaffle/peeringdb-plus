@@ -351,10 +351,7 @@ func (c *Client) FetchByIDs(ctx context.Context, objectType string, ids []int) (
 	}
 	var out []json.RawMessage
 	for start := 0; start < len(ids); start += fetchByIDsChunk {
-		end := start + fetchByIDsChunk
-		if end > len(ids) {
-			end = len(ids)
-		}
+		end := min(start+fetchByIDsChunk, len(ids))
 		chunk := ids[start:end]
 		// Build "1,2,3,…" without fmt.Sprintf allocations on the hot path.
 		parts := make([]string, len(chunk))

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	stdsync "sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -92,38 +93,38 @@ func TestFKCheckParent_BackfillIntegration(t *testing.T) {
 		// Provide one net referencing missing org 99; everything else empty.
 		if typeName == "net" {
 			netJSON := mustJSON(map[string]any{
-				"id":                            1,
-				"org_id":                        99,
-				"name":                          "Orphan Net",
-				"aka":                           "",
-				"name_long":                     "",
-				"website":                       "",
-				"social_media":                  []any{},
-				"asn":                           65001,
-				"looking_glass":                 "",
-				"route_server":                  "",
-				"irr_as_set":                    "",
-				"info_type":                     "",
-				"info_types":                    []any{},
-				"info_traffic":                  "",
-				"info_ratio":                    "",
-				"info_scope":                    "",
-				"info_unicast":                  true,
-				"info_multicast":                false,
-				"info_ipv6":                     true,
-				"info_never_via_route_servers":  false,
-				"notes":                         "",
-				"policy_url":                    "",
-				"policy_general":                "",
-				"policy_locations":              "",
-				"policy_ratio":                  false,
-				"policy_contracts":              "",
-				"allow_ixp_update":              false,
-				"ix_count":                      0,
-				"fac_count":                     0,
-				"created":                       "2026-04-01T00:00:00Z",
-				"updated":                       "2026-04-01T00:00:00Z",
-				"status":                        "ok",
+				"id":                           1,
+				"org_id":                       99,
+				"name":                         "Orphan Net",
+				"aka":                          "",
+				"name_long":                    "",
+				"website":                      "",
+				"social_media":                 []any{},
+				"asn":                          65001,
+				"looking_glass":                "",
+				"route_server":                 "",
+				"irr_as_set":                   "",
+				"info_type":                    "",
+				"info_types":                   []any{},
+				"info_traffic":                 "",
+				"info_ratio":                   "",
+				"info_scope":                   "",
+				"info_unicast":                 true,
+				"info_multicast":               false,
+				"info_ipv6":                    true,
+				"info_never_via_route_servers": false,
+				"notes":                        "",
+				"policy_url":                   "",
+				"policy_general":               "",
+				"policy_locations":             "",
+				"policy_ratio":                 false,
+				"policy_contracts":             "",
+				"allow_ixp_update":             false,
+				"ix_count":                     0,
+				"fac_count":                    0,
+				"created":                      "2026-04-01T00:00:00Z",
+				"updated":                      "2026-04-01T00:00:00Z",
+				"status":                       "ok",
 			})
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"meta":{},"data":[`))
@@ -269,38 +270,38 @@ func TestFKCheckParent_BackfillCapZeroDisablesBackfill(t *testing.T) {
 		}
 		if typeName == "net" {
 			netJSON := mustJSON(map[string]any{
-				"id":                            1,
-				"org_id":                        99,
-				"name":                          "Orphan Net",
-				"aka":                           "",
-				"name_long":                     "",
-				"website":                       "",
-				"social_media":                  []any{},
-				"asn":                           65001,
-				"looking_glass":                 "",
-				"route_server":                  "",
-				"irr_as_set":                    "",
-				"info_type":                     "",
-				"info_types":                    []any{},
-				"info_traffic":                  "",
-				"info_ratio":                    "",
-				"info_scope":                    "",
-				"info_unicast":                  true,
-				"info_multicast":                false,
-				"info_ipv6":                     true,
-				"info_never_via_route_servers":  false,
-				"notes":                         "",
-				"policy_url":                    "",
-				"policy_general":                "",
-				"policy_locations":              "",
-				"policy_ratio":                  false,
-				"policy_contracts":              "",
-				"allow_ixp_update":              false,
-				"ix_count":                      0,
-				"fac_count":                     0,
-				"created":                       "2026-04-01T00:00:00Z",
-				"updated":                       "2026-04-01T00:00:00Z",
-				"status":                        "ok",
+				"id":                           1,
+				"org_id":                       99,
+				"name":                         "Orphan Net",
+				"aka":                          "",
+				"name_long":                    "",
+				"website":                      "",
+				"social_media":                 []any{},
+				"asn":                          65001,
+				"looking_glass":                "",
+				"route_server":                 "",
+				"irr_as_set":                   "",
+				"info_type":                    "",
+				"info_types":                   []any{},
+				"info_traffic":                 "",
+				"info_ratio":                   "",
+				"info_scope":                   "",
+				"info_unicast":                 true,
+				"info_multicast":               false,
+				"info_ipv6":                    true,
+				"info_never_via_route_servers": false,
+				"notes":                        "",
+				"policy_url":                   "",
+				"policy_general":               "",
+				"policy_locations":             "",
+				"policy_ratio":                 false,
+				"policy_contracts":             "",
+				"allow_ixp_update":             false,
+				"ix_count":                     0,
+				"fac_count":                    0,
+				"created":                      "2026-04-01T00:00:00Z",
+				"updated":                      "2026-04-01T00:00:00Z",
+				"status":                       "ok",
 			})
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"meta":{},"data":[`))
@@ -555,7 +556,7 @@ func TestFKCheckParent_BackfillRecursesIntoGrandparent(t *testing.T) {
 					"npanxx": "", "rencode": "", "state": "", "suite": "",
 					"sales_email": "", "sales_phone": "", "social_media": []any{},
 					"available_voltage_services": []string{},
-					"region_continent": "", "tech_email": "", "tech_phone": "",
+					"region_continent":           "", "tech_email": "", "tech_phone": "",
 					"website": "", "zipcode": "", "campus_id": nil, "property": "",
 					"status_dashboard": "", "ix_count": 0, "net_count": 0, "carrier_count": 0,
 					"created": "2024-02-08T20:39:07Z", "updated": "2024-02-08T21:44:01Z",
@@ -580,7 +581,7 @@ func TestFKCheckParent_BackfillRecursesIntoGrandparent(t *testing.T) {
 			_, _ = w.Write([]byte(`{"meta":{},"data":[`))
 			_, _ = w.Write(mustJSON(map[string]any{
 				"id": 1, "carrier_id": 403, "fac_id": 500,
-				"name": "NTT @ NTT Facility",
+				"name":    "NTT @ NTT Facility",
 				"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
 				"status": "ok",
 			}))
@@ -707,37 +708,530 @@ func mustJSON(v any) json.RawMessage {
 
 func makeMinimalNet(id, orgID int) map[string]any {
 	return map[string]any{
-		"id":                            id,
-		"org_id":                        orgID,
-		"name":                          fmt.Sprintf("Net %d", id),
-		"aka":                           "",
-		"name_long":                     "",
-		"website":                       "",
-		"social_media":                  []any{},
-		"asn":                           65000 + id,
-		"looking_glass":                 "",
-		"route_server":                  "",
-		"irr_as_set":                    "",
-		"info_type":                     "",
-		"info_types":                    []any{},
-		"info_traffic":                  "",
-		"info_ratio":                    "",
-		"info_scope":                    "",
-		"info_unicast":                  true,
-		"info_multicast":                false,
-		"info_ipv6":                     true,
-		"info_never_via_route_servers":  false,
-		"notes":                         "",
-		"policy_url":                    "",
-		"policy_general":                "",
-		"policy_locations":              "",
-		"policy_ratio":                  false,
-		"policy_contracts":              "",
-		"allow_ixp_update":              false,
-		"ix_count":                      0,
-		"fac_count":                     0,
-		"created":                       "2026-04-01T00:00:00Z",
-		"updated":                       "2026-04-01T00:00:00Z",
-		"status":                        "ok",
+		"id":                           id,
+		"org_id":                       orgID,
+		"name":                         fmt.Sprintf("Net %d", id),
+		"aka":                          "",
+		"name_long":                    "",
+		"website":                      "",
+		"social_media":                 []any{},
+		"asn":                          65000 + id,
+		"looking_glass":                "",
+		"route_server":                 "",
+		"irr_as_set":                   "",
+		"info_type":                    "",
+		"info_types":                   []any{},
+		"info_traffic":                 "",
+		"info_ratio":                   "",
+		"info_scope":                   "",
+		"info_unicast":                 true,
+		"info_multicast":               false,
+		"info_ipv6":                    true,
+		"info_never_via_route_servers": false,
+		"notes":                        "",
+		"policy_url":                   "",
+		"policy_general":               "",
+		"policy_locations":             "",
+		"policy_ratio":                 false,
+		"policy_contracts":             "",
+		"allow_ixp_update":             false,
+		"ix_count":                     0,
+		"fac_count":                    0,
+		"created":                      "2026-04-01T00:00:00Z",
+		"updated":                      "2026-04-01T00:00:00Z",
+		"status":                       "ok",
+	}
+}
+
+// makeMinimalCarrier returns a JSON-friendly carrier row referencing
+// the given org_id. Mirrors the shape used by the existing recursive
+// grandparent test for parity.
+func makeMinimalCarrier(id, orgID int) map[string]any {
+	return map[string]any{
+		"id":           id,
+		"org_id":       orgID,
+		"name":         fmt.Sprintf("Carrier %d", id),
+		"aka":          "",
+		"name_long":    "",
+		"website":      "",
+		"social_media": []any{},
+		"notes":        "",
+		"fac_count":    0,
+		"logo":         nil,
+		"created":      "2026-04-01T00:00:00Z",
+		"updated":      "2026-04-01T00:00:00Z",
+		"status":       "ok",
+	}
+}
+
+// makeMinimalFac returns a JSON-friendly facility row referencing the
+// given org_id. Field set matches what entgo's facility schema requires
+// after sync's upsert pipeline; the zero values for optional columns
+// satisfy NOT NULL constraints via setter defaults.
+func makeMinimalFac(id, orgID int) map[string]any {
+	return map[string]any{
+		"id":                          id,
+		"org_id":                      orgID,
+		"name":                        fmt.Sprintf("Fac %d", id),
+		"aka":                         "",
+		"address1":                    "",
+		"address2":                    "",
+		"city":                        "",
+		"clli":                        "",
+		"country":                     "US",
+		"diverse_serving_substations": false,
+		"floor":                       "",
+		"geocode_country":             "",
+		"geocode_date":                nil,
+		"latitude":                    nil,
+		"longitude":                   nil,
+		"name_long":                   "",
+		"notes":                       "",
+		"npanxx":                      "",
+		"rencode":                     "",
+		"state":                       "",
+		"suite":                       "",
+		"sales_email":                 "",
+		"sales_phone":                 "",
+		"social_media":                []any{},
+		"available_voltage_services":  []string{},
+		"region_continent":            "",
+		"tech_email":                  "",
+		"tech_phone":                  "",
+		"website":                     "",
+		"zipcode":                     "",
+		"campus_id":                   nil,
+		"property":                    "",
+		"status_dashboard":            "",
+		"ix_count":                    0,
+		"net_count":                   0,
+		"carrier_count":               0,
+		"created":                     "2026-04-01T00:00:00Z",
+		"updated":                     "2026-04-01T00:00:00Z",
+		"status":                      "ok",
+	}
+}
+
+// makeMinimalCarrierFac returns a JSON-friendly carrierfac row.
+func makeMinimalCarrierFac(id, carrierID, facID int) map[string]any {
+	return map[string]any{
+		"id":         id,
+		"carrier_id": carrierID,
+		"fac_id":     facID,
+		"name":       fmt.Sprintf("CF %d", id),
+		"created":    "2026-04-01T00:00:00Z",
+		"updated":    "2026-04-01T00:00:00Z",
+		"status":     "ok",
+	}
+}
+
+// batchedFetchRecorder captures backfill request URLs (the ones with
+// ?id__in= set). Used by the TestFKBackfill_BatchedFetch_* tests to
+// assert HTTP-call counts and per-call id__in cardinality.
+type batchedFetchRecorder struct {
+	mu     stdsync.Mutex
+	calls  atomic.Int32
+	idIns  []string // id__in CSV values, one per recorded backfill request
+	byType map[string][]string
+}
+
+func newBatchedFetchRecorder() *batchedFetchRecorder {
+	return &batchedFetchRecorder{byType: make(map[string][]string)}
+}
+
+func (r *batchedFetchRecorder) record(typeName, idIn string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.calls.Add(1)
+	r.idIns = append(r.idIns, idIn)
+	r.byType[typeName] = append(r.byType[typeName], idIn)
+}
+
+func (r *batchedFetchRecorder) snapshot() (calls int, idIns []string, byType map[string][]string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	out := make([]string, len(r.idIns))
+	copy(out, r.idIns)
+	bt := make(map[string][]string, len(r.byType))
+	for k, v := range r.byType {
+		cp := make([]string, len(v))
+		copy(cp, v)
+		bt[k] = cp
+	}
+	return int(r.calls.Load()), out, bt
+}
+
+// newBatchedTestServer builds an httptest.Server that:
+//   - Records every backfill request (id__in set) into the recorder.
+//   - For backfill requests, parses id__in CSV and synthesises one
+//     row per ID via the per-type rowFn.
+//   - For bulk requests (no id__in), returns the per-type bulkData
+//     once on skip=0 and an empty page thereafter.
+func newBatchedTestServer(
+	tb testing.TB,
+	rec *batchedFetchRecorder,
+	bulkData map[string][]json.RawMessage,
+	rowFn map[string]func(id int) json.RawMessage,
+) *httptest.Server {
+	tb.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		typeName := strings.TrimPrefix(r.URL.Path, "/api/")
+		w.Header().Set("Content-Type", "application/json")
+		if idIn := r.URL.Query().Get("id__in"); idIn != "" {
+			rec.record(typeName, idIn)
+			fn, ok := rowFn[typeName]
+			if !ok {
+				_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+				return
+			}
+			parts := strings.Split(idIn, ",")
+			items := make([]json.RawMessage, 0, len(parts))
+			for _, p := range parts {
+				var id int
+				if _, err := fmt.Sscanf(p, "%d", &id); err != nil {
+					continue
+				}
+				items = append(items, fn(id))
+			}
+			body, _ := json.Marshal(map[string]any{"meta": map[string]any{}, "data": items})
+			_, _ = w.Write(body)
+			return
+		}
+		// Bulk path.
+		skip := r.URL.Query().Get("skip")
+		if skip != "" && skip != "0" {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		data, ok := bulkData[typeName]
+		if !ok {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		body, _ := json.Marshal(map[string]any{"meta": map[string]any{}, "data": data})
+		_, _ = w.Write(body)
+	}))
+}
+
+// TestFKBackfill_BatchedFetch_OneRequest: a single chunk of 50 nets
+// each referencing a unique missing org_id collapses to ONE batched
+// HTTP request via the chunk pre-pass. URL shape MUST be
+// ?since=1&id__in=101,102,…,150 (sorted ascending — the pre-pass uses
+// slices.Sorted(maps.Keys(...)) for deterministic ordering).
+func TestFKBackfill_BatchedFetch_OneRequest(t *testing.T) {
+	t.Parallel()
+
+	const numNets = 50
+	const orgIDBase = 100 // org_ids 101..150
+
+	nets := make([]json.RawMessage, 0, numNets)
+	for i := 1; i <= numNets; i++ {
+		nets = append(nets, mustJSON(makeMinimalNet(i, orgIDBase+i)))
+	}
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"net": nets,
+		},
+		map[string]func(int) json.RawMessage{
+			"org": func(id int) json.RawMessage {
+				return orgJSON(id, fmt.Sprintf("Org %d", id), "ok")
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: numNets * 2,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	// All orgs landed via batched backfill.
+	if got, _ := client.Organization.Query().Count(t.Context()); got != numNets {
+		t.Errorf("orgCount = %d, want %d (batched backfill)", got, numNets)
+	}
+	// All nets landed (FK satisfied).
+	if got, _ := client.Network.Query().Count(t.Context()); got != numNets {
+		t.Errorf("netCount = %d, want %d", got, numNets)
+	}
+	// Exactly ONE backfill HTTP call for the org parent type.
+	calls, idIns, byType := rec.snapshot()
+	if calls != 1 {
+		t.Fatalf("backfill HTTP calls = %d, want 1 (50 distinct misses → 1 batched fetch)", calls)
+	}
+	if got, want := len(byType["org"]), 1; got != want {
+		t.Errorf("backfill calls to /api/org = %d, want %d", got, want)
+	}
+	// id__in must be sorted ascending (slices.Sorted invariant).
+	parts := strings.Split(idIns[0], ",")
+	if len(parts) != numNets {
+		t.Fatalf("len(id__in) = %d, want %d", len(parts), numNets)
+	}
+	for i, p := range parts {
+		want := fmt.Sprintf("%d", orgIDBase+i+1)
+		if p != want {
+			t.Errorf("id__in[%d] = %q, want %q (sorted ascending)", i, p, want)
+			break
+		}
+	}
+}
+
+// TestFKBackfill_BatchedFetch_ChunksAt100: 250 distinct missing parent
+// IDs spread across 3 sync chunks (scratchChunkSize=100) trigger
+// exactly 3 batched HTTP requests, one per chunk, with id__in
+// cardinalities of 100, 100, 50.
+func TestFKBackfill_BatchedFetch_ChunksAt100(t *testing.T) {
+	t.Parallel()
+
+	const numNets = 250
+	nets := make([]json.RawMessage, 0, numNets)
+	for i := 1; i <= numNets; i++ {
+		// Unique org_id per net so the pre-pass observes 250 distinct misses.
+		nets = append(nets, mustJSON(makeMinimalNet(i, 1000+i)))
+	}
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{"net": nets},
+		map[string]func(int) json.RawMessage{
+			"org": func(id int) json.RawMessage {
+				return orgJSON(id, fmt.Sprintf("Org %d", id), "ok")
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: numNets * 2,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	calls, idIns, byType := rec.snapshot()
+	if got := len(byType["org"]); got != 3 {
+		t.Fatalf("backfill calls to /api/org = %d, want 3 (250 → 3 chunks of 100/100/50)", got)
+	}
+	if calls != 3 {
+		t.Errorf("total backfill calls = %d, want 3", calls)
+	}
+	wantSizes := []int{100, 100, 50}
+	for i, want := range wantSizes {
+		got := len(strings.Split(idIns[i], ","))
+		if got != want {
+			t.Errorf("call[%d] id__in cardinality = %d, want %d", i, got, want)
+		}
+	}
+	if got, _ := client.Organization.Query().Count(t.Context()); got != numNets {
+		t.Errorf("orgCount = %d, want %d", got, numNets)
+	}
+	if got, _ := client.Network.Query().Count(t.Context()); got != numNets {
+		t.Errorf("netCount = %d, want %d", got, numNets)
+	}
+}
+
+// TestFKBackfill_BatchedFetch_RecursiveGrandparents: 50 carrierfacs
+// each referencing a unique missing carrier (carrier 1..50) and a
+// shared existing fac. Each carrier (when fetched) references a unique
+// missing org (org 1001..1050). The chunk pre-pass collapses the
+// carrier+org chain into exactly TWO batched HTTP requests — one for
+// the 50 carriers, one recursive for the 50 orgs — instead of 100
+// per-row HTTP calls under the legacy fkBackfillParent path.
+func TestFKBackfill_BatchedFetch_RecursiveGrandparents(t *testing.T) {
+	t.Parallel()
+
+	const numCFs = 50
+	const sharedFacID = 999
+	const sharedFacOrgID = 9999
+
+	// One pre-existing org (the fac's parent — keeps the fac valid in
+	// the bulk path so the carrierfac chunk's pre-pass only needs to
+	// chase carriers, not facs).
+	bulkOrgs := []json.RawMessage{orgJSON(sharedFacOrgID, "Existing Org", "ok")}
+	bulkFacs := []json.RawMessage{mustJSON(makeMinimalFac(sharedFacID, sharedFacOrgID))}
+
+	cfs := make([]json.RawMessage, 0, numCFs)
+	for i := 1; i <= numCFs; i++ {
+		cfs = append(cfs, mustJSON(makeMinimalCarrierFac(i, i, sharedFacID)))
+	}
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"org":        bulkOrgs,
+			"fac":        bulkFacs,
+			"carrierfac": cfs,
+		},
+		map[string]func(int) json.RawMessage{
+			"carrier": func(id int) json.RawMessage {
+				return mustJSON(makeMinimalCarrier(id, 1000+id))
+			},
+			"org": func(id int) json.RawMessage {
+				return orgJSON(id, fmt.Sprintf("Org %d", id), "ok")
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: numCFs * 4,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	calls, _, byType := rec.snapshot()
+	if calls != 2 {
+		t.Fatalf("total backfill calls = %d, want 2 (carriers, orgs)", calls)
+	}
+	if got := len(byType["carrier"]); got != 1 {
+		t.Errorf("carrier backfill calls = %d, want 1", got)
+	}
+	if got := len(byType["org"]); got != 1 {
+		t.Errorf("org backfill calls = %d, want 1 (recursive grandparent)", got)
+	}
+	// Verify everything landed.
+	if got, _ := client.Organization.Query().Count(t.Context()); got != numCFs+1 {
+		t.Errorf("orgCount = %d, want %d (1 bulk org + %d recursive grandparents)", got, numCFs+1, numCFs)
+	}
+	if got, _ := client.Carrier.Query().Count(t.Context()); got != numCFs {
+		t.Errorf("carrierCount = %d, want %d (parent backfill)", got, numCFs)
+	}
+	if got, _ := client.Facility.Query().Count(t.Context()); got != 1 {
+		t.Errorf("facCount = %d, want 1 (bulk-loaded)", got)
+	}
+	if got, _ := client.CarrierFacility.Query().Count(t.Context()); got != numCFs {
+		t.Errorf("carrierfacCount = %d, want %d (FK chain satisfied)", got, numCFs)
+	}
+}
+
+// TestFKBackfill_BatchedFetch_RespectsCap: cap=10, 50 distinct missing
+// parents → ONE batched HTTP request for at most 10 IDs, the other 40
+// recorded as fkBackfillRateLimited via the cap pre-flight in
+// fkBackfillBatch (semantic shift documented in the function godoc:
+// the cap is now per-row, not per-HTTP-request).
+func TestFKBackfill_BatchedFetch_RespectsCap(t *testing.T) {
+	t.Parallel()
+
+	const numNets = 50
+	const capLimit = 10
+	nets := make([]json.RawMessage, 0, numNets)
+	for i := 1; i <= numNets; i++ {
+		nets = append(nets, mustJSON(makeMinimalNet(i, 1000+i)))
+	}
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{"net": nets},
+		map[string]func(int) json.RawMessage{
+			"org": func(id int) json.RawMessage {
+				return orgJSON(id, fmt.Sprintf("Org %d", id), "ok")
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: capLimit,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	calls, idIns, _ := rec.snapshot()
+	if calls != 1 {
+		t.Fatalf("backfill HTTP calls = %d, want 1 (cap=10 → 1 batched fetch with at most 10 IDs)", calls)
+	}
+	gotN := len(strings.Split(idIns[0], ","))
+	if gotN != capLimit {
+		t.Errorf("id__in cardinality = %d, want %d (cap-bounded prefix)", gotN, capLimit)
+	}
+	if got, _ := client.Organization.Query().Count(t.Context()); got != capLimit {
+		t.Errorf("orgCount = %d, want %d (cap-bounded backfill)", got, capLimit)
+	}
+	if got, _ := client.Network.Query().Count(t.Context()); got != capLimit {
+		t.Errorf("netCount = %d, want %d (only cap nets had FK satisfied)", got, capLimit)
+	}
+}
+
+// TestFKBackfill_BatchedFetch_RespectsDeadline: a deadline already in
+// the past → ZERO HTTP requests; all missing IDs are recorded as
+// fkBackfillDeadlineExceeded via the pre-flight check in
+// fkBackfillBatch.
+func TestFKBackfill_BatchedFetch_RespectsDeadline(t *testing.T) {
+	t.Parallel()
+
+	const numNets = 50
+	nets := make([]json.RawMessage, 0, numNets)
+	for i := 1; i <= numNets; i++ {
+		nets = append(nets, mustJSON(makeMinimalNet(i, 1000+i)))
+	}
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{"net": nets},
+		map[string]func(int) json.RawMessage{
+			"org": func(id int) json.RawMessage {
+				return orgJSON(id, fmt.Sprintf("Org %d", id), "ok")
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	// 1ns timeout — pre-flight deadline check fires before any HTTP.
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: numNets * 2,
+		FKBackfillTimeout:     1 * time.Nanosecond,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	if calls, _, _ := rec.snapshot(); calls != 0 {
+		t.Errorf("backfill HTTP calls = %d, want 0 (deadline pre-flight short-circuits)", calls)
+	}
+	if got, _ := client.Organization.Query().Count(t.Context()); got != 0 {
+		t.Errorf("orgCount = %d, want 0 (deadline → no inserts)", got)
+	}
+	if got, _ := client.Network.Query().Count(t.Context()); got != 0 {
+		t.Errorf("netCount = %d, want 0 (deadline → drop all children)", got)
 	}
 }
