@@ -198,7 +198,7 @@ a single hot row.
 | baseline           |   1 |    12ms |    29ms |    41ms |  0.00% |    54.2 |
 | inflection         |   8 |    74ms |   412ms |  1.21s  |  0.00% |   189.3 |
 | hold               |   8 |    79ms |   428ms |  1.18s  |  0.00% |   192.6 |
-| past-inflection    |  12 |   156ms |   891ms |  2.04s  |  0.42% |   201.0 |
+| inflection+1       |  12 |   156ms |   891ms |  2.04s  |  0.42% |   201.0 |
 
 inflection reason: p99 1.21s > 1s absolute
 ```

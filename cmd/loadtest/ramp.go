@@ -98,7 +98,7 @@ type stepStats struct {
 }
 
 // surfaceLabel pairs a stepStats with a human label used in the
-// markdown emitter ("baseline", "inflection", "past-inflection").
+// markdown emitter ("baseline", "inflection", "inflection+1").
 type surfaceLabel struct {
 	Label string
 	Stats stepStats
@@ -280,7 +280,7 @@ func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, 
 
 // rampOneSurface drives the ramp loop for a single surface. Returns
 // the ordered set of labelled steps (baseline, inflection,
-// past-inflection-1, past-inflection-2) and the inflection reason
+// inflection+1, inflection+2) and the inflection reason
 // string, or an error if the baseline step itself fails.
 //
 // The stdout writer is plumbed through to runRampStep for verbose
@@ -368,9 +368,9 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 		if perr != nil {
 			break
 		}
-		labelText := "past-inflection"
+		labelText := "inflection+1"
 		if i == 1 {
-			labelText = "past-inflection-2"
+			labelText = "inflection+2"
 		}
 		labels = append(labels, surfaceLabel{Label: labelText, Stats: past})
 		pastC = nextC
@@ -413,11 +413,18 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 				}
 				ep := rampEndpointFor(surface, rcfg.Entity, id, asn)
 				res := Hit(gctx, cfg.HTTPClient, cfg.Base, cfg.AuthToken, ep)
-				// Emit a per-error line only for real failures —
-				// suppress step-boundary cancellations to match the
-				// summariseStep filter (so displayed errors match
-				// counted errors).
-				if cfg.Verbose && !res.OK() && !errors.Is(res.Err, context.Canceled) {
+				// Step-boundary discriminator: if Hit returned an
+				// error AND the step's context is done, the cancellation
+				// came from the step deadline (parent fires
+				// DeadlineExceeded; gctx propagates that, NOT
+				// context.Canceled). Drop before logging or sample
+				// channel send so logged errors match counted errors.
+				// Real client timeouts (>30s requests when gctx is
+				// still alive) and 5xx responses still flow through.
+				if res.Err != nil && gctx.Err() != nil {
+					return nil
+				}
+				if cfg.Verbose && !res.OK() {
 					verboseMu.Lock()
 					fmt.Fprintf(stdout, "[ramp] %s C=%d %s %s status=%d err=%v\n",
 						surface, concurrency, ep.Method, ep.Path, res.Status, res.Err)
@@ -449,20 +456,19 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 // Empty sample sets return a zero-valued stepStats (legitimate when
 // the ctx is cancelled before any request completes).
 //
-// Results whose Err is context.Canceled are dropped before any
-// computation: gctx fires when stepCtx deadlines, returning
-// context.Canceled mid-Hit. Those samples are not real measurements
-// — their latency is "time until cancel" and counting them as errors
-// would inflate ErrRate past ErrorRateThreshold and mask the true
-// inflection point.
+// The primary discriminator for step-boundary cancellation lives in
+// the worker loop (drops samples where res.Err != nil && gctx.Err()
+// != nil before they reach this function). The filter below is
+// defensive: it strips any sample whose Err matches context.Canceled
+// or context.DeadlineExceeded that somehow slipped through.
 func summariseStep(samples []Result, concurrency int, dur time.Duration) stepStats {
 	stats := stepStats{Concurrency: concurrency, Duration: dur}
-	// Drop step-boundary cancellations. Use a 3-arg slice expression
-	// so the filtered slice gets fresh backing storage and the
-	// caller's slice is left intact.
+	// Defensive: drop residual step-boundary cancellations. Use a
+	// 3-arg slice expression so the filtered slice gets fresh
+	// backing storage and the caller's slice is left intact.
 	filtered := samples[:0:0]
 	for _, r := range samples {
-		if errors.Is(r.Err, context.Canceled) {
+		if errors.Is(r.Err, context.Canceled) || errors.Is(r.Err, context.DeadlineExceeded) {
 			continue
 		}
 		filtered = append(filtered, r)

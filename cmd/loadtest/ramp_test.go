@@ -390,15 +390,16 @@ func TestRamp_Inflection_TriggersOnErrorRate(t *testing.T) {
 }
 
 // TestRamp_HoldDuration_PastInflection asserts that after inflection
-// the ramp emits at least a hold step and one past-inflection step
+// the ramp emits at least a hold step and one inflection+1 step
 // (subject to MaxConcurrency).
 func TestRamp_HoldDuration_PastInflection(t *testing.T) {
 	t.Parallel()
 
-	// Latency triggers inflection early (at C=2 the extra is large
-	// enough to exceed P99Absolute), leaving room for hold + past
-	// steps before MaxConcurrency=16.
-	rts := newRampTestServer(t, 5*time.Millisecond, 300*time.Millisecond, 0)
+	// Drive inflection via the err-rate threshold: server returns 500
+	// once in-flight concurrency >= 2, which triggers the 1% err-rate
+	// trigger at the very first step past baseline. This leaves
+	// headroom for hold + past steps before MaxConcurrency=16.
+	rts := newRampTestServer(t, 5*time.Millisecond, 0, 2)
 	cfg := Config{Base: rts.srv.URL, HTTPClient: rts.srv.Client(), Timeout: 5 * time.Second}
 	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
 
@@ -417,11 +418,11 @@ func TestRamp_HoldDuration_PastInflection(t *testing.T) {
 	if !strings.Contains(out, "| inflection") {
 		t.Errorf("output missing inflection row\n%s", out)
 	}
-	// At least one of "| hold" or "| past-inflection" must be present —
+	// At least one of "| hold" or "| inflection+1" must be present —
 	// MaxConcurrency=16 leaves headroom for at least the hold step
 	// after typical inflection at C=2 or 4.
-	if !strings.Contains(out, "| hold") && !strings.Contains(out, "| past-inflection") {
-		t.Errorf("output should contain hold or past-inflection row\n%s", out)
+	if !strings.Contains(out, "| hold") && !strings.Contains(out, "| inflection+1") {
+		t.Errorf("output should contain hold or inflection+1 row\n%s", out)
 	}
 }
 
@@ -781,26 +782,29 @@ func TestRamp_NoVerbose_StaysQuiet(t *testing.T) {
 }
 
 // TestSummariseStep_FiltersCanceled asserts that Result entries whose
-// Err is context.Canceled (a step-boundary cancellation, not a real
-// measurement) are dropped from the percentile/error/RPS computation.
+// Err is context.Canceled OR context.DeadlineExceeded (step-boundary
+// cancellations, not real measurements) are dropped from the
+// percentile/error/RPS computation.
 //
-// Background: each step sets a stepCtx deadline; when it fires, every
-// in-flight Hit() returns Err=context.Canceled. Counting those as
-// errors inflates ErrRate past ErrorRateThreshold and can mask the
-// true inflection point. summariseStep must filter them.
+// Background: each step sets a stepCtx deadline; when it fires,
+// errgroup's gctx propagates the parent's error. WithTimeout fires
+// DeadlineExceeded, not Canceled — so the filter must match both. The
+// primary discriminator is in the worker loop; this filter is
+// defensive backup.
 func TestSummariseStep_FiltersCanceled(t *testing.T) {
 	t.Parallel()
 
 	samples := []Result{
 		{Status: 200, Latency: 5 * time.Millisecond},
 		{Status: 200, Latency: 10 * time.Millisecond},
-		{Err: context.Canceled, Latency: 1 * time.Millisecond}, // dropped
+		{Err: context.Canceled, Latency: 1 * time.Millisecond},         // dropped
+		{Err: context.DeadlineExceeded, Latency: 2 * time.Millisecond}, // dropped
 		{Status: 500, Latency: 7 * time.Millisecond},
 	}
 	stats := summariseStep(samples, 4, 1*time.Second)
 
 	if stats.Samples != 3 {
-		t.Errorf("Samples = %d, want 3 (cancelled sample must be dropped)", stats.Samples)
+		t.Errorf("Samples = %d, want 3 (both context errors must be dropped)", stats.Samples)
 	}
 	if stats.Errors != 1 {
 		t.Errorf("Errors = %d, want 1 (only the 500 counts)", stats.Errors)
@@ -809,12 +813,12 @@ func TestSummariseStep_FiltersCanceled(t *testing.T) {
 		t.Errorf("RPS = %v, want 3.0 (3 samples / 1s)", stats.RPS)
 	}
 	// p50/p95/p99 are computed only over the 3 non-cancelled latencies
-	// {5ms, 7ms, 10ms} — the 1ms cancelled latency must NOT appear.
+	// {5ms, 7ms, 10ms} — the 1ms/2ms cancelled latencies must NOT appear.
 	if stats.P50 < 5*time.Millisecond || stats.P50 > 10*time.Millisecond {
 		t.Errorf("P50 = %v, want within [5ms,10ms]", stats.P50)
 	}
-	if stats.P50 == 1*time.Millisecond {
-		t.Errorf("P50 = 1ms — cancelled latency must not influence percentiles")
+	if stats.P50 == 1*time.Millisecond || stats.P50 == 2*time.Millisecond {
+		t.Errorf("P50 = %v — cancelled/deadline latency must not influence percentiles", stats.P50)
 	}
 }
 
