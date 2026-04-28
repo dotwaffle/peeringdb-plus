@@ -3,9 +3,9 @@ package sync
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
-	"net/url"
+	"maps"
+	"slices"
 	"time"
 
 	otelattr "go.opentelemetry.io/otel/attribute"
@@ -54,146 +54,246 @@ const (
 	fkBackfillDeadlineExceeded fkBackfillResult = "deadline_exceeded"
 )
 
-// fkBackfillParent attempts to fetch a missing parent from upstream and
-// upsert it (preserving upstream status — could be ok, deleted, or
-// pending). Returns true iff the row is now present in the local DB
-// and the child can be linked.
+// fkBackfillParent is the single-row entry point preserved for the
+// existing per-row callers in worker.go (carrier→org check at
+// dispatchScratchChunk:fkCheckParent and the NetworkIxLan side-FK
+// null-on-miss path at nullSideFK). Quick task 260428-5xt refactored
+// the body to a thin wrapper around fkBackfillBatch so single-row and
+// batched paths share one HTTP / dedup / cap / deadline / recursion
+// implementation.
 //
-// Caller MUST have already established that the parent is absent
-// locally (fkHasParent returned false). This function:
-//
-//  1. Checks per-cycle dedup cache; on hit, re-checks DB rather than re-fetching.
-//  2. Checks per-cycle cap; cap-hit → result=ratelimited, return false.
-//  3. Fetches /api/<type>?since=1&id__in=<id>. since=1 ensures
-//     status='deleted' rows surface (rest.py:694-727 status × since
-//     matrix).
-//  4. On 200 + non-empty data: upserts via upsertSingleRaw; result=hit.
-//  5. On 200 + empty data (truly absent upstream): result=miss.
-//  6. On HTTP error: result=error.
-//
-// childType is included in the metric attributes for grep symmetry with
-// pdbplus.sync.type.orphans{type,parent_type,...} so dashboards can
-// pivot either axis (which child type is causing backfill pressure vs
-// which parent type is most often missing).
+// Returns true iff the row is now present in the local DB and the
+// child can be linked.
 func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, parentType string, parentID int) bool {
-	key := fkBackfillKey{Type: parentType, ID: parentID}
+	w.fkBackfillBatch(ctx, tx, parentType, []int{parentID}, childType)
+	return w.dbHasRecord(ctx, tx, parentType, parentID)
+}
 
-	// Dedup: same (type,id) within this cycle → re-check DB rather than
-	// re-fetch. The first attempt either landed the row (DB now has it)
-	// or recorded the miss; subsequent same-cycle fkHasParent() lookups
-	// against a re-checked DB give the right answer cheaply.
-	if _, tried := w.fkBackfillTried[key]; tried {
-		return w.dbHasRecord(ctx, tx, parentType, parentID)
+// fkBackfillBatch is the dataloader-style entry point: given a set of
+// missing parent IDs of a single parent type, it issues ONE batched
+// HTTP request per ⌈len(ids)/100⌉ chunk via peeringdb.Client.FetchByIDs
+// and upserts the returned rows. Recursive grandparent backfill walks
+// each fetched row's own FKs, groups missing IDs per parent type, and
+// recursively calls fkBackfillBatch — so a chunk of 50 carrierfacs
+// missing 50 carriers each missing 50 distinct orgs collapses to
+// exactly 2 batched HTTP requests (carriers, then orgs), bounded by
+// the per-cycle dedup cache.
+//
+// Quick task 260428-5xt — replaces the per-row HTTP fan-out from quick
+// task 260428-2zl. Catch-up / recovery cycles with hundreds-to-thousands
+// of distinct missing parents previously bricked v1.18.2 by hitting
+// upstream's API_THROTTLE_REPEATED_REQUEST cap; batching collapses the
+// exposure to a small constant per parent type per chunk.
+//
+// Semantics carried over from fkBackfillParent (preserved by all 7
+// existing TestFKCheckParent_Backfill* tests via the thin wrapper):
+//
+//   - Dedup-first: ids already in fkBackfillTried are filtered out
+//     BEFORE the cap check (so previously-tried IDs do not re-consume
+//     cap budget).
+//   - Cap is per-row (not per-HTTP-request): fkBackfillCount is bumped
+//     by len(idsToFetch). SEMANTIC SHIFT from 260428-2zl, where the cap
+//     was effectively 1-per-call. The dashboard interpretation of
+//     fk_backfill{result=hit} does not change — both old and new code
+//     emit one hit per inserted row — but the cap now meaningfully
+//     limits total parent rows fetched per cycle, regardless of how
+//     they're batched. Documented at the metric call site below.
+//   - Deadline check fires WITHOUT issuing any HTTP request once
+//     fkBackfillDeadline has passed; all remaining IDs are recorded as
+//     fkBackfillDeadlineExceeded.
+//   - Cap overflow records fkBackfillRateLimited for each dropped ID.
+//
+// childType is the metric "type" attribute. Single-row callers pass
+// the originating child type ("net", "carrierfac", …); the chunk
+// pre-pass (Task 3) and recursive grandparent path pass "" because no
+// single child triggered the lookup.
+//
+// Single-writer: fkBackfillTried, fkBackfillCount, fkBackfillDeadline,
+// and fkRegistry are all touched here without locks because
+// Worker.Sync is single-goroutine (Worker.running atomic guard
+// serialises concurrent Sync calls). If sync ever fans out across
+// goroutines, this map and counter need a sync.Mutex.
+//
+// Returns the IDs successfully inserted by this call (NOT including
+// recursive grandparents). Callers who need a per-ID success answer
+// should re-check via fkHasParent / dbHasRecord — the wrapper above
+// does exactly that.
+func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType string, ids []int, childType string) []int {
+	if len(ids) == 0 {
+		return nil
 	}
-	w.fkBackfillTried[key] = struct{}{}
 
-	if w.fkBackfillCount >= w.fkBackfillCap {
-		w.recordBackfill(ctx, childType, parentType, fkBackfillRateLimited)
-		w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill cap reached",
-			slog.String("child_type", childType),
-			slog.String("parent_type", parentType),
-			slog.Int("parent_id", parentID),
-			slog.Int("cap", w.fkBackfillCap))
-		return false
+	// 1. Dedup against per-cycle tried cache (ordering preserved).
+	remaining := make([]int, 0, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		key := fkBackfillKey{Type: parentType, ID: id}
+		if _, tried := w.fkBackfillTried[key]; tried {
+			continue
+		}
+		remaining = append(remaining, id)
+	}
+	if len(remaining) == 0 {
+		return nil
 	}
 
-	// v1.18.3: per-cycle wall-clock deadline. Backfill HTTP calls happen
-	// inside the sync tx; without a deadline a cascade of slow / rate-
-	// limited backfills could hold the tx open for tens of minutes,
-	// stalling LiteFS replication. After the deadline fire, drop the
-	// orphan and let the next cycle pick it up.
+	// 2. Deadline check fires BEFORE any HTTP. Mark tried so subsequent
+	//    same-cycle attempts dedup-short-circuit instead of cascading
+	//    more deadline_exceeded events through the metric.
 	if !w.fkBackfillDeadline.IsZero() && time.Now().After(w.fkBackfillDeadline) {
-		w.recordBackfill(ctx, childType, parentType, fkBackfillDeadlineExceeded)
+		for _, id := range remaining {
+			w.fkBackfillTried[fkBackfillKey{Type: parentType, ID: id}] = struct{}{}
+			w.recordBackfill(ctx, childType, parentType, fkBackfillDeadlineExceeded)
+		}
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill deadline exceeded",
 			slog.String("child_type", childType),
 			slog.String("parent_type", parentType),
-			slog.Int("parent_id", parentID),
+			slog.Int("ids_dropped", len(remaining)),
 			slog.Time("deadline", w.fkBackfillDeadline))
-		return false
+		return nil
 	}
-	w.fkBackfillCount++
 
-	raw, fetchErr := w.fetchSingleByID(ctx, parentType, parentID)
-	if fetchErr != nil {
-		w.recordBackfill(ctx, childType, parentType, fkBackfillError)
-		w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill fetch failed",
+	// 3. Cap budget: take a prefix that fits, mark the rest as
+	//    ratelimited. SEMANTIC SHIFT (260428-5xt): cap is now per-row,
+	//    so a single batch with N IDs consumes N units of cap budget.
+	//    See godoc above.
+	available := w.fkBackfillCap - w.fkBackfillCount
+	if available < 0 {
+		available = 0
+	}
+	idsToFetch := remaining
+	if len(idsToFetch) > available {
+		dropped := idsToFetch[available:]
+		idsToFetch = idsToFetch[:available]
+		for _, id := range dropped {
+			w.fkBackfillTried[fkBackfillKey{Type: parentType, ID: id}] = struct{}{}
+			w.recordBackfill(ctx, childType, parentType, fkBackfillRateLimited)
+		}
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill cap reached",
 			slog.String("child_type", childType),
 			slog.String("parent_type", parentType),
-			slog.Int("parent_id", parentID),
-			slog.Any("error", fetchErr))
-		return false
+			slog.Int("ids_dropped", len(dropped)),
+			slog.Int("cap", w.fkBackfillCap))
 	}
-	if len(raw) == 0 {
+	if len(idsToFetch) == 0 {
+		return nil
+	}
+
+	// 4. Mark all to-fetch IDs in tried BEFORE the HTTP — preserves the
+	//    dedup invariant even if the HTTP fails partway through.
+	for _, id := range idsToFetch {
+		w.fkBackfillTried[fkBackfillKey{Type: parentType, ID: id}] = struct{}{}
+	}
+	w.fkBackfillCount += len(idsToFetch)
+
+	// 5. ONE batched fetch per ⌈N/100⌉ chunk via the rate-limited
+	//    transport. Single-ID callers (the fkBackfillParent wrapper)
+	//    still issue exactly ONE HTTP request — no behavioural change
+	//    for the legacy hot path.
+	raws, fetchErr := w.pdbClient.FetchByIDs(ctx, parentType, idsToFetch)
+	if fetchErr != nil {
+		for _, id := range idsToFetch {
+			w.recordBackfill(ctx, childType, parentType, fkBackfillError)
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill fetch failed",
+				slog.String("child_type", childType),
+				slog.String("parent_type", parentType),
+				slog.Int("parent_id", id),
+				slog.Any("error", fetchErr))
+		}
+		return nil
+	}
+
+	// 6. Decode each row's id, group missing grandparent FKs by parent
+	//    type, then recursively batch-backfill before upserting parents.
+	//    Recursion is bounded by the per-cycle dedup cache (each
+	//    (type,id) pair fires exactly once across the whole cycle).
+	type rawWithID struct {
+		id  int
+		raw []byte
+	}
+	rows := make([]rawWithID, 0, len(raws))
+	gpMissing := make(map[string]map[int]struct{})
+	for _, raw := range raws {
+		var idHolder struct {
+			ID int `json:"id"`
+		}
+		if err := json.Unmarshal(raw, &idHolder); err != nil || idHolder.ID <= 0 {
+			// Best-effort: skip rows we can't identify. The original
+			// id__in still consumed its cap slot; the unrecoverable row
+			// will be re-tried on the next cycle if upstream returns it.
+			continue
+		}
+		rows = append(rows, rawWithID{id: idHolder.ID, raw: raw})
+		for _, gp := range parentFKsOf(parentType, raw) {
+			if gp.ID == 0 {
+				continue
+			}
+			if w.fkHasParent(ctx, tx, gp.ParentType, gp.ID) {
+				continue
+			}
+			set, exists := gpMissing[gp.ParentType]
+			if !exists {
+				set = make(map[int]struct{})
+				gpMissing[gp.ParentType] = set
+			}
+			set[gp.ID] = struct{}{}
+		}
+	}
+
+	// Recurse one parent type at a time, sorted IDs for deterministic
+	// URL shape (test assertions on id__in= rely on stable ordering).
+	// childType="" — recursion is parent-driven, not child-driven.
+	for _, gpType := range slices.Sorted(maps.Keys(gpMissing)) {
+		gpIDs := slices.Sorted(maps.Keys(gpMissing[gpType]))
+		w.fkBackfillBatch(ctx, tx, gpType, gpIDs, "")
+	}
+
+	// 7. Upsert each parent row; record per-row hit/error. Per-row
+	//    upsert failures do NOT abort the batch — one bad row should
+	//    not cascade-drop the rest of the chunk.
+	returnedIDs := make(map[int]struct{}, len(rows))
+	inserted := make([]int, 0, len(rows))
+	for _, r := range rows {
+		returnedIDs[r.id] = struct{}{}
+		if _, upsertErr := upsertSingleRaw(ctx, tx, parentType, r.raw); upsertErr != nil {
+			w.recordBackfill(ctx, childType, parentType, fkBackfillError)
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill upsert failed",
+				slog.String("child_type", childType),
+				slog.String("parent_type", parentType),
+				slog.Int("parent_id", r.id),
+				slog.Any("error", upsertErr))
+			continue
+		}
+		inserted = append(inserted, r.id)
+		w.recordBackfill(ctx, childType, parentType, fkBackfillHit)
+		w.logger.LogAttrs(ctx, slog.LevelInfo, "fk backfill: parent inserted",
+			slog.String("child_type", childType),
+			slog.String("parent_type", parentType),
+			slog.Int("parent_id", r.id))
+	}
+	if len(inserted) > 0 {
+		// Mirror inserted parents into the in-memory FK registry so
+		// subsequent same-cycle children find them without a DB round-
+		// trip. Bulk-register in one call to avoid map churn.
+		w.fkRegisterIDs(parentType, inserted)
+	}
+
+	// 8. IDs requested but not returned by upstream are truly absent
+	//    (deleted both server-side and from any since=1 tombstone window
+	//    older than the upstream retention). Record one miss per ID.
+	for _, id := range idsToFetch {
+		if _, ok := returnedIDs[id]; ok {
+			continue
+		}
 		w.recordBackfill(ctx, childType, parentType, fkBackfillMiss)
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "fk backfill: parent absent upstream",
 			slog.String("parent_type", parentType),
-			slog.Int("parent_id", parentID))
-		return false
+			slog.Int("parent_id", id))
 	}
 
-	// v1.18.3 recursive backfill: before upserting the parent, walk its
-	// own FK fields and recursively backfill any missing grandparents.
-	// Bounded by the per-cycle dedup cache (each (type,id) pair fires
-	// exactly once) and the per-cycle cap. Max effective depth is the
-	// schema's longest FK chain (currently 3-hop: netixlan → ixlan → ix
-	// → org). Grandparent failures don't block parent insert — the
-	// schema's Optional().Nillable() FKs accept dangling references, so
-	// "parent with maybe-dangling FK" is strictly better than "missing
-	// parent + dropped child".
-	for _, gp := range parentFKsOf(parentType, raw) {
-		if gp.ID == 0 {
-			continue
-		}
-		if w.fkHasParent(ctx, tx, gp.ParentType, gp.ID) {
-			continue
-		}
-		// Best-effort: ignore return value (see comment above).
-		w.fkBackfillParent(ctx, tx, parentType, gp.ParentType, gp.ID)
-	}
-
-	if _, upsertErr := upsertSingleRaw(ctx, tx, parentType, raw); upsertErr != nil {
-		w.recordBackfill(ctx, childType, parentType, fkBackfillError)
-		w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill upsert failed",
-			slog.String("child_type", childType),
-			slog.String("parent_type", parentType),
-			slog.Int("parent_id", parentID),
-			slog.Any("error", upsertErr))
-		return false
-	}
-
-	// Mirror the parent into the in-memory FK registry so subsequent
-	// same-cycle children find the parent without another DB round-trip.
-	w.fkRegisterIDs(parentType, []int{parentID})
-
-	w.recordBackfill(ctx, childType, parentType, fkBackfillHit)
-	w.logger.LogAttrs(ctx, slog.LevelInfo, "fk backfill: parent inserted",
-		slog.String("child_type", childType),
-		slog.String("parent_type", parentType),
-		slog.Int("parent_id", parentID))
-	return true
-}
-
-// fetchSingleByID issues a list query restricted to one ID with since=1
-// to catch tombstones. Returns the single raw JSON object or nil if
-// upstream returned an empty array.
-//
-// Uses since=1 (not the detail endpoint /api/<type>/<id>) because per
-// rest.py:694-727 the detail endpoint filters to status IN ('ok',
-// 'pending') only — deleted rows return 404. The list endpoint with
-// since=1 returns ['ok', 'deleted'] (+ 'pending' for campus), which
-// lets us recover the actual upstream state including tombstones.
-func (w *Worker) fetchSingleByID(ctx context.Context, typeName string, id int) ([]byte, error) {
-	q := url.Values{}
-	q.Set("since", "1")
-	q.Set("id__in", fmt.Sprintf("%d", id))
-	raws, err := w.pdbClient.FetchRaw(ctx, typeName, q)
-	if err != nil {
-		return nil, err
-	}
-	if len(raws) == 0 {
-		return nil, nil
-	}
-	return raws[0], nil
+	return inserted
 }
 
 // parentFKRef names a single FK on a child type's row.
