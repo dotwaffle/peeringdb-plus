@@ -259,7 +259,7 @@ func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, 
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		labels, reason, err := rampOneSurface(ctx, cfg, rcfg, surface, ids, asns)
+		labels, reason, err := rampOneSurface(ctx, cfg, rcfg, surface, ids, asns, stdout)
 		if err != nil {
 			fmt.Fprintf(stdout, "\n### %s ramp ABORTED: %v\n\n", surface, err)
 			// continue with the next surface — one surface failing
@@ -275,9 +275,14 @@ func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, 
 // the ordered set of labelled steps (baseline, inflection,
 // past-inflection-1, past-inflection-2) and the inflection reason
 // string, or an error if the baseline step itself fails.
-func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Surface, ids, asns []int) ([]surfaceLabel, string, error) {
+//
+// The stdout writer is plumbed through to runRampStep for verbose
+// emission gated by cfg.Verbose; passing it via parameter (rather
+// than stashing it in cfg or RampConfig) keeps the runtime
+// dependency explicit at every call site.
+func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Surface, ids, asns []int, stdout io.Writer) ([]surfaceLabel, string, error) {
 	// 1. Baseline at C=Start.
-	baseline, err := runRampStep(ctx, cfg, rcfg, surface, rcfg.Start, rcfg.StepDuration, ids, asns)
+	baseline, err := runRampStep(ctx, cfg, rcfg, surface, rcfg.Start, rcfg.StepDuration, ids, asns, stdout)
 	if err != nil {
 		return nil, "", fmt.Errorf("baseline step: %w", err)
 	}
@@ -296,7 +301,7 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 		if nextC > rcfg.MaxConcurrency {
 			nextC = rcfg.MaxConcurrency
 		}
-		step, stepErr := runRampStep(ctx, cfg, rcfg, surface, nextC, rcfg.StepDuration, ids, asns)
+		step, stepErr := runRampStep(ctx, cfg, rcfg, surface, nextC, rcfg.StepDuration, ids, asns, stdout)
 		if stepErr != nil {
 			return labels, "", fmt.Errorf("ramp step C=%d: %w", nextC, stepErr)
 		}
@@ -322,7 +327,7 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 
 	// 3. Hold past inflection: re-run at the same concurrency for
 	// HoldDuration to gather a stable p99 reading.
-	hold, err := runRampStep(ctx, cfg, rcfg, surface, inflection.Concurrency, rcfg.HoldDuration, ids, asns)
+	hold, err := runRampStep(ctx, cfg, rcfg, surface, inflection.Concurrency, rcfg.HoldDuration, ids, asns, stdout)
 	if err == nil {
 		labels = append(labels, surfaceLabel{Label: "hold", Stats: hold})
 	}
@@ -338,7 +343,7 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 		if nextC > rcfg.MaxConcurrency {
 			nextC = rcfg.MaxConcurrency
 		}
-		past, perr := runRampStep(ctx, cfg, rcfg, surface, nextC, rcfg.StepDuration, ids, asns)
+		past, perr := runRampStep(ctx, cfg, rcfg, surface, nextC, rcfg.StepDuration, ids, asns, stdout)
 		if perr != nil {
 			break
 		}
@@ -358,7 +363,7 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 // Hit() picking endpoints round-robin from the prefetched ID list;
 // the step terminates when stepCtx fires. Workers honour gctx so a
 // cancelled outer ctx propagates promptly.
-func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surface, concurrency int, dur time.Duration, ids, asns []int) (stepStats, error) {
+func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surface, concurrency int, dur time.Duration, ids, asns []int, _ io.Writer) (stepStats, error) {
 	if concurrency < 1 {
 		return stepStats{}, fmt.Errorf("concurrency must be >= 1, got %d", concurrency)
 	}
@@ -412,28 +417,45 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 // summariseStep computes p50/p95/p99/error-rate/rps for a step.
 // Empty sample sets return a zero-valued stepStats (legitimate when
 // the ctx is cancelled before any request completes).
+//
+// Results whose Err is context.Canceled are dropped before any
+// computation: gctx fires when stepCtx deadlines, returning
+// context.Canceled mid-Hit. Those samples are not real measurements
+// — their latency is "time until cancel" and counting them as errors
+// would inflate ErrRate past ErrorRateThreshold and mask the true
+// inflection point.
 func summariseStep(samples []Result, concurrency int, dur time.Duration) stepStats {
 	stats := stepStats{Concurrency: concurrency, Duration: dur}
-	if len(samples) == 0 {
+	// Drop step-boundary cancellations. Use a 3-arg slice expression
+	// so the filtered slice gets fresh backing storage and the
+	// caller's slice is left intact.
+	filtered := samples[:0:0]
+	for _, r := range samples {
+		if errors.Is(r.Err, context.Canceled) {
+			continue
+		}
+		filtered = append(filtered, r)
+	}
+	if len(filtered) == 0 {
 		return stats
 	}
-	latencies := make([]time.Duration, 0, len(samples))
+	latencies := make([]time.Duration, 0, len(filtered))
 	errs := 0
-	for _, r := range samples {
+	for _, r := range filtered {
 		latencies = append(latencies, r.Latency)
 		if !r.OK() {
 			errs++
 		}
 	}
 	slices.Sort(latencies)
-	stats.Samples = len(samples)
+	stats.Samples = len(filtered)
 	stats.Errors = errs
 	stats.P50 = percentilesFromSorted(latencies, 50)
 	stats.P95 = percentilesFromSorted(latencies, 95)
 	stats.P99 = percentilesFromSorted(latencies, 99)
-	stats.ErrRate = float64(errs) / float64(len(samples))
+	stats.ErrRate = float64(errs) / float64(len(filtered))
 	if dur > 0 {
-		stats.RPS = float64(len(samples)) / dur.Seconds()
+		stats.RPS = float64(len(filtered)) / dur.Seconds()
 	}
 	return stats
 }
