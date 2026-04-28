@@ -658,6 +658,101 @@ func TestDetectInflection(t *testing.T) {
 	}
 }
 
+// TestSummariseStep_FiltersCanceled asserts that Result entries whose
+// Err is context.Canceled (a step-boundary cancellation, not a real
+// measurement) are dropped from the percentile/error/RPS computation.
+//
+// Background: each step sets a stepCtx deadline; when it fires, every
+// in-flight Hit() returns Err=context.Canceled. Counting those as
+// errors inflates ErrRate past ErrorRateThreshold and can mask the
+// true inflection point. summariseStep must filter them.
+func TestSummariseStep_FiltersCanceled(t *testing.T) {
+	t.Parallel()
+
+	samples := []Result{
+		{Status: 200, Latency: 5 * time.Millisecond},
+		{Status: 200, Latency: 10 * time.Millisecond},
+		{Err: context.Canceled, Latency: 1 * time.Millisecond}, // dropped
+		{Status: 500, Latency: 7 * time.Millisecond},
+	}
+	stats := summariseStep(samples, 4, 1*time.Second)
+
+	if stats.Samples != 3 {
+		t.Errorf("Samples = %d, want 3 (cancelled sample must be dropped)", stats.Samples)
+	}
+	if stats.Errors != 1 {
+		t.Errorf("Errors = %d, want 1 (only the 500 counts)", stats.Errors)
+	}
+	if stats.RPS != 3.0 {
+		t.Errorf("RPS = %v, want 3.0 (3 samples / 1s)", stats.RPS)
+	}
+	// p50/p95/p99 are computed only over the 3 non-cancelled latencies
+	// {5ms, 7ms, 10ms} — the 1ms cancelled latency must NOT appear.
+	if stats.P50 < 5*time.Millisecond || stats.P50 > 10*time.Millisecond {
+		t.Errorf("P50 = %v, want within [5ms,10ms]", stats.P50)
+	}
+	if stats.P50 == 1*time.Millisecond {
+		t.Errorf("P50 = 1ms — cancelled latency must not influence percentiles")
+	}
+}
+
+// TestSummariseStep_AllCanceled_ReturnsZero asserts that an entirely
+// cancelled sample set behaves identically to len(samples)==0.
+func TestSummariseStep_AllCanceled_ReturnsZero(t *testing.T) {
+	t.Parallel()
+
+	samples := []Result{
+		{Err: context.Canceled, Latency: 1 * time.Millisecond},
+		{Err: context.Canceled, Latency: 2 * time.Millisecond},
+		{Err: context.Canceled, Latency: 3 * time.Millisecond},
+	}
+	stats := summariseStep(samples, 8, 500*time.Millisecond)
+
+	if stats.Samples != 0 {
+		t.Errorf("Samples = %d, want 0", stats.Samples)
+	}
+	if stats.Errors != 0 {
+		t.Errorf("Errors = %d, want 0", stats.Errors)
+	}
+	if stats.RPS != 0 {
+		t.Errorf("RPS = %v, want 0", stats.RPS)
+	}
+	if stats.Concurrency != 8 {
+		t.Errorf("Concurrency = %d, want 8 (preserved even when all-canceled)", stats.Concurrency)
+	}
+	if stats.Duration != 500*time.Millisecond {
+		t.Errorf("Duration = %v, want 500ms (preserved even when all-canceled)", stats.Duration)
+	}
+}
+
+// TestSummariseStep_NoCanceled_PreservesPriorBehavior is a regression
+// guard for the existing happy path — pure non-cancelled samples must
+// produce stats identical to the pre-change behaviour.
+func TestSummariseStep_NoCanceled_PreservesPriorBehavior(t *testing.T) {
+	t.Parallel()
+
+	samples := []Result{
+		{Status: 200, Latency: 1 * time.Millisecond},
+		{Status: 200, Latency: 2 * time.Millisecond},
+		{Status: 500, Latency: 3 * time.Millisecond},
+		{Status: 200, Latency: 4 * time.Millisecond},
+	}
+	stats := summariseStep(samples, 2, 1*time.Second)
+
+	if stats.Samples != 4 {
+		t.Errorf("Samples = %d, want 4", stats.Samples)
+	}
+	if stats.Errors != 1 {
+		t.Errorf("Errors = %d, want 1 (the 500)", stats.Errors)
+	}
+	if stats.RPS != 4.0 {
+		t.Errorf("RPS = %v, want 4.0", stats.RPS)
+	}
+	if stats.ErrRate != 0.25 {
+		t.Errorf("ErrRate = %v, want 0.25 (1/4)", stats.ErrRate)
+	}
+}
+
 // TestRunRamp_RejectsBadInput exercises the input-validation gates.
 func TestRunRamp_RejectsBadInput(t *testing.T) {
 	t.Parallel()
