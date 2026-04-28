@@ -41,6 +41,21 @@ SDK package and are documented in their own sections below.
 | `PDBPLUS_SYNC_MODE` | No | `incremental` | enum | Sync strategy. Accepted values: `full` (complete re-fetch), `incremental` (only objects modified since last sync, using `?since=<unix-ts>`). Default flipped from `full` to `incremental` on 2026-04-26 (v1.17.0 / quick task `260426-pms`) after empirical confirmation that upstream PeeringDB emits `status="deleted"` tombstones on `?since=` responses (resolving SEED-001's prerequisite). `full` remains a supported operator override for first-sync, recovery, and as an escape-hatch. Any other value is rejected at startup. |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | No | `24h` | duration | Maximum age of sync data before `/readyz` reports the service as degraded. |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | No | `400MB` | byte size | Peak Go heap ceiling checked after the sync worker's Phase A fetch pass. If `runtime.ReadMemStats` reports `HeapAlloc` above this value, the sync aborts with a WARN log and returns `sync.ErrSyncMemoryLimitExceeded`; the next scheduled cycle retries normally. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). A bare number is rejected. Literal `0` disables the guardrail (local development only). Must be non-negative. |
+| `PDBPLUS_PEERINGDB_RPS` | No | `2.0` | float (req/sec) | Sustained requests-per-second cap to the upstream PeeringDB API. Burst is hardcoded at 1 in the client. Authenticated requests (`PDBPLUS_PEERINGDB_API_KEY` set) override this to 60 req/min — the upstream auth quota is fixed and cannot be exceeded by operator preference. Quick task `260428-2zl`. Values ≤ 0 are rejected at startup. The transport (`internal/peeringdb/transport.go`) records per-request wait time on the `pdbplus.peeringdb.rate_limit_wait_ms` histogram for dashboard observability. |
+| `PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE` | No | `200` | non-negative integer | Maximum live FK-backfill upstream fetches per sync cycle. When `fkCheckParent` finds a missing parent (cache miss + DB miss), the worker attempts one fetch via `?since=1&id__in=<id>` to recover the row before declaring the child orphaned (the `since=1` path returns both `ok` and `deleted` rows per upstream `rest.py:694-727`). A per-cycle dedup cache prevents repeat fetches for the same `(type, id)` pair within one sync. When the cap is reached, additional missing parents fall through to the legacy drop-on-miss path with the `pdbplus.sync.fk_backfill{result="ratelimited"}` counter incremented. Set to `0` to disable backfill entirely (legacy behavior — useful as an operator escape-hatch for misbehaving cycles). Quick task `260428-2zl`. |
+
+#### WAF behavior
+
+On HTTP 403 responses the transport (`internal/peeringdb/transport.go`)
+sniffs the response body (first 4 KiB) for WAF signatures: `AWS WAF`,
+`Request blocked`, `Access Denied`, `<title>403 Forbidden</title>`. On
+match the client logs WARN with full response headers attached and
+returns the `errWAFBlocked` sentinel without retrying. Retrying within
+the same source IP is futile against an IP-level block. Non-WAF 403
+responses fall through to the existing API-key auth-error path.
+
+Quick task `260428-2zl`. Operators can detect WAF blocks at the
+`errors.Is(..., errWAFBlocked)` boundary via `peeringdb.IsWAFBlocked(err)`.
 
 #### Sync cadence
 

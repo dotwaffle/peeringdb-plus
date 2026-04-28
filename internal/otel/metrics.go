@@ -63,6 +63,39 @@ var SyncTypeFallback metric.Int64Counter
 // WARN logs which previously blew Tempo's 7.5 MB per-trace budget.
 var SyncTypeOrphans metric.Int64Counter
 
+// SyncFKBackfill counts live FK-backfill attempts during sync, broken down
+// by {type, parent_type, result} where result ∈ {hit, miss, ratelimited,
+// error}. Quick task 260428-2zl: when fkCheckParent finds a missing
+// parent, sync attempts one upstream fetch via ?since=1&id__in=N before
+// declaring the child an orphan. Cap-hit (per-cycle budget exhausted),
+// HTTP failures, and "parent truly absent upstream" each get their own
+// result label so dashboards can split successful recoveries from
+// rate-limit pressure.
+var SyncFKBackfill metric.Int64Counter
+
+// PeeringDBRequests counts outbound HTTP requests to the PeeringDB API by
+// status_class ∈ {2xx, 3xx, 4xx, 5xx, network_error}. Quick task 260428-2zl
+// — the sync-level fk_backfill counter only sees post-decision events;
+// this counter sees every request the transport makes (including retries).
+// Cardinality: 5 values × 1 metric = 5 series (well under any concern).
+var PeeringDBRequests metric.Int64Counter
+
+// PeeringDBRetries counts in-transport retries broken down by cause ∈
+// {429, 5xx, network_error}. Quick task 260428-2zl. The 429 axis catches
+// upstream rate-limit pressure that the limiter under-provisioned for;
+// 5xx catches upstream instability; network_error catches conn/DNS
+// failures. The application-level 5xx ladder in doWithRetry also bumps
+// the 5xx counter — both are intentional (every retry is a retry).
+var PeeringDBRetries metric.Int64Counter
+
+// PeeringDBRateLimitWaitMS is a histogram of per-request rate-limiter
+// wait durations in milliseconds. Quick task 260428-2zl — replaces the
+// span-event-only signal with a metric so operators can see p50/p95/p99
+// without enabling sampled tracing. Bucket boundaries cover 0 (always-
+// available bursts) up to 5s (the biggest gap a 1/3s limiter can impose
+// on a single Wait call).
+var PeeringDBRateLimitWaitMS metric.Float64Histogram
+
 // RoleTransitions counts LiteFS role transition events (promoted/demoted).
 var RoleTransitions metric.Int64Counter
 
@@ -135,6 +168,39 @@ func InitMetrics() error {
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.type.orphans counter: %w", err)
+	}
+
+	SyncFKBackfill, err = meter.Int64Counter("pdbplus.sync.fk_backfill",
+		metric.WithDescription("Live FK-backfill attempts during sync, by type/parent_type/result"),
+		metric.WithUnit("{attempt}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.sync.fk_backfill counter: %w", err)
+	}
+
+	PeeringDBRequests, err = meter.Int64Counter("pdbplus.peeringdb.requests",
+		metric.WithDescription("Outbound HTTP requests to PeeringDB API, by status_class"),
+		metric.WithUnit("{request}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.peeringdb.requests counter: %w", err)
+	}
+
+	PeeringDBRetries, err = meter.Int64Counter("pdbplus.peeringdb.retries",
+		metric.WithDescription("In-transport PeeringDB request retries, by cause"),
+		metric.WithUnit("{retry}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.peeringdb.retries counter: %w", err)
+	}
+
+	PeeringDBRateLimitWaitMS, err = meter.Float64Histogram("pdbplus.peeringdb.rate_limit_wait_ms",
+		metric.WithDescription("Per-request PeeringDB rate-limiter wait duration in milliseconds"),
+		metric.WithUnit("ms"),
+		metric.WithExplicitBucketBoundaries(0, 1, 10, 50, 100, 250, 500, 1000, 2500, 5000),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.peeringdb.rate_limit_wait_ms histogram: %w", err)
 	}
 
 	RoleTransitions, err = meter.Int64Counter("pdbplus.role.transitions",

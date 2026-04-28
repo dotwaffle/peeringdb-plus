@@ -278,14 +278,20 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	}
 }
 
-// TestSyncSoftDeletesStale verifies sync marks rows absent from the remote
-// response as status='deleted' (Phase 68 D-02) rather than hard-deleting
-// them. The row count stays 3 after cycle 2; org 2 transitions from 'ok'
-// to 'deleted' while org 1 and org 3 retain status='ok'.
-func TestSyncSoftDeletesStale(t *testing.T) {
+// TestSyncPersistsExplicitTombstone verifies sync persists explicit
+// status='deleted' rows from upstream as tombstones in the local DB.
+// Quick task 260428-2zl Task 6: pre-2zl this test asserted the
+// inference-by-absence soft-delete path (org omitted from response →
+// local row marked deleted). That inference was structurally wrong
+// against PeeringDB's serializer-side filtering and is removed in T6.
+// Post-2zl, deletes arrive as explicit `{"id": N, "status":"deleted"}`
+// payloads in ?since=N responses; this test seeds that payload
+// directly and asserts the upsert path persists it without needing
+// a separate delete pass.
+func TestSyncPersistsExplicitTombstone(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
-	// First sync with 3 orgs.
+	// First sync with 3 orgs (all 'ok').
 	f.responses["org"] = []any{
 		makeOrg(1, "Org1", "ok"),
 		makeOrg(2, "Org2", "ok"),
@@ -301,32 +307,34 @@ func TestSyncSoftDeletesStale(t *testing.T) {
 		t.Fatalf("expected 3 orgs, got %d", count)
 	}
 
-	// Second sync with only 2 orgs (org 2 removed).
+	// Second sync: upstream returns org 2 with status='deleted'
+	// (mirrors the rest.py:694-727 ?since= response shape).
 	f.responses["org"] = []any{
 		makeOrg(1, "Org1", "ok"),
+		makeOrg(2, "Org2", "deleted"),
 		makeOrg(3, "Org3", "ok"),
 	}
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
-	// Post-Phase-68 soft-delete: row count unchanged, org 2 transitions to
-	// status='deleted'. Org 1 and org 3 stay 'ok'.
+	// Row count unchanged, org 2 transitioned to 'deleted' via the
+	// explicit upstream payload (no inference involved).
 	count, _ = w.entClient.Organization.Query().Count(t.Context())
 	if count != 3 {
-		t.Errorf("expected 3 orgs after soft-delete, got %d", count)
+		t.Errorf("expected 3 orgs, got %d", count)
 	}
 	okCount, _ := w.entClient.Organization.Query().Where(organization.Status("ok")).Count(t.Context())
 	if okCount != 2 {
-		t.Errorf("expected 2 orgs with status='ok' after soft-delete, got %d", okCount)
+		t.Errorf("expected 2 orgs with status='ok', got %d", okCount)
 	}
 	deletedCount, _ := w.entClient.Organization.Query().Where(organization.Status("deleted")).Count(t.Context())
 	if deletedCount != 1 {
-		t.Errorf("expected 1 org with status='deleted' after soft-delete, got %d", deletedCount)
+		t.Errorf("expected 1 org with status='deleted', got %d", deletedCount)
 	}
 	org2, err := w.entClient.Organization.Get(t.Context(), 2)
 	if err != nil {
-		t.Fatalf("org 2 should still exist after soft-delete: %v", err)
+		t.Fatalf("org 2 should still exist: %v", err)
 	}
 	if org2.Status != "deleted" {
 		t.Errorf("org 2 status: want 'deleted', got %q", org2.Status)
@@ -1001,9 +1009,15 @@ func TestIncrementalSync(t *testing.T) {
 	}
 }
 
-// TestIncrementalFirstSyncFull verifies that incremental mode with no cursors
-// falls back to full fetch (no ?since=).
-func TestIncrementalFirstSyncFull(t *testing.T) {
+// TestIncrementalFirstSyncBootstrap verifies that incremental mode with no
+// cursors bootstraps with ?since=1 (NOT bare /api/<type>). Quick task
+// 260428-2zl flipped the semantics: pre-2zl this test asserted "no
+// ?since= on first sync" (under the old fall-back-to-full design); post-
+// 2zl the contract is "since=1 on first sync" so deleted-status rows
+// from upstream's history land in the local mirror from cycle 1
+// (rest.py:694-727 status × since matrix — bare path filters to
+// status='ok' only and leaves permanent gaps).
+func TestIncrementalFirstSyncBootstrap(t *testing.T) {
 	t.Parallel()
 	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
 	f := newFixtureWithMeta(t, generated)
@@ -1012,15 +1026,14 @@ func TestIncrementalFirstSyncFull(t *testing.T) {
 	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// First sync with no cursors should use full fetch.
+	// First sync with no cursors should bootstrap with since=1.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
-	// Since this is the first sync, org should NOT have ?since= set
-	// (because cursor is zero, full mode path is used).
-	if orgSeen, ok := f.sinceSeen["org"]; ok && orgSeen.Load() {
-		t.Error("expected no ?since= parameter on first sync (no cursor)")
+	// Quick task 260428-2zl: ?since=1 is now used on first incremental sync.
+	if orgSeen, ok := f.sinceSeen["org"]; !ok || !orgSeen.Load() {
+		t.Error("expected ?since=1 parameter on first incremental sync (post-2zl bootstrap)")
 	}
 
 	// Verify data was synced.
@@ -1111,8 +1124,10 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// Cycle 1: cursor zero → falls back to full sync per
-	// stageOneTypeToScratch (cursor.IsZero() gate). Both orgs persisted.
+	// Cycle 1: cursor zero → bootstrap with ?since=1 (quick task 260428-2zl).
+	// Pre-2zl: cursor.IsZero() fell through to full sync; post-2zl the
+	// bootstrap path captures the upstream history-with-tombstones from
+	// cycle 1. Both orgs persisted in either path.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
@@ -1235,8 +1250,10 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// Cycle 1: cursor zero → falls back to full sync per
-	// stageOneTypeToScratch (cursor.IsZero() gate). Both pocs persisted.
+	// Cycle 1: cursor zero → bootstrap with ?since=1 (quick task 260428-2zl).
+	// Pre-2zl: cursor.IsZero() fell through to full sync; post-2zl the
+	// bootstrap path captures the upstream history-with-tombstones from
+	// cycle 1. Both pocs persisted in either path.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}

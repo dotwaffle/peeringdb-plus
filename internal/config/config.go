@@ -167,6 +167,24 @@ type Config struct {
 	// PDBPLUS_RSS_WARN_MIB (integer MiB, no unit suffix). Default 384 MiB.
 	// Zero disables the warn.
 	RSSWarnBytes int64
+
+	// PeeringDBRPS is the unauthenticated sustained requests-per-second
+	// cap to the PeeringDB API. Configured via PDBPLUS_PEERINGDB_RPS
+	// (float, must be >0). Default 2.0. Burst is hardcoded at 1 in the
+	// peeringdb client. Authenticated requests (PDBPLUS_PEERINGDB_API_KEY
+	// set) override this to 60 req/min — the upstream auth quota is fixed
+	// regardless of operator preference. Quick task 260428-2zl.
+	PeeringDBRPS float64
+
+	// FKBackfillMaxPerCycle caps live FK-backfill upstream fetches per
+	// sync cycle. Configured via PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE
+	// (non-negative integer). Default 200. Set to 0 to disable backfill
+	// entirely (legacy drop-on-miss behavior). Quick task 260428-2zl —
+	// when fkCheckParent finds a missing parent, sync attempts one fetch
+	// via ?since=1&id__in=<id> to recover the row before declaring the
+	// child orphaned. Per-cycle dedup prevents repeat fetches for the
+	// same (type,id) pair within a single sync.
+	FKBackfillMaxPerCycle int
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -292,6 +310,18 @@ func Load() (*Config, error) {
 	}
 	cfg.RSSWarnBytes = rssWarn
 
+	rps, err := parseFloat64("PDBPLUS_PEERINGDB_RPS", 2.0)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_PEERINGDB_RPS: %w", err)
+	}
+	cfg.PeeringDBRPS = rps
+
+	fkCap, err := parseNonNegativeInt("PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE", 200)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE: %w", err)
+	}
+	cfg.FKBackfillMaxPerCycle = fkCap
+
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
 	}
@@ -346,6 +376,12 @@ func (c *Config) validate() error {
 	}
 	if c.RSSWarnBytes < 0 {
 		return errors.New("PDBPLUS_RSS_WARN_MIB must be non-negative (0 = disabled)")
+	}
+	if c.PeeringDBRPS <= 0 {
+		return errors.New("PDBPLUS_PEERINGDB_RPS must be greater than 0")
+	}
+	if c.FKBackfillMaxPerCycle < 0 {
+		return errors.New("PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE must be non-negative (0 = disabled)")
 	}
 	return nil
 }
@@ -588,4 +624,27 @@ func parseByteSize(key string, defaultVal int64) (int64, error) {
 		return 0, fmt.Errorf("invalid byte size %q for %s: overflows int64", v, key)
 	}
 	return num * mult, nil
+}
+
+// parseNonNegativeInt reads key from the environment as a non-negative
+// integer. Empty / unset → defaultVal. Negative or non-integer values
+// return an error so the process fails fast at startup per GO-CFG-1.
+//
+// Quick task 260428-2zl: introduced for PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE.
+// Distinct from parseFloat64 / parseMiB / parseByteSize because the
+// underlying value is a count, not a measurement — a unit suffix would
+// be misleading.
+func parseNonNegativeInt(key string, defaultVal int) (int, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal, nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, fmt.Errorf("invalid integer %q for %s: %w", v, key, err)
+	}
+	if n < 0 {
+		return 0, fmt.Errorf("invalid value %q for %s: must be non-negative", v, key)
+	}
+	return n, nil
 }

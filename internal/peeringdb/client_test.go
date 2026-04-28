@@ -839,11 +839,36 @@ func TestAuthenticatedRateLimit(t *testing.T) {
 func TestUnauthenticatedRateLimit(t *testing.T) {
 	t.Parallel()
 
+	// Quick task 260428-2zl: default unauth RPS bumped from 0.33 (1/3s) to
+	// 2.0 (PDBPLUS_PEERINGDB_RPS default). Burst stays at 1.
 	client := NewClient("http://127.0.0.1:1", slog.Default())
-	// Unauthenticated client should use 1 req/3sec (rate.Every(3*time.Second)).
-	wantLimit := rate.Every(3 * time.Second)
+	wantLimit := rate.Limit(defaultRPS)
 	if client.limiter.Limit() != wantLimit {
 		t.Errorf("unauthenticated limiter rate = %v, want %v", client.limiter.Limit(), wantLimit)
+	}
+}
+
+// TestWithRPS_OverridesDefault asserts the WithRPS option sets the
+// unauthenticated limiter rate. Quick task 260428-2zl.
+func TestWithRPS_OverridesDefault(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient("http://127.0.0.1:1", slog.Default(), WithRPS(5.0))
+	if client.limiter.Limit() != rate.Limit(5.0) {
+		t.Errorf("WithRPS(5.0) → limiter rate = %v, want %v", client.limiter.Limit(), rate.Limit(5.0))
+	}
+}
+
+// TestWithAPIKey_OverridesWithRPS asserts that even with a WithRPS option,
+// the auth path picks the upstream-fixed 60/min quota. Quick task 260428-2zl.
+func TestWithAPIKey_OverridesWithRPS(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient("http://127.0.0.1:1", slog.Default(),
+		WithRPS(5.0), WithAPIKey("dummy"))
+	wantLimit := rate.Every(1 * time.Second)
+	if client.limiter.Limit() != wantLimit {
+		t.Errorf("WithAPIKey + WithRPS → limiter rate = %v, want %v", client.limiter.Limit(), wantLimit)
 	}
 }
 

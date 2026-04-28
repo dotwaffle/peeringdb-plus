@@ -215,13 +215,18 @@ func main() {
 	}
 
 	// Create PeeringDB client per D-04, D-09.
+	// Quick task 260428-2zl: WithRPS comes BEFORE WithAPIKey so the auth
+	// path can override the unauth RPS to the upstream-fixed 60/min quota
+	// inside NewClient (see internal/peeringdb/client.go option apply order).
 	var clientOpts []peeringdb.ClientOption
+	clientOpts = append(clientOpts, peeringdb.WithRPS(cfg.PeeringDBRPS))
 	if cfg.PeeringDBAPIKey != "" {
 		clientOpts = append(clientOpts, peeringdb.WithAPIKey(cfg.PeeringDBAPIKey))
 		logger.Info("PeeringDB API key configured", slog.String("api_key", "[set]"))
 	} else {
 		logger.Info("PeeringDB API key not configured, using unauthenticated access",
-			slog.String("api_key", "[not set]"))
+			slog.String("api_key", "[not set]"),
+			slog.Float64("rps", cfg.PeeringDBRPS))
 	}
 
 	// SEC-04: make the disabled-sync-auth state loud at boot so operators see it
@@ -294,9 +299,10 @@ func main() {
 			// succeeded.
 			cachingState.UpdateETag(syncTime)
 		},
-		SyncMemoryLimit: cfg.SyncMemoryLimit,
-		HeapWarnBytes:   cfg.HeapWarnBytes,
-		RSSWarnBytes:    cfg.RSSWarnBytes,
+		SyncMemoryLimit:       cfg.SyncMemoryLimit,
+		HeapWarnBytes:         cfg.HeapWarnBytes,
+		RSSWarnBytes:          cfg.RSSWarnBytes,
+		FKBackfillMaxPerCycle: cfg.FKBackfillMaxPerCycle,
 	}, logger)
 
 	// Phase 75 OBS-02 (D-02): pre-warm the 5 zero-rate counters so dashboard

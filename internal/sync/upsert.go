@@ -4,6 +4,7 @@ package sync
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -520,6 +521,101 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 		},
 		"network facilities",
 	)
+}
+
+// upsertSingleRaw decodes a single raw PeeringDB JSON object into the
+// per-type Go struct and reuses the bulk upsert helper to land it. The
+// existing OnConflict().UpdateNewValues() pattern handles re-insert
+// idempotently — a backfilled row that arrives during a normal Phase B
+// upsert will be overwritten by the bulk path without conflict.
+//
+// Quick task 260428-2zl: the FK-backfill path in fk_backfill.go calls
+// this once per missing parent ID. The single-element slice avoids any
+// need for separate insert paths and keeps the per-type logic
+// (validators, fold setters, nullable wiring) centralised in the bulk
+// upsert closures.
+//
+// Returns the inserted ID (per upstream contract — the parent we just
+// landed) so callers can fkRegisterIDs without a separate query, or 0
+// + error on dispatch / decode / upsert failure.
+func upsertSingleRaw(ctx context.Context, tx *ent.Tx, parentType string, raw json.RawMessage) (int, error) {
+	switch parentType {
+	case peeringdb.TypeOrg:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.Organization) int { return v.ID },
+			upsertOrganizations)
+	case peeringdb.TypeCampus:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.Campus) int { return v.ID },
+			upsertCampuses)
+	case peeringdb.TypeFac:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.Facility) int { return v.ID },
+			upsertFacilities)
+	case peeringdb.TypeCarrier:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.Carrier) int { return v.ID },
+			upsertCarriers)
+	case peeringdb.TypeCarrierFac:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.CarrierFacility) int { return v.ID },
+			upsertCarrierFacilities)
+	case peeringdb.TypeIX:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.InternetExchange) int { return v.ID },
+			upsertInternetExchanges)
+	case peeringdb.TypeIXLan:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.IxLan) int { return v.ID },
+			upsertIxLans)
+	case peeringdb.TypeIXPfx:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.IxPrefix) int { return v.ID },
+			upsertIxPrefixes)
+	case peeringdb.TypeIXFac:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.IxFacility) int { return v.ID },
+			upsertIxFacilities)
+	case peeringdb.TypeNet:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.Network) int { return v.ID },
+			upsertNetworks)
+	case peeringdb.TypePoc:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.Poc) int { return v.ID },
+			upsertPocs)
+	case peeringdb.TypeNetFac:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.NetworkFacility) int { return v.ID },
+			upsertNetworkFacilities)
+	case peeringdb.TypeNetIXLan:
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
+			func(v peeringdb.NetworkIxLan) int { return v.ID },
+			upsertNetworkIxLans)
+	}
+	return 0, fmt.Errorf("upsertSingleRaw: unknown parent type %q", parentType)
+}
+
+// decodeAndUpsertSingle is the shared decode-and-bulk-upsert helper for
+// upsertSingleRaw. The generic parameter E carries the per-type Go
+// struct; the closures provide id extraction and the bulk upsert call.
+// Returns the row's ID (extracted via idFn) or 0 on error.
+func decodeAndUpsertSingle[E any](
+	ctx context.Context,
+	tx *ent.Tx,
+	parentType string,
+	raw json.RawMessage,
+	idFn func(E) int,
+	upsert func(context.Context, *ent.Tx, []E) ([]int, error),
+) (int, error) {
+	var v E
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return 0, fmt.Errorf("decode %s: %w", parentType, err)
+	}
+	if _, err := upsert(ctx, tx, []E{v}); err != nil {
+		return 0, fmt.Errorf("upsert %s: %w", parentType, err)
+	}
+	return idFn(v), nil
 }
 
 // upsertNetworkIxLans bulk upserts network-IXLan associations.

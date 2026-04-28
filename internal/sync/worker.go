@@ -105,6 +105,15 @@ type WorkerConfig struct {
 	// Linux; skipped on other OSes (the RSS attr is then omitted — it
 	// is not set to zero). Zero disables only the Warn.
 	RSSWarnBytes int64
+
+	// FKBackfillMaxPerCycle caps the number of live FK-backfill HTTP
+	// fetches per sync cycle. Quick task 260428-2zl: when fkCheckParent
+	// finds a missing parent, sync attempts one fetch via
+	// ?since=1&id__in=<id> to recover the row before declaring the
+	// child orphaned. Default 200 (PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE).
+	// 0 disables backfill entirely — legacy drop-on-miss behavior,
+	// preserved as an operator escape-hatch for misbehaving cycles.
+	FKBackfillMaxPerCycle int
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -147,6 +156,23 @@ type Worker struct {
 	// 7.5 MB per-trace cap (audit 2026-04-26). Reset alongside fkRegistry
 	// in resetFKState.
 	fkOrphanCounts map[fkOrphanKey]int
+	// fkBackfillTried is the per-cycle dedup cache for live FK backfills
+	// (quick task 260428-2zl). Keyed by (parent type, parent ID) — if the
+	// same missing parent is referenced by N child rows, we issue exactly
+	// ONE backfill HTTP fetch and short-circuit the next N-1 lookups.
+	// Reset alongside fkRegistry in resetFKState.
+	fkBackfillTried map[fkBackfillKey]struct{}
+	// fkBackfillCount is the per-cycle attempted-fetch counter, compared
+	// against fkBackfillCap. Bumped before the HTTP fetch (so cap-hit
+	// detection fires deterministically across goroutines that might
+	// race the cap on the same cycle, even though Worker.Sync is
+	// single-writer today).
+	fkBackfillCount int
+	// fkBackfillCap is the per-cycle hard cap on FK backfill HTTP
+	// fetches. Captured once in NewWorker from
+	// WorkerConfig.FKBackfillMaxPerCycle; 0 disables backfill entirely
+	// (legacy drop-on-miss behavior, preserved for operator escape-hatch).
+	fkBackfillCap int
 }
 
 // fkOrphanKey is the dimension grouping a single class of FK-orphan
@@ -173,6 +199,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		config:        cfg,
 		logger:        logger,
 		retryBackoffs: defaultRetryBackoffs,
+		fkBackfillCap: cfg.FKBackfillMaxPerCycle,
 	}
 }
 
@@ -189,6 +216,11 @@ func (w *Worker) resetFKState() {
 	w.fkRegistry = make(map[string]map[int]struct{}, 13)
 	w.fkSkippedIDs = make(map[string]map[int]struct{}, 13)
 	w.fkOrphanCounts = make(map[fkOrphanKey]int)
+	// Quick task 260428-2zl: reset per-cycle FK-backfill dedup cache and
+	// counter alongside the rest of the FK state. The cap is captured
+	// once at NewWorker time; only the per-cycle bookkeeping resets.
+	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
+	w.fkBackfillCount = 0
 }
 
 // recordOrphan tracks one FK-orphan observation for the per-cycle
@@ -359,19 +391,22 @@ func (w *Worker) fkMarkSkipped(typeName string, id int) {
 }
 
 // syncStep defines a single step in the sync process. Upserts run in
-// parent-first FK order; deletes run in reverse (child-first) order.
+// parent-first FK order.
 //
 // After PERF-05 (Plan 54-02 Commit D), the fetch and upsert paths dispatch
 // via fetchOneTypeFull / fetchOneTypeIncremental / upsertOneType type
 // switches on step.name — the old upsertFn/incrementalFn fields were
-// removed because fetch now runs outside the tx. The deleteFn closure
-// soft-deletes rows (Phase 68 D-02): rows absent from the remote response
-// are marked status='deleted' with updated=cycleStart rather than physically
-// removed, so upstream rest.py:700-712 status × since matrix queries can
-// return tombstones.
+// removed because fetch now runs outside the tx.
+//
+// Quick task 260428-2zl Task 6: the deleteFn closure (Phase 68 D-02
+// inference-by-absence soft-delete) was removed. With Task 2's
+// bootstrap-with-?since=1 + Task 3's live FK backfill, deletes arrive
+// explicitly from upstream as status='deleted' rows in ?since=N
+// payloads — no inference needed. Existing tombstones in the live DB
+// are preserved (no schema change, no row mutation by this commit);
+// SEED-004 still owns the eventual GC story.
 type syncStep struct {
-	name     string
-	deleteFn func(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (marked int, err error)
+	name string
 }
 
 // canonicalStepOrder is the single source of truth for sync step
@@ -393,27 +428,16 @@ func StepOrder() []string {
 	return out
 }
 
-// syncSteps returns the ordered list of sync steps in FK dependency order per D-06.
-// Upserts are processed in this order (parents first); deletes in reverse (children first).
+// syncSteps returns the ordered list of sync steps in FK dependency
+// order per D-06. Quick task 260428-2zl Task 6: the per-type deleteFn
+// machinery is gone — sync no longer infers deletions from absence;
+// upstream sends explicit status='deleted' tombstones in ?since=N
+// payloads (Task 2 bootstrap), and the live FK backfill (Task 3)
+// handles missing parents.
 func (w *Worker) syncSteps() []syncStep {
-	deleteFns := map[string]func(ctx context.Context, tx *ent.Tx, remoteIDs []int, cycleStart time.Time) (int, error){
-		"org":        markStaleDeletedOrganizations,
-		"campus":     markStaleDeletedCampuses,
-		"fac":        markStaleDeletedFacilities,
-		"carrier":    markStaleDeletedCarriers,
-		"carrierfac": markStaleDeletedCarrierFacilities,
-		"ix":         markStaleDeletedInternetExchanges,
-		"ixlan":      markStaleDeletedIxLans,
-		"ixpfx":      markStaleDeletedIxPrefixes,
-		"ixfac":      markStaleDeletedIxFacilities,
-		"net":        markStaleDeletedNetworks,
-		"poc":        markStaleDeletedPocs,
-		"netfac":     markStaleDeletedNetworkFacilities,
-		"netixlan":   markStaleDeletedNetworkIxLans,
-	}
 	steps := make([]syncStep, len(canonicalStepOrder))
 	for i, name := range canonicalStepOrder {
-		steps[i] = syncStep{name: name, deleteFn: deleteFns[name]}
+		steps[i] = syncStep{name: name}
 	}
 	return steps
 }
@@ -544,13 +568,9 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		return fkErr
 	}
 
-	// === Phase B — SINGLE REAL TX ===
-	objectCounts, remoteIDsByType, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
+	// === Phase B — SINGLE REAL TX === (260428-2zl T6: no delete pass.)
+	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
 	if err != nil {
-		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
-		return err
-	}
-	if err := w.syncDeletePass(ctx, tx, remoteIDsByType, start); err != nil {
 		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
 		return err
 	}
@@ -887,10 +907,26 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // truncated (to drop any partial insert) and a full stage is retried.
 // Returns the cursor update timestamp, a flag indicating whether the
 // successful run was incremental, and any error.
+//
+// Quick task 260428-2zl: bootstrap path — when incremental mode is
+// active but no prior cursor exists (fresh DB, or first incremental
+// after the v1.17 default flip when no full sync has run yet), use
+// time.Unix(1,0) so the upstream URL becomes ?since=1. Per upstream
+// rest.py:694-727 status × since matrix, ?since=N>0 returns BOTH 'ok'
+// AND 'deleted' rows — capturing the full historical state including
+// tombstones from before our cursor existed. Without this, the bare
+// /api/<type> path filters to status='ok' only, leaving permanent gaps
+// for rows that became status='deleted' before we started observing.
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, start time.Time, stepSpan trace.Span) (time.Time, bool, error) {
 	// Incremental attempt with fallback to full on error.
-	if mode == config.SyncModeIncremental && !cursor.IsZero() {
-		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
+	if mode == config.SyncModeIncremental {
+		sinceCursor := cursor
+		if sinceCursor.IsZero() {
+			sinceCursor = time.Unix(1, 0)
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "incremental bootstrap with since=1",
+				slog.String("type", name))
+		}
+		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, sinceCursor)
 		if incErr == nil {
 			return generated, true, nil
 		}
@@ -929,17 +965,19 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 // double during the handover between chunks. DO NOT remove the
 // batch-free line.
 //
-// The remoteIDsByType map is populated from scratch via a final
-// `SELECT id FROM scratch.{type}` after the chunked upsert completes —
-// this gives the delete pass the complete remote-ID set for full syncs.
-// Incremental syncs skip delete (fromIncremental[name] == true).
+// Quick task 260428-2zl Task 6: the per-type remoteIDsByType map and
+// the final `SELECT id FROM scratch.{type}` collection step are gone
+// alongside the inference-by-absence delete pass. Sync no longer
+// infers deletions from absence; upstream sends explicit
+// status='deleted' tombstones.
+// fromIncremental is retained only as a defensive parameter — the
+// per-step branching it used to gate is also gone.
 //
 // D-19 atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
-func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratchDB, fromIncremental map[string]bool) (
-	objectCounts map[string]int,
-	remoteIDsByType map[string][]int,
-	err error,
+func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratchDB, _ map[string]bool) (
+	map[string]int,
+	error,
 ) {
 	// Reset the per-sync FK orphan-filter state before the first
 	// dispatchScratchChunk call populates it. Kept here rather than in
@@ -947,8 +985,7 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 	// enforced by TestWorkerSync_LineBudget.
 	w.resetFKState()
 	steps := w.syncSteps()
-	objectCounts = make(map[string]int, len(steps))
-	remoteIDsByType = make(map[string][]int, len(steps))
+	objectCounts := make(map[string]int, len(steps))
 	// batches carries one decoded chunk at a time; the map entry is
 	// cleared after each chunk upsert for the PERF-05 memory bound.
 	batches := make(map[string]syncBatch, 1)
@@ -963,37 +1000,11 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 
 		if stepErr != nil {
 			pdbotel.SyncTypeUpsertErrors.Add(ctx, 1, typeAttr)
-			return nil, nil, fmt.Errorf("upsert %s: %w", step.name, stepErr)
+			return nil, fmt.Errorf("upsert %s: %w", step.name, stepErr)
 		}
 
 		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 		objectCounts[step.name] = count
-
-		// Full-sync batches contribute a complete remote-ID set used by
-		// the delete pass. Incremental batches are a delta only — skip
-		// delete. The remote IDs are read from scratch directly so the
-		// ID set does not inflate Go heap during the upsert phase.
-		//
-		// Subtract any IDs dropped by the upsert-time fkFilter so the
-		// delete pass picks up previously-inserted rows whose FK is now
-		// orphaned — this prevents parent-delete-while-child-remains FK
-		// violations at commit in steady-state syncs.
-		if !fromIncremental[step.name] {
-			ids, idErr := w.collectScratchIDs(ctx, scratch, step.name)
-			if idErr != nil {
-				return nil, nil, fmt.Errorf("collect remote ids %s: %w", step.name, idErr)
-			}
-			if skipped := w.fkSkippedIDs[step.name]; len(skipped) > 0 {
-				filtered := ids[:0]
-				for _, id := range ids {
-					if _, drop := skipped[id]; !drop {
-						filtered = append(filtered, id)
-					}
-				}
-				ids = filtered
-			}
-			remoteIDsByType[step.name] = ids
-		}
 
 		// PERF-05 hard gate (400 MB): force a GC cycle between types
 		// to deterministically reclaim the chunked decode buffers and
@@ -1011,7 +1022,7 @@ func (w *Worker) syncUpsertPass(ctx context.Context, tx *ent.Tx, scratch *scratc
 		)
 	}
 
-	return objectCounts, remoteIDsByType, nil
+	return objectCounts, nil
 }
 
 // drainAndUpsertType reads scratch[type] in chunks of scratchChunkSize
@@ -1068,31 +1079,6 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 		afterID = lastID
 	}
 	return total, nil
-}
-
-// collectScratchIDs reads the full set of row ids from scratch[type].
-// Used to build the remote-ID set for the Phase B delete pass without
-// keeping the typed slice in Go heap. The id set for netixlan at 200K
-// rows is only ~1.6 MB (8 bytes per int64) — well inside the heap
-// budget even for the largest type.
-func (w *Worker) collectScratchIDs(ctx context.Context, scratch *scratchDB, name string) ([]int, error) {
-	rows, err := scratch.db.QueryContext(ctx, fmt.Sprintf("SELECT id FROM %q ORDER BY id", name))
-	if err != nil {
-		return nil, fmt.Errorf("query scratch ids %s: %w", name, err)
-	}
-	defer func() { _ = rows.Close() }()
-	var ids []int
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("scan scratch id %s: %w", name, err)
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate scratch ids %s: %w", name, err)
-	}
-	return ids, nil
 }
 
 // syncIncrementalInput bundles the per-type parameters for
@@ -1361,16 +1347,32 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
+				// Required FKs: net_id, ixlan_id. Drop on miss after
+				// backfill attempt (legacy behavior).
+				//
+				// NOTE: ix_id is NOT an independent FK upstream — it is
+				// serializer-computed from ixlan.ix_id (peeringdb_server/
+				// serializers.py NetworkIxLanSerializer). Validating
+				// ixlan_id (below) is sufficient. Quick task 260428-2zl
+				// removed the redundant ix_id check that was producing
+				// false-positive orphans whenever an ix mid-sync was a
+				// missing parent for an otherwise-valid netixlan row.
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id") {
 					return false
 				}
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
-					peeringdb.TypeIX, v.IXID, "ix_id") {
+					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id") {
 					return false
 				}
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
-					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
+				// Optional side FKs: net_side_id, ix_side_id. Upstream
+				// peeringdb_server/models.py:5630-5642 declares both as
+				// `null=True, on_delete=SET_NULL`. Quick task 260428-2zl:
+				// mirror that contract by null-on-miss (after backfill
+				// attempt) rather than dropping the entire row.
+				w.nullSideFK(ctx, tx, &v.NetSideID, "net_side_id", v.ID)
+				w.nullSideFK(ctx, tx, &v.IXSideID, "ix_side_id", v.ID)
+				return true
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetIXLan, ids) },
 			upsert:    upsertNetworkIxLans,
@@ -1381,13 +1383,22 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 
 // fkCheckParent is the per-row FK validation helper called from the
 // fkFilter closures in dispatchScratchChunk. Returns true if parentID
-// is registered for parentType (or is a zero/null FK); otherwise records
-// the orphan via Worker.recordOrphan (DEBUG log + per-cycle counter),
-// marks the child id in fkSkippedIDs so the delete pass can reconcile,
-// and returns false so syncIncremental drops the row from the chunk.
-// emitOrphanSummary surfaces the per-cycle aggregate at WARN.
+// is registered for parentType (or is a zero/null FK), or if the live
+// backfill (quick task 260428-2zl) recovered the parent from upstream.
+// Otherwise records the orphan via Worker.recordOrphan (DEBUG log +
+// per-cycle counter), marks the child id in fkSkippedIDs so the delete
+// pass can reconcile, and returns false so syncIncremental drops the
+// row from the chunk. emitOrphanSummary surfaces the per-cycle
+// aggregate at WARN.
+//
+// Backfill is gated on fkBackfillCap > 0 — operators who set
+// PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE=0 retain the legacy drop-on-miss
+// behavior (no upstream traffic; child rows simply dropped).
 func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string, childID int, parentType string, parentID int, field string) bool {
 	if w.fkHasParent(ctx, tx, parentType, parentID) {
+		return true
+	}
+	if w.fkBackfillCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return true
 	}
 	w.fkMarkSkipped(childType, childID)
@@ -1400,48 +1411,39 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 	return false
 }
 
-// syncDeletePass runs the per-type soft-delete loop in child-first (reverse
-// FK) order, skipping types that have no remoteIDs (incremental sync
-// succeeded). cycleStart is the single timestamp stamped on every row marked
-// status='deleted' during this cycle (Phase 68 D-02) — reused from the
-// Worker.Sync-entry time.Now() so all 13 types see identical timestamps.
-// The orchestrator handles rollback + recordFailure on error.
-func (w *Worker) syncDeletePass(ctx context.Context, tx *ent.Tx, remoteIDsByType map[string][]int, cycleStart time.Time) error {
-	steps := w.syncSteps()
-	for i := len(steps) - 1; i >= 0; i-- {
-		step := steps[i]
-		remoteIDs, ok := remoteIDsByType[step.name]
-		if !ok {
-			// Incremental sync succeeded for this type — no delete needed.
-			continue
-		}
-
-		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-delete-"+step.name)
-
-		marked, stepErr := step.deleteFn(ctx, tx, remoteIDs, cycleStart)
-
-		stepSpan.End()
-
-		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
-
-		if stepErr != nil {
-			return fmt.Errorf("mark stale deleted %s: %w", step.name, stepErr)
-		}
-
-		// Record per-type delete metrics per D-08. The metric name stays
-		// SyncTypeDeleted — operator semantics for a row absent from the
-		// visible list are still "it's gone", even though the row physically
-		// remains as a tombstone post-Phase-68 D-02.
-		pdbotel.SyncTypeDeleted.Add(ctx, int64(marked), typeAttr)
-
-		if marked > 0 {
-			w.logger.LogAttrs(ctx, slog.LevelDebug, "marked stale deleted",
-				slog.String("type", step.name),
-				slog.Int("marked", marked),
-			)
-		}
+// nullSideFK enforces the upstream SET_NULL contract on optional side
+// FKs (NetworkIxLan.{net_side_id, ix_side_id} → fac). Quick task
+// 260428-2zl Task 4: per peeringdb_server/models.py:5630-5642 these
+// columns are `null=True, on_delete=SET_NULL`, so a missing parent
+// must NULL the column rather than drop the row.
+//
+// Process:
+//   1. ptr is nil (FK already null) → no-op.
+//   2. Parent present (cache or DB) → no-op.
+//   3. Backfill enabled and recovers parent → no-op.
+//   4. Otherwise: record the orphan with action="null" and zero ptr.
+//
+// Field name is recorded on the orphan counter so dashboards can split
+// "net_side_id" misses from "ix_side_id" misses for the same NetworkIxLan
+// child type.
+func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field string, childID int) {
+	if ptr == nil || *ptr == nil {
+		return
 	}
-	return nil
+	parentID := **ptr
+	if w.fkHasParent(ctx, tx, peeringdb.TypeFac, parentID) {
+		return
+	}
+	if w.fkBackfillCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
+		return
+	}
+	w.recordOrphan(ctx, fkOrphanKey{
+		ChildType:  peeringdb.TypeNetIXLan,
+		ParentType: peeringdb.TypeFac,
+		Field:      field,
+		Action:     "null",
+	}, childID, parentID)
+	*ptr = nil
 }
 
 // recordFailure records a failed sync in the sync_status table and metrics.
