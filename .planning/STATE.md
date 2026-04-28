@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: null
 milestone_name: null
 status: between-milestones
-last_updated: "2026-04-27T23:25:00Z"
-last_activity: 2026-04-27 -- Completed quick task 260427-vvx: build-tag-gated cmd/loadtest tool for deployed instances
+last_updated: "2026-04-28T02:30:00Z"
+last_activity: 2026-04-28 -- Completed quick task 260428-2zl: fk-parity-with-upstream (live FK backfill, ?since=1 bootstrap, rate-limited HTTP transport, removed inference-by-absence soft-delete)
 progress:
   total_phases: 0
   completed_phases: 0
@@ -51,6 +51,7 @@ These were surfaced during v1.18.0 execution and are not required for milestone 
 |---|-------------|------|--------|-----------|
 | 260427-ojm | replace OnSyncComplete `len(items)` with current-table `Count(ctx)` for `pdbplus_data_type_count` gauge | 2026-04-27 | 18b2337 | [260427-ojm-replace-onsynccomplete-len-items-with-cu](./quick/260427-ojm-replace-onsynccomplete-len-items-with-cu/) |
 | 260427-vvx | build-tag-gated `cmd/loadtest` tool — endpoints sweep + sync simulator + soak mode for deployed instances on Fly.io | 2026-04-27 | d68a8eb | [260427-vvx-loadtest-script](./quick/260427-vvx-loadtest-script/) |
+| 260428-2zl | fk-parity-with-upstream — live FK backfill in `fkCheckParent`, `?since=1` incremental-sync bootstrap, rate-limited HTTP transport (configurable RPS, bounded 429 retry, WAF detection), removed `markStaleDeleted*` inference-by-absence soft-delete, NetworkIxLan side-FK null-on-miss, dropped redundant NetworkIxLan.ix_id check | 2026-04-28 | 0b8ca14 | [260428-2zl-fk-parity-with-upstream-live-fk-backfill](./quick/260428-2zl-fk-parity-with-upstream-live-fk-backfill/) |
 
 ## Accumulated Context
 
