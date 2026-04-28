@@ -737,7 +737,7 @@ func TestRamp_Verbose_OrgEntity_OmitsAsns(t *testing.T) {
 		t.Errorf("output missing org prefetch line\n%s", out)
 	}
 	// org entity has no asns — the prefetch line MUST NOT include asns=.
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if !strings.HasPrefix(line, "[ramp] "+string(SurfacePdbCompat)+" entity=org") {
 			continue
 		}
