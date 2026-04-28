@@ -38,6 +38,13 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 		return fmt.Errorf("create sync_status table: %w", err)
 	}
 
+	// DEPRECATED v1.18.10 (260428-mu0): the sync_cursors table is no
+	// longer written to — cursors are now derived from MAX(updated) per
+	// table by internal/sync/cursor.go GetMaxUpdated. The CREATE TABLE
+	// statement is preserved so an emergency rollback to a binary that
+	// reads sync_cursors continues to function (it will see whatever
+	// rows the prior run last wrote, which are still valid high-water-
+	// mark timestamps). Slated for removal in v1.19.
 	_, err = db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS sync_cursors (
 			type TEXT PRIMARY KEY,
@@ -52,6 +59,13 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
+// DEPRECATED v1.18.10 (260428-mu0): cursor is now derived from
+// MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
+// Slated for removal in v1.19. Do not call from new code. The
+// sync_cursors table CREATE TABLE in InitStatusTable is preserved for
+// rollback safety; existing rows are ignored by the production sync
+// path.
+//
 // GetCursor returns the last sync timestamp for a type. Returns zero
 // time only if no cursor row exists for the type.
 //
@@ -77,6 +91,13 @@ func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, erro
 	return lastSyncAt, nil
 }
 
+// DEPRECATED v1.18.10 (260428-mu0): cursor is now derived from
+// MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
+// Slated for removal in v1.19. Do not call from new code. The
+// sync_cursors table CREATE TABLE in InitStatusTable is preserved for
+// rollback safety; existing rows are ignored by the production sync
+// path.
+//
 // UpsertCursor updates or inserts the sync cursor for a type.
 //
 // 260428-eda CHANGE 2: called WITHIN the main sync transaction (via *ent.Tx)
