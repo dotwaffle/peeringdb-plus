@@ -887,10 +887,26 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // truncated (to drop any partial insert) and a full stage is retried.
 // Returns the cursor update timestamp, a flag indicating whether the
 // successful run was incremental, and any error.
+//
+// Quick task 260428-2zl: bootstrap path — when incremental mode is
+// active but no prior cursor exists (fresh DB, or first incremental
+// after the v1.17 default flip when no full sync has run yet), use
+// time.Unix(1,0) so the upstream URL becomes ?since=1. Per upstream
+// rest.py:694-727 status × since matrix, ?since=N>0 returns BOTH 'ok'
+// AND 'deleted' rows — capturing the full historical state including
+// tombstones from before our cursor existed. Without this, the bare
+// /api/<type> path filters to status='ok' only, leaving permanent gaps
+// for rows that became status='deleted' before we started observing.
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, start time.Time, stepSpan trace.Span) (time.Time, bool, error) {
 	// Incremental attempt with fallback to full on error.
-	if mode == config.SyncModeIncremental && !cursor.IsZero() {
-		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
+	if mode == config.SyncModeIncremental {
+		sinceCursor := cursor
+		if sinceCursor.IsZero() {
+			sinceCursor = time.Unix(1, 0)
+			w.logger.LogAttrs(ctx, slog.LevelInfo, "incremental bootstrap with since=1",
+				slog.String("type", name))
+		}
+		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, sinceCursor)
 		if incErr == nil {
 			return generated, true, nil
 		}

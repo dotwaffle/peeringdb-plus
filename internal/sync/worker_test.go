@@ -1001,9 +1001,15 @@ func TestIncrementalSync(t *testing.T) {
 	}
 }
 
-// TestIncrementalFirstSyncFull verifies that incremental mode with no cursors
-// falls back to full fetch (no ?since=).
-func TestIncrementalFirstSyncFull(t *testing.T) {
+// TestIncrementalFirstSyncBootstrap verifies that incremental mode with no
+// cursors bootstraps with ?since=1 (NOT bare /api/<type>). Quick task
+// 260428-2zl flipped the semantics: pre-2zl this test asserted "no
+// ?since= on first sync" (under the old fall-back-to-full design); post-
+// 2zl the contract is "since=1 on first sync" so deleted-status rows
+// from upstream's history land in the local mirror from cycle 1
+// (rest.py:694-727 status × since matrix — bare path filters to
+// status='ok' only and leaves permanent gaps).
+func TestIncrementalFirstSyncBootstrap(t *testing.T) {
 	t.Parallel()
 	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
 	f := newFixtureWithMeta(t, generated)
@@ -1012,15 +1018,14 @@ func TestIncrementalFirstSyncFull(t *testing.T) {
 	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// First sync with no cursors should use full fetch.
+	// First sync with no cursors should bootstrap with since=1.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
-	// Since this is the first sync, org should NOT have ?since= set
-	// (because cursor is zero, full mode path is used).
-	if orgSeen, ok := f.sinceSeen["org"]; ok && orgSeen.Load() {
-		t.Error("expected no ?since= parameter on first sync (no cursor)")
+	// Quick task 260428-2zl: ?since=1 is now used on first incremental sync.
+	if orgSeen, ok := f.sinceSeen["org"]; !ok || !orgSeen.Load() {
+		t.Error("expected ?since=1 parameter on first incremental sync (post-2zl bootstrap)")
 	}
 
 	// Verify data was synced.
@@ -1111,8 +1116,10 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// Cycle 1: cursor zero → falls back to full sync per
-	// stageOneTypeToScratch (cursor.IsZero() gate). Both orgs persisted.
+	// Cycle 1: cursor zero → bootstrap with ?since=1 (quick task 260428-2zl).
+	// Pre-2zl: cursor.IsZero() fell through to full sync; post-2zl the
+	// bootstrap path captures the upstream history-with-tombstones from
+	// cycle 1. Both orgs persisted in either path.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
@@ -1235,8 +1242,10 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// Cycle 1: cursor zero → falls back to full sync per
-	// stageOneTypeToScratch (cursor.IsZero() gate). Both pocs persisted.
+	// Cycle 1: cursor zero → bootstrap with ?since=1 (quick task 260428-2zl).
+	// Pre-2zl: cursor.IsZero() fell through to full sync; post-2zl the
+	// bootstrap path captures the upstream history-with-tombstones from
+	// cycle 1. Both pocs persisted in either path.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
