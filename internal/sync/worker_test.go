@@ -1009,15 +1009,14 @@ func TestIncrementalSync(t *testing.T) {
 	}
 }
 
-// TestIncrementalFirstSyncBootstrap verifies that incremental mode with no
-// cursors bootstraps with ?since=1 (NOT bare /api/<type>). Quick task
-// 260428-2zl flipped the semantics: pre-2zl this test asserted "no
-// ?since= on first sync" (under the old fall-back-to-full design); post-
-// 2zl the contract is "since=1 on first sync" so deleted-status rows
-// from upstream's history land in the local mirror from cycle 1
-// (rest.py:694-727 status × since matrix — bare path filters to
-// status='ok' only and leaves permanent gaps).
-func TestIncrementalFirstSyncBootstrap(t *testing.T) {
+// TestIncrementalFirstSyncFallsBackToBareList verifies that incremental
+// mode with no cursors falls through to the bare /api/<type> path
+// (status='ok' only), NOT the v1.18.2 ?since=1 bootstrap that was
+// reverted in v1.18.3 because it tripped upstream's
+// API_THROTTLE_REPEATED_REQUEST throttle. Historical-delete capture
+// for fresh installs is deferred to a proper multi-cycle bootstrap
+// design (v1.19+); FK backfill catches orphans on demand.
+func TestIncrementalFirstSyncFallsBackToBareList(t *testing.T) {
 	t.Parallel()
 	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
 	f := newFixtureWithMeta(t, generated)
@@ -1026,17 +1025,16 @@ func TestIncrementalFirstSyncBootstrap(t *testing.T) {
 	w, _ := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// First sync with no cursors should bootstrap with since=1.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
-	// Quick task 260428-2zl: ?since=1 is now used on first incremental sync.
-	if orgSeen, ok := f.sinceSeen["org"]; !ok || !orgSeen.Load() {
-		t.Error("expected ?since=1 parameter on first incremental sync (post-2zl bootstrap)")
+	// v1.18.3 contract: zero cursor → bare list, NO since= parameter.
+	if orgSeen, ok := f.sinceSeen["org"]; ok && orgSeen.Load() {
+		t.Error("unexpected ?since= on first incremental sync (v1.18.2 bootstrap regression)")
 	}
 
-	// Verify data was synced.
+	// Verify data was synced via the bare path.
 	orgCount, _ := w.entClient.Organization.Query().Count(ctx)
 	if orgCount != 1 {
 		t.Errorf("expected 1 org, got %d", orgCount)

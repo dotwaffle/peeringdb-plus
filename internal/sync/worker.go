@@ -114,6 +114,18 @@ type WorkerConfig struct {
 	// 0 disables backfill entirely — legacy drop-on-miss behavior,
 	// preserved as an operator escape-hatch for misbehaving cycles.
 	FKBackfillMaxPerCycle int
+
+	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
+	// backfill HTTP activity. v1.18.3: added because backfill calls
+	// happen inside the sync transaction; without a deadline a cascade
+	// of slow / rate-limited backfills could hold the tx open for tens
+	// of minutes, stalling LiteFS replication. After the deadline,
+	// fkBackfillParent short-circuits to drop-on-miss so the rest of
+	// the sync (bulk fetches + upserts) can commit and the next cycle
+	// picks up where we left off. Default 5 minutes
+	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
+	// deadline (only the cap applies).
+	FKBackfillTimeout time.Duration
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -173,6 +185,21 @@ type Worker struct {
 	// WorkerConfig.FKBackfillMaxPerCycle; 0 disables backfill entirely
 	// (legacy drop-on-miss behavior, preserved for operator escape-hatch).
 	fkBackfillCap int
+	// fkBackfillDeadline is the wall-clock deadline for FK-backfill HTTP
+	// activity within the current sync cycle. Set in resetFKState from
+	// fkBackfillTimeout. After the deadline, fkBackfillParent short-
+	// circuits to drop-on-miss so the rest of the sync (which is
+	// independent of backfill — bulk fetches and upserts continue) can
+	// commit and the next cycle picks up where we left off. v1.18.3:
+	// added because backfill HTTP calls happen inside the sync tx;
+	// without a deadline, a cascade of slow backfills could hold the tx
+	// open indefinitely and stall LiteFS replication.
+	fkBackfillDeadline time.Time
+	// fkBackfillTimeout is the per-cycle wall-clock budget for backfill
+	// HTTP activity. Captured once in NewWorker from
+	// WorkerConfig.FKBackfillTimeout; zero or negative disables the
+	// deadline (no timeout — only the cap applies).
+	fkBackfillTimeout time.Duration
 }
 
 // fkOrphanKey is the dimension grouping a single class of FK-orphan
@@ -198,8 +225,9 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		db:            db,
 		config:        cfg,
 		logger:        logger,
-		retryBackoffs: defaultRetryBackoffs,
-		fkBackfillCap: cfg.FKBackfillMaxPerCycle,
+		retryBackoffs:     defaultRetryBackoffs,
+		fkBackfillCap:     cfg.FKBackfillMaxPerCycle,
+		fkBackfillTimeout: cfg.FKBackfillTimeout,
 	}
 }
 
@@ -221,6 +249,14 @@ func (w *Worker) resetFKState() {
 	// once at NewWorker time; only the per-cycle bookkeeping resets.
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
 	w.fkBackfillCount = 0
+	// v1.18.3: per-cycle deadline for backfill HTTP activity. Zero
+	// timeout → zero deadline → fkBackfillParent's deadline check
+	// short-circuits to "no deadline".
+	if w.fkBackfillTimeout > 0 {
+		w.fkBackfillDeadline = time.Now().Add(w.fkBackfillTimeout)
+	} else {
+		w.fkBackfillDeadline = time.Time{}
+	}
 }
 
 // recordOrphan tracks one FK-orphan observation for the per-cycle

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"time"
 
 	otelattr "go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -46,10 +47,11 @@ type fkBackfillKey struct {
 type fkBackfillResult string
 
 const (
-	fkBackfillHit         fkBackfillResult = "hit"
-	fkBackfillMiss        fkBackfillResult = "miss"
-	fkBackfillRateLimited fkBackfillResult = "ratelimited"
-	fkBackfillError       fkBackfillResult = "error"
+	fkBackfillHit              fkBackfillResult = "hit"
+	fkBackfillMiss             fkBackfillResult = "miss"
+	fkBackfillRateLimited      fkBackfillResult = "ratelimited"
+	fkBackfillError            fkBackfillResult = "error"
+	fkBackfillDeadlineExceeded fkBackfillResult = "deadline_exceeded"
 )
 
 // fkBackfillParent attempts to fetch a missing parent from upstream and
@@ -92,6 +94,21 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 			slog.String("parent_type", parentType),
 			slog.Int("parent_id", parentID),
 			slog.Int("cap", w.fkBackfillCap))
+		return false
+	}
+
+	// v1.18.3: per-cycle wall-clock deadline. Backfill HTTP calls happen
+	// inside the sync tx; without a deadline a cascade of slow / rate-
+	// limited backfills could hold the tx open for tens of minutes,
+	// stalling LiteFS replication. After the deadline fire, drop the
+	// orphan and let the next cycle pick it up.
+	if !w.fkBackfillDeadline.IsZero() && time.Now().After(w.fkBackfillDeadline) {
+		w.recordBackfill(ctx, childType, parentType, fkBackfillDeadlineExceeded)
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill deadline exceeded",
+			slog.String("child_type", childType),
+			slog.String("parent_type", parentType),
+			slog.Int("parent_id", parentID),
+			slog.Time("deadline", w.fkBackfillDeadline))
 		return false
 	}
 	w.fkBackfillCount++

@@ -185,6 +185,18 @@ type Config struct {
 	// child orphaned. Per-cycle dedup prevents repeat fetches for the
 	// same (type,id) pair within a single sync.
 	FKBackfillMaxPerCycle int
+
+	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
+	// backfill HTTP activity. v1.18.3: backfill calls happen inside the
+	// sync transaction; without a deadline a cascade of slow / rate-
+	// limited backfills could hold the tx open for tens of minutes,
+	// stalling LiteFS replication. After the deadline, fkBackfillParent
+	// short-circuits to drop-on-miss so the rest of the sync (bulk
+	// fetches + upserts) commits cleanly and the next cycle picks up
+	// where we left off. Configured via PDBPLUS_FK_BACKFILL_TIMEOUT
+	// (Go duration). Default 5m. Zero or negative disables the deadline
+	// (only the cap applies).
+	FKBackfillTimeout time.Duration
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -321,6 +333,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE: %w", err)
 	}
 	cfg.FKBackfillMaxPerCycle = fkCap
+
+	fkTimeout, err := parseDuration("PDBPLUS_FK_BACKFILL_TIMEOUT", 5*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_FK_BACKFILL_TIMEOUT: %w", err)
+	}
+	cfg.FKBackfillTimeout = fkTimeout
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)

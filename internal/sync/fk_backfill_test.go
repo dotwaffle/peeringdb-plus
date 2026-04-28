@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"golang.org/x/time/rate"
 
@@ -628,6 +629,69 @@ func TestFKCheckParent_BackfillRecursesIntoGrandparent(t *testing.T) {
 	// carrier 403 and fac 500 reference it.)
 	if got := backfillCount.Load(); got != 3 {
 		t.Errorf("backfillCount = %d, want 3 (carrier+fac+org via recursive dedup)", got)
+	}
+}
+
+// TestFKCheckParent_BackfillDeadlineFallsBackToDrop (v1.18.3): the
+// per-cycle backfill deadline short-circuits fkBackfillParent to drop-
+// on-miss. Sets a 1ns deadline so the very first backfill attempt
+// trips it; verifies result=deadline_exceeded and the orphan child is
+// dropped (no fetch issued, no parent inserted).
+func TestFKCheckParent_BackfillDeadlineFallsBackToDrop(t *testing.T) {
+	t.Parallel()
+
+	var backfillCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		typeName := strings.TrimPrefix(r.URL.Path, "/api/")
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("id__in") != "" {
+			backfillCount.Add(1)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		if skip := r.URL.Query().Get("skip"); skip != "" && skip != "0" {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		if typeName == "net" {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[`))
+			_, _ = w.Write(mustJSON(makeMinimalNet(1, 99)))
+			_, _ = w.Write([]byte(`]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+	}))
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	// 1ns timeout — first backfill attempt fires past deadline.
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: 10,
+		FKBackfillTimeout:     1 * time.Nanosecond,
+	}, slog.Default())
+
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	if got := backfillCount.Load(); got != 0 {
+		t.Errorf("backfillCount = %d, want 0 (deadline check fires before fetch)", got)
+	}
+	if n, _ := client.Organization.Query().Count(t.Context()); n != 0 {
+		t.Errorf("orgCount = %d, want 0 (deadline → drop, no parent inserted)", n)
+	}
+	if n, _ := client.Network.Query().Count(t.Context()); n != 0 {
+		t.Errorf("netCount = %d, want 0 (deadline → drop child too)", n)
 	}
 }
 
