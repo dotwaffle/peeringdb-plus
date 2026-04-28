@@ -120,7 +120,6 @@ func (t *rateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, err
 	span := trace.SpanFromContext(ctx)
 	url := req.URL.String()
 
-	var lastResp *http.Response
 	var lastErr error
 	for attempt := range transportMaxAttempts {
 		if err := ctx.Err(); err != nil {
@@ -207,8 +206,7 @@ func (t *rateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, err
 			}
 			// Non-WAF 403 → caller (doWithRetry) decides. Body has been
 			// restored via NopCloser so doWithRetry can drain it.
-			lastResp = resp
-			return lastResp, nil
+			return resp, nil
 		}
 
 		// Success or other status — return to caller. Application-level
@@ -218,9 +216,6 @@ func (t *rateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, err
 
 	if lastErr != nil {
 		return nil, lastErr
-	}
-	if lastResp != nil {
-		return lastResp, nil
 	}
 	return nil, fmt.Errorf("peeringdb transport: exhausted %d attempts on %s", transportMaxAttempts, url)
 }

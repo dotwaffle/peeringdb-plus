@@ -541,55 +541,55 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 func upsertSingleRaw(ctx context.Context, tx *ent.Tx, parentType string, raw json.RawMessage) (int, error) {
 	switch parentType {
 	case peeringdb.TypeOrg:
-		return decodeAndUpsertSingle[peeringdb.Organization](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.Organization) int { return v.ID },
 			upsertOrganizations)
 	case peeringdb.TypeCampus:
-		return decodeAndUpsertSingle[peeringdb.Campus](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.Campus) int { return v.ID },
 			upsertCampuses)
 	case peeringdb.TypeFac:
-		return decodeAndUpsertSingle[peeringdb.Facility](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.Facility) int { return v.ID },
 			upsertFacilities)
 	case peeringdb.TypeCarrier:
-		return decodeAndUpsertSingle[peeringdb.Carrier](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.Carrier) int { return v.ID },
 			upsertCarriers)
 	case peeringdb.TypeCarrierFac:
-		return decodeAndUpsertSingle[peeringdb.CarrierFacility](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.CarrierFacility) int { return v.ID },
 			upsertCarrierFacilities)
 	case peeringdb.TypeIX:
-		return decodeAndUpsertSingle[peeringdb.InternetExchange](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.InternetExchange) int { return v.ID },
 			upsertInternetExchanges)
 	case peeringdb.TypeIXLan:
-		return decodeAndUpsertSingle[peeringdb.IxLan](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.IxLan) int { return v.ID },
 			upsertIxLans)
 	case peeringdb.TypeIXPfx:
-		return decodeAndUpsertSingle[peeringdb.IxPrefix](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.IxPrefix) int { return v.ID },
 			upsertIxPrefixes)
 	case peeringdb.TypeIXFac:
-		return decodeAndUpsertSingle[peeringdb.IxFacility](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.IxFacility) int { return v.ID },
 			upsertIxFacilities)
 	case peeringdb.TypeNet:
-		return decodeAndUpsertSingle[peeringdb.Network](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.Network) int { return v.ID },
 			upsertNetworks)
 	case peeringdb.TypePoc:
-		return decodeAndUpsertSingle[peeringdb.Poc](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.Poc) int { return v.ID },
 			upsertPocs)
 	case peeringdb.TypeNetFac:
-		return decodeAndUpsertSingle[peeringdb.NetworkFacility](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.NetworkFacility) int { return v.ID },
 			upsertNetworkFacilities)
 	case peeringdb.TypeNetIXLan:
-		return decodeAndUpsertSingle[peeringdb.NetworkIxLan](ctx, tx, parentType, raw,
+		return decodeAndUpsertSingle(ctx, tx, parentType, raw,
 			func(v peeringdb.NetworkIxLan) int { return v.ID },
 			upsertNetworkIxLans)
 	}
