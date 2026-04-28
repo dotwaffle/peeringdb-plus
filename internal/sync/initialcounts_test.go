@@ -20,10 +20,10 @@ import (
 // inserts at least one row of every entity type per CLAUDE.md § Testing.
 func TestInitialObjectCounts_AllThirteenTypes(t *testing.T) {
 	t.Parallel()
-	client := testutil.SetupClient(t)
+	client, db := testutil.SetupClientWithDB(t)
 	seed.Full(t, client)
 
-	counts, err := InitialObjectCounts(context.Background(), client)
+	counts, err := InitialObjectCounts(context.Background(), db)
 	if err != nil {
 		t.Fatalf("InitialObjectCounts: %v", err)
 	}
@@ -44,10 +44,10 @@ func TestInitialObjectCounts_AllThirteenTypes(t *testing.T) {
 // and produce "No data" panels instead of a flat-zero line.
 func TestInitialObjectCounts_EmptyDB(t *testing.T) {
 	t.Parallel()
-	client := testutil.SetupClient(t)
+	_, db := testutil.SetupClientWithDB(t)
 	// No seed — expect 13 keys, all zero.
 
-	counts, err := InitialObjectCounts(context.Background(), client)
+	counts, err := InitialObjectCounts(context.Background(), db)
 	if err != nil {
 		t.Fatalf("InitialObjectCounts: %v", err)
 	}
@@ -67,9 +67,9 @@ func TestInitialObjectCounts_EmptyDB(t *testing.T) {
 // the initial-counts side.
 func TestInitialObjectCounts_KeyParityWithSyncSteps(t *testing.T) {
 	t.Parallel()
-	client := testutil.SetupClient(t)
+	_, db := testutil.SetupClientWithDB(t)
 
-	counts, err := InitialObjectCounts(context.Background(), client)
+	counts, err := InitialObjectCounts(context.Background(), db)
 	if err != nil {
 		t.Fatalf("InitialObjectCounts: %v", err)
 	}
@@ -94,24 +94,23 @@ func TestInitialObjectCounts_KeyParityWithSyncSteps(t *testing.T) {
 // .planning/debug/poc-count-doubling-halving.md.
 //
 // seed.Full creates 3 POCs: 1 visible="Public" (ID 500) + 2 visible="Users"
-// (IDs 9000, 9001). Without the privctx.TierUsers stamp inside
-// InitialObjectCounts, the Poc.Policy() filter would drop the 2 Users-tier
-// rows from the count (TierPublic is the fail-closed default for any
-// un-stamped context per privctx.TierFrom), yielding 1 instead of 3.
+// (IDs 9000, 9001). 260428-eda CHANGE 6: this helper now uses raw SQL
+// (db.QueryContext) which bypasses ent's Privacy policy entirely — no
+// Privacy Hook fires, so all 3 rows are counted regardless of context tier.
+// Symmetric with the OnSyncComplete writer that runs under
+// privacy.DecisionContext(ctx, privacy.Allow).
 //
-// The OnSyncComplete writer counts all 3 rows because it runs under
-// privacy.DecisionContext(ctx, privacy.Allow). If the two writers
-// disagree, the gauge cache holds different values on instances that
-// never sync (replicas) versus instances that just synced (primary),
-// and `max by(type)` across the 8-instance fleet oscillates between
-// the two values every sync cycle. Locking POC count = 3 here proves
-// the startup primer is symmetric with the sync-completion writer.
+// If the two writers disagree, the gauge cache holds different values on
+// instances that never sync (replicas) versus instances that just synced
+// (primary), and `max by(type)` across the 8-instance fleet oscillates
+// between the two values every sync cycle. Locking POC count = 3 here
+// proves the startup primer is symmetric with the sync-completion writer.
 func TestInitialObjectCounts_PocPolicyBypass(t *testing.T) {
 	t.Parallel()
-	client := testutil.SetupClient(t)
+	client, db := testutil.SetupClientWithDB(t)
 	seed.Full(t, client)
 
-	counts, err := InitialObjectCounts(context.Background(), client)
+	counts, err := InitialObjectCounts(context.Background(), db)
 	if err != nil {
 		t.Fatalf("InitialObjectCounts: %v", err)
 	}
@@ -121,9 +120,41 @@ func TestInitialObjectCounts_PocPolicyBypass(t *testing.T) {
 	// locked by TestFull_HasUsersPocs in the seed package.
 	if got := counts["poc"]; got != 3 {
 		t.Fatalf("counts[\"poc\"] = %d, want 3 (1 Public + 2 Users); "+
-			"a value of 1 means the Poc.Policy() filter still applies — "+
-			"InitialObjectCounts must stamp privctx.TierUsers before Count "+
-			"to match the OnSyncComplete writer's privacy.DecisionContext "+
-			"bypass. See .planning/debug/poc-count-doubling-halving.md.", got)
+			"a value of 1 means ent's Poc.Policy() filter is still applying — "+
+			"InitialObjectCounts must use raw SQL to bypass ent privacy and "+
+			"match the OnSyncComplete writer's privacy.DecisionContext bypass. "+
+			"See .planning/debug/poc-count-doubling-halving.md.", got)
+	}
+}
+
+// TestInitialCountsQuery_TableNamesMatchSchema introspects sqlite_master to
+// assert every table name referenced in initialCountsQuery actually exists
+// in the live ent schema. Fails fast on an entgo bump that re-pluralises a
+// table — a typo or rename here would silently produce wrong counts (or
+// runtime errors only at deploy time on a real LiteFS DB).
+//
+// 260428-eda CHANGE 6 W5.
+func TestInitialCountsQuery_TableNamesMatchSchema(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := t.Context()
+
+	// Tables we expect — extracted statically from initialCountsQuery.
+	// Must be kept in sync with the const string in initialcounts.go.
+	expected := []string{
+		"organizations", "campuses", "facilities", "carriers",
+		"carrier_facilities", "internet_exchanges", "ix_lans",
+		"ix_prefixes", "ix_facilities", "networks", "pocs",
+		"network_facilities", "network_ix_lans",
+	}
+	for _, name := range expected {
+		var got string
+		err := db.QueryRowContext(ctx,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+			name,
+		).Scan(&got)
+		if err != nil {
+			t.Errorf("table %q referenced by initialCountsQuery not found in schema: %v", name, err)
+		}
 	}
 }
