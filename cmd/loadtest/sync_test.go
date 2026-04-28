@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -26,48 +27,74 @@ func TestSync_OrderingMatchesWorker(t *testing.T) {
 	}
 }
 
-// TestSync_BuildSyncEndpointsFull asserts full-mode produces 13
-// pdbcompat GETs against /api/<short>?limit=250&skip=0&depth=0,
-// mirroring internal/peeringdb/client.go FetchRawPage exactly.
+// TestSync_BuildSyncEndpointsFull asserts full-mode produces 39
+// pdbcompat GETs (13 types × 3 depths) against
+// /api/<short>?depth=N, mirroring internal/peeringdb/stream.go
+// StreamAll's full-sync URL shape exactly — single unpaginated
+// request per (type, depth), no limit/skip. Depth bands cover the
+// project's own sync (depth=0) plus the two depth levels real
+// PeeringDB API clients commonly request.
 func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 	t.Parallel()
 
 	eps := buildSyncEndpoints("full", time.Time{})
-	if len(eps) != 13 {
-		t.Fatalf("got %d endpoints, want 13", len(eps))
+	wantCount := len(syncOrder) * len(syncDepths)
+	if len(eps) != wantCount {
+		t.Fatalf("got %d endpoints, want %d (%d types × %d depths)",
+			len(eps), wantCount, len(syncOrder), len(syncDepths))
 	}
-	for i, ep := range eps {
-		if ep.Surface != SurfacePdbCompat {
-			t.Errorf("ep[%d].Surface = %q, want pdbcompat", i, ep.Surface)
-		}
-		if ep.Method != "GET" {
-			t.Errorf("ep[%d].Method = %q, want GET", i, ep.Method)
-		}
-		// Path: /api/<type>?limit=250&skip=0&depth=0
-		want := "/api/" + syncOrder[i] + "?limit=250&skip=0&depth=0"
-		if ep.Path != want {
-			t.Errorf("ep[%d].Path = %q, want %q", i, ep.Path, want)
-		}
-		if strings.Contains(ep.Path, "since=") {
-			t.Errorf("ep[%d].Path = %q: full mode should not have since=", i, ep.Path)
+	// Each depth band issues all 13 types in syncOrder. Bands are
+	// emitted in the order syncDepths declares.
+	for bandIdx, depth := range syncDepths {
+		for typeIdx, ty := range syncOrder {
+			i := bandIdx*len(syncOrder) + typeIdx
+			ep := eps[i]
+			if ep.Surface != SurfacePdbCompat {
+				t.Errorf("ep[%d].Surface = %q, want pdbcompat", i, ep.Surface)
+			}
+			if ep.Method != "GET" {
+				t.Errorf("ep[%d].Method = %q, want GET", i, ep.Method)
+			}
+			want := fmt.Sprintf("/api/%s?depth=%d", ty, depth)
+			if ep.Path != want {
+				t.Errorf("ep[%d].Path = %q, want %q", i, ep.Path, want)
+			}
+			if strings.Contains(ep.Path, "since=") {
+				t.Errorf("ep[%d].Path = %q: full mode should not have since=",
+					i, ep.Path)
+			}
+			if strings.Contains(ep.Path, "limit=") ||
+				strings.Contains(ep.Path, "skip=") {
+				t.Errorf("ep[%d].Path = %q: full mode must NOT include "+
+					"limit/skip (StreamAll issues a single unpaginated request)",
+					i, ep.Path)
+			}
 		}
 	}
 }
 
 // TestSync_BuildSyncEndpointsIncremental asserts incremental mode
-// appends &since=<unix> to every URL, using the provided cursor.
+// appends &since=<unix> to every URL across all 39 (type, depth)
+// permutations, using the provided cursor.
 func TestSync_BuildSyncEndpointsIncremental(t *testing.T) {
 	t.Parallel()
 
 	cursor := time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC)
 	eps := buildSyncEndpoints("incremental", cursor)
-	if len(eps) != 13 {
-		t.Fatalf("got %d endpoints, want 13", len(eps))
+	wantCount := len(syncOrder) * len(syncDepths)
+	if len(eps) != wantCount {
+		t.Fatalf("got %d endpoints, want %d", len(eps), wantCount)
 	}
 	wantSuffix := "&since=" + strconv.FormatInt(cursor.Unix(), 10)
 	for i, ep := range eps {
 		if !strings.HasSuffix(ep.Path, wantSuffix) {
-			t.Errorf("ep[%d].Path = %q, want suffix %q", i, ep.Path, wantSuffix)
+			t.Errorf("ep[%d].Path = %q, want suffix %q",
+				i, ep.Path, wantSuffix)
+		}
+		if !strings.Contains(ep.Path, "limit=250&skip=0") {
+			t.Errorf("ep[%d].Path = %q: incremental mode must include "+
+				"limit=250&skip=0 (StreamAll's first paginated page)",
+				i, ep.Path)
 		}
 	}
 }

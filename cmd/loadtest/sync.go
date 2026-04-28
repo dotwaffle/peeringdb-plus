@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strconv"
 	"time"
 )
 
@@ -21,35 +20,64 @@ var syncOrder = []string{
 	"net", "poc", "netfac", "netixlan",
 }
 
-// buildSyncEndpoints returns a 13-entry pdbcompat sequence in syncOrder.
-// Full mode mirrors internal/peeringdb/client.go FetchRawPage's URL
-// shape exactly: ?limit=250&skip=0&depth=0. Incremental mode appends
-// &since=<unix-seconds>.
+// syncDepths is the set of `?depth=` values the loadtest issues per
+// entity type per cycle. depth=0 mirrors the project's own sync (see
+// internal/peeringdb/stream.go StreamAll); depth=1 and depth=2 cover
+// what real-world PeeringDB API clients commonly request when they
+// want eagerly-resolved nested relations (e.g. admin UIs, custom
+// reporting tools).
+var syncDepths = []int{0, 1, 2}
+
+// buildSyncEndpoints returns a 39-entry pdbcompat sequence (13 types ×
+// 3 depths) in syncOrder using the same URL shapes that
+// internal/peeringdb/stream.go StreamAll uses against upstream
+// PeeringDB:
 //
-// The loadtest issues one page per type — full pagination is the live
-// worker's responsibility on the server side; the operator goal here
-// is endpoint exhaustion + dashboard warmup, not exhaustive fetch.
+//   - Full mode: /api/<type>?depth=N — single unpaginated request per
+//     (type, depth). The server streams the entire dataset (no
+//     limit/skip).
+//   - Incremental mode: /api/<type>?limit=250&skip=0&depth=N&since=M
+//     — first page of the production paginated incremental fetch per
+//     (type, depth).
+//
+// Issuing all three depths per type matches the diversity of real
+// client traffic the mirror serves: depth=0 (the project's own sync,
+// raw FK ids only), depth=1 (single-level nested), depth=2 (two
+// levels — heavy responses used by admin tooling). All ordered per
+// syncOrder so FK dependency parents come before children within
+// each depth band.
+//
+// Earlier revisions emitted ?limit=250&skip=0&depth=0 for full mode,
+// inadvertently mirroring FetchRawPage (used only by the fixture
+// extractor in internal/visbaseline) instead of StreamAll. That made
+// full sync finish suspiciously fast because the server returned at
+// most 250 rows per type rather than the entire table.
 func buildSyncEndpoints(mode string, since time.Time) []Endpoint {
-	out := make([]Endpoint, 0, len(syncOrder))
-	for _, t := range syncOrder {
-		path := fmt.Sprintf("/api/%s?limit=250&skip=0&depth=0", t)
-		if mode == "incremental" {
-			path += "&since=" + strconv.FormatInt(since.Unix(), 10)
+	out := make([]Endpoint, 0, len(syncOrder)*len(syncDepths))
+	for _, depth := range syncDepths {
+		for _, t := range syncOrder {
+			var path string
+			if mode == "incremental" {
+				path = fmt.Sprintf("/api/%s?limit=250&skip=0&depth=%d&since=%d",
+					t, depth, since.Unix())
+			} else {
+				path = fmt.Sprintf("/api/%s?depth=%d", t, depth)
+			}
+			out = append(out, Endpoint{
+				Surface:    SurfacePdbCompat,
+				EntityType: t,
+				Shape:      fmt.Sprintf("sync-%s-d%d", mode, depth),
+				Method:     "GET",
+				Path:       path,
+			})
 		}
-		out = append(out, Endpoint{
-			Surface:    SurfacePdbCompat,
-			EntityType: t,
-			Shape:      "sync-" + mode,
-			Method:     "GET",
-			Path:       path,
-		})
 	}
 	return out
 }
 
-// runSync issues exactly 13 GETs in syncOrder (FK dependency order)
-// against the pdbcompat /api/<short> endpoint, sequentially. Honors
-// ctx cancellation between requests.
+// runSync issues 39 GETs (13 types × 3 depths) in syncOrder × ascending
+// depth against the pdbcompat /api/<short> endpoint, sequentially.
+// Honors ctx cancellation between requests.
 //
 // Returns the first context.Canceled / context.DeadlineExceeded
 // observed, otherwise nil. Per-request errors are folded into the

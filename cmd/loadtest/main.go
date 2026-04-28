@@ -23,6 +23,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -113,7 +114,7 @@ func run(argv []string, stdout, stderr *os.File) error {
 	fs.Usage = func() {
 		fmt.Fprint(stderr, safetyBanner)
 		fmt.Fprintf(stderr, "Usage: loadtest %s [flags]\n\n", mode)
-		fs.PrintDefaults()
+		printDoubleDashDefaults(stderr, fs)
 	}
 
 	if err := fs.Parse(rest); err != nil {
@@ -166,6 +167,48 @@ func printHelp(w *os.File) {
 	fmt.Fprintln(w, "Auth: set PDBPLUS_LOADTEST_AUTH_TOKEN to send 'Authorization: Bearer <token>' on every request.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Run `loadtest <mode> --help` for mode-specific flag defaults.")
+}
+
+// printDoubleDashDefaults is a drop-in replacement for fs.PrintDefaults
+// that prefixes each flag name with `--` rather than `-`, matching the
+// double-dash form used in the top-level Usage block. Go's stdlib flag
+// package accepts both `-name` and `--name` at parse time, so we choose
+// `--` for consistency with the documented usage.
+//
+// Format mirrors flag.PrintDefaults: name + extracted type hint on
+// the first line, usage text indented under it, and default-value
+// suffix when not the zero value.
+func printDoubleDashDefaults(w io.Writer, fs *flag.FlagSet) {
+	fs.VisitAll(func(f *flag.Flag) {
+		// flag.UnquoteUsage extracts a backtick-quoted type hint from
+		// the usage string and returns the cleaned-up usage. Empty hint
+		// means a sensible type default (e.g. "string" for *flagString).
+		hint, usage := flag.UnquoteUsage(f)
+		head := "  --" + f.Name
+		if hint != "" {
+			head += " " + hint
+		}
+		fmt.Fprintln(w, head)
+		fmt.Fprintf(w, "    \t%s", usage)
+		if !isZeroValue(f, f.DefValue) {
+			fmt.Fprintf(w, " (default %s)", f.DefValue)
+		}
+		fmt.Fprintln(w)
+	})
+}
+
+// isZeroValue reports whether v is the zero value for the flag's
+// underlying type. Mirrors stdlib flag.isZeroValue closely enough for
+// our usage formatting — we only inspect the standard scalar flag
+// types (string, int, bool, float64, time.Duration). The flag.Flag
+// pointer is unused but kept in the signature for parity with the
+// stdlib helper.
+func isZeroValue(_ *flag.Flag, v string) bool {
+	switch v {
+	case "", "0", "false", "0s":
+		return true
+	}
+	return false
 }
 
 func authPresence(token string) string {
