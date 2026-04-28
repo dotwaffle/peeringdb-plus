@@ -355,6 +355,99 @@ func TestDepth(t *testing.T) {
 		}
 	})
 
+	// two_ix locks the upstream-parity InternetExchange depth=2 shape:
+	// upstream PeeringDB's InternetExchangeSerializer
+	// (peeringdb_server/serializers.py:3514) emits `fac_set` as a list of
+	// expanded Facility objects via nested(FacilitySerializer,
+	// through="ixfac_set", getter="facility"). It does NOT emit `ixfac_set`
+	// (that surface only appears on the facility-side serializer). Regression
+	// guard against the prior divergence where the mirror exposed raw
+	// IxFacility join rows under the wrong key.
+	t.Run("two_ix", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodGet, "/api/ix?limit=1", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) == 0 {
+			t.Fatal("expected at least 1 ix")
+		}
+		ixID := int(items[0]["id"].(float64))
+
+		detReq := httptest.NewRequest(http.MethodGet, "/api/ix/"+itoa(ixID)+"?depth=2", nil)
+		detRec := httptest.NewRecorder()
+		mux.ServeHTTP(detRec, detReq)
+		if detRec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", detRec.Code, detRec.Body.String())
+		}
+
+		var detEnv testEnvelope
+		_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+		var detItems []map[string]any
+		_ = json.Unmarshal(detEnv.Data, &detItems)
+		if len(detItems) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(detItems))
+		}
+
+		obj := detItems[0]
+
+		// Required _set fields.
+		for _, setField := range []string{"ixlan_set", "fac_set"} {
+			val, ok := obj[setField]
+			if !ok {
+				t.Errorf("depth=2: %q missing", setField)
+				continue
+			}
+			arr, ok := val.([]any)
+			if !ok {
+				t.Errorf("depth=2: %q is not an array", setField)
+				continue
+			}
+			if len(arr) != 1 {
+				t.Errorf("depth=2: %q expected 1 item, got %d", setField, len(arr))
+			}
+		}
+
+		// Upstream parity: ixfac_set MUST NOT appear on the IX surface.
+		if _, ok := obj["ixfac_set"]; ok {
+			t.Error("depth=2: upstream omits ixfac_set on IX surface; mirror must not expose it")
+		}
+
+		// fac_set entries must be expanded Facility objects (not raw join rows).
+		// The shape distinction: an IxFacility join row has ix_id+fac_id but no
+		// address1/latitude/longitude; a Facility has address1, latitude,
+		// longitude (via FacilitySerializer.Meta.fields).
+		facSet, _ := obj["fac_set"].([]any)
+		if len(facSet) > 0 {
+			fac0, ok := facSet[0].(map[string]any)
+			if !ok {
+				t.Fatal("depth=2: fac_set[0] is not an object")
+			}
+			for _, expectedField := range []string{"id", "name", "address1", "latitude", "longitude"} {
+				if _, has := fac0[expectedField]; !has {
+					t.Errorf("depth=2: fac_set[0] missing expected Facility field %q", expectedField)
+				}
+			}
+			// Negative shape check: a raw IxFacility row has ix_id; a Facility does not.
+			if _, hasIxID := fac0["ix_id"]; hasIxID {
+				t.Error("depth=2: fac_set[0] looks like raw IxFacility row (has ix_id); must be expanded Facility")
+			}
+		}
+
+		// Check that org is expanded.
+		orgVal, ok := obj["org"]
+		if !ok {
+			t.Error("depth=2: expanded org missing")
+		} else if orgObj, ok := orgVal.(map[string]any); !ok {
+			t.Error("depth=2: org is not an object")
+		} else if _, hasID := orgObj["id"]; !hasID {
+			t.Error("depth=2: expanded org missing id field")
+		}
+	})
+
 	t.Run("empty_sets", func(t *testing.T) {
 		t.Parallel()
 		// Create an org with no related entities.

@@ -49,6 +49,25 @@ func orEmptySlice[T any](v []T) []any {
 	return out
 }
 
+// resolveFacilitiesFromIxFacilities walks an IX → IxFacility through-relation
+// and returns the embedded Facility records. Mirrors upstream PeeringDB's
+// `nested(FacilitySerializer, through="ixfac_set", getter="facility")` shape:
+// the IX `fac_set` field is a list of expanded Facility objects, NOT raw
+// IxFacility join rows. Callers must have eager-loaded `WithIxFacilities(func
+// (q *ent.IxFacilityQuery) { q.WithFacility() })` so each ixfac.Edges.Facility
+// is populated. Nil-skipping defends against a deleted Facility paired with a
+// stale IxFacility row.
+func resolveFacilitiesFromIxFacilities(ixfacs []*ent.IxFacility) []*ent.Facility {
+	out := make([]*ent.Facility, 0, len(ixfacs))
+	for _, ixf := range ixfacs {
+		if ixf == nil || ixf.Edges.Facility == nil {
+			continue
+		}
+		out = append(out, ixf.Edges.Facility)
+	}
+	return out
+}
+
 // getOrgWithDepth fetches an organization by ID with optional depth expansion.
 // At depth >= 2, eagerly loads and serializes net_set, fac_set, ix_set,
 // carrier_set, and campus_set arrays per D-19.
@@ -158,14 +177,21 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 }
 
 // getIXWithDepth fetches an internet exchange by ID with optional depth
-// expansion. At depth >= 2, expands org object and adds ixlan_set, ixfac_set.
+// expansion. At depth >= 2, expands org object and adds ixlan_set plus fac_set.
+// fac_set mirrors upstream PeeringDB's InternetExchangeSerializer
+// (peeringdb_server/serializers.py:3514): a list of expanded Facility objects
+// resolved through the IxFacility many-to-many via getter="facility". The raw
+// IxFacility join records are NOT exposed (upstream omits ixfac_set on the IX
+// surface entirely; ixfac_set only appears on the facility-side serializer).
 func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		ix, err := client.InternetExchange.Query().
 			Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
 			WithOrganization().
 			WithIxLans().
-			WithIxFacilities().
+			WithIxFacilities(func(q *ent.IxFacilityQuery) {
+				q.WithFacility()
+			}).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get internet exchange %d: %w", id, err)
@@ -176,7 +202,7 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 			m["org"] = organizationFromEnt(ix.Edges.Organization)
 		}
 		m["ixlan_set"] = orEmptySlice(ixLansFromEnt(ctx, ix.Edges.IxLans))
-		m["ixfac_set"] = orEmptySlice(ixFacilitiesFromEnt(ix.Edges.IxFacilities))
+		m["fac_set"] = orEmptySlice(facilitiesFromEnt(resolveFacilitiesFromIxFacilities(ix.Edges.IxFacilities)))
 		return m, nil
 	}
 
