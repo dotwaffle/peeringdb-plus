@@ -658,6 +658,128 @@ func TestDetectInflection(t *testing.T) {
 	}
 }
 
+// TestRamp_Verbose_PrintsPrefetchAndErrors asserts that --verbose
+// emits exactly one prefetch summary line per surface (with ids and
+// asns when entity=net) and one log line per non-OK Result, while
+// suppressing the spammy step-boundary `err=context.Canceled` lines.
+func TestRamp_Verbose_PrintsPrefetchAndErrors(t *testing.T) {
+	t.Parallel()
+
+	// errorCThresh=1 → server returns 500 once inflight >= 1, so every
+	// hit fails. Guarantees at least one per-error line.
+	rts := newRampTestServer(t, 1*time.Millisecond, 0, 1)
+	cfg := Config{
+		Base:       rts.srv.URL,
+		HTTPClient: rts.srv.Client(),
+		Timeout:    5 * time.Second,
+		Verbose:    true,
+	}
+	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	rcfg.MaxConcurrency = 2 // keep test runtime tiny
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var stdout bytes.Buffer
+	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); err != nil {
+		t.Fatalf("runRamp: %v", err)
+	}
+
+	out := stdout.String()
+	// Prefetch line for entity=net must include both ids and asns.
+	prefetchPrefix := fmt.Sprintf("[ramp] %s entity=net ids=[", SurfacePdbCompat)
+	if !strings.Contains(out, prefetchPrefix) {
+		t.Errorf("output missing prefetch line %q\n%s", prefetchPrefix, out)
+	}
+	if !strings.Contains(out, "asns=[") {
+		t.Errorf("entity=net prefetch line should include asns=[\n%s", out)
+	}
+	// Per-error line shape: `[ramp] pdbcompat C=<n> ... status=500`.
+	perErrorPrefix := fmt.Sprintf("[ramp] %s C=", SurfacePdbCompat)
+	if !strings.Contains(out, perErrorPrefix) {
+		t.Errorf("output missing per-error line %q\n%s", perErrorPrefix, out)
+	}
+	if !strings.Contains(out, "status=500") {
+		t.Errorf("per-error line should include status=500\n%s", out)
+	}
+	// Step-boundary cancellations must NOT appear in the verbose log.
+	if strings.Contains(out, "err=context.Canceled") {
+		t.Errorf("verbose output must suppress err=context.Canceled\n%s", out)
+	}
+}
+
+// TestRamp_Verbose_OrgEntity_OmitsAsns asserts that for entity=org the
+// prefetch line shows ids but not asns (the asn slice is nil for org).
+func TestRamp_Verbose_OrgEntity_OmitsAsns(t *testing.T) {
+	t.Parallel()
+
+	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0) // always 200
+	cfg := Config{
+		Base:       rts.srv.URL,
+		HTTPClient: rts.srv.Client(),
+		Timeout:    5 * time.Second,
+		Verbose:    true,
+	}
+	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	rcfg.Entity = "org"
+	rcfg.MaxConcurrency = 2
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var stdout bytes.Buffer
+	if err := runRamp(ctx, cfg, rcfg, []int{7, 8}, nil, &stdout); err != nil {
+		t.Fatalf("runRamp: %v", err)
+	}
+
+	out := stdout.String()
+	if !strings.Contains(out, fmt.Sprintf("[ramp] %s entity=org ids=[", SurfacePdbCompat)) {
+		t.Errorf("output missing org prefetch line\n%s", out)
+	}
+	// org entity has no asns — the prefetch line MUST NOT include asns=.
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.HasPrefix(line, "[ramp] "+string(SurfacePdbCompat)+" entity=org") {
+			continue
+		}
+		if strings.Contains(line, "asns=") {
+			t.Errorf("org prefetch line should not include asns=, got %q", line)
+		}
+	}
+}
+
+// TestRamp_NoVerbose_StaysQuiet asserts the verbose log lines are
+// fully gated on cfg.Verbose — markdown still emits, but no [ramp]
+// lines appear.
+func TestRamp_NoVerbose_StaysQuiet(t *testing.T) {
+	t.Parallel()
+
+	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0)
+	cfg := Config{
+		Base:       rts.srv.URL,
+		HTTPClient: rts.srv.Client(),
+		Timeout:    5 * time.Second,
+		Verbose:    false, // explicit
+	}
+	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	rcfg.MaxConcurrency = 2
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var stdout bytes.Buffer
+	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); err != nil {
+		t.Fatalf("runRamp: %v", err)
+	}
+
+	out := stdout.String()
+	if !strings.Contains(out, fmt.Sprintf("### %s", SurfacePdbCompat)) {
+		t.Errorf("markdown still expected without --verbose\n%s", out)
+	}
+	if strings.Contains(out, "[ramp] ") {
+		t.Errorf("non-verbose run must not emit [ramp] lines\n%s", out)
+	}
+}
+
 // TestSummariseStep_FiltersCanceled asserts that Result entries whose
 // Err is context.Canceled (a step-boundary cancellation, not a real
 // measurement) are dropped from the percentile/error/RPS computation.
