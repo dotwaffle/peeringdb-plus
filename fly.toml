@@ -62,9 +62,15 @@ kill_timeout = 30
   [http_service.http_options]
     h2_backend = true
 
-  [http_service.concurrency]
-    type = "requests"
-    soft_limit = 10
+  # Concurrency limits commented out 2026-04-28 to revert to Fly defaults
+  # (type=requests, soft_limit=200, hard_limit=250). The previous
+  # soft_limit=10 was conservative for the original shared-cpu-2x primary;
+  # leave defaults in place so capacity testing reflects what real load
+  # will see. Re-introduce explicit limits only if Fly Proxy queueing
+  # behaviour at default thresholds proves problematic.
+  # [http_service.concurrency]
+  #   type = "requests"
+  #   soft_limit = 10
 
   [[http_service.checks]]
     grace_period = "30s"
