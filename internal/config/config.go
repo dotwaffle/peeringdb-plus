@@ -203,6 +203,16 @@ type Config struct {
 	// (Go duration). Default 5m. Zero or negative disables the deadline
 	// (only the cap applies).
 	FKBackfillTimeout time.Duration
+
+	// FullSyncInterval is the interval after which sync cycles force a
+	// full bare-list refetch — escape hatch against pathological upstream
+	// cross-row inconsistency in any since= design (a response with row
+	// R' (updated=M) present but earlier row R (updated < M) missing →
+	// R is permanently missed without periodic full refetch). Configured
+	// via PDBPLUS_FULL_SYNC_INTERVAL (Go duration). Default 24h. Zero
+	// disables the escape hatch (only the per-cycle MAX(updated) cursor
+	// applies). 260428-mu0.
+	FullSyncInterval time.Duration
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -345,6 +355,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_FK_BACKFILL_TIMEOUT: %w", err)
 	}
 	cfg.FKBackfillTimeout = fkTimeout
+
+	fullSyncInterval, err := parseDuration("PDBPLUS_FULL_SYNC_INTERVAL", 24*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_FULL_SYNC_INTERVAL: %w", err)
+	}
+	cfg.FullSyncInterval = fullSyncInterval
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)

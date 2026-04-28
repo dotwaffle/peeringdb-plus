@@ -307,6 +307,7 @@ func main() {
 		RSSWarnBytes:                  cfg.RSSWarnBytes,
 		FKBackfillMaxRequestsPerCycle: cfg.FKBackfillMaxRequestsPerCycle,
 		FKBackfillTimeout:             cfg.FKBackfillTimeout,
+		FullSyncInterval:              cfg.FullSyncInterval, // 260428-mu0
 	}, logger)
 
 	// Phase 75 OBS-02 (D-02): pre-warm the 5 zero-rate counters so dashboard

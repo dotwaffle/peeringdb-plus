@@ -130,6 +130,18 @@ type WorkerConfig struct {
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
 	// deadline (only the cap applies).
 	FKBackfillTimeout time.Duration
+
+	// FullSyncInterval is the interval after which a sync cycle forces
+	// a full bare-list refetch of every type, regardless of the
+	// per-table MAX(updated) cursor. Defends against pathological
+	// upstream cross-row inconsistency where a `?since=` response
+	// includes row R' (updated=M) but is missing earlier row R
+	// (updated < M); R is permanently missed under any since-based
+	// design without periodic full refetch. Wired from
+	// PDBPLUS_FULL_SYNC_INTERVAL (default 24h). Zero disables the
+	// escape hatch (only the per-cycle MAX(updated) cursor applies).
+	// 260428-mu0.
+	FullSyncInterval time.Duration
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -527,6 +539,49 @@ func (w *Worker) syncSteps() []syncStep {
 // upsert helper, or any HTTP path. Tier elevation for non-sync callers
 // goes through internal/privctx.WithTier (TierUsers), a different
 // mechanism.
+// resolveEffectiveMode applies the PDBPLUS_FULL_SYNC_INTERVAL escape hatch
+// (260428-mu0): if the configured mode is incremental AND the configured
+// FullSyncInterval is positive AND the most recent successful full sync is
+// older than that interval, the cycle's effective mode upgrades to full —
+// every per-type fetch issues a bare list (no since=).
+//
+// Single GetLastSuccessfulFullSyncTime call per cycle by design (NOT once
+// per type) — the per-step loop in syncFetchPass receives the resolved
+// SyncMode and never re-queries sync_status.
+//
+// Fail-soft on sync_status read errors: a transient query failure logs
+// at INFO and falls through with the configured mode, never blocking sync.
+//
+// Returns "full" when FullSyncInterval == 0 is unchanged from the
+// configured mode (zero is the documented "disabled" sentinel, mirroring
+// PDBPLUS_FK_BACKFILL_TIMEOUT semantics).
+func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.SyncMode) config.SyncMode {
+	if configured != config.SyncModeIncremental {
+		return configured
+	}
+	if w.config.FullSyncInterval <= 0 {
+		return configured
+	}
+	lastFull, err := GetLastSuccessfulFullSyncTime(ctx, w.db)
+	if err != nil {
+		// Fail-soft: log and continue with configured mode. A
+		// sync_status read failure is not a reason to block sync.
+		w.logger.LogAttrs(ctx, slog.LevelInfo,
+			"failed to read last full sync time, skipping full-sync interval check",
+			slog.Any("error", err),
+		)
+		return configured
+	}
+	if lastFull.IsZero() || time.Since(lastFull) >= w.config.FullSyncInterval {
+		w.logger.LogAttrs(ctx, slog.LevelInfo, "forcing full bare-list refetch",
+			slog.Time("last_full_sync", lastFull),
+			slog.Duration("full_sync_interval", w.config.FullSyncInterval),
+		)
+		return config.SyncModeFull
+	}
+	return configured
+}
+
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // VIS-05 bypass — sole call site (D-08/D-09)
 	if !w.running.CompareAndSwap(false, true) {
@@ -539,7 +594,10 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	defer span.End()
 
 	start := time.Now()
-	statusID, err := RecordSyncStart(ctx, w.db, start)
+	// 260428-mu0: resolve effective mode (PDBPLUS_FULL_SYNC_INTERVAL
+	// escape hatch) BEFORE recording the status row.
+	effectiveMode := w.resolveEffectiveMode(ctx, mode)
+	statusID, err := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
 			slog.Any("error", err))
@@ -575,23 +633,23 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 
 	scratch, err := openScratchDB(ctx)
 	if err != nil {
-		w.recordFailure(ctx, mode, statusID, start, err)
+		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
 	defer closeScratchDB(ctx, scratch, w.logger)
 
 	// === Phase A — NO TX HELD ===
 	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.
-	fromIncremental, err := w.syncFetchPass(ctx, scratch, mode)
+	fromIncremental, err := w.syncFetchPass(ctx, scratch, effectiveMode)
 	if err != nil {
-		w.recordFailure(ctx, mode, statusID, start, err)
+		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
 	// Commit F guardrail: see checkMemoryLimit godoc (defense-in-depth).
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
-		w.recordFailure(ctx, mode, statusID, start, memErr)
+		w.recordFailure(ctx, effectiveMode, statusID, start, memErr)
 		return memErr
 	}
 	// === Fetch Barrier ===
@@ -599,11 +657,11 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	tx, err := w.entClient.Tx(ctx)
 	if err != nil {
 		beginErr := fmt.Errorf("begin sync transaction: %w", err)
-		w.recordFailure(ctx, mode, statusID, start, beginErr)
+		w.recordFailure(ctx, effectiveMode, statusID, start, beginErr)
 		return beginErr
 	}
 	if err := prepareTxPragmas(ctx, tx); err != nil {
-		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
 
@@ -612,16 +670,16 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	// MAX(updated) per table on the next cycle.)
 	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
 	if err != nil {
-		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
 	if commitErr := commitWithSpan(ctx, tx); commitErr != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", commitErr)
-		w.recordFailure(ctx, mode, statusID, start, syncErr)
+		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
 		return syncErr
 	}
 
-	w.recordSuccess(ctx, mode, statusID, start, objectCounts)
+	w.recordSuccess(ctx, effectiveMode, statusID, start, objectCounts)
 	return nil
 }
 

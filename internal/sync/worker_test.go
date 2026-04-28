@@ -1605,7 +1605,7 @@ func TestSchedulerSkipsSyncWithExistingData(t *testing.T) {
 
 	// Record a successful sync that completed recently (within the interval).
 	now := time.Now()
-	id, err := RecordSyncStart(ctx, db, now.Add(-10*time.Minute))
+	id, err := RecordSyncStart(ctx, db, now.Add(-10*time.Minute), "incremental")
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}
@@ -1689,7 +1689,7 @@ func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 
 	// Record a successful sync from 2 hours ago (with 1h interval, it's overdue).
 	twoHoursAgo := time.Now().Add(-2 * time.Hour)
-	id, err := RecordSyncStart(ctx, db, twoHoursAgo)
+	id, err := RecordSyncStart(ctx, db, twoHoursAgo, "incremental")
 	if err != nil {
 		t.Fatalf("record sync start: %v", err)
 	}
@@ -3171,6 +3171,194 @@ func TestSync_TwoCycle_NoFullRefetch(t *testing.T) {
 	}
 	if cnt != 5 {
 		t.Errorf("expected 5 pocs after cycle 2 (no upstream changes), got %d", cnt)
+	}
+}
+
+// TestSync_FullSyncIntervalForcesBareList locks the 260428-mu0 escape
+// hatch: when the configured PDBPLUS_FULL_SYNC_INTERVAL has elapsed since
+// the last successful full sync, the next cycle ignores cursors and
+// every per-type request is bare-list (no `?since=` parameter).
+//
+// Seed: full success @ T-25h, then cycle a sync with FullSyncInterval=24h
+// → expect bare list. The cycle records as 'full' so a follow-up sync
+// (now with last_full ≈ now) goes back to using ?since=.
+func TestSync_FullSyncIntervalForcesBareList(t *testing.T) {
+	t.Parallel()
+	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
+	generated := float64(t1.Unix())
+	f := newFixtureWithMeta(t, generated)
+	// Seed minimal fixtures so each cycle commits something — driving
+	// MAX(updated) past zero on the org table so cursor would otherwise
+	// advance.
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1", "ok"), t1.Format(time.RFC3339))}
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, f.server.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		SyncMode:         config.SyncModeIncremental,
+		FullSyncInterval: 24 * time.Hour, // 260428-mu0 escape hatch active
+	}, slog.Default())
+
+	ctx := t.Context()
+
+	// Seed pre-history: a successful full sync from 25 hours ago, plus a
+	// recent incremental success — proves we filter on mode='full'.
+	twentyFiveHoursAgo := time.Now().Add(-25 * time.Hour)
+	pastFullID, err := RecordSyncStart(ctx, db, twentyFiveHoursAgo, "full")
+	if err != nil {
+		t.Fatalf("seed past full RecordSyncStart: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, pastFullID, Status{
+		LastSyncAt: twentyFiveHoursAgo.Add(time.Minute),
+		Duration:   time.Minute,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("seed past full RecordSyncComplete: %v", err)
+	}
+	recentIncrID, err := RecordSyncStart(ctx, db, time.Now().Add(-15*time.Minute), "incremental")
+	if err != nil {
+		t.Fatalf("seed incr RecordSyncStart: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, recentIncrID, Status{
+		LastSyncAt: time.Now().Add(-14 * time.Minute),
+		Duration:   time.Minute,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("seed incr RecordSyncComplete: %v", err)
+	}
+
+	// Pre-populate org with a row so MAX(updated) is non-zero entering
+	// cycle 1 — without this the test couldn't distinguish "forced full"
+	// from "first sync, cursor zero, bare list anyway".
+	if _, err := client.Organization.Create().
+		SetID(99).SetName("Pre").SetCreated(t1).SetUpdated(t1).SetStatus("ok").
+		Save(ctx); err != nil {
+		t.Fatalf("seed pre-existing org: %v", err)
+	}
+	maxOrg, err := GetMaxUpdated(ctx, db, "organizations")
+	if err != nil || maxOrg.IsZero() {
+		t.Fatalf("expected non-zero MAX(updated) before cycle: %v err=%v", maxOrg, err)
+	}
+
+	// Cycle 1: forced full (last full > 24h). Expect bare list (no
+	// since=).
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 1: %v", err)
+	}
+	orgLog, ok := f.sinceValues["org"]
+	if !ok {
+		t.Fatal("no since-log captured for org on cycle 1")
+	}
+	values := orgLog.snapshot()
+	if len(values) == 0 {
+		t.Fatalf("no first-page org request seen on cycle 1")
+	}
+	cycle1Since := values[len(values)-1]
+	if cycle1Since != "" {
+		t.Errorf("cycle 1 (forced full) should issue bare list; got since=%q", cycle1Since)
+	}
+
+	// Confirm cycle 1 recorded as 'full' in sync_status.
+	var lastMode string
+	if err := db.QueryRowContext(ctx,
+		`SELECT mode FROM sync_status WHERE status = 'success' ORDER BY id DESC LIMIT 1`,
+	).Scan(&lastMode); err != nil {
+		t.Fatalf("read last mode: %v", err)
+	}
+	if lastMode != "full" {
+		t.Errorf("expected last sync_status.mode = 'full' after forced full, got %q", lastMode)
+	}
+
+	// Cycle 2: last full is now ~recent, FullSyncInterval=24h not
+	// elapsed → cursor-driven incremental. Expect since=.
+	prevLen := len(orgLog.snapshot())
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("cycle 2: %v", err)
+	}
+	values2 := orgLog.snapshot()
+	if len(values2) <= prevLen {
+		t.Fatalf("cycle 2 emitted no new org first-page request (got %d total, prev %d)",
+			len(values2), prevLen)
+	}
+	cycle2Since := values2[len(values2)-1]
+	if cycle2Since == "" {
+		t.Errorf("cycle 2 should resume incremental (since=N); got bare list")
+	}
+}
+
+// TestSync_FullSyncIntervalDisabled asserts FullSyncInterval=0 disables
+// the escape hatch — even with the most recent full sync 1000 hours
+// in the past, cycle uses ?since= as long as cursor is non-zero.
+// Mirrors PDBPLUS_FK_BACKFILL_TIMEOUT=0 semantics.
+func TestSync_FullSyncIntervalDisabled(t *testing.T) {
+	t.Parallel()
+	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
+	generated := float64(t1.Unix())
+	f := newFixtureWithMeta(t, generated)
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1", "ok"), t1.Format(time.RFC3339))}
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, f.server.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		SyncMode:         config.SyncModeIncremental,
+		FullSyncInterval: 0, // 260428-mu0 escape hatch DISABLED
+	}, slog.Default())
+	ctx := t.Context()
+
+	// Seed: ancient full success (1000 hours ago) and a pre-existing org
+	// row so MAX(updated) is non-zero entering the cycle.
+	ancient := time.Now().Add(-1000 * time.Hour)
+	id, err := RecordSyncStart(ctx, db, ancient, "full")
+	if err != nil {
+		t.Fatalf("seed ancient RecordSyncStart: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, id, Status{
+		LastSyncAt: ancient.Add(time.Minute),
+		Duration:   time.Minute,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("seed ancient RecordSyncComplete: %v", err)
+	}
+	if _, err := client.Organization.Create().
+		SetID(99).SetName("Pre").SetCreated(t1).SetUpdated(t1).SetStatus("ok").
+		Save(ctx); err != nil {
+		t.Fatalf("seed pre-existing org: %v", err)
+	}
+
+	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	orgLog, ok := f.sinceValues["org"]
+	if !ok {
+		t.Fatal("no since-log captured for org")
+	}
+	values := orgLog.snapshot()
+	if len(values) == 0 {
+		t.Fatal("no first-page org request seen")
+	}
+	last := values[len(values)-1]
+	if last == "" {
+		t.Errorf("FullSyncInterval=0 should disable forced full; got bare list")
+	}
+
+	// And the cycle should be recorded as 'incremental', not 'full'.
+	var mode string
+	if err := db.QueryRowContext(ctx,
+		`SELECT mode FROM sync_status WHERE status = 'success' ORDER BY id DESC LIMIT 1`,
+	).Scan(&mode); err != nil {
+		t.Fatalf("read mode: %v", err)
+	}
+	if mode != "incremental" {
+		t.Errorf("expected last mode = 'incremental' (escape hatch disabled), got %q", mode)
 	}
 }
 
