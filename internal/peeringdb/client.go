@@ -317,18 +317,22 @@ func (c *Client) FetchRaw(ctx context.Context, objectType string, params url.Val
 	return out, nil
 }
 
-// fetchByIDsChunk caps the number of IDs concatenated into a single
+// FetchByIDsBatchSize caps the number of IDs concatenated into a single
 // ?id__in= query value so the assembled URL stays well under typical
 // 8 KiB request-line limits. PeeringDB does not document an explicit
 // id__in cardinality limit, but 100 IDs at ~7 characters each (decimal
 // + comma) keeps the query string under 1 KiB with comfortable
 // headroom for path + other params. Quick task 260428-5xt.
-const fetchByIDsChunk = 100
+//
+// Exported so the FK-backfill cap accounting (in internal/sync) can
+// compute how many underlying HTTP requests a given FetchByIDs(ids)
+// call will issue, without re-deriving the chunk size.
+const FetchByIDsBatchSize = 100
 
 // FetchByIDs issues one or more ?since=1&id__in=<csv> requests against
 // the named object type and returns the concatenated raw rows in fetch
 // order (chunk-1 rows then chunk-2 rows then chunk-3 rows). Each chunk
-// of up to fetchByIDsChunk IDs becomes ONE HTTP request through the
+// of up to FetchByIDsBatchSize IDs becomes ONE HTTP request through the
 // rate-limited transport (consuming ONE limiter token regardless of
 // chunk size). 250 IDs => 3 sequential requests through the limiter.
 //
@@ -350,8 +354,8 @@ func (c *Client) FetchByIDs(ctx context.Context, objectType string, ids []int) (
 		return nil, nil
 	}
 	var out []json.RawMessage
-	for start := 0; start < len(ids); start += fetchByIDsChunk {
-		end := min(start+fetchByIDsChunk, len(ids))
+	for start := 0; start < len(ids); start += FetchByIDsBatchSize {
+		end := min(start+FetchByIDsBatchSize, len(ids))
 		chunk := ids[start:end]
 		// Build "1,2,3,…" without fmt.Sprintf allocations on the hot path.
 		parts := make([]string, len(chunk))

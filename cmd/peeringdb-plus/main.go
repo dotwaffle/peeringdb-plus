@@ -302,7 +302,7 @@ func main() {
 		SyncMemoryLimit:       cfg.SyncMemoryLimit,
 		HeapWarnBytes:         cfg.HeapWarnBytes,
 		RSSWarnBytes:          cfg.RSSWarnBytes,
-		FKBackfillMaxPerCycle: cfg.FKBackfillMaxPerCycle,
+		FKBackfillMaxRequestsPerCycle: cfg.FKBackfillMaxRequestsPerCycle,
 		FKBackfillTimeout:     cfg.FKBackfillTimeout,
 	}, logger)
 

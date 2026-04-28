@@ -176,15 +176,21 @@ type Config struct {
 	// regardless of operator preference. Quick task 260428-2zl.
 	PeeringDBRPS float64
 
-	// FKBackfillMaxPerCycle caps live FK-backfill upstream fetches per
-	// sync cycle. Configured via PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE
-	// (non-negative integer). Default 200. Set to 0 to disable backfill
-	// entirely (legacy drop-on-miss behavior). Quick task 260428-2zl —
-	// when fkCheckParent finds a missing parent, sync attempts one fetch
-	// via ?since=1&id__in=<id> to recover the row before declaring the
-	// child orphaned. Per-cycle dedup prevents repeat fetches for the
-	// same (type,id) pair within a single sync.
-	FKBackfillMaxPerCycle int
+	// FKBackfillMaxRequestsPerCycle caps the number of underlying HTTP
+	// requests issued by FK-backfill per sync cycle. Configured via
+	// PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE (non-negative integer).
+	// Default 20 — at 1 req/sec authenticated, that's ≈20s of upstream
+	// pressure per cycle, well within budget. Set to 0 to disable
+	// backfill entirely (drop-on-miss behavior).
+	//
+	// Semantic shift (260428-5xt → v1.18.5): the previous cap counted
+	// rows. With the dataloader pattern (one ?id__in= request per up to
+	// FetchByIDsBatchSize rows), counting rows is a weak circuit
+	// breaker — a 200-row backfill is 2 HTTP requests, not 200, and
+	// upstream's API_THROTTLE_REPEATED_REQUEST cares about request
+	// count, not row count. The cap now directly bounds the surface
+	// it's meant to protect.
+	FKBackfillMaxRequestsPerCycle int
 
 	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
 	// backfill HTTP activity. v1.18.3: backfill calls happen inside the
@@ -328,11 +334,11 @@ func Load() (*Config, error) {
 	}
 	cfg.PeeringDBRPS = rps
 
-	fkCap, err := parseNonNegativeInt("PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE", 200)
+	fkCap, err := parseNonNegativeInt("PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE", 20)
 	if err != nil {
-		return nil, fmt.Errorf("parsing PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE: %w", err)
+		return nil, fmt.Errorf("parsing PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE: %w", err)
 	}
-	cfg.FKBackfillMaxPerCycle = fkCap
+	cfg.FKBackfillMaxRequestsPerCycle = fkCap
 
 	fkTimeout, err := parseDuration("PDBPLUS_FK_BACKFILL_TIMEOUT", 5*time.Minute)
 	if err != nil {
@@ -398,8 +404,8 @@ func (c *Config) validate() error {
 	if c.PeeringDBRPS <= 0 {
 		return errors.New("PDBPLUS_PEERINGDB_RPS must be greater than 0")
 	}
-	if c.FKBackfillMaxPerCycle < 0 {
-		return errors.New("PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE must be non-negative (0 = disabled)")
+	if c.FKBackfillMaxRequestsPerCycle < 0 {
+		return errors.New("PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE must be non-negative (0 = disabled)")
 	}
 	return nil
 }
@@ -648,7 +654,7 @@ func parseByteSize(key string, defaultVal int64) (int64, error) {
 // integer. Empty / unset → defaultVal. Negative or non-integer values
 // return an error so the process fails fast at startup per GO-CFG-1.
 //
-// Quick task 260428-2zl: introduced for PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE.
+// Quick task 260428-2zl: introduced for PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE.
 // Distinct from parseFloat64 / parseMiB / parseByteSize because the
 // underlying value is a count, not a measurement — a unit suffix would
 // be misleading.

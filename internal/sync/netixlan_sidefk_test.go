@@ -124,7 +124,7 @@ func TestFKFilter_NetworkIxLan_NullsSideFKOnMiss(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 0, // disable backfill — test SET_NULL only
+		FKBackfillMaxRequestsPerCycle: 0, // disable backfill — test SET_NULL only
 	}, slog.Default())
 
 	if err := w.Sync(t.Context(), "full"); err != nil {

@@ -106,14 +106,18 @@ type WorkerConfig struct {
 	// is not set to zero). Zero disables only the Warn.
 	RSSWarnBytes int64
 
-	// FKBackfillMaxPerCycle caps the number of live FK-backfill HTTP
-	// fetches per sync cycle. Quick task 260428-2zl: when fkCheckParent
-	// finds a missing parent, sync attempts one fetch via
-	// ?since=1&id__in=<id> to recover the row before declaring the
-	// child orphaned. Default 200 (PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE).
-	// 0 disables backfill entirely — legacy drop-on-miss behavior,
-	// preserved as an operator escape-hatch for misbehaving cycles.
-	FKBackfillMaxPerCycle int
+	// FKBackfillMaxRequestsPerCycle caps the number of underlying HTTP
+	// requests issued by FK-backfill per sync cycle. v1.18.5 semantic
+	// shift: the previous cap counted ROWS (per-row in 260428-2zl,
+	// nominally per-row but batched in 260428-5xt — a weak circuit
+	// breaker once batching collapsed N rows into 1 request). The cap
+	// now directly bounds upstream HTTP traffic, the surface protected
+	// by upstream's API_THROTTLE_REPEATED_REQUEST and our local rate
+	// limiter. Default 20 (PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE)
+	// — at 1 req/sec auth, ≈20s of upstream pressure max per cycle.
+	// 0 disables backfill entirely (drop-on-miss behavior, preserved
+	// as an operator escape-hatch).
+	FKBackfillMaxRequestsPerCycle int
 
 	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
 	// backfill HTTP activity. v1.18.3: added because backfill calls
@@ -174,17 +178,17 @@ type Worker struct {
 	// ONE backfill HTTP fetch and short-circuit the next N-1 lookups.
 	// Reset alongside fkRegistry in resetFKState.
 	fkBackfillTried map[fkBackfillKey]struct{}
-	// fkBackfillCount is the per-cycle attempted-fetch counter, compared
-	// against fkBackfillCap. Bumped before the HTTP fetch (so cap-hit
-	// detection fires deterministically across goroutines that might
-	// race the cap on the same cycle, even though Worker.Sync is
-	// single-writer today).
-	fkBackfillCount int
-	// fkBackfillCap is the per-cycle hard cap on FK backfill HTTP
-	// fetches. Captured once in NewWorker from
-	// WorkerConfig.FKBackfillMaxPerCycle; 0 disables backfill entirely
-	// (legacy drop-on-miss behavior, preserved for operator escape-hatch).
-	fkBackfillCap int
+	// fkBackfillRequestCount is the per-cycle counter of underlying HTTP
+	// requests issued by FK-backfill, compared against fkBackfillRequestCap.
+	// Bumped by ⌈len(idsToFetch)/peeringdb.FetchByIDsBatchSize⌉ in
+	// fkBackfillBatch BEFORE the FetchByIDs call — one unit per actual
+	// HTTP chunk on the wire, not per row.
+	fkBackfillRequestCount int
+	// fkBackfillRequestCap is the per-cycle hard cap on underlying HTTP
+	// requests issued by FK backfill. Captured once in NewWorker from
+	// WorkerConfig.FKBackfillMaxRequestsPerCycle; 0 disables backfill
+	// entirely (drop-on-miss behavior, preserved for operator escape-hatch).
+	fkBackfillRequestCap int
 	// fkBackfillDeadline is the wall-clock deadline for FK-backfill HTTP
 	// activity within the current sync cycle. Set in resetFKState from
 	// fkBackfillTimeout. After the deadline, fkBackfillParent short-
@@ -226,7 +230,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		config:            cfg,
 		logger:            logger,
 		retryBackoffs:     defaultRetryBackoffs,
-		fkBackfillCap:     cfg.FKBackfillMaxPerCycle,
+		fkBackfillRequestCap:     cfg.FKBackfillMaxRequestsPerCycle,
 		fkBackfillTimeout: cfg.FKBackfillTimeout,
 	}
 }
@@ -248,7 +252,7 @@ func (w *Worker) resetFKState() {
 	// counter alongside the rest of the FK state. The cap is captured
 	// once at NewWorker time; only the per-cycle bookkeeping resets.
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
-	w.fkBackfillCount = 0
+	w.fkBackfillRequestCount = 0
 	// v1.18.3: per-cycle deadline for backfill HTTP activity. Zero
 	// timeout → zero deadline → fkBackfillParent's deadline check
 	// short-circuits to "no deadline".
@@ -1431,14 +1435,14 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 // row from the chunk. emitOrphanSummary surfaces the per-cycle
 // aggregate at WARN.
 //
-// Backfill is gated on fkBackfillCap > 0 — operators who set
-// PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE=0 retain the legacy drop-on-miss
+// Backfill is gated on fkBackfillRequestCap > 0 — operators who set
+// PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE=0 retain the legacy drop-on-miss
 // behavior (no upstream traffic; child rows simply dropped).
 func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string, childID int, parentType string, parentID int, field string) bool {
 	if w.fkHasParent(ctx, tx, parentType, parentID) {
 		return true
 	}
-	if w.fkBackfillCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
+	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return true
 	}
 	w.fkMarkSkipped(childType, childID)
@@ -1474,7 +1478,7 @@ func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field st
 	if w.fkHasParent(ctx, tx, peeringdb.TypeFac, parentID) {
 		return
 	}
-	if w.fkBackfillCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
+	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
 		return
 	}
 	w.recordOrphan(ctx, fkOrphanKey{

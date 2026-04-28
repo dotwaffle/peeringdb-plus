@@ -148,7 +148,7 @@ func TestFKCheckParent_BackfillIntegration(t *testing.T) {
 	}
 
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 10,
+		FKBackfillMaxRequestsPerCycle: 10,
 	}, slog.Default())
 
 	ctx := t.Context()
@@ -235,7 +235,7 @@ func TestFKCheckParent_BackfillDedup(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 10,
+		FKBackfillMaxRequestsPerCycle: 10,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -322,7 +322,7 @@ func TestFKCheckParent_BackfillCapZeroDisablesBackfill(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 0, // disabled
+		FKBackfillMaxRequestsPerCycle: 0, // disabled
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -389,7 +389,7 @@ func TestFKCheckParent_BackfillCapHitRecordsRatelimited(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 1, // cap → only 1 backfill allowed
+		FKBackfillMaxRequestsPerCycle: 1, // cap → only 1 backfill allowed
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -449,7 +449,7 @@ func TestFKCheckParent_BackfillFetchErrorRecordsError(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 5,
+		FKBackfillMaxRequestsPerCycle: 5,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -603,7 +603,7 @@ func TestFKCheckParent_BackfillRecursesIntoGrandparent(t *testing.T) {
 	}
 
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 10,
+		FKBackfillMaxRequestsPerCycle: 10,
 	}, slog.Default())
 
 	if err := w.Sync(t.Context(), "full"); err != nil {
@@ -677,7 +677,7 @@ func TestFKCheckParent_BackfillDeadlineFallsBackToDrop(t *testing.T) {
 
 	// 1ns timeout — first backfill attempt fires past deadline.
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: 10,
+		FKBackfillMaxRequestsPerCycle: 10,
 		FKBackfillTimeout:     1 * time.Nanosecond,
 	}, slog.Default())
 
@@ -950,7 +950,7 @@ func TestFKBackfill_BatchedFetch_OneRequest(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: numNets * 2,
+		FKBackfillMaxRequestsPerCycle: numNets * 2,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -1019,7 +1019,7 @@ func TestFKBackfill_BatchedFetch_ChunksAt100(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: numNets * 2,
+		FKBackfillMaxRequestsPerCycle: numNets * 2,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -1098,7 +1098,7 @@ func TestFKBackfill_BatchedFetch_RecursiveGrandparents(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: numCFs * 4,
+		FKBackfillMaxRequestsPerCycle: numCFs * 4,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
@@ -1129,16 +1129,23 @@ func TestFKBackfill_BatchedFetch_RecursiveGrandparents(t *testing.T) {
 	}
 }
 
-// TestFKBackfill_BatchedFetch_RespectsCap: cap=10, 50 distinct missing
-// parents → ONE batched HTTP request for at most 10 IDs, the other 40
+// TestFKBackfill_BatchedFetch_RespectsCap: cap=1 HTTP request, 250
+// distinct missing parents → exactly ONE batched HTTP request for the
+// first 100 IDs (one chunk = one request budget unit), the other 150
 // recorded as fkBackfillRateLimited via the cap pre-flight in
-// fkBackfillBatch (semantic shift documented in the function godoc:
-// the cap is now per-row, not per-HTTP-request).
+// fkBackfillBatch.
+//
+// v1.18.5 semantic: cap is now on UNDERLYING HTTP REQUESTS, not rows.
+// One FetchByIDs(N) call issues ⌈N/peeringdb.FetchByIDsBatchSize⌉
+// underlying HTTP requests. With BatchSize=100 and cap=1, the worker
+// can fetch up to 100 IDs (1 request); IDs 101-250 fall through to
+// drop-on-miss with result=ratelimited.
 func TestFKBackfill_BatchedFetch_RespectsCap(t *testing.T) {
 	t.Parallel()
 
-	const numNets = 50
-	const capLimit = 10
+	const numNets = 250
+	const requestCap = 1
+	const expectedFetchedRows = peeringdb.FetchByIDsBatchSize * requestCap // = 100
 	nets := make([]json.RawMessage, 0, numNets)
 	for i := 1; i <= numNets; i++ {
 		nets = append(nets, mustJSON(makeMinimalNet(i, 1000+i)))
@@ -1163,25 +1170,25 @@ func TestFKBackfill_BatchedFetch_RespectsCap(t *testing.T) {
 		t.Fatalf("init: %v", err)
 	}
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: capLimit,
+		FKBackfillMaxRequestsPerCycle: requestCap,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
 	calls, idIns, _ := rec.snapshot()
-	if calls != 1 {
-		t.Fatalf("backfill HTTP calls = %d, want 1 (cap=10 → 1 batched fetch with at most 10 IDs)", calls)
+	if calls != requestCap {
+		t.Fatalf("backfill HTTP calls = %d, want %d (cap is on requests, not rows)", calls, requestCap)
 	}
 	gotN := len(strings.Split(idIns[0], ","))
-	if gotN != capLimit {
-		t.Errorf("id__in cardinality = %d, want %d (cap-bounded prefix)", gotN, capLimit)
+	if gotN != expectedFetchedRows {
+		t.Errorf("id__in cardinality = %d, want %d (one request × FetchByIDsBatchSize IDs)", gotN, expectedFetchedRows)
 	}
-	if got, _ := client.Organization.Query().Count(t.Context()); got != capLimit {
-		t.Errorf("orgCount = %d, want %d (cap-bounded backfill)", got, capLimit)
+	if got, _ := client.Organization.Query().Count(t.Context()); got != expectedFetchedRows {
+		t.Errorf("orgCount = %d, want %d (only cap×batch_size parents fetched)", got, expectedFetchedRows)
 	}
-	if got, _ := client.Network.Query().Count(t.Context()); got != capLimit {
-		t.Errorf("netCount = %d, want %d (only cap nets had FK satisfied)", got, capLimit)
+	if got, _ := client.Network.Query().Count(t.Context()); got != expectedFetchedRows {
+		t.Errorf("netCount = %d, want %d (only cap×batch_size nets had FK satisfied)", got, expectedFetchedRows)
 	}
 }
 
@@ -1218,7 +1225,7 @@ func TestFKBackfill_BatchedFetch_RespectsDeadline(t *testing.T) {
 	}
 	// 1ns timeout — pre-flight deadline check fires before any HTTP.
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
-		FKBackfillMaxPerCycle: numNets * 2,
+		FKBackfillMaxRequestsPerCycle: numNets * 2,
 		FKBackfillTimeout:     1 * time.Nanosecond,
 	}, slog.Default())
 	if err := w.Sync(t.Context(), "full"); err != nil {
