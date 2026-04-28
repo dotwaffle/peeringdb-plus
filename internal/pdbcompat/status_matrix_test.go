@@ -218,8 +218,9 @@ func TestStatusMatrix(t *testing.T) {
 		t.Parallel()
 		client := testutil.SetupClient(t)
 		ctx := t.Context()
-		// Seed 300 status=ok networks (above DefaultLimit=250, below
-		// MaxLimit=1000). limit=0 must bypass both caps per LIMIT-01.
+		// Seed 300 status=ok networks (above the historical 250 cap,
+		// below MaxLimit=1000). Both bare URL and ?limit=0 return all
+		// rows per LIMIT-01 (matches upstream rest.py:495 + :737).
 		const seedN = 300
 		for i := 1; i <= seedN; i++ {
 			if _, err := client.Network.Create().
@@ -233,13 +234,13 @@ func TestStatusMatrix(t *testing.T) {
 		srv := httptest.NewServer(newMuxForOrdering(client))
 		t.Cleanup(srv.Close)
 
-		// Control case: default limit returns DefaultLimit=250.
+		// Bare URL: upstream parity — returns all 300 rows.
 		n, _ := fetchDataLength(t, srv.URL+"/api/net")
-		if n != DefaultLimit {
-			t.Errorf("control /api/net: got %d, want %d (DefaultLimit)", n, DefaultLimit)
+		if n != seedN {
+			t.Errorf("bare /api/net: got %d, want %d (LIMIT-01: bare URL returns all rows, matching upstream)", n, seedN)
 		}
 
-		// LIMIT-01: ?limit=0 returns all 300 rows unbounded.
+		// Explicit ?limit=0: also returns all 300 rows.
 		n, _ = fetchDataLength(t, srv.URL+"/api/net?limit=0")
 		if n != seedN {
 			t.Errorf("?limit=0: got %d, want %d (all rows) per LIMIT-01", n, seedN)

@@ -28,14 +28,11 @@ func TestSync_OrderingMatchesWorker(t *testing.T) {
 }
 
 // TestSync_BuildSyncEndpointsFull asserts full-mode produces 39
-// pdbcompat GETs (13 types × 3 depths) against
-// /api/<short>?depth=N&limit=0. The `limit=0` sentinel is the
-// upstream-compatible "unlimited" marker (parity-locked by
-// internal/pdbcompat/parity/limit_test.go LIMIT-01); without it the
-// mirror's DefaultLimit=250 would cap each response at 250 rows,
-// defeating the purpose of a full-sync loadtest. See the
-// loadtest-body-size-mismatch debug session (.planning/debug/, 2026-04-28)
-// for the root-cause investigation.
+// pdbcompat GETs (13 types × 3 depths) against bare
+// /api/<short>?depth=N URLs. Bare URLs mirror real client traffic
+// against the mirror; since the DefaultLimit fix (2026-04-28), the
+// mirror returns all rows on bare URLs — gated only by the Phase 71
+// response-memory budget — matching upstream behaviour exactly.
 func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 	t.Parallel()
 
@@ -57,7 +54,7 @@ func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 			if ep.Method != "GET" {
 				t.Errorf("ep[%d].Method = %q, want GET", i, ep.Method)
 			}
-			want := fmt.Sprintf("/api/%s?depth=%d&limit=0", ty, depth)
+			want := fmt.Sprintf("/api/%s?depth=%d", ty, depth)
 			if ep.Path != want {
 				t.Errorf("ep[%d].Path = %q, want %q", i, ep.Path, want)
 			}
@@ -65,16 +62,10 @@ func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 				t.Errorf("ep[%d].Path = %q: full mode should not have since=",
 					i, ep.Path)
 			}
-			if strings.Contains(ep.Path, "skip=") {
+			if strings.Contains(ep.Path, "skip=") || strings.Contains(ep.Path, "limit=") {
 				t.Errorf("ep[%d].Path = %q: full mode must NOT include "+
-					"skip (a single unbounded request, not paginated)",
+					"skip/limit — bare URL matches upstream behaviour",
 					i, ep.Path)
-			}
-			if !strings.Contains(ep.Path, "limit=0") {
-				t.Errorf("ep[%d].Path = %q: full mode MUST include "+
-					"limit=0 (mirror DefaultLimit=250 would cap "+
-					"otherwise — see LIMIT-01 / debug-session "+
-					"loadtest-body-size-mismatch)", i, ep.Path)
 			}
 		}
 	}

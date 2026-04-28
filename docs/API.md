@@ -250,7 +250,7 @@ Valid `{type}` values are the same 13 constants defined in
 | Parameter | Applies to | Description |
 |-----------|------------|-------------|
 | `q` | List | Case-insensitive substring search across the type's search fields. For `/api/net`, an ASN literal (e.g. `8075` or `AS8075`) also matches `net.asn` exactly in addition to the text fields |
-| `limit` | List | Page size. Default `250`, clamped to `1000`. `limit=0` is honoured as **unlimited** (matches upstream `rest.py:494-497`) and is gated only by the response memory budget — see "Response memory budget" below. Negative values are ignored. Constants: `DefaultLimit=250`, `MaxLimit=1000` (`internal/pdbcompat/response.go`) |
+| `limit` | List | Maximum rows in response. **Default unlimited** when absent — matches upstream `rest.py:495` (`limit` defaults to `0`) + `rest.py:737` (no slice when `limit=0`). Bare `/api/<type>` URLs return ALL rows from the filtered queryset; the response is gated only by the response memory budget (see below). Explicit `limit=N`: positive `N` is clamped to `MaxLimit=1000`; `limit=0` is the explicit "unlimited" sentinel; negative values are ignored. Constants: `DefaultLimit=0`, `MaxLimit=1000` (`internal/pdbcompat/response.go`). The `?page=N` shape is not supported — clients that want pagination set `?limit=N&skip=M` instead |
 | `skip` | List | Offset for pagination. Negative values are ignored |
 | `depth` | Detail | Edge expansion depth. Accepted values: `0` (default, flat object) and `2` (embed related `_set` collections). Any other value is silently ignored. **List endpoints silently drop `?depth=`** — see § Known Divergences |
 | `fields` | Both | Comma-separated projection — only the listed JSON keys are returned after retrieval |

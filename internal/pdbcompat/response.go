@@ -11,10 +11,27 @@ import (
 )
 
 const (
-	// DefaultLimit is the default page size for list endpoints.
-	DefaultLimit = 250
+	// DefaultLimit is the default value used when the `limit=` query
+	// parameter is absent. Set to 0 ("unlimited") to mirror upstream
+	// PeeringDB's `rest.py:495` behaviour: bare `/api/<type>` URLs
+	// return ALL rows from the queryset, not a paginated page.
+	//
+	// Earlier revisions of this code defaulted to 250, treating that as
+	// a defensive page-size cap. The cap turned out to be a real parity
+	// bug — verified 2026-04-28 against upstream live data
+	// (parity-results.txt: bare /api/org returned 33,556 rows upstream
+	// vs 250 on the mirror). The Phase 71 response-memory budget
+	// (PDBPLUS_RESPONSE_MEMORY_LIMIT, default 128 MiB) is the real DoS
+	// safeguard — it gates the precount × TypicalRowBytes before
+	// materialising any result set, returning 413 application/problem+json
+	// when the would-be payload exceeds the budget. The 250 default
+	// added nothing on top of that, only divergence.
+	DefaultLimit = 0
 
-	// MaxLimit is the maximum allowed page size per D-21.
+	// MaxLimit is the maximum allowed page size per D-21. Applied only
+	// when the caller supplies an explicit positive `limit=` (see
+	// ParsePaginationParams). limit=0 / unset bypasses this clamp and
+	// returns the full result set, gated by the Phase 71 budget.
 	MaxLimit = 1000
 
 	// poweredByHeader identifies this server in responses per D-25.
@@ -48,16 +65,24 @@ func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
 	httperr.WriteProblem(w, input)
 }
 
-// ParsePaginationParams extracts limit and skip from query parameters with
-// defaults and bounds per D-16, D-21.
+// ParsePaginationParams extracts limit and skip from query parameters
+// with defaults and bounds per D-16, D-21.
 //
-// Phase 68 LIMIT-01: limit=0 is a sentinel meaning "no upper bound" and
-// matches upstream rest.py:734-737 semantics. MaxLimit=1000 clamps only
-// positive limits; limit=0 is passed through to the list closures
-// unchanged and their `if opts.Limit > 0 { .Limit(...) }` gate omits the
-// SQL LIMIT clause entirely. Phase 71 will land the per-response memory
-// budget that is the real DoS safeguard — do NOT deploy Phase 68 to prod
-// without Phase 71 per CONTEXT.md D-04.
+// Bare URL (no `limit=`): returns DefaultLimit (0 = unlimited),
+// matching upstream `rest.py:495` which defaults `limit` to 0 and
+// then `rest.py:737` which slices `qset[skip:]` (no upper bound).
+// All-rows responses are gated by the Phase 71 response-memory
+// budget; if the precount × TypicalRowBytes exceeds the budget, the
+// handler returns 413 application/problem+json before materialising
+// anything.
+//
+// Explicit `limit=N`: positive N is honoured, clamped to MaxLimit
+// (1000) per D-21. limit=0 is the explicit "unlimited" sentinel and
+// is passed through unchanged; the list closures' `if opts.Limit > 0
+// { .Limit(...) }` gate omits the SQL LIMIT clause when limit is 0.
+//
+// Negative values are ignored (treated as missing) per upstream
+// behaviour.
 func ParsePaginationParams(params url.Values) (limit, skip int) {
 	limit = DefaultLimit
 	if v := params.Get("limit"); v != "" {

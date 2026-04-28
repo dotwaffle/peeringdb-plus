@@ -29,14 +29,27 @@ func TestParity_Limit(t *testing.T) {
 
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	t.Run("LIMIT-01_zero_returns_all_rows_unbounded", func(t *testing.T) {
+	t.Run("LIMIT-01_bare_url_and_zero_both_return_all_rows", func(t *testing.T) {
 		t.Parallel()
-		// upstream: pdb_api_test.py (multiple call sites pass limit=0
-		// to retrieve full corpora; the call shape is implicit in the
-		// fixture-count assertions).
+		// upstream: rest.py:495 (limit defaults to 0) + rest.py:737
+		// (limit=0 → qset[skip:], no slice). Both bare URL and explicit
+		// ?limit=0 return ALL rows from the filtered queryset on
+		// upstream — the 250 defaultable page size is opt-in via
+		// ?page=N (UnlimitedIfNoPagePagination at rest.py:418-430,
+		// only applies pagination when "page" is in query_params).
+		//
+		// Earlier revisions of this test asserted the bare URL returns
+		// 250 rows, which was a parity bug that this fork inherited
+		// from a defensive cap on response.go DefaultLimit. Verified
+		// 2026-04-28 against upstream live data (parity-results.txt):
+		// bare /api/org returned 33,556 rows upstream vs 250 on the
+		// then-buggy mirror. DefaultLimit was changed from 250 to 0
+		// to restore parity; the Phase 71 response-memory budget is
+		// now the sole DoS gate, returning 413 application/problem+json
+		// when precount × TypicalRowBytes exceeds the budget.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
-		const seedN = 300 // > DefaultLimit=250, < MaxLimit=1000
+		const seedN = 300 // > the historical 250 cap, < MaxLimit=1000
 		for i := 1; i <= seedN; i++ {
 			if _, err := c.Network.Create().
 				SetID(i).SetName("LimitNet").SetNameFold(unifold.Fold("LimitNet")).
@@ -51,24 +64,27 @@ func TestParity_Limit(t *testing.T) {
 		// LIMIT-01 path without the Phase 71 413 layer interfering.
 		srv := newTestServer(t, c)
 
-		// Control: default limit returns DefaultLimit=250.
+		// Bare URL: returns all 300 rows (matches upstream).
 		status, body := httpGet(t, srv, "/api/net")
 		if status != http.StatusOK {
-			t.Fatalf("default limit status = %d; body=%s", status, string(body))
+			t.Fatalf("bare URL status = %d; body=%s", status, string(body))
 		}
-		ctrl := decodeDataArray(t, body)
-		if len(ctrl) != 250 {
-			t.Errorf("control: got %d rows, want 250 (DefaultLimit)", len(ctrl))
+		bare := decodeDataArray(t, body)
+		if len(bare) != seedN {
+			t.Errorf("LIMIT-01 bare /api/net: got %d rows, want %d "+
+				"(upstream returns all rows when neither limit= nor page= is set)",
+				len(bare), seedN)
 		}
 
-		// LIMIT-01: ?limit=0 returns all 300 rows.
+		// Explicit ?limit=0: also returns all 300 rows.
 		status, body = httpGet(t, srv, "/api/net?limit=0")
 		if status != http.StatusOK {
 			t.Fatalf("limit=0 status = %d; body=%s", status, string(body))
 		}
 		all := decodeDataArray(t, body)
 		if len(all) != seedN {
-			t.Errorf("LIMIT-01 ?limit=0: got %d rows, want %d (all unbounded)", len(all), seedN)
+			t.Errorf("LIMIT-01 ?limit=0: got %d rows, want %d (all unbounded)",
+				len(all), seedN)
 		}
 	})
 
