@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -154,6 +155,21 @@ func makeOrg(id int, name, status string) map[string]any {
 	}
 }
 
+// bumpUpdated returns a shallow copy of a map[string]any fixture with
+// "updated" rewritten to the supplied RFC3339 timestamp string. Used by
+// tests that need to drive the 260428-eda CHANGE 3 skip-on-unchanged
+// predicate past `excluded.updated > existing.updated` on a re-sync.
+//
+// The PeeringDB API always bumps `updated` when row content changes, so
+// this matches real upstream behaviour — pre-CHANGE 3 the tests got away
+// with reusing a single timestamp because every upsert was unconditional.
+func bumpUpdated(row map[string]any, updated string) map[string]any {
+	out := make(map[string]any, len(row))
+	maps.Copy(out, row)
+	out["updated"] = updated
+	return out
+}
+
 func makeFac(id, orgID int, name, status string) map[string]any {
 	return map[string]any{
 		"id": id, "org_id": orgID, "org_name": "Test", "name": name,
@@ -261,8 +277,9 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 		t.Fatalf("first sync: %v", err)
 	}
 
-	// Update mock response.
-	f.responses["org"] = []any{makeOrg(1, "UpdatedName", "ok")}
+	// Update mock response. Bump `updated` past the prior write so the
+	// 260428-eda CHANGE 3 skip-on-unchanged predicate admits the rewrite.
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "UpdatedName", "ok"), "2024-01-02T00:00:00Z")}
 
 	// Second sync.
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
@@ -308,10 +325,12 @@ func TestSyncPersistsExplicitTombstone(t *testing.T) {
 	}
 
 	// Second sync: upstream returns org 2 with status='deleted'
-	// (mirrors the rest.py:694-727 ?since= response shape).
+	// (mirrors the rest.py:694-727 ?since= response shape). Bump the
+	// changed row's `updated` past the prior write so 260428-eda
+	// CHANGE 3's skip-on-unchanged predicate admits the status flip.
 	f.responses["org"] = []any{
 		makeOrg(1, "Org1", "ok"),
-		makeOrg(2, "Org2", "deleted"),
+		bumpUpdated(makeOrg(2, "Org2", "deleted"), "2024-01-02T00:00:00Z"),
 		makeOrg(3, "Org3", "ok"),
 	}
 
@@ -989,7 +1008,9 @@ func TestIncrementalSync(t *testing.T) {
 	}
 
 	// Second sync: cursors exist, so incremental fetch should use ?since=.
-	f.responses["org"] = []any{makeOrg(1, "Org1Updated", "ok")}
+	// 260428-eda CHANGE 3: bump `updated` past the prior write so the
+	// skip-on-unchanged predicate admits the rewrite.
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1Updated", "ok"), "2024-01-02T00:00:00Z")}
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("second sync: %v", err)
 	}
@@ -1154,12 +1175,13 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 
 	// Cycle 2: upstream returns Org1 unchanged + Org2 as a PII-scrubbed
 	// tombstone (status="deleted", name=""). Bump generated so the cursor
-	// can advance.
+	// can advance. 260428-eda CHANGE 3: bump Org2's `updated` past cycle 1
+	// so the skip-on-unchanged predicate admits the status flip.
 	t2 := t1 + 3600
 	f.generated = t2
 	f.responses["org"] = []any{
 		makeOrg(1, "Org1", "ok"),
-		makeOrg(2, "", "deleted"),
+		bumpUpdated(makeOrg(2, "", "deleted"), "2024-01-02T00:00:00Z"),
 	}
 
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
@@ -1280,12 +1302,13 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 
 	// Cycle 2: upstream returns Alice unchanged + Bob as a PII-scrubbed
 	// tombstone (status="deleted", role=""). Bump generated so the cursor
-	// can advance.
+	// can advance. 260428-eda CHANGE 3: bump Bob's `updated` past cycle 1
+	// so the skip-on-unchanged predicate admits the status flip.
 	t2 := t1 + 3600
 	f.generated = t2
 	f.responses["poc"] = []any{
 		makePoc(10, 50, "Alice", "Technical", "ok"),
-		makePoc(11, 50, "", "", "deleted"),
+		bumpUpdated(makePoc(11, 50, "", "", "deleted"), "2024-01-02T00:00:00Z"),
 	}
 
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
@@ -1462,7 +1485,9 @@ func TestIncrementalSkipsDeleteStale(t *testing.T) {
 	}
 
 	// Incremental sync with only 1 org (simulating only org 1 was modified).
-	f.responses["org"] = []any{makeOrg(1, "Org1Updated", "ok")}
+	// 260428-eda CHANGE 3: bump `updated` past cycle 1 so the
+	// skip-on-unchanged predicate admits the rewrite.
+	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1Updated", "ok"), "2024-01-02T00:00:00Z")}
 
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
 		t.Fatalf("incremental sync: %v", err)

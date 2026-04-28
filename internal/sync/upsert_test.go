@@ -5,6 +5,10 @@
 // network, facility, internetexchange, campus, carrier) populate those
 // columns at sync time via unifold.Fold(). End-to-end round-trip asserts
 // that `Name: "Zürich GmbH"` → DB → `NameFold: "zurich gmbh"`.
+//
+// TestUpsert_SkipOnUnchanged anchors 260428-eda CHANGE 3's contract:
+// per-row skip-on-unchanged via the SQL ON CONFLICT DO UPDATE WHERE
+// predicate gates writes on the upstream `updated` timestamp.
 package sync
 
 import (
@@ -84,6 +88,12 @@ func TestUpsertPopulatesFoldColumns(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = tx2.Rollback() })
 
+	// 260428-eda CHANGE 3: bump Updated past the prior write so the
+	// skip-on-unchanged predicate (excluded.updated > existing.updated)
+	// admits this re-upsert. With Updated=now (unchanged) the predicate
+	// would correctly leave the row untouched — exercised separately by
+	// TestUpsert_SkipOnUnchanged.
+	later := now.Add(time.Second)
 	orgs2 := []peeringdb.Organization{
 		{
 			ID:      1,
@@ -91,7 +101,7 @@ func TestUpsertPopulatesFoldColumns(t *testing.T) {
 			Aka:     "Strasse 23",
 			City:    "Koln",
 			Created: now,
-			Updated: now,
+			Updated: later,
 			Status:  "ok",
 		},
 	}
@@ -115,4 +125,189 @@ func TestUpsertPopulatesFoldColumns(t *testing.T) {
 	if got2.CityFold != "koln" {
 		t.Errorf("CityFold after re-upsert: got %q, want %q", got2.CityFold, "koln")
 	}
+}
+
+// TestUpsert_SkipOnUnchanged anchors 260428-eda CHANGE 3: per-row
+// skip-on-unchanged via the SQL ON CONFLICT DO UPDATE WHERE predicate
+// gates writes on the upstream `updated` timestamp.
+//
+// Sub-tests:
+//   - skip:                same updated → row NOT updated.
+//   - update_on_newer:     newer updated → row IS updated.
+//   - update_on_zero:      both rows have updated=time.Time{} →
+//     predicate's zero-time guard admits the write.
+//   - insert_when_absent:  no prior row → INSERT path runs.
+//
+// The test uses Name as the sentinel: it changes between writes so a
+// successful update flips the read-back value.
+func TestUpsert_SkipOnUnchanged(t *testing.T) {
+	t.Parallel()
+
+	t.Run("skip", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+		client := testutil.SetupClient(t)
+
+		base := time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC)
+
+		tx1, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx1: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx1, []peeringdb.Organization{{
+			ID: 1, Name: "A", Created: base, Updated: base, Status: "ok",
+		}}); err != nil {
+			_ = tx1.Rollback()
+			t.Fatalf("first upsert: %v", err)
+		}
+		if err := tx1.Commit(); err != nil {
+			t.Fatalf("commit tx1: %v", err)
+		}
+
+		// Second upsert with SAME updated but DIFFERENT name — must skip.
+		tx2, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx2: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx2, []peeringdb.Organization{{
+			ID: 1, Name: "B", Created: base, Updated: base, Status: "ok",
+		}}); err != nil {
+			_ = tx2.Rollback()
+			t.Fatalf("second upsert: %v", err)
+		}
+		if err := tx2.Commit(); err != nil {
+			t.Fatalf("commit tx2: %v", err)
+		}
+
+		got, err := client.Organization.Get(ctx, 1)
+		if err != nil {
+			t.Fatalf("read back: %v", err)
+		}
+		if got.Name != "A" {
+			t.Errorf("Name = %q, want %q (skip-on-unchanged should have left the row untouched)", got.Name, "A")
+		}
+	})
+
+	t.Run("update_on_newer", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+		client := testutil.SetupClient(t)
+
+		base := time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC)
+		later := base.Add(time.Second)
+
+		tx1, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx1: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx1, []peeringdb.Organization{{
+			ID: 1, Name: "A", Created: base, Updated: base, Status: "ok",
+		}}); err != nil {
+			_ = tx1.Rollback()
+			t.Fatalf("first upsert: %v", err)
+		}
+		if err := tx1.Commit(); err != nil {
+			t.Fatalf("commit tx1: %v", err)
+		}
+
+		tx2, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx2: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx2, []peeringdb.Organization{{
+			ID: 1, Name: "B", Created: base, Updated: later, Status: "ok",
+		}}); err != nil {
+			_ = tx2.Rollback()
+			t.Fatalf("second upsert: %v", err)
+		}
+		if err := tx2.Commit(); err != nil {
+			t.Fatalf("commit tx2: %v", err)
+		}
+
+		got, err := client.Organization.Get(ctx, 1)
+		if err != nil {
+			t.Fatalf("read back: %v", err)
+		}
+		if got.Name != "B" {
+			t.Errorf("Name = %q, want %q (newer updated should have updated the row)", got.Name, "B")
+		}
+	})
+
+	t.Run("update_on_zero", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+		client := testutil.SetupClient(t)
+
+		// Both rows carry updated=time.Time{}. The predicate's zero-time
+		// guard (<= '1900-01-01' on the modernc text representation
+		// '0001-01-01...') admits the second write so a row with no
+		// updated value is never permanently frozen.
+		zero := time.Time{}
+
+		tx1, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx1: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx1, []peeringdb.Organization{{
+			ID: 1, Name: "A", Created: zero, Updated: zero, Status: "ok",
+		}}); err != nil {
+			_ = tx1.Rollback()
+			t.Fatalf("first upsert: %v", err)
+		}
+		if err := tx1.Commit(); err != nil {
+			t.Fatalf("commit tx1: %v", err)
+		}
+
+		tx2, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx2: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx2, []peeringdb.Organization{{
+			ID: 1, Name: "B", Created: zero, Updated: zero, Status: "ok",
+		}}); err != nil {
+			_ = tx2.Rollback()
+			t.Fatalf("second upsert: %v", err)
+		}
+		if err := tx2.Commit(); err != nil {
+			t.Fatalf("commit tx2: %v", err)
+		}
+
+		got, err := client.Organization.Get(ctx, 1)
+		if err != nil {
+			t.Fatalf("read back: %v", err)
+		}
+		if got.Name != "B" {
+			t.Errorf("Name = %q, want %q (zero-updated rows must always update)", got.Name, "B")
+		}
+	})
+
+	t.Run("insert_when_absent", func(t *testing.T) {
+		t.Parallel()
+		ctx := t.Context()
+		client := testutil.SetupClient(t)
+
+		base := time.Date(2026, 4, 28, 12, 0, 0, 0, time.UTC)
+
+		tx, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx, []peeringdb.Organization{{
+			ID: 42, Name: "fresh", Created: base, Updated: base, Status: "ok",
+		}}); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("insert upsert: %v", err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+
+		got, err := client.Organization.Get(ctx, 42)
+		if err != nil {
+			t.Fatalf("read back: %v", err)
+		}
+		if got.Name != "fresh" {
+			t.Errorf("Name = %q, want %q (INSERT path)", got.Name, "fresh")
+		}
+	})
 }
