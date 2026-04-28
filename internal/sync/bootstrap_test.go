@@ -17,13 +17,14 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
-// TestSync_IncrementalBootstrapUsesSince1 asserts that incremental sync
-// with no prior cursor (fresh DB) bootstraps with ?since=1 instead of
-// hitting the bare /api/<type> path. This is the load-bearing fix from
-// quick task 260428-2zl: bare /api/<type> returns status='ok' only,
-// leaving us blind to historical tombstones that occurred before our
-// observability started.
-func TestSync_IncrementalBootstrapUsesSince1(t *testing.T) {
+// TestSync_IncrementalNoCursorFallsBackToBareList asserts that
+// incremental sync with no prior cursor (fresh DB) falls through to the
+// bare /api/<type> path — NOT the v1.18.2 ?since=1 bootstrap that
+// tripped upstream's API_THROTTLE_REPEATED_REQUEST throttle and was
+// reverted in v1.18.3. Historical-delete capture is deferred to a
+// proper multi-cycle bootstrap design (v1.19+); the FK backfill catches
+// orphans on demand.
+func TestSync_IncrementalNoCursorFallsBackToBareList(t *testing.T) {
 	t.Parallel()
 
 	// Capture every URL the sync worker hits.
@@ -54,7 +55,7 @@ func TestSync_IncrementalBootstrapUsesSince1(t *testing.T) {
 
 	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
 
-	// Fresh DB → no cursor for any type → all 13 should bootstrap with since=1.
+	// Fresh DB → no cursor for any type → all 13 should bare-list.
 	if err := w.Sync(t.Context(), config.SyncModeIncremental); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
@@ -63,23 +64,17 @@ func TestSync_IncrementalBootstrapUsesSince1(t *testing.T) {
 	if len(captured) == 0 {
 		t.Fatal("no URLs captured — sync didn't hit the test server")
 	}
-	// Every captured URL must contain since=1 (T2 contract). At minimum,
-	// the first 13 URLs (one per entity type) must — incremental fallback
-	// would re-fire as a bare /api path after a since= attempt, but our
-	// server returns 200 for everything so no fallback should fire.
+	// No URL may contain since= when cursor is zero (v1.18.3 contract).
 	for _, u := range captured {
-		if !strings.Contains(u, "since=1") {
-			t.Errorf("URL missing since=1 (incremental bootstrap regressed): %s", u)
+		if strings.Contains(u, "since=") {
+			t.Errorf("URL has since= but cursor is zero (v1.18.2 bootstrap regression): %s", u)
 		}
 	}
 }
 
-// TestSync_FullModeStillBare asserts that mode=full does NOT add since=1.
-// Full sync uses the bare /api/<type> path so the upstream returns its
-// default status='ok'-only result set; the inference-by-absence delete
-// pass (removed in T6) used to fill in the deleted set. Post-T6 full
-// sync is the operator escape-hatch for fresh-bootstrap from a known-good
-// snapshot; bootstrap-with-since=1 is the steady-state default.
+// TestSync_FullModeStillBare asserts that mode=full does NOT add since=.
+// Full sync uses the bare /api/<type> path; this is also the fallback
+// path when incremental has no cursor (post-v1.18.3).
 func TestSync_FullModeStillBare(t *testing.T) {
 	t.Parallel()
 

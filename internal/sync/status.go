@@ -50,12 +50,20 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-// GetCursor returns the last successful sync timestamp for a type.
-// Returns zero time if no cursor exists or the last sync for the type failed.
+// GetCursor returns the last sync timestamp for a type. Returns zero
+// time only if no cursor row exists for the type.
+//
+// v1.18.3: dropped the prior `AND last_status = 'success'` filter. The
+// cursor is a high-water-mark timestamp; failure observability lives in
+// the separate sync_status table. Coupling cursor reads to last_status
+// caused subtle "all cursors zero after a failed cycle" surprises that
+// could trigger expensive re-fetches (and was load-bearing in the
+// v1.18.2 bootstrap regression). The last_status column is preserved
+// for stored data compatibility and any future dashboard queries.
 func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, error) {
 	var lastSyncAt time.Time
 	err := db.QueryRowContext(ctx,
-		`SELECT last_sync_at FROM sync_cursors WHERE type = ? AND last_status = 'success'`,
+		`SELECT last_sync_at FROM sync_cursors WHERE type = ?`,
 		objType,
 	).Scan(&lastSyncAt)
 	if errors.Is(err, sql.ErrNoRows) {

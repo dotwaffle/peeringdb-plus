@@ -114,6 +114,18 @@ type WorkerConfig struct {
 	// 0 disables backfill entirely — legacy drop-on-miss behavior,
 	// preserved as an operator escape-hatch for misbehaving cycles.
 	FKBackfillMaxPerCycle int
+
+	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
+	// backfill HTTP activity. v1.18.3: added because backfill calls
+	// happen inside the sync transaction; without a deadline a cascade
+	// of slow / rate-limited backfills could hold the tx open for tens
+	// of minutes, stalling LiteFS replication. After the deadline,
+	// fkBackfillParent short-circuits to drop-on-miss so the rest of
+	// the sync (bulk fetches + upserts) can commit and the next cycle
+	// picks up where we left off. Default 5 minutes
+	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
+	// deadline (only the cap applies).
+	FKBackfillTimeout time.Duration
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -173,6 +185,21 @@ type Worker struct {
 	// WorkerConfig.FKBackfillMaxPerCycle; 0 disables backfill entirely
 	// (legacy drop-on-miss behavior, preserved for operator escape-hatch).
 	fkBackfillCap int
+	// fkBackfillDeadline is the wall-clock deadline for FK-backfill HTTP
+	// activity within the current sync cycle. Set in resetFKState from
+	// fkBackfillTimeout. After the deadline, fkBackfillParent short-
+	// circuits to drop-on-miss so the rest of the sync (which is
+	// independent of backfill — bulk fetches and upserts continue) can
+	// commit and the next cycle picks up where we left off. v1.18.3:
+	// added because backfill HTTP calls happen inside the sync tx;
+	// without a deadline, a cascade of slow backfills could hold the tx
+	// open indefinitely and stall LiteFS replication.
+	fkBackfillDeadline time.Time
+	// fkBackfillTimeout is the per-cycle wall-clock budget for backfill
+	// HTTP activity. Captured once in NewWorker from
+	// WorkerConfig.FKBackfillTimeout; zero or negative disables the
+	// deadline (no timeout — only the cap applies).
+	fkBackfillTimeout time.Duration
 }
 
 // fkOrphanKey is the dimension grouping a single class of FK-orphan
@@ -198,8 +225,9 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		db:            db,
 		config:        cfg,
 		logger:        logger,
-		retryBackoffs: defaultRetryBackoffs,
-		fkBackfillCap: cfg.FKBackfillMaxPerCycle,
+		retryBackoffs:     defaultRetryBackoffs,
+		fkBackfillCap:     cfg.FKBackfillMaxPerCycle,
+		fkBackfillTimeout: cfg.FKBackfillTimeout,
 	}
 }
 
@@ -221,6 +249,14 @@ func (w *Worker) resetFKState() {
 	// once at NewWorker time; only the per-cycle bookkeeping resets.
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
 	w.fkBackfillCount = 0
+	// v1.18.3: per-cycle deadline for backfill HTTP activity. Zero
+	// timeout → zero deadline → fkBackfillParent's deadline check
+	// short-circuits to "no deadline".
+	if w.fkBackfillTimeout > 0 {
+		w.fkBackfillDeadline = time.Now().Add(w.fkBackfillTimeout)
+	} else {
+		w.fkBackfillDeadline = time.Time{}
+	}
 }
 
 // recordOrphan tracks one FK-orphan observation for the per-cycle
@@ -908,25 +944,23 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // Returns the cursor update timestamp, a flag indicating whether the
 // successful run was incremental, and any error.
 //
-// Quick task 260428-2zl: bootstrap path — when incremental mode is
-// active but no prior cursor exists (fresh DB, or first incremental
-// after the v1.17 default flip when no full sync has run yet), use
-// time.Unix(1,0) so the upstream URL becomes ?since=1. Per upstream
-// rest.py:694-727 status × since matrix, ?since=N>0 returns BOTH 'ok'
-// AND 'deleted' rows — capturing the full historical state including
-// tombstones from before our cursor existed. Without this, the bare
-// /api/<type> path filters to status='ok' only, leaving permanent gaps
-// for rows that became status='deleted' before we started observing.
+// Bootstrap reversal (v1.18.3): the v1.18.2 bootstrap path that used
+// time.Unix(1,0) to fetch ?since=1 on a zero cursor was reverted because
+// it tripped upstream's API_THROTTLE_REPEATED_REQUEST throttle (1MB
+// threshold, 10/min cap — see upstream main_settings.py) plus AWS WAF
+// limits invisible in upstream code. The full-historical fetch returned
+// retry-after values up to 54 minutes, blocking sync indefinitely.
+//
+// Current behaviour: cursor zero → full sync via bare list (status='ok'
+// only, smaller responses). Historical-delete capture for fresh installs
+// is deferred to a proper multi-cycle bootstrap design (v1.19+);
+// FK backfill (260428-2zl Task 3) catches the orphans that matter on
+// demand, including via recursive grandparent backfill (v1.18.3).
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, start time.Time, stepSpan trace.Span) (time.Time, bool, error) {
-	// Incremental attempt with fallback to full on error.
-	if mode == config.SyncModeIncremental {
-		sinceCursor := cursor
-		if sinceCursor.IsZero() {
-			sinceCursor = time.Unix(1, 0)
-			w.logger.LogAttrs(ctx, slog.LevelInfo, "incremental bootstrap with since=1",
-				slog.String("type", name))
-		}
-		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, sinceCursor)
+	// Incremental attempt requires a populated cursor. Zero cursor falls
+	// through to the full-sync path below (bare list, status='ok' only).
+	if mode == config.SyncModeIncremental && !cursor.IsZero() {
+		generated, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
 		if incErr == nil {
 			return generated, true, nil
 		}

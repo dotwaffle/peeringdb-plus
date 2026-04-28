@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"golang.org/x/time/rate"
 
@@ -498,6 +499,199 @@ func TestFetchRaw_PassesQueryParams(t *testing.T) {
 	}
 	if v.ID != 42 || v.Name != "x" {
 		t.Errorf("decoded = %+v, want {42, x}", v)
+	}
+}
+
+// TestFKCheckParent_BackfillRecursesIntoGrandparent (v1.18.3): when
+// the backfilled parent's OWN parent FK is missing, recursive backfill
+// chains into the grandparent before upserting the parent. Concrete
+// scenario from production: carrierfac → carrier → org. The bulk
+// fetch returns a carrierfac whose carrier_id and fac_id are absent
+// locally; backfill of carrier 403 reveals it references org 18985
+// which is also absent; org 18985 is recursively backfilled.
+//
+// Expected:
+//   - org 18985 lands (recursive grandparent backfill)
+//   - carrier 403 lands (parent backfill, FK now satisfied)
+//   - facility 500 lands (parallel parent backfill)
+//   - carrierfac 1 lands (FK satisfied via both backfills)
+//   - 3 backfill HTTP calls: carrier 403, fac 500, org 18985 (each fired exactly once via dedup)
+func TestFKCheckParent_BackfillRecursesIntoGrandparent(t *testing.T) {
+	t.Parallel()
+
+	var backfillCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		typeName := strings.TrimPrefix(r.URL.Path, "/api/")
+		w.Header().Set("Content-Type", "application/json")
+
+		// Backfill request: ?since=1&id__in=N
+		if id := r.URL.Query().Get("id__in"); id != "" {
+			backfillCount.Add(1)
+			switch {
+			case typeName == "carrier" && id == "403":
+				_, _ = w.Write([]byte(`{"meta":{},"data":[`))
+				_, _ = w.Write(mustJSON(map[string]any{
+					"id": 403, "org_id": 18985, "name": "NTT America, Inc.",
+					"aka": "", "name_long": "", "website": "", "social_media": []any{},
+					"notes": "", "fac_count": 0, "logo": nil,
+					"created": "2024-02-08T20:39:07Z", "updated": "2024-02-08T21:44:01Z",
+					"status": "ok",
+				}))
+				_, _ = w.Write([]byte(`]}`))
+				return
+			case typeName == "org" && id == "18985":
+				_, _ = w.Write([]byte(`{"meta":{},"data":[`))
+				_, _ = w.Write(orgJSON(18985, "NTT America, Inc.", "deleted"))
+				_, _ = w.Write([]byte(`]}`))
+				return
+			case typeName == "fac" && id == "500":
+				_, _ = w.Write([]byte(`{"meta":{},"data":[`))
+				_, _ = w.Write(mustJSON(map[string]any{
+					"id": 500, "org_id": 18985, "name": "NTT Facility",
+					"aka": "", "address1": "", "address2": "", "city": "",
+					"clli": "", "country": "US", "diverse_serving_substations": false,
+					"floor": "", "geocode_country": "", "geocode_date": nil,
+					"latitude": nil, "longitude": nil, "name_long": "", "notes": "",
+					"npanxx": "", "rencode": "", "state": "", "suite": "",
+					"sales_email": "", "sales_phone": "", "social_media": []any{},
+					"available_voltage_services": []string{},
+					"region_continent": "", "tech_email": "", "tech_phone": "",
+					"website": "", "zipcode": "", "campus_id": nil, "property": "",
+					"status_dashboard": "", "ix_count": 0, "net_count": 0, "carrier_count": 0,
+					"created": "2024-02-08T20:39:07Z", "updated": "2024-02-08T21:44:01Z",
+					"status": "ok",
+				}))
+				_, _ = w.Write([]byte(`]}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+
+		// Bulk fetch: skip != 0 → empty (terminate pagination).
+		if skip := r.URL.Query().Get("skip"); skip != "" && skip != "0" {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+
+		// One carrierfac referencing missing carrier 403 + missing fac 500.
+		// Org and carrier and fac bulk paths return empty → triggers backfill.
+		if typeName == "carrierfac" {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[`))
+			_, _ = w.Write(mustJSON(map[string]any{
+				"id": 1, "carrier_id": 403, "fac_id": 500,
+				"name": "NTT @ NTT Facility",
+				"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
+				"status": "ok",
+			}))
+			_, _ = w.Write([]byte(`]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+	}))
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: 10,
+	}, slog.Default())
+
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	// Recursive grandparent landed.
+	if n, _ := client.Organization.Query().Count(t.Context()); n != 1 {
+		t.Errorf("orgCount = %d, want 1 (recursive grandparent backfill)", n)
+	}
+	// Direct parents landed.
+	if n, _ := client.Carrier.Query().Count(t.Context()); n != 1 {
+		t.Errorf("carrierCount = %d, want 1 (parent backfill)", n)
+	}
+	if n, _ := client.Facility.Query().Count(t.Context()); n != 1 {
+		t.Errorf("facCount = %d, want 1 (parent backfill)", n)
+	}
+	// Original child landed (FK chain satisfied).
+	if n, _ := client.CarrierFacility.Query().Count(t.Context()); n != 1 {
+		t.Errorf("carrierfacCount = %d, want 1 (FK chain satisfied via recursive backfill)", n)
+	}
+	// Exactly 3 backfill HTTP calls: carrier 403, fac 500, org 18985.
+	// (Org dedup means the org is fetched ONCE even though both
+	// carrier 403 and fac 500 reference it.)
+	if got := backfillCount.Load(); got != 3 {
+		t.Errorf("backfillCount = %d, want 3 (carrier+fac+org via recursive dedup)", got)
+	}
+}
+
+// TestFKCheckParent_BackfillDeadlineFallsBackToDrop (v1.18.3): the
+// per-cycle backfill deadline short-circuits fkBackfillParent to drop-
+// on-miss. Sets a 1ns deadline so the very first backfill attempt
+// trips it; verifies result=deadline_exceeded and the orphan child is
+// dropped (no fetch issued, no parent inserted).
+func TestFKCheckParent_BackfillDeadlineFallsBackToDrop(t *testing.T) {
+	t.Parallel()
+
+	var backfillCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		typeName := strings.TrimPrefix(r.URL.Path, "/api/")
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("id__in") != "" {
+			backfillCount.Add(1)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		if skip := r.URL.Query().Get("skip"); skip != "" && skip != "0" {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		if typeName == "net" {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[`))
+			_, _ = w.Write(mustJSON(makeMinimalNet(1, 99)))
+			_, _ = w.Write([]byte(`]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+	}))
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	// 1ns timeout — first backfill attempt fires past deadline.
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxPerCycle: 10,
+		FKBackfillTimeout:     1 * time.Nanosecond,
+	}, slog.Default())
+
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	if got := backfillCount.Load(); got != 0 {
+		t.Errorf("backfillCount = %d, want 0 (deadline check fires before fetch)", got)
+	}
+	if n, _ := client.Organization.Query().Count(t.Context()); n != 0 {
+		t.Errorf("orgCount = %d, want 0 (deadline → drop, no parent inserted)", n)
+	}
+	if n, _ := client.Network.Query().Count(t.Context()); n != 0 {
+		t.Errorf("netCount = %d, want 0 (deadline → drop child too)", n)
 	}
 }
 
