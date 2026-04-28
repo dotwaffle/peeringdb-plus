@@ -613,8 +613,8 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
 		return err
 	}
-	if err := tx.Commit(); err != nil {
-		syncErr := fmt.Errorf("commit sync transaction: %w", err)
+	if commitErr := commitWithSpan(ctx, tx); commitErr != nil {
+		syncErr := fmt.Errorf("commit sync transaction: %w", commitErr)
 		w.recordFailure(ctx, mode, statusID, start, syncErr)
 		return syncErr
 	}
@@ -774,6 +774,17 @@ func readLinuxVMHWM() (int64, bool) {
 	return 0, false
 }
 
+// commitWithSpan commits tx inside a named OTel span so the LiteFS-
+// replicated commit duration is visible in Tempo. Pattern matches
+// existing per-step spans elsewhere in worker.go (e.g. line ~917).
+//
+// 260428-eda CHANGE 1.
+func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
+	_, commitSpan := otel.Tracer("sync").Start(ctx, "sync-commit")
+	defer commitSpan.End()
+	return tx.Commit()
+}
+
 // prepareTxPragmas runs the per-tx PRAGMA setup that the bulk-upsert
 // transaction depends on. It runs:
 //   - PRAGMA defer_foreign_keys = ON    (existing — defers FK constraint
@@ -831,15 +842,28 @@ func (w *Worker) recordSuccess(
 	objectCounts map[string]int,
 	cursorUpdates map[string]time.Time,
 ) {
+	// 260428-eda CHANGE 1: wrap the post-commit bookkeeping in a
+	// sync-finalize span and ctx-reassign so the sub-spans below parent
+	// under sync-finalize rather than the root.
+	ctx, finalizeSpan := otel.Tracer("sync").Start(ctx, "sync-finalize")
+	defer finalizeSpan.End()
+
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	w.emitOrphanSummary(ctx)
+
+	// 260428-eda CHANGE 1: sync-cursor-updates span. Task 5 will move
+	// the cursor-write loop INTO syncUpsertPass (inside the main tx) and
+	// remove this span — the span migrates with the loop.
+	_, cursorSpan := otel.Tracer("sync").Start(ctx, "sync-cursor-updates")
 	for typeName, generated := range cursorUpdates {
 		if err := UpsertCursor(ctx, w.db, typeName, generated, "success"); err != nil {
 			w.logger.LogAttrs(ctx, slog.LevelError, "failed to update cursor",
 				slog.String("type", typeName), slog.Any("error", err))
 		}
 	}
+	cursorSpan.End()
+
 	elapsed := time.Since(start)
 	// SEED-001 (260426-pms): label sync metrics with mode={full,incremental} so
 	// dashboards/alerts can distinguish cycle behaviour after the default flip.
@@ -861,19 +885,29 @@ func (w *Worker) recordSuccess(
 	// pointer and the DB-backed sync time could disagree.
 	completedAt := time.Now()
 	if statusID > 0 {
+		// 260428-eda CHANGE 1: sync-record-status span around the
+		// sync_status row update (separate raw-SQL Exec, by design —
+		// outcome record, not data state).
+		_, statusSpan := otel.Tracer("sync").Start(ctx, "sync-record-status")
 		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
 			LastSyncAt:   completedAt,
 			Duration:     elapsed,
 			ObjectCounts: objectCounts,
 			Status:       "success",
 		})
+		statusSpan.End()
 	}
 	w.synced.Store(true)
 	if w.config.OnSyncComplete != nil {
 		// 260427-ojm: pass the worker ctx instead of the per-cycle
 		// upsert-count map. The callback decides what to compute (typically
 		// pdbsync.InitialObjectCounts for live row counts).
+		//
+		// 260428-eda CHANGE 1: sync-on-complete span around the callback
+		// (typically refreshes the gauge cache via InitialObjectCounts).
+		_, onCompleteSpan := otel.Tracer("sync").Start(ctx, "sync-on-complete")
 		w.config.OnSyncComplete(ctx, completedAt)
+		onCompleteSpan.End()
 	}
 }
 
