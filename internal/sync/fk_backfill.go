@@ -28,7 +28,7 @@ import (
 // parent, we issue exactly ONE backfill fetch and let the in-cache
 // short-circuit handle the next 199.
 //
-// Per-cycle cap (PDBPLUS_FK_BACKFILL_MAX_PER_CYCLE, default 200)
+// Per-cycle cap (PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE, default 200)
 // prevents runaway upstream traffic when many distinct parents are
 // missing — cap-hit logs WARN with result=ratelimited and the remaining
 // child rows fall through to the legacy drop-and-record-orphan path.
@@ -91,13 +91,18 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 //   - Dedup-first: ids already in fkBackfillTried are filtered out
 //     BEFORE the cap check (so previously-tried IDs do not re-consume
 //     cap budget).
-//   - Cap is per-row (not per-HTTP-request): fkBackfillCount is bumped
-//     by len(idsToFetch). SEMANTIC SHIFT from 260428-2zl, where the cap
-//     was effectively 1-per-call. The dashboard interpretation of
-//     fk_backfill{result=hit} does not change — both old and new code
-//     emit one hit per inserted row — but the cap now meaningfully
-//     limits total parent rows fetched per cycle, regardless of how
-//     they're batched. Documented at the metric call site below.
+//   - Cap is per-HTTP-request (v1.18.5): fkBackfillRequestCount is
+//     bumped by ⌈len(idsToFetch)/peeringdb.FetchByIDsBatchSize⌉ — the
+//     actual number of underlying HTTP requests this batch will issue
+//     through the rate-limited transport. SEMANTIC SHIFT from
+//     260428-5xt's per-row cap, which was a weak circuit breaker once
+//     batching collapsed N rows into 1 request. The cap now directly
+//     bounds upstream HTTP traffic, which is the actual surface
+//     protected by upstream's API_THROTTLE_REPEATED_REQUEST and our
+//     local rate limiter. Default 20 requests/cycle (≈20s of upstream
+//     pressure at 1 req/sec auth) — generous but firm.
+//     The dashboard interpretation of fk_backfill{result=hit} does not
+//     change: still one hit per inserted row.
 //   - Deadline check fires WITHOUT issuing any HTTP request once
 //     fkBackfillDeadline has passed; all remaining IDs are recorded as
 //     fkBackfillDeadlineExceeded.
@@ -108,7 +113,7 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 // pre-pass (Task 3) and recursive grandparent path pass "" because no
 // single child triggered the lookup.
 //
-// Single-writer: fkBackfillTried, fkBackfillCount, fkBackfillDeadline,
+// Single-writer: fkBackfillTried, fkBackfillRequestCount, fkBackfillDeadline,
 // and fkRegistry are all touched here without locks because
 // Worker.Sync is single-goroutine (Worker.running atomic guard
 // serialises concurrent Sync calls). If sync ever fans out across
@@ -155,15 +160,16 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 		return nil
 	}
 
-	// 3. Cap budget: take a prefix that fits, mark the rest as
-	//    ratelimited. SEMANTIC SHIFT (260428-5xt): cap is now per-row,
-	//    so a single batch with N IDs consumes N units of cap budget.
-	//    See godoc above.
-	available := max(w.fkBackfillCap-w.fkBackfillCount, 0)
+	// 3. Cap budget: cap is on HTTP requests, not rows (v1.18.5). One
+	//    FetchByIDs(N) call issues ⌈N/FetchByIDsBatchSize⌉ HTTP requests.
+	//    Take a prefix that fits in the remaining request budget; mark
+	//    the rest as ratelimited.
+	availableRequests := max(w.fkBackfillRequestCap-w.fkBackfillRequestCount, 0)
+	maxIDs := availableRequests * peeringdb.FetchByIDsBatchSize
 	idsToFetch := remaining
-	if len(idsToFetch) > available {
-		dropped := idsToFetch[available:]
-		idsToFetch = idsToFetch[:available]
+	if len(idsToFetch) > maxIDs {
+		dropped := idsToFetch[maxIDs:]
+		idsToFetch = idsToFetch[:maxIDs]
 		for _, id := range dropped {
 			w.fkBackfillTried[fkBackfillKey{Type: parentType, ID: id}] = struct{}{}
 			w.recordBackfill(ctx, childType, parentType, fkBackfillRateLimited)
@@ -172,7 +178,8 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 			slog.String("child_type", childType),
 			slog.String("parent_type", parentType),
 			slog.Int("ids_dropped", len(dropped)),
-			slog.Int("cap", w.fkBackfillCap))
+			slog.Int("requests_remaining", availableRequests),
+			slog.Int("request_cap", w.fkBackfillRequestCap))
 	}
 	if len(idsToFetch) == 0 {
 		return nil
@@ -183,7 +190,8 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	for _, id := range idsToFetch {
 		w.fkBackfillTried[fkBackfillKey{Type: parentType, ID: id}] = struct{}{}
 	}
-	w.fkBackfillCount += len(idsToFetch)
+	// Consume one request unit per underlying HTTP chunk (ceil division).
+	w.fkBackfillRequestCount += (len(idsToFetch) + peeringdb.FetchByIDsBatchSize - 1) / peeringdb.FetchByIDsBatchSize
 
 	// 5. ONE batched fetch per ⌈N/100⌉ chunk via the rate-limited
 	//    transport. Single-ID callers (the fkBackfillParent wrapper)
