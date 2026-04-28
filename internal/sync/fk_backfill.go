@@ -360,6 +360,74 @@ func parentFKsOf(parentType string, raw []byte) []parentFKRef {
 	return out
 }
 
+// prefetchMissingParentsForChunk is the chunk-level pre-pass that
+// runs ONCE per chunk in dispatchScratchChunk before the per-type
+// fkFilter closures fire. For each FK field declared in
+// parentFKSpec[chunkType], it walks every row in the chunk, groups
+// missing required-parent IDs per parent type, and issues ONE batched
+// fkBackfillBatch call per parent type. So a chunk of 50 carrierfacs
+// missing 30 distinct carriers + 25 distinct facs collapses to
+// exactly 2 batched HTTP calls (carriers, then facs) instead of 55
+// sequential per-row HTTP calls through the legacy fkBackfillParent
+// path.
+//
+// Quick task 260428-5xt: the per-cycle dedup cache (fkBackfillTried)
+// makes the per-row fkCheckParent → fkBackfillParent path a no-op for
+// any parent already loaded by this pre-pass — the dispatch order is
+// pre-pass first, dispatch switch after.
+//
+// No-ops for entity types with no required parent FKs (org). Errors
+// from individual fkBackfillBatch calls are logged inside the batch
+// path and do NOT abort the chunk — the legacy per-row path remains
+// as a fallback for any IDs the pre-pass couldn't recover (the
+// dedup cache will short-circuit them after they've been attempted).
+//
+// Single-writer: fkRegistry / fkBackfillTried writes are serialised by
+// Worker.Sync (atomic Worker.running guard). Same assumption as
+// fkBackfillBatch.
+//
+// Nullable FKs (Facility.campus_id, NetworkIxLan.{net_side_id,
+// ix_side_id}) are intentionally NOT batched here — they're handled
+// by the existing fkFilter null-on-miss path. The goal is to batch the
+// REQUIRED FKs that drive drops, not the optional FKs that drive
+// null-overrides. A future quick task could add a nullableFKSpec for
+// the optional path if the dashboard ever shows them as a hot source
+// of per-row HTTP fan-out.
+func (w *Worker) prefetchMissingParentsForChunk(ctx context.Context, tx *ent.Tx, chunkType string, rows []scratchRow) {
+	spec, ok := parentFKSpec[chunkType]
+	if !ok || len(spec) == 0 {
+		// Org has no required parents; nothing to prefetch.
+		return
+	}
+	missing := make(map[string]map[int]struct{})
+	for i := range rows {
+		for _, fk := range parentFKsOf(chunkType, rows[i].raw) {
+			if fk.ID <= 0 {
+				continue
+			}
+			if w.fkHasParent(ctx, tx, fk.ParentType, fk.ID) {
+				continue
+			}
+			set, exists := missing[fk.ParentType]
+			if !exists {
+				set = make(map[int]struct{})
+				missing[fk.ParentType] = set
+			}
+			set[fk.ID] = struct{}{}
+		}
+	}
+	// Sequential per parent type — concurrent fetches would fight the
+	// rate limiter and add zero throughput. Sorted parent-type
+	// iteration for deterministic call ordering (test assertions on
+	// recorded URL sequences depend on it).
+	for _, parentType := range slices.Sorted(maps.Keys(missing)) {
+		ids := slices.Sorted(maps.Keys(missing[parentType]))
+		// childType="" — chunk-driven, no single child triggered the
+		// lookup. The metric still records parent_type correctly.
+		w.fkBackfillBatch(ctx, tx, parentType, ids, "")
+	}
+}
+
 // recordBackfill emits the per-attempt fk_backfill counter.
 // Nil-guarded because tests run without InitMetrics().
 func (w *Worker) recordBackfill(ctx context.Context, childType, parentType string, result fkBackfillResult) {

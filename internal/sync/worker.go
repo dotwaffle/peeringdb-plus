@@ -220,11 +220,11 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		cfg.IsPrimary = func() bool { return true }
 	}
 	return &Worker{
-		pdbClient:     pdbClient,
-		entClient:     entClient,
-		db:            db,
-		config:        cfg,
-		logger:        logger,
+		pdbClient:         pdbClient,
+		entClient:         entClient,
+		db:                db,
+		config:            cfg,
+		logger:            logger,
 		retryBackoffs:     defaultRetryBackoffs,
 		fkBackfillCap:     cfg.FKBackfillMaxPerCycle,
 		fkBackfillTimeout: cfg.FKBackfillTimeout,
@@ -1218,6 +1218,12 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // PeeringDB snapshots that expose live children pointing at
 // server-side-suppressed parents (e.g. NTT America carrier → org).
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
+	// Quick task 260428-5xt: chunk pre-pass batches missing required
+	// parent FK fetches per parent type per chunk, turning N per-row
+	// HTTP requests into ⌈N/100⌉ per parent type. The per-cycle dedup
+	// cache makes the per-row fkCheckParent → fkBackfillParent path a
+	// no-op for any parent already loaded by this pre-pass.
+	w.prefetchMissingParentsForChunk(ctx, tx, name, rows)
 	switch name {
 	case peeringdb.TypeOrg:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{
@@ -1452,10 +1458,10 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 // must NULL the column rather than drop the row.
 //
 // Process:
-//   1. ptr is nil (FK already null) → no-op.
-//   2. Parent present (cache or DB) → no-op.
-//   3. Backfill enabled and recovers parent → no-op.
-//   4. Otherwise: record the orphan with action="null" and zero ptr.
+//  1. ptr is nil (FK already null) → no-op.
+//  2. Parent present (cache or DB) → no-op.
+//  3. Backfill enabled and recovers parent → no-op.
+//  4. Otherwise: record the orphan with action="null" and zero ptr.
 //
 // Field name is recorded on the orphan counter so dashboards can split
 // "net_side_id" misses from "ix_side_id" misses for the same NetworkIxLan
