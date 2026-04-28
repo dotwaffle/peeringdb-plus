@@ -1409,6 +1409,8 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 			objectType: name,
 			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
+				// Required FKs: net_id, ix_id, ixlan_id. Drop on miss
+				// after backfill attempt (legacy behavior).
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id") {
 					return false
@@ -1417,8 +1419,18 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 					peeringdb.TypeIX, v.IXID, "ix_id") {
 					return false
 				}
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
-					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
+				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
+					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id") {
+					return false
+				}
+				// Optional side FKs: net_side_id, ix_side_id. Upstream
+				// peeringdb_server/models.py:5630-5642 declares both as
+				// `null=True, on_delete=SET_NULL`. Quick task 260428-2zl:
+				// mirror that contract by null-on-miss (after backfill
+				// attempt) rather than dropping the entire row.
+				w.nullSideFK(ctx, tx, &v.NetSideID, "net_side_id", v.ID)
+				w.nullSideFK(ctx, tx, &v.IXSideID, "ix_side_id", v.ID)
+				return true
 			},
 			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetIXLan, ids) },
 			upsert:    upsertNetworkIxLans,
@@ -1455,6 +1467,41 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 		Action:     "drop",
 	}, childID, parentID)
 	return false
+}
+
+// nullSideFK enforces the upstream SET_NULL contract on optional side
+// FKs (NetworkIxLan.{net_side_id, ix_side_id} → fac). Quick task
+// 260428-2zl Task 4: per peeringdb_server/models.py:5630-5642 these
+// columns are `null=True, on_delete=SET_NULL`, so a missing parent
+// must NULL the column rather than drop the row.
+//
+// Process:
+//   1. ptr is nil (FK already null) → no-op.
+//   2. Parent present (cache or DB) → no-op.
+//   3. Backfill enabled and recovers parent → no-op.
+//   4. Otherwise: record the orphan with action="null" and zero ptr.
+//
+// Field name is recorded on the orphan counter so dashboards can split
+// "net_side_id" misses from "ix_side_id" misses for the same NetworkIxLan
+// child type.
+func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field string, childID int) {
+	if ptr == nil || *ptr == nil {
+		return
+	}
+	parentID := **ptr
+	if w.fkHasParent(ctx, tx, peeringdb.TypeFac, parentID) {
+		return
+	}
+	if w.fkBackfillCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
+		return
+	}
+	w.recordOrphan(ctx, fkOrphanKey{
+		ChildType:  peeringdb.TypeNetIXLan,
+		ParentType: peeringdb.TypeFac,
+		Field:      field,
+		Action:     "null",
+	}, childID, parentID)
+	*ptr = nil
 }
 
 // syncDeletePass runs the per-type soft-delete loop in child-first (reverse
