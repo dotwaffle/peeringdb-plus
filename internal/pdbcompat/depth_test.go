@@ -195,9 +195,14 @@ func TestDepth(t *testing.T) {
 	t.Parallel()
 	_, mux := setupDepthTestData(t)
 
-	t.Run("zero", func(t *testing.T) {
+	// explicit_depth_zero locks the upstream-parity behaviour for an EXPLICIT
+	// `?depth=0` override on a detail URL: upstream's
+	// `peeringdb_server/serializers.py:prefetch_related` (line 852) returns
+	// the bare queryset early when depth<=0, so no `_set` fields are
+	// embedded. Mirror MUST honour the same escape hatch.
+	t.Run("explicit_depth_zero", func(t *testing.T) {
 		t.Parallel()
-		// Get first org at depth=0, should return flat object without _set fields.
+		// Get first org from list.
 		req := httptest.NewRequest(http.MethodGet, "/api/org?limit=1", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -218,7 +223,70 @@ func TestDepth(t *testing.T) {
 		}
 		orgID := int(items[0]["id"].(float64))
 
-		// Now fetch detail at depth=0.
+		// Explicit ?depth=0 must return the bare row (matches upstream
+		// rest.py:852 short-circuit).
+		detReq := httptest.NewRequest(http.MethodGet, "/api/org/"+itoa(orgID)+"?depth=0", nil)
+		detRec := httptest.NewRecorder()
+		mux.ServeHTTP(detRec, detReq)
+		if detRec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", detRec.Code, detRec.Body.String())
+		}
+
+		var detEnv testEnvelope
+		if err := json.Unmarshal(detRec.Body.Bytes(), &detEnv); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		var detItems []map[string]any
+		if err := json.Unmarshal(detEnv.Data, &detItems); err != nil {
+			t.Fatalf("unmarshal items: %v", err)
+		}
+		if len(detItems) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(detItems))
+		}
+
+		obj := detItems[0]
+		// explicit ?depth=0: should NOT have _set fields.
+		for _, setField := range []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"} {
+			if _, ok := obj[setField]; ok {
+				t.Errorf("explicit ?depth=0: %q should not be present", setField)
+			}
+		}
+	})
+
+	// default_detail_uses_depth_two locks the upstream-parity behaviour for
+	// a bare detail URL with NO `?depth=` query param: upstream's
+	// `peeringdb_server/serializers.py:default_depth(is_list=False)` (line
+	// 823) returns 2 for single-object GETs, causing
+	// `prefetch_related` (rest.py:750) to fire and embed every per-type
+	// `_set` collection plus the parent FK objects (`org` for net/fac/ix/
+	// carrier/campus). This is the canonical generalisation of commit
+	// 0d39654 — the IX `fac_set` fix at `?depth=2` — extended to fire on
+	// every detail URL regardless of explicit depth.
+	t.Run("default_detail_uses_depth_two", func(t *testing.T) {
+		t.Parallel()
+		// Get first org from list.
+		req := httptest.NewRequest(http.MethodGet, "/api/org?limit=1", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+
+		var env testEnvelope
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		var items []map[string]any
+		if err := json.Unmarshal(env.Data, &items); err != nil {
+			t.Fatalf("unmarshal items: %v", err)
+		}
+		if len(items) == 0 {
+			t.Fatal("expected at least 1 org")
+		}
+		orgID := int(items[0]["id"].(float64))
+
+		// Bare detail URL (no ?depth=): upstream defaults to depth=2,
+		// so all _set fields must be embedded.
 		detReq := httptest.NewRequest(http.MethodGet, "/api/org/"+itoa(orgID), nil)
 		detRec := httptest.NewRecorder()
 		mux.ServeHTTP(detRec, detReq)
@@ -239,11 +307,76 @@ func TestDepth(t *testing.T) {
 		}
 
 		obj := detItems[0]
-		// depth=0: should NOT have _set fields.
 		for _, setField := range []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"} {
-			if _, ok := obj[setField]; ok {
-				t.Errorf("depth=0: %q should not be present", setField)
+			val, ok := obj[setField]
+			if !ok {
+				t.Errorf("default detail (depth=2 implicit): %q missing — upstream embeds it on every bare detail URL", setField)
+				continue
 			}
+			arr, ok := val.([]any)
+			if !ok {
+				t.Errorf("default detail: %q is not an array", setField)
+				continue
+			}
+			if len(arr) != 1 {
+				t.Errorf("default detail: %q expected 1 item, got %d", setField, len(arr))
+			}
+		}
+	})
+
+	// default_detail_net_uses_depth_two extends the same upstream-parity
+	// invariant to the Network detail surface: bare /api/net/<id> must
+	// embed poc_set, netfac_set, netixlan_set, AND the expanded org
+	// object (the four keys this debug session was opened to fix —
+	// observed missing on /api/net/15169 against the deployed mirror
+	// post-0d39654).
+	t.Run("default_detail_net_uses_depth_two", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodGet, "/api/net?limit=1", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) == 0 {
+			t.Fatal("expected at least 1 net")
+		}
+		netID := int(items[0]["id"].(float64))
+
+		detReq := httptest.NewRequest(http.MethodGet, "/api/net/"+itoa(netID), nil)
+		detRec := httptest.NewRecorder()
+		mux.ServeHTTP(detRec, detReq)
+		if detRec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", detRec.Code, detRec.Body.String())
+		}
+
+		var detEnv testEnvelope
+		_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+		var detItems []map[string]any
+		_ = json.Unmarshal(detEnv.Data, &detItems)
+		if len(detItems) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(detItems))
+		}
+
+		obj := detItems[0]
+		for _, setField := range []string{"poc_set", "netfac_set", "netixlan_set"} {
+			val, ok := obj[setField]
+			if !ok {
+				t.Errorf("default detail net: %q missing — upstream embeds on bare URL", setField)
+				continue
+			}
+			if _, ok := val.([]any); !ok {
+				t.Errorf("default detail net: %q is not an array", setField)
+			}
+		}
+		orgVal, ok := obj["org"]
+		if !ok {
+			t.Error("default detail net: expanded org missing — upstream embeds on bare URL")
+		} else if orgObj, ok := orgVal.(map[string]any); !ok {
+			t.Error("default detail net: org is not an object")
+		} else if _, hasID := orgObj["id"]; !hasID {
+			t.Error("default detail net: expanded org missing id field")
 		}
 	})
 

@@ -321,11 +321,29 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 }
 
 // serveDetail handles detail requests for a single object by ID.
+//
+// Default detail depth is 2 (matches upstream PeeringDB
+// peeringdb_server/serializers.py:817-823 — `default_depth(is_list=False)`
+// returns 2 for single-object GETs versus 0 for lists). This causes
+// `prefetch_related` (rest.py:750) to fire on every bare detail URL,
+// embedding the per-type `_set` collections + parent FK objects (`org`,
+// `campus`, etc.) that upstream always returns on `/api/<type>/<id>`.
+// Explicit `?depth=0` short-circuits the prefetch (rest.py:852 returns
+// the qset early when depth<=0) and yields a bare row, matching
+// upstream's behaviour for that explicit override.
+//
+// Generalises commit 0d39654 (which fixed the IX `fac_set` shape at
+// `?depth=2`) across all detail endpoints AND extends it to fire at
+// the depth=0 default (which was previously skipping the prefetch
+// chain entirely on bare detail URLs).
 func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
-	// Parse depth per D-06, D-07.
-	depth := 0
+	// Parse depth per D-06, D-07. Default = 2 for detail endpoints to
+	// match upstream's `default_depth(is_list=False)` (serializers.py:823).
+	// Explicit `?depth=0` is honoured to keep the bare-row escape hatch
+	// (matches upstream's rest.py:852 short-circuit when depth<=0).
+	depth := 2
 	if v := params.Get("depth"); v != "" {
 		parsed, err := strconv.Atoi(v)
 		if err == nil && (parsed == 0 || parsed == 2) {
