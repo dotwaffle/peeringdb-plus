@@ -99,7 +99,12 @@ func TestUpsertCursor_UpdateExisting(t *testing.T) {
 	}
 }
 
-func TestGetCursor_IgnoresFailedStatus(t *testing.T) {
+// TestGetCursor_ReturnsRegardlessOfStatus locks the v1.18.3 contract:
+// GetCursor returns the stored timestamp for any non-NULL row, ignoring
+// last_status. The success-filter coupling was removed because it caused
+// "all cursors zero after a failed cycle" surprises (load-bearing in the
+// v1.18.2 bootstrap regression).
+func TestGetCursor_ReturnsRegardlessOfStatus(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
 	ctx := t.Context()
@@ -117,8 +122,8 @@ func TestGetCursor_IgnoresFailedStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetCursor: %v", err)
 	}
-	if !got.IsZero() {
-		t.Errorf("expected zero time for failed cursor, got %v", got)
+	if !got.Equal(ts) {
+		t.Errorf("expected cursor %v regardless of last_status, got %v", ts, got)
 	}
 }
 
