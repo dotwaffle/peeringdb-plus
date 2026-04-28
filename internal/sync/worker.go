@@ -602,10 +602,9 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 		w.recordFailure(ctx, mode, statusID, start, beginErr)
 		return beginErr
 	}
-	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
-		fkErr := fmt.Errorf("defer FK checks: %w", err)
-		w.rollbackAndRecord(ctx, mode, tx, statusID, start, fkErr)
-		return fkErr
+	if err := prepareTxPragmas(ctx, tx); err != nil {
+		w.rollbackAndRecord(ctx, mode, tx, statusID, start, err)
+		return err
 	}
 
 	// === Phase B — SINGLE REAL TX === (260428-2zl T6: no delete pass.)
@@ -773,6 +772,31 @@ func readLinuxVMHWM() (int64, bool) {
 		return kb * 1024, true
 	}
 	return 0, false
+}
+
+// prepareTxPragmas runs the per-tx PRAGMA setup that the bulk-upsert
+// transaction depends on. It runs:
+//   - PRAGMA defer_foreign_keys = ON    (existing — defers FK constraint
+//     checking to commit so we can upsert in any order)
+//   - PRAGMA cache_spill = OFF          (260428-eda CHANGE 5 — keeps dirty
+//     pages in the connection's page cache instead of spilling to the WAL
+//     between writes; bounded by cache_size from the DSN)
+//
+// cache_spill is per-tx (not via the DSN) because it's a connection-scoped
+// pragma whose effect we only want during the bulk-write tx. Setting it via
+// the DSN would apply it to read-path connections too.
+//
+// Extracted from Worker.Sync so the orchestrator body stays under the
+// REFAC-03 line budget enforced by TestWorkerSync_LineBudget. DO NOT
+// inline this back into Sync.
+func prepareTxPragmas(ctx context.Context, tx *ent.Tx) error {
+	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		return fmt.Errorf("defer foreign keys: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, "PRAGMA cache_spill = OFF"); err != nil {
+		return fmt.Errorf("disable cache_spill: %w", err)
+	}
+	return nil
 }
 
 // rollbackAndRecord rolls back the tx and records the failure in one place
