@@ -9,11 +9,12 @@
 // --base at https://www.peeringdb.com — upstream PeeringDB enforces
 // 1 req/hour per IP and will block your address.
 //
-// Three modes are supported:
+// Four modes are supported:
 //
 //	loadtest endpoints [flags]   one-shot inventory sweep across all 5 surfaces
 //	loadtest sync       [flags]  replay the 13-step ordered sync sequence
 //	loadtest soak       [flags]  sustained QPS-capped mixed-surface load
+//	loadtest ramp       [flags]  per-surface inflection-point capacity probe
 //
 // Build:  go build -o loadtest ./cmd/loadtest
 package main
@@ -25,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -82,7 +84,7 @@ func run(argv []string, stdout, stderr *os.File) error {
 	if len(argv) == 0 || argv[0] == "-h" || argv[0] == "--help" {
 		printHelp(stdout)
 		if len(argv) == 0 {
-			return errors.New("missing subcommand (endpoints|sync|soak)")
+			return errors.New("missing subcommand (endpoints|sync|soak|ramp)")
 		}
 		return nil
 	}
@@ -96,8 +98,19 @@ func run(argv []string, stdout, stderr *os.File) error {
 	cfg := Config{}
 	fs.StringVar(&cfg.Base, "base", "https://peeringdb-plus.fly.dev",
 		"base URL of the peeringdb-plus deployment to load-test (e.g. http://localhost:8080)")
+	// --target is a ramp-mode alias for --base (kept for plan-spec
+	// parity; ramp's planning doc reads "default --target=…"). Both
+	// flags write to cfg.Base — passing both is harmless because flag
+	// parsing assigns them in argv order.
+	fs.StringVar(&cfg.Base, "target", "https://peeringdb-plus.fly.dev",
+		"alias for --base (ramp mode)")
 	fs.DurationVar(&cfg.Timeout, "timeout", 30*time.Second, "per-request timeout")
 	fs.BoolVar(&cfg.Verbose, "verbose", false, "emit per-request log lines")
+
+	// rcfg holds ramp-specific flags. Populated only for mode=="ramp";
+	// otherwise zero-valued and ignored.
+	var rcfg RampConfig
+	var surfacesCSV string
 
 	switch mode {
 	case "sync":
@@ -109,6 +122,27 @@ func run(argv []string, stdout, stderr *os.File) error {
 		fs.IntVar(&cfg.SoakConcurrency, "concurrency", 4, "number of concurrent workers")
 		fs.Float64Var(&cfg.SoakQPS, "qps", 5.0,
 			"global request-per-second cap (rate-limited via golang.org/x/time/rate)")
+	case "ramp":
+		fs.StringVar(&rcfg.Entity, "entity", "net", "entity type for the ramp (net|org)")
+		fs.IntVar(&rcfg.Start, "start", 1, "initial concurrency level (baseline)")
+		fs.Float64Var(&rcfg.Growth, "growth", 1.5,
+			"per-step concurrency multiplier (next = ceil(prev * growth))")
+		fs.DurationVar(&rcfg.StepDuration, "step-duration", 2*time.Second,
+			"wall-clock time at each ramp step")
+		fs.DurationVar(&rcfg.HoldDuration, "hold-duration", 10*time.Second,
+			"wall-clock time held at the inflection step for stable p99")
+		fs.IntVar(&rcfg.MaxConcurrency, "max-concurrency", 256,
+			"upper bound on per-step concurrency")
+		fs.Float64Var(&rcfg.P95Multiplier, "p95-multiplier", 2.0,
+			"inflection trigger: p95 > baseline.p95 * this multiplier")
+		fs.DurationVar(&rcfg.P99Absolute, "p99-absolute", 1*time.Second,
+			"inflection trigger: p99 > this absolute duration")
+		fs.Float64Var(&rcfg.ErrorRateThreshold, "error-rate-threshold", 0.01,
+			"inflection trigger: error fraction > this value (0.01 = 1%)")
+		fs.StringVar(&surfacesCSV, "surfaces", "",
+			"comma-separated surface order (default: pdbcompat,entrest,graphql,connectrpc,webui)")
+		fs.IntVar(&rcfg.PrefetchCount, "prefetch-count", 20,
+			"number of IDs to prefetch for round-robin selection")
 	}
 
 	fs.Usage = func() {
@@ -149,12 +183,49 @@ func run(argv []string, stdout, stderr *os.File) error {
 	case "soak":
 		ids := discoverIDs(ctx, cfg, stdout)
 		err = runSoak(ctx, cfg, cfg.SoakDuration, cfg.SoakConcurrency, cfg.SoakQPS, registryAll(ids), rep)
+	case "ramp":
+		if rejErr := rejectUpstreamBase(cfg.Base); rejErr != nil {
+			return rejErr
+		}
+		surfaces, perr := parseSurfaces(surfacesCSV)
+		if perr != nil {
+			return perr
+		}
+		rcfg.Surfaces = surfaces
+		rcfg.Markdown = true
+		ids, asns, derr := discoverRampIDs(ctx, cfg, rcfg.Entity, rcfg.PrefetchCount)
+		if derr != nil {
+			return fmt.Errorf("ramp prefetch: %w", derr)
+		}
+		err = runRamp(ctx, cfg, rcfg, ids, asns, stdout)
+		// Ramp emits its own markdown to stdout; skip the standard
+		// per-surface report aggregation.
+		return err
 	default:
-		return fmt.Errorf("unknown mode %q (want endpoints|sync|soak)", mode)
+		return fmt.Errorf("unknown mode %q (want endpoints|sync|soak|ramp)", mode)
 	}
 
 	rep.Print(stdout, mode)
 	return err
+}
+
+// rejectUpstreamBase returns an error if base resolves to the
+// upstream PeeringDB host (peeringdb.com / www.peeringdb.com /
+// auth.peeringdb.com). Defence-in-depth — the safety banner already
+// warns operators, but a script that bypasses the banner via
+// stdin-piped flag input still hits this gate. localhost,
+// peeringdb-plus.fly.dev, and beta.peeringdb.com are all allowed.
+func rejectUpstreamBase(base string) error {
+	u, err := url.Parse(base)
+	if err != nil {
+		return fmt.Errorf("parse --target/--base %q: %w", base, err)
+	}
+	host := u.Hostname()
+	switch host {
+	case "peeringdb.com", "www.peeringdb.com", "auth.peeringdb.com":
+		return fmt.Errorf("refusing to ramp against upstream PeeringDB host %q — point --target at peeringdb-plus.fly.dev or your local mirror", host)
+	}
+	return nil
 }
 
 func printHelp(w *os.File) {
@@ -163,6 +234,15 @@ func printHelp(w *os.File) {
 	fmt.Fprintln(w, "  loadtest endpoints [--base URL] [--timeout DUR] [--verbose]")
 	fmt.Fprintln(w, "  loadtest sync      [--mode full|incremental] [--since RFC3339|unix] [--base URL]")
 	fmt.Fprintln(w, "  loadtest soak      [--duration DUR] [--concurrency N] [--qps F] [--base URL]")
+	fmt.Fprintln(w, "  loadtest ramp      [--target URL] [--entity net|org] [--start N] [--growth F] \\")
+	fmt.Fprintln(w, "                     [--step-duration DUR] [--hold-duration DUR] [--max-concurrency N] \\")
+	fmt.Fprintln(w, "                     [--p95-multiplier F] [--p99-absolute DUR] [--error-rate-threshold F] \\")
+	fmt.Fprintln(w, "                     [--surfaces csv] [--prefetch-count N]")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "ramp: per-surface concurrency ramp that finds the inflection point — the C")
+	fmt.Fprintln(w, "      where p95/p99 latency or error rate visibly degrades. Surfaces run")
+	fmt.Fprintln(w, "      sequentially (no cross-surface contention); each emits a markdown")
+	fmt.Fprintln(w, "      table to stdout when its ramp completes.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Auth: set PDBPLUS_LOADTEST_AUTH_TOKEN to send 'Authorization: Bearer <token>' on every request.")
 	fmt.Fprintln(w)
