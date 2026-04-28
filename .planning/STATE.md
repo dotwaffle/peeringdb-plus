@@ -4,7 +4,7 @@ milestone: null
 milestone_name: null
 status: between-milestones
 last_updated: "2026-04-28T02:30:00Z"
-last_activity: 2026-04-28 -- Completed quick task 260428-2zl: fk-parity-with-upstream (live FK backfill, ?since=1 bootstrap, rate-limited HTTP transport, removed inference-by-absence soft-delete)
+last_activity: 2026-04-28 -- Completed quick task 260428-5xt: fk-backfill-dataloader (batch missing-parent FK fetches via ?id__in=, replaces v1.18.3 per-row pattern). Sequence today: 260428-2zl (v1.18.2 — bootstrap regression) → rollback → v1.18.3 hotfix (260428-2zl reverted bootstrap + decoupled cursor + recursive backfill + deadline) → v1.18.4 (260428-5xt dataloader)
 progress:
   total_phases: 0
   completed_phases: 0
@@ -51,7 +51,9 @@ These were surfaced during v1.18.0 execution and are not required for milestone 
 |---|-------------|------|--------|-----------|
 | 260427-ojm | replace OnSyncComplete `len(items)` with current-table `Count(ctx)` for `pdbplus_data_type_count` gauge | 2026-04-27 | 18b2337 | [260427-ojm-replace-onsynccomplete-len-items-with-cu](./quick/260427-ojm-replace-onsynccomplete-len-items-with-cu/) |
 | 260427-vvx | build-tag-gated `cmd/loadtest` tool — endpoints sweep + sync simulator + soak mode for deployed instances on Fly.io | 2026-04-27 | d68a8eb | [260427-vvx-loadtest-script](./quick/260427-vvx-loadtest-script/) |
-| 260428-2zl | fk-parity-with-upstream — live FK backfill in `fkCheckParent`, `?since=1` incremental-sync bootstrap, rate-limited HTTP transport (configurable RPS, bounded 429 retry, WAF detection), removed `markStaleDeleted*` inference-by-absence soft-delete, NetworkIxLan side-FK null-on-miss, dropped redundant NetworkIxLan.ix_id check | 2026-04-28 | 0b8ca14 | [260428-2zl-fk-parity-with-upstream-live-fk-backfill](./quick/260428-2zl-fk-parity-with-upstream-live-fk-backfill/) |
+| 260428-2zl | fk-parity-with-upstream — live FK backfill in `fkCheckParent`, `?since=1` incremental-sync bootstrap (REVERTED in v1.18.3 — tripped upstream throttle), rate-limited HTTP transport (configurable RPS, bounded 429 retry, WAF detection), removed `markStaleDeleted*` inference-by-absence soft-delete, NetworkIxLan side-FK null-on-miss, dropped redundant NetworkIxLan.ix_id check. v1.18.2 deployed → rolled back. | 2026-04-28 | 0b8ca14 | [260428-2zl-fk-parity-with-upstream-live-fk-backfill](./quick/260428-2zl-fk-parity-with-upstream-live-fk-backfill/) |
+| 260428-2zl-hotfix | v1.18.3 hotfix — reverted v1.18.2 since=1 bootstrap, decoupled `GetCursor` from `last_status`, added recursive grandparent FK backfill, added per-cycle backfill timeout (`PDBPLUS_FK_BACKFILL_TIMEOUT=5m` default). Deployed + verified healthy: carrier 403 → org 18985 chain backfilled in first sync cycle. | 2026-04-28 | 0069091 | (in 260428-2zl dir) |
+| 260428-5xt | fk-backfill-dataloader — batch missing-parent FK fetches into one `?id__in=` request per parent type, replacing v1.18.3 per-row pattern. New `peeringdb.Client.FetchByIDs` with 100-ID URL chunking. Recursive grandparent backfill now also batched (BFS by parent type). Critical for truncate-and-resync recovery and long-downtime catch-up; steady-state behavior unchanged. | 2026-04-28 | 5c06c24 | [260428-5xt-fk-backfill-dataloader-batch-missing-par](./quick/260428-5xt-fk-backfill-dataloader-batch-missing-par/) |
 
 ## Accumulated Context
 
