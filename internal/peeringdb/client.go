@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/time/rate"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/buildinfo"
+	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 )
 
 // RateLimitError is returned when PeeringDB responds with HTTP 429 Too Many
@@ -104,6 +106,10 @@ type Client struct {
 	logger         *slog.Logger
 	retryBaseDelay time.Duration
 	apiKey         string
+	// rps is the unauthenticated requests-per-second target. Captured
+	// from WithRPS during options apply, then consumed by NewClient when
+	// constructing the limiter. Authenticated path ignores this field.
+	rps float64
 }
 
 // ClientOption configures optional Client behavior.
@@ -111,38 +117,71 @@ type ClientOption func(*Client)
 
 // WithAPIKey sets the PeeringDB API key for authenticated requests.
 // When set, requests include the Authorization header and the rate
-// limiter increases from 20 req/min to 60 req/min.
+// limiter increases to 60 req/min — overriding any WithRPS value.
+// (The authenticated quota is fixed by upstream regardless of any
+// operator preference; making this an override is the simplest way to
+// preserve "auth → 1/sec" without re-deriving it from a float.)
 func WithAPIKey(key string) ClientOption {
 	return func(c *Client) {
 		c.apiKey = key
 	}
 }
 
+// WithRPS sets the unauthenticated sustained requests-per-second cap.
+// Quick task 260428-2zl: replaces the hardcoded 1/3s with a float knob
+// driven by PDBPLUS_PEERINGDB_RPS. Burst stays at 1 — concurrent bursts
+// against PeeringDB are not desirable. Authenticated clients (WithAPIKey)
+// override this back to 60 req/min in NewClient — the upstream auth
+// quota is fixed at 60/min regardless of operator preference.
+//
+// Values <= 0 are silently coerced to the default (2 RPS) so a misconfig
+// in main.go cannot accidentally produce a zero-rate limiter that blocks
+// every request forever.
+func WithRPS(rps float64) ClientOption {
+	return func(c *Client) {
+		if rps > 0 {
+			c.rps = rps
+		}
+	}
+}
+
+// defaultRPS is the unauthenticated rate-limit default when neither
+// WithRPS nor WithAPIKey is supplied. 2 RPS is conservative against
+// PeeringDB's anonymous ceiling and matches the post-2zl operator default
+// (PDBPLUS_PEERINGDB_RPS=2.0).
+const defaultRPS = 2.0
+
 // NewClient creates a PeeringDB API client with the given base URL and
-// logger. By default, the client enforces a 20 req/min rate limit and a
+// logger. By default, the client enforces a 2 req/sec rate limit and a
 // 30-second HTTP timeout. Use WithAPIKey to enable authenticated access
-// with a higher 60 req/min rate limit.
+// with a higher 60 req/min rate limit; use WithRPS to override the
+// unauthenticated default.
 //
 // Internal requests bypass otelhttp instrumentation to avoid span bloat
 // during bulk syncs (PERF-08). Metrics and retries are still recorded
-// via events on the parent stream span.
+// via events on the parent stream span. The transport wrapper added in
+// 260428-2zl handles per-request limiter wait, bounded 429 retry, and
+// WAF detection on 403 — see internal/peeringdb/transport.go.
 func NewClient(baseURL string, logger *slog.Logger, opts ...ClientOption) *Client {
 	c := &Client{
-		http: &http.Client{
-			Timeout:   30 * time.Second,
-			Transport: http.DefaultTransport,
-		},
-		// 20 requests per minute = 1 request per 3 seconds.
-		limiter:        rate.NewLimiter(rate.Every(3*time.Second), 1),
 		baseURL:        baseURL,
 		logger:         logger,
 		retryBaseDelay: 2 * time.Second,
+		rps:            defaultRPS,
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
+	// Construct limiter: auth path overrides RPS to the upstream-fixed
+	// 60/min quota; unauth honors WithRPS / defaultRPS.
 	if c.apiKey != "" {
 		c.limiter = rate.NewLimiter(rate.Every(1*time.Second), 1) // 60 req/min authenticated
+	} else {
+		c.limiter = rate.NewLimiter(rate.Limit(c.rps), 1)
+	}
+	c.http = &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: newRateLimitedTransport(http.DefaultTransport, c.limiter, logger),
 	}
 	return c
 }
@@ -270,12 +309,15 @@ func (c *Client) FetchRawPage(ctx context.Context, objectType string, page int) 
 	return body, nil
 }
 
-// doWithRetry executes an HTTP GET with rate limiting and exponential
-// backoff retry on transient errors (429, 500, 502, 503, 504).
-// Non-retryable 4xx errors return immediately.
+// doWithRetry executes an HTTP GET with application-level retry on 5xx.
+// Quick task 260428-2zl: per-request rate-limit Wait, 429 handling, and
+// WAF detection moved to the rateLimitedTransport wrapper installed in
+// NewClient — doWithRetry now handles only application-level concerns
+// (5xx ladder, auth failures, context honoring, header set).
 //
 // Redundant per-request spans are omitted (PERF-08); errors and
-// rate-limiting events are recorded on the parent span.
+// rate-limiting events are recorded on the parent span (limiter waits)
+// or on dedicated counters (per-status-class request counts).
 func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, error) {
 	span := trace.SpanFromContext(ctx)
 	var lastErr error
@@ -284,20 +326,6 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 		// Honor context cancellation between retries.
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("fetch %s: %w", url, err)
-		}
-
-		// Wait for rate limiter.
-		waitStart := time.Now()
-		if err := c.limiter.Wait(ctx); err != nil {
-			return nil, fmt.Errorf("rate limiter for %s: %w", url, err)
-		}
-		if waitDuration := time.Since(waitStart); waitDuration > time.Millisecond {
-			span.AddEvent("rate_limiter.wait",
-				trace.WithAttributes(
-					attribute.Float64("wait_duration_ms", float64(waitDuration.Milliseconds())),
-					attribute.String("url", url),
-				),
-			)
 		}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -311,7 +339,9 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 
 		resp, err := c.http.Do(req)
 		if err != nil {
-			// Network-level error -- may be context cancellation.
+			// Wrap so callers can errors.Is for *RateLimitError /
+			// errWAFBlocked propagated up from the transport. The
+			// wrapping must use %w to preserve the chain.
 			return nil, fmt.Errorf("fetch %s: %w", url, err)
 		}
 
@@ -320,16 +350,13 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 			return resp, nil
 		}
 
-		// Capture Retry-After before draining the body — it's a response
-		// header so body reads don't affect it, but we read it here to keep
-		// the 429 short-circuit path below self-contained.
-		retryAfterHeader := resp.Header.Get("Retry-After")
-
 		// Read and discard body so the connection can be reused.
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 
 		// Auth errors indicate invalid API key -- log and fail immediately.
+		// Note: WAF-blocked 403 responses never reach here — the transport
+		// short-circuits them with errWAFBlocked.
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB API key may be invalid",
 				slog.Int("status", resp.StatusCode),
@@ -339,28 +366,11 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 			return nil, authErr
 		}
 
-		// Rate limit short-circuit: PeeringDB's 1 req/hr unauth limit means
-		// the within-request 2s/8s retry ladder is pure waste — every retry
-		// lands inside the Retry-After window and burns another slot against
-		// our quota. Parse Retry-After, return a typed RateLimitError, and
-		// let the sync-level caller decide whether to back off further.
-		if resp.StatusCode == http.StatusTooManyRequests {
-			retryAfter := parseRetryAfter(retryAfterHeader, time.Now())
-			rlErr := &RateLimitError{
-				URL:        url,
-				RetryAfter: retryAfter,
-				Status:     resp.StatusCode,
-			}
-			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB rate-limited, aborting request retries",
-				slog.String("url", url),
-				slog.Int("status", resp.StatusCode),
-				slog.Duration("retry_after", retryAfter),
-			)
-			span.RecordError(rlErr)
-			return nil, rlErr
-		}
-
-		// Determine if retryable.
+		// Determine if retryable. 429 is intentionally absent — the
+		// transport handles it (with bounded sleep + Retry-After) and
+		// returns either *RateLimitError (caught by the c.http.Do err
+		// branch above) or a 200/4xx/5xx status the transport could not
+		// resolve. Including 429 here would double-bounce the request.
 		if isRetryable(resp.StatusCode) {
 			lastErr = fmt.Errorf("fetch %s: HTTP %d", url, resp.StatusCode)
 			if attempt < maxRetries-1 {
@@ -378,6 +388,11 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 						attribute.String("url", url),
 					),
 				)
+				if pdbotel.PeeringDBRetries != nil {
+					pdbotel.PeeringDBRetries.Add(ctx, 1, metric.WithAttributes(
+						attribute.String("cause", "5xx"),
+					))
+				}
 				select {
 				case <-time.After(delay):
 				case <-ctx.Done():
@@ -395,11 +410,14 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 	return nil, lastErr
 }
 
-// isRetryable reports whether the HTTP status code warrants a retry.
+// isRetryable reports whether the HTTP status code warrants an
+// application-level retry (5xx ladder in doWithRetry). 429 is excluded
+// because the transport wrapper handles it with bounded Retry-After
+// honoring — including 429 here would double-bounce the request through
+// both layers.
 func isRetryable(status int) bool {
 	switch status {
-	case http.StatusTooManyRequests,
-		http.StatusInternalServerError,
+	case http.StatusInternalServerError,
 		http.StatusBadGateway,
 		http.StatusServiceUnavailable,
 		http.StatusGatewayTimeout:
@@ -419,8 +437,16 @@ func (c *Client) retryDelay(attempt int) time.Duration {
 }
 
 // SetRateLimit overrides the default rate limiter. Intended for testing.
+// Also rewires the transport wrapper's limiter pointer so the change
+// takes effect on the very next request — without this, the transport
+// would keep using the limiter captured at NewClient time and tests
+// like TestFetchAllPagination (which set rate.Inf for fast iteration)
+// would still see the default 2 RPS limit applied per request.
 func (c *Client) SetRateLimit(limiter *rate.Limiter) {
 	c.limiter = limiter
+	if rt, ok := c.http.Transport.(*rateLimitedTransport); ok {
+		rt.limiter = limiter
+	}
 }
 
 // SetRetryBaseDelay overrides the default retry base delay. Intended for testing.
