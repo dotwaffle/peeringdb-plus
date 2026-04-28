@@ -196,7 +196,7 @@ func main() {
 	// primed DB; replicas already cold-sync in 5-45s so the extra latency
 	// is noise on top of hydration.
 	var objectCountCache atomic.Pointer[map[string]int64]
-	seededCounts, err := pdbsync.InitialObjectCounts(ctx, entClient)
+	seededCounts, err := pdbsync.InitialObjectCounts(ctx, db)
 	if err != nil {
 		logger.Error("failed to seed initial object counts", slog.Any("error", err))
 		os.Exit(1)
@@ -276,14 +276,17 @@ func main() {
 			// Count(ctx) at startup, so the two values flipped between
 			// "filtered" and "raw" — hence "doubling-halving").
 			//
-			// InitialObjectCounts elevates to TierUsers internally so
-			// Poc rows with visible="Users" are included.
+			// 260428-eda CHANGE 6: InitialObjectCounts now uses raw SQL
+			// (UNION ALL across the 13 tables) which bypasses ent's
+			// Privacy policy entirely — no Poc.Policy filtering — so
+			// visible="Users" Pocs are included symmetrically with the
+			// OnSyncComplete writer's privacy.DecisionContext bypass.
 			//
 			// Failure mode: log+skip the cache update. Keeping the
 			// previous value renders the dashboard with a stale (but
 			// correct) total rather than a flat-zero, which would
 			// trigger ops alerts that aren't actually fires.
-			counts, err := pdbsync.InitialObjectCounts(ctx, entClient)
+			counts, err := pdbsync.InitialObjectCounts(ctx, db)
 			if err != nil {
 				logger.LogAttrs(ctx, slog.LevelWarn,
 					"failed to refresh object counts after sync",

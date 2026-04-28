@@ -260,6 +260,9 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 	// Upstream re-sync delivers org 2 as an explicit status='deleted'
 	// tombstone (mirrors the ?since= shape per rest.py:694-727).
 	// Org 1 stays 'ok'; dependents of org 2 also tombstone.
+	// 260428-eda CHANGE 3: bump org 2's `updated` past the cycle-1
+	// fixture (which had updated=2024-08-01T09:15:00Z) so the
+	// skip-on-unchanged predicate admits the status flip.
 	fs.setFixtureData("org", json.RawMessage(`[
 		{
 			"id": 1, "name": "Example Organization", "aka": "ExOrg",
@@ -276,7 +279,7 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 			"social_media": [], "notes": "", "address1": "", "address2": "",
 			"city": "", "state": "", "country": "US", "zipcode": "",
 			"suite": "", "floor": "",
-			"created": "2024-02-01T00:00:00Z", "updated": "2024-06-15T12:30:00Z",
+			"created": "2024-02-01T00:00:00Z", "updated": "2024-09-01T12:30:00Z",
 			"status": "deleted"
 		}
 	]`))
@@ -458,6 +461,10 @@ func TestSync_TombstonePersistedFromExplicitPayload(t *testing.T) {
 	// flipped to 'deleted' (explicit tombstone payload). Pre-2zl this
 	// test dropped org 1 from the response and relied on inference;
 	// post-2zl the worker only persists what upstream sends.
+	// 260428-eda CHANGE 3: bump org 1's `updated` past the cycle 1
+	// fixture so the skip-on-unchanged predicate admits the status flip
+	// from "ok" to "deleted". Real PeeringDB always bumps `updated` when
+	// row content changes; cycle-1 fixture had updated=2024-06-15.
 	fs.setFixtureData("org", json.RawMessage(`[
 		{
 			"id": 1, "name": "Example Organization", "aka": "ExOrg",
@@ -465,7 +472,7 @@ func TestSync_TombstonePersistedFromExplicitPayload(t *testing.T) {
 			"social_media": [], "notes": "", "address1": "", "address2": "",
 			"city": "San Francisco", "state": "CA", "country": "US", "zipcode": "94105",
 			"suite": "", "floor": "",
-			"created": "2024-01-01T00:00:00Z", "updated": "2024-06-15T12:30:00Z",
+			"created": "2024-01-01T00:00:00Z", "updated": "2024-09-01T12:30:00Z",
 			"status": "deleted"
 		},
 		{
@@ -568,6 +575,10 @@ func TestSyncFKIntegrity_AfterTombstoneCycle(t *testing.T) {
 	// shape). Org 1 remains live; dependents of org 2 are absent from
 	// the response (post-2zl no inference fires for them — they stay
 	// as-is with their cycle-1 status='ok' values).
+	//
+	// 260428-eda CHANGE 3: bump org 2's `updated` past the cycle-1
+	// fixture (which had updated=2024-08-01T09:15:00Z) so the
+	// skip-on-unchanged predicate admits the status flip.
 	fs.setFixtureData("org", json.RawMessage(`[
 		{
 			"id": 1, "name": "Example Organization", "aka": "ExOrg",
@@ -584,7 +595,7 @@ func TestSyncFKIntegrity_AfterTombstoneCycle(t *testing.T) {
 			"social_media": [], "notes": "", "address1": "", "address2": "",
 			"city": "", "state": "", "country": "US", "zipcode": "",
 			"suite": "", "floor": "",
-			"created": "2024-02-01T00:00:00Z", "updated": "2024-06-15T12:30:00Z",
+			"created": "2024-02-01T00:00:00Z", "updated": "2024-09-01T12:30:00Z",
 			"status": "deleted"
 		}
 	]`))

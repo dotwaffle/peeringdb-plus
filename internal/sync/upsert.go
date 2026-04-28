@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
@@ -25,6 +27,62 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
+
+// skipUnchangedPredicate emits the WHERE clause for ON CONFLICT DO UPDATE
+// that gates writes on the upstream `updated` timestamp. It returns a
+// predicate equivalent to:
+//
+//	excluded.updated > <table>.updated
+//	OR <table>.updated IS NULL
+//	OR <table>.updated <= '1900-01-01'
+//
+// The OR-IS-NULL / OR-pre-1900 guards exist because PeeringDB rows
+// occasionally land with zero `updated` (legacy rows pre-Phase-X
+// migration); we must always allow them through, otherwise a row with
+// `updated` permanently at zero would become unwriteable. The literal
+// '1900-01-01' is the lower-bound sentinel: any real PeeringDB
+// timestamp is post-2000, and modernc.org/sqlite stores Go time.Time{}
+// as text '0001-01-01 00:00:00+00:00' under the default value
+// converter (verified empirically — STEP 0 probe in 260428-eda Task 6
+// observed: typeof = "text", raw = "0001-01-01 00:00:00 +0000 UTC",
+// SELECT (updated <= '1900-01-01') = 1).
+//
+// SAME-SECOND DRIFT (260428-eda CHANGE 3 known limitation): a row
+// edited at upstream within the same second as the prior cursor
+// advance will skip on the next incremental cycle. Mitigations:
+// (a) the next upstream change will bump `updated` past the cursor and
+// reconcile naturally; (b) full-mode runs (PDBPLUS_SYNC_MODE=full)
+// ignore this predicate and reconcile completely. We deliberately use
+// strict `>` rather than `>=`: `>=` would defeat the optimization
+// entirely, since PeeringDB's ?since=N is inclusive and every refetch
+// produces excluded.updated >= existing.updated. The bounded same-
+// second-drift risk is the trade.
+//
+// Implementation note: ent's UpdateWhere predicate is emitted with a
+// table qualifier active on the Builder. Calling b.Ident("foo")
+// produces `<table>.foo` — so when we want to reference a column on
+// the own table we just call Ident("updated") and let the qualifier
+// do its thing. For the `excluded.updated` reference (the pseudo-table
+// SQLite exposes inside ON CONFLICT DO UPDATE) we emit the literal
+// text since "excluded" is a SQL keyword in that context, not a real
+// table. The `table` parameter is kept on the API surface for clarity
+// at the 13 call sites — it documents which table this predicate is
+// targeting even though the qualifier is supplied by ent at emission
+// time.
+//
+// 260428-eda CHANGE 3.
+func skipUnchangedPredicate(table string) *sql.Predicate {
+	_ = table // documentation parameter; see godoc above
+	return sql.P(func(b *sql.Builder) {
+		b.WriteString("excluded.updated > ")
+		b.Ident("updated")
+		b.WriteString(" OR ")
+		b.Ident("updated")
+		b.WriteString(" IS NULL OR ")
+		b.Ident("updated")
+		b.WriteString(" <= '1900-01-01'")
+	})
+}
 
 // batchSize limits the number of builders per bulk upsert to stay within
 // SQLite's variable count limit.
@@ -105,8 +163,11 @@ func upsertOrganizations(ctx context.Context, tx *ent.Tx, orgs []peeringdb.Organ
 		},
 		func(ctx context.Context, batch []*ent.OrganizationCreate) error {
 			return tx.Organization.CreateBulk(batch...).
-				OnConflictColumns(organization.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(organization.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("organizations")),
+				).
 				Exec(ctx)
 		},
 		"organizations",
@@ -141,8 +202,11 @@ func upsertCampuses(ctx context.Context, tx *ent.Tx, items []peeringdb.Campus) (
 		},
 		func(ctx context.Context, batch []*ent.CampusCreate) error {
 			return tx.Campus.CreateBulk(batch...).
-				OnConflictColumns(campus.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(campus.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("campuses")),
+				).
 				Exec(ctx)
 		},
 		"campuses",
@@ -201,8 +265,11 @@ func upsertFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.Facilit
 		},
 		func(ctx context.Context, batch []*ent.FacilityCreate) error {
 			return tx.Facility.CreateBulk(batch...).
-				OnConflictColumns(facility.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(facility.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("facilities")),
+				).
 				Exec(ctx)
 		},
 		"facilities",
@@ -235,8 +302,11 @@ func upsertCarriers(ctx context.Context, tx *ent.Tx, items []peeringdb.Carrier) 
 		},
 		func(ctx context.Context, batch []*ent.CarrierCreate) error {
 			return tx.Carrier.CreateBulk(batch...).
-				OnConflictColumns(carrier.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(carrier.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("carriers")),
+				).
 				Exec(ctx)
 		},
 		"carriers",
@@ -259,8 +329,11 @@ func upsertCarrierFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 		},
 		func(ctx context.Context, batch []*ent.CarrierFacilityCreate) error {
 			return tx.CarrierFacility.CreateBulk(batch...).
-				OnConflictColumns(carrierfacility.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(carrierfacility.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("carrier_facilities")),
+				).
 				Exec(ctx)
 		},
 		"carrier facilities",
@@ -316,8 +389,11 @@ func upsertInternetExchanges(ctx context.Context, tx *ent.Tx, items []peeringdb.
 		},
 		func(ctx context.Context, batch []*ent.InternetExchangeCreate) error {
 			return tx.InternetExchange.CreateBulk(batch...).
-				OnConflictColumns(internetexchange.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(internetexchange.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("internet_exchanges")),
+				).
 				Exec(ctx)
 		},
 		"internet exchanges",
@@ -347,8 +423,11 @@ func upsertIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.IxLan) ([]i
 		},
 		func(ctx context.Context, batch []*ent.IxLanCreate) error {
 			return tx.IxLan.CreateBulk(batch...).
-				OnConflictColumns(ixlan.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(ixlan.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("ix_lans")),
+				).
 				Exec(ctx)
 		},
 		"ix lans",
@@ -372,8 +451,11 @@ func upsertIxPrefixes(ctx context.Context, tx *ent.Tx, items []peeringdb.IxPrefi
 		},
 		func(ctx context.Context, batch []*ent.IxPrefixCreate) error {
 			return tx.IxPrefix.CreateBulk(batch...).
-				OnConflictColumns(ixprefix.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(ixprefix.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("ix_prefixes")),
+				).
 				Exec(ctx)
 		},
 		"ix prefixes",
@@ -398,8 +480,11 @@ func upsertIxFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.IxFac
 		},
 		func(ctx context.Context, batch []*ent.IxFacilityCreate) error {
 			return tx.IxFacility.CreateBulk(batch...).
-				OnConflictColumns(ixfacility.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(ixfacility.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("ix_facilities")),
+				).
 				Exec(ctx)
 		},
 		"ix facilities",
@@ -460,8 +545,11 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 		},
 		func(ctx context.Context, batch []*ent.NetworkCreate) error {
 			return tx.Network.CreateBulk(batch...).
-				OnConflictColumns(network.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(network.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("networks")),
+				).
 				Exec(ctx)
 		},
 		"networks",
@@ -488,8 +576,11 @@ func upsertPocs(ctx context.Context, tx *ent.Tx, items []peeringdb.Poc) ([]int, 
 		},
 		func(ctx context.Context, batch []*ent.PocCreate) error {
 			return tx.Poc.CreateBulk(batch...).
-				OnConflictColumns(poc.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(poc.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("pocs")),
+				).
 				Exec(ctx)
 		},
 		"pocs",
@@ -515,8 +606,11 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 		},
 		func(ctx context.Context, batch []*ent.NetworkFacilityCreate) error {
 			return tx.NetworkFacility.CreateBulk(batch...).
-				OnConflictColumns(networkfacility.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(networkfacility.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("network_facilities")),
+				).
 				Exec(ctx)
 		},
 		"network facilities",
@@ -645,8 +739,11 @@ func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.Netw
 		},
 		func(ctx context.Context, batch []*ent.NetworkIxLanCreate) error {
 			return tx.NetworkIxLan.CreateBulk(batch...).
-				OnConflictColumns(networkixlan.FieldID).
-				UpdateNewValues().
+				OnConflict(
+					sql.ConflictColumns(networkixlan.FieldID),
+					sql.ResolveWithNewValues(),
+					sql.UpdateWhere(skipUnchangedPredicate("network_ix_lans")),
+				).
 				Exec(ctx)
 		},
 		"network ix lans",

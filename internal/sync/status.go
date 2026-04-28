@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/ent"
 )
 
 // Status represents the result of a sync operation.
@@ -76,9 +78,29 @@ func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, erro
 }
 
 // UpsertCursor updates or inserts the sync cursor for a type.
-// Called AFTER the ent transaction commits successfully -- never inside the transaction.
-func UpsertCursor(ctx context.Context, db *sql.DB, objType string, lastSyncAt time.Time, status string) error {
-	_, err := db.ExecContext(ctx,
+//
+// 260428-eda CHANGE 2: called WITHIN the main sync transaction (via *ent.Tx)
+// so cursor writes commit atomically with their corresponding ent upserts.
+// This closes the prior gap where cursor writes were 13 separate post-commit
+// *sql.DB Exec calls — each one a LiteFS-replicated commit — and removes the
+// failure window where ent upserts were durable but the cursor advance was
+// not (resulting in re-fetching already-applied rows on the next cycle).
+//
+// D-19 atomicity: sync_status (the outcome record) remains a separate
+// raw-SQL Exec because it must reflect the OUTCOME of the tx
+// (success/failure/error message) — that's correct. Cursors describe DATA
+// STATE and belong inside the data tx.
+//
+// Failure-mode shift: a cursor-write failure now rolls back the entire
+// upsert tx (including any FK-backfill HTTP work that already happened
+// inside it). This is the CORRECT semantic — cursor IS data state and a
+// divergence between upserts-committed and cursor-not-advanced is the very
+// bug being fixed. The OTel span attribute
+// pdbplus.sync.cursor_write_caused_rollback is set true on the sync root
+// span when a rollback was caused by cursor write failure (B3).
+// SyncWithRetry handles transient failures by re-running the cycle.
+func UpsertCursor(ctx context.Context, tx *ent.Tx, objType string, lastSyncAt time.Time, status string) error {
+	_, err := tx.ExecContext(ctx,
 		`INSERT INTO sync_cursors (type, last_sync_at, last_status)
 		 VALUES (?, ?, ?)
 		 ON CONFLICT(type) DO UPDATE SET last_sync_at = excluded.last_sync_at, last_status = excluded.last_status`,
