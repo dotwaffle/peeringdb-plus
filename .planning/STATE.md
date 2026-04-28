@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: null
 milestone_name: null
 status: between-milestones
-last_updated: "2026-04-28T06:15:00Z"
-last_activity: 2026-04-28 -- Completed quick task 260428-84z: add-loadtest-ramp-subcommand (cmd/loadtest ramp subcommand for per-surface inflection-point capacity probing — pdbcompat/entrest/graphql/connectrpc/webui, 1.5×/2s ramp, p95/p99/error-rate triggers, hold past inflection, sequential per surface, markdown output). Developer tool — not deployed.
+last_updated: "2026-04-28T08:30:00Z"
+last_activity: 2026-04-28 -- Completed quick task 260428-blj: wire cfg.Verbose into ramp mode (prefetch IDs/ASNs line + per-error log) and filter context.Canceled errors from summariseStep so end-of-step cancellation no longer pollutes the inflection signal.
 progress:
   total_phases: 0
   completed_phases: 0
@@ -55,6 +55,7 @@ These were surfaced during v1.18.0 execution and are not required for milestone 
 | 260428-2zl-hotfix | v1.18.3 hotfix — reverted v1.18.2 since=1 bootstrap, decoupled `GetCursor` from `last_status`, added recursive grandparent FK backfill, added per-cycle backfill timeout (`PDBPLUS_FK_BACKFILL_TIMEOUT=5m` default). Deployed + verified healthy: carrier 403 → org 18985 chain backfilled in first sync cycle. | 2026-04-28 | 0069091 | (in 260428-2zl dir) |
 | 260428-5xt | fk-backfill-dataloader — batch missing-parent FK fetches into one `?id__in=` request per parent type, replacing v1.18.3 per-row pattern. New `peeringdb.Client.FetchByIDs` with 100-ID URL chunking. Recursive grandparent backfill now also batched (BFS by parent type). Critical for truncate-and-resync recovery and long-downtime catch-up; steady-state behavior unchanged. | 2026-04-28 | 5c06c24 | [260428-5xt-fk-backfill-dataloader-batch-missing-par](./quick/260428-5xt-fk-backfill-dataloader-batch-missing-par/) |
 | 260428-84z | add-loadtest-ramp-subcommand — `loadtest ramp` finds inflection point per API surface (pdbcompat/entrest/graphql/connectrpc/webui detail) against a peeringdb-plus deployment. Ramps C=1 ×1.5/2s, triggers on p95 > 2× baseline OR p99 > 1s OR err > 1%, holds 10s past inflection, runs surfaces sequentially, emits markdown table per surface to stdout. Hermetic httptest-driven tests with synthetic latency injection. Operator/developer tool — not deployed. | 2026-04-28 | 5016eb4 | [260428-84z-add-loadtest-ramp-subcommand](./quick/260428-84z-add-loadtest-ramp-subcommand/) |
+| 260428-blj | wire `cfg.Verbose` into ramp mode (prefetch IDs/ASNs summary line + per-error log with path/status/err) and filter `context.Canceled` from `summariseStep` error count so end-of-step cancellation no longer pollutes the inflection signal. Plumbs `stdout io.Writer` through `rampOneSurface` / `runRampStep`; cancelled samples are dropped entirely so `Samples`/`RPS` reflect real measurements. Hermetic httptest-driven tests. Operator/developer tool — not deployed. | 2026-04-28 | e51aa61 | [260428-blj-wire-cfg-verbose-into-ramp-mode-print-pr](./quick/260428-blj-wire-cfg-verbose-into-ramp-mode-print-pr/) |
 
 ## Accumulated Context
 
