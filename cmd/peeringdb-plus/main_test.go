@@ -210,3 +210,15 @@ func TestServerProtocols_H2C(t *testing.T) {
 		t.Fatalf("want status %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 }
+
+func TestNewStartupPolicy(t *testing.T) {
+	p := newStartupPolicy(true)
+	if !p.ShouldMigrateSchema || !p.ShouldInitSyncStatus {
+		t.Fatalf("primary policy should enable migration + sync status init, got %+v", p)
+	}
+
+	p = newStartupPolicy(false)
+	if p.ShouldMigrateSchema || p.ShouldInitSyncStatus {
+		t.Fatalf("replica policy should disable migration + sync status init, got %+v", p)
+	}
+}

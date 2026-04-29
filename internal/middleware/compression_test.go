@@ -60,6 +60,12 @@ func TestCompression(t *testing.T) {
 			contentType:    "application/json",
 			wantGzip:       true,
 		},
+		{
+			name:           "no gzip for text/event-stream content type",
+			acceptEncoding: "gzip",
+			contentType:    "text/event-stream",
+			wantGzip:       false,
+		},
 	}
 
 	compressionMW := middleware.Compression()

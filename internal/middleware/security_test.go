@@ -24,6 +24,9 @@ func TestMiddleware_SecurityHeaders(t *testing.T) {
 		HSTSIncludeSubDomains: true,
 		FrameOptions:          "DENY",
 		ContentTypeOptions:    true,
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		CrossOriginOpenerPolicy:   "same-origin",
+		CrossOriginResourcePolicy: "same-origin",
 	})
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -36,8 +39,9 @@ func TestMiddleware_SecurityHeaders(t *testing.T) {
 		wantHSTS string
 		wantXFO  string // empty string => header must be absent
 		wantXCTO string
+		wantRP   string
 	}{
-		{name: "ui root", path: "/ui/", wantHSTS: expectedHSTS, wantXFO: "DENY", wantXCTO: "nosniff"},
+		{name: "ui root", path: "/ui/", wantHSTS: expectedHSTS, wantXFO: "DENY", wantXCTO: "nosniff", wantRP: "strict-origin-when-cross-origin"},
 		{name: "ui deep path", path: "/ui/asn/13335", wantHSTS: expectedHSTS, wantXFO: "DENY", wantXCTO: "nosniff"},
 		{name: "graphql exact", path: "/graphql", wantHSTS: expectedHSTS, wantXFO: "DENY", wantXCTO: "nosniff"},
 		{name: "graphql subpath", path: "/graphql/playground", wantHSTS: expectedHSTS, wantXFO: "DENY", wantXCTO: "nosniff"},
@@ -66,6 +70,15 @@ func TestMiddleware_SecurityHeaders(t *testing.T) {
 			}
 			if got := rec.Header().Get("X-Content-Type-Options"); got != tt.wantXCTO {
 				t.Errorf("X-Content-Type-Options header mismatch: got %q, want %q", got, tt.wantXCTO)
+			}
+			if got := rec.Header().Get("Referrer-Policy"); got != tt.wantRP && tt.wantRP != "" {
+				t.Errorf("Referrer-Policy header mismatch: got %q, want %q", got, tt.wantRP)
+			}
+			if got := rec.Header().Get("Cross-Origin-Opener-Policy"); got != "same-origin" {
+				t.Errorf("Cross-Origin-Opener-Policy header mismatch: got %q, want %q", got, "same-origin")
+			}
+			if got := rec.Header().Get("Cross-Origin-Resource-Policy"); got != "same-origin" {
+				t.Errorf("Cross-Origin-Resource-Policy header mismatch: got %q, want %q", got, "same-origin")
 			}
 		})
 	}
