@@ -107,8 +107,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize per-request response heap-delta
-	// histogram for pdbcompat list handlers. Populated by
+	// Initialize per-request response heap-delta histogram for pdbcompat
+	// list handlers. Populated by
 	// internal/pdbcompat.recordResponseHeapDelta via defer in serveList.
 	if err := pdbotel.InitResponseHeapHistogram(); err != nil {
 		logger.Error("failed to init response heap histogram", slog.Any("error", err))
@@ -134,8 +134,8 @@ func main() {
 
 	// Auto-migrate schema on primary per D-43.
 	//
-	// WithDropColumn(true): enables ALTER TABLE DROP COLUMN for schema cleanup
-	// schema cleanup (ixpfx.notes, organization.fac_count, organization.net_count)
+	// WithDropColumn(true): enables ALTER TABLE DROP COLUMN for schema
+	// cleanup (ixpfx.notes, organization.fac_count, organization.net_count)
 	// and any future hygiene drops. Per D-04. ent defaults to additive-only
 	// migrations for safety; this flag opts in to destructive DDL.
 	//
