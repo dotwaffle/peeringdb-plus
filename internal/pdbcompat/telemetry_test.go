@@ -106,6 +106,7 @@ func TestRecordResponseHeapDelta_RecordsHistogram(t *testing.T) {
 	}
 	if found == nil {
 		t.Fatal("pdbplus.response.heap_delta metric not found in collected ResourceMetrics")
+		return
 	}
 	hist, ok := found.Data.(metricdata.Histogram[int64])
 	if !ok {

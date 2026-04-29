@@ -406,6 +406,7 @@ func TestInitResponseHeapHistogram_RecordsValues(t *testing.T) {
 	found := findMetric(rm, "pdbplus.response.heap_delta")
 	if found == nil {
 		t.Fatal("expected pdbplus.response.heap_delta metric, not found")
+		return
 	}
 	hist, ok := found.Data.(metricdata.Histogram[int64])
 	if !ok {
