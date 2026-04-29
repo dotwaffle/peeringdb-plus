@@ -885,13 +885,13 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	h = cc.CachingState.Middleware()(h)
 	h = middleware.CSP(cc.CSPInput)(h)
 	h = middleware.SecurityHeaders(middleware.SecurityHeadersInput{
-		HSTSMaxAge:                 cc.HSTSMaxAge,
-		HSTSIncludeSubDomains:      true,
-		FrameOptions:               "DENY",
-		ContentTypeOptions:         true,
-		ReferrerPolicy:             "strict-origin-when-cross-origin",
-		CrossOriginOpenerPolicy:    "same-origin",
-		CrossOriginResourcePolicy:  "same-origin",
+		HSTSMaxAge:                cc.HSTSMaxAge,
+		HSTSIncludeSubDomains:     true,
+		FrameOptions:              "DENY",
+		ContentTypeOptions:        true,
+		ReferrerPolicy:            "strict-origin-when-cross-origin",
+		CrossOriginOpenerPolicy:   "same-origin",
+		CrossOriginResourcePolicy: "same-origin",
 	})(h)
 	h = readinessMiddleware(cc.SyncWorker, h)
 	h = middleware.PrivacyTier(middleware.PrivacyTierInput{DefaultTier: cc.DefaultTier})(h)

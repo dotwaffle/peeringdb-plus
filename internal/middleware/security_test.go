@@ -20,11 +20,11 @@ func TestMiddleware_SecurityHeaders(t *testing.T) {
 	const expectedHSTS = "max-age=15552000; includeSubDomains"
 
 	mw := middleware.SecurityHeaders(middleware.SecurityHeadersInput{
-		HSTSMaxAge:            180 * 24 * time.Hour,
-		HSTSIncludeSubDomains: true,
-		FrameOptions:          "DENY",
-		ContentTypeOptions:    true,
-		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		HSTSMaxAge:                180 * 24 * time.Hour,
+		HSTSIncludeSubDomains:     true,
+		FrameOptions:              "DENY",
+		ContentTypeOptions:        true,
+		ReferrerPolicy:            "strict-origin-when-cross-origin",
 		CrossOriginOpenerPolicy:   "same-origin",
 		CrossOriginResourcePolicy: "same-origin",
 	})
