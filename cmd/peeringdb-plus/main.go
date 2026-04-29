@@ -201,6 +201,10 @@ func main() {
 	// is noise on top of hydration.
 	var objectCountCache atomic.Pointer[map[string]int64]
 	seededCounts, err := seedObjectCountCache(ctx, db, logger)
+	if err != nil {
+		logger.Error("failed to seed initial object counts", slog.Any("error", err))
+		os.Exit(1)
+	}
 	objectCountCache.Store(&seededCounts)
 	logger.LogAttrs(ctx, slog.LevelInfo, "seeded initial object counts",
 		slog.Int("type_count", len(seededCounts)))
