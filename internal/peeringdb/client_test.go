@@ -760,6 +760,7 @@ func TestDoWithRetryRecordsRetryEvents(t *testing.T) {
 	fetchSpan := findSpanByName(spans, "peeringdb.stream/org")
 	if fetchSpan == nil {
 		t.Fatal("expected peeringdb.stream/org span, not found")
+		return
 	}
 
 	// PERF-08: Retries are recorded as events on the parent span.
@@ -773,6 +774,7 @@ func TestDoWithRetryRecordsRetryEvents(t *testing.T) {
 	}
 	if retryEvent == nil {
 		t.Fatal("expected 'request.retry' event, got none")
+		return
 	}
 
 	assertEventAttr(t, retryEvent.Attributes, "attempt", attribute.IntValue(1))
