@@ -17,10 +17,10 @@ import (
 func TestMiddleware_SecurityHeaders(t *testing.T) {
 	t.Parallel()
 
-	const expectedHSTS = "max-age=15552000; includeSubDomains"
+	const expectedHSTS = "max-age=31536000; includeSubDomains"
 
 	mw := middleware.SecurityHeaders(middleware.SecurityHeadersInput{
-		HSTSMaxAge:                180 * 24 * time.Hour,
+		HSTSMaxAge:                365 * 24 * time.Hour,
 		HSTSIncludeSubDomains:     true,
 		FrameOptions:              "DENY",
 		ContentTypeOptions:        true,
