@@ -686,6 +686,7 @@ func TestFetchAllRecordsStreamedEvent(t *testing.T) {
 	fetchSpan := findSpanByName(spans, "peeringdb.stream/org")
 	if fetchSpan == nil {
 		t.Fatal("expected peeringdb.stream/org span, not found")
+		return
 	}
 
 	// PERF-08: page.streamed events are omitted to avoid event bloat.
@@ -700,6 +701,7 @@ func TestFetchAllRecordsStreamedEvent(t *testing.T) {
 	}
 	if streamedEvent == nil {
 		t.Fatal("expected 'streamed' event, got none")
+		return
 	}
 
 	assertEventAttr(t, streamedEvent.Attributes, "count", attribute.IntValue(300))
@@ -758,6 +760,7 @@ func TestDoWithRetryRecordsRetryEvents(t *testing.T) {
 	fetchSpan := findSpanByName(spans, "peeringdb.stream/org")
 	if fetchSpan == nil {
 		t.Fatal("expected peeringdb.stream/org span, not found")
+		return
 	}
 
 	// PERF-08: Retries are recorded as events on the parent span.
@@ -771,6 +774,7 @@ func TestDoWithRetryRecordsRetryEvents(t *testing.T) {
 	}
 	if retryEvent == nil {
 		t.Fatal("expected 'request.retry' event, got none")
+		return
 	}
 
 	assertEventAttr(t, retryEvent.Attributes, "attempt", attribute.IntValue(1))

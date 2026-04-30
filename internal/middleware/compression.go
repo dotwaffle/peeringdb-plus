@@ -19,6 +19,7 @@ func Compression() func(http.Handler) http.Handler {
 			"application/grpc",
 			"application/grpc+proto",
 			"application/connect+proto",
+			"text/event-stream",
 		}),
 	)
 	if err != nil {
