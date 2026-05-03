@@ -456,18 +456,15 @@ func TestCaptureContextCancelMidRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	// Cancel after enough time for 1-2 tuples to finish.
-	go func() {
-		time.Sleep(75 * time.Millisecond)
-		cancel()
-	}()
+	// Time out after enough time for 1-2 tuples to finish.
+	ctx, cancel := context.WithTimeout(t.Context(), 75*time.Millisecond)
+	defer cancel()
 	_, err = capt.Run(ctx)
 	if err == nil {
-		t.Fatal("Run returned nil after cancel, want context.Canceled")
+		t.Fatal("Run returned nil after timeout, want context.DeadlineExceeded")
 	}
-	if !strings.Contains(err.Error(), "context canceled") {
-		t.Errorf("err = %v, want wrapping context canceled", err)
+	if !strings.Contains(err.Error(), "context deadline exceeded") {
+		t.Errorf("err = %v, want wrapping context deadline exceeded", err)
 	}
 	// Checkpoint should show progress — at least one tuple Done=true, not all.
 	s, err := visbaseline.LoadState(statePath)
