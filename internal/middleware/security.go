@@ -10,9 +10,11 @@ import (
 // SecurityHeadersInput configures the SecurityHeaders middleware.
 type SecurityHeadersInput struct {
 	// HSTSMaxAge is the Strict-Transport-Security max-age duration.
-	// Zero disables the HSTS header entirely. The v1.13 default is
-	// 180 * 24 * time.Hour (conservative first-enforcement); flip to
-	// 365 days in v1.14 after production bake.
+	// Zero disables the HSTS header entirely.
+	//
+	// Production default in cmd/peeringdb-plus is 365 days.
+	// Keep this field explicit so tests and non-production deployments
+	// can tune or disable HSTS intentionally.
 	HSTSMaxAge time.Duration
 
 	// HSTSIncludeSubDomains appends the includeSubDomains directive.
@@ -28,6 +30,15 @@ type SecurityHeadersInput struct {
 	// ContentTypeOptions sets X-Content-Type-Options: nosniff on ALL
 	// responses when true. Important on text/plain error responses.
 	ContentTypeOptions bool
+
+	// ReferrerPolicy sets the Referrer-Policy response header when non-empty.
+	ReferrerPolicy string
+
+	// CrossOriginOpenerPolicy sets Cross-Origin-Opener-Policy when non-empty.
+	CrossOriginOpenerPolicy string
+
+	// CrossOriginResourcePolicy sets Cross-Origin-Resource-Policy when non-empty.
+	CrossOriginResourcePolicy string
 }
 
 // SecurityHeaders returns middleware that sets HSTS, X-Frame-Options, and
@@ -60,6 +71,15 @@ func SecurityHeaders(in SecurityHeadersInput) func(http.Handler) http.Handler {
 			}
 			if in.FrameOptions != "" && isBrowserPath(r.URL.Path) {
 				h.Set("X-Frame-Options", in.FrameOptions)
+			}
+			if in.ReferrerPolicy != "" {
+				h.Set("Referrer-Policy", in.ReferrerPolicy)
+			}
+			if in.CrossOriginOpenerPolicy != "" {
+				h.Set("Cross-Origin-Opener-Policy", in.CrossOriginOpenerPolicy)
+			}
+			if in.CrossOriginResourcePolicy != "" {
+				h.Set("Cross-Origin-Resource-Policy", in.CrossOriginResourcePolicy)
 			}
 			next.ServeHTTP(w, r)
 		})

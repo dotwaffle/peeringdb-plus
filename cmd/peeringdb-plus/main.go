@@ -7,7 +7,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -53,6 +55,7 @@ import (
 // maxRequestBodySize is the maximum allowed request body for POST endpoints (1 MB).
 // GraphQL queries rarely exceed 10 KB; 1 MB is generous per SRVR-04.
 const maxRequestBodySize = 1 << 20
+const initialObjectCountsTimeout = 5 * time.Second
 
 func init() {
 	// Best-effort memory limit configuration from cgroup/system.
@@ -98,14 +101,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Phase 66 (OBS-05): peak heap / RSS observable gauges for SEED-001 watch.
+	// Initialize peak heap / RSS observable gauges for runtime memory visibility.
 	if err := pdbotel.InitMemoryGauges(); err != nil {
 		logger.Error("failed to init memory gauges", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Phase 71 Plan 05 (MEMORY-03, D-06): per-request response heap-delta
-	// histogram for pdbcompat list handlers. Populated by
+	// Initialize per-request response heap-delta histogram for pdbcompat
+	// list handlers. Populated by
 	// internal/pdbcompat.recordResponseHeapDelta via defer in serveList.
 	if err := pdbotel.InitResponseHeapHistogram(); err != nil {
 		logger.Error("failed to init response heap histogram", slog.Any("error", err))
@@ -122,6 +125,7 @@ func main() {
 
 	// Detect primary status via LiteFS lease file with env fallback per D-24.
 	isPrimary := litefs.IsPrimaryWithFallback(litefs.PrimaryFile, "PDBPLUS_IS_PRIMARY")
+	policy := newStartupPolicy(isPrimary)
 
 	// Live primary detection function for dynamic role changes without restart.
 	isPrimaryFn := func() bool {
@@ -130,15 +134,15 @@ func main() {
 
 	// Auto-migrate schema on primary per D-43.
 	//
-	// WithDropColumn(true): enables ALTER TABLE DROP COLUMN for v1.15 Phase 63
-	// schema cleanup (ixpfx.notes, organization.fac_count, organization.net_count)
+	// WithDropColumn(true): enables ALTER TABLE DROP COLUMN for schema
+	// cleanup (ixpfx.notes, organization.fac_count, organization.net_count)
 	// and any future hygiene drops. Per D-04. ent defaults to additive-only
 	// migrations for safety; this flag opts in to destructive DDL.
 	//
 	// WithDropIndex(true): symmetric handling of stale indexes per the ent
-	// docs recommendation. None of the Phase 63 target columns are indexed,
+	// docs recommendation. None of the current target columns are indexed,
 	// but enabling both together is idiomatic.
-	if isPrimary {
+	if policy.ShouldMigrateSchema {
 		if err := entClient.Schema.Create(
 			ctx,
 			migrate.WithDropColumn(true),
@@ -150,7 +154,7 @@ func main() {
 	}
 
 	// Initialize sync_status table on primary (raw SQL, outside ent schema management).
-	if isPrimary {
+	if policy.ShouldInitSyncStatus {
 		if err := pdbsync.InitStatusTable(ctx, db); err != nil {
 			logger.Error("failed to init sync_status table", slog.Any("error", err))
 			os.Exit(1)
@@ -183,7 +187,7 @@ func main() {
 	// Cached object counts for metrics gauge (PERF-02).
 	// Updated by sync worker after each successful sync via OnSyncComplete.
 	//
-	// Phase 75 OBS-01 (D-01): synchronously seed the cache from a one-shot
+	// Synchronously seed the cache from a one-shot
 	// Count(ctx) per entity table at startup so pdbplus_data_type_count
 	// reports correct values within 30s of process start. Without this seed
 	// the gauge holds zeros until the first sync cycle completes
@@ -196,7 +200,7 @@ func main() {
 	// primed DB; replicas already cold-sync in 5-45s so the extra latency
 	// is noise on top of hydration.
 	var objectCountCache atomic.Pointer[map[string]int64]
-	seededCounts, err := pdbsync.InitialObjectCounts(ctx, db)
+	seededCounts, err := seedObjectCountCache(ctx, db, logger)
 	if err != nil {
 		logger.Error("failed to seed initial object counts", slog.Any("error", err))
 		os.Exit(1)
@@ -237,7 +241,7 @@ func main() {
 			slog.String("action", "set PDBPLUS_SYNC_TOKEN"))
 	}
 
-	// Phase 61 (SYNC-04, OBS-01): classify sync mode + public tier at startup.
+	// Classify sync mode + public tier at startup.
 	// Emitted after config parse / OTel init / dual-logger install, before any
 	// handler registration, so a failure to start the server does not swallow
 	// the classification record.
@@ -310,7 +314,7 @@ func main() {
 		FullSyncInterval:              cfg.FullSyncInterval, // 260428-mu0
 	}, logger)
 
-	// Phase 75 OBS-02 (D-02): pre-warm the 5 zero-rate counters so dashboard
+	// Pre-warm the 5 zero-rate counters so dashboard
 	// panels render `0` instead of `No data` on a freshly-deployed healthy
 	// fleet that hasn't fired any sync errors / fallbacks / role transitions /
 	// deletes yet. Without this, OTel cumulative counters only export a
@@ -401,7 +405,7 @@ func main() {
 	// Mount web UI at /ui/ and /static/ prefixes.
 	// authMode is captured here (not re-read by the handler) so /ui/about
 	// reflects the process-start configuration, matching the "diagnostic
-	// snapshot" semantics of the rest of the page (Phase 61 OBS-02).
+	// snapshot" semantics of the rest of the page.
 	authMode := "anonymous"
 	if cfg.PeeringDBAPIKey != "" {
 		authMode = "authenticated"
@@ -569,7 +573,7 @@ func main() {
 		CachingState: cachingState,
 		SyncWorker:   syncWorker,
 		MaxBodyBytes: maxRequestBodySize,
-		HSTSMaxAge:   180 * 24 * time.Hour,
+		HSTSMaxAge:   365 * 24 * time.Hour,
 		DefaultTier:  cfg.PublicTier,
 	})
 
@@ -673,7 +677,7 @@ const restListWrapperKey = "content"
 // does not admit the field (per internal/privfield.Redact).
 //
 // entrest has no native per-field conditional-omission hook (verified
-// against lrstanley/entrest annotation reference, Phase 64 RESEARCH.md
+// against the lrstanley/entrest annotation reference and local behavior notes
 // Finding #1). This middleware is the workaround: it buffers the
 // response body on the ixlan paths, parses the JSON, walks the ixlan
 // object(s), and re-emits with the field deleted when privfield.Redact
@@ -687,7 +691,7 @@ const restListWrapperKey = "content"
 // so that problem+json error bodies pass through without being mis-parsed
 // as data payloads.
 //
-// Phase 64 VIS-08 / VIS-09.
+// Required for privacy-redaction correctness.
 func restFieldRedactMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/rest/v1/ix-lans") {
@@ -869,11 +873,11 @@ type chainConfig struct {
 //
 // SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
 // on every response, including the Readiness 503 syncing page, and XFO
-// stays scoped to browser paths via middleware.isBrowserPath. The 180-day
-// HSTSMaxAge is passed through chainConfig so v1.14 can flip the default
-// without touching this helper.
+// stays scoped to browser paths via middleware.isBrowserPath. HSTSMaxAge is
+// passed through chainConfig so the deployment default can be managed in one
+// place without touching this helper.
 //
-// PrivacyTier (phase 59, D-05) sits between Logging and Readiness in
+// PrivacyTier sits between Logging and Readiness in
 // request flow so every request ctx — including the Readiness 503 path —
 // carries the resolved PDBPLUS_PUBLIC_TIER before any handler or ent
 // query reads it. Placing it inside Logging (rather than outside) keeps
@@ -885,10 +889,13 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	h = cc.CachingState.Middleware()(h)
 	h = middleware.CSP(cc.CSPInput)(h)
 	h = middleware.SecurityHeaders(middleware.SecurityHeadersInput{
-		HSTSMaxAge:            cc.HSTSMaxAge,
-		HSTSIncludeSubDomains: true,
-		FrameOptions:          "DENY",
-		ContentTypeOptions:    true,
+		HSTSMaxAge:                cc.HSTSMaxAge,
+		HSTSIncludeSubDomains:     true,
+		FrameOptions:              "DENY",
+		ContentTypeOptions:        true,
+		ReferrerPolicy:            "strict-origin-when-cross-origin",
+		CrossOriginOpenerPolicy:   "same-origin",
+		CrossOriginResourcePolicy: "same-origin",
 	})(h)
 	h = readinessMiddleware(cc.SyncWorker, h)
 	h = middleware.PrivacyTier(middleware.PrivacyTierInput{DefaultTier: cc.DefaultTier})(h)
@@ -900,7 +907,7 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	return h
 }
 
-// logStartupClassification emits the v1.14 Phase 61 sync-mode classification
+// logStartupClassification emits sync-mode classification
 // lines (SYNC-04, OBS-01). Called once from main() after config parse and
 // after slog.SetDefault, before the HTTP listener starts.
 //
@@ -1032,6 +1039,42 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func seedObjectCountCache(ctx context.Context, db *sql.DB, logger *slog.Logger) (map[string]int64, error) {
+	seedCtx, cancel := context.WithTimeout(ctx, initialObjectCountsTimeout)
+	defer cancel()
+
+	counts, err := pdbsync.InitialObjectCounts(seedCtx, db)
+	if err == nil {
+		return counts, nil
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(seedCtx.Err(), context.DeadlineExceeded) {
+		logger.Warn("initial object count seed timed out; continuing with zeroed gauges until first refresh",
+			slog.Duration("timeout", initialObjectCountsTimeout))
+		return zeroedObjectCounts(), nil
+	}
+	return nil, err
+}
+
+func zeroedObjectCounts() map[string]int64 {
+	out := make(map[string]int64, len(pdbsync.StepOrder()))
+	for _, t := range pdbsync.StepOrder() {
+		out[t] = 0
+	}
+	return out
+}
+
+type startupPolicy struct {
+	ShouldMigrateSchema  bool
+	ShouldInitSyncStatus bool
+}
+
+func newStartupPolicy(isPrimary bool) startupPolicy {
+	return startupPolicy{
+		ShouldMigrateSchema:  isPrimary,
+		ShouldInitSyncStatus: isPrimary,
+	}
 }
 
 // SyncHandlerInput holds dependencies for the sync handler.

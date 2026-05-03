@@ -30,6 +30,7 @@ func TestSetup_ReturnsNonNilShutdown(t *testing.T) {
 	}
 	if out == nil {
 		t.Fatal("Setup returned nil output")
+		return
 	}
 	if out.Shutdown == nil {
 		t.Fatal("Setup returned nil shutdown function")

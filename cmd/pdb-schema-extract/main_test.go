@@ -139,6 +139,7 @@ func TestParseSerializers(t *testing.T) {
 			}
 			if found == nil {
 				t.Fatalf("serializer %q not found", tt.name)
+				return
 			}
 			if found.ModelName != tt.wantModel {
 				t.Errorf("model = %q, want %q", found.ModelName, tt.wantModel)

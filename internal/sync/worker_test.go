@@ -420,6 +420,7 @@ func TestSyncRecordsStatusSuccess(t *testing.T) {
 	}
 	if status == nil {
 		t.Fatal("expected non-nil status")
+		return
 	}
 	if status.Status != "success" {
 		t.Errorf("expected success status, got %s", status.Status)

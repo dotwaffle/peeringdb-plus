@@ -213,8 +213,8 @@ LiteFS + Consul primary election.
 
 ## Asymmetric fleet
 
-As of v1.15 (Phase 65), the fleet is split into two Fly process groups
-with different VM sizing and mount policies (declared in `fly.toml`'s
+The fleet is split into two Fly process groups, with different VM sizing
+and mount policies (declared in `fly.toml`'s
 `[processes]` and per-group `[[vm]]` blocks):
 
 - **`primary` group** — 1 machine in `lhr`, `shared-cpu-2x` / 512 MB,
@@ -253,8 +253,7 @@ the updated `sync_status` within seconds via LTX replication.
 **Sizing rationale:** Observed replica RSS is 58-59 MB steady-state;
 `shared-cpu-1x` / 256 MB gives ~4× memory headroom and budget for
 LiteFS LTX replay spikes. The primary keeps `shared-cpu-2x` / 512 MB —
-it runs the sync worker whose memory profile was characterised in v1.13
-and v1.14.
+it runs the sync worker whose memory profile was characterized during production load testing.
 
 **Cost:** Asymmetric fleet is ~$20.75/mo vs the previous uniform
 ~$57.20/mo — saves ~$36/mo. <!-- VERIFY: monthly cost figures depend on Fly.io's current billing tiers and observed traffic volume — not derivable from the repository --> Real win is operational simplicity (no
@@ -342,7 +341,7 @@ Runtime health:
 - `GET /healthz` — liveness probe, used by `fly.toml`'s HTTP service check.
 - `GET /readyz` — readiness probe that turns unready during graceful
   shutdown drain (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`) **and during
-  LiteFS cold-sync hydration on replica boot** (Phase 65) so Fly Proxy
+  LiteFS cold-sync hydration on replica boot** so Fly Proxy
   routes around the machine until the database is live.
 
 ## Capacity probing
@@ -415,3 +414,25 @@ fly deploy
 ```
 
 <!-- VERIFY: exact initial-setup sequence for a fresh Fly app including Consul attach ordering is not captured in the repository and must be confirmed against current Fly.io documentation -->
+
+## Operational failure modes quick-runbook
+
+### 1) LiteFS lease/primary flaps
+- Symptoms: frequent primary-role transitions, write replay spikes, elevated sync churn.
+- First checks: process-group placement, Fly region health, LiteFS lease logs.
+- Immediate action: stabilize primary placement before tuning sync intervals.
+
+### 2) Startup object-count seed timeout
+- Symptoms: startup warning about timed-out initial object counts, dashboards start at zeros.
+- First checks: DB mount latency, replica hydration status, cold-start IO pressure.
+- Immediate action: allow first successful sync cycle to refresh counts; investigate persistent repeats.
+
+### 3) Repeated upstream 429 / long Retry-After
+- Symptoms: sync lag growth, repeated upstream rate-limit logs.
+- First checks: API key presence, effective RPS, concurrent external callers sharing quota.
+- Immediate action: set/rotate API key, reduce anonymous traffic, lower configured RPS if needed.
+
+### 4) `/sync` auth misconfiguration
+- Symptoms: startup warning that sync endpoint is unauthenticated.
+- First checks: `PDBPLUS_SYNC_TOKEN` present in runtime env and deploy secrets.
+- Immediate action: set token and redeploy; confirm with an authenticated `/sync` probe.
