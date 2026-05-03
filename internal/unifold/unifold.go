@@ -105,7 +105,7 @@ func Fold(s string) string {
 // or upper-case letter ('A'-'Z') forces the full pipeline. This avoids
 // having to enumerate every code point that Fold leaves untouched.
 func asciiLowerFastPath(s string) bool {
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
 		if c >= 0x80 {
 			return false

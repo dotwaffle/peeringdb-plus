@@ -173,7 +173,7 @@ func parsePagePath(path string) (string, int, bool) {
 	if numStr == "" {
 		return "", 0, false
 	}
-	for i := 0; i < len(numStr); i++ {
+	for i := range len(numStr) {
 		if numStr[i] < '0' || numStr[i] > '9' {
 			return "", 0, false
 		}
