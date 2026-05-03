@@ -4,7 +4,9 @@ slug: incremental-sync-evaluation
 planted: 2026-04-17
 planted_after: v1.14
 surface_at: v1.15+
-status: ready
+status: consumed
+consumed_in: v1.17.0
+consumed_by: quick-task-260426-pms
 priority: active
 resolved_unknown: 2026-04-26
 triggers:

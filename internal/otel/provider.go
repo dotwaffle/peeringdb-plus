@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"go.opentelemetry.io/contrib/exporters/autoexport"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
@@ -50,8 +49,9 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	metricRes := buildMetricResource(ctx, in.ServiceName)
 
 	// TracerProvider with configurable sampling per D-02.
-	// Batching is explicitly enabled per PERF-08; defaults to 5s/512 items,
-	// tuneable via OTEL_BSP_SCHEDULE_DELAY and OTEL_BSP_MAX_EXPORT_BATCH_SIZE.
+	// Batching is enabled with SDK defaults (5s schedule delay, 512 max
+	// batch size); both tuneable via OTEL_BSP_SCHEDULE_DELAY and
+	// OTEL_BSP_MAX_EXPORT_BATCH_SIZE per the autoexport env interface.
 	spanExporter, err := autoexport.NewSpanExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating span exporter: %w", err)
@@ -65,10 +65,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	// trace continuity. Full table in docs/ARCHITECTURE.md § Sampling
 	// Matrix and .planning/quick/260503-huo-invert-sampler-default/260503-huo-SUMMARY.md.
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(spanExporter,
-			sdktrace.WithBatchTimeout(5*time.Second),
-			sdktrace.WithMaxExportBatchSize(512),
-		),
+		sdktrace.WithBatcher(spanExporter),
 		sdktrace.WithResource(res),
 		sdktrace.WithSampler(sdktrace.ParentBased(NewPerRouteSampler(defaultSamplerInput(in)))),
 	)

@@ -164,7 +164,7 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 
 **Phase 68 + 69 composition.** Traversal predicates compose with the Phase 68 status matrix (`applyStatusMatrix` still appended LAST in all 13 `registry_funcs.go` closures) and with Phase 69's `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
 
-**Known gap (DEFER-70-06-01).** `<entity>?campus__<field>=X` returns 500 (table-name inflection — see `.planning/milestones/v1.16-phases/70-cross-entity-traversal/deferred-items.md`). Fix queued: `entsql.Annotation{Table: "campuses"}` on `ent/schema/campus.go`.
+**Closed in Phase 73 (v1.18.0): DEFER-70-06-01.** `<entity>?campus__<field>=X` previously returned 500 due to go-openapi/inflect mis-singularising "campus" → "campu" on the `cmd/pdb-compat-allowlist` codegen path. Fixed by sibling-file mixin `ent/schema/campus_annotations.go` (`entsql.Annotation{Table: "campuses"}`) — see `MILESTONES.md` Phase 73 BUG-01 for audit trail. The `entc.LoadGraph` runtime patch in `ent/entc.go` (`fixCampusInflection`) remains; the two are complementary, not redundant.
 
 ### Response memory envelope
 
