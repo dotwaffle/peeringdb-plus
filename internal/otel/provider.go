@@ -87,11 +87,35 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	)
 	otel.SetTracerProvider(tp)
 
-	// MeterProvider for metrics. Views drop HTTP body-size instruments (low
-	// debugging value, high cardinality) and override rpc.server.duration
-	// bucket boundaries to a 5-boundary set. Metric resource omits
-	// service.instance.id to prevent per-VM metric fan-out; traces and logs
-	// keep it for per-VM debugging.
+	// MeterProvider for metrics. Views aggressively trim cardinality to fit
+	// inside Grafana Cloud's hosted Prometheus quota. Three categories of
+	// trim, in declaration order below:
+	//
+	//   1. Drop HTTP body-size instruments — low debugging value vs. the
+	//      cardinality cost (otelhttp emits one series per route × method
+	//      × status_code combination for both request and response sides).
+	//
+	//   2. Drop the entire otelconnect rpc.server.* family. Five
+	//      instruments (request.size, response.size, duration,
+	//      requests_per_rpc, responses_per_rpc) × ~50 RPC procedures ×
+	//      status code = ~2500 series per machine before resource attrs.
+	//      ConnectRPC traffic shape is already visible in our existing
+	//      pdbplus.* business metrics and the otelhttp duration histogram
+	//      at the transport layer; the rpc.server.* family is duplicate
+	//      signal at high cost. Replaces the prior single-instrument
+	//      duration override (which only coarsened buckets, not the
+	//      cardinality blow-up).
+	//
+	//   3. Replace otelhttp's default 16-boundary duration histogram with a
+	//      5-boundary set (10ms / 50ms / 250ms / 1s / 5s) and strip the
+	//      method/scheme/server.address/network.protocol.* attribute axes,
+	//      keeping only http.route + http.response.status_code +
+	//      network.protocol.version. Buckets mirror the rpc.server.duration
+	//      set we used previously so SLO panels stay aligned across surfaces.
+	//
+	// Metric resource omits service.instance.id (buildMetricResource) to
+	// prevent per-VM fan-out across the same axes; traces and logs keep it
+	// for per-VM debugging.
 	metricReader, err := autoexport.NewMetricReader(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating metric reader: %w", err)
@@ -99,6 +123,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithResource(metricRes),
 		sdkmetric.WithReader(metricReader),
+		// 1. HTTP body-size drops.
 		sdkmetric.WithView(
 			sdkmetric.NewView(
 				sdkmetric.Instrument{Name: "http.server.request.body.size"},
@@ -111,13 +136,54 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
 			),
 		),
+		// 2. rpc.server.* family drops — five instruments enumerated
+		//    individually (no wildcard support in SDK Views).
 		sdkmetric.WithView(
 			sdkmetric.NewView(
 				sdkmetric.Instrument{Name: "rpc.server.duration"},
-				sdkmetric.Stream{Aggregation: sdkmetric.AggregationExplicitBucketHistogram{
-					Boundaries: []float64{0.01, 0.05, 0.25, 1, 5},
-					NoMinMax:   false,
-				}},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
+			),
+		),
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "rpc.server.request.size"},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
+			),
+		),
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "rpc.server.response.size"},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
+			),
+		),
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "rpc.server.requests_per_rpc"},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
+			),
+		),
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "rpc.server.responses_per_rpc"},
+				sdkmetric.Stream{Aggregation: sdkmetric.AggregationDrop{}},
+			),
+		),
+		// 3. otelhttp duration: coarsen buckets + allow-list attribute keys
+		//    so http.request.method drops out of the label set.
+		sdkmetric.WithView(
+			sdkmetric.NewView(
+				sdkmetric.Instrument{Name: "http.server.request.duration"},
+				sdkmetric.Stream{
+					Aggregation: sdkmetric.AggregationExplicitBucketHistogram{
+						Boundaries: []float64{0.01, 0.05, 0.25, 1, 5},
+						NoMinMax:   false,
+					},
+					AttributeFilter: attribute.NewAllowKeysFilter(
+						"http.route",
+						"http.response.status_code",
+						"network.protocol.version",
+					),
+				},
 			),
 		),
 	)
