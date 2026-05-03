@@ -489,8 +489,8 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 		if err == nil {
 			t.Fatalf("GetPoc(%d): expected error (CodeNotFound), got nil", fix.pocID)
 		}
-		var ce *connect.Error
-		if !errors.As(err, &ce) {
+		ce, ok := errors.AsType[*connect.Error](err)
+		if !ok {
 			t.Fatalf("GetPoc(%d): expected *connect.Error, got %T: %v", fix.pocID, err, err)
 		}
 		if ce.Code() != connect.CodeNotFound {

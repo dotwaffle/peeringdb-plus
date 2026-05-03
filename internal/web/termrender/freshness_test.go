@@ -3,6 +3,7 @@ package termrender
 import (
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -34,20 +35,25 @@ func TestFormatFreshness_AbsoluteTimestamp(t *testing.T) {
 }
 
 // TestFormatFreshness_Deterministic asserts the output is byte-identical
-// across two calls with the same input but separated in wall-clock time.
-// This is the stronger proof that no relative-time computation leaks into
-// the rendered output: if any time.Since-style expression remained, the two
-// renders would diverge and this test would fail.
+// across two calls with the same input but separated in (virtual) wall-
+// clock time. This is the stronger proof that no relative-time
+// computation leaks into the rendered output: if any time.Since-style
+// expression remained, the two renders would diverge and this test
+// would fail.
+//
+// synctest.Test runs the closure in a goroutine bubble with a fake
+// clock; the 15ms Sleep advances instantly. t.Parallel() is
+// unsupported inside a synctest bubble.
 func TestFormatFreshness_Deterministic(t *testing.T) {
-	t.Parallel()
-
-	ts := time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC)
-	first := FormatFreshness(ts)
-	time.Sleep(15 * time.Millisecond)
-	second := FormatFreshness(ts)
-	if first != second {
-		t.Errorf("FormatFreshness output changed between calls:\n first=%q\nsecond=%q", first, second)
-	}
+	synctest.Test(t, func(t *testing.T) {
+		ts := time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC)
+		first := FormatFreshness(ts)
+		time.Sleep(15 * time.Millisecond)
+		second := FormatFreshness(ts)
+		if first != second {
+			t.Errorf("FormatFreshness output changed between calls:\n first=%q\nsecond=%q", first, second)
+		}
+	})
 }
 
 // TestFormatFreshness_Zero verifies zero-time returns an empty footer so

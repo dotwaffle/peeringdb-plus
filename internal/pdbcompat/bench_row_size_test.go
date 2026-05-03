@@ -111,7 +111,7 @@ func BenchmarkRowSize(b *testing.B) {
 				}
 				var totalBytes int
 				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
+				for b.Loop() {
 					buf, err := json.Marshal(sample)
 					if err != nil {
 						b.Fatalf("marshal: %v", err)

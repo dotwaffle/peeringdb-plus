@@ -23,10 +23,12 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"go/format"
 	"log"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -149,17 +151,17 @@ func main() {
 	}
 
 	// Deterministic ordering for byte-stable output across runs.
-	sort.Slice(data.Entries, func(i, j int) bool {
-		return data.Entries[i].PDBType < data.Entries[j].PDBType
+	slices.SortFunc(data.Entries, func(a, b NodeEntry) int {
+		return cmp.Compare(a.PDBType, b.PDBType)
 	})
-	sort.Slice(data.FilterExcludes, func(i, j int) bool {
-		if data.FilterExcludes[i].Entity != data.FilterExcludes[j].Entity {
-			return data.FilterExcludes[i].Entity < data.FilterExcludes[j].Entity
+	slices.SortFunc(data.FilterExcludes, func(a, b ExcludeEntry) int {
+		if r := cmp.Compare(a.Entity, b.Entity); r != 0 {
+			return r
 		}
-		return data.FilterExcludes[i].Edge < data.FilterExcludes[j].Edge
+		return cmp.Compare(a.Edge, b.Edge)
 	})
-	sort.Slice(data.EdgeEntries, func(i, j int) bool {
-		return data.EdgeEntries[i].PDBType < data.EdgeEntries[j].PDBType
+	slices.SortFunc(data.EdgeEntries, func(a, b EdgeMapEntry) int {
+		return cmp.Compare(a.PDBType, b.PDBType)
 	})
 
 	src, err := render(data)
@@ -303,8 +305,8 @@ func extractEdges(node *gen.Type) *EdgeMapEntry {
 	if len(entry.Edges) == 0 {
 		return nil
 	}
-	sort.Slice(entry.Edges, func(i, j int) bool {
-		return entry.Edges[i].Name < entry.Edges[j].Name
+	slices.SortFunc(entry.Edges, func(a, b EdgeMapRow) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	return entry
 }

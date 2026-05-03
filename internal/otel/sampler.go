@@ -9,8 +9,9 @@
 package otel
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -55,8 +56,8 @@ func NewPerRouteSampler(in PerRouteSamplerInput) sdktrace.Sampler {
 	// match. Stable order isn't needed since prefixes are unique post-
 	// normalisation (callers can't register both "/api" and "/api/" —
 	// they collapse to the same key).
-	sort.Slice(entries, func(i, j int) bool {
-		return len(entries[i].prefix) > len(entries[j].prefix)
+	slices.SortFunc(entries, func(a, b routeEntry) int {
+		return cmp.Compare(len(b.prefix), len(a.prefix))
 	})
 
 	return &perRouteSampler{

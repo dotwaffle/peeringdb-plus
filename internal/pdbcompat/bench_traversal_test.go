@@ -77,7 +77,7 @@ func BenchmarkTraversal_1Hop_Direct(b *testing.B) {
 	h, client := setupBenchHandlerTB(b)
 	testdata.Seed(b, client, testdata.Default10k())
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		dispatchBench(b, h, "/api/net?org__name=BenchOrg-000042")
 	}
 }
@@ -93,7 +93,7 @@ func BenchmarkTraversal_2Hop_UpstreamParity(b *testing.B) {
 	h, client := setupBenchHandlerTB(b)
 	testdata.Seed(b, client, testdata.Default10k())
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		dispatchBench(b, h, "/api/fac?ixlan__ix__fac_count__gt=0")
 	}
 }
@@ -105,7 +105,7 @@ func BenchmarkTraversal_2Hop_WithLimitAndSkip(b *testing.B) {
 	h, client := setupBenchHandlerTB(b)
 	testdata.Seed(b, client, testdata.Default10k())
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		dispatchBench(b, h, "/api/fac?ixlan__ix__fac_count__gt=0&limit=250&skip=500")
 	}
 }

@@ -589,7 +589,7 @@ func countFilterableFields(entityName string, msg protoreflect.Message) int {
 	desc := msg.Descriptor()
 	fields := desc.Fields()
 	n := 0
-	for i := 0; i < fields.Len(); i++ {
+	for i := range fields.Len() {
 		fd := fields.Get(i)
 		name := string(fd.Name())
 		if _, skip := paginationFields[name]; skip {

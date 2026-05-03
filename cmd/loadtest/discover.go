@@ -47,16 +47,14 @@ func discoverIDs(ctx context.Context, cfg Config, out io.Writer) map[string]int 
 	ch := make(chan result, len(types))
 	var wg sync.WaitGroup
 	for _, t := range types {
-		wg.Add(1)
-		go func(t string) {
-			defer wg.Done()
+		wg.Go(func() {
 			id, err := lookupFirstID(ctx, cfg, t)
 			if err != nil {
 				fmt.Fprintf(out2, "  discoverIDs: %s -> %v (falling back to id=1)\n", t, err)
 				return
 			}
 			ch <- result{t, id}
-		}(t)
+		})
 	}
 	go func() { wg.Wait(); close(ch) }()
 

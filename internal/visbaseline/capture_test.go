@@ -26,11 +26,11 @@ import (
 // captureTestServer returns an httptest.Server that emits a distinctive
 // JSON payload tagged with the request path. Tests can grep the written
 // files for the tag to verify byte-equality.
-func captureTestServer(t *testing.T) (*httptest.Server, *int32) {
+func captureTestServer(t *testing.T) (*httptest.Server, *atomic.Int32) {
 	t.Helper()
-	var hits int32
+	hits := new(atomic.Int32)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&hits, 1)
+		hits.Add(1)
 		// Body tags URL so tests can confirm byte-identical write.
 		body := fmt.Sprintf(`{"meta":{"path":%q},"data":[{"id":1,"tag":%q}]}`, r.URL.Path, r.URL.String())
 		w.Header().Set("Content-Type", "application/json")
@@ -38,7 +38,7 @@ func captureTestServer(t *testing.T) (*httptest.Server, *int32) {
 		_, _ = w.Write([]byte(body))
 	}))
 	t.Cleanup(srv.Close)
-	return srv, &hits
+	return srv, hits
 }
 
 // newFastClient builds a peeringdb.Client against srv with rate.Inf and
@@ -308,7 +308,7 @@ func TestCaptureResumeSkipsDoneTuples(t *testing.T) {
 	if _, err := capt.Run(context.Background()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if got := atomic.LoadInt32(hits); got != 0 {
+	if got := hits.Load(); got != 0 {
 		t.Errorf("server hits = %d, want 0 (all tuples pre-seeded Done)", got)
 	}
 }
@@ -422,8 +422,8 @@ func TestCaptureFailFastNoAPIKeyForAuthMode(t *testing.T) {
 	if err == nil {
 		t.Fatal("visbaseline.New with auth mode and empty APIKey returned nil, want error")
 	}
-	if atomic.LoadInt32(hits) != 0 {
-		t.Errorf("server hits = %d, want 0 (fail-fast before any HTTP)", atomic.LoadInt32(hits))
+	if hits.Load() != 0 {
+		t.Errorf("server hits = %d, want 0 (fail-fast before any HTTP)", hits.Load())
 	}
 }
 
@@ -456,18 +456,15 @@ func TestCaptureContextCancelMidRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	// Cancel after enough time for 1-2 tuples to finish.
-	go func() {
-		time.Sleep(75 * time.Millisecond)
-		cancel()
-	}()
+	// Time out after enough time for 1-2 tuples to finish.
+	ctx, cancel := context.WithTimeout(t.Context(), 75*time.Millisecond)
+	defer cancel()
 	_, err = capt.Run(ctx)
 	if err == nil {
-		t.Fatal("Run returned nil after cancel, want context.Canceled")
+		t.Fatal("Run returned nil after timeout, want context.DeadlineExceeded")
 	}
-	if !strings.Contains(err.Error(), "context canceled") {
-		t.Errorf("err = %v, want wrapping context canceled", err)
+	if !strings.Contains(err.Error(), "context deadline exceeded") {
+		t.Errorf("err = %v, want wrapping context deadline exceeded", err)
 	}
 	// Checkpoint should show progress — at least one tuple Done=true, not all.
 	s, err := visbaseline.LoadState(statePath)

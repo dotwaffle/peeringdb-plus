@@ -130,11 +130,11 @@ func benchNameContains(b *testing.B, rows int, shadow bool) {
 	ctx := context.Background()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		pred := build("name", "Network")
 		_, err := client.Network.Query().Where(pred).All(ctx)
 		if err != nil {
-			b.Fatalf("query iter=%d shadow=%v rows=%d: %v", i, shadow, rows, err)
+			b.Fatalf("query shadow=%v rows=%d: %v", shadow, rows, err)
 		}
 	}
 }
