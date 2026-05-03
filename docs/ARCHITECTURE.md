@@ -556,10 +556,12 @@ are configured via the OpenTelemetry autoexport package, which reads standard `O
 to select exporters (OTLP, stdout, none):
 
 - **`TracerProvider`** — Sampler is `sdktrace.ParentBased(NewPerRouteSampler(...))` per Phase 77
-  OBS-07. Per-route ratios live in `internal/otel/sampler.go` (`perRouteSampler`); see the
-  Sampling Matrix below. The default ratio honours `PDBPLUS_OTEL_SAMPLE_RATE` (default `1.0`)
-  for sync-worker spans and any other non-HTTP traces. Spans are created automatically by
-  `otelhttp` middleware for HTTP requests, by `otelconnect.NewInterceptor` for ConnectRPC RPCs,
+  OBS-07. Per-route ratios live in `internal/otel/provider.go` (`defaultSamplerInput`) and the
+  dispatch is in `internal/otel/sampler.go` (`perRouteSampler`); see the Sampling Matrix below.
+  The known-app-route ratio honours `PDBPLUS_OTEL_SAMPLE_RATE` (default `1.0`); unknown-path
+  traces drop to 1% to defend against opportunistic scanners (incident 2026-05-02). Sync-worker
+  and other non-HTTP spans hit the same 1% deny-by-default floor. Spans are created automatically
+  by `otelhttp` middleware for HTTP requests, by `otelconnect.NewInterceptor` for ConnectRPC RPCs,
   and by the sync worker for sync cycles. Ent schema hooks (`ent/runtime` imported for side
   effects in `cmd/peeringdb-plus/main.go`) emit mutation spans for every ent write.
 
@@ -571,12 +573,12 @@ continuity invariant from Phase 77 CONTEXT.md D-02):
 
 | Route prefix | Ratio | Rationale |
 |--------------|-------|-----------|
+| `/.`, `/wp-` | 0.001 | Scanner-bait deny-prefixes (`.env`, `.git/`, `.aws/`, `.kube/`, `.htpasswd`, `.npmrc`, `wp-admin`, `wp-login.php`). Added 2026-05-03 after a 9M-spans/hour scanner spike from 45.148.10.238 (UA `SecurityScanner/1.0`) peaked at 384 KB/s and tripped `live_traces_exceeded` discards in Grafana Cloud Tempo. |
 | `/healthz`, `/readyz`, `/grpc.health.v1.Health/` | 0.01 | Fly health probes — 1% sample is enough for liveness debugging without dominating Tempo volume. Pre-Phase-77 measurement: `/healthz` was ~99% of HTTP trace volume. |
-| `/api/`, `/rest/v1/`, `/peeringdb.v1.` | 1.0 | Primary API surfaces — full sampling for debugging. |
-| `/graphql` | 1.0 | Mid-volume; full sampling pending v1.19+ cardinality reassessment. |
+| `/api/`, `/rest/v1/`, `/peeringdb.v1.`, `/graphql` | `PDBPLUS_OTEL_SAMPLE_RATE` (default 1.0) | Primary API surfaces — full sampling for debugging by default. The env var is the operator's incident-time dampener for known-app-route volume; it no longer drives the unknown-path floor. |
 | `/ui/` | 0.5 | Browser traffic; halved per the Phase 77 audit. |
 | `/static/`, `/favicon.ico` | 0.01 | Static assets; rare debugging value. |
-| (default — sync worker, internal spans) | `PDBPLUS_OTEL_SAMPLE_RATE` (default 1.0) | Sync cycles + non-HTTP traces honour the existing env var. |
+| (default — unknown paths, sync worker, internal spans) | 0.01 | Deny-by-default for unknown URL paths (scanner protection, hardcoded). Sync-worker / internal spans without a `url.path` attribute also land here at 1%. To raise this floor, edit `defaultSamplerInput` in `internal/otel/provider.go`. |
 
 `ParentBased` composition guarantees that once a parent span samples in (e.g. an `/api/net`
 request), all child spans (including any internal call to a lower-ratio endpoint or downstream

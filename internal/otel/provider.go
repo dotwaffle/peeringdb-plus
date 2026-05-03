@@ -56,34 +56,21 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating span exporter: %w", err)
 	}
-	// Per CONTEXT.md D-02 / Phase 77 OBS-07: per-route sampler dispatches
-	// on URL path prefix so /healthz + /readyz drop to 1% (Fly health
-	// probes dominate trace volume) while /api/* /rest/v1/* /peeringdb.v1.*
-	// stay at full sampling. Wrapped in sdktrace.ParentBased so children
-	// inherit the parent decision — preserves cross-service trace continuity.
-	// Ratios mirror .planning/phases/77-telemetry-audit/AUDIT.md
-	// § Recommended sampling matrix; update both together.
+	// Per-route sampler with deny-by-default for unknown URL paths
+	// (DefaultRatio=0.01). PDBPLUS_OTEL_SAMPLE_RATE drives the four
+	// known app surfaces (/api/, /rest/v1/, /peeringdb.v1., /graphql)
+	// only; explicit deny-prefixes /. and /wp- catch dotfile and
+	// WordPress scanner bait at 0.1%. Wrapped in sdktrace.ParentBased
+	// so children inherit the parent decision — preserves cross-service
+	// trace continuity. Full table in docs/ARCHITECTURE.md § Sampling
+	// Matrix and .planning/quick/260503-huo-invert-sampler-default/260503-huo-SUMMARY.md.
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(spanExporter,
 			sdktrace.WithBatchTimeout(5*time.Second),
 			sdktrace.WithMaxExportBatchSize(512),
 		),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.ParentBased(NewPerRouteSampler(PerRouteSamplerInput{
-			DefaultRatio: in.SampleRate,
-			Routes: map[string]float64{
-				"/healthz":                0.01,
-				"/readyz":                 0.01,
-				"/grpc.health.v1.Health/": 0.01,
-				"/api/":                   1.0,
-				"/rest/v1/":               1.0,
-				"/peeringdb.v1.":          1.0,
-				"/graphql":                1.0,
-				"/ui/":                    0.5,
-				"/static/":                0.01,
-				"/favicon.ico":            0.01,
-			},
-		}))),
+		sdktrace.WithSampler(sdktrace.ParentBased(NewPerRouteSampler(defaultSamplerInput(in)))),
 	)
 	otel.SetTracerProvider(tp)
 
@@ -221,6 +208,58 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 			)
 		},
 	}, nil
+}
+
+// defaultSamplerInput returns the per-route sampler configuration used by
+// Setup. Lifted into a helper so provider_test.go can lock the inverted
+// policy without the round-trip through the opaque sdktrace.Sampler
+// interface.
+//
+// Policy (inverted post-2026-05-02 scanner incident — 9M spans/hour from a
+// single source against unknown paths peaked at 384 KB/s vs the free-tier
+// 500 KB/s cap; see
+// .planning/quick/260503-huo-invert-sampler-default/260503-huo-SUMMARY.md):
+//
+//   - Default = 0.01: deny-by-default for unknown URL paths. The historical
+//     "unknown == in.SampleRate" inheritance is gone; in.SampleRate now
+//     drives the known-app-route allow-list only, so PDBPLUS_OTEL_SAMPLE_RATE
+//     remains the operator's incident-time dampener for /api/, /rest/v1/,
+//     /peeringdb.v1., /graphql.
+//   - "/.", "/wp-" at 0.001: explicit deny-prefixes for scanner bait
+//     (.env, .git/, .aws/, .kube/, .htpasswd, .npmrc, wp-admin,
+//     wp-login.php). matchesPrefix's non-alnum-boundary branch
+//     (sampler.go:129-140) makes these match without further tokenisation.
+//     /.well-known/ also samples at 0.1% — acceptable since pdbplus does
+//     not currently serve it.
+//   - Health probes / static / UI ratios unchanged.
+//
+// The .planning/phases/77-telemetry-audit/AUDIT.md ratio matrix is
+// SUPERSEDED by this policy; defer to this file + docs/ARCHITECTURE.md
+// § Sampling Matrix.
+func defaultSamplerInput(in SetupInput) PerRouteSamplerInput {
+	return PerRouteSamplerInput{
+		DefaultRatio: 0.01,
+		Routes: map[string]float64{
+			// Scanner bait — drop aggressively. Trailing non-alnum byte
+			// means "/." matches /.env /.git/ /.aws/... and "/wp-" matches
+			// /wp-admin /wp-login.php /wp-content/...
+			"/.":   0.001,
+			"/wp-": 0.001,
+			// Known app surfaces — operator-controlled via PDBPLUS_OTEL_SAMPLE_RATE.
+			"/api/":          in.SampleRate,
+			"/rest/v1/":      in.SampleRate,
+			"/peeringdb.v1.": in.SampleRate,
+			"/graphql":       in.SampleRate,
+			// Health probes — unchanged (Phase 77 OBS-07).
+			"/healthz":                0.01,
+			"/readyz":                 0.01,
+			"/grpc.health.v1.Health/": 0.01,
+			// Browser + static — unchanged.
+			"/ui/":         0.5,
+			"/static/":     0.01,
+			"/favicon.ico": 0.01,
+		},
+	}
 }
 
 // buildResource creates an OTel resource with service name, version from

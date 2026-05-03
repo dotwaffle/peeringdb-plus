@@ -216,6 +216,129 @@ func TestPerRouteSampler_LongestPrefixWins(t *testing.T) {
 	}
 }
 
+// TestPerRouteSampler_DotDeniedAtLowRatio asserts the "/." prefix entry
+// catches dotfile scanner bait at 0.001 — the matchesPrefix non-alnum
+// boundary branch lets it match /.env, /.git/config, /.aws/credentials,
+// etc., without tokenising the URL further.
+func TestPerRouteSampler_DotDeniedAtLowRatio(t *testing.T) {
+	t.Parallel()
+
+	s := NewPerRouteSampler(PerRouteSamplerInput{
+		DefaultRatio: 1.0,
+		Routes: map[string]float64{
+			"/.": 0.001,
+		},
+	})
+
+	dotfilePaths := []string{
+		"/.env",
+		"/.git/config",
+		"/.git/HEAD",
+		"/.aws/credentials",
+		"/.docker/config.json",
+		"/.kube/config",
+		"/.htpasswd",
+		"/.npmrc",
+	}
+	for _, path := range dotfilePaths {
+		t.Run(path, func(t *testing.T) {
+			t.Parallel()
+			res := s.ShouldSample(sampleParams(allOnesTraceID, attribute.String("url.path", path)))
+			if res.Decision != sdktrace.Drop {
+				t.Errorf("%s at /. ratio 0.001 with all-ones TraceID: got %v, want Drop", path, res.Decision)
+			}
+		})
+	}
+}
+
+// TestPerRouteSampler_WpDeniedAtLowRatio asserts the "/wp-" prefix entry
+// catches WordPress scanner bait (wp-admin, wp-login.php, wp-content/...)
+// at 0.001 via the non-alnum trailing-byte branch of matchesPrefix.
+func TestPerRouteSampler_WpDeniedAtLowRatio(t *testing.T) {
+	t.Parallel()
+
+	s := NewPerRouteSampler(PerRouteSamplerInput{
+		DefaultRatio: 1.0,
+		Routes: map[string]float64{
+			"/wp-": 0.001,
+		},
+	})
+
+	wpPaths := []string{
+		"/wp-admin",
+		"/wp-login.php",
+		"/wp-content/themes/foo/setup-config.php",
+	}
+	for _, path := range wpPaths {
+		t.Run(path, func(t *testing.T) {
+			t.Parallel()
+			res := s.ShouldSample(sampleParams(allOnesTraceID, attribute.String("url.path", path)))
+			if res.Decision != sdktrace.Drop {
+				t.Errorf("%s at /wp- ratio 0.001 with all-ones TraceID: got %v, want Drop", path, res.Decision)
+			}
+		})
+	}
+}
+
+// TestPerRouteSampler_UnknownPathDropsAtOnePercent asserts the inverted
+// default: unmatched paths drop under DefaultRatio=0.01 (all-ones TraceID
+// falls outside the sampled-in segment). Sanity-checks that an explicit
+// allow-list entry still samples in.
+func TestPerRouteSampler_UnknownPathDropsAtOnePercent(t *testing.T) {
+	t.Parallel()
+
+	s := NewPerRouteSampler(PerRouteSamplerInput{
+		DefaultRatio: 0.01,
+		Routes: map[string]float64{
+			"/api/": 1.0,
+		},
+	})
+
+	res := s.ShouldSample(sampleParams(allOnesTraceID, attribute.String("url.path", "/phpinfo.php")))
+	if res.Decision != sdktrace.Drop {
+		t.Errorf("/phpinfo.php at default ratio 0.01 with all-ones TraceID: got %v, want Drop", res.Decision)
+	}
+
+	res = s.ShouldSample(sampleParams(allOnesTraceID, attribute.String("url.path", "/api/networks")))
+	if res.Decision != sdktrace.RecordAndSample {
+		t.Errorf("/api/networks at allow-list ratio 1.0: got %v, want RecordAndSample", res.Decision)
+	}
+}
+
+// TestPerRouteSampler_DotDoesNotMatchPlainSlash defends against a future
+// regression where "/." accidentally matches "/" alone. Asserts the root
+// path falls through to DefaultRatio (proven by parameterising default
+// over both 1.0 → sample-in and 0.0 → drop, so the assertion proves
+// "fell through to default" rather than "matched and dropped").
+func TestPerRouteSampler_DotDoesNotMatchPlainSlash(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name         string
+		defaultRatio float64
+		want         sdktrace.SamplingDecision
+	}{
+		{"default=1.0_samples_in", 1.0, sdktrace.RecordAndSample},
+		{"default=0.0_drops", 0.0, sdktrace.Drop},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			s := NewPerRouteSampler(PerRouteSamplerInput{
+				DefaultRatio: tc.defaultRatio,
+				Routes: map[string]float64{
+					"/.": 0.001,
+				},
+			})
+			res := s.ShouldSample(sampleParams(allOnesTraceID, attribute.String("url.path", "/")))
+			if res.Decision != tc.want {
+				t.Errorf("/ with default=%v: got %v, want %v (must fall through to DefaultRatio, not match /.)",
+					tc.defaultRatio, res.Decision, tc.want)
+			}
+		})
+	}
+}
+
 func TestParentBased_InheritsDecisionForSampledIn(t *testing.T) {
 	t.Parallel()
 
