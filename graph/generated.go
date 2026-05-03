@@ -8,6 +8,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -3176,8 +3177,8 @@ func newExecutionContext(
 	opCtx *graphql.OperationContext,
 	execSchema *executableSchema,
 	deferredResults chan graphql.DeferredResult,
-) executionContext {
-	return executionContext{
+) *executionContext {
+	return &executionContext{
 		ExecutionContextState: graphql.NewExecutionContextState[ResolverRoot, DirectiveRoot, ComplexityRoot](
 			opCtx,
 			(*graphql.ExecutableSchemaState[ResolverRoot, DirectiveRoot, ComplexityRoot])(execSchema),
@@ -3204,6 +3205,1082 @@ var sources = []*ast.Source{
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
+// childFields_* functions provide shared child field context lookups.
+// Each function is generated once per unique object type, deduplicating the
+// switch statements that were previously inlined in every fieldContext_* function.
+
+func (ec *executionContext) childFields_Campus(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Campus_id(ctx, field)
+	case "orgID":
+		return ec.fieldContext_Campus_orgID(ctx, field)
+	case "aka":
+		return ec.fieldContext_Campus_aka(ctx, field)
+	case "city":
+		return ec.fieldContext_Campus_city(ctx, field)
+	case "country":
+		return ec.fieldContext_Campus_country(ctx, field)
+	case "logo":
+		return ec.fieldContext_Campus_logo(ctx, field)
+	case "name":
+		return ec.fieldContext_Campus_name(ctx, field)
+	case "nameLong":
+		return ec.fieldContext_Campus_nameLong(ctx, field)
+	case "notes":
+		return ec.fieldContext_Campus_notes(ctx, field)
+	case "socialMedia":
+		return ec.fieldContext_Campus_socialMedia(ctx, field)
+	case "state":
+		return ec.fieldContext_Campus_state(ctx, field)
+	case "website":
+		return ec.fieldContext_Campus_website(ctx, field)
+	case "zipcode":
+		return ec.fieldContext_Campus_zipcode(ctx, field)
+	case "orgName":
+		return ec.fieldContext_Campus_orgName(ctx, field)
+	case "created":
+		return ec.fieldContext_Campus_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_Campus_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_Campus_status(ctx, field)
+	case "facilities":
+		return ec.fieldContext_Campus_facilities(ctx, field)
+	case "organization":
+		return ec.fieldContext_Campus_organization(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Campus", field.Name)
+}
+
+func (ec *executionContext) childFields_CampusConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_CampusConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_CampusConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_CampusConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CampusConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_CampusEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_CampusEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_CampusEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CampusEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_Carrier(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Carrier_id(ctx, field)
+	case "orgID":
+		return ec.fieldContext_Carrier_orgID(ctx, field)
+	case "aka":
+		return ec.fieldContext_Carrier_aka(ctx, field)
+	case "logo":
+		return ec.fieldContext_Carrier_logo(ctx, field)
+	case "name":
+		return ec.fieldContext_Carrier_name(ctx, field)
+	case "nameLong":
+		return ec.fieldContext_Carrier_nameLong(ctx, field)
+	case "notes":
+		return ec.fieldContext_Carrier_notes(ctx, field)
+	case "socialMedia":
+		return ec.fieldContext_Carrier_socialMedia(ctx, field)
+	case "website":
+		return ec.fieldContext_Carrier_website(ctx, field)
+	case "orgName":
+		return ec.fieldContext_Carrier_orgName(ctx, field)
+	case "facCount":
+		return ec.fieldContext_Carrier_facCount(ctx, field)
+	case "created":
+		return ec.fieldContext_Carrier_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_Carrier_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_Carrier_status(ctx, field)
+	case "carrierFacilities":
+		return ec.fieldContext_Carrier_carrierFacilities(ctx, field)
+	case "organization":
+		return ec.fieldContext_Carrier_organization(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Carrier", field.Name)
+}
+
+func (ec *executionContext) childFields_CarrierConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_CarrierConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_CarrierConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_CarrierConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CarrierConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_CarrierEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_CarrierEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_CarrierEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CarrierEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_CarrierFacility(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_CarrierFacility_id(ctx, field)
+	case "carrierID":
+		return ec.fieldContext_CarrierFacility_carrierID(ctx, field)
+	case "facID":
+		return ec.fieldContext_CarrierFacility_facID(ctx, field)
+	case "name":
+		return ec.fieldContext_CarrierFacility_name(ctx, field)
+	case "created":
+		return ec.fieldContext_CarrierFacility_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_CarrierFacility_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_CarrierFacility_status(ctx, field)
+	case "carrier":
+		return ec.fieldContext_CarrierFacility_carrier(ctx, field)
+	case "facility":
+		return ec.fieldContext_CarrierFacility_facility(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CarrierFacility", field.Name)
+}
+
+func (ec *executionContext) childFields_CarrierFacilityConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_CarrierFacilityConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_CarrierFacilityConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_CarrierFacilityConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CarrierFacilityConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_CarrierFacilityEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_CarrierFacilityEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_CarrierFacilityEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CarrierFacilityEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_Facility(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Facility_id(ctx, field)
+	case "campusID":
+		return ec.fieldContext_Facility_campusID(ctx, field)
+	case "orgID":
+		return ec.fieldContext_Facility_orgID(ctx, field)
+	case "address1":
+		return ec.fieldContext_Facility_address1(ctx, field)
+	case "address2":
+		return ec.fieldContext_Facility_address2(ctx, field)
+	case "aka":
+		return ec.fieldContext_Facility_aka(ctx, field)
+	case "availableVoltageServices":
+		return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
+	case "city":
+		return ec.fieldContext_Facility_city(ctx, field)
+	case "clli":
+		return ec.fieldContext_Facility_clli(ctx, field)
+	case "country":
+		return ec.fieldContext_Facility_country(ctx, field)
+	case "diverseServingSubstations":
+		return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
+	case "floor":
+		return ec.fieldContext_Facility_floor(ctx, field)
+	case "latitude":
+		return ec.fieldContext_Facility_latitude(ctx, field)
+	case "logo":
+		return ec.fieldContext_Facility_logo(ctx, field)
+	case "longitude":
+		return ec.fieldContext_Facility_longitude(ctx, field)
+	case "name":
+		return ec.fieldContext_Facility_name(ctx, field)
+	case "nameLong":
+		return ec.fieldContext_Facility_nameLong(ctx, field)
+	case "notes":
+		return ec.fieldContext_Facility_notes(ctx, field)
+	case "npanxx":
+		return ec.fieldContext_Facility_npanxx(ctx, field)
+	case "property":
+		return ec.fieldContext_Facility_property(ctx, field)
+	case "regionContinent":
+		return ec.fieldContext_Facility_regionContinent(ctx, field)
+	case "rencode":
+		return ec.fieldContext_Facility_rencode(ctx, field)
+	case "salesEmail":
+		return ec.fieldContext_Facility_salesEmail(ctx, field)
+	case "salesPhone":
+		return ec.fieldContext_Facility_salesPhone(ctx, field)
+	case "socialMedia":
+		return ec.fieldContext_Facility_socialMedia(ctx, field)
+	case "state":
+		return ec.fieldContext_Facility_state(ctx, field)
+	case "statusDashboard":
+		return ec.fieldContext_Facility_statusDashboard(ctx, field)
+	case "suite":
+		return ec.fieldContext_Facility_suite(ctx, field)
+	case "techEmail":
+		return ec.fieldContext_Facility_techEmail(ctx, field)
+	case "techPhone":
+		return ec.fieldContext_Facility_techPhone(ctx, field)
+	case "website":
+		return ec.fieldContext_Facility_website(ctx, field)
+	case "zipcode":
+		return ec.fieldContext_Facility_zipcode(ctx, field)
+	case "orgName":
+		return ec.fieldContext_Facility_orgName(ctx, field)
+	case "netCount":
+		return ec.fieldContext_Facility_netCount(ctx, field)
+	case "ixCount":
+		return ec.fieldContext_Facility_ixCount(ctx, field)
+	case "carrierCount":
+		return ec.fieldContext_Facility_carrierCount(ctx, field)
+	case "created":
+		return ec.fieldContext_Facility_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_Facility_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_Facility_status(ctx, field)
+	case "campus":
+		return ec.fieldContext_Facility_campus(ctx, field)
+	case "carrierFacilities":
+		return ec.fieldContext_Facility_carrierFacilities(ctx, field)
+	case "ixFacilities":
+		return ec.fieldContext_Facility_ixFacilities(ctx, field)
+	case "networkFacilities":
+		return ec.fieldContext_Facility_networkFacilities(ctx, field)
+	case "organization":
+		return ec.fieldContext_Facility_organization(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+}
+
+func (ec *executionContext) childFields_FacilityConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_FacilityConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_FacilityConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_FacilityConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FacilityConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_FacilityEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_FacilityEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_FacilityEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type FacilityEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_InternetExchange(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_InternetExchange_id(ctx, field)
+	case "orgID":
+		return ec.fieldContext_InternetExchange_orgID(ctx, field)
+	case "aka":
+		return ec.fieldContext_InternetExchange_aka(ctx, field)
+	case "city":
+		return ec.fieldContext_InternetExchange_city(ctx, field)
+	case "country":
+		return ec.fieldContext_InternetExchange_country(ctx, field)
+	case "ixfLastImport":
+		return ec.fieldContext_InternetExchange_ixfLastImport(ctx, field)
+	case "ixfNetCount":
+		return ec.fieldContext_InternetExchange_ixfNetCount(ctx, field)
+	case "logo":
+		return ec.fieldContext_InternetExchange_logo(ctx, field)
+	case "media":
+		return ec.fieldContext_InternetExchange_media(ctx, field)
+	case "name":
+		return ec.fieldContext_InternetExchange_name(ctx, field)
+	case "nameLong":
+		return ec.fieldContext_InternetExchange_nameLong(ctx, field)
+	case "notes":
+		return ec.fieldContext_InternetExchange_notes(ctx, field)
+	case "policyEmail":
+		return ec.fieldContext_InternetExchange_policyEmail(ctx, field)
+	case "policyPhone":
+		return ec.fieldContext_InternetExchange_policyPhone(ctx, field)
+	case "protoIpv6":
+		return ec.fieldContext_InternetExchange_protoIpv6(ctx, field)
+	case "protoMulticast":
+		return ec.fieldContext_InternetExchange_protoMulticast(ctx, field)
+	case "protoUnicast":
+		return ec.fieldContext_InternetExchange_protoUnicast(ctx, field)
+	case "regionContinent":
+		return ec.fieldContext_InternetExchange_regionContinent(ctx, field)
+	case "salesEmail":
+		return ec.fieldContext_InternetExchange_salesEmail(ctx, field)
+	case "salesPhone":
+		return ec.fieldContext_InternetExchange_salesPhone(ctx, field)
+	case "serviceLevel":
+		return ec.fieldContext_InternetExchange_serviceLevel(ctx, field)
+	case "socialMedia":
+		return ec.fieldContext_InternetExchange_socialMedia(ctx, field)
+	case "statusDashboard":
+		return ec.fieldContext_InternetExchange_statusDashboard(ctx, field)
+	case "techEmail":
+		return ec.fieldContext_InternetExchange_techEmail(ctx, field)
+	case "techPhone":
+		return ec.fieldContext_InternetExchange_techPhone(ctx, field)
+	case "terms":
+		return ec.fieldContext_InternetExchange_terms(ctx, field)
+	case "urlStats":
+		return ec.fieldContext_InternetExchange_urlStats(ctx, field)
+	case "website":
+		return ec.fieldContext_InternetExchange_website(ctx, field)
+	case "netCount":
+		return ec.fieldContext_InternetExchange_netCount(ctx, field)
+	case "facCount":
+		return ec.fieldContext_InternetExchange_facCount(ctx, field)
+	case "ixfImportRequest":
+		return ec.fieldContext_InternetExchange_ixfImportRequest(ctx, field)
+	case "ixfImportRequestStatus":
+		return ec.fieldContext_InternetExchange_ixfImportRequestStatus(ctx, field)
+	case "created":
+		return ec.fieldContext_InternetExchange_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_InternetExchange_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_InternetExchange_status(ctx, field)
+	case "ixFacilities":
+		return ec.fieldContext_InternetExchange_ixFacilities(ctx, field)
+	case "ixLans":
+		return ec.fieldContext_InternetExchange_ixLans(ctx, field)
+	case "organization":
+		return ec.fieldContext_InternetExchange_organization(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type InternetExchange", field.Name)
+}
+
+func (ec *executionContext) childFields_InternetExchangeConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_InternetExchangeConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_InternetExchangeConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_InternetExchangeConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type InternetExchangeConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_InternetExchangeEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_InternetExchangeEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_InternetExchangeEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type InternetExchangeEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_IxFacility(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_IxFacility_id(ctx, field)
+	case "facID":
+		return ec.fieldContext_IxFacility_facID(ctx, field)
+	case "ixID":
+		return ec.fieldContext_IxFacility_ixID(ctx, field)
+	case "name":
+		return ec.fieldContext_IxFacility_name(ctx, field)
+	case "city":
+		return ec.fieldContext_IxFacility_city(ctx, field)
+	case "country":
+		return ec.fieldContext_IxFacility_country(ctx, field)
+	case "created":
+		return ec.fieldContext_IxFacility_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_IxFacility_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_IxFacility_status(ctx, field)
+	case "facility":
+		return ec.fieldContext_IxFacility_facility(ctx, field)
+	case "internetExchange":
+		return ec.fieldContext_IxFacility_internetExchange(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxFacility", field.Name)
+}
+
+func (ec *executionContext) childFields_IxFacilityConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_IxFacilityConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_IxFacilityConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_IxFacilityConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxFacilityConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_IxFacilityEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_IxFacilityEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_IxFacilityEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxFacilityEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_IxLan(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_IxLan_id(ctx, field)
+	case "ixID":
+		return ec.fieldContext_IxLan_ixID(ctx, field)
+	case "arpSponge":
+		return ec.fieldContext_IxLan_arpSponge(ctx, field)
+	case "descr":
+		return ec.fieldContext_IxLan_descr(ctx, field)
+	case "dot1qSupport":
+		return ec.fieldContext_IxLan_dot1qSupport(ctx, field)
+	case "ixfIxpImportEnabled":
+		return ec.fieldContext_IxLan_ixfIxpImportEnabled(ctx, field)
+	case "ixfIxpMemberListURL":
+		return ec.fieldContext_IxLan_ixfIxpMemberListURL(ctx, field)
+	case "ixfIxpMemberListURLVisible":
+		return ec.fieldContext_IxLan_ixfIxpMemberListURLVisible(ctx, field)
+	case "mtu":
+		return ec.fieldContext_IxLan_mtu(ctx, field)
+	case "name":
+		return ec.fieldContext_IxLan_name(ctx, field)
+	case "rsAsn":
+		return ec.fieldContext_IxLan_rsAsn(ctx, field)
+	case "created":
+		return ec.fieldContext_IxLan_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_IxLan_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_IxLan_status(ctx, field)
+	case "internetExchange":
+		return ec.fieldContext_IxLan_internetExchange(ctx, field)
+	case "ixPrefixes":
+		return ec.fieldContext_IxLan_ixPrefixes(ctx, field)
+	case "networkIxLans":
+		return ec.fieldContext_IxLan_networkIxLans(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxLan", field.Name)
+}
+
+func (ec *executionContext) childFields_IxLanConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_IxLanConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_IxLanConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_IxLanConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxLanConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_IxLanEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_IxLanEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_IxLanEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxLanEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_IxPrefix(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_IxPrefix_id(ctx, field)
+	case "ixlanID":
+		return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
+	case "inDfz":
+		return ec.fieldContext_IxPrefix_inDfz(ctx, field)
+	case "prefix":
+		return ec.fieldContext_IxPrefix_prefix(ctx, field)
+	case "protocol":
+		return ec.fieldContext_IxPrefix_protocol(ctx, field)
+	case "created":
+		return ec.fieldContext_IxPrefix_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_IxPrefix_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_IxPrefix_status(ctx, field)
+	case "ixLan":
+		return ec.fieldContext_IxPrefix_ixLan(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxPrefix", field.Name)
+}
+
+func (ec *executionContext) childFields_IxPrefixConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_IxPrefixConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_IxPrefixConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_IxPrefixConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxPrefixConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_IxPrefixEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_IxPrefixEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_IxPrefixEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type IxPrefixEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_Network(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Network_id(ctx, field)
+	case "orgID":
+		return ec.fieldContext_Network_orgID(ctx, field)
+	case "aka":
+		return ec.fieldContext_Network_aka(ctx, field)
+	case "allowIxpUpdate":
+		return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
+	case "asn":
+		return ec.fieldContext_Network_asn(ctx, field)
+	case "infoIpv6":
+		return ec.fieldContext_Network_infoIpv6(ctx, field)
+	case "infoMulticast":
+		return ec.fieldContext_Network_infoMulticast(ctx, field)
+	case "infoNeverViaRouteServers":
+		return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
+	case "infoPrefixes4":
+		return ec.fieldContext_Network_infoPrefixes4(ctx, field)
+	case "infoPrefixes6":
+		return ec.fieldContext_Network_infoPrefixes6(ctx, field)
+	case "infoRatio":
+		return ec.fieldContext_Network_infoRatio(ctx, field)
+	case "infoScope":
+		return ec.fieldContext_Network_infoScope(ctx, field)
+	case "infoTraffic":
+		return ec.fieldContext_Network_infoTraffic(ctx, field)
+	case "infoType":
+		return ec.fieldContext_Network_infoType(ctx, field)
+	case "infoTypes":
+		return ec.fieldContext_Network_infoTypes(ctx, field)
+	case "infoUnicast":
+		return ec.fieldContext_Network_infoUnicast(ctx, field)
+	case "irrAsSet":
+		return ec.fieldContext_Network_irrAsSet(ctx, field)
+	case "logo":
+		return ec.fieldContext_Network_logo(ctx, field)
+	case "lookingGlass":
+		return ec.fieldContext_Network_lookingGlass(ctx, field)
+	case "name":
+		return ec.fieldContext_Network_name(ctx, field)
+	case "nameLong":
+		return ec.fieldContext_Network_nameLong(ctx, field)
+	case "notes":
+		return ec.fieldContext_Network_notes(ctx, field)
+	case "policyContracts":
+		return ec.fieldContext_Network_policyContracts(ctx, field)
+	case "policyGeneral":
+		return ec.fieldContext_Network_policyGeneral(ctx, field)
+	case "policyLocations":
+		return ec.fieldContext_Network_policyLocations(ctx, field)
+	case "policyRatio":
+		return ec.fieldContext_Network_policyRatio(ctx, field)
+	case "policyURL":
+		return ec.fieldContext_Network_policyURL(ctx, field)
+	case "rirStatus":
+		return ec.fieldContext_Network_rirStatus(ctx, field)
+	case "rirStatusUpdated":
+		return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
+	case "routeServer":
+		return ec.fieldContext_Network_routeServer(ctx, field)
+	case "socialMedia":
+		return ec.fieldContext_Network_socialMedia(ctx, field)
+	case "statusDashboard":
+		return ec.fieldContext_Network_statusDashboard(ctx, field)
+	case "website":
+		return ec.fieldContext_Network_website(ctx, field)
+	case "ixCount":
+		return ec.fieldContext_Network_ixCount(ctx, field)
+	case "facCount":
+		return ec.fieldContext_Network_facCount(ctx, field)
+	case "netixlanUpdated":
+		return ec.fieldContext_Network_netixlanUpdated(ctx, field)
+	case "netfacUpdated":
+		return ec.fieldContext_Network_netfacUpdated(ctx, field)
+	case "pocUpdated":
+		return ec.fieldContext_Network_pocUpdated(ctx, field)
+	case "created":
+		return ec.fieldContext_Network_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_Network_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_Network_status(ctx, field)
+	case "networkFacilities":
+		return ec.fieldContext_Network_networkFacilities(ctx, field)
+	case "networkIxLans":
+		return ec.fieldContext_Network_networkIxLans(ctx, field)
+	case "organization":
+		return ec.fieldContext_Network_organization(ctx, field)
+	case "pocs":
+		return ec.fieldContext_Network_pocs(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_NetworkConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_NetworkConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_NetworkConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_NetworkEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_NetworkEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkFacility(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_NetworkFacility_id(ctx, field)
+	case "facID":
+		return ec.fieldContext_NetworkFacility_facID(ctx, field)
+	case "netID":
+		return ec.fieldContext_NetworkFacility_netID(ctx, field)
+	case "localAsn":
+		return ec.fieldContext_NetworkFacility_localAsn(ctx, field)
+	case "name":
+		return ec.fieldContext_NetworkFacility_name(ctx, field)
+	case "city":
+		return ec.fieldContext_NetworkFacility_city(ctx, field)
+	case "country":
+		return ec.fieldContext_NetworkFacility_country(ctx, field)
+	case "created":
+		return ec.fieldContext_NetworkFacility_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_NetworkFacility_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_NetworkFacility_status(ctx, field)
+	case "facility":
+		return ec.fieldContext_NetworkFacility_facility(ctx, field)
+	case "network":
+		return ec.fieldContext_NetworkFacility_network(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkFacility", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkFacilityConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_NetworkFacilityConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_NetworkFacilityConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_NetworkFacilityConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkFacilityConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkFacilityEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_NetworkFacilityEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_NetworkFacilityEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkFacilityEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkIxLan(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_NetworkIxLan_id(ctx, field)
+	case "ixSideID":
+		return ec.fieldContext_NetworkIxLan_ixSideID(ctx, field)
+	case "ixlanID":
+		return ec.fieldContext_NetworkIxLan_ixlanID(ctx, field)
+	case "netID":
+		return ec.fieldContext_NetworkIxLan_netID(ctx, field)
+	case "netSideID":
+		return ec.fieldContext_NetworkIxLan_netSideID(ctx, field)
+	case "asn":
+		return ec.fieldContext_NetworkIxLan_asn(ctx, field)
+	case "bfdSupport":
+		return ec.fieldContext_NetworkIxLan_bfdSupport(ctx, field)
+	case "ipaddr4":
+		return ec.fieldContext_NetworkIxLan_ipaddr4(ctx, field)
+	case "ipaddr6":
+		return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
+	case "isRsPeer":
+		return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
+	case "notes":
+		return ec.fieldContext_NetworkIxLan_notes(ctx, field)
+	case "operational":
+		return ec.fieldContext_NetworkIxLan_operational(ctx, field)
+	case "speed":
+		return ec.fieldContext_NetworkIxLan_speed(ctx, field)
+	case "ixID":
+		return ec.fieldContext_NetworkIxLan_ixID(ctx, field)
+	case "name":
+		return ec.fieldContext_NetworkIxLan_name(ctx, field)
+	case "created":
+		return ec.fieldContext_NetworkIxLan_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_NetworkIxLan_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_NetworkIxLan_status(ctx, field)
+	case "ixLan":
+		return ec.fieldContext_NetworkIxLan_ixLan(ctx, field)
+	case "network":
+		return ec.fieldContext_NetworkIxLan_network(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkIxLan", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkIxLanConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_NetworkIxLanConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_NetworkIxLanConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_NetworkIxLanConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkIxLanConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_NetworkIxLanEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_NetworkIxLanEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_NetworkIxLanEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type NetworkIxLanEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_Organization(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Organization_id(ctx, field)
+	case "address1":
+		return ec.fieldContext_Organization_address1(ctx, field)
+	case "address2":
+		return ec.fieldContext_Organization_address2(ctx, field)
+	case "aka":
+		return ec.fieldContext_Organization_aka(ctx, field)
+	case "city":
+		return ec.fieldContext_Organization_city(ctx, field)
+	case "country":
+		return ec.fieldContext_Organization_country(ctx, field)
+	case "floor":
+		return ec.fieldContext_Organization_floor(ctx, field)
+	case "latitude":
+		return ec.fieldContext_Organization_latitude(ctx, field)
+	case "logo":
+		return ec.fieldContext_Organization_logo(ctx, field)
+	case "longitude":
+		return ec.fieldContext_Organization_longitude(ctx, field)
+	case "name":
+		return ec.fieldContext_Organization_name(ctx, field)
+	case "nameLong":
+		return ec.fieldContext_Organization_nameLong(ctx, field)
+	case "notes":
+		return ec.fieldContext_Organization_notes(ctx, field)
+	case "socialMedia":
+		return ec.fieldContext_Organization_socialMedia(ctx, field)
+	case "state":
+		return ec.fieldContext_Organization_state(ctx, field)
+	case "suite":
+		return ec.fieldContext_Organization_suite(ctx, field)
+	case "website":
+		return ec.fieldContext_Organization_website(ctx, field)
+	case "zipcode":
+		return ec.fieldContext_Organization_zipcode(ctx, field)
+	case "created":
+		return ec.fieldContext_Organization_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_Organization_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_Organization_status(ctx, field)
+	case "campuses":
+		return ec.fieldContext_Organization_campuses(ctx, field)
+	case "carriers":
+		return ec.fieldContext_Organization_carriers(ctx, field)
+	case "facilities":
+		return ec.fieldContext_Organization_facilities(ctx, field)
+	case "internetExchanges":
+		return ec.fieldContext_Organization_internetExchanges(ctx, field)
+	case "networks":
+		return ec.fieldContext_Organization_networks(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+}
+
+func (ec *executionContext) childFields_OrganizationConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_OrganizationConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_OrganizationConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_OrganizationConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type OrganizationConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_OrganizationEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_OrganizationEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_OrganizationEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type OrganizationEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_PageInfo(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "hasNextPage":
+		return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+	case "hasPreviousPage":
+		return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+	case "startCursor":
+		return ec.fieldContext_PageInfo_startCursor(ctx, field)
+	case "endCursor":
+		return ec.fieldContext_PageInfo_endCursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+}
+
+func (ec *executionContext) childFields_Poc(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Poc_id(ctx, field)
+	case "netID":
+		return ec.fieldContext_Poc_netID(ctx, field)
+	case "email":
+		return ec.fieldContext_Poc_email(ctx, field)
+	case "name":
+		return ec.fieldContext_Poc_name(ctx, field)
+	case "phone":
+		return ec.fieldContext_Poc_phone(ctx, field)
+	case "role":
+		return ec.fieldContext_Poc_role(ctx, field)
+	case "url":
+		return ec.fieldContext_Poc_url(ctx, field)
+	case "visible":
+		return ec.fieldContext_Poc_visible(ctx, field)
+	case "created":
+		return ec.fieldContext_Poc_created(ctx, field)
+	case "updated":
+		return ec.fieldContext_Poc_updated(ctx, field)
+	case "status":
+		return ec.fieldContext_Poc_status(ctx, field)
+	case "network":
+		return ec.fieldContext_Poc_network(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Poc", field.Name)
+}
+
+func (ec *executionContext) childFields_PocConnection(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "edges":
+		return ec.fieldContext_PocConnection_edges(ctx, field)
+	case "pageInfo":
+		return ec.fieldContext_PocConnection_pageInfo(ctx, field)
+	case "totalCount":
+		return ec.fieldContext_PocConnection_totalCount(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PocConnection", field.Name)
+}
+
+func (ec *executionContext) childFields_PocEdge(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "node":
+		return ec.fieldContext_PocEdge_node(ctx, field)
+	case "cursor":
+		return ec.fieldContext_PocEdge_cursor(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PocEdge", field.Name)
+}
+
+func (ec *executionContext) childFields_SocialMedia(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "service":
+		return ec.fieldContext_SocialMedia_service(ctx, field)
+	case "identifier":
+		return ec.fieldContext_SocialMedia_identifier(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SocialMedia", field.Name)
+}
+
+func (ec *executionContext) childFields_SyncStatus(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "lastSyncAt":
+		return ec.fieldContext_SyncStatus_lastSyncAt(ctx, field)
+	case "durationMs":
+		return ec.fieldContext_SyncStatus_durationMs(ctx, field)
+	case "objectCounts":
+		return ec.fieldContext_SyncStatus_objectCounts(ctx, field)
+	case "status":
+		return ec.fieldContext_SyncStatus_status(ctx, field)
+	case "errorMessage":
+		return ec.fieldContext_SyncStatus_errorMessage(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SyncStatus", field.Name)
+}
+
+func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext___Directive_name(ctx, field)
+	case "description":
+		return ec.fieldContext___Directive_description(ctx, field)
+	case "isRepeatable":
+		return ec.fieldContext___Directive_isRepeatable(ctx, field)
+	case "locations":
+		return ec.fieldContext___Directive_locations(ctx, field)
+	case "args":
+		return ec.fieldContext___Directive_args(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type __Directive", field.Name)
+}
+
+func (ec *executionContext) childFields___EnumValue(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext___EnumValue_name(ctx, field)
+	case "description":
+		return ec.fieldContext___EnumValue_description(ctx, field)
+	case "isDeprecated":
+		return ec.fieldContext___EnumValue_isDeprecated(ctx, field)
+	case "deprecationReason":
+		return ec.fieldContext___EnumValue_deprecationReason(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type __EnumValue", field.Name)
+}
+
+func (ec *executionContext) childFields___Field(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext___Field_name(ctx, field)
+	case "description":
+		return ec.fieldContext___Field_description(ctx, field)
+	case "args":
+		return ec.fieldContext___Field_args(ctx, field)
+	case "type":
+		return ec.fieldContext___Field_type(ctx, field)
+	case "isDeprecated":
+		return ec.fieldContext___Field_isDeprecated(ctx, field)
+	case "deprecationReason":
+		return ec.fieldContext___Field_deprecationReason(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type __Field", field.Name)
+}
+
+func (ec *executionContext) childFields___InputValue(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "name":
+		return ec.fieldContext___InputValue_name(ctx, field)
+	case "description":
+		return ec.fieldContext___InputValue_description(ctx, field)
+	case "type":
+		return ec.fieldContext___InputValue_type(ctx, field)
+	case "defaultValue":
+		return ec.fieldContext___InputValue_defaultValue(ctx, field)
+	case "isDeprecated":
+		return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+	case "deprecationReason":
+		return ec.fieldContext___InputValue_deprecationReason(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
+}
+
+func (ec *executionContext) childFields___Schema(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "description":
+		return ec.fieldContext___Schema_description(ctx, field)
+	case "types":
+		return ec.fieldContext___Schema_types(ctx, field)
+	case "queryType":
+		return ec.fieldContext___Schema_queryType(ctx, field)
+	case "mutationType":
+		return ec.fieldContext___Schema_mutationType(ctx, field)
+	case "subscriptionType":
+		return ec.fieldContext___Schema_subscriptionType(ctx, field)
+	case "directives":
+		return ec.fieldContext___Schema_directives(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+}
+
+func (ec *executionContext) childFields___Type(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "kind":
+		return ec.fieldContext___Type_kind(ctx, field)
+	case "name":
+		return ec.fieldContext___Type_name(ctx, field)
+	case "description":
+		return ec.fieldContext___Type_description(ctx, field)
+	case "specifiedByURL":
+		return ec.fieldContext___Type_specifiedByURL(ctx, field)
+	case "fields":
+		return ec.fieldContext___Type_fields(ctx, field)
+	case "interfaces":
+		return ec.fieldContext___Type_interfaces(ctx, field)
+	case "possibleTypes":
+		return ec.fieldContext___Type_possibleTypes(ctx, field)
+	case "enumValues":
+		return ec.fieldContext___Type_enumValues(ctx, field)
+	case "inputFields":
+		return ec.fieldContext___Type_inputFields(ctx, field)
+	case "ofType":
+		return ec.fieldContext___Type_ofType(ctx, field)
+	case "isOneOf":
+		return ec.fieldContext___Type_isOneOf(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+}
+
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
@@ -3211,7 +4288,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "name",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3222,17 +4302,26 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_campusesList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOCampusWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.CampusWhereInput, error) {
+			return ec.unmarshalOCampusWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3243,32 +4332,50 @@ func (ec *executionContext) field_Query_campusesList_args(ctx context.Context, r
 func (ec *executionContext) field_Query_campuses_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalOCampusOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusOrder)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy",
+		func(ctx context.Context, v any) (*ent.CampusOrder, error) {
+			return ec.unmarshalOCampusOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusOrder(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["orderBy"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOCampusWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusWhereInput)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.CampusWhereInput, error) {
+			return ec.unmarshalOCampusWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3279,17 +4386,26 @@ func (ec *executionContext) field_Query_campuses_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_carrierFacilitiesList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOCarrierFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.CarrierFacilityWhereInput, error) {
+			return ec.unmarshalOCarrierFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3300,27 +4416,42 @@ func (ec *executionContext) field_Query_carrierFacilitiesList_args(ctx context.C
 func (ec *executionContext) field_Query_carrierFacilities_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOCarrierFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityWhereInput)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.CarrierFacilityWhereInput, error) {
+			return ec.unmarshalOCarrierFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3331,17 +4462,26 @@ func (ec *executionContext) field_Query_carrierFacilities_args(ctx context.Conte
 func (ec *executionContext) field_Query_carriersList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOCarrierWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.CarrierWhereInput, error) {
+			return ec.unmarshalOCarrierWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3352,32 +4492,50 @@ func (ec *executionContext) field_Query_carriersList_args(ctx context.Context, r
 func (ec *executionContext) field_Query_carriers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalOCarrierOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierOrder)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy",
+		func(ctx context.Context, v any) (*ent.CarrierOrder, error) {
+			return ec.unmarshalOCarrierOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierOrder(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["orderBy"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOCarrierWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierWhereInput)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.CarrierWhereInput, error) {
+			return ec.unmarshalOCarrierWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3388,17 +4546,26 @@ func (ec *executionContext) field_Query_carriers_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_facilitiesList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.FacilityWhereInput, error) {
+			return ec.unmarshalOFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3409,32 +4576,50 @@ func (ec *executionContext) field_Query_facilitiesList_args(ctx context.Context,
 func (ec *executionContext) field_Query_facilities_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalOFacilityOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityOrder)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy",
+		func(ctx context.Context, v any) (*ent.FacilityOrder, error) {
+			return ec.unmarshalOFacilityOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityOrder(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["orderBy"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityWhereInput)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.FacilityWhereInput, error) {
+			return ec.unmarshalOFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3445,17 +4630,26 @@ func (ec *executionContext) field_Query_facilities_args(ctx context.Context, raw
 func (ec *executionContext) field_Query_internetExchangesList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOInternetExchangeWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.InternetExchangeWhereInput, error) {
+			return ec.unmarshalOInternetExchangeWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3466,32 +4660,50 @@ func (ec *executionContext) field_Query_internetExchangesList_args(ctx context.C
 func (ec *executionContext) field_Query_internetExchanges_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalOInternetExchangeOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeOrder)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy",
+		func(ctx context.Context, v any) (*ent.InternetExchangeOrder, error) {
+			return ec.unmarshalOInternetExchangeOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeOrder(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["orderBy"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOInternetExchangeWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeWhereInput)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.InternetExchangeWhereInput, error) {
+			return ec.unmarshalOInternetExchangeWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3502,17 +4714,26 @@ func (ec *executionContext) field_Query_internetExchanges_args(ctx context.Conte
 func (ec *executionContext) field_Query_ixFacilitiesList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOIxFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.IxFacilityWhereInput, error) {
+			return ec.unmarshalOIxFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3523,27 +4744,42 @@ func (ec *executionContext) field_Query_ixFacilitiesList_args(ctx context.Contex
 func (ec *executionContext) field_Query_ixFacilities_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOIxFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityWhereInput)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.IxFacilityWhereInput, error) {
+			return ec.unmarshalOIxFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3554,17 +4790,26 @@ func (ec *executionContext) field_Query_ixFacilities_args(ctx context.Context, r
 func (ec *executionContext) field_Query_ixLansList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.IxLanWhereInput, error) {
+			return ec.unmarshalOIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3575,27 +4820,42 @@ func (ec *executionContext) field_Query_ixLansList_args(ctx context.Context, raw
 func (ec *executionContext) field_Query_ixLans_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanWhereInput)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.IxLanWhereInput, error) {
+			return ec.unmarshalOIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3606,17 +4866,26 @@ func (ec *executionContext) field_Query_ixLans_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_ixPrefixesList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOIxPrefixWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.IxPrefixWhereInput, error) {
+			return ec.unmarshalOIxPrefixWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3627,27 +4896,42 @@ func (ec *executionContext) field_Query_ixPrefixesList_args(ctx context.Context,
 func (ec *executionContext) field_Query_ixPrefixes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOIxPrefixWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixWhereInput)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.IxPrefixWhereInput, error) {
+			return ec.unmarshalOIxPrefixWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3658,7 +4942,10 @@ func (ec *executionContext) field_Query_ixPrefixes_args(ctx context.Context, raw
 func (ec *executionContext) field_Query_networkByAsn_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "asn", ec.unmarshalNInt2int)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "asn",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3669,17 +4956,26 @@ func (ec *executionContext) field_Query_networkByAsn_args(ctx context.Context, r
 func (ec *executionContext) field_Query_networkFacilitiesList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalONetworkFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.NetworkFacilityWhereInput, error) {
+			return ec.unmarshalONetworkFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3690,27 +4986,42 @@ func (ec *executionContext) field_Query_networkFacilitiesList_args(ctx context.C
 func (ec *executionContext) field_Query_networkFacilities_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalONetworkFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityWhereInput)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.NetworkFacilityWhereInput, error) {
+			return ec.unmarshalONetworkFacilityWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3721,17 +5032,26 @@ func (ec *executionContext) field_Query_networkFacilities_args(ctx context.Conte
 func (ec *executionContext) field_Query_networkIxLansList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalONetworkIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.NetworkIxLanWhereInput, error) {
+			return ec.unmarshalONetworkIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3742,27 +5062,42 @@ func (ec *executionContext) field_Query_networkIxLansList_args(ctx context.Conte
 func (ec *executionContext) field_Query_networkIxLans_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalONetworkIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanWhereInput)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.NetworkIxLanWhereInput, error) {
+			return ec.unmarshalONetworkIxLanWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3773,17 +5108,26 @@ func (ec *executionContext) field_Query_networkIxLans_args(ctx context.Context, 
 func (ec *executionContext) field_Query_networksList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalONetworkWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.NetworkWhereInput, error) {
+			return ec.unmarshalONetworkWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3794,32 +5138,50 @@ func (ec *executionContext) field_Query_networksList_args(ctx context.Context, r
 func (ec *executionContext) field_Query_networks_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalONetworkOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkOrder)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy",
+		func(ctx context.Context, v any) (*ent.NetworkOrder, error) {
+			return ec.unmarshalONetworkOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkOrder(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["orderBy"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalONetworkWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkWhereInput)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.NetworkWhereInput, error) {
+			return ec.unmarshalONetworkWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3830,7 +5192,10 @@ func (ec *executionContext) field_Query_networks_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2int)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNID2int(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3841,7 +5206,10 @@ func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field_Query_nodes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "ids", ec.unmarshalNID2ᚕintᚄ)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "ids",
+		func(ctx context.Context, v any) ([]int, error) {
+			return ec.unmarshalNID2ᚕintᚄ(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3852,17 +5220,26 @@ func (ec *executionContext) field_Query_nodes_args(ctx context.Context, rawArgs 
 func (ec *executionContext) field_Query_organizationsList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOOrganizationWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.OrganizationWhereInput, error) {
+			return ec.unmarshalOOrganizationWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3873,32 +5250,50 @@ func (ec *executionContext) field_Query_organizationsList_args(ctx context.Conte
 func (ec *executionContext) field_Query_organizations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalOOrganizationOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationOrder)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy",
+		func(ctx context.Context, v any) (*ent.OrganizationOrder, error) {
+			return ec.unmarshalOOrganizationOrder2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationOrder(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["orderBy"] = arg4
-	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOOrganizationWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationWhereInput)
+	arg5, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.OrganizationWhereInput, error) {
+			return ec.unmarshalOOrganizationWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3909,17 +5304,26 @@ func (ec *executionContext) field_Query_organizations_args(ctx context.Context, 
 func (ec *executionContext) field_Query_pocsList_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["offset"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOPocWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocWhereInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.PocWhereInput, error) {
+			return ec.unmarshalOPocWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3930,27 +5334,42 @@ func (ec *executionContext) field_Query_pocsList_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Query_pocs_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "after",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["after"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["first"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before", ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "before",
+		func(ctx context.Context, v any) (*entgql.Cursor[int], error) {
+			return ec.unmarshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["before"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last", ec.unmarshalOInt2ᚖint)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "last",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
 	args["last"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOPocWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocWhereInput)
+	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "where",
+		func(ctx context.Context, v any) (*ent.PocWhereInput, error) {
+			return ec.unmarshalOPocWhereInput2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocWhereInput(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3961,7 +5380,10 @@ func (ec *executionContext) field_Query_pocs_args(ctx context.Context, rawArgs m
 func (ec *executionContext) field___Directive_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2ᚖbool)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated",
+		func(ctx context.Context, v any) (*bool, error) {
+			return ec.unmarshalOBoolean2ᚖbool(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3972,7 +5394,10 @@ func (ec *executionContext) field___Directive_args_args(ctx context.Context, raw
 func (ec *executionContext) field___Field_args_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2ᚖbool)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated",
+		func(ctx context.Context, v any) (*bool, error) {
+			return ec.unmarshalOBoolean2ᚖbool(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3983,7 +5408,10 @@ func (ec *executionContext) field___Field_args_args(ctx context.Context, rawArgs
 func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2bool)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated",
+		func(ctx context.Context, v any) (bool, error) {
+			return ec.unmarshalOBoolean2bool(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -3994,7 +5422,10 @@ func (ec *executionContext) field___Type_enumValues_args(ctx context.Context, ra
 func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated", ec.unmarshalOBoolean2bool)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "includeDeprecated",
+		func(ctx context.Context, v any) (bool, error) {
+			return ec.unmarshalOBoolean2bool(ctx, v)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -4015,28 +5446,22 @@ func (ec *executionContext) _Campus_id(ctx context.Context, field graphql.Collec
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_orgID(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4044,28 +5469,22 @@ func (ec *executionContext) _Campus_orgID(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_orgID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_orgID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_orgID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_aka(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4073,28 +5492,22 @@ func (ec *executionContext) _Campus_aka(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_aka,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_aka(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Aka, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_aka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_city(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4102,28 +5515,22 @@ func (ec *executionContext) _Campus_city(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_city,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_city(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.City, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_country(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4131,28 +5538,22 @@ func (ec *executionContext) _Campus_country(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_country,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_country(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Country, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_logo(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4160,28 +5561,22 @@ func (ec *executionContext) _Campus_logo(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_logo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_logo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Logo, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_logo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_name(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4189,28 +5584,22 @@ func (ec *executionContext) _Campus_name(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_nameLong(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4218,28 +5607,22 @@ func (ec *executionContext) _Campus_nameLong(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_nameLong,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_nameLong(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NameLong, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_nameLong(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_notes(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4247,28 +5630,22 @@ func (ec *executionContext) _Campus_notes(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_notes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_notes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Notes, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_socialMedia(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4276,17 +5653,20 @@ func (ec *executionContext) _Campus_socialMedia(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_socialMedia,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_socialMedia(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []schematypes.SocialMedia) graphql.Marshaler {
+			return ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_socialMedia(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Campus",
@@ -4294,13 +5674,7 @@ func (ec *executionContext) fieldContext_Campus_socialMedia(_ context.Context, f
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "service":
-				return ec.fieldContext_SocialMedia_service(ctx, field)
-			case "identifier":
-				return ec.fieldContext_SocialMedia_identifier(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SocialMedia", field.Name)
+			return ec.childFields_SocialMedia(ctx, field)
 		},
 	}
 	return fc, nil
@@ -4311,28 +5685,22 @@ func (ec *executionContext) _Campus_state(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_state,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_state(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.State, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_website(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4340,28 +5708,22 @@ func (ec *executionContext) _Campus_website(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_website,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_website(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Website, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_website(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_zipcode(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4369,28 +5731,22 @@ func (ec *executionContext) _Campus_zipcode(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_zipcode,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_zipcode(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Zipcode, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_zipcode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_orgName(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4398,28 +5754,22 @@ func (ec *executionContext) _Campus_orgName(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_orgName,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_orgName(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgName, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_orgName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_created(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4427,28 +5777,22 @@ func (ec *executionContext) _Campus_created(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_updated(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4456,28 +5800,22 @@ func (ec *executionContext) _Campus_updated(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_status(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4485,28 +5823,22 @@ func (ec *executionContext) _Campus_status(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Campus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Campus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Campus_facilities(ctx context.Context, field graphql.CollectedField, obj *ent.Campus) (ret graphql.Marshaler) {
@@ -4514,17 +5846,20 @@ func (ec *executionContext) _Campus_facilities(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_facilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_facilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Facilities(ctx)
 		},
 		nil,
-		ec.marshalOFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Facility) graphql.Marshaler {
+			return ec.marshalOFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_facilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Campus",
@@ -4532,97 +5867,7 @@ func (ec *executionContext) fieldContext_Campus_facilities(_ context.Context, fi
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Facility_id(ctx, field)
-			case "campusID":
-				return ec.fieldContext_Facility_campusID(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Facility_orgID(ctx, field)
-			case "address1":
-				return ec.fieldContext_Facility_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Facility_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Facility_aka(ctx, field)
-			case "availableVoltageServices":
-				return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
-			case "city":
-				return ec.fieldContext_Facility_city(ctx, field)
-			case "clli":
-				return ec.fieldContext_Facility_clli(ctx, field)
-			case "country":
-				return ec.fieldContext_Facility_country(ctx, field)
-			case "diverseServingSubstations":
-				return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
-			case "floor":
-				return ec.fieldContext_Facility_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Facility_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Facility_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Facility_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Facility_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Facility_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Facility_notes(ctx, field)
-			case "npanxx":
-				return ec.fieldContext_Facility_npanxx(ctx, field)
-			case "property":
-				return ec.fieldContext_Facility_property(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_Facility_regionContinent(ctx, field)
-			case "rencode":
-				return ec.fieldContext_Facility_rencode(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_Facility_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_Facility_salesPhone(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Facility_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Facility_state(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Facility_statusDashboard(ctx, field)
-			case "suite":
-				return ec.fieldContext_Facility_suite(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_Facility_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_Facility_techPhone(ctx, field)
-			case "website":
-				return ec.fieldContext_Facility_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Facility_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Facility_orgName(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Facility_netCount(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Facility_ixCount(ctx, field)
-			case "carrierCount":
-				return ec.fieldContext_Facility_carrierCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Facility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Facility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Facility_status(ctx, field)
-			case "campus":
-				return ec.fieldContext_Facility_campus(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Facility_carrierFacilities(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_Facility_ixFacilities(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Facility_networkFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Facility_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+			return ec.childFields_Facility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -4633,17 +5878,20 @@ func (ec *executionContext) _Campus_organization(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Campus_organization,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Campus_organization(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Organization(ctx)
 		},
 		nil,
-		ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Organization) graphql.Marshaler {
+			return ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Campus_organization(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Campus",
@@ -4651,61 +5899,7 @@ func (ec *executionContext) fieldContext_Campus_organization(_ context.Context, 
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Organization_id(ctx, field)
-			case "address1":
-				return ec.fieldContext_Organization_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Organization_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Organization_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Organization_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Organization_country(ctx, field)
-			case "floor":
-				return ec.fieldContext_Organization_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Organization_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Organization_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Organization_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Organization_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Organization_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Organization_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Organization_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Organization_state(ctx, field)
-			case "suite":
-				return ec.fieldContext_Organization_suite(ctx, field)
-			case "website":
-				return ec.fieldContext_Organization_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "created":
-				return ec.fieldContext_Organization_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Organization_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Organization_status(ctx, field)
-			case "campuses":
-				return ec.fieldContext_Organization_campuses(ctx, field)
-			case "carriers":
-				return ec.fieldContext_Organization_carriers(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Organization_facilities(ctx, field)
-			case "internetExchanges":
-				return ec.fieldContext_Organization_internetExchanges(ctx, field)
-			case "networks":
-				return ec.fieldContext_Organization_networks(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+			return ec.childFields_Organization(ctx, field)
 		},
 	}
 	return fc, nil
@@ -4716,17 +5910,20 @@ func (ec *executionContext) _CampusConnection_edges(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CampusConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CampusConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOCampusEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.CampusEdge) graphql.Marshaler {
+			return ec.marshalOCampusEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CampusConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CampusConnection",
@@ -4734,13 +5931,7 @@ func (ec *executionContext) fieldContext_CampusConnection_edges(_ context.Contex
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_CampusEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_CampusEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CampusEdge", field.Name)
+			return ec.childFields_CampusEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -4751,17 +5942,20 @@ func (ec *executionContext) _CampusConnection_pageInfo(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CampusConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CampusConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CampusConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CampusConnection",
@@ -4769,17 +5963,7 @@ func (ec *executionContext) fieldContext_CampusConnection_pageInfo(_ context.Con
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -4790,28 +5974,22 @@ func (ec *executionContext) _CampusConnection_totalCount(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CampusConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CampusConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CampusConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CampusConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CampusConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _CampusEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.CampusEdge) (ret graphql.Marshaler) {
@@ -4819,17 +5997,20 @@ func (ec *executionContext) _CampusEdge_node(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CampusEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CampusEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOCampus2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampus,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Campus) graphql.Marshaler {
+			return ec.marshalOCampus2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampus(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CampusEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CampusEdge",
@@ -4837,47 +6018,7 @@ func (ec *executionContext) fieldContext_CampusEdge_node(_ context.Context, fiel
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Campus_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Campus_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Campus_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Campus_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Campus_country(ctx, field)
-			case "logo":
-				return ec.fieldContext_Campus_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Campus_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Campus_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Campus_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Campus_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Campus_state(ctx, field)
-			case "website":
-				return ec.fieldContext_Campus_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Campus_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Campus_orgName(ctx, field)
-			case "created":
-				return ec.fieldContext_Campus_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Campus_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Campus_status(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Campus_facilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Campus_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Campus", field.Name)
+			return ec.childFields_Campus(ctx, field)
 		},
 	}
 	return fc, nil
@@ -4888,28 +6029,22 @@ func (ec *executionContext) _CampusEdge_cursor(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CampusEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CampusEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CampusEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CampusEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CampusEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_id(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -4917,28 +6052,22 @@ func (ec *executionContext) _Carrier_id(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_orgID(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -4946,28 +6075,22 @@ func (ec *executionContext) _Carrier_orgID(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_orgID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_orgID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_orgID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_aka(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -4975,28 +6098,22 @@ func (ec *executionContext) _Carrier_aka(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_aka,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_aka(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Aka, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_aka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_logo(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5004,28 +6121,22 @@ func (ec *executionContext) _Carrier_logo(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_logo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_logo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Logo, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_logo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_name(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5033,28 +6144,22 @@ func (ec *executionContext) _Carrier_name(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_nameLong(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5062,28 +6167,22 @@ func (ec *executionContext) _Carrier_nameLong(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_nameLong,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_nameLong(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NameLong, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_nameLong(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_notes(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5091,28 +6190,22 @@ func (ec *executionContext) _Carrier_notes(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_notes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_notes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Notes, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_socialMedia(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5120,17 +6213,20 @@ func (ec *executionContext) _Carrier_socialMedia(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_socialMedia,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_socialMedia(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []schematypes.SocialMedia) graphql.Marshaler {
+			return ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_socialMedia(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Carrier",
@@ -5138,13 +6234,7 @@ func (ec *executionContext) fieldContext_Carrier_socialMedia(_ context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "service":
-				return ec.fieldContext_SocialMedia_service(ctx, field)
-			case "identifier":
-				return ec.fieldContext_SocialMedia_identifier(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SocialMedia", field.Name)
+			return ec.childFields_SocialMedia(ctx, field)
 		},
 	}
 	return fc, nil
@@ -5155,28 +6245,22 @@ func (ec *executionContext) _Carrier_website(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_website,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_website(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Website, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_website(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_orgName(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5184,28 +6268,22 @@ func (ec *executionContext) _Carrier_orgName(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_orgName,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_orgName(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgName, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_orgName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_facCount(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5213,28 +6291,22 @@ func (ec *executionContext) _Carrier_facCount(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_facCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_facCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.FacCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_facCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_created(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5242,28 +6314,22 @@ func (ec *executionContext) _Carrier_created(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_updated(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5271,28 +6337,22 @@ func (ec *executionContext) _Carrier_updated(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_status(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5300,28 +6360,22 @@ func (ec *executionContext) _Carrier_status(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Carrier",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Carrier", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Carrier_carrierFacilities(ctx context.Context, field graphql.CollectedField, obj *ent.Carrier) (ret graphql.Marshaler) {
@@ -5329,17 +6383,20 @@ func (ec *executionContext) _Carrier_carrierFacilities(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_carrierFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_carrierFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.CarrierFacilities(ctx)
 		},
 		nil,
-		ec.marshalOCarrierFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.CarrierFacility) graphql.Marshaler {
+			return ec.marshalOCarrierFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_carrierFacilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Carrier",
@@ -5347,27 +6404,7 @@ func (ec *executionContext) fieldContext_Carrier_carrierFacilities(_ context.Con
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_CarrierFacility_id(ctx, field)
-			case "carrierID":
-				return ec.fieldContext_CarrierFacility_carrierID(ctx, field)
-			case "facID":
-				return ec.fieldContext_CarrierFacility_facID(ctx, field)
-			case "name":
-				return ec.fieldContext_CarrierFacility_name(ctx, field)
-			case "created":
-				return ec.fieldContext_CarrierFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_CarrierFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_CarrierFacility_status(ctx, field)
-			case "carrier":
-				return ec.fieldContext_CarrierFacility_carrier(ctx, field)
-			case "facility":
-				return ec.fieldContext_CarrierFacility_facility(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierFacility", field.Name)
+			return ec.childFields_CarrierFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -5378,17 +6415,20 @@ func (ec *executionContext) _Carrier_organization(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Carrier_organization,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Carrier_organization(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Organization(ctx)
 		},
 		nil,
-		ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Organization) graphql.Marshaler {
+			return ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Carrier_organization(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Carrier",
@@ -5396,61 +6436,7 @@ func (ec *executionContext) fieldContext_Carrier_organization(_ context.Context,
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Organization_id(ctx, field)
-			case "address1":
-				return ec.fieldContext_Organization_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Organization_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Organization_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Organization_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Organization_country(ctx, field)
-			case "floor":
-				return ec.fieldContext_Organization_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Organization_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Organization_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Organization_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Organization_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Organization_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Organization_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Organization_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Organization_state(ctx, field)
-			case "suite":
-				return ec.fieldContext_Organization_suite(ctx, field)
-			case "website":
-				return ec.fieldContext_Organization_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "created":
-				return ec.fieldContext_Organization_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Organization_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Organization_status(ctx, field)
-			case "campuses":
-				return ec.fieldContext_Organization_campuses(ctx, field)
-			case "carriers":
-				return ec.fieldContext_Organization_carriers(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Organization_facilities(ctx, field)
-			case "internetExchanges":
-				return ec.fieldContext_Organization_internetExchanges(ctx, field)
-			case "networks":
-				return ec.fieldContext_Organization_networks(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+			return ec.childFields_Organization(ctx, field)
 		},
 	}
 	return fc, nil
@@ -5461,17 +6447,20 @@ func (ec *executionContext) _CarrierConnection_edges(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOCarrierEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.CarrierEdge) graphql.Marshaler {
+			return ec.marshalOCarrierEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierConnection",
@@ -5479,13 +6468,7 @@ func (ec *executionContext) fieldContext_CarrierConnection_edges(_ context.Conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_CarrierEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_CarrierEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierEdge", field.Name)
+			return ec.childFields_CarrierEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -5496,17 +6479,20 @@ func (ec *executionContext) _CarrierConnection_pageInfo(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierConnection",
@@ -5514,17 +6500,7 @@ func (ec *executionContext) fieldContext_CarrierConnection_pageInfo(_ context.Co
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -5535,28 +6511,22 @@ func (ec *executionContext) _CarrierConnection_totalCount(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierEdge) (ret graphql.Marshaler) {
@@ -5564,17 +6534,20 @@ func (ec *executionContext) _CarrierEdge_node(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOCarrier2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrier,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Carrier) graphql.Marshaler {
+			return ec.marshalOCarrier2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrier(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierEdge",
@@ -5582,41 +6555,7 @@ func (ec *executionContext) fieldContext_CarrierEdge_node(_ context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Carrier_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Carrier_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Carrier_aka(ctx, field)
-			case "logo":
-				return ec.fieldContext_Carrier_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Carrier_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Carrier_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Carrier_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Carrier_socialMedia(ctx, field)
-			case "website":
-				return ec.fieldContext_Carrier_website(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Carrier_orgName(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Carrier_facCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Carrier_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Carrier_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Carrier_status(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Carrier_carrierFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Carrier_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Carrier", field.Name)
+			return ec.childFields_Carrier(ctx, field)
 		},
 	}
 	return fc, nil
@@ -5627,28 +6566,22 @@ func (ec *executionContext) _CarrierEdge_cursor(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_id(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5656,28 +6589,22 @@ func (ec *executionContext) _CarrierFacility_id(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_carrierID(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5685,28 +6612,22 @@ func (ec *executionContext) _CarrierFacility_carrierID(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_carrierID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_carrierID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.CarrierID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_carrierID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_facID(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5714,28 +6635,22 @@ func (ec *executionContext) _CarrierFacility_facID(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_facID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_facID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.FacID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_facID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_name(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5743,28 +6658,22 @@ func (ec *executionContext) _CarrierFacility_name(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_created(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5772,28 +6681,22 @@ func (ec *executionContext) _CarrierFacility_created(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_updated(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5801,28 +6704,22 @@ func (ec *executionContext) _CarrierFacility_updated(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_status(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5830,28 +6727,22 @@ func (ec *executionContext) _CarrierFacility_status(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacility_carrier(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacility) (ret graphql.Marshaler) {
@@ -5859,17 +6750,20 @@ func (ec *executionContext) _CarrierFacility_carrier(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_carrier,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_carrier(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Carrier(ctx)
 		},
 		nil,
-		ec.marshalOCarrier2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrier,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Carrier) graphql.Marshaler {
+			return ec.marshalOCarrier2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrier(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_carrier(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierFacility",
@@ -5877,41 +6771,7 @@ func (ec *executionContext) fieldContext_CarrierFacility_carrier(_ context.Conte
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Carrier_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Carrier_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Carrier_aka(ctx, field)
-			case "logo":
-				return ec.fieldContext_Carrier_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Carrier_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Carrier_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Carrier_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Carrier_socialMedia(ctx, field)
-			case "website":
-				return ec.fieldContext_Carrier_website(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Carrier_orgName(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Carrier_facCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Carrier_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Carrier_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Carrier_status(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Carrier_carrierFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Carrier_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Carrier", field.Name)
+			return ec.childFields_Carrier(ctx, field)
 		},
 	}
 	return fc, nil
@@ -5922,17 +6782,20 @@ func (ec *executionContext) _CarrierFacility_facility(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacility_facility,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacility_facility(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Facility(ctx)
 		},
 		nil,
-		ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Facility) graphql.Marshaler {
+			return ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacility_facility(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierFacility",
@@ -5940,97 +6803,7 @@ func (ec *executionContext) fieldContext_CarrierFacility_facility(_ context.Cont
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Facility_id(ctx, field)
-			case "campusID":
-				return ec.fieldContext_Facility_campusID(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Facility_orgID(ctx, field)
-			case "address1":
-				return ec.fieldContext_Facility_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Facility_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Facility_aka(ctx, field)
-			case "availableVoltageServices":
-				return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
-			case "city":
-				return ec.fieldContext_Facility_city(ctx, field)
-			case "clli":
-				return ec.fieldContext_Facility_clli(ctx, field)
-			case "country":
-				return ec.fieldContext_Facility_country(ctx, field)
-			case "diverseServingSubstations":
-				return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
-			case "floor":
-				return ec.fieldContext_Facility_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Facility_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Facility_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Facility_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Facility_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Facility_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Facility_notes(ctx, field)
-			case "npanxx":
-				return ec.fieldContext_Facility_npanxx(ctx, field)
-			case "property":
-				return ec.fieldContext_Facility_property(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_Facility_regionContinent(ctx, field)
-			case "rencode":
-				return ec.fieldContext_Facility_rencode(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_Facility_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_Facility_salesPhone(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Facility_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Facility_state(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Facility_statusDashboard(ctx, field)
-			case "suite":
-				return ec.fieldContext_Facility_suite(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_Facility_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_Facility_techPhone(ctx, field)
-			case "website":
-				return ec.fieldContext_Facility_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Facility_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Facility_orgName(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Facility_netCount(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Facility_ixCount(ctx, field)
-			case "carrierCount":
-				return ec.fieldContext_Facility_carrierCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Facility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Facility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Facility_status(ctx, field)
-			case "campus":
-				return ec.fieldContext_Facility_campus(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Facility_carrierFacilities(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_Facility_ixFacilities(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Facility_networkFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Facility_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+			return ec.childFields_Facility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -6041,17 +6814,20 @@ func (ec *executionContext) _CarrierFacilityConnection_edges(ctx context.Context
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacilityConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacilityConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOCarrierFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.CarrierFacilityEdge) graphql.Marshaler {
+			return ec.marshalOCarrierFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacilityConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierFacilityConnection",
@@ -6059,13 +6835,7 @@ func (ec *executionContext) fieldContext_CarrierFacilityConnection_edges(_ conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_CarrierFacilityEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_CarrierFacilityEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierFacilityEdge", field.Name)
+			return ec.childFields_CarrierFacilityEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -6076,17 +6846,20 @@ func (ec *executionContext) _CarrierFacilityConnection_pageInfo(ctx context.Cont
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacilityConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacilityConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacilityConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierFacilityConnection",
@@ -6094,17 +6867,7 @@ func (ec *executionContext) fieldContext_CarrierFacilityConnection_pageInfo(_ co
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -6115,28 +6878,22 @@ func (ec *executionContext) _CarrierFacilityConnection_totalCount(ctx context.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacilityConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacilityConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacilityConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacilityConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacilityConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _CarrierFacilityEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.CarrierFacilityEdge) (ret graphql.Marshaler) {
@@ -6144,17 +6901,20 @@ func (ec *executionContext) _CarrierFacilityEdge_node(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacilityEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacilityEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOCarrierFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacility,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.CarrierFacility) graphql.Marshaler {
+			return ec.marshalOCarrierFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacility(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacilityEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "CarrierFacilityEdge",
@@ -6162,27 +6922,7 @@ func (ec *executionContext) fieldContext_CarrierFacilityEdge_node(_ context.Cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_CarrierFacility_id(ctx, field)
-			case "carrierID":
-				return ec.fieldContext_CarrierFacility_carrierID(ctx, field)
-			case "facID":
-				return ec.fieldContext_CarrierFacility_facID(ctx, field)
-			case "name":
-				return ec.fieldContext_CarrierFacility_name(ctx, field)
-			case "created":
-				return ec.fieldContext_CarrierFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_CarrierFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_CarrierFacility_status(ctx, field)
-			case "carrier":
-				return ec.fieldContext_CarrierFacility_carrier(ctx, field)
-			case "facility":
-				return ec.fieldContext_CarrierFacility_facility(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierFacility", field.Name)
+			return ec.childFields_CarrierFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -6193,28 +6933,22 @@ func (ec *executionContext) _CarrierFacilityEdge_cursor(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_CarrierFacilityEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CarrierFacilityEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_CarrierFacilityEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CarrierFacilityEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("CarrierFacilityEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_id(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6222,28 +6956,22 @@ func (ec *executionContext) _Facility_id(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_campusID(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6251,28 +6979,22 @@ func (ec *executionContext) _Facility_campusID(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_campusID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_campusID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.CampusID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_campusID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_orgID(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6280,28 +7002,22 @@ func (ec *executionContext) _Facility_orgID(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_orgID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_orgID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_orgID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_address1(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6309,28 +7025,22 @@ func (ec *executionContext) _Facility_address1(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_address1,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_address1(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Address1, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_address1(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_address2(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6338,28 +7048,22 @@ func (ec *executionContext) _Facility_address2(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_address2,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_address2(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Address2, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_address2(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_aka(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6367,28 +7071,22 @@ func (ec *executionContext) _Facility_aka(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_aka,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_aka(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Aka, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_aka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_availableVoltageServices(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6396,28 +7094,22 @@ func (ec *executionContext) _Facility_availableVoltageServices(ctx context.Conte
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_availableVoltageServices,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.AvailableVoltageServices, nil
 		},
 		nil,
-		ec.marshalOString2ᚕstringᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalOString2ᚕstringᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_availableVoltageServices(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_city(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6425,28 +7117,22 @@ func (ec *executionContext) _Facility_city(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_city,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_city(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.City, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_clli(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6454,28 +7140,22 @@ func (ec *executionContext) _Facility_clli(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_clli,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_clli(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Clli, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_clli(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_country(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6483,28 +7163,22 @@ func (ec *executionContext) _Facility_country(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_country,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_country(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Country, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_diverseServingSubstations(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6512,28 +7186,22 @@ func (ec *executionContext) _Facility_diverseServingSubstations(ctx context.Cont
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_diverseServingSubstations,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.DiverseServingSubstations, nil
 		},
 		nil,
-		ec.marshalOBoolean2ᚖbool,
+		func(ctx context.Context, selections ast.SelectionSet, v *bool) graphql.Marshaler {
+			return ec.marshalOBoolean2ᚖbool(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_diverseServingSubstations(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_floor(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6541,28 +7209,22 @@ func (ec *executionContext) _Facility_floor(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_floor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_floor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Floor, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_floor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_latitude(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6570,28 +7232,22 @@ func (ec *executionContext) _Facility_latitude(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_latitude,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_latitude(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Latitude, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		func(ctx context.Context, selections ast.SelectionSet, v *float64) graphql.Marshaler {
+			return ec.marshalOFloat2ᚖfloat64(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_latitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_logo(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6599,28 +7255,22 @@ func (ec *executionContext) _Facility_logo(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_logo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_logo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Logo, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_logo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_longitude(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6628,28 +7278,22 @@ func (ec *executionContext) _Facility_longitude(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_longitude,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_longitude(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Longitude, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		func(ctx context.Context, selections ast.SelectionSet, v *float64) graphql.Marshaler {
+			return ec.marshalOFloat2ᚖfloat64(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_longitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_name(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6657,28 +7301,22 @@ func (ec *executionContext) _Facility_name(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_nameLong(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6686,28 +7324,22 @@ func (ec *executionContext) _Facility_nameLong(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_nameLong,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_nameLong(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NameLong, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_nameLong(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_notes(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6715,28 +7347,22 @@ func (ec *executionContext) _Facility_notes(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_notes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_notes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Notes, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_npanxx(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6744,28 +7370,22 @@ func (ec *executionContext) _Facility_npanxx(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_npanxx,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_npanxx(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Npanxx, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_npanxx(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_property(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6773,28 +7393,22 @@ func (ec *executionContext) _Facility_property(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_property,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_property(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Property, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_property(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_regionContinent(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6802,28 +7416,22 @@ func (ec *executionContext) _Facility_regionContinent(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_regionContinent,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_regionContinent(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.RegionContinent, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_regionContinent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_rencode(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6831,28 +7439,22 @@ func (ec *executionContext) _Facility_rencode(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_rencode,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_rencode(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Rencode, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_rencode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_salesEmail(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6860,28 +7462,22 @@ func (ec *executionContext) _Facility_salesEmail(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_salesEmail,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_salesEmail(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SalesEmail, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_salesEmail(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_salesPhone(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6889,28 +7485,22 @@ func (ec *executionContext) _Facility_salesPhone(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_salesPhone,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_salesPhone(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SalesPhone, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_salesPhone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_socialMedia(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6918,17 +7508,20 @@ func (ec *executionContext) _Facility_socialMedia(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_socialMedia,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_socialMedia(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []schematypes.SocialMedia) graphql.Marshaler {
+			return ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_socialMedia(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Facility",
@@ -6936,13 +7529,7 @@ func (ec *executionContext) fieldContext_Facility_socialMedia(_ context.Context,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "service":
-				return ec.fieldContext_SocialMedia_service(ctx, field)
-			case "identifier":
-				return ec.fieldContext_SocialMedia_identifier(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SocialMedia", field.Name)
+			return ec.childFields_SocialMedia(ctx, field)
 		},
 	}
 	return fc, nil
@@ -6953,28 +7540,22 @@ func (ec *executionContext) _Facility_state(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_state,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_state(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.State, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_statusDashboard(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -6982,28 +7563,22 @@ func (ec *executionContext) _Facility_statusDashboard(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_statusDashboard,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_statusDashboard(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.StatusDashboard, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_statusDashboard(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_suite(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7011,28 +7586,22 @@ func (ec *executionContext) _Facility_suite(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_suite,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_suite(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Suite, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_suite(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_techEmail(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7040,28 +7609,22 @@ func (ec *executionContext) _Facility_techEmail(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_techEmail,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_techEmail(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TechEmail, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_techEmail(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_techPhone(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7069,28 +7632,22 @@ func (ec *executionContext) _Facility_techPhone(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_techPhone,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_techPhone(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TechPhone, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_techPhone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_website(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7098,28 +7655,22 @@ func (ec *executionContext) _Facility_website(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_website,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_website(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Website, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_website(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_zipcode(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7127,28 +7678,22 @@ func (ec *executionContext) _Facility_zipcode(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_zipcode,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_zipcode(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Zipcode, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_zipcode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_orgName(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7156,28 +7701,22 @@ func (ec *executionContext) _Facility_orgName(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_orgName,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_orgName(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgName, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_orgName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_netCount(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7185,28 +7724,22 @@ func (ec *executionContext) _Facility_netCount(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_netCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_netCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_netCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_ixCount(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7214,28 +7747,22 @@ func (ec *executionContext) _Facility_ixCount(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_ixCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_ixCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_ixCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_carrierCount(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7243,28 +7770,22 @@ func (ec *executionContext) _Facility_carrierCount(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_carrierCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_carrierCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.CarrierCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_carrierCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_created(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7272,28 +7793,22 @@ func (ec *executionContext) _Facility_created(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_updated(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7301,28 +7816,22 @@ func (ec *executionContext) _Facility_updated(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_status(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7330,28 +7839,22 @@ func (ec *executionContext) _Facility_status(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Facility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Facility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Facility_campus(ctx context.Context, field graphql.CollectedField, obj *ent.Facility) (ret graphql.Marshaler) {
@@ -7359,17 +7862,20 @@ func (ec *executionContext) _Facility_campus(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_campus,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_campus(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Campus(ctx)
 		},
 		nil,
-		ec.marshalOCampus2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampus,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Campus) graphql.Marshaler {
+			return ec.marshalOCampus2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampus(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_campus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Facility",
@@ -7377,47 +7883,7 @@ func (ec *executionContext) fieldContext_Facility_campus(_ context.Context, fiel
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Campus_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Campus_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Campus_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Campus_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Campus_country(ctx, field)
-			case "logo":
-				return ec.fieldContext_Campus_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Campus_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Campus_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Campus_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Campus_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Campus_state(ctx, field)
-			case "website":
-				return ec.fieldContext_Campus_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Campus_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Campus_orgName(ctx, field)
-			case "created":
-				return ec.fieldContext_Campus_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Campus_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Campus_status(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Campus_facilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Campus_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Campus", field.Name)
+			return ec.childFields_Campus(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7428,17 +7894,20 @@ func (ec *executionContext) _Facility_carrierFacilities(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_carrierFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_carrierFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.CarrierFacilities(ctx)
 		},
 		nil,
-		ec.marshalOCarrierFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.CarrierFacility) graphql.Marshaler {
+			return ec.marshalOCarrierFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_carrierFacilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Facility",
@@ -7446,27 +7915,7 @@ func (ec *executionContext) fieldContext_Facility_carrierFacilities(_ context.Co
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_CarrierFacility_id(ctx, field)
-			case "carrierID":
-				return ec.fieldContext_CarrierFacility_carrierID(ctx, field)
-			case "facID":
-				return ec.fieldContext_CarrierFacility_facID(ctx, field)
-			case "name":
-				return ec.fieldContext_CarrierFacility_name(ctx, field)
-			case "created":
-				return ec.fieldContext_CarrierFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_CarrierFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_CarrierFacility_status(ctx, field)
-			case "carrier":
-				return ec.fieldContext_CarrierFacility_carrier(ctx, field)
-			case "facility":
-				return ec.fieldContext_CarrierFacility_facility(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierFacility", field.Name)
+			return ec.childFields_CarrierFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7477,17 +7926,20 @@ func (ec *executionContext) _Facility_ixFacilities(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_ixFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_ixFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxFacilities(ctx)
 		},
 		nil,
-		ec.marshalOIxFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxFacility) graphql.Marshaler {
+			return ec.marshalOIxFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_ixFacilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Facility",
@@ -7495,31 +7947,7 @@ func (ec *executionContext) fieldContext_Facility_ixFacilities(_ context.Context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_IxFacility_facID(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxFacility_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_IxFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_IxFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_IxFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_IxFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_IxFacility_facility(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxFacility_internetExchange(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxFacility", field.Name)
+			return ec.childFields_IxFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7530,17 +7958,20 @@ func (ec *executionContext) _Facility_networkFacilities(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_networkFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_networkFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetworkFacilities(ctx)
 		},
 		nil,
-		ec.marshalONetworkFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkFacility) graphql.Marshaler {
+			return ec.marshalONetworkFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_networkFacilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Facility",
@@ -7548,33 +7979,7 @@ func (ec *executionContext) fieldContext_Facility_networkFacilities(_ context.Co
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_NetworkFacility_facID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkFacility_netID(ctx, field)
-			case "localAsn":
-				return ec.fieldContext_NetworkFacility_localAsn(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_NetworkFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_NetworkFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_NetworkFacility_facility(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkFacility_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkFacility", field.Name)
+			return ec.childFields_NetworkFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7585,17 +7990,20 @@ func (ec *executionContext) _Facility_organization(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Facility_organization,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Facility_organization(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Organization(ctx)
 		},
 		nil,
-		ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Organization) graphql.Marshaler {
+			return ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Facility_organization(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Facility",
@@ -7603,61 +8011,7 @@ func (ec *executionContext) fieldContext_Facility_organization(_ context.Context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Organization_id(ctx, field)
-			case "address1":
-				return ec.fieldContext_Organization_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Organization_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Organization_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Organization_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Organization_country(ctx, field)
-			case "floor":
-				return ec.fieldContext_Organization_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Organization_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Organization_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Organization_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Organization_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Organization_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Organization_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Organization_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Organization_state(ctx, field)
-			case "suite":
-				return ec.fieldContext_Organization_suite(ctx, field)
-			case "website":
-				return ec.fieldContext_Organization_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "created":
-				return ec.fieldContext_Organization_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Organization_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Organization_status(ctx, field)
-			case "campuses":
-				return ec.fieldContext_Organization_campuses(ctx, field)
-			case "carriers":
-				return ec.fieldContext_Organization_carriers(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Organization_facilities(ctx, field)
-			case "internetExchanges":
-				return ec.fieldContext_Organization_internetExchanges(ctx, field)
-			case "networks":
-				return ec.fieldContext_Organization_networks(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+			return ec.childFields_Organization(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7668,17 +8022,20 @@ func (ec *executionContext) _FacilityConnection_edges(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_FacilityConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FacilityConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.FacilityEdge) graphql.Marshaler {
+			return ec.marshalOFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_FacilityConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FacilityConnection",
@@ -7686,13 +8043,7 @@ func (ec *executionContext) fieldContext_FacilityConnection_edges(_ context.Cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_FacilityEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_FacilityEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FacilityEdge", field.Name)
+			return ec.childFields_FacilityEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7703,17 +8054,20 @@ func (ec *executionContext) _FacilityConnection_pageInfo(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_FacilityConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FacilityConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_FacilityConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FacilityConnection",
@@ -7721,17 +8075,7 @@ func (ec *executionContext) fieldContext_FacilityConnection_pageInfo(_ context.C
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7742,28 +8086,22 @@ func (ec *executionContext) _FacilityConnection_totalCount(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_FacilityConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FacilityConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_FacilityConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FacilityConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("FacilityConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _FacilityEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.FacilityEdge) (ret graphql.Marshaler) {
@@ -7771,17 +8109,20 @@ func (ec *executionContext) _FacilityEdge_node(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_FacilityEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FacilityEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Facility) graphql.Marshaler {
+			return ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_FacilityEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FacilityEdge",
@@ -7789,97 +8130,7 @@ func (ec *executionContext) fieldContext_FacilityEdge_node(_ context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Facility_id(ctx, field)
-			case "campusID":
-				return ec.fieldContext_Facility_campusID(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Facility_orgID(ctx, field)
-			case "address1":
-				return ec.fieldContext_Facility_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Facility_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Facility_aka(ctx, field)
-			case "availableVoltageServices":
-				return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
-			case "city":
-				return ec.fieldContext_Facility_city(ctx, field)
-			case "clli":
-				return ec.fieldContext_Facility_clli(ctx, field)
-			case "country":
-				return ec.fieldContext_Facility_country(ctx, field)
-			case "diverseServingSubstations":
-				return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
-			case "floor":
-				return ec.fieldContext_Facility_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Facility_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Facility_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Facility_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Facility_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Facility_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Facility_notes(ctx, field)
-			case "npanxx":
-				return ec.fieldContext_Facility_npanxx(ctx, field)
-			case "property":
-				return ec.fieldContext_Facility_property(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_Facility_regionContinent(ctx, field)
-			case "rencode":
-				return ec.fieldContext_Facility_rencode(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_Facility_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_Facility_salesPhone(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Facility_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Facility_state(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Facility_statusDashboard(ctx, field)
-			case "suite":
-				return ec.fieldContext_Facility_suite(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_Facility_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_Facility_techPhone(ctx, field)
-			case "website":
-				return ec.fieldContext_Facility_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Facility_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Facility_orgName(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Facility_netCount(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Facility_ixCount(ctx, field)
-			case "carrierCount":
-				return ec.fieldContext_Facility_carrierCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Facility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Facility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Facility_status(ctx, field)
-			case "campus":
-				return ec.fieldContext_Facility_campus(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Facility_carrierFacilities(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_Facility_ixFacilities(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Facility_networkFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Facility_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+			return ec.childFields_Facility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -7890,28 +8141,22 @@ func (ec *executionContext) _FacilityEdge_cursor(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_FacilityEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_FacilityEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_FacilityEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FacilityEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("FacilityEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_id(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -7919,28 +8164,22 @@ func (ec *executionContext) _InternetExchange_id(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_orgID(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -7948,28 +8187,22 @@ func (ec *executionContext) _InternetExchange_orgID(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_orgID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_orgID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_orgID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_aka(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -7977,28 +8210,22 @@ func (ec *executionContext) _InternetExchange_aka(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_aka,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_aka(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Aka, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_aka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_city(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8006,28 +8233,22 @@ func (ec *executionContext) _InternetExchange_city(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_city,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_city(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.City, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_country(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8035,28 +8256,22 @@ func (ec *executionContext) _InternetExchange_country(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_country,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_country(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Country, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_ixfLastImport(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8064,28 +8279,22 @@ func (ec *executionContext) _InternetExchange_ixfLastImport(ctx context.Context,
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_ixfLastImport,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_ixfLastImport(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxfLastImport, nil
 		},
 		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_ixfLastImport(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_ixfNetCount(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8093,28 +8302,22 @@ func (ec *executionContext) _InternetExchange_ixfNetCount(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_ixfNetCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_ixfNetCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxfNetCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_ixfNetCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_logo(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8122,28 +8325,22 @@ func (ec *executionContext) _InternetExchange_logo(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_logo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_logo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Logo, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_logo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_media(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8151,28 +8348,22 @@ func (ec *executionContext) _InternetExchange_media(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_media,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_media(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Media, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_media(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_name(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8180,28 +8371,22 @@ func (ec *executionContext) _InternetExchange_name(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_nameLong(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8209,28 +8394,22 @@ func (ec *executionContext) _InternetExchange_nameLong(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_nameLong,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_nameLong(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NameLong, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_nameLong(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_notes(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8238,28 +8417,22 @@ func (ec *executionContext) _InternetExchange_notes(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_notes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_notes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Notes, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_policyEmail(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8267,28 +8440,22 @@ func (ec *executionContext) _InternetExchange_policyEmail(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_policyEmail,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_policyEmail(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PolicyEmail, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_policyEmail(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_policyPhone(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8296,28 +8463,22 @@ func (ec *executionContext) _InternetExchange_policyPhone(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_policyPhone,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_policyPhone(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PolicyPhone, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_policyPhone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_protoIpv6(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8325,28 +8486,22 @@ func (ec *executionContext) _InternetExchange_protoIpv6(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_protoIpv6,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_protoIpv6(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ProtoIpv6, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_protoIpv6(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_protoMulticast(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8354,28 +8509,22 @@ func (ec *executionContext) _InternetExchange_protoMulticast(ctx context.Context
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_protoMulticast,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_protoMulticast(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ProtoMulticast, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_protoMulticast(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_protoUnicast(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8383,28 +8532,22 @@ func (ec *executionContext) _InternetExchange_protoUnicast(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_protoUnicast,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_protoUnicast(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ProtoUnicast, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_protoUnicast(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_regionContinent(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8412,28 +8555,22 @@ func (ec *executionContext) _InternetExchange_regionContinent(ctx context.Contex
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_regionContinent,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_regionContinent(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.RegionContinent, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_regionContinent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_salesEmail(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8441,28 +8578,22 @@ func (ec *executionContext) _InternetExchange_salesEmail(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_salesEmail,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_salesEmail(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SalesEmail, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_salesEmail(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_salesPhone(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8470,28 +8601,22 @@ func (ec *executionContext) _InternetExchange_salesPhone(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_salesPhone,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_salesPhone(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SalesPhone, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_salesPhone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_serviceLevel(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8499,28 +8624,22 @@ func (ec *executionContext) _InternetExchange_serviceLevel(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_serviceLevel,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_serviceLevel(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ServiceLevel, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_serviceLevel(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_socialMedia(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8528,17 +8647,20 @@ func (ec *executionContext) _InternetExchange_socialMedia(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_socialMedia,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_socialMedia(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []schematypes.SocialMedia) graphql.Marshaler {
+			return ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_socialMedia(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InternetExchange",
@@ -8546,13 +8668,7 @@ func (ec *executionContext) fieldContext_InternetExchange_socialMedia(_ context.
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "service":
-				return ec.fieldContext_SocialMedia_service(ctx, field)
-			case "identifier":
-				return ec.fieldContext_SocialMedia_identifier(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SocialMedia", field.Name)
+			return ec.childFields_SocialMedia(ctx, field)
 		},
 	}
 	return fc, nil
@@ -8563,28 +8679,22 @@ func (ec *executionContext) _InternetExchange_statusDashboard(ctx context.Contex
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_statusDashboard,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_statusDashboard(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.StatusDashboard, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_statusDashboard(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_techEmail(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8592,28 +8702,22 @@ func (ec *executionContext) _InternetExchange_techEmail(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_techEmail,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_techEmail(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TechEmail, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_techEmail(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_techPhone(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8621,28 +8725,22 @@ func (ec *executionContext) _InternetExchange_techPhone(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_techPhone,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_techPhone(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TechPhone, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_techPhone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_terms(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8650,28 +8748,22 @@ func (ec *executionContext) _InternetExchange_terms(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_terms,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_terms(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Terms, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_terms(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_urlStats(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8679,28 +8771,22 @@ func (ec *executionContext) _InternetExchange_urlStats(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_urlStats,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_urlStats(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.URLStats, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_urlStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_website(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8708,28 +8794,22 @@ func (ec *executionContext) _InternetExchange_website(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_website,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_website(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Website, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_website(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_netCount(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8737,28 +8817,22 @@ func (ec *executionContext) _InternetExchange_netCount(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_netCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_netCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_netCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_facCount(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8766,28 +8840,22 @@ func (ec *executionContext) _InternetExchange_facCount(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_facCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_facCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.FacCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_facCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_ixfImportRequest(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8795,28 +8863,22 @@ func (ec *executionContext) _InternetExchange_ixfImportRequest(ctx context.Conte
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_ixfImportRequest,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_ixfImportRequest(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxfImportRequest, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_ixfImportRequest(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_ixfImportRequestStatus(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8824,28 +8886,22 @@ func (ec *executionContext) _InternetExchange_ixfImportRequestStatus(ctx context
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_ixfImportRequestStatus,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_ixfImportRequestStatus(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxfImportRequestStatus, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_ixfImportRequestStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_created(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8853,28 +8909,22 @@ func (ec *executionContext) _InternetExchange_created(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_updated(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8882,28 +8932,22 @@ func (ec *executionContext) _InternetExchange_updated(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_status(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8911,28 +8955,22 @@ func (ec *executionContext) _InternetExchange_status(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchange", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchange_ixFacilities(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchange) (ret graphql.Marshaler) {
@@ -8940,17 +8978,20 @@ func (ec *executionContext) _InternetExchange_ixFacilities(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_ixFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_ixFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxFacilities(ctx)
 		},
 		nil,
-		ec.marshalOIxFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxFacility) graphql.Marshaler {
+			return ec.marshalOIxFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_ixFacilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InternetExchange",
@@ -8958,31 +8999,7 @@ func (ec *executionContext) fieldContext_InternetExchange_ixFacilities(_ context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_IxFacility_facID(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxFacility_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_IxFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_IxFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_IxFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_IxFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_IxFacility_facility(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxFacility_internetExchange(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxFacility", field.Name)
+			return ec.childFields_IxFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -8993,17 +9010,20 @@ func (ec *executionContext) _InternetExchange_ixLans(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_ixLans,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_ixLans(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxLans(ctx)
 		},
 		nil,
-		ec.marshalOIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxLan) graphql.Marshaler {
+			return ec.marshalOIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_ixLans(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InternetExchange",
@@ -9011,43 +9031,7 @@ func (ec *executionContext) fieldContext_InternetExchange_ixLans(_ context.Conte
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxLan_id(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxLan_ixID(ctx, field)
-			case "arpSponge":
-				return ec.fieldContext_IxLan_arpSponge(ctx, field)
-			case "descr":
-				return ec.fieldContext_IxLan_descr(ctx, field)
-			case "dot1qSupport":
-				return ec.fieldContext_IxLan_dot1qSupport(ctx, field)
-			case "ixfIxpImportEnabled":
-				return ec.fieldContext_IxLan_ixfIxpImportEnabled(ctx, field)
-			case "ixfIxpMemberListURL":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURL(ctx, field)
-			case "ixfIxpMemberListURLVisible":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURLVisible(ctx, field)
-			case "mtu":
-				return ec.fieldContext_IxLan_mtu(ctx, field)
-			case "name":
-				return ec.fieldContext_IxLan_name(ctx, field)
-			case "rsAsn":
-				return ec.fieldContext_IxLan_rsAsn(ctx, field)
-			case "created":
-				return ec.fieldContext_IxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxLan_status(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxLan_internetExchange(ctx, field)
-			case "ixPrefixes":
-				return ec.fieldContext_IxLan_ixPrefixes(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_IxLan_networkIxLans(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxLan", field.Name)
+			return ec.childFields_IxLan(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9058,17 +9042,20 @@ func (ec *executionContext) _InternetExchange_organization(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchange_organization,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchange_organization(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Organization(ctx)
 		},
 		nil,
-		ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Organization) graphql.Marshaler {
+			return ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchange_organization(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InternetExchange",
@@ -9076,61 +9063,7 @@ func (ec *executionContext) fieldContext_InternetExchange_organization(_ context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Organization_id(ctx, field)
-			case "address1":
-				return ec.fieldContext_Organization_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Organization_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Organization_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Organization_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Organization_country(ctx, field)
-			case "floor":
-				return ec.fieldContext_Organization_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Organization_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Organization_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Organization_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Organization_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Organization_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Organization_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Organization_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Organization_state(ctx, field)
-			case "suite":
-				return ec.fieldContext_Organization_suite(ctx, field)
-			case "website":
-				return ec.fieldContext_Organization_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "created":
-				return ec.fieldContext_Organization_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Organization_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Organization_status(ctx, field)
-			case "campuses":
-				return ec.fieldContext_Organization_campuses(ctx, field)
-			case "carriers":
-				return ec.fieldContext_Organization_carriers(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Organization_facilities(ctx, field)
-			case "internetExchanges":
-				return ec.fieldContext_Organization_internetExchanges(ctx, field)
-			case "networks":
-				return ec.fieldContext_Organization_networks(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+			return ec.childFields_Organization(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9141,17 +9074,20 @@ func (ec *executionContext) _InternetExchangeConnection_edges(ctx context.Contex
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchangeConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchangeConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOInternetExchangeEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.InternetExchangeEdge) graphql.Marshaler {
+			return ec.marshalOInternetExchangeEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchangeConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InternetExchangeConnection",
@@ -9159,13 +9095,7 @@ func (ec *executionContext) fieldContext_InternetExchangeConnection_edges(_ cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_InternetExchangeEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_InternetExchangeEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InternetExchangeEdge", field.Name)
+			return ec.childFields_InternetExchangeEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9176,17 +9106,20 @@ func (ec *executionContext) _InternetExchangeConnection_pageInfo(ctx context.Con
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchangeConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchangeConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchangeConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InternetExchangeConnection",
@@ -9194,17 +9127,7 @@ func (ec *executionContext) fieldContext_InternetExchangeConnection_pageInfo(_ c
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9215,28 +9138,22 @@ func (ec *executionContext) _InternetExchangeConnection_totalCount(ctx context.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchangeConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchangeConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchangeConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchangeConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchangeConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _InternetExchangeEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.InternetExchangeEdge) (ret graphql.Marshaler) {
@@ -9244,17 +9161,20 @@ func (ec *executionContext) _InternetExchangeEdge_node(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchangeEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchangeEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOInternetExchange2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchange,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.InternetExchange) graphql.Marshaler {
+			return ec.marshalOInternetExchange2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchange(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchangeEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InternetExchangeEdge",
@@ -9262,85 +9182,7 @@ func (ec *executionContext) fieldContext_InternetExchangeEdge_node(_ context.Con
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_InternetExchange_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_InternetExchange_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_InternetExchange_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_InternetExchange_city(ctx, field)
-			case "country":
-				return ec.fieldContext_InternetExchange_country(ctx, field)
-			case "ixfLastImport":
-				return ec.fieldContext_InternetExchange_ixfLastImport(ctx, field)
-			case "ixfNetCount":
-				return ec.fieldContext_InternetExchange_ixfNetCount(ctx, field)
-			case "logo":
-				return ec.fieldContext_InternetExchange_logo(ctx, field)
-			case "media":
-				return ec.fieldContext_InternetExchange_media(ctx, field)
-			case "name":
-				return ec.fieldContext_InternetExchange_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_InternetExchange_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_InternetExchange_notes(ctx, field)
-			case "policyEmail":
-				return ec.fieldContext_InternetExchange_policyEmail(ctx, field)
-			case "policyPhone":
-				return ec.fieldContext_InternetExchange_policyPhone(ctx, field)
-			case "protoIpv6":
-				return ec.fieldContext_InternetExchange_protoIpv6(ctx, field)
-			case "protoMulticast":
-				return ec.fieldContext_InternetExchange_protoMulticast(ctx, field)
-			case "protoUnicast":
-				return ec.fieldContext_InternetExchange_protoUnicast(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_InternetExchange_regionContinent(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_InternetExchange_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_InternetExchange_salesPhone(ctx, field)
-			case "serviceLevel":
-				return ec.fieldContext_InternetExchange_serviceLevel(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_InternetExchange_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_InternetExchange_statusDashboard(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_InternetExchange_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_InternetExchange_techPhone(ctx, field)
-			case "terms":
-				return ec.fieldContext_InternetExchange_terms(ctx, field)
-			case "urlStats":
-				return ec.fieldContext_InternetExchange_urlStats(ctx, field)
-			case "website":
-				return ec.fieldContext_InternetExchange_website(ctx, field)
-			case "netCount":
-				return ec.fieldContext_InternetExchange_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_InternetExchange_facCount(ctx, field)
-			case "ixfImportRequest":
-				return ec.fieldContext_InternetExchange_ixfImportRequest(ctx, field)
-			case "ixfImportRequestStatus":
-				return ec.fieldContext_InternetExchange_ixfImportRequestStatus(ctx, field)
-			case "created":
-				return ec.fieldContext_InternetExchange_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_InternetExchange_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_InternetExchange_status(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_InternetExchange_ixFacilities(ctx, field)
-			case "ixLans":
-				return ec.fieldContext_InternetExchange_ixLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_InternetExchange_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InternetExchange", field.Name)
+			return ec.childFields_InternetExchange(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9351,28 +9193,22 @@ func (ec *executionContext) _InternetExchangeEdge_cursor(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InternetExchangeEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_InternetExchangeEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_InternetExchangeEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InternetExchangeEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("InternetExchangeEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_id(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9380,28 +9216,22 @@ func (ec *executionContext) _IxFacility_id(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_facID(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9409,28 +9239,22 @@ func (ec *executionContext) _IxFacility_facID(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_facID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_facID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.FacID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_facID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_ixID(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9438,28 +9262,22 @@ func (ec *executionContext) _IxFacility_ixID(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_ixID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_ixID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_ixID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_name(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9467,28 +9285,22 @@ func (ec *executionContext) _IxFacility_name(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_city(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9496,28 +9308,22 @@ func (ec *executionContext) _IxFacility_city(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_city,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_city(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.City, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_country(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9525,28 +9331,22 @@ func (ec *executionContext) _IxFacility_country(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_country,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_country(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Country, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_created(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9554,28 +9354,22 @@ func (ec *executionContext) _IxFacility_created(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_updated(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9583,28 +9377,22 @@ func (ec *executionContext) _IxFacility_updated(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_status(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9612,28 +9400,22 @@ func (ec *executionContext) _IxFacility_status(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacility_facility(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacility) (ret graphql.Marshaler) {
@@ -9641,17 +9423,20 @@ func (ec *executionContext) _IxFacility_facility(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_facility,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_facility(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Facility(ctx)
 		},
 		nil,
-		ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Facility) graphql.Marshaler {
+			return ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_facility(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxFacility",
@@ -9659,97 +9444,7 @@ func (ec *executionContext) fieldContext_IxFacility_facility(_ context.Context, 
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Facility_id(ctx, field)
-			case "campusID":
-				return ec.fieldContext_Facility_campusID(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Facility_orgID(ctx, field)
-			case "address1":
-				return ec.fieldContext_Facility_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Facility_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Facility_aka(ctx, field)
-			case "availableVoltageServices":
-				return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
-			case "city":
-				return ec.fieldContext_Facility_city(ctx, field)
-			case "clli":
-				return ec.fieldContext_Facility_clli(ctx, field)
-			case "country":
-				return ec.fieldContext_Facility_country(ctx, field)
-			case "diverseServingSubstations":
-				return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
-			case "floor":
-				return ec.fieldContext_Facility_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Facility_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Facility_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Facility_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Facility_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Facility_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Facility_notes(ctx, field)
-			case "npanxx":
-				return ec.fieldContext_Facility_npanxx(ctx, field)
-			case "property":
-				return ec.fieldContext_Facility_property(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_Facility_regionContinent(ctx, field)
-			case "rencode":
-				return ec.fieldContext_Facility_rencode(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_Facility_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_Facility_salesPhone(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Facility_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Facility_state(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Facility_statusDashboard(ctx, field)
-			case "suite":
-				return ec.fieldContext_Facility_suite(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_Facility_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_Facility_techPhone(ctx, field)
-			case "website":
-				return ec.fieldContext_Facility_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Facility_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Facility_orgName(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Facility_netCount(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Facility_ixCount(ctx, field)
-			case "carrierCount":
-				return ec.fieldContext_Facility_carrierCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Facility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Facility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Facility_status(ctx, field)
-			case "campus":
-				return ec.fieldContext_Facility_campus(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Facility_carrierFacilities(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_Facility_ixFacilities(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Facility_networkFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Facility_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+			return ec.childFields_Facility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9760,17 +9455,20 @@ func (ec *executionContext) _IxFacility_internetExchange(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacility_internetExchange,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacility_internetExchange(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InternetExchange(ctx)
 		},
 		nil,
-		ec.marshalOInternetExchange2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchange,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.InternetExchange) graphql.Marshaler {
+			return ec.marshalOInternetExchange2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchange(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacility_internetExchange(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxFacility",
@@ -9778,85 +9476,7 @@ func (ec *executionContext) fieldContext_IxFacility_internetExchange(_ context.C
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_InternetExchange_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_InternetExchange_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_InternetExchange_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_InternetExchange_city(ctx, field)
-			case "country":
-				return ec.fieldContext_InternetExchange_country(ctx, field)
-			case "ixfLastImport":
-				return ec.fieldContext_InternetExchange_ixfLastImport(ctx, field)
-			case "ixfNetCount":
-				return ec.fieldContext_InternetExchange_ixfNetCount(ctx, field)
-			case "logo":
-				return ec.fieldContext_InternetExchange_logo(ctx, field)
-			case "media":
-				return ec.fieldContext_InternetExchange_media(ctx, field)
-			case "name":
-				return ec.fieldContext_InternetExchange_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_InternetExchange_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_InternetExchange_notes(ctx, field)
-			case "policyEmail":
-				return ec.fieldContext_InternetExchange_policyEmail(ctx, field)
-			case "policyPhone":
-				return ec.fieldContext_InternetExchange_policyPhone(ctx, field)
-			case "protoIpv6":
-				return ec.fieldContext_InternetExchange_protoIpv6(ctx, field)
-			case "protoMulticast":
-				return ec.fieldContext_InternetExchange_protoMulticast(ctx, field)
-			case "protoUnicast":
-				return ec.fieldContext_InternetExchange_protoUnicast(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_InternetExchange_regionContinent(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_InternetExchange_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_InternetExchange_salesPhone(ctx, field)
-			case "serviceLevel":
-				return ec.fieldContext_InternetExchange_serviceLevel(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_InternetExchange_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_InternetExchange_statusDashboard(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_InternetExchange_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_InternetExchange_techPhone(ctx, field)
-			case "terms":
-				return ec.fieldContext_InternetExchange_terms(ctx, field)
-			case "urlStats":
-				return ec.fieldContext_InternetExchange_urlStats(ctx, field)
-			case "website":
-				return ec.fieldContext_InternetExchange_website(ctx, field)
-			case "netCount":
-				return ec.fieldContext_InternetExchange_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_InternetExchange_facCount(ctx, field)
-			case "ixfImportRequest":
-				return ec.fieldContext_InternetExchange_ixfImportRequest(ctx, field)
-			case "ixfImportRequestStatus":
-				return ec.fieldContext_InternetExchange_ixfImportRequestStatus(ctx, field)
-			case "created":
-				return ec.fieldContext_InternetExchange_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_InternetExchange_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_InternetExchange_status(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_InternetExchange_ixFacilities(ctx, field)
-			case "ixLans":
-				return ec.fieldContext_InternetExchange_ixLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_InternetExchange_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InternetExchange", field.Name)
+			return ec.childFields_InternetExchange(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9867,17 +9487,20 @@ func (ec *executionContext) _IxFacilityConnection_edges(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacilityConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacilityConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOIxFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxFacilityEdge) graphql.Marshaler {
+			return ec.marshalOIxFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacilityConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxFacilityConnection",
@@ -9885,13 +9508,7 @@ func (ec *executionContext) fieldContext_IxFacilityConnection_edges(_ context.Co
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_IxFacilityEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_IxFacilityEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxFacilityEdge", field.Name)
+			return ec.childFields_IxFacilityEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9902,17 +9519,20 @@ func (ec *executionContext) _IxFacilityConnection_pageInfo(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacilityConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacilityConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacilityConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxFacilityConnection",
@@ -9920,17 +9540,7 @@ func (ec *executionContext) fieldContext_IxFacilityConnection_pageInfo(_ context
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -9941,28 +9551,22 @@ func (ec *executionContext) _IxFacilityConnection_totalCount(ctx context.Context
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacilityConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacilityConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacilityConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacilityConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacilityConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _IxFacilityEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.IxFacilityEdge) (ret graphql.Marshaler) {
@@ -9970,17 +9574,20 @@ func (ec *executionContext) _IxFacilityEdge_node(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacilityEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacilityEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOIxFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacility,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxFacility) graphql.Marshaler {
+			return ec.marshalOIxFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacility(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacilityEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxFacilityEdge",
@@ -9988,31 +9595,7 @@ func (ec *executionContext) fieldContext_IxFacilityEdge_node(_ context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_IxFacility_facID(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxFacility_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_IxFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_IxFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_IxFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_IxFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_IxFacility_facility(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxFacility_internetExchange(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxFacility", field.Name)
+			return ec.childFields_IxFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -10023,28 +9606,22 @@ func (ec *executionContext) _IxFacilityEdge_cursor(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxFacilityEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxFacilityEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxFacilityEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxFacilityEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxFacilityEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_id(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10052,28 +9629,22 @@ func (ec *executionContext) _IxLan_id(ctx context.Context, field graphql.Collect
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_ixID(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10081,28 +9652,22 @@ func (ec *executionContext) _IxLan_ixID(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_ixID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_ixID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_ixID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_arpSponge(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10110,28 +9675,22 @@ func (ec *executionContext) _IxLan_arpSponge(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_arpSponge,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_arpSponge(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ArpSponge, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_arpSponge(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_descr(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10139,28 +9698,22 @@ func (ec *executionContext) _IxLan_descr(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_descr,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_descr(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Descr, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_descr(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_dot1qSupport(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10168,28 +9721,22 @@ func (ec *executionContext) _IxLan_dot1qSupport(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_dot1qSupport,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_dot1qSupport(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Dot1qSupport, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_dot1qSupport(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_ixfIxpImportEnabled(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10197,28 +9744,22 @@ func (ec *executionContext) _IxLan_ixfIxpImportEnabled(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_ixfIxpImportEnabled,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_ixfIxpImportEnabled(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxfIxpImportEnabled, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_ixfIxpImportEnabled(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_ixfIxpMemberListURL(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10226,28 +9767,22 @@ func (ec *executionContext) _IxLan_ixfIxpMemberListURL(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_ixfIxpMemberListURL,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_ixfIxpMemberListURL(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return ec.Resolvers.IxLan().IxfIxpMemberListURL(ctx, obj)
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_ixfIxpMemberListURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, true, true, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_ixfIxpMemberListURLVisible(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10255,28 +9790,22 @@ func (ec *executionContext) _IxLan_ixfIxpMemberListURLVisible(ctx context.Contex
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_ixfIxpMemberListURLVisible,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_ixfIxpMemberListURLVisible(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxfIxpMemberListURLVisible, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_ixfIxpMemberListURLVisible(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_mtu(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10284,28 +9813,22 @@ func (ec *executionContext) _IxLan_mtu(ctx context.Context, field graphql.Collec
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_mtu,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_mtu(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Mtu, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_mtu(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_name(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10313,28 +9836,22 @@ func (ec *executionContext) _IxLan_name(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_rsAsn(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10342,28 +9859,22 @@ func (ec *executionContext) _IxLan_rsAsn(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_rsAsn,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_rsAsn(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.RsAsn, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_rsAsn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_created(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10371,28 +9882,22 @@ func (ec *executionContext) _IxLan_created(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_updated(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10400,28 +9905,22 @@ func (ec *executionContext) _IxLan_updated(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_status(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10429,28 +9928,22 @@ func (ec *executionContext) _IxLan_status(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxLan_internetExchange(ctx context.Context, field graphql.CollectedField, obj *ent.IxLan) (ret graphql.Marshaler) {
@@ -10458,17 +9951,20 @@ func (ec *executionContext) _IxLan_internetExchange(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_internetExchange,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_internetExchange(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InternetExchange(ctx)
 		},
 		nil,
-		ec.marshalOInternetExchange2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchange,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.InternetExchange) graphql.Marshaler {
+			return ec.marshalOInternetExchange2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchange(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_internetExchange(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxLan",
@@ -10476,85 +9972,7 @@ func (ec *executionContext) fieldContext_IxLan_internetExchange(_ context.Contex
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_InternetExchange_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_InternetExchange_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_InternetExchange_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_InternetExchange_city(ctx, field)
-			case "country":
-				return ec.fieldContext_InternetExchange_country(ctx, field)
-			case "ixfLastImport":
-				return ec.fieldContext_InternetExchange_ixfLastImport(ctx, field)
-			case "ixfNetCount":
-				return ec.fieldContext_InternetExchange_ixfNetCount(ctx, field)
-			case "logo":
-				return ec.fieldContext_InternetExchange_logo(ctx, field)
-			case "media":
-				return ec.fieldContext_InternetExchange_media(ctx, field)
-			case "name":
-				return ec.fieldContext_InternetExchange_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_InternetExchange_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_InternetExchange_notes(ctx, field)
-			case "policyEmail":
-				return ec.fieldContext_InternetExchange_policyEmail(ctx, field)
-			case "policyPhone":
-				return ec.fieldContext_InternetExchange_policyPhone(ctx, field)
-			case "protoIpv6":
-				return ec.fieldContext_InternetExchange_protoIpv6(ctx, field)
-			case "protoMulticast":
-				return ec.fieldContext_InternetExchange_protoMulticast(ctx, field)
-			case "protoUnicast":
-				return ec.fieldContext_InternetExchange_protoUnicast(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_InternetExchange_regionContinent(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_InternetExchange_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_InternetExchange_salesPhone(ctx, field)
-			case "serviceLevel":
-				return ec.fieldContext_InternetExchange_serviceLevel(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_InternetExchange_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_InternetExchange_statusDashboard(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_InternetExchange_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_InternetExchange_techPhone(ctx, field)
-			case "terms":
-				return ec.fieldContext_InternetExchange_terms(ctx, field)
-			case "urlStats":
-				return ec.fieldContext_InternetExchange_urlStats(ctx, field)
-			case "website":
-				return ec.fieldContext_InternetExchange_website(ctx, field)
-			case "netCount":
-				return ec.fieldContext_InternetExchange_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_InternetExchange_facCount(ctx, field)
-			case "ixfImportRequest":
-				return ec.fieldContext_InternetExchange_ixfImportRequest(ctx, field)
-			case "ixfImportRequestStatus":
-				return ec.fieldContext_InternetExchange_ixfImportRequestStatus(ctx, field)
-			case "created":
-				return ec.fieldContext_InternetExchange_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_InternetExchange_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_InternetExchange_status(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_InternetExchange_ixFacilities(ctx, field)
-			case "ixLans":
-				return ec.fieldContext_InternetExchange_ixLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_InternetExchange_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InternetExchange", field.Name)
+			return ec.childFields_InternetExchange(ctx, field)
 		},
 	}
 	return fc, nil
@@ -10565,17 +9983,20 @@ func (ec *executionContext) _IxLan_ixPrefixes(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_ixPrefixes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_ixPrefixes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxPrefixes(ctx)
 		},
 		nil,
-		ec.marshalOIxPrefix2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxPrefix) graphql.Marshaler {
+			return ec.marshalOIxPrefix2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_ixPrefixes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxLan",
@@ -10583,27 +10004,7 @@ func (ec *executionContext) fieldContext_IxLan_ixPrefixes(_ context.Context, fie
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxPrefix_id(ctx, field)
-			case "ixlanID":
-				return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
-			case "inDfz":
-				return ec.fieldContext_IxPrefix_inDfz(ctx, field)
-			case "prefix":
-				return ec.fieldContext_IxPrefix_prefix(ctx, field)
-			case "protocol":
-				return ec.fieldContext_IxPrefix_protocol(ctx, field)
-			case "created":
-				return ec.fieldContext_IxPrefix_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxPrefix_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxPrefix_status(ctx, field)
-			case "ixLan":
-				return ec.fieldContext_IxPrefix_ixLan(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxPrefix", field.Name)
+			return ec.childFields_IxPrefix(ctx, field)
 		},
 	}
 	return fc, nil
@@ -10614,17 +10015,20 @@ func (ec *executionContext) _IxLan_networkIxLans(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLan_networkIxLans,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLan_networkIxLans(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetworkIxLans(ctx)
 		},
 		nil,
-		ec.marshalONetworkIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkIxLan) graphql.Marshaler {
+			return ec.marshalONetworkIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLan_networkIxLans(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxLan",
@@ -10632,49 +10036,7 @@ func (ec *executionContext) fieldContext_IxLan_networkIxLans(_ context.Context, 
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkIxLan_id(ctx, field)
-			case "ixSideID":
-				return ec.fieldContext_NetworkIxLan_ixSideID(ctx, field)
-			case "ixlanID":
-				return ec.fieldContext_NetworkIxLan_ixlanID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkIxLan_netID(ctx, field)
-			case "netSideID":
-				return ec.fieldContext_NetworkIxLan_netSideID(ctx, field)
-			case "asn":
-				return ec.fieldContext_NetworkIxLan_asn(ctx, field)
-			case "bfdSupport":
-				return ec.fieldContext_NetworkIxLan_bfdSupport(ctx, field)
-			case "ipaddr4":
-				return ec.fieldContext_NetworkIxLan_ipaddr4(ctx, field)
-			case "ipaddr6":
-				return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
-			case "isRsPeer":
-				return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
-			case "notes":
-				return ec.fieldContext_NetworkIxLan_notes(ctx, field)
-			case "operational":
-				return ec.fieldContext_NetworkIxLan_operational(ctx, field)
-			case "speed":
-				return ec.fieldContext_NetworkIxLan_speed(ctx, field)
-			case "ixID":
-				return ec.fieldContext_NetworkIxLan_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkIxLan_name(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkIxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkIxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkIxLan_status(ctx, field)
-			case "ixLan":
-				return ec.fieldContext_NetworkIxLan_ixLan(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkIxLan_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkIxLan", field.Name)
+			return ec.childFields_NetworkIxLan(ctx, field)
 		},
 	}
 	return fc, nil
@@ -10685,17 +10047,20 @@ func (ec *executionContext) _IxLanConnection_edges(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLanConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLanConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOIxLanEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxLanEdge) graphql.Marshaler {
+			return ec.marshalOIxLanEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLanConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxLanConnection",
@@ -10703,13 +10068,7 @@ func (ec *executionContext) fieldContext_IxLanConnection_edges(_ context.Context
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_IxLanEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_IxLanEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxLanEdge", field.Name)
+			return ec.childFields_IxLanEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -10720,17 +10079,20 @@ func (ec *executionContext) _IxLanConnection_pageInfo(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLanConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLanConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLanConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxLanConnection",
@@ -10738,17 +10100,7 @@ func (ec *executionContext) fieldContext_IxLanConnection_pageInfo(_ context.Cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -10759,28 +10111,22 @@ func (ec *executionContext) _IxLanConnection_totalCount(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLanConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLanConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLanConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLanConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLanConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _IxLanEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.IxLanEdge) (ret graphql.Marshaler) {
@@ -10788,17 +10134,20 @@ func (ec *executionContext) _IxLanEdge_node(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLanEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLanEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLan,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxLan) graphql.Marshaler {
+			return ec.marshalOIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLan(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLanEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxLanEdge",
@@ -10806,43 +10155,7 @@ func (ec *executionContext) fieldContext_IxLanEdge_node(_ context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxLan_id(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxLan_ixID(ctx, field)
-			case "arpSponge":
-				return ec.fieldContext_IxLan_arpSponge(ctx, field)
-			case "descr":
-				return ec.fieldContext_IxLan_descr(ctx, field)
-			case "dot1qSupport":
-				return ec.fieldContext_IxLan_dot1qSupport(ctx, field)
-			case "ixfIxpImportEnabled":
-				return ec.fieldContext_IxLan_ixfIxpImportEnabled(ctx, field)
-			case "ixfIxpMemberListURL":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURL(ctx, field)
-			case "ixfIxpMemberListURLVisible":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURLVisible(ctx, field)
-			case "mtu":
-				return ec.fieldContext_IxLan_mtu(ctx, field)
-			case "name":
-				return ec.fieldContext_IxLan_name(ctx, field)
-			case "rsAsn":
-				return ec.fieldContext_IxLan_rsAsn(ctx, field)
-			case "created":
-				return ec.fieldContext_IxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxLan_status(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxLan_internetExchange(ctx, field)
-			case "ixPrefixes":
-				return ec.fieldContext_IxLan_ixPrefixes(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_IxLan_networkIxLans(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxLan", field.Name)
+			return ec.childFields_IxLan(ctx, field)
 		},
 	}
 	return fc, nil
@@ -10853,28 +10166,22 @@ func (ec *executionContext) _IxLanEdge_cursor(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxLanEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxLanEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxLanEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxLanEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxLanEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_id(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -10882,28 +10189,22 @@ func (ec *executionContext) _IxPrefix_id(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_ixlanID(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -10911,28 +10212,22 @@ func (ec *executionContext) _IxPrefix_ixlanID(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_ixlanID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxlanID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_ixlanID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_inDfz(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -10940,28 +10235,22 @@ func (ec *executionContext) _IxPrefix_inDfz(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_inDfz,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_inDfz(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InDfz, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_inDfz(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_prefix(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -10969,28 +10258,22 @@ func (ec *executionContext) _IxPrefix_prefix(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_prefix,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_prefix(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Prefix, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_prefix(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_protocol(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -10998,28 +10281,22 @@ func (ec *executionContext) _IxPrefix_protocol(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_protocol,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_protocol(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Protocol, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_protocol(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_created(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -11027,28 +10304,22 @@ func (ec *executionContext) _IxPrefix_created(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_updated(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -11056,28 +10327,22 @@ func (ec *executionContext) _IxPrefix_updated(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_status(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -11085,28 +10350,22 @@ func (ec *executionContext) _IxPrefix_status(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefix",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefix", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefix_ixLan(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefix) (ret graphql.Marshaler) {
@@ -11114,17 +10373,20 @@ func (ec *executionContext) _IxPrefix_ixLan(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefix_ixLan,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefix_ixLan(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxLan(ctx)
 		},
 		nil,
-		ec.marshalOIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLan,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxLan) graphql.Marshaler {
+			return ec.marshalOIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLan(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefix_ixLan(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxPrefix",
@@ -11132,43 +10394,7 @@ func (ec *executionContext) fieldContext_IxPrefix_ixLan(_ context.Context, field
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxLan_id(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxLan_ixID(ctx, field)
-			case "arpSponge":
-				return ec.fieldContext_IxLan_arpSponge(ctx, field)
-			case "descr":
-				return ec.fieldContext_IxLan_descr(ctx, field)
-			case "dot1qSupport":
-				return ec.fieldContext_IxLan_dot1qSupport(ctx, field)
-			case "ixfIxpImportEnabled":
-				return ec.fieldContext_IxLan_ixfIxpImportEnabled(ctx, field)
-			case "ixfIxpMemberListURL":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURL(ctx, field)
-			case "ixfIxpMemberListURLVisible":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURLVisible(ctx, field)
-			case "mtu":
-				return ec.fieldContext_IxLan_mtu(ctx, field)
-			case "name":
-				return ec.fieldContext_IxLan_name(ctx, field)
-			case "rsAsn":
-				return ec.fieldContext_IxLan_rsAsn(ctx, field)
-			case "created":
-				return ec.fieldContext_IxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxLan_status(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxLan_internetExchange(ctx, field)
-			case "ixPrefixes":
-				return ec.fieldContext_IxLan_ixPrefixes(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_IxLan_networkIxLans(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxLan", field.Name)
+			return ec.childFields_IxLan(ctx, field)
 		},
 	}
 	return fc, nil
@@ -11179,17 +10405,20 @@ func (ec *executionContext) _IxPrefixConnection_edges(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefixConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefixConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOIxPrefixEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxPrefixEdge) graphql.Marshaler {
+			return ec.marshalOIxPrefixEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefixConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxPrefixConnection",
@@ -11197,13 +10426,7 @@ func (ec *executionContext) fieldContext_IxPrefixConnection_edges(_ context.Cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_IxPrefixEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_IxPrefixEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxPrefixEdge", field.Name)
+			return ec.childFields_IxPrefixEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -11214,17 +10437,20 @@ func (ec *executionContext) _IxPrefixConnection_pageInfo(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefixConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefixConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefixConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxPrefixConnection",
@@ -11232,17 +10458,7 @@ func (ec *executionContext) fieldContext_IxPrefixConnection_pageInfo(_ context.C
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -11253,28 +10469,22 @@ func (ec *executionContext) _IxPrefixConnection_totalCount(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefixConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefixConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefixConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefixConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefixConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _IxPrefixEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.IxPrefixEdge) (ret graphql.Marshaler) {
@@ -11282,17 +10492,20 @@ func (ec *executionContext) _IxPrefixEdge_node(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefixEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefixEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOIxPrefix2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefix,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxPrefix) graphql.Marshaler {
+			return ec.marshalOIxPrefix2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefix(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefixEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IxPrefixEdge",
@@ -11300,27 +10513,7 @@ func (ec *executionContext) fieldContext_IxPrefixEdge_node(_ context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxPrefix_id(ctx, field)
-			case "ixlanID":
-				return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
-			case "inDfz":
-				return ec.fieldContext_IxPrefix_inDfz(ctx, field)
-			case "prefix":
-				return ec.fieldContext_IxPrefix_prefix(ctx, field)
-			case "protocol":
-				return ec.fieldContext_IxPrefix_protocol(ctx, field)
-			case "created":
-				return ec.fieldContext_IxPrefix_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxPrefix_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxPrefix_status(ctx, field)
-			case "ixLan":
-				return ec.fieldContext_IxPrefix_ixLan(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxPrefix", field.Name)
+			return ec.childFields_IxPrefix(ctx, field)
 		},
 	}
 	return fc, nil
@@ -11331,28 +10524,22 @@ func (ec *executionContext) _IxPrefixEdge_cursor(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_IxPrefixEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_IxPrefixEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_IxPrefixEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "IxPrefixEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("IxPrefixEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _Network_id(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11360,28 +10547,22 @@ func (ec *executionContext) _Network_id(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Network_orgID(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11389,28 +10570,22 @@ func (ec *executionContext) _Network_orgID(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_orgID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_orgID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OrgID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_orgID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Network_aka(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11418,28 +10593,22 @@ func (ec *executionContext) _Network_aka(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_aka,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_aka(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Aka, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_aka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_allowIxpUpdate(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11447,28 +10616,22 @@ func (ec *executionContext) _Network_allowIxpUpdate(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_allowIxpUpdate,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.AllowIxpUpdate, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_allowIxpUpdate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Network_asn(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11476,28 +10639,22 @@ func (ec *executionContext) _Network_asn(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_asn,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_asn(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Asn, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_asn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoIpv6(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11505,28 +10662,22 @@ func (ec *executionContext) _Network_infoIpv6(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoIpv6,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoIpv6(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoIpv6, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoIpv6(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoMulticast(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11534,28 +10685,22 @@ func (ec *executionContext) _Network_infoMulticast(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoMulticast,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoMulticast(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoMulticast, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoMulticast(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoNeverViaRouteServers(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11563,28 +10708,22 @@ func (ec *executionContext) _Network_infoNeverViaRouteServers(ctx context.Contex
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoNeverViaRouteServers,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoNeverViaRouteServers, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoNeverViaRouteServers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoPrefixes4(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11592,28 +10731,22 @@ func (ec *executionContext) _Network_infoPrefixes4(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoPrefixes4,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoPrefixes4(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoPrefixes4, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoPrefixes4(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoPrefixes6(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11621,28 +10754,22 @@ func (ec *executionContext) _Network_infoPrefixes6(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoPrefixes6,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoPrefixes6(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoPrefixes6, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoPrefixes6(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoRatio(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11650,28 +10777,22 @@ func (ec *executionContext) _Network_infoRatio(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoRatio,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoRatio(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoRatio, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoRatio(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoScope(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11679,28 +10800,22 @@ func (ec *executionContext) _Network_infoScope(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoScope,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoScope(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoScope, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoScope(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoTraffic(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11708,28 +10823,22 @@ func (ec *executionContext) _Network_infoTraffic(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoTraffic,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoTraffic(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoTraffic, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoTraffic(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoType(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11737,28 +10846,22 @@ func (ec *executionContext) _Network_infoType(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoType,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoType(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoType, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoTypes(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11766,28 +10869,22 @@ func (ec *executionContext) _Network_infoTypes(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoTypes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoTypes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoTypes, nil
 		},
 		nil,
-		ec.marshalOString2ᚕstringᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalOString2ᚕstringᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_infoUnicast(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11795,28 +10892,22 @@ func (ec *executionContext) _Network_infoUnicast(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_infoUnicast,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_infoUnicast(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InfoUnicast, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_infoUnicast(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Network_irrAsSet(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11824,28 +10915,22 @@ func (ec *executionContext) _Network_irrAsSet(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_irrAsSet,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_irrAsSet(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IrrAsSet, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_irrAsSet(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_logo(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11853,28 +10938,22 @@ func (ec *executionContext) _Network_logo(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_logo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_logo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Logo, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_logo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_lookingGlass(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11882,28 +10961,22 @@ func (ec *executionContext) _Network_lookingGlass(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_lookingGlass,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_lookingGlass(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.LookingGlass, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_lookingGlass(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_name(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11911,28 +10984,22 @@ func (ec *executionContext) _Network_name(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_nameLong(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11940,28 +11007,22 @@ func (ec *executionContext) _Network_nameLong(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_nameLong,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_nameLong(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NameLong, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_nameLong(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_notes(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11969,28 +11030,22 @@ func (ec *executionContext) _Network_notes(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_notes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_notes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Notes, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_policyContracts(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -11998,28 +11053,22 @@ func (ec *executionContext) _Network_policyContracts(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_policyContracts,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_policyContracts(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PolicyContracts, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_policyContracts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_policyGeneral(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12027,28 +11076,22 @@ func (ec *executionContext) _Network_policyGeneral(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_policyGeneral,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_policyGeneral(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PolicyGeneral, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_policyGeneral(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_policyLocations(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12056,28 +11099,22 @@ func (ec *executionContext) _Network_policyLocations(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_policyLocations,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_policyLocations(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PolicyLocations, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_policyLocations(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_policyRatio(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12085,28 +11122,22 @@ func (ec *executionContext) _Network_policyRatio(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_policyRatio,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_policyRatio(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PolicyRatio, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_policyRatio(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _Network_policyURL(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12114,28 +11145,22 @@ func (ec *executionContext) _Network_policyURL(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_policyURL,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_policyURL(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PolicyURL, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_policyURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_rirStatus(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12143,28 +11168,22 @@ func (ec *executionContext) _Network_rirStatus(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_rirStatus,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_rirStatus(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.RirStatus, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_rirStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_rirStatusUpdated(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12172,28 +11191,22 @@ func (ec *executionContext) _Network_rirStatusUpdated(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_rirStatusUpdated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.RirStatusUpdated, nil
 		},
 		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_rirStatusUpdated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Network_routeServer(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12201,28 +11214,22 @@ func (ec *executionContext) _Network_routeServer(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_routeServer,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_routeServer(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.RouteServer, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_routeServer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_socialMedia(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12230,17 +11237,20 @@ func (ec *executionContext) _Network_socialMedia(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_socialMedia,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_socialMedia(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []schematypes.SocialMedia) graphql.Marshaler {
+			return ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_socialMedia(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Network",
@@ -12248,13 +11258,7 @@ func (ec *executionContext) fieldContext_Network_socialMedia(_ context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "service":
-				return ec.fieldContext_SocialMedia_service(ctx, field)
-			case "identifier":
-				return ec.fieldContext_SocialMedia_identifier(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SocialMedia", field.Name)
+			return ec.childFields_SocialMedia(ctx, field)
 		},
 	}
 	return fc, nil
@@ -12265,28 +11269,22 @@ func (ec *executionContext) _Network_statusDashboard(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_statusDashboard,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_statusDashboard(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.StatusDashboard, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_statusDashboard(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_website(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12294,28 +11292,22 @@ func (ec *executionContext) _Network_website(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_website,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_website(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Website, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_website(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_ixCount(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12323,28 +11315,22 @@ func (ec *executionContext) _Network_ixCount(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_ixCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_ixCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_ixCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Network_facCount(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12352,28 +11338,22 @@ func (ec *executionContext) _Network_facCount(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_facCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_facCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.FacCount, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_facCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _Network_netixlanUpdated(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12381,28 +11361,22 @@ func (ec *executionContext) _Network_netixlanUpdated(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_netixlanUpdated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_netixlanUpdated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetixlanUpdated, nil
 		},
 		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_netixlanUpdated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Network_netfacUpdated(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12410,28 +11384,22 @@ func (ec *executionContext) _Network_netfacUpdated(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_netfacUpdated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_netfacUpdated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetfacUpdated, nil
 		},
 		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_netfacUpdated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Network_pocUpdated(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12439,28 +11407,22 @@ func (ec *executionContext) _Network_pocUpdated(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_pocUpdated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_pocUpdated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PocUpdated, nil
 		},
 		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_pocUpdated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Network_created(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12468,28 +11430,22 @@ func (ec *executionContext) _Network_created(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Network_updated(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12497,28 +11453,22 @@ func (ec *executionContext) _Network_updated(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Network_status(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12526,28 +11476,22 @@ func (ec *executionContext) _Network_status(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Network",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Network_networkFacilities(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
@@ -12555,17 +11499,20 @@ func (ec *executionContext) _Network_networkFacilities(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_networkFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_networkFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetworkFacilities(ctx)
 		},
 		nil,
-		ec.marshalONetworkFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkFacility) graphql.Marshaler {
+			return ec.marshalONetworkFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_networkFacilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Network",
@@ -12573,33 +11520,7 @@ func (ec *executionContext) fieldContext_Network_networkFacilities(_ context.Con
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_NetworkFacility_facID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkFacility_netID(ctx, field)
-			case "localAsn":
-				return ec.fieldContext_NetworkFacility_localAsn(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_NetworkFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_NetworkFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_NetworkFacility_facility(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkFacility_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkFacility", field.Name)
+			return ec.childFields_NetworkFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -12610,17 +11531,20 @@ func (ec *executionContext) _Network_networkIxLans(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_networkIxLans,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_networkIxLans(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetworkIxLans(ctx)
 		},
 		nil,
-		ec.marshalONetworkIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkIxLan) graphql.Marshaler {
+			return ec.marshalONetworkIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_networkIxLans(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Network",
@@ -12628,49 +11552,7 @@ func (ec *executionContext) fieldContext_Network_networkIxLans(_ context.Context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkIxLan_id(ctx, field)
-			case "ixSideID":
-				return ec.fieldContext_NetworkIxLan_ixSideID(ctx, field)
-			case "ixlanID":
-				return ec.fieldContext_NetworkIxLan_ixlanID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkIxLan_netID(ctx, field)
-			case "netSideID":
-				return ec.fieldContext_NetworkIxLan_netSideID(ctx, field)
-			case "asn":
-				return ec.fieldContext_NetworkIxLan_asn(ctx, field)
-			case "bfdSupport":
-				return ec.fieldContext_NetworkIxLan_bfdSupport(ctx, field)
-			case "ipaddr4":
-				return ec.fieldContext_NetworkIxLan_ipaddr4(ctx, field)
-			case "ipaddr6":
-				return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
-			case "isRsPeer":
-				return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
-			case "notes":
-				return ec.fieldContext_NetworkIxLan_notes(ctx, field)
-			case "operational":
-				return ec.fieldContext_NetworkIxLan_operational(ctx, field)
-			case "speed":
-				return ec.fieldContext_NetworkIxLan_speed(ctx, field)
-			case "ixID":
-				return ec.fieldContext_NetworkIxLan_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkIxLan_name(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkIxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkIxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkIxLan_status(ctx, field)
-			case "ixLan":
-				return ec.fieldContext_NetworkIxLan_ixLan(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkIxLan_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkIxLan", field.Name)
+			return ec.childFields_NetworkIxLan(ctx, field)
 		},
 	}
 	return fc, nil
@@ -12681,17 +11563,20 @@ func (ec *executionContext) _Network_organization(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_organization,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_organization(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Organization(ctx)
 		},
 		nil,
-		ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Organization) graphql.Marshaler {
+			return ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_organization(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Network",
@@ -12699,61 +11584,7 @@ func (ec *executionContext) fieldContext_Network_organization(_ context.Context,
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Organization_id(ctx, field)
-			case "address1":
-				return ec.fieldContext_Organization_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Organization_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Organization_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Organization_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Organization_country(ctx, field)
-			case "floor":
-				return ec.fieldContext_Organization_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Organization_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Organization_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Organization_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Organization_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Organization_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Organization_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Organization_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Organization_state(ctx, field)
-			case "suite":
-				return ec.fieldContext_Organization_suite(ctx, field)
-			case "website":
-				return ec.fieldContext_Organization_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "created":
-				return ec.fieldContext_Organization_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Organization_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Organization_status(ctx, field)
-			case "campuses":
-				return ec.fieldContext_Organization_campuses(ctx, field)
-			case "carriers":
-				return ec.fieldContext_Organization_carriers(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Organization_facilities(ctx, field)
-			case "internetExchanges":
-				return ec.fieldContext_Organization_internetExchanges(ctx, field)
-			case "networks":
-				return ec.fieldContext_Organization_networks(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+			return ec.childFields_Organization(ctx, field)
 		},
 	}
 	return fc, nil
@@ -12764,17 +11595,20 @@ func (ec *executionContext) _Network_pocs(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Network_pocs,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_pocs(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Pocs(ctx)
 		},
 		nil,
-		ec.marshalOPoc2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Poc) graphql.Marshaler {
+			return ec.marshalOPoc2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Network_pocs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Network",
@@ -12782,33 +11616,7 @@ func (ec *executionContext) fieldContext_Network_pocs(_ context.Context, field g
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Poc_id(ctx, field)
-			case "netID":
-				return ec.fieldContext_Poc_netID(ctx, field)
-			case "email":
-				return ec.fieldContext_Poc_email(ctx, field)
-			case "name":
-				return ec.fieldContext_Poc_name(ctx, field)
-			case "phone":
-				return ec.fieldContext_Poc_phone(ctx, field)
-			case "role":
-				return ec.fieldContext_Poc_role(ctx, field)
-			case "url":
-				return ec.fieldContext_Poc_url(ctx, field)
-			case "visible":
-				return ec.fieldContext_Poc_visible(ctx, field)
-			case "created":
-				return ec.fieldContext_Poc_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Poc_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Poc_status(ctx, field)
-			case "network":
-				return ec.fieldContext_Poc_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Poc", field.Name)
+			return ec.childFields_Poc(ctx, field)
 		},
 	}
 	return fc, nil
@@ -12819,17 +11627,20 @@ func (ec *executionContext) _NetworkConnection_edges(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalONetworkEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkEdge) graphql.Marshaler {
+			return ec.marshalONetworkEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkConnection",
@@ -12837,13 +11648,7 @@ func (ec *executionContext) fieldContext_NetworkConnection_edges(_ context.Conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_NetworkEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_NetworkEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkEdge", field.Name)
+			return ec.childFields_NetworkEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -12854,17 +11659,20 @@ func (ec *executionContext) _NetworkConnection_pageInfo(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkConnection",
@@ -12872,17 +11680,7 @@ func (ec *executionContext) fieldContext_NetworkConnection_pageInfo(_ context.Co
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -12893,28 +11691,22 @@ func (ec *executionContext) _NetworkConnection_totalCount(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkEdge) (ret graphql.Marshaler) {
@@ -12922,17 +11714,20 @@ func (ec *executionContext) _NetworkEdge_node(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Network) graphql.Marshaler {
+			return ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkEdge",
@@ -12940,99 +11735,7 @@ func (ec *executionContext) fieldContext_NetworkEdge_node(_ context.Context, fie
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Network_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Network_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Network_aka(ctx, field)
-			case "allowIxpUpdate":
-				return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
-			case "asn":
-				return ec.fieldContext_Network_asn(ctx, field)
-			case "infoIpv6":
-				return ec.fieldContext_Network_infoIpv6(ctx, field)
-			case "infoMulticast":
-				return ec.fieldContext_Network_infoMulticast(ctx, field)
-			case "infoNeverViaRouteServers":
-				return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
-			case "infoPrefixes4":
-				return ec.fieldContext_Network_infoPrefixes4(ctx, field)
-			case "infoPrefixes6":
-				return ec.fieldContext_Network_infoPrefixes6(ctx, field)
-			case "infoRatio":
-				return ec.fieldContext_Network_infoRatio(ctx, field)
-			case "infoScope":
-				return ec.fieldContext_Network_infoScope(ctx, field)
-			case "infoTraffic":
-				return ec.fieldContext_Network_infoTraffic(ctx, field)
-			case "infoType":
-				return ec.fieldContext_Network_infoType(ctx, field)
-			case "infoTypes":
-				return ec.fieldContext_Network_infoTypes(ctx, field)
-			case "infoUnicast":
-				return ec.fieldContext_Network_infoUnicast(ctx, field)
-			case "irrAsSet":
-				return ec.fieldContext_Network_irrAsSet(ctx, field)
-			case "logo":
-				return ec.fieldContext_Network_logo(ctx, field)
-			case "lookingGlass":
-				return ec.fieldContext_Network_lookingGlass(ctx, field)
-			case "name":
-				return ec.fieldContext_Network_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Network_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Network_notes(ctx, field)
-			case "policyContracts":
-				return ec.fieldContext_Network_policyContracts(ctx, field)
-			case "policyGeneral":
-				return ec.fieldContext_Network_policyGeneral(ctx, field)
-			case "policyLocations":
-				return ec.fieldContext_Network_policyLocations(ctx, field)
-			case "policyRatio":
-				return ec.fieldContext_Network_policyRatio(ctx, field)
-			case "policyURL":
-				return ec.fieldContext_Network_policyURL(ctx, field)
-			case "rirStatus":
-				return ec.fieldContext_Network_rirStatus(ctx, field)
-			case "rirStatusUpdated":
-				return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
-			case "routeServer":
-				return ec.fieldContext_Network_routeServer(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Network_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Network_statusDashboard(ctx, field)
-			case "website":
-				return ec.fieldContext_Network_website(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Network_ixCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Network_facCount(ctx, field)
-			case "netixlanUpdated":
-				return ec.fieldContext_Network_netixlanUpdated(ctx, field)
-			case "netfacUpdated":
-				return ec.fieldContext_Network_netfacUpdated(ctx, field)
-			case "pocUpdated":
-				return ec.fieldContext_Network_pocUpdated(ctx, field)
-			case "created":
-				return ec.fieldContext_Network_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Network_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Network_status(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Network_networkFacilities(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_Network_networkIxLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_Network_organization(ctx, field)
-			case "pocs":
-				return ec.fieldContext_Network_pocs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+			return ec.childFields_Network(ctx, field)
 		},
 	}
 	return fc, nil
@@ -13043,28 +11746,22 @@ func (ec *executionContext) _NetworkEdge_cursor(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_id(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13072,28 +11769,22 @@ func (ec *executionContext) _NetworkFacility_id(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_facID(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13101,28 +11792,22 @@ func (ec *executionContext) _NetworkFacility_facID(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_facID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_facID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.FacID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_facID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_netID(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13130,28 +11815,22 @@ func (ec *executionContext) _NetworkFacility_netID(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_netID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_netID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_netID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_localAsn(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13159,28 +11838,22 @@ func (ec *executionContext) _NetworkFacility_localAsn(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_localAsn,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_localAsn(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.LocalAsn, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_localAsn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_name(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13188,28 +11861,22 @@ func (ec *executionContext) _NetworkFacility_name(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_city(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13217,28 +11884,22 @@ func (ec *executionContext) _NetworkFacility_city(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_city,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_city(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.City, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_country(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13246,28 +11907,22 @@ func (ec *executionContext) _NetworkFacility_country(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_country,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_country(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Country, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_created(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13275,28 +11930,22 @@ func (ec *executionContext) _NetworkFacility_created(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_updated(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13304,28 +11953,22 @@ func (ec *executionContext) _NetworkFacility_updated(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_status(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13333,28 +11976,22 @@ func (ec *executionContext) _NetworkFacility_status(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacility",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacility", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacility_facility(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacility) (ret graphql.Marshaler) {
@@ -13362,17 +11999,20 @@ func (ec *executionContext) _NetworkFacility_facility(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_facility,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_facility(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Facility(ctx)
 		},
 		nil,
-		ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Facility) graphql.Marshaler {
+			return ec.marshalOFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacility(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_facility(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkFacility",
@@ -13380,97 +12020,7 @@ func (ec *executionContext) fieldContext_NetworkFacility_facility(_ context.Cont
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Facility_id(ctx, field)
-			case "campusID":
-				return ec.fieldContext_Facility_campusID(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Facility_orgID(ctx, field)
-			case "address1":
-				return ec.fieldContext_Facility_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Facility_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Facility_aka(ctx, field)
-			case "availableVoltageServices":
-				return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
-			case "city":
-				return ec.fieldContext_Facility_city(ctx, field)
-			case "clli":
-				return ec.fieldContext_Facility_clli(ctx, field)
-			case "country":
-				return ec.fieldContext_Facility_country(ctx, field)
-			case "diverseServingSubstations":
-				return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
-			case "floor":
-				return ec.fieldContext_Facility_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Facility_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Facility_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Facility_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Facility_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Facility_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Facility_notes(ctx, field)
-			case "npanxx":
-				return ec.fieldContext_Facility_npanxx(ctx, field)
-			case "property":
-				return ec.fieldContext_Facility_property(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_Facility_regionContinent(ctx, field)
-			case "rencode":
-				return ec.fieldContext_Facility_rencode(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_Facility_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_Facility_salesPhone(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Facility_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Facility_state(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Facility_statusDashboard(ctx, field)
-			case "suite":
-				return ec.fieldContext_Facility_suite(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_Facility_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_Facility_techPhone(ctx, field)
-			case "website":
-				return ec.fieldContext_Facility_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Facility_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Facility_orgName(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Facility_netCount(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Facility_ixCount(ctx, field)
-			case "carrierCount":
-				return ec.fieldContext_Facility_carrierCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Facility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Facility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Facility_status(ctx, field)
-			case "campus":
-				return ec.fieldContext_Facility_campus(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Facility_carrierFacilities(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_Facility_ixFacilities(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Facility_networkFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Facility_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+			return ec.childFields_Facility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -13481,17 +12031,20 @@ func (ec *executionContext) _NetworkFacility_network(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacility_network,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacility_network(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Network(ctx)
 		},
 		nil,
-		ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Network) graphql.Marshaler {
+			return ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacility_network(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkFacility",
@@ -13499,99 +12052,7 @@ func (ec *executionContext) fieldContext_NetworkFacility_network(_ context.Conte
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Network_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Network_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Network_aka(ctx, field)
-			case "allowIxpUpdate":
-				return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
-			case "asn":
-				return ec.fieldContext_Network_asn(ctx, field)
-			case "infoIpv6":
-				return ec.fieldContext_Network_infoIpv6(ctx, field)
-			case "infoMulticast":
-				return ec.fieldContext_Network_infoMulticast(ctx, field)
-			case "infoNeverViaRouteServers":
-				return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
-			case "infoPrefixes4":
-				return ec.fieldContext_Network_infoPrefixes4(ctx, field)
-			case "infoPrefixes6":
-				return ec.fieldContext_Network_infoPrefixes6(ctx, field)
-			case "infoRatio":
-				return ec.fieldContext_Network_infoRatio(ctx, field)
-			case "infoScope":
-				return ec.fieldContext_Network_infoScope(ctx, field)
-			case "infoTraffic":
-				return ec.fieldContext_Network_infoTraffic(ctx, field)
-			case "infoType":
-				return ec.fieldContext_Network_infoType(ctx, field)
-			case "infoTypes":
-				return ec.fieldContext_Network_infoTypes(ctx, field)
-			case "infoUnicast":
-				return ec.fieldContext_Network_infoUnicast(ctx, field)
-			case "irrAsSet":
-				return ec.fieldContext_Network_irrAsSet(ctx, field)
-			case "logo":
-				return ec.fieldContext_Network_logo(ctx, field)
-			case "lookingGlass":
-				return ec.fieldContext_Network_lookingGlass(ctx, field)
-			case "name":
-				return ec.fieldContext_Network_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Network_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Network_notes(ctx, field)
-			case "policyContracts":
-				return ec.fieldContext_Network_policyContracts(ctx, field)
-			case "policyGeneral":
-				return ec.fieldContext_Network_policyGeneral(ctx, field)
-			case "policyLocations":
-				return ec.fieldContext_Network_policyLocations(ctx, field)
-			case "policyRatio":
-				return ec.fieldContext_Network_policyRatio(ctx, field)
-			case "policyURL":
-				return ec.fieldContext_Network_policyURL(ctx, field)
-			case "rirStatus":
-				return ec.fieldContext_Network_rirStatus(ctx, field)
-			case "rirStatusUpdated":
-				return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
-			case "routeServer":
-				return ec.fieldContext_Network_routeServer(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Network_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Network_statusDashboard(ctx, field)
-			case "website":
-				return ec.fieldContext_Network_website(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Network_ixCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Network_facCount(ctx, field)
-			case "netixlanUpdated":
-				return ec.fieldContext_Network_netixlanUpdated(ctx, field)
-			case "netfacUpdated":
-				return ec.fieldContext_Network_netfacUpdated(ctx, field)
-			case "pocUpdated":
-				return ec.fieldContext_Network_pocUpdated(ctx, field)
-			case "created":
-				return ec.fieldContext_Network_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Network_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Network_status(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Network_networkFacilities(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_Network_networkIxLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_Network_organization(ctx, field)
-			case "pocs":
-				return ec.fieldContext_Network_pocs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+			return ec.childFields_Network(ctx, field)
 		},
 	}
 	return fc, nil
@@ -13602,17 +12063,20 @@ func (ec *executionContext) _NetworkFacilityConnection_edges(ctx context.Context
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacilityConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacilityConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalONetworkFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkFacilityEdge) graphql.Marshaler {
+			return ec.marshalONetworkFacilityEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacilityConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkFacilityConnection",
@@ -13620,13 +12084,7 @@ func (ec *executionContext) fieldContext_NetworkFacilityConnection_edges(_ conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_NetworkFacilityEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_NetworkFacilityEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkFacilityEdge", field.Name)
+			return ec.childFields_NetworkFacilityEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -13637,17 +12095,20 @@ func (ec *executionContext) _NetworkFacilityConnection_pageInfo(ctx context.Cont
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacilityConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacilityConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacilityConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkFacilityConnection",
@@ -13655,17 +12116,7 @@ func (ec *executionContext) fieldContext_NetworkFacilityConnection_pageInfo(_ co
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -13676,28 +12127,22 @@ func (ec *executionContext) _NetworkFacilityConnection_totalCount(ctx context.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacilityConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacilityConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacilityConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacilityConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacilityConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkFacilityEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkFacilityEdge) (ret graphql.Marshaler) {
@@ -13705,17 +12150,20 @@ func (ec *executionContext) _NetworkFacilityEdge_node(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacilityEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacilityEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalONetworkFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacility,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.NetworkFacility) graphql.Marshaler {
+			return ec.marshalONetworkFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacility(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacilityEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkFacilityEdge",
@@ -13723,33 +12171,7 @@ func (ec *executionContext) fieldContext_NetworkFacilityEdge_node(_ context.Cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_NetworkFacility_facID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkFacility_netID(ctx, field)
-			case "localAsn":
-				return ec.fieldContext_NetworkFacility_localAsn(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_NetworkFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_NetworkFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_NetworkFacility_facility(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkFacility_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkFacility", field.Name)
+			return ec.childFields_NetworkFacility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -13760,28 +12182,22 @@ func (ec *executionContext) _NetworkFacilityEdge_cursor(ctx context.Context, fie
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkFacilityEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkFacilityEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkFacilityEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkFacilityEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkFacilityEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_id(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13789,28 +12205,22 @@ func (ec *executionContext) _NetworkIxLan_id(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_ixSideID(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13818,28 +12228,22 @@ func (ec *executionContext) _NetworkIxLan_ixSideID(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_ixSideID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_ixSideID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxSideID, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_ixSideID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_ixlanID(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13847,28 +12251,22 @@ func (ec *executionContext) _NetworkIxLan_ixlanID(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_ixlanID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_ixlanID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxlanID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_ixlanID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_netID(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13876,28 +12274,22 @@ func (ec *executionContext) _NetworkIxLan_netID(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_netID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_netID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_netID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_netSideID(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13905,28 +12297,22 @@ func (ec *executionContext) _NetworkIxLan_netSideID(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_netSideID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_netSideID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetSideID, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_netSideID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_asn(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13934,28 +12320,22 @@ func (ec *executionContext) _NetworkIxLan_asn(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_asn,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_asn(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Asn, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_asn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_bfdSupport(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13963,28 +12343,22 @@ func (ec *executionContext) _NetworkIxLan_bfdSupport(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_bfdSupport,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_bfdSupport(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.BfdSupport, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_bfdSupport(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_ipaddr4(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -13992,28 +12366,22 @@ func (ec *executionContext) _NetworkIxLan_ipaddr4(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_ipaddr4,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_ipaddr4(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Ipaddr4, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_ipaddr4(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_ipaddr6(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14021,28 +12389,22 @@ func (ec *executionContext) _NetworkIxLan_ipaddr6(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_ipaddr6,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Ipaddr6, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_ipaddr6(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_isRsPeer(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14050,28 +12412,22 @@ func (ec *executionContext) _NetworkIxLan_isRsPeer(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_isRsPeer,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IsRsPeer, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_isRsPeer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_notes(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14079,28 +12435,22 @@ func (ec *executionContext) _NetworkIxLan_notes(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_notes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_notes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Notes, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_operational(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14108,28 +12458,22 @@ func (ec *executionContext) _NetworkIxLan_operational(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_operational,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_operational(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Operational, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_operational(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_speed(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14137,28 +12481,22 @@ func (ec *executionContext) _NetworkIxLan_speed(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_speed,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_speed(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Speed, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_speed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_ixID(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14166,28 +12504,22 @@ func (ec *executionContext) _NetworkIxLan_ixID(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_ixID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_ixID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxID, nil
 		},
 		nil,
-		ec.marshalOInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalOInt2int(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_ixID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_name(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14195,28 +12527,22 @@ func (ec *executionContext) _NetworkIxLan_name(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_created(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14224,28 +12550,22 @@ func (ec *executionContext) _NetworkIxLan_created(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_updated(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14253,28 +12573,22 @@ func (ec *executionContext) _NetworkIxLan_updated(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_status(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14282,28 +12596,22 @@ func (ec *executionContext) _NetworkIxLan_status(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLan",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_ixLan(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -14311,17 +12619,20 @@ func (ec *executionContext) _NetworkIxLan_ixLan(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_ixLan,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_ixLan(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IxLan(ctx)
 		},
 		nil,
-		ec.marshalOIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLan,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxLan) graphql.Marshaler {
+			return ec.marshalOIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLan(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_ixLan(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkIxLan",
@@ -14329,43 +12640,7 @@ func (ec *executionContext) fieldContext_NetworkIxLan_ixLan(_ context.Context, f
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxLan_id(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxLan_ixID(ctx, field)
-			case "arpSponge":
-				return ec.fieldContext_IxLan_arpSponge(ctx, field)
-			case "descr":
-				return ec.fieldContext_IxLan_descr(ctx, field)
-			case "dot1qSupport":
-				return ec.fieldContext_IxLan_dot1qSupport(ctx, field)
-			case "ixfIxpImportEnabled":
-				return ec.fieldContext_IxLan_ixfIxpImportEnabled(ctx, field)
-			case "ixfIxpMemberListURL":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURL(ctx, field)
-			case "ixfIxpMemberListURLVisible":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURLVisible(ctx, field)
-			case "mtu":
-				return ec.fieldContext_IxLan_mtu(ctx, field)
-			case "name":
-				return ec.fieldContext_IxLan_name(ctx, field)
-			case "rsAsn":
-				return ec.fieldContext_IxLan_rsAsn(ctx, field)
-			case "created":
-				return ec.fieldContext_IxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxLan_status(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxLan_internetExchange(ctx, field)
-			case "ixPrefixes":
-				return ec.fieldContext_IxLan_ixPrefixes(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_IxLan_networkIxLans(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxLan", field.Name)
+			return ec.childFields_IxLan(ctx, field)
 		},
 	}
 	return fc, nil
@@ -14376,17 +12651,20 @@ func (ec *executionContext) _NetworkIxLan_network(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLan_network,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_network(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Network(ctx)
 		},
 		nil,
-		ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Network) graphql.Marshaler {
+			return ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLan_network(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkIxLan",
@@ -14394,99 +12672,7 @@ func (ec *executionContext) fieldContext_NetworkIxLan_network(_ context.Context,
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Network_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Network_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Network_aka(ctx, field)
-			case "allowIxpUpdate":
-				return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
-			case "asn":
-				return ec.fieldContext_Network_asn(ctx, field)
-			case "infoIpv6":
-				return ec.fieldContext_Network_infoIpv6(ctx, field)
-			case "infoMulticast":
-				return ec.fieldContext_Network_infoMulticast(ctx, field)
-			case "infoNeverViaRouteServers":
-				return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
-			case "infoPrefixes4":
-				return ec.fieldContext_Network_infoPrefixes4(ctx, field)
-			case "infoPrefixes6":
-				return ec.fieldContext_Network_infoPrefixes6(ctx, field)
-			case "infoRatio":
-				return ec.fieldContext_Network_infoRatio(ctx, field)
-			case "infoScope":
-				return ec.fieldContext_Network_infoScope(ctx, field)
-			case "infoTraffic":
-				return ec.fieldContext_Network_infoTraffic(ctx, field)
-			case "infoType":
-				return ec.fieldContext_Network_infoType(ctx, field)
-			case "infoTypes":
-				return ec.fieldContext_Network_infoTypes(ctx, field)
-			case "infoUnicast":
-				return ec.fieldContext_Network_infoUnicast(ctx, field)
-			case "irrAsSet":
-				return ec.fieldContext_Network_irrAsSet(ctx, field)
-			case "logo":
-				return ec.fieldContext_Network_logo(ctx, field)
-			case "lookingGlass":
-				return ec.fieldContext_Network_lookingGlass(ctx, field)
-			case "name":
-				return ec.fieldContext_Network_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Network_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Network_notes(ctx, field)
-			case "policyContracts":
-				return ec.fieldContext_Network_policyContracts(ctx, field)
-			case "policyGeneral":
-				return ec.fieldContext_Network_policyGeneral(ctx, field)
-			case "policyLocations":
-				return ec.fieldContext_Network_policyLocations(ctx, field)
-			case "policyRatio":
-				return ec.fieldContext_Network_policyRatio(ctx, field)
-			case "policyURL":
-				return ec.fieldContext_Network_policyURL(ctx, field)
-			case "rirStatus":
-				return ec.fieldContext_Network_rirStatus(ctx, field)
-			case "rirStatusUpdated":
-				return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
-			case "routeServer":
-				return ec.fieldContext_Network_routeServer(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Network_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Network_statusDashboard(ctx, field)
-			case "website":
-				return ec.fieldContext_Network_website(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Network_ixCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Network_facCount(ctx, field)
-			case "netixlanUpdated":
-				return ec.fieldContext_Network_netixlanUpdated(ctx, field)
-			case "netfacUpdated":
-				return ec.fieldContext_Network_netfacUpdated(ctx, field)
-			case "pocUpdated":
-				return ec.fieldContext_Network_pocUpdated(ctx, field)
-			case "created":
-				return ec.fieldContext_Network_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Network_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Network_status(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Network_networkFacilities(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_Network_networkIxLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_Network_organization(ctx, field)
-			case "pocs":
-				return ec.fieldContext_Network_pocs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+			return ec.childFields_Network(ctx, field)
 		},
 	}
 	return fc, nil
@@ -14497,17 +12683,20 @@ func (ec *executionContext) _NetworkIxLanConnection_edges(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLanConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLanConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalONetworkIxLanEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkIxLanEdge) graphql.Marshaler {
+			return ec.marshalONetworkIxLanEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLanConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkIxLanConnection",
@@ -14515,13 +12704,7 @@ func (ec *executionContext) fieldContext_NetworkIxLanConnection_edges(_ context.
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_NetworkIxLanEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_NetworkIxLanEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkIxLanEdge", field.Name)
+			return ec.childFields_NetworkIxLanEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -14532,17 +12715,20 @@ func (ec *executionContext) _NetworkIxLanConnection_pageInfo(ctx context.Context
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLanConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLanConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLanConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkIxLanConnection",
@@ -14550,17 +12736,7 @@ func (ec *executionContext) fieldContext_NetworkIxLanConnection_pageInfo(_ conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -14571,28 +12747,22 @@ func (ec *executionContext) _NetworkIxLanConnection_totalCount(ctx context.Conte
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLanConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLanConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLanConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLanConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLanConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLanEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLanEdge) (ret graphql.Marshaler) {
@@ -14600,17 +12770,20 @@ func (ec *executionContext) _NetworkIxLanEdge_node(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLanEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLanEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalONetworkIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLan,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.NetworkIxLan) graphql.Marshaler {
+			return ec.marshalONetworkIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLan(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLanEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "NetworkIxLanEdge",
@@ -14618,49 +12791,7 @@ func (ec *executionContext) fieldContext_NetworkIxLanEdge_node(_ context.Context
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkIxLan_id(ctx, field)
-			case "ixSideID":
-				return ec.fieldContext_NetworkIxLan_ixSideID(ctx, field)
-			case "ixlanID":
-				return ec.fieldContext_NetworkIxLan_ixlanID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkIxLan_netID(ctx, field)
-			case "netSideID":
-				return ec.fieldContext_NetworkIxLan_netSideID(ctx, field)
-			case "asn":
-				return ec.fieldContext_NetworkIxLan_asn(ctx, field)
-			case "bfdSupport":
-				return ec.fieldContext_NetworkIxLan_bfdSupport(ctx, field)
-			case "ipaddr4":
-				return ec.fieldContext_NetworkIxLan_ipaddr4(ctx, field)
-			case "ipaddr6":
-				return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
-			case "isRsPeer":
-				return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
-			case "notes":
-				return ec.fieldContext_NetworkIxLan_notes(ctx, field)
-			case "operational":
-				return ec.fieldContext_NetworkIxLan_operational(ctx, field)
-			case "speed":
-				return ec.fieldContext_NetworkIxLan_speed(ctx, field)
-			case "ixID":
-				return ec.fieldContext_NetworkIxLan_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkIxLan_name(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkIxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkIxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkIxLan_status(ctx, field)
-			case "ixLan":
-				return ec.fieldContext_NetworkIxLan_ixLan(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkIxLan_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkIxLan", field.Name)
+			return ec.childFields_NetworkIxLan(ctx, field)
 		},
 	}
 	return fc, nil
@@ -14671,28 +12802,22 @@ func (ec *executionContext) _NetworkIxLanEdge_cursor(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_NetworkIxLanEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLanEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_NetworkIxLanEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "NetworkIxLanEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("NetworkIxLanEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_id(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14700,28 +12825,22 @@ func (ec *executionContext) _Organization_id(ctx context.Context, field graphql.
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_address1(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14729,28 +12848,22 @@ func (ec *executionContext) _Organization_address1(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_address1,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_address1(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Address1, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_address1(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_address2(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14758,28 +12871,22 @@ func (ec *executionContext) _Organization_address2(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_address2,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_address2(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Address2, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_address2(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_aka(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14787,28 +12894,22 @@ func (ec *executionContext) _Organization_aka(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_aka,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_aka(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Aka, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_aka(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_city(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14816,28 +12917,22 @@ func (ec *executionContext) _Organization_city(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_city,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_city(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.City, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_country(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14845,28 +12940,22 @@ func (ec *executionContext) _Organization_country(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_country,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_country(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Country, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_floor(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14874,28 +12963,22 @@ func (ec *executionContext) _Organization_floor(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_floor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_floor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Floor, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_floor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_latitude(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14903,28 +12986,22 @@ func (ec *executionContext) _Organization_latitude(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_latitude,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_latitude(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Latitude, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		func(ctx context.Context, selections ast.SelectionSet, v *float64) graphql.Marshaler {
+			return ec.marshalOFloat2ᚖfloat64(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_latitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_logo(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14932,28 +13009,22 @@ func (ec *executionContext) _Organization_logo(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_logo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_logo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Logo, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_logo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_longitude(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14961,28 +13032,22 @@ func (ec *executionContext) _Organization_longitude(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_longitude,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_longitude(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Longitude, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		func(ctx context.Context, selections ast.SelectionSet, v *float64) graphql.Marshaler {
+			return ec.marshalOFloat2ᚖfloat64(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_longitude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_name(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -14990,28 +13055,22 @@ func (ec *executionContext) _Organization_name(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_nameLong(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15019,28 +13078,22 @@ func (ec *executionContext) _Organization_nameLong(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_nameLong,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_nameLong(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NameLong, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_nameLong(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_notes(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15048,28 +13101,22 @@ func (ec *executionContext) _Organization_notes(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_notes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_notes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Notes, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_socialMedia(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15077,17 +13124,20 @@ func (ec *executionContext) _Organization_socialMedia(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_socialMedia,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_socialMedia(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SocialMedia, nil
 		},
 		nil,
-		ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []schematypes.SocialMedia) graphql.Marshaler {
+			return ec.marshalOSocialMedia2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚋschematypesᚐSocialMediaᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_socialMedia(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Organization",
@@ -15095,13 +13145,7 @@ func (ec *executionContext) fieldContext_Organization_socialMedia(_ context.Cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "service":
-				return ec.fieldContext_SocialMedia_service(ctx, field)
-			case "identifier":
-				return ec.fieldContext_SocialMedia_identifier(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SocialMedia", field.Name)
+			return ec.childFields_SocialMedia(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15112,28 +13156,22 @@ func (ec *executionContext) _Organization_state(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_state,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_state(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.State, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_suite(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15141,28 +13179,22 @@ func (ec *executionContext) _Organization_suite(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_suite,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_suite(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Suite, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_suite(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_website(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15170,28 +13202,22 @@ func (ec *executionContext) _Organization_website(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_website,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_website(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Website, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_website(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_zipcode(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15199,28 +13225,22 @@ func (ec *executionContext) _Organization_zipcode(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_zipcode,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_zipcode(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Zipcode, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_zipcode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_created(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15228,28 +13248,22 @@ func (ec *executionContext) _Organization_created(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_updated(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15257,28 +13271,22 @@ func (ec *executionContext) _Organization_updated(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_status(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15286,28 +13294,22 @@ func (ec *executionContext) _Organization_status(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Organization",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Organization", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Organization_campuses(ctx context.Context, field graphql.CollectedField, obj *ent.Organization) (ret graphql.Marshaler) {
@@ -15315,17 +13317,20 @@ func (ec *executionContext) _Organization_campuses(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_campuses,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_campuses(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Campuses(ctx)
 		},
 		nil,
-		ec.marshalOCampus2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Campus) graphql.Marshaler {
+			return ec.marshalOCampus2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_campuses(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Organization",
@@ -15333,47 +13338,7 @@ func (ec *executionContext) fieldContext_Organization_campuses(_ context.Context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Campus_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Campus_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Campus_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Campus_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Campus_country(ctx, field)
-			case "logo":
-				return ec.fieldContext_Campus_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Campus_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Campus_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Campus_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Campus_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Campus_state(ctx, field)
-			case "website":
-				return ec.fieldContext_Campus_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Campus_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Campus_orgName(ctx, field)
-			case "created":
-				return ec.fieldContext_Campus_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Campus_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Campus_status(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Campus_facilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Campus_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Campus", field.Name)
+			return ec.childFields_Campus(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15384,17 +13349,20 @@ func (ec *executionContext) _Organization_carriers(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_carriers,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_carriers(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Carriers(ctx)
 		},
 		nil,
-		ec.marshalOCarrier2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Carrier) graphql.Marshaler {
+			return ec.marshalOCarrier2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_carriers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Organization",
@@ -15402,41 +13370,7 @@ func (ec *executionContext) fieldContext_Organization_carriers(_ context.Context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Carrier_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Carrier_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Carrier_aka(ctx, field)
-			case "logo":
-				return ec.fieldContext_Carrier_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Carrier_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Carrier_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Carrier_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Carrier_socialMedia(ctx, field)
-			case "website":
-				return ec.fieldContext_Carrier_website(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Carrier_orgName(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Carrier_facCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Carrier_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Carrier_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Carrier_status(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Carrier_carrierFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Carrier_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Carrier", field.Name)
+			return ec.childFields_Carrier(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15447,17 +13381,20 @@ func (ec *executionContext) _Organization_facilities(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_facilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_facilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Facilities(ctx)
 		},
 		nil,
-		ec.marshalOFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Facility) graphql.Marshaler {
+			return ec.marshalOFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_facilities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Organization",
@@ -15465,97 +13402,7 @@ func (ec *executionContext) fieldContext_Organization_facilities(_ context.Conte
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Facility_id(ctx, field)
-			case "campusID":
-				return ec.fieldContext_Facility_campusID(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Facility_orgID(ctx, field)
-			case "address1":
-				return ec.fieldContext_Facility_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Facility_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Facility_aka(ctx, field)
-			case "availableVoltageServices":
-				return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
-			case "city":
-				return ec.fieldContext_Facility_city(ctx, field)
-			case "clli":
-				return ec.fieldContext_Facility_clli(ctx, field)
-			case "country":
-				return ec.fieldContext_Facility_country(ctx, field)
-			case "diverseServingSubstations":
-				return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
-			case "floor":
-				return ec.fieldContext_Facility_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Facility_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Facility_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Facility_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Facility_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Facility_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Facility_notes(ctx, field)
-			case "npanxx":
-				return ec.fieldContext_Facility_npanxx(ctx, field)
-			case "property":
-				return ec.fieldContext_Facility_property(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_Facility_regionContinent(ctx, field)
-			case "rencode":
-				return ec.fieldContext_Facility_rencode(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_Facility_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_Facility_salesPhone(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Facility_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Facility_state(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Facility_statusDashboard(ctx, field)
-			case "suite":
-				return ec.fieldContext_Facility_suite(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_Facility_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_Facility_techPhone(ctx, field)
-			case "website":
-				return ec.fieldContext_Facility_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Facility_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Facility_orgName(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Facility_netCount(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Facility_ixCount(ctx, field)
-			case "carrierCount":
-				return ec.fieldContext_Facility_carrierCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Facility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Facility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Facility_status(ctx, field)
-			case "campus":
-				return ec.fieldContext_Facility_campus(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Facility_carrierFacilities(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_Facility_ixFacilities(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Facility_networkFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Facility_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+			return ec.childFields_Facility(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15566,17 +13413,20 @@ func (ec *executionContext) _Organization_internetExchanges(ctx context.Context,
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_internetExchanges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_internetExchanges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InternetExchanges(ctx)
 		},
 		nil,
-		ec.marshalOInternetExchange2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.InternetExchange) graphql.Marshaler {
+			return ec.marshalOInternetExchange2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_internetExchanges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Organization",
@@ -15584,85 +13434,7 @@ func (ec *executionContext) fieldContext_Organization_internetExchanges(_ contex
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_InternetExchange_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_InternetExchange_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_InternetExchange_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_InternetExchange_city(ctx, field)
-			case "country":
-				return ec.fieldContext_InternetExchange_country(ctx, field)
-			case "ixfLastImport":
-				return ec.fieldContext_InternetExchange_ixfLastImport(ctx, field)
-			case "ixfNetCount":
-				return ec.fieldContext_InternetExchange_ixfNetCount(ctx, field)
-			case "logo":
-				return ec.fieldContext_InternetExchange_logo(ctx, field)
-			case "media":
-				return ec.fieldContext_InternetExchange_media(ctx, field)
-			case "name":
-				return ec.fieldContext_InternetExchange_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_InternetExchange_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_InternetExchange_notes(ctx, field)
-			case "policyEmail":
-				return ec.fieldContext_InternetExchange_policyEmail(ctx, field)
-			case "policyPhone":
-				return ec.fieldContext_InternetExchange_policyPhone(ctx, field)
-			case "protoIpv6":
-				return ec.fieldContext_InternetExchange_protoIpv6(ctx, field)
-			case "protoMulticast":
-				return ec.fieldContext_InternetExchange_protoMulticast(ctx, field)
-			case "protoUnicast":
-				return ec.fieldContext_InternetExchange_protoUnicast(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_InternetExchange_regionContinent(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_InternetExchange_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_InternetExchange_salesPhone(ctx, field)
-			case "serviceLevel":
-				return ec.fieldContext_InternetExchange_serviceLevel(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_InternetExchange_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_InternetExchange_statusDashboard(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_InternetExchange_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_InternetExchange_techPhone(ctx, field)
-			case "terms":
-				return ec.fieldContext_InternetExchange_terms(ctx, field)
-			case "urlStats":
-				return ec.fieldContext_InternetExchange_urlStats(ctx, field)
-			case "website":
-				return ec.fieldContext_InternetExchange_website(ctx, field)
-			case "netCount":
-				return ec.fieldContext_InternetExchange_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_InternetExchange_facCount(ctx, field)
-			case "ixfImportRequest":
-				return ec.fieldContext_InternetExchange_ixfImportRequest(ctx, field)
-			case "ixfImportRequestStatus":
-				return ec.fieldContext_InternetExchange_ixfImportRequestStatus(ctx, field)
-			case "created":
-				return ec.fieldContext_InternetExchange_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_InternetExchange_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_InternetExchange_status(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_InternetExchange_ixFacilities(ctx, field)
-			case "ixLans":
-				return ec.fieldContext_InternetExchange_ixLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_InternetExchange_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InternetExchange", field.Name)
+			return ec.childFields_InternetExchange(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15673,17 +13445,20 @@ func (ec *executionContext) _Organization_networks(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Organization_networks,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Organization_networks(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Networks(ctx)
 		},
 		nil,
-		ec.marshalONetwork2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Network) graphql.Marshaler {
+			return ec.marshalONetwork2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Organization_networks(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Organization",
@@ -15691,99 +13466,7 @@ func (ec *executionContext) fieldContext_Organization_networks(_ context.Context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Network_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Network_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Network_aka(ctx, field)
-			case "allowIxpUpdate":
-				return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
-			case "asn":
-				return ec.fieldContext_Network_asn(ctx, field)
-			case "infoIpv6":
-				return ec.fieldContext_Network_infoIpv6(ctx, field)
-			case "infoMulticast":
-				return ec.fieldContext_Network_infoMulticast(ctx, field)
-			case "infoNeverViaRouteServers":
-				return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
-			case "infoPrefixes4":
-				return ec.fieldContext_Network_infoPrefixes4(ctx, field)
-			case "infoPrefixes6":
-				return ec.fieldContext_Network_infoPrefixes6(ctx, field)
-			case "infoRatio":
-				return ec.fieldContext_Network_infoRatio(ctx, field)
-			case "infoScope":
-				return ec.fieldContext_Network_infoScope(ctx, field)
-			case "infoTraffic":
-				return ec.fieldContext_Network_infoTraffic(ctx, field)
-			case "infoType":
-				return ec.fieldContext_Network_infoType(ctx, field)
-			case "infoTypes":
-				return ec.fieldContext_Network_infoTypes(ctx, field)
-			case "infoUnicast":
-				return ec.fieldContext_Network_infoUnicast(ctx, field)
-			case "irrAsSet":
-				return ec.fieldContext_Network_irrAsSet(ctx, field)
-			case "logo":
-				return ec.fieldContext_Network_logo(ctx, field)
-			case "lookingGlass":
-				return ec.fieldContext_Network_lookingGlass(ctx, field)
-			case "name":
-				return ec.fieldContext_Network_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Network_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Network_notes(ctx, field)
-			case "policyContracts":
-				return ec.fieldContext_Network_policyContracts(ctx, field)
-			case "policyGeneral":
-				return ec.fieldContext_Network_policyGeneral(ctx, field)
-			case "policyLocations":
-				return ec.fieldContext_Network_policyLocations(ctx, field)
-			case "policyRatio":
-				return ec.fieldContext_Network_policyRatio(ctx, field)
-			case "policyURL":
-				return ec.fieldContext_Network_policyURL(ctx, field)
-			case "rirStatus":
-				return ec.fieldContext_Network_rirStatus(ctx, field)
-			case "rirStatusUpdated":
-				return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
-			case "routeServer":
-				return ec.fieldContext_Network_routeServer(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Network_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Network_statusDashboard(ctx, field)
-			case "website":
-				return ec.fieldContext_Network_website(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Network_ixCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Network_facCount(ctx, field)
-			case "netixlanUpdated":
-				return ec.fieldContext_Network_netixlanUpdated(ctx, field)
-			case "netfacUpdated":
-				return ec.fieldContext_Network_netfacUpdated(ctx, field)
-			case "pocUpdated":
-				return ec.fieldContext_Network_pocUpdated(ctx, field)
-			case "created":
-				return ec.fieldContext_Network_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Network_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Network_status(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Network_networkFacilities(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_Network_networkIxLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_Network_organization(ctx, field)
-			case "pocs":
-				return ec.fieldContext_Network_pocs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+			return ec.childFields_Network(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15794,17 +13477,20 @@ func (ec *executionContext) _OrganizationConnection_edges(ctx context.Context, f
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_OrganizationConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_OrganizationConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOOrganizationEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.OrganizationEdge) graphql.Marshaler {
+			return ec.marshalOOrganizationEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_OrganizationConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "OrganizationConnection",
@@ -15812,13 +13498,7 @@ func (ec *executionContext) fieldContext_OrganizationConnection_edges(_ context.
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_OrganizationEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_OrganizationEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type OrganizationEdge", field.Name)
+			return ec.childFields_OrganizationEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15829,17 +13509,20 @@ func (ec *executionContext) _OrganizationConnection_pageInfo(ctx context.Context
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_OrganizationConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_OrganizationConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_OrganizationConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "OrganizationConnection",
@@ -15847,17 +13530,7 @@ func (ec *executionContext) fieldContext_OrganizationConnection_pageInfo(_ conte
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15868,28 +13541,22 @@ func (ec *executionContext) _OrganizationConnection_totalCount(ctx context.Conte
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_OrganizationConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_OrganizationConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_OrganizationConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "OrganizationConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("OrganizationConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _OrganizationEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.OrganizationEdge) (ret graphql.Marshaler) {
@@ -15897,17 +13564,20 @@ func (ec *executionContext) _OrganizationEdge_node(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_OrganizationEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_OrganizationEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Organization) graphql.Marshaler {
+			return ec.marshalOOrganization2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganization(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_OrganizationEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "OrganizationEdge",
@@ -15915,61 +13585,7 @@ func (ec *executionContext) fieldContext_OrganizationEdge_node(_ context.Context
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Organization_id(ctx, field)
-			case "address1":
-				return ec.fieldContext_Organization_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Organization_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Organization_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Organization_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Organization_country(ctx, field)
-			case "floor":
-				return ec.fieldContext_Organization_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Organization_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Organization_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Organization_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Organization_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Organization_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Organization_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Organization_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Organization_state(ctx, field)
-			case "suite":
-				return ec.fieldContext_Organization_suite(ctx, field)
-			case "website":
-				return ec.fieldContext_Organization_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "created":
-				return ec.fieldContext_Organization_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Organization_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Organization_status(ctx, field)
-			case "campuses":
-				return ec.fieldContext_Organization_campuses(ctx, field)
-			case "carriers":
-				return ec.fieldContext_Organization_carriers(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Organization_facilities(ctx, field)
-			case "internetExchanges":
-				return ec.fieldContext_Organization_internetExchanges(ctx, field)
-			case "networks":
-				return ec.fieldContext_Organization_networks(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+			return ec.childFields_Organization(ctx, field)
 		},
 	}
 	return fc, nil
@@ -15980,28 +13596,22 @@ func (ec *executionContext) _OrganizationEdge_cursor(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_OrganizationEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_OrganizationEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_OrganizationEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "OrganizationEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("OrganizationEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *entgql.PageInfo[int]) (ret graphql.Marshaler) {
@@ -16009,28 +13619,22 @@ func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PageInfo_hasNextPage,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.HasNextPage, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PageInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("PageInfo", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _PageInfo_hasPreviousPage(ctx context.Context, field graphql.CollectedField, obj *entgql.PageInfo[int]) (ret graphql.Marshaler) {
@@ -16038,28 +13642,22 @@ func (ec *executionContext) _PageInfo_hasPreviousPage(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PageInfo_hasPreviousPage,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.HasPreviousPage, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_PageInfo_hasPreviousPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PageInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("PageInfo", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field graphql.CollectedField, obj *entgql.PageInfo[int]) (ret graphql.Marshaler) {
@@ -16067,28 +13665,22 @@ func (ec *executionContext) _PageInfo_startCursor(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PageInfo_startCursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PageInfo_startCursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.StartCursor, nil
 		},
 		nil,
-		ec.marshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v *entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_PageInfo_startCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PageInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("PageInfo", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *entgql.PageInfo[int]) (ret graphql.Marshaler) {
@@ -16096,28 +13688,22 @@ func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PageInfo_endCursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PageInfo_endCursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.EndCursor, nil
 		},
 		nil,
-		ec.marshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v *entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalOCursor2ᚖentgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PageInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("PageInfo", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_id(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16125,28 +13711,22 @@ func (ec *executionContext) _Poc_id(ctx context.Context, field graphql.Collected
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_id,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_id(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ID, nil
 		},
 		nil,
-		ec.marshalNID2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNID2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_netID(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16154,28 +13734,22 @@ func (ec *executionContext) _Poc_netID(ctx context.Context, field graphql.Collec
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_netID,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_netID(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.NetID, nil
 		},
 		nil,
-		ec.marshalOID2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOID2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_netID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_email(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16183,28 +13757,22 @@ func (ec *executionContext) _Poc_email(ctx context.Context, field graphql.Collec
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_email,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_email(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Email, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_name(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16212,28 +13780,22 @@ func (ec *executionContext) _Poc_name(ctx context.Context, field graphql.Collect
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_phone(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16241,28 +13803,22 @@ func (ec *executionContext) _Poc_phone(ctx context.Context, field graphql.Collec
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_phone,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_phone(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Phone, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_role(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16270,28 +13826,22 @@ func (ec *executionContext) _Poc_role(ctx context.Context, field graphql.Collect
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_role,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_role(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Role, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_url(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16299,28 +13849,22 @@ func (ec *executionContext) _Poc_url(ctx context.Context, field graphql.Collecte
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_url,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_url(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.URL, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_visible(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16328,28 +13872,22 @@ func (ec *executionContext) _Poc_visible(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_visible,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_visible(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Visible, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalOString2string(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_visible(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_created(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16357,28 +13895,22 @@ func (ec *executionContext) _Poc_created(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_created,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_created(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Created, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_created(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_updated(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16386,28 +13918,22 @@ func (ec *executionContext) _Poc_updated(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_updated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_updated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Updated, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_updated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_status(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16415,28 +13941,22 @@ func (ec *executionContext) _Poc_status(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Poc",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("Poc", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Poc_network(ctx context.Context, field graphql.CollectedField, obj *ent.Poc) (ret graphql.Marshaler) {
@@ -16444,17 +13964,20 @@ func (ec *executionContext) _Poc_network(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Poc_network,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Poc_network(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Network(ctx)
 		},
 		nil,
-		ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Network) graphql.Marshaler {
+			return ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Poc_network(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Poc",
@@ -16462,99 +13985,7 @@ func (ec *executionContext) fieldContext_Poc_network(_ context.Context, field gr
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Network_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Network_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Network_aka(ctx, field)
-			case "allowIxpUpdate":
-				return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
-			case "asn":
-				return ec.fieldContext_Network_asn(ctx, field)
-			case "infoIpv6":
-				return ec.fieldContext_Network_infoIpv6(ctx, field)
-			case "infoMulticast":
-				return ec.fieldContext_Network_infoMulticast(ctx, field)
-			case "infoNeverViaRouteServers":
-				return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
-			case "infoPrefixes4":
-				return ec.fieldContext_Network_infoPrefixes4(ctx, field)
-			case "infoPrefixes6":
-				return ec.fieldContext_Network_infoPrefixes6(ctx, field)
-			case "infoRatio":
-				return ec.fieldContext_Network_infoRatio(ctx, field)
-			case "infoScope":
-				return ec.fieldContext_Network_infoScope(ctx, field)
-			case "infoTraffic":
-				return ec.fieldContext_Network_infoTraffic(ctx, field)
-			case "infoType":
-				return ec.fieldContext_Network_infoType(ctx, field)
-			case "infoTypes":
-				return ec.fieldContext_Network_infoTypes(ctx, field)
-			case "infoUnicast":
-				return ec.fieldContext_Network_infoUnicast(ctx, field)
-			case "irrAsSet":
-				return ec.fieldContext_Network_irrAsSet(ctx, field)
-			case "logo":
-				return ec.fieldContext_Network_logo(ctx, field)
-			case "lookingGlass":
-				return ec.fieldContext_Network_lookingGlass(ctx, field)
-			case "name":
-				return ec.fieldContext_Network_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Network_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Network_notes(ctx, field)
-			case "policyContracts":
-				return ec.fieldContext_Network_policyContracts(ctx, field)
-			case "policyGeneral":
-				return ec.fieldContext_Network_policyGeneral(ctx, field)
-			case "policyLocations":
-				return ec.fieldContext_Network_policyLocations(ctx, field)
-			case "policyRatio":
-				return ec.fieldContext_Network_policyRatio(ctx, field)
-			case "policyURL":
-				return ec.fieldContext_Network_policyURL(ctx, field)
-			case "rirStatus":
-				return ec.fieldContext_Network_rirStatus(ctx, field)
-			case "rirStatusUpdated":
-				return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
-			case "routeServer":
-				return ec.fieldContext_Network_routeServer(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Network_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Network_statusDashboard(ctx, field)
-			case "website":
-				return ec.fieldContext_Network_website(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Network_ixCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Network_facCount(ctx, field)
-			case "netixlanUpdated":
-				return ec.fieldContext_Network_netixlanUpdated(ctx, field)
-			case "netfacUpdated":
-				return ec.fieldContext_Network_netfacUpdated(ctx, field)
-			case "pocUpdated":
-				return ec.fieldContext_Network_pocUpdated(ctx, field)
-			case "created":
-				return ec.fieldContext_Network_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Network_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Network_status(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Network_networkFacilities(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_Network_networkIxLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_Network_organization(ctx, field)
-			case "pocs":
-				return ec.fieldContext_Network_pocs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+			return ec.childFields_Network(ctx, field)
 		},
 	}
 	return fc, nil
@@ -16565,17 +13996,20 @@ func (ec *executionContext) _PocConnection_edges(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PocConnection_edges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PocConnection_edges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Edges, nil
 		},
 		nil,
-		ec.marshalOPocEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocEdge,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.PocEdge) graphql.Marshaler {
+			return ec.marshalOPocEdge2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocEdge(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_PocConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PocConnection",
@@ -16583,13 +14017,7 @@ func (ec *executionContext) fieldContext_PocConnection_edges(_ context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_PocEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_PocEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PocEdge", field.Name)
+			return ec.childFields_PocEdge(ctx, field)
 		},
 	}
 	return fc, nil
@@ -16600,17 +14028,20 @@ func (ec *executionContext) _PocConnection_pageInfo(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PocConnection_pageInfo,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PocConnection_pageInfo(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PageInfo, nil
 		},
 		nil,
-		ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.PageInfo[int]) graphql.Marshaler {
+			return ec.marshalNPageInfo2entgoᚗioᚋcontribᚋentgqlᚐPageInfo(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_PocConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PocConnection",
@@ -16618,17 +14049,7 @@ func (ec *executionContext) fieldContext_PocConnection_pageInfo(_ context.Contex
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+			return ec.childFields_PageInfo(ctx, field)
 		},
 	}
 	return fc, nil
@@ -16639,28 +14060,22 @@ func (ec *executionContext) _PocConnection_totalCount(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PocConnection_totalCount,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PocConnection_totalCount(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.TotalCount, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_PocConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PocConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("PocConnection", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _PocEdge_node(ctx context.Context, field graphql.CollectedField, obj *ent.PocEdge) (ret graphql.Marshaler) {
@@ -16668,17 +14083,20 @@ func (ec *executionContext) _PocEdge_node(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PocEdge_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PocEdge_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Node, nil
 		},
 		nil,
-		ec.marshalOPoc2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPoc,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Poc) graphql.Marshaler {
+			return ec.marshalOPoc2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPoc(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_PocEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PocEdge",
@@ -16686,33 +14104,7 @@ func (ec *executionContext) fieldContext_PocEdge_node(_ context.Context, field g
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Poc_id(ctx, field)
-			case "netID":
-				return ec.fieldContext_Poc_netID(ctx, field)
-			case "email":
-				return ec.fieldContext_Poc_email(ctx, field)
-			case "name":
-				return ec.fieldContext_Poc_name(ctx, field)
-			case "phone":
-				return ec.fieldContext_Poc_phone(ctx, field)
-			case "role":
-				return ec.fieldContext_Poc_role(ctx, field)
-			case "url":
-				return ec.fieldContext_Poc_url(ctx, field)
-			case "visible":
-				return ec.fieldContext_Poc_visible(ctx, field)
-			case "created":
-				return ec.fieldContext_Poc_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Poc_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Poc_status(ctx, field)
-			case "network":
-				return ec.fieldContext_Poc_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Poc", field.Name)
+			return ec.childFields_Poc(ctx, field)
 		},
 	}
 	return fc, nil
@@ -16723,28 +14115,22 @@ func (ec *executionContext) _PocEdge_cursor(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_PocEdge_cursor,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PocEdge_cursor(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Cursor, nil
 		},
 		nil,
-		ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor,
+		func(ctx context.Context, selections ast.SelectionSet, v entgql.Cursor[int]) graphql.Marshaler {
+			return ec.marshalNCursor2entgoᚗioᚋcontribᚋentgqlᚐCursor(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_PocEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PocEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Cursor does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("PocEdge", field, false, false, errors.New("field of type Cursor does not have child fields"))
 }
 
 func (ec *executionContext) _Query_node(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -16752,18 +14138,21 @@ func (ec *executionContext) _Query_node(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_node,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_node(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Node(ctx, fc.Args["id"].(int))
 		},
 		nil,
-		ec.marshalONode2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNoder,
+		func(ctx context.Context, selections ast.SelectionSet, v ent.Noder) graphql.Marshaler {
+			return ec.marshalONode2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNoder(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -16793,18 +14182,21 @@ func (ec *executionContext) _Query_nodes(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_nodes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_nodes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Nodes(ctx, fc.Args["ids"].([]int))
 		},
 		nil,
-		ec.marshalNNode2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNoder,
+		func(ctx context.Context, selections ast.SelectionSet, v []ent.Noder) graphql.Marshaler {
+			return ec.marshalNNode2ᚕgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNoder(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_nodes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -16834,18 +14226,21 @@ func (ec *executionContext) _Query_campuses(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_campuses,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_campuses(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Campuses(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].(*ent.CampusOrder), fc.Args["where"].(*ent.CampusWhereInput))
 		},
 		nil,
-		ec.marshalNCampusConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.CampusConnection) graphql.Marshaler {
+			return ec.marshalNCampusConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_campuses(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -16853,15 +14248,7 @@ func (ec *executionContext) fieldContext_Query_campuses(ctx context.Context, fie
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_CampusConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_CampusConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_CampusConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CampusConnection", field.Name)
+			return ec.childFields_CampusConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -16883,18 +14270,21 @@ func (ec *executionContext) _Query_carriers(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_carriers,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_carriers(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Carriers(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].(*ent.CarrierOrder), fc.Args["where"].(*ent.CarrierWhereInput))
 		},
 		nil,
-		ec.marshalNCarrierConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.CarrierConnection) graphql.Marshaler {
+			return ec.marshalNCarrierConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_carriers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -16902,15 +14292,7 @@ func (ec *executionContext) fieldContext_Query_carriers(ctx context.Context, fie
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_CarrierConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_CarrierConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_CarrierConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierConnection", field.Name)
+			return ec.childFields_CarrierConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -16932,18 +14314,21 @@ func (ec *executionContext) _Query_carrierFacilities(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_carrierFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_carrierFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().CarrierFacilities(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["where"].(*ent.CarrierFacilityWhereInput))
 		},
 		nil,
-		ec.marshalNCarrierFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.CarrierFacilityConnection) graphql.Marshaler {
+			return ec.marshalNCarrierFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_carrierFacilities(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -16951,15 +14336,7 @@ func (ec *executionContext) fieldContext_Query_carrierFacilities(ctx context.Con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_CarrierFacilityConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_CarrierFacilityConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_CarrierFacilityConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierFacilityConnection", field.Name)
+			return ec.childFields_CarrierFacilityConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -16981,18 +14358,21 @@ func (ec *executionContext) _Query_facilities(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_facilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_facilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Facilities(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].(*ent.FacilityOrder), fc.Args["where"].(*ent.FacilityWhereInput))
 		},
 		nil,
-		ec.marshalNFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.FacilityConnection) graphql.Marshaler {
+			return ec.marshalNFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_facilities(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17000,15 +14380,7 @@ func (ec *executionContext) fieldContext_Query_facilities(ctx context.Context, f
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_FacilityConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_FacilityConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_FacilityConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FacilityConnection", field.Name)
+			return ec.childFields_FacilityConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17030,18 +14402,21 @@ func (ec *executionContext) _Query_internetExchanges(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_internetExchanges,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_internetExchanges(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().InternetExchanges(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].(*ent.InternetExchangeOrder), fc.Args["where"].(*ent.InternetExchangeWhereInput))
 		},
 		nil,
-		ec.marshalNInternetExchangeConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.InternetExchangeConnection) graphql.Marshaler {
+			return ec.marshalNInternetExchangeConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_internetExchanges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17049,15 +14424,7 @@ func (ec *executionContext) fieldContext_Query_internetExchanges(ctx context.Con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_InternetExchangeConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_InternetExchangeConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_InternetExchangeConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InternetExchangeConnection", field.Name)
+			return ec.childFields_InternetExchangeConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17079,18 +14446,21 @@ func (ec *executionContext) _Query_ixFacilities(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_ixFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ixFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().IxFacilities(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["where"].(*ent.IxFacilityWhereInput))
 		},
 		nil,
-		ec.marshalNIxFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxFacilityConnection) graphql.Marshaler {
+			return ec.marshalNIxFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_ixFacilities(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17098,15 +14468,7 @@ func (ec *executionContext) fieldContext_Query_ixFacilities(ctx context.Context,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_IxFacilityConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_IxFacilityConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_IxFacilityConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxFacilityConnection", field.Name)
+			return ec.childFields_IxFacilityConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17128,18 +14490,21 @@ func (ec *executionContext) _Query_ixLans(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_ixLans,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ixLans(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().IxLans(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["where"].(*ent.IxLanWhereInput))
 		},
 		nil,
-		ec.marshalNIxLanConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxLanConnection) graphql.Marshaler {
+			return ec.marshalNIxLanConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_ixLans(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17147,15 +14512,7 @@ func (ec *executionContext) fieldContext_Query_ixLans(ctx context.Context, field
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_IxLanConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_IxLanConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_IxLanConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxLanConnection", field.Name)
+			return ec.childFields_IxLanConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17177,18 +14534,21 @@ func (ec *executionContext) _Query_ixPrefixes(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_ixPrefixes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ixPrefixes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().IxPrefixes(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["where"].(*ent.IxPrefixWhereInput))
 		},
 		nil,
-		ec.marshalNIxPrefixConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.IxPrefixConnection) graphql.Marshaler {
+			return ec.marshalNIxPrefixConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_ixPrefixes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17196,15 +14556,7 @@ func (ec *executionContext) fieldContext_Query_ixPrefixes(ctx context.Context, f
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_IxPrefixConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_IxPrefixConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_IxPrefixConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxPrefixConnection", field.Name)
+			return ec.childFields_IxPrefixConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17226,18 +14578,21 @@ func (ec *executionContext) _Query_networks(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_networks,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_networks(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Networks(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].(*ent.NetworkOrder), fc.Args["where"].(*ent.NetworkWhereInput))
 		},
 		nil,
-		ec.marshalNNetworkConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.NetworkConnection) graphql.Marshaler {
+			return ec.marshalNNetworkConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_networks(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17245,15 +14600,7 @@ func (ec *executionContext) fieldContext_Query_networks(ctx context.Context, fie
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_NetworkConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_NetworkConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_NetworkConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkConnection", field.Name)
+			return ec.childFields_NetworkConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17275,18 +14622,21 @@ func (ec *executionContext) _Query_networkFacilities(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_networkFacilities,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_networkFacilities(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().NetworkFacilities(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["where"].(*ent.NetworkFacilityWhereInput))
 		},
 		nil,
-		ec.marshalNNetworkFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.NetworkFacilityConnection) graphql.Marshaler {
+			return ec.marshalNNetworkFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_networkFacilities(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17294,15 +14644,7 @@ func (ec *executionContext) fieldContext_Query_networkFacilities(ctx context.Con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_NetworkFacilityConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_NetworkFacilityConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_NetworkFacilityConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkFacilityConnection", field.Name)
+			return ec.childFields_NetworkFacilityConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17324,18 +14666,21 @@ func (ec *executionContext) _Query_networkIxLans(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_networkIxLans,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_networkIxLans(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().NetworkIxLans(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["where"].(*ent.NetworkIxLanWhereInput))
 		},
 		nil,
-		ec.marshalNNetworkIxLanConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.NetworkIxLanConnection) graphql.Marshaler {
+			return ec.marshalNNetworkIxLanConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_networkIxLans(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17343,15 +14688,7 @@ func (ec *executionContext) fieldContext_Query_networkIxLans(ctx context.Context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_NetworkIxLanConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_NetworkIxLanConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_NetworkIxLanConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkIxLanConnection", field.Name)
+			return ec.childFields_NetworkIxLanConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17373,18 +14710,21 @@ func (ec *executionContext) _Query_organizations(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_organizations,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_organizations(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Organizations(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["orderBy"].(*ent.OrganizationOrder), fc.Args["where"].(*ent.OrganizationWhereInput))
 		},
 		nil,
-		ec.marshalNOrganizationConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.OrganizationConnection) graphql.Marshaler {
+			return ec.marshalNOrganizationConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_organizations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17392,15 +14732,7 @@ func (ec *executionContext) fieldContext_Query_organizations(ctx context.Context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_OrganizationConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_OrganizationConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_OrganizationConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type OrganizationConnection", field.Name)
+			return ec.childFields_OrganizationConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17422,18 +14754,21 @@ func (ec *executionContext) _Query_pocs(ctx context.Context, field graphql.Colle
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_pocs,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_pocs(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().Pocs(ctx, fc.Args["after"].(*entgql.Cursor[int]), fc.Args["first"].(*int), fc.Args["before"].(*entgql.Cursor[int]), fc.Args["last"].(*int), fc.Args["where"].(*ent.PocWhereInput))
 		},
 		nil,
-		ec.marshalNPocConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocConnection,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.PocConnection) graphql.Marshaler {
+			return ec.marshalNPocConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocConnection(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_pocs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17441,15 +14776,7 @@ func (ec *executionContext) fieldContext_Query_pocs(ctx context.Context, field g
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "edges":
-				return ec.fieldContext_PocConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_PocConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_PocConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PocConnection", field.Name)
+			return ec.childFields_PocConnection(ctx, field)
 		},
 	}
 	defer func() {
@@ -17471,17 +14798,20 @@ func (ec *executionContext) _Query_syncStatus(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_syncStatus,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_syncStatus(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return ec.Resolvers.Query().SyncStatus(ctx)
 		},
 		nil,
-		ec.marshalOSyncStatus2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋgraphᚋmodelᚐSyncStatus,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.SyncStatus) graphql.Marshaler {
+			return ec.marshalOSyncStatus2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋgraphᚋmodelᚐSyncStatus(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_syncStatus(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17489,19 +14819,7 @@ func (ec *executionContext) fieldContext_Query_syncStatus(_ context.Context, fie
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "lastSyncAt":
-				return ec.fieldContext_SyncStatus_lastSyncAt(ctx, field)
-			case "durationMs":
-				return ec.fieldContext_SyncStatus_durationMs(ctx, field)
-			case "objectCounts":
-				return ec.fieldContext_SyncStatus_objectCounts(ctx, field)
-			case "status":
-				return ec.fieldContext_SyncStatus_status(ctx, field)
-			case "errorMessage":
-				return ec.fieldContext_SyncStatus_errorMessage(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SyncStatus", field.Name)
+			return ec.childFields_SyncStatus(ctx, field)
 		},
 	}
 	return fc, nil
@@ -17512,18 +14830,21 @@ func (ec *executionContext) _Query_networkByAsn(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_networkByAsn,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_networkByAsn(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().NetworkByAsn(ctx, fc.Args["asn"].(int))
 		},
 		nil,
-		ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork,
+		func(ctx context.Context, selections ast.SelectionSet, v *ent.Network) graphql.Marshaler {
+			return ec.marshalONetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetwork(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_networkByAsn(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17531,99 +14852,7 @@ func (ec *executionContext) fieldContext_Query_networkByAsn(ctx context.Context,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Network_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Network_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Network_aka(ctx, field)
-			case "allowIxpUpdate":
-				return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
-			case "asn":
-				return ec.fieldContext_Network_asn(ctx, field)
-			case "infoIpv6":
-				return ec.fieldContext_Network_infoIpv6(ctx, field)
-			case "infoMulticast":
-				return ec.fieldContext_Network_infoMulticast(ctx, field)
-			case "infoNeverViaRouteServers":
-				return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
-			case "infoPrefixes4":
-				return ec.fieldContext_Network_infoPrefixes4(ctx, field)
-			case "infoPrefixes6":
-				return ec.fieldContext_Network_infoPrefixes6(ctx, field)
-			case "infoRatio":
-				return ec.fieldContext_Network_infoRatio(ctx, field)
-			case "infoScope":
-				return ec.fieldContext_Network_infoScope(ctx, field)
-			case "infoTraffic":
-				return ec.fieldContext_Network_infoTraffic(ctx, field)
-			case "infoType":
-				return ec.fieldContext_Network_infoType(ctx, field)
-			case "infoTypes":
-				return ec.fieldContext_Network_infoTypes(ctx, field)
-			case "infoUnicast":
-				return ec.fieldContext_Network_infoUnicast(ctx, field)
-			case "irrAsSet":
-				return ec.fieldContext_Network_irrAsSet(ctx, field)
-			case "logo":
-				return ec.fieldContext_Network_logo(ctx, field)
-			case "lookingGlass":
-				return ec.fieldContext_Network_lookingGlass(ctx, field)
-			case "name":
-				return ec.fieldContext_Network_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Network_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Network_notes(ctx, field)
-			case "policyContracts":
-				return ec.fieldContext_Network_policyContracts(ctx, field)
-			case "policyGeneral":
-				return ec.fieldContext_Network_policyGeneral(ctx, field)
-			case "policyLocations":
-				return ec.fieldContext_Network_policyLocations(ctx, field)
-			case "policyRatio":
-				return ec.fieldContext_Network_policyRatio(ctx, field)
-			case "policyURL":
-				return ec.fieldContext_Network_policyURL(ctx, field)
-			case "rirStatus":
-				return ec.fieldContext_Network_rirStatus(ctx, field)
-			case "rirStatusUpdated":
-				return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
-			case "routeServer":
-				return ec.fieldContext_Network_routeServer(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Network_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Network_statusDashboard(ctx, field)
-			case "website":
-				return ec.fieldContext_Network_website(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Network_ixCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Network_facCount(ctx, field)
-			case "netixlanUpdated":
-				return ec.fieldContext_Network_netixlanUpdated(ctx, field)
-			case "netfacUpdated":
-				return ec.fieldContext_Network_netfacUpdated(ctx, field)
-			case "pocUpdated":
-				return ec.fieldContext_Network_pocUpdated(ctx, field)
-			case "created":
-				return ec.fieldContext_Network_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Network_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Network_status(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Network_networkFacilities(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_Network_networkIxLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_Network_organization(ctx, field)
-			case "pocs":
-				return ec.fieldContext_Network_pocs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+			return ec.childFields_Network(ctx, field)
 		},
 	}
 	defer func() {
@@ -17645,18 +14874,21 @@ func (ec *executionContext) _Query_organizationsList(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_organizationsList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_organizationsList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().OrganizationsList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.OrganizationWhereInput))
 		},
 		nil,
-		ec.marshalNOrganization2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Organization) graphql.Marshaler {
+			return ec.marshalNOrganization2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_organizationsList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17664,61 +14896,7 @@ func (ec *executionContext) fieldContext_Query_organizationsList(ctx context.Con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Organization_id(ctx, field)
-			case "address1":
-				return ec.fieldContext_Organization_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Organization_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Organization_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Organization_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Organization_country(ctx, field)
-			case "floor":
-				return ec.fieldContext_Organization_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Organization_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Organization_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Organization_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Organization_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Organization_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Organization_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Organization_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Organization_state(ctx, field)
-			case "suite":
-				return ec.fieldContext_Organization_suite(ctx, field)
-			case "website":
-				return ec.fieldContext_Organization_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Organization_zipcode(ctx, field)
-			case "created":
-				return ec.fieldContext_Organization_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Organization_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Organization_status(ctx, field)
-			case "campuses":
-				return ec.fieldContext_Organization_campuses(ctx, field)
-			case "carriers":
-				return ec.fieldContext_Organization_carriers(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Organization_facilities(ctx, field)
-			case "internetExchanges":
-				return ec.fieldContext_Organization_internetExchanges(ctx, field)
-			case "networks":
-				return ec.fieldContext_Organization_networks(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Organization", field.Name)
+			return ec.childFields_Organization(ctx, field)
 		},
 	}
 	defer func() {
@@ -17740,18 +14918,21 @@ func (ec *executionContext) _Query_networksList(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_networksList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_networksList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().NetworksList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.NetworkWhereInput))
 		},
 		nil,
-		ec.marshalNNetwork2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Network) graphql.Marshaler {
+			return ec.marshalNNetwork2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_networksList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17759,99 +14940,7 @@ func (ec *executionContext) fieldContext_Query_networksList(ctx context.Context,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Network_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Network_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Network_aka(ctx, field)
-			case "allowIxpUpdate":
-				return ec.fieldContext_Network_allowIxpUpdate(ctx, field)
-			case "asn":
-				return ec.fieldContext_Network_asn(ctx, field)
-			case "infoIpv6":
-				return ec.fieldContext_Network_infoIpv6(ctx, field)
-			case "infoMulticast":
-				return ec.fieldContext_Network_infoMulticast(ctx, field)
-			case "infoNeverViaRouteServers":
-				return ec.fieldContext_Network_infoNeverViaRouteServers(ctx, field)
-			case "infoPrefixes4":
-				return ec.fieldContext_Network_infoPrefixes4(ctx, field)
-			case "infoPrefixes6":
-				return ec.fieldContext_Network_infoPrefixes6(ctx, field)
-			case "infoRatio":
-				return ec.fieldContext_Network_infoRatio(ctx, field)
-			case "infoScope":
-				return ec.fieldContext_Network_infoScope(ctx, field)
-			case "infoTraffic":
-				return ec.fieldContext_Network_infoTraffic(ctx, field)
-			case "infoType":
-				return ec.fieldContext_Network_infoType(ctx, field)
-			case "infoTypes":
-				return ec.fieldContext_Network_infoTypes(ctx, field)
-			case "infoUnicast":
-				return ec.fieldContext_Network_infoUnicast(ctx, field)
-			case "irrAsSet":
-				return ec.fieldContext_Network_irrAsSet(ctx, field)
-			case "logo":
-				return ec.fieldContext_Network_logo(ctx, field)
-			case "lookingGlass":
-				return ec.fieldContext_Network_lookingGlass(ctx, field)
-			case "name":
-				return ec.fieldContext_Network_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Network_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Network_notes(ctx, field)
-			case "policyContracts":
-				return ec.fieldContext_Network_policyContracts(ctx, field)
-			case "policyGeneral":
-				return ec.fieldContext_Network_policyGeneral(ctx, field)
-			case "policyLocations":
-				return ec.fieldContext_Network_policyLocations(ctx, field)
-			case "policyRatio":
-				return ec.fieldContext_Network_policyRatio(ctx, field)
-			case "policyURL":
-				return ec.fieldContext_Network_policyURL(ctx, field)
-			case "rirStatus":
-				return ec.fieldContext_Network_rirStatus(ctx, field)
-			case "rirStatusUpdated":
-				return ec.fieldContext_Network_rirStatusUpdated(ctx, field)
-			case "routeServer":
-				return ec.fieldContext_Network_routeServer(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Network_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Network_statusDashboard(ctx, field)
-			case "website":
-				return ec.fieldContext_Network_website(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Network_ixCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Network_facCount(ctx, field)
-			case "netixlanUpdated":
-				return ec.fieldContext_Network_netixlanUpdated(ctx, field)
-			case "netfacUpdated":
-				return ec.fieldContext_Network_netfacUpdated(ctx, field)
-			case "pocUpdated":
-				return ec.fieldContext_Network_pocUpdated(ctx, field)
-			case "created":
-				return ec.fieldContext_Network_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Network_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Network_status(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Network_networkFacilities(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_Network_networkIxLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_Network_organization(ctx, field)
-			case "pocs":
-				return ec.fieldContext_Network_pocs(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Network", field.Name)
+			return ec.childFields_Network(ctx, field)
 		},
 	}
 	defer func() {
@@ -17873,18 +14962,21 @@ func (ec *executionContext) _Query_facilitiesList(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_facilitiesList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_facilitiesList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().FacilitiesList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.FacilityWhereInput))
 		},
 		nil,
-		ec.marshalNFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Facility) graphql.Marshaler {
+			return ec.marshalNFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_facilitiesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -17892,97 +14984,7 @@ func (ec *executionContext) fieldContext_Query_facilitiesList(ctx context.Contex
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Facility_id(ctx, field)
-			case "campusID":
-				return ec.fieldContext_Facility_campusID(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Facility_orgID(ctx, field)
-			case "address1":
-				return ec.fieldContext_Facility_address1(ctx, field)
-			case "address2":
-				return ec.fieldContext_Facility_address2(ctx, field)
-			case "aka":
-				return ec.fieldContext_Facility_aka(ctx, field)
-			case "availableVoltageServices":
-				return ec.fieldContext_Facility_availableVoltageServices(ctx, field)
-			case "city":
-				return ec.fieldContext_Facility_city(ctx, field)
-			case "clli":
-				return ec.fieldContext_Facility_clli(ctx, field)
-			case "country":
-				return ec.fieldContext_Facility_country(ctx, field)
-			case "diverseServingSubstations":
-				return ec.fieldContext_Facility_diverseServingSubstations(ctx, field)
-			case "floor":
-				return ec.fieldContext_Facility_floor(ctx, field)
-			case "latitude":
-				return ec.fieldContext_Facility_latitude(ctx, field)
-			case "logo":
-				return ec.fieldContext_Facility_logo(ctx, field)
-			case "longitude":
-				return ec.fieldContext_Facility_longitude(ctx, field)
-			case "name":
-				return ec.fieldContext_Facility_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Facility_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Facility_notes(ctx, field)
-			case "npanxx":
-				return ec.fieldContext_Facility_npanxx(ctx, field)
-			case "property":
-				return ec.fieldContext_Facility_property(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_Facility_regionContinent(ctx, field)
-			case "rencode":
-				return ec.fieldContext_Facility_rencode(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_Facility_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_Facility_salesPhone(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Facility_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Facility_state(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_Facility_statusDashboard(ctx, field)
-			case "suite":
-				return ec.fieldContext_Facility_suite(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_Facility_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_Facility_techPhone(ctx, field)
-			case "website":
-				return ec.fieldContext_Facility_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Facility_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Facility_orgName(ctx, field)
-			case "netCount":
-				return ec.fieldContext_Facility_netCount(ctx, field)
-			case "ixCount":
-				return ec.fieldContext_Facility_ixCount(ctx, field)
-			case "carrierCount":
-				return ec.fieldContext_Facility_carrierCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Facility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Facility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Facility_status(ctx, field)
-			case "campus":
-				return ec.fieldContext_Facility_campus(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Facility_carrierFacilities(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_Facility_ixFacilities(ctx, field)
-			case "networkFacilities":
-				return ec.fieldContext_Facility_networkFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Facility_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Facility", field.Name)
+			return ec.childFields_Facility(ctx, field)
 		},
 	}
 	defer func() {
@@ -18004,18 +15006,21 @@ func (ec *executionContext) _Query_internetExchangesList(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_internetExchangesList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_internetExchangesList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().InternetExchangesList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.InternetExchangeWhereInput))
 		},
 		nil,
-		ec.marshalNInternetExchange2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.InternetExchange) graphql.Marshaler {
+			return ec.marshalNInternetExchange2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_internetExchangesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18023,85 +15028,7 @@ func (ec *executionContext) fieldContext_Query_internetExchangesList(ctx context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_InternetExchange_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_InternetExchange_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_InternetExchange_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_InternetExchange_city(ctx, field)
-			case "country":
-				return ec.fieldContext_InternetExchange_country(ctx, field)
-			case "ixfLastImport":
-				return ec.fieldContext_InternetExchange_ixfLastImport(ctx, field)
-			case "ixfNetCount":
-				return ec.fieldContext_InternetExchange_ixfNetCount(ctx, field)
-			case "logo":
-				return ec.fieldContext_InternetExchange_logo(ctx, field)
-			case "media":
-				return ec.fieldContext_InternetExchange_media(ctx, field)
-			case "name":
-				return ec.fieldContext_InternetExchange_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_InternetExchange_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_InternetExchange_notes(ctx, field)
-			case "policyEmail":
-				return ec.fieldContext_InternetExchange_policyEmail(ctx, field)
-			case "policyPhone":
-				return ec.fieldContext_InternetExchange_policyPhone(ctx, field)
-			case "protoIpv6":
-				return ec.fieldContext_InternetExchange_protoIpv6(ctx, field)
-			case "protoMulticast":
-				return ec.fieldContext_InternetExchange_protoMulticast(ctx, field)
-			case "protoUnicast":
-				return ec.fieldContext_InternetExchange_protoUnicast(ctx, field)
-			case "regionContinent":
-				return ec.fieldContext_InternetExchange_regionContinent(ctx, field)
-			case "salesEmail":
-				return ec.fieldContext_InternetExchange_salesEmail(ctx, field)
-			case "salesPhone":
-				return ec.fieldContext_InternetExchange_salesPhone(ctx, field)
-			case "serviceLevel":
-				return ec.fieldContext_InternetExchange_serviceLevel(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_InternetExchange_socialMedia(ctx, field)
-			case "statusDashboard":
-				return ec.fieldContext_InternetExchange_statusDashboard(ctx, field)
-			case "techEmail":
-				return ec.fieldContext_InternetExchange_techEmail(ctx, field)
-			case "techPhone":
-				return ec.fieldContext_InternetExchange_techPhone(ctx, field)
-			case "terms":
-				return ec.fieldContext_InternetExchange_terms(ctx, field)
-			case "urlStats":
-				return ec.fieldContext_InternetExchange_urlStats(ctx, field)
-			case "website":
-				return ec.fieldContext_InternetExchange_website(ctx, field)
-			case "netCount":
-				return ec.fieldContext_InternetExchange_netCount(ctx, field)
-			case "facCount":
-				return ec.fieldContext_InternetExchange_facCount(ctx, field)
-			case "ixfImportRequest":
-				return ec.fieldContext_InternetExchange_ixfImportRequest(ctx, field)
-			case "ixfImportRequestStatus":
-				return ec.fieldContext_InternetExchange_ixfImportRequestStatus(ctx, field)
-			case "created":
-				return ec.fieldContext_InternetExchange_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_InternetExchange_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_InternetExchange_status(ctx, field)
-			case "ixFacilities":
-				return ec.fieldContext_InternetExchange_ixFacilities(ctx, field)
-			case "ixLans":
-				return ec.fieldContext_InternetExchange_ixLans(ctx, field)
-			case "organization":
-				return ec.fieldContext_InternetExchange_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InternetExchange", field.Name)
+			return ec.childFields_InternetExchange(ctx, field)
 		},
 	}
 	defer func() {
@@ -18123,18 +15050,21 @@ func (ec *executionContext) _Query_pocsList(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_pocsList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_pocsList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().PocsList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.PocWhereInput))
 		},
 		nil,
-		ec.marshalNPoc2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Poc) graphql.Marshaler {
+			return ec.marshalNPoc2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_pocsList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18142,33 +15072,7 @@ func (ec *executionContext) fieldContext_Query_pocsList(ctx context.Context, fie
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Poc_id(ctx, field)
-			case "netID":
-				return ec.fieldContext_Poc_netID(ctx, field)
-			case "email":
-				return ec.fieldContext_Poc_email(ctx, field)
-			case "name":
-				return ec.fieldContext_Poc_name(ctx, field)
-			case "phone":
-				return ec.fieldContext_Poc_phone(ctx, field)
-			case "role":
-				return ec.fieldContext_Poc_role(ctx, field)
-			case "url":
-				return ec.fieldContext_Poc_url(ctx, field)
-			case "visible":
-				return ec.fieldContext_Poc_visible(ctx, field)
-			case "created":
-				return ec.fieldContext_Poc_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Poc_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Poc_status(ctx, field)
-			case "network":
-				return ec.fieldContext_Poc_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Poc", field.Name)
+			return ec.childFields_Poc(ctx, field)
 		},
 	}
 	defer func() {
@@ -18190,18 +15094,21 @@ func (ec *executionContext) _Query_ixLansList(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_ixLansList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ixLansList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().IxLansList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.IxLanWhereInput))
 		},
 		nil,
-		ec.marshalNIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxLan) graphql.Marshaler {
+			return ec.marshalNIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_ixLansList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18209,43 +15116,7 @@ func (ec *executionContext) fieldContext_Query_ixLansList(ctx context.Context, f
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxLan_id(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxLan_ixID(ctx, field)
-			case "arpSponge":
-				return ec.fieldContext_IxLan_arpSponge(ctx, field)
-			case "descr":
-				return ec.fieldContext_IxLan_descr(ctx, field)
-			case "dot1qSupport":
-				return ec.fieldContext_IxLan_dot1qSupport(ctx, field)
-			case "ixfIxpImportEnabled":
-				return ec.fieldContext_IxLan_ixfIxpImportEnabled(ctx, field)
-			case "ixfIxpMemberListURL":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURL(ctx, field)
-			case "ixfIxpMemberListURLVisible":
-				return ec.fieldContext_IxLan_ixfIxpMemberListURLVisible(ctx, field)
-			case "mtu":
-				return ec.fieldContext_IxLan_mtu(ctx, field)
-			case "name":
-				return ec.fieldContext_IxLan_name(ctx, field)
-			case "rsAsn":
-				return ec.fieldContext_IxLan_rsAsn(ctx, field)
-			case "created":
-				return ec.fieldContext_IxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxLan_status(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxLan_internetExchange(ctx, field)
-			case "ixPrefixes":
-				return ec.fieldContext_IxLan_ixPrefixes(ctx, field)
-			case "networkIxLans":
-				return ec.fieldContext_IxLan_networkIxLans(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxLan", field.Name)
+			return ec.childFields_IxLan(ctx, field)
 		},
 	}
 	defer func() {
@@ -18267,18 +15138,21 @@ func (ec *executionContext) _Query_ixPrefixesList(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_ixPrefixesList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ixPrefixesList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().IxPrefixesList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.IxPrefixWhereInput))
 		},
 		nil,
-		ec.marshalNIxPrefix2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxPrefix) graphql.Marshaler {
+			return ec.marshalNIxPrefix2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_ixPrefixesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18286,27 +15160,7 @@ func (ec *executionContext) fieldContext_Query_ixPrefixesList(ctx context.Contex
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxPrefix_id(ctx, field)
-			case "ixlanID":
-				return ec.fieldContext_IxPrefix_ixlanID(ctx, field)
-			case "inDfz":
-				return ec.fieldContext_IxPrefix_inDfz(ctx, field)
-			case "prefix":
-				return ec.fieldContext_IxPrefix_prefix(ctx, field)
-			case "protocol":
-				return ec.fieldContext_IxPrefix_protocol(ctx, field)
-			case "created":
-				return ec.fieldContext_IxPrefix_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxPrefix_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxPrefix_status(ctx, field)
-			case "ixLan":
-				return ec.fieldContext_IxPrefix_ixLan(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxPrefix", field.Name)
+			return ec.childFields_IxPrefix(ctx, field)
 		},
 	}
 	defer func() {
@@ -18328,18 +15182,21 @@ func (ec *executionContext) _Query_ixFacilitiesList(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_ixFacilitiesList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ixFacilitiesList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().IxFacilitiesList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.IxFacilityWhereInput))
 		},
 		nil,
-		ec.marshalNIxFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.IxFacility) graphql.Marshaler {
+			return ec.marshalNIxFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_ixFacilitiesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18347,31 +15204,7 @@ func (ec *executionContext) fieldContext_Query_ixFacilitiesList(ctx context.Cont
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_IxFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_IxFacility_facID(ctx, field)
-			case "ixID":
-				return ec.fieldContext_IxFacility_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_IxFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_IxFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_IxFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_IxFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_IxFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_IxFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_IxFacility_facility(ctx, field)
-			case "internetExchange":
-				return ec.fieldContext_IxFacility_internetExchange(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type IxFacility", field.Name)
+			return ec.childFields_IxFacility(ctx, field)
 		},
 	}
 	defer func() {
@@ -18393,18 +15226,21 @@ func (ec *executionContext) _Query_networkIxLansList(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_networkIxLansList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_networkIxLansList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().NetworkIxLansList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.NetworkIxLanWhereInput))
 		},
 		nil,
-		ec.marshalNNetworkIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkIxLan) graphql.Marshaler {
+			return ec.marshalNNetworkIxLan2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_networkIxLansList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18412,49 +15248,7 @@ func (ec *executionContext) fieldContext_Query_networkIxLansList(ctx context.Con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkIxLan_id(ctx, field)
-			case "ixSideID":
-				return ec.fieldContext_NetworkIxLan_ixSideID(ctx, field)
-			case "ixlanID":
-				return ec.fieldContext_NetworkIxLan_ixlanID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkIxLan_netID(ctx, field)
-			case "netSideID":
-				return ec.fieldContext_NetworkIxLan_netSideID(ctx, field)
-			case "asn":
-				return ec.fieldContext_NetworkIxLan_asn(ctx, field)
-			case "bfdSupport":
-				return ec.fieldContext_NetworkIxLan_bfdSupport(ctx, field)
-			case "ipaddr4":
-				return ec.fieldContext_NetworkIxLan_ipaddr4(ctx, field)
-			case "ipaddr6":
-				return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
-			case "isRsPeer":
-				return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
-			case "notes":
-				return ec.fieldContext_NetworkIxLan_notes(ctx, field)
-			case "operational":
-				return ec.fieldContext_NetworkIxLan_operational(ctx, field)
-			case "speed":
-				return ec.fieldContext_NetworkIxLan_speed(ctx, field)
-			case "ixID":
-				return ec.fieldContext_NetworkIxLan_ixID(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkIxLan_name(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkIxLan_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkIxLan_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkIxLan_status(ctx, field)
-			case "ixLan":
-				return ec.fieldContext_NetworkIxLan_ixLan(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkIxLan_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkIxLan", field.Name)
+			return ec.childFields_NetworkIxLan(ctx, field)
 		},
 	}
 	defer func() {
@@ -18476,18 +15270,21 @@ func (ec *executionContext) _Query_networkFacilitiesList(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_networkFacilitiesList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_networkFacilitiesList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().NetworkFacilitiesList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.NetworkFacilityWhereInput))
 		},
 		nil,
-		ec.marshalNNetworkFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.NetworkFacility) graphql.Marshaler {
+			return ec.marshalNNetworkFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_networkFacilitiesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18495,33 +15292,7 @@ func (ec *executionContext) fieldContext_Query_networkFacilitiesList(ctx context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_NetworkFacility_id(ctx, field)
-			case "facID":
-				return ec.fieldContext_NetworkFacility_facID(ctx, field)
-			case "netID":
-				return ec.fieldContext_NetworkFacility_netID(ctx, field)
-			case "localAsn":
-				return ec.fieldContext_NetworkFacility_localAsn(ctx, field)
-			case "name":
-				return ec.fieldContext_NetworkFacility_name(ctx, field)
-			case "city":
-				return ec.fieldContext_NetworkFacility_city(ctx, field)
-			case "country":
-				return ec.fieldContext_NetworkFacility_country(ctx, field)
-			case "created":
-				return ec.fieldContext_NetworkFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_NetworkFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_NetworkFacility_status(ctx, field)
-			case "facility":
-				return ec.fieldContext_NetworkFacility_facility(ctx, field)
-			case "network":
-				return ec.fieldContext_NetworkFacility_network(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type NetworkFacility", field.Name)
+			return ec.childFields_NetworkFacility(ctx, field)
 		},
 	}
 	defer func() {
@@ -18543,18 +15314,21 @@ func (ec *executionContext) _Query_carriersList(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_carriersList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_carriersList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().CarriersList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.CarrierWhereInput))
 		},
 		nil,
-		ec.marshalNCarrier2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Carrier) graphql.Marshaler {
+			return ec.marshalNCarrier2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_carriersList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18562,41 +15336,7 @@ func (ec *executionContext) fieldContext_Query_carriersList(ctx context.Context,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Carrier_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Carrier_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Carrier_aka(ctx, field)
-			case "logo":
-				return ec.fieldContext_Carrier_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Carrier_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Carrier_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Carrier_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Carrier_socialMedia(ctx, field)
-			case "website":
-				return ec.fieldContext_Carrier_website(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Carrier_orgName(ctx, field)
-			case "facCount":
-				return ec.fieldContext_Carrier_facCount(ctx, field)
-			case "created":
-				return ec.fieldContext_Carrier_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Carrier_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Carrier_status(ctx, field)
-			case "carrierFacilities":
-				return ec.fieldContext_Carrier_carrierFacilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Carrier_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Carrier", field.Name)
+			return ec.childFields_Carrier(ctx, field)
 		},
 	}
 	defer func() {
@@ -18618,18 +15358,21 @@ func (ec *executionContext) _Query_carrierFacilitiesList(ctx context.Context, fi
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_carrierFacilitiesList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_carrierFacilitiesList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().CarrierFacilitiesList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.CarrierFacilityWhereInput))
 		},
 		nil,
-		ec.marshalNCarrierFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.CarrierFacility) graphql.Marshaler {
+			return ec.marshalNCarrierFacility2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_carrierFacilitiesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18637,27 +15380,7 @@ func (ec *executionContext) fieldContext_Query_carrierFacilitiesList(ctx context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_CarrierFacility_id(ctx, field)
-			case "carrierID":
-				return ec.fieldContext_CarrierFacility_carrierID(ctx, field)
-			case "facID":
-				return ec.fieldContext_CarrierFacility_facID(ctx, field)
-			case "name":
-				return ec.fieldContext_CarrierFacility_name(ctx, field)
-			case "created":
-				return ec.fieldContext_CarrierFacility_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_CarrierFacility_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_CarrierFacility_status(ctx, field)
-			case "carrier":
-				return ec.fieldContext_CarrierFacility_carrier(ctx, field)
-			case "facility":
-				return ec.fieldContext_CarrierFacility_facility(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CarrierFacility", field.Name)
+			return ec.childFields_CarrierFacility(ctx, field)
 		},
 	}
 	defer func() {
@@ -18679,18 +15402,21 @@ func (ec *executionContext) _Query_campusesList(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_campusesList,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_campusesList(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.Resolvers.Query().CampusesList(ctx, fc.Args["offset"].(*int), fc.Args["limit"].(*int), fc.Args["where"].(*ent.CampusWhereInput))
 		},
 		nil,
-		ec.marshalNCampus2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []*ent.Campus) graphql.Marshaler {
+			return ec.marshalNCampus2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query_campusesList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18698,47 +15424,7 @@ func (ec *executionContext) fieldContext_Query_campusesList(ctx context.Context,
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Campus_id(ctx, field)
-			case "orgID":
-				return ec.fieldContext_Campus_orgID(ctx, field)
-			case "aka":
-				return ec.fieldContext_Campus_aka(ctx, field)
-			case "city":
-				return ec.fieldContext_Campus_city(ctx, field)
-			case "country":
-				return ec.fieldContext_Campus_country(ctx, field)
-			case "logo":
-				return ec.fieldContext_Campus_logo(ctx, field)
-			case "name":
-				return ec.fieldContext_Campus_name(ctx, field)
-			case "nameLong":
-				return ec.fieldContext_Campus_nameLong(ctx, field)
-			case "notes":
-				return ec.fieldContext_Campus_notes(ctx, field)
-			case "socialMedia":
-				return ec.fieldContext_Campus_socialMedia(ctx, field)
-			case "state":
-				return ec.fieldContext_Campus_state(ctx, field)
-			case "website":
-				return ec.fieldContext_Campus_website(ctx, field)
-			case "zipcode":
-				return ec.fieldContext_Campus_zipcode(ctx, field)
-			case "orgName":
-				return ec.fieldContext_Campus_orgName(ctx, field)
-			case "created":
-				return ec.fieldContext_Campus_created(ctx, field)
-			case "updated":
-				return ec.fieldContext_Campus_updated(ctx, field)
-			case "status":
-				return ec.fieldContext_Campus_status(ctx, field)
-			case "facilities":
-				return ec.fieldContext_Campus_facilities(ctx, field)
-			case "organization":
-				return ec.fieldContext_Campus_organization(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Campus", field.Name)
+			return ec.childFields_Campus(ctx, field)
 		},
 	}
 	defer func() {
@@ -18760,18 +15446,21 @@ func (ec *executionContext) _Query___type(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query___type,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query___type(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return ec.IntrospectType(fc.Args["name"].(string))
 		},
 		nil,
-		ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
+			return ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query___type(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18779,31 +15468,7 @@ func (ec *executionContext) fieldContext_Query___type(ctx context.Context, field
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	defer func() {
@@ -18825,17 +15490,20 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query___schema,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query___schema(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return ec.IntrospectSchema()
 		},
 		nil,
-		ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Schema) graphql.Marshaler {
+			return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
@@ -18843,21 +15511,7 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "description":
-				return ec.fieldContext___Schema_description(ctx, field)
-			case "types":
-				return ec.fieldContext___Schema_types(ctx, field)
-			case "queryType":
-				return ec.fieldContext___Schema_queryType(ctx, field)
-			case "mutationType":
-				return ec.fieldContext___Schema_mutationType(ctx, field)
-			case "subscriptionType":
-				return ec.fieldContext___Schema_subscriptionType(ctx, field)
-			case "directives":
-				return ec.fieldContext___Schema_directives(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+			return ec.childFields___Schema(ctx, field)
 		},
 	}
 	return fc, nil
@@ -18868,28 +15522,22 @@ func (ec *executionContext) _SocialMedia_service(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_SocialMedia_service,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SocialMedia_service(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Service, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_SocialMedia_service(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SocialMedia",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("SocialMedia", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _SocialMedia_identifier(ctx context.Context, field graphql.CollectedField, obj *schematypes.SocialMedia) (ret graphql.Marshaler) {
@@ -18897,28 +15545,22 @@ func (ec *executionContext) _SocialMedia_identifier(ctx context.Context, field g
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_SocialMedia_identifier,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SocialMedia_identifier(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Identifier, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_SocialMedia_identifier(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SocialMedia",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("SocialMedia", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _SyncStatus_lastSyncAt(ctx context.Context, field graphql.CollectedField, obj *model.SyncStatus) (ret graphql.Marshaler) {
@@ -18926,28 +15568,22 @@ func (ec *executionContext) _SyncStatus_lastSyncAt(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_SyncStatus_lastSyncAt,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SyncStatus_lastSyncAt(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.LastSyncAt, nil
 		},
 		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_SyncStatus_lastSyncAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SyncStatus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("SyncStatus", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _SyncStatus_durationMs(ctx context.Context, field graphql.CollectedField, obj *model.SyncStatus) (ret graphql.Marshaler) {
@@ -18955,28 +15591,22 @@ func (ec *executionContext) _SyncStatus_durationMs(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_SyncStatus_durationMs,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SyncStatus_durationMs(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.DurationMs, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint,
+		func(ctx context.Context, selections ast.SelectionSet, v *int) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_SyncStatus_durationMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SyncStatus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("SyncStatus", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) _SyncStatus_objectCounts(ctx context.Context, field graphql.CollectedField, obj *model.SyncStatus) (ret graphql.Marshaler) {
@@ -18984,28 +15614,22 @@ func (ec *executionContext) _SyncStatus_objectCounts(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_SyncStatus_objectCounts,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SyncStatus_objectCounts(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return ec.Resolvers.SyncStatus().ObjectCounts(ctx, obj)
 		},
 		nil,
-		ec.marshalOMap2map,
+		func(ctx context.Context, selections ast.SelectionSet, v map[string]any) graphql.Marshaler {
+			return ec.marshalOMap2map(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_SyncStatus_objectCounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SyncStatus",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Map does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("SyncStatus", field, true, true, errors.New("field of type Map does not have child fields"))
 }
 
 func (ec *executionContext) _SyncStatus_status(ctx context.Context, field graphql.CollectedField, obj *model.SyncStatus) (ret graphql.Marshaler) {
@@ -19013,28 +15637,22 @@ func (ec *executionContext) _SyncStatus_status(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_SyncStatus_status,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SyncStatus_status(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Status, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext_SyncStatus_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SyncStatus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("SyncStatus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _SyncStatus_errorMessage(ctx context.Context, field graphql.CollectedField, obj *model.SyncStatus) (ret graphql.Marshaler) {
@@ -19042,28 +15660,22 @@ func (ec *executionContext) _SyncStatus_errorMessage(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_SyncStatus_errorMessage,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SyncStatus_errorMessage(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.ErrorMessage, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext_SyncStatus_errorMessage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SyncStatus",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("SyncStatus", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -19071,28 +15683,22 @@ func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Directive_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Directive_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Directive_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Directive",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Directive", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_description(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -19100,28 +15706,22 @@ func (ec *executionContext) ___Directive_description(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Directive_description,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Directive_description(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Description(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Directive_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Directive",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Directive", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -19129,28 +15729,22 @@ func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Directive_isRepeatable,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Directive_isRepeatable(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IsRepeatable, nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Directive_isRepeatable(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Directive",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Directive", field, false, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_locations(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -19158,28 +15752,22 @@ func (ec *executionContext) ___Directive_locations(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Directive_locations,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Directive_locations(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Locations, nil
 		},
 		nil,
-		ec.marshalN__DirectiveLocation2ᚕstringᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalN__DirectiveLocation2ᚕstringᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Directive_locations(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Directive",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type __DirectiveLocation does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Directive", field, false, false, errors.New("field of type __DirectiveLocation does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -19187,17 +15775,20 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Directive_args,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Directive_args(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Args, nil
 		},
 		nil,
-		ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.InputValue) graphql.Marshaler {
+			return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Directive_args(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Directive",
@@ -19205,21 +15796,7 @@ func (ec *executionContext) fieldContext___Directive_args(ctx context.Context, f
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext___InputValue_name(ctx, field)
-			case "description":
-				return ec.fieldContext___InputValue_description(ctx, field)
-			case "type":
-				return ec.fieldContext___InputValue_type(ctx, field)
-			case "defaultValue":
-				return ec.fieldContext___InputValue_defaultValue(ctx, field)
-			case "isDeprecated":
-				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
-			case "deprecationReason":
-				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
+			return ec.childFields___InputValue(ctx, field)
 		},
 	}
 	defer func() {
@@ -19241,28 +15818,22 @@ func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___EnumValue_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___EnumValue_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___EnumValue_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__EnumValue",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__EnumValue", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___EnumValue_description(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
@@ -19270,28 +15841,22 @@ func (ec *executionContext) ___EnumValue_description(ctx context.Context, field 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___EnumValue_description,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___EnumValue_description(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Description(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___EnumValue_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__EnumValue",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__EnumValue", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___EnumValue_isDeprecated(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
@@ -19299,28 +15864,22 @@ func (ec *executionContext) ___EnumValue_isDeprecated(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___EnumValue_isDeprecated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___EnumValue_isDeprecated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IsDeprecated(), nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___EnumValue_isDeprecated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__EnumValue",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__EnumValue", field, true, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) ___EnumValue_deprecationReason(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
@@ -19328,28 +15887,22 @@ func (ec *executionContext) ___EnumValue_deprecationReason(ctx context.Context, 
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___EnumValue_deprecationReason,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___EnumValue_deprecationReason(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.DeprecationReason(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___EnumValue_deprecationReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__EnumValue",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__EnumValue", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Field_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Field) (ret graphql.Marshaler) {
@@ -19357,28 +15910,22 @@ func (ec *executionContext) ___Field_name(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Field_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Field_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Field_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Field",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Field", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Field_description(ctx context.Context, field graphql.CollectedField, obj *introspection.Field) (ret graphql.Marshaler) {
@@ -19386,28 +15933,22 @@ func (ec *executionContext) ___Field_description(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Field_description,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Field_description(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Description(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Field_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Field",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Field", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Field_args(ctx context.Context, field graphql.CollectedField, obj *introspection.Field) (ret graphql.Marshaler) {
@@ -19415,17 +15956,20 @@ func (ec *executionContext) ___Field_args(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Field_args,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Field_args(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Args, nil
 		},
 		nil,
-		ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.InputValue) graphql.Marshaler {
+			return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Field_args(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Field",
@@ -19433,21 +15977,7 @@ func (ec *executionContext) fieldContext___Field_args(ctx context.Context, field
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext___InputValue_name(ctx, field)
-			case "description":
-				return ec.fieldContext___InputValue_description(ctx, field)
-			case "type":
-				return ec.fieldContext___InputValue_type(ctx, field)
-			case "defaultValue":
-				return ec.fieldContext___InputValue_defaultValue(ctx, field)
-			case "isDeprecated":
-				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
-			case "deprecationReason":
-				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
+			return ec.childFields___InputValue(ctx, field)
 		},
 	}
 	defer func() {
@@ -19469,17 +15999,20 @@ func (ec *executionContext) ___Field_type(ctx context.Context, field graphql.Col
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Field_type,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Field_type(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Type, nil
 		},
 		nil,
-		ec.marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
+			return ec.marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Field_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Field",
@@ -19487,31 +16020,7 @@ func (ec *executionContext) fieldContext___Field_type(_ context.Context, field g
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -19522,28 +16031,22 @@ func (ec *executionContext) ___Field_isDeprecated(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Field_isDeprecated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Field_isDeprecated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IsDeprecated(), nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Field_isDeprecated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Field",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Field", field, true, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) ___Field_deprecationReason(ctx context.Context, field graphql.CollectedField, obj *introspection.Field) (ret graphql.Marshaler) {
@@ -19551,28 +16054,22 @@ func (ec *executionContext) ___Field_deprecationReason(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Field_deprecationReason,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Field_deprecationReason(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.DeprecationReason(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Field_deprecationReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Field",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Field", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___InputValue_name(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
@@ -19580,28 +16077,22 @@ func (ec *executionContext) ___InputValue_name(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___InputValue_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___InputValue_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___InputValue_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__InputValue",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__InputValue", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___InputValue_description(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
@@ -19609,28 +16100,22 @@ func (ec *executionContext) ___InputValue_description(ctx context.Context, field
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___InputValue_description,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___InputValue_description(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Description(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___InputValue_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__InputValue",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__InputValue", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___InputValue_type(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
@@ -19638,17 +16123,20 @@ func (ec *executionContext) ___InputValue_type(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___InputValue_type,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___InputValue_type(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Type, nil
 		},
 		nil,
-		ec.marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
+			return ec.marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___InputValue_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__InputValue",
@@ -19656,31 +16144,7 @@ func (ec *executionContext) fieldContext___InputValue_type(_ context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -19691,28 +16155,22 @@ func (ec *executionContext) ___InputValue_defaultValue(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___InputValue_defaultValue,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___InputValue_defaultValue(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.DefaultValue, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___InputValue_defaultValue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__InputValue",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__InputValue", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___InputValue_isDeprecated(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
@@ -19720,28 +16178,22 @@ func (ec *executionContext) ___InputValue_isDeprecated(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___InputValue_isDeprecated,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___InputValue_isDeprecated(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IsDeprecated(), nil
 		},
 		nil,
-		ec.marshalNBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___InputValue_isDeprecated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__InputValue",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__InputValue", field, true, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 func (ec *executionContext) ___InputValue_deprecationReason(ctx context.Context, field graphql.CollectedField, obj *introspection.InputValue) (ret graphql.Marshaler) {
@@ -19749,28 +16201,22 @@ func (ec *executionContext) ___InputValue_deprecationReason(ctx context.Context,
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___InputValue_deprecationReason,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___InputValue_deprecationReason(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.DeprecationReason(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___InputValue_deprecationReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__InputValue",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__InputValue", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Schema_description(ctx context.Context, field graphql.CollectedField, obj *introspection.Schema) (ret graphql.Marshaler) {
@@ -19778,28 +16224,22 @@ func (ec *executionContext) ___Schema_description(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Schema_description,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Schema_description(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Description(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Schema_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Schema",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Schema", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Schema_types(ctx context.Context, field graphql.CollectedField, obj *introspection.Schema) (ret graphql.Marshaler) {
@@ -19807,17 +16247,20 @@ func (ec *executionContext) ___Schema_types(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Schema_types,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Schema_types(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Types(), nil
 		},
 		nil,
-		ec.marshalN__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐTypeᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.Type) graphql.Marshaler {
+			return ec.marshalN__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐTypeᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Schema_types(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Schema",
@@ -19825,31 +16268,7 @@ func (ec *executionContext) fieldContext___Schema_types(_ context.Context, field
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -19860,17 +16279,20 @@ func (ec *executionContext) ___Schema_queryType(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Schema_queryType,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Schema_queryType(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.QueryType(), nil
 		},
 		nil,
-		ec.marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
+			return ec.marshalN__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Schema_queryType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Schema",
@@ -19878,31 +16300,7 @@ func (ec *executionContext) fieldContext___Schema_queryType(_ context.Context, f
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -19913,17 +16311,20 @@ func (ec *executionContext) ___Schema_mutationType(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Schema_mutationType,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Schema_mutationType(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.MutationType(), nil
 		},
 		nil,
-		ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
+			return ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Schema_mutationType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Schema",
@@ -19931,31 +16332,7 @@ func (ec *executionContext) fieldContext___Schema_mutationType(_ context.Context
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -19966,17 +16343,20 @@ func (ec *executionContext) ___Schema_subscriptionType(ctx context.Context, fiel
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Schema_subscriptionType,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Schema_subscriptionType(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SubscriptionType(), nil
 		},
 		nil,
-		ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
+			return ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Schema_subscriptionType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Schema",
@@ -19984,31 +16364,7 @@ func (ec *executionContext) fieldContext___Schema_subscriptionType(_ context.Con
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -20019,17 +16375,20 @@ func (ec *executionContext) ___Schema_directives(ctx context.Context, field grap
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Schema_directives,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Schema_directives(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Directives(), nil
 		},
 		nil,
-		ec.marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirectiveᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.Directive) graphql.Marshaler {
+			return ec.marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirectiveᚄ(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Schema_directives(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Schema",
@@ -20037,19 +16396,7 @@ func (ec *executionContext) fieldContext___Schema_directives(_ context.Context, 
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext___Directive_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Directive_description(ctx, field)
-			case "isRepeatable":
-				return ec.fieldContext___Directive_isRepeatable(ctx, field)
-			case "locations":
-				return ec.fieldContext___Directive_locations(ctx, field)
-			case "args":
-				return ec.fieldContext___Directive_args(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Directive", field.Name)
+			return ec.childFields___Directive(ctx, field)
 		},
 	}
 	return fc, nil
@@ -20060,28 +16407,22 @@ func (ec *executionContext) ___Type_kind(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_kind,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_kind(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Kind(), nil
 		},
 		nil,
-		ec.marshalN__TypeKind2string,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalN__TypeKind2string(ctx, selections, v)
+		},
 		true,
 		true,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_kind(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Type",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type __TypeKind does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Type", field, true, false, errors.New("field of type __TypeKind does not have child fields"))
 }
 
 func (ec *executionContext) ___Type_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
@@ -20089,28 +16430,22 @@ func (ec *executionContext) ___Type_name(ctx context.Context, field graphql.Coll
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_name,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_name(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Name(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Type",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Type", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Type_description(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
@@ -20118,28 +16453,22 @@ func (ec *executionContext) ___Type_description(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_description,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_description(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Description(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Type",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Type", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
@@ -20147,28 +16476,22 @@ func (ec *executionContext) ___Type_specifiedByURL(ctx context.Context, field gr
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_specifiedByURL,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_specifiedByURL(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.SpecifiedByURL(), nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Type",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Type", field, true, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) ___Type_fields(ctx context.Context, field graphql.CollectedField, obj *introspection.Type) (ret graphql.Marshaler) {
@@ -20176,18 +16499,21 @@ func (ec *executionContext) ___Type_fields(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_fields,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_fields(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return obj.Fields(fc.Args["includeDeprecated"].(bool)), nil
 		},
 		nil,
-		ec.marshalO__Field2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐFieldᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.Field) graphql.Marshaler {
+			return ec.marshalO__Field2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐFieldᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_fields(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Type",
@@ -20195,21 +16521,7 @@ func (ec *executionContext) fieldContext___Type_fields(ctx context.Context, fiel
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext___Field_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Field_description(ctx, field)
-			case "args":
-				return ec.fieldContext___Field_args(ctx, field)
-			case "type":
-				return ec.fieldContext___Field_type(ctx, field)
-			case "isDeprecated":
-				return ec.fieldContext___Field_isDeprecated(ctx, field)
-			case "deprecationReason":
-				return ec.fieldContext___Field_deprecationReason(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Field", field.Name)
+			return ec.childFields___Field(ctx, field)
 		},
 	}
 	defer func() {
@@ -20231,17 +16543,20 @@ func (ec *executionContext) ___Type_interfaces(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_interfaces,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_interfaces(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.Interfaces(), nil
 		},
 		nil,
-		ec.marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐTypeᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.Type) graphql.Marshaler {
+			return ec.marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐTypeᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_interfaces(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Type",
@@ -20249,31 +16564,7 @@ func (ec *executionContext) fieldContext___Type_interfaces(_ context.Context, fi
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -20284,17 +16575,20 @@ func (ec *executionContext) ___Type_possibleTypes(ctx context.Context, field gra
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_possibleTypes,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_possibleTypes(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.PossibleTypes(), nil
 		},
 		nil,
-		ec.marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐTypeᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.Type) graphql.Marshaler {
+			return ec.marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐTypeᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_possibleTypes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Type",
@@ -20302,31 +16596,7 @@ func (ec *executionContext) fieldContext___Type_possibleTypes(_ context.Context,
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -20337,18 +16607,21 @@ func (ec *executionContext) ___Type_enumValues(ctx context.Context, field graphq
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_enumValues,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_enumValues(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
 			return obj.EnumValues(fc.Args["includeDeprecated"].(bool)), nil
 		},
 		nil,
-		ec.marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
+			return ec.marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_enumValues(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Type",
@@ -20356,17 +16629,7 @@ func (ec *executionContext) fieldContext___Type_enumValues(ctx context.Context, 
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext___EnumValue_name(ctx, field)
-			case "description":
-				return ec.fieldContext___EnumValue_description(ctx, field)
-			case "isDeprecated":
-				return ec.fieldContext___EnumValue_isDeprecated(ctx, field)
-			case "deprecationReason":
-				return ec.fieldContext___EnumValue_deprecationReason(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __EnumValue", field.Name)
+			return ec.childFields___EnumValue(ctx, field)
 		},
 	}
 	defer func() {
@@ -20388,17 +16651,20 @@ func (ec *executionContext) ___Type_inputFields(ctx context.Context, field graph
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_inputFields,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_inputFields(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.InputFields(), nil
 		},
 		nil,
-		ec.marshalO__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ,
+		func(ctx context.Context, selections ast.SelectionSet, v []introspection.InputValue) graphql.Marshaler {
+			return ec.marshalO__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_inputFields(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Type",
@@ -20406,21 +16672,7 @@ func (ec *executionContext) fieldContext___Type_inputFields(_ context.Context, f
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext___InputValue_name(ctx, field)
-			case "description":
-				return ec.fieldContext___InputValue_description(ctx, field)
-			case "type":
-				return ec.fieldContext___InputValue_type(ctx, field)
-			case "defaultValue":
-				return ec.fieldContext___InputValue_defaultValue(ctx, field)
-			case "isDeprecated":
-				return ec.fieldContext___InputValue_isDeprecated(ctx, field)
-			case "deprecationReason":
-				return ec.fieldContext___InputValue_deprecationReason(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __InputValue", field.Name)
+			return ec.childFields___InputValue(ctx, field)
 		},
 	}
 	return fc, nil
@@ -20431,17 +16683,20 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_ofType,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_ofType(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.OfType(), nil
 		},
 		nil,
-		ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType,
+		func(ctx context.Context, selections ast.SelectionSet, v *introspection.Type) graphql.Marshaler {
+			return ec.marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐType(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_ofType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "__Type",
@@ -20449,31 +16704,7 @@ func (ec *executionContext) fieldContext___Type_ofType(_ context.Context, field 
 		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "kind":
-				return ec.fieldContext___Type_kind(ctx, field)
-			case "name":
-				return ec.fieldContext___Type_name(ctx, field)
-			case "description":
-				return ec.fieldContext___Type_description(ctx, field)
-			case "specifiedByURL":
-				return ec.fieldContext___Type_specifiedByURL(ctx, field)
-			case "fields":
-				return ec.fieldContext___Type_fields(ctx, field)
-			case "interfaces":
-				return ec.fieldContext___Type_interfaces(ctx, field)
-			case "possibleTypes":
-				return ec.fieldContext___Type_possibleTypes(ctx, field)
-			case "enumValues":
-				return ec.fieldContext___Type_enumValues(ctx, field)
-			case "inputFields":
-				return ec.fieldContext___Type_inputFields(ctx, field)
-			case "ofType":
-				return ec.fieldContext___Type_ofType(ctx, field)
-			case "isOneOf":
-				return ec.fieldContext___Type_isOneOf(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
+			return ec.childFields___Type(ctx, field)
 		},
 	}
 	return fc, nil
@@ -20484,28 +16715,22 @@ func (ec *executionContext) ___Type_isOneOf(ctx context.Context, field graphql.C
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext___Type_isOneOf,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext___Type_isOneOf(ctx, field)
+		},
 		func(ctx context.Context) (any, error) {
 			return obj.IsOneOf(), nil
 		},
 		nil,
-		ec.marshalOBoolean2bool,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalOBoolean2bool(ctx, selections, v)
+		},
 		true,
 		false,
 	)
 }
-
 func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "__Type",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
+	return graphql.NewScalarFieldContext("__Type", field, true, false, errors.New("field of type Boolean does not have child fields"))
 }
 
 // endregion **************************** field.gotpl *****************************
@@ -41018,7 +37243,7 @@ func (ec *executionContext) _Campus(ctx context.Context, sel ast.SelectionSet, o
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41064,7 +37289,7 @@ func (ec *executionContext) _CampusConnection(ctx context.Context, sel ast.Selec
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41105,7 +37330,7 @@ func (ec *executionContext) _CampusEdge(ctx context.Context, sel ast.SelectionSe
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41248,7 +37473,7 @@ func (ec *executionContext) _Carrier(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41294,7 +37519,7 @@ func (ec *executionContext) _CarrierConnection(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41335,7 +37560,7 @@ func (ec *executionContext) _CarrierEdge(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41461,7 +37686,7 @@ func (ec *executionContext) _CarrierFacility(ctx context.Context, sel ast.Select
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41507,7 +37732,7 @@ func (ec *executionContext) _CarrierFacilityConnection(ctx context.Context, sel 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41548,7 +37773,7 @@ func (ec *executionContext) _CarrierFacilityEdge(ctx context.Context, sel ast.Se
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41840,7 +38065,7 @@ func (ec *executionContext) _Facility(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41886,7 +38111,7 @@ func (ec *executionContext) _FacilityConnection(ctx context.Context, sel ast.Sel
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -41927,7 +38152,7 @@ func (ec *executionContext) _FacilityEdge(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42154,7 +38379,7 @@ func (ec *executionContext) _InternetExchange(ctx context.Context, sel ast.Selec
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42200,7 +38425,7 @@ func (ec *executionContext) _InternetExchangeConnection(ctx context.Context, sel
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42241,7 +38466,7 @@ func (ec *executionContext) _InternetExchangeEdge(ctx context.Context, sel ast.S
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42371,7 +38596,7 @@ func (ec *executionContext) _IxFacility(ctx context.Context, sel ast.SelectionSe
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42417,7 +38642,7 @@ func (ec *executionContext) _IxFacilityConnection(ctx context.Context, sel ast.S
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42458,7 +38683,7 @@ func (ec *executionContext) _IxFacilityEdge(ctx context.Context, sel ast.Selecti
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42668,7 +38893,7 @@ func (ec *executionContext) _IxLan(ctx context.Context, sel ast.SelectionSet, ob
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42714,7 +38939,7 @@ func (ec *executionContext) _IxLanConnection(ctx context.Context, sel ast.Select
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42755,7 +38980,7 @@ func (ec *executionContext) _IxLanEdge(ctx context.Context, sel ast.SelectionSet
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42856,7 +39081,7 @@ func (ec *executionContext) _IxPrefix(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42902,7 +39127,7 @@ func (ec *executionContext) _IxPrefixConnection(ctx context.Context, sel ast.Sel
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -42943,7 +39168,7 @@ func (ec *executionContext) _IxPrefixEdge(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43227,7 +39452,7 @@ func (ec *executionContext) _Network(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43273,7 +39498,7 @@ func (ec *executionContext) _NetworkConnection(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43314,7 +39539,7 @@ func (ec *executionContext) _NetworkEdge(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43449,7 +39674,7 @@ func (ec *executionContext) _NetworkFacility(ctx context.Context, sel ast.Select
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43495,7 +39720,7 @@ func (ec *executionContext) _NetworkFacilityConnection(ctx context.Context, sel 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43536,7 +39761,7 @@ func (ec *executionContext) _NetworkFacilityEdge(ctx context.Context, sel ast.Se
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43699,7 +39924,7 @@ func (ec *executionContext) _NetworkIxLan(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43745,7 +39970,7 @@ func (ec *executionContext) _NetworkIxLanConnection(ctx context.Context, sel ast
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -43786,7 +40011,7 @@ func (ec *executionContext) _NetworkIxLanEdge(ctx context.Context, sel ast.Selec
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -44042,7 +40267,7 @@ func (ec *executionContext) _Organization(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -44088,7 +40313,7 @@ func (ec *executionContext) _OrganizationConnection(ctx context.Context, sel ast
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -44129,7 +40354,7 @@ func (ec *executionContext) _OrganizationEdge(ctx context.Context, sel ast.Selec
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -44177,7 +40402,7 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -44281,7 +40506,7 @@ func (ec *executionContext) _Poc(ctx context.Context, sel ast.SelectionSet, obj 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -44327,7 +40552,7 @@ func (ec *executionContext) _PocConnection(ctx context.Context, sel ast.Selectio
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -44368,7 +40593,7 @@ func (ec *executionContext) _PocEdge(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45069,7 +41294,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45113,7 +41338,7 @@ func (ec *executionContext) _SocialMedia(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45191,7 +41416,7 @@ func (ec *executionContext) _SyncStatus(ctx context.Context, sel ast.SelectionSe
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45247,7 +41472,7 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45295,7 +41520,7 @@ func (ec *executionContext) ___EnumValue(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45353,7 +41578,7 @@ func (ec *executionContext) ___Field(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45408,7 +41633,7 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45463,7 +41688,7 @@ func (ec *executionContext) ___Schema(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
@@ -45522,7 +41747,7 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
 
 	for label, dfs := range deferred {
 		ec.ProcessDeferredGroup(graphql.DeferredGroup{
