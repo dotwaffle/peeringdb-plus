@@ -2,6 +2,7 @@ package visbaseline
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -358,7 +360,7 @@ func loadConcatenatedPages(dir string) ([]byte, error) {
 		}
 		files = append(files, pageFile{page: page, path: filepath.Join(dir, e.Name())})
 	}
-	sort.Slice(files, func(i, j int) bool { return files[i].page < files[j].page })
+	slices.SortFunc(files, func(a, b pageFile) int { return cmp.Compare(a.page, b.page) })
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no page-N.json files in %s", dir)
 	}

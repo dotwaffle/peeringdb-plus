@@ -12,7 +12,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -323,19 +323,18 @@ func (w *Worker) emitOrphanSummary(ctx context.Context) {
 			"count":       count,
 		})
 	}
-	sort.Slice(groups, func(i, j int) bool {
+	slices.SortFunc(groups, func(a, b map[string]any) int {
 		// Stable, grep-friendly ordering: child_type, parent_type, field, action.
-		gi, gj := groups[i], groups[j]
-		if a, b := gi["child_type"].(string), gj["child_type"].(string); a != b {
-			return a < b
+		if r := cmp.Compare(a["child_type"].(string), b["child_type"].(string)); r != 0 {
+			return r
 		}
-		if a, b := gi["parent_type"].(string), gj["parent_type"].(string); a != b {
-			return a < b
+		if r := cmp.Compare(a["parent_type"].(string), b["parent_type"].(string)); r != 0 {
+			return r
 		}
-		if a, b := gi["field"].(string), gj["field"].(string); a != b {
-			return a < b
+		if r := cmp.Compare(a["field"].(string), b["field"].(string)); r != 0 {
+			return r
 		}
-		return gi["action"].(string) < gj["action"].(string)
+		return cmp.Compare(a["action"].(string), b["action"].(string))
 	})
 	w.logger.LogAttrs(ctx, slog.LevelWarn, "fk orphans summary",
 		slog.Int("total", total),

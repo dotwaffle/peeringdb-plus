@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -17,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -318,11 +320,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 // in-place. Extracted so each per-category parser need not re-implement
 // the pattern, and so future sections inherit the same invariant.
 func sortFixtures(fxs []Fixture) {
-	sort.Slice(fxs, func(i, j int) bool {
-		if fxs[i].Entity != fxs[j].Entity {
-			return fxs[i].Entity < fxs[j].Entity
+	slices.SortFunc(fxs, func(a, b Fixture) int {
+		if r := cmp.Compare(a.Entity, b.Entity); r != 0 {
+			return r
 		}
-		return fxs[i].ID < fxs[j].ID
+		return cmp.Compare(a.ID, b.ID)
 	})
 }
 

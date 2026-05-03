@@ -2,8 +2,9 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -83,7 +84,7 @@ func TestMiddlewareChain_Order(t *testing.T) {
 		hits = append(hits, hit{name: name, pos: idx})
 	}
 	// Sort by source position to compare against wantOrder.
-	sort.Slice(hits, func(i, j int) bool { return hits[i].pos < hits[j].pos })
+	slices.SortFunc(hits, func(a, b hit) int { return cmp.Compare(a.pos, b.pos) })
 
 	got := make([]string, len(hits))
 	for i, h := range hits {
