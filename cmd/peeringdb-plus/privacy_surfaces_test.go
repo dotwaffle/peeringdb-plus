@@ -474,8 +474,7 @@ func TestPrivacySurfaces(t *testing.T) {
 		// (the 403 analogue) would distinguish "filtered" from "missing"
 		// and leak row existence.
 		if code := connect.CodeOf(err); code != connect.CodeNotFound {
-			var ce *connect.Error
-			if errors.As(err, &ce) {
+			if ce, ok := errors.AsType[*connect.Error](err); ok {
 				t.Fatalf("GetPoc(%d): code=%s, want CodeNotFound (D-13); message=%q",
 					usersPocID, code, ce.Message())
 			}

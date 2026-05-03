@@ -72,8 +72,8 @@ func TestFetchRawPageRateLimit(t *testing.T) {
 	if err == nil {
 		t.Fatal("FetchRawPage returned nil error, want *RateLimitError")
 	}
-	var rlErr *peeringdb.RateLimitError
-	if !errors.As(err, &rlErr) {
+	rlErr, ok := errors.AsType[*peeringdb.RateLimitError](err)
+	if !ok {
 		t.Fatalf("err type = %T, want *RateLimitError (err=%v)", err, err)
 	}
 	if rlErr.RetryAfter != 1*time.Second {

@@ -229,8 +229,7 @@ func (c *Capture) runTuple(ctx context.Context, t Tuple) error {
 		if err == nil {
 			return c.writeBytes(t, raw)
 		}
-		var rlErr *peeringdb.RateLimitError
-		if errors.As(err, &rlErr) {
+		if rlErr, ok := errors.AsType[*peeringdb.RateLimitError](err); ok {
 			wait := rlErr.RetryAfter + c.jitter
 			c.cfg.Logger.LogAttrs(ctx, slog.LevelWarn, "rate-limited, sleeping",
 				slog.String("tuple", t.String()),
