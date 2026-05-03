@@ -366,6 +366,76 @@ func TestSetup_InvalidLogExporter(t *testing.T) {
 	}
 }
 
+// TestSetup_InvertedSamplerDefault locks the inverted per-route sampler
+// policy: DefaultRatio=0.01 (deny-by-default for unknown paths), explicit
+// /. and /wp- deny-prefixes at 0.001, and the four known app surfaces
+// driven by in.SampleRate. Asserts on the config object directly via
+// defaultSamplerInput so the test does not have to wrestle with the
+// opaque sdktrace.Sampler interface. Health-probe / static / UI ratios
+// must survive unchanged.
+func TestSetup_InvertedSamplerDefault(t *testing.T) {
+	t.Parallel()
+
+	rates := []float64{0.0, 0.5, 1.0}
+	for _, rate := range rates {
+		t.Run(fmt.Sprintf("rate=%v", rate), func(t *testing.T) {
+			t.Parallel()
+			out := defaultSamplerInput(SetupInput{
+				ServiceName: "test-service",
+				SampleRate:  rate,
+			})
+
+			if out.DefaultRatio != 0.01 {
+				t.Errorf("DefaultRatio = %v, want 0.01 (inverted deny-by-default policy)", out.DefaultRatio)
+			}
+
+			// Scanner-bait deny-prefixes — fixed at 0.001 regardless of in.SampleRate.
+			for _, prefix := range []string{"/.", "/wp-"} {
+				got, ok := out.Routes[prefix]
+				if !ok {
+					t.Errorf("Routes missing %q deny-prefix entry", prefix)
+					continue
+				}
+				if got != 0.001 {
+					t.Errorf("Routes[%q] = %v, want 0.001", prefix, got)
+				}
+			}
+
+			// Known app surfaces — operator-controlled via in.SampleRate.
+			for _, prefix := range []string{"/api/", "/rest/v1/", "/peeringdb.v1.", "/graphql"} {
+				got, ok := out.Routes[prefix]
+				if !ok {
+					t.Errorf("Routes missing %q app-surface entry", prefix)
+					continue
+				}
+				if got != rate {
+					t.Errorf("Routes[%q] = %v, want %v (must equal in.SampleRate)", prefix, got, rate)
+				}
+			}
+
+			// Health-probe / static / UI ratios — unchanged by this plan.
+			wantUnchanged := map[string]float64{
+				"/healthz":                0.01,
+				"/readyz":                 0.01,
+				"/grpc.health.v1.Health/": 0.01,
+				"/ui/":                    0.5,
+				"/static/":                0.01,
+				"/favicon.ico":            0.01,
+			}
+			for prefix, want := range wantUnchanged {
+				got, ok := out.Routes[prefix]
+				if !ok {
+					t.Errorf("Routes missing %q (unchanged-policy entry)", prefix)
+					continue
+				}
+				if got != want {
+					t.Errorf("Routes[%q] = %v, want %v (must be unchanged by inversion)", prefix, got, want)
+				}
+			}
+		})
+	}
+}
+
 func TestSetup_PrometheusExporter(t *testing.T) {
 	// Find an available port to avoid conflicts with parallel tests.
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
