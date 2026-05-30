@@ -581,7 +581,7 @@ func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.Syn
 	return configured
 }
 
-func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
+func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // VIS-05 bypass — sole call site (D-08/D-09)
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.Warn("sync already running, skipping")
@@ -596,12 +596,74 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	// 260428-mu0: resolve effective mode (PDBPLUS_FULL_SYNC_INTERVAL
 	// escape hatch) BEFORE recording the status row.
 	effectiveMode := w.resolveEffectiveMode(ctx, mode)
-	statusID, err := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
-	if err != nil {
+	statusID, startErr := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
+	if startErr != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
-			slog.Any("error", err))
+			slog.Any("error", startErr))
 	}
 
+	// Panic firewall: cmd/peeringdb-plus/main.go spawns the sync workers
+	// as bare goroutines (StartScheduler, the on-demand `go in.SyncFn`).
+	// middleware.Recovery only guards HTTP request goroutines, so without
+	// this defer a panic from one bad upstream record (e.g. a nil-deref
+	// in upsert) would crash the whole process and take down all five API
+	// surfaces on this edge node. Recover converts the panic into a failed
+	// cycle so the scheduler proceeds to the next tick instead.
+	defer w.recoverSyncPanic(ctx, recoverSyncPanicInput{
+		mode:     effectiveMode,
+		statusID: statusID,
+		start:    start,
+		errp:     &err,
+	})
+
+	err = w.syncCycle(ctx, effectiveMode, statusID, start)
+	return err
+}
+
+// recoverSyncPanicInput carries the per-cycle bookkeeping that the panic
+// firewall needs to convert a recovered panic into a recorded failure.
+// Declared before recoverSyncPanic per GO-CS-6.
+type recoverSyncPanicInput struct {
+	mode     config.SyncMode
+	statusID int64
+	start    time.Time
+	// errp points at Sync's named return so the recovered panic surfaces
+	// to the caller as an ordinary error instead of unwinding the stack.
+	errp *error
+}
+
+// recoverSyncPanic is the deferred panic firewall for a single sync cycle.
+// On recover it logs at ERROR with a stack trace (mirroring
+// internal/middleware/recovery.go), records a failed sync status + the
+// failure metric via recordFailure, and stores the synthesised error into
+// the caller's named return. The bookkeeping runs on a context detached
+// from cancellation so a SIGTERM/demotion mid-cycle cannot turn the status
+// write into a no-op. Non-panic returns are a no-op.
+func (w *Worker) recoverSyncPanic(ctx context.Context, in recoverSyncPanicInput) {
+	rec := recover()
+	if rec == nil {
+		return
+	}
+	panicErr := fmt.Errorf("sync cycle panicked: %v", rec)
+	w.logger.LogAttrs(ctx, slog.LevelError, "sync cycle panic recovered",
+		slog.Any("panic", rec),
+		slog.String("stack", string(debug.Stack())),
+		slog.String("mode", string(in.mode)),
+	)
+	w.recordFailure(ctx, in.mode, in.statusID, in.start, panicErr)
+	if in.errp != nil {
+		*in.errp = panicErr
+	}
+}
+
+// syncCycle runs one sync cycle's data work: scratch fetch (Phase A), the
+// memory guardrail, then the single real transaction (Phase B) and the
+// terminal success/failure recording. Extracted from Sync so the public
+// entry point can install the panic firewall and stay within the REFAC-03
+// line budget (TestWorkerSync_LineBudget). statusID/start/effectiveMode are
+// threaded in so the firewall and every terminal recorder agree on the same
+// status row and timing.
+func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, statusID int64, start time.Time) error {
 	// Tighten GC for the duration of the sync run: the default 100%
 	// target heap growth is too loose when upsert bursts allocate
 	// hundreds of MiB between GC cycles. Setting GCPercent=25 forces
