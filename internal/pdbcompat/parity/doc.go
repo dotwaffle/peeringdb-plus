@@ -4,7 +4,7 @@
 // Each *_test.go file in this directory covers one behavioural
 // category, keyed to upstream peeringdb/peeringdb pdb_api_test.py
 // citations (or documented `phaseXX-synthesised` markers per
-// .planning/phases/72-upstream-parity-regression/CONTEXT.md D-05).
+// the project history D-05).
 // Fixtures come from internal/testutil/parity/fixtures.go (ported via
 // cmd/pdb-fixture-port per Phase 72 plans 72-01..03).
 //

@@ -181,7 +181,7 @@ func TestParity_Traversal(t *testing.T) {
 		// silently ignored and the response is the unfiltered live-fac
 		// set.
 		// See docs/API.md § Known Divergences row "DEFER-70-verifier-01"
-		// and .planning/phases/70-cross-entity-traversal/deferred-items.md.
+		// and the project history
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: pdb_api_test.py:2340 (canonical site for the
 		// ix.fac_count via ixlan filter; upstream returns a filtered

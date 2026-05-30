@@ -619,7 +619,7 @@ func generateIndexes(apiPath string, ot ObjectType) []string {
 // (every emitted index refers to an actual field, an always-on synthetic,
 // or a documented apiPath special-case) rather than from re-deriving the
 // same rules in two places that could themselves drift. See
-// .planning/phases/74-test-ci-debt/74-01-PLAN.md for the rationale.
+// the project history for the rationale.
 func ExpectedIndexesFor(apiPath string, ot ObjectType) []string {
 	return generateIndexes(apiPath, ot)
 }

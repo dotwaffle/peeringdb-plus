@@ -91,7 +91,7 @@ func TestInitialObjectCounts_KeyParityWithSyncSteps(t *testing.T) {
 
 // TestInitialObjectCounts_PocPolicyBypass locks the regression fix for the
 // `pdbplus_data_type_count{type="poc"}` 2x/0.5x oscillation documented in
-// .planning/debug/poc-count-doubling-halving.md.
+// the project history
 //
 // seed.Full creates 3 POCs: 1 visible="Public" (ID 500) + 2 visible="Users"
 // (IDs 9000, 9001). 260428-eda CHANGE 6: this helper now uses raw SQL
@@ -123,7 +123,7 @@ func TestInitialObjectCounts_PocPolicyBypass(t *testing.T) {
 			"a value of 1 means ent's Poc.Policy() filter is still applying — "+
 			"InitialObjectCounts must use raw SQL to bypass ent privacy and "+
 			"match the OnSyncComplete writer's privacy.DecisionContext bypass. "+
-			"See .planning/debug/poc-count-doubling-halving.md.", got)
+			"See the project history", got)
 	}
 }
 

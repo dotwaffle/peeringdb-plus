@@ -20,7 +20,7 @@ import (
 //	-> routeTagMiddleware -> mux
 //
 // The empirical OBS-04 investigation (see
-// .planning/phases/75-code-side-observability/OBS-04-INVESTIGATION.md
+// the project history
 // § Direct metric-record verification) proves that this WithContext
 // hop hides r.Pattern from otelhttp's local r AFTER mux dispatch
 // returns — but the *Labeler pointer is preserved in the propagated

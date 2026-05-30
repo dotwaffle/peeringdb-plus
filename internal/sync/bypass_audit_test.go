@@ -18,7 +18,7 @@
 // sync-writer's bypass when seeding visible="Users" rows so downstream
 // phase 60 surface tests can exercise the policy's filter behaviour.
 // See internal/testutil/seed/seed.go for the call site and
-// .planning/phases/60-surface-integration-tests/60-01-PLAN.md for the
+// the project history for the
 // decision.
 package sync
 

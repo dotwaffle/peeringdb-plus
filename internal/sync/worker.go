@@ -97,7 +97,7 @@ type WorkerConfig struct {
 	//
 	// SEED-001 escalation signal: sustained breach triggers the
 	// incremental-sync evaluation path documented in
-	// .planning/seeds/SEED-001-incremental-sync-evaluation.md.
+	// the project history
 	HeapWarnBytes int64
 
 	// RSSWarnBytes is the peak OS RSS threshold (bytes) above which

@@ -8,7 +8,7 @@
 // approximations. Porting the fixtures verbatim at a pinned upstream
 // SHA gives behavioural-exact parity on the input side of the
 // pdbcompat request pipeline (ordering, status×since, limit, __in,
-// traversal). See .planning/phases/72-upstream-parity-regression/
+// traversal). See the project history
 // CONTEXT.md decisions D-02 and D-03 for the selection rationale over
 // reusing internal/testutil/seed.Full.
 //

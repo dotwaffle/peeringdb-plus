@@ -69,7 +69,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	// WordPress scanner bait at 0.1%. Wrapped in sdktrace.ParentBased
 	// so children inherit the parent decision — preserves cross-service
 	// trace continuity. Full table in docs/ARCHITECTURE.md § Sampling
-	// Matrix and .planning/quick/260503-huo-invert-sampler-default/260503-huo-SUMMARY.md.
+	// Matrix and the project history
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(spanExporter),
 		sdktrace.WithResource(res),
@@ -221,7 +221,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 // Policy (inverted post-2026-05-02 scanner incident — 9M spans/hour from a
 // single source against unknown paths peaked at 384 KB/s vs the free-tier
 // 500 KB/s cap; see
-// .planning/quick/260503-huo-invert-sampler-default/260503-huo-SUMMARY.md):
+// the project history):
 //
 //   - Default = 0.01: deny-by-default for unknown URL paths. The historical
 //     "unknown == in.SampleRate" inheritance is gone; in.SampleRate now
@@ -236,7 +236,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 //     not currently serve it.
 //   - Health probes / static / UI ratios unchanged.
 //
-// The .planning/phases/77-telemetry-audit/AUDIT.md ratio matrix is
+// The the project history ratio matrix is
 // SUPERSEDED by this policy; defer to this file + docs/ARCHITECTURE.md
 // § Sampling Matrix.
 func defaultSamplerInput(in SetupInput) PerRouteSamplerInput {

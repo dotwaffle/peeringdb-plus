@@ -982,7 +982,7 @@ func logStartupClassification(logger *slog.Logger, cfg *config.Config) {
 // otelhttp/labeler.go:44) IS preserved across r.WithContext-derived
 // requests, so this middleware's post-dispatch mutation IS visible to
 // the otelhttp metric record pass even though Pattern is not.
-// See .planning/phases/75-code-side-observability/OBS-04-INVESTIGATION.md
+// See the project history
 // for the empirical evidence that drove this design.
 //
 // Empty r.Pattern (unmatched routes / NotFound) is skipped so we do not

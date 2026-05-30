@@ -285,7 +285,7 @@ func TestSerializerNetworkJSON_OrgIDFieldName(t *testing.T) {
 // shape does NOT contain a "notes" key — Phase 63 (D-01) drops the field
 // from the ent schema AND from the peeringdb.IxPrefix wire struct to match
 // upstream PeeringDB's /api/ixpfx response shape exactly. See
-// .planning/phases/63-schema-hygiene/63-CONTEXT.md D-01.
+// the project history D-01.
 //
 // The test marshals the peeringdb.IxPrefix wire struct (zero value) and
 // confirms the emitted JSON has no "notes" key. This is the output path

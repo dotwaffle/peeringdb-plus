@@ -57,7 +57,7 @@ func TestPeeringDBEntityTypes_Cardinality(t *testing.T) {
 // "campuses") does not silently split the metric series.
 //
 // REVIEW WR-04. Cites Phase 75 D-02
-// (.planning/phases/75-code-side-observability/CONTEXT.md).
+// (the project history).
 func TestPeeringDBEntityTypes_Parity(t *testing.T) {
 	t.Parallel()
 	// Canonical 13 entity type names. Source of truth:

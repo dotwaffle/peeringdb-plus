@@ -15,7 +15,7 @@ import (
 
 // Phase 78 UAT-02 — in-process regression lock for v1.13 Phase 53 security
 // controls. Mirrors the live curl-driven assertions captured in
-// .planning/phases/78-uat-closeout/UAT-RESULTS.md so any drift fails CI
+// the project history so any drift fails CI
 // rather than the next year's UAT.
 //
 // Tests exercise SecurityHeaders + MaxBytesBody middleware directly rather
