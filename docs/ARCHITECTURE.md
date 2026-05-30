@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Architecture
 
 ## System overview
@@ -462,7 +461,7 @@ mirror upstream PeeringDB's `rest.py` status × since matrix; the pk-lookup path
 (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site so
 direct-ID GETs return 404 for tombstones.
 
-Tombstone GC is dormant (see `.planning/seeds/SEED-004-tombstone-gc.md`); triggers are storage
+Tombstone GC is dormant (SEED-004); triggers are storage
 growth >5% MoM, tombstone ratio >10%, or operator request.
 
 ## Shadow-column folding
@@ -594,7 +593,7 @@ needed for ConnectRPC's dot-terminated package prefixes.
 
 `OTEL_BSP_SCHEDULE_DELAY=5s` and `OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512` (PERF-08 baseline) are
 hardcoded in `internal/otel/provider.go` and confirmed appropriate for current cardinality per
-the Phase 77 audit (`.planning/phases/77-telemetry-audit/AUDIT.md`).
+the Phase 77 telemetry audit.
 
 - **`MeterProvider`** — Exposes standard `http.server.*` metrics (from otelhttp) and custom sync
   metrics registered in `internal/otel/metrics.go` (`InitMetrics`):

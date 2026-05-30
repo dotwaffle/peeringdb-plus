@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Contributing to PeeringDB Plus
 
 Thanks for your interest in contributing. This document covers how to file issues, propose changes, and get a pull request merged.
@@ -145,7 +144,6 @@ The existing `ixlan.ixf_ixp_member_list_url_visible` field is a complete worked 
 
 ## Repository Layout Notes
 
-- `.planning/` contains personal workflow artifacts (milestone plans, phase notes, STATE.md) used by the maintainer's internal process. **External contributors do not need to read or update anything under `.planning/`.**
 - `CLAUDE.md` captures project conventions for AI-assisted contributions and is a useful reference but not required reading for human contributors.
 - See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design and [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for environment variables.
 

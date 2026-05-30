@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Development
 
 This guide is for contributors making code changes to PeeringDB Plus. For a
