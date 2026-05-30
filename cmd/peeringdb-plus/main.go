@@ -27,6 +27,7 @@ import (
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
@@ -89,7 +90,17 @@ func main() {
 		slog.Error("failed to init otel", slog.Any("error", err))
 		os.Exit(1) //nolint:gocritic // exitAfterDefer: cancel() deferred above is trivial at this stage
 	}
-	defer otelOut.Shutdown(ctx) //nolint:errcheck // best-effort flush at exit
+	defer func() {
+		// Flush OTel on a context detached from the cancelled root. By the
+		// time this defer runs, the signal handler has called cancel() and the
+		// root ctx is Done; the OTLP exporters honor cancellation, so the final
+		// buffered batch — including the shutdown-time log records — would be
+		// dropped instead of flushed. WithoutCancel keeps any context values
+		// while shedding the cancellation; the drain timeout bounds the flush.
+		flushCtx, flushCancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.DrainTimeout)
+		defer flushCancel()
+		_ = otelOut.Shutdown(flushCtx) // best-effort flush at exit
+	}()
 
 	// Set up dual slog logger (stdout + OTel pipeline) per D-03, OBS-1.
 	logger := pdbotel.NewDualLogger(os.Stdout, otelOut.LogProvider)
@@ -983,6 +994,16 @@ func routeTagMiddleware(next http.Handler) http.Handler {
 		if r.Pattern == "" {
 			return
 		}
+		// Rename the otelhttp server span from the static "peeringdb-plus"
+		// operation to the matched route so every HTTP surface is
+		// distinguishable in trace search and span-name TraceQL filters.
+		// Same rationale as the labeler below: otelhttp's native Pattern read
+		// returns empty because middleware re-derives the request, but the
+		// span lives in ctx and is still recording here (routeTagMiddleware
+		// runs inside the otelhttp span), so SetName after dispatch is valid.
+		// r.Pattern carries the method ("GET /api/net/{id}") under method
+		// routing, matching the OTel "{method} {route}" span-name convention.
+		trace.SpanFromContext(r.Context()).SetName(r.Pattern)
 		labeler, ok := otelhttp.LabelerFromContext(r.Context())
 		if !ok {
 			return
