@@ -267,7 +267,7 @@ func Load() (*Config, error) {
 		// into the message), the variable is a boolean flag with no secret
 		// content, and slog.String quotes the value on output. Safe per
 		// GO-SEC-2 (no secrets in env) + threat register T-68-01-03.
-		slog.Warn("PDBPLUS_INCLUDE_DELETED is deprecated and ignored; remove it from your environment. This will be a startup error in v1.17.", //nolint:gosec // G706: boolean flag, structured attr, threat register T-68-01-03
+		slog.Warn("PDBPLUS_INCLUDE_DELETED is deprecated and ignored; remove it from your environment. This will be a startup error in v1.17.",
 			slog.String("value", v),
 		)
 	}
