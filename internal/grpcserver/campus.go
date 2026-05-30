@@ -177,6 +177,7 @@ func (s *CampusService) StreamCampuses(ctx context.Context, req *pb.StreamCampus
 		Convert:    campusToProto,
 		GetID:      func(c *ent.Campus) int { return c.ID },
 		GetUpdated: func(c *ent.Campus) time.Time { return c.Updated },
+		GetCreated: func(c *ent.Campus) time.Time { return c.Created },
 	}, stream)
 }
 

@@ -150,6 +150,7 @@ func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, 
 		Convert:    pocToProto,
 		GetID:      func(p *ent.Poc) int { return p.ID },
 		GetUpdated: func(p *ent.Poc) time.Time { return p.Updated },
+		GetCreated: func(p *ent.Poc) time.Time { return p.Created },
 	}, stream)
 }
 

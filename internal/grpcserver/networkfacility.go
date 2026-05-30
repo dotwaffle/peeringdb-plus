@@ -150,6 +150,7 @@ func (s *NetworkFacilityService) StreamNetworkFacilities(ctx context.Context, re
 		Convert:    networkFacilityToProto,
 		GetID:      func(nf *ent.NetworkFacility) int { return nf.ID },
 		GetUpdated: func(nf *ent.NetworkFacility) time.Time { return nf.Updated },
+		GetCreated: func(nf *ent.NetworkFacility) time.Time { return nf.Created },
 	}, stream)
 }
 

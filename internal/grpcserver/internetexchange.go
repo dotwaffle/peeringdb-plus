@@ -224,6 +224,7 @@ func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, r
 		Convert:    internetExchangeToProto,
 		GetID:      func(ix *ent.InternetExchange) int { return ix.ID },
 		GetUpdated: func(ix *ent.InternetExchange) time.Time { return ix.Updated },
+		GetCreated: func(ix *ent.InternetExchange) time.Time { return ix.Created },
 	}, stream)
 }
 

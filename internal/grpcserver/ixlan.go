@@ -172,6 +172,7 @@ func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansReq
 		Convert:    func(il *ent.IxLan) *pb.IxLan { return ixLanToProto(ctx, il) },
 		GetID:      func(il *ent.IxLan) int { return il.ID },
 		GetUpdated: func(il *ent.IxLan) time.Time { return il.Updated },
+		GetCreated: func(il *ent.IxLan) time.Time { return il.Created },
 	}, stream)
 }
 

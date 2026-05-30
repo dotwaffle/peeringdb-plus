@@ -68,8 +68,10 @@ type StreamParams[E any, P any] struct {
 	Count        func(ctx context.Context, predicates []func(*sql.Selector)) (int, error)
 	// QueryBatch fetches the next batch under compound keyset pagination. When
 	// cursor.empty() the query runs without a cursor predicate; otherwise the
-	// handler emits the compound keyset predicate
-	//   WHERE (updated < cursor.Updated) OR (updated = cursor.Updated AND id < cursor.ID)
+	// handler emits the full three-key keyset predicate
+	//   WHERE (updated < C.Updated)
+	//      OR (updated = C.Updated AND created < C.Created)
+	//      OR (updated = C.Updated AND created = C.Created AND id < C.ID)
 	// under the `(-updated, -created, -id)` default order (Phase 67, CONTEXT.md
 	// D-01 / D-05).
 	QueryBatch func(ctx context.Context, predicates []func(*sql.Selector), cursor streamCursor, limit int) ([]*E, error)
@@ -79,6 +81,11 @@ type StreamParams[E any, P any] struct {
 	// compound cursor's primary key. Required by StreamEntities to emit the
 	// next-batch cursor after each batch drains.
 	GetUpdated func(*E) time.Time
+	// GetCreated extracts the `created` timestamp — the middle ORDER BY key.
+	// Required so the cursor carries all three keyset components; without it
+	// an equal-`updated` group ordered by `created` DESC drops rows at a
+	// batch boundary that resumes on id alone.
+	GetCreated func(*E) time.Time
 }
 
 // StreamEntities streams all matching entities using batched keyset pagination.
@@ -125,7 +132,7 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 		stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
 	}
 
-	// Stream records in batches under compound (updated, id) keyset
+	// Stream records in batches under compound (updated, created, id) keyset
 	// pagination. The cursor starts empty (full table scan) and advances to
 	// the last emitted row at the end of each batch. D-05: SinceID /
 	// UpdatedSince are predicates already applied via the predicates slice
@@ -154,6 +161,7 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 		last := batch[len(batch)-1]
 		cursor = streamCursor{
 			Updated: params.GetUpdated(last),
+			Created: params.GetCreated(last),
 			ID:      params.GetID(last),
 		}
 		if len(batch) < streamBatchSize {
@@ -176,18 +184,27 @@ func castPredicates[T ~func(*sql.Selector)](preds []func(*sql.Selector)) []T {
 // default ordering (Phase 67 ORDER-02). Caller must check `cursor.empty()`
 // first — an empty cursor means "no resume predicate".
 //
-//	WHERE (updated < cursor.Updated) OR (updated = cursor.Updated AND id < cursor.ID)
+//	WHERE (updated < C.Updated)
+//	   OR (updated = C.Updated AND created < C.Created)
+//	   OR (updated = C.Updated AND created = C.Created AND id < C.ID)
 //
-// The predicate matches the DESC ordering: each row strictly-less-than the
-// cursor is emitted. The id tiebreaker guarantees monotonic progress even
-// when multiple rows share a timestamp (CONTEXT.md D-01). Built with ent's
-// canonical variadic predicate composers (sql.AndPredicates / sql.OrPredicates
-// — see ent/network/where.go:2452,2457).
+// The predicate matches the DESC ordering on the full three-key keyset: each
+// row strictly-less-than the cursor tuple is emitted. All three ORDER BY keys
+// must appear, in order — a two-key (updated, id) predicate silently drops
+// rows within an equal-`updated` group ordered by `created` DESC, because the
+// id tiebreaker disagrees with the created ordering at a batch boundary
+// (CONTEXT.md D-01). Built with ent's canonical variadic predicate composers
+// (sql.AndPredicates / sql.OrPredicates — see ent/network/where.go:2452,2457).
 func keysetCursorPredicate(cursor streamCursor) func(*sql.Selector) {
 	return sql.OrPredicates(
 		sql.FieldLT("updated", cursor.Updated),
 		sql.AndPredicates(
 			sql.FieldEQ("updated", cursor.Updated),
+			sql.FieldLT("created", cursor.Created),
+		),
+		sql.AndPredicates(
+			sql.FieldEQ("updated", cursor.Updated),
+			sql.FieldEQ("created", cursor.Created),
 			sql.FieldLT("id", cursor.ID),
 		),
 	)

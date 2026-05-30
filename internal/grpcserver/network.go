@@ -251,6 +251,7 @@ func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetwo
 		Convert:    networkToProto,
 		GetID:      func(n *ent.Network) int { return n.ID },
 		GetUpdated: func(n *ent.Network) time.Time { return n.Updated },
+		GetCreated: func(n *ent.Network) time.Time { return n.Created },
 	}, stream)
 }
 
