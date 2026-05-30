@@ -13,6 +13,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
@@ -184,6 +185,7 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // consults FoldedFields on the target TypeConfig, and the empty-__in
 // emptyResult sentinel bubbles back up from subquery construction.
 func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
+	tier := privctx.TierFrom(ctx)
 	var predicates []func(*sql.Selector)
 	for key, vals := range params {
 		if len(vals) == 0 {
@@ -229,7 +231,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		}
 
 		// Traversal path (1-hop or 2-hop).
-		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, vals[0])
+		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, vals[0], tier)
 		if err != nil {
 			return nil, false, fmt.Errorf("filter %s: %w", key, err)
 		}
@@ -277,7 +279,7 @@ func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Sele
 //   - nil, false, true, nil on an empty __in sentinel bubbling up from the
 //     target-side buildPredicate
 //   - nil, false, false, err on conversion errors (int, bool, etc.)
-func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value string) (func(*sql.Selector), bool, bool, error) {
+func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	// Reconstruct the allowlist key (without operator suffix): matches the
 	// shape emitted by cmd/pdb-compat-allowlist for Allowlists entries.
 	fullKey := strings.Join(relSegs, "__") + "__" + field
@@ -296,7 +298,7 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 	if hasAllowlist {
 		if len(relSegs) == 1 {
 			if slices.Contains(entry.Direct, fullKey) {
-				p, ok, empty, err := buildSinglHop(tc.Name, relSegs[0], field, op, value)
+				p, ok, empty, err := buildSinglHop(tc.Name, relSegs[0], field, op, value, tier)
 				if err != nil || empty || ok {
 					return p, ok, empty, err
 				}
@@ -307,7 +309,7 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 			if tails, okVia := entry.Via[relSegs[0]]; okVia {
 				tailKey := relSegs[1] + "__" + field
 				if slices.Contains(tails, tailKey) {
-					p, ok, empty, err := buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value)
+					p, ok, empty, err := buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value, tier)
 					if err != nil || empty || ok {
 						return p, ok, empty, err
 					}
@@ -326,7 +328,7 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 		if _, hasField := TargetFields(edge.TargetType)[field]; !hasField {
 			return nil, false, false, nil
 		}
-		return buildSinglHop(tc.Name, relSegs[0], field, op, value)
+		return buildSinglHop(tc.Name, relSegs[0], field, op, value, tier)
 	}
 	// 2-hop Path B: second hop edge must exist on the intermediate target.
 	edge2, okEdge2 := LookupEdge(edge.TargetType, relSegs[1])
@@ -336,7 +338,7 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 	if _, hasField := TargetFields(edge2.TargetType)[field]; !hasField {
 		return nil, false, false, nil
 	}
-	return buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value)
+	return buildTwoHop(tc.Name, relSegs[0], relSegs[1], field, op, value, tier)
 }
 
 // buildSinglHop emits a 1-hop traversal predicate. The SQL shape depends
@@ -361,7 +363,36 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 //
 // Parent-side PK is always "id" for every PeeringDB entity — an invariant
 // baked into the schema generator; no entity overrides its ID column.
-func buildSinglHop(entityType, fk, field, op, value string) (func(*sql.Selector), bool, bool, error) {
+// tierGatedTables maps a traversal target table to the column carrying its
+// row-level visibility signal. A subquery built against one of these tables
+// MUST reproduce the visibility filter that the entity's ent Privacy policy
+// enforces on direct queries (ent/schema/poc_policy.go). Without it a
+// cross-entity filter becomes a boolean oracle: an anonymous (TierPublic)
+// caller could probe hidden rows — e.g. GET /api/net?pocs__email__startswith=
+// would leak Users-tier poc PII that the policy hides on /api/poc.
+var tierGatedTables = map[string]string{
+	"pocs": "visible", // poc.visible: rows != "Public" are hidden from TierPublic
+}
+
+// applyVisibilityGate ANDs the row-visibility predicate onto a traversal
+// subquery when the target table is privacy-gated and the caller is
+// anonymous. A NULL visible value is treated as the column default
+// ("Public") and therefore visible, mirroring poc_policy.go NULL-safety.
+func applyVisibilityGate(sel *sql.Selector, table string, tier privctx.Tier) {
+	if tier == privctx.TierUsers {
+		return
+	}
+	col, gated := tierGatedTables[table]
+	if !gated {
+		return
+	}
+	sel.Where(sql.Or(
+		sql.EQ(sel.C(col), "Public"),
+		sql.IsNull(sel.C(col)),
+	))
+}
+
+func buildSinglHop(entityType, fk, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	edge, ok := LookupEdge(entityType, fk)
 	if !ok {
 		return nil, false, false, nil
@@ -392,12 +423,14 @@ func buildSinglHop(entityType, fk, field, op, value string) (func(*sql.Selector)
 			// M2O: FK on parent. Select target.<id>, filter parent.<fk>.
 			innerSel := sql.Select(t.C(targetID)).From(t)
 			innerPred(innerSel)
+			applyVisibilityGate(innerSel, targetTable, tier)
 			s.Where(sql.In(s.C(fkCol), innerSel))
 			return
 		}
 		// O2M: FK on child. Select child.<fk>, filter parent.<id>.
 		innerSel := sql.Select(t.C(fkCol)).From(t)
 		innerPred(innerSel)
+		applyVisibilityGate(innerSel, targetTable, tier)
 		s.Where(sql.In(s.C(parentPKColumn), innerSel))
 	}, true, false, nil
 }
@@ -447,7 +480,7 @@ const parentPKColumn = "id"
 // Hard-capped at 2 hops per D-04. Identifiers from two EdgeMetadata lookups;
 // values bind via the innermost buildPredicate. Parent PK is always "id"
 // (see parentPKColumn — schema generator invariant).
-func buildTwoHop(entityType, fk1, fk2, field, op, value string) (func(*sql.Selector), bool, bool, error) {
+func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	edge1, ok := LookupEdge(entityType, fk1)
 	if !ok {
 		return nil, false, false, nil
@@ -492,6 +525,7 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string) (func(*sql.Selec
 			leafSel = sql.Select(leafT.C(fk2Col)).From(leafT)
 		}
 		innerPred(leafSel)
+		applyVisibilityGate(leafSel, leafTable, tier)
 
 		// Middle subquery: which mid column joins to the leaf subquery
 		// is chosen by hop-2 direction; which mid column is SELECTed
