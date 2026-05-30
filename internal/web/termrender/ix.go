@@ -17,7 +17,7 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 	buf.Grow(len(data.Participants)*120 + len(data.Facilities)*80 + len(data.Prefixes)*60 + 500)
 
 	// Title line: Name  City, Country
-	buf.WriteString(StyleHeading.Render(data.Name))
+	buf.WriteString(styledHeading(data.Name))
 	if loc := formatLocation(data.City, data.Country); loc != "" {
 		buf.WriteString("  ")
 		buf.WriteString(StyleMuted.Render(loc))
@@ -46,7 +46,7 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 		buf.WriteString("\n")
 
 		for _, row := range data.Participants {
-			name := row.NetName
+			name := sanitizeUpstream(row.NetName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -73,14 +73,14 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 
 			if ShouldShowField("ix-participants", "ipv4", r.Width) && row.IPAddr4 != "" {
 				buf.WriteString("  ")
-				buf.WriteString(row.IPAddr4)
+				buf.WriteString(sanitizeUpstream(row.IPAddr4))
 				if ShouldShowField("ix-participants", "ipv6", r.Width) && row.IPAddr6 != "" {
 					buf.WriteString(" / ")
-					buf.WriteString(row.IPAddr6)
+					buf.WriteString(sanitizeUpstream(row.IPAddr6))
 				}
 			} else if ShouldShowField("ix-participants", "ipv6", r.Width) && row.IPAddr6 != "" {
 				buf.WriteString("  ")
-				buf.WriteString(row.IPAddr6)
+				buf.WriteString(sanitizeUpstream(row.IPAddr6))
 			}
 
 			buf.WriteString("\n")
@@ -94,7 +94,7 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 		buf.WriteString("\n")
 
 		for _, row := range data.Facilities {
-			name := row.FacName
+			name := sanitizeUpstream(row.FacName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -130,9 +130,9 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 
 		for _, row := range data.Prefixes {
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(row.Prefix))
+			buf.WriteString(styledName(row.Prefix))
 			buf.WriteString("  ")
-			buf.WriteString(StyleMuted.Render(row.Protocol))
+			buf.WriteString(styledMuted(row.Protocol))
 			if ShouldShowField("ix-prefixes", "dfz", r.Width) {
 				buf.WriteString("  ")
 				if row.InDFZ {
@@ -165,7 +165,14 @@ func formatProtocols(unicast, multicast, ipv6 bool) string {
 }
 
 // formatLocation builds a "City, Country" string, handling empty components.
+//
+// city and country are upstream-sourced free-text fields, so both are stripped
+// of control characters here. formatLocation is the single location formatter
+// used across every renderer and mode, so sanitising at this seam covers title
+// lines, list-row locations, and the short/whois surfaces in one place.
 func formatLocation(city, country string) string {
+	city = sanitizeUpstream(city)
+	country = sanitizeUpstream(country)
 	switch {
 	case city != "" && country != "":
 		return city + ", " + country

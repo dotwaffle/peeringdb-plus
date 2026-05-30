@@ -24,8 +24,8 @@ func (r *Renderer) RenderCompare(w io.Writer, data *templates.CompareData) error
 
 	// Title line: NetA (AS{asn}) vs NetB (AS{asn})
 	title := fmt.Sprintf("%s (AS%d) vs %s (AS%d)",
-		data.NetA.Name, data.NetA.ASN,
-		data.NetB.Name, data.NetB.ASN)
+		sanitizeUpstream(data.NetA.Name), data.NetA.ASN,
+		sanitizeUpstream(data.NetB.Name), data.NetB.ASN)
 	buf.WriteString(StyleHeading.Render(title))
 	buf.WriteString("\n")
 
@@ -59,7 +59,7 @@ func writeSharedIXPs(buf *strings.Builder, data *templates.CompareData) {
 	for _, ixp := range data.SharedIXPs {
 		// IX name and cross-reference.
 		buf.WriteString("  ")
-		buf.WriteString(StyleValue.Render(ixp.IXName))
+		buf.WriteString(styledName(ixp.IXName))
 		buf.WriteString(" ")
 		buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", ixp.IXID)))
 		buf.WriteString("\n")
@@ -91,14 +91,14 @@ func writeIXPresence(buf *strings.Builder, label string, presence *templates.Com
 
 	if presence.IPAddr4 != "" {
 		buf.WriteString("  ")
-		buf.WriteString(presence.IPAddr4)
+		buf.WriteString(sanitizeUpstream(presence.IPAddr4))
 		if presence.IPAddr6 != "" {
 			buf.WriteString(" / ")
-			buf.WriteString(presence.IPAddr6)
+			buf.WriteString(sanitizeUpstream(presence.IPAddr6))
 		}
 	} else if presence.IPAddr6 != "" {
 		buf.WriteString("  ")
-		buf.WriteString(presence.IPAddr6)
+		buf.WriteString(sanitizeUpstream(presence.IPAddr6))
 	}
 
 	buf.WriteString("\n")
@@ -120,7 +120,7 @@ func writeSharedFacilities(buf *strings.Builder, data *templates.CompareData) {
 
 	for _, fac := range data.SharedFacilities {
 		buf.WriteString("  ")
-		buf.WriteString(StyleValue.Render(fac.FacName))
+		buf.WriteString(styledName(fac.FacName))
 		buf.WriteString(" ")
 		buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", fac.FacID)))
 
@@ -149,14 +149,14 @@ func writeSharedCampuses(buf *strings.Builder, data *templates.CompareData) {
 
 	for _, campus := range data.SharedCampuses {
 		buf.WriteString("  ")
-		buf.WriteString(StyleValue.Render(campus.CampusName))
+		buf.WriteString(styledName(campus.CampusName))
 		buf.WriteString(" ")
 		buf.WriteString(CrossRef(fmt.Sprintf("/ui/campus/%d", campus.CampusID)))
 		buf.WriteString("\n")
 
 		for _, fac := range campus.SharedFacilities {
 			buf.WriteString("    ")
-			buf.WriteString(StyleMuted.Render(fac.FacName))
+			buf.WriteString(styledMuted(fac.FacName))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/fac/%d", fac.FacID)))
 			buf.WriteString("\n")

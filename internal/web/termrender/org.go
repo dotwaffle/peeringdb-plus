@@ -18,7 +18,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		len(data.Campuses)*60 + len(data.Carriers)*60 + 500)
 
 	// Title line: Name
-	buf.WriteString(StyleHeading.Render(data.Name))
+	buf.WriteString(styledHeading(data.Name))
 	buf.WriteString("\n")
 
 	// Key-value header (compact, identity fields only per D-03).
@@ -42,7 +42,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Networks {
-			name := row.NetName
+			name := sanitizeUpstream(row.NetName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -67,7 +67,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.IXPs {
-			name := row.IXName
+			name := sanitizeUpstream(row.IXName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -92,7 +92,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Facs {
-			name := row.FacName
+			name := sanitizeUpstream(row.FacName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -123,7 +123,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Campuses {
-			name := row.CampusName
+			name := sanitizeUpstream(row.CampusName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -148,7 +148,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 		buf.WriteString("\n")
 
 		for _, row := range data.Carriers {
-			name := row.CarrierName
+			name := sanitizeUpstream(row.CarrierName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {

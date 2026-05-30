@@ -25,7 +25,7 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 	buf.Grow(len(data.IXPresences)*120 + len(data.FacPresences)*80 + 500)
 
 	// Title line: Name  AS{ASN}
-	buf.WriteString(StyleHeading.Render(data.Name))
+	buf.WriteString(styledHeading(data.Name))
 	buf.WriteString("  ")
 	buf.WriteString(StyleMuted.Render(fmt.Sprintf("AS%d", data.ASN)))
 	buf.WriteString("\n")
@@ -70,7 +70,7 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 		buf.WriteString("\n")
 
 		for _, row := range data.IXPresences {
-			name := row.IXName
+			name := sanitizeUpstream(row.IXName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -100,14 +100,14 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 
 			if ShouldShowField("net-ix", "ipv4", r.Width) && row.IPAddr4 != "" {
 				buf.WriteString("  ")
-				buf.WriteString(row.IPAddr4)
+				buf.WriteString(sanitizeUpstream(row.IPAddr4))
 				if ShouldShowField("net-ix", "ipv6", r.Width) && row.IPAddr6 != "" {
 					buf.WriteString(" / ")
-					buf.WriteString(row.IPAddr6)
+					buf.WriteString(sanitizeUpstream(row.IPAddr6))
 				}
 			} else if ShouldShowField("net-ix", "ipv6", r.Width) && row.IPAddr6 != "" {
 				buf.WriteString("  ")
-				buf.WriteString(row.IPAddr6)
+				buf.WriteString(sanitizeUpstream(row.IPAddr6))
 			}
 
 			buf.WriteString("\n")
@@ -121,7 +121,7 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 		buf.WriteString("\n")
 
 		for _, row := range data.FacPresences {
-			name := row.FacName
+			name := sanitizeUpstream(row.FacName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -146,7 +146,7 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 				} else if row.Country != "" {
 					loc = row.Country
 				}
-				buf.WriteString(StyleMuted.Render(loc))
+				buf.WriteString(styledMuted(loc))
 			}
 
 			buf.WriteString("\n")
@@ -205,6 +205,7 @@ func SpeedStyle(mbps int) lipgloss.Style {
 // Open=green (ColorPolicyOpen), Selective=yellow (ColorPolicySelective),
 // Restrictive=red (ColorPolicyRestrictive), others=default value style.
 func PolicyStyle(policy string) string {
+	policy = sanitizeUpstream(policy)
 	switch strings.ToLower(policy) {
 	case "open":
 		return lipgloss.NewStyle().Foreground(ColorPolicyOpen).Render(policy)
@@ -225,11 +226,37 @@ func CrossRef(path string) string {
 
 // styledVal returns StyleValue-rendered text for non-empty strings.
 // Returns "" for empty input so writeKV can skip the field.
+//
+// The argument is an upstream-sourced field, so it is stripped of control
+// characters before styling is applied (terminal-injection defence). Styling
+// is additive over the already-sanitised content.
 func styledVal(s string) string {
+	s = sanitizeUpstream(s)
 	if s == "" {
 		return ""
 	}
 	return StyleValue.Render(s)
+}
+
+// styledName returns StyleValue-rendered text for an upstream entity name used
+// in titles and list rows. Unlike styledVal it does not collapse empty input,
+// so it is safe to use after width-driven truncation. The value is stripped of
+// control characters before styling (terminal-injection defence).
+func styledName(s string) string {
+	return StyleValue.Render(sanitizeUpstream(s))
+}
+
+// styledHeading renders an upstream-sourced value as a bold heading after
+// stripping control characters. Used for entity title lines whose text comes
+// from mirrored PeeringDB data.
+func styledHeading(s string) string {
+	return StyleHeading.Render(sanitizeUpstream(s))
+}
+
+// styledMuted renders an upstream-sourced value in the muted style after
+// stripping control characters.
+func styledMuted(s string) string {
+	return StyleMuted.Render(sanitizeUpstream(s))
 }
 
 // writeKV writes a labeled key-value pair with right-aligned label. (D-01)
