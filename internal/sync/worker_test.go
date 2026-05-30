@@ -543,6 +543,56 @@ func TestSyncRecoversFromPanic(t *testing.T) {
 	}
 }
 
+// TestRecordFailure_DurableOnCancelledContext is the FIX-3 regression lock.
+// recordFailure is reached after a cycle that may already be cancelled by
+// the demotion monitor (runSyncCycle's cycleCancel) or a SIGTERM. The
+// status UPDATE and terminal metrics MUST still land — recordFailure
+// detaches cancellation via terminalRecordContext. Without that, the
+// RecordSyncComplete UPDATE runs under a cancelled ctx, becomes a no-op,
+// and the sync_status row is left stuck "running".
+//
+// The test seeds a "running" row, cancels the context, calls recordFailure
+// with the dead ctx, and asserts the row is durably "failed".
+func TestRecordFailure_DurableOnCancelledContext(t *testing.T) {
+	t.Parallel()
+
+	f := newFixture(t)
+	w, db := newTestWorker(t, f)
+
+	// Seed a running row, exactly as Sync would via RecordSyncStart.
+	start := time.Now()
+	statusID, err := RecordSyncStart(t.Context(), db, start, string(config.SyncModeFull))
+	if err != nil {
+		t.Fatalf("RecordSyncStart: %v", err)
+	}
+
+	// Cancel the context BEFORE recording the outcome — this is the
+	// demotion/SIGTERM race the fix addresses.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if ctx.Err() == nil {
+		t.Fatal("expected ctx to be cancelled")
+	}
+
+	w.recordFailure(ctx, config.SyncModeFull, statusID, start,
+		errors.New("upstream blew up mid-cycle"))
+
+	// Read back on a LIVE context: the row must be durably "failed".
+	status, err := GetLastStatus(t.Context(), db)
+	if err != nil {
+		t.Fatalf("GetLastStatus: %v", err)
+	}
+	if status == nil {
+		t.Fatal("expected non-nil status")
+	}
+	if status.Status != "failed" {
+		t.Errorf("expected status durably updated to failed, got %q (stuck running = bug)", status.Status)
+	}
+	if status.ErrorMessage != "upstream blew up mid-cycle" {
+		t.Errorf("expected error message recorded, got %q", status.ErrorMessage)
+	}
+}
+
 // TestSyncRollbackOnFailure verifies database rolls back on sync failure.
 func TestSyncRollbackOnFailure(t *testing.T) {
 	t.Parallel()

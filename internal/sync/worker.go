@@ -972,6 +972,16 @@ func (w *Worker) recordSuccess(
 	ctx, finalizeSpan := otel.Tracer("sync").Start(ctx, "sync-finalize")
 	defer finalizeSpan.End()
 
+	// Detach cancellation for the terminal bookkeeping: a cancellation
+	// (demotion monitor / SIGTERM) can land between the data commit and
+	// this success record, and a cancelled ctx turns RecordSyncComplete's
+	// UPDATE into a no-op — leaving sync_status stuck "running" despite a
+	// durable commit — and drops the terminal metric. WithoutCancel keeps
+	// the sync-finalize span (context values survive) while a short
+	// timeout caps the detached write. Symmetric with recordFailure.
+	ctx, cancel := terminalRecordContext(ctx)
+	defer cancel()
+
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	w.emitOrphanSummary(ctx)
@@ -1707,25 +1717,55 @@ func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field st
 	*ptr = nil
 }
 
+// terminalRecordTimeout bounds the detached-context bookkeeping write so a
+// wedged DB connection cannot hang a terminal recorder indefinitely. The
+// status UPDATE is a single small raw-SQL Exec; this is generous.
+const terminalRecordTimeout = 10 * time.Second
+
+// terminalRecordContext derives the context used by the terminal recorders
+// (recordSuccess / recordFailure) for their final status write and metric
+// emission. It strips cancellation and deadlines via context.WithoutCancel
+// — the cycle context may already be cancelled by the demotion monitor
+// (runSyncCycle's cycleCancel) or a SIGTERM by the time we record the
+// outcome, and a cancelled ctx turns RecordSyncComplete's UPDATE into a
+// no-op (leaving sync_status stuck "running") and drops the terminal
+// metric. WithoutCancel preserves context values, so the active OTel span
+// still receives emitMemoryTelemetry's attributes. A short timeout is
+// layered back on so the detached write cannot hang forever. Callers MUST
+// defer the returned cancel.
+func terminalRecordContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), terminalRecordTimeout)
+}
+
 // recordFailure records a failed sync in the sync_status table and metrics.
 //
 // mode is threaded through so the failure metric carries the same
 // {status,mode} attribute pair as the success metric (SEED-001 260426-pms).
+//
+// The status write + terminal metrics run on a context detached from
+// cancellation (terminalRecordContext): this path is reached after a
+// possibly-cancelled cycle — including the FIX-1 panic firewall — and the
+// failure MUST be recorded durably even if the cycle context is already
+// Done. Without detachment the UPDATE silently no-ops and sync_status is
+// left stuck "running".
 func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, statusID int64, start time.Time, syncErr error) {
+	recCtx, cancel := terminalRecordContext(ctx)
+	defer cancel()
+
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	// Called even on failure — memory pressure is interesting regardless of sync outcome.
-	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
-	w.emitOrphanSummary(ctx)
+	w.emitMemoryTelemetry(recCtx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
+	w.emitOrphanSummary(recCtx)
 	// Record sync-level failure metrics per D-06.
 	attrs := metric.WithAttributes(
 		attribute.String("status", "failed"),
 		attribute.String("mode", string(mode)),
 	)
-	pdbotel.SyncDuration.Record(ctx, time.Since(start).Seconds(), attrs)
-	pdbotel.SyncOperations.Add(ctx, 1, attrs)
+	pdbotel.SyncDuration.Record(recCtx, time.Since(start).Seconds(), attrs)
+	pdbotel.SyncOperations.Add(recCtx, 1, attrs)
 
 	if statusID > 0 {
-		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
+		_ = RecordSyncComplete(recCtx, w.db, statusID, Status{
 			LastSyncAt:   time.Now(),
 			Duration:     time.Since(start),
 			Status:       "failed",
