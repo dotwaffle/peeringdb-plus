@@ -455,16 +455,18 @@ such as `asn` and `org_id` are validated to be positive; invalid values return
 `Stream{Type}` RPCs use **batched compound keyset pagination** under the
 hood (`StreamEntities` in `internal/grpcserver/generic.go`), fetching
 `streamBatchSize` (`500`) rows per database round-trip and emitting one proto
-message per row. The cursor is the compound `(updated, id)` pair; under the
-default `(-updated, -created, -id)` order each batch resumes via:
+message per row. The cursor is the compound `(updated, created, id)` triple;
+under the default `(-updated, -created, -id)` order each batch resumes via:
 
 ```sql
 WHERE (updated < cursor.updated)
-   OR (updated = cursor.updated AND id < cursor.id)
+   OR (updated = cursor.updated AND created < cursor.created)
+   OR (updated = cursor.updated AND created = cursor.created AND id < cursor.id)
 ```
 
-The `id` tiebreaker keeps progress monotonic when multiple rows share a
-timestamp.
+The keyset carries every sort key, so it matches the three-key ordering
+exactly: progress stays monotonic and no row is skipped or repeated even when
+many rows share an `updated` timestamp (or an `updated`+`created` pair).
 
 | Field | Semantics |
 |-------|-----------|
