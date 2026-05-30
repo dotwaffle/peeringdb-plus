@@ -436,6 +436,16 @@ var filterableIntFields = map[string]bool{
 
 // fieldAnnotations returns the annotation chain for a field based on its characteristics.
 func fieldAnnotations(name string, fd FieldDef) string {
+	// The IX-F member-list URL is redaction-gated: internal/privfield nulls
+	// it for anonymous callers across every surface. Drop it from the
+	// generated GraphQL WhereInput so its value cannot be filtered on — a
+	// HasPrefix/Contains/EqualFold predicate over the real column is a
+	// boolean oracle that reconstructs the gated URL despite the output
+	// being redacted. The field stays in the output type; only its filter
+	// predicates are removed.
+	if name == "ixf_ixp_member_list_url" {
+		return ".\n\t\t\tAnnotations(entgql.Skip(entgql.SkipWhereInput))"
+	}
 	if fd.References != "" || filterableIntFields[name] {
 		return ".\n\t\t\t" + fkFilterAnnotation
 	}

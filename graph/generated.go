@@ -27291,7 +27291,7 @@ func (ec *executionContext) unmarshalInputIxLanWhereInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "ixID", "ixIDNEQ", "ixIDIn", "ixIDNotIn", "ixIDIsNil", "ixIDNotNil", "arpSponge", "arpSpongeNEQ", "arpSpongeIn", "arpSpongeNotIn", "arpSpongeGT", "arpSpongeGTE", "arpSpongeLT", "arpSpongeLTE", "arpSpongeContains", "arpSpongeHasPrefix", "arpSpongeHasSuffix", "arpSpongeIsNil", "arpSpongeNotNil", "arpSpongeEqualFold", "arpSpongeContainsFold", "descr", "descrNEQ", "descrIn", "descrNotIn", "descrGT", "descrGTE", "descrLT", "descrLTE", "descrContains", "descrHasPrefix", "descrHasSuffix", "descrIsNil", "descrNotNil", "descrEqualFold", "descrContainsFold", "dot1qSupport", "dot1qSupportNEQ", "ixfIxpImportEnabled", "ixfIxpImportEnabledNEQ", "ixfIxpMemberListURL", "ixfIxpMemberListURLNEQ", "ixfIxpMemberListURLIn", "ixfIxpMemberListURLNotIn", "ixfIxpMemberListURLGT", "ixfIxpMemberListURLGTE", "ixfIxpMemberListURLLT", "ixfIxpMemberListURLLTE", "ixfIxpMemberListURLContains", "ixfIxpMemberListURLHasPrefix", "ixfIxpMemberListURLHasSuffix", "ixfIxpMemberListURLIsNil", "ixfIxpMemberListURLNotNil", "ixfIxpMemberListURLEqualFold", "ixfIxpMemberListURLContainsFold", "ixfIxpMemberListURLVisible", "ixfIxpMemberListURLVisibleNEQ", "ixfIxpMemberListURLVisibleIn", "ixfIxpMemberListURLVisibleNotIn", "ixfIxpMemberListURLVisibleGT", "ixfIxpMemberListURLVisibleGTE", "ixfIxpMemberListURLVisibleLT", "ixfIxpMemberListURLVisibleLTE", "ixfIxpMemberListURLVisibleContains", "ixfIxpMemberListURLVisibleHasPrefix", "ixfIxpMemberListURLVisibleHasSuffix", "ixfIxpMemberListURLVisibleIsNil", "ixfIxpMemberListURLVisibleNotNil", "ixfIxpMemberListURLVisibleEqualFold", "ixfIxpMemberListURLVisibleContainsFold", "mtu", "mtuNEQ", "mtuIn", "mtuNotIn", "mtuGT", "mtuGTE", "mtuLT", "mtuLTE", "mtuIsNil", "mtuNotNil", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameIsNil", "nameNotNil", "nameEqualFold", "nameContainsFold", "rsAsn", "rsAsnNEQ", "rsAsnIn", "rsAsnNotIn", "rsAsnGT", "rsAsnGTE", "rsAsnLT", "rsAsnLTE", "rsAsnIsNil", "rsAsnNotNil", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasInternetExchange", "hasInternetExchangeWith", "hasIxPrefixes", "hasIxPrefixesWith", "hasNetworkIxLans", "hasNetworkIxLansWith"}
+	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "ixID", "ixIDNEQ", "ixIDIn", "ixIDNotIn", "ixIDIsNil", "ixIDNotNil", "arpSponge", "arpSpongeNEQ", "arpSpongeIn", "arpSpongeNotIn", "arpSpongeGT", "arpSpongeGTE", "arpSpongeLT", "arpSpongeLTE", "arpSpongeContains", "arpSpongeHasPrefix", "arpSpongeHasSuffix", "arpSpongeIsNil", "arpSpongeNotNil", "arpSpongeEqualFold", "arpSpongeContainsFold", "descr", "descrNEQ", "descrIn", "descrNotIn", "descrGT", "descrGTE", "descrLT", "descrLTE", "descrContains", "descrHasPrefix", "descrHasSuffix", "descrIsNil", "descrNotNil", "descrEqualFold", "descrContainsFold", "dot1qSupport", "dot1qSupportNEQ", "ixfIxpImportEnabled", "ixfIxpImportEnabledNEQ", "ixfIxpMemberListURLVisible", "ixfIxpMemberListURLVisibleNEQ", "ixfIxpMemberListURLVisibleIn", "ixfIxpMemberListURLVisibleNotIn", "ixfIxpMemberListURLVisibleGT", "ixfIxpMemberListURLVisibleGTE", "ixfIxpMemberListURLVisibleLT", "ixfIxpMemberListURLVisibleLTE", "ixfIxpMemberListURLVisibleContains", "ixfIxpMemberListURLVisibleHasPrefix", "ixfIxpMemberListURLVisibleHasSuffix", "ixfIxpMemberListURLVisibleIsNil", "ixfIxpMemberListURLVisibleNotNil", "ixfIxpMemberListURLVisibleEqualFold", "ixfIxpMemberListURLVisibleContainsFold", "mtu", "mtuNEQ", "mtuIn", "mtuNotIn", "mtuGT", "mtuGTE", "mtuLT", "mtuLTE", "mtuIsNil", "mtuNotNil", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameIsNil", "nameNotNil", "nameEqualFold", "nameContainsFold", "rsAsn", "rsAsnNEQ", "rsAsnIn", "rsAsnNotIn", "rsAsnGT", "rsAsnGTE", "rsAsnLT", "rsAsnLTE", "rsAsnIsNil", "rsAsnNotNil", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasInternetExchange", "hasInternetExchangeWith", "hasIxPrefixes", "hasIxPrefixesWith", "hasNetworkIxLans", "hasNetworkIxLansWith"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -27655,111 +27655,6 @@ func (ec *executionContext) unmarshalInputIxLanWhereInput(ctx context.Context, o
 				return it, err
 			}
 			it.IxfIxpImportEnabledNEQ = data
-		case "ixfIxpMemberListURL":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURL"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURL = data
-		case "ixfIxpMemberListURLNEQ":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLNEQ"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLNEQ = data
-		case "ixfIxpMemberListURLIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLIn"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLIn = data
-		case "ixfIxpMemberListURLNotIn":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLNotIn"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLNotIn = data
-		case "ixfIxpMemberListURLGT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLGT"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLGT = data
-		case "ixfIxpMemberListURLGTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLGTE"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLGTE = data
-		case "ixfIxpMemberListURLLT":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLLT"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLLT = data
-		case "ixfIxpMemberListURLLTE":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLLTE"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLLTE = data
-		case "ixfIxpMemberListURLContains":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLContains"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLContains = data
-		case "ixfIxpMemberListURLHasPrefix":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLHasPrefix"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLHasPrefix = data
-		case "ixfIxpMemberListURLHasSuffix":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLHasSuffix"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLHasSuffix = data
-		case "ixfIxpMemberListURLIsNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLIsNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLIsNil = data
-		case "ixfIxpMemberListURLNotNil":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLNotNil"))
-			data, err := ec.unmarshalOBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLNotNil = data
-		case "ixfIxpMemberListURLEqualFold":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLEqualFold"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLEqualFold = data
-		case "ixfIxpMemberListURLContainsFold":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLContainsFold"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IxfIxpMemberListURLContainsFold = data
 		case "ixfIxpMemberListURLVisible":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ixfIxpMemberListURLVisible"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
