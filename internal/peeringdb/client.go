@@ -181,9 +181,21 @@ func NewClient(baseURL string, logger *slog.Logger, opts ...ClientOption) *Clien
 	} else {
 		c.limiter = rate.NewLimiter(rate.Limit(c.rps), 1)
 	}
+	// No whole-request Client.Timeout: it bounds the ENTIRE round trip,
+	// which (1) aborts a legitimate large full-sync stream mid-body and
+	// (2) truncates the transport's bounded 429 Retry-After wait (up to
+	// retryAfterCap = 60s), turning a *RateLimitError — the worker's quota
+	// short-circuit signal — into a generic context-deadline error. Overall
+	// request time is bounded by the per-request context deadline the sync
+	// worker and FK backfill attach; the granular transport timeouts below
+	// catch a stalled or unresponsive server without capping a slow but
+	// progressing body read.
+	base := http.DefaultTransport.(*http.Transport).Clone()
+	base.ResponseHeaderTimeout = 30 * time.Second
+	base.TLSHandshakeTimeout = 10 * time.Second
+	base.IdleConnTimeout = 90 * time.Second
 	c.http = &http.Client{
-		Timeout:   30 * time.Second,
-		Transport: newRateLimitedTransport(http.DefaultTransport, c.limiter, logger),
+		Transport: newRateLimitedTransport(base, c.limiter, logger),
 	}
 	return c
 }
