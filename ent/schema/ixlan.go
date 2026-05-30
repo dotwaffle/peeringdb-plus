@@ -106,6 +106,15 @@ func (IxLan) Indexes() []ent.Index {
 		index.Fields("name"),
 		index.Fields("status"),
 		index.Fields("updated"),
+		// Composite index covering the default list ordering. Every list and
+		// stream query filters on status and orders by updated, created, id;
+		// with status leading, SQLite satisfies status-IN plus the three-key
+		// DESC sort directly from this index on the common single-status path
+		// instead of materialising a temp B-tree for the sort (verified with
+		// EXPLAIN QUERY PLAN). A leading status column is required: a bare
+		// updated, created, id index is ignored because the planner prefers
+		// the single-column status index for the filter and then still sorts.
+		index.Fields("status", "updated", "created", "id"),
 	}
 }
 
