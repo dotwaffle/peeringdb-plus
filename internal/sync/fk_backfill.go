@@ -258,10 +258,39 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	// 7. Upsert each parent row; record per-row hit/error. Per-row
 	//    upsert failures do NOT abort the batch — one bad row should
 	//    not cascade-drop the rest of the chunk.
+	//
+	//    Before upserting, re-validate that every REQUIRED (non-null)
+	//    grandparent FK of this parent is now present in the DB. The
+	//    step-6 recursion can silently land NOTHING for a grandparent
+	//    when it trips the per-cycle request cap, the deadline, an
+	//    upstream miss, or a fetch error. Upserting the parent anyway
+	//    would write a row whose non-NULL FK points at a missing
+	//    grandparent; with foreign_keys(1) + defer_foreign_keys=ON that
+	//    dangling FK is not caught at insert time but at tx.Commit() as
+	//    SQLITE_CONSTRAINT_FOREIGNKEY (787), rolling back the ENTIRE
+	//    sync cycle (all 13 types) — and it is self-perpetuating because
+	//    each cycle re-exhausts the cap the same way. Withholding the
+	//    dangling parent here mirrors the fkFilter drop-on-miss contract:
+	//    the orphan is recorded and retried next cycle while the commit
+	//    succeeds. Only REQUIRED FKs gate the upsert — nullable side-FKs
+	//    (campus, net_side_id, ix_side_id) are absent from parentFKSpec
+	//    and follow the existing null-on-miss path, so they never block
+	//    here.
 	returnedIDs := make(map[int]struct{}, len(rows))
 	inserted := make([]int, 0, len(rows))
 	for _, r := range rows {
 		returnedIDs[r.id] = struct{}{}
+		if gp, missing := w.firstMissingRequiredFK(ctx, tx, parentType, r.raw); missing {
+			w.recordBackfill(ctx, childType, parentType, fkBackfillMiss)
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill: parent withheld, required grandparent still missing",
+				slog.String("child_type", childType),
+				slog.String("parent_type", parentType),
+				slog.Int("parent_id", r.id),
+				slog.String("grandparent_type", gp.ParentType),
+				slog.String("grandparent_field", gp.FieldName),
+				slog.Int("grandparent_id", gp.ID))
+			continue
+		}
 		if _, upsertErr := upsertSingleRaw(ctx, tx, parentType, r.raw); upsertErr != nil {
 			w.recordBackfill(ctx, childType, parentType, fkBackfillError)
 			w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill upsert failed",
@@ -363,6 +392,31 @@ func parentFKsOf(parentType string, raw []byte) []parentFKRef {
 		out = append(out, parentFKRef{FieldName: fk.FieldName, ParentType: fk.ParentType, ID: id})
 	}
 	return out
+}
+
+// firstMissingRequiredFK reports the first REQUIRED parent FK of a
+// freshly-fetched backfill row that is still absent from the local DB,
+// after the step-6 grandparent recursion has run. It mirrors the
+// fkFilter drop-on-miss decision: parentFKsOf enumerates only the
+// required (non-null) FKs declared in parentFKSpec, and fkHasParent
+// checks presence (registry then DB; a zero/null id passes through as
+// present). Returns (ref, true) for the first missing required FK so
+// the caller can withhold the dangling parent and record the orphan;
+// (parentFKRef{}, false) when every required grandparent is present.
+//
+// Nullable side-FKs (campus, net_side_id, ix_side_id) are deliberately
+// not in parentFKSpec — they follow the existing null-on-miss path and
+// must never block the upsert here.
+func (w *Worker) firstMissingRequiredFK(ctx context.Context, tx *ent.Tx, parentType string, raw []byte) (parentFKRef, bool) {
+	for _, gp := range parentFKsOf(parentType, raw) {
+		if gp.ID == 0 {
+			continue
+		}
+		if !w.fkHasParent(ctx, tx, gp.ParentType, gp.ID) {
+			return gp, true
+		}
+	}
+	return parentFKRef{}, false
 }
 
 // prefetchMissingParentsForChunk is the chunk-level pre-pass that
