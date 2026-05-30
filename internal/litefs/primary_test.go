@@ -93,6 +93,29 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 			wantPrimary: true,
 		},
 		{
+			name: "ambiguous stat error fails safe to replica",
+			setup: func(t *testing.T) (string, string) {
+				// Put a regular file where a directory component is expected so
+				// that os.Stat on the .primary path returns ENOTDIR rather than
+				// ENOENT. errors.Is(err, os.ErrNotExist) is false for ENOTDIR,
+				// so this exercises the ambiguous-error branch. The parent dir
+				// of the path is that regular file (stats with a nil error but
+				// IsDir()==false), so the buggy code fell through to the env
+				// var and wrongly declared this node primary. The fix must
+				// short-circuit to false (replica) before reaching that point.
+				notADir := filepath.Join(t.TempDir(), "notadir")
+				if err := os.WriteFile(notADir, []byte("x"), 0o644); err != nil {
+					t.Fatalf("writing non-directory component: %v", err)
+				}
+				path := filepath.Join(notADir, ".primary")
+				envKey := "TEST_IS_PRIMARY_ENOTDIR"
+				// Env unset would default the buggy path to true; assert the
+				// fail-safe wins regardless by leaving it unset.
+				return path, envKey
+			},
+			wantPrimary: false,
+		},
+		{
 			name: "no litefs directory falls back to env var true",
 			setup: func(t *testing.T) (string, string) {
 				// Use a non-existent directory to simulate no LiteFS
