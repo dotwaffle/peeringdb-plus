@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -116,8 +117,7 @@ func TestSetup_ShutdownFlushesWithoutError(t *testing.T) {
 }
 
 func TestBuildResource_IncludesServiceName(t *testing.T) {
-	ctx := t.Context()
-	res := buildResource(ctx, "my-test-service")
+	res := mustBuildResource(t, "my-test-service")
 
 	found := false
 	for _, attr := range res.Attributes() {
@@ -129,6 +129,29 @@ func TestBuildResource_IncludesServiceName(t *testing.T) {
 	if !found {
 		t.Errorf("resource attributes %v do not contain service.name=my-test-service", res.Attributes())
 	}
+}
+
+// mustBuildResource calls buildResource and fails the test on error. The
+// error path is exercised separately by TestBuildResource_SchemaURLNonEmpty;
+// the attribute-set tests only care about a successfully built resource.
+func mustBuildResource(t *testing.T, serviceName string) *resource.Resource {
+	t.Helper()
+	res, err := buildResource(t.Context(), serviceName)
+	if err != nil {
+		t.Fatalf("buildResource(%q): %v", serviceName, err)
+	}
+	return res
+}
+
+// mustBuildMetricResource is the buildMetricResource analogue of
+// mustBuildResource.
+func mustBuildMetricResource(t *testing.T, serviceName string) *resource.Resource {
+	t.Helper()
+	res, err := buildMetricResource(t.Context(), serviceName)
+	if err != nil {
+		t.Fatalf("buildMetricResource(%q): %v", serviceName, err)
+	}
+	return res
 }
 
 // findAttr returns the string value of an attribute key on a resource's
@@ -146,8 +169,7 @@ func findAttr(res interface{ Attributes() []attribute.KeyValue }, key string) (s
 func TestBuildResource_WithCloudRegion(t *testing.T) {
 	t.Setenv("FLY_REGION", "iad")
 
-	ctx := t.Context()
-	res := buildResource(ctx, "test-service")
+	res := mustBuildResource(t, "test-service")
 
 	got, ok := findAttr(res, "cloud.region")
 	if !ok || got != "iad" {
@@ -156,8 +178,7 @@ func TestBuildResource_WithCloudRegion(t *testing.T) {
 }
 
 func TestBuildResource_IncludesServiceVersion(t *testing.T) {
-	ctx := t.Context()
-	res := buildResource(ctx, "test-service")
+	res := mustBuildResource(t, "test-service")
 
 	found := false
 	for _, attr := range res.Attributes() {
@@ -183,8 +204,7 @@ func TestBuildMetricResource_OmitsServiceInstanceID(t *testing.T) {
 	t.Setenv("FLY_PROCESS_GROUP", "primary")
 	t.Setenv("FLY_REGION", "iad")
 
-	ctx := t.Context()
-	res := buildMetricResource(ctx, "test-service")
+	res := mustBuildMetricResource(t, "test-service")
 
 	if got, ok := findAttr(res, "service.instance.id"); ok {
 		t.Errorf("metric resource must not contain service.instance.id; found %q", got)
@@ -214,8 +234,7 @@ func TestBuildMetricResource_OmitsServiceInstanceID(t *testing.T) {
 func TestBuildResource_IncludesServiceInstanceID(t *testing.T) {
 	t.Setenv("FLY_MACHINE_ID", "abc123")
 
-	ctx := t.Context()
-	res := buildResource(ctx, "test-service")
+	res := mustBuildResource(t, "test-service")
 
 	if got, ok := findAttr(res, "service.instance.id"); !ok || got != "abc123" {
 		t.Errorf("trace/log resource must contain service.instance.id=abc123; got %v", res.Attributes())
@@ -227,8 +246,7 @@ func TestBuildResource_IncludesServiceInstanceID(t *testing.T) {
 func TestBuildResource_IncludesServiceNamespace(t *testing.T) {
 	t.Setenv("FLY_PROCESS_GROUP", "primary")
 
-	ctx := t.Context()
-	res := buildResource(ctx, "test-service")
+	res := mustBuildResource(t, "test-service")
 
 	if got, ok := findAttr(res, "service.namespace"); !ok || got != "primary" {
 		t.Errorf("resource must contain service.namespace=primary; got %v", res.Attributes())
@@ -246,8 +264,7 @@ func TestBuildResource_CloudProviderConstant(t *testing.T) {
 	t.Setenv("FLY_APP_NAME", "")
 	t.Setenv("FLY_PROCESS_GROUP", "")
 
-	ctx := t.Context()
-	res := buildResource(ctx, "test-service")
+	res := mustBuildResource(t, "test-service")
 
 	if got, ok := findAttr(res, "cloud.provider"); !ok || got != "fly_io" {
 		t.Errorf("resource must contain cloud.provider=fly_io; got %v", res.Attributes())
@@ -265,8 +282,7 @@ func TestBuildResource_EmptyEnvOmitsAttr(t *testing.T) {
 	t.Setenv("FLY_APP_NAME", "")
 	t.Setenv("FLY_MACHINE_ID", "")
 
-	ctx := t.Context()
-	res := buildResource(ctx, "test-service")
+	res := mustBuildResource(t, "test-service")
 
 	for _, key := range []string{"cloud.region", "service.namespace", "fly.app_name", "service.instance.id"} {
 		if _, ok := findAttr(res, key); ok {
@@ -282,8 +298,7 @@ func TestBuildResource_EmptyEnvOmitsAttr(t *testing.T) {
 func TestBuildMetricResource_IncludesServiceNamespace(t *testing.T) {
 	t.Setenv("FLY_PROCESS_GROUP", "replica")
 
-	ctx := t.Context()
-	res := buildMetricResource(ctx, "test-service")
+	res := mustBuildMetricResource(t, "test-service")
 
 	if got, ok := findAttr(res, "service.namespace"); !ok || got != "replica" {
 		t.Errorf("metric resource must contain service.namespace=replica; got %v", res.Attributes())
@@ -296,11 +311,39 @@ func TestBuildMetricResource_IncludesServiceNamespace(t *testing.T) {
 func TestBuildMetricResource_IncludesCloudRegion(t *testing.T) {
 	t.Setenv("FLY_REGION", "lhr")
 
-	ctx := t.Context()
-	res := buildMetricResource(ctx, "test-service")
+	res := mustBuildMetricResource(t, "test-service")
 
 	if got, ok := findAttr(res, "cloud.region"); !ok || got != "lhr" {
 		t.Errorf("metric resource must contain cloud.region=lhr; got %v", res.Attributes())
+	}
+}
+
+// TestBuildResource_SchemaURLNonEmpty locks the semconv-version alignment
+// fix. resource.Merge of resource.Default() and resource.NewWithAttributes
+// blanks the merged SchemaURL whenever the two carry DIFFERENT non-empty
+// schema URLs (resource.ErrSchemaURLConflict) — which then exports every
+// signal with schema_url="" and breaks backend semconv processing. The
+// provider.go semconv import is pinned to the same version the installed
+// SDK builds resource.Default() from; this test fails the moment a future
+// SDK bump drifts the two versions, instead of silently shipping a blank
+// schema URL. Covers both the trace/log resource (buildResource) and the
+// metric resource (buildMetricResource).
+func TestBuildResource_SchemaURLNonEmpty(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		build func(*testing.T, string) *resource.Resource
+	}{
+		{"trace_log", mustBuildResource},
+		{"metric", mustBuildMetricResource},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res := tc.build(t, "test-service")
+			if got := res.SchemaURL(); got == "" {
+				t.Fatalf("%s resource SchemaURL is empty: resource.Merge likely hit "+
+					"ErrSchemaURLConflict (semconv import drifted from the SDK's "+
+					"resource.Default() schema URL); attrs=%v", tc.name, res.Attributes())
+			}
+		})
 	}
 }
 

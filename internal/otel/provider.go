@@ -18,7 +18,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/buildinfo"
 )
@@ -45,8 +45,14 @@ type SetupOutput struct {
 // autoexport for environment-driven exporter selection per D-06, D-07.
 // Individual signals can be disabled via OTEL_*_EXPORTER=none per D-04.
 func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
-	res := buildResource(ctx, in.ServiceName)
-	metricRes := buildMetricResource(ctx, in.ServiceName)
+	res, err := buildResource(ctx, in.ServiceName)
+	if err != nil {
+		return nil, fmt.Errorf("building trace/log resource: %w", err)
+	}
+	metricRes, err := buildMetricResource(ctx, in.ServiceName)
+	if err != nil {
+		return nil, fmt.Errorf("building metric resource: %w", err)
+	}
 
 	// TracerProvider with configurable sampling per D-02.
 	// Batching is enabled with SDK defaults (5s schedule delay, 512 max
@@ -263,7 +269,7 @@ func defaultSamplerInput(in SetupInput) PerRouteSamplerInput {
 // build info per D-08, and Fly.io environment attributes per D-10. Used
 // by TracerProvider and LoggerProvider so traces and logs keep per-VM
 // attribution via service.instance.id.
-func buildResource(ctx context.Context, serviceName string) *resource.Resource {
+func buildResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
 	return buildResourceFiltered(ctx, serviceName, true)
 }
 
@@ -271,7 +277,7 @@ func buildResource(ctx context.Context, serviceName string) *resource.Resource {
 // to prevent per-VM metric fan-out. Use for MeterProvider only;
 // TracerProvider/LoggerProvider keep the full resource for per-VM
 // debugging.
-func buildMetricResource(ctx context.Context, serviceName string) *resource.Resource {
+func buildMetricResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
 	return buildResourceFiltered(ctx, serviceName, false)
 }
 
@@ -299,7 +305,7 @@ func buildMetricResource(ctx context.Context, serviceName string) *resource.Reso
 // they are 1-cardinality semconv resource attrs that GC allowlists for
 // free. Emitting them on every signal lets dashboards filter by provider
 // without coupling to a Fly-specific env var.
-func buildResourceFiltered(_ context.Context, serviceName string, includeInstanceID bool) *resource.Resource {
+func buildResourceFiltered(_ context.Context, serviceName string, includeInstanceID bool) (*resource.Resource, error) {
 	attrs := []attribute.KeyValue{
 		semconv.ServiceName(serviceName),
 		semconv.ServiceVersion(buildinfo.Version()),
@@ -332,9 +338,21 @@ func buildResourceFiltered(_ context.Context, serviceName string, includeInstanc
 		}
 	}
 
-	res, _ := resource.Merge(
+	// resource.Default() and resource.NewWithAttributes must carry the SAME
+	// schema URL, else resource.Merge returns resource.ErrSchemaURLConflict
+	// along with a Resource whose SchemaURL is blanked — which then exports
+	// every trace/metric/log signal with schema_url="", breaking backend
+	// semconv processing (OTel Collector schemaprocessor, Grafana Cloud
+	// attribute promotion). The semconv import above is pinned to the same
+	// version the installed SDK builds resource.Default() from; a future SDK
+	// bump that drifts the two versions surfaces here as a hard error rather
+	// than a silently blanked schema URL.
+	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(semconv.SchemaURL, attrs...),
 	)
-	return res
+	if err != nil {
+		return nil, fmt.Errorf("merging otel resource (schema %s): %w", semconv.SchemaURL, err)
+	}
+	return res, nil
 }
