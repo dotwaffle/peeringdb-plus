@@ -86,11 +86,17 @@ templ DetailField(label string, value string) {
 }
 
 // DetailLink renders a clickable URL field. Only renders if url is non-empty.
+//
+// url is upstream-controlled free text (a PeeringDB website / looking-glass /
+// route-server / policy URL), so it MUST go through templ.URL — which strips
+// dangerous schemes like javascript: and data: — and NOT templ.SafeURL, which
+// is an explicit "trust me" bypass of that sanitization and would let a
+// malformed upstream record render an executable href.
 templ DetailLink(label string, url string) {
 	if url != "" {
 		<div class="flex flex-col gap-0.5 py-1">
 			<span class="text-neutral-400 dark:text-neutral-500 text-sm">{ label }</span>
-			<a href={ templ.SafeURL(url) } target="_blank" rel="noopener noreferrer"
+			<a href={ templ.URL(url) } target="_blank" rel="noopener noreferrer"
 				class="text-emerald-400 hover:text-emerald-300 transition-colors truncate">
 				{ url }
 			</a>

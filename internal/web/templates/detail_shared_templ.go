@@ -375,6 +375,12 @@ func DetailField(label string, value string) templ.Component {
 }
 
 // DetailLink renders a clickable URL field. Only renders if url is non-empty.
+//
+// url is upstream-controlled free text (a PeeringDB website / looking-glass /
+// route-server / policy URL), so it MUST go through templ.URL — which strips
+// dangerous schemes like javascript: and data: — and NOT templ.SafeURL, which
+// is an explicit "trust me" bypass of that sanitization and would let a
+// malformed upstream record render an executable href.
 func DetailLink(label string, url string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -404,7 +410,7 @@ func DetailLink(label string, url string) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 92, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 98, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -415,9 +421,9 @@ func DetailLink(label string, url string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var22 templ.SafeURL
-			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(url))
+			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(url))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 93, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 99, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -430,7 +436,7 @@ func DetailLink(label string, url string) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(url)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 95, Col: 9}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 101, Col: 9}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -573,7 +579,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.ResolveAttributeValue(copyGroupID(addr))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 196, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 202, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
 		if templ_7745c5c3_Err != nil {
@@ -586,7 +592,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		var templ_7745c5c3_Var26 string
 		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 197, Col: 48}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 203, Col: 48}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 		if templ_7745c5c3_Err != nil {
@@ -616,7 +622,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(addr)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 202, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 208, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
@@ -700,7 +706,7 @@ func CountryFlag(code string) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(code)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 220, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 226, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -746,7 +752,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 234, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 240, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -764,7 +770,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", count))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 236, Col: 111}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 242, Col: 111}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -777,7 +783,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(bandwidth)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 236, Col: 133}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 242, Col: 133}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -795,7 +801,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", count))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 238, Col: 111}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 244, Col: 111}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -818,7 +824,7 @@ func CollapsibleSectionWithBandwidth(title string, count int, bandwidth string, 
 			var templ_7745c5c3_Var39 string
 			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.ResolveAttributeValue(loadURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 243, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 249, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var39)
 			if templ_7745c5c3_Err != nil {
