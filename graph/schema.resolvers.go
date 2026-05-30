@@ -44,6 +44,7 @@ func (r *queryResolver) Campuses(ctx context.Context, after *entgql.Cursor[int],
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.Campus.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithCampusOrder(orderBy),
@@ -56,6 +57,7 @@ func (r *queryResolver) Carriers(ctx context.Context, after *entgql.Cursor[int],
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.Carrier.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithCarrierOrder(orderBy),
@@ -68,6 +70,7 @@ func (r *queryResolver) CarrierFacilities(ctx context.Context, after *entgql.Cur
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.CarrierFacility.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithCarrierFacilityFilter(where.Filter),
@@ -79,6 +82,7 @@ func (r *queryResolver) Facilities(ctx context.Context, after *entgql.Cursor[int
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.Facility.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithFacilityOrder(orderBy),
@@ -91,6 +95,7 @@ func (r *queryResolver) InternetExchanges(ctx context.Context, after *entgql.Cur
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.InternetExchange.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithInternetExchangeOrder(orderBy),
@@ -103,6 +108,7 @@ func (r *queryResolver) IxFacilities(ctx context.Context, after *entgql.Cursor[i
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.IxFacility.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithIxFacilityFilter(where.Filter),
@@ -114,6 +120,7 @@ func (r *queryResolver) IxLans(ctx context.Context, after *entgql.Cursor[int], f
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.IxLan.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithIxLanFilter(where.Filter),
@@ -125,6 +132,7 @@ func (r *queryResolver) IxPrefixes(ctx context.Context, after *entgql.Cursor[int
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.IxPrefix.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithIxPrefixFilter(where.Filter),
@@ -136,6 +144,7 @@ func (r *queryResolver) Networks(ctx context.Context, after *entgql.Cursor[int],
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.Network.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithNetworkOrder(orderBy),
@@ -148,6 +157,7 @@ func (r *queryResolver) NetworkFacilities(ctx context.Context, after *entgql.Cur
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.NetworkFacility.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithNetworkFacilityFilter(where.Filter),
@@ -159,6 +169,7 @@ func (r *queryResolver) NetworkIxLans(ctx context.Context, after *entgql.Cursor[
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.NetworkIxLan.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithNetworkIxLanFilter(where.Filter),
@@ -170,6 +181,7 @@ func (r *queryResolver) Organizations(ctx context.Context, after *entgql.Cursor[
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.Organization.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithOrganizationOrder(orderBy),
@@ -182,6 +194,7 @@ func (r *queryResolver) Pocs(ctx context.Context, after *entgql.Cursor[int], fir
 	if err := validatePageSize(first, last); err != nil {
 		return nil, err
 	}
+	first = defaultFirst(first, last)
 	return r.client.Poc.Query().
 		Paginate(ctx, after, first, before, last,
 			ent.WithPocFilter(where.Filter),
