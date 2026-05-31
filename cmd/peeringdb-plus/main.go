@@ -689,6 +689,16 @@ func (w *restErrorWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
 }
 
+// Flush forwards to the underlying writer per the http.Flusher contract
+// for middleware-aware response writers (CLAUDE.md §Middleware). This
+// writer is a pass-through for 2xx bodies — error bodies are replaced
+// wholesale in WriteHeader — so flushing the underlying is always safe.
+func (w *restErrorWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // restListWrapperKey is the JSON key under which entrest's PagedResponse
 // serialises the items slice. Confirmed at planning time by grepping:
 //
@@ -758,9 +768,14 @@ func (w *restFieldRedactWriter) Write(b []byte) (int, error) {
 // interface detection (matches restErrorWriter pattern).
 func (w *restFieldRedactWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
-// Flush is a no-op during buffering; real flushing happens in flush().
-// Required for CLAUDE.md §Middleware Flusher contract — REST is
-// non-streaming so this never fires mid-response in practice.
+// Flush is intentionally a no-op. Unlike the pass-through restErrorWriter,
+// this writer buffers the entire body so flush() can rewrite the JSON
+// after the handler returns. Forwarding Flush() to the underlying writer
+// mid-response would commit headers (an implicit 200) before flush() sends
+// the real status and the redacted body, corrupting the response. REST
+// responses are non-streaming, so nothing calls Flush() here in practice;
+// the method exists only to satisfy http.Flusher for middleware interface
+// detection.
 func (w *restFieldRedactWriter) Flush() {}
 
 // flush writes the buffered body to the underlying ResponseWriter,
