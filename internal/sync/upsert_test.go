@@ -15,9 +15,67 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
+
+// TestUpsert_UnDeletesOnResync verifies the deleted→ok transition: when
+// upstream re-delivers a row that had been tombstoned, with a newer
+// `updated` timestamp and status "ok", the OnConflict UpdateNewValues
+// path flips the row back to "ok" (auto-undelete). The same row resent
+// with an unchanged `updated` is left tombstoned by the skip-on-unchanged
+// predicate — upstream advances `updated` on every real change, so a
+// status flip always carries a newer timestamp (audit PA5).
+func TestUpsert_UnDeletesOnResync(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	base := time.Now().UTC().Truncate(time.Second)
+	later := base.Add(time.Second)
+
+	upsertOne := func(t *testing.T, client *ent.Client, org peeringdb.Organization) {
+		t.Helper()
+		tx, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx: %v", err)
+		}
+		if _, err := upsertOrganizations(ctx, tx, []peeringdb.Organization{org}); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("upsert: %v", err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+	}
+
+	t.Run("newer timestamp un-deletes", func(t *testing.T) {
+		t.Parallel()
+		client := testutil.SetupClient(t)
+		upsertOne(t, client, peeringdb.Organization{ID: 1, Name: "Reborn", Created: base, Updated: base, Status: "deleted"})
+		upsertOne(t, client, peeringdb.Organization{ID: 1, Name: "Reborn", Created: base, Updated: later, Status: "ok"})
+		got, err := client.Organization.Get(ctx, 1)
+		if err != nil {
+			t.Fatalf("read back: %v", err)
+		}
+		if got.Status != "ok" {
+			t.Errorf("status = %q, want %q (deleted→ok un-delete)", got.Status, "ok")
+		}
+	})
+
+	t.Run("same timestamp is skipped", func(t *testing.T) {
+		t.Parallel()
+		client := testutil.SetupClient(t)
+		upsertOne(t, client, peeringdb.Organization{ID: 2, Name: "Tomb", Created: base, Updated: base, Status: "deleted"})
+		upsertOne(t, client, peeringdb.Organization{ID: 2, Name: "Tomb", Created: base, Updated: base, Status: "ok"})
+		got, err := client.Organization.Get(ctx, 2)
+		if err != nil {
+			t.Fatalf("read back: %v", err)
+		}
+		if got.Status != "deleted" {
+			t.Errorf("status = %q, want %q (same updated → skip-on-unchanged)", got.Status, "deleted")
+		}
+	})
+}
 
 // TestUpsertPopulatesFoldColumns verifies that upsertOrganizations (the
 // canonical 3-fold-column case) calls unifold.Fold on Name/Aka/City and
