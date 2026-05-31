@@ -1,18 +1,37 @@
 name: CI
 
+# A single `ci` job runs generate-drift / build / race-tests / lint /
+# govulncheck in order against ONE manually-managed Go cache, so the
+# module download and build artifacts warm once and every compile-shaped
+# step after `go build` reuses them. This replaces the earlier four
+# parallel Go jobs (lint / test / build / govulncheck) that each
+# re-checked-out, re-ran setup-go, re-downloaded hundreds of transitive
+# modules, and re-compiled the tree in some shape — four setups and four
+# near-full compiles for work that overlaps heavily.
+#
+# `docker-build` stays a separate parallel job: it uses BuildKit's
+# `type=gha` cache (a different cache system from the Go build cache), so
+# folding it into the Go job would only serialise it onto the critical
+# path for zero cache benefit.
+
 on:
   pull_request:
   push:
     branches: [main]
 
+# Cancel an in-flight run for a PR ref when a new commit arrives; main
+# pushes run to completion so every committed SHA keeps a full CI record.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint:
-    name: Lint
+  ci:
+    name: CI
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # octocov posts the coverage comment
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -21,11 +40,28 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: stable
+          # Caching is managed manually below so a single key covers the
+          # non-race build, the -race test build, and the lint/vuln
+          # compiles in one entry, pinned to go.sum.
+          cache: false
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v9
+      - name: Restore Go cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Check for generated code drift
+        # Runs BEFORE `go build` so the tree compiles against freshly
+        # generated output, and a forgotten regeneration fails here in
+        # seconds rather than after the full race suite. The diff is
+        # scoped to the generated trees (preserving the prior job's
+        # behaviour); `schema/generate.go` is safe to re-run and is
+        # covered by the ent/ scope.
         run: |
           go generate ./...
           if ! git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/; then
@@ -33,22 +69,18 @@ jobs:
             exit 1
           fi
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: stable
+      - name: Verify compilation
+        # Early clean-compile signal AND cache warm-up: this non-race
+        # `go build` populates the module cache (one download for the
+        # whole job) and the non-race build archives that golangci-lint
+        # and govulncheck reuse below. The -race test step pays for its
+        # own race-instrumented archives separately.
+        run: go build ./...
 
       - name: Run tests with race detector
+        # CGO_ENABLED=1 only here, for the race detector (the rest of the
+        # build is CgO-free per modernc.org/sqlite). Coverage excludes the
+        # generated ent/ and gen/ trees.
         run: |
           COVERPKG=$(go list ./... | grep -vE '/ent(/|$)|/gen(/|$)' | tr '\n' ',' | sed 's/,$//')
           CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...
@@ -56,38 +88,31 @@ jobs:
       - name: Post coverage comment
         uses: k1LoW/octocov-action@v1
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: stable
-
-      - name: Verify compilation
-        run: go build ./...
-
-  govulncheck:
-    name: Govulncheck
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: stable
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
 
       - name: Run govulncheck
-        run: govulncheck ./...
+        # Advisory: a freshly disclosed vuln in a transitive dep surfaces
+        # in the step log (and as a workflow warning) but does not gate
+        # the build. Treated as a signal to investigate, not a merge
+        # blocker.
+        continue-on-error: true
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          if ! govulncheck ./... ; then
+            echo "::warning::govulncheck flagged at least one vulnerability — see step log for details"
+          fi
+
+      - name: Trim Go mod download zip cache before save
+        # MUST be last: actions/cache@v5 snapshots the cached paths at
+        # job end. Earlier go commands repopulate the download-zip cache;
+        # the unpacked modules under ~/go/pkg/mod/<module>@<v>/ are what
+        # the build actually consumes, so dropping the raw *.zip archives
+        # shrinks the saved cache without affecting reuse. `always()` so
+        # the trim still runs (and a smaller cache still saves) when an
+        # earlier step failed.
+        if: always()
+        run: find ~/go/pkg/mod/cache/download -name '*.zip' -delete
 
   docker-build:
     name: Docker Build
