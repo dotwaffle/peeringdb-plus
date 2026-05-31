@@ -182,6 +182,16 @@ type Worker struct {
 	// ONE backfill HTTP fetch and short-circuit the next N-1 lookups.
 	// Reset alongside fkRegistry in resetFKState.
 	fkBackfillTried map[fkBackfillKey]struct{}
+	// fkPresence is the per-cycle cache of parent IDs confirmed present in
+	// the local DB by the dbHasRecord fallback. Only positive results are
+	// stored: a parent reaching that fallback was not synced this cycle
+	// (parent-first ordering registers synced parents in fkRegistry), so
+	// its row is neither inserted nor deleted for the rest of the cycle and
+	// the existence answer is stable. When many child rows share one
+	// untouched parent (e.g. hundreds of netixlans under one org), the
+	// siblings hit this cache instead of repeating the Exist() query.
+	// Reset alongside fkRegistry in resetFKState.
+	fkPresence map[fkBackfillKey]struct{}
 	// fkBackfillRequestCount is the per-cycle counter of underlying HTTP
 	// requests issued by FK-backfill, compared against fkBackfillRequestCap.
 	// Bumped by ⌈len(idsToFetch)/peeringdb.FetchByIDsBatchSize⌉ in
@@ -255,6 +265,7 @@ func (w *Worker) resetFKState() {
 	// counter alongside the rest of the FK state. The cap is captured
 	// once at NewWorker time; only the per-cycle bookkeeping resets.
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
+	w.fkPresence = make(map[fkBackfillKey]struct{}, 64)
 	w.fkBackfillRequestCount = 0
 	// v1.18.3: per-cycle deadline for backfill HTTP activity. Zero
 	// timeout → zero deadline → fkBackfillParent's deadline check
@@ -366,9 +377,22 @@ func (w *Worker) fkHasParent(ctx context.Context, tx *ent.Tx, typeName string, i
 			return true
 		}
 	}
+	// Per-cycle positive-presence cache: a sibling child row already
+	// confirmed this parent exists in the DB this cycle, so skip the
+	// repeat Exist() query (see fkPresence doc for why this is stable).
+	key := fkBackfillKey{Type: typeName, ID: id}
+	if _, cached := w.fkPresence[key]; cached {
+		return true
+	}
 	// Memory check failed: check the DB to distinguish true orphans from
-	// untouched parents during incremental syncs.
-	return w.dbHasRecord(ctx, tx, typeName, id)
+	// untouched parents during incremental syncs. Cache only confirmed
+	// hits — a miss may be recovered by backfill, which registers the
+	// parent in fkRegistry (consulted above).
+	if w.dbHasRecord(ctx, tx, typeName, id) {
+		w.fkPresence[key] = struct{}{}
+		return true
+	}
+	return false
 }
 
 // dbHasRecord checks the real database for the existence of an ID for
