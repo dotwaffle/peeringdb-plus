@@ -21,16 +21,15 @@ import (
 // See: https://fly.io/docs/litefs/primary/
 const PrimaryFile = "/litefs/.primary"
 
-// IsPrimary reports whether this node is the LiteFS primary using the
-// standard lease file path. Returns true when the .primary file is absent
-// (meaning this node holds the lease and is the primary).
-func IsPrimary() bool {
-	return IsPrimaryAt(PrimaryFile)
-}
-
 // IsPrimaryAt reports whether this node is the LiteFS primary by checking
 // the given path for the lease file. Returns true when the file does NOT
 // exist (absence = primary), false when it does exist (presence = replica).
+//
+// This is a low-level primitive with no fallback handling; it is exported
+// so the package's external test can exercise the lease-file semantics
+// against arbitrary paths. Production code calls IsPrimaryWithFallback,
+// which adds the fail-safe-to-replica path for ambiguous stat errors and
+// the no-LiteFS env-var fallback.
 func IsPrimaryAt(path string) bool {
 	_, err := os.Stat(path)
 	return errors.Is(err, os.ErrNotExist)
