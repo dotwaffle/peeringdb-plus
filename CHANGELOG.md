@@ -86,7 +86,7 @@ Phase 71.
 - **pdbcompat `__in` large-list support**: `?<field>__in=` now accepts
   arbitrarily-large comma-separated lists via a SQLite `json_each`
   single-bind rewrite, bypassing the 999-variable parameter limit.
-  Empty `__in` (e.g. `?asn__in=`) returns `{"data":[],"meta":{"count":0}}`
+  Empty `__in` (e.g. `?asn__in=`) returns `{"data":[],"meta":{}}`
   with no SQL executed, matching Django ORM `Model.objects.filter(id__in=[])`
   semantics. Closes IN-01 and IN-02.
 
