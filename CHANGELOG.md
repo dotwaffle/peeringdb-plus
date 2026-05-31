@@ -8,12 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Historical release notes prior to v1.16 are preserved in the project's
 Git history (tags `v1.0.0` through `v1.15.0`).
 
-## [Unreleased]
+## [1.19.0] — 2026-05-31
 
 _v1.17 and v1.18.x shipped as incremental patch work that was not
 catalogued here individually; see the Git tags for those releases. The
-entries below are the post-v1.18 audit-hardening batch (branch
-`audit-fixes`)._
+entries below are the 2026-05-30 audit-hardening batch (merged via
+PR #13)._
 
 ### Breaking
 
