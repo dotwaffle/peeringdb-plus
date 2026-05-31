@@ -63,6 +63,10 @@ func TestLoad_SyncStaleThreshold(t *testing.T) {
 		{name: "explicit 12h", envVal: "12h", want: 12 * time.Hour},
 		{name: "explicit 1h30m", envVal: "1h30m", want: 90 * time.Minute},
 		{name: "invalid duration", envVal: "not-a-duration", wantErr: true},
+		// A non-positive threshold would pin /readyz at 503 forever; it
+		// must be rejected at startup (audit C2).
+		{name: "negative duration rejected", envVal: "-5h", wantErr: true},
+		{name: "zero duration rejected", envVal: "0s", wantErr: true},
 	}
 
 	for _, tt := range tests {

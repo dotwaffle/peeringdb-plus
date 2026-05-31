@@ -405,6 +405,12 @@ func (c *Config) validate() error {
 	if c.DrainTimeout <= 0 {
 		return errors.New("PDBPLUS_DRAIN_TIMEOUT must be greater than 0")
 	}
+	if c.SyncStaleThreshold <= 0 {
+		// A non-positive threshold makes evaluateSyncAge() report stale on
+		// every check (age > threshold is always true), pinning /readyz at
+		// 503 for the process lifetime. Fail fast at startup instead.
+		return errors.New("PDBPLUS_SYNC_STALE_THRESHOLD must be greater than 0")
+	}
 	if c.SyncMemoryLimit < 0 {
 		return errors.New("PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)")
 	}
