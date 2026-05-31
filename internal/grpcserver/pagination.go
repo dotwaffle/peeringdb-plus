@@ -101,6 +101,12 @@ func (c streamCursor) empty() bool {
 // `<updatedRFC3339Nano>|<createdRFC3339Nano>|<id>`. Returns an empty string
 // for a zero-value cursor so callers can propagate "no next page" without a
 // special sentinel.
+//
+// The token is session-local page-through state, not a durable client
+// contract (see the streamCursor type doc): a client may only echo the
+// previous response's token back to fetch the next page within one
+// streaming flow. The body format may change between releases, so tokens
+// must NOT be stored and replayed across sessions.
 func encodeStreamCursor(c streamCursor) string {
 	if c.empty() {
 		return ""
@@ -117,6 +123,12 @@ func encodeStreamCursor(c streamCursor) string {
 // timestamps, and the id are all validated; the body must split into exactly
 // three pipe-delimited fields. A negative id is rejected because the id is a
 // positive-monotonic primary-key surrogate (threat T-67-04-01).
+//
+// Only tokens minted by encodeStreamCursor in the same release are
+// supported; the format is session-local internal state, not a durable
+// resume point a client may persist across sessions (see the streamCursor
+// type doc). A stale or hand-built token fails validation here rather than
+// silently resuming at the wrong position.
 func decodeStreamCursor(token string) (streamCursor, error) {
 	if token == "" {
 		return streamCursor{}, nil
