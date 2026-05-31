@@ -8,7 +8,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Historical release notes prior to v1.16 are preserved in the project's
 Git history (tags `v1.0.0` through `v1.15.0`).
 
-## [Unreleased] — v1.16
+## [Unreleased]
+
+_v1.17 and v1.18.x shipped as incremental patch work that was not
+catalogued here individually; see the Git tags for those releases. The
+entries below are the post-v1.18 audit-hardening batch (branch
+`audit-fixes`)._
+
+### Breaking
+
+- **`PDBPLUS_INCLUDE_DELETED` is now a fatal startup error.** The v1.16
+  deprecation logged a WARN and ignored the variable, promising a hard
+  error in v1.17; that is now enforced. Remove it from your environment —
+  sync always persists deleted rows as tombstones.
+
+### Added
+
+- **`__in` filtering on bool, float and time fields.**
+  `?info_unicast__in=true,false`, `?latitude__in=…`, and
+  `?created__in=<epoch>,<epoch>` now filter instead of returning `400`,
+  matching upstream Django coercion. Values bind through ent's type
+  converter (not the string `json_each` path), so time comparisons match
+  the stored representation exactly.
+
+### Changed
+
+- **Repeated query parameters take the last value** (`?asn=1&asn=2` → `2`),
+  matching Django's `QueryDict` and upstream PeeringDB (was first-value).
+- **Filter type errors name the type** (`field type bool`) instead of the
+  internal enum integer (`field type 2`).
+- **`PDBPLUS_SYNC_STALE_THRESHOLD` is validated at startup** — a
+  non-positive value is rejected at boot rather than pinning `/readyz` at
+  503 for the process lifetime.
+- **Detail endpoints (`/api/<type>/<id>`) are gated by the response memory
+  budget**, like list endpoints — an over-budget `depth=2` expansion now
+  returns `413` instead of being served unbounded.
+
+### Security
+
+- **`/api` 500 responses no longer echo raw ent/SQL error strings.** The
+  driver error is logged server-side; the client receives a generic
+  detail.
+- **`Cache-Control: private` on Users-tier deployments.** When
+  `PDBPLUS_PUBLIC_TIER=users`, responses carry private-audience data and
+  are no longer marked `public`, so shared/CDN caches will not store them.
+  Public deployments are unchanged (`public`).
+
+### Performance
+
+- List pages that serve no rows (e.g. `?skip=` past the end of the result
+  set) short-circuit before the `ORDER BY … OFFSET` sort.
+- The sync-freshness gauge reads a cached value instead of a live
+  `sync_status` query on every Prometheus scrape.
+- FK validation memoises confirmed-present parents per sync cycle,
+  collapsing the per-child `Exist()` queries when many children share one
+  untouched parent.
+- pdbcompat list serialization builds its output in a single pass,
+  dropping a redundant intermediate slice.
+- The `/rest/v1/ix-lans` redaction path skips re-marshalling the body when
+  no field was gated out.
+
+### Fixed
+
+- Corrected three documentation claims against the pinned upstream source:
+  the detail `?depth=` default is `2` (not `0`); there is no top-level
+  `meta.count` (the empty `__in` example is `{"data":[],"meta":{}}`); and
+  `org_flags` is not an upstream filter parameter (recorded as a
+  Validation Note, not a divergence).
+
+### Internal
+
+- Removed dead sync code (the write-only FK skipped-ID tracker and the
+  unread `getStatus` filter) and the unused `litefs.IsPrimary` wrapper.
+- Clarified stale doc comments: the per-request heap-delta metric is
+  process-global, the FK-backfill cap default is 20, stream cursors are
+  session-local, and the REST writers' `http.Flusher` contract (the
+  pass-through writer delegates `Flush`; the buffering redact writer must
+  not).
+
+## [1.16.0] — 2026-04-19
 
 v1.16 is a coordinated milestone release. Phases 67, 68, 69, 70, and 71 ship
 together in a single deploy window; Phase 72 (upstream parity regression)
