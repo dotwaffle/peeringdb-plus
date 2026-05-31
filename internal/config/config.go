@@ -575,20 +575,6 @@ func parsePublicTier(key string, defaultVal privctx.Tier) (privctx.Tier, error) 
 	}
 }
 
-// parseByteSize parses an env var as a byte count with a MANDATORY unit
-// suffix (KB, MB, GB, TB — base 1024). An empty env var falls back to
-// defaultVal. The literal "0" is accepted as an explicit disable value.
-// A bare number without a unit is REJECTED to eliminate ambiguity in
-// operator configuration (PERF-05 ergonomics) — was the 500 meant as
-// 500 bytes, 500 KB, or 500 MB? Force the operator to be explicit.
-//
-// Accepted forms: "0", "100KB", "400MB", "2GB", "1TB" (case-insensitive
-// suffix). The short forms "K", "M", "G", "T" are accepted as aliases
-// for "KB", "MB", "GB", "TB" respectively.
-//
-// Examples: "400MB" -> 400 * 1024 * 1024; "1GB" -> 1024^3; "0" -> 0
-// (guardrail disabled).
-//
 // parseMiB parses an env var as a non-negative integer count of MiB
 // (mebibytes; 1 MiB = 1024*1024 bytes). Returns the value in BYTES
 // so callers can compare directly against runtime.MemStats fields.
@@ -619,6 +605,19 @@ func parseMiB(key string, defaultMiB int64) (int64, error) {
 	return mib * bytesPerMiB, nil
 }
 
+// parseByteSize parses an env var as a byte count with a MANDATORY unit
+// suffix (KB, MB, GB, TB — base 1024). An empty env var falls back to
+// defaultVal. The literal "0" is accepted as an explicit disable value.
+// A bare number without a unit is REJECTED to eliminate ambiguity in
+// operator configuration (PERF-05 ergonomics) — was the 500 meant as
+// 500 bytes, 500 KB, or 500 MB? Force the operator to be explicit.
+//
+// Accepted forms: "0", "100KB", "400MB", "2GB", "1TB" (case-insensitive
+// suffix). The short forms "K", "M", "G", "T" are accepted as aliases
+// for "KB", "MB", "GB", "TB" respectively.
+//
+// Examples: "400MB" -> 400 * 1024 * 1024; "1GB" -> 1024^3; "0" -> 0
+// (guardrail disabled).
 func parseByteSize(key string, defaultVal int64) (int64, error) {
 	v := os.Getenv(key)
 	if v == "" {
