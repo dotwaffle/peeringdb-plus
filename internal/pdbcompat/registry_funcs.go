@@ -113,10 +113,9 @@ func wireOrgFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list organizations: %w", err)
 			}
-			result := organizationsFromEnt(orgs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(orgs))
+			for i, o := range orgs {
+				out[i] = organizationFromEnt(o)
 			}
 			return out, len(out), nil
 		},
@@ -162,10 +161,9 @@ func wireNetFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networks: %w", err)
 			}
-			result := networksFromEnt(nets)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(nets))
+			for i, n := range nets {
+				out[i] = networkFromEnt(n)
 			}
 			return out, len(out), nil
 		},
@@ -211,10 +209,9 @@ func wireFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list facilities: %w", err)
 			}
-			result := facilitiesFromEnt(facs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(facs))
+			for i, f := range facs {
+				out[i] = facilityFromEnt(f)
 			}
 			return out, len(out), nil
 		},
@@ -260,10 +257,9 @@ func wireIXFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list internet exchanges: %w", err)
 			}
-			result := internetExchangesFromEnt(ixes)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(ixes))
+			for i, ix := range ixes {
+				out[i] = internetExchangeFromEnt(ix)
 			}
 			return out, len(out), nil
 		},
@@ -309,10 +305,9 @@ func wirePocFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list pocs: %w", err)
 			}
-			result := pocsFromEnt(pocs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(pocs))
+			for i, p := range pocs {
+				out[i] = pocFromEnt(p)
 			}
 			return out, len(out), nil
 		},
@@ -358,10 +353,9 @@ func wireIXLanFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixlans: %w", err)
 			}
-			result := ixLansFromEnt(ctx, lans)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(lans))
+			for i, l := range lans {
+				out[i] = ixLanFromEnt(ctx, l)
 			}
 			return out, len(out), nil
 		},
@@ -407,10 +401,9 @@ func wireIXPfxFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixprefixes: %w", err)
 			}
-			result := ixPrefixesFromEnt(pfxs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(pfxs))
+			for i, p := range pfxs {
+				out[i] = ixPrefixFromEnt(p)
 			}
 			return out, len(out), nil
 		},
@@ -456,10 +449,9 @@ func wireNetIXLanFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networkixlans: %w", err)
 			}
-			result := networkIxLansFromEnt(nixls)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(nixls))
+			for i, nixl := range nixls {
+				out[i] = networkIxLanFromEnt(nixl)
 			}
 			return out, len(out), nil
 		},
@@ -505,10 +497,9 @@ func wireNetFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networkfacilities: %w", err)
 			}
-			result := networkFacilitiesFromEnt(nfacs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(nfacs))
+			for i, nfac := range nfacs {
+				out[i] = networkFacilityFromEnt(nfac)
 			}
 			return out, len(out), nil
 		},
@@ -554,10 +545,9 @@ func wireIXFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixfacilities: %w", err)
 			}
-			result := ixFacilitiesFromEnt(ixfacs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(ixfacs))
+			for i, ixfac := range ixfacs {
+				out[i] = ixFacilityFromEnt(ixfac)
 			}
 			return out, len(out), nil
 		},
@@ -603,10 +593,9 @@ func wireCarrierFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list carriers: %w", err)
 			}
-			result := carriersFromEnt(carriers)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(carriers))
+			for i, c := range carriers {
+				out[i] = carrierFromEnt(c)
 			}
 			return out, len(out), nil
 		},
@@ -652,10 +641,9 @@ func wireCarrierFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list carrierfacilities: %w", err)
 			}
-			result := carrierFacilitiesFromEnt(cfs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(cfs))
+			for i, cf := range cfs {
+				out[i] = carrierFacilityFromEnt(cf)
 			}
 			return out, len(out), nil
 		},
@@ -702,10 +690,9 @@ func wireCampusFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list campuses: %w", err)
 			}
-			result := campusesFromEnt(campuses)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(campuses))
+			for i, c := range campuses {
+				out[i] = campusFromEnt(c)
 			}
 			return out, len(out), nil
 		},
