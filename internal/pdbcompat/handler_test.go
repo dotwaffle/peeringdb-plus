@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,6 +92,65 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return h, mux
+}
+
+// TestErrorResponsesSanitized verifies that the three internal-error
+// (500) paths in serveList and serveDetail never echo raw ent/SQL error
+// strings into the client-facing problem Detail. Closing the ent client
+// forces every downstream query to fail with a driver error; the handler
+// must log it server-side but return only a generic Detail. (Audit S1.)
+func TestErrorResponsesSanitized(t *testing.T) {
+	t.Parallel()
+
+	// internalErrorLeaks lists substrings that would betray ent/SQL
+	// driver internals if they reached the wire.
+	internalErrorLeaks := []string{"sql:", "ent:", "database is closed", "sqlite", "SQLITE", "syntax error"}
+
+	cases := []struct {
+		name   string
+		budget int64 // >0 exercises the Count branch; 0 the List branch
+		path   string
+	}{
+		{"count branch", 1 << 30, "/api/net"},
+		{"list branch", 0, "/api/net"},
+		{"detail branch", 0, "/api/net/1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client := testutil.SetupClient(t)
+			h := NewHandler(client, tc.budget)
+			mux := http.NewServeMux()
+			h.Register(mux)
+			// Close the DB so every query fails with a driver error.
+			if err := client.Close(); err != nil {
+				t.Fatalf("close client: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusInternalServerError {
+				t.Fatalf("status = %d, want 500; body=%s", rec.Code, rec.Body.String())
+			}
+			if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+				t.Errorf("Content-Type = %q, want application/problem+json", ct)
+			}
+			var pd testProblemDetail
+			if err := json.Unmarshal(rec.Body.Bytes(), &pd); err != nil {
+				t.Fatalf("decode problem: %v; body=%s", err, rec.Body.String())
+			}
+			if pd.Detail == "" {
+				t.Errorf("Detail is empty; want a generic operator-safe message")
+			}
+			for _, leak := range internalErrorLeaks {
+				if strings.Contains(pd.Detail, leak) {
+					t.Errorf("Detail %q leaks internal substring %q", pd.Detail, leak)
+				}
+			}
+		})
+	}
 }
 
 func TestListEndpoint(t *testing.T) {

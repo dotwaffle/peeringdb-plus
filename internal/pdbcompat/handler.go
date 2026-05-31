@@ -263,9 +263,17 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	if h.responseMemoryLimit > 0 && !emptyResult && tc.Count != nil {
 		count, err := tc.Count(r.Context(), h.client, opts)
 		if err != nil {
+			// Log the raw error for operators; never echo ent/SQL error
+			// strings into the client-facing problem Detail (SEC: avoid
+			// leaking schema/driver internals on the /api surface).
+			slog.ErrorContext(r.Context(), "pdbcompat: count query failed",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.String("error", err.Error()),
+			)
 			WriteProblem(w, httperr.WriteProblemInput{
 				Status:   http.StatusInternalServerError,
-				Detail:   fmt.Sprintf("count error: %v", err),
+				Detail:   "failed to count matching records",
 				Instance: r.URL.Path,
 			})
 			return
@@ -286,9 +294,16 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 
 	results, _, err := tc.List(r.Context(), h.client, opts)
 	if err != nil {
+		// Log raw error server-side only; keep the client Detail generic
+		// so ent/SQL internals never reach the /api wire (SEC).
+		slog.ErrorContext(r.Context(), "pdbcompat: list query failed",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("error", err.Error()),
+		)
 		WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusInternalServerError,
-			Detail:   fmt.Sprintf("query error: %v", err),
+			Detail:   "failed to query matching records",
 			Instance: r.URL.Path,
 		})
 		return
@@ -367,9 +382,16 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 			})
 			return
 		}
+		// Log raw error server-side only; the client Detail stays generic
+		// so ent/SQL internals never reach the /api wire (SEC).
+		slog.ErrorContext(r.Context(), "pdbcompat: detail query failed",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("error", err.Error()),
+		)
 		WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusInternalServerError,
-			Detail:   fmt.Sprintf("query error: %v", err),
+			Detail:   "failed to query record",
 			Instance: r.URL.Path,
 		})
 		return
