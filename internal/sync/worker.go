@@ -170,14 +170,6 @@ type Worker struct {
 	// Reset by resetFKState at the start of each Sync run. Single-writer
 	// because Worker.running serialises concurrent Sync calls.
 	fkRegistry map[string]map[int]struct{}
-	// fkSkippedIDs maps type name to the set of row IDs that were
-	// dropped by the upsert-time fkFilter. Used by syncUpsertPass to
-	// subtract these from remoteIDsByType before the delete pass runs,
-	// so any previously-inserted row whose FK is now orphaned is
-	// cleaned up (avoids a parent-delete-while-child-remains FK
-	// violation at commit in steady-state syncs). Reset alongside
-	// fkRegistry in resetFKState.
-	fkSkippedIDs map[string]map[int]struct{}
 	// fkOrphanCounts aggregates per-cycle FK-orphan observations so they
 	// can be summarised in a single end-of-cycle WARN log + metric
 	// increments. Replaces the per-row WARN log spam that blew Tempo's
@@ -252,13 +244,12 @@ func (w *Worker) SetRetryBackoffs(backoffs []time.Duration) {
 	w.retryBackoffs = backoffs
 }
 
-// resetFKState clears the per-sync FK registry and skipped-ID tracker.
+// resetFKState clears the per-sync FK registry and orphan counters.
 // Called at the start of each Sync run so downstream fkFilter closures
 // see a clean slate — the previous run's parent IDs are irrelevant to
 // the next run's orphan detection.
 func (w *Worker) resetFKState() {
 	w.fkRegistry = make(map[string]map[int]struct{}, 13)
-	w.fkSkippedIDs = make(map[string]map[int]struct{}, 13)
 	w.fkOrphanCounts = make(map[fkOrphanKey]int)
 	// Quick task 260428-2zl: reset per-cycle FK-backfill dedup cache and
 	// counter alongside the rest of the FK state. The cap is captured
@@ -425,20 +416,6 @@ func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, i
 		return false
 	}
 	return exists
-}
-
-// fkMarkSkipped records that the given child ID was dropped by the
-// upsert-time fkFilter. syncUpsertPass subtracts these IDs from
-// remoteIDsByType before the delete pass so any previously-inserted
-// row with the same ID is cleaned up, preventing a
-// parent-delete-while-child-remains FK violation on the next commit.
-func (w *Worker) fkMarkSkipped(typeName string, id int) {
-	set, ok := w.fkSkippedIDs[typeName]
-	if !ok {
-		set = make(map[int]struct{})
-		w.fkSkippedIDs[typeName] = set
-	}
-	set[id] = struct{}{}
 }
 
 // syncStep defines a single step in the sync process. Upserts run in
@@ -1356,9 +1333,7 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 // filter and before the upsert. The row pointer lets the closure
 // mutate nullable FK fields in place (e.g. null out an orphaned
 // campus_id on a facility so the facility row itself is kept). When
-// the closure returns false the row is dropped from the chunk and
-// the caller MUST call fkMarkSkipped on its id so the delete pass
-// can reconcile any previously-inserted row with the same id.
+// the closure returns false the row is dropped from the chunk.
 //
 // recordIDs, when non-nil, is called with the []int returned by the
 // upsert closure so downstream child types can validate their FK
@@ -1443,11 +1418,9 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // v1.13 FK orphan filter: cases for child types supply a fkFilter
 // closure that checks each incoming row's FK references against the
 // parent sets populated by earlier syncIncremental.recordIDs
-// callbacks. Rows whose parents are missing are dropped and logged,
-// and their IDs are recorded via fkMarkSkipped so the delete pass can
-// clean up any previously-inserted row with the same ID. This handles
-// PeeringDB snapshots that expose live children pointing at
-// server-side-suppressed parents (e.g. NTT America carrier → org).
+// callbacks. Rows whose parents are missing are dropped and logged.
+// This handles PeeringDB snapshots that expose live children pointing
+// at server-side-suppressed parents (e.g. NTT America carrier → org).
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
 	// Quick task 260428-5xt: chunk pre-pass batches missing required
 	// parent FK fetches per parent type per chunk, turning N per-row
@@ -1657,8 +1630,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 // is registered for parentType (or is a zero/null FK), or if the live
 // backfill (quick task 260428-2zl) recovered the parent from upstream.
 // Otherwise records the orphan via Worker.recordOrphan (DEBUG log +
-// per-cycle counter), marks the child id in fkSkippedIDs so the delete
-// pass can reconcile, and returns false so syncIncremental drops the
+// per-cycle counter) and returns false so syncIncremental drops the
 // row from the chunk. emitOrphanSummary surfaces the per-cycle
 // aggregate at WARN.
 //
@@ -1672,7 +1644,6 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return true
 	}
-	w.fkMarkSkipped(childType, childID)
 	w.recordOrphan(ctx, fkOrphanKey{
 		ChildType:  childType,
 		ParentType: parentType,
