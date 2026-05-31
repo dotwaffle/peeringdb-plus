@@ -191,6 +191,11 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if len(vals) == 0 {
 			continue
 		}
+		// Repeated params (?foo=a&foo=b) take the LAST value, matching
+		// Django's QueryDict.__getitem__ (upstream PeeringDB's request
+		// layer). url.Values preserves insertion order, so vals[len-1] is
+		// the last value seen on the wire.
+		value := vals[len(vals)-1]
 		// Skip reserved pagination/control parameters.
 		if reservedParams[key] {
 			continue
@@ -215,7 +220,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 
 		if len(relSegs) == 0 {
 			// Direct local field path — pre-Phase-70 behaviour.
-			p, emptyResult, ok, err := buildLocalPredicate(field, op, vals[0], tc)
+			p, emptyResult, ok, err := buildLocalPredicate(field, op, value, tc)
 			if err != nil {
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
 			}
@@ -231,7 +236,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		}
 
 		// Traversal path (1-hop or 2-hop).
-		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, vals[0], tier)
+		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
 		if err != nil {
 			return nil, false, fmt.Errorf("filter %s: %w", key, err)
 		}

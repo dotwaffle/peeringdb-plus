@@ -230,6 +230,57 @@ func TestListEndpoint_InBoolAndTime(t *testing.T) {
 	}
 }
 
+// TestListEndpoint_RepeatedParamLastWins verifies that a repeated query
+// parameter resolves to the LAST value, matching Django's QueryDict
+// (audit PA3). Seeds two networks and asserts ?asn=1001&asn=1002 returns
+// only the 1002 row.
+func TestListEndpoint_RepeatedParamLastWins(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	for _, asn := range []int{1001, 1002} {
+		name := "Repeat" + itoa(asn)
+		ts := time.Unix(1700000000, 0)
+		_, err := client.Network.Create().
+			SetName(name).
+			SetNameFold(unifold.Fold(name)).
+			SetAsn(asn).
+			SetStatus("ok").
+			SetCreated(ts).
+			SetUpdated(ts).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create network asn %d: %v", asn, err)
+		}
+	}
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/net?asn=1001&asn=1002", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	var env testEnvelope
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode envelope: %v", err)
+	}
+	var data []struct {
+		ASN int `json:"asn"`
+	}
+	if err := json.Unmarshal(env.Data, &data); err != nil {
+		t.Fatalf("decode data: %v", err)
+	}
+	if len(data) != 1 {
+		t.Fatalf("got %d rows, want 1 (last value wins)", len(data))
+	}
+	if data[0].ASN != 1002 {
+		t.Errorf("matched asn %d, want 1002 (last repeated value)", data[0].ASN)
+	}
+}
+
 func TestListEndpoint(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
