@@ -301,7 +301,7 @@ func applySortingCampus(_query *ent.CampusQuery, _field string, _order orderDire
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -340,7 +340,7 @@ func applySortingCarrier(_query *ent.CarrierQuery, _field string, _order orderDi
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -370,7 +370,7 @@ func applySortingCarrierFacility(_query *ent.CarrierFacilityQuery, _field string
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -429,7 +429,7 @@ func applySortingFacility(_query *ent.FacilityQuery, _field string, _order order
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -477,7 +477,7 @@ func applySortingInternetExchange(_query *ent.InternetExchangeQuery, _field stri
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -507,7 +507,7 @@ func applySortingIxFacility(_query *ent.IxFacilityQuery, _field string, _order o
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -555,7 +555,7 @@ func applySortingIxLan(_query *ent.IxLanQuery, _field string, _order orderDirect
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -583,7 +583,7 @@ func applySortingIxPrefix(_query *ent.IxPrefixQuery, _field string, _order order
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -640,7 +640,7 @@ func applySortingNetwork(_query *ent.NetworkQuery, _field string, _order orderDi
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -670,7 +670,7 @@ func applySortingNetworkFacility(_query *ent.NetworkFacilityQuery, _field string
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -700,7 +700,7 @@ func applySortingNetworkIxLan(_query *ent.NetworkIxLanQuery, _field string, _ord
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -773,7 +773,7 @@ func applySortingOrganization(_query *ent.OrganizationQuery, _field string, _ord
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
@@ -801,7 +801,7 @@ func applySortingPoc(_query *ent.PocQuery, _field string, _order orderDirection)
 	// Phase 67 compound-default tie-break: when the requested sort field is the
 	// entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
 	// same order direction for parity with pdbcompat and grpcserver. See
-	// .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+	// the project history D-02 / D-07 and D-04 clarification.
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),

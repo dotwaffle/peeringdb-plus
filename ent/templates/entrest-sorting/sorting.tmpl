@@ -169,7 +169,7 @@ func isSpecializedSort(_parts []string) (isCount, isSum bool) {
         // Phase 67 compound-default tie-break: when the requested sort field is the
         // entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
         // same order direction for parity with pdbcompat and grpcserver. See
-        // .planning/phases/67-default-ordering-flip/CONTEXT.md D-02 / D-07 and D-04 clarification.
+        // the project history D-02 / D-07 and D-04 clarification.
         if _field == {{ $defaultSort | quote }} {
             return _query.Order(
                 withFieldSelector(_field, _order),
