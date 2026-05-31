@@ -230,6 +230,62 @@ func TestListEndpoint_InBoolAndTime(t *testing.T) {
 	}
 }
 
+// TestServeDetail_BudgetCheck verifies the detail path is gated by the
+// response-memory budget and that the gate is depth-aware (audit P2). A
+// net's Depth0 estimate (1600B) and Depth2 estimate (2368B) straddle a
+// 2000B budget, so the default depth=2 request 413s while ?depth=0 is
+// served. This is also the only path that exercises the depth=2 row-size
+// branch (resolving the M4 "dead branch" finding by use).
+func TestServeDetail_BudgetCheck(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	ts := time.Unix(1700000000, 0)
+	n, err := client.Network.Create().
+		SetName("BudgetNet").
+		SetNameFold(unifold.Fold("BudgetNet")).
+		SetAsn(64500).
+		SetStatus("ok").
+		SetCreated(ts).
+		SetUpdated(ts).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create network: %v", err)
+	}
+	id := itoa(n.ID)
+
+	cases := []struct {
+		name   string
+		budget int64
+		query  string
+		want   int
+	}{
+		{"depth2 over budget 413", 2000, "/api/net/" + id, http.StatusRequestEntityTooLarge},
+		{"depth0 under budget 200", 2000, "/api/net/" + id + "?depth=0", http.StatusOK},
+		{"depth2 large budget 200", 1 << 30, "/api/net/" + id, http.StatusOK},
+		{"budget disabled 200", 0, "/api/net/" + id, http.StatusOK},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			h := NewHandler(client, c.budget)
+			mux := http.NewServeMux()
+			h.Register(mux)
+			req := httptest.NewRequest(http.MethodGet, c.query, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != c.want {
+				t.Errorf("%s: status %d, want %d; body %s", c.query, rec.Code, c.want, rec.Body.String())
+			}
+			if c.want == http.StatusRequestEntityTooLarge {
+				if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+					t.Errorf("413 Content-Type = %q, want application/problem+json", ct)
+				}
+			}
+		})
+	}
+}
+
 // TestServeList_SkipPastEnd verifies that a ?skip= past the end of the
 // result set returns a 200 with an empty data array, served by the
 // budget short-circuit without running the OFFSET query (audit P1). Uses

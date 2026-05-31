@@ -44,10 +44,12 @@ type RowSize struct {
 //	carrierfac      139    1035
 //	campus          269    1254
 //
-// Hosts the /api/org budget check's worst case: an unfiltered
-// ?depth=2 list bills roughly 8.6 KiB per row, so the 128 MiB default
-// caps org@depth=2 at ~15k rows — comfortably above the ~35 live
-// orgs that currently carry populated child sets.
+// The Depth2 column feeds the detail-path budget check
+// (serveDetail → CheckBudget(1, type, 2, …)); lists are pinned to
+// depth 0 by the Phase 68 LIMIT-02 guardrail and never consult it. A
+// bare /api/org/<id> at the default depth=2 bills roughly 8.6 KiB for
+// the single expanded org, so only a degenerately small budget would
+// 413 it — the check is a floor, not a bound on _set cardinality.
 var typicalRowBytes = map[string]RowSize{
 	// Calibrated 2026-04-19 from seed.Full at benchtime=20x × count=3.
 	// Values = ceil(2 × measured_bytes_per_op / 64) * 64.

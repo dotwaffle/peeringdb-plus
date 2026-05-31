@@ -384,6 +384,31 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 		}
 	}
 
+	// Audit P2: gate the detail response against the same per-response
+	// memory budget as the list path. A single object is one row, but at
+	// depth=2 it embeds the per-type _set collections + parent FK objects,
+	// so its size tracks TypicalRowBytes(<type>, depth), not the bare
+	// Depth0 figure. This is a coarse floor — it bills the typical
+	// expanded row, not the actual _set cardinality — but it keeps the
+	// detail path symmetric with serveList and trips a clean 413 rather
+	// than serving under a degenerately small budget. This is also the
+	// only caller that exercises the depth=2 row-size estimate (lists are
+	// pinned to depth 0 by Phase 68 LIMIT-02). budget<=0 disables the
+	// check (dev/test) exactly as on the list path.
+	if h.responseMemoryLimit > 0 {
+		if info, ok := CheckBudget(1, tc.Name, depth, h.responseMemoryLimit); !ok {
+			slog.WarnContext(r.Context(), "pdbcompat: detail response budget exceeded",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.Int("depth", depth),
+				slog.Int64("estimated_bytes", info.EstimatedBytes),
+				slog.Int64("budget_bytes", info.BudgetBytes),
+			)
+			WriteBudgetProblem(w, r.URL.Path, info)
+			return
+		}
+	}
+
 	// Parse field projection (?fields=) per D-14.
 	var fields []string
 	if f := params.Get("fields"); f != "" {
