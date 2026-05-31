@@ -824,6 +824,7 @@ func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
 	if err := json.Unmarshal(body, &top); err != nil {
 		return nil, err
 	}
+	changed := false
 	// List shape: {page, total_count, last_page, is_last_page, content:[…]}
 	if wrapped, ok := top[restListWrapperKey].([]any); ok {
 		for _, entry := range wrapped {
@@ -831,25 +832,35 @@ func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
 			if !ok {
 				continue
 			}
-			redactIxlanObject(ctx, obj)
+			if redactIxlanObject(ctx, obj) {
+				changed = true
+			}
 		}
-		return json.Marshal(top)
+	} else {
+		// Detail shape: single ixlan object at the top level.
+		changed = redactIxlanObject(ctx, top)
 	}
-	// Detail shape: single ixlan object at the top level.
-	redactIxlanObject(ctx, top)
+	if !changed {
+		// Nothing was gated out (the common case: public tier, or a row
+		// whose URL is admitted). Return the original bytes and skip the
+		// re-marshal — the parsed map is byte-for-byte equivalent.
+		return body, nil
+	}
 	return json.Marshal(top)
 }
 
 // redactIxlanObject drops the ixf_ixp_member_list_url key in-place when
-// privfield.Redact says omit. The _visible companion is left alone
-// (D-05: always emitted).
-func redactIxlanObject(ctx context.Context, obj map[string]any) {
+// privfield.Redact says omit, and reports whether it removed the key. The
+// _visible companion is left alone (D-05: always emitted).
+func redactIxlanObject(ctx context.Context, obj map[string]any) bool {
 	visible, _ := obj["ixf_ixp_member_list_url_visible"].(string)
 	url, _ := obj["ixf_ixp_member_list_url"].(string)
 	_, omit := privfield.Redact(ctx, visible, url)
 	if omit {
 		delete(obj, "ixf_ixp_member_list_url")
+		return true
 	}
+	return false
 }
 
 // buildServer constructs the production http.Server with all timeouts

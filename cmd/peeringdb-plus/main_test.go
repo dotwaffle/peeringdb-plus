@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +16,68 @@ import (
 	"golang.org/x/net/http2"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
+
+// TestRedactIxlanJSON_FastPath verifies the redact writer skips the
+// re-marshal when nothing is gated out, returning the original bytes
+// (audit P6). The input uses a non-alphabetical key order; json.Marshal
+// sorts keys, so byte-equality to the input proves no marshal happened.
+func TestRedactIxlanJSON_FastPath(t *testing.T) {
+	t.Parallel()
+	publicCtx := privctx.WithTier(context.Background(), privctx.TierPublic)
+	usersCtx := privctx.WithTier(context.Background(), privctx.TierUsers)
+
+	mk := func(visible string) []byte {
+		return []byte(`{"ixf_ixp_member_list_url":"http://x/","ixf_ixp_member_list_url_visible":"` + visible + `","id":1}`)
+	}
+
+	t.Run("public field returns original bytes", func(t *testing.T) {
+		t.Parallel()
+		in := mk("Public")
+		out, err := redactIxlanJSON(publicCtx, in)
+		if err != nil {
+			t.Fatalf("redact: %v", err)
+		}
+		if !bytes.Equal(out, in) {
+			t.Errorf("expected original bytes (fast-path); got re-marshaled %s", out)
+		}
+	})
+
+	t.Run("users field at users tier returns original bytes", func(t *testing.T) {
+		t.Parallel()
+		in := mk("Users")
+		out, err := redactIxlanJSON(usersCtx, in)
+		if err != nil {
+			t.Fatalf("redact: %v", err)
+		}
+		if !bytes.Equal(out, in) {
+			t.Errorf("expected original bytes (admitted for users tier); got %s", out)
+		}
+	})
+
+	t.Run("users field for anonymous is redacted and re-marshaled", func(t *testing.T) {
+		t.Parallel()
+		in := mk("Users")
+		out, err := redactIxlanJSON(publicCtx, in)
+		if err != nil {
+			t.Fatalf("redact: %v", err)
+		}
+		if bytes.Equal(out, in) {
+			t.Fatal("expected redaction (re-marshal), got original bytes")
+		}
+		var m map[string]any
+		if err := json.Unmarshal(out, &m); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if _, ok := m["ixf_ixp_member_list_url"]; ok {
+			t.Error("gated url should be removed for anonymous caller")
+		}
+		if _, ok := m["ixf_ixp_member_list_url_visible"]; !ok {
+			t.Error("_visible companion must still be emitted (D-05)")
+		}
+	})
+}
 
 // flushRecorder is an http.ResponseWriter that records whether Flush was
 // called, for the REST writer Flusher-contract test.
