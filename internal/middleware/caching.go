@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 // CachingState holds the HTTP caching middleware's mutable ETag value behind
@@ -86,11 +88,22 @@ func (s *CachingState) UpdateETag(syncTime time.Time) {
 // entirely: they receive Cache-Control: no-store, bypass the 304 short-circuit,
 // and always reach the inner handler.
 func (s *CachingState) Middleware() func(http.Handler) http.Handler {
-	// Cache-Control value is immutable across the process lifetime because
-	// syncInterval is locked at construction. Format once to avoid a
-	// fmt.Sprintf per request.
+	// Cache-Control max-age is immutable across the process lifetime
+	// because syncInterval is locked at construction. Format both the
+	// public and private variants once to avoid a fmt.Sprintf per request.
+	//
+	// Public deployments (PDBPLUS_PUBLIC_TIER=public, the default) serve
+	// only public data and may be retained by shared/CDN caches → "public".
+	// A deployment configured for the Users tier serves private-audience
+	// data, so its responses must not be stored by shared caches → "private"
+	// (browser caching is still allowed). The per-request tier is read from
+	// the context stamped by the PrivacyTier middleware earlier in the
+	// chain; an unstamped context fails closed to TierPublic, which is the
+	// same failure mode under which the privacy policy hides Users rows, so
+	// "public" is then correct for the public-only body (audit S3).
 	maxAge := int(s.syncInterval.Seconds()) + 120
-	cacheCtrl := fmt.Sprintf("public, max-age=%d", maxAge)
+	publicCacheCtrl := fmt.Sprintf("public, max-age=%d", maxAge)
+	privateCacheCtrl := fmt.Sprintf("private, max-age=%d", maxAge)
 
 	// Snapshot the skip paths into the closure so the request path
 	// never touches the CachingState struct.
@@ -124,6 +137,10 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 			}
 			etag := *etagPtr
 
+			cacheCtrl := publicCacheCtrl
+			if privctx.TierFrom(r.Context()) != privctx.TierPublic {
+				cacheCtrl = privateCacheCtrl
+			}
 			w.Header().Set("Cache-Control", cacheCtrl)
 			w.Header().Set("ETag", etag)
 
