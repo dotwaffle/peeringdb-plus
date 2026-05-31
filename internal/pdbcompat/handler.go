@@ -290,6 +290,24 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			WriteBudgetProblem(w, r.URL.Path, info)
 			return
 		}
+		// Audit P1: a budget count of 0 means no rows will be served —
+		// a genuinely empty match, or a ?skip= past the end of the result
+		// set. Stream the empty list now rather than calling tc.List,
+		// which would run ORDER BY + OFFSET over the whole matching set
+		// only to discard every row. An unbounded ?skip= otherwise turns a
+		// 0-byte response into a full sort that the served-row budget
+		// (servedRowCount = max(total-skip,0)) cannot see. The COUNT(*)
+		// above is cheap and bounded; the sort is not.
+		if count == 0 {
+			if err := StreamListResponse(r.Context(), w, struct{}{}, iterFromSlice(nil)); err != nil {
+				slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
+					slog.String("endpoint", r.URL.Path),
+					slog.String("type", tc.Name),
+					slog.String("error", err.Error()),
+				)
+			}
+			return
+		}
 	}
 
 	results, _, err := tc.List(r.Context(), h.client, opts)

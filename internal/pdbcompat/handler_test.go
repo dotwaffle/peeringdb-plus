@@ -230,6 +230,69 @@ func TestListEndpoint_InBoolAndTime(t *testing.T) {
 	}
 }
 
+// TestServeList_SkipPastEnd verifies that a ?skip= past the end of the
+// result set returns a 200 with an empty data array, served by the
+// budget short-circuit without running the OFFSET query (audit P1). Uses
+// a non-zero budget so the count pre-flight (and thus the short-circuit)
+// is active.
+func TestServeList_SkipPastEnd(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	ts := time.Unix(1700000000, 0)
+	for i := range 3 {
+		name := "Skip" + itoa(i)
+		_, err := client.Network.Create().
+			SetName(name).
+			SetNameFold(unifold.Fold(name)).
+			SetAsn(2000 + i).
+			SetStatus("ok").
+			SetCreated(ts).
+			SetUpdated(ts).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create network %d: %v", i, err)
+		}
+	}
+	h := NewHandler(client, 1<<30) // budget enabled
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	dataLen := func(t *testing.T, query string) (int, string) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, query, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d, body %s", query, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("%s: decode envelope: %v", query, err)
+		}
+		var data []json.RawMessage
+		if err := json.Unmarshal(env.Data, &data); err != nil {
+			t.Fatalf("%s: decode data: %v", query, err)
+		}
+		return len(data), rec.Body.String()
+	}
+
+	// skip past the end: empty array, not null.
+	if n, body := dataLen(t, "/api/net?skip=100"); n != 0 {
+		t.Errorf("skip=100: got %d rows, want 0", n)
+	} else if !strings.Contains(body, `"data":[]`) {
+		t.Errorf("skip=100: body %q should contain empty data array", body)
+	}
+	// skip within range: remaining rows still served.
+	if n, _ := dataLen(t, "/api/net?skip=1"); n != 2 {
+		t.Errorf("skip=1: got %d rows, want 2", n)
+	}
+	// no skip: all rows.
+	if n, _ := dataLen(t, "/api/net"); n != 3 {
+		t.Errorf("no skip: got %d rows, want 3", n)
+	}
+}
+
 // TestListEndpoint_RepeatedParamLastWins verifies that a repeated query
 // parameter resolves to the LAST value, matching Django's QueryDict
 // (audit PA3). Seeds two networks and asserts ?asn=1001&asn=1002 returns
