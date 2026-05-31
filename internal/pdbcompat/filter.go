@@ -621,7 +621,7 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 		}
 		return sql.FieldEQ(field, v), nil
 	default:
-		return nil, fmt.Errorf("unsupported field type %d for exact match", ft)
+		return nil, fmt.Errorf("unsupported field type %s for exact match", ft)
 	}
 }
 
@@ -691,7 +691,7 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 		}
 		jsonArr, marshalErr = json.Marshal(ints)
 	default:
-		return nil, fmt.Errorf("in operator not supported on field type %d for field %q", ft, field)
+		return nil, fmt.Errorf("in operator not supported on field type %s for field %q", ft, field)
 	}
 	if marshalErr != nil {
 		return nil, fmt.Errorf("marshal IN array: %w", marshalErr)
@@ -731,7 +731,7 @@ func convertValue(s string, ft FieldType) (any, error) {
 	case FieldFloat:
 		return strconv.ParseFloat(s, 64)
 	default:
-		return nil, fmt.Errorf("unsupported field type %d", ft)
+		return nil, fmt.Errorf("unsupported field type %s", ft)
 	}
 }
 

@@ -521,6 +521,60 @@ func TestConvertValueErrors(t *testing.T) {
 	}
 }
 
+// TestFieldTypeString locks the human-readable rendering of each field
+// type used in client-facing filter errors (audit U2).
+func TestFieldTypeString(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		ft   FieldType
+		want string
+	}{
+		{FieldString, "string"},
+		{FieldInt, "int"},
+		{FieldBool, "bool"},
+		{FieldTime, "time"},
+		{FieldFloat, "float"},
+		{FieldType(99), "unknown(99)"},
+	}
+	for _, tt := range tests {
+		if got := tt.ft.String(); got != tt.want {
+			t.Errorf("FieldType(%d).String() = %q, want %q", int(tt.ft), got, tt.want)
+		}
+	}
+}
+
+// TestFilterErrorsUseTypeNames verifies the three field-type error paths
+// render the type name, never the raw enum integer (audit U2).
+func TestFilterErrorsUseTypeNames(t *testing.T) {
+	t.Parallel()
+	_, exactErr := buildExact("f", "v", FieldType(99), false)
+	_, convErr := convertValue("v", FieldType(99))
+	_, inErr := buildIn("f", "v", FieldType(99))
+	checks := []struct {
+		name string
+		err  error
+	}{
+		{"exact", exactErr},
+		{"convert", convErr},
+		{"in", inErr},
+	}
+	for _, c := range checks {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			if c.err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			msg := c.err.Error()
+			if !strings.Contains(msg, "unknown(99)") {
+				t.Errorf("error %q does not contain human-readable type name", msg)
+			}
+			if strings.Contains(msg, "type 99") || strings.Contains(msg, "%!") {
+				t.Errorf("error %q leaks raw enum integer or bad format verb", msg)
+			}
+		})
+	}
+}
+
 // TestParseBoolErrors tests error paths in parseBool.
 func TestParseBoolErrors(t *testing.T) {
 	t.Parallel()
