@@ -1326,7 +1326,6 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 // syncIncrementalInput bundles the per-type parameters for
 // syncIncremental[E]. Declared immediately before the consuming
 // function per GO-CS-6. objectType is used for error-wrap context;
-// getStatus extracts the deleted-status filter key from an element;
 // upsert performs the bulk upsert inside the caller's ent.Tx.
 //
 // fkFilter, when non-nil, is called per row after the deleted-status
@@ -1340,7 +1339,6 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 // references against the parent set (see Worker.fkRegisterIDs).
 type syncIncrementalInput[E any] struct {
 	objectType string
-	getStatus  func(E) string
 	fkFilter   func(*E) bool
 	recordIDs  func(ids []int)
 	upsert     func(ctx context.Context, tx *ent.Tx, items []E) ([]int, error)
@@ -1432,14 +1430,12 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeOrg:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Organization) string { return v.Status },
 			recordIDs:  func(ids []int) { w.fkRegisterIDs(peeringdb.TypeOrg, ids) },
 			upsert:     upsertOrganizations,
 		}, rows)
 	case peeringdb.TypeCampus:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Campus) string { return v.Status },
 			fkFilter: func(v *peeringdb.Campus) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeCampus, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1450,7 +1446,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Facility) string { return v.Status },
 			fkFilter: func(v *peeringdb.Facility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeFac, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id") {
@@ -1478,7 +1473,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeCarrier:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Carrier) string { return v.Status },
 			fkFilter: func(v *peeringdb.Carrier) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeCarrier, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1489,7 +1483,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeCarrierFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.CarrierFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.CarrierFacility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeCarrierFac, v.ID,
 					peeringdb.TypeCarrier, v.CarrierID, "carrier_id") {
@@ -1504,7 +1497,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIX:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{
 			objectType: name,
-			getStatus:  func(v peeringdb.InternetExchange) string { return v.Status },
 			fkFilter: func(v *peeringdb.InternetExchange) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeIX, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1515,7 +1507,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIXLan:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{
 			objectType: name,
-			getStatus:  func(v peeringdb.IxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxLan) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXLan, v.ID,
 					peeringdb.TypeIX, v.IXID, "ix_id")
@@ -1526,7 +1517,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIXPfx:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{
 			objectType: name,
-			getStatus:  func(v peeringdb.IxPrefix) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxPrefix) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXPfx, v.ID,
 					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
@@ -1537,7 +1527,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIXFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.IxFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxFacility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeIXFac, v.ID,
 					peeringdb.TypeIX, v.IXID, "ix_id") {
@@ -1552,7 +1541,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeNet:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Network) string { return v.Status },
 			fkFilter: func(v *peeringdb.Network) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeNet, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1563,7 +1551,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypePoc:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Poc) string { return v.Status },
 			fkFilter: func(v *peeringdb.Poc) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypePoc, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id")
@@ -1574,7 +1561,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeNetFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.NetworkFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkFacility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetFac, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id") {
@@ -1589,7 +1575,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeNetIXLan:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{
 			objectType: name,
-			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
 				// Required FKs: net_id, ixlan_id. Drop on miss after
 				// backfill attempt (legacy behavior).
