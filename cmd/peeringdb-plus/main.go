@@ -27,6 +27,7 @@ import (
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
@@ -89,7 +90,17 @@ func main() {
 		slog.Error("failed to init otel", slog.Any("error", err))
 		os.Exit(1) //nolint:gocritic // exitAfterDefer: cancel() deferred above is trivial at this stage
 	}
-	defer otelOut.Shutdown(ctx) //nolint:errcheck // best-effort flush at exit
+	defer func() {
+		// Flush OTel on a context detached from the cancelled root. By the
+		// time this defer runs, the signal handler has called cancel() and the
+		// root ctx is Done; the OTLP exporters honor cancellation, so the final
+		// buffered batch — including the shutdown-time log records — would be
+		// dropped instead of flushed. WithoutCancel keeps any context values
+		// while shedding the cancellation; the drain timeout bounds the flush.
+		flushCtx, flushCancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.DrainTimeout)
+		defer flushCancel()
+		_ = otelOut.Shutdown(flushCtx) // best-effort flush at exit
+	}()
 
 	// Set up dual slog logger (stdout + OTel pipeline) per D-03, OBS-1.
 	logger := pdbotel.NewDualLogger(os.Stdout, otelOut.LogProvider)
@@ -172,13 +183,25 @@ func main() {
 		}
 	}
 
-	// Initialize sync freshness gauge per D-09.
-	if err := pdbotel.InitFreshnessGauge(func(ctx context.Context) (time.Time, bool) {
-		status, err := pdbsync.GetLastStatus(ctx, db)
-		if err != nil || status == nil || status.Status != "success" {
-			return time.Time{}, false
-		}
-		return status.LastSyncAt, true
+	// Cached last-successful-sync time for the freshness gauge.
+	//
+	// The observable gauge callback fires on every Prometheus scrape
+	// (~15-30s). Querying sync_status per scrape is ~86k SQLite reads/day
+	// for a value that only changes once per sync, so seed the cache once
+	// at startup and let the sync worker refresh it via OnSyncComplete —
+	// the same atomic-pointer pattern used for objectCountCache below. A
+	// nil pointer means no successful sync yet, so the gauge makes no
+	// observation (matching the prior status != "success" short-circuit).
+	var lastSyncTimeCache atomic.Pointer[time.Time]
+	if status, err := pdbsync.GetLastStatus(ctx, db); err == nil && status != nil && status.Status == "success" {
+		seedTime := status.LastSyncAt
+		lastSyncTimeCache.Store(&seedTime)
+	}
+
+	// Initialize sync freshness gauge per D-09. Reads the atomic cache
+	// instead of issuing a live sync_status query per scrape.
+	if err := pdbotel.InitFreshnessGauge(func(_ context.Context) (time.Time, bool) {
+		return freshnessFromCache(&lastSyncTimeCache)
 	}); err != nil {
 		logger.Error("failed to init freshness gauge", slog.Any("error", err))
 		os.Exit(1)
@@ -298,6 +321,12 @@ func main() {
 			} else {
 				objectCountCache.Store(&counts)
 			}
+			// Refresh the freshness gauge cache with the completion
+			// timestamp so the per-scrape gauge reads it without touching
+			// the DB. Kept outside the counts err branch — the sync
+			// itself succeeded even if the count refresh failed.
+			freshTime := syncTime
+			lastSyncTimeCache.Store(&freshTime)
 			// PERF-07: swap the cached ETag using the exact completion
 			// timestamp the worker persisted to sync_status. One SHA-256
 			// per sync, zero per request. Kept outside the err branch
@@ -660,6 +689,16 @@ func (w *restErrorWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
 }
 
+// Flush forwards to the underlying writer per the http.Flusher contract
+// for middleware-aware response writers (CLAUDE.md §Middleware). This
+// writer is a pass-through for 2xx bodies — error bodies are replaced
+// wholesale in WriteHeader — so flushing the underlying is always safe.
+func (w *restErrorWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // restListWrapperKey is the JSON key under which entrest's PagedResponse
 // serialises the items slice. Confirmed at planning time by grepping:
 //
@@ -729,9 +768,14 @@ func (w *restFieldRedactWriter) Write(b []byte) (int, error) {
 // interface detection (matches restErrorWriter pattern).
 func (w *restFieldRedactWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 
-// Flush is a no-op during buffering; real flushing happens in flush().
-// Required for CLAUDE.md §Middleware Flusher contract — REST is
-// non-streaming so this never fires mid-response in practice.
+// Flush is intentionally a no-op. Unlike the pass-through restErrorWriter,
+// this writer buffers the entire body so flush() can rewrite the JSON
+// after the handler returns. Forwarding Flush() to the underlying writer
+// mid-response would commit headers (an implicit 200) before flush() sends
+// the real status and the redacted body, corrupting the response. REST
+// responses are non-streaming, so nothing calls Flush() here in practice;
+// the method exists only to satisfy http.Flusher for middleware interface
+// detection.
 func (w *restFieldRedactWriter) Flush() {}
 
 // flush writes the buffered body to the underlying ResponseWriter,
@@ -780,6 +824,7 @@ func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
 	if err := json.Unmarshal(body, &top); err != nil {
 		return nil, err
 	}
+	changed := false
 	// List shape: {page, total_count, last_page, is_last_page, content:[…]}
 	if wrapped, ok := top[restListWrapperKey].([]any); ok {
 		for _, entry := range wrapped {
@@ -787,25 +832,35 @@ func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
 			if !ok {
 				continue
 			}
-			redactIxlanObject(ctx, obj)
+			if redactIxlanObject(ctx, obj) {
+				changed = true
+			}
 		}
-		return json.Marshal(top)
+	} else {
+		// Detail shape: single ixlan object at the top level.
+		changed = redactIxlanObject(ctx, top)
 	}
-	// Detail shape: single ixlan object at the top level.
-	redactIxlanObject(ctx, top)
+	if !changed {
+		// Nothing was gated out (the common case: public tier, or a row
+		// whose URL is admitted). Return the original bytes and skip the
+		// re-marshal — the parsed map is byte-for-byte equivalent.
+		return body, nil
+	}
 	return json.Marshal(top)
 }
 
 // redactIxlanObject drops the ixf_ixp_member_list_url key in-place when
-// privfield.Redact says omit. The _visible companion is left alone
-// (D-05: always emitted).
-func redactIxlanObject(ctx context.Context, obj map[string]any) {
+// privfield.Redact says omit, and reports whether it removed the key. The
+// _visible companion is left alone (D-05: always emitted).
+func redactIxlanObject(ctx context.Context, obj map[string]any) bool {
 	visible, _ := obj["ixf_ixp_member_list_url_visible"].(string)
 	url, _ := obj["ixf_ixp_member_list_url"].(string)
 	_, omit := privfield.Redact(ctx, visible, url)
 	if omit {
 		delete(obj, "ixf_ixp_member_list_url")
+		return true
 	}
+	return false
 }
 
 // buildServer constructs the production http.Server with all timeouts
@@ -971,7 +1026,7 @@ func logStartupClassification(logger *slog.Logger, cfg *config.Config) {
 // otelhttp/labeler.go:44) IS preserved across r.WithContext-derived
 // requests, so this middleware's post-dispatch mutation IS visible to
 // the otelhttp metric record pass even though Pattern is not.
-// See .planning/phases/75-code-side-observability/OBS-04-INVESTIGATION.md
+// See the project history
 // for the empirical evidence that drove this design.
 //
 // Empty r.Pattern (unmatched routes / NotFound) is skipped so we do not
@@ -983,6 +1038,16 @@ func routeTagMiddleware(next http.Handler) http.Handler {
 		if r.Pattern == "" {
 			return
 		}
+		// Rename the otelhttp server span from the static "peeringdb-plus"
+		// operation to the matched route so every HTTP surface is
+		// distinguishable in trace search and span-name TraceQL filters.
+		// Same rationale as the labeler below: otelhttp's native Pattern read
+		// returns empty because middleware re-derives the request, but the
+		// span lives in ctx and is still recording here (routeTagMiddleware
+		// runs inside the otelhttp span), so SetName after dispatch is valid.
+		// r.Pattern carries the method ("GET /api/net/{id}") under method
+		// routing, matching the OTel "{method} {route}" span-name convention.
+		trace.SpanFromContext(r.Context()).SetName(r.Pattern)
 		labeler, ok := otelhttp.LabelerFromContext(r.Context())
 		if !ok {
 			return
@@ -1039,6 +1104,19 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// freshnessFromCache reads the last-successful-sync time the freshness
+// gauge reports. A nil pointer (no successful sync yet) yields
+// (zero, false) so the observable gauge makes no observation. Lifted out
+// of the gauge closure so the cache-read path is unit-testable without a
+// metric reader (audit P3).
+func freshnessFromCache(cache *atomic.Pointer[time.Time]) (time.Time, bool) {
+	t := cache.Load()
+	if t == nil {
+		return time.Time{}, false
+	}
+	return *t, true
 }
 
 func seedObjectCountCache(ctx context.Context, db *sql.DB, logger *slog.Logger) (map[string]int64, error) {

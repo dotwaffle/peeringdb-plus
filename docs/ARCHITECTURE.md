@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Architecture
 
 ## System overview
@@ -462,7 +461,7 @@ mirror upstream PeeringDB's `rest.py` status × since matrix; the pk-lookup path
 (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site so
 direct-ID GETs return 404 for tombstones.
 
-Tombstone GC is dormant (see `.planning/seeds/SEED-004-tombstone-gc.md`); triggers are storage
+Tombstone GC is dormant (SEED-004); triggers are storage
 growth >5% MoM, tombstone ratio >10%, or operator request.
 
 ## Shadow-column folding
@@ -594,7 +593,7 @@ needed for ConnectRPC's dot-terminated package prefixes.
 
 `OTEL_BSP_SCHEDULE_DELAY=5s` and `OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512` (PERF-08 baseline) are
 hardcoded in `internal/otel/provider.go` and confirmed appropriate for current cardinality per
-the Phase 77 audit (`.planning/phases/77-telemetry-audit/AUDIT.md`).
+the Phase 77 telemetry audit.
 
 - **`MeterProvider`** — Exposes standard `http.server.*` metrics (from otelhttp) and custom sync
   metrics registered in `internal/otel/metrics.go` (`InitMetrics`):
@@ -743,7 +742,7 @@ production. Full table lives in `internal/pdbcompat/rowsize.go`.
 
 ### Telemetry (MEMORY-03)
 
-- **OTel span attribute** `pdbplus.response.heap_delta_bytes` — per-request
+- **OTel span attribute** `pdbplus.response.heap_delta_bytes` — process
   `runtime.MemStats.HeapInuse` delta, sampled once at handler entry
   and once via `defer` at exit. `ReadMemStats` is STW (~µs at our heap
   size); D-06 permits ONE sample per request but NEVER per row. The
@@ -751,7 +750,12 @@ production. Full table lives in `internal/pdbcompat/rowsize.go`.
   (`memStatsHeapInuseBytes` + `recordResponseHeapDelta`) and is called
   via `defer` at the top of `serveList` so every terminal path (200
   success, 413 budget-exceeded, 400 filter-error, 500 query-error)
-  fires exactly once.
+  fires exactly once. **Caveat:** `HeapInuse` is process-global, so
+  under concurrent requests a single delta also reflects other in-flight
+  requests' allocations and any intervening GC. Treat it as
+  process-heap churn observed in aggregate (p50/p95/p99), NOT as one
+  request's allocation — per-request attribution would need
+  per-goroutine heap accounting the Go runtime does not provide.
 - **Prometheus histogram** `pdbplus_response_heap_delta_bytes{endpoint,entity}` —
   buckets 512 B, 1 KiB, 4 KiB, 16 KiB, 64 KiB, 256 KiB, 1 MiB, 4 MiB,
   16 MiB, 64 MiB, 256 MiB, 512 MiB (near-zero through 512 MiB, with

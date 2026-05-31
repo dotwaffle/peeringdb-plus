@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,6 +92,312 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return h, mux
+}
+
+// TestErrorResponsesSanitized verifies that the three internal-error
+// (500) paths in serveList and serveDetail never echo raw ent/SQL error
+// strings into the client-facing problem Detail. Closing the ent client
+// forces every downstream query to fail with a driver error; the handler
+// must log it server-side but return only a generic Detail. (Audit S1.)
+func TestErrorResponsesSanitized(t *testing.T) {
+	t.Parallel()
+
+	// internalErrorLeaks lists substrings that would betray ent/SQL
+	// driver internals if they reached the wire.
+	internalErrorLeaks := []string{"sql:", "ent:", "database is closed", "sqlite", "SQLITE", "syntax error"}
+
+	cases := []struct {
+		name   string
+		budget int64 // >0 exercises the Count branch; 0 the List branch
+		path   string
+	}{
+		{"count branch", 1 << 30, "/api/net"},
+		{"list branch", 0, "/api/net"},
+		{"detail branch", 0, "/api/net/1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client := testutil.SetupClient(t)
+			h := NewHandler(client, tc.budget)
+			mux := http.NewServeMux()
+			h.Register(mux)
+			// Close the DB so every query fails with a driver error.
+			if err := client.Close(); err != nil {
+				t.Fatalf("close client: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusInternalServerError {
+				t.Fatalf("status = %d, want 500; body=%s", rec.Code, rec.Body.String())
+			}
+			if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+				t.Errorf("Content-Type = %q, want application/problem+json", ct)
+			}
+			var pd testProblemDetail
+			if err := json.Unmarshal(rec.Body.Bytes(), &pd); err != nil {
+				t.Fatalf("decode problem: %v; body=%s", err, rec.Body.String())
+			}
+			if pd.Detail == "" {
+				t.Errorf("Detail is empty; want a generic operator-safe message")
+			}
+			for _, leak := range internalErrorLeaks {
+				if strings.Contains(pd.Detail, leak) {
+					t.Errorf("Detail %q leaks internal substring %q", pd.Detail, leak)
+				}
+			}
+		})
+	}
+}
+
+// TestListEndpoint_InBoolAndTime verifies __in filters bool and time
+// fields end-to-end against SQLite, rather than returning 400 (audit PA2).
+// Time matching is the load-bearing case: sql.FieldIn binds time.Time via
+// ent's converter, so it must match the stored representation exactly.
+func TestListEndpoint_InBoolAndTime(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+
+	type netSpec struct {
+		name    string
+		asn     int
+		unicast bool
+		created int64 // unix epoch
+	}
+	specs := []netSpec{
+		{"InA", 1001, true, 1700000000},
+		{"InB", 1002, false, 1700000100},
+		{"InC", 1003, true, 1700000200},
+	}
+	for _, s := range specs {
+		_, err := client.Network.Create().
+			SetName(s.name).
+			SetNameFold(unifold.Fold(s.name)).
+			SetAsn(s.asn).
+			SetInfoUnicast(s.unicast).
+			SetStatus("ok").
+			SetCreated(time.Unix(s.created, 0)).
+			SetUpdated(time.Unix(s.created, 0)).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create network %s: %v", s.name, err)
+		}
+	}
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	countData := func(t *testing.T, query string) int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, query, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d, body %s", query, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("%s: decode envelope: %v", query, err)
+		}
+		var data []json.RawMessage
+		if err := json.Unmarshal(env.Data, &data); err != nil {
+			t.Fatalf("%s: decode data: %v", query, err)
+		}
+		return len(data)
+	}
+
+	cases := []struct {
+		query string
+		want  int
+	}{
+		{"/api/net?info_unicast__in=true", 2},
+		{"/api/net?info_unicast__in=false", 1},
+		{"/api/net?info_unicast__in=true,false", 3},
+		{"/api/net?created__in=1700000000,1700000200", 2},
+		{"/api/net?created__in=1700000100", 1},
+	}
+	for _, c := range cases {
+		t.Run(c.query, func(t *testing.T) {
+			if got := countData(t, c.query); got != c.want {
+				t.Errorf("%s: got %d rows, want %d", c.query, got, c.want)
+			}
+		})
+	}
+}
+
+// TestServeDetail_BudgetCheck verifies the detail path is gated by the
+// response-memory budget and that the gate is depth-aware (audit P2). A
+// net's Depth0 estimate (1600B) and Depth2 estimate (2368B) straddle a
+// 2000B budget, so the default depth=2 request 413s while ?depth=0 is
+// served. This is also the only path that exercises the depth=2 row-size
+// branch (resolving the M4 "dead branch" finding by use).
+func TestServeDetail_BudgetCheck(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	ts := time.Unix(1700000000, 0)
+	n, err := client.Network.Create().
+		SetName("BudgetNet").
+		SetNameFold(unifold.Fold("BudgetNet")).
+		SetAsn(64500).
+		SetStatus("ok").
+		SetCreated(ts).
+		SetUpdated(ts).
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create network: %v", err)
+	}
+	id := itoa(n.ID)
+
+	cases := []struct {
+		name   string
+		budget int64
+		query  string
+		want   int
+	}{
+		{"depth2 over budget 413", 2000, "/api/net/" + id, http.StatusRequestEntityTooLarge},
+		{"depth0 under budget 200", 2000, "/api/net/" + id + "?depth=0", http.StatusOK},
+		{"depth2 large budget 200", 1 << 30, "/api/net/" + id, http.StatusOK},
+		{"budget disabled 200", 0, "/api/net/" + id, http.StatusOK},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			h := NewHandler(client, c.budget)
+			mux := http.NewServeMux()
+			h.Register(mux)
+			req := httptest.NewRequest(http.MethodGet, c.query, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != c.want {
+				t.Errorf("%s: status %d, want %d; body %s", c.query, rec.Code, c.want, rec.Body.String())
+			}
+			if c.want == http.StatusRequestEntityTooLarge {
+				if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+					t.Errorf("413 Content-Type = %q, want application/problem+json", ct)
+				}
+			}
+		})
+	}
+}
+
+// TestServeList_SkipPastEnd verifies that a ?skip= past the end of the
+// result set returns a 200 with an empty data array, served by the
+// budget short-circuit without running the OFFSET query (audit P1). Uses
+// a non-zero budget so the count pre-flight (and thus the short-circuit)
+// is active.
+func TestServeList_SkipPastEnd(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	ts := time.Unix(1700000000, 0)
+	for i := range 3 {
+		name := "Skip" + itoa(i)
+		_, err := client.Network.Create().
+			SetName(name).
+			SetNameFold(unifold.Fold(name)).
+			SetAsn(2000 + i).
+			SetStatus("ok").
+			SetCreated(ts).
+			SetUpdated(ts).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create network %d: %v", i, err)
+		}
+	}
+	h := NewHandler(client, 1<<30) // budget enabled
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	dataLen := func(t *testing.T, query string) (int, string) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, query, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d, body %s", query, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("%s: decode envelope: %v", query, err)
+		}
+		var data []json.RawMessage
+		if err := json.Unmarshal(env.Data, &data); err != nil {
+			t.Fatalf("%s: decode data: %v", query, err)
+		}
+		return len(data), rec.Body.String()
+	}
+
+	// skip past the end: empty array, not null.
+	if n, body := dataLen(t, "/api/net?skip=100"); n != 0 {
+		t.Errorf("skip=100: got %d rows, want 0", n)
+	} else if !strings.Contains(body, `"data":[]`) {
+		t.Errorf("skip=100: body %q should contain empty data array", body)
+	}
+	// skip within range: remaining rows still served.
+	if n, _ := dataLen(t, "/api/net?skip=1"); n != 2 {
+		t.Errorf("skip=1: got %d rows, want 2", n)
+	}
+	// no skip: all rows.
+	if n, _ := dataLen(t, "/api/net"); n != 3 {
+		t.Errorf("no skip: got %d rows, want 3", n)
+	}
+}
+
+// TestListEndpoint_RepeatedParamLastWins verifies that a repeated query
+// parameter resolves to the LAST value, matching Django's QueryDict
+// (audit PA3). Seeds two networks and asserts ?asn=1001&asn=1002 returns
+// only the 1002 row.
+func TestListEndpoint_RepeatedParamLastWins(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	for _, asn := range []int{1001, 1002} {
+		name := "Repeat" + itoa(asn)
+		ts := time.Unix(1700000000, 0)
+		_, err := client.Network.Create().
+			SetName(name).
+			SetNameFold(unifold.Fold(name)).
+			SetAsn(asn).
+			SetStatus("ok").
+			SetCreated(ts).
+			SetUpdated(ts).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create network asn %d: %v", asn, err)
+		}
+	}
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/net?asn=1001&asn=1002", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	var env testEnvelope
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode envelope: %v", err)
+	}
+	var data []struct {
+		ASN int `json:"asn"`
+	}
+	if err := json.Unmarshal(env.Data, &data); err != nil {
+		t.Fatalf("decode data: %v", err)
+	}
+	if len(data) != 1 {
+		t.Fatalf("got %d rows, want 1 (last value wins)", len(data))
+	}
+	if data[0].ASN != 1002 {
+		t.Errorf("matched asn %d, want 1002 (last repeated value)", data[0].ASN)
+	}
 }
 
 func TestListEndpoint(t *testing.T) {

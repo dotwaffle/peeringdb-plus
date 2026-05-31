@@ -2834,24 +2834,6 @@ input IxLanWhereInput {
   ixfIxpImportEnabled: Boolean
   ixfIxpImportEnabledNEQ: Boolean
   """
-  ixf_ixp_member_list_url field predicates
-  """
-  ixfIxpMemberListURL: String
-  ixfIxpMemberListURLNEQ: String
-  ixfIxpMemberListURLIn: [String!]
-  ixfIxpMemberListURLNotIn: [String!]
-  ixfIxpMemberListURLGT: String
-  ixfIxpMemberListURLGTE: String
-  ixfIxpMemberListURLLT: String
-  ixfIxpMemberListURLLTE: String
-  ixfIxpMemberListURLContains: String
-  ixfIxpMemberListURLHasPrefix: String
-  ixfIxpMemberListURLHasSuffix: String
-  ixfIxpMemberListURLIsNil: Boolean
-  ixfIxpMemberListURLNotNil: Boolean
-  ixfIxpMemberListURLEqualFold: String
-  ixfIxpMemberListURLContainsFold: String
-  """
   ixf_ixp_member_list_url_visible field predicates
   """
   ixfIxpMemberListURLVisible: String

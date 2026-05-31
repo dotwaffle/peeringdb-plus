@@ -144,6 +144,7 @@ func (s *IxFacilityService) StreamIxFacilities(ctx context.Context, req *pb.Stre
 		Convert:    ixFacilityToProto,
 		GetID:      func(ixf *ent.IxFacility) int { return ixf.ID },
 		GetUpdated: func(ixf *ent.IxFacility) time.Time { return ixf.Updated },
+		GetCreated: func(ixf *ent.IxFacility) time.Time { return ixf.Created },
 	}, stream)
 }
 

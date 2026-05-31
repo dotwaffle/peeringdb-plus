@@ -1242,3 +1242,115 @@ func TestFKBackfill_BatchedFetch_RespectsDeadline(t *testing.T) {
 		t.Errorf("netCount = %d, want 0 (deadline → drop all children)", got)
 	}
 }
+
+// TestFKBackfill_WithholdsParentWhenGrandparentCapped is the negative
+// regression for the dangling-FK-at-commit rollback. A single carrierfac
+// references a missing carrier 403; carrier 403 references a missing
+// org 18985. The per-cycle request cap is set to exactly 1 — just enough
+// to fetch the carrier, but NOT the recursive grandparent org. After the
+// grandparent recursion hits the cap and lands nothing, step 7 of
+// fkBackfillBatch must NOT upsert carrier 403 (its required org_id FK
+// would dangle). Before the fix the carrier was upserted unconditionally,
+// and foreign_keys(1) + defer_foreign_keys=ON turned the dangling FK into
+// a SQLITE_CONSTRAINT_FOREIGNKEY (787) at tx.Commit(), rolling back the
+// whole cycle so Worker.Sync returned an error.
+//
+// The carrierfac's OTHER required FK (fac 999) is satisfied via the bulk
+// path so the only dangling chain under test is carrier → org.
+//
+// Asserts:
+//   - Worker.Sync returns nil (commit succeeds, no whole-cycle rollback)
+//   - carrier 403 is NOT inserted (withheld: required grandparent missing)
+//   - org 18985 is NOT inserted (cap rate-limited the recursion)
+//   - the carrierfac child is dropped (its carrier FK is unsatisfied)
+//   - the bulk-loaded fac and its org survive untouched
+func TestFKBackfill_WithholdsParentWhenGrandparentCapped(t *testing.T) {
+	t.Parallel()
+
+	const (
+		carrierID    = 403
+		carrierOrgID = 18985 // grandparent that the cap will starve
+		facID        = 999
+		facOrgID     = 9999 // bulk-present, keeps the fac FK satisfied
+		carrierFacID = 1
+	)
+
+	// Bulk path provides the fac and its org so the carrierfac's fac_id
+	// FK is satisfied; the only missing chain is carrier 403 → org 18985.
+	bulkOrgs := []json.RawMessage{orgJSON(facOrgID, "Fac Org", "ok")}
+	bulkFacs := []json.RawMessage{mustJSON(makeMinimalFac(facID, facOrgID))}
+	cfs := []json.RawMessage{mustJSON(makeMinimalCarrierFac(carrierFacID, carrierID, facID))}
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"org":        bulkOrgs,
+			"fac":        bulkFacs,
+			"carrierfac": cfs,
+		},
+		// Both carrier and org are fetchable upstream. The cap — not
+		// upstream absence — is what starves the org recursion, so this
+		// test isolates the cap-exhaustion path specifically.
+		map[string]func(int) json.RawMessage{
+			"carrier": func(id int) json.RawMessage {
+				return mustJSON(makeMinimalCarrier(id, carrierOrgID))
+			},
+			"org": func(id int) json.RawMessage {
+				return orgJSON(id, fmt.Sprintf("Org %d", id), "ok")
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+
+	// Cap = 1 HTTP request: the carrierfac chunk pre-pass spends it on
+	// the carrier fetch; the recursive org fetch is rate-limited.
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxRequestsPerCycle: 1,
+	}, slog.Default())
+
+	// The whole point of the fix: commit must succeed despite the
+	// grandparent never landing.
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync returned error (dangling FK rolled back the cycle): %v", err)
+	}
+
+	// Exactly one backfill HTTP call was issued — the carrier. The org
+	// recursion was capped before it could fetch.
+	calls, _, byType := rec.snapshot()
+	if calls != 1 {
+		t.Errorf("backfill HTTP calls = %d, want 1 (carrier only; org capped)", calls)
+	}
+	if got := len(byType["carrier"]); got != 1 {
+		t.Errorf("carrier backfill calls = %d, want 1", got)
+	}
+	if got := len(byType["org"]); got != 0 {
+		t.Errorf("org backfill calls = %d, want 0 (cap starved the recursion)", got)
+	}
+
+	// The parent must be WITHHELD — upserting it with a dangling org_id
+	// is exactly what caused the commit-time rollback.
+	if got, _ := client.Carrier.Query().Count(t.Context()); got != 0 {
+		t.Errorf("carrierCount = %d, want 0 (parent withheld: required grandparent missing)", got)
+	}
+	// The child drops because its carrier FK is unsatisfied.
+	if got, _ := client.CarrierFacility.Query().Count(t.Context()); got != 0 {
+		t.Errorf("carrierfacCount = %d, want 0 (child dropped: carrier FK unsatisfied)", got)
+	}
+	// The bulk-loaded fac survives — the cycle did NOT roll back.
+	if got, _ := client.Facility.Query().Count(t.Context()); got != 1 {
+		t.Errorf("facCount = %d, want 1 (bulk-loaded; cycle should not have rolled back)", got)
+	}
+	// Only the bulk-loaded fac org survives; the capped grandparent
+	// (org 18985) must NOT have landed.
+	if got, _ := client.Organization.Query().Count(t.Context()); got != 1 {
+		t.Errorf("orgCount = %d, want 1 (only the bulk fac org; capped grandparent absent)", got)
+	}
+}

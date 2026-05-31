@@ -256,20 +256,15 @@ func Load() (*Config, error) {
 	}
 
 	// PDBPLUS_INCLUDE_DELETED was removed in v1.16 Phase 68 (D-01). Sync now
-	// always persists deleted rows as tombstones (Phase 68 Plan 02 lands the
-	// soft-delete flip); pdbcompat applies the upstream status × since matrix
-	// regardless of any legacy gate. During the v1.16 → v1.17 grace period,
-	// the variable is logged and ignored. Flipping to fail-fast in v1.17 is a
-	// one-line swap (slog.Warn → return nil, errors.New(...)).
+	// always persists deleted rows as tombstones; pdbcompat applies the
+	// upstream status × since matrix regardless of any legacy gate. The
+	// variable carried a v1.16 → v1.17 deprecation grace period during which
+	// it was logged and ignored. That window closed several releases ago
+	// (we are past v1.18), so setting it now is a hard startup error — a
+	// stale deployment config that expects the old gate must surface, not
+	// silently do nothing.
 	if v := os.Getenv("PDBPLUS_INCLUDE_DELETED"); v != "" {
-		// gosec G706 log-injection: value is operator-supplied env var
-		// contents attached as a structured slog attribute (not interpolated
-		// into the message), the variable is a boolean flag with no secret
-		// content, and slog.String quotes the value on output. Safe per
-		// GO-SEC-2 (no secrets in env) + threat register T-68-01-03.
-		slog.Warn("PDBPLUS_INCLUDE_DELETED is deprecated and ignored; remove it from your environment. This will be a startup error in v1.17.", //nolint:gosec // G706: boolean flag, structured attr, threat register T-68-01-03
-			slog.String("value", v),
-		)
+		return nil, fmt.Errorf("PDBPLUS_INCLUDE_DELETED was removed in v1.16; deleted rows are always persisted as tombstones now — remove it from your environment (was %q)", v)
 	}
 
 	drainTimeout, err := parseDuration("PDBPLUS_DRAIN_TIMEOUT", 10*time.Second)
@@ -404,6 +399,12 @@ func (c *Config) validate() error {
 	}
 	if c.DrainTimeout <= 0 {
 		return errors.New("PDBPLUS_DRAIN_TIMEOUT must be greater than 0")
+	}
+	if c.SyncStaleThreshold <= 0 {
+		// A non-positive threshold makes evaluateSyncAge() report stale on
+		// every check (age > threshold is always true), pinning /readyz at
+		// 503 for the process lifetime. Fail fast at startup instead.
+		return errors.New("PDBPLUS_SYNC_STALE_THRESHOLD must be greater than 0")
 	}
 	if c.SyncMemoryLimit < 0 {
 		return errors.New("PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)")
@@ -569,20 +570,6 @@ func parsePublicTier(key string, defaultVal privctx.Tier) (privctx.Tier, error) 
 	}
 }
 
-// parseByteSize parses an env var as a byte count with a MANDATORY unit
-// suffix (KB, MB, GB, TB — base 1024). An empty env var falls back to
-// defaultVal. The literal "0" is accepted as an explicit disable value.
-// A bare number without a unit is REJECTED to eliminate ambiguity in
-// operator configuration (PERF-05 ergonomics) — was the 500 meant as
-// 500 bytes, 500 KB, or 500 MB? Force the operator to be explicit.
-//
-// Accepted forms: "0", "100KB", "400MB", "2GB", "1TB" (case-insensitive
-// suffix). The short forms "K", "M", "G", "T" are accepted as aliases
-// for "KB", "MB", "GB", "TB" respectively.
-//
-// Examples: "400MB" -> 400 * 1024 * 1024; "1GB" -> 1024^3; "0" -> 0
-// (guardrail disabled).
-//
 // parseMiB parses an env var as a non-negative integer count of MiB
 // (mebibytes; 1 MiB = 1024*1024 bytes). Returns the value in BYTES
 // so callers can compare directly against runtime.MemStats fields.
@@ -613,6 +600,19 @@ func parseMiB(key string, defaultMiB int64) (int64, error) {
 	return mib * bytesPerMiB, nil
 }
 
+// parseByteSize parses an env var as a byte count with a MANDATORY unit
+// suffix (KB, MB, GB, TB — base 1024). An empty env var falls back to
+// defaultVal. The literal "0" is accepted as an explicit disable value.
+// A bare number without a unit is REJECTED to eliminate ambiguity in
+// operator configuration (PERF-05 ergonomics) — was the 500 meant as
+// 500 bytes, 500 KB, or 500 MB? Force the operator to be explicit.
+//
+// Accepted forms: "0", "100KB", "400MB", "2GB", "1TB" (case-insensitive
+// suffix). The short forms "K", "M", "G", "T" are accepted as aliases
+// for "KB", "MB", "GB", "TB" respectively.
+//
+// Examples: "400MB" -> 400 * 1024 * 1024; "1GB" -> 1024^3; "0" -> 0
+// (guardrail disabled).
 func parseByteSize(key string, defaultVal int64) (int64, error) {
 	v := os.Getenv(key)
 	if v == "" {

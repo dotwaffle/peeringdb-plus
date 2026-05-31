@@ -25,6 +25,19 @@ import (
 // acceptable once per request but NEVER per row. This invariant is
 // enforced by only calling the sampler at entry and exit, never inside
 // any row iterator or per-object serialiser.
+//
+// IMPORTANT — read this as process-heap churn, not per-request cost.
+// runtime.MemStats.HeapInuse is process-global, so when requests overlap
+// (the common case under any real load) the entry/exit delta for one
+// request also captures every concurrent request's allocations and any
+// GC sweep that ran in between. A single sample is therefore noisy and
+// can even be negative (clamped to 0 below). The histogram is only
+// meaningful in aggregate: p50/p95/p99 over many samples track how much
+// the process heap moves while a handler is in flight, which is what the
+// SEED-001 watch panel actually wants. Do NOT read a high percentile as
+// "this endpoint allocated N bytes" — attributing the delta to one
+// request would require per-goroutine heap accounting, which the Go
+// runtime does not expose.
 
 // memStatsHeapInuseBytes samples runtime.MemStats.HeapInuse and returns
 // it in bytes. Clamped to int64 range (HeapInuse is uint64; theoretical

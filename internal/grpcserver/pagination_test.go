@@ -113,11 +113,12 @@ func TestStreamCursorRoundTrip(t *testing.T) {
 		name string
 		in   streamCursor
 	}{
-		{name: "epoch", in: streamCursor{Updated: time.Unix(0, 0).UTC(), ID: 1}},
-		{name: "nano precision", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 123456789, time.UTC), ID: 42}},
-		{name: "future", in: streamCursor{Updated: time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC), ID: 99999}},
-		{name: "id one", in: streamCursor{Updated: time.Date(2025, 6, 15, 8, 30, 45, 0, time.UTC), ID: 1}},
-		{name: "large id", in: streamCursor{Updated: time.Date(2024, 12, 31, 23, 59, 59, 999999999, time.UTC), ID: 2147483647}},
+		{name: "epoch", in: streamCursor{Updated: time.Unix(0, 0).UTC(), Created: time.Unix(0, 0).UTC(), ID: 1}},
+		{name: "nano precision", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 123456789, time.UTC), Created: time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC), ID: 42}},
+		{name: "future", in: streamCursor{Updated: time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC), Created: time.Date(2099, 6, 1, 0, 0, 0, 0, time.UTC), ID: 99999}},
+		{name: "id one", in: streamCursor{Updated: time.Date(2025, 6, 15, 8, 30, 45, 0, time.UTC), Created: time.Date(2010, 6, 15, 8, 30, 45, 0, time.UTC), ID: 1}},
+		{name: "large id", in: streamCursor{Updated: time.Date(2024, 12, 31, 23, 59, 59, 999999999, time.UTC), Created: time.Date(2024, 12, 31, 23, 59, 59, 1, time.UTC), ID: 2147483647}},
+		{name: "created after updated", in: streamCursor{Updated: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), Created: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), ID: 7}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -132,6 +133,9 @@ func TestStreamCursorRoundTrip(t *testing.T) {
 			}
 			if !got.Updated.Equal(tc.in.Updated) {
 				t.Errorf("round-trip Updated mismatch: got %v, want %v", got.Updated, tc.in.Updated)
+			}
+			if !got.Created.Equal(tc.in.Created) {
+				t.Errorf("round-trip Created mismatch: got %v, want %v", got.Created, tc.in.Created)
 			}
 			if got.ID != tc.in.ID {
 				t.Errorf("round-trip ID mismatch: got %d, want %d", got.ID, tc.in.ID)
@@ -155,7 +159,7 @@ func TestStreamCursorEmpty(t *testing.T) {
 		if !got.empty() {
 			t.Errorf("decodeStreamCursor(\"\") = %+v, want empty cursor", got)
 		}
-		if !got.Updated.IsZero() || got.ID != 0 {
+		if !got.Updated.IsZero() || !got.Created.IsZero() || got.ID != 0 {
 			t.Errorf("decodeStreamCursor(\"\") = %+v, want zero-value", got)
 		}
 	})
@@ -191,20 +195,26 @@ func TestStreamCursorInvalidBase64(t *testing.T) {
 	}
 }
 
-// TestStreamCursorInvalidFormat verifies that a valid base64 body with an
-// unparseable timestamp is rejected with a timestamp-parse error. Protects
-// against a crafted token forcing nonsense into the ORDER BY predicate.
+// TestStreamCursorInvalidFormat verifies that a valid base64 body with a
+// malformed three-field cursor is rejected. The body must split into exactly
+// three pipe-delimited fields with two parseable RFC3339Nano timestamps and a
+// non-negative integer id. This protects the ORDER BY predicate from a crafted
+// token forcing nonsense into the keyset comparison (threat T-67-04-01).
 func TestStreamCursorInvalidFormat(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name string
 		body string
 	}{
-		{name: "not a timestamp", body: "notatimestamp:5"},
-		{name: "missing colon separator", body: "2026-04-19T12:00:00Z"},
-		{name: "garbage id", body: "2026-04-19T12:00:00Z:abc"},
-		{name: "empty timestamp", body: ":5"},
-		{name: "empty id", body: "2026-04-19T12:00:00Z:"},
+		{name: "too few fields", body: "2026-04-19T12:00:00Z|5"},
+		{name: "single field", body: "2026-04-19T12:00:00Z"},
+		{name: "too many fields", body: "2026-04-19T12:00:00Z|2026-04-19T12:00:00Z|5|extra"},
+		{name: "updated not a timestamp", body: "notatimestamp|2026-04-19T12:00:00Z|5"},
+		{name: "created not a timestamp", body: "2026-04-19T12:00:00Z|notatimestamp|5"},
+		{name: "garbage id", body: "2026-04-19T12:00:00Z|2026-04-19T12:00:00Z|abc"},
+		{name: "empty updated", body: "|2026-04-19T12:00:00Z|5"},
+		{name: "empty created", body: "2026-04-19T12:00:00Z||5"},
+		{name: "empty id", body: "2026-04-19T12:00:00Z|2026-04-19T12:00:00Z|"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -223,7 +233,7 @@ func TestStreamCursorInvalidFormat(t *testing.T) {
 // negative id is always a tampered token or encoder bug.
 func TestStreamCursorNegativeID(t *testing.T) {
 	t.Parallel()
-	token := base64.StdEncoding.EncodeToString([]byte("2026-01-01T00:00:00Z:-5"))
+	token := base64.StdEncoding.EncodeToString([]byte("2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|-5"))
 	got, err := decodeStreamCursor(token)
 	if err == nil {
 		t.Fatalf("decodeStreamCursor with negative id expected error, got cursor %+v", got)
@@ -231,17 +241,17 @@ func TestStreamCursorNegativeID(t *testing.T) {
 }
 
 // TestStreamCursorColonsInTimestamp verifies that RFC3339Nano timestamps
-// (which contain three colons of their own: HH:MM:SS and the TZ offset)
-// round-trip correctly. The decoder MUST split on the LAST colon so the
-// timestamp body stays intact.
+// (which contain colons of their own in HH:MM:SS and any TZ offset)
+// round-trip correctly under the pipe-delimited three-field encoding. The
+// pipe delimiter never collides with a timestamp's colons.
 func TestStreamCursorColonsInTimestamp(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name string
 		in   streamCursor
 	}{
-		{name: "nano with colons", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 123456789, time.UTC), ID: 1234}},
-		{name: "subsecond zero", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC), ID: 7}},
+		{name: "nano with colons", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 123456789, time.UTC), Created: time.Date(2020, 4, 19, 12, 0, 0, 5, time.UTC), ID: 1234}},
+		{name: "subsecond zero", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC), Created: time.Date(2020, 4, 19, 12, 0, 0, 0, time.UTC), ID: 7}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -251,7 +261,7 @@ func TestStreamCursorColonsInTimestamp(t *testing.T) {
 			if err != nil {
 				t.Fatalf("decodeStreamCursor(%q) error = %v", enc, err)
 			}
-			if !got.Updated.Equal(tc.in.Updated) || got.ID != tc.in.ID {
+			if !got.Updated.Equal(tc.in.Updated) || !got.Created.Equal(tc.in.Created) || got.ID != tc.in.ID {
 				t.Errorf("round-trip with colons in timestamp failed: got %+v, want %+v", got, tc.in)
 			}
 		})

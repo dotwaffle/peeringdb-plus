@@ -16,7 +16,14 @@ const whoisKeyWidth = 16
 
 // writeWHOISField writes a single RPSL-formatted key-value line.
 // Empty values are omitted. Key is left-aligned, padded to whoisKeyWidth.
+//
+// value is an upstream-sourced field (entity names, websites, cities,
+// addresses), so it is stripped of control characters before emission. This is
+// the single seam through which every WHOIS value reaches the buffer, including
+// the multi-value variant. Stripping here also keeps each record on one RPSL
+// line — an embedded newline would otherwise forge a fake key-value line.
 func writeWHOISField(buf *strings.Builder, key, value string) {
+	value = sanitizeUpstream(value)
 	if value == "" {
 		return
 	}

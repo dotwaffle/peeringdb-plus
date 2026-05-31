@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # PeeringDB Plus
 
 [![CI](https://github.com/dotwaffle/peeringdb-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/dotwaffle/peeringdb-plus/actions/workflows/ci.yml)

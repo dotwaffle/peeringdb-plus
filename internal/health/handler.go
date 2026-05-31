@@ -132,10 +132,17 @@ func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, lo
 		return evaluateSyncAge(ctx, status.LastSyncAt, staleThreshold, logger)
 
 	case "running":
-		// A currently-running sync; fall back to the most recent completed
-		// sync via the shared internal/sync helper. If there isn't one,
-		// report unhealthy.
-		lastCompleted, lookupErr := sync.GetLastCompletedStatus(ctx, db)
+		// A currently-running sync; fall back to the most recent
+		// SUCCESSFUL sync via the shared internal/sync helper. We must NOT
+		// fall back to GetLastCompletedStatus here: that returns the most
+		// recent non-running row, which can be a FAILED row (failed rows
+		// get completed_at set, so a fresh failure would pass the age
+		// check and report 200 even though the last sync failed). Using
+		// GetLastSuccessfulStatus skips past both running AND failed rows,
+		// so /readyz only reports healthy when there is genuinely recent
+		// known-good data — consistent with the top-level "failed" branch
+		// below which returns 503.
+		lastSuccess, lookupErr := sync.GetLastSuccessfulStatus(ctx, db)
 		if lookupErr != nil {
 			logger.LogAttrs(ctx, slog.LevelError,
 				"readyz sync lookup failed",
@@ -144,14 +151,14 @@ func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, lo
 			)
 			return false
 		}
-		if lastCompleted == nil {
+		if lastSuccess == nil {
 			logger.LogAttrs(ctx, slog.LevelDebug,
 				"readyz no sync completed",
 				slog.String("component", "sync"),
 			)
 			return false
 		}
-		return evaluateSyncAge(ctx, lastCompleted.LastSyncAt, staleThreshold, logger)
+		return evaluateSyncAge(ctx, lastSuccess.LastSyncAt, staleThreshold, logger)
 
 	case "failed":
 		logger.LogAttrs(ctx, slog.LevelWarn,

@@ -1,15 +1,18 @@
 package middleware_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 // weakETagRE is the canonical regex for a W/"<32 hex chars>" weak ETag
@@ -194,6 +197,49 @@ func TestCachingETagFormat(t *testing.T) {
 	etag := rec.Header().Get("ETag")
 	if !weakETagRE.MatchString(etag) {
 		t.Errorf("ETag = %q, want format W/\"<32 hex chars>\"", etag)
+	}
+}
+
+// TestCaching_TierControlsSharedCacheability verifies that the
+// Cache-Control directive is chosen from the request's privacy tier
+// (audit S3): a Users-tier deployment serves private-audience data and
+// must emit "private" so shared/CDN caches do not store it, while the
+// default public tier (and an unstamped, fail-closed context) emits
+// "public".
+func TestCaching_TierControlsSharedCacheability(t *testing.T) {
+	t.Parallel()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	state := middleware.NewCachingState(time.Hour)
+	state.UpdateETag(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	mw := state.Middleware()(inner)
+
+	cases := []struct {
+		name      string
+		tier      privctx.Tier
+		unstamped bool
+		wantPfx   string
+	}{
+		{"public tier is shared-cacheable", privctx.TierPublic, false, "public, max-age="},
+		{"users tier is private", privctx.TierUsers, false, "private, max-age="},
+		{"unstamped fails closed to public", privctx.TierPublic, true, "public, max-age="},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			if !c.unstamped {
+				ctx = privctx.WithTier(ctx, c.tier)
+			}
+			req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+			rec := httptest.NewRecorder()
+			mw.ServeHTTP(rec, req)
+			if got := rec.Header().Get("Cache-Control"); !strings.HasPrefix(got, c.wantPfx) {
+				t.Errorf("Cache-Control = %q, want prefix %q", got, c.wantPfx)
+			}
+		})
 	}
 }
 

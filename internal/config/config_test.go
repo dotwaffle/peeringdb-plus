@@ -1,8 +1,6 @@
 package config
 
 import (
-	"bytes"
-	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -63,6 +61,10 @@ func TestLoad_SyncStaleThreshold(t *testing.T) {
 		{name: "explicit 12h", envVal: "12h", want: 12 * time.Hour},
 		{name: "explicit 1h30m", envVal: "1h30m", want: 90 * time.Minute},
 		{name: "invalid duration", envVal: "not-a-duration", wantErr: true},
+		// A non-positive threshold would pin /readyz at 503 forever; it
+		// must be rejected at startup (audit C2).
+		{name: "negative duration rejected", envVal: "-5h", wantErr: true},
+		{name: "zero duration rejected", envVal: "0s", wantErr: true},
 	}
 
 	for _, tt := range tests {
@@ -289,44 +291,73 @@ func TestLoad_SyncInterval_AuthConditional(t *testing.T) {
 	}
 }
 
-// TestLoad_IncludeDeleted_Deprecated asserts PDBPLUS_INCLUDE_DELETED is ignored
-// with a WARN log during the v1.16 → v1.17 grace period (Phase 68 D-01). The
-// env var is no longer a Config field; setting it must not fail Load().
-//
-// Subtests must NOT call t.Parallel() — slog.SetDefault is process-global.
-func TestLoad_IncludeDeleted_Deprecated(t *testing.T) {
-	t.Run("env_set_warns", func(t *testing.T) {
+// TestLoad_IncludeDeleted_Removed asserts that PDBPLUS_INCLUDE_DELETED is
+// now a hard startup error when set (audit M9). The v1.16 → v1.17
+// grace-period WARN-and-ignore is gone; deleted rows are always persisted
+// as tombstones, and a stale config that still sets the variable must
+// fail fast rather than silently do nothing.
+func TestLoad_IncludeDeleted_Removed(t *testing.T) {
+	t.Run("env_set_fails", func(t *testing.T) {
 		t.Setenv("PDBPLUS_INCLUDE_DELETED", "true")
 		t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 
-		var buf bytes.Buffer
-		prev := slog.Default()
-		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
-		t.Cleanup(func() { slog.SetDefault(prev) })
-
-		if _, err := Load(); err != nil {
-			t.Fatalf("Load() unexpected error: %v", err)
+		_, err := Load()
+		if err == nil {
+			t.Fatal("Load() succeeded; expected a startup error for PDBPLUS_INCLUDE_DELETED")
 		}
-		if !strings.Contains(buf.String(), "PDBPLUS_INCLUDE_DELETED is deprecated") {
-			t.Fatalf("expected deprecation WARN in log output; got: %q", buf.String())
+		if !strings.Contains(err.Error(), "PDBPLUS_INCLUDE_DELETED") {
+			t.Fatalf("error %q does not mention the removed variable", err.Error())
 		}
 	})
 
-	t.Run("env_unset_no_warn", func(t *testing.T) {
+	t.Run("env_unset_succeeds", func(t *testing.T) {
 		t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 
-		var buf bytes.Buffer
-		prev := slog.Default()
-		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
-		t.Cleanup(func() { slog.SetDefault(prev) })
-
 		if _, err := Load(); err != nil {
-			t.Fatalf("Load() unexpected error: %v", err)
-		}
-		if strings.Contains(buf.String(), "PDBPLUS_INCLUDE_DELETED") {
-			t.Fatalf("unexpected deprecation log when env unset: %q", buf.String())
+			t.Fatalf("Load() unexpected error when env unset: %v", err)
 		}
 	})
+}
+
+// TestLoad_FKBackfillMaxRequestsPerCycle locks the default at 20 (audit
+// M3 — a stale doc comment had claimed 200) and covers the disable /
+// reject edges.
+func TestLoad_FKBackfillMaxRequestsPerCycle(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    int
+		wantErr bool
+	}{
+		{name: "default is 20", envVal: "", want: 20},
+		{name: "explicit 5", envVal: "5", want: 5},
+		{name: "zero disables", envVal: "0", want: 0},
+		{name: "explicit 100", envVal: "100", want: 100},
+		{name: "negative rejected", envVal: "-1", wantErr: true},
+		{name: "non-integer rejected", envVal: "abc", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE=%q, got nil", tt.envVal)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.FKBackfillMaxRequestsPerCycle != tt.want {
+				t.Errorf("FKBackfillMaxRequestsPerCycle = %d, want %d", cfg.FKBackfillMaxRequestsPerCycle, tt.want)
+			}
+		})
+	}
 }
 
 func TestLoad_CSPEnforce(t *testing.T) {

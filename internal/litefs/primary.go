@@ -4,6 +4,7 @@ package litefs
 
 import (
 	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -20,16 +21,15 @@ import (
 // See: https://fly.io/docs/litefs/primary/
 const PrimaryFile = "/litefs/.primary"
 
-// IsPrimary reports whether this node is the LiteFS primary using the
-// standard lease file path. Returns true when the .primary file is absent
-// (meaning this node holds the lease and is the primary).
-func IsPrimary() bool {
-	return IsPrimaryAt(PrimaryFile)
-}
-
 // IsPrimaryAt reports whether this node is the LiteFS primary by checking
 // the given path for the lease file. Returns true when the file does NOT
 // exist (absence = primary), false when it does exist (presence = replica).
+//
+// This is a low-level primitive with no fallback handling; it is exported
+// so the package's external test can exercise the lease-file semantics
+// against arbitrary paths. Production code calls IsPrimaryWithFallback,
+// which adds the fail-safe-to-replica path for ambiguous stat errors and
+// the no-LiteFS env-var fallback.
 func IsPrimaryAt(path string) bool {
 	_, err := os.Stat(path)
 	return errors.Is(err, os.ErrNotExist)
@@ -40,9 +40,14 @@ func IsPrimaryAt(path string) bool {
 //
 // Detection order:
 //  1. If the primary file at path exists, this is a replica (return false).
-//  2. If the parent directory of path exists (LiteFS is mounted), this is
-//     the primary (return true).
-//  3. If neither exists (no LiteFS), fall back to the environment variable
+//  2. If stat fails with anything other than "does not exist" (e.g. a flaky
+//     LiteFS FUSE mount returning EIO/EACCES/ENOTDIR), fail SAFE toward
+//     replica (return false) and log a WARN. A misclassified replica that
+//     declines primary duties is harmless; a misclassified primary runs
+//     destructive Schema.Create DDL (WithDropColumn/WithDropIndex).
+//  3. If the file is genuinely absent and the parent directory of path exists
+//     (LiteFS is mounted), this is the primary (return true).
+//  4. If neither exists (no LiteFS), fall back to the environment variable
 //     identified by envKey parsed as a boolean. Defaults to true if the env
 //     var is unset, matching the common local-dev expectation (single node = primary).
 func IsPrimaryWithFallback(path string, envKey string) bool {
@@ -52,8 +57,20 @@ func IsPrimaryWithFallback(path string, envKey string) bool {
 		// File exists — we are a replica.
 		return false
 	}
+	if !errors.Is(err, os.ErrNotExist) {
+		// Ambiguous stat error (not a clean "does not exist"): a transient
+		// FUSE fault must not be read as primary, because the startup path
+		// would then run destructive DDL on a node that is really a replica.
+		// Fail safe to replica.
+		slog.Warn("litefs: ambiguous .primary stat, failing safe to replica",
+			slog.String("path", path),
+			slog.Any("error", err),
+		)
+		return false
+	}
 
-	// Check if the parent directory exists (LiteFS mount is present).
+	// File is genuinely absent. Check if the parent directory exists (LiteFS
+	// mount is present).
 	dir := filepath.Dir(path)
 	if info, dirErr := os.Stat(dir); dirErr == nil && info.IsDir() {
 		// LiteFS directory exists but .primary file does not — we are primary.

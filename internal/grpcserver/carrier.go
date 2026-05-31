@@ -157,6 +157,7 @@ func (s *CarrierService) StreamCarriers(ctx context.Context, req *pb.StreamCarri
 		Convert:    carrierToProto,
 		GetID:      func(c *ent.Carrier) int { return c.ID },
 		GetUpdated: func(c *ent.Carrier) time.Time { return c.Updated },
+		GetCreated: func(c *ent.Carrier) time.Time { return c.Created },
 	}, stream)
 }
 

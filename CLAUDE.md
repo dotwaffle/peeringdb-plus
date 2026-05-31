@@ -1,4 +1,3 @@
-<!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
 **PeeringDB Plus**
@@ -15,11 +14,10 @@ A high-performance, globally distributed, read-only mirror of PeeringDB data. It
 - **Platform**: Fly.io (LiteFS dependency, global edge deployment)
 - **Observability**: OpenTelemetry — mandatory for tracing, metrics, and logs
 - **Data fidelity**: Must handle PeeringDB's actual API responses, not their documented spec
-<!-- GSD:project-end -->
 
 ## Documentation
 - Canonical user/operator/contributor docs live in `docs/` (`ARCHITECTURE.md`, `CONFIGURATION.md`, `GETTING-STARTED.md`, `DEVELOPMENT.md`, `TESTING.md`, `API.md`, `DEPLOYMENT.md`) and `CONTRIBUTING.md` at the root. Read the relevant doc before re-deriving information from code or duplicating content into a response.
-- `CLAUDE.md` is Claude's project memory, not user-facing docs. Do not regenerate it via `/gsd-docs-update` or similar — exclude it explicitly when running doc workflows. Update it via `/claude-md-management:revise-claude-md` only.
+- `CLAUDE.md` is Claude's project memory, not user-facing docs. Keep it out of any docs-generation workflow; edit it directly.
 
 ## Commands
 
@@ -32,7 +30,6 @@ govulncheck ./...                 # Vulnerability check
 fly deploy                        # Deploy to Fly.io (app: peeringdb-plus)
 ```
 
-<!-- GSD:stack-start source:research/STACK.md -->
 ## Technology Stack
 
 Key dependencies (see `go.mod` for exact versions):
@@ -47,9 +44,7 @@ Key dependencies (see `go.mod` for exact versions):
 - **HTTP**: net/http stdlib (Go 1.22+ ServeMux with method routing)
 
 LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-in alternative exists for edge SQLite replication.
-<!-- GSD:stack-end -->
 
-<!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
 ### Code Generation
@@ -116,7 +111,7 @@ Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit si
 - List path (`internal/pdbcompat/registry_funcs.go`) MUST append `applyStatusMatrix(isCampus, opts.Since != nil)` LAST in `preds` — mirrors upstream `rest.py:694-727` status × since matrix.
 - PK-lookup (`internal/pdbcompat/depth.go`) MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare. Inline the `StatusIn` literal at each of the 26 call sites; grep-ability trumps DRY here.
 
-Tombstone GC is [SEED-004](./.planning/seeds/SEED-004-tombstone-gc.md) (dormant; triggers: storage >5% MoM, tombstone ratio >10%, operator request).
+Tombstone GC is dormant deferred work (SEED-004; triggers: storage >5% MoM, tombstone ratio >10%, operator request).
 
 ### Shadow-column folding (Phase 69)
 
@@ -276,16 +271,13 @@ End-of-sync-cycle memory telemetry surfaces SEED-001's trigger. Implementation: 
 
 **FK-orphan summary:** each sync cycle emits one `slog.Warn("fk orphans summary", total, groups)` (DEBUG when `total=0`) and increments `pdbplus.sync.type.orphans{type, parent_type, field, action}` per row. Per-row events log at DEBUG only — replaces the prior per-row WARN spam that breached Tempo's 7.5 MB per-trace cap.
 
-**SEED-001 escalation:** sustained peak heap above `PDBPLUS_HEAP_WARN_MIB` across multiple cycles re-fires SEED-001 (`.planning/seeds/SEED-001-incremental-sync-evaluation.md`).
+**SEED-001 escalation:** sustained peak heap above `PDBPLUS_HEAP_WARN_MIB` across multiple cycles re-fires the incremental-sync-evaluation review (SEED-001).
 
 **Resource attribute filtering** (`internal/otel/provider.go` `buildResourceFiltered`): Grafana Cloud's hosted OTLP receiver only promotes `service.*` / `cloud.*` / `host.*` / `k8s.*` to Prom labels; custom `fly.*` keys are dropped on the metrics path. `service.instance.id` is stripped via `includeInstanceID=false` to bound fleet cardinality; `service.namespace` + `cloud.region` stay on metrics. Full attribute table + `http.route` middleware rationale in `docs/ARCHITECTURE.md`.
 
 **Dashboards + alerts** in `deploy/grafana/{dashboards,alerts}/` — see `docs/DEPLOYMENT.md`. OTel runtime metrics (`go_memory_used_bytes` etc.) come from `runtime.Start(...)` and tick on every machine; `pdbplus_sync_peak_*` is primary-only.
 
 **Prod debugging:** image ships with `sqlite3` — `fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'`. Replicas expose the FUSE path read-only.
-<!-- GSD:conventions-end -->
-
-<!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
 ### API Surfaces (5)
@@ -323,17 +315,3 @@ Single-source-of-truth packages:
 - `ent/schema/` — entgo schemas; generated `{type}.go` files + hand-edited `{type}_{method}.go` siblings
 - `gen/peeringdb/v1/` — generated proto Go types + ConnectRPC interfaces
 - `proto/peeringdb/v1/` — proto source files
-<!-- GSD:architecture-end -->
-
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
-
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
-
-Use these entry points:
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->

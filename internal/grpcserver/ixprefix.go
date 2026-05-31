@@ -138,6 +138,7 @@ func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIx
 		Convert:    ixPrefixToProto,
 		GetID:      func(ixp *ent.IxPrefix) int { return ixp.ID },
 		GetUpdated: func(ixp *ent.IxPrefix) time.Time { return ixp.Updated },
+		GetCreated: func(ixp *ent.IxPrefix) time.Time { return ixp.Created },
 	}, stream)
 }
 

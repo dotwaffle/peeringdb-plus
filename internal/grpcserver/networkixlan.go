@@ -192,6 +192,7 @@ func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.S
 		Convert:    networkIxLanToProto,
 		GetID:      func(nixl *ent.NetworkIxLan) int { return nixl.ID },
 		GetUpdated: func(nixl *ent.NetworkIxLan) time.Time { return nixl.Updated },
+		GetCreated: func(nixl *ent.NetworkIxLan) time.Time { return nixl.Created },
 	}, stream)
 }
 

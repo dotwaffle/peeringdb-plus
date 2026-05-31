@@ -105,10 +105,6 @@ func wireOrgFuncs() {
 			}
 			preds := orgPredicates(opts)
 			q := client.Organization.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count organizations: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -117,12 +113,11 @@ func wireOrgFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list organizations: %w", err)
 			}
-			result := organizationsFromEnt(orgs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(orgs))
+			for i, o := range orgs {
+				out[i] = organizationFromEnt(o)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -158,10 +153,6 @@ func wireNetFuncs() {
 			}
 			preds := netPredicates(opts)
 			q := client.Network.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count networks: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -170,12 +161,11 @@ func wireNetFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networks: %w", err)
 			}
-			result := networksFromEnt(nets)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(nets))
+			for i, n := range nets {
+				out[i] = networkFromEnt(n)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -211,10 +201,6 @@ func wireFacFuncs() {
 			}
 			preds := facPredicates(opts)
 			q := client.Facility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count facilities: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -223,12 +209,11 @@ func wireFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list facilities: %w", err)
 			}
-			result := facilitiesFromEnt(facs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(facs))
+			for i, f := range facs {
+				out[i] = facilityFromEnt(f)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -264,10 +249,6 @@ func wireIXFuncs() {
 			}
 			preds := ixPredicates(opts)
 			q := client.InternetExchange.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count internet exchanges: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -276,12 +257,11 @@ func wireIXFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list internet exchanges: %w", err)
 			}
-			result := internetExchangesFromEnt(ixes)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(ixes))
+			for i, ix := range ixes {
+				out[i] = internetExchangeFromEnt(ix)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -317,10 +297,6 @@ func wirePocFuncs() {
 			}
 			preds := pocPredicates(opts)
 			q := client.Poc.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count pocs: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -329,12 +305,11 @@ func wirePocFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list pocs: %w", err)
 			}
-			result := pocsFromEnt(pocs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(pocs))
+			for i, p := range pocs {
+				out[i] = pocFromEnt(p)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -370,10 +345,6 @@ func wireIXLanFuncs() {
 			}
 			preds := ixLanPredicates(opts)
 			q := client.IxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count ixlans: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -382,12 +353,11 @@ func wireIXLanFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixlans: %w", err)
 			}
-			result := ixLansFromEnt(ctx, lans)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(lans))
+			for i, l := range lans {
+				out[i] = ixLanFromEnt(ctx, l)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -423,10 +393,6 @@ func wireIXPfxFuncs() {
 			}
 			preds := ixPfxPredicates(opts)
 			q := client.IxPrefix.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count ixprefixes: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -435,12 +401,11 @@ func wireIXPfxFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixprefixes: %w", err)
 			}
-			result := ixPrefixesFromEnt(pfxs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(pfxs))
+			for i, p := range pfxs {
+				out[i] = ixPrefixFromEnt(p)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -476,10 +441,6 @@ func wireNetIXLanFuncs() {
 			}
 			preds := netIXLanPredicates(opts)
 			q := client.NetworkIxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count networkixlans: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -488,12 +449,11 @@ func wireNetIXLanFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networkixlans: %w", err)
 			}
-			result := networkIxLansFromEnt(nixls)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(nixls))
+			for i, nixl := range nixls {
+				out[i] = networkIxLanFromEnt(nixl)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -529,10 +489,6 @@ func wireNetFacFuncs() {
 			}
 			preds := netFacPredicates(opts)
 			q := client.NetworkFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count networkfacilities: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -541,12 +497,11 @@ func wireNetFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list networkfacilities: %w", err)
 			}
-			result := networkFacilitiesFromEnt(nfacs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(nfacs))
+			for i, nfac := range nfacs {
+				out[i] = networkFacilityFromEnt(nfac)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -582,10 +537,6 @@ func wireIXFacFuncs() {
 			}
 			preds := ixFacPredicates(opts)
 			q := client.IxFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count ixfacilities: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -594,12 +545,11 @@ func wireIXFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list ixfacilities: %w", err)
 			}
-			result := ixFacilitiesFromEnt(ixfacs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(ixfacs))
+			for i, ixfac := range ixfacs {
+				out[i] = ixFacilityFromEnt(ixfac)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -635,10 +585,6 @@ func wireCarrierFuncs() {
 			}
 			preds := carrierPredicates(opts)
 			q := client.Carrier.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count carriers: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -647,12 +593,11 @@ func wireCarrierFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list carriers: %w", err)
 			}
-			result := carriersFromEnt(carriers)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(carriers))
+			for i, c := range carriers {
+				out[i] = carrierFromEnt(c)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -688,10 +633,6 @@ func wireCarrierFacFuncs() {
 			}
 			preds := carrierFacPredicates(opts)
 			q := client.CarrierFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count carrierfacilities: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -700,12 +641,11 @@ func wireCarrierFacFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list carrierfacilities: %w", err)
 			}
-			result := carrierFacilitiesFromEnt(cfs)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(cfs))
+			for i, cf := range cfs {
+				out[i] = carrierFacilityFromEnt(cf)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.
@@ -742,10 +682,6 @@ func wireCampusFuncs() {
 			}
 			preds := campusPredicates(opts)
 			q := client.Campus.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
-			total, err := q.Count(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("count campuses: %w", err)
-			}
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -754,12 +690,11 @@ func wireCampusFuncs() {
 			if err != nil {
 				return nil, 0, fmt.Errorf("list campuses: %w", err)
 			}
-			result := campusesFromEnt(campuses)
-			out := make([]any, len(result))
-			for i, v := range result {
-				out[i] = v
+			out := make([]any, len(campuses))
+			for i, c := range campuses {
+				out[i] = campusFromEnt(c)
 			}
-			return out, total, nil
+			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
 			// Phase 69 IN-02: empty __in returns empty set per D-06.

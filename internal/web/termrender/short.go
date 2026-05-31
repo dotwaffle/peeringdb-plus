@@ -14,17 +14,17 @@ func (r *Renderer) RenderShort(w io.Writer, data any) error {
 	var line string
 	switch d := data.(type) {
 	case templates.NetworkDetail:
-		line = fmt.Sprintf("AS%d | %s | %s | %d IXs\n", d.ASN, d.Name, d.PolicyGeneral, d.IXCount)
+		line = fmt.Sprintf("AS%d | %s | %s | %d IXs\n", d.ASN, sanitizeUpstream(d.Name), sanitizeUpstream(d.PolicyGeneral), d.IXCount)
 	case templates.IXDetail:
-		line = fmt.Sprintf("%s | %d peers | %s\n", d.Name, d.NetCount, formatLocation(d.City, d.Country))
+		line = fmt.Sprintf("%s | %d peers | %s\n", sanitizeUpstream(d.Name), d.NetCount, formatLocation(d.City, d.Country))
 	case templates.FacilityDetail:
-		line = fmt.Sprintf("%s | %d nets | %s\n", d.Name, d.NetCount, formatLocation(d.City, d.Country))
+		line = fmt.Sprintf("%s | %d nets | %s\n", sanitizeUpstream(d.Name), d.NetCount, formatLocation(d.City, d.Country))
 	case templates.OrgDetail:
-		line = fmt.Sprintf("%s | %d nets | %d facs\n", d.Name, d.NetCount, d.FacCount)
+		line = fmt.Sprintf("%s | %d nets | %d facs\n", sanitizeUpstream(d.Name), d.NetCount, d.FacCount)
 	case templates.CampusDetail:
-		line = fmt.Sprintf("%s | %d facs | %s\n", d.Name, d.FacCount, formatLocation(d.City, d.Country))
+		line = fmt.Sprintf("%s | %d facs | %s\n", sanitizeUpstream(d.Name), d.FacCount, formatLocation(d.City, d.Country))
 	case templates.CarrierDetail:
-		line = fmt.Sprintf("%s | %d facs\n", d.Name, d.FacCount)
+		line = fmt.Sprintf("%s | %d facs\n", sanitizeUpstream(d.Name), d.FacCount)
 	case []templates.SearchGroup:
 		line = "Use ?format=json for search results in short mode.\n"
 	case *templates.CompareData:

@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Testing
 
 PeeringDB Plus uses the Go standard `testing` package exclusively — no third-party test framework is

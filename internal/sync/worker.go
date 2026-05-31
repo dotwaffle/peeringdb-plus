@@ -97,7 +97,7 @@ type WorkerConfig struct {
 	//
 	// SEED-001 escalation signal: sustained breach triggers the
 	// incremental-sync evaluation path documented in
-	// .planning/seeds/SEED-001-incremental-sync-evaluation.md.
+	// the project history
 	HeapWarnBytes int64
 
 	// RSSWarnBytes is the peak OS RSS threshold (bytes) above which
@@ -170,14 +170,6 @@ type Worker struct {
 	// Reset by resetFKState at the start of each Sync run. Single-writer
 	// because Worker.running serialises concurrent Sync calls.
 	fkRegistry map[string]map[int]struct{}
-	// fkSkippedIDs maps type name to the set of row IDs that were
-	// dropped by the upsert-time fkFilter. Used by syncUpsertPass to
-	// subtract these from remoteIDsByType before the delete pass runs,
-	// so any previously-inserted row whose FK is now orphaned is
-	// cleaned up (avoids a parent-delete-while-child-remains FK
-	// violation at commit in steady-state syncs). Reset alongside
-	// fkRegistry in resetFKState.
-	fkSkippedIDs map[string]map[int]struct{}
 	// fkOrphanCounts aggregates per-cycle FK-orphan observations so they
 	// can be summarised in a single end-of-cycle WARN log + metric
 	// increments. Replaces the per-row WARN log spam that blew Tempo's
@@ -190,6 +182,16 @@ type Worker struct {
 	// ONE backfill HTTP fetch and short-circuit the next N-1 lookups.
 	// Reset alongside fkRegistry in resetFKState.
 	fkBackfillTried map[fkBackfillKey]struct{}
+	// fkPresence is the per-cycle cache of parent IDs confirmed present in
+	// the local DB by the dbHasRecord fallback. Only positive results are
+	// stored: a parent reaching that fallback was not synced this cycle
+	// (parent-first ordering registers synced parents in fkRegistry), so
+	// its row is neither inserted nor deleted for the rest of the cycle and
+	// the existence answer is stable. When many child rows share one
+	// untouched parent (e.g. hundreds of netixlans under one org), the
+	// siblings hit this cache instead of repeating the Exist() query.
+	// Reset alongside fkRegistry in resetFKState.
+	fkPresence map[fkBackfillKey]struct{}
 	// fkBackfillRequestCount is the per-cycle counter of underlying HTTP
 	// requests issued by FK-backfill, compared against fkBackfillRequestCap.
 	// Bumped by ⌈len(idsToFetch)/peeringdb.FetchByIDsBatchSize⌉ in
@@ -252,18 +254,18 @@ func (w *Worker) SetRetryBackoffs(backoffs []time.Duration) {
 	w.retryBackoffs = backoffs
 }
 
-// resetFKState clears the per-sync FK registry and skipped-ID tracker.
+// resetFKState clears the per-sync FK registry and orphan counters.
 // Called at the start of each Sync run so downstream fkFilter closures
 // see a clean slate — the previous run's parent IDs are irrelevant to
 // the next run's orphan detection.
 func (w *Worker) resetFKState() {
 	w.fkRegistry = make(map[string]map[int]struct{}, 13)
-	w.fkSkippedIDs = make(map[string]map[int]struct{}, 13)
 	w.fkOrphanCounts = make(map[fkOrphanKey]int)
 	// Quick task 260428-2zl: reset per-cycle FK-backfill dedup cache and
 	// counter alongside the rest of the FK state. The cap is captured
 	// once at NewWorker time; only the per-cycle bookkeeping resets.
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
+	w.fkPresence = make(map[fkBackfillKey]struct{}, 64)
 	w.fkBackfillRequestCount = 0
 	// v1.18.3: per-cycle deadline for backfill HTTP activity. Zero
 	// timeout → zero deadline → fkBackfillParent's deadline check
@@ -375,9 +377,22 @@ func (w *Worker) fkHasParent(ctx context.Context, tx *ent.Tx, typeName string, i
 			return true
 		}
 	}
+	// Per-cycle positive-presence cache: a sibling child row already
+	// confirmed this parent exists in the DB this cycle, so skip the
+	// repeat Exist() query (see fkPresence doc for why this is stable).
+	key := fkBackfillKey{Type: typeName, ID: id}
+	if _, cached := w.fkPresence[key]; cached {
+		return true
+	}
 	// Memory check failed: check the DB to distinguish true orphans from
-	// untouched parents during incremental syncs.
-	return w.dbHasRecord(ctx, tx, typeName, id)
+	// untouched parents during incremental syncs. Cache only confirmed
+	// hits — a miss may be recovered by backfill, which registers the
+	// parent in fkRegistry (consulted above).
+	if w.dbHasRecord(ctx, tx, typeName, id) {
+		w.fkPresence[key] = struct{}{}
+		return true
+	}
+	return false
 }
 
 // dbHasRecord checks the real database for the existence of an ID for
@@ -425,20 +440,6 @@ func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, i
 		return false
 	}
 	return exists
-}
-
-// fkMarkSkipped records that the given child ID was dropped by the
-// upsert-time fkFilter. syncUpsertPass subtracts these IDs from
-// remoteIDsByType before the delete pass so any previously-inserted
-// row with the same ID is cleaned up, preventing a
-// parent-delete-while-child-remains FK violation on the next commit.
-func (w *Worker) fkMarkSkipped(typeName string, id int) {
-	set, ok := w.fkSkippedIDs[typeName]
-	if !ok {
-		set = make(map[int]struct{})
-		w.fkSkippedIDs[typeName] = set
-	}
-	set[id] = struct{}{}
 }
 
 // syncStep defines a single step in the sync process. Upserts run in
@@ -581,7 +582,7 @@ func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.Syn
 	return configured
 }
 
-func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
+func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // VIS-05 bypass — sole call site (D-08/D-09)
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.Warn("sync already running, skipping")
@@ -596,12 +597,74 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) error {
 	// 260428-mu0: resolve effective mode (PDBPLUS_FULL_SYNC_INTERVAL
 	// escape hatch) BEFORE recording the status row.
 	effectiveMode := w.resolveEffectiveMode(ctx, mode)
-	statusID, err := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
-	if err != nil {
+	statusID, startErr := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
+	if startErr != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
-			slog.Any("error", err))
+			slog.Any("error", startErr))
 	}
 
+	// Panic firewall: cmd/peeringdb-plus/main.go spawns the sync workers
+	// as bare goroutines (StartScheduler, the on-demand `go in.SyncFn`).
+	// middleware.Recovery only guards HTTP request goroutines, so without
+	// this defer a panic from one bad upstream record (e.g. a nil-deref
+	// in upsert) would crash the whole process and take down all five API
+	// surfaces on this edge node. Recover converts the panic into a failed
+	// cycle so the scheduler proceeds to the next tick instead.
+	defer w.recoverSyncPanic(ctx, recoverSyncPanicInput{
+		mode:     effectiveMode,
+		statusID: statusID,
+		start:    start,
+		errp:     &err,
+	})
+
+	err = w.syncCycle(ctx, effectiveMode, statusID, start)
+	return err
+}
+
+// recoverSyncPanicInput carries the per-cycle bookkeeping that the panic
+// firewall needs to convert a recovered panic into a recorded failure.
+// Declared before recoverSyncPanic per GO-CS-6.
+type recoverSyncPanicInput struct {
+	mode     config.SyncMode
+	statusID int64
+	start    time.Time
+	// errp points at Sync's named return so the recovered panic surfaces
+	// to the caller as an ordinary error instead of unwinding the stack.
+	errp *error
+}
+
+// recoverSyncPanic is the deferred panic firewall for a single sync cycle.
+// On recover it logs at ERROR with a stack trace (mirroring
+// internal/middleware/recovery.go), records a failed sync status + the
+// failure metric via recordFailure, and stores the synthesised error into
+// the caller's named return. The bookkeeping runs on a context detached
+// from cancellation so a SIGTERM/demotion mid-cycle cannot turn the status
+// write into a no-op. Non-panic returns are a no-op.
+func (w *Worker) recoverSyncPanic(ctx context.Context, in recoverSyncPanicInput) {
+	rec := recover()
+	if rec == nil {
+		return
+	}
+	panicErr := fmt.Errorf("sync cycle panicked: %v", rec)
+	w.logger.LogAttrs(ctx, slog.LevelError, "sync cycle panic recovered",
+		slog.Any("panic", rec),
+		slog.String("stack", string(debug.Stack())),
+		slog.String("mode", string(in.mode)),
+	)
+	w.recordFailure(ctx, in.mode, in.statusID, in.start, panicErr)
+	if in.errp != nil {
+		*in.errp = panicErr
+	}
+}
+
+// syncCycle runs one sync cycle's data work: scratch fetch (Phase A), the
+// memory guardrail, then the single real transaction (Phase B) and the
+// terminal success/failure recording. Extracted from Sync so the public
+// entry point can install the panic firewall and stay within the REFAC-03
+// line budget (TestWorkerSync_LineBudget). statusID/start/effectiveMode are
+// threaded in so the firewall and every terminal recorder agree on the same
+// status row and timing.
+func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, statusID int64, start time.Time) error {
 	// Tighten GC for the duration of the sync run: the default 100%
 	// target heap growth is too loose when upsert bursts allocate
 	// hundreds of MiB between GC cycles. Setting GCPercent=25 forces
@@ -909,6 +972,16 @@ func (w *Worker) recordSuccess(
 	// tables themselves (see internal/sync/cursor.go GetMaxUpdated).
 	ctx, finalizeSpan := otel.Tracer("sync").Start(ctx, "sync-finalize")
 	defer finalizeSpan.End()
+
+	// Detach cancellation for the terminal bookkeeping: a cancellation
+	// (demotion monitor / SIGTERM) can land between the data commit and
+	// this success record, and a cancelled ctx turns RecordSyncComplete's
+	// UPDATE into a no-op — leaving sync_status stuck "running" despite a
+	// durable commit — and drops the terminal metric. WithoutCancel keeps
+	// the sync-finalize span (context values survive) while a short
+	// timeout caps the detached write. Symmetric with recordFailure.
+	ctx, cancel := terminalRecordContext(ctx)
+	defer cancel()
 
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
@@ -1277,23 +1350,19 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 // syncIncrementalInput bundles the per-type parameters for
 // syncIncremental[E]. Declared immediately before the consuming
 // function per GO-CS-6. objectType is used for error-wrap context;
-// getStatus extracts the deleted-status filter key from an element;
 // upsert performs the bulk upsert inside the caller's ent.Tx.
 //
 // fkFilter, when non-nil, is called per row after the deleted-status
 // filter and before the upsert. The row pointer lets the closure
 // mutate nullable FK fields in place (e.g. null out an orphaned
 // campus_id on a facility so the facility row itself is kept). When
-// the closure returns false the row is dropped from the chunk and
-// the caller MUST call fkMarkSkipped on its id so the delete pass
-// can reconcile any previously-inserted row with the same id.
+// the closure returns false the row is dropped from the chunk.
 //
 // recordIDs, when non-nil, is called with the []int returned by the
 // upsert closure so downstream child types can validate their FK
 // references against the parent set (see Worker.fkRegisterIDs).
 type syncIncrementalInput[E any] struct {
 	objectType string
-	getStatus  func(E) string
 	fkFilter   func(*E) bool
 	recordIDs  func(ids []int)
 	upsert     func(ctx context.Context, tx *ent.Tx, items []E) ([]int, error)
@@ -1371,11 +1440,9 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // v1.13 FK orphan filter: cases for child types supply a fkFilter
 // closure that checks each incoming row's FK references against the
 // parent sets populated by earlier syncIncremental.recordIDs
-// callbacks. Rows whose parents are missing are dropped and logged,
-// and their IDs are recorded via fkMarkSkipped so the delete pass can
-// clean up any previously-inserted row with the same ID. This handles
-// PeeringDB snapshots that expose live children pointing at
-// server-side-suppressed parents (e.g. NTT America carrier → org).
+// callbacks. Rows whose parents are missing are dropped and logged.
+// This handles PeeringDB snapshots that expose live children pointing
+// at server-side-suppressed parents (e.g. NTT America carrier → org).
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
 	// Quick task 260428-5xt: chunk pre-pass batches missing required
 	// parent FK fetches per parent type per chunk, turning N per-row
@@ -1387,14 +1454,12 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeOrg:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Organization) string { return v.Status },
 			recordIDs:  func(ids []int) { w.fkRegisterIDs(peeringdb.TypeOrg, ids) },
 			upsert:     upsertOrganizations,
 		}, rows)
 	case peeringdb.TypeCampus:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Campus) string { return v.Status },
 			fkFilter: func(v *peeringdb.Campus) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeCampus, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1405,7 +1470,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Facility) string { return v.Status },
 			fkFilter: func(v *peeringdb.Facility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeFac, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id") {
@@ -1433,7 +1497,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeCarrier:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Carrier) string { return v.Status },
 			fkFilter: func(v *peeringdb.Carrier) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeCarrier, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1444,7 +1507,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeCarrierFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.CarrierFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.CarrierFacility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeCarrierFac, v.ID,
 					peeringdb.TypeCarrier, v.CarrierID, "carrier_id") {
@@ -1459,7 +1521,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIX:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{
 			objectType: name,
-			getStatus:  func(v peeringdb.InternetExchange) string { return v.Status },
 			fkFilter: func(v *peeringdb.InternetExchange) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeIX, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1470,7 +1531,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIXLan:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{
 			objectType: name,
-			getStatus:  func(v peeringdb.IxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxLan) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXLan, v.ID,
 					peeringdb.TypeIX, v.IXID, "ix_id")
@@ -1481,7 +1541,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIXPfx:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{
 			objectType: name,
-			getStatus:  func(v peeringdb.IxPrefix) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxPrefix) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXPfx, v.ID,
 					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
@@ -1492,7 +1551,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeIXFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.IxFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.IxFacility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeIXFac, v.ID,
 					peeringdb.TypeIX, v.IXID, "ix_id") {
@@ -1507,7 +1565,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeNet:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Network) string { return v.Status },
 			fkFilter: func(v *peeringdb.Network) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypeNet, v.ID,
 					peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -1518,7 +1575,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypePoc:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{
 			objectType: name,
-			getStatus:  func(v peeringdb.Poc) string { return v.Status },
 			fkFilter: func(v *peeringdb.Poc) bool {
 				return w.fkCheckParent(ctx, tx, peeringdb.TypePoc, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id")
@@ -1529,7 +1585,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeNetFac:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{
 			objectType: name,
-			getStatus:  func(v peeringdb.NetworkFacility) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkFacility) bool {
 				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetFac, v.ID,
 					peeringdb.TypeNet, v.NetID, "net_id") {
@@ -1544,7 +1599,6 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	case peeringdb.TypeNetIXLan:
 		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{
 			objectType: name,
-			getStatus:  func(v peeringdb.NetworkIxLan) string { return v.Status },
 			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
 				// Required FKs: net_id, ixlan_id. Drop on miss after
 				// backfill attempt (legacy behavior).
@@ -1585,8 +1639,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 // is registered for parentType (or is a zero/null FK), or if the live
 // backfill (quick task 260428-2zl) recovered the parent from upstream.
 // Otherwise records the orphan via Worker.recordOrphan (DEBUG log +
-// per-cycle counter), marks the child id in fkSkippedIDs so the delete
-// pass can reconcile, and returns false so syncIncremental drops the
+// per-cycle counter) and returns false so syncIncremental drops the
 // row from the chunk. emitOrphanSummary surfaces the per-cycle
 // aggregate at WARN.
 //
@@ -1600,7 +1653,6 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return true
 	}
-	w.fkMarkSkipped(childType, childID)
 	w.recordOrphan(ctx, fkOrphanKey{
 		ChildType:  childType,
 		ParentType: parentType,
@@ -1645,25 +1697,55 @@ func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field st
 	*ptr = nil
 }
 
+// terminalRecordTimeout bounds the detached-context bookkeeping write so a
+// wedged DB connection cannot hang a terminal recorder indefinitely. The
+// status UPDATE is a single small raw-SQL Exec; this is generous.
+const terminalRecordTimeout = 10 * time.Second
+
+// terminalRecordContext derives the context used by the terminal recorders
+// (recordSuccess / recordFailure) for their final status write and metric
+// emission. It strips cancellation and deadlines via context.WithoutCancel
+// — the cycle context may already be cancelled by the demotion monitor
+// (runSyncCycle's cycleCancel) or a SIGTERM by the time we record the
+// outcome, and a cancelled ctx turns RecordSyncComplete's UPDATE into a
+// no-op (leaving sync_status stuck "running") and drops the terminal
+// metric. WithoutCancel preserves context values, so the active OTel span
+// still receives emitMemoryTelemetry's attributes. A short timeout is
+// layered back on so the detached write cannot hang forever. Callers MUST
+// defer the returned cancel.
+func terminalRecordContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), terminalRecordTimeout)
+}
+
 // recordFailure records a failed sync in the sync_status table and metrics.
 //
 // mode is threaded through so the failure metric carries the same
 // {status,mode} attribute pair as the success metric (SEED-001 260426-pms).
+//
+// The status write + terminal metrics run on a context detached from
+// cancellation (terminalRecordContext): this path is reached after a
+// possibly-cancelled cycle — including the FIX-1 panic firewall — and the
+// failure MUST be recorded durably even if the cycle context is already
+// Done. Without detachment the UPDATE silently no-ops and sync_status is
+// left stuck "running".
 func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, statusID int64, start time.Time, syncErr error) {
+	recCtx, cancel := terminalRecordContext(ctx)
+	defer cancel()
+
 	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	// Called even on failure — memory pressure is interesting regardless of sync outcome.
-	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
-	w.emitOrphanSummary(ctx)
+	w.emitMemoryTelemetry(recCtx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
+	w.emitOrphanSummary(recCtx)
 	// Record sync-level failure metrics per D-06.
 	attrs := metric.WithAttributes(
 		attribute.String("status", "failed"),
 		attribute.String("mode", string(mode)),
 	)
-	pdbotel.SyncDuration.Record(ctx, time.Since(start).Seconds(), attrs)
-	pdbotel.SyncOperations.Add(ctx, 1, attrs)
+	pdbotel.SyncDuration.Record(recCtx, time.Since(start).Seconds(), attrs)
+	pdbotel.SyncOperations.Add(recCtx, 1, attrs)
 
 	if statusID > 0 {
-		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
+		_ = RecordSyncComplete(recCtx, w.db, statusID, Status{
 			LastSyncAt:   time.Now(),
 			Duration:     time.Since(start),
 			Status:       "failed",

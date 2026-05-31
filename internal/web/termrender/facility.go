@@ -17,7 +17,7 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 	buf.Grow(len(data.Networks)*80 + len(data.IXPs)*60 + len(data.Carriers)*60 + 500)
 
 	// Title line: Name  City, Country
-	buf.WriteString(StyleHeading.Render(data.Name))
+	buf.WriteString(styledHeading(data.Name))
 	if loc := formatLocation(data.City, data.Country); loc != "" {
 		buf.WriteString("  ")
 		buf.WriteString(StyleMuted.Render(loc))
@@ -46,7 +46,7 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		buf.WriteString("\n")
 
 		for _, row := range data.Networks {
-			name := row.NetName
+			name := sanitizeUpstream(row.NetName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -73,7 +73,7 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		buf.WriteString("\n")
 
 		for _, row := range data.IXPs {
-			name := row.IXName
+			name := sanitizeUpstream(row.IXName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {
@@ -100,7 +100,7 @@ func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDeta
 		buf.WriteString("\n")
 
 		for _, row := range data.Carriers {
-			name := row.CarrierName
+			name := sanitizeUpstream(row.CarrierName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {

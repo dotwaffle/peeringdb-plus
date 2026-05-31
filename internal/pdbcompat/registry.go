@@ -5,6 +5,7 @@ package pdbcompat
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -28,6 +29,28 @@ const (
 	// FieldFloat indicates a float64-typed field.
 	FieldFloat
 )
+
+// String returns the human-readable name of the field type. It is used in
+// client-facing 400 filter-error messages so callers see "bool" rather
+// than the internal enum integer. Unknown values render as
+// "unknown(<n>)" rather than panicking — filter errors must never crash
+// the request path.
+func (ft FieldType) String() string {
+	switch ft {
+	case FieldString:
+		return "string"
+	case FieldInt:
+		return "int"
+	case FieldBool:
+		return "bool"
+	case FieldTime:
+		return "time"
+	case FieldFloat:
+		return "float"
+	default:
+		return fmt.Sprintf("unknown(%d)", int(ft))
+	}
+}
 
 // QueryOptions holds parsed query parameters for list endpoints.
 type QueryOptions struct {

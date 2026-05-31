@@ -22,8 +22,8 @@ import (
 // Phase 59 (privacy policy) ships against a stale assumption.
 //
 // This is a regression guard, not a feature test — if it fails, do not "fix"
-// it by editing the allowlist. Instead, re-run /gsd-plan-phase 58 and add the
-// appropriate <field>_visible ent field per the v1.14 Key Decision.
+// it by editing the allowlist. Instead, add the appropriate <field>_visible
+// ent field per the v1.14 Key Decision.
 func TestSchemaAlignmentWithPhase57Diff(t *testing.T) {
 	diffPath := filepath.Join("..", "..", "testdata", "visibility-baseline", "diff.json")
 
@@ -93,8 +93,7 @@ func TestSchemaAlignmentWithPhase57Diff(t *testing.T) {
 				}
 				t.Errorf(
 					"unexpected auth-gated field %q.%q in testdata/visibility-baseline/diff.json — "+
-						"Phase 58 planned no schema work for this. Re-run /gsd-plan-phase 58 after "+
-						"updating 58-CONTEXT.md, or add an ent <field>_visible field per the "+
+						"no schema work was planned for this. Add an ent <field>_visible field per the "+
 						"<field>_visible convention (see ent/schema/ixlan.go "+
 						"ixf_ixp_member_list_url_visible for the template).",
 					tname, fd.Name,

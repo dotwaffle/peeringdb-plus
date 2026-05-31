@@ -17,7 +17,7 @@ func (r *Renderer) RenderCampusDetail(w io.Writer, data templates.CampusDetail) 
 	buf.Grow(len(data.Facilities)*80 + 500)
 
 	// Title line: Name
-	buf.WriteString(StyleHeading.Render(data.Name))
+	buf.WriteString(styledHeading(data.Name))
 	buf.WriteString("\n")
 
 	// Key-value header (compact per D-03).
@@ -33,7 +33,7 @@ func (r *Renderer) RenderCampusDetail(w io.Writer, data templates.CampusDetail) 
 		buf.WriteString("\n")
 
 		for _, row := range data.Facilities {
-			name := row.FacName
+			name := sanitizeUpstream(row.FacName)
 			if r.Width > 0 {
 				maxNameWidth := max(r.Width/3, 15)
 				if len(name) > maxNameWidth {

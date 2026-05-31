@@ -263,9 +263,17 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	if h.responseMemoryLimit > 0 && !emptyResult && tc.Count != nil {
 		count, err := tc.Count(r.Context(), h.client, opts)
 		if err != nil {
+			// Log the raw error for operators; never echo ent/SQL error
+			// strings into the client-facing problem Detail (SEC: avoid
+			// leaking schema/driver internals on the /api surface).
+			slog.ErrorContext(r.Context(), "pdbcompat: count query failed",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.String("error", err.Error()),
+			)
 			WriteProblem(w, httperr.WriteProblemInput{
 				Status:   http.StatusInternalServerError,
-				Detail:   fmt.Sprintf("count error: %v", err),
+				Detail:   "failed to count matching records",
 				Instance: r.URL.Path,
 			})
 			return
@@ -282,13 +290,38 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			WriteBudgetProblem(w, r.URL.Path, info)
 			return
 		}
+		// Audit P1: a budget count of 0 means no rows will be served —
+		// a genuinely empty match, or a ?skip= past the end of the result
+		// set. Stream the empty list now rather than calling tc.List,
+		// which would run ORDER BY + OFFSET over the whole matching set
+		// only to discard every row. An unbounded ?skip= otherwise turns a
+		// 0-byte response into a full sort that the served-row budget
+		// (servedRowCount = max(total-skip,0)) cannot see. The COUNT(*)
+		// above is cheap and bounded; the sort is not.
+		if count == 0 {
+			if err := StreamListResponse(r.Context(), w, struct{}{}, iterFromSlice(nil)); err != nil {
+				slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
+					slog.String("endpoint", r.URL.Path),
+					slog.String("type", tc.Name),
+					slog.String("error", err.Error()),
+				)
+			}
+			return
+		}
 	}
 
 	results, _, err := tc.List(r.Context(), h.client, opts)
 	if err != nil {
+		// Log raw error server-side only; keep the client Detail generic
+		// so ent/SQL internals never reach the /api wire (SEC).
+		slog.ErrorContext(r.Context(), "pdbcompat: list query failed",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("error", err.Error()),
+		)
 		WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusInternalServerError,
-			Detail:   fmt.Sprintf("query error: %v", err),
+			Detail:   "failed to query matching records",
 			Instance: r.URL.Path,
 		})
 		return
@@ -351,6 +384,31 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 		}
 	}
 
+	// Audit P2: gate the detail response against the same per-response
+	// memory budget as the list path. A single object is one row, but at
+	// depth=2 it embeds the per-type _set collections + parent FK objects,
+	// so its size tracks TypicalRowBytes(<type>, depth), not the bare
+	// Depth0 figure. This is a coarse floor — it bills the typical
+	// expanded row, not the actual _set cardinality — but it keeps the
+	// detail path symmetric with serveList and trips a clean 413 rather
+	// than serving under a degenerately small budget. This is also the
+	// only caller that exercises the depth=2 row-size estimate (lists are
+	// pinned to depth 0 by Phase 68 LIMIT-02). budget<=0 disables the
+	// check (dev/test) exactly as on the list path.
+	if h.responseMemoryLimit > 0 {
+		if info, ok := CheckBudget(1, tc.Name, depth, h.responseMemoryLimit); !ok {
+			slog.WarnContext(r.Context(), "pdbcompat: detail response budget exceeded",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.Int("depth", depth),
+				slog.Int64("estimated_bytes", info.EstimatedBytes),
+				slog.Int64("budget_bytes", info.BudgetBytes),
+			)
+			WriteBudgetProblem(w, r.URL.Path, info)
+			return
+		}
+	}
+
 	// Parse field projection (?fields=) per D-14.
 	var fields []string
 	if f := params.Get("fields"); f != "" {
@@ -367,9 +425,16 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 			})
 			return
 		}
+		// Log raw error server-side only; the client Detail stays generic
+		// so ent/SQL internals never reach the /api wire (SEC).
+		slog.ErrorContext(r.Context(), "pdbcompat: detail query failed",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("error", err.Error()),
+		)
 		WriteProblem(w, httperr.WriteProblemInput{
 			Status:   http.StatusInternalServerError,
-			Detail:   fmt.Sprintf("query error: %v", err),
+			Detail:   "failed to query record",
 			Instance: r.URL.Path,
 		})
 		return

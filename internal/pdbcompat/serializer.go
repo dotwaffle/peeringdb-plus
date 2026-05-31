@@ -305,7 +305,7 @@ func ixLansFromEnt(ctx context.Context, lans []*ent.IxLan) []peeringdb.IxLan {
 //
 // Matches upstream: PeeringDB's live API omits "notes" from ixpfx responses,
 // and as of v1.15 Phase 63 the field is dropped from our ent schema too
-// (per D-01). See .planning/phases/63-schema-hygiene/63-CONTEXT.md.
+// (per D-01). See the project history
 func ixPrefixFromEnt(p *ent.IxPrefix) peeringdb.IxPrefix {
 	return peeringdb.IxPrefix{
 		ID:       p.ID,

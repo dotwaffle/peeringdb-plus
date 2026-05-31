@@ -329,6 +329,77 @@ func TestHealth_GenericResponse(t *testing.T) {
 	}
 }
 
+// TestHealth_RunningFallback_LastSyncFailed is the FIX-2 regression lock.
+// When the most recent sync_status row is "running" (an in-flight cycle),
+// /readyz falls back to the most recent *successful* sync. It MUST NOT
+// fall back to the most recent *completed* row, because a completed row
+// can be a freshly FAILED row whose recent completed_at would otherwise
+// pass the age check and (incorrectly) report 200. The table seeds, in
+// chronological order, an older row then a most-recent "running" row, and
+// asserts the readiness verdict.
+func TestHealth_RunningFallback_LastSyncFailed(t *testing.T) {
+	t.Parallel()
+
+	staleThreshold := 24 * time.Hour
+
+	tests := []struct {
+		name string
+		// priorStatus/priorErr define the most recent COMPLETED row that
+		// precedes the in-flight running row.
+		priorStatus string
+		priorErr    string
+		wantStatus  int
+	}{
+		{
+			// The bug: a fresh FAILED completed row must NOT make /readyz
+			// report healthy just because a sync is currently running.
+			name:        "recent_failed_then_running_is_unhealthy",
+			priorStatus: "failed",
+			priorErr:    "connection timeout to upstream",
+			wantStatus:  http.StatusServiceUnavailable,
+		},
+		{
+			// Control: a recent SUCCESS row keeps /readyz healthy while a
+			// new cycle runs — the running-branch fallback still works.
+			name:        "recent_success_then_running_is_healthy",
+			priorStatus: "success",
+			priorErr:    "",
+			wantStatus:  http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			db := openTestDB(t)
+			initSyncTable(t, db)
+			// Most recent completed outcome (id ordering: inserted first,
+			// lower id) — recent enough to pass the age check.
+			insertSync(t, db, time.Now().Add(-1*time.Hour), tt.priorStatus, tt.priorErr)
+			// A newer in-flight cycle: highest id, status "running",
+			// completed_at NULL. This is what GetLastStatus returns, so
+			// checkSync enters the "running" branch.
+			insertRunningSync(t, db, time.Now())
+
+			status, body, _ := collectReadinessResponse(t, health.ReadinessInput{
+				DB:             db,
+				StaleThreshold: staleThreshold,
+			})
+
+			if status != tt.wantStatus {
+				t.Errorf("status = %d, want %d", status, tt.wantStatus)
+			}
+			wantBody := `{"status":"unhealthy"}`
+			if tt.wantStatus == http.StatusOK {
+				wantBody = `{"status":"ok"}`
+			}
+			if body != wantBody {
+				t.Errorf("body = %q, want %q", body, wantBody)
+			}
+		})
+	}
+}
+
 // openTestDB creates a fresh in-memory SQLite database for testing.
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()

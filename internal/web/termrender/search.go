@@ -38,7 +38,7 @@ func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) err
 		// Individual results
 		for _, result := range group.Results {
 			buf.WriteString("  ")
-			buf.WriteString(StyleValue.Render(result.Name))
+			buf.WriteString(styledName(result.Name))
 
 			// Show metadata: ASN, country, city as applicable.
 			if result.ASN > 0 {
@@ -47,15 +47,15 @@ func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) err
 			}
 			if result.Country != "" {
 				buf.WriteString("  ")
-				buf.WriteString(StyleMuted.Render(result.Country))
+				buf.WriteString(styledMuted(result.Country))
 			}
 			if result.City != "" {
 				buf.WriteString("  ")
-				buf.WriteString(StyleMuted.Render(result.City))
+				buf.WriteString(styledMuted(result.City))
 			}
 
 			buf.WriteString("  ")
-			buf.WriteString(StyleLink.Render(result.DetailURL))
+			buf.WriteString(StyleLink.Render(sanitizeUpstream(result.DetailURL)))
 			buf.WriteString("\n")
 		}
 	}

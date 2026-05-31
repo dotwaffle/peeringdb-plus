@@ -183,6 +183,7 @@ func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.S
 		Convert:    organizationToProto,
 		GetID:      func(o *ent.Organization) int { return o.ID },
 		GetUpdated: func(o *ent.Organization) time.Time { return o.Updated },
+		GetCreated: func(o *ent.Organization) time.Time { return o.Created },
 	}, stream)
 }
 

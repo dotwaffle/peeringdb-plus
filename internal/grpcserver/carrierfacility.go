@@ -140,6 +140,7 @@ func (s *CarrierFacilityService) StreamCarrierFacilities(ctx context.Context, re
 		Convert:    carrierFacilityToProto,
 		GetID:      func(cf *ent.CarrierFacility) int { return cf.ID },
 		GetUpdated: func(cf *ent.CarrierFacility) time.Time { return cf.Updated },
+		GetCreated: func(cf *ent.CarrierFacility) time.Time { return cf.Created },
 	}, stream)
 }
 

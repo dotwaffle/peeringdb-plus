@@ -64,46 +64,71 @@ func encodePageToken(offset int) string {
 	return base64.StdEncoding.EncodeToString([]byte(strconv.Itoa(offset)))
 }
 
-// streamCursor is the compound keyset cursor used by Stream* RPCs once Plan 05
-// flips the StreamParams.QueryBatch signature. Pairs the upstream `updated`
-// timestamp with the row id tiebreaker so `ORDER BY updated DESC, id DESC`
-// resume positions are stable across concurrent edits (CONTEXT.md D-01).
+// streamCursor is the compound keyset cursor used by Stream* RPCs. It carries
+// the full three-key keyset (`updated`, `created`, `id`) so that resume
+// positions stay exact under the `ORDER BY updated DESC, created DESC, id DESC`
+// default order (Phase 67 ORDER-02, CONTEXT.md D-01). A two-key cursor
+// (updated, id) silently drops rows at a batch boundary whenever an
+// equal-`updated` group is ordered by `created` DESC but resumed on `id`
+// alone — `created` is the middle ORDER BY key and must travel in the cursor.
 //
 // The wire envelope remains the opaque `string page_token` proto field
 // (RESEARCH §G-08); only the base64-encoded body shape changes — no proto
-// regen required. Existing offset-based encodePageToken / decodePageToken are
-// retained for List* RPCs per RESEARCH §4 "Note on ListEntities".
+// regen required. Stream cursors are internal page-through state, not a
+// persisted client contract, so the body format is free to change. Existing
+// offset-based encodePageToken / decodePageToken are retained for List* RPCs
+// per RESEARCH §4 "Note on ListEntities".
 type streamCursor struct {
 	Updated time.Time
+	Created time.Time
 	ID      int
 }
+
+// streamCursorDelim separates the three encoded cursor fields. The pipe is
+// chosen because it never appears in an RFC3339Nano timestamp (digits, '-',
+// 'T', ':', '.', '+', 'Z') nor in a base-10 integer, so a fixed split into
+// exactly three parts is unambiguous — unlike the previous last-colon split,
+// which only worked because the id had no colons.
+const streamCursorDelim = "|"
 
 // empty reports whether the cursor is a zero value, which signals either
 // the start of a stream (on decode) or the end of one (on encode).
 func (c streamCursor) empty() bool {
-	return c.Updated.IsZero() && c.ID == 0
+	return c.Updated.IsZero() && c.Created.IsZero() && c.ID == 0
 }
 
 // encodeStreamCursor emits the base64-encoded cursor body in the form
-// `RFC3339Nano:id`. Returns an empty string for a zero-value cursor so
-// callers can propagate "no next page" without a special sentinel.
+// `<updatedRFC3339Nano>|<createdRFC3339Nano>|<id>`. Returns an empty string
+// for a zero-value cursor so callers can propagate "no next page" without a
+// special sentinel.
+//
+// The token is session-local page-through state, not a durable client
+// contract (see the streamCursor type doc): a client may only echo the
+// previous response's token back to fetch the next page within one
+// streaming flow. The body format may change between releases, so tokens
+// must NOT be stored and replayed across sessions.
 func encodeStreamCursor(c streamCursor) string {
 	if c.empty() {
 		return ""
 	}
-	body := fmt.Sprintf("%s:%d", c.Updated.UTC().Format(time.RFC3339Nano), c.ID)
+	body := fmt.Sprintf("%s%s%s%s%d",
+		c.Updated.UTC().Format(time.RFC3339Nano), streamCursorDelim,
+		c.Created.UTC().Format(time.RFC3339Nano), streamCursorDelim,
+		c.ID)
 	return base64.StdEncoding.EncodeToString([]byte(body))
 }
 
 // decodeStreamCursor parses a page_token produced by encodeStreamCursor. An
-// empty token decodes to a zero-value cursor (start of stream). Base64,
-// timestamp, and id are all validated; a negative id is rejected because
-// the id is a positive-monotonic primary-key surrogate (threat
-// T-67-04-01).
+// empty token decodes to a zero-value cursor (start of stream). Base64, both
+// timestamps, and the id are all validated; the body must split into exactly
+// three pipe-delimited fields. A negative id is rejected because the id is a
+// positive-monotonic primary-key surrogate (threat T-67-04-01).
 //
-// The RFC3339Nano timestamp body contains its own colons (HH:MM:SS and
-// possibly a zone offset), so the parser splits on the LAST colon to keep
-// the timestamp intact.
+// Only tokens minted by encodeStreamCursor in the same release are
+// supported; the format is session-local internal state, not a durable
+// resume point a client may persist across sessions (see the streamCursor
+// type doc). A stale or hand-built token fails validation here rather than
+// silently resuming at the wrong position.
 func decodeStreamCursor(token string) (streamCursor, error) {
 	if token == "" {
 		return streamCursor{}, nil
@@ -112,29 +137,40 @@ func decodeStreamCursor(token string) (streamCursor, error) {
 	if err != nil {
 		return streamCursor{}, fmt.Errorf("decode stream cursor: %w", err)
 	}
-	s := string(raw)
-	idx := strings.LastIndex(s, ":")
-	if idx < 0 {
-		return streamCursor{}, fmt.Errorf("invalid stream cursor body: %q", s)
+	parts := strings.Split(string(raw), streamCursorDelim)
+	if len(parts) != 3 {
+		return streamCursor{}, fmt.Errorf("invalid stream cursor body: want 3 fields, got %d", len(parts))
 	}
-	tsPart := s[:idx]
-	if tsPart == "" {
-		return streamCursor{}, fmt.Errorf("invalid stream cursor: empty timestamp")
-	}
-	t, err := time.Parse(time.RFC3339Nano, tsPart)
+	updated, err := parseCursorTime("updated", parts[0])
 	if err != nil {
-		return streamCursor{}, fmt.Errorf("parse stream cursor timestamp %q: %w", tsPart, err)
+		return streamCursor{}, err
 	}
-	idPart := s[idx+1:]
-	if idPart == "" {
+	created, err := parseCursorTime("created", parts[1])
+	if err != nil {
+		return streamCursor{}, err
+	}
+	if parts[2] == "" {
 		return streamCursor{}, fmt.Errorf("invalid stream cursor: empty id")
 	}
-	id, err := strconv.Atoi(idPart)
+	id, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return streamCursor{}, fmt.Errorf("parse stream cursor id %q: %w", idPart, err)
+		return streamCursor{}, fmt.Errorf("parse stream cursor id %q: %w", parts[2], err)
 	}
 	if id < 0 {
 		return streamCursor{}, fmt.Errorf("invalid stream cursor: negative id %d", id)
 	}
-	return streamCursor{Updated: t, ID: id}, nil
+	return streamCursor{Updated: updated, Created: created, ID: id}, nil
+}
+
+// parseCursorTime validates and parses one RFC3339Nano timestamp field of a
+// stream cursor, attributing failures to the named field for diagnostics.
+func parseCursorTime(field, value string) (time.Time, error) {
+	if value == "" {
+		return time.Time{}, fmt.Errorf("invalid stream cursor: empty %s", field)
+	}
+	t, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parse stream cursor %s %q: %w", field, value, err)
+	}
+	return t, nil
 }

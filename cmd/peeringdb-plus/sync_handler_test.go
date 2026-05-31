@@ -19,7 +19,7 @@ import (
 // configured with wrong-length header, configured with trailing whitespace.
 //
 // No timing assertions — we trust crypto/subtle.ConstantTimeCompare and test
-// correctness only. See .planning/phases/51-quick-security-wins/51-CONTEXT.md.
+// correctness only. See the project history
 func TestSyncHandler_TokenCompare(t *testing.T) {
 	tests := []struct {
 		name       string

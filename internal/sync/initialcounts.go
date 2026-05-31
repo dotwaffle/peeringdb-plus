@@ -82,7 +82,7 @@ UNION ALL SELECT 'netixlan', COUNT(*) FROM network_ix_lans
 // 260428-eda CHANGE 6 retires the tier elevation entirely: raw SQL
 // achieves the same row-set without going through ent privacy at all
 // (a COUNT bypass is intentional and safe). See
-// .planning/debug/poc-count-doubling-halving.md for the full incident
+// the project history for the full incident
 // analysis.
 //
 // Errors are returned wrapped with the type name so an operator can

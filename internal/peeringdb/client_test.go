@@ -94,7 +94,7 @@ func TestFetchAllPagination(t *testing.T) {
 //
 // Observed in production 2026-04-11: with the pre-fix behavior, a single failed
 // sync cycle made 12 requests/hour to /api/org against the 1/hour limit,
-// keeping us permanently rate-limited. See .planning/STATE.md 260411 fast tasks.
+// keeping us permanently rate-limited. See the project history 260411 fast tasks.
 func TestFetchAllShortCircuitsOn429(t *testing.T) {
 	t.Parallel()
 

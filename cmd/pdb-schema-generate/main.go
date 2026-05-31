@@ -436,6 +436,16 @@ var filterableIntFields = map[string]bool{
 
 // fieldAnnotations returns the annotation chain for a field based on its characteristics.
 func fieldAnnotations(name string, fd FieldDef) string {
+	// The IX-F member-list URL is redaction-gated: internal/privfield nulls
+	// it for anonymous callers across every surface. Drop it from the
+	// generated GraphQL WhereInput so its value cannot be filtered on — a
+	// HasPrefix/Contains/EqualFold predicate over the real column is a
+	// boolean oracle that reconstructs the gated URL despite the output
+	// being redacted. The field stays in the output type; only its filter
+	// predicates are removed.
+	if name == "ixf_ixp_member_list_url" {
+		return ".\n\t\t\tAnnotations(entgql.Skip(entgql.SkipWhereInput))"
+	}
 	if fd.References != "" || filterableIntFields[name] {
 		return ".\n\t\t\t" + fkFilterAnnotation
 	}
@@ -609,7 +619,7 @@ func generateIndexes(apiPath string, ot ObjectType) []string {
 // (every emitted index refers to an actual field, an always-on synthetic,
 // or a documented apiPath special-case) rather than from re-deriving the
 // same rules in two places that could themselves drift. See
-// .planning/phases/74-test-ci-debt/74-01-PLAN.md for the rationale.
+// the project history for the rationale.
 func ExpectedIndexesFor(apiPath string, ot ObjectType) []string {
 	return generateIndexes(apiPath, ot)
 }
@@ -721,6 +731,15 @@ func ({{.ModelName}}) Indexes() []ent.Index {
 		{{- range .Indexes}}
 		index.Fields("{{.}}"),
 		{{- end}}
+		// Composite index covering the default list ordering. Every list and
+		// stream query filters on status and orders by updated, created, id;
+		// with status leading, SQLite satisfies status-IN plus the three-key
+		// DESC sort directly from this index on the common single-status path
+		// instead of materialising a temp B-tree for the sort (verified with
+		// EXPLAIN QUERY PLAN). A leading status column is required: a bare
+		// updated, created, id index is ignored because the planner prefers
+		// the single-column status index for the filter and then still sorts.
+		index.Fields("status", "updated", "created", "id"),
 	}
 }
 

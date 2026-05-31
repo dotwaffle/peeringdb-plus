@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Configuration
 
 All PeeringDB Plus configuration is supplied via environment variables. The

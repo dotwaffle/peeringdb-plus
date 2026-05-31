@@ -243,6 +243,7 @@ func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFa
 		Convert:    facilityToProto,
 		GetID:      func(f *ent.Facility) int { return f.ID },
 		GetUpdated: func(f *ent.Facility) time.Time { return f.Updated },
+		GetCreated: func(f *ent.Facility) time.Time { return f.Created },
 	}, stream)
 }
 

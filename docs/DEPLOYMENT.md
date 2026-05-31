@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Deployment
 
 PeeringDB Plus is designed to be deployed to [Fly.io](https://fly.io/) with
@@ -319,7 +318,7 @@ Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` 
 - `Peak RSS` — threshold line at 384 MiB
 - `Live Heap by Instance` — sourced from the `go_memory_used_bytes` OTel runtime gauge, plots all fleet machines (primary + replicas) post-Phase-65 asymmetric fleet
 
-**SEED-001 escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, SEED-001 (`.planning/seeds/SEED-001-incremental-sync-evaluation.md`) trigger has fired — revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work documented in the seed. Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB. <!-- VERIFY: post-incremental-flip (2026-04-26) memory baseline has not yet been captured into the repository -->
+**SEED-001 escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, the SEED-001 incremental-sync-evaluation trigger has fired — revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work. Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB. <!-- VERIFY: post-incremental-flip (2026-04-26) memory baseline has not yet been captured into the repository -->
 
 **Incident-response debug shell (OBS-04).** The prod image ships with the `sqlite3` binary (added 2026-04-18, quick task `260418-1cn`; declared in `Dockerfile.prod` via `apk add --no-cache fuse3 sqlite`). Run interactive queries via:
 

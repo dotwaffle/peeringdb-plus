@@ -467,10 +467,31 @@ func TestBuildInErrors(t *testing.T) {
 			wantMsg: "convert",
 		},
 		{
-			name:    "in on unsupported field type",
+			name:    "in on bool field with non-bool value",
 			field:   "info_unicast",
-			value:   "true,false",
+			value:   "true,maybe",
 			ft:      FieldBool,
+			wantMsg: "convert",
+		},
+		{
+			name:    "in on float field with non-numeric value",
+			field:   "latitude",
+			value:   "1.5,nope",
+			ft:      FieldFloat,
+			wantMsg: "convert",
+		},
+		{
+			name:    "in on time field with non-numeric value",
+			field:   "created",
+			value:   "1700000000,later",
+			ft:      FieldTime,
+			wantMsg: "convert",
+		},
+		{
+			name:    "in on unknown field type",
+			field:   "mystery",
+			value:   "a,b",
+			ft:      FieldType(99),
 			wantMsg: "in operator not supported on field type",
 		},
 	}
@@ -484,6 +505,35 @@ func TestBuildInErrors(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tt.wantMsg) {
 				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+			}
+		})
+	}
+}
+
+// TestBuildIn_CoercesBoolFloatTime verifies __in now filters bool/float/
+// time fields instead of returning an error (audit PA2 — upstream Django
+// coerces these). A valid CSV must produce a non-nil predicate.
+func TestBuildIn_CoercesBoolFloatTime(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		field string
+		value string
+		ft    FieldType
+	}{
+		{"bool", "info_unicast", "true,false", FieldBool},
+		{"float", "latitude", "1.5,2.25", FieldFloat},
+		{"time", "created", "1700000000,1700000100", FieldTime},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			pred, err := buildIn(c.field, c.value, c.ft)
+			if err != nil {
+				t.Fatalf("buildIn(%s) returned error: %v", c.ft, err)
+			}
+			if pred == nil {
+				t.Fatalf("buildIn(%s) returned nil predicate", c.ft)
 			}
 		})
 	}
@@ -516,6 +566,60 @@ func TestConvertValueErrors(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tt.wantMsg) {
 				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+			}
+		})
+	}
+}
+
+// TestFieldTypeString locks the human-readable rendering of each field
+// type used in client-facing filter errors (audit U2).
+func TestFieldTypeString(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		ft   FieldType
+		want string
+	}{
+		{FieldString, "string"},
+		{FieldInt, "int"},
+		{FieldBool, "bool"},
+		{FieldTime, "time"},
+		{FieldFloat, "float"},
+		{FieldType(99), "unknown(99)"},
+	}
+	for _, tt := range tests {
+		if got := tt.ft.String(); got != tt.want {
+			t.Errorf("FieldType(%d).String() = %q, want %q", int(tt.ft), got, tt.want)
+		}
+	}
+}
+
+// TestFilterErrorsUseTypeNames verifies the three field-type error paths
+// render the type name, never the raw enum integer (audit U2).
+func TestFilterErrorsUseTypeNames(t *testing.T) {
+	t.Parallel()
+	_, exactErr := buildExact("f", "v", FieldType(99), false)
+	_, convErr := convertValue("v", FieldType(99))
+	_, inErr := buildIn("f", "v", FieldType(99))
+	checks := []struct {
+		name string
+		err  error
+	}{
+		{"exact", exactErr},
+		{"convert", convErr},
+		{"in", inErr},
+	}
+	for _, c := range checks {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			if c.err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			msg := c.err.Error()
+			if !strings.Contains(msg, "unknown(99)") {
+				t.Errorf("error %q does not contain human-readable type name", msg)
+			}
+			if strings.Contains(msg, "type 99") || strings.Contains(msg, "%!") {
+				t.Errorf("error %q leaks raw enum integer or bad format verb", msg)
 			}
 		})
 	}
@@ -633,8 +737,10 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			wantMsg: "filter asn__in",
 		},
 		{
-			name:    "in on bool field error propagated",
-			params:  url.Values{"info_unicast__in": {"true,false"}},
+			// Bool __in now filters (audit PA2); only a malformed value
+			// still propagates an error.
+			name:    "in on bool field with bad value error propagated",
+			params:  url.Values{"info_unicast__in": {"true,maybe"}},
 			wantMsg: "filter info_unicast__in",
 		},
 	}

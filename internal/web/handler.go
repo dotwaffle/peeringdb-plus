@@ -290,7 +290,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 			h.handleNotFound(w, r)
 			return
 		}
-		slog.Error("compare networks", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err)) //nolint:gosec // error from ent query, not user input
+		slog.Error("compare networks", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
@@ -303,7 +303,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
-		slog.Error("render compare", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err)) //nolint:gosec // error from template render, not user input
+		slog.Error("render compare", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err))
 		h.handleServerError(w, r)
 	}
 }

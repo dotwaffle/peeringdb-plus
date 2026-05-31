@@ -458,6 +458,141 @@ func TestSyncRecordsStatusFailure(t *testing.T) {
 	}
 }
 
+// TestSyncRecoversFromPanic verifies the panic firewall in Sync: a panic
+// raised inside a sync cycle (here via the OnSyncComplete callback, a
+// representative in-cycle nil-deref surrogate) must NOT crash the process.
+// Instead it is recovered, surfaced as an ordinary error, recorded as a
+// FAILED sync status + failure metric, and — crucially — a subsequent
+// non-panicking cycle on the same worker must succeed, proving the
+// scheduler can keep running.
+//
+// Without the firewall in Sync, the recover() is absent and the panic
+// propagates out of the goroutine that main.go spawns (go StartScheduler /
+// go in.SyncFn), crashing the whole process.
+//
+// Not parallel: writes to package-level metric vars per CC-3.
+func TestSyncRecoversFromPanic(t *testing.T) {
+	reader := setupMetricTest(t)
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	client, db := testutil.SetupClientWithDB(t)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+	pdbClient := newFastPDBClient(t, f.server.URL)
+
+	var panicArmed atomic.Bool
+	panicArmed.Store(true)
+	w := NewWorker(pdbClient, client, db, WorkerConfig{
+		OnSyncComplete: func(_ context.Context, _ time.Time) {
+			// Fire on the FIRST cycle only so the second cycle can prove
+			// the worker recovered and can sync again.
+			if panicArmed.CompareAndSwap(true, false) {
+				panic("injected sync-cycle panic")
+			}
+		},
+	}, slog.Default())
+
+	// Cycle 1: the injected panic must be recovered, not crash the test
+	// binary. recover() turns a panic into a normal test failure rather
+	// than a hard process abort, so reaching the assertions below at all
+	// is the core proof — but we still assert the converted error + status.
+	err := w.Sync(t.Context(), config.SyncModeFull)
+	if err == nil {
+		t.Fatal("expected Sync to return an error after a recovered panic")
+	}
+	if !strings.Contains(err.Error(), "panic") {
+		t.Errorf("expected panic-derived error, got %v", err)
+	}
+
+	status, err := GetLastStatus(t.Context(), db)
+	if err != nil {
+		t.Fatalf("get status: %v", err)
+	}
+	if status == nil {
+		t.Fatal("expected non-nil status")
+	}
+	if status.Status != "failed" {
+		t.Errorf("expected failed status after recovered panic, got %s", status.Status)
+	}
+	if status.ErrorMessage == "" {
+		t.Error("expected non-empty error message recording the panic")
+	}
+
+	// The failure metric must be recorded by the firewall's recordFailure.
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+	if findMetric(rm, "pdbplus.sync.operations") == nil {
+		t.Fatal("expected pdbplus.sync.operations metric recorded by panic firewall")
+	}
+
+	// Cycle 2: no panic this time — the worker must run again and succeed.
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
+		t.Fatalf("expected second sync to succeed after recovered panic, got %v", err)
+	}
+	status2, err := GetLastStatus(t.Context(), db)
+	if err != nil {
+		t.Fatalf("get status (cycle 2): %v", err)
+	}
+	if status2 == nil || status2.Status != "success" {
+		t.Fatalf("expected success status on second cycle, got %+v", status2)
+	}
+}
+
+// TestRecordFailure_DurableOnCancelledContext is the FIX-3 regression lock.
+// recordFailure is reached after a cycle that may already be cancelled by
+// the demotion monitor (runSyncCycle's cycleCancel) or a SIGTERM. The
+// status UPDATE and terminal metrics MUST still land — recordFailure
+// detaches cancellation via terminalRecordContext. Without that, the
+// RecordSyncComplete UPDATE runs under a cancelled ctx, becomes a no-op,
+// and the sync_status row is left stuck "running".
+//
+// The test seeds a "running" row, cancels the context, calls recordFailure
+// with the dead ctx, and asserts the row is durably "failed".
+func TestRecordFailure_DurableOnCancelledContext(t *testing.T) {
+	t.Parallel()
+
+	f := newFixture(t)
+	w, db := newTestWorker(t, f)
+
+	// Seed a running row, exactly as Sync would via RecordSyncStart.
+	start := time.Now()
+	statusID, err := RecordSyncStart(t.Context(), db, start, string(config.SyncModeFull))
+	if err != nil {
+		t.Fatalf("RecordSyncStart: %v", err)
+	}
+
+	// Cancel the context BEFORE recording the outcome — this is the
+	// demotion/SIGTERM race the fix addresses.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if ctx.Err() == nil {
+		t.Fatal("expected ctx to be cancelled")
+	}
+
+	w.recordFailure(ctx, config.SyncModeFull, statusID, start,
+		errors.New("upstream blew up mid-cycle"))
+
+	// Read back on a LIVE context: the row must be durably "failed".
+	status, err := GetLastStatus(t.Context(), db)
+	if err != nil {
+		t.Fatalf("GetLastStatus: %v", err)
+	}
+	if status == nil {
+		t.Fatal("expected non-nil status")
+	}
+	if status.Status != "failed" {
+		t.Errorf("expected status durably updated to failed, got %q (stuck running = bug)", status.Status)
+	}
+	if status.ErrorMessage != "upstream blew up mid-cycle" {
+		t.Errorf("expected error message recorded, got %q", status.ErrorMessage)
+	}
+}
+
 // TestSyncRollbackOnFailure verifies database rolls back on sync failure.
 func TestSyncRollbackOnFailure(t *testing.T) {
 	t.Parallel()

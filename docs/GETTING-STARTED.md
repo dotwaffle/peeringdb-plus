@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Getting Started
 
 This guide walks a new contributor or operator through their first 30 minutes

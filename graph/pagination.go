@@ -20,6 +20,20 @@ func validatePageSize(first, last *int) error {
 	return nil
 }
 
+// defaultFirst bounds an otherwise-unbounded Relay connection. When the
+// client supplies neither first nor last, the entgql paginator applies no
+// LIMIT and materializes the entire table (a full-table scan plus a
+// connection of every row). Default first to DefaultLimit so a parameterless
+// connection query returns a bounded first page; explicit first/last (already
+// max-checked by validatePageSize) are passed through unchanged.
+func defaultFirst(first, last *int) *int {
+	if first == nil && last == nil {
+		d := DefaultLimit
+		return &d
+	}
+	return first
+}
+
 // OffsetLimitInput holds validated offset and limit values.
 type OffsetLimitInput struct {
 	Offset int
