@@ -7,12 +7,38 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"golang.org/x/net/http2"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 )
+
+// TestFreshnessFromCache verifies the freshness gauge reads its value
+// from the atomic cache pointer — never the database — and reflects
+// updates (audit P3). A nil pointer reports no observation.
+func TestFreshnessFromCache(t *testing.T) {
+	t.Parallel()
+	var cache atomic.Pointer[time.Time]
+
+	if _, ok := freshnessFromCache(&cache); ok {
+		t.Error("empty cache should report no observation")
+	}
+
+	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	cache.Store(&t1)
+	if got, ok := freshnessFromCache(&cache); !ok || !got.Equal(t1) {
+		t.Errorf("got (%v, %v), want (%v, true)", got, ok, t1)
+	}
+
+	t2 := t1.Add(time.Hour)
+	cache.Store(&t2)
+	if got, ok := freshnessFromCache(&cache); !ok || !got.Equal(t2) {
+		t.Errorf("after update got (%v, %v), want (%v, true)", got, ok, t2)
+	}
+}
 
 func TestSyncReplay_FlyReplica(t *testing.T) {
 	// When isPrimaryFn returns false AND FLY_REGION is set,
