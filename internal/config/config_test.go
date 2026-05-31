@@ -319,6 +319,47 @@ func TestLoad_IncludeDeleted_Removed(t *testing.T) {
 	})
 }
 
+// TestLoad_FKBackfillMaxRequestsPerCycle locks the default at 20 (audit
+// M3 — a stale doc comment had claimed 200) and covers the disable /
+// reject edges.
+func TestLoad_FKBackfillMaxRequestsPerCycle(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    int
+		wantErr bool
+	}{
+		{name: "default is 20", envVal: "", want: 20},
+		{name: "explicit 5", envVal: "5", want: 5},
+		{name: "zero disables", envVal: "0", want: 0},
+		{name: "explicit 100", envVal: "100", want: 100},
+		{name: "negative rejected", envVal: "-1", wantErr: true},
+		{name: "non-integer rejected", envVal: "abc", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE=%q, got nil", tt.envVal)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.FKBackfillMaxRequestsPerCycle != tt.want {
+				t.Errorf("FKBackfillMaxRequestsPerCycle = %d, want %d", cfg.FKBackfillMaxRequestsPerCycle, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoad_CSPEnforce(t *testing.T) {
 	tests := []struct {
 		name    string

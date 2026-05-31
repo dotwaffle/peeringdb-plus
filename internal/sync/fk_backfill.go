@@ -28,7 +28,7 @@ import (
 // parent, we issue exactly ONE backfill fetch and let the in-cache
 // short-circuit handle the next 199.
 //
-// Per-cycle cap (PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE, default 200)
+// Per-cycle cap (PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE, default 20)
 // prevents runaway upstream traffic when many distinct parents are
 // missing — cap-hit logs WARN with result=ratelimited and the remaining
 // child rows fall through to the legacy drop-and-record-orphan path.
