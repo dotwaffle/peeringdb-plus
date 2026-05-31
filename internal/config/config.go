@@ -256,20 +256,15 @@ func Load() (*Config, error) {
 	}
 
 	// PDBPLUS_INCLUDE_DELETED was removed in v1.16 Phase 68 (D-01). Sync now
-	// always persists deleted rows as tombstones (Phase 68 Plan 02 lands the
-	// soft-delete flip); pdbcompat applies the upstream status × since matrix
-	// regardless of any legacy gate. During the v1.16 → v1.17 grace period,
-	// the variable is logged and ignored. Flipping to fail-fast in v1.17 is a
-	// one-line swap (slog.Warn → return nil, errors.New(...)).
+	// always persists deleted rows as tombstones; pdbcompat applies the
+	// upstream status × since matrix regardless of any legacy gate. The
+	// variable carried a v1.16 → v1.17 deprecation grace period during which
+	// it was logged and ignored. That window closed several releases ago
+	// (we are past v1.18), so setting it now is a hard startup error — a
+	// stale deployment config that expects the old gate must surface, not
+	// silently do nothing.
 	if v := os.Getenv("PDBPLUS_INCLUDE_DELETED"); v != "" {
-		// gosec G706 log-injection: value is operator-supplied env var
-		// contents attached as a structured slog attribute (not interpolated
-		// into the message), the variable is a boolean flag with no secret
-		// content, and slog.String quotes the value on output. Safe per
-		// GO-SEC-2 (no secrets in env) + threat register T-68-01-03.
-		slog.Warn("PDBPLUS_INCLUDE_DELETED is deprecated and ignored; remove it from your environment. This will be a startup error in v1.17.",
-			slog.String("value", v),
-		)
+		return nil, fmt.Errorf("PDBPLUS_INCLUDE_DELETED was removed in v1.16; deleted rows are always persisted as tombstones now — remove it from your environment (was %q)", v)
 	}
 
 	drainTimeout, err := parseDuration("PDBPLUS_DRAIN_TIMEOUT", 10*time.Second)

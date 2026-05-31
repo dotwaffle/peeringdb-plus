@@ -1,8 +1,6 @@
 package config
 
 import (
-	"bytes"
-	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -293,42 +291,30 @@ func TestLoad_SyncInterval_AuthConditional(t *testing.T) {
 	}
 }
 
-// TestLoad_IncludeDeleted_Deprecated asserts PDBPLUS_INCLUDE_DELETED is ignored
-// with a WARN log during the v1.16 → v1.17 grace period (Phase 68 D-01). The
-// env var is no longer a Config field; setting it must not fail Load().
-//
-// Subtests must NOT call t.Parallel() — slog.SetDefault is process-global.
-func TestLoad_IncludeDeleted_Deprecated(t *testing.T) {
-	t.Run("env_set_warns", func(t *testing.T) {
+// TestLoad_IncludeDeleted_Removed asserts that PDBPLUS_INCLUDE_DELETED is
+// now a hard startup error when set (audit M9). The v1.16 → v1.17
+// grace-period WARN-and-ignore is gone; deleted rows are always persisted
+// as tombstones, and a stale config that still sets the variable must
+// fail fast rather than silently do nothing.
+func TestLoad_IncludeDeleted_Removed(t *testing.T) {
+	t.Run("env_set_fails", func(t *testing.T) {
 		t.Setenv("PDBPLUS_INCLUDE_DELETED", "true")
 		t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 
-		var buf bytes.Buffer
-		prev := slog.Default()
-		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
-		t.Cleanup(func() { slog.SetDefault(prev) })
-
-		if _, err := Load(); err != nil {
-			t.Fatalf("Load() unexpected error: %v", err)
+		_, err := Load()
+		if err == nil {
+			t.Fatal("Load() succeeded; expected a startup error for PDBPLUS_INCLUDE_DELETED")
 		}
-		if !strings.Contains(buf.String(), "PDBPLUS_INCLUDE_DELETED is deprecated") {
-			t.Fatalf("expected deprecation WARN in log output; got: %q", buf.String())
+		if !strings.Contains(err.Error(), "PDBPLUS_INCLUDE_DELETED") {
+			t.Fatalf("error %q does not mention the removed variable", err.Error())
 		}
 	})
 
-	t.Run("env_unset_no_warn", func(t *testing.T) {
+	t.Run("env_unset_succeeds", func(t *testing.T) {
 		t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 
-		var buf bytes.Buffer
-		prev := slog.Default()
-		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelWarn})))
-		t.Cleanup(func() { slog.SetDefault(prev) })
-
 		if _, err := Load(); err != nil {
-			t.Fatalf("Load() unexpected error: %v", err)
-		}
-		if strings.Contains(buf.String(), "PDBPLUS_INCLUDE_DELETED") {
-			t.Fatalf("unexpected deprecation log when env unset: %q", buf.String())
+			t.Fatalf("Load() unexpected error when env unset: %v", err)
 		}
 	})
 }
