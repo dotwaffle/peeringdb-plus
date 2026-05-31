@@ -669,9 +669,17 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 		// Defensive — strings.Split never returns []; "" is handled above.
 		return nil, errEmptyIn
 	}
+	// Bool, float, and time IN lists bind each value as a parameter via
+	// ent's converter (sql.FieldIn), exactly like buildExact's FieldEQ.
+	// This keeps IN comparison semantics identical to single-value
+	// matches — critical for time, whose stored text layout must not be
+	// reconstructed by hand the way a json_each string compare would. These
+	// columns never carry the very large value lists (e.g. asn__in=) that
+	// motivated the json_each path, so the bound-parameter count stays well
+	// under SQLite's variable limit.
 	var jsonArr []byte
 	var marshalErr error
-	switch ft { //nolint:exhaustive // default case handles remaining types (Bool, Time, Float) with error
+	switch ft {
 	case FieldString:
 		trimmed := make([]string, len(parts))
 		for i, p := range parts {
@@ -690,6 +698,36 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 			ints = append(ints, v)
 		}
 		jsonArr, marshalErr = json.Marshal(ints)
+	case FieldBool:
+		bools := make([]bool, 0, len(parts))
+		for _, p := range parts {
+			v, parseErr := parseBool(strings.TrimSpace(p))
+			if parseErr != nil {
+				return nil, fmt.Errorf("convert %q to bool for IN: %w", p, parseErr)
+			}
+			bools = append(bools, v)
+		}
+		return sql.FieldIn(field, bools...), nil
+	case FieldFloat:
+		floats := make([]float64, 0, len(parts))
+		for _, p := range parts {
+			v, parseErr := strconv.ParseFloat(strings.TrimSpace(p), 64)
+			if parseErr != nil {
+				return nil, fmt.Errorf("convert %q to float for IN: %w", p, parseErr)
+			}
+			floats = append(floats, v)
+		}
+		return sql.FieldIn(field, floats...), nil
+	case FieldTime:
+		times := make([]time.Time, 0, len(parts))
+		for _, p := range parts {
+			v, parseErr := parseTime(strings.TrimSpace(p))
+			if parseErr != nil {
+				return nil, fmt.Errorf("convert %q to time for IN: %w", p, parseErr)
+			}
+			times = append(times, v)
+		}
+		return sql.FieldIn(field, times...), nil
 	default:
 		return nil, fmt.Errorf("in operator not supported on field type %s for field %q", ft, field)
 	}

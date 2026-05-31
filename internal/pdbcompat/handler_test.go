@@ -153,6 +153,83 @@ func TestErrorResponsesSanitized(t *testing.T) {
 	}
 }
 
+// TestListEndpoint_InBoolAndTime verifies __in filters bool and time
+// fields end-to-end against SQLite, rather than returning 400 (audit PA2).
+// Time matching is the load-bearing case: sql.FieldIn binds time.Time via
+// ent's converter, so it must match the stored representation exactly.
+func TestListEndpoint_InBoolAndTime(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+
+	type netSpec struct {
+		name    string
+		asn     int
+		unicast bool
+		created int64 // unix epoch
+	}
+	specs := []netSpec{
+		{"InA", 1001, true, 1700000000},
+		{"InB", 1002, false, 1700000100},
+		{"InC", 1003, true, 1700000200},
+	}
+	for _, s := range specs {
+		_, err := client.Network.Create().
+			SetName(s.name).
+			SetNameFold(unifold.Fold(s.name)).
+			SetAsn(s.asn).
+			SetInfoUnicast(s.unicast).
+			SetStatus("ok").
+			SetCreated(time.Unix(s.created, 0)).
+			SetUpdated(time.Unix(s.created, 0)).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create network %s: %v", s.name, err)
+		}
+	}
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	countData := func(t *testing.T, query string) int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, query, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d, body %s", query, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("%s: decode envelope: %v", query, err)
+		}
+		var data []json.RawMessage
+		if err := json.Unmarshal(env.Data, &data); err != nil {
+			t.Fatalf("%s: decode data: %v", query, err)
+		}
+		return len(data)
+	}
+
+	cases := []struct {
+		query string
+		want  int
+	}{
+		{"/api/net?info_unicast__in=true", 2},
+		{"/api/net?info_unicast__in=false", 1},
+		{"/api/net?info_unicast__in=true,false", 3},
+		{"/api/net?created__in=1700000000,1700000200", 2},
+		{"/api/net?created__in=1700000100", 1},
+	}
+	for _, c := range cases {
+		t.Run(c.query, func(t *testing.T) {
+			if got := countData(t, c.query); got != c.want {
+				t.Errorf("%s: got %d rows, want %d", c.query, got, c.want)
+			}
+		})
+	}
+}
+
 func TestListEndpoint(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)

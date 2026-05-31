@@ -467,10 +467,31 @@ func TestBuildInErrors(t *testing.T) {
 			wantMsg: "convert",
 		},
 		{
-			name:    "in on unsupported field type",
+			name:    "in on bool field with non-bool value",
 			field:   "info_unicast",
-			value:   "true,false",
+			value:   "true,maybe",
 			ft:      FieldBool,
+			wantMsg: "convert",
+		},
+		{
+			name:    "in on float field with non-numeric value",
+			field:   "latitude",
+			value:   "1.5,nope",
+			ft:      FieldFloat,
+			wantMsg: "convert",
+		},
+		{
+			name:    "in on time field with non-numeric value",
+			field:   "created",
+			value:   "1700000000,later",
+			ft:      FieldTime,
+			wantMsg: "convert",
+		},
+		{
+			name:    "in on unknown field type",
+			field:   "mystery",
+			value:   "a,b",
+			ft:      FieldType(99),
 			wantMsg: "in operator not supported on field type",
 		},
 	}
@@ -484,6 +505,35 @@ func TestBuildInErrors(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tt.wantMsg) {
 				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+			}
+		})
+	}
+}
+
+// TestBuildIn_CoercesBoolFloatTime verifies __in now filters bool/float/
+// time fields instead of returning an error (audit PA2 — upstream Django
+// coerces these). A valid CSV must produce a non-nil predicate.
+func TestBuildIn_CoercesBoolFloatTime(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		field string
+		value string
+		ft    FieldType
+	}{
+		{"bool", "info_unicast", "true,false", FieldBool},
+		{"float", "latitude", "1.5,2.25", FieldFloat},
+		{"time", "created", "1700000000,1700000100", FieldTime},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			pred, err := buildIn(c.field, c.value, c.ft)
+			if err != nil {
+				t.Fatalf("buildIn(%s) returned error: %v", c.ft, err)
+			}
+			if pred == nil {
+				t.Fatalf("buildIn(%s) returned nil predicate", c.ft)
 			}
 		})
 	}
@@ -687,8 +737,10 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			wantMsg: "filter asn__in",
 		},
 		{
-			name:    "in on bool field error propagated",
-			params:  url.Values{"info_unicast__in": {"true,false"}},
+			// Bool __in now filters (audit PA2); only a malformed value
+			// still propagates an error.
+			name:    "in on bool field with bad value error propagated",
+			params:  url.Values{"info_unicast__in": {"true,maybe"}},
 			wantMsg: "filter info_unicast__in",
 		},
 	}
