@@ -149,6 +149,20 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 			},
 			wantPrimary: true,
 		},
+		{
+			name: "no litefs directory and unparseable env var defaults to true",
+			setup: func(t *testing.T) (string, string) {
+				// An env value strconv.ParseBool can't decode ("maybe", a
+				// typo'd config) must hit the parse-error fallback, which
+				// fails toward primary for local dev — NOT silently false.
+				dir := filepath.Join(t.TempDir(), "nonexistent-litefs")
+				path := filepath.Join(dir, ".primary")
+				envKey := "TEST_IS_PRIMARY_6"
+				t.Setenv(envKey, "maybe")
+				return path, envKey
+			},
+			wantPrimary: true,
+		},
 	}
 
 	for _, tt := range tests {
