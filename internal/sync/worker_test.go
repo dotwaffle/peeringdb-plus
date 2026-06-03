@@ -2589,52 +2589,58 @@ func TestSync_PhaseOrderComments(t *testing.T) {
 }
 
 // TestSync_D19Atomicity is the PERF-05 regression lock for D-19 single-
-// transaction atomicity. It asserts that if a Phase B upsert fails mid-way
-// through the 13 types, the rollback leaves the database in its
-// pre-sync state (empty for a fresh DB). Without the single ent.Tx
-// wrapping every write, partial upserts would survive the failure.
+// transaction atomicity AND the coverage for the in-tx rollback terminal
+// path (Worker.syncCycle → rollbackAndRecord). It asserts that when a Phase B
+// upsert fails mid-way through the 13 types, the rollback discards every
+// already-applied in-tx write, leaving only the pre-sync committed state.
 //
-// Injection strategy: return a campus payload whose `id` field is a
-// JSON string instead of an int. json.Unmarshal into peeringdb.Campus
-// fails inside syncIncremental, propagating a decode error out of
-// dispatchScratchChunk → drainAndUpsertType → syncUpsertPass, and the
-// orchestrator rolls back the tx. Organizations have already been
-// upserted inside the tx at that point, so their post-rollback count
-// proves the single-tx guarantee.
+// Injection strategy (must reach Phase B, NOT Phase A): the campus payload
+// carries a VALID integer `id` so it passes stageType's minimal PK pre-decode
+// during Phase A staging, but its `name` is a JSON number — peeringdb.Campus.Name
+// is a string, so the FULL json.Unmarshal in syncIncremental (worker.go) fails
+// at replay time, inside the tx. The error propagates dispatchScratchChunk →
+// drainAndUpsertType → syncUpsertPass → syncCycle, which calls rollbackAndRecord.
+// (An `id`-as-string payload would instead fail the Phase A PK pre-decode and
+// route through recordFailure with no tx ever opened — that does not exercise
+// rollback. Likewise an FK-orphan is dropped cleanly by the upsert-time
+// fkFilter and lets the sync succeed, so it is not a rollback injection path.)
 //
-// We deliberately use a decode failure rather than an FK-orphan
-// injection here because the v1.13 upsert-time fkFilter would catch
-// an FK orphan cleanly and let the sync succeed with the orphan
-// dropped — which is the correct production behaviour and therefore
-// no longer a D-19 failure injection path.
+// org is upserted before campus in Phase B, so the rollback proof is concrete:
+// a committed org (PreSeedOrg) is upserted to FixtureOrg INSIDE the failing tx,
+// and after the rollback it must read back as PreSeedOrg with no sibling rows.
 func TestSync_D19Atomicity(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 
-	// parityFixtureServer uses testdata/fixtures for 12 of 13 types; override
-	// the campus payload with an upsert-fatal row to trigger a Phase B
-	// rollback after Organizations have already been upserted.
-	pfs := newParityFixtureServer(t)
-
-	// Build a server that wraps pfs.server but intercepts /api/campus with
-	// a payload whose `id` is a JSON string — peeringdb.Campus.ID is an
-	// int, so json.Unmarshal returns a type error at decode time inside
-	// Phase B. The error surfaces out of dispatchScratchChunk and triggers
-	// a Phase B rollback after organizations have been upserted.
+	// Minimal injecting server: a valid org (Phase B upserts it in-tx), a
+	// Phase-B-fatal campus (valid id, number-typed name), empty everything
+	// else. Self-contained so the rollback assertion does not depend on
+	// fixture contents.
 	injectingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, "/api/")
-		objType := strings.Split(path, "?")[0]
-		if objType == peeringdb.TypeCampus {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":"not-an-int","org_id":1,"name":"d19-injection","country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
-			return
+		w.Header().Set("Content-Type", "application/json")
+		objType := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")[0]
+		switch objType {
+		case peeringdb.TypeOrg:
+			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":1,"name":"FixtureOrg","country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
+		case peeringdb.TypeCampus:
+			// id is a valid int (passes Phase A PK pre-decode); name is a
+			// number (fails the Phase B full unmarshal into peeringdb.Campus).
+			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":999,"name":12345,"org_id":1,"country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
+		default:
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
 		}
-		// Delegate to parity fixture server for all other types.
-		pfs.server.Config.Handler.ServeHTTP(w, r)
 	}))
 	defer injectingServer.Close()
 
 	client, db := testutil.SetupClientWithDB(t)
+
+	// Pre-seed a committed org so the rollback has prior state to preserve.
+	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	if _, err := client.Organization.Create().
+		SetID(1).SetName("PreSeedOrg").SetStatus("ok").SetCreated(ts).SetUpdated(ts).
+		Save(ctx); err != nil {
+		t.Fatalf("pre-seed org: %v", err)
+	}
 
 	pdbClient := peeringdb.NewClient(injectingServer.URL, slog.Default())
 	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
@@ -2650,28 +2656,39 @@ func TestSync_D19Atomicity(t *testing.T) {
 
 	syncErr := worker.Sync(ctx, config.SyncModeFull)
 	if syncErr == nil {
-		t.Fatal("expected sync error from D-19 injection, got nil")
+		t.Fatal("expected Phase B rollback error from campus injection, got nil")
+	}
+	// Proves the failure reached the Phase B full-unmarshal (the rollback
+	// path), not the Phase A PK pre-decode (which would say "decode id from
+	// campus element" and route through recordFailure with no tx).
+	if !strings.Contains(syncErr.Error(), "decode campus id=999") {
+		t.Errorf("sync error = %q, want it to wrap the Phase B unmarshal failure %q", syncErr, "decode campus id=999")
 	}
 
-	// D-19 assertion: every table must be empty. A partial upsert that
-	// survives the rollback is a regression.
-	counts := map[string]int{}
-	if counts["organizations"], _ = client.Organization.Query().Count(ctx); counts["organizations"] != 0 {
-		t.Errorf("D-19 violated: organizations table has %d rows post-rollback", counts["organizations"])
+	// D-19: the in-tx org upsert (org 1 → FixtureOrg) and the campus write
+	// must both be discarded, leaving only the pre-seeded committed row.
+	if n, _ := client.Organization.Query().Count(ctx); n != 1 {
+		t.Errorf("org count = %d, want 1 (rollback must discard in-tx inserts)", n)
 	}
-	if counts["campuses"], _ = client.Campus.Query().Count(ctx); counts["campuses"] != 0 {
-		t.Errorf("D-19 violated: campuses table has %d rows post-rollback", counts["campuses"])
+	org, err := client.Organization.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("get org 1: %v", err)
 	}
-	if counts["facilities"], _ = client.Facility.Query().Count(ctx); counts["facilities"] != 0 {
-		t.Errorf("D-19 violated: facilities table has %d rows post-rollback", counts["facilities"])
+	if org.Name != "PreSeedOrg" {
+		t.Errorf("org 1 name = %q, want %q (the in-tx upsert to FixtureOrg must be rolled back)", org.Name, "PreSeedOrg")
 	}
-	if counts["networks"], _ = client.Network.Query().Count(ctx); counts["networks"] != 0 {
-		t.Errorf("D-19 violated: networks table has %d rows post-rollback", counts["networks"])
+	if n, _ := client.Campus.Query().Count(ctx); n != 0 {
+		t.Errorf("campus count = %d, want 0 post-rollback", n)
 	}
-	if counts["ix"], _ = client.InternetExchange.Query().Count(ctx); counts["ix"] != 0 {
-		t.Errorf("D-19 violated: internet_exchanges table has %d rows post-rollback", counts["ix"])
+
+	// The recordFailure half of rollbackAndRecord must have run.
+	st, err := GetLastStatus(ctx, db)
+	if err != nil {
+		t.Fatalf("get last status: %v", err)
 	}
-	t.Logf("D-19 atomicity verified: all tables empty after rollback (%+v)", counts)
+	if st == nil || st.Status != "failed" {
+		t.Errorf("sync_status = %+v, want Status=failed", st)
+	}
 }
 
 // TestSync_MemoryLimitAbort verifies the Commit F (Plan 54-03) memory
