@@ -30,9 +30,11 @@ cold-sync from the primary on boot.
   with `CGO_ENABLED` unset (pure Go via `modernc.org/sqlite`) and
   `-trimpath -ldflags="-s -w …"` (the version string is injected via
   `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
-- `Dockerfile` — development image. Chainguard `glibc-dynamic` runtime, same
-  build flags but with `CGO_ENABLED=0` explicitly set. No LiteFS. Runs the
-  binary directly as `ENTRYPOINT ["/usr/local/bin/peeringdb-plus"]` with
+- `Dockerfile` — development image. Chainguard `glibc-dynamic` runtime,
+  `CGO_ENABLED=0` with `-trimpath -ldflags="-s -w"`. Unlike the prod image it
+  does **not** inject the build version (no `-X …buildinfo.injected=$VERSION`),
+  so `internal/buildinfo` reports its default. No LiteFS. Runs the binary
+  directly as `ENTRYPOINT ["/usr/local/bin/peeringdb-plus"]` with
   `PDBPLUS_DB_PATH=/data/peeringdb-plus.db` and `EXPOSE 8080`. Used by
   GitHub Actions for the `Docker Build` CI job and as a base for local
   container-based development.
@@ -162,7 +164,7 @@ Standard `OTEL_*` environment variables apply via the
 
 The default sync mode is `incremental` (flipped from `full` on 2026-04-26
 once upstream deletion tombstones were confirmed — see
-[CONFIGURATION.md](CONFIGURATION.md#sync-mode) for the full rationale). Set
+[CONFIGURATION.md](CONFIGURATION.md#sync-worker) for the full rationale). Set
 `PDBPLUS_SYNC_MODE=full` only as an operator
 escape-hatch (first-sync hydration, recovery from a corrupt incremental
 state).
