@@ -48,10 +48,11 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 ## Conventions
 
 ### Code Generation
-- `go generate ./...` runs the full codegen pipeline in correct order and produces zero drift on a clean tree:
-  1. `ent/generate.go` — runs entc.go (ent + entgql + entrest + entproto), then `cmd/pdb-compat-allowlist`, then `buf generate` for proto Go types
-  2. `internal/web/templates/generate.go` — runs `templ generate` for templ Go files
-  3. `schema/generate.go` — regenerates ent schemas from PeeringDB JSON (safe to re-run)
+- `go generate ./...` runs the full codegen pipeline and converges in a SINGLE pass on a clean tree (the schema producer is sequenced ahead of entc, its consumer):
+  1. `ent/generate.go` — runs `cmd/pdb-schema-generate` (peeringdb.json → ent/schema/*.go) FIRST, then entc.go (ent + entgql + entrest + entproto), then `cmd/pdb-compat-allowlist`, then `buf generate` for proto Go types
+  2. `graph/generate.go` — runs `gqlgen generate` for GraphQL resolvers/models
+  3. `internal/web/templates/generate.go` — runs `templ generate` for templ Go files
+  - `schema/generate.go` carries no `go:generate` directive (package doc for the manual `pdb-schema-extract` step); the schema-regen step now lives first in `ent/generate.go`.
 - `buf`, `templ`, and `gqlgen` are Go tool dependencies (`go tool buf`, `go tool templ`, `go tool gqlgen`) — no external install needed.
 - Hand-edited schema methods live in `{type}_{method}.go` siblings — see "Hand-edited schema methods" below.
 - Always commit `*_templ.go` alongside `.templ` changes, and generated `ent/`/`gen/`/`graph/` files alongside schema changes.

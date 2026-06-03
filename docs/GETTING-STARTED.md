@@ -52,9 +52,12 @@ derived files first:
 go generate ./...
 ```
 
-`go generate` chains ent (entgql/entrest/entproto), `cmd/pdb-compat-allowlist`,
-`buf generate`, `templ generate`, and `cmd/pdb-schema-generate` in the right
-order. CI runs the same command and fails on any drift.
+`go generate` converges in a single pass: `ent/generate.go` runs
+`cmd/pdb-schema-generate` first (so the schemas exist before entc reads them),
+then entc (entgql/entrest/entproto), `cmd/pdb-compat-allowlist`, and
+`buf generate`; `graph/generate.go` runs `gqlgen generate`; and
+`internal/web/templates/generate.go` runs `templ generate`. CI runs the same
+command and fails on any drift.
 
 ## 2. First run
 

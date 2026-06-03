@@ -79,22 +79,28 @@ package rationale. Code-change-relevant directories:
 ## Code generation pipeline
 
 PeeringDB Plus is heavily code-generated. A single `go generate ./...` invocation
-runs every stage in the correct order. The directives live in three files:
+runs every stage in the correct order and converges in a single pass. The
+`go:generate` directives live in three files:
 
-1. `ent/generate.go` — three sequenced directives:
-   1. `go run -mod=mod entc.go` — runs ent + entgql + entrest + entproto.
-   2. `cd .. && go run ./cmd/pdb-compat-allowlist` — emits
+1. `ent/generate.go` — four sequenced directives:
+   1. `cd ../schema && go run ../cmd/pdb-schema-generate/main.go peeringdb.json ../ent/schema`
+      — regenerates `ent/schema/{type}.go` from `schema/peeringdb.json`. Runs
+      **first**, before entc consumes those schemas.
+   2. `go run -mod=mod entc.go` — runs ent + entgql + entrest + entproto.
+   3. `cd .. && go run ./cmd/pdb-compat-allowlist` — emits
       `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
-   3. `cd .. && go tool buf generate` — emits protobuf Go types and ConnectRPC
+   4. `cd .. && go tool buf generate` — emits protobuf Go types and ConnectRPC
       handler interfaces from the proto sources.
-2. `internal/web/templates/generate.go` — runs `go tool templ generate` to
+2. `graph/generate.go` — runs `go tool gqlgen generate` to produce the GraphQL
+   resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
+3. `internal/web/templates/generate.go` — runs `go tool templ generate` to
    regenerate `*_templ.go` from `.templ` sources.
-3. `schema/generate.go` — runs `cmd/pdb-schema-generate` to regenerate
-   `ent/schema/*.go` from `schema/peeringdb.json`.
 
-Execution order matters: Go processes `go generate` directives in filesystem
-traversal order, so the ent pipeline (which reads `ent/schema/`) runs before
-buf (which reads `proto/`) and templ (which reads templates).
+`schema/generate.go` carries no `go:generate` directive; it only documents the
+manual `pdb-schema-extract` step. Sequencing `pdb-schema-generate` **first**
+within `ent/generate.go` — rather than under `schema/`, which `go generate ./...`
+visits after `ent/` — is what lets a single pass converge: the schema producer
+always runs before entc, its consumer.
 
 A clean tree must produce zero drift after `go generate ./...`. CI enforces
 this — see "Generated code drift check" below.
@@ -155,7 +161,7 @@ PeeringDB Django source
     │  (cmd/pdb-schema-extract, needs PEERINGDB_REPO_PATH)
     ▼
 schema/peeringdb.json   ← committed, canonical
-    │  (cmd/pdb-schema-generate via schema/generate.go)
+    │  (cmd/pdb-schema-generate, sequenced first in ent/generate.go)
     ▼
 ent/schema/{type}.go    ← regenerated; do NOT hand-edit (use siblings)
 ent/schema/{type}_*.go  ← sibling files: hand-edited, never touched by generator

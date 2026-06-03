@@ -186,36 +186,45 @@ deploy/                   # Deployment-adjacent assets (Grafana dashboards, aler
 
 ## Code generation pipeline
 
-`go generate ./...` runs the full pipeline in dependency order:
+`go generate ./...` runs the full pipeline and converges in a **single pass** — the
+schema producer is sequenced ahead of its consumer (entc) within `ent/generate.go`, so no
+second run is needed:
 
-1. **`ent/generate.go`** first invokes `go run entc.go` (`ent/entc.go`), which:
-   - Patches `go-openapi/inflect` and ent's internal inflect rules via `go:linkname` to fix
-     `"campus"` -> `"campu"` mangling.
-   - Configures three ent extensions:
-     - `entgql` — emits `graph/schema.graphqls` and `graph/gqlgen.yml` with Relay spec + where
-       inputs.
-     - `entrest` — emits an OpenAPI-compliant HTTP handler at `ent/rest/`, read-only operations
-       (`OperationRead`, `OperationList`) by default.
-     - `entproto` — emits proto message definitions into `proto/peeringdb/v1/v1.proto`.
-   - Enables the `sql/upsert`, `sql/execquery`, and `privacy` ent features (required by the sync
-     worker's bulk upsert, per-connection `PRAGMA` execution, and the POC privacy policy
-     respectively).
+1. **`ent/generate.go`** runs four directives in order:
+   1. `pdb-schema-generate` (run first) regenerates `ent/schema/{type}.go` from
+      `schema/peeringdb.json`. This step is re-runnable; hand-edited methods live in sibling
+      files (e.g. `poc_policy.go`, `network_fold.go`) that the generator never touches — see
+      [CLAUDE.md](../CLAUDE.md) for the conventions around this. It is sequenced here, ahead of
+      entc, rather than under `schema/`, because `go generate ./...` visits `ent/` before
+      `schema/` and could not otherwise guarantee the producer runs before the consumer.
+   2. `go run entc.go` (`ent/entc.go`), which:
+      - Patches `go-openapi/inflect` and ent's internal inflect rules via `go:linkname` to fix
+        `"campus"` -> `"campu"` mangling.
+      - Configures three ent extensions:
+        - `entgql` — emits `graph/schema.graphqls` and `graph/gqlgen.yml` with Relay spec + where
+          inputs.
+        - `entrest` — emits an OpenAPI-compliant HTTP handler at `ent/rest/`, read-only operations
+          (`OperationRead`, `OperationList`) by default.
+        - `entproto` — emits proto message definitions into `proto/peeringdb/v1/v1.proto`.
+      - Enables the `sql/upsert`, `sql/execquery`, and `privacy` ent features (required by the sync
+        worker's bulk upsert, per-connection `PRAGMA` execution, and the POC privacy policy
+        respectively).
+   3. `cmd/pdb-compat-allowlist` regenerates `internal/pdbcompat/allowlist_gen.go` from
+      `schema.PrepareQueryAllows` declared in `ent/schema/pdb_allowlists.go` (the cross-entity
+      traversal allowlist).
+   4. `go tool buf generate` at the repo root reads `buf.gen.yaml` and invokes `protoc-gen-go` +
+      `protoc-gen-connect-go` to emit Go types and ConnectRPC service interfaces under
+      `gen/peeringdb/v1/`.
 
-2. `ent/generate.go` then runs `cmd/pdb-compat-allowlist` to regenerate
-   `internal/pdbcompat/allowlist_gen.go` from `schema.PrepareQueryAllows` declared in
-   `ent/schema/pdb_allowlists.go` (the cross-entity traversal allowlist).
+2. **`graph/generate.go`** runs `go tool gqlgen generate` to produce the GraphQL resolvers and
+   models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
 
-3. `ent/generate.go` then runs `go tool buf generate` at the repo root, which reads `buf.gen.yaml`
-   and invokes `protoc-gen-go` + `protoc-gen-connect-go` to emit Go types and ConnectRPC service
-   interfaces under `gen/peeringdb/v1/`.
-
-4. **`internal/web/templates/generate.go`** runs `go tool templ generate` to produce the
+3. **`internal/web/templates/generate.go`** runs `go tool templ generate` to produce the
    type-safe `*_templ.go` files from `.templ` sources.
 
-5. **`schema/generate.go`** runs `pdb-schema-generate` against `schema/peeringdb.json` to
-   regenerate `ent/schema/*.go`. This step is re-runnable; hand-edited methods live in sibling
-   files (e.g. `poc_policy.go`, `network_fold.go`) that the generator never touches — see
-   [CLAUDE.md](../CLAUDE.md) for the conventions around this.
+`schema/generate.go` carries no `go:generate` directive — it documents the extraction pipeline
+(`pdb-schema-extract` parses the PeeringDB Django source into `schema/peeringdb.json`), which is a
+manual step driven by `PEERINGDB_REPO_PATH`, not part of `go generate ./...`.
 
 `buf`, `templ`, and `gqlgen` are declared as Go tool dependencies (`go tool buf`, `go tool templ`,
 `go tool gqlgen`) and do not require external installation.
