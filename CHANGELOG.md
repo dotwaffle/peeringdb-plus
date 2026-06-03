@@ -16,6 +16,9 @@ Git history (tags `v1.0.0` through `v1.15.0`).
   PeeringDB types (previously only `net` + `campus` had behavioural
   coverage), guarding against a per-entity wiring omission that would
   leak `deleted`/`pending` rows onto the anonymous `/api` list surface.
+- **`StreamIxLans` field-level redaction coverage** at both privacy
+  tiers, closing the one load-bearing redaction surface that had no
+  test for the gated `ixf_ixp_member_list_url` field.
 
 ## [1.19.0] — 2026-05-31
 
