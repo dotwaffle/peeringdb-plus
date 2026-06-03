@@ -33,7 +33,7 @@ graph TD
     OTEL["OpenTelemetry<br/>(traces, metrics, logs)"]
 
     PDB -->|"HTTP GET (hourly)"| W
-    W -->|"upsert + soft-delete"| DB
+    W -->|"upsert (incl. tombstones)"| DB
     DB -->|"FUSE replication"| REP
     MUX --> WEB
     MUX --> GQL
@@ -82,12 +82,13 @@ authenticated):
    (`internal/sync/scratch.go`).
 3. A memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT`, default `400MB`) aborts the sync if
    `runtime.MemStats.HeapAlloc` exceeds the ceiling before the transaction opens.
-4. Phase B — apply: the worker opens a single ent transaction, upserts all rows, soft-deletes
-   rows no longer present in PeeringDB by stamping `status="deleted"` plus the per-cycle
-   `cycleStart` timestamp on `updated` (`internal/sync/upsert.go`, `internal/sync/delete.go` —
-   the 13 `markStaleDeleted*` functions), and commits.
-   `PRAGMA defer_foreign_keys = ON` is set on the same connection (`internal/sync/worker.go`) to
-   keep FK enforcement while allowing mid-transaction orphan handling.
+4. Phase B — apply: the worker opens a single ent transaction and upserts all rows
+   (`internal/sync/upsert.go`), then commits. Tombstones are not inferred here — a row carries
+   `status="deleted"` only when upstream's `?since` response said so (see
+   [Soft-delete tombstones](#soft-delete-tombstones)); deleted rows are ordinary upserts whose
+   `status` column is `deleted`. `PRAGMA defer_foreign_keys = ON` is set on the same connection
+   (`internal/sync/worker.go`) to keep FK enforcement while allowing mid-transaction orphan
+   handling.
 5. The `OnSyncComplete` callback updates cached object-count metrics and the HTTP cache ETag, then
    the `sync_status` table row is persisted.
 6. LiteFS replicates the SQLite WAL to all replica regions in the background; replicas pick up the
@@ -456,12 +457,16 @@ for the operator-facing rollout.
 
 ## Soft-delete tombstones
 
-Sync uses soft-delete rather than hard-delete across all 13 entity types. The 13
-`markStaleDeleted*` functions in `internal/sync/delete.go` set
-`status='deleted', updated=cycleStart` on rows absent from the upstream response, where
-`cycleStart` is the `start := time.Now()` timestamp captured at the top of `Worker.Sync` and
-plumbed through `syncStep.deleteFn`. A single timestamp is stamped on every tombstone produced
-within a single sync cycle so `?since=N` windows stay atomic.
+Sync uses soft-delete rather than hard-delete across all 13 entity types, but tombstones
+(`status='deleted'`) are sourced **only** from upstream PeeringDB's explicit signal: the
+`?since=N` matrix returns both `ok` and `deleted` rows (per
+`peeringdb_server/rest.py:694-727`). `internal/sync/upsert.go` lands the upstream-supplied
+status verbatim — a deleted row is just an ordinary upsert whose `status` column is `deleted`,
+carrying upstream's own `updated` timestamp. There is **no inference-by-absence**: rows missing
+from a partial response are left untouched, never tombstoned. (The earlier `markStaleDeleted*`
+family and `internal/sync/delete.go` were removed for exactly this reason — absence-based
+inference mis-classified rows omitted from partial responses and dropped children whose
+upstream-deleted parents had never been synced.)
 
 The pdbcompat list path (`internal/pdbcompat/registry_funcs.go`) appends
 `applyStatusMatrix(isCampus, opts.Since != nil)` to the predicate chain for every entity to
