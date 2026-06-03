@@ -35,23 +35,21 @@ For anything non-trivial, **file an issue first** describing the motivation and 
 
 - `main` is the default branch and the target for all pull requests.
 - Fork the repo (or branch directly if you have write access) and work on a feature branch. The repository does not enforce a branch-name convention — descriptive names like `fix/sync-scheduler` or `feat/graphql-cache` are fine.
-- Recent PRs (`#8`–`#11`) are landed as merge commits with a `(#N)` trailer in the subject. Individual commits on feature branches are preserved. Smaller direct-to-`main` commits (docs, hotfixes) do occur, but external contributions should flow through a PR.
+- PRs land on `main` as GitHub merge commits (`Merge pull request #N from <branch>`), preserving the individual feature-branch commits. Smaller direct-to-`main` commits (docs, hotfixes) do occur, but external contributions should flow through a PR.
 - Check the last few merged PRs for current conventions: `gh pr list --state merged --limit 10`.
 
 ## Commit Message Style
 
-Recent history uses **Conventional Commits** with a scope:
+History follows the Linux-kernel convention: a `subsystem: summary phrase` subject in the imperative mood, kept around 50 columns, where the subsystem names the affected area (a package or directory) without requiring the reader to inspect the diff:
 
 ```
-feat(otel): reduce metric cardinality ~30-55%
-fix(sync): anchor scheduler at last_success + interval, not process start
-docs(claude): note /ui/ content negotiation and ANSI smoke-test workaround
-chore: Go 1.26 modernization pass
-refactor(49-01): extract query functions from detail.go into per-entity files
-test(49-03): add database.Open tests for pragma verification and pool config
+rest: stop _fold shadow columns leaking on the wire
+ent: run schema generation before entc to converge in one pass
+sync: anchor the scheduler at last_success + interval, not process start
+docs: note /ui/ content negotiation and the ANSI smoke-test workaround
 ```
 
-Common types seen in the log: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`. Scopes are usually a package or area name (e.g. `sync`, `otel`, `web`, `search`). The format is not enforced by CI, but matching it keeps history readable.
+This is **not** Conventional Commits — do not use `type(scope):` prefixes such as `feat(...)`, `fix(...)`, or `chore:`. Separate the subject from the body with a blank line, wrap the body at about 74 columns, and explain what the patch solves and why rather than restating the diff. Prefer one logical change per commit so each commit builds and passes its tests on its own. The format is not enforced by CI, but matching it keeps history bisectable and readable.
 
 ## Pre-PR Checklist
 
