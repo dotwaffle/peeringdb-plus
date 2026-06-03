@@ -33,7 +33,7 @@ type runConfig struct {
 	timeout   time.Duration
 	apiKey    string
 
-	// Phase 57 capture mode fields. Activated by -capture; the existing
+	// Capture mode fields. Activated by -capture; the existing
 	// default path is untouched when -capture is not passed.
 	capture   bool
 	target    string
@@ -43,7 +43,7 @@ type runConfig struct {
 	prodAuth  bool
 	statePath string
 
-	// Phase 57 plan 04 post-capture CLI modes.
+	// Post-capture CLI modes.
 	//
 	//   -redact : read raw auth bytes under -in, pair with anon fixtures
 	//             under the path derived from -out (…/auth → …/anon), run
@@ -70,7 +70,7 @@ func main() {
 	flag.DurationVar(&cfg.timeout, "timeout", 30*time.Second, "HTTP request timeout")
 	flag.StringVar(&cfg.apiKey, "api-key", "", "PeeringDB API key (overrides PDBPLUS_PEERINGDB_API_KEY env var)")
 
-	// Phase 57 capture mode flags.
+	// Capture mode flags.
 	flag.BoolVar(&cfg.capture, "capture", false, "capture visibility baseline instead of running the structural check")
 	flag.StringVar(&cfg.target, "target", "beta", "capture target: beta | prod")
 	flag.StringVar(&cfg.mode, "mode", "both", "capture mode: anon | auth | both")
@@ -79,7 +79,7 @@ func main() {
 	flag.BoolVar(&cfg.prodAuth, "prod-auth", false, "allow auth mode against prod target (requires API key; default false)")
 	flag.StringVar(&cfg.statePath, "state", "", "checkpoint file path (default: /tmp/pdb-vis-capture-state.json)")
 
-	// Phase 57 plan 04 post-capture flags.
+	// Post-capture flags.
 	flag.BoolVar(&cfg.redact, "redact", false, "redact raw auth bytes under -in and write the redacted form under -out")
 	flag.BoolVar(&cfg.diff, "diff", false, "build DIFF.md + diff.json from the baseline tree rooted at -out")
 	flag.StringVar(&cfg.inDir, "in", "", "input dir: redact=raw auth staging dir (e.g. /tmp/pdb-vis-capture-xxx/auth)")
@@ -101,7 +101,7 @@ func main() {
 }
 
 func run(cfg runConfig, logger *slog.Logger) error {
-	// Phase 57 mode dispatch. At most one of -capture / -redact / -diff may
+	// Mode dispatch. At most one of -capture / -redact / -diff may
 	// be set; combining them is a user error.
 	modeCount := 0
 	if cfg.capture {

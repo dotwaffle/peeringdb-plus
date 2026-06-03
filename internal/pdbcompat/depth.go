@@ -70,7 +70,7 @@ func resolveFacilitiesFromIxFacilities(ixfacs []*ent.IxFacility) []*ent.Facility
 
 // getOrgWithDepth fetches an organization by ID with optional depth expansion.
 // At depth >= 2, eagerly loads and serializes net_set, fac_set, ix_set,
-// carrier_set, and campus_set arrays per D-19.
+// carrier_set, and campus_set arrays.
 func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		o, err := client.Organization.Query().

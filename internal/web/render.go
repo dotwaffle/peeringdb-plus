@@ -14,11 +14,11 @@ import (
 )
 
 // maxTerminalWidth is the maximum allowed terminal width for text rendering.
-// Values exceeding this are silently capped per SEC-02.
+// Values exceeding this are silently capped.
 const maxTerminalWidth = 500
 
 // PageContent holds the title and body component for a page render.
-// Defined per CS-5 to avoid >2 non-ctx arguments in renderPage.
+// Defined to avoid >2 non-ctx arguments in renderPage.
 type PageContent struct {
 	Title     string
 	Content   templ.Component
@@ -32,9 +32,9 @@ type PageContent struct {
 // Browser and htmx requests receive text/html as before.
 // Every response sets Vary: HX-Request, User-Agent, Accept to prevent caching conflicts.
 //
-// Note on signature: ctx is excluded from arg count per CS-5. w and r are the
+// Note on signature: ctx is excluded from arg count. w and r are the
 // standard http.Handler pair. title and content are grouped into PageContent
-// per CS-5 MUST rule (>2 args require input struct).
+// because >2 args require an input struct.
 func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, page PageContent) error {
 	mode := termrender.Detect(termrender.DetectInput{
 		Query:     r.URL.Query(),

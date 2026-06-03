@@ -6,11 +6,11 @@ import (
 )
 
 // TestBuildAllowlistEntry locks the verbatim-field-list → NodeEntry
-// contract. This is the Path A ingestion point since the 260420-esb
+// contract. This is the Path A ingestion point since the
 // sibling-files refactor moved Path A source-of-truth from ent schema
 // annotations into the hand-written schema.PrepareQueryAllows map.
 // Fields are split on "__" and routed to Direct / Via (or dropped with
-// a warn for 0/1/4+ segment counts per D-04).
+// a warn for 0/1/4+ segment counts — the 2-hop cap).
 func TestBuildAllowlistEntry(t *testing.T) {
 	t.Parallel()
 
@@ -68,7 +68,7 @@ func TestBuildAllowlistEntry(t *testing.T) {
 }
 
 // TestBuildAllowlistEntry_DropsInvalidHops verifies the 0/1-segment
-// (malformed) and 4+-segment (>D-04 cap) field strings are dropped —
+// (malformed) and 4+-segment (beyond the 2-hop cap) field strings are dropped —
 // without affecting the valid entries alongside them. The function
 // logs a warn for each but returns the remaining shape intact.
 func TestBuildAllowlistEntry_DropsInvalidHops(t *testing.T) {
@@ -76,7 +76,7 @@ func TestBuildAllowlistEntry_DropsInvalidHops(t *testing.T) {
 	got := buildAllowlistEntry("net", []string{
 		"org__name",         // valid direct
 		"noSeparator",       // 1-segment — dropped
-		"a__b__c__d",        // 4-segment — D-04 violation, dropped
+		"a__b__c__d",        // 4-segment — exceeds 2-hop cap, dropped
 		"netfac__fac__name", // valid via
 	})
 	want := &NodeEntry{
@@ -93,7 +93,7 @@ func TestBuildAllowlistEntry_DropsInvalidHops(t *testing.T) {
 }
 
 // TestPdbTypeFor_AllThirteen locks the ent-Go-name → pdb-type mapping
-// that the rest of Phase 70 relies on. If a future schema is added,
+// that the traversal allowlist codegen relies on. If a future schema is added,
 // the test will fail and force the author to extend pdbTypeMap.
 func TestPdbTypeFor_AllThirteen(t *testing.T) {
 	t.Parallel()

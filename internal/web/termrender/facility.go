@@ -11,7 +11,6 @@ import (
 
 // RenderFacilityDetail renders a facility entity as terminal output with rich layout.
 // Shows key-value header with address, network list, IX list, and carrier list.
-// (RND-04, D-02 rich layout)
 func (r *Renderer) RenderFacilityDetail(w io.Writer, data templates.FacilityDetail) error {
 	var buf strings.Builder
 	buf.Grow(len(data.Networks)*80 + len(data.IXPs)*60 + len(data.Carriers)*60 + 500)

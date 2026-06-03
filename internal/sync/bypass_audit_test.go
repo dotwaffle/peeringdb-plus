@@ -1,13 +1,13 @@
-// Package sync — Plan 59-05 Task 2: single-call-site audit test.
+// Package sync — single-call-site audit test.
 //
-// D-08/D-09 + RESEARCH Pitfall 4: the ent privacy bypass
+// The ent privacy bypass
 // `privacy.DecisionContext(ctx, privacy.Allow)` must appear in exactly
 // ONE production source location: internal/sync/worker.go. A second
 // call site in any non-test file would be a silent policy bypass that
 // lets a handler goroutine read Users-visibility rows. This test walks
 // the source tree and fails the build if the invariant is violated.
 //
-// Test files (`*_test.go`) are exempt: the VIS-04/VIS-05 tests
+// Test files (`*_test.go`) are exempt: the privacy tests
 // legitimately seed Users-tier rows via the bypass so they can assert
 // the policy filters correctly (see internal/sync/policy_test.go,
 // internal/sync/worker_test.go).
@@ -16,10 +16,8 @@
 // infrastructure (no non-test Go file imports it — enforced by the
 // `TestTestutilIsTestOnly` guard below) that mirrors the runtime
 // sync-writer's bypass when seeding visible="Users" rows so downstream
-// phase 60 surface tests can exercise the policy's filter behaviour.
-// See internal/testutil/seed/seed.go for the call site and
-// the project history for the
-// decision.
+// surface tests can exercise the policy's filter behaviour.
+// See internal/testutil/seed/seed.go for the call site.
 package sync
 
 import (
@@ -58,11 +56,11 @@ var bypassCallRE = regexp.MustCompile(`(?s)privacy\.DecisionContext\([^;]*?priva
 //
 //	var bypass = privacy.Allow
 //
-// which `bypassCallRE` alone would miss (WR-01 from Phase 59 review).
+// which `bypassCallRE` alone would miss.
 // `\b` prevents matching `privacy.AllowAll` or similar future identifiers.
 var bypassRefRE = regexp.MustCompile(`privacy\.Allow\b`)
 
-// TestSyncBypass_SingleCallSite enforces D-09: exactly one production
+// TestSyncBypass_SingleCallSite enforces exactly one production
 // call site for the privacy bypass, located in internal/sync/worker.go.
 //
 // Scans `internal/`, `cmd/`, `ent/schema/`, and `graph/` — the four
@@ -77,7 +75,7 @@ var bypassRefRE = regexp.MustCompile(`privacy\.Allow\b`)
 //     shape. Exactly ONE hit expected in `internal/sync/worker.go`.
 //   - `bypassRefRE` — ANY `privacy.Allow` reference (including aliasing
 //     evasions like `allow := privacy.Allow`). Exactly ONE hit expected
-//     in `internal/sync/worker.go`. This closes the WR-01 evasion channel
+//     in `internal/sync/worker.go`. This closes the evasion channel
 //     where a maintainer hoists `privacy.Allow` to a local/package
 //     variable and calls `DecisionContext(ctx, bypass)` to slip past the
 //     narrower `bypassCallRE`.
@@ -130,7 +128,7 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 			// infrastructure that never ships in production binaries
 			// (enforced by TestTestutilIsTestOnly below) and legitimately
 			// mirrors the sync-writer bypass when seeding visible="Users"
-			// rows for phase 60 surface tests. See package godoc.
+			// rows for surface tests. See package godoc.
 			if strings.Contains(path, string(os.PathSeparator)+"internal"+string(os.PathSeparator)+"testutil"+string(os.PathSeparator)) {
 				return nil
 			}
@@ -171,12 +169,12 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 		t.Helper()
 		switch {
 		case len(hits) == 0:
-			t.Fatalf("expected exactly 1 %s in production code; found 0. Did Plan 59-05 Task 1 run?", kind)
+			t.Fatalf("expected exactly 1 %s in production code; found 0. Is the bypass call site present?", kind)
 		case len(hits) > 1:
 			var msg strings.Builder
 			msg.WriteString("expected exactly 1 ")
 			msg.WriteString(kind)
-			msg.WriteString(" per D-09; found multiple:\n")
+			msg.WriteString("; found multiple:\n")
 			for _, h := range hits {
 				msg.WriteString("  ")
 				msg.WriteString(h.path)
@@ -212,7 +210,7 @@ func TestSyncBypass_SingleCallSite(t *testing.T) {
 		refHits,
 		"Only internal/sync/worker.go may reference privacy.Allow.\n"+
 			"Aliasing it to a local/package variable (e.g. `allow := privacy.Allow`) defeats the\n"+
-			"single-audit-point invariant (D-09, WR-01). Non-sync tier elevation must use\n"+
+			"single-audit-point invariant. Non-sync tier elevation must use\n"+
 			"internal/privctx.WithTier instead.",
 	)
 }

@@ -74,7 +74,7 @@ func TestRedactIxlanJSON_FastPath(t *testing.T) {
 			t.Error("gated url should be removed for anonymous caller")
 		}
 		if _, ok := m["ixf_ixp_member_list_url_visible"]; !ok {
-			t.Error("_visible companion must still be emitted (D-05)")
+			t.Error("_visible companion must still be emitted")
 		}
 	})
 }

@@ -17,7 +17,7 @@ import (
 // WriteJSON normalises nil Fields slices to []FieldDelta{} so they marshal
 // as "[]" rather than "null". Empty-array is semantically "no deltas
 // observed"; the schema stays stable for downstream JSON consumers that
-// expect arrays. See 57-03-PLAN.md Task 2 note.
+// expect arrays.
 //
 // HTML escaping is disabled so that placeholder strings such as
 // "<auth-only:string>" remain greppable in diff.json and committed fixtures

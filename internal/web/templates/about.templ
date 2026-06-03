@@ -15,7 +15,7 @@ func formatAge(d time.Duration) string {
 }
 
 // AboutPage renders the about page with project information, data freshness,
-// and the Phase 61 OBS-02 Privacy & Sync section (D-04/D-05/D-06).
+// and the Privacy & Sync section.
 templ AboutPage(freshness DataFreshness, privacy PrivacySync) {
 	<div class="max-w-3xl mx-auto py-12">
 		<h1 class="text-3xl font-bold text-emerald-500 font-mono mb-6">About PeeringDB Plus</h1>

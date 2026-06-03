@@ -8,7 +8,7 @@ import (
 )
 
 // RenderHelp writes terminal help text listing available endpoints, query parameters,
-// format options, and usage examples. Style inspired by wttr.in (D-13).
+// format options, and usage examples. Style inspired by wttr.in.
 func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	var buf strings.Builder
 
@@ -62,7 +62,7 @@ func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	buf.WriteString("  $ curl \"peeringdb-plus.fly.dev/ui/asn/13335?format=json\" | jq .\n")
 	buf.WriteString("\n")
 
-	// Shell integration section (D-19, SHL-03).
+	// Shell integration section.
 	buf.WriteString(StyleHeading.Render("Shell Integration:"))
 	buf.WriteString("\n")
 	buf.WriteString("  Quick setup (bash):\n")

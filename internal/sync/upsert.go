@@ -43,11 +43,11 @@ import (
 // '1900-01-01' is the lower-bound sentinel: any real PeeringDB
 // timestamp is post-2000, and modernc.org/sqlite stores Go time.Time{}
 // as text '0001-01-01 00:00:00+00:00' under the default value
-// converter (verified empirically — STEP 0 probe in 260428-eda Task 6
+// converter (verified empirically — a probe
 // observed: typeof = "text", raw = "0001-01-01 00:00:00 +0000 UTC",
 // SELECT (updated <= '1900-01-01') = 1).
 //
-// SAME-SECOND DRIFT (260428-eda CHANGE 3 known limitation): a row
+// SAME-SECOND DRIFT (known limitation): a row
 // edited at upstream within the same second as the prior cursor
 // advance will skip on the next incremental cycle. Mitigations:
 // (a) the next upstream change will bump `updated` past the cursor and
@@ -69,8 +69,6 @@ import (
 // at the 13 call sites — it documents which table this predicate is
 // targeting even though the qualifier is supplied by ent at emission
 // time.
-//
-// 260428-eda CHANGE 3.
 func skipUnchangedPredicate(table string) *sql.Predicate {
 	_ = table // documentation parameter; see godoc above
 	return sql.P(func(b *sql.Builder) {
@@ -414,7 +412,7 @@ func upsertIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.IxLan) ([]i
 				SetDot1qSupport(il.Dot1QSupport).
 				SetNillableRsAsn(il.RSASN).
 				SetNillableArpSponge(il.ARPSponge).
-				SetIxfIxpMemberListURL(il.IXFIXPMemberListURL). // PHASE 64 (VIS-09)
+				SetIxfIxpMemberListURL(il.IXFIXPMemberListURL). // auth-gated field
 				SetIxfIxpMemberListURLVisible(il.IXFIXPMemberListURLVisible).
 				SetIxfIxpImportEnabled(il.IXFIXPImportEnabled).
 				SetCreated(il.Created).
@@ -623,7 +621,7 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 // idempotently — a backfilled row that arrives during a normal Phase B
 // upsert will be overwritten by the bulk path without conflict.
 //
-// Quick task 260428-2zl: the FK-backfill path in fk_backfill.go calls
+// The FK-backfill path in fk_backfill.go calls
 // this once per missing parent ID. The single-element slice avoids any
 // need for separate insert paths and keeps the per-type logic
 // (validators, fold setters, nullable wiring) centralised in the bulk

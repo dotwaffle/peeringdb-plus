@@ -233,10 +233,10 @@ func TestCaptureRespectsRateLimit(t *testing.T) {
 	if hitCount.Load() != 2 {
 		t.Errorf("server hits = %d, want 2 (one 429 then one 200)", hitCount.Load())
 	}
-	// Quick task 260428-2zl: pre-2zl this test asserted that the
+	// Previously this test asserted that the
 	// visbaseline-layer retry loop logged "rate-limited, sleeping"
-	// because doWithRetry surfaced *RateLimitError on every 429. Post-
-	// 2zl the transport (internal/peeringdb/transport.go) absorbs 429s
+	// because doWithRetry surfaced *RateLimitError on every 429.
+	// Afterward the transport (internal/peeringdb/transport.go) absorbs 429s
 	// with Retry-After ≤ 60s automatically — so a small Retry-After
 	// like the "1" returned by the test server above never reaches the
 	// visbaseline retry path. The two-hit count above is the

@@ -31,7 +31,7 @@ func TestSync_OrderingMatchesWorker(t *testing.T) {
 // pdbcompat GETs (13 types × 3 depths) against bare
 // /api/<short>?depth=N URLs. Bare URLs mirror real client traffic
 // against the mirror; since the DefaultLimit fix (2026-04-28), the
-// mirror returns all rows on bare URLs — gated only by the Phase 71
+// mirror returns all rows on bare URLs — gated only by the
 // response-memory budget — matching upstream behaviour exactly.
 func TestSync_BuildSyncEndpointsFull(t *testing.T) {
 	t.Parallel()

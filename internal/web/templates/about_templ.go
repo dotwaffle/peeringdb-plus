@@ -23,7 +23,7 @@ func formatAge(d time.Duration) string {
 }
 
 // AboutPage renders the about page with project information, data freshness,
-// and the Phase 61 OBS-02 Privacy & Sync section (D-04/D-05/D-06).
+// and the Privacy & Sync section.
 func AboutPage(freshness DataFreshness, privacy PrivacySync) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

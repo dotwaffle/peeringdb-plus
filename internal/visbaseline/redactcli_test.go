@@ -265,7 +265,7 @@ func TestRedactDirContextCancelled(t *testing.T) {
 	}
 }
 
-// TestParsePagePath covers the filename parser. Includes WR-03 strict-parse
+// TestParsePagePath covers the filename parser. Includes strict-parse
 // cases: trailing garbage, signed values, and embedded whitespace must not
 // be accepted as valid page numbers.
 func TestParsePagePath(t *testing.T) {
@@ -281,7 +281,7 @@ func TestParsePagePath(t *testing.T) {
 		{filepath.Join("root", "poc", "notapage.json"), "", 0, false},
 		{filepath.Join("root", "poc", "page-abc.json"), "", 0, false},
 		{filepath.Join("root", "poc", "page-0.json"), "", 0, false},
-		// WR-03: Sscanf("%d") used to accept these; strconv.Atoi + digit
+		// Sscanf("%d") used to accept these; strconv.Atoi + digit
 		// whitelist rejects them.
 		{filepath.Join("root", "poc", "page-1abc.json"), "", 0, false},
 		{filepath.Join("root", "poc", "page-+5.json"), "", 0, false},

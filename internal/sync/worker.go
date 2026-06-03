@@ -50,13 +50,13 @@ import (
 // return and the next scheduled retry proceeds normally after the
 // Phase A scratch batches are reclaimed by GC.
 //
-// Commit F (Plan 54-03) defense-in-depth against PeeringDB data growth
+// Defense-in-depth against PeeringDB data growth
 // that exceeds the 400 MB bench harness baseline at runtime (e.g. if
 // netixlan doubles between benchmarks and production). Callers detect
-// the sentinel via errors.Is per GO-ERR-2.
+// the sentinel via errors.Is.
 var ErrSyncMemoryLimitExceeded = errors.New("sync aborted: memory limit exceeded")
 
-// defaultRetryBackoffs defines the backoff durations for sync-level retries per D-21.
+// defaultRetryBackoffs defines the backoff durations for sync-level retries.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
 // WorkerConfig holds configuration for the sync worker.
@@ -67,10 +67,10 @@ type WorkerConfig struct {
 	// ctx and the completion timestamp. The timestamp is the same value
 	// persisted into the sync_status row by recordSuccess, so downstream
 	// consumers (e.g. the caching middleware ETag setter wired in
-	// cmd/peeringdb-plus/main.go for PERF-07) stay in lock-step with the
+	// cmd/peeringdb-plus/main.go) stay in lock-step with the
 	// database without an extra round-trip.
 	//
-	// Quick task 260427-ojm: the per-cycle upsert-count map (the old
+	// The per-cycle upsert-count map (the old
 	// `counts map[string]int` arg) was removed. It was the wrong value to
 	// feed into the pdbplus_data_type_count gauge cache — for incremental
 	// syncs it was a delta, and for Poc it never agreed with the
@@ -85,8 +85,8 @@ type WorkerConfig struct {
 	// after Phase A fetch completes and before the ent.Tx opens. If
 	// runtime.MemStats.HeapAlloc exceeds this value, Sync aborts with
 	// ErrSyncMemoryLimitExceeded. Zero disables the guardrail. Wired
-	// from config.Config.SyncMemoryLimit by main.go. Commit F default
-	// is 400 MB (matches the DEBT-03 bench regression gate).
+	// from config.Config.SyncMemoryLimit by main.go. Default
+	// is 400 MB (matches the bench regression gate).
 	SyncMemoryLimit int64
 
 	// HeapWarnBytes is the peak Go heap threshold (bytes) above which
@@ -95,9 +95,8 @@ type WorkerConfig struct {
 	// attached regardless. Zero disables only the Warn (not the attr).
 	// Wired from config.Config.HeapWarnBytes by main.go.
 	//
-	// SEED-001 escalation signal: sustained breach triggers the
-	// incremental-sync evaluation path documented in
-	// the project history
+	// Escalation signal: a sustained breach across multiple cycles is
+	// the operational trigger to re-open the incremental-sync evaluation.
 	HeapWarnBytes int64
 
 	// RSSWarnBytes is the peak OS RSS threshold (bytes) above which
@@ -108,8 +107,8 @@ type WorkerConfig struct {
 
 	// FKBackfillMaxRequestsPerCycle caps the number of underlying HTTP
 	// requests issued by FK-backfill per sync cycle. v1.18.5 semantic
-	// shift: the previous cap counted ROWS (per-row in 260428-2zl,
-	// nominally per-row but batched in 260428-5xt — a weak circuit
+	// shift: the previous cap counted ROWS (originally per-row,
+	// nominally per-row but later batched — a weak circuit
 	// breaker once batching collapsed N rows into 1 request). The cap
 	// now directly bounds upstream HTTP traffic, the surface protected
 	// by upstream's API_THROTTLE_REPEATED_REQUEST and our local rate
@@ -140,7 +139,6 @@ type WorkerConfig struct {
 	// design without periodic full refetch. Wired from
 	// PDBPLUS_FULL_SYNC_INTERVAL (default 24h). Zero disables the
 	// escape hatch (only the per-cycle MAX(updated) cursor applies).
-	// 260428-mu0.
 	FullSyncInterval time.Duration
 }
 
@@ -151,9 +149,9 @@ type Worker struct {
 	db            *sql.DB // underlying sql.DB for sync_status table
 	config        WorkerConfig
 	running       atomic.Bool
-	synced        atomic.Bool // true after first successful sync (D-30)
+	synced        atomic.Bool // true after first successful sync
 	logger        *slog.Logger
-	retryBackoffs []time.Duration // per D-21; defaults to 30s, 2m, 8m
+	retryBackoffs []time.Duration // defaults to 30s, 2m, 8m
 	// fkRegistry maps parent type name to the set of IDs successfully
 	// upserted during the current Phase B. Populated by recordIDs
 	// callbacks from dispatchScratchChunk as parent types land (org,
@@ -164,8 +162,8 @@ type Worker struct {
 	// PeeringDB's public /api/{type}?depth=0 responses occasionally
 	// contain child rows whose parent rows are suppressed server-side
 	// (deleted orgs still referenced by live nets, etc). Without this
-	// registry, Phase 54's defer_foreign_keys=ON commit check rejects
-	// the entire sync transaction. See v1.13 Phase 54-FK-ORPHAN notes.
+	// registry, the defer_foreign_keys=ON commit check rejects
+	// the entire sync transaction.
 	//
 	// Reset by resetFKState at the start of each Sync run. Single-writer
 	// because Worker.running serialises concurrent Sync calls.
@@ -176,8 +174,8 @@ type Worker struct {
 	// 7.5 MB per-trace cap (audit 2026-04-26). Reset alongside fkRegistry
 	// in resetFKState.
 	fkOrphanCounts map[fkOrphanKey]int
-	// fkBackfillTried is the per-cycle dedup cache for live FK backfills
-	// (quick task 260428-2zl). Keyed by (parent type, parent ID) — if the
+	// fkBackfillTried is the per-cycle dedup cache for live FK backfills.
+	// Keyed by (parent type, parent ID) — if the
 	// same missing parent is referenced by N child rows, we issue exactly
 	// ONE backfill HTTP fetch and short-circuit the next N-1 lookups.
 	// Reset alongside fkRegistry in resetFKState.
@@ -261,7 +259,7 @@ func (w *Worker) SetRetryBackoffs(backoffs []time.Duration) {
 func (w *Worker) resetFKState() {
 	w.fkRegistry = make(map[string]map[int]struct{}, 13)
 	w.fkOrphanCounts = make(map[fkOrphanKey]int)
-	// Quick task 260428-2zl: reset per-cycle FK-backfill dedup cache and
+	// Reset per-cycle FK-backfill dedup cache and
 	// counter alongside the rest of the FK state. The cap is captured
 	// once at NewWorker time; only the per-cycle bookkeeping resets.
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
@@ -445,24 +443,24 @@ func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, i
 // syncStep defines a single step in the sync process. Upserts run in
 // parent-first FK order.
 //
-// After PERF-05 (Plan 54-02 Commit D), the fetch and upsert paths dispatch
+// The fetch and upsert paths dispatch
 // via fetchOneTypeFull / fetchOneTypeIncremental / upsertOneType type
 // switches on step.name — the old upsertFn/incrementalFn fields were
 // removed because fetch now runs outside the tx.
 //
-// Quick task 260428-2zl Task 6: the deleteFn closure (Phase 68 D-02
-// inference-by-absence soft-delete) was removed. With Task 2's
-// bootstrap-with-?since=1 + Task 3's live FK backfill, deletes arrive
+// The deleteFn closure (the prior
+// inference-by-absence soft-delete) was removed. With bootstrap-with-?since=1
+// plus the live FK backfill, deletes arrive
 // explicitly from upstream as status='deleted' rows in ?since=N
 // payloads — no inference needed. Existing tombstones in the live DB
 // are preserved (no schema change, no row mutation by this commit);
-// SEED-004 still owns the eventual GC story.
+// the dormant tombstone-GC work still owns the eventual GC story.
 type syncStep struct {
 	name string
 }
 
 // canonicalStepOrder is the single source of truth for sync step
-// ordering (FK dependency order per D-06). syncSteps() zips this with
+// ordering (FK dependency order). syncSteps() zips this with
 // the per-type delete-fns; StepOrder() exposes a defensive copy for
 // out-of-package consumers (e.g. cmd/loadtest's sync mode parity test).
 var canonicalStepOrder = []string{
@@ -481,7 +479,7 @@ func StepOrder() []string {
 }
 
 // syncSteps returns the ordered list of sync steps in FK dependency
-// order per D-06. Quick task 260428-2zl Task 6: the per-type deleteFn
+// order. The per-type deleteFn
 // machinery is gone — sync no longer infers deletions from absence;
 // upstream sends explicit status='deleted' tombstones in ?since=N
 // payloads (Task 2 bootstrap), and the live FK backfill (Task 3)
@@ -496,9 +494,9 @@ func (w *Worker) syncSteps() []syncStep {
 
 // Sync executes a synchronization from PeeringDB to the local database.
 // It acquires a mutex to prevent concurrent runs and wraps all database
-// writes in a single transaction per D-19.
+// writes in a single transaction.
 //
-// Sync is an orchestrator. PERF-05 splits it into three phases:
+// Sync is an orchestrator split into three phases:
 //
 //  1. Phase A (NO TX HELD): HTTP fetch + JSON decode stream into an
 //     isolated /tmp SQLite "scratch" database — Go heap stays bounded
@@ -508,24 +506,24 @@ func (w *Worker) syncSteps() []syncStep {
 //  3. Phase B (SINGLE REAL TX): drain each scratch table in chunks,
 //     decode each chunk to typed Go structs, upsertX into the real ent
 //     tables, free the chunk, repeat. Delete stale rows. Commit.
-//     D-19 preserved: one ent.Tx wraps every real-DB write.
+//     Atomicity preserved: one ent.Tx wraps every real-DB write.
 //
 // The scratch DB is unlinked on both success and error via defer. See
 // internal/sync/scratch.go for the scratch DB lifecycle and pragmas.
-// Commit D' — mandatory per Decision #2 because Commit A baseline
-// (535 MiB) and Commit D baseline (613 MiB) both exceeded the 400 MiB
-// gate on production-scale fixtures.
+// The scratch-SQLite fallback was mandatory because the pre-refactor
+// baseline (535 MiB) and the fetch-outside-tx split (613 MiB) both
+// exceeded the 400 MiB gate on production-scale fixtures.
 //
-// Commit F (Plan 54-03): between the Phase A fetch barrier and the
+// Between the Phase A fetch barrier and the
 // ent.Tx open, Sync calls w.checkMemoryLimit with the current
 // runtime.MemStats.HeapAlloc reading. If SyncMemoryLimit is set and
 // the heap exceeds it, Sync aborts with ErrSyncMemoryLimitExceeded
 // before opening the tx — defense-in-depth against PeeringDB data
 // growth that exceeds the benchmark baseline at runtime.
 //
-// REFAC-03 line budget is <= 100 — enforced by TestWorkerSync_LineBudget.
+// The Sync line budget is <= 100 — enforced by TestWorkerSync_LineBudget.
 //
-// Plan 59-05 (VIS-05, D-08/D-09): Sync is the SOLE production call site
+// Sync is the SOLE production call site
 // for privacy.DecisionContext(ctx, privacy.Allow). The bypass is stamped
 // on ctx before any other work — before the w.running CAS, before any
 // otel span Start, before any ent call — so every downstream ent read,
@@ -539,8 +537,8 @@ func (w *Worker) syncSteps() []syncStep {
 // upsert helper, or any HTTP path. Tier elevation for non-sync callers
 // goes through internal/privctx.WithTier (TierUsers), a different
 // mechanism.
-// resolveEffectiveMode applies the PDBPLUS_FULL_SYNC_INTERVAL escape hatch
-// (260428-mu0): if the configured mode is incremental AND the configured
+// resolveEffectiveMode applies the PDBPLUS_FULL_SYNC_INTERVAL escape hatch:
+// if the configured mode is incremental AND the configured
 // FullSyncInterval is positive AND the most recent successful full sync is
 // older than that interval, the cycle's effective mode upgrades to full —
 // every per-type fetch issues a bare list (no since=).
@@ -583,7 +581,7 @@ func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.Syn
 }
 
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
-	ctx = privacy.DecisionContext(ctx, privacy.Allow) // VIS-05 bypass — sole call site (D-08/D-09)
+	ctx = privacy.DecisionContext(ctx, privacy.Allow) // privacy bypass — sole production call site
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.Warn("sync already running, skipping")
 		return nil
@@ -594,7 +592,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	defer span.End()
 
 	start := time.Now()
-	// 260428-mu0: resolve effective mode (PDBPLUS_FULL_SYNC_INTERVAL
+	// Resolve effective mode (PDBPLUS_FULL_SYNC_INTERVAL
 	// escape hatch) BEFORE recording the status row.
 	effectiveMode := w.resolveEffectiveMode(ctx, mode)
 	statusID, startErr := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
@@ -623,7 +621,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 
 // recoverSyncPanicInput carries the per-cycle bookkeeping that the panic
 // firewall needs to convert a recovered panic into a recorded failure.
-// Declared before recoverSyncPanic per GO-CS-6.
+// Declared before recoverSyncPanic.
 type recoverSyncPanicInput struct {
 	mode     config.SyncMode
 	statusID int64
@@ -660,7 +658,7 @@ func (w *Worker) recoverSyncPanic(ctx context.Context, in recoverSyncPanicInput)
 // syncCycle runs one sync cycle's data work: scratch fetch (Phase A), the
 // memory guardrail, then the single real transaction (Phase B) and the
 // terminal success/failure recording. Extracted from Sync so the public
-// entry point can install the panic firewall and stay within the REFAC-03
+// entry point can install the panic firewall and stay within the
 // line budget (TestWorkerSync_LineBudget). statusID/start/effectiveMode are
 // threaded in so the firewall and every terminal recorder agree on the same
 // status row and timing.
@@ -672,7 +670,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	// CPU for bounded peak heap. Restored on return so the value does
 	// not leak to other goroutines.
 	//
-	// TRADE-OFF NOTE (54-REVIEW.md WR-03): debug.SetGCPercent and
+	// TRADE-OFF NOTE: debug.SetGCPercent and
 	// debug.SetMemoryLimit are PROCESS-GLOBAL. All goroutines (API
 	// handlers included) see shorter GC cycles and potential assist
 	// throttling for the sync duration (~30s hourly). Acceptable
@@ -707,7 +705,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
-	// Commit F guardrail: see checkMemoryLimit godoc (defense-in-depth).
+	// Memory guardrail: see checkMemoryLimit godoc (defense-in-depth).
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
@@ -727,8 +725,8 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		return err
 	}
 
-	// === Phase B — SINGLE REAL TX === (260428-2zl T6: no delete pass.
-	// 260428-mu0: cursor writes are gone — cursor is derived from
+	// === Phase B — SINGLE REAL TX === (no delete pass.
+	// Cursor writes are gone — cursor is derived from
 	// MAX(updated) per table on the next cycle.)
 	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
 	if err != nil {
@@ -750,10 +748,10 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 // limit is 0 (or negative), the guardrail is disabled and the function
 // returns nil immediately.
 //
-// Commit F defense-in-depth (Plan 54-03): called from Worker.Sync
+// Defense-in-depth: called from Worker.Sync
 // between the Phase A fetch return and the ent.Tx open so that the
 // abort happens BEFORE any database lock is taken. Extracted into a
-// helper so Worker.Sync's call site stays within the REFAC-03 100-line
+// helper so Worker.Sync's call site stays within the 100-line
 // budget (TestWorkerSync_LineBudget). DO NOT inline this into Sync —
 // the helper extraction is load-bearing for the line budget.
 //
@@ -795,8 +793,8 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 // slog.Warn("heap threshold crossed") when either value exceeds its
 // configured threshold.
 //
-// Attribute naming follows the pdbplus.* convention established in
-// Phase 61 (pdbplus.privacy.tier): pdbplus.sync.peak_heap_bytes and
+// Attribute naming follows the pdbplus.* convention (e.g.
+// pdbplus.privacy.tier): pdbplus.sync.peak_heap_bytes and
 // pdbplus.sync.peak_rss_bytes. Bytes is the canonical Prom unit (per
 // the 2026-04-26 audit unit canonicalisation); dashboards format MiB /
 // GiB at render time via Grafana's "bytes" field unit.
@@ -808,7 +806,7 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 // rssWarnBytes == 0 likewise. Attribute emission is unconditional so
 // dashboards retain timeseries even when alerting is disabled.
 //
-// D-09: sampling frequency is sync cycle frequency (default 1h via
+// Sampling frequency is sync cycle frequency (default 1h via
 // PDBPLUS_SYNC_INTERVAL). No periodic background sampler.
 func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarnBytes int64) {
 	var ms runtime.MemStats
@@ -869,8 +867,8 @@ func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarn
 // VmHWM is the peak-RSS high-water mark, not the instantaneous RSS;
 // it only decreases when an operator resets it via
 // `echo 5 > /proc/self/clear_refs` or the process restarts. This is
-// the correct signal for SEED-001 escalation — a single burst is what
-// matters, not the steady-state value.
+// the correct signal for the sustained-high-heap escalation — a single
+// burst is what matters, not the steady-state value.
 func readLinuxVMHWM() (int64, bool) {
 	data, err := os.ReadFile("/proc/self/status")
 	if err != nil {
@@ -899,8 +897,6 @@ func readLinuxVMHWM() (int64, bool) {
 // commitWithSpan commits tx inside a named OTel span so the LiteFS-
 // replicated commit duration is visible in Tempo. Pattern matches
 // existing per-step spans elsewhere in worker.go (e.g. line ~917).
-//
-// 260428-eda CHANGE 1.
 func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
 	_, commitSpan := otel.Tracer("sync").Start(ctx, "sync-commit")
 	defer commitSpan.End()
@@ -911,7 +907,7 @@ func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
 // transaction depends on. It runs:
 //   - PRAGMA defer_foreign_keys = ON    (existing — defers FK constraint
 //     checking to commit so we can upsert in any order)
-//   - PRAGMA cache_spill = OFF          (260428-eda CHANGE 5 — keeps dirty
+//   - PRAGMA cache_spill = OFF          (keeps dirty
 //     pages in the connection's page cache instead of spilling to the WAL
 //     between writes; bounded by cache_size from the DSN)
 //
@@ -920,7 +916,7 @@ func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
 // the DSN would apply it to read-path connections too.
 //
 // Extracted from Worker.Sync so the orchestrator body stays under the
-// REFAC-03 line budget enforced by TestWorkerSync_LineBudget. DO NOT
+// line budget enforced by TestWorkerSync_LineBudget. DO NOT
 // inline this back into Sync.
 func prepareTxPragmas(ctx context.Context, tx *ent.Tx) error {
 	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
@@ -933,16 +929,16 @@ func prepareTxPragmas(ctx context.Context, tx *ent.Tx) error {
 }
 
 // rollbackAndRecord rolls back the tx and records the failure in one place
-// so Worker.Sync's error paths stay a one-liner each (REFAC-03 line budget).
+// so Worker.Sync's error paths stay a one-liner each (line budget).
 // Logs the rollback error at ERROR level — a failing rollback inside a
 // failing sync is worth surfacing in the error stream.
 //
 // mode is threaded through to recordFailure so the failure metric carries
-// the same {status,mode} attribute pair as the success metric (SEED-001
-// 260426-pms — explicit dataflow > implicit context lookup, GO-CFG-2).
+// the same {status,mode} attribute pair as the success metric
+// (explicit dataflow > implicit context lookup).
 func (w *Worker) rollbackAndRecord(ctx context.Context, mode config.SyncMode, tx *ent.Tx, statusID int64, start time.Time, syncErr error) {
 	// Memory telemetry is emitted exactly once in recordFailure below — do not
-	// emit here as well (REVIEW WR-01). Double emission caused duplicate
+	// emit here as well. Double emission caused duplicate
 	// "heap threshold crossed" WARN records on every rollback path that
 	// breached thresholds.
 	if rbErr := tx.Rollback(); rbErr != nil {
@@ -955,7 +951,7 @@ func (w *Worker) rollbackAndRecord(ctx context.Context, mode config.SyncMode, tx
 // recordSuccess runs all post-commit bookkeeping: per-type cursor updates,
 // sync-level metrics, sync_status row update, first-success flag, and the
 // OnSyncComplete callback. Extracted from Sync so the orchestrator body
-// stays under the REFAC-03 line budget.
+// stays under the line budget.
 func (w *Worker) recordSuccess(
 	ctx context.Context,
 	mode config.SyncMode,
@@ -963,11 +959,11 @@ func (w *Worker) recordSuccess(
 	start time.Time,
 	objectCounts map[string]int,
 ) {
-	// 260428-eda CHANGE 1: wrap the post-commit bookkeeping in a
+	// Wrap the post-commit bookkeeping in a
 	// sync-finalize span and ctx-reassign so the sub-spans below parent
 	// under sync-finalize rather than the root.
 	//
-	// 260428-mu0: the prior sync-cursor-updates loop is fully gone —
+	// The prior sync-cursor-updates loop is fully gone —
 	// cursor advancement is now implicit via MAX(updated) on the entity
 	// tables themselves (see internal/sync/cursor.go GetMaxUpdated).
 	ctx, finalizeSpan := otel.Tracer("sync").Start(ctx, "sync-finalize")
@@ -983,12 +979,12 @@ func (w *Worker) recordSuccess(
 	ctx, cancel := terminalRecordContext(ctx)
 	defer cancel()
 
-	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
+	// Emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	w.emitMemoryTelemetry(ctx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	w.emitOrphanSummary(ctx)
 
 	elapsed := time.Since(start)
-	// SEED-001 (260426-pms): label sync metrics with mode={full,incremental} so
+	// Label sync metrics with mode={full,incremental} so
 	// dashboards/alerts can distinguish cycle behaviour after the default flip.
 	// Cardinality: status (2) × mode (2) = 4 combinations on
 	// pdbplus_sync_operations_total — well under any concern.
@@ -1003,12 +999,12 @@ func (w *Worker) recordSuccess(
 		slog.Duration("duration", elapsed),
 		slog.Int("total_objects", sumCounts(objectCounts)))
 	// Capture completion timestamp once so the sync_status row AND the
-	// OnSyncComplete callback (PERF-07: caching middleware ETag setter)
+	// OnSyncComplete callback (the caching middleware ETag setter)
 	// see the exact same value. A drift here would mean the atomic ETag
 	// pointer and the DB-backed sync time could disagree.
 	completedAt := time.Now()
 	if statusID > 0 {
-		// 260428-eda CHANGE 1: sync-record-status span around the
+		// sync-record-status span around the
 		// sync_status row update (separate raw-SQL Exec, by design —
 		// outcome record, not data state).
 		_, statusSpan := otel.Tracer("sync").Start(ctx, "sync-record-status")
@@ -1022,11 +1018,11 @@ func (w *Worker) recordSuccess(
 	}
 	w.synced.Store(true)
 	if w.config.OnSyncComplete != nil {
-		// 260427-ojm: pass the worker ctx instead of the per-cycle
+		// Pass the worker ctx instead of the per-cycle
 		// upsert-count map. The callback decides what to compute (typically
 		// pdbsync.InitialObjectCounts for live row counts).
 		//
-		// 260428-eda CHANGE 1: sync-on-complete span around the callback
+		// sync-on-complete span around the callback
 		// (typically refreshes the gauge cache via InitialObjectCounts).
 		_, onCompleteSpan := otel.Tracer("sync").Start(ctx, "sync-on-complete")
 		w.config.OnSyncComplete(ctx, completedAt)
@@ -1044,9 +1040,9 @@ func sumCounts(m map[string]int) int {
 }
 
 // syncBatch is a dead marker kept for the TestSync_BatchFreeAfterUpsert
-// structural regression lock. Before REFAC-04 (Commit E), this struct
+// structural regression lock. Before the per-chunk refactor, this struct
 // held per-type []T slices that drainAndUpsertType zeroed between chunks
-// to release the backing array. After REFAC-04, per-chunk typed slices
+// to release the backing array. After the refactor, per-chunk typed slices
 // live in processScratchChunk's locals (one generic helper per type)
 // and are reclaimed automatically when the helper returns — the
 // function-scope release is strictly more reliable than the old
@@ -1054,7 +1050,7 @@ func sumCounts(m map[string]int) int {
 // the `batches[name] = syncBatch{}` literal in drainAndUpsertType
 // continues to satisfy the regression test's string match while
 // compiling to a no-op map write (free, and kept as a grep-visible
-// anchor for the PERF-05 documentation trail).
+// anchor for the memory-bound documentation trail).
 type syncBatch struct{}
 
 // syncFetchPass runs Phase A against the scratch DB: for each of the 13
@@ -1077,7 +1073,7 @@ type syncBatch struct{}
 // the full-mode stage is retried. The final batch for that type is
 // flagged as full so the delete pass runs.
 //
-// 260428-mu0: the cursor is derived from MAX(updated) on the entity
+// The cursor is derived from MAX(updated) on the entity
 // table instead of reading a sync_cursors row keyed on meta.generated.
 // PeeringDB does not include meta.generated on ?since= responses (see
 // internal/peeringdb/client_live_test.go TestMetaGeneratedLive/
@@ -1086,8 +1082,8 @@ type syncBatch struct{}
 // derivation reads MAX(updated) once per type via the indexed query in
 // internal/sync/cursor.go GetMaxUpdated.
 //
-// PERF-05 option (b): this helper is the fetch-outside-tx pass that
-// splits fetch from upsert. Commit D' (this commit) routes Phase A
+// This helper is the fetch-outside-tx pass that
+// splits fetch from upsert. It routes Phase A
 // through an isolated scratch SQLite DB so the Go heap stays bounded.
 func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) (
 	fromIncremental map[string]bool,
@@ -1104,7 +1100,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
 
-		// 260428-mu0: derive cursor from MAX(updated) on the entity
+		// Derive cursor from MAX(updated) on the entity
 		// table instead of reading sync_cursors. Replaces the v1.13
 		// meta.generated-based design that alternated every cycle into
 		// a full bare-list re-fetch (PeeringDB ?since= responses omit
@@ -1147,7 +1143,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // truncated (to drop any partial insert) and a full stage is retried.
 // Returns a flag indicating whether the successful run was incremental.
 //
-// 260428-mu0: the cursor is derived from MAX(updated) by the caller
+// The cursor is derived from MAX(updated) by the caller
 // (syncFetchPass). The previous design returned a per-call cursor
 // update derived from meta.generated; with that field absent on
 // ?since= responses it stored zero, which then alternated every cycle
@@ -1165,7 +1161,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // Current behaviour: cursor zero → full sync via bare list (status='ok'
 // only, smaller responses). Historical-delete capture for fresh installs
 // is deferred to a proper multi-cycle bootstrap design (v1.19+);
-// FK backfill (260428-2zl Task 3) catches the orphans that matter on
+// FK backfill catches the orphans that matter on
 // demand, including via recursive grandparent backfill (v1.18.3).
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (bool, error) {
 	// Incremental attempt requires a populated cursor. Zero cursor falls
@@ -1206,11 +1202,11 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 // typed Go struct, upserted into the real ent table, and then
 // IMMEDIATELY freed via `batches[step.name] = syncBatch{}` to release
 // the slice backing array before the next chunk loads. This is the core memory
-// optimization for PERF-05 — without it, Phase B peak memory would
+// optimization — without it, Phase B peak memory would
 // double during the handover between chunks. DO NOT remove the
 // batch-free line.
 //
-// Quick task 260428-2zl Task 6: the per-type remoteIDsByType map and
+// The per-type remoteIDsByType map and
 // the final `SELECT id FROM scratch.{type}` collection step are gone
 // alongside the inference-by-absence delete pass. Sync no longer
 // infers deletions from absence; upstream sends explicit
@@ -1218,15 +1214,15 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 // fromIncremental is retained only as a defensive parameter — the
 // per-step branching it used to gate is also gone.
 //
-// D-19 atomicity is preserved: all real-DB writes run inside the same
+// Atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
 //
-// 260428-mu0: the per-type sync_cursors writes that 260428-eda CHANGE 2
+// The per-type sync_cursors writes that were once
 // folded into this tx have been removed. The cursor is now a derived
 // quantity (MAX(updated) per table — see internal/sync/cursor.go); once
 // the tx commits the new rows, the next cycle's GetMaxUpdated picks up
 // the boundary automatically. The atomicity guarantee is unchanged: the
-// data state IS the cursor, so the row-and-cursor divergence the eda
+// data state IS the cursor, so the row-and-cursor divergence the prior
 // in-tx-cursor-write protected against is now impossible by
 // construction (no separate row to lag).
 func (w *Worker) syncUpsertPass(
@@ -1240,13 +1236,13 @@ func (w *Worker) syncUpsertPass(
 ) {
 	// Reset the per-sync FK orphan-filter state before the first
 	// dispatchScratchChunk call populates it. Kept here rather than in
-	// Sync so the Sync body stays within the REFAC-03 100-line budget
+	// Sync so the Sync body stays within the 100-line budget
 	// enforced by TestWorkerSync_LineBudget.
 	w.resetFKState()
 	steps := w.syncSteps()
 	objectCounts := make(map[string]int, len(steps))
 	// batches carries one decoded chunk at a time; the map entry is
-	// cleared after each chunk upsert for the PERF-05 memory bound.
+	// cleared after each chunk upsert for the memory bound.
 	batches := make(map[string]syncBatch, 1)
 
 	for _, step := range steps {
@@ -1265,7 +1261,7 @@ func (w *Worker) syncUpsertPass(
 		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 		objectCounts[step.name] = count
 
-		// PERF-05 hard gate (400 MB): force a GC cycle between types
+		// Memory hard gate (400 MB): force a GC cycle between types
 		// to deterministically reclaim the chunked decode buffers and
 		// ent query-builder state before the next type's upsert begins.
 		// Without this, sampled peak heap varies run-to-run because GC
@@ -1281,7 +1277,7 @@ func (w *Worker) syncUpsertPass(
 		)
 	}
 
-	// 260428-mu0: the per-type sync_cursors writes are gone. Cursor
+	// The per-type sync_cursors writes are gone. Cursor
 	// advancement is implicit — once this tx commits the new rows, the
 	// next cycle's syncFetchPass derives the cursor from MAX(updated) on
 	// each entity table (internal/sync/cursor.go GetMaxUpdated). The
@@ -1298,10 +1294,10 @@ func (w *Worker) syncUpsertPass(
 //
 // The chunked replay is the difference between peak heap ~20 MB and
 // peak heap ~600 MB: netixlan is ~200K rows × ~200 bytes = ~40 MB if
-// loaded in one shot, versus ~1 MB per 5000-row chunk. D-19 atomicity
+// loaded in one shot, versus ~1 MB per 5000-row chunk. Atomicity
 // is preserved because all upserts run through the same ent.Tx.
 //
-// REFAC-04 (Commit E): per-chunk decode+filter+upsert dispatches to the
+// Per-chunk decode+filter+upsert dispatches to the
 // generic syncIncremental[E] via dispatchScratchChunk, replacing the
 // old 13-arm type-switches in decodeScratchChunk and upsertOneType.
 // The per-chunk typed slice is local to syncIncremental[E] and is
@@ -1329,13 +1325,13 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 
 		// MANDATORY memory optimization anchor: historically cleared the
 		// per-type entry in the batches map to release the chunk backing
-		// array between iterations. Post REFAC-04 (Commit E) the typed
+		// array between iterations. Now the typed
 		// chunk slice lives in syncIncremental[E]'s local scope and is
 		// reclaimed automatically on return — scope-based release is
 		// strictly more reliable than map-entry clearing. The literal
 		// write below compiles to a no-op map store and is kept as a
 		// grep-visible anchor for TestSync_BatchFreeAfterUpsert and the
-		// PERF-05 documentation trail in ARCHITECTURE.md §2. DO NOT
+		// memory-bound documentation trail in ARCHITECTURE.md §2. DO NOT
 		// remove without first updating the regression test.
 		batches[name] = syncBatch{}
 
@@ -1349,7 +1345,7 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 
 // syncIncrementalInput bundles the per-type parameters for
 // syncIncremental[E]. Declared immediately before the consuming
-// function per GO-CS-6. objectType is used for error-wrap context;
+// function. objectType is used for error-wrap context;
 // upsert performs the bulk upsert inside the caller's ent.Tx.
 //
 // fkFilter, when non-nil, is called per row after the deleted-status
@@ -1373,24 +1369,24 @@ type syncIncrementalInput[E any] struct {
 // real ent table via the per-type upsert closure. Returns the count of
 // upserted rows.
 //
-// REFAC-04 (Commit E): this generic helper replaces the 13 per-type
+// This generic helper replaces the 13 per-type
 // arms that used to live in decodeScratchChunk and upsertOneType. The
 // type-specific behavior is now carried by the closure arguments on
 // syncIncrementalInput[E], so the bookkeeping code (decode, upsert,
 // error-wrap) lives in exactly one place instead of being copy-pasted
 // 13 times with only type names changed.
 //
-// Phase 68 Plan 01 (D-01): removed the `includeDeleted` parameter and
+// Removed the `includeDeleted` parameter and
 // the `filterByStatus` branch. Sync now unconditionally persists rows
 // with any upstream status (including "deleted") through the upsert
 // path; the row-level status × since matrix is applied by serializer
-// surfaces (pdbcompat in Plan 68-03). Plan 68-02 then flips the delete
-// pass from hard-delete to soft-delete, closing the STATUS-03 loop.
+// surfaces (pdbcompat). The delete pass is a soft-delete, closing the
+// stale-status loop.
 //
 // Each call processes ONE chunk (<=scratchChunkSize rows). The typed
 // `items` slice is local to this function, so the chunk backing array
 // is reclaimed automatically when the helper returns — no map-entry
-// clearing is necessary for the PERF-05 memory bound. D-19 atomicity
+// clearing is necessary for the memory bound. Atomicity
 // is preserved: the upsert closure binds to a tx captured by the
 // caller, and every real-DB write still runs inside that single tx.
 //
@@ -1430,7 +1426,7 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // each case binds the concrete type E plus its per-type status accessor
 // and upsert helper, then calls the generic.
 //
-// REFAC-04 (Commit E): this 13-arm dispatch replaces the two separate
+// This 13-arm dispatch replaces the two separate
 // 13-arm type-switches that used to live in decodeScratchChunk and
 // upsertOneType. Adding a new PeeringDB type now requires a single
 // case entry here (and the corresponding entry in syncSteps /
@@ -1444,7 +1440,7 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // This handles PeeringDB snapshots that expose live children pointing
 // at server-side-suppressed parents (e.g. NTT America carrier → org).
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
-	// Quick task 260428-5xt: chunk pre-pass batches missing required
+	// Chunk pre-pass batches missing required
 	// parent FK fetches per parent type per chunk, turning N per-row
 	// HTTP requests into ⌈N/100⌉ per parent type. The per-cycle dedup
 	// cache makes the per-row fkCheckParent → fkBackfillParent path a
@@ -1606,7 +1602,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 				// NOTE: ix_id is NOT an independent FK upstream — it is
 				// serializer-computed from ixlan.ix_id (peeringdb_server/
 				// serializers.py NetworkIxLanSerializer). Validating
-				// ixlan_id (below) is sufficient. Quick task 260428-2zl
+				// ixlan_id (below) is sufficient. We
 				// removed the redundant ix_id check that was producing
 				// false-positive orphans whenever an ix mid-sync was a
 				// missing parent for an otherwise-valid netixlan row.
@@ -1620,7 +1616,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 				}
 				// Optional side FKs: net_side_id, ix_side_id. Upstream
 				// peeringdb_server/models.py:5630-5642 declares both as
-				// `null=True, on_delete=SET_NULL`. Quick task 260428-2zl:
+				// `null=True, on_delete=SET_NULL`. We
 				// mirror that contract by null-on-miss (after backfill
 				// attempt) rather than dropping the entire row.
 				w.nullSideFK(ctx, tx, &v.NetSideID, "net_side_id", v.ID)
@@ -1637,7 +1633,7 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 // fkCheckParent is the per-row FK validation helper called from the
 // fkFilter closures in dispatchScratchChunk. Returns true if parentID
 // is registered for parentType (or is a zero/null FK), or if the live
-// backfill (quick task 260428-2zl) recovered the parent from upstream.
+// backfill recovered the parent from upstream.
 // Otherwise records the orphan via Worker.recordOrphan (DEBUG log +
 // per-cycle counter) and returns false so syncIncremental drops the
 // row from the chunk. emitOrphanSummary surfaces the per-cycle
@@ -1663,8 +1659,8 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 }
 
 // nullSideFK enforces the upstream SET_NULL contract on optional side
-// FKs (NetworkIxLan.{net_side_id, ix_side_id} → fac). Quick task
-// 260428-2zl Task 4: per peeringdb_server/models.py:5630-5642 these
+// FKs (NetworkIxLan.{net_side_id, ix_side_id} → fac).
+// Per peeringdb_server/models.py:5630-5642 these
 // columns are `null=True, on_delete=SET_NULL`, so a missing parent
 // must NULL the column rather than drop the row.
 //
@@ -1720,11 +1716,11 @@ func terminalRecordContext(ctx context.Context) (context.Context, context.Cancel
 // recordFailure records a failed sync in the sync_status table and metrics.
 //
 // mode is threaded through so the failure metric carries the same
-// {status,mode} attribute pair as the success metric (SEED-001 260426-pms).
+// {status,mode} attribute pair as the success metric.
 //
 // The status write + terminal metrics run on a context detached from
 // cancellation (terminalRecordContext): this path is reached after a
-// possibly-cancelled cycle — including the FIX-1 panic firewall — and the
+// possibly-cancelled cycle — including the panic firewall — and the
 // failure MUST be recorded durably even if the cycle context is already
 // Done. Without detachment the UPDATE silently no-ops and sync_status is
 // left stuck "running".
@@ -1732,11 +1728,11 @@ func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, status
 	recCtx, cancel := terminalRecordContext(ctx)
 	defer cancel()
 
-	// OBS-05: emit heap + RSS span attrs and (if over threshold) slog.Warn.
+	// Emit heap + RSS span attrs and (if over threshold) slog.Warn.
 	// Called even on failure — memory pressure is interesting regardless of sync outcome.
 	w.emitMemoryTelemetry(recCtx, w.config.HeapWarnBytes, w.config.RSSWarnBytes)
 	w.emitOrphanSummary(recCtx)
-	// Record sync-level failure metrics per D-06.
+	// Record sync-level failure metrics.
 	attrs := metric.WithAttributes(
 		attribute.String("status", "failed"),
 		attribute.String("mode", string(mode)),
@@ -1754,7 +1750,7 @@ func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, status
 	}
 }
 
-// SyncWithRetry calls Sync and retries on failure with exponential backoff per D-21.
+// SyncWithRetry calls Sync and retries on failure with exponential backoff.
 //
 // Rate-limit short-circuit: when the wrapped error is a *peeringdb.RateLimitError,
 // the retry ladder is skipped entirely. PeeringDB's unauthenticated quota is
@@ -1825,7 +1821,7 @@ func rateLimited(err error) bool {
 }
 
 // HasCompletedSync reports whether at least one successful sync has completed.
-// Used for 503 behavior per D-30.
+// Used for 503 behavior.
 func (w *Worker) HasCompletedSync() bool {
 	return w.synced.Load()
 }
@@ -1833,7 +1829,7 @@ func (w *Worker) HasCompletedSync() bool {
 // runSyncCycle wraps SyncWithRetry with a demotion monitor goroutine.
 // If the node is demoted during sync (IsPrimary returns false), the cycle
 // context is cancelled, causing SyncWithRetry to abort early.
-// The monitor goroutine lifetime is tied to cycleCtx per CC-2.
+// The monitor goroutine lifetime is tied to cycleCtx.
 func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 	cycleCtx, cycleCancel := context.WithCancel(ctx)
 	defer cycleCancel()
@@ -1864,13 +1860,13 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 		)
 	}
 	cycleCancel() // ensure monitor goroutine exits
-	<-done        // wait for clean exit per CC-2
+	<-done        // wait for clean exit
 }
 
-// StartScheduler runs the sync scheduler on all instances per D-22.
+// StartScheduler runs the sync scheduler on all instances.
 // On primary nodes it executes sync cycles; on replicas it waits for promotion.
 // Role changes are detected dynamically at each scheduler wakeup via
-// w.config.IsPrimary(). The scheduler stops when ctx is cancelled per CC-2.
+// w.config.IsPrimary(). The scheduler stops when ctx is cancelled.
 //
 // Scheduling anchor: the next sync is scheduled at lastCompletion + interval,
 // not at processStart + N*interval. This matters across restarts — a rolling

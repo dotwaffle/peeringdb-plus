@@ -19,7 +19,7 @@ import (
 //	otelhttp -> Logging -> PrivacyTier (r.WithContext) -> ...
 //	-> routeTagMiddleware -> mux
 //
-// The empirical OBS-04 investigation (see
+// The empirical investigation (see
 // the project history
 // § Direct metric-record verification) proves that this WithContext
 // hop hides r.Pattern from otelhttp's local r AFTER mux dispatch
@@ -32,7 +32,7 @@ import (
 // fires for every request, masking any latent bug in routeTagMiddleware.
 // With it, the labeler-add path is the SOLE source of http.route, and
 // the test exercises exactly the production-shaped failure-mode
-// investigated in OBS-04.
+// the http.route emission path was investigated against.
 func privacyTierLikeMW(next http.Handler) http.Handler {
 	type tierKey struct{}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,10 +56,10 @@ func privacyTierLikeMW(next http.Handler) http.Handler {
 // (which would also natively emit http.route via semconv/server.go:367
 // and mask any bug in our middleware).
 //
-// Phase 75 OBS-04 regression guard: if the http.route label stops
+// Regression guard: if the http.route label stops
 // populating for any of the 4 route families, this test fails. The
 // failure mode is the production-only-/healthz observation that
-// triggered OBS-04 in the first place — locking it via E2E means a
+// triggered the original investigation — locking it via E2E means a
 // future middleware-chain reshuffle or otelhttp upgrade that breaks
 // the labeler-add path is caught at CI time rather than in production
 // dashboard regression.
@@ -140,7 +140,7 @@ func TestRouteTag_E2E_AllRouteFamilies(t *testing.T) {
 }
 
 // TestRouteTag_E2E_HealthzStillWorks is a regression guard ensuring
-// the OBS-04 fix did not accidentally break the one route family that
+// the http.route fix did not accidentally break the one route family that
 // already worked in production prior to the fix. /healthz must
 // continue to produce http.route="GET /healthz" through the same
 // chain shape as the multi-family test.

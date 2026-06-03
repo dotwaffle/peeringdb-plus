@@ -10,20 +10,18 @@ import (
 // ensure the filter parser never panics on untrusted input. Errors from
 // invalid input are expected and acceptable -- the contract is no panics.
 //
-// Phase 69 Plan 05 extends the seed corpus per CONTEXT.md D-07: diacritics,
+// The seed corpus covers diacritics,
 // CJK, combining marks, ZWJ sequences, RTL, RLO overrides, null bytes, and
-// long strings (>64 KB). IN-01/IN-02 edges (>999 element lists, empty lists,
+// long strings (>64 KB). The __in edges (>999 element lists, empty lists,
 // all-empty parts) are also seeded so the fuzzer exercises json_each rewrite
 // and the empty-__in sentinel path.
 //
 // CI runs the default (non-fuzzing) test execution which replays the seed
-// corpus. The 500k-execution deliverable from plan D-07 is a LOCAL run
-// invoked as:
+// corpus. A longer 500k-execution run is a LOCAL run invoked as:
 //
 //	go test -fuzz=FuzzFilterParser -fuzztime=60s -run '^$' ./internal/pdbcompat/
 //
-// per the v1.10 Phase 48 convention (fuzz exec counts recorded in plan
-// SUMMARY, never gated by CI wall-clock).
+// Fuzz exec counts are recorded out of band, never gated by CI wall-clock.
 func FuzzFilterParser(f *testing.F) {
 	// Seed corpus covering all 5 field types and key edge cases.
 	f.Add("name", "Cloudflare")         // string exact
@@ -38,7 +36,7 @@ func FuzzFilterParser(f *testing.F) {
 	f.Add("", "")                       // empty key
 	f.Add("__", "val")                  // empty field name with operator separator
 
-	// Phase 69 UNICODE-03 corpus extension (CONTEXT.md D-07).
+	// Unicode corpus extension.
 	// Diacritics, CJK, combining marks, ZWJ, RTL, null bytes, RLO.
 	f.Add("name__contains", "Zürich")       // diacritic
 	f.Add("name__contains", "Straße")       // non-decomposable ligature (ß→ss)
@@ -55,22 +53,22 @@ func FuzzFilterParser(f *testing.F) {
 	f.Add("name", "Zürich")                 // diacritic exact
 	f.Add("name__iexact", "ZÜRICH")         // diacritic iexact (uppercase)
 
-	// Phase 69 IN-01 / IN-02 corpus extension.
-	f.Add("asn__in", "")                             // empty __in → empty-result sentinel (IN-02)
+	// __in corpus extension.
+	f.Add("asn__in", "")                             // empty __in → empty-result sentinel
 	f.Add("asn__in", "1,2,3,4,5")                    // small int IN
-	f.Add("asn__in", strings.Repeat("1,", 1200)+"1") // >999 values (IN-01 json_each)
+	f.Add("asn__in", strings.Repeat("1,", 1200)+"1") // >999 values (json_each)
 	f.Add("name__in", "a,b,c")                       // string IN
 	f.Add("name__in", "Zürich,Köln,München")         // unicode IN
 	f.Add("name__in", ",,,")                         // all-empty IN parts
 	f.Add("name__in", strings.Repeat(",", 1000))     // 1000 empty strings
 
-	// Long-string stress (>64 KB payload, D-07 and v1.10 Phase 48 pattern).
+	// Long-string stress (>64 KB payload).
 	f.Add("name__contains", strings.Repeat("x", 70_000))
 	f.Add("name", strings.Repeat("Z\u0301", 5_000)) // zalgo at scale
 
-	// TypeConfig with entries for all 5 FieldType values. Phase 69 Plan 04:
+	// TypeConfig with entries for all 5 FieldType values.
 	// ParseFilters takes TypeConfig so it can consult FoldedFields. Mark
-	// "name" as folded so the shadow-routing path (UNICODE-01) is
+	// "name" as folded so the shadow-routing path is
 	// exercised in addition to the non-shadow path.
 	tc := TypeConfig{
 		Name: "fuzz",

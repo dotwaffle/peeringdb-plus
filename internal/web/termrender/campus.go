@@ -11,7 +11,6 @@ import (
 
 // RenderCampusDetail renders a campus entity as terminal output with minimal layout.
 // Shows compact header with identity fields and facility list.
-// (RND-06, D-03 minimal layout)
 func (r *Renderer) RenderCampusDetail(w io.Writer, data templates.CampusDetail) error {
 	var buf strings.Builder
 	buf.Grow(len(data.Facilities)*80 + 500)
@@ -20,7 +19,7 @@ func (r *Renderer) RenderCampusDetail(w io.Writer, data templates.CampusDetail) 
 	buf.WriteString(styledHeading(data.Name))
 	buf.WriteString("\n")
 
-	// Key-value header (compact per D-03).
+	// Key-value header (compact).
 	writeKV(&buf, "Organization", styledVal(data.OrgName), labelWidth)
 	writeKV(&buf, "Website", styledVal(data.Website), labelWidth)
 	writeKV(&buf, "Location", styledVal(formatLocation(data.City, data.Country)), labelWidth)

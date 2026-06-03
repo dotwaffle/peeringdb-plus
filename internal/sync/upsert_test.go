@@ -1,12 +1,12 @@
 // Tests for the sync upsert layer.
 //
-// TestUpsertPopulatesFoldColumns anchors Phase 69 Plan 03's contract: the 6
+// TestUpsertPopulatesFoldColumns anchors the contract that the 6
 // upsert functions for entity types with _fold shadow columns (organization,
 // network, facility, internetexchange, campus, carrier) populate those
 // columns at sync time via unifold.Fold(). End-to-end round-trip asserts
 // that `Name: "Zürich GmbH"` → DB → `NameFold: "zurich gmbh"`.
 //
-// TestUpsert_SkipOnUnchanged anchors 260428-eda CHANGE 3's contract:
+// TestUpsert_SkipOnUnchanged anchors the skip-on-unchanged contract:
 // per-row skip-on-unchanged via the SQL ON CONFLICT DO UPDATE WHERE
 // predicate gates writes on the upstream `updated` timestamp.
 package sync
@@ -82,9 +82,9 @@ func TestUpsert_UnDeletesOnResync(t *testing.T) {
 // writes to the sibling *_fold columns via SetNameFold/SetAkaFold/
 // SetCityFold. The other 5 affected upsert funcs (network, facility,
 // internetexchange, campus, carrier) follow the same pattern; a
-// grep-audit in the plan's verification step covers those.
+// grep-audit covers those.
 //
-// Closes UNICODE-01 sync-side data-population path.
+// Covers the unicode-folding sync-side data-population path.
 func TestUpsertPopulatesFoldColumns(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
@@ -146,7 +146,7 @@ func TestUpsertPopulatesFoldColumns(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = tx2.Rollback() })
 
-	// 260428-eda CHANGE 3: bump Updated past the prior write so the
+	// Bump Updated past the prior write so the
 	// skip-on-unchanged predicate (excluded.updated > existing.updated)
 	// admits this re-upsert. With Updated=now (unchanged) the predicate
 	// would correctly leave the row untouched — exercised separately by
@@ -185,7 +185,7 @@ func TestUpsertPopulatesFoldColumns(t *testing.T) {
 	}
 }
 
-// TestUpsert_SkipOnUnchanged anchors 260428-eda CHANGE 3: per-row
+// TestUpsert_SkipOnUnchanged anchors the skip-on-unchanged contract: per-row
 // skip-on-unchanged via the SQL ON CONFLICT DO UPDATE WHERE predicate
 // gates writes on the upstream `updated` timestamp.
 //

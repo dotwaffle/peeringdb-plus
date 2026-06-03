@@ -218,7 +218,7 @@ templ CopyableIP(label string, addr string) {
 }
 
 // CountryFlag renders a country flag icon with the country code text.
-// Uses flag-icons CSS classes. If code is empty, renders nothing (D-16).
+// Uses flag-icons CSS classes. If code is empty, renders nothing.
 templ CountryFlag(code string) {
 	if code != "" {
 		<span class="inline-flex items-center gap-1.5">

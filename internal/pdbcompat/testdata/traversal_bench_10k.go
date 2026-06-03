@@ -1,5 +1,5 @@
-// Package testdata provides bench-only fixture helpers used by the Phase
-// 70 traversal benchmarks (internal/pdbcompat/bench_traversal_test.go).
+// Package testdata provides bench-only fixture helpers used by the
+// cross-entity traversal benchmarks (internal/pdbcompat/bench_traversal_test.go).
 //
 // Go's build system excludes `testdata/` directories from package
 // discovery via `./...`, but explicit imports still compile. The helpers
@@ -54,7 +54,7 @@ func Default10k() BenchSeedShape {
 // sets for benchstat n=6 stability.
 //
 // Accepts testing.TB so both *testing.B (from BenchmarkTraversal_*) and
-// *testing.T (from TestBenchTraversal_D07_Ceiling) can use it.
+// *testing.T (from TestBenchTraversal_TwoHopCeiling) can use it.
 func Seed(tb testing.TB, client *ent.Client, shape BenchSeedShape) {
 	tb.Helper()
 	ctx := context.Background()
@@ -63,7 +63,7 @@ func Seed(tb testing.TB, client *ent.Client, shape BenchSeedShape) {
 	r := rand.New(rand.NewPCG(0xCAFEBABE, 0xDEADBEEF))
 	now := time.Now().UTC()
 
-	// Phase 1: Organizations. Plain Create loop is fine at 1k; stays
+	// Step 1: Organizations. Plain Create loop is fine at 1k; stays
 	// simple so the test is easy to read.
 	for i := 1; i <= shape.Orgs; i++ {
 		name := fmt.Sprintf("BenchOrg-%06d", i)
@@ -80,7 +80,7 @@ func Seed(tb testing.TB, client *ent.Client, shape BenchSeedShape) {
 		}
 	}
 
-	// Phase 2: Networks in bulk. CreateBulk is much faster than a
+	// Step 2: Networks in bulk. CreateBulk is much faster than a
 	// Create loop at 10k scale and each row has ~30 columns — keep
 	// chunks under SQLite's 32,766 variable cap.
 	const netChunk = 500
@@ -117,7 +117,7 @@ func Seed(tb testing.TB, client *ent.Client, shape BenchSeedShape) {
 		}
 	}
 
-	// Phase 3: Facilities in bulk.
+	// Step 3: Facilities in bulk.
 	const facChunk = 500
 	for start := 0; start < shape.Facilities; start += facChunk {
 		end := start + facChunk
@@ -143,7 +143,7 @@ func Seed(tb testing.TB, client *ent.Client, shape BenchSeedShape) {
 		}
 	}
 
-	// Phase 4: Ixes + 1:1 IxLans. fac_count populated with random 0-19
+	// Step 4: Ixes + 1:1 IxLans. fac_count populated with random 0-19
 	// so the __fac_count__gt=0 predicate has a non-trivial match set
 	// (~95% of rows).
 	for i := 1; i <= shape.Ixes; i++ {
@@ -181,7 +181,7 @@ func Seed(tb testing.TB, client *ent.Client, shape BenchSeedShape) {
 		}
 	}
 
-	// Phase 5: NetworkIxLans — 3 per network, random ixlan per row.
+	// Step 5: NetworkIxLans — 3 per network, random ixlan per row.
 	// id starts at 1; net_id field and ixlan_id field populated along
 	// with their edge counterparts so ent's FK integrity holds.
 	const nixChunk = 500

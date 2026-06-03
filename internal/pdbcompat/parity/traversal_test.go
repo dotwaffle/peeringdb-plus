@@ -16,27 +16,24 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
-// TestParity_Traversal locks Phase 70 cross-entity traversal
-// semantics:
+// TestParity_Traversal locks cross-entity traversal semantics:
 //
-//   - TRAVERSAL-01 (Path A 1-hop): `org__name=` filter on net.
-//   - TRAVERSAL-02 (Path A 2-hop): `ixlan__ix__id=` on ixpfx —
-//     the canonical pair where both edges exist in the ent schema.
-//   - TRAVERSAL-03 (Path B fallback 1-hop via ent edges):
-//     `org__city=` on net — edge exists, target field exists,
-//     but is not in the Path A allowlist.
-//   - TRAVERSAL-04 (unknown-field silent-ignore): unknown filter
-//     keys produce HTTP 200 with the unfiltered row set; the
-//     handler also emits an OTel span attribute
-//     `pdbplus.filter.unknown_fields` for operator visibility.
-//   - DIVERGENCE: `fac?ixlan__ix__fac_count__gt=0` is silent-
-//     ignored rather than resolved (DEFER-70-verifier-01). The
-//     generic 2-hop mechanism cannot reach this — fac has no
-//     direct ixlan edge in the ent schema; upstream uses a
-//     bespoke per-serializer prepare_query.
-//   - TRAVERSAL-05 (Path A 1-hop, campus target): `campus__name=`
-//     filter on fac. Previously a documented divergence
-//     (DEFER-70-06-01); fixed in v1.18.0 Phase 73 via
+//   - Path A 1-hop: `org__name=` filter on net.
+//   - Path A 2-hop: `ixlan__ix__id=` on ixpfx — the canonical pair
+//     where both edges exist in the ent schema.
+//   - Path B fallback 1-hop via ent edges: `org__city=` on net —
+//     edge exists, target field exists, but is not in the Path A
+//     allowlist.
+//   - unknown-field silent-ignore: unknown filter keys produce
+//     HTTP 200 with the unfiltered row set; the handler also emits
+//     an OTel span attribute `pdbplus.filter.unknown_fields` for
+//     operator visibility.
+//   - DIVERGENCE: `fac?ixlan__ix__fac_count__gt=0` is silent-ignored
+//     rather than resolved. The generic 2-hop mechanism cannot reach
+//     this — fac has no direct ixlan edge in the ent schema; upstream
+//     uses a bespoke per-serializer prepare_query.
+//   - Path A 1-hop, campus target: `campus__name=` filter on fac.
+//     Previously a documented divergence; fixed in v1.18.0 via
 //     entsql.Annotation{Table: "campuses"} on Campus
 //     (ent/schema/campus_annotations.go).
 //
@@ -48,7 +45,7 @@ func TestParity_Traversal(t *testing.T) {
 
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	t.Run("TRAVERSAL-01_path_a_1hop_org_name", func(t *testing.T) {
+	t.Run("path_a_1hop_org_name", func(t *testing.T) {
 		t.Parallel()
 		// upstream: pdb_api_test.py:5081 (`net?org__name=` is one of
 		// the most common 1-hop traversal shapes in the corpus)
@@ -70,11 +67,11 @@ func TestParity_Traversal(t *testing.T) {
 		slices.Sort(got)
 		want := []int{100, 101}
 		if !slices.Equal(got, want) {
-			t.Errorf("TRAVERSAL-01 path A 1-hop: got %v, want %v", got, want)
+			t.Errorf("path A 1-hop: got %v, want %v", got, want)
 		}
 	})
 
-	t.Run("TRAVERSAL-02_path_a_2hop_ixpfx_via_ixlan_ix_id", func(t *testing.T) {
+	t.Run("path_a_2hop_ixpfx_via_ixlan_ix_id", func(t *testing.T) {
 		t.Parallel()
 		// upstream: pdb_api_test.py:3203 (ixpfx scoped via ixlan
 		// → ix). The 2-hop walk is the canonical Path A success
@@ -100,11 +97,11 @@ func TestParity_Traversal(t *testing.T) {
 		slices.Sort(got)
 		want := []int{1000, 1001}
 		if !slices.Equal(got, want) {
-			t.Errorf("TRAVERSAL-02 path A 2-hop: got %v, want %v", got, want)
+			t.Errorf("path A 2-hop: got %v, want %v", got, want)
 		}
 	})
 
-	t.Run("TRAVERSAL-03_path_b_1hop_org_city", func(t *testing.T) {
+	t.Run("path_b_1hop_org_city", func(t *testing.T) {
 		t.Parallel()
 		// upstream: pdb_api_test.py (Path B fallback covers any
 		// edge × queryable-target-field combination not explicitly
@@ -138,17 +135,17 @@ func TestParity_Traversal(t *testing.T) {
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 100 {
-			t.Errorf("TRAVERSAL-03 path B 1-hop org__city: got %v, want [100]", ids)
+			t.Errorf("path B 1-hop org__city: got %v, want [100]", ids)
 		}
 	})
 
-	t.Run("TRAVERSAL-04_unknown_field_silently_ignored_with_otel_attr", func(t *testing.T) {
+	t.Run("unknown_field_silently_ignored_with_otel_attr", func(t *testing.T) {
 		t.Parallel()
 		// upstream: pdb_api_test.py (default-list-survives-unknown-
 		// query-string is the implicit contract across the corpus;
 		// none of the upstream tests pass deliberately invalid
 		// filter keys).
-		// Phase 70 D-05: silent-ignore + OTel span attribute
+		// Silent-ignore + OTel span attribute
 		// `pdbplus.filter.unknown_fields` for operator visibility.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
@@ -160,12 +157,12 @@ func TestParity_Traversal(t *testing.T) {
 		// HTTP-level assertion: 200 + unfiltered row.
 		status, body := httpGet(t, srv, "/api/net?totally_bogus_field=x&also_bogus=y")
 		if status != http.StatusOK {
-			t.Fatalf("TRAVERSAL-04 unknown field: status = %d, want 200; body=%s",
+			t.Fatalf("unknown field: status = %d, want 200; body=%s",
 				status, string(body))
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 1 {
-			t.Errorf("TRAVERSAL-04: got %v, want [1] (unfiltered)", ids)
+			t.Errorf("unknown field: got %v, want [1] (unfiltered)", ids)
 		}
 
 		// OTel-level assertion: span carries the unknown-fields CSV.
@@ -177,11 +174,9 @@ func TestParity_Traversal(t *testing.T) {
 		// DIVERGENCE: Upstream resolves
 		// `fac?ixlan__ix__fac_count__gt=0` via a 3-hop per-serializer
 		// prepare_query (fac → ixfac → ix). The generic 2-hop ceiling
-		// (Phase 70 D-04) cannot reach this; the filter key is
-		// silently ignored and the response is the unfiltered live-fac
-		// set.
-		// See docs/API.md § Known Divergences row "DEFER-70-verifier-01"
-		// and the project history
+		// cannot reach this; the filter key is silently ignored and
+		// the response is the unfiltered live-fac set.
+		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: pdb_api_test.py:2340 (canonical site for the
 		// ix.fac_count via ixlan filter; upstream returns a filtered
@@ -208,16 +203,15 @@ func TestParity_Traversal(t *testing.T) {
 		// the canary for the divergence's status.
 		want := []int{100, 101, 102}
 		if !slices.Equal(got, want) {
-			t.Errorf("DEFER-70-verifier-01 silent-ignore: got %v, want %v (divergence canary)",
+			t.Errorf("silent-ignore: got %v, want %v (divergence canary)",
 				got, want)
 		}
 	})
 
-	t.Run("TRAVERSAL-05_path_a_1hop_fac_campus_name", func(t *testing.T) {
+	t.Run("path_a_1hop_fac_campus_name", func(t *testing.T) {
 		t.Parallel()
-		// Phase 73 BUG-01: previously DEFER-70-06-01 documented a
-		// divergence where this query returned HTTP 500 ("no such
-		// table: campus"). Fixed 2026-04-26 by adding
+		// This query previously returned HTTP 500 ("no such table:
+		// campus"). Fixed 2026-04-26 by adding
 		// entsql.Annotation{Table: "campuses"} to
 		// ent/schema/campus_annotations.go (sibling-file mixin so
 		// cmd/pdb-schema-generate doesn't strip on regen). The Path A
@@ -228,19 +222,19 @@ func TestParity_Traversal(t *testing.T) {
 		// queryable-relations mechanism)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
-		mustOrg(ctx, t, c, 1, "Phase73Org", t0)
-		mustCampus(ctx, t, c, 50, "Phase73Campus", 1, t0)
-		mustFac(ctx, t, c, 100, "Phase73FacOnCampus", 1, t0)
+		mustOrg(ctx, t, c, 1, "CampusTraversalOrg", t0)
+		mustCampus(ctx, t, c, 50, "TargetCampus", 1, t0)
+		mustFac(ctx, t, c, 100, "FacOnCampus", 1, t0)
 		// Link fac 100 to campus 50.
 		if _, err := c.Facility.UpdateOneID(100).SetCampusID(50).Save(ctx); err != nil {
 			t.Fatalf("link fac to campus: %v", err)
 		}
 		// Seed a sibling campus + fac that should NOT match.
 		mustCampus(ctx, t, c, 51, "OtherCampus", 1, t0)
-		mustFac(ctx, t, c, 101, "Phase73FacOffCampus", 1, t0)
+		mustFac(ctx, t, c, 101, "FacOffCampus", 1, t0)
 
 		srv := newTestServer(t, c)
-		status, body := httpGet(t, srv, "/api/fac?campus__name=Phase73Campus")
+		status, body := httpGet(t, srv, "/api/fac?campus__name=TargetCampus")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200; body=%s", status, string(body))
 		}
@@ -248,7 +242,7 @@ func TestParity_Traversal(t *testing.T) {
 		slices.Sort(got)
 		want := []int{100}
 		if !slices.Equal(got, want) {
-			t.Errorf("TRAVERSAL-05: got %v, want %v", got, want)
+			t.Errorf("fac via campus name: got %v, want %v", got, want)
 		}
 	})
 }
@@ -348,7 +342,7 @@ func assertUnknownFieldsOTelAttr(t *testing.T, c *ent.Client) {
 	exporter := tracetest.NewInMemoryExporter()
 	tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
 	tracer := tp.Tracer("test")
-	ctx, span := tracer.Start(t.Context(), "parity-traversal-04")
+	ctx, span := tracer.Start(t.Context(), "parity-traversal-unknown-field")
 
 	srv := newTestServer(t, c)
 	req, err := http.NewRequestWithContext(

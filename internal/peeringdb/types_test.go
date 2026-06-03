@@ -276,13 +276,13 @@ func TestTypeConstants(t *testing.T) {
 	}
 }
 
-// TestIxLan_URLField_JSONRoundTrip locks the Phase 64 (VIS-09) contract for
+// TestIxLan_URLField_JSONRoundTrip locks the contract for
 // the ixf_ixp_member_list_url field on peeringdb.IxLan:
 //   - decoding upstream JSON populates IXFIXPMemberListURL when the key is
 //     present,
 //   - encoding with a populated value emits the key,
 //   - encoding with an empty value OMITS the key entirely (,omitempty) to
-//     match upstream anon parity — see Phase 64 RESEARCH.md §Pitfall 2.
+//     match upstream anonymous parity.
 func TestIxLan_URLField_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 

@@ -2,7 +2,7 @@ package pdbcompat
 
 import "testing"
 
-// TestRegistryInvariant_AllListHaveCount documents the Phase 71 WR-01
+// TestRegistryInvariant_AllListHaveCount documents the
 // contract: every Registry entry with a non-nil List MUST have a non-nil
 // Count, because serveList's pre-flight budget check (handler.go) is
 // gated on `tc.Count != nil`. A missing CountFunc would silently bypass
@@ -17,7 +17,7 @@ func TestRegistryInvariant_AllListHaveCount(t *testing.T) {
 	t.Parallel()
 	for name, tc := range Registry {
 		if tc.List != nil && tc.Count == nil {
-			t.Errorf("Registry[%q] has List without CountFunc — Phase 71 WR-01 invariant violated", name)
+			t.Errorf("Registry[%q] has List without CountFunc — list/count pairing invariant violated", name)
 		}
 	}
 }

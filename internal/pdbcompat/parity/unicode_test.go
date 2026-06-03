@@ -10,10 +10,10 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
-// TestParity_Unicode locks the Phase 69 unifold + shadow-column
-// pipeline against future regression. The matrix covers UNICODE-01
-// (`_fold` shadow-column routing) and UNICODE-02 (`__contains` /
-// `__startswith` coerced to case-insensitive via the fold path).
+// TestParity_Unicode locks the unifold + shadow-column pipeline
+// against future regression. The matrix covers `_fold` shadow-column
+// routing and `__contains` / `__startswith` coerced to
+// case-insensitive via the fold path.
 //
 // Cross-entity sweep: 4 of the 6 folded entities (network, facility,
 // internet exchange, campus) are exercised across the subtests.
@@ -33,7 +33,7 @@ func TestParity_Unicode(t *testing.T) {
 
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	t.Run("UNICODE-01_net_name_contains_diacritic_matches_ascii", func(t *testing.T) {
+	t.Run("net_name_contains_diacritic_matches_ascii", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:576 (unidecode folding before substring
 		// match)
@@ -59,19 +59,18 @@ func TestParity_Unicode(t *testing.T) {
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 1 {
-			t.Errorf("UNICODE-01 diacritic→ASCII fold: got %v, want [1]", ids)
+			t.Errorf("diacritic→ASCII fold: got %v, want [1]", ids)
 		}
 	})
 
-	t.Run("UNICODE-01_fac_city_cjk_roundtrip", func(t *testing.T) {
+	t.Run("fac_city_cjk_roundtrip", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:576 (CJK passes through unidecode unchanged
 		// since it has no Latin transliteration; the fold column
 		// stores the lowered form which equals the input).
-		// synthesised: phase69-plan-04 (no upstream test corpus
-		// exercises CJK substring matching against a folded shadow
-		// column; the synthesised case locks our pipeline's CJK
-		// passthrough behaviour).
+		// synthesised: no upstream test corpus exercises CJK substring
+		// matching against a folded shadow column; this case locks our
+		// pipeline's CJK passthrough behaviour.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		org, err := c.Organization.Create().
@@ -104,11 +103,11 @@ func TestParity_Unicode(t *testing.T) {
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 100 {
-			t.Errorf("UNICODE-01 CJK roundtrip: got %v, want [100]", ids)
+			t.Errorf("CJK roundtrip: got %v, want [100]", ids)
 		}
 	})
 
-	t.Run("UNICODE-02_ix_name_startswith_coerced_case_insensitive", func(t *testing.T) {
+	t.Run("ix_name_startswith_coerced_case_insensitive", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:576 (`__startswith` is coerced to
 		// `__istartswith` semantics via the fold pipeline — both sides
@@ -142,18 +141,18 @@ func TestParity_Unicode(t *testing.T) {
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 50 {
-			t.Errorf("UNICODE-02 case+diacritic startswith: got %v, want [50]", ids)
+			t.Errorf("case+diacritic startswith: got %v, want [50]", ids)
 		}
 	})
 
-	t.Run("UNICODE-01_combining_mark_NFKD_equivalent", func(t *testing.T) {
+	t.Run("combining_mark_NFKD_equivalent", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:576 (NFKD normalises combining marks; both
 		// composed `Zürich` and decomposed `Zu\u0308rich` fold to
 		// `zurich`).
-		// synthesised: phase69-plan-04 (combining-mark equivalence is
-		// not exercised by upstream's test corpus; lock our NFKD
-		// pipeline's behaviour against future Unicode-version drift).
+		// synthesised: combining-mark equivalence is not exercised by
+		// upstream's test corpus; lock our NFKD pipeline's behaviour
+		// against future Unicode-version drift.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		org, err := c.Organization.Create().
@@ -182,7 +181,7 @@ func TestParity_Unicode(t *testing.T) {
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 20 {
-			t.Errorf("UNICODE-01 NFKD combining-mark: got %v, want [20]", ids)
+			t.Errorf("NFKD combining-mark: got %v, want [20]", ids)
 		}
 	})
 }

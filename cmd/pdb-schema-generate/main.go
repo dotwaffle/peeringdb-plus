@@ -268,7 +268,7 @@ func generateEntSchema(apiPath string, ot ObjectType, schema *Schema) ([]byte, e
 		}
 	}
 
-	// Generate computed fields (stored per D-40).
+	// Generate computed fields.
 	for _, cf := range ot.ComputedFields {
 		code := generateComputedFieldCode(cf, apiPath)
 		data.ComputedFields = append(data.ComputedFields, entFieldData{
@@ -317,13 +317,13 @@ func generateFieldCode(name string, fd FieldDef) string {
 	switch fd.Type {
 	case "string":
 		fmt.Fprintf(&b, "field.String(%q)", name)
-		// SEED-001 (active 2026-04-26): upstream PeeringDB ?since= responses
-		// emit status='deleted' tombstones with PII-scrubbed empty strings on
-		// identity-correlated text fields. The 260426-pms quick task dropped
-		// NotEmpty() for "name" on the 6 folded entities after the live spike
-		// confirmed name="" tombstones. Phase 73 BUG-02 extends the same drop
-		// to "role" on poc — symmetric prevention for the next likely
-		// scrub target. NotEmpty() is preserved for "prefix" (ixprefix —
+		// Upstream PeeringDB ?since= responses emit status='deleted'
+		// tombstones with PII-scrubbed empty strings on identity-correlated
+		// text fields (observed 2026-04-26). NotEmpty() was dropped
+		// for "name" on the 6 folded entities after the live spike
+		// confirmed name="" tombstones, and the same drop extends to "role"
+		// on poc — symmetric prevention for the next likely scrub target.
+		// NotEmpty() is preserved for "prefix" (ixprefix —
 		// structurally meaningful, IP prefix is row identity not PII).
 		// See isTombstoneVulnerableField below for the explicit drop list.
 		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) && !isTombstoneVulnerableField(name) {
@@ -403,7 +403,7 @@ func generateFieldCode(name string, fd FieldDef) string {
 
 	case "json_array":
 		if name == "social_media" {
-			// SocialMedia value type lives in ent/schematypes (Phase 59-04)
+			// SocialMedia value type lives in ent/schematypes
 			// to avoid an import cycle from ent/schema's Policy() methods.
 			fmt.Fprintf(&b, "field.JSON(%q, []schematypes.SocialMedia{})", name)
 		} else {
@@ -560,7 +560,7 @@ func inferEdgeRefName(sourceAPI, targetAPI string, schema *Schema) string {
 	return simplePlural(toSnakeCase(apiPathToModelName(sourceAPI, schema)))
 }
 
-// generateIndexes produces index field lists for common query patterns (D-45).
+// generateIndexes produces index field lists for common query patterns.
 func generateIndexes(apiPath string, ot ObjectType) []string {
 	var indexes []string
 
@@ -589,8 +589,8 @@ func generateIndexes(apiPath string, ot ObjectType) []string {
 	// Always index status (common field).
 	indexes = append(indexes, "status")
 
-	// Always index updated (Phase 67 D-08: supports (-updated, -id) ORDER BY
-	// index scan for default list ordering across all 13 entities).
+	// Always index updated (supports (-updated, -id) ORDER BY index scan
+	// for default list ordering across all 13 entities).
 	indexes = append(indexes, "updated")
 
 	slices.Sort(indexes)
@@ -611,7 +611,7 @@ func generateIndexes(apiPath string, ot ObjectType) []string {
 // test-side mirror of generateIndexes so TestGenerateIndexes can assert
 // equality against schema/peeringdb.json without maintaining a hand-rolled
 // allow-list. Any divergence between this function and generateIndexes is
-// itself a bug — they must encode the same rules. Phase 74 D-01.
+// itself a bug — they must encode the same rules.
 //
 // The implementation is intentionally a thin wrapper around generateIndexes
 // rather than a parallel re-implementation. The test's value comes from
@@ -631,7 +631,7 @@ package schema
 
 import "github.com/ogen-go/ogen"
 
-// The SocialMedia value type moved to ent/schematypes (Phase 59-04) to
+// The SocialMedia value type moved to ent/schematypes to
 // break an import cycle introduced when poc.go's Policy() started
 // importing ent/poc for generated where-predicates. See
 // ent/schematypes/schematypes.go for the full rationale.
@@ -688,7 +688,7 @@ func ({{.ModelName}}) Fields() []ent.Field {
 		{{- end}}
 		{{- if .ComputedFields}}
 
-		// Computed fields (from serializer, stored per D-40)
+		// Computed fields (from serializer)
 		{{- range .ComputedFields}}
 		{{.Code}},
 		{{- end}}
@@ -823,15 +823,15 @@ func isNameField(name string) bool {
 // isTombstoneVulnerableField returns true if the field is structurally
 // likely to arrive empty on upstream PeeringDB tombstones (the GDPR-style
 // PII-scrub pattern empirically confirmed for ?since= responses on
-// 2026-04-26 — see SEED-001 spike). NotEmpty() validators on these fields
+// 2026-04-26). NotEmpty() validators on these fields
 // would reject incoming tombstones at the upsert builder, aborting
 // incremental sync cycles.
 //
 // Drops:
-//   - "name" — added 2026-04-26 by quick task 260426-pms after the
-//     SEED-001 spike confirmed name="" tombstones for the 6 folded
+//   - "name" — added 2026-04-26 after the
+//     live spike confirmed name="" tombstones for the 6 folded
 //     entities (org, network, facility, ix, carrier, campus).
-//   - "role" — added in v1.18.0 Phase 73 BUG-02 (per CONTEXT.md D-02).
+//   - "role" — added in v1.18.0.
 //     poc.role is the next obvious PII-scrub target on the same poc rows
 //     that already shipped tombstones in the spike; surfacing now
 //     prevents the next "incremental sync silently aborted on first

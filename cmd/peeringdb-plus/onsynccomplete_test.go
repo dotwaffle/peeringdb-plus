@@ -12,7 +12,7 @@ import (
 // TestOnSyncComplete_Signature locks the WorkerConfig.OnSyncComplete field
 // type to `func(ctx context.Context, syncTime time.Time)`.
 //
-// Quick task 260427-ojm flipped the callback shape FROM
+// The callback shape was flipped FROM
 // `func(map[string]int, time.Time)` (per-cycle upsert deltas — the wrong
 // value to feed into the gauge cache) TO a context-only signature so the
 // callback can run a fresh `pdbsync.InitialObjectCounts(ctx, client)` and
@@ -32,14 +32,14 @@ func TestOnSyncComplete_Signature(t *testing.T) {
 	cfgType := reflect.TypeFor[pdbsync.WorkerConfig]()
 	field, ok := cfgType.FieldByName("OnSyncComplete")
 	if !ok {
-		t.Fatal("WorkerConfig.OnSyncComplete field missing — quick task 260427-ojm contract violated")
+		t.Fatal("WorkerConfig.OnSyncComplete field missing — contract violated")
 	}
 
 	if field.Type != wantSig {
 		t.Fatalf(
 			"WorkerConfig.OnSyncComplete signature drift:\n  got:  %s\n  want: %s\n"+
 				"The callback runs InitialObjectCounts(ctx, client) — it does NOT consume\n"+
-				"per-cycle upsert deltas. See quick task 260427-ojm.",
+				"per-cycle upsert deltas.",
 			field.Type, wantSig,
 		)
 	}

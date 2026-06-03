@@ -3,8 +3,8 @@
 //
 // Each *_test.go file in this directory covers one behavioural
 // category, keyed to upstream peeringdb/peeringdb pdb_api_test.py
-// citations (or documented `phaseXX-synthesised` markers per
-// the project history D-05).
+// citations (or documented `synthesised` markers where no upstream
+// test exercises the behaviour).
 //
 // Each test seeds its own clean rows inline (via the ent client) and
 // cites the upstream source line in a comment; the assertions encode
@@ -13,7 +13,7 @@
 // removed once it became clear the ports carried unseedable Python
 // source artefacts and were consumed by no behavioural test.
 //
-// Per Phase 72 D-06, parity tests run via the standard CI tier
-// (`go test -race ./...`) — no separate workflow. Any non-test file
-// added to this package is a bug; parity is test-only scope.
+// Parity tests run via the standard CI tier (`go test -race ./...`) —
+// no separate workflow. Any non-test file added to this package is a
+// bug; parity is test-only scope.
 package parity

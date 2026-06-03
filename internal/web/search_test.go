@@ -312,7 +312,7 @@ func TestSearchNetworkDetailURL(t *testing.T) {
 		if hit.DetailURL != "/ui/asn/13335" {
 			t.Errorf("hit.DetailURL = %q, want %q", hit.DetailURL, "/ui/asn/13335")
 		}
-		// Networks populate ASN field (no Country/City without org join per D-07)
+		// Networks populate ASN field (no Country/City without org join)
 		if hit.ASN != 13335 {
 			t.Errorf("hit.ASN = %d, want %d", hit.ASN, 13335)
 		}
@@ -497,7 +497,7 @@ func TestSearchNetworkASNField(t *testing.T) {
 		if hit.ASN != 13335 {
 			t.Errorf("hit.ASN = %d, want %d", hit.ASN, 13335)
 		}
-		// Networks have no direct Country/City (no org join per D-07)
+		// Networks have no direct Country/City (no org join)
 		if hit.Country != "" {
 			t.Errorf("hit.Country = %q, want empty string (no org join)", hit.Country)
 		}

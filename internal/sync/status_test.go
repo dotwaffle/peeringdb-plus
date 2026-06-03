@@ -49,7 +49,7 @@ func TestGetCursor_NoRows(t *testing.T) {
 	}
 }
 
-// 260428-eda CHANGE 2: UpsertCursor now takes *ent.Tx (in-tx semantic).
+// UpsertCursor now takes *ent.Tx (in-tx semantic).
 // Tests open a tx from the same in-memory shared SQLite DB, call
 // UpsertCursor, then commit, then read back via the original *sql.DB —
 // proving the cursor row is visible after commit.
@@ -207,7 +207,7 @@ func TestGetCursor_DBError(t *testing.T) {
 // use-after-rollback as an error, which UpsertCursor wraps with the
 // "upsert cursor for" prefix.
 //
-// 260428-eda CHANGE 2 W6: rewritten to match the *ent.Tx-based signature.
+// Rewritten to match the *ent.Tx-based signature.
 func TestUpsertCursor_DBError(t *testing.T) {
 	t.Parallel()
 	client, db := testutil.SetupClientWithDB(t)
@@ -423,14 +423,14 @@ func TestReapStaleRunningRows_NoOp(t *testing.T) {
 	}
 }
 
-// TestStatusMigration_ModeColumnIdempotent locks the 260428-mu0 schema
+// TestStatusMigration_ModeColumnIdempotent locks the schema
 // migration: an existing primary instance with a sync_status table that
 // LACKS the `mode` column gains it via idempotent ALTER TABLE on the
 // next InitStatusTable call. A second InitStatusTable call is a no-op
 // (no duplicate column, no error).
 //
-// Simulates the production upgrade path by manually creating the pre-
-// 260428-mu0 schema (sync_status WITHOUT mode), then calling
+// Simulates the production upgrade path by manually creating the
+// earlier schema (sync_status WITHOUT mode), then calling
 // InitStatusTable, then introspecting via pragma_table_info.
 func TestStatusMigration_ModeColumnIdempotent(t *testing.T) {
 	t.Parallel()
@@ -492,7 +492,7 @@ func TestStatusMigration_ModeColumnIdempotent(t *testing.T) {
 	}
 }
 
-// TestRecordSyncStart_PersistsMode locks the 260428-mu0 RecordSyncStart
+// TestRecordSyncStart_PersistsMode locks the RecordSyncStart
 // signature: the mode parameter lands in sync_status.mode and is
 // distinguishable from the default.
 func TestRecordSyncStart_PersistsMode(t *testing.T) {
@@ -532,7 +532,7 @@ func TestRecordSyncStart_PersistsMode(t *testing.T) {
 	}
 }
 
-// TestGetLastSuccessfulFullSyncTime locks the 260428-mu0 query: filters
+// TestGetLastSuccessfulFullSyncTime locks the query: filters
 // to status='success' AND mode='full', returning the most recent
 // completed_at. Verifies that intervening incremental successes do NOT
 // shadow the most recent full sync.

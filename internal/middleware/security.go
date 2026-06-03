@@ -48,7 +48,7 @@ type SecurityHeadersInput struct {
 //
 // The HSTS header emits only max-age and includeSubDomains — the preload
 // directive is intentionally omitted because Fly.io .fly.dev is a shared-
-// suffix domain. See the project history §SEC-7. Negative locked
+// suffix domain. See the project history. Negative locked
 // by TestMiddleware_SecurityHeaders_NoPreload.
 func SecurityHeaders(in SecurityHeadersInput) func(http.Handler) http.Handler {
 	// Build the HSTS value once at factory time — the inputs are locked

@@ -2,7 +2,7 @@
 // PeeringDB API responses for all 13 object types, with a strict no-PII-in-repo
 // guarantee enforced by the Redact function in this package.
 //
-// The central hard constraint (phase 57 D-02) is: raw PeeringDB data must NOT
+// The central hard constraint is: raw PeeringDB data must NOT
 // be committed in raw form. Authenticated responses carry email, phone, and
 // legal-name data that upstream withholds from anonymous callers; this package
 // inspects those responses in memory, emits a placeholder-only shape, and

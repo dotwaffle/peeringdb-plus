@@ -11,8 +11,8 @@
 // layer. It is NOT a full Unicode-to-ASCII transliteration library — CJK,
 // Arabic, Hebrew, and other non-Latin scripts pass through untouched so
 // that foreign-language substring matches still work against the folded
-// DB column. UNICODE-01 depends on the SAME fold being applied on both
-// sides of the comparison; this package is the single source of truth.
+// DB column. Correct matching depends on the SAME fold being applied on
+// both sides of the comparison; this package is the single source of truth.
 package unifold
 
 import (
@@ -27,8 +27,8 @@ import (
 // substitution is order-independent with respect to ToLower.
 //
 // Sourced from upstream `unidecode` behaviour for these specific code
-// points; keep the list tight — expanding beyond the 6 pairs locked in
-// Phase 69 D-02 requires a new decision.
+// points; keep the list tight — expanding beyond these 6 pairs is a
+// deliberate decision, not a casual addition.
 var foldMap = map[rune]string{
 	'ß': "ss", // U+00DF LATIN SMALL LETTER SHARP S
 	'ẞ': "ss", // U+1E9E LATIN CAPITAL LETTER SHARP S
@@ -68,7 +68,7 @@ func Fold(s string) string {
 	if asciiLowerFastPath(s) {
 		return s
 	}
-	// Phase 1: hand-map non-decomposable ligatures BEFORE NFKD so that
+	// Step 1: hand-map non-decomposable ligatures BEFORE NFKD so that
 	// e.g. ß → "ss" is applied as a unit rather than after a no-op
 	// decomposition. Allocates an intermediate builder sized to the
 	// input; substitutions are bounded (longest expansion is "th").
@@ -81,7 +81,7 @@ func Fold(s string) string {
 		}
 		sub.WriteRune(r)
 	}
-	// Phase 2: NFKD decompose, then drop combining marks (Mn category)
+	// Step 2: NFKD decompose, then drop combining marks (Mn category)
 	// and lower-case the survivors. NFKD turns "é" into "e\u0301"; the
 	// Mn guard strips the combining acute. unicode.ToLower is a no-op
 	// on already-lowercase code points (including all of CJK).

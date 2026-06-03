@@ -36,7 +36,7 @@ func seedPocWithVisible(tb testing.TB, client *ent.Client, id int, visible strin
 // seedPocAndClearVisible creates a Poc via bypass and then clears the
 // visible column to NULL via a second Update call — bypassing the
 // schema Default("Public") which fires on insert but not on explicit
-// ClearVisible. Used by the NULL-defence test per RESEARCH Pitfall 2.
+// ClearVisible. Used by the NULL-defence test.
 func seedPocAndClearVisible(tb testing.TB, client *ent.Client, id int) int {
 	tb.Helper()
 	bypass := privacy.DecisionContext(context.Background(), privacy.Allow)
@@ -57,7 +57,7 @@ func seedPocAndClearVisible(tb testing.TB, client *ent.Client, id int) int {
 	return id
 }
 
-// TestPocPolicy_FiltersUsersTier (VIS-04 case 59-i): a Users-visibility
+// TestPocPolicy_FiltersUsersTier: a Users-visibility
 // row must be invisible to anonymous (TierPublic) callers.
 func TestPocPolicy_FiltersUsersTier(t *testing.T) {
 	t.Parallel()
@@ -70,7 +70,7 @@ func TestPocPolicy_FiltersUsersTier(t *testing.T) {
 	}
 }
 
-// TestPocPolicy_AdmitsPublicToTierPublic (VIS-04 case 59-j): a
+// TestPocPolicy_AdmitsPublicToTierPublic: a
 // Public-visibility row must be visible to anonymous callers.
 func TestPocPolicy_AdmitsPublicToTierPublic(t *testing.T) {
 	t.Parallel()
@@ -86,7 +86,7 @@ func TestPocPolicy_AdmitsPublicToTierPublic(t *testing.T) {
 	}
 }
 
-// TestPocPolicy_AdmitsUsersToTierUsers (VIS-04 case 59-k): a
+// TestPocPolicy_AdmitsUsersToTierUsers: a
 // Users-visibility row must be visible to TierUsers callers (the
 // env-override and future-OAuth path).
 func TestPocPolicy_AdmitsUsersToTierUsers(t *testing.T) {
@@ -104,7 +104,7 @@ func TestPocPolicy_AdmitsUsersToTierUsers(t *testing.T) {
 	}
 }
 
-// TestPocPolicy_AdmitsNullVisibleToTierPublic (VIS-04 case 59-l, Pitfall 2):
+// TestPocPolicy_AdmitsNullVisibleToTierPublic:
 // a row with NULL visible must be admitted to TierPublic. SQL three-valued
 // logic makes `visible = 'Public'` FALSE for NULL, so the policy adds
 // poc.Or(VisibleEQ("Public"), VisibleIsNil()) as defence-in-depth against
@@ -126,7 +126,7 @@ func TestPocPolicy_AdmitsNullVisibleToTierPublic(t *testing.T) {
 	}
 }
 
-// TestPocPolicy_EdgeTraversalFilters (VIS-04 case 59-m): traversing the
+// TestPocPolicy_EdgeTraversalFilters: traversing the
 // Network→Pocs edge (via poc.HasNetworkWith) must apply the same policy
 // — this exercises the typed PocQueryRuleFunc adapter on edge-derived
 // query builders, not just root-level Get()/Query() calls.

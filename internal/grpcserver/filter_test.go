@@ -125,7 +125,7 @@ func TestValidatingFilter_ValidatorErrorWrappedAsInvalidArgument(t *testing.T) {
 	}
 	msg := err.Error()
 	// Format is "invalid filter: <name> <validator_err>" — matches the
-	// pre-Phase-56 per-entity error strings so existing grpcserver_test.go
+	// earlier per-entity error strings so existing grpcserver_test.go
 	// containsStr assertions stay green without test modification.
 	if !strings.Contains(msg, "invalid filter: testfield ") {
 		t.Errorf("error %q does not contain the filter name prefix", msg)
@@ -274,7 +274,7 @@ func TestFieldEQInt_WrapsSQLFieldEQ(t *testing.T) {
 	if len(args) != 1 {
 		t.Fatalf("args = %v, want one positional arg", args)
 	}
-	// fieldEQInt truncates int64 → int to match pre-Phase-56 behavior.
+	// fieldEQInt truncates int64 → int to match the earlier behavior.
 	if got, ok := args[0].(int); !ok || got != 13335 {
 		t.Errorf("args[0] = %v (%T), want int(13335)", args[0], args[0])
 	}
@@ -434,7 +434,7 @@ func TestNonEmptyString(t *testing.T) {
 // individually — the combination catches both missing entries (count
 // drift) and wrong extractors (behavior test failure).
 //
-// As of Plan 56-03, all 13 entities are migrated and the gate enforces
+// All 13 entities are migrated and the gate enforces
 // full 13/13 coverage with zero skips.
 // =======================================================================
 
@@ -462,10 +462,9 @@ var paginationFields = map[string]struct{}{
 // Keyed by "{entity}/{field_name}". Add entries here only when a field
 // is intentionally dropped from the filter surface (e.g. ent schema no
 // longer declares it) but proto cannot be renumbered without breaking
-// wire compatibility. Each entry should cite the plan/phase that made
-// the decision.
+// wire compatibility. Each entry should cite the reason it was dropped.
 //
-// v1.15 Phase 63 (D-01): ixpfx.notes dropped from ent schema, so
+// v1.15: ixpfx.notes dropped from ent schema, so
 // ixprefix ListNotes / StreamNotes filter wiring was removed. Proto
 // retains the field because proto/peeringdb/v1/v1.proto is frozen
 // since v1.6 (entproto.SkipGenFile in ent/entc.go).

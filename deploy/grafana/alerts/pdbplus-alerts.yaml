@@ -73,12 +73,13 @@ groups:
           severity: warning
           receiver: grafana-default-email
         annotations:
-          summary: "PeeringDB Plus peak Go heap >400 MiB sustained 30m (SEED-001 trigger)"
+          summary: "PeeringDB Plus peak Go heap >400 MiB sustained 30m"
           description: |
             max(pdbplus_sync_peak_heap_bytes) has been above 419430400 bytes
-            (400 MiB) for 30m. SEED-001 incremental-sync evaluation trigger
-            has fired — surface at next milestone planning. Observed
-            baseline 2026-04-17 was 83.8 MiB primary, 58-59 MiB replicas.
+            (400 MiB) for 30m. Sustained high heap should re-open the
+            incremental-sync evaluation — surface at next milestone planning.
+            Observed baseline 2026-04-17 was 83.8 MiB primary, 58-59 MiB
+            replicas.
 
       - alert: PdbPlusRssHigh
         expr: max(pdbplus_sync_peak_rss_bytes) > 402653184

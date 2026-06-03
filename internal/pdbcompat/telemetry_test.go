@@ -52,7 +52,7 @@ func TestMemStatsHeapInuseBytes_Positive(t *testing.T) {
 
 // TestRecordResponseHeapDelta_SetsSpanAttribute verifies
 // recordResponseHeapDelta stamps pdbplus.response.heap_delta_bytes on
-// the active span (D-06 wire-level contract).
+// the active span (wire-level contract).
 func TestRecordResponseHeapDelta_SetsSpanAttribute(t *testing.T) {
 	// Not parallel: installs global TracerProvider.
 	exporter := installInMemorySpanExporter(t)

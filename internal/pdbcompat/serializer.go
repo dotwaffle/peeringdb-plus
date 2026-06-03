@@ -258,18 +258,18 @@ func pocsFromEnt(pocs []*ent.Poc) []peeringdb.Poc {
 	return out
 }
 
-// ixLanFromEnt maps an ent IxLan to a peeringdb IxLan, applying Phase 64
-// (VIS-08/VIS-09) serializer-layer field-level privacy redaction for the
+// ixLanFromEnt maps an ent IxLan to a peeringdb IxLan, applying
+// serializer-layer field-level privacy redaction for the
 // ixf_ixp_member_list_url field via internal/privfield.Redact.
 //
 // The caller MUST pass a context that has the privacy tier stamped by
 // middleware.PrivacyTier; unstamped contexts default to TierPublic
-// (fail-closed) per privfield.Redact semantics (Phase 64 D-03).
+// (fail-closed) per privfield.Redact semantics.
 //
 // The discarded omit return (underscore) is intentional: the peeringdb.IxLan
 // struct declares `json:"ixf_ixp_member_list_url,omitempty"` so assigning
 // the zero string value makes json.Marshal omit the key — matching upstream
-// PeeringDB's "absent key when unauthenticated" behaviour (Phase 64 D-04).
+// PeeringDB's "absent key when unauthenticated" behaviour.
 func ixLanFromEnt(ctx context.Context, l *ent.IxLan) peeringdb.IxLan {
 	url, _ := privfield.Redact(ctx, l.IxfIxpMemberListURLVisible, l.IxfIxpMemberListURL)
 	return peeringdb.IxLan{
@@ -281,7 +281,7 @@ func ixLanFromEnt(ctx context.Context, l *ent.IxLan) peeringdb.IxLan {
 		Dot1QSupport:               l.Dot1qSupport,
 		RSASN:                      l.RsAsn,
 		ARPSponge:                  l.ArpSponge,
-		IXFIXPMemberListURLVisible: l.IxfIxpMemberListURLVisible, // D-05: always emitted
+		IXFIXPMemberListURLVisible: l.IxfIxpMemberListURLVisible, // always emitted
 		IXFIXPMemberListURL:        url,
 		IXFIXPImportEnabled:        l.IxfIxpImportEnabled,
 		Created:                    l.Created,
@@ -304,8 +304,8 @@ func ixLansFromEnt(ctx context.Context, lans []*ent.IxLan) []peeringdb.IxLan {
 // ixPrefixFromEnt maps an ent IxPrefix to a peeringdb IxPrefix.
 //
 // Matches upstream: PeeringDB's live API omits "notes" from ixpfx responses,
-// and as of v1.15 Phase 63 the field is dropped from our ent schema too
-// (per D-01). See the project history
+// and as of v1.15 the field is dropped from our ent schema too.
+// See the project history
 func ixPrefixFromEnt(p *ent.IxPrefix) peeringdb.IxPrefix {
 	return peeringdb.IxPrefix{
 		ID:       p.ID,

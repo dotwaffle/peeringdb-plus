@@ -130,7 +130,7 @@ func WithAPIKey(key string) ClientOption {
 }
 
 // WithRPS sets the unauthenticated sustained requests-per-second cap.
-// Quick task 260428-2zl: replaces the hardcoded 1/3s with a float knob
+// Replaces the hardcoded 1/3s with a float knob
 // driven by PDBPLUS_PEERINGDB_RPS. Burst stays at 1 — concurrent bursts
 // against PeeringDB are not desirable. Authenticated clients (WithAPIKey)
 // override this back to 60 req/min in NewClient — the upstream auth
@@ -149,7 +149,7 @@ func WithRPS(rps float64) ClientOption {
 
 // defaultRPS is the unauthenticated rate-limit default when neither
 // WithRPS nor WithAPIKey is supplied. 2 RPS is conservative against
-// PeeringDB's anonymous ceiling and matches the post-2zl operator default
+// PeeringDB's anonymous ceiling and matches the current operator default
 // (PDBPLUS_PEERINGDB_RPS=2.0).
 const defaultRPS = 2.0
 
@@ -160,9 +160,9 @@ const defaultRPS = 2.0
 // unauthenticated default.
 //
 // Internal requests bypass otelhttp instrumentation to avoid span bloat
-// during bulk syncs (PERF-08). Metrics and retries are still recorded
-// via events on the parent stream span. The transport wrapper added in
-// 260428-2zl handles per-request limiter wait, bounded 429 retry, and
+// during bulk syncs. Metrics and retries are still recorded
+// via events on the parent stream span. The transport wrapper
+// handles per-request limiter wait, bounded 429 retry, and
 // WAF detection on 403 — see internal/peeringdb/transport.go.
 func NewClient(baseURL string, logger *slog.Logger, opts ...ClientOption) *Client {
 	c := &Client{
@@ -269,8 +269,8 @@ func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchO
 }
 
 // FetchType streams objects of the given type and unmarshals each directly
-// into the concrete type T. Unknown JSON fields are silently ignored per
-// D-08. This is a package-level function because Go does not allow type
+// into the concrete type T. Unknown JSON fields are silently ignored.
+// This is a package-level function because Go does not allow type
 // parameters on methods. Unlike FetchAll, FetchType does not clone the
 // raw bytes — each element is decoded into a fresh T immediately and the
 // underlying decoder buffer can be reused for the next element.
@@ -292,7 +292,7 @@ func FetchType[T any](ctx context.Context, c *Client, objectType string, opts ..
 
 // FetchRaw issues a single non-paginated request with the given query
 // params and returns each top-level data element as a json.RawMessage
-// clone. Quick task 260428-2zl Task 3 — used by the sync FK-backfill
+// clone. Used by the sync FK-backfill
 // path (fetch one row at a time via ?since=1&id__in=N to recover
 // missing parents from upstream before declaring an orphan).
 //
@@ -334,7 +334,7 @@ func (c *Client) FetchRaw(ctx context.Context, objectType string, params url.Val
 // 8 KiB request-line limits. PeeringDB does not document an explicit
 // id__in cardinality limit, but 100 IDs at ~7 characters each (decimal
 // + comma) keeps the query string under 1 KiB with comfortable
-// headroom for path + other params. Quick task 260428-5xt.
+// headroom for path + other params.
 //
 // Exported so the FK-backfill cap accounting (in internal/sync) can
 // compute how many underlying HTTP requests a given FetchByIDs(ids)
@@ -348,7 +348,7 @@ const FetchByIDsBatchSize = 100
 // rate-limited transport (consuming ONE limiter token regardless of
 // chunk size). 250 IDs => 3 sequential requests through the limiter.
 //
-// Quick task 260428-5xt — the FK-backfill dataloader path uses this
+// The FK-backfill dataloader path uses this
 // to collapse N per-row HTTP requests (the old worst-case during
 // truncate-and-resync recovery) into ⌈N/100⌉ batched requests, well
 // under upstream's API_THROTTLE_REPEATED_REQUEST cap.
@@ -420,12 +420,12 @@ func (c *Client) FetchRawPage(ctx context.Context, objectType string, page int) 
 }
 
 // doWithRetry executes an HTTP GET with application-level retry on 5xx.
-// Quick task 260428-2zl: per-request rate-limit Wait, 429 handling, and
+// Per-request rate-limit Wait, 429 handling, and
 // WAF detection moved to the rateLimitedTransport wrapper installed in
 // NewClient — doWithRetry now handles only application-level concerns
 // (5xx ladder, auth failures, context honoring, header set).
 //
-// Redundant per-request spans are omitted (PERF-08); errors and
+// Redundant per-request spans are omitted; errors and
 // rate-limiting events are recorded on the parent span (limiter waits)
 // or on dedicated counters (per-status-class request counts).
 func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, error) {

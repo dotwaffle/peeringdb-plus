@@ -85,7 +85,7 @@ func applyIxFacilityStreamFilters(req *pb.StreamIxFacilitiesRequest) ([]func(*sq
 }
 
 // ListIxFacilities returns a paginated list of IX facilities under the
-// compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// compound default order (-updated, -created, -id).
 func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIxFacilitiesRequest) (*pb.ListIxFacilitiesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxFacility, pb.IxFacility]{
 		EntityName: "ixfacilities",

@@ -184,7 +184,7 @@ func applyFacilityStreamFilters(req *pb.StreamFacilitiesRequest) ([]func(*sql.Se
 }
 
 // ListFacilities returns a paginated list of facilities under the compound
-// default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// default order (-updated, -created, -id).
 func (s *FacilityService) ListFacilities(ctx context.Context, req *pb.ListFacilitiesRequest) (*pb.ListFacilitiesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Facility, pb.Facility]{
 		EntityName: "facilities",

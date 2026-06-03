@@ -1,4 +1,4 @@
-// Package main e2e_privacy_test.go — Phase 59-06 D-15 end-to-end privacy
+// Package main e2e_privacy_test.go — end-to-end privacy
 // contract.
 //
 // This test exercises the full production middleware chain
@@ -7,8 +7,9 @@
 // gqlgen /graphql, web /ui) against an in-memory ent client seeded with a
 // single visible="Users" POC. The seeding goes through
 // privacy.DecisionContext(Allow) — mirroring the sync worker's sole
-// bypass (internal/sync/worker.go D-08/D-09) so the test proves Plan
-// 59-05 and Plan 59-04 compose correctly end-to-end.
+// bypass (internal/sync/worker.go) so the test proves the row-level
+// privacy Policy and the field-redaction layer compose correctly
+// end-to-end.
 //
 // The audit in internal/sync/bypass_audit_test.go exempts *_test.go, so
 // the test-only bypass is legitimate (see its godoc).
@@ -22,7 +23,7 @@
 // surface regression doesn't mask others. Every sub-test runs against
 // the same httptest.Server instance per tier to amortize setup cost.
 //
-// Per D-13/D-14, all surfaces must return their native not-found idiom
+// All surfaces must return their native not-found idiom
 // (404 / CodeNotFound / GraphQL null) for hidden rows — NEVER 403 — so
 // the existence-leak attack (distinguishing "filtered" from "missing")
 // is closed.
@@ -79,14 +80,14 @@ const e2eUsersNetworkID = 900001
 const e2eUsersOrgID = 900001
 
 // e2eIxID is the fixed ID of the parent InternetExchange seeded by the
-// fixture for the Phase 64 ixlan rows (ixlan.ix_id FK). Chosen above
+// fixture for the ixlan rows (ixlan.ix_id FK). Chosen above
 // seed.Full's range to avoid accidental collision.
 const e2eIxID = 900002
 
-// Phase 64 (VIS-09) ixlan rows seeded by buildE2EFixture. Shapes mirror
-// internal/testutil/seed.Full's Plan 64-02 seeds: id=100 gated, id=101
-// Public. Keeping the exact seed-range IDs lets Plan 64-03's E2E test
-// reuse the Plan-64-02 constants verbatim (see field_privacy_e2e_test.go).
+// ixlan rows seeded by buildE2EFixture. Shapes mirror
+// internal/testutil/seed.Full's seeds: id=100 gated, id=101
+// Public. Keeping the exact seed-range IDs lets the field-level E2E test
+// reuse the same constants verbatim (see field_privacy_e2e_test.go).
 const (
 	e2eGatedIxlanID   = 100
 	e2eGatedIxlanURL  = "https://example.test/ix/100/members.json"
@@ -116,7 +117,7 @@ type e2eFixture struct {
 	netID   int
 	pocName string
 
-	// Phase 64 VIS-09 — IxLan rows seeded by buildE2EFixture.
+	// IxLan rows seeded by buildE2EFixture.
 	//   gatedIxLanID  (100) has _visible=Users, URL gated behind tier.
 	//   publicIxLanID (101) has _visible=Public, URL always admitted.
 	gatedIxLanID  int
@@ -124,8 +125,8 @@ type e2eFixture struct {
 	gatedIxLanURL string
 
 	// rawIxLanHandler is the ConnectRPC IxLanService handler BEFORE any
-	// middleware — exposes the fail-closed path for Plan 64-03's
-	// bypass-middleware sub-test (D-03 at integration level).
+	// middleware — exposes the fail-closed path for the field-level
+	// bypass-middleware sub-test at integration level.
 	rawIxLanHandler http.Handler
 	rawIxLanPath    string
 }
@@ -207,9 +208,9 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 		SetStatus("ok").
 		SaveX(bypass)
 
-	// Phase 64 VIS-09: seed two ixlan rows matching the shape that
+	// Seed two ixlan rows matching the shape that
 	// internal/testutil/seed.Full uses (id=100 gated, id=101 Public).
-	// Plan 64-03's field_privacy_e2e_test.go asserts the URL is
+	// field_privacy_e2e_test.go asserts the URL is
 	// redacted vs admitted per tier + _visible across all 5 surfaces.
 	// The parent InternetExchange is required by the ixlan.ix_id FK.
 	ix := client.InternetExchange.Create().
@@ -259,13 +260,13 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 		t.Fatalf("create REST server: %v", err)
 	}
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})
-	// Phase 64 wires the field-redact middleware INSIDE restErrorMiddleware
+	// The field-redact middleware is wired INSIDE restErrorMiddleware
 	// so problem+json error responses pass through untouched. Matches
 	// main.go's production chain order.
 	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
 
 	// pdbcompat (/api/). Registers /api/{rest...} internally.
-	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// Budget=0 disables the pre-flight budget check — this test
 	// targets privacy/tier behaviour, not memory guardrails.
 	compatHandler := pdbcompat.NewHandler(client, 0)
 	compatHandler.Register(mux)
@@ -291,11 +292,11 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	)
 	mux.Handle(pocPath, pocHandler)
 
-	// Phase 64 VIS-09: register IxLanService so Plan 64-03's E2E can
+	// Register IxLanService so the field-level E2E can
 	// exercise GetIxLan / ListIxLans. rawIxLanHandler + rawIxLanPath are
 	// exposed so the fail-closed-bypass-middleware sub-test can hit the
 	// handler WITHOUT going through the middleware chain — proving that
-	// privfield.Redact fail-closes even on an un-stamped ctx (D-03).
+	// privfield.Redact fail-closes even on an un-stamped ctx.
 	ixLanPath, ixLanHandler := peeringdbv1connect.NewIxLanServiceHandler(
 		&grpcserver.IxLanService{Client: client, StreamTimeout: 60 * time.Second},
 		handlerOpts,
@@ -410,14 +411,14 @@ func decodeGraphQL(t *testing.T, body []byte) gqlResponse {
 // TierPublic: anonymous caller must NOT see the visible="Users" POC.
 // =============================================================================
 
-// TestE2E_AnonymousCannotSeeUsersPoc is the D-15 correctness contract
+// TestE2E_AnonymousCannotSeeUsersPoc is the correctness contract
 // for the default (anonymous) tier. With PDBPLUS_PUBLIC_TIER unset
 // (chainConfig.DefaultTier == TierPublic), a visible="Users" POC
 // seeded via the sync bypass MUST be absent from anonymous reads on
 // all 5 surfaces.
 //
 // Each surface's sub-test asserts the surface-native not-found idiom
-// per D-13/D-14 — NEVER 403. Distinguishing "filtered" from "missing"
+// — NEVER 403. Distinguishing "filtered" from "missing"
 // would leak row existence.
 func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 	t.Parallel()
@@ -430,7 +431,7 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 	t.Run("pdbcompat_detail_404", func(t *testing.T) {
 		_, status := mustGet(t, fix.server.URL+"/api/poc/"+idStr)
 		if status != http.StatusNotFound {
-			t.Fatalf("GET /api/poc/%d: status=%d, want 404 (D-13: surface-native not-found)", fix.pocID, status)
+			t.Fatalf("GET /api/poc/%d: status=%d, want 404 (surface-native not-found)", fix.pocID, status)
 		}
 	})
 
@@ -494,7 +495,7 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 			t.Fatalf("GetPoc(%d): expected *connect.Error, got %T: %v", fix.pocID, err, err)
 		}
 		if ce.Code() != connect.CodeNotFound {
-			t.Fatalf("GetPoc(%d): code=%s, want CodeNotFound (D-13)", fix.pocID, ce.Code())
+			t.Fatalf("GetPoc(%d): code=%s, want CodeNotFound", fix.pocID, ce.Code())
 		}
 	})
 
@@ -625,7 +626,7 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 // TestE2E_PublicTierUsersAdmitsRow proves that flipping the tier
 // (PDBPLUS_PUBLIC_TIER=users in production, or DefaultTier: TierUsers
 // in the test fixture) admits the row across every surface. This
-// closes SYNC-03 by showing the env-var override flows correctly
+// proves the env-var override flows correctly
 // through the middleware → privctx → ent Policy chain.
 func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 	t.Parallel()
@@ -672,7 +673,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Fatalf("Users POC not present in /api/poc under TierUsers — SYNC-03 regression")
+			t.Fatalf("Users POC not present in /api/poc under TierUsers — tier-override regression")
 		}
 	})
 
@@ -710,7 +711,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Fatalf("Users POC not present in /rest/v1/pocs under TierUsers — SYNC-03 regression")
+			t.Fatalf("Users POC not present in /rest/v1/pocs under TierUsers — tier-override regression")
 		}
 	})
 
@@ -719,7 +720,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
 		resp, err := cl.GetPoc(t.Context(), &pbv1.GetPocRequest{Id: int64(fix.pocID)})
 		if err != nil {
-			t.Fatalf("GetPoc(%d) under TierUsers: %v — SYNC-03 regression", fix.pocID, err)
+			t.Fatalf("GetPoc(%d) under TierUsers: %v — tier-override regression", fix.pocID, err)
 		}
 		if got := resp.GetPoc().GetId(); got != int64(fix.pocID) {
 			t.Fatalf("GetPoc(%d).Poc.Id = %d, want %d", fix.pocID, got, fix.pocID)
@@ -743,7 +744,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Fatalf("Users POC not present in ListPocs under TierUsers — SYNC-03 regression")
+			t.Fatalf("Users POC not present in ListPocs under TierUsers — tier-override regression")
 		}
 	})
 
@@ -772,7 +773,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 			t.Fatalf("decode pocs data: %v\ndata=%s", err, r.Data)
 		}
 		if len(data.Pocs.Edges) != 1 {
-			t.Fatalf("pocs(where:{id:%d}) under TierUsers: want 1 edge, got %d — SYNC-03 regression", fix.pocID, len(data.Pocs.Edges))
+			t.Fatalf("pocs(where:{id:%d}) under TierUsers: want 1 edge, got %d — tier-override regression", fix.pocID, len(data.Pocs.Edges))
 		}
 	})
 
@@ -804,7 +805,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Fatalf("Users POC not present in pocsList under TierUsers — SYNC-03 regression")
+			t.Fatalf("Users POC not present in pocsList under TierUsers — tier-override regression")
 		}
 	})
 
@@ -816,7 +817,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 			t.Fatalf("GET %s: status=%d; body=%s", url, status, body)
 		}
 		if !strings.Contains(string(body), fix.pocName) {
-			t.Fatalf("Users POC name %q missing from /ui/ contacts fragment under TierUsers — SYNC-03 regression", fix.pocName)
+			t.Fatalf("Users POC name %q missing from /ui/ contacts fragment under TierUsers — tier-override regression", fix.pocName)
 		}
 	})
 }

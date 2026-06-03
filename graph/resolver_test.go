@@ -168,7 +168,7 @@ func seedTestData(t *testing.T) *httptest.Server {
 	return srv
 }
 
-// TestGraphQLAPI_Organizations verifies that organizations are queryable (API-01).
+// TestGraphQLAPI_Organizations verifies that organizations are queryable.
 func TestGraphQLAPI_Organizations(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -198,7 +198,7 @@ func TestGraphQLAPI_Organizations(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_RelationshipTraversal verifies traversal from network to organization (API-02).
+// TestGraphQLAPI_RelationshipTraversal verifies traversal from network to organization.
 func TestGraphQLAPI_RelationshipTraversal(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -243,7 +243,7 @@ func TestGraphQLAPI_RelationshipTraversal(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_Filtering verifies WhereInput filtering (API-03).
+// TestGraphQLAPI_Filtering verifies WhereInput filtering.
 func TestGraphQLAPI_Filtering(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -277,7 +277,7 @@ func TestGraphQLAPI_Filtering(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_NetworkByAsn verifies the networkByAsn custom query (API-04).
+// TestGraphQLAPI_NetworkByAsn verifies the networkByAsn custom query.
 func TestGraphQLAPI_NetworkByAsn(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -305,7 +305,7 @@ func TestGraphQLAPI_NetworkByAsn(t *testing.T) {
 }
 
 // TestGraphQLAPI_NodeQuery verifies the node(id:) query exists and returns appropriate
-// responses (API-05). Note: PeeringDB uses pre-assigned IDs that can overlap between
+// responses. Note: PeeringDB uses pre-assigned IDs that can overlap between
 // types, and the project uses IntID (not Relay global IDs). Without GlobalUniqueID
 // migration, the Noder interface cannot determine which table an integer ID belongs to.
 // This test verifies the node query returns a structured error (not a 500 panic),
@@ -352,7 +352,7 @@ func TestGraphQLAPI_NodeQuery(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_Pagination verifies cursor-based pagination with first/after and pageInfo (API-06).
+// TestGraphQLAPI_Pagination verifies cursor-based pagination with first/after and pageInfo.
 func TestGraphQLAPI_Pagination(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -395,7 +395,7 @@ func TestGraphQLAPI_Pagination(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_Playground verifies GET /graphql returns HTML with graphiql (API-07).
+// TestGraphQLAPI_Playground verifies GET /graphql returns HTML with graphiql.
 func TestGraphQLAPI_Playground(t *testing.T) {
 	t.Parallel()
 	srv := setupTestServer(t)
@@ -421,13 +421,13 @@ func TestGraphQLAPI_Playground(t *testing.T) {
 	if !strings.Contains(bodyStr, "graphiql") {
 		t.Error("response does not contain 'graphiql'")
 	}
-	// Verify example queries are present per D-19.
+	// Verify example queries are present.
 	if !strings.Contains(string(body), "ASN Lookup") {
 		t.Error("response does not contain example query 'ASN Lookup'")
 	}
 }
 
-// TestGraphQLAPI_CORS verifies CORS headers are present (OPS-06).
+// TestGraphQLAPI_CORS verifies CORS headers are present.
 func TestGraphQLAPI_CORS(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -482,7 +482,7 @@ func TestGraphQLAPI_SyncStatus(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_PageSizeLimit verifies first > 1000 returns error (D-14).
+// TestGraphQLAPI_PageSizeLimit verifies first > 1000 returns error.
 func TestGraphQLAPI_PageSizeLimit(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -497,7 +497,7 @@ func TestGraphQLAPI_PageSizeLimit(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_ErrorFormat verifies errors include path and extensions.code (D-16).
+// TestGraphQLAPI_ErrorFormat verifies errors include path and extensions.code.
 func TestGraphQLAPI_ErrorFormat(t *testing.T) {
 	t.Parallel()
 	srv := seedTestData(t)
@@ -591,7 +591,7 @@ func seedFullTestServer(t *testing.T) *httptest.Server {
 }
 
 // TestGraphQLAPI_OffsetLimitListResolvers exercises all 13 offset/limit list resolvers
-// with data assertions matching seed.Full() entities (GQL-01).
+// with data assertions matching seed.Full() entities.
 func TestGraphQLAPI_OffsetLimitListResolvers(t *testing.T) {
 	t.Parallel()
 	srv := seedFullTestServer(t)
@@ -740,7 +740,7 @@ func TestGraphQLAPI_OffsetLimitListResolvers(t *testing.T) {
 }
 
 // TestGraphQLAPI_NetworkByAsn_NotFound verifies that querying a non-existent ASN
-// returns null data without errors (GQL-02).
+// returns null data without errors.
 func TestGraphQLAPI_NetworkByAsn_NotFound(t *testing.T) {
 	t.Parallel()
 	srv := seedFullTestServer(t)
@@ -760,7 +760,7 @@ func TestGraphQLAPI_NetworkByAsn_NotFound(t *testing.T) {
 }
 
 // TestGraphQLAPI_SyncStatus_Missing verifies that querying syncStatus with no
-// sync_status rows returns null data without errors (GQL-02).
+// sync_status rows returns null data without errors.
 func TestGraphQLAPI_SyncStatus_Missing(t *testing.T) {
 	t.Parallel()
 	srv := setupTestServer(t) // no sync data seeded
@@ -810,7 +810,7 @@ func TestGraphQLAPI_SyncStatus_WithObjectCounts(t *testing.T) {
 	}
 }
 
-// TestValidateOffsetLimit exercises all branches of ValidateOffsetLimit (GQL-03).
+// TestValidateOffsetLimit exercises all branches of ValidateOffsetLimit.
 func TestValidateOffsetLimit(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -859,7 +859,7 @@ func TestValidateOffsetLimit(t *testing.T) {
 
 // TestGraphQLAPI_WhereFilterError exercises all 13 list resolver where.P()
 // error paths in custom.resolvers.go by sending an empty "not" clause that
-// causes the nested .P() call to return ErrEmptyXxxWhereInput (QUAL-02).
+// causes the nested .P() call to return ErrEmptyXxxWhereInput.
 func TestGraphQLAPI_WhereFilterError(t *testing.T) {
 	t.Parallel()
 	srv := setupTestServer(t)
@@ -959,7 +959,7 @@ func TestGraphQLAPI_WhereFilterError(t *testing.T) {
 }
 
 // TestGraphQLAPI_CursorResolvers exercises all 13 cursor-based resolvers
-// with edge count and totalCount assertions (GQL-01/GQL-03).
+// with edge count and totalCount assertions.
 func TestGraphQLAPI_CursorResolvers(t *testing.T) {
 	t.Parallel()
 	srv := seedFullTestServer(t)
@@ -1077,7 +1077,7 @@ func TestGraphQLAPI_CursorResolvers(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_PageSizeLimit_Last verifies last > 1000 returns error (GQL-02).
+// TestGraphQLAPI_PageSizeLimit_Last verifies last > 1000 returns error.
 func TestGraphQLAPI_PageSizeLimit_Last(t *testing.T) {
 	t.Parallel()
 	srv := seedFullTestServer(t)
@@ -1093,7 +1093,7 @@ func TestGraphQLAPI_PageSizeLimit_Last(t *testing.T) {
 }
 
 // TestGraphQLAPI_CursorPageSizeErrors exercises the validatePageSize error branch
-// on multiple cursor resolvers to increase schema.resolvers.go coverage (GQL-03).
+// on multiple cursor resolvers to increase schema.resolvers.go coverage.
 func TestGraphQLAPI_CursorPageSizeErrors(t *testing.T) {
 	t.Parallel()
 	srv := seedFullTestServer(t)
@@ -1130,7 +1130,7 @@ func TestGraphQLAPI_CursorPageSizeErrors(t *testing.T) {
 	}
 }
 
-// TestGraphQLAPI_Nodes exercises the Nodes resolver (GQL-03 coverage).
+// TestGraphQLAPI_Nodes exercises the Nodes resolver.
 // With pre-assigned IDs and no GlobalUniqueID, we verify the resolver is wired
 // and does not panic, accepting either valid data or structured GraphQL errors.
 func TestGraphQLAPI_Nodes(t *testing.T) {
@@ -1155,7 +1155,7 @@ func TestGraphQLAPI_Nodes(t *testing.T) {
 }
 
 // TestGraphQLAPI_OffsetLimitWithWhereFilter exercises the where-filter branch
-// of several list resolvers to increase custom.resolvers.go coverage (GQL-03).
+// of several list resolvers to increase custom.resolvers.go coverage.
 func TestGraphQLAPI_OffsetLimitWithWhereFilter(t *testing.T) {
 	t.Parallel()
 	srv := seedFullTestServer(t)

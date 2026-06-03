@@ -166,8 +166,8 @@ func ixFacilityMarkers(rows []IXFacilityRow) []MapMarker {
 }
 
 // ixFacilityMap builds map markers from IX facility data and renders a multi-pin map.
-// Markers use the default emerald color (D-14). If no facilities have coordinates,
-// nothing is rendered (D-10).
+// Markers use the default emerald color. If no facilities have coordinates,
+// nothing is rendered.
 templ ixFacilityMap(data IXDetail) {
 	if len(data.Facilities) > 0 {
 		@MultiPinMapContainer(

@@ -8,9 +8,9 @@ import (
 )
 
 // RenderAboutPage renders the About page as terminal output with project info,
-// data freshness, the Phase 61 OBS-02 Privacy & Sync section, and a list of
+// data freshness, the Privacy & Sync section, and a list of
 // API endpoints. The Privacy & Sync section is placed between Data Age and
-// API Endpoints per D-04 so operators see the auth posture adjacent to the
+// API Endpoints so operators see the auth posture adjacent to the
 // freshness signal.
 func (r *Renderer) RenderAboutPage(w io.Writer, data templates.DataFreshness, privacy templates.PrivacySync) error {
 	var buf strings.Builder
@@ -28,7 +28,7 @@ func (r *Renderer) RenderAboutPage(w io.Writer, data templates.DataFreshness, pr
 		writeKV(&buf, "Last Sync", StyleMuted.Render("No sync data available"), labelWidth)
 	}
 
-	// Phase 61 OBS-02 Privacy & Sync section (D-04/D-05/D-06).
+	// Privacy & Sync section.
 	buf.WriteString("\n")
 	buf.WriteString(StyleHeading.Render("Privacy & Sync"))
 	buf.WriteString("\n")
@@ -36,7 +36,7 @@ func (r *Renderer) RenderAboutPage(w io.Writer, data templates.DataFreshness, pr
 
 	tierValue := privacy.PublicTier
 	if privacy.OverrideActive {
-		// D-06 override indicator. The "! " prefix is part of the value
+		// Override indicator. The "! " prefix is part of the value
 		// string (not a styled glyph) so PlainMode and ANSI-stripped
 		// output still carry the signal — no silent escalation.
 		tierValue = "! " + tierValue

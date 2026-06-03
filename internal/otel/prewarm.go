@@ -17,10 +17,9 @@ import (
 // until its first real event fires.
 //
 // internal/otel cannot import internal/sync (would create an import cycle),
-// so parity is enforced by manual review + a grep gate in the Phase 75
-// Plan 02 acceptance criteria. If this constraint becomes load-bearing,
-// promote the canonical list to a leaf package (e.g. internal/pdbtypes)
-// that both packages can import.
+// so parity is enforced by manual review + a grep gate. If this constraint
+// becomes load-bearing, promote the canonical list to a leaf package
+// (e.g. internal/pdbtypes) that both packages can import.
 var PeeringDBEntityTypes = []string{
 	"org", "campus", "fac", "carrier", "carrierfac",
 	"ix", "ixlan", "ixpfx", "ixfac",
@@ -36,7 +35,7 @@ var PeeringDBEntityTypes = []string{
 // render "No data" rather than "0" on a healthy fleet that hasn't fired
 // any of those events yet.
 //
-// Phase 75 OBS-02 (D-02). The per-type set covers the 4 per-type counters
+// The per-type set covers the 4 per-type counters
 // (4 × 13 = 52 baseline series). RoleTransitions is the special case:
 // it labels by direction not type, so it gets 2 baseline series
 // (promoted, demoted) — see internal/sync/worker.go:1634/1651 for the
@@ -51,16 +50,15 @@ var PeeringDBEntityTypes = []string{
 // goroutine. If a future refactor reorders the call site, the per-counter
 // nil-guard below surfaces the misordering via otel.Handle (a
 // no-counter-pre-warm WARN in startup logs) instead of panicking on
-// counter.Add against a nil instrument. REVIEW WR-03.
+// counter.Add against a nil instrument.
 //
-// Per GO-CTX-1: ctx is the first parameter.
-// Per GO-OBS-5: attribute.String() typed-attr setter rather than raw KV.
+// ctx is the first parameter.
+// attribute.String() typed-attr setter rather than raw KV.
 func PrewarmCounters(ctx context.Context) {
 	// Defensive guard: a nil counter means InitMetrics() did not run (or
 	// did not populate this var). Surface via otel.Handle so the failure
 	// is grep-able in startup logs and skip the pre-warm for that
 	// counter rather than panicking inside the OTel SDK's Add internals.
-	// REVIEW WR-03.
 	checked := []struct {
 		name string
 		c    metric.Int64Counter

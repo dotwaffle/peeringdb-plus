@@ -186,7 +186,7 @@ func restTestServer(t *testing.T) *httptest.Server {
 		SetOrganization(org).
 		SaveX(ctx)
 
-	// Seed Poc. Phase 59-04 enabled an ent privacy Policy on Poc that
+	// Seed Poc. An ent privacy Policy on Poc
 	// filters non-Public rows from anonymous (TierPublic) callers. This
 	// REST test hits HTTP endpoints without the PrivacyTier middleware,
 	// so the seeded row's visibility must be "Public" (the default) for
@@ -213,7 +213,7 @@ func restTestServer(t *testing.T) *httptest.Server {
 }
 
 // TestREST_ListAll verifies GET /{type} returns 200 with paginated JSON
-// for each of the 13 PeeringDB entity types (REST-01).
+// for each of the 13 PeeringDB entity types.
 func TestREST_ListAll(t *testing.T) {
 	t.Parallel()
 	ts := restTestServer(t)
@@ -281,7 +281,7 @@ func TestREST_ListAll(t *testing.T) {
 }
 
 // TestREST_ReadByID verifies GET /{type}/{id} returns 200 with a single
-// entity containing the correct ID (REST-01).
+// entity containing the correct ID.
 func TestREST_ReadByID(t *testing.T) {
 	t.Parallel()
 	ts := restTestServer(t)
@@ -319,7 +319,7 @@ func TestREST_ReadByID(t *testing.T) {
 }
 
 // TestREST_OpenAPISpec verifies GET /openapi.json returns a valid OpenAPI
-// spec with only GET methods (REST-02, D-04).
+// spec with only GET methods.
 func TestREST_OpenAPISpec(t *testing.T) {
 	t.Parallel()
 	ts := restTestServer(t)
@@ -374,7 +374,7 @@ func TestREST_OpenAPISpec(t *testing.T) {
 	}
 }
 
-// TestREST_SortAndPaginate verifies sorting and pagination via query parameters (REST-03).
+// TestREST_SortAndPaginate verifies sorting and pagination via query parameters.
 func TestREST_SortAndPaginate(t *testing.T) {
 	t.Parallel()
 	ts := restTestServer(t)
@@ -497,7 +497,7 @@ func TestREST_SortAndPaginate(t *testing.T) {
 	})
 }
 
-// TestREST_FieldFiltering verifies per-field filtering on REST endpoints (REST-03).
+// TestREST_FieldFiltering verifies per-field filtering on REST endpoints.
 // Exercises string equality, string contains, int equality, int range, status,
 // empty result sets, and combined filter+pagination.
 func TestREST_FieldFiltering(t *testing.T) {
@@ -618,7 +618,7 @@ func TestREST_FieldFiltering(t *testing.T) {
 }
 
 // TestREST_EagerLoad verifies that reading a single entity by ID
-// returns eager-loaded edge data (REST-04).
+// returns eager-loaded edge data.
 func TestREST_EagerLoad(t *testing.T) {
 	t.Parallel()
 	ts := restTestServer(t)
@@ -684,7 +684,7 @@ func foldKeysIn(v any) []string {
 	return out
 }
 
-// TestREST_NoFoldColumns is the regression lock for the Phase-69 `_fold`
+// TestREST_NoFoldColumns is the regression lock for the `_fold`
 // shadow columns leaking onto the REST wire. entrest serialises the raw ent
 // model with encoding/json (ent/rest/server.go Encode), so entrest.WithSkip
 // alone did NOT keep the columns off /rest/v1/* — the model's json tag does.
@@ -697,7 +697,7 @@ func TestREST_NoFoldColumns(t *testing.T) {
 	t.Parallel()
 	ts := restTestServer(t)
 
-	// Endpoints whose entities carry _fold shadow columns (Phase 69):
+	// Endpoints whose entities carry _fold shadow columns:
 	// organization, network, facility, internetexchange, carrier, campus.
 	endpoints := []string{
 		"/organizations", "/networks", "/facilities",
@@ -747,7 +747,7 @@ func (s *syncCompletedTracker) HasCompletedSync() bool {
 }
 
 // TestREST_Readiness verifies that REST endpoints return 503 before sync
-// completes and 200 after (D-14).
+// completes and 200 after.
 func TestREST_Readiness(t *testing.T) {
 	t.Parallel()
 
@@ -801,7 +801,7 @@ func TestREST_Readiness(t *testing.T) {
 }
 
 // TestREST_WriteMethodsRejected verifies that POST, PUT, PATCH, DELETE
-// methods return 404 or 405 on REST endpoints (D-04).
+// methods return 404 or 405 on REST endpoints.
 func TestREST_WriteMethodsRejected(t *testing.T) {
 	t.Parallel()
 	ts := restTestServer(t)

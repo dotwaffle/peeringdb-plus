@@ -22,18 +22,18 @@ var AllTypes = []string{
 	"ixlan", "ixpfx", "net", "netfac", "netixlan", "org", "poc",
 }
 
-// ProdTypes is the reduced list used for the prod confirmation pass per
-// phase 57 D-04. Only the high-signal privacy types are fetched against
-// production to stay well inside the rate-limit quota.
+// ProdTypes is the reduced list used for the prod confirmation pass.
+// Only the high-signal privacy types are fetched against production to
+// stay well inside the rate-limit quota.
 var ProdTypes = []string{"net", "org", "poc"}
 
 // defaultRateLimitJitter is the extra sleep added on top of
-// RateLimitError.RetryAfter before a tuple is retried. Five seconds matches
-// research Pattern 3 and keeps enough margin for clock skew.
+// RateLimitError.RetryAfter before a tuple is retried. Five seconds keeps
+// enough margin for clock skew.
 const defaultRateLimitJitter = 5 * time.Second
 
-// Capture coordinates the per-tuple walk of PeeringDB pages for the phase
-// 57 visibility baseline. Construct via New; run with Run.
+// Capture coordinates the per-tuple walk of PeeringDB pages for the
+// visibility baseline. Construct via New; run with Run.
 type Capture struct {
 	cfg        Config
 	rawAuthDir string
@@ -181,11 +181,11 @@ func (c *Capture) resolveState(ctx context.Context) (*State, error) {
 		c.cfg.Logger.LogAttrs(ctx, slog.LevelInfo, "restarting capture (discarding checkpoint)",
 			slog.String("state_path", c.cfg.StatePath),
 		)
-		// WR-05: Restart discards the checkpoint but the State does not know
+		// Restart discards the checkpoint but the State does not know
 		// where the previous run's raw-auth /tmp dir lived. Warn the operator
 		// so they can clean it up manually. State intentionally carries no
-		// PII, so recording the prior rawAuthDir in State would widen T-57-04
-		// exposure; a log line is the right trade-off.
+		// PII, so recording the prior rawAuthDir in State would widen the
+		// PII exposure surface; a log line is the right trade-off.
 		c.cfg.Logger.LogAttrs(ctx, slog.LevelWarn,
 			"restart discards checkpoint; prior /tmp/pdb-vis-capture-* dir (if any) must be cleaned manually",
 			slog.String("state_path", c.cfg.StatePath),
@@ -211,7 +211,7 @@ func (c *Capture) resolveState(ctx context.Context) (*State, error) {
 // the SAME tuple. Other errors are returned to the caller.
 //
 // IMPORTANT: the API key is NEVER included in any slog attribute here.
-// Only tuple metadata is logged (T-57-05 mitigation).
+// Only tuple metadata is logged, to avoid leaking the secret into logs.
 func (c *Capture) runTuple(ctx context.Context, t Tuple) error {
 	client := c.clientFor(t.Mode)
 	if client == nil {

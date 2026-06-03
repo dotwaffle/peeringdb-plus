@@ -1,27 +1,26 @@
-// Package main ordering_cross_surface_e2e_test.go — Phase 67 Plan 06
+// Package main ordering_cross_surface_e2e_test.go —
 // cross-surface ordering parity + entrest override + nested _set
-// (D-04 clarification) end-to-end verification.
+// end-to-end verification.
 //
-// This test closes out Phase 67 "default-ordering-flip" by exercising the
+// This test covers the default-ordering flip by exercising the
 // three query surfaces (pdbcompat /api, entrest /rest/v1, ConnectRPC
 // List*) against a shared in-memory ent client and asserting that the
-// row order returned from each surface is identical under the new
+// row order returned from each surface is identical under the
 // compound (-updated, -created, -id) default. Three matching surfaces
-// is what the must_haves call "goal-backward verification" — the
-// individual plans 03/04/05 assert per-surface contracts in isolation,
+// is the goal-backward verification — the
+// per-surface tests assert their contracts in isolation,
 // but only this test locks in the cross-surface parity guarantee that
 // the user-visible contract depends on.
 //
 // Four top-level tests:
 //
 //   - TestOrdering_CrossSurface  — compound default + tie-break parity across all 3 surfaces
-//   - TestEntrestDefaultOrder    — ORDER-03 override contract (no sort = compound default; explicit ?sort= honoured)
-//   - TestEntrestNestedSetOrder  — D-04 clarification: nested eager-loaded edge arrays sort by (-updated)
+//   - TestEntrestDefaultOrder    — override contract (no sort = compound default; explicit ?sort= honoured)
+//   - TestEntrestNestedSetOrder  — nested eager-loaded edge arrays sort by (-updated)
 //
 // The test boots ONLY the three list-capable surfaces (pdbcompat,
 // entrest, ConnectRPC) — /ui and /graphql are out-of-scope for the
-// ordering contract (ORDER-03 "Out of scope: GraphQL, Web UI" per
-// CONTEXT.md). The fixture deliberately avoids buildMiddlewareChain so
+// ordering contract. The fixture deliberately avoids buildMiddlewareChain so
 // we don't pull in readiness/CSP/compression concerns that have
 // nothing to do with the ordering assertion.
 package main
@@ -74,7 +73,7 @@ func buildOrderingFixture(t *testing.T) *orderingFixture {
 	mux := http.NewServeMux()
 
 	// pdbcompat (/api/*) — Register binds all 13 types to /api/<type>.
-	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// Budget=0 disables the pre-flight budget check — this test
 	// targets cross-surface ordering parity, not memory guardrails.
 	compatHandler := pdbcompat.NewHandler(client, 0)
 	compatHandler.Register(mux)
@@ -90,8 +89,8 @@ func buildOrderingFixture(t *testing.T) *orderingFixture {
 
 	// ConnectRPC — only register the services this test exercises
 	// (NetworkService is sufficient for the cross-surface + override
-	// assertions; nested _set is checked via entrest only per D-04
-	// "pdbcompat and grpcserver nested eager-loads are unaffected").
+	// assertions; nested _set is checked via entrest only —
+	// pdbcompat and grpcserver nested eager-loads are unaffected).
 	netPath, netHandler := peeringdbv1connect.NewNetworkServiceHandler(
 		&grpcserver.NetworkService{Client: client, StreamTimeout: 30 * time.Second},
 	)
@@ -387,8 +386,8 @@ func TestOrdering_CrossSurface(t *testing.T) {
 }
 
 // =============================================================================
-// TestEntrestDefaultOrder — ORDER-03 override contract. entrest under the
-// compound-default template (Plan 02) must:
+// TestEntrestDefaultOrder — override contract. entrest under the
+// compound-default template must:
 //   - default (no ?sort=) -> (-updated, -created, -id)
 //   - ?sort=id&order=asc  -> ascending id (override honoured)
 //   - ?sort=id&order=desc -> descending id
@@ -435,10 +434,10 @@ func TestEntrestDefaultOrder(t *testing.T) {
 }
 
 // =============================================================================
-// TestEntrestNestedSetOrder — CONTEXT.md D-04 clarification: entrest's
+// TestEntrestNestedSetOrder — entrest's
 // auto-eager-load calls applySorting<Type> on nested edge arrays, so
 // /rest/v1/networks responses MUST carry nested `edges.network_ix_lans`
-// arrays in (-updated) DESC order. This locks in the Phase 67 Plan 01
+// arrays in (-updated) DESC order. This locks in the default-ordering
 // side-effect on `ent/rest/eagerload.go` (every WithNetworkIxLans
 // closure now calls `applySortingNetworkIxLan(e, "updated", "desc")`).
 //
@@ -559,7 +558,7 @@ func TestEntrestNestedSetOrder(t *testing.T) {
 			gotIDs[i] = r.ID
 		}
 		if !idSliceEqual(gotIDs, wantIDs) {
-			t.Errorf("nested network_ix_lans ids = %v, want %v (D-04: eager-loaded edges must sort by -updated)", gotIDs, wantIDs)
+			t.Errorf("nested network_ix_lans ids = %v, want %v (eager-loaded edges must sort by -updated)", gotIDs, wantIDs)
 		}
 
 		// Timestamp monotonicity check: updated must strictly descend.

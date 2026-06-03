@@ -15,27 +15,27 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
-// Phase 69 Plan 04 — filter-layer tests for:
-//   - UNICODE-02 operator coercion (__contains → __icontains, __startswith → __istartswith)
-//   - UNICODE-01 shadow-column routing for fields with a _fold sibling
-//   - IN-01 json_each __in rewrite (single-bind, bypasses SQLite's 999-variable limit)
-//   - IN-02 empty __in short-circuit
+// Diacritic-fold filter-layer tests for:
+//   - operator coercion (__contains → __icontains, __startswith → __istartswith)
+//   - shadow-column routing for fields with a _fold sibling
+//   - json_each __in rewrite (single-bind, bypasses SQLite's 999-variable limit)
+//   - empty __in short-circuit
 //
 // All tests exercise pdbcompat end-to-end via httptest (black-box HTTP, independent
 // of internal filter.go spellings) except the EXPLAIN QUERY PLAN probe which runs
 // SQL directly against the same schema-driven ent client.
 
-// newPhase69Mux is a copy of newMuxForOrdering to avoid coupling to that file's
-// test fixtures. Kept local to make the Phase 69 test suite self-contained.
-func newPhase69Mux(client *ent.Client) *http.ServeMux {
+// newFoldFilterMux is a copy of newMuxForOrdering to avoid coupling to that file's
+// test fixtures. Kept local to make this test suite self-contained.
+func newFoldFilterMux(client *ent.Client) *http.ServeMux {
 	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	return mux
 }
 
-// phase69FetchIDs GETs the URL and returns the sorted list of result IDs.
-func phase69FetchIDs(t *testing.T, url string) []int {
+// foldFetchIDs GETs the URL and returns the sorted list of result IDs.
+func foldFetchIDs(t *testing.T, url string) []int {
 	t.Helper()
 	resp, err := http.Get(url) //nolint:noctx // test code, local httptest server
 	if err != nil {
@@ -62,7 +62,7 @@ func phase69FetchIDs(t *testing.T, url string) []int {
 }
 
 // seedFoldedNetwork creates a Network with a non-ASCII name and its _fold
-// companion set via unifold.Fold (mirrors the sync worker's Phase 69 path).
+// companion set via unifold.Fold (mirrors the sync worker's fold-population path).
 func seedFoldedNetwork(t *testing.T, client *ent.Client, id int, asn int, name string) {
 	t.Helper()
 	ctx := t.Context()
@@ -82,7 +82,7 @@ func seedFoldedNetwork(t *testing.T, client *ent.Client, id int, asn int, name s
 	}
 }
 
-// TestShadowRouting_Network_NameFold — UNICODE-01: a row with name="Zürich Connect"
+// TestShadowRouting_Network_NameFold — a row with name="Zürich Connect"
 // (name_fold="zurich connect") must match ?name__contains=zurich, ?name__contains=Zurich,
 // and ?name__contains=urich con (URL-encoded space).
 func TestShadowRouting_Network_NameFold(t *testing.T) {
@@ -91,7 +91,7 @@ func TestShadowRouting_Network_NameFold(t *testing.T) {
 	seedFoldedNetwork(t, client, 1, 64501, "Zürich Connect")
 	seedFoldedNetwork(t, client, 2, 64502, "London Metro")
 
-	srv := httptest.NewServer(newPhase69Mux(client))
+	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
 	cases := []struct {
@@ -107,7 +107,7 @@ func TestShadowRouting_Network_NameFold(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ids := phase69FetchIDs(t, srv.URL+"/api/net?"+tc.query)
+			ids := foldFetchIDs(t, srv.URL+"/api/net?"+tc.query)
 			if !sameIDs(ids, tc.want) {
 				t.Errorf("query %q: got ids %v, want %v", tc.query, ids, tc.want)
 			}
@@ -129,23 +129,23 @@ func TestShadowRouting_Network_NonFoldedField(t *testing.T) {
 		t.Fatalf("set website: %v", err)
 	}
 
-	srv := httptest.NewServer(newPhase69Mux(client))
+	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
 	// ?website__contains=cloudflare — website is not in foldedFields, so
 	// routing falls through to sql.FieldContainsFold(name, value) against the
 	// real column. Must match.
-	ids := phase69FetchIDs(t, srv.URL+"/api/net?website__contains=cloudflare")
+	ids := foldFetchIDs(t, srv.URL+"/api/net?website__contains=cloudflare")
 	if !sameIDs(ids, []int{1}) {
 		t.Errorf("non-folded field website: got ids %v, want [1]", ids)
 	}
 }
 
-// TestInJsonEach_Large_Bypasses_SQLite_Limit — IN-01: a large __in list (well
+// TestInJsonEach_Large_Bypasses_SQLite_Limit — a large __in list (well
 // above the pre-modernc SQLite default of 999 variables) must succeed. modernc
 // at v1.48.2 compiles with MAX_VARIABLE_NUMBER=32766, so the old expanded-param
 // path would survive 1500, but the rewrite is the correctness-first path: one
-// bind regardless of list size. Keep the smoke test modest; the plan-level
+// bind regardless of list size. Keep the smoke test modest; the
 // correctness guard is TestInJsonEach_ExplainQueryPlan.
 func TestInJsonEach_Large_Bypasses_SQLite_Limit(t *testing.T) {
 	t.Parallel()
@@ -175,7 +175,7 @@ func TestInJsonEach_Large_Bypasses_SQLite_Limit(t *testing.T) {
 		}
 	}
 
-	srv := httptest.NewServer(newPhase69Mux(client))
+	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
 	asns := make([]string, n)
@@ -183,13 +183,13 @@ func TestInJsonEach_Large_Bypasses_SQLite_Limit(t *testing.T) {
 		asns[i] = fmt.Sprintf("%d", i+1)
 	}
 	query := "asn__in=" + strings.Join(asns, ",") + "&limit=0"
-	ids := phase69FetchIDs(t, srv.URL+"/api/net?"+query)
+	ids := foldFetchIDs(t, srv.URL+"/api/net?"+query)
 	if len(ids) != n {
 		t.Errorf("large __in: got %d rows, want %d (SQLite 999-variable limit should be bypassed)", len(ids), n)
 	}
 }
 
-// TestInJsonEach_EmptyString_ReturnsEmpty — IN-02: ?asn__in= (empty value) must
+// TestInJsonEach_EmptyString_ReturnsEmpty — ?asn__in= (empty value) must
 // return an empty data array without running SQL.
 func TestInJsonEach_EmptyString_ReturnsEmpty(t *testing.T) {
 	t.Parallel()
@@ -207,12 +207,12 @@ func TestInJsonEach_EmptyString_ReturnsEmpty(t *testing.T) {
 		}
 	}
 
-	srv := httptest.NewServer(newPhase69Mux(client))
+	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
-	ids := phase69FetchIDs(t, srv.URL+"/api/net?asn__in=")
+	ids := foldFetchIDs(t, srv.URL+"/api/net?asn__in=")
 	if len(ids) != 0 {
-		t.Errorf("empty __in: got ids %v, want [] (per D-06 — Django id__in=[] semantics)", ids)
+		t.Errorf("empty __in: got ids %v, want [] (Django id__in=[] semantics)", ids)
 	}
 }
 
@@ -238,17 +238,17 @@ func TestInJsonEach_StringValues(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	srv := httptest.NewServer(newPhase69Mux(client))
+	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 	// name__in on website (string FieldString) — use name__in because `name`
 	// is in Fields map.
-	ids := phase69FetchIDs(t, srv.URL+"/api/net?name__in=alpha,gamma")
+	ids := foldFetchIDs(t, srv.URL+"/api/net?name__in=alpha,gamma")
 	if !sameIDs(ids, []int{1, 3}) {
 		t.Errorf("string __in: got ids %v, want [1 3]", ids)
 	}
 }
 
-// TestInJsonEach_ExplainQueryPlan — D-05 correctness check: modernc.org/sqlite
+// TestInJsonEach_ExplainQueryPlan — correctness check: modernc.org/sqlite
 // keeps json_each(?) as a single bind rather than expanding to N parameters.
 // This test runs a raw SQL query through the same driver and confirms the
 // EXPLAIN QUERY PLAN output references json_each.
@@ -292,7 +292,7 @@ func TestInJsonEach_ExplainQueryPlan(t *testing.T) {
 	}
 }
 
-// TestCoerce_OnlyContainsAndStartswith_Untouched — D-04 scope guard: all other
+// TestCoerce_OnlyContainsAndStartswith_Untouched — scope guard: all other
 // operators MUST behave unchanged.
 func TestCoerce_OnlyContainsAndStartswith_Untouched(t *testing.T) {
 	t.Parallel()
@@ -310,7 +310,7 @@ func TestCoerce_OnlyContainsAndStartswith_Untouched(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	srv := httptest.NewServer(newPhase69Mux(client))
+	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
 	cases := []struct {
@@ -326,7 +326,7 @@ func TestCoerce_OnlyContainsAndStartswith_Untouched(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			ids := phase69FetchIDs(t, srv.URL+"/api/net?"+tc.query)
+			ids := foldFetchIDs(t, srv.URL+"/api/net?"+tc.query)
 			if !sameIDs(ids, tc.want) {
 				t.Errorf("query %q: got ids %v, want %v", tc.query, ids, tc.want)
 			}
@@ -334,13 +334,13 @@ func TestCoerce_OnlyContainsAndStartswith_Untouched(t *testing.T) {
 	}
 }
 
-// TestPhase68StatusMatrix_Phase69Layering — regression guard: the Phase 68
-// status × since matrix and the Phase 69 filter layer compose correctly.
-// ?status=deleted&name__contains=foo — status is silently dropped (Phase 68
+// TestStatusMatrix_FoldFilterLayering — regression guard: the
+// status × since matrix and the diacritic-fold filter layer compose correctly.
+// ?status=deleted&name__contains=foo — status is silently dropped (the matrix
 // removed `status` from Fields), and the contains layer still resolves
 // through the folded column (or falls through to FieldContainsFold for
 // non-folded fields).
-func TestPhase68StatusMatrix_Phase69Layering(t *testing.T) {
+func TestStatusMatrix_FoldFilterLayering(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
 	ctx := t.Context()
@@ -358,27 +358,27 @@ func TestPhase68StatusMatrix_Phase69Layering(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 
-	srv := httptest.NewServer(newPhase69Mux(client))
+	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
 	t.Run("without_since_ok_only", func(t *testing.T) {
-		// ?status=deleted is silently dropped by Fields map (Phase 68). Only
+		// ?status=deleted is silently dropped by the Fields map. Only
 		// status=ok rows are returned by the status matrix. The name__contains
 		// is coerced/folded and matches both Foo rows, but the status matrix
 		// restricts the result set to status='ok'.
-		ids := phase69FetchIDs(t, srv.URL+"/api/net?status=deleted&name__contains=foo")
+		ids := foldFetchIDs(t, srv.URL+"/api/net?status=deleted&name__contains=foo")
 		if !sameIDs(ids, []int{1}) {
 			t.Errorf("status+name__contains: got ids %v, want [1] — status=deleted dropped, name filter returns ok row only", ids)
 		}
 	})
 
 	t.Run("with_since_ok_and_deleted", func(t *testing.T) {
-		// Phase 68 D-07 / rest.py:694-727: when `?since=N` is present, the
+		// rest.py:694-727: when `?since=N` is present, the
 		// status matrix expands to `status IN ('ok','deleted')` so tombstones
-		// from the since-window are returned. The Phase 69 name__contains
+		// from the since-window are returned. The name__contains
 		// layer must still fold against the shadow column on BOTH branches.
 		since := strconv.FormatInt(now.Add(-time.Hour).Unix(), 10)
-		ids := phase69FetchIDs(t, srv.URL+"/api/net?since="+since+"&name__contains=foo")
+		ids := foldFetchIDs(t, srv.URL+"/api/net?since="+since+"&name__contains=foo")
 		if !sameIDs(ids, []int{1, 2}) {
 			t.Errorf("since+name__contains: got ids %v, want [1 2] — since-branch must return ok+deleted through shadow-routed filter", ids)
 		}

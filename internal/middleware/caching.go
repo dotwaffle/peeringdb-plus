@@ -14,7 +14,7 @@ import (
 
 // CachingState holds the HTTP caching middleware's mutable ETag value behind
 // an atomic pointer so the hot request path can read it without locks or
-// per-request SHA-256 computation. PERF-07 (Plan 55-02) moved the hash work
+// per-request SHA-256 computation. The hash work was moved
 // out of the request path; the SHA-256 now runs exactly once per sync
 // completion inside UpdateETag, driven by the sync worker's OnSyncComplete
 // callback. Construct via NewCachingState.
@@ -158,9 +158,10 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 // Format: W/"<32 hex chars>" (SHA-256 truncated to 16 bytes).
 //
 // The input format (SHA-256 of RFC3339Nano-formatted sync time) is preserved
-// byte-for-byte from the pre-PERF-07 implementation so existing client cache
+// byte-for-byte from the earlier implementation so existing client cache
 // entries keep matching across the v1.13 deploy. Switching to a sync-ID
-// counter was considered and rejected at plan time — see 55-02-PLAN.md.
+// counter was considered and rejected — the timestamp-hash form needs no
+// persisted counter state and is stable across restarts.
 func computeETag(syncTime time.Time) string {
 	h := sha256.Sum256([]byte(syncTime.Format(time.RFC3339Nano)))
 	return fmt.Sprintf(`W/"%x"`, h[:16])

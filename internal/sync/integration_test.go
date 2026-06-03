@@ -133,10 +133,9 @@ func TestFullSyncWithFixtures(t *testing.T) {
 		t.Fatalf("sync failed: %v", err)
 	}
 
-	// Verify record counts. Phase 68 D-01: PDBPLUS_INCLUDE_DELETED was removed,
-	// so the upsert path now unconditionally persists org 3 (status=deleted).
-	// Plan 68-02 flips the delete pass to soft-delete; in the meantime the
-	// hard-delete pass still runs but org 3's ID is in remoteIDs so it stays.
+	// Verify record counts. PDBPLUS_INCLUDE_DELETED was removed, so the
+	// upsert path now unconditionally persists org 3 (status=deleted).
+	// org 3's ID is in remoteIDs so it stays.
 	tests := []struct {
 		name     string
 		queryFn  func() (int, error)
@@ -217,11 +216,11 @@ func TestFullSyncWithFixtures(t *testing.T) {
 // status='deleted' rows from upstream's ?since= responses land as
 // tombstones on re-sync.
 //
-// Quick task 260428-2zl Task 6: pre-2zl this test (TestSyncDeletesStaleRecords)
+// Previously this test (TestSyncDeletesStaleRecords)
 // asserted the inference-by-absence path — drop org 2 from the
 // response → local row marked deleted via the markStaleDeleted family.
 // That inference was structurally wrong against PeeringDB's
-// serializer-side filtering and is removed in T6. Post-2zl, the test
+// serializer-side filtering and was removed. Now, the test
 // seeds an explicit `{"id": 2, "status":"deleted"}` payload and
 // asserts the upsert path lands the tombstone without any delete
 // pass.
@@ -247,8 +246,8 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 		t.Fatalf("first sync: %v", err)
 	}
 
-	// Verify all 3 orgs exist (Phase 68 D-01: upsert persists deleted
-	// rows unconditionally).
+	// Verify all 3 orgs exist (upsert persists deleted rows
+	// unconditionally).
 	orgCount, err := client.Organization.Query().Count(ctx)
 	if err != nil {
 		t.Fatalf("query org count: %v", err)
@@ -260,7 +259,7 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 	// Upstream re-sync delivers org 2 as an explicit status='deleted'
 	// tombstone (mirrors the ?since= shape per rest.py:694-727).
 	// Org 1 stays 'ok'; dependents of org 2 also tombstone.
-	// 260428-eda CHANGE 3: bump org 2's `updated` past the cycle-1
+	// Bump org 2's `updated` past the cycle-1
 	// fixture (which had updated=2024-08-01T09:15:00Z) so the
 	// skip-on-unchanged predicate admits the status flip.
 	fs.setFixtureData("org", json.RawMessage(`[
@@ -354,7 +353,7 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 		t.Fatalf("second sync: %v", err)
 	}
 
-	// Quick task 260428-2zl Task 6: with no delete pass, the local row
+	// With no delete pass, the local row
 	// for org 2 transitions to status='deleted' via the explicit
 	// upstream payload (NOT via inference-by-absence). Org 1 remains
 	// 'ok'; org 3 (pre-existing 'deleted' from cycle 1's fixture) is
@@ -388,9 +387,9 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 		t.Errorf("org 2 status: want 'deleted' (from explicit payload), got %q", org2.Status)
 	}
 
-	// Quick task 260428-2zl Task 6: dependent records (IXes etc) absent
-	// from cycle 2's response stay as-is in the local DB. Pre-2zl the
-	// inference-by-absence path would have soft-deleted them; post-2zl
+	// Dependent records (IXes etc) absent
+	// from cycle 2's response stay as-is in the local DB. Previously the
+	// inference-by-absence path would have soft-deleted them; now
 	// upstream is responsible for delivering explicit tombstones for
 	// the dependents (which it does via ?since= responses, but this
 	// test deliberately omits them to verify NO inference fires). The
@@ -406,11 +405,11 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 
 // TestSync_TombstonePersistedFromExplicitPayload asserts that explicit
 // status='deleted' rows from upstream's ?since= payloads land as
-// tombstones in the local DB. Quick task 260428-2zl Task 6: pre-2zl
+// tombstones in the local DB. Previously
 // this test (TestSync_SoftDeleteMarksRows) asserted the
 // inference-by-absence path — drop org 1 from the response → local
 // row marked deleted via markStaleDeletedOrganizations. That
-// inference is removed in T6; the test now seeds the explicit payload
+// inference was removed; the test now seeds the explicit payload
 // and asserts the upsert path delivers the same outcome.
 //
 // Shape:
@@ -458,10 +457,10 @@ func TestSync_TombstonePersistedFromExplicitPayload(t *testing.T) {
 	}
 
 	// Cycle 2 fixture: upstream ?since= response shape, with org 1
-	// flipped to 'deleted' (explicit tombstone payload). Pre-2zl this
+	// flipped to 'deleted' (explicit tombstone payload). Previously this
 	// test dropped org 1 from the response and relied on inference;
-	// post-2zl the worker only persists what upstream sends.
-	// 260428-eda CHANGE 3: bump org 1's `updated` past the cycle 1
+	// now the worker only persists what upstream sends.
+	// Bump org 1's `updated` past the cycle 1
 	// fixture so the skip-on-unchanged predicate admits the status flip
 	// from "ok" to "deleted". Real PeeringDB always bumps `updated` when
 	// row content changes; cycle-1 fixture had updated=2024-06-15.
@@ -509,8 +508,8 @@ func TestSync_TombstonePersistedFromExplicitPayload(t *testing.T) {
 	}
 
 	// Org 1 now has status='deleted' from the explicit upstream payload.
-	// Quick task 260428-2zl Task 6: pre-2zl, .Updated was set to
-	// cycleStart by markStaleDeletedOrganizations; post-2zl it carries
+	// Previously, .Updated was set to
+	// cycleStart by markStaleDeletedOrganizations; now it carries
 	// whatever value the upstream payload sent (the fixture's
 	// "updated": "2024-06-15T12:30:00Z" above).
 	org1, err = client.Organization.Get(ctx, 1)
@@ -542,9 +541,9 @@ func TestSync_TombstonePersistedFromExplicitPayload(t *testing.T) {
 
 // TestSyncFKIntegrity_AfterTombstoneCycle verifies that running a sync
 // cycle that includes explicit status='deleted' tombstones leaves the
-// DB without FK violations. Quick task 260428-2zl Task 6: pre-2zl the
+// DB without FK violations. Previously the
 // inference-by-absence delete pass meant the test had to verify that
-// the post-delete row set was internally consistent. Post-2zl no rows
+// the post-delete row set was internally consistent. Now no rows
 // are removed and no FKs change as a result of the sync, so the
 // invariant is necessarily preserved — but the foreign_key_check is
 // kept as a regression lock against any future schema change that
@@ -573,10 +572,10 @@ func TestSyncFKIntegrity_AfterTombstoneCycle(t *testing.T) {
 
 	// Cycle 2: org 2 arrives as an explicit tombstone (mirrors ?since=
 	// shape). Org 1 remains live; dependents of org 2 are absent from
-	// the response (post-2zl no inference fires for them — they stay
+	// the response (no inference fires for them — they stay
 	// as-is with their cycle-1 status='ok' values).
 	//
-	// 260428-eda CHANGE 3: bump org 2's `updated` past the cycle-1
+	// Bump org 2's `updated` past the cycle-1
 	// fixture (which had updated=2024-08-01T09:15:00Z) so the
 	// skip-on-unchanged predicate admits the status flip.
 	fs.setFixtureData("org", json.RawMessage(`[
@@ -688,7 +687,7 @@ func TestSyncFKIntegrity_AfterTombstoneCycle(t *testing.T) {
 	}
 
 	// Re-enable FK constraints and run foreign_key_check to verify no FK
-	// violations exist after the cycle (trivially true post-2zl because
+	// violations exist after the cycle (trivially true now because
 	// rows are never removed, but the check locks the invariant against
 	// future hard-delete reintroductions).
 	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {

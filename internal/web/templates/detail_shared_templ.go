@@ -654,7 +654,7 @@ func CopyableIP(label string, addr string) templ.Component {
 }
 
 // CountryFlag renders a country flag icon with the country code text.
-// Uses flag-icons CSS classes. If code is empty, renders nothing (D-16).
+// Uses flag-icons CSS classes. If code is empty, renders nothing.
 func CountryFlag(code string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

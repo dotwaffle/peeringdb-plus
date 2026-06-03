@@ -17,11 +17,9 @@ import (
 // django-handleref Meta.ordering = ("-updated", "-created") with `id DESC`
 // as the tertiary tiebreak.
 //
-// Phase 67 Plan 03: flips all 13 .Order(ent.Asc("id")) calls in
-// registry_funcs.go to .Order(ent.Desc("updated"), ent.Desc("created"),
-// ent.Desc("id")). This test is RED before Task 2 of Plan 03 lands and
-// GREEN after. See the project history
-// D-02, D-05, D-07 and 67-RESEARCH.md §1.1 / §6.
+// All 13 list closures in registry_funcs.go use
+// .Order(ent.Desc("updated"), ent.Desc("created"),
+// ent.Desc("id")) to produce this ordering.
 func TestDefaultOrdering_Pdbcompat(t *testing.T) {
 	t.Parallel()
 

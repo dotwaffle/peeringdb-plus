@@ -98,7 +98,7 @@ func applyCarrierStreamFilters(req *pb.StreamCarriersRequest) ([]func(*sql.Selec
 }
 
 // ListCarriers returns a paginated list of carriers under the compound
-// default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// default order (-updated, -created, -id).
 func (s *CarrierService) ListCarriers(ctx context.Context, req *pb.ListCarriersRequest) (*pb.ListCarriersResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Carrier, pb.Carrier]{
 		EntityName: "carriers",

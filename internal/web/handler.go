@@ -19,7 +19,7 @@ import (
 // parseASN parses and validates an ASN string. Returns the ASN value and true
 // if valid (1 <= asn <= 2^32-1). Returns 0 and false for non-numeric, zero,
 // negative, or out-of-range values. The 32-bit bit size of ParseUint is the
-// single source of truth for the upper bound — SEC-11.
+// single source of truth for the upper bound.
 func parseASN(s string) (uint32, bool) {
 	asn, err := strconv.ParseUint(s, 10, 32)
 	if err != nil || asn < 1 {
@@ -34,16 +34,15 @@ type Handler struct {
 	db         *sql.DB
 	searcher   *SearchService
 	comparer   *CompareService
-	authMode   string       // "authenticated" | "anonymous" (Phase 61 OBS-02)
+	authMode   string       // "authenticated" | "anonymous"
 	publicTier privctx.Tier // captured from config.Config.PublicTier at startup
 }
 
 // NewHandlerInput configures a web Handler. Client is required; DB may be
 // nil for tests that do not exercise the sync-status table. AuthMode and
-// PublicTier feed the /ui/about Privacy & Sync section (Phase 61 OBS-02
-// D-04/D-05/D-06). When AuthMode is empty, the renderer falls back to
-// "anonymous"; when PublicTier is the zero value (TierPublic), no
-// override flag is shown.
+// PublicTier feed the /ui/about Privacy & Sync section. When AuthMode is
+// empty, the renderer falls back to "anonymous"; when PublicTier is the
+// zero value (TierPublic), no override flag is shown.
 type NewHandlerInput struct {
 	Client     *ent.Client
 	DB         *sql.DB
@@ -53,8 +52,8 @@ type NewHandlerInput struct {
 
 // NewHandler creates a web UI handler with integrated search and compare
 // services. AuthMode and PublicTier are captured at construction and
-// surface on /ui/about (Phase 61 OBS-02). Per threat T-61-06 the input
-// uses named fields so callers cannot transpose them.
+// surface on /ui/about. The input uses named fields so callers cannot
+// transpose them.
 func NewHandler(in NewHandlerInput) *Handler {
 	return &Handler{
 		client:     in.Client,
@@ -123,7 +122,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleHome renders the homepage. Supports ?q= for bookmarked URL search
-// results (Pitfall 3: pre-render results on page load for shared URLs).
+// results (pre-render results on page load for shared URLs).
 func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	var groups []templates.SearchGroup
@@ -151,7 +150,7 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 // handleSearch returns search results as an HTML fragment for htmx partial updates.
 // Sets HX-Push-Url header to keep the browser URL in sync with the search query
-// and create history entries for back/forward navigation (UI-03).
+// and create history entries for back/forward navigation.
 func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	var groups []templates.SearchGroup
@@ -166,7 +165,7 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set HX-Push-Url so the browser URL updates to /ui/?q=value
-	// and creates a history entry for back/forward navigation (UI-03).
+	// and creates a history entry for back/forward navigation.
 	// Skip for spotlight overlay requests — they shouldn't modify browser history.
 	if r.URL.Query().Get("spotlight") != "1" {
 		if query != "" {

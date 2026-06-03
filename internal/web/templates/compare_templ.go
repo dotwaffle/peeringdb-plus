@@ -1597,7 +1597,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 
 // compareFacilityMarkers builds map markers from comparison facility data with three-color scheme.
 // Shared facilities use emerald (#10b981), network A-only uses sky (#38bdf8),
-// network B-only uses amber (#f59e0b) per D-04 and D-05.
+// network B-only uses amber (#f59e0b).
 func compareFacilityMarkers(facs []CompareFacility, netAName, netBName string) []MapMarker {
 	markers := make([]MapMarker, len(facs))
 	for i, f := range facs {
@@ -1630,7 +1630,7 @@ func compareFacilityMarkers(facs []CompareFacility, netAName, netBName string) [
 }
 
 // compareFacilityMap renders a multi-pin map with three-color pins and a legend
-// showing the geographic overlap between both networks' facility presences (D-08).
+// showing the geographic overlap between both networks' facility presences.
 func compareFacilityMap(data CompareData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

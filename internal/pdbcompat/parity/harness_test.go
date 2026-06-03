@@ -12,7 +12,7 @@ import (
 // the canonical pdbcompat handler correctly: GET /api/ returns the
 // index document with HTTP 200 + a non-empty JSON body.
 //
-// synthesised: phase72-04-harness
+// synthesised: harness self-test
 func TestHarness_NewTestServer_RoundTrip(t *testing.T) {
 	t.Parallel()
 	c := testutil.SetupClient(t)
@@ -31,7 +31,7 @@ func TestHarness_NewTestServer_RoundTrip(t *testing.T) {
 // well-formed list response. The index endpoint isn't a list shape, so
 // it seeds one network inline and lists /api/net.
 //
-// synthesised: phase72-04-harness
+// synthesised: harness self-test
 func TestHarness_DecodeDataArray(t *testing.T) {
 	t.Parallel()
 	c := testutil.SetupClient(t)

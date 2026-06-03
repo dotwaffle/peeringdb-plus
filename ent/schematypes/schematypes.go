@@ -4,8 +4,8 @@
 // materialised JSON field type — does not pull the ent/schema package
 // into ent/*'s import graph.
 //
-// Why split: enabling gen.FeaturePrivacy in ent/entc.go (Phase 59
-// VIS-04) lets a schema Policy() refer to generated where-predicates
+// Why split: enabling gen.FeaturePrivacy in ent/entc.go lets a schema
+// Policy() refer to generated where-predicates
 // like poc.VisibleEQ and the ent/privacy adapter. Those live under
 // ent/poc and ent/privacy, which already depend on ent/. If ent/schema
 // continues to be both "the place that defines field value types" and

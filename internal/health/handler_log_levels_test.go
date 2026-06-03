@@ -12,10 +12,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// Phase 77 OBS-06 — log-level lock for the post-AUDIT.md slog levels in
-// the health handler.
+// Log-level lock for the slog levels in the health handler.
 //
-// AUDIT.md rows demoted in `internal/health/handler.go`:
+// Rows demoted in `internal/health/handler.go`:
 //
 //   - L123 "readyz no sync completed" (default branch)  WARN → DEBUG
 //   - L148 "readyz no sync completed" (running branch)  WARN → DEBUG
@@ -49,7 +48,7 @@ func runReadyz(t *testing.T, db *sql.DB) (int, []slog.Record) {
 	return rec.Code, logCap.snapshot()
 }
 
-// TestHealth_NoSyncCompletedIsDebug locks the AUDIT.md L123 demotion:
+// TestHealth_NoSyncCompletedIsDebug locks the default-branch demotion:
 // when GetLastStatus returns nil (no sync row yet, pre-first-sync window),
 // the readyz handler MUST log at DEBUG, not WARN.
 func TestHealth_NoSyncCompletedIsDebug(t *testing.T) {
@@ -72,10 +71,10 @@ func TestHealth_NoSyncCompletedIsDebug(t *testing.T) {
 		}
 		found = true
 		if r.Level == slog.LevelWarn {
-			t.Errorf("AUDIT.md L123: 'readyz no sync completed' must be DEBUG, found WARN")
+			t.Errorf("'readyz no sync completed' must be DEBUG, found WARN")
 		}
 		if r.Level != slog.LevelDebug {
-			t.Errorf("AUDIT.md L123: 'readyz no sync completed' must be DEBUG, got %s", r.Level)
+			t.Errorf("'readyz no sync completed' must be DEBUG, got %s", r.Level)
 		}
 	}
 	if !found {
@@ -83,7 +82,7 @@ func TestHealth_NoSyncCompletedIsDebug(t *testing.T) {
 	}
 }
 
-// TestHealth_NoSyncCompletedIsDebug_RunningBranch locks the AUDIT.md L148
+// TestHealth_NoSyncCompletedIsDebug_RunningBranch locks the running-branch
 // demotion: when the latest sync_status row is "running" but no completed
 // row exists, the readyz handler MUST log at DEBUG, not WARN.
 func TestHealth_NoSyncCompletedIsDebug_RunningBranch(t *testing.T) {
@@ -105,10 +104,10 @@ func TestHealth_NoSyncCompletedIsDebug_RunningBranch(t *testing.T) {
 		}
 		found = true
 		if r.Level == slog.LevelWarn {
-			t.Errorf("AUDIT.md L148: 'readyz no sync completed' (running branch) must be DEBUG, found WARN")
+			t.Errorf("'readyz no sync completed' (running branch) must be DEBUG, found WARN")
 		}
 		if r.Level != slog.LevelDebug {
-			t.Errorf("AUDIT.md L148: 'readyz no sync completed' (running branch) must be DEBUG, got %s", r.Level)
+			t.Errorf("'readyz no sync completed' (running branch) must be DEBUG, got %s", r.Level)
 		}
 	}
 	if !found {

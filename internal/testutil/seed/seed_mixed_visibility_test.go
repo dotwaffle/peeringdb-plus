@@ -1,10 +1,10 @@
-// Package seed_test — phase 60-01 regression tests for seed.Full's
+// Package seed_test — regression tests for seed.Full's
 // mixed-visibility contract.
 //
-// These tests lock in the mixed-visibility fixture that downstream
-// phase 60 plans (02-05) depend on. Any future refactor of seed.go that
-// drops the Users-tier rows, changes their IDs, or alters the
-// pre-existing Public POC breaks the build here rather than cause
+// These tests lock in the mixed-visibility fixture that the
+// per-surface visibility tests depend on. Any future refactor of
+// seed.go that drops the Users-tier rows, changes their IDs, or alters
+// the pre-existing Public POC breaks the build here rather than cause
 // silent drift in every per-surface test.
 //
 // Lives in the external `seed_test` package (rather than the existing
@@ -12,8 +12,8 @@
 // exported surface that downstream callers see, and so the privctx +
 // ent/privacy imports don't leak into package seed's API.
 //
-// TestFull_PrivacyFilterShapes double-asserts the ent Privacy policy
-// installed in phase 59. Phase 59's own tests live in
+// TestFull_PrivacyFilterShapes double-asserts the ent Privacy policy.
+// The policy's own tests live in
 // internal/sync/policy_test.go and target freshly-seeded rows; this
 // version exercises the policy against the canonical seed.Full fixture,
 // so it will catch a regression where the seed mutates in a way the
@@ -33,8 +33,8 @@ import (
 
 // TestFull_HasUsersPocs asserts seed.Full creates exactly 2 visible="Users"
 // POCs (one per seeded network) with stable IDs 9000 and 9001, and that
-// Result exposes them as typed handles. Phase 60 Plan 02 depends on this
-// contract.
+// Result exposes them as typed handles. The mixed-visibility
+// per-surface tests depend on this contract.
 func TestFull_HasUsersPocs(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
@@ -57,7 +57,7 @@ func TestFull_HasUsersPocs(t *testing.T) {
 	}
 }
 
-// TestFull_PublicCountsUnchanged locks in D-02: the Public POC in Result.Poc
+// TestFull_PublicCountsUnchanged locks in that the Public POC in Result.Poc
 // keeps its existing ID (500), name, and role. Any change here is a
 // breaking regression for every existing seed.Full consumer (graph/
 // resolver_test.go etc).
@@ -72,11 +72,11 @@ func TestFull_PublicCountsUnchanged(t *testing.T) {
 	}
 }
 
-// TestFull_PrivacyFilterShapes asserts Plan 02's core contract at the
+// TestFull_PrivacyFilterShapes asserts the core contract at the
 // ent-query layer: an anonymous-tier context sees 1 POC; a Users-tier
 // context (and the sync bypass) sees all 3. This is effectively a
 // privacy-policy smoke test scoped to the seed fixture — if this fails,
-// Plans 02-05's per-surface assertions will fail en masse.
+// the per-surface visibility assertions will fail en masse.
 func TestFull_PrivacyFilterShapes(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)

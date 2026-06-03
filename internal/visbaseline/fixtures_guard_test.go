@@ -31,8 +31,8 @@ type errorReporter interface {
 // `go test` run. Any regression (e.g. someone edits a fixture and forgets
 // to redact) fails CI with a precise file+JSON-path location.
 //
-// This test is the last line of defence for threat T-57-02 (PII leaked via
-// unredacted auth fixture).
+// This test is the last line of defence against PII leaking via an
+// unredacted auth fixture.
 func TestCommittedFixturesHaveNoPII(t *testing.T) {
 	repoRoot, err := findRepoRoot()
 	if err != nil {
@@ -105,7 +105,7 @@ func walkPII(r errorReporter, file, jsonPath string, v any, placeholders map[str
 					// null is acceptable
 				case string:
 					if _, ok := placeholders[cv]; !ok {
-						r.Errorf("%s: PII field %s has non-placeholder string value (redaction regression: T-57-02)",
+						r.Errorf("%s: PII field %s has non-placeholder string value (redaction regression)",
 							file, childPath)
 					}
 				case float64, bool:

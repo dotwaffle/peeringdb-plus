@@ -16,7 +16,8 @@ import (
 	"time"
 )
 
-// BuildReportConfig parameterises a BuildReport run. Grouped per GO-CS-5.
+// BuildReportConfig parameterises a BuildReport run. Grouped because the
+// caller passes more than two arguments.
 //
 // BaselineRoot is resolved in one of two shapes:
 //
@@ -45,7 +46,7 @@ type BuildReportConfig struct {
 // BuildReport walks BaselineRoot, runs Diff per type, and emits DIFF.md +
 // diff.json at OutDir. See BuildReportConfig for the dual-shape contract.
 //
-// GO-CFG-1 fail-fast validation:
+// Fail-fast validation:
 //   - BaselineRoot must be non-empty and a readable directory.
 //   - OutDir must be non-empty and must NOT be the filesystem root.
 //   - Single-target shape requires both anon/ and auth/ subdirs present.
@@ -81,7 +82,7 @@ func BuildReport(ctx context.Context, cfg BuildReportConfig) error {
 	}
 }
 
-// validateBuildReportConfig implements the GO-CFG-1 fail-fast checks. It does
+// validateBuildReportConfig implements the fail-fast checks. It does
 // NOT read from disk beyond stat — that is detectShape's responsibility.
 func validateBuildReportConfig(cfg BuildReportConfig) error {
 	if cfg.BaselineRoot == "" {
@@ -364,7 +365,7 @@ func loadConcatenatedPages(dir string) ([]byte, error) {
 	if len(files) == 0 {
 		return nil, fmt.Errorf("no page-N.json files in %s", dir)
 	}
-	// Reject duplicate page numbers. After the WR-03 strict filename parse
+	// Reject duplicate page numbers. After the strict filename parse
 	// this should be impossible for well-formed capture output, but a
 	// defensive check catches operator mistakes (e.g. renaming a file
 	// page-1.json in parallel with the real one) before they silently

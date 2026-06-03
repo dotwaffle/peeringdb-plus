@@ -159,12 +159,13 @@ func makeOrg(id int, name, status string) map[string]any {
 
 // bumpUpdated returns a shallow copy of a map[string]any fixture with
 // "updated" rewritten to the supplied RFC3339 timestamp string. Used by
-// tests that need to drive the 260428-eda CHANGE 3 skip-on-unchanged
+// tests that need to drive the skip-on-unchanged
 // predicate past `excluded.updated > existing.updated` on a re-sync.
 //
 // The PeeringDB API always bumps `updated` when row content changes, so
-// this matches real upstream behaviour — pre-CHANGE 3 the tests got away
-// with reusing a single timestamp because every upsert was unconditional.
+// this matches real upstream behaviour — before skip-on-unchanged landed
+// the tests got away with reusing a single timestamp because every upsert
+// was unconditional.
 func bumpUpdated(row map[string]any, updated string) map[string]any {
 	out := make(map[string]any, len(row))
 	maps.Copy(out, row)
@@ -206,8 +207,8 @@ func makeNet(id, orgID, asn int, name, status string) map[string]any {
 }
 
 // makePoc builds a fixture Poc JSON row matching the upstream PeeringDB
-// /api/poc shape (internal/peeringdb/types.go Poc struct). Used by Phase 73
-// BUG-02's TestSync_IncrementalRoleTombstone to drive a role="" tombstone
+// /api/poc shape (internal/peeringdb/types.go Poc struct). Used by
+// TestSync_IncrementalRoleTombstone to drive a role="" tombstone
 // through an incremental sync cycle.
 func makePoc(id, netID int, name, role, status string) map[string]any {
 	return map[string]any{
@@ -280,7 +281,7 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 	}
 
 	// Update mock response. Bump `updated` past the prior write so the
-	// 260428-eda CHANGE 3 skip-on-unchanged predicate admits the rewrite.
+	// skip-on-unchanged predicate admits the rewrite.
 	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "UpdatedName", "ok"), "2024-01-02T00:00:00Z")}
 
 	// Second sync.
@@ -299,11 +300,11 @@ func TestSyncUpsertUpdatesExisting(t *testing.T) {
 
 // TestSyncPersistsExplicitTombstone verifies sync persists explicit
 // status='deleted' rows from upstream as tombstones in the local DB.
-// Quick task 260428-2zl Task 6: pre-2zl this test asserted the
+// Previously this test asserted the
 // inference-by-absence soft-delete path (org omitted from response →
 // local row marked deleted). That inference was structurally wrong
-// against PeeringDB's serializer-side filtering and is removed in T6.
-// Post-2zl, deletes arrive as explicit `{"id": N, "status":"deleted"}`
+// against PeeringDB's serializer-side filtering and was removed.
+// Now deletes arrive as explicit `{"id": N, "status":"deleted"}`
 // payloads in ?since=N responses; this test seeds that payload
 // directly and asserts the upsert path persists it without needing
 // a separate delete pass.
@@ -328,8 +329,8 @@ func TestSyncPersistsExplicitTombstone(t *testing.T) {
 
 	// Second sync: upstream returns org 2 with status='deleted'
 	// (mirrors the rest.py:694-727 ?since= response shape). Bump the
-	// changed row's `updated` past the prior write so 260428-eda
-	// CHANGE 3's skip-on-unchanged predicate admits the status flip.
+	// changed row's `updated` past the prior write so the
+	// skip-on-unchanged predicate admits the status flip.
 	f.responses["org"] = []any{
 		makeOrg(1, "Org1", "ok"),
 		bumpUpdated(makeOrg(2, "Org2", "deleted"), "2024-01-02T00:00:00Z"),
@@ -470,7 +471,7 @@ func TestSyncRecordsStatusFailure(t *testing.T) {
 // propagates out of the goroutine that main.go spawns (go StartScheduler /
 // go in.SyncFn), crashing the whole process.
 //
-// Not parallel: writes to package-level metric vars per CC-3.
+// Not parallel: writes to package-level metric vars.
 func TestSyncRecoversFromPanic(t *testing.T) {
 	reader := setupMetricTest(t)
 
@@ -543,7 +544,8 @@ func TestSyncRecoversFromPanic(t *testing.T) {
 	}
 }
 
-// TestRecordFailure_DurableOnCancelledContext is the FIX-3 regression lock.
+// TestRecordFailure_DurableOnCancelledContext is the regression lock for
+// durable failure recording on a cancelled context.
 // recordFailure is reached after a cycle that may already be cancelled by
 // the demotion monitor (runSyncCycle's cycleCancel) or a SIGTERM. The
 // status UPDATE and terminal metrics MUST still land — recordFailure
@@ -900,7 +902,7 @@ func findMetric(rm metricdata.ResourceMetrics, name string) *metricdata.Metrics 
 
 // TestSyncRecordsMetrics verifies that a successful sync records both
 // sync-level and per-type metrics with correct attributes.
-// Not parallel: writes to package-level metric vars per CC-3.
+// Not parallel: writes to package-level metric vars.
 func TestSyncRecordsMetrics(t *testing.T) {
 	reader := setupMetricTest(t)
 
@@ -948,7 +950,7 @@ func TestSyncRecordsMetrics(t *testing.T) {
 
 // TestSyncRecordsFailureMetrics verifies that a failed sync records
 // failure metrics with status=failed and per-type fetch_errors.
-// Not parallel: writes to package-level metric vars per CC-3.
+// Not parallel: writes to package-level metric vars.
 func TestSyncRecordsFailureMetrics(t *testing.T) {
 	reader := setupMetricTest(t)
 
@@ -1014,7 +1016,7 @@ type fixtureWithMeta struct {
 	failIncremental map[string]bool // fail all requests with ?since= for this type
 	callCounts      map[string]*atomic.Int64
 	sinceSeen       map[string]*atomic.Bool // tracks if ?since= was seen per type
-	// 260428-mu0: per-type slice of `since` query-param values seen across
+	// Per-type slice of `since` query-param values seen across
 	// the lifetime of the fixture. Captures the FIRST request per cycle by
 	// inspection (the per-page paginator may issue follow-up requests with
 	// the same since=). Used by TestSyncFetchPass_UsesMaxUpdatedAsCursor /
@@ -1078,7 +1080,7 @@ func newFixtureWithMeta(t *testing.T, generatedEpoch float64) *fixtureWithMeta {
 		if hasSince {
 			f.sinceSeen[objType].Store(true)
 		}
-		// 260428-mu0: capture per-type since-value log on first-page
+		// Capture per-type since-value log on first-page
 		// requests only (skip=0 or empty) so multi-cycle tests can assert
 		// the cursor advanced between cycles. Empty string is recorded for
 		// bare-list calls so callers can distinguish "no request" from
@@ -1177,7 +1179,7 @@ func TestIncrementalSync(t *testing.T) {
 		t.Fatalf("expected 1 org after first sync, got %d", orgCount)
 	}
 
-	// 260428-mu0: cursor is now derived from MAX(updated) on the entity
+	// Cursor is now derived from MAX(updated) on the entity
 	// table — assert there's at least one row so the next cycle's
 	// GetMaxUpdated returns non-zero (which drives the ?since= path).
 	cursor, err := GetMaxUpdated(ctx, db, "organizations")
@@ -1194,7 +1196,7 @@ func TestIncrementalSync(t *testing.T) {
 	}
 
 	// Second sync: cursors exist, so incremental fetch should use ?since=.
-	// 260428-eda CHANGE 3: bump `updated` past the prior write so the
+	// Bump `updated` past the prior write so the
 	// skip-on-unchanged predicate admits the rewrite.
 	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1Updated", "ok"), "2024-01-02T00:00:00Z")}
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
@@ -1306,15 +1308,16 @@ func TestIncrementalFallback(t *testing.T) {
 	_ = db // used for worker setup
 }
 
-// TestSync_IncrementalDeletionTombstone is the SEED-001 regression guard
-// (active 2026-04-26 spike against www.peeringdb.com): upstream ?since=
-// emits status='deleted' tombstones with PII-scrubbed name="" for the 6
-// folded entities. This drives a tombstone for an existing org through an
-// incremental sync cycle and asserts the row is soft-deleted (not hard-
-// deleted) and excluded from the anonymous (status="ok") list path.
+// TestSync_IncrementalDeletionTombstone guards the tombstone-deletion
+// path (confirmed by a 2026-04-26 spike against www.peeringdb.com):
+// upstream ?since= emits status='deleted' tombstones with PII-scrubbed
+// name="" for the 6 folded entities. This drives a tombstone for an
+// existing org through an incremental sync cycle and asserts the row is
+// soft-deleted (not hard-deleted) and excluded from the anonymous
+// (status="ok") list path.
 //
 // The empty-name path is the load-bearing assertion: if the NotEmpty()
-// validator removed from organization.name in Task 1 ever re-appears, this
+// validator removed from organization.name ever re-appears, this
 // test fails on the second sync's upsert with "validator failed for field
 // Organization.name".
 func TestSync_IncrementalDeletionTombstone(t *testing.T) {
@@ -1329,8 +1332,8 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// Cycle 1: cursor zero → bootstrap with ?since=1 (quick task 260428-2zl).
-	// Pre-2zl: cursor.IsZero() fell through to full sync; post-2zl the
+	// Cycle 1: cursor zero → bootstrap with ?since=1.
+	// Previously cursor.IsZero() fell through to full sync; now the
 	// bootstrap path captures the upstream history-with-tombstones from
 	// cycle 1. Both orgs persisted in either path.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
@@ -1345,7 +1348,7 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 		t.Fatalf("expected 2 orgs after cycle 1, got %d", orgCount)
 	}
 
-	// 260428-mu0: cursor derived from MAX(updated) on the org table.
+	// Cursor derived from MAX(updated) on the org table.
 	cursor, err := GetMaxUpdated(ctx, db, "organizations")
 	if err != nil {
 		t.Fatalf("GetMaxUpdated after cycle 1: %v", err)
@@ -1362,7 +1365,7 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 
 	// Cycle 2: upstream returns Org1 unchanged + Org2 as a PII-scrubbed
 	// tombstone (status="deleted", name=""). Bump generated so the cursor
-	// can advance. 260428-eda CHANGE 3: bump Org2's `updated` past cycle 1
+	// can advance. Bump Org2's `updated` past cycle 1
 	// so the skip-on-unchanged predicate admits the status flip.
 	t2 := t1 + 3600
 	f.generated = t2
@@ -1425,21 +1428,21 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 	}
 }
 
-// TestSync_IncrementalRoleTombstone is the Phase 73 BUG-02 regression
-// guard: upstream PeeringDB ?since= responses can carry status='deleted'
-// poc tombstones with PII-scrubbed role="" (same GDPR pattern that
-// 260426-pms confirmed for name="" on the 6 folded entities). This drives
+// TestSync_IncrementalRoleTombstone guards the poc role-tombstone
+// path: upstream PeeringDB ?since= responses can carry status='deleted'
+// poc tombstones with PII-scrubbed role="" (the same GDPR pattern
+// confirmed for name="" on the 6 folded entities). This drives
 // a tombstone for an existing poc through an incremental sync cycle and
 // asserts the row is soft-deleted (not hard-deleted) and excluded from
 // the anonymous (status="ok") list path.
 //
 // The empty-role path is the load-bearing assertion: if the NotEmpty()
-// validator removed from poc.role in Phase 73 ever re-appears (e.g.,
+// validator removed from poc.role ever re-appears (e.g.,
 // the cmd/pdb-schema-generate isTombstoneVulnerableField gate is
 // accidentally reverted), this test fails on the second sync's upsert
 // with "validator failed for field Poc.role".
 //
-// Mirrors TestSync_IncrementalDeletionTombstone (260426-pms) structure
+// Mirrors TestSync_IncrementalDeletionTombstone structure
 // — substitutes Poc for Organization and threads a parent network plus
 // org through cycle 1 to satisfy the FK chain.
 func TestSync_IncrementalRoleTombstone(t *testing.T) {
@@ -1457,8 +1460,8 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 	w, db := newTestWorkerWithMode(t, f.server.URL, config.SyncModeIncremental)
 	ctx := t.Context()
 
-	// Cycle 1: cursor zero → bootstrap with ?since=1 (quick task 260428-2zl).
-	// Pre-2zl: cursor.IsZero() fell through to full sync; post-2zl the
+	// Cycle 1: cursor zero → bootstrap with ?since=1.
+	// Previously cursor.IsZero() fell through to full sync; now the
 	// bootstrap path captures the upstream history-with-tombstones from
 	// cycle 1. Both pocs persisted in either path.
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
@@ -1473,7 +1476,7 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 		t.Fatalf("expected 2 pocs after cycle 1, got %d", pocCount)
 	}
 
-	// 260428-mu0: cursor derived from MAX(updated) on the poc table.
+	// Cursor derived from MAX(updated) on the poc table.
 	cursor, err := GetMaxUpdated(ctx, db, "pocs")
 	if err != nil {
 		t.Fatalf("GetMaxUpdated after cycle 1: %v", err)
@@ -1490,7 +1493,7 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 
 	// Cycle 2: upstream returns Alice unchanged + Bob as a PII-scrubbed
 	// tombstone (status="deleted", role=""). Bump generated so the cursor
-	// can advance. 260428-eda CHANGE 3: bump Bob's `updated` past cycle 1
+	// can advance. Bump Bob's `updated` past cycle 1
 	// so the skip-on-unchanged predicate admits the status flip.
 	t2 := t1 + 3600
 	f.generated = t2
@@ -1553,7 +1556,7 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 
 // TestCursorsUpdatedAfterCommit verifies that the derived cursor (MAX(updated)
 // per entity table) is non-zero after a successful sync for each type that
-// received rows. 260428-mu0: cursor was previously a sync_cursors row written
+// received rows. The cursor was previously a sync_cursors row written
 // per-type by the sync; it is now derived from the entity table itself, so
 // only types with at least one synced row will have a non-zero cursor.
 func TestCursorsUpdatedAfterCommit(t *testing.T) {
@@ -1575,7 +1578,7 @@ func TestCursorsUpdatedAfterCommit(t *testing.T) {
 		t.Fatalf("sync: %v", err)
 	}
 
-	// 260428-mu0: cursor derived from MAX(updated). Types with at least one
+	// Cursor derived from MAX(updated). Types with at least one
 	// row land a non-zero cursor; types with empty fixtures stay at zero
 	// (which is the correct fall-through-to-bare-list signal).
 	cases := []struct {
@@ -1602,7 +1605,7 @@ func TestCursorsUpdatedAfterCommit(t *testing.T) {
 
 // TestCursorsNotUpdatedOnRollback verifies that the derived cursor (MAX
 // (updated) per entity table) stays at zero when the sync transaction is
-// rolled back due to an error. 260428-mu0: under the MAX(updated) model the
+// rolled back due to an error. Under the MAX(updated) model the
 // data IS the cursor, so rolling back the upsert tx automatically reverts
 // the cursor — no separate sync_cursors row to check.
 func TestCursorsNotUpdatedOnRollback(t *testing.T) {
@@ -1621,7 +1624,7 @@ func TestCursorsNotUpdatedOnRollback(t *testing.T) {
 		t.Fatal("expected error from failed sync")
 	}
 
-	// 260428-mu0: rollback semantic — no rows committed → MAX(updated) is
+	// Rollback semantic — no rows committed → MAX(updated) is
 	// zero on every entity table, including org (whose fixture WAS staged
 	// but the tx rolled back before the upserts landed).
 	cases := []struct {
@@ -1707,7 +1710,7 @@ func TestIncrementalSkipsDeleteStale(t *testing.T) {
 	}
 
 	// Incremental sync with only 1 org (simulating only org 1 was modified).
-	// 260428-eda CHANGE 3: bump `updated` past cycle 1 so the
+	// Bump `updated` past cycle 1 so the
 	// skip-on-unchanged predicate admits the rewrite.
 	f.responses["org"] = []any{bumpUpdated(makeOrg(1, "Org1Updated", "ok"), "2024-01-02T00:00:00Z")}
 
@@ -1873,7 +1876,7 @@ func (p *primarySwitch) IsPrimary() bool {
 	return p.v.Load()
 }
 
-// TestStartScheduler_SkipsOnReplica verifies DYN-01: scheduler with IsPrimary=false
+// TestStartScheduler_SkipsOnReplica verifies that a scheduler with IsPrimary=false
 // never calls SyncWithRetry. Runs scheduler for 2+ ticks, asserts zero API calls.
 func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 	t.Parallel()
@@ -1905,7 +1908,7 @@ func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 	}
 }
 
-// TestStartScheduler_PromotionSync verifies DYN-02: scheduler detects promotion
+// TestStartScheduler_PromotionSync verifies that the scheduler detects promotion
 // (IsPrimary flips from false to true) and triggers a sync.
 func TestStartScheduler_PromotionSync(t *testing.T) {
 	t.Parallel()
@@ -1945,7 +1948,7 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 	}
 }
 
-// TestRunSyncCycle_DemotionAbort verifies DYN-03: demotion mid-sync cancels the
+// TestRunSyncCycle_DemotionAbort verifies that demotion mid-sync cancels the
 // cycle context, causing SyncWithRetry to return early.
 func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	t.Parallel()
@@ -2014,11 +2017,11 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 }
 
 // ----------------------------------------------------------------------------
-// Phase 54-01 Commit B tests
+// Sync refactor tests
 //
 // TestSync_DeferredFKSameTx    — regression-locks the FK pragma switch.
 // TestSync_RefactorParity      — byte-identical DB state before/after refactor.
-// TestWorkerSync_LineBudget    — enforces the REFAC-03 line budget on Sync.
+// TestWorkerSync_LineBudget    — enforces the line budget on Sync.
 // ----------------------------------------------------------------------------
 
 // TestSync_DeferredFKSameTx verifies that the refactor's per-tx
@@ -2262,18 +2265,18 @@ func dumpAllTables(ctx context.Context, t *testing.T, client *ent.Client) *parit
 }
 
 // TestSync_RefactorParity locks the behavior of Worker.Sync against a golden
-// dump so the Commit B extract-method refactor cannot silently drift.
+// dump so the extract-method refactor cannot silently drift.
 //
-// Order of operations (REFAC-03 protocol):
+// Order of operations:
 //  1. This test was first authored BEFORE the refactor was applied.
 //  2. Run `go test -update ./internal/sync/... -run TestSync_RefactorParity`
 //     ONCE against the pre-refactor Worker.Sync. This writes the golden file.
-//  3. Commit the golden file alongside the refactor (atomic Commit B).
+//  3. Commit the golden file alongside the refactor in one atomic change.
 //  4. Subsequent runs (without -update) MUST match byte-for-byte. Any drift
 //     is a regression — reviewer investigates before merge.
 //
 // To intentionally update the golden (e.g. after a deliberate data-path
-// change in a later plan), rerun with -update and carefully review the diff.
+// change later), rerun with -update and carefully review the diff.
 func TestSync_RefactorParity(t *testing.T) {
 	// Not parallel: we write to a single golden file; concurrent runs would
 	// race. Also, `go test -update` mutations must be observable to reviewers.
@@ -2337,7 +2340,7 @@ func bytesEqual(a, b []byte) bool {
 	return true
 }
 
-// TestWorkerSync_LineBudget enforces the REFAC-03 line budget on Worker.Sync.
+// TestWorkerSync_LineBudget enforces the line budget on Worker.Sync.
 // The body (opening brace through matching closing brace) must be <= 100
 // lines. This is a structural guardrail so future edits cannot silently
 // bloat Sync again.
@@ -2460,13 +2463,13 @@ func TestWorkerSync_LineBudget(t *testing.T) {
 		t.Fatalf("did not find matching close brace for Sync")
 	}
 	if lineCount > maxLines {
-		t.Fatalf("Worker.Sync body is %d lines; REFAC-03 budget is %d lines.\n"+
+		t.Fatalf("Worker.Sync body is %d lines; budget is %d lines.\n"+
 			"Future refactors must keep Sync an orchestrator, not a doer.", lineCount, maxLines)
 	}
 	t.Logf("Worker.Sync body: %d lines (budget: %d)", lineCount, maxLines)
 }
 
-// TestSync_PhaseAFetchHasNoTx is a structural regression lock for PERF-05:
+// TestSync_PhaseAFetchHasNoTx is a structural regression lock:
 // the fetch pass MUST NOT hold an ent.Tx. This is enforced at compile-time
 // by the syncFetchPass signature — this test scans the worker.go source
 // and asserts the signature does NOT contain `*ent.Tx`. A future edit
@@ -2522,10 +2525,10 @@ func TestSync_PhaseAFetchHasNoTx(t *testing.T) {
 // after each per-chunk upsert completes, the batch entry MUST be set to
 // the zero value so the slice backing array can be reclaimed by GC. Per
 // ARCHITECTURE.md §2 this is the difference between "fits in 512 MB VM"
-// and "OOM" on production scale. Commit D' moved the batch-free line
-// from syncUpsertPass (old in-memory path) into drainAndUpsertType (the
-// chunked scratch replay) where each loop iteration processes one
-// scratchChunkSize-bounded chunk.
+// and "OOM" on production scale. The scratch-SQLite fallback moved the
+// batch-free line from syncUpsertPass (old in-memory path) into
+// drainAndUpsertType (the chunked scratch replay) where each loop
+// iteration processes one scratchChunkSize-bounded chunk.
 func TestSync_BatchFreeAfterUpsert(t *testing.T) {
 	t.Parallel()
 
@@ -2552,7 +2555,7 @@ func TestSync_BatchFreeAfterUpsert(t *testing.T) {
 	if !strings.Contains(body, "batches[name] = syncBatch{}") && !strings.Contains(body, "batches[step.name] = syncBatch{}") {
 		t.Fatalf("drainAndUpsertType does not contain the MANDATORY batch-free line " +
 			"`batches[name] = syncBatch{}` (or the step.name variant). This is the " +
-			"core PERF-05 memory optimization (ARCHITECTURE.md §2) — removing it " +
+			"core memory optimization (ARCHITECTURE.md §2) — removing it " +
 			"breaks the 512 MB VM hard cap and is a regression.")
 	}
 }
@@ -2588,7 +2591,7 @@ func TestSync_PhaseOrderComments(t *testing.T) {
 	}
 }
 
-// TestSync_D19Atomicity is the PERF-05 regression lock for D-19 single-
+// TestSync_RollbackAtomicity is the regression lock for single-
 // transaction atomicity AND the coverage for the in-tx rollback terminal
 // path (Worker.syncCycle → rollbackAndRecord). It asserts that when a Phase B
 // upsert fails mid-way through the 13 types, the rollback discards every
@@ -2608,7 +2611,7 @@ func TestSync_PhaseOrderComments(t *testing.T) {
 // org is upserted before campus in Phase B, so the rollback proof is concrete:
 // a committed org (PreSeedOrg) is upserted to FixtureOrg INSIDE the failing tx,
 // and after the rollback it must read back as PreSeedOrg with no sibling rows.
-func TestSync_D19Atomicity(t *testing.T) {
+func TestSync_RollbackAtomicity(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 
@@ -2665,7 +2668,7 @@ func TestSync_D19Atomicity(t *testing.T) {
 		t.Errorf("sync error = %q, want it to wrap the Phase B unmarshal failure %q", syncErr, "decode campus id=999")
 	}
 
-	// D-19: the in-tx org upsert (org 1 → FixtureOrg) and the campus write
+	// The in-tx org upsert (org 1 → FixtureOrg) and the campus write
 	// must both be discarded, leaving only the pre-seeded committed row.
 	if n, _ := client.Organization.Query().Count(ctx); n != 1 {
 		t.Errorf("org count = %d, want 1 (rollback must discard in-tx inserts)", n)
@@ -2691,13 +2694,13 @@ func TestSync_D19Atomicity(t *testing.T) {
 	}
 }
 
-// TestSync_MemoryLimitAbort verifies the Commit F (Plan 54-03) memory
+// TestSync_MemoryLimitAbort verifies the memory
 // guardrail: when WorkerConfig.SyncMemoryLimit is set absurdly low
 // (1 byte), the Worker.Sync abort path fires AFTER Phase A fetch
 // completes and BEFORE the ent.Tx opens. The test asserts:
 //
-//   - The returned error wraps ErrSyncMemoryLimitExceeded (errors.Is
-//     per GO-ERR-2, no string matching).
+//   - The returned error wraps ErrSyncMemoryLimitExceeded (errors.Is,
+//     no string matching).
 //   - A WARN log line with slog.Int64("heap_alloc", ...) is emitted.
 //   - No organizations were written to the real DB (no tx opened).
 //   - The running mutex is released on return (second Sync call
@@ -2808,7 +2811,7 @@ func TestSync_MemoryLimitDisabled(t *testing.T) {
 
 // TestCheckMemoryLimit_HelperUnit directly exercises the extracted
 // checkMemoryLimit helper so the full sync flow is not needed to lock
-// the guardrail semantics. Table-driven per GO-T-1.
+// the guardrail semantics. Table-driven.
 func TestCheckMemoryLimit_HelperUnit(t *testing.T) {
 	t.Parallel()
 
@@ -2849,9 +2852,9 @@ func TestCheckMemoryLimit_HelperUnit(t *testing.T) {
 }
 
 // TestWorker_CheckMemoryLimitExtracted is a structural regression
-// lock for Commit F: the checkMemoryLimit helper MUST remain a
+// lock: the checkMemoryLimit helper MUST remain a
 // package-private method on *Worker (NOT inlined into Sync). Inlining
-// would push Worker.Sync's body over the REFAC-03 100-line budget.
+// would push Worker.Sync's body over the 100-line budget.
 func TestWorker_CheckMemoryLimitExtracted(t *testing.T) {
 	t.Parallel()
 
@@ -2861,7 +2864,7 @@ func TestWorker_CheckMemoryLimitExtracted(t *testing.T) {
 	}
 	if !bytes.Contains(src, []byte("func (w *Worker) checkMemoryLimit(")) {
 		t.Fatalf("checkMemoryLimit helper must be declared on *Worker — " +
-			"inlining the guardrail into Sync breaks the REFAC-03 line budget")
+			"inlining the guardrail into Sync breaks the line budget")
 	}
 	if !bytes.Contains(src, []byte("w.checkMemoryLimit(")) {
 		t.Fatalf("Worker.Sync must CALL w.checkMemoryLimit — not found in worker.go")
@@ -2875,7 +2878,7 @@ func TestWorker_CheckMemoryLimitExtracted(t *testing.T) {
 }
 
 // ----------------------------------------------------------------------------
-// Plan 59-05: VIS-05 sync-worker privacy bypass tests
+// Sync-worker privacy bypass tests
 //
 // TestWorkerSync_HasBypassCall              — structural lock on worker.go
 // TestWorkerSync_BypassesPrivacy            — bypass ctx admits Users rows
@@ -2884,8 +2887,8 @@ func TestWorker_CheckMemoryLimitExtracted(t *testing.T) {
 //                                               bypass ctx keep the decision
 // ----------------------------------------------------------------------------
 
-// TestWorkerSync_HasBypassCall is the source-level RED gate for VIS-05:
-// it reads worker.go and asserts that `Sync` rebinds `ctx` with the
+// TestWorkerSync_HasBypassCall is the source-level gate that
+// reads worker.go and asserts that `Sync` rebinds `ctx` with the
 // privacy bypass BEFORE the `w.running.CompareAndSwap` guard. This is
 // the structural invariant — removing the bypass line (or placing it
 // after any other work) fails CI.
@@ -2914,7 +2917,7 @@ func TestWorkerSync_HasBypassCall(t *testing.T) {
 	bypassLine := "ctx = privacy.DecisionContext(ctx, privacy.Allow)"
 	bypassIdx := strings.Index(body, bypassLine)
 	if bypassIdx < 0 {
-		t.Fatalf("Worker.Sync missing VIS-05 bypass line %q — D-08/D-09 requires it at function entry", bypassLine)
+		t.Fatalf("Worker.Sync missing privacy bypass line %q — required at function entry", bypassLine)
 	}
 
 	casLine := "w.running.CompareAndSwap"
@@ -2923,13 +2926,13 @@ func TestWorkerSync_HasBypassCall(t *testing.T) {
 		t.Fatalf("did not find %q in worker.go (post-refactor signature changed?)", casLine)
 	}
 	if bypassIdx >= casIdx {
-		t.Fatalf("VIS-05 bypass line must appear BEFORE %q; got bypass@%d vs CAS@%d",
+		t.Fatalf("privacy bypass line must appear BEFORE %q; got bypass@%d vs CAS@%d",
 			casLine, bypassIdx, casIdx)
 	}
 
 	// Also lock the import so linters do not drop it.
 	if !strings.Contains(content, `"github.com/dotwaffle/peeringdb-plus/ent/privacy"`) {
-		t.Fatalf("worker.go missing ent/privacy import required for VIS-05 bypass")
+		t.Fatalf("worker.go missing ent/privacy import required for the privacy bypass")
 	}
 }
 
@@ -3051,8 +3054,7 @@ func TestWorkerSync_ChildGoroutineInheritsBypass(t *testing.T) {
 // TestEmitMemoryTelemetry_Attrs asserts that emitMemoryTelemetry attaches
 // pdbplus.sync.peak_heap_bytes to the current span on every call, attaches
 // pdbplus.sync.peak_rss_bytes on Linux, and fires the "heap threshold
-// crossed" slog.Warn only when at least one threshold is breached
-// (OBS-05 / D-02 / D-03 / D-09).
+// crossed" slog.Warn only when at least one threshold is breached.
 func TestEmitMemoryTelemetry_Attrs(t *testing.T) {
 	// Imports are already in this file (context, bytes, strings, log/slog,
 	// testing, runtime). We add span-capture via the OTel SDK tracetest
@@ -3175,7 +3177,7 @@ func TestReadLinuxVmHWM(t *testing.T) {
 	}
 }
 
-// TestSyncFetchPass_UsesMaxUpdatedAsCursor asserts the new 260428-mu0
+// TestSyncFetchPass_UsesMaxUpdatedAsCursor asserts the MAX(updated)
 // contract: after a row is committed with a known `updated` timestamp, the
 // next incremental cycle issues `?since=N` where N >= upstream-row.Unix()
 // (modulo SQLite µs rounding to a 1-second tolerance). This is the
@@ -3242,10 +3244,10 @@ func TestSyncFetchPass_UsesMaxUpdatedAsCursor(t *testing.T) {
 }
 
 // TestSync_TwoCycle_NoFullRefetch is the REGRESSION LOCK for the v1.13
-// alternating-full-refetch bug. Pre-260428-mu0: meta.generated was absent
+// alternating-full-refetch bug. Previously meta.generated was absent
 // on ?since= responses, so the cursor stored zero, so the next cycle
 // fell through to a full bare-list re-fetch — alternating big/small
-// total_objects every 15 minutes. Post-260428-mu0: cursor derived from
+// total_objects every 15 minutes. Now the cursor is derived from
 // MAX(updated), so the bug is structurally impossible.
 //
 // This test seeds 5 poc rows on cycle 1, then mocks upstream returning 0
@@ -3293,8 +3295,8 @@ func TestSync_TwoCycle_NoFullRefetch(t *testing.T) {
 	}
 
 	// Cycle 2: upstream returns ZERO new poc rows (steady state — no
-	// upstream activity since t1). Pre-260428-mu0: cursor would re-fetch
-	// the whole table because meta.generated was zero. Post: cursor uses
+	// upstream activity since t1). Previously the cursor would re-fetch
+	// the whole table because meta.generated was zero. Now the cursor uses
 	// MAX(updated) so since= advances correctly.
 	f.responses["poc"] = []any{}
 
@@ -3327,7 +3329,7 @@ func TestSync_TwoCycle_NoFullRefetch(t *testing.T) {
 	}
 }
 
-// TestSync_FullSyncIntervalForcesBareList locks the 260428-mu0 escape
+// TestSync_FullSyncIntervalForcesBareList locks the escape
 // hatch: when the configured PDBPLUS_FULL_SYNC_INTERVAL has elapsed since
 // the last successful full sync, the next cycle ignores cursors and
 // every per-type request is bare-list (no `?since=` parameter).
@@ -3353,7 +3355,7 @@ func TestSync_FullSyncIntervalForcesBareList(t *testing.T) {
 
 	w := NewWorker(pdbClient, client, db, WorkerConfig{
 		SyncMode:         config.SyncModeIncremental,
-		FullSyncInterval: 24 * time.Hour, // 260428-mu0 escape hatch active
+		FullSyncInterval: 24 * time.Hour, // escape hatch active
 	}, slog.Default())
 
 	ctx := t.Context()
@@ -3462,7 +3464,7 @@ func TestSync_FullSyncIntervalDisabled(t *testing.T) {
 
 	w := NewWorker(pdbClient, client, db, WorkerConfig{
 		SyncMode:         config.SyncModeIncremental,
-		FullSyncInterval: 0, // 260428-mu0 escape hatch DISABLED
+		FullSyncInterval: 0, // escape hatch DISABLED
 	}, slog.Default())
 	ctx := t.Context()
 

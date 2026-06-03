@@ -28,7 +28,7 @@ func runCapture(cfg runConfig, logger *slog.Logger) error {
 		return err
 	}
 
-	// Prod + auth opt-in gate (phase 57 research Open Question 2).
+	// Prod + auth opt-in gate.
 	// Auth mode against prod requires an explicit -prod-auth flag so we
 	// don't accidentally hit production with the rate-limit-hungry auth
 	// walk. Graceful downgrade to anon when possible.

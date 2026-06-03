@@ -25,7 +25,7 @@ func TestFull(t *testing.T) {
 		{"Campus", r.Campus != nil},
 		{"Carrier", r.Carrier != nil},
 		{"IxLan", r.IxLan != nil},
-		{"IxLanPublic", r.IxLanPublic != nil}, // Phase 64 VIS-09
+		{"IxLanPublic", r.IxLanPublic != nil}, // field-level privacy fixture
 		{"IxPrefix", r.IxPrefix != nil},
 		{"NetworkIxLan", r.NetworkIxLan != nil},
 		{"NetworkFacility", r.NetworkFacility != nil},
@@ -54,7 +54,7 @@ func TestFull(t *testing.T) {
 		{"Campus", r.Campus.ID, 40},
 		{"Carrier", r.Carrier.ID, 50},
 		{"IxLan", r.IxLan.ID, 100},
-		{"IxLanPublic", r.IxLanPublic.ID, 101}, // Phase 64 VIS-09
+		{"IxLanPublic", r.IxLanPublic.ID, 101}, // field-level privacy fixture
 		{"IxPrefix", r.IxPrefix.ID, 700},
 		{"NetworkIxLan", r.NetworkIxLan.ID, 200},
 		{"NetworkFacility", r.NetworkFacility.ID, 300},
@@ -96,10 +96,10 @@ func TestFull_EntityCounts(t *testing.T) {
 	Full(t, client)
 
 	ctx := t.Context()
-	// Counts include Phase 70 traversal fixture rows (id=8001+) added to
+	// Counts include the traversal fixture rows (id=8001+) added to
 	// seed.Full for internal/pdbcompat/traversal_e2e_test.go assertions.
-	// Pre-Phase-70 baseline: Org=1, Net=2, IX=1, Fac=2, Campus=1, Carrier=1, IxLan=2.
-	// Phase 70 additions: +1 Org (8001), +3 Net (8001-8003 incl. deleted), +1 IX (8001),
+	// Pre-traversal baseline: Org=1, Net=2, IX=1, Fac=2, Campus=1, Carrier=1, IxLan=2.
+	// Traversal additions: +1 Org (8001), +3 Net (8001-8003 incl. deleted), +1 IX (8001),
 	// +1 Fac (8001), +1 Campus (8001), +1 IxLan (8001).
 	counts := []struct {
 		name string
@@ -112,7 +112,7 @@ func TestFull_EntityCounts(t *testing.T) {
 		{"Facility", must(client.Facility.Query().Count(ctx)), 3},
 		{"Campus", must(client.Campus.Query().Count(ctx)), 2},
 		{"Carrier", must(client.Carrier.Query().Count(ctx)), 1},
-		{"IxLan", must(client.IxLan.Query().Count(ctx)), 3}, // Phase 64 VIS-09: two ixlans (100, 101). Phase 70: +1 (8001).
+		{"IxLan", must(client.IxLan.Query().Count(ctx)), 3}, // field-privacy fixture: two ixlans (100, 101); traversal: +1 (8001).
 		{"IxPrefix", must(client.IxPrefix.Query().Count(ctx)), 1},
 		{"NetworkIxLan", must(client.NetworkIxLan.Query().Count(ctx)), 1},
 		{"NetworkFacility", must(client.NetworkFacility.Query().Count(ctx)), 1},

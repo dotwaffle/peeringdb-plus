@@ -17,7 +17,7 @@ import (
 )
 
 // NewHandler creates the gqlgen GraphQL handler with complexity and depth limits.
-// Introspection is always enabled per D-20.
+// Introspection is always enabled.
 func NewHandler(resolver *graph.Resolver) http.Handler {
 	srv := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
@@ -25,15 +25,15 @@ func NewHandler(resolver *graph.Resolver) http.Handler {
 		}),
 	)
 
-	// Query complexity limit per D-04 (500).
+	// Query complexity limit (500).
 	srv.Use(extension.FixedComplexityLimit(500))
 
-	// Query depth limit per D-04 (15).
+	// Query depth limit (15).
 	srv.Use(depth.FixedDepthLimit(15))
 
-	// Introspection is enabled by default in gqlgen per D-20.
+	// Introspection is enabled by default in gqlgen.
 
-	// Configure error presenter per D-16 for detailed query errors with
+	// Configure error presenter for detailed query errors with
 	// field paths and validation details. Ensures every GraphQL error includes
 	// the field path, a descriptive message, and a machine-readable code extension.
 	srv.SetErrorPresenter(func(ctx context.Context, err error) *gqlerror.Error {
@@ -54,7 +54,7 @@ func NewHandler(resolver *graph.Resolver) http.Handler {
 }
 
 // classifyError returns a machine-readable error code based on the error type.
-// Uses ent type checks (errors.As) instead of string matching per GO-ERR-2.
+// Uses ent type checks (errors.As) instead of string matching.
 func classifyError(err error) string {
 	if err == nil {
 		return "INTERNAL_ERROR"
@@ -71,7 +71,7 @@ func classifyError(err error) string {
 	}
 }
 
-// defaultQuery is the pre-built example query displayed when the playground opens per D-19.
+// defaultQuery is the pre-built example query displayed when the playground opens.
 // Includes commented examples for ASN lookup, IX listing, facility search, and relationship traversal.
 const defaultQuery = `# === PeeringDB Plus Example Queries ===
 # Uncomment one to try, or run the default syncStatus query below.
@@ -96,7 +96,7 @@ const defaultQuery = `# === PeeringDB Plus Example Queries ===
 }
 `
 
-// playgroundTmpl is a custom GraphiQL HTML template that includes a defaultQuery prop per D-19.
+// playgroundTmpl is a custom GraphiQL HTML template that includes a defaultQuery prop.
 var playgroundTmpl = template.Must(template.New("playground").Parse(`<!DOCTYPE html>
 <html>
   <head>
@@ -153,7 +153,7 @@ type playgroundData struct {
 	DefaultQuery string
 }
 
-// PlaygroundHandler returns a GraphiQL playground handler with pre-built example queries per D-17, D-19, D-21.
+// PlaygroundHandler returns a GraphiQL playground handler with pre-built example queries.
 // Serves at the provided endpoint path.
 func PlaygroundHandler(endpoint string) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {

@@ -193,7 +193,7 @@ func TestListNetworks(t *testing.T) {
 
 	t.Run("default compound ordering", func(t *testing.T) {
 		t.Parallel()
-		// Phase 67 ORDER-02: the default list order is (-updated, -created, -id).
+		// The default list order is (-updated, -created, -id).
 		// Seed timestamps spread updated by 1 hour per row, so the deterministic
 		// output sequence is [id=3 (14:00), id=2 (13:00), id=1 (12:00)].
 		resp, err := svc.ListNetworks(ctx, &pb.ListNetworksRequest{})
@@ -621,8 +621,8 @@ func TestListOrganizationsFilters(t *testing.T) {
 func TestListPocsFilters(t *testing.T) {
 	t.Parallel()
 	// Test exercises filter operators across all seeded rows including a
-	// Users-visibility POC. Phase 59-04 enabled the ent privacy Policy
-	// on Poc, which would filter the Users row from a TierPublic ctx.
+	// Users-visibility POC. The ent privacy Policy
+	// on Poc would filter the Users row from a TierPublic ctx.
 	// Elevate to TierUsers so the assertions (which pre-date the policy)
 	// continue to see every seeded row — the filter-operator coverage is
 	// orthogonal to visibility gating.
@@ -746,7 +746,7 @@ func TestListIxPrefixesFilters(t *testing.T) {
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
 	// Seed 3 prefixes with different protocols, prefixes, and in_dfz.
-	// Phase 63 (D-01): ixprefix.notes dropped — no SetNotes on this chain.
+	// ixprefix.notes dropped — no SetNotes on this chain.
 	client.IxPrefix.Create().
 		SetID(1).SetPrefix("192.0.2.0/24").SetProtocol("IPv4").SetInDfz(true).
 		SetCreated(now).SetUpdated(now).SetStatus("ok").
@@ -793,7 +793,7 @@ func TestListIxPrefixesFilters(t *testing.T) {
 			req:     &pb.ListIxPrefixesRequest{InDfz: new(false)},
 			wantLen: 1,
 		},
-		// Phase 63 (D-01): "filter by notes" removed — ixprefix.notes
+		// "filter by notes" removed — ixprefix.notes
 		// dropped from ent schema, so the filter wiring is gone from
 		// internal/grpcserver/ixprefix.go. The proto IxPrefix.Notes
 		// field is still present (proto is frozen since v1.6) but the
@@ -1734,7 +1734,7 @@ func setupStreamTestServer(t *testing.T, client *ent.Client) peeringdbv1connect.
 // seedStreamNetworks creates 3 test networks for streaming tests. Returns them
 // for reference. IDs 1=Google(ok), 2=Cloudflare(ok), 3=Deleted(deleted).
 //
-// Phase 67: updated timestamps are spread (id=1 at 12:00, id=2 at 13:00, id=3
+// Updated timestamps are spread (id=1 at 12:00, id=2 at 13:00, id=3
 // at 14:00) so the compound (-updated, -created, -id) default ordering yields
 // the deterministic sequence [id=3, id=2, id=1]. The created timestamp stays
 // constant at 12:00 across all rows so the (-created) tiebreaker does not mask
@@ -2003,7 +2003,7 @@ func TestStreamNetworksCancellation(t *testing.T) {
 func TestStreamNetworksSinceId(t *testing.T) {
 	t.Parallel()
 
-	// PERF-06: delta streams (SinceID set) omit the grpc-total-count header
+	// Delta streams (SinceID set) omit the grpc-total-count header
 	// entirely. wantCount is "" on every subtest because header absence is the
 	// wire contract. The "since_id zero" subtest also expects absence: the
 	// StreamEntities guard is a pointer-nil check (params.SinceID == nil), so a
@@ -2014,7 +2014,7 @@ func TestStreamNetworksSinceId(t *testing.T) {
 		name      string
 		req       *pb.StreamNetworksRequest
 		wantLen   int
-		wantCount string // PERF-06: "" means header absent on delta streams.
+		wantCount string // "" means header absent on delta streams.
 	}{
 		{
 			name:      "since_id returns records after given ID",
@@ -2070,7 +2070,7 @@ func TestStreamNetworksSinceId(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count. PERF-06: delta streams
+			// Check response header for total count. Delta streams
 			// must omit the header entirely — wantCount is "" for every case
 			// in this test, asserting absence.
 			got := stream.ResponseHeader().Get("Grpc-Total-Count")
@@ -2087,7 +2087,7 @@ func TestStreamNetworksSinceId(t *testing.T) {
 func TestStreamNetworksUpdatedSince(t *testing.T) {
 	t.Parallel()
 
-	// PERF-06: delta streams (UpdatedSince set) omit the grpc-total-count
+	// Delta streams (UpdatedSince set) omit the grpc-total-count
 	// header entirely. wantCount is "" on every subtest — including the
 	// combined SinceId+UpdatedSince case — because header absence is the
 	// wire contract whenever either delta filter pointer is non-nil.
@@ -2095,7 +2095,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 		name      string
 		req       *pb.StreamNetworksRequest
 		wantLen   int
-		wantCount string // PERF-06: "" means header absent on delta streams.
+		wantCount string // "" means header absent on delta streams.
 	}{
 		{
 			name: "updated_since before seed time returns all",
@@ -2160,7 +2160,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count. PERF-06: delta streams
+			// Check response header for total count. Delta streams
 			// must omit the header entirely — wantCount is "" for every case
 			// in this test, asserting absence.
 			got := stream.ResponseHeader().Get("Grpc-Total-Count")
@@ -2179,7 +2179,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 // no COUNT(*) preflight was issued on delta streams.
 var countStmtRE = regexp.MustCompile(`(?i)select\s+count\(`)
 
-// TestStream_SkipCountOnDelta is the load-bearing PERF-06 assertion: on a
+// TestStream_SkipCountOnDelta is the load-bearing assertion that on a
 // StreamNetworks RPC with SinceId set, StreamEntities must NOT issue a
 // SELECT COUNT(*) query and must NOT write the grpc-total-count response
 // header. Verified via ent's dialect.Debug() driver wrapper capturing every
@@ -2249,14 +2249,14 @@ func TestStream_SkipCountOnDelta(t *testing.T) {
 	copy(stmts, captured)
 	mu.Unlock()
 
-	// PERF-06 assertion 1: no SELECT COUNT( statement was issued at all.
+	// Assertion 1: no SELECT COUNT( statement was issued at all.
 	for _, stmt := range stmts {
 		if countStmtRE.MatchString(stmt) {
-			t.Errorf("delta stream issued a COUNT(*) preflight, PERF-06 violation: %s", stmt)
+			t.Errorf("delta stream issued a COUNT(*) preflight: %s", stmt)
 		}
 	}
 
-	// PERF-06 assertion 2: the grpc-total-count header is absent in both
+	// Assertion 2: the grpc-total-count header is absent in both
 	// canonical and lowercase forms.
 	if h := stream.ResponseHeader().Get("Grpc-Total-Count"); h != "" {
 		t.Errorf("Grpc-Total-Count = %q, want absent on delta stream", h)
@@ -4717,7 +4717,7 @@ func TestStreamCarrierFacilities(t *testing.T) {
 		SetCreated(now).SetUpdated(now).SetStatus("ok").
 		SaveX(ctx)
 
-	// Phase 67: id=1 gets updated=now+1h so it sorts first under the
+	// id=1 gets updated=now+1h so it sorts first under the
 	// (-updated, -created, -id) default order. Preserves the existing
 	// first-message=id=1 assertion intent.
 	client.CarrierFacility.Create().
@@ -4842,7 +4842,7 @@ func TestStreamIxPrefixes(t *testing.T) {
 			req:     &pb.StreamIxPrefixesRequest{InDfz: new(true)},
 			wantLen: 1,
 		},
-		// Phase 63 (D-01): "filter by notes" removed — see the matching
+		// "filter by notes" removed — see the matching
 		// comment in the List test; ixprefix.notes dropped.
 	}
 
@@ -4894,7 +4894,7 @@ func TestStreamNetworkIxLans(t *testing.T) {
 	client := testutil.SetupClient(t)
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
-	// Phase 67: id=1 gets updated=now+1h so it sorts first under the
+	// id=1 gets updated=now+1h so it sorts first under the
 	// (-updated, -created, -id) default order, preserving the existing
 	// first-message-Asn=65001 assertion.
 	client.NetworkIxLan.Create().
@@ -5010,7 +5010,7 @@ func setupPocStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.P
 	svc := &PocService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
 	mux.Handle(peeringdbv1connect.NewPocServiceHandler(svc))
-	// Phase 59-04: stamp TierUsers so the handler's ent queries admit
+	// Stamp TierUsers so the handler's ent queries admit
 	// the Users-visibility POC rows seeded by TestStreamPocs. Real
 	// deployments do this via the PDBPLUS_PUBLIC_TIER=users middleware
 	// (internal/middleware.PrivacyTier); tests opt-in directly.
@@ -5025,7 +5025,7 @@ func setupPocStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.P
 
 // elevatePrivacyTierHandler wraps h so every inbound request's context
 // is stamped with privctx.TierUsers. Used by Poc-streaming tests that
-// seed Users-visibility rows (Phase 59-04); the production equivalent
+// seed Users-visibility rows; the production equivalent
 // is internal/middleware.PrivacyTier driven by PDBPLUS_PUBLIC_TIER.
 func elevatePrivacyTierHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -5035,7 +5035,7 @@ func elevatePrivacyTierHandler(h http.Handler) http.Handler {
 
 func TestStreamPocs(t *testing.T) {
 	t.Parallel()
-	// Phase 59-04: elevate to TierUsers so the Users-visibility seeded POC
+	// Elevate to TierUsers so the Users-visibility seeded POC
 	// is visible to the filter-operator assertions. See TestListPocsFilters.
 	ctx := privctx.WithTier(t.Context(), privctx.TierUsers)
 	client := testutil.SetupClient(t)
@@ -5049,7 +5049,7 @@ func TestStreamPocs(t *testing.T) {
 		SetAllowIxpUpdate(false).SetCreated(now).SetUpdated(now).
 		SaveX(ctx)
 
-	// Phase 67: id=1 gets updated=now+1h so it sorts first under the
+	// id=1 gets updated=now+1h so it sorts first under the
 	// (-updated, -created, -id) default order, preserving the existing
 	// first-message-Role="Abuse" assertion.
 	client.Poc.Create().
@@ -5187,7 +5187,7 @@ func TestStreamNetworksInfoTypeFilter(t *testing.T) {
 }
 
 // -----------------------------------------------------------------------------
-// Phase 67 Plan 05: default ordering + compound keyset cursor tests
+// default ordering + compound keyset cursor tests
 // -----------------------------------------------------------------------------
 
 // seedMultiTimestampNetworks seeds n networks with ids 1..n and updated
@@ -5383,7 +5383,7 @@ func TestCursorResume_CompoundKeyset(t *testing.T) {
 }
 
 // TestStreamOrdering_ConcurrentMutation is the mid-stream-mutation correctness
-// assertion (RESEARCH §G-05). Seed 5 rows; fetch the first batch via the
+// assertion. Seed 5 rows; fetch the first batch via the
 // unbounded stream, then mutate row id=1's updated timestamp forward so that
 // under the compound order it would now sort ahead of rows already emitted.
 // Resume from the captured cursor and verify id=1 does NOT reappear — the
@@ -5435,8 +5435,8 @@ func TestStreamOrdering_ConcurrentMutation(t *testing.T) {
 	// Under keyset cursor this would return [id=3, id=2]: no duplicates.
 	//
 	// This test documents the limitation of offset-based pagination under
-	// mid-stream mutation (which is why Stream* RPCs moved to keyset cursors
-	// in Phase 67). We assert only the weaker invariant that id=1 does not
+	// mid-stream mutation (which is why Stream* RPCs moved to keyset
+	// cursors). We assert only the weaker invariant that id=1 does not
 	// reappear BEFORE the offset window — i.e. the query still honors the
 	// compound ORDER BY and the OFFSET clamp — which holds for both offset
 	// and keyset implementations.

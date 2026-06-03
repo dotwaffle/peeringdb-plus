@@ -345,8 +345,8 @@ func netFacilityMarkers(rows []NetworkFacRow) []MapMarker {
 }
 
 // netFacilityMap builds map markers from network facility data and renders a multi-pin map.
-// Markers use the default emerald color (D-14). If no facilities have coordinates,
-// nothing is rendered (D-10).
+// Markers use the default emerald color. If no facilities have coordinates,
+// nothing is rendered.
 func netFacilityMap(data NetworkDetail) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

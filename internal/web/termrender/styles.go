@@ -7,7 +7,7 @@ import (
 )
 
 // Color constants mapping Tailwind CSS color tiers to ANSI 256-color codes.
-// These correspond to the port speed color tiers used in the web UI (D-09).
+// These correspond to the port speed color tiers used in the web UI.
 var (
 	// ColorSpeedSub1G maps to Tailwind gray-400 for sub-1G port speeds.
 	ColorSpeedSub1G = lipgloss.Color("245")
@@ -70,7 +70,7 @@ var (
 )
 
 // TableBorder returns the appropriate lipgloss border style for a given mode.
-// Rich mode uses Unicode box-drawing characters; plain mode uses ASCII (D-10).
+// Rich mode uses Unicode box-drawing characters; plain mode uses ASCII.
 func TableBorder(mode RenderMode) lipgloss.Border {
 	if mode == ModePlain {
 		return lipgloss.ASCIIBorder()

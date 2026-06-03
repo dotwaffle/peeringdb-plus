@@ -165,7 +165,7 @@ func applyInternetExchangeStreamFilters(req *pb.StreamInternetExchangesRequest) 
 }
 
 // ListInternetExchanges returns a paginated list of internet exchanges under
-// the compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// the compound default order (-updated, -created, -id).
 func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req *pb.ListInternetExchangesRequest) (*pb.ListInternetExchangesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.InternetExchange, pb.InternetExchange]{
 		EntityName: "internetexchanges",

@@ -6,13 +6,13 @@
 // Users-visibility rows when the context carries TierUsers.
 //
 // Placement: After Logging and before Readiness/SecurityHeaders in the
-// request flow (D-05, RESEARCH.md Pattern 4). The stamp is therefore
+// request flow. The stamp is therefore
 // visible to every downstream middleware and handler — including the
 // Readiness 503 syncing page, so any future OTel attribution on the
 // pre-ready path still sees the tier — without polluting the outer
 // Recovery/Logging layers that handle the process-level error envelope.
 //
-// Per D-07 this middleware does NOT call the ent privacy-decision
+// This middleware does NOT call the ent privacy-decision
 // bypass — that path is reserved for the sync worker (internal/sync/
 // worker.go). The typed-tier abstraction lets v1.15 OAuth replace this
 // middleware with an identity-aware version that sets TierUsers only
@@ -57,7 +57,7 @@ type PrivacyTierInput struct {
 // (unit tests without a tracer), trace.SpanFromContext returns a
 // noop span and SetAttributes is a zero-cost no-op — fail-safe-closed.
 //
-// Per 61-CONTEXT.md D-07/D-08/D-09 (OBS-03):
+// Observability contract:
 //   - attribute key is the literal "pdbplus.privacy.tier" (pdbplus.*
 //     namespace, matches pdbplus.sync.*, pdbplus.data.*).
 //   - cardinality is 2: "public" or "users". A future TierAdmin
@@ -84,7 +84,7 @@ func PrivacyTier(in PrivacyTierInput) func(http.Handler) http.Handler {
 	}
 }
 
-// tierString maps a privctx.Tier to its canonical OBS-03 attribute
+// tierString maps a privctx.Tier to its canonical attribute
 // value. The switch is exhaustive by design — a future Tier addition
 // will fail compilation here (caught by golangci-lint's exhaustive
 // checker) and force a coordinated update to the Grafana dashboard

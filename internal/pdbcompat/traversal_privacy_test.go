@@ -16,7 +16,7 @@ import (
 // TestTraversal_PocVisibilityGate verifies that a cross-entity traversal
 // subquery reproduces the poc row-level privacy policy (poc.visible). The
 // traversal builds a raw SQL subquery against the pocs table that does NOT
-// pass through ent's PocQuery, so the Phase 59 Privacy policy would never
+// pass through ent's PocQuery, so the poc Privacy policy would never
 // fire — letting an anonymous caller use net?pocs__<field>=... as a boolean
 // oracle to read or enumerate Users-tier (hidden) contact PII that the policy
 // hides on the direct /api/poc surface. applyVisibilityGate closes that leak.

@@ -46,7 +46,7 @@ var accessLogSkipPaths = map[string]struct{}{
 
 // Logging returns middleware that logs each HTTP request with method, path, status,
 // duration, and trace context (trace_id, span_id) when available.
-// Uses structured slog per OBS-1, OBS-5 with LogAttrs for attribute-based API.
+// Uses structured slog with LogAttrs for attribute-based API.
 func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

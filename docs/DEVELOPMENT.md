@@ -44,7 +44,7 @@ package rationale. Code-change-relevant directories:
 | `cmd/peeringdb-plus/` | Main binary — config load, server wiring, handler registration |
 | `cmd/pdb-schema-extract/` | Parses the PeeringDB Django source into `schema/peeringdb.json` |
 | `cmd/pdb-schema-generate/` | Generates `ent/schema/*.go` from `schema/peeringdb.json` |
-| `cmd/pdb-compat-allowlist/` | Codegens `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go` (Phase 70) |
+| `cmd/pdb-compat-allowlist/` | Codegens `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go` |
 | `cmd/pdbcompat-check/` | Validates PeeringDB API compatibility |
 | `ent/schema/` | **Hand-edited** ent schemas — see "Sibling-file convention" |
 | `ent/` | Generated ent client code (do not edit) |
@@ -53,10 +53,10 @@ package rationale. Code-change-relevant directories:
 | `graph/` | GraphQL resolver glue (`schema.resolvers.go`, `custom.resolvers.go` are hand-edited) |
 | `internal/grpcserver/` | ConnectRPC handler implementations (one file per entity) |
 | `internal/pdbcompat/` | PeeringDB-compatible API layer (`/api/`) |
-| `internal/pdbcompat/parity/` | Phase 72 upstream-parity regression suite |
-| `internal/privctx/` | Privacy tier in request context (Phase 64) |
-| `internal/privfield/` | Field-level redaction single source of truth (Phase 64) |
-| `internal/unifold/` | Diacritic-insensitive folding (Phase 69) |
+| `internal/pdbcompat/parity/` | Upstream-parity regression suite |
+| `internal/privctx/` | Privacy tier in request context |
+| `internal/privfield/` | Field-level redaction single source of truth |
+| `internal/unifold/` | Diacritic-insensitive folding |
 | `internal/web/` | Web UI handlers, search, compare, query helpers |
 | `internal/web/templates/` | `.templ` source + generated `*_templ.go` |
 | `internal/sync/` | PeeringDB sync worker |
@@ -84,8 +84,7 @@ runs every stage in the correct order. The directives live in three files:
 1. `ent/generate.go` — three sequenced directives:
    1. `go run -mod=mod entc.go` — runs ent + entgql + entrest + entproto.
    2. `cd .. && go run ./cmd/pdb-compat-allowlist` — emits
-      `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`
-      (Phase 70).
+      `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
    3. `cd .. && go tool buf generate` — emits protobuf Go types and ConnectRPC
       handler interfaces from the proto sources.
 2. `internal/web/templates/generate.go` — runs `go tool templ generate` to
@@ -116,10 +115,10 @@ Today's sibling files:
 
 | File | Purpose |
 |---|---|
-| `ent/schema/poc_policy.go` | `(Poc).Policy()` privacy rule (Phase 59) |
-| `ent/schema/fold_mixin.go` | The `foldMixin` Mixin implementation (Phase 69) |
+| `ent/schema/poc_policy.go` | `(Poc).Policy()` privacy rule |
+| `ent/schema/fold_mixin.go` | The `foldMixin` Mixin implementation |
 | `ent/schema/{type}_fold.go` | Per-entity `Mixin()` wiring for the 6 folded types: `campus`, `carrier`, `facility`, `internetexchange`, `network`, `organization` |
-| `ent/schema/pdb_allowlists.go` | `PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist` (Phase 70) |
+| `ent/schema/pdb_allowlists.go` | `PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist` |
 
 **If you add new hand-edited methods (`Hooks`, `Policy`, `Annotations`,
 `Edges`, `Mixin`) to any generated `{type}.go` schema file, MOVE them to a
@@ -342,7 +341,7 @@ dispatches by path (see `internal/web/handler.go` `Handler.dispatch`).
 Static assets (CSS, images, favicon) live under `internal/web/static/` and are
 served from an embedded filesystem at `/static/`.
 
-## Adding a new field-level-privacy gated field (Phase 64)
+## Adding a new field-level-privacy gated field
 
 When a new PeeringDB field gains a `<field>_visible` companion (or you
 introduce a new auth-gated column), redaction must be applied at **every**
@@ -384,7 +383,7 @@ is the single source of truth — never hand-roll a tier check.
 The `_visible` companion field itself is **always** emitted (even for anon
 callers) — this matches upstream PeeringDB's behaviour. Do not strip it.
 
-## Adding a new searchable text field on a folded entity (Phase 69)
+## Adding a new searchable text field on a folded entity
 
 The 6 folded entities (`organization`, `network`, `facility`,
 `internetexchange`, `carrier`, `campus`) carry `<field>_fold` shadow columns
@@ -412,7 +411,7 @@ To add a new searchable text field on one of these entities (e.g. a future
 4. **Filter routing** — add `"tagline": true` to `network`'s `FoldedFields`
    map in `internal/pdbcompat/registry.go`. The filter layer reads this map
    to decide whether to route to the shadow column.
-5. **Round-trip test** — extend `internal/pdbcompat/phase69_filter_test.go`
+5. **Round-trip test** — extend `internal/pdbcompat/fold_filter_test.go`
    with a test proving `?tagline__contains=<ascii>` matches a
    `tagline="<diacritic>"` row.
 
@@ -421,7 +420,7 @@ To add shadow columns on a 7th entity, create a new sibling
 plus add the `FoldedFields` map for the entity in `registry.go`. The other 6
 upsert functions stay untouched — per-entity surgery is the convention.
 
-## Adding a pdbcompat 1-hop or 2-hop traversal filter (Phase 70)
+## Adding a pdbcompat 1-hop or 2-hop traversal filter
 
 Cross-entity filter keys (e.g. `?net__asn=64500`) are gated by an allowlist
 codegened from `ent/schema/pdb_allowlists.go`. Two-step:
@@ -446,7 +445,7 @@ To exclude an edge from traversal entirely, attach
 - Add 3+-hop keys — they're dropped by codegen sanity checks AND by the
   2-hop cap in `parseFieldOp` at request time.
 
-## Adding a new pdbcompat entity (Phase 71 budget)
+## Adding a new pdbcompat entity (response memory budget)
 
 The pdbcompat list path enforces a `PDBPLUS_RESPONSE_MEMORY_LIMIT` budget
 (default 128 MiB) via a pre-flight `count × typicalRowBytes` check that
@@ -466,8 +465,8 @@ entity wired into `/api/` must integrate with this budget:
    `<entity>Predicates` local helper. The two closures **must never diverge** —
    if they do, the budget check and the served response become different
    queries and the 413 guarantee breaks. The shared helper preserves the
-   Phase 68 `applyStatusMatrix(isCampus, opts.Since != nil)` last-predicate
-   invariant and the Phase 69 `EmptyResult` short-circuit.
+   `applyStatusMatrix(isCampus, opts.Since != nil)` last-predicate
+   invariant and the `EmptyResult` short-circuit.
 3. **Architecture doc** — add a row to the per-entity sizing table in
    `docs/ARCHITECTURE.md § Response Memory Envelope` with the computed
    `max_rows @ 128 MiB`.
@@ -523,23 +522,23 @@ go test -peeringdb-live ./internal/conformance/
 
 Use these to verify compatibility after a PeeringDB upstream change.
 
-### Adding a parity test (Phase 72)
+### Adding a parity test
 
 `internal/pdbcompat/parity/` locks v1.16 pdbcompat semantics against future
 regression. The suite is split across 6 category test files:
 
 | File | Category |
 |---|---|
-| `ordering_test.go` | `ORDER` — `?order_by=` semantics |
-| `status_test.go` | `STATUS` — Phase 68 status × since matrix |
-| `limit_test.go` | `LIMIT` — `?limit=`, `?skip=`, streaming pre-flight |
-| `unicode_test.go` | `UNICODE` — Phase 69 diacritic folding |
-| `in_test.go` | `IN` — `?field__in=v1,v2,...` |
-| `traversal_test.go` | `TRAVERSAL` — Phase 70 cross-entity `__` filters |
+| `ordering_test.go` | `?order_by=` semantics |
+| `status_test.go` | status × since matrix |
+| `limit_test.go` | `?limit=`, `?skip=`, streaming pre-flight |
+| `unicode_test.go` | diacritic folding |
+| `in_test.go` | `?field__in=v1,v2,...` |
+| `traversal_test.go` | cross-entity `__` filters |
 
 To add a new parity test:
 
-1. **Pick the matching file by REQ-ID prefix** (ORDER → `ordering_test.go`,
+1. **Pick the matching file by category** (ordering → `ordering_test.go`,
    etc.).
 2. **Add a sub-test under `TestParity_<Category>`**:
    ```go
@@ -551,7 +550,7 @@ To add a new parity test:
    ```
    Every parity sub-test gets `t.Parallel()` and an upstream citation marker
    (either `// upstream: pdb_api_test.py:<line>` or
-   `// synthesised: phase-<NN>-<context>` for v1.16-new semantics with no
+   `// synthesised: <context>` for v1.16-new semantics with no
    upstream counterpart).
 3. **Seed clean rows inline via the ent client** (`c.Network.Create()...`,
    etc.), keeping each sub-test to only the rows it needs. Do NOT reach

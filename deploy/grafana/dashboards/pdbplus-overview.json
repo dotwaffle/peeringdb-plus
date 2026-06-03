@@ -1132,7 +1132,7 @@
           "id": 18,
           "type": "timeseries",
           "title": "Deletes per Type",
-          "description": "Soft-delete tombstones marked per type per sync (Phase 68). Non-zero deletes are normal as PeeringDB data churns.",
+          "description": "Soft-delete tombstones marked per type per sync. Non-zero deletes are normal as PeeringDB data churns.",
           "gridPos": {
             "h": 6,
             "w": 12,
@@ -1803,7 +1803,7 @@
     {
       "id": 32,
       "type": "row",
-      "title": "Sync Memory (SEED-001 watch)",
+      "title": "Sync Memory",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -1817,7 +1817,7 @@
       "id": 33,
       "type": "timeseries",
       "title": "Peak Heap",
-      "description": "Sync-cycle peak HeapInuse on the primary. Threshold line at 400 MiB \u2014 sustained breach re-fires SEED-001 (Fly 512 MB VM cap).",
+      "description": "Sync-cycle peak HeapInuse on the primary. Threshold line at 400 MiB \u2014 sustained breach should re-open the incremental-sync evaluation (Fly 512 MB VM cap).",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -1959,7 +1959,7 @@
       "id": 35,
       "type": "timeseries",
       "title": "Live Heap by Instance",
-      "description": "Per-VM Go heap from go_memory_used_bytes (OTel runtime gauge). Plots all fleet machines (primary + replicas) post-Phase-65 asymmetric fleet.",
+      "description": "Per-VM Go heap from go_memory_used_bytes (OTel runtime gauge). Plots all fleet machines (primary + replicas) in the asymmetric fleet.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2025,7 +2025,7 @@
     {
       "id": 36,
       "type": "timeseries",
-      "title": "Response Heap Delta \u2014 p50/p95/p99 by endpoint (Phase 71)",
+      "title": "Response Heap Delta \u2014 p50/p95/p99 by endpoint",
       "description": "Per-request Go HeapInuse delta on pdbcompat list handlers (/api/*) from pdbplus_response_heap_delta_bytes histogram. p50/p95/p99 quantiles over a 5-minute rolling window, grouped by endpoint. Shows 'No data' when there is no /api/ traffic in the selected window \u2014 the histogram is only observed on pdbcompat list requests, not on /healthz, /ui/, /rest/v1/, /graphql, or ConnectRPC.",
       "gridPos": {
         "h": 8,

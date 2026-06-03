@@ -19,7 +19,7 @@ import (
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 )
 
-// Quick task 260428-2zl moved transport-level concerns out of doWithRetry into
+// Transport-level concerns were moved out of doWithRetry into
 // this http.RoundTripper wrapper:
 //
 //   1. Per-request rate-limit Wait, recorded as a histogram on
@@ -151,7 +151,7 @@ func (t *rateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, err
 
 			// Short-circuit: header absent (== 0) or larger than cap →
 			// surface the existing RateLimitError without burning more
-			// quota. Header absent matches the pre-2zl behavior tested
+			// quota. Header absent matches the earlier behavior tested
 			// by TestFetchAllShortCircuitsOn429NoHeader; > cap matches
 			// the unauth 1/hr quota path tested by TestFetchAllShortCircuitsOn429.
 			if retryAfter == 0 || retryAfter > retryAfterCap {
@@ -221,8 +221,8 @@ func (t *rateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, err
 }
 
 // waitLimiter blocks on the rate limiter and records the wait duration as
-// both a span event (compat with the pre-2zl behavior) and a histogram
-// (new in 2zl for dashboard visibility).
+// both a span event (compat with the earlier behavior) and a histogram
+// (for dashboard visibility).
 //
 // Telemetry instruments are nil-guarded because unit tests run without
 // calling InitMetrics() — and a nil-instrument call panics inside the

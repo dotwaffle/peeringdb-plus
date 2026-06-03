@@ -674,7 +674,7 @@ func atoi(s string) int {
 }
 
 // validateAgainstAPI fetches sample API responses from beta.peeringdb.com and
-// compares field names against the extracted schema (D-16).
+// compares field names against the extracted schema.
 func validateAgainstAPI(schema *Schema) error {
 	baseURL := "https://beta.peeringdb.com/api"
 	client := &http.Client{Timeout: 30 * time.Second}

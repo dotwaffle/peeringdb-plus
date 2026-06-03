@@ -71,7 +71,7 @@ var scratchTypes = []string{
 // closed+unlinked via defer closeScratchDB(...) at the end of the same
 // run. PID-scoped filename prevents collisions across concurrent worker
 // processes (cross-process is a non-issue on Fly.io — only one primary
-// runs at a time per D-30).
+// runs at a time).
 type scratchDB struct {
 	db   *sql.DB
 	path string
@@ -94,7 +94,7 @@ type scratchDB struct {
 // monotonically-increasing counter so multiple concurrent Sync runs
 // within the same process (e.g. parallel tests) do not collide on the
 // same scratch file. In production there is only ever one primary
-// sync running at a time per D-30, so the counter is effectively 0;
+// sync running at a time, so the counter is effectively 0;
 // the counter matters only for tests.
 func openScratchDB(ctx context.Context) (*scratchDB, error) {
 	// Atomically create an exclusive scratch file via O_EXCL so neither a
@@ -102,7 +102,7 @@ func openScratchDB(ctx context.Context) (*scratchDB, error) {
 	// the /tmp symlink race that a deterministic PID+seq path would expose
 	// on shared-/tmp hosts (local dev, CI runners). Production Fly.io is
 	// single-tenant and not exposed, but the atomic path is a trivial
-	// hardening upgrade. See 54-REVIEW.md WR-01.
+	// hardening upgrade.
 	seq := scratchSeq.Add(1)
 	path := filepath.Join(os.TempDir(), fmt.Sprintf("pdbplus-sync-scratch-%d-%d.db", os.Getpid(), seq))
 
@@ -150,7 +150,7 @@ func openScratchDB(ctx context.Context) (*scratchDB, error) {
 
 // scratchSeq is a monotonically-increasing counter used to disambiguate
 // scratch filenames when multiple Sync runs overlap in the same process.
-// Production has only one primary at a time per D-30, so this is
+// Production has only one primary at a time, so this is
 // effectively unused in production; test parallelism is the real
 // motivation.
 var scratchSeq atomic.Uint64

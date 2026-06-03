@@ -54,7 +54,7 @@ import (
 )
 
 // maxRequestBodySize is the maximum allowed request body for POST endpoints (1 MB).
-// GraphQL queries rarely exceed 10 KB; 1 MB is generous per SRVR-04.
+// GraphQL queries rarely exceed 10 KB; 1 MB is generous.
 const maxRequestBodySize = 1 << 20
 const initialObjectCountsTimeout = 5 * time.Second
 
@@ -71,14 +71,14 @@ func init() {
 }
 
 func main() {
-	// Load config from environment per D-33, CFG-1.
+	// Load config from environment.
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("failed to load config", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Initialize OpenTelemetry per D-06, D-07.
+	// Initialize OpenTelemetry.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -102,11 +102,11 @@ func main() {
 		_ = otelOut.Shutdown(flushCtx) // best-effort flush at exit
 	}()
 
-	// Set up dual slog logger (stdout + OTel pipeline) per D-03, OBS-1.
+	// Set up dual slog logger (stdout + OTel pipeline).
 	logger := pdbotel.NewDualLogger(os.Stdout, otelOut.LogProvider)
 	slog.SetDefault(logger)
 
-	// Initialize custom sync metrics per D-05.
+	// Initialize custom sync metrics.
 	if err := pdbotel.InitMetrics(); err != nil {
 		logger.Error("failed to init metrics", slog.Any("error", err))
 		os.Exit(1)
@@ -126,7 +126,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Open database per D-28, D-34.
+	// Open database.
 	entClient, db, err := database.Open(cfg.DBPath)
 	if err != nil {
 		logger.Error("failed to open database", slog.Any("error", err))
@@ -134,7 +134,7 @@ func main() {
 	}
 	defer entClient.Close()
 
-	// Detect primary status via LiteFS lease file with env fallback per D-24.
+	// Detect primary status via LiteFS lease file with env fallback.
 	isPrimary := litefs.IsPrimaryWithFallback(litefs.PrimaryFile, "PDBPLUS_IS_PRIMARY")
 	policy := newStartupPolicy(isPrimary)
 
@@ -143,11 +143,11 @@ func main() {
 		return litefs.IsPrimaryWithFallback(litefs.PrimaryFile, "PDBPLUS_IS_PRIMARY")
 	}
 
-	// Auto-migrate schema on primary per D-43.
+	// Auto-migrate schema on primary.
 	//
 	// WithDropColumn(true): enables ALTER TABLE DROP COLUMN for schema
 	// cleanup (ixpfx.notes, organization.fac_count, organization.net_count)
-	// and any future hygiene drops. Per D-04. ent defaults to additive-only
+	// and any future hygiene drops. ent defaults to additive-only
 	// migrations for safety; this flag opts in to destructive DDL.
 	//
 	// WithDropIndex(true): symmetric handling of stale indexes per the ent
@@ -198,7 +198,7 @@ func main() {
 		lastSyncTimeCache.Store(&seedTime)
 	}
 
-	// Initialize sync freshness gauge per D-09. Reads the atomic cache
+	// Initialize sync freshness gauge. Reads the atomic cache
 	// instead of issuing a live sync_status query per scrape.
 	if err := pdbotel.InitFreshnessGauge(func(_ context.Context) (time.Time, bool) {
 		return freshnessFromCache(&lastSyncTimeCache)
@@ -207,7 +207,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Cached object counts for metrics gauge (PERF-02).
+	// Cached object counts for metrics gauge.
 	// Updated by sync worker after each successful sync via OnSyncComplete.
 	//
 	// Synchronously seed the cache from a one-shot
@@ -233,7 +233,7 @@ func main() {
 		slog.Int("type_count", len(seededCounts)))
 
 	// Initialize per-type object count gauges for business metrics dashboard.
-	// Reads from atomic cache instead of live COUNT queries per PERF-02.
+	// Reads from atomic cache instead of live COUNT queries.
 	if err := pdbotel.InitObjectCountGauges(func() map[string]int64 {
 		return *objectCountCache.Load()
 	}); err != nil {
@@ -241,8 +241,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create PeeringDB client per D-04, D-09.
-	// Quick task 260428-2zl: WithRPS comes BEFORE WithAPIKey so the auth
+	// Create PeeringDB client.
+	// WithRPS comes BEFORE WithAPIKey so the auth
 	// path can override the unauth RPS to the upstream-fixed 60/min quota
 	// inside NewClient (see internal/peeringdb/client.go option apply order).
 	var clientOpts []peeringdb.ClientOption
@@ -256,7 +256,7 @@ func main() {
 			slog.Float64("rps", cfg.PeeringDBRPS))
 	}
 
-	// SEC-04: make the disabled-sync-auth state loud at boot so operators see it
+	// Make the disabled-sync-auth state loud at boot so operators see it
 	// in deploy logs rather than discovering it via a curl probe.
 	if cfg.SyncToken == "" {
 		logger.Warn("sync endpoint is unauthenticated — set PDBPLUS_SYNC_TOKEN to require authentication",
@@ -272,12 +272,12 @@ func main() {
 
 	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger, clientOpts...)
 
-	// PERF-07: Caching middleware holds the current ETag behind an atomic
+	// Caching middleware holds the current ETag behind an atomic
 	// pointer. Constructed once here so the OnSyncComplete callback below
 	// can capture it. The initial ETag is seeded from any existing
 	// sync_status row so warm restarts serve cacheable GETs immediately;
 	// cold starts leave the pointer nil (Middleware skips caching headers
-	// until the first sync completes, matching pre-PERF-07 behavior).
+	// until the first sync completes, matching the prior atomic-ETag behavior).
 	//
 	// /ui/about is opted out of caching because it renders wall-clock-
 	// relative text ("N minutes ago") that would freeze at cache-creation
@@ -293,7 +293,7 @@ func main() {
 		IsPrimary: isPrimaryFn,
 		SyncMode:  cfg.SyncMode,
 		OnSyncComplete: func(ctx context.Context, syncTime time.Time) {
-			// Quick task 260427-ojm: refresh the gauge cache from live
+			// Refresh the gauge cache from live
 			// row counts instead of the per-cycle upsert deltas the
 			// callback used to receive. The old shape under-counted
 			// every type after incremental syncs (delta != total) and
@@ -303,7 +303,7 @@ func main() {
 			// Count(ctx) at startup, so the two values flipped between
 			// "filtered" and "raw" — hence "doubling-halving").
 			//
-			// 260428-eda CHANGE 6: InitialObjectCounts now uses raw SQL
+			// InitialObjectCounts now uses raw SQL
 			// (UNION ALL across the 13 tables) which bypasses ent's
 			// Privacy policy entirely — no Poc.Policy filtering — so
 			// visible="Users" Pocs are included symmetrically with the
@@ -327,7 +327,7 @@ func main() {
 			// itself succeeded even if the count refresh failed.
 			freshTime := syncTime
 			lastSyncTimeCache.Store(&freshTime)
-			// PERF-07: swap the cached ETag using the exact completion
+			// Swap the cached ETag using the exact completion
 			// timestamp the worker persisted to sync_status. One SHA-256
 			// per sync, zero per request. Kept outside the err branch
 			// because ETag freshness is decoupled from gauge cache —
@@ -340,7 +340,7 @@ func main() {
 		RSSWarnBytes:                  cfg.RSSWarnBytes,
 		FKBackfillMaxRequestsPerCycle: cfg.FKBackfillMaxRequestsPerCycle,
 		FKBackfillTimeout:             cfg.FKBackfillTimeout,
-		FullSyncInterval:              cfg.FullSyncInterval, // 260428-mu0
+		FullSyncInterval:              cfg.FullSyncInterval,
 	}, logger)
 
 	// Pre-warm the 5 zero-rate counters so dashboard
@@ -359,20 +359,20 @@ func main() {
 	// Total baseline series introduced: 4 per-type × 13 types + 1 direction × 2 = 54.
 	pdbotel.PrewarmCounters(ctx)
 
-	// Start scheduler on all instances per D-22, D-29.
+	// Start scheduler on all instances.
 	// The scheduler gates sync on live IsPrimary() checks per tick.
 	go syncWorker.StartScheduler(ctx, cfg.SyncInterval)
 
 	// Create GraphQL resolver with ent client and raw DB for sync_status queries.
 	resolver := graph.NewResolver(entClient, db)
 
-	// Create GraphQL handler with complexity/depth limits per D-04.
+	// Create GraphQL handler with complexity/depth limits.
 	gqlHandler := pdbgql.NewHandler(resolver)
 
 	// Set up HTTP server.
 	mux := http.NewServeMux()
 
-	// POST /sync: on-demand sync trigger per D-23.
+	// POST /sync: on-demand sync trigger.
 	// Write forwarding: replicas replay to primary via fly-replay header on Fly.io.
 	syncHandler := newSyncHandler(ctx, SyncHandlerInput{
 		IsPrimaryFn: isPrimaryFn,
@@ -391,7 +391,7 @@ func main() {
 	mux.HandleFunc("GET /healthz", health.LivenessHandler())
 
 	// GET /readyz: readiness probe (checks DB connectivity and sync freshness).
-	// SEC-08: detailed error strings flow to logger via slog.LogAttrs; the wire
+	// Detailed error strings flow to logger via slog.LogAttrs; the wire
 	// body carries only the generic {"status":"ok"|"unhealthy"} shape.
 	mux.HandleFunc("GET /readyz", health.ReadinessHandler(health.ReadinessInput{
 		DB:             db,
@@ -399,9 +399,9 @@ func main() {
 		Logger:         logger,
 	}))
 
-	// GET /graphql: serve GraphiQL playground per D-17, D-18, D-21.
-	// POST /graphql: handle GraphQL queries per D-18.
-	// POST body limited to maxRequestBodySize per SRVR-04.
+	// GET /graphql: serve GraphiQL playground.
+	// POST /graphql: handle GraphQL queries.
+	// POST body limited to maxRequestBodySize.
 	playgroundHandler := pdbgql.PlaygroundHandler("/graphql")
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -412,7 +412,7 @@ func main() {
 		gqlHandler.ServeHTTP(w, r)
 	})
 
-	// Mount entrest-generated REST API at /rest/v1/ per D-01, D-04.
+	// Mount entrest-generated REST API at /rest/v1/.
 	// Read-only (OperationRead + OperationList) configured via entrest annotations.
 	restSrv, err := rest.NewServer(entClient, &rest.ServerConfig{
 		BasePath: "/rest/v1",
@@ -425,8 +425,8 @@ func main() {
 	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
 
-	// Mount PeeringDB compatibility API at /api/ per D-27, D-28.
-	// Readiness gating applies automatically (not in bypass list) per D-29.
+	// Mount PeeringDB compatibility API at /api/.
+	// Readiness gating applies automatically (not in bypass list).
 	compatHandler := pdbcompat.NewHandler(entClient, cfg.ResponseMemoryLimit)
 	compatHandler.Register(mux)
 	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
@@ -448,10 +448,10 @@ func main() {
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
 
-	// Create OTel interceptor for ConnectRPC services per OBS-01.
+	// Create OTel interceptor for ConnectRPC services.
 	otelInterceptor, err := otelconnect.NewInterceptor(
 		otelconnect.WithoutServerPeerAttributes(),
-		otelconnect.WithoutTraceEvents(), // Suppress per-message events (critical for streaming RPCs per STRM-06).
+		otelconnect.WithoutTraceEvents(), // Suppress per-message events (critical for streaming RPCs).
 	)
 	if err != nil {
 		logger.Error("failed to create otel interceptor", slog.Any("error", err))
@@ -476,7 +476,7 @@ func main() {
 		peeringdbv1connect.PocServiceName,
 	}
 
-	// Register all 13 ConnectRPC services on the mux per API-04.
+	// Register all 13 ConnectRPC services on the mux.
 	registerService := func(path string, handler http.Handler) {
 		mux.Handle(path, handler)
 	}
@@ -495,13 +495,13 @@ func main() {
 	registerService(peeringdbv1connect.NewPocServiceHandler(&grpcserver.PocService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
 	logger.Info("ConnectRPC services mounted", slog.Int("count", len(serviceNames)))
 
-	// gRPC server reflection for grpcurl/grpcui discovery per OBS-03.
+	// gRPC server reflection for grpcurl/grpcui discovery.
 	reflector := grpcreflect.NewStaticReflector(serviceNames...)
 	mux.Handle(grpcreflect.NewHandlerV1(reflector, handlerOpts))
 	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector, handlerOpts))
 	logger.Info("gRPC reflection enabled")
 
-	// gRPC health check tied to sync readiness per OBS-04.
+	// gRPC health check tied to sync readiness.
 	healthChecker := grpchealth.NewStaticChecker(serviceNames...)
 	mux.Handle(grpchealth.NewHandler(healthChecker, handlerOpts))
 	logger.Info("gRPC health check enabled")
@@ -534,7 +534,7 @@ func main() {
 		}()
 	}
 
-	// GET /: content negotiation for terminal, browser, and API clients (NAV-04).
+	// GET /: content negotiation for terminal, browser, and API clients.
 	// Terminal clients (curl, wget, HTTPie) receive help text.
 	// Browsers (Accept: text/html) redirect to /ui/.
 	// API clients (Accept: application/json) get JSON discovery.
@@ -581,13 +581,13 @@ func main() {
 	// Build middleware stack (outermost first):
 	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
 	//
-	// MaxBytesBody caps every non-gRPC request body at maxRequestBodySize (1 MB)
-	// per SEC-09. Per-route http.MaxBytesReader wraps at /sync and /graphql stay
+	// MaxBytesBody caps every non-gRPC request body at maxRequestBodySize (1 MB).
+	// Per-route http.MaxBytesReader wraps at /sync and /graphql stay
 	// as belt-and-suspenders — innermost wins, so they remain effective and the
 	// redundancy is intentional. ConnectRPC/gRPC paths bypass via the middleware's
 	// hardcoded skip list; streaming RPCs would break if the body were capped.
 	//
-	// SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
+	// SecurityHeaders sits between Readiness and CSP so HSTS/XCTO fire
 	// on every response — including the Readiness 503 syncing page — and XFO
 	// stays scoped to browser paths. The wrap order is regression-locked by
 	// TestMiddlewareChain_Order in middleware_chain_test.go.
@@ -802,7 +802,7 @@ func (w *restFieldRedactWriter) flush() {
 		// Parse failed — pass through unchanged. A legitimate parse
 		// error shouldn't happen on a 2xx entrest response; if it does,
 		// corrupting the body would be worse than letting it through.
-		// The E2E test in Plan 64-03 Task 5 will catch any real leak.
+		// The field-level E2E test will catch any real leak.
 		w.ResponseWriter.Header().Del("Content-Length")
 		w.ResponseWriter.WriteHeader(status)
 		_, _ = w.ResponseWriter.Write(body)
@@ -851,7 +851,7 @@ func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
 
 // redactIxlanObject drops the ixf_ixp_member_list_url key in-place when
 // privfield.Redact says omit, and reports whether it removed the key. The
-// _visible companion is left alone (D-05: always emitted).
+// _visible companion is left alone (always emitted).
 func redactIxlanObject(ctx context.Context, obj map[string]any) bool {
 	visible, _ := obj["ixf_ixp_member_list_url_visible"].(string)
 	url, _ := obj["ixf_ixp_member_list_url"].(string)
@@ -867,10 +867,10 @@ func redactIxlanObject(ctx context.Context, obj map[string]any) bool {
 // deliberately set. WriteTimeout is explicitly 0 because StreamEntities in
 // internal/grpcserver/generic.go already enforces cfg.StreamTimeout per
 // stream via context.WithTimeout; a server-wide WriteTimeout would race
-// with it and silently truncate streams (see PITFALLS.md §CP-2).
+// with it and silently truncate streams.
 //
 // ReadHeaderTimeout=10s mitigates slowloris header-stall attacks;
-// ReadTimeout=30s mitigates slowloris body-stall attacks (SEC-05);
+// ReadTimeout=30s mitigates slowloris body-stall attacks;
 // IdleTimeout=120s caps keep-alive idle connections.
 // Go 1.26 net/http godoc: "A zero or negative value means there will be
 // no timeout" — WriteTimeout:0 is safe for long-lived h2c streams.
@@ -926,7 +926,7 @@ type chainConfig struct {
 // real mux dispatch — only then does r.Pattern get populated, which
 // routeTagMiddleware reads to set the http.route metric label.
 //
-// SecurityHeaders (SEC-10) sits between Readiness and CSP so HSTS/XCTO fire
+// SecurityHeaders sits between Readiness and CSP so HSTS/XCTO fire
 // on every response, including the Readiness 503 syncing page, and XFO
 // stays scoped to browser paths via middleware.isBrowserPath. HSTSMaxAge is
 // passed through chainConfig so the deployment default can be managed in one
@@ -963,7 +963,7 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 }
 
 // logStartupClassification emits sync-mode classification
-// lines (SYNC-04, OBS-01). Called once from main() after config parse and
+// lines. Called once from main() after config parse and
 // after slog.SetDefault, before the HTTP listener starts.
 //
 //   - slog.Info "sync mode" (always): auth = "authenticated" | "anonymous",
@@ -975,7 +975,7 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 // parsers key off the literal strings. Do not rename without a coordinated
 // dashboard update.
 //
-// Per 61-CONTEXT.md D-10/D-11 the tests in startup_logging_test.go capture
+// The tests in startup_logging_test.go capture
 // slog records and assert the attrs directly; changing attr keys or values
 // is a breaking change to the operator contract.
 func logStartupClassification(logger *slog.Logger, cfg *config.Config) {
@@ -1057,7 +1057,7 @@ func routeTagMiddleware(next http.Handler) http.Handler {
 }
 
 // readinessMiddleware returns 503 for all routes except infrastructure paths
-// until the first sync has completed per D-30.
+// until the first sync has completed.
 // Browser requests receive a styled HTML syncing page instead of JSON.
 func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

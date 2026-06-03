@@ -15,7 +15,7 @@ type CORSInput struct {
 	AllowedOrigins string
 }
 
-// CORS returns middleware that adds CORS headers per OPS-06.
+// CORS returns middleware that adds CORS headers.
 // Origins are configured via the AllowedOrigins field.
 func CORS(in CORSInput) func(http.Handler) http.Handler {
 	origins := strings.Split(in.AllowedOrigins, ",")

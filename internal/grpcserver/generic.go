@@ -72,8 +72,7 @@ type StreamParams[E any, P any] struct {
 	//   WHERE (updated < C.Updated)
 	//      OR (updated = C.Updated AND created < C.Created)
 	//      OR (updated = C.Updated AND created = C.Created AND id < C.ID)
-	// under the `(-updated, -created, -id)` default order (Phase 67, CONTEXT.md
-	// D-01 / D-05).
+	// under the `(-updated, -created, -id)` default order.
 	QueryBatch func(ctx context.Context, predicates []func(*sql.Selector), cursor streamCursor, limit int) ([]*E, error)
 	Convert    func(*E) *P
 	GetID      func(*E) int
@@ -91,7 +90,7 @@ type StreamParams[E any, P any] struct {
 // StreamEntities streams all matching entities using batched keyset pagination.
 // Handles timeout, count header, SinceID/UpdatedSince, and batch iteration.
 //
-// Header contract (PERF-06): on full streams (SinceID == nil AND UpdatedSince ==
+// Header contract: on full streams (SinceID == nil AND UpdatedSince ==
 // nil) a SELECT COUNT(*) preflight runs and the grpc-total-count response header
 // is set to the total matching row count. On delta streams (SinceID or
 // UpdatedSince set) the COUNT preflight is skipped entirely and
@@ -112,7 +111,7 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 	}
 
 	// Handle SinceID: add predicate and set initial cursor.
-	// Per RESEARCH.md Pitfall 4: handled here, not in per-type filter functions.
+	// Handled here, not in per-type filter functions.
 	if params.SinceID != nil {
 		predicates = append(predicates, sql.FieldGT("id", int(*params.SinceID)))
 	}
@@ -122,7 +121,7 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 
 	// Count total matching records for header metadata. Skipped on delta streams
 	// (SinceID or UpdatedSince set) because delta clients pull incremental ranges
-	// and have no use for a full-table total — see PERF-06.
+	// and have no use for a full-table total.
 	if params.SinceID == nil && params.UpdatedSince == nil {
 		total, err := params.Count(ctx, predicates)
 		if err != nil {
@@ -134,7 +133,7 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 
 	// Stream records in batches under compound (updated, created, id) keyset
 	// pagination. The cursor starts empty (full table scan) and advances to
-	// the last emitted row at the end of each batch. D-05: SinceID /
+	// the last emitted row at the end of each batch. SinceID /
 	// UpdatedSince are predicates already applied via the predicates slice
 	// above; they do NOT seed the keyset cursor.
 	var cursor streamCursor
@@ -181,7 +180,7 @@ func castPredicates[T ~func(*sql.Selector)](preds []func(*sql.Selector)) []T {
 
 // keysetCursorPredicate returns the compound keyset predicate used by every
 // Stream* RPC's QueryBatch closure under the `(-updated, -created, -id)`
-// default ordering (Phase 67 ORDER-02). Caller must check `cursor.empty()`
+// default ordering. Caller must check `cursor.empty()`
 // first — an empty cursor means "no resume predicate".
 //
 //	WHERE (updated < C.Updated)
@@ -192,8 +191,8 @@ func castPredicates[T ~func(*sql.Selector)](preds []func(*sql.Selector)) []T {
 // row strictly-less-than the cursor tuple is emitted. All three ORDER BY keys
 // must appear, in order — a two-key (updated, id) predicate silently drops
 // rows within an equal-`updated` group ordered by `created` DESC, because the
-// id tiebreaker disagrees with the created ordering at a batch boundary
-// (CONTEXT.md D-01). Built with ent's canonical variadic predicate composers
+// id tiebreaker disagrees with the created ordering at a batch boundary.
+// Built with ent's canonical variadic predicate composers
 // (sql.AndPredicates / sql.OrPredicates — see ent/network/where.go:2452,2457).
 func keysetCursorPredicate(cursor streamCursor) func(*sql.Selector) {
 	return sql.OrPredicates(

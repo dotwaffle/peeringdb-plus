@@ -153,7 +153,7 @@ func (Network) Fields() []ent.Field {
 			Default("").
 			Comment("Network website URL"),
 
-		// Computed fields (from serializer, stored per D-40)
+		// Computed fields (from serializer)
 		field.Int("ix_count").
 			Optional().
 			Default(0).

@@ -7,8 +7,8 @@ import (
 	"github.com/lrstanley/entrest"
 )
 
-// foldMixin contributes `<fieldname>_fold` shadow columns for the Phase 69
-// UNICODE-01 diacritic-insensitive matching pipeline. Each fold column is
+// foldMixin contributes `<fieldname>_fold` shadow columns for the
+// diacritic-insensitive matching pipeline. Each fold column is
 // internal plumbing only and must stay off every wire surface. Three guards
 // achieve that, one per serializer style:
 //   - entgql.Skip(SkipAll) drops the field from the GraphQL schema (gqlgen
@@ -41,7 +41,7 @@ type foldMixin struct {
 
 // Fields implements ent.Mixin. Returns one `<fieldname>_fold` field per
 // entry in m.fields, each carrying the entgql/entrest skip annotations
-// required by Phase 69 to prevent the shadow column from leaking onto
+// required to prevent the shadow column from leaking onto
 // any wire surface.
 func (m foldMixin) Fields() []ent.Field {
 	out := make([]ent.Field, 0, len(m.fields))
@@ -55,7 +55,7 @@ func (m foldMixin) Fields() []ent.Field {
 					entgql.Skip(entgql.SkipAll),
 					entrest.WithSkip(true),
 				).
-				Comment("Unicode-folded form of "+name+" for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)"),
+				Comment("Unicode-folded form of "+name+" for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)"),
 		)
 	}
 	return out

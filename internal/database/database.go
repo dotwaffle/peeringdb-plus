@@ -24,7 +24,7 @@ func init() {
 // ent client and the underlying *sql.DB for raw SQL operations (e.g.,
 // sync_status table).
 //
-// DSN pragma rationale (260428-eda CHANGE 4):
+// DSN pragma rationale:
 //   - synchronous(NORMAL): safe under LiteFS-replicated WAL — LiteFS provides
 //     durability via streaming replication so per-commit local fsync is
 //     redundant overhead. Halves the per-commit syscall cost on the bulk-
@@ -50,7 +50,7 @@ func Open(dbPath string) (*ent.Client, *sql.DB, error) {
 	}
 
 	// Configure connection pool for SQLite WAL mode.
-	// Hardcoded infrastructure constants per SRVR-02.
+	// Hardcoded infrastructure constants.
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(5 * time.Minute)

@@ -2,7 +2,7 @@
   PROJECT-LOCAL OVERRIDE of entrest sorting template.
   Base source: github.com/lrstanley/entrest@v1.0.3/templates/sorting.tmpl
   Change: applySorting<Type> emits compound (_field, FieldCreated, FieldID) tie-break
-          when _field matches the entity's declared DefaultField. See CONTEXT.md D-02/D-07.
+          when _field matches the entity's declared DefaultField.
   Upgrade path: when bumping entrest, diff the new upstream sorting.tmpl against this file,
                 re-apply the compound-tie-break injection, re-run `go generate ./ent`.
 */}}
@@ -166,10 +166,9 @@ func isSpecializedSort(_parts []string) (isCount, isSum bool) {
         }
         {{- $defaultSort := ($t|getAnnotation).GetDefaultSort (ne $t.ID nil) }}
         {{- if $defaultSort }}
-        // Phase 67 compound-default tie-break: when the requested sort field is the
+        // Compound-default tie-break: when the requested sort field is the
         // entity's declared default, append (FieldCreated, FieldID) tie-breakers in the
-        // same order direction for parity with pdbcompat and grpcserver. See
-        // the project history D-02 / D-07 and D-04 clarification.
+        // same order direction for parity with pdbcompat and grpcserver.
         if _field == {{ $defaultSort | quote }} {
             return _query.Order(
                 withFieldSelector(_field, _order),

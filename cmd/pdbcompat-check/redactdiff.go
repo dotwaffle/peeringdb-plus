@@ -17,7 +17,7 @@ import (
 // dir, e.g. /tmp/pdb-vis-capture-xxx/auth) and -out (destination for
 // redacted auth under the repo's visibility-baseline tree, e.g.
 // testdata/visibility-baseline/beta/auth). Anon pairs are sourced from the
-// sibling directory of -out (…/auth → …/anon). GO-CFG-1 fail-fast validation
+// sibling directory of -out (…/auth → …/anon). Fail-fast validation
 // on -in and -out.
 func runRedact(cfg runConfig, logger *slog.Logger) error {
 	if cfg.inDir == "" {
@@ -83,9 +83,9 @@ func runRedact(cfg runConfig, logger *slog.Logger) error {
 // per-target subdirs) and delegates to visbaseline.BuildReport.
 //
 // Output placement: DIFF.md + diff.json are written at the baseline root
-// itself, not at a separate output dir. This matches phase 57 D-08 which
-// specifies the artifact paths as testdata/visibility-baseline/DIFF.md
-// and testdata/visibility-baseline/diff.json.
+// itself, not at a separate output dir, placing the artifacts at
+// testdata/visibility-baseline/DIFF.md and
+// testdata/visibility-baseline/diff.json.
 func runDiff(cfg runConfig, logger *slog.Logger) error {
 	if cfg.outDir == "" {
 		return errors.New("-diff requires -out pointing at the baseline root (containing anon/+auth/ or per-target subdirs)")

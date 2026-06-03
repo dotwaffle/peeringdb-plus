@@ -11,7 +11,6 @@ import (
 // RenderSearch renders search results as a grouped text list for terminal clients.
 // Results are grouped by entity type with headers showing total counts.
 // Each result shows the entity name, subtitle (ASN or location), and detail URL.
-// (RND-08, D-05 through D-07)
 func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) error {
 	var buf strings.Builder
 

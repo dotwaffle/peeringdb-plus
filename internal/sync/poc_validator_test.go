@@ -7,8 +7,8 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
-// TestPoc_RoleEmptyAcceptedByValidator is the unit-level proof for
-// Phase 73 BUG-02 per CONTEXT.md D-03 (the fast-feedback affordance
+// TestPoc_RoleEmptyAcceptedByValidator is the unit-level proof that the
+// poc.role validator accepts empty values (the fast-feedback affordance
 // alongside the httptest fake-upstream conformance test
 // TestSync_IncrementalRoleTombstone in worker_test.go).
 //
@@ -19,9 +19,8 @@ import (
 // validator chain — without needing to spin up the httptest fake-upstream
 // sync harness. Runtime: <100ms vs. seconds for the httptest version.
 //
-// upstream: SEED-001 spike 2026-04-26 (260426-pms confirmed name=""
-// tombstones for the 6 folded entities; role="" on poc is the
-// symmetric case for v1.18.0 Phase 73).
+// Context: a 2026-04-26 investigation confirmed name="" tombstones for
+// the 6 folded entities; role="" on poc is the symmetric case (v1.18.0).
 func TestPoc_RoleEmptyAcceptedByValidator(t *testing.T) {
 	t.Parallel()
 	c := testutil.SetupClient(t)

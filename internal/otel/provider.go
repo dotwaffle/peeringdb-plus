@@ -1,6 +1,6 @@
 // Package otel initializes the OpenTelemetry trace, metric, and log pipelines.
 // It uses autoexport for environment-driven configuration of exporters,
-// supporting all standard OTEL_* env vars per D-07.
+// supporting all standard OTEL_* env vars.
 package otel
 
 import (
@@ -24,7 +24,7 @@ import (
 )
 
 // SetupInput holds configuration for initializing the OTel pipeline.
-// SampleRate controls trace sampling (0.0 to 1.0) per D-02.
+// SampleRate controls trace sampling (0.0 to 1.0).
 type SetupInput struct {
 	ServiceName string
 	SampleRate  float64
@@ -42,8 +42,8 @@ type SetupOutput struct {
 }
 
 // Setup initializes TracerProvider, MeterProvider, and LoggerProvider using
-// autoexport for environment-driven exporter selection per D-06, D-07.
-// Individual signals can be disabled via OTEL_*_EXPORTER=none per D-04.
+// autoexport for environment-driven exporter selection.
+// Individual signals can be disabled via OTEL_*_EXPORTER=none.
 func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	res, err := buildResource(ctx, in.ServiceName)
 	if err != nil {
@@ -54,7 +54,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 		return nil, fmt.Errorf("building metric resource: %w", err)
 	}
 
-	// TracerProvider with configurable sampling per D-02.
+	// TracerProvider with configurable sampling.
 	// Batching is enabled with SDK defaults (5s schedule delay, 512 max
 	// batch size); both tuneable via OTEL_BSP_SCHEDULE_DELAY and
 	// OTEL_BSP_MAX_EXPORT_BATCH_SIZE per the autoexport env interface.
@@ -179,7 +179,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	)
 	otel.SetMeterProvider(mp)
 
-	// LoggerProvider for OTel log pipeline per D-03.
+	// LoggerProvider for OTel log pipeline.
 	logExporter, err := autoexport.NewLogExporter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating log exporter: %w", err)
@@ -189,13 +189,13 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
 	)
 
-	// W3C TraceContext propagation per D-09.
+	// W3C TraceContext propagation.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	// Go runtime metrics (goroutines, memory, GC) per D-05.
+	// Go runtime metrics (goroutines, memory, GC).
 	if err := runtime.Start(runtime.WithMeterProvider(mp)); err != nil {
 		return nil, fmt.Errorf("starting runtime metrics: %w", err)
 	}
@@ -253,7 +253,7 @@ func defaultSamplerInput(in SetupInput) PerRouteSamplerInput {
 			"/rest/v1/":      in.SampleRate,
 			"/peeringdb.v1.": in.SampleRate,
 			"/graphql":       in.SampleRate,
-			// Health probes — unchanged (Phase 77 OBS-07).
+			// Health probes — unchanged.
 			"/healthz":                0.01,
 			"/readyz":                 0.01,
 			"/grpc.health.v1.Health/": 0.01,
@@ -266,9 +266,9 @@ func defaultSamplerInput(in SetupInput) PerRouteSamplerInput {
 }
 
 // buildResource creates an OTel resource with service name, version from
-// build info per D-08, and Fly.io environment attributes per D-10. Used
-// by TracerProvider and LoggerProvider so traces and logs keep per-VM
-// attribution via service.instance.id.
+// build info, and Fly.io environment attributes. Used by TracerProvider
+// and LoggerProvider so traces and logs keep per-VM attribution via
+// service.instance.id.
 func buildResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
 	return buildResourceFiltered(ctx, serviceName, true)
 }

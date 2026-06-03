@@ -243,9 +243,9 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 				// re-adding .Unique() to the field.
 				`field.String("name").
 			Unique()`,
-				// SEED-001 (active 2026-04-26): organizations.name must NOT have
-				// NotEmpty() — upstream tombstones arrive with PII-scrubbed
-				// name="" and the validator would reject them at upsert.
+				// organizations.name must NOT have NotEmpty() — upstream
+				// tombstones arrive with PII-scrubbed name="" and the
+				// validator would reject them at upsert.
 				`field.String("name").
 			NotEmpty()`,
 			},
@@ -263,10 +263,10 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 			},
 		},
 		{
-			// Phase 73 BUG-02: poc.role must NOT carry NotEmpty(). Upstream
+			// poc.role must NOT carry NotEmpty(). Upstream
 			// PeeringDB ?since= responses plausibly emit status='deleted' poc
 			// tombstones with PII-scrubbed role="" (same GDPR pattern that
-			// 260426-pms confirmed for name="" on the 6 folded entities). A
+			// confirmed for name="" on the 6 folded entities). A
 			// NotEmpty() validator on poc.role would reject those tombstones
 			// at the upsert builder, aborting incremental sync. Regression
 			// guard against accidentally re-introducing NotEmpty() on role.
@@ -336,14 +336,14 @@ func TestGenerateFieldCode(t *testing.T) {
 		notWantSub []string
 	}{
 		{
-			// SEED-001 (active 2026-04-26): the "name" field is intentionally
-			// emitted WITHOUT NotEmpty() because upstream PeeringDB ?since=
-			// emits status='deleted' tombstones with PII-scrubbed name="".
-			// A NotEmpty() validator would reject those tombstones at upsert
-			// and break incremental sync. NotEmpty() is preserved for "prefix"
-			// (ixprefix — structurally meaningful row identity, not PII).
-			// "role" is dropped from NotEmpty() emission as of Phase 73 BUG-02
-			// (symmetric drop for the next likely PII-scrub target on poc rows).
+			// The "name" field is intentionally emitted WITHOUT NotEmpty()
+			// because upstream PeeringDB ?since= emits status='deleted'
+			// tombstones with PII-scrubbed name="". A NotEmpty() validator
+			// would reject those tombstones at upsert and break incremental
+			// sync. NotEmpty() is preserved for "prefix" (ixprefix —
+			// structurally meaningful row identity, not PII). "role" is
+			// likewise dropped from NotEmpty() emission (symmetric drop for
+			// the next likely PII-scrub target on poc rows).
 			name: "name",
 			field: FieldDef{
 				Type:      "string",
@@ -359,7 +359,7 @@ func TestGenerateFieldCode(t *testing.T) {
 				`entrest.WithFilter(entrest.FilterGroupEqual`,
 			},
 			notWantSub: []string{
-				// SEED-001 regression guard mirroring the role case below:
+				// Regression guard mirroring the role case below:
 				// name must not regain NotEmpty() either. Match the literal
 				// emission shape `.\n\t\t\tNotEmpty()` produced by
 				// generateFieldCode (period+newline+three tabs+NotEmpty).
@@ -367,13 +367,12 @@ func TestGenerateFieldCode(t *testing.T) {
 			},
 		},
 		{
-			// Phase 73 BUG-02: poc.role is intentionally emitted WITHOUT
-			// NotEmpty() because upstream PeeringDB ?since= responses
-			// plausibly arrive with PII-scrubbed role="" on tombstones (same
-			// GDPR pattern empirically confirmed for name="" by the
-			// 260426-pms SEED-001 spike). Belt-and-braces drop — the
-			// validator would reject those tombstones at the sync upsert
-			// builder, aborting the cycle.
+			// poc.role is intentionally emitted WITHOUT NotEmpty() because
+			// upstream PeeringDB ?since= responses plausibly arrive with
+			// PII-scrubbed role="" on tombstones (same GDPR pattern
+			// empirically confirmed for name="" by the live spike).
+			// Belt-and-braces drop — the validator would reject those
+			// tombstones at the sync upsert builder, aborting the cycle.
 			name: "role",
 			field: FieldDef{
 				Type:      "string",
@@ -398,8 +397,8 @@ func TestGenerateFieldCode(t *testing.T) {
 			// Regression guard for ixprefix.prefix: it MUST retain its
 			// NotEmpty() validator. IP prefixes are structural row identity,
 			// not PII; upstream retains the prefix value on tombstones
-			// because the prefix IS the row's natural key. Out of scope per
-			// CONTEXT.md D-02 ("ixprefix.prefix retains its validator").
+			// because the prefix IS the row's natural key. Out of scope:
+			// ixprefix.prefix retains its validator.
 			name: "prefix",
 			field: FieldDef{
 				Type:     "string",
@@ -554,7 +553,7 @@ func TestToSnakeCase(t *testing.T) {
 func TestGenerateIndexes(t *testing.T) {
 	t.Parallel()
 
-	// Phase 74 D-01: replace the previous hand-maintained allow-list with a
+	// Replace the previous hand-maintained allow-list with a
 	// derivation-driven assertion. The expected index set comes from the same
 	// schema/peeringdb.json source the generator consumes; if a future schema
 	// edit introduces a new index rule, this test passes without an allow-list
@@ -689,7 +688,7 @@ func TestGenerateTypesFile(t *testing.T) {
 	}
 
 	src := string(code)
-	// Phase 59-04: SocialMedia moved to ent/schematypes to break an
+	// SocialMedia moved to ent/schematypes to break an
 	// import cycle. types.go now only holds socialMediaSchema() (ogen)
 	// and a pointer comment; the value type is verified by
 	// ent/schematypes compile-time presence, not by string-matching

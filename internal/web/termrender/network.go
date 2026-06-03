@@ -19,7 +19,7 @@ var rsBadge = lipgloss.NewStyle().Foreground(ColorSuccess).Render("[RS]")
 
 // RenderNetworkDetail renders a network entity as whois-style terminal output
 // with colored speed tiers, policy badges, RS indicators, and navigable
-// cross-references. (RND-02, RND-14, RND-16, D-01 through D-09)
+// cross-references.
 func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail) error {
 	var buf strings.Builder
 	buf.Grow(len(data.IXPresences)*120 + len(data.FacPresences)*80 + 500)
@@ -172,7 +172,7 @@ func FormatSpeed(mbps int) string {
 
 // FormatBandwidth formats aggregate bandwidth in Mbps as a human-readable string.
 // Returns "1.5 Tbps" for >= 1M, "10 Gbps" for >= 1000, "500 Mbps" otherwise.
-// Matches the web UI's formatAggregateBW. (RND-15)
+// Matches the web UI's formatAggregateBW.
 func FormatBandwidth(mbps int) string {
 	switch {
 	case mbps >= 1_000_000:
@@ -184,7 +184,7 @@ func FormatBandwidth(mbps int) string {
 	}
 }
 
-// SpeedStyle returns a lipgloss style colored by port speed tier. (RND-12)
+// SpeedStyle returns a lipgloss style colored by port speed tier.
 // Matches web UI tiers: sub-1G gray, 1G neutral, 10G blue, 100G emerald, 400G+ amber.
 func SpeedStyle(mbps int) lipgloss.Style {
 	switch {
@@ -201,7 +201,7 @@ func SpeedStyle(mbps int) lipgloss.Style {
 	}
 }
 
-// PolicyStyle returns styled text for a peering policy value. (RND-13, D-03)
+// PolicyStyle returns styled text for a peering policy value.
 // Open=green (ColorPolicyOpen), Selective=yellow (ColorPolicySelective),
 // Restrictive=red (ColorPolicyRestrictive), others=default value style.
 func PolicyStyle(policy string) string {
@@ -218,7 +218,7 @@ func PolicyStyle(policy string) string {
 	}
 }
 
-// CrossRef formats an inline cross-reference path styled with StyleLink. (RND-16, D-08)
+// CrossRef formats an inline cross-reference path styled with StyleLink.
 // Example output: "[/ui/ix/31]" with link styling.
 func CrossRef(path string) string {
 	return StyleLink.Render("[" + path + "]")
@@ -259,7 +259,7 @@ func styledMuted(s string) string {
 	return StyleMuted.Render(sanitizeUpstream(s))
 }
 
-// writeKV writes a labeled key-value pair with right-aligned label. (D-01)
+// writeKV writes a labeled key-value pair with right-aligned label.
 // Labels are right-padded to labelWidth for column alignment.
 // Empty values are omitted.
 func writeKV(buf *strings.Builder, label, value string, labelWidth int) {

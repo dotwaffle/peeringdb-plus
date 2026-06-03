@@ -23,7 +23,7 @@ cold-sync from the primary on boot.
   no volume), and an HTTP health check on `GET /healthz` every 15s.
 - `Dockerfile.prod` — LiteFS-aware production image. Chainguard
   `glibc-dynamic` runtime with `fuse3` and `sqlite` (CLI for incident
-  response — see [Incident-response debug shell](#sync-memory-watch-seed-001))
+  response — see [Incident-response debug shell](#sync-memory-watch))
   installed, copies the LiteFS 0.5 binary from `flyio/litefs:0.5`, copies
   `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point, and
   sets `ENTRYPOINT ["litefs", "mount"]`. The application binary is built
@@ -58,8 +58,7 @@ and on pushes to `main`. It comprises five jobs:
    but **not pushed** from CI.
 
 There is no automated deploy step. Deployment to Fly.io is a manual action
-run from a developer workstation (per the `D-22` decision recorded in
-`fly.toml`).
+run from a developer workstation, as documented in `fly.toml`.
 
 ## Environment setup
 
@@ -151,8 +150,9 @@ Standard `OTEL_*` environment variables apply via the
 `internal/otel/provider.go`. See [Monitoring](#monitoring) below.
 
 The default sync mode is `incremental` (flipped from `full` on 2026-04-26
-post-SEED-001 — see [CONFIGURATION.md](CONFIGURATION.md#sync-mode) for the
-full rationale). Set `PDBPLUS_SYNC_MODE=full` only as an operator
+once upstream deletion tombstones were confirmed — see
+[CONFIGURATION.md](CONFIGURATION.md#sync-mode) for the full rationale). Set
+`PDBPLUS_SYNC_MODE=full` only as an operator
 escape-hatch (first-sync hydration, recovery from a corrupt incremental
 state).
 
@@ -294,7 +294,7 @@ environment variables documented at
 - `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`,
   `OTEL_EXPORTER_OTLP_PROTOCOL` for OTLP export.
 - `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER`
-  (set to `none` to disable a signal per D-04).
+  (set to `none` to disable a signal).
 - `OTEL_EXPORTER_PROMETHEUS_HOST` / `OTEL_EXPORTER_PROMETHEUS_PORT` for
   scrape-based metrics.
 - `PDBPLUS_OTEL_SAMPLE_RATE` (app-specific) for the trace sampling ratio.
@@ -306,21 +306,21 @@ for self-hosted Grafana instances. Production alert rules live in
 `mimirtool rules sync` (see `deploy/grafana/alerts/README.md` for the
 workflow). <!-- VERIFY: production Grafana / Mimir tenant target for `mimirtool rules sync` is operator-specific and not encoded in the repository -->
 
-### Sync memory watch (SEED-001)
+### Sync memory watch
 
 Every sync cycle, the worker samples `runtime.MemStats.HeapInuse` and (on Linux) `/proc/self/status` VmHWM, attaches both as OTel span attrs (`pdbplus.sync.peak_heap_bytes`, `pdbplus.sync.peak_rss_bytes`) on the `sync-full` / `sync-incremental` span, and fires `slog.Warn("heap threshold crossed", ...)` when either breaches its configured threshold. The same values are exported as Prometheus gauges (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`) for dashboard timeseries. Bytes is the canonical Prom unit (per the 2026-04-26 audit unit canonicalisation); Grafana formats MiB / GiB at render time.
 
-Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Defaults sit under the Fly 512 MB VM cap with margin so the order under pressure is: log → app crash → Fly OOM-kill. Zero disables the warn for that metric (attrs still fire). A sustained breach of `PDBPLUS_HEAP_WARN_MIB` re-fires the SEED-001 trigger.
+Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384). Defaults sit under the Fly 512 MB VM cap with margin so the order under pressure is: log → app crash → Fly OOM-kill. Zero disables the warn for that metric (attrs still fire). A sustained breach of `PDBPLUS_HEAP_WARN_MIB` is the operational signal to re-evaluate the incremental-sync defaults.
 
-**Dashboard.** The `Sync Memory (SEED-001 watch)` row in `deploy/grafana/dashboards/pdbplus-overview.json` contains three panels:
+**Dashboard.** The `Sync Memory` row in `deploy/grafana/dashboards/pdbplus-overview.json` contains three panels:
 
 - `Peak Heap` — threshold line at 400 MiB (Grafana auto-formats MiB / GiB from the `bytes` field unit)
 - `Peak RSS` — threshold line at 384 MiB
-- `Live Heap by Instance` — sourced from the `go_memory_used_bytes` OTel runtime gauge, plots all fleet machines (primary + replicas) post-Phase-65 asymmetric fleet
+- `Live Heap by Instance` — sourced from the `go_memory_used_bytes` OTel runtime gauge, plots all fleet machines (primary + replicas) across the asymmetric fleet
 
-**SEED-001 escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, the SEED-001 incremental-sync-evaluation trigger has fired — revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work. Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB. <!-- VERIFY: post-incremental-flip (2026-04-26) memory baseline has not yet been captured into the repository -->
+**Memory escalation.** If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync cycles, treat it as the operational signal to re-evaluate the sync strategy — revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance prerequisite work. Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB. <!-- VERIFY: post-incremental-flip (2026-04-26) memory baseline has not yet been captured into the repository -->
 
-**Incident-response debug shell (OBS-04).** The prod image ships with the `sqlite3` binary (added 2026-04-18, quick task `260418-1cn`; declared in `Dockerfile.prod` via `apk add --no-cache fuse3 sqlite`). Run interactive queries via:
+**Incident-response debug shell.** The prod image ships with the `sqlite3` binary (added 2026-04-18; declared in `Dockerfile.prod` via `apk add --no-cache fuse3 sqlite`). Run interactive queries via:
 
     fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
 

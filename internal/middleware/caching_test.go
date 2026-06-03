@@ -278,7 +278,7 @@ func TestCachingETagChangesWithSyncTime(t *testing.T) {
 
 // TestCaching_ETagAtomicSwap proves that calling UpdateETag with a new sync
 // timestamp between two GETs changes the ETag returned to subsequent requests.
-// This is the PERF-07 core contract: one UpdateETag call -> next Load observes
+// This is the core contract: one UpdateETag call -> next Load observes
 // the new value. Regression-locks the atomic.Pointer swap semantics.
 func TestCaching_ETagAtomicSwap(t *testing.T) {
 	t.Parallel()

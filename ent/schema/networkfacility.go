@@ -36,7 +36,7 @@ func (NetworkFacility) Fields() []ent.Field {
 		field.Int("local_asn").
 			Comment("Local ASN"),
 
-		// Computed fields (from serializer, stored per D-40)
+		// Computed fields (from serializer)
 		field.String("name").
 			Optional().
 			Default("").

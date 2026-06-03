@@ -91,7 +91,7 @@ func applyNetworkFacilityStreamFilters(req *pb.StreamNetworkFacilitiesRequest) (
 }
 
 // ListNetworkFacilities returns a paginated list of network facilities under
-// the compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// the compound default order (-updated, -created, -id).
 func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req *pb.ListNetworkFacilitiesRequest) (*pb.ListNetworkFacilitiesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.NetworkFacility, pb.NetworkFacility]{
 		EntityName: "networkfacilities",

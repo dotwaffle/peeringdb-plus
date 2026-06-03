@@ -1,4 +1,4 @@
-// Quick task 260428-mu0 cursor tests. Mirrors the structure of
+// Cursor tests. Mirrors the structure of
 // initialcounts_test.go — both files exercise raw-SQL paths against the
 // underlying *sql.DB outside ent.
 

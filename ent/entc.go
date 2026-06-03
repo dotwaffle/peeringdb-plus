@@ -92,15 +92,15 @@ func main() {
 		// the sync worker can run `PRAGMA defer_foreign_keys = ON` on the
 		// SAME connection as the writes (the previous connection-level
 		// `PRAGMA foreign_keys = OFF` was silently non-functional because
-		// the ent tx pulled a fresh pool connection). See Phase 54-01 Commit B.
+		// the ent tx pulled a fresh pool connection).
 		//
 		// "privacy" enables ent's privacy package (see entgo.io/docs/privacy):
 		// per-schema Policy() methods + DecisionContext bypass. Required for
-		// Phase 59 VIS-04/VIS-05. Do NOT add "entql" — the typed
+		// the per-schema row-level visibility rules. Do NOT add "entql" — the typed
 		// PocQueryRuleFunc adapter is sufficient; EntQL dynamic filters are
 		// not required for our row-level visibility rule.
 		entc.FeatureNames("sql/upsert", "sql/execquery", "privacy"),
-		// Phase 67 D-07: project-local override of entrest's `rest/sorting`
+		// Project-local override of entrest's `rest/sorting`
 		// template. Injects a compound (_field, FieldCreated, FieldID)
 		// tie-break into applySorting<Type> when _field matches the entity's
 		// declared DefaultField, so REST default ORDER BY matches pdbcompat
@@ -130,7 +130,7 @@ func main() {
 // entrest's funcmap on the template before parsing. This is required because
 // our project-local override of entrest's sorting.tmpl uses entrest-provided
 // template funcs (getAnnotation, getSortableFields) which aren't in ent's
-// default funcmap. See Phase 67 Plan 02.
+// default funcmap.
 func entrestSortingOverride(path string) entc.Option {
 	return func(cfg *gen.Config) error {
 		t := gen.NewTemplate("entrest-override").Funcs(entrest.FuncMaps())

@@ -17,9 +17,9 @@ import (
 // created/updated fields.
 var Timestamp = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
-// Phase 64 (VIS-09) Plan 02: deterministic ixlan IDs for the
-// field-level privacy seed fixture. Plan 03's E2E imports these
-// constants to target the gated vs always-admit rows precisely.
+// Deterministic ixlan IDs for the field-level privacy seed fixture.
+// The field-privacy E2E imports these constants to target the gated
+// vs always-admit rows precisely.
 const (
 	// IxLanGatedID is the ixlan row with ixf_ixp_member_list_url_visible
 	// set to "Users" (URL populated). Anon callers must NOT see the URL;
@@ -43,10 +43,10 @@ type Result struct {
 	Carrier   *ent.Carrier
 	IxLan     *ent.IxLan
 	// IxLanPublic is the second ixlan (id=101) seeded by Full: URL
-	// populated with ixf_ixp_member_list_url_visible="Public". Phase 64
-	// (VIS-09) Plan 02 revision mandates two rows so Plan 03's E2E
-	// coverage can exercise both the always-admit (Public) path and the
-	// gated (Users) path against real seed data.
+	// populated with ixf_ixp_member_list_url_visible="Public". Two rows
+	// are required so the field-privacy E2E coverage can exercise both
+	// the always-admit (Public) path and the gated (Users) path against
+	// real seed data.
 	IxLanPublic     *ent.IxLan
 	IxPrefix        *ent.IxPrefix
 	NetworkIxLan    *ent.NetworkIxLan
@@ -149,9 +149,9 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 
 	// IxLan (depends on IX).
 	//
-	// Phase 64 (VIS-09) Plan 02: this primary row is the Users-gated case.
-	// Plan 03's E2E will assert that an anon caller does NOT see the URL
-	// and a Users-tier caller DOES. Constant IxLanGatedID = 100.
+	// This primary row is the Users-gated case. The field-privacy E2E
+	// asserts that an anon caller does NOT see the URL and a Users-tier
+	// caller DOES. Constant IxLanGatedID = 100.
 	r.IxLan, err = client.IxLan.Create().
 		SetID(IxLanGatedID).
 		SetIxID(r.IX.ID).SetInternetExchange(r.IX).
@@ -163,9 +163,9 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 		tb.Fatalf("seed: create IxLan: %v", err)
 	}
 
-	// Phase 64 (VIS-09) Plan 02: second ixlan row for the always-admit
-	// Public case. Plan 03's E2E will assert BOTH tiers see this URL,
-	// proving the privfield helper does not over-redact.
+	// Second ixlan row for the always-admit Public case. The
+	// field-privacy E2E asserts BOTH tiers see this URL, proving the
+	// privfield helper does not over-redact.
 	// Constant IxLanPublicID = 101.
 	r.IxLanPublic, err = client.IxLan.Create().
 		SetID(IxLanPublicID).
@@ -275,16 +275,16 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 	}
 
 	// Users-tier POCs created via privacy bypass. These exercise the
-	// phase 59 ent Privacy policy: anonymous reads MUST filter these
-	// rows; TierUsers / sync-bypass reads MUST admit them.
+	// ent Privacy policy: anonymous reads MUST filter these rows;
+	// TierUsers / sync-bypass reads MUST admit them.
 	// IDs 9000+ keep these greppable and segregated from Public POC
-	// IDs (< 1000) so Plan 02 assertions can target them precisely.
+	// IDs (< 1000) so visibility assertions can target them precisely.
 	//
 	// The bypass audit (internal/sync/bypass_audit_test.go) exempts
 	// the internal/testutil subtree — testutil is test-only infrastructure
 	// that never ships in production binaries (nothing outside *_test.go
 	// imports it), and this seed mirrors the runtime sync-writer's
-	// bypass pattern so Plan 02-05 assertions exercise a realistic mix.
+	// bypass pattern so visibility assertions exercise a realistic mix.
 	bypass := privacy.DecisionContext(ctx, privacy.Allow)
 
 	r.UsersPoc, err = client.Poc.Create().
@@ -313,11 +313,12 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 
 	r.AllPocs = []*ent.Poc{r.Poc, r.UsersPoc, r.UsersPoc2}
 
-	// Phase 70 traversal fixtures — deterministic rows referenced by name
-	// and ID from internal/pdbcompat/traversal_e2e_test.go and the Phase
-	// 68/69 regression guards in handler_test.go. High-ID range (8000+)
-	// avoids collision with the pre-existing 13-entity fixtures so any
-	// caller reading r.Org (id=1), r.Network (id=10), etc. is unaffected.
+	// Traversal fixtures — deterministic rows referenced by name
+	// and ID from internal/pdbcompat/traversal_e2e_test.go and the
+	// status-matrix / fold-routing regression guards in handler_test.go.
+	// High-ID range (8000+) avoids collision with the pre-existing
+	// 13-entity fixtures so any caller reading r.Org (id=1),
+	// r.Network (id=10), etc. is unaffected.
 	//
 	// Layout:
 	//   org 8001 "TestOrg1"
@@ -326,18 +327,18 @@ func Full(tb testing.TB, client *ent.Client) *Result {
 	//   ixlan 8001 (owner: ix 8001)
 	//   fac 8001 "TestFac1-Campus" (owner: org 8001, campus: campus 8001)
 	//   net 8001 "TestNet1-Zurich" (owner: org 8001) — ASCII fold check
-	//   net 8002 "Zürich GmbH" (owner: org 8001) — UNICODE-01 fold check
-	//   net 8003 "DeletedNet" (owner: org 8001, status="deleted") — STATUS matrix
+	//   net 8002 "Zürich GmbH" (owner: org 8001) — Unicode fold check
+	//   net 8003 "DeletedNet" (owner: org 8001, status="deleted") — status matrix
 	//
-	// Naming follows the Phase 70 contract:
+	// Naming contract:
 	//   - "TestOrg1" is the org used to target traversal filter rows via
 	//     ?org__name=TestOrg1. Only rows under this org appear in traversal
 	//     results; the pre-existing "Test Organization" (id=1) fixture is
 	//     a separate tenant, so traversal tests scoped to TestOrg1 don't
-	//     collide with Phase 58/60 visibility tests that target org=1.
+	//     collide with visibility tests that target org=1.
 	//   - name_fold values are set explicitly (sync-bypass path) because
 	//     direct ent.Create skips the upsert builder that would normally
-	//     populate <field>_fold (Phase 69 Plan 03).
+	//     populate <field>_fold.
 	_, err = client.Organization.Create().
 		SetID(8001).
 		SetName("TestOrg1").

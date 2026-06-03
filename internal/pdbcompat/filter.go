@@ -19,7 +19,7 @@ import (
 
 // errEmptyIn is a sentinel returned by buildIn when an __in filter has no
 // values (e.g. ?asn__in=). ParseFilters catches it and short-circuits the
-// whole request via QueryOptions.EmptyResult (Phase 69 D-06, IN-02).
+// whole request via QueryOptions.EmptyResult.
 var errEmptyIn = errors.New("empty __in")
 
 // parseFieldOp splits a filter parameter key into relation segments, final
@@ -28,9 +28,9 @@ var errEmptyIn = errors.New("empty __in")
 //	[<relation>__]* <field> [__<op>]
 //
 // Returns the full split (never truncates); the caller is responsible for
-// enforcing the 2-hop cap per Phase 70 D-04. A len(relationSegments) > 2
+// enforcing the 2-hop cap. A len(relationSegments) > 2
 // return value is a signal that the key is too deep to traverse — caller
-// MUST treat as unknown per D-04/D-05.
+// MUST treat as unknown.
 //
 // The operator suffix is detected by matching the LAST segment against a
 // fixed set of known operators (isKnownOperator). Segments that look like
@@ -65,7 +65,7 @@ func parseFieldOp(key string) (relationSegments []string, finalField string, op 
 // segment after "__" (e.g. parent column names like "info_prefixes4").
 //
 // The list mirrors the operator switch in buildPredicate plus the case-
-// insensitive variants produced by coerceToCaseInsensitive (Phase 69).
+// insensitive variants produced by coerceToCaseInsensitive.
 func isKnownOperator(suffix string) bool {
 	switch suffix {
 	case "contains", "icontains",
@@ -82,7 +82,7 @@ func isKnownOperator(suffix string) bool {
 // for list requests. sinceSet=false => status=ok (rest.py:725); sinceSet=true
 // => status IN (ok, deleted), plus pending when isCampus (rest.py:700-712).
 // Always returns a non-nil predicate — every list request needs a status
-// filter per Phase 68 D-05/D-07.
+// filter.
 func applyStatusMatrix(isCampus, sinceSet bool) func(*sql.Selector) {
 	if !sinceSet {
 		return sql.FieldEQ("status", "ok")
@@ -96,9 +96,9 @@ func applyStatusMatrix(isCampus, sinceSet bool) func(*sql.Selector) {
 
 // coerceToCaseInsensitive maps the subset of operators that upstream
 // rest.py:638-641 forces to case-insensitive variants. Non-matching operators
-// pass through unchanged per D-04 (scope: contains + startswith only).
+// pass through unchanged (scope: contains + startswith only).
 //
-// Phase 69 UNICODE-02. The coercion is purely nominal — the existing
+// The coercion is purely nominal — the existing
 // buildContains / buildStartsWith paths already route through
 // sql.FieldContainsFold / sql.FieldHasPrefixFold, which are case-insensitive
 // at the SQL layer. Renaming the op here keeps the semantic contract
@@ -115,7 +115,7 @@ func coerceToCaseInsensitive(op string) string {
 }
 
 // unknownFieldsCtxKey is an unexported context key used by ParseFiltersCtx
-// to record filter params whose fields don't resolve (per Phase 70 D-05).
+// to record filter params whose fields don't resolve.
 // Retrieved via UnknownFieldsFromCtx at the handler layer for OTel span
 // attribute + slog.DebugContext emission.
 type unknownFieldsCtxKey struct{}
@@ -126,7 +126,7 @@ type unknownFieldsCtxKey struct{}
 //
 // Ctx threading (rather than a return slice) keeps ParseFilters' existing
 // return signature stable and avoids churning every call site that passes
-// params straight through to ent (Phase 70 D-05).
+// params straight through to ent.
 func WithUnknownFields(ctx context.Context) context.Context {
 	return context.WithValue(ctx, unknownFieldsCtxKey{}, &[]string{})
 }
@@ -153,7 +153,7 @@ func appendUnknown(ctx context.Context, key string) {
 
 // ParseFilters translates Django-style query parameters into ent sql.Selector
 // predicates. Reserved parameters (limit, skip, etc.) are skipped. Unknown
-// fields are silently ignored per D-20 + Phase 70 D-05 / TRAVERSAL-04.
+// fields are silently ignored.
 //
 // Calls ParseFiltersCtx with context.Background — unknown fields are
 // discarded rather than surfaced. Production handlers MUST use
@@ -163,14 +163,14 @@ func appendUnknown(ctx context.Context, key string) {
 //   - preds: the predicate slice to pass to ent as Where arguments
 //   - emptyResult: true when an __in filter was empty (?asn__in=); the caller
 //     MUST short-circuit the whole request and emit an empty data array
-//     without running SQL (Phase 69 D-06, IN-02)
+//     without running SQL
 //   - err: set only for known fields with invalid values / operators
 func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
 	return ParseFiltersCtx(context.Background(), params, tc)
 }
 
-// ParseFiltersCtx is the context-aware filter parser introduced by Phase 70
-// D-05. Unknown filter fields (including over-cap traversal keys per D-04)
+// ParseFiltersCtx is the context-aware filter parser.
+// Unknown filter fields (including over-cap traversal keys)
 // are silently ignored for the HTTP response AND appended to the ctx-attached
 // accumulator so operators can observe them via slog.DebugContext + OTel.
 //
@@ -178,9 +178,9 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //  1. Path A: Allowlists[tc.Name].Direct or .Via exact match
 //  2. Path B: LookupEdge + TargetFields introspection
 //
-// Keys with len(relSegs) > 2 are silently rejected per D-04.
+// Keys with len(relSegs) > 2 are silently rejected.
 //
-// Phase 68 (status matrix) and Phase 69 (_fold routing, empty __in) invariants
+// The status matrix and the _fold-routing / empty-__in invariants
 // are preserved: traversal predicates wrap around buildPredicate which still
 // consults FoldedFields on the target TypeConfig, and the empty-__in
 // emptyResult sentinel bubbles back up from subquery construction.
@@ -206,7 +206,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if len(relSegs) == 0 && reservedParams[field] {
 			continue
 		}
-		// D-04 hard cap: >2 relation segments is silently rejected.
+		// Hard cap: >2 relation segments is silently rejected.
 		if len(relSegs) > 2 {
 			appendUnknown(ctx, key)
 			continue
@@ -219,7 +219,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		}
 
 		if len(relSegs) == 0 {
-			// Direct local field path — pre-Phase-70 behaviour.
+			// Direct local field path — the original local-field behaviour.
 			p, emptyResult, ok, err := buildLocalPredicate(field, op, value, tc)
 			if err != nil {
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
@@ -252,7 +252,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 	return predicates, false, nil
 }
 
-// buildLocalPredicate extracts the pre-Phase-70 local-field behaviour into a
+// buildLocalPredicate extracts the original local-field behaviour into a
 // helper returning a uniform (predicate, emptyResult, ok, err) shape so
 // ParseFiltersCtx can treat local and traversal paths symmetrically.
 //
@@ -275,7 +275,7 @@ func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Sele
 }
 
 // buildTraversalPredicate resolves a 1-hop or 2-hop cross-entity filter.
-// relSegs has len 1 or 2 (caller enforced D-04 cap). Resolution order is
+// relSegs has len 1 or 2 (caller enforced the 2-hop cap). Resolution order is
 // Path A (Allowlists) first, then Path B (LookupEdge introspection).
 //
 // Return shape mirrors buildLocalPredicate:
@@ -296,9 +296,9 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 	// we fall through to Path B rather than short-circuit the key to
 	// silent-ignore — otherwise an allowlist entry whose first segment
 	// happens to also be a valid Path B TraversalKey on a different
-	// schema could suppress a resolution that would have worked
-	// (Phase 70 REVIEW WR-03). Hard errors (emptyResult, conversion
-	// err) still propagate immediately.
+	// schema could suppress a resolution that would have worked.
+	// Hard errors (emptyResult, conversion err) still propagate
+	// immediately.
 	entry, hasAllowlist := Allowlists[tc.Name]
 	if hasAllowlist {
 		if len(relSegs) == 1 {
@@ -361,10 +361,10 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 //	    SELECT child.<ParentFKColumn> FROM <TargetTable> WHERE <inner>
 //	)
 //
-// All SQL identifiers come from the codegen-emitted EdgeMetadata (Plan 70-04)
+// All SQL identifiers come from the codegen-emitted EdgeMetadata
 // — never from user input. The inner predicate is produced by the existing
-// buildPredicate path on the target TypeConfig, so Phase 69 _fold routing
-// and Phase 69 empty-__in sentinels apply at the target entity.
+// buildPredicate path on the target TypeConfig, so _fold routing
+// and empty-__in sentinels apply at the target entity.
 //
 // Parent-side PK is always "id" for every PeeringDB entity — an invariant
 // baked into the schema generator; no entity overrides its ID column.
@@ -482,7 +482,7 @@ const parentPKColumn = "id"
 //	    )
 //	)
 //
-// Hard-capped at 2 hops per D-04. Identifiers from two EdgeMetadata lookups;
+// Hard-capped at 2 hops. Identifiers from two EdgeMetadata lookups;
 // values bind via the innermost buildPredicate. Parent PK is always "id"
 // (see parentPKColumn — schema generator invariant).
 func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
@@ -562,7 +562,7 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 // buildPredicate maps a field, operator, raw value, and field type to an ent
 // sql.Selector predicate function. folded=true indicates the field has a
 // sibling <field>_fold column — string predicates route to it with a
-// unifold.Fold(value) RHS for diacritic-insensitive matching (UNICODE-01).
+// unifold.Fold(value) RHS for diacritic-insensitive matching.
 func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
 	op = coerceToCaseInsensitive(op)
 	switch op {
@@ -592,8 +592,8 @@ func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*s
 }
 
 // buildExact builds a predicate for exact match. String fields use
-// case-insensitive matching per D-10. When folded=true, string matches go
-// through the <field>_fold column with unifold.Fold(value) (UNICODE-01).
+// case-insensitive matching. When folded=true, string matches go
+// through the <field>_fold column with unifold.Fold(value).
 func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
 	switch ft {
 	case FieldString:
@@ -630,9 +630,9 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 	}
 }
 
-// buildContains builds a case-insensitive contains predicate per D-10.
+// buildContains builds a case-insensitive contains predicate.
 // folded=true routes to the <field>_fold column with unifold.Fold(value) for
-// diacritic-insensitive matching (UNICODE-01).
+// diacritic-insensitive matching.
 func buildContains(field, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
 	if ft != FieldString {
 		return nil, fmt.Errorf("contains operator not supported on non-string field %q", field)
@@ -643,9 +643,9 @@ func buildContains(field, value string, ft FieldType, folded bool) (func(*sql.Se
 	return sql.FieldContainsFold(field, value), nil
 }
 
-// buildStartsWith builds a case-insensitive prefix match predicate per D-10.
+// buildStartsWith builds a case-insensitive prefix match predicate.
 // folded=true routes to the <field>_fold column with unifold.Fold(value) for
-// diacritic-insensitive matching (UNICODE-01).
+// diacritic-insensitive matching.
 func buildStartsWith(field, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
 	if ft != FieldString {
 		return nil, fmt.Errorf("startswith operator not supported on non-string field %q", field)
@@ -661,10 +661,10 @@ func buildStartsWith(field, value string, ft FieldType, folded bool) (func(*sql.
 // than expanding to N `?` placeholders. This bypasses SQLite's
 // SQLITE_MAX_VARIABLE_NUMBER limit regardless of the compiled default
 // (modernc.org/sqlite v1.48.2 = 32766) and keeps the query plan stable
-// at any list size (Phase 69 D-05, IN-01).
+// at any list size.
 //
 // An empty value (?asn__in=) returns errEmptyIn which ParseFilters
-// translates to QueryOptions.EmptyResult=true (Phase 69 D-06, IN-02).
+// translates to QueryOptions.EmptyResult=true.
 func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 	if value == "" {
 		return nil, errEmptyIn
@@ -744,7 +744,7 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 		// s.C(field) quotes the column identifier via the ent builder —
 		// the column name itself is already validated against tc.Fields
 		// by ParseFilters, so no injection surface. The JSON payload
-		// binds as a single parameter via ExprP (T-69-04-01 mitigation).
+		// binds as a single parameter via ExprP (SQL-injection mitigation).
 		s.Where(sql.ExprP(s.C(field)+" IN (SELECT value FROM json_each(?))", jsonStr))
 	}, nil
 }
@@ -791,7 +791,7 @@ func parseBool(s string) (bool, error) {
 	}
 }
 
-// parseTime converts a Unix timestamp string to time.Time per D-15.
+// parseTime converts a Unix timestamp string to time.Time.
 func parseTime(s string) (time.Time, error) {
 	epoch, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
