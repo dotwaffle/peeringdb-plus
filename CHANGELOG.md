@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Historical release notes prior to v1.16 are preserved in the project's
 Git history (tags `v1.0.0` through `v1.15.0`).
 
+## [Unreleased]
+
+### Added
+
+- **Per-entity status×since matrix regression test** covering all 13
+  PeeringDB types (previously only `net` + `campus` had behavioural
+  coverage), guarding against a per-entity wiring omission that would
+  leak `deleted`/`pending` rows onto the anonymous `/api` list surface.
+
 ## [1.19.0] — 2026-05-31
 
 _v1.17 and v1.18.x shipped as incremental patch work that was not
