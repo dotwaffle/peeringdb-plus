@@ -189,6 +189,42 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 		}
 	})
 
+	// Stream surface: the StreamIxLans Convert closure captures the
+	// handler ctx by reference (Phase 64 adapter); this asserts the
+	// captured tier reaches privfield.Redact so the gated URL is blanked
+	// on the streaming path, not just the unary Get/List paths.
+	t.Run("connectrpc/stream", func(t *testing.T) {
+		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		stream, err := cl.StreamIxLans(t.Context(), &pbv1.StreamIxLansRequest{})
+		if err != nil {
+			t.Fatalf("StreamIxLans: %v", err)
+		}
+		defer func() { _ = stream.Close() }()
+		var gatedSeen, publicSeen bool
+		for stream.Receive() {
+			il := stream.Msg()
+			switch il.Id {
+			case int64(fix.gatedIxLanID):
+				gatedSeen = true
+				if il.IxfIxpMemberListUrl != nil {
+					t.Errorf("anon tier stream received url for gated row id=%d", il.Id)
+				}
+			case int64(fix.publicIxLanID):
+				publicSeen = true
+				if il.IxfIxpMemberListUrl == nil {
+					t.Errorf("public-visible row id=%d must admit url for all tiers", il.Id)
+				}
+			}
+		}
+		if err := stream.Err(); err != nil {
+			t.Fatalf("stream error: %v", err)
+		}
+		if !gatedSeen || !publicSeen {
+			t.Fatalf("expected both gated=%d and public=%d ixlan rows in stream, saw gated=%v public=%v",
+				fix.gatedIxLanID, fix.publicIxLanID, gatedSeen, publicSeen)
+		}
+	})
+
 	// D-03: surface-level fail-closed. Construct the request against the
 	// raw ConnectRPC handler (no middleware chain), so the ctx reaching
 	// the handler has no tier stamp. privfield.Redact MUST still blank
@@ -379,6 +415,37 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 		}
 		if !gatedSeen || !publicSeen {
 			t.Fatalf("users tier list missing rows: gated=%v public=%v", gatedSeen, publicSeen)
+		}
+	})
+
+	t.Run("connectrpc/stream", func(t *testing.T) {
+		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		stream, err := cl.StreamIxLans(t.Context(), &pbv1.StreamIxLansRequest{})
+		if err != nil {
+			t.Fatalf("StreamIxLans: %v", err)
+		}
+		defer func() { _ = stream.Close() }()
+		var gatedSeen, publicSeen bool
+		for stream.Receive() {
+			il := stream.Msg()
+			switch il.Id {
+			case int64(fix.gatedIxLanID):
+				gatedSeen = true
+				if got := il.IxfIxpMemberListUrl.GetValue(); got != e2eGatedIxlanURL {
+					t.Errorf("users tier, gated stream url = %q, want %q", got, e2eGatedIxlanURL)
+				}
+			case int64(fix.publicIxLanID):
+				publicSeen = true
+				if got := il.IxfIxpMemberListUrl.GetValue(); got != e2ePublicIxlanURL {
+					t.Errorf("users tier, public stream url = %q, want %q", got, e2ePublicIxlanURL)
+				}
+			}
+		}
+		if err := stream.Err(); err != nil {
+			t.Fatalf("stream error: %v", err)
+		}
+		if !gatedSeen || !publicSeen {
+			t.Fatalf("users tier stream missing rows: gated=%v public=%v", gatedSeen, publicSeen)
 		}
 	})
 

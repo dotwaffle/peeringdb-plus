@@ -5,8 +5,13 @@
 // category, keyed to upstream peeringdb/peeringdb pdb_api_test.py
 // citations (or documented `phaseXX-synthesised` markers per
 // the project history D-05).
-// Fixtures come from internal/testutil/parity/fixtures.go (ported via
-// cmd/pdb-fixture-port per Phase 72 plans 72-01..03).
+//
+// Each test seeds its own clean rows inline (via the ent client) and
+// cites the upstream source line in a comment; the assertions encode
+// the expected served response by hand. The earlier ported-fixture
+// pipeline (internal/testutil/parity + cmd/pdb-fixture-port) was
+// removed once it became clear the ports carried unseedable Python
+// source artefacts and were consumed by no behavioural test.
 //
 // Per Phase 72 D-06, parity tests run via the standard CI tier
 // (`go test -race ./...`) — no separate workflow. Any non-test file

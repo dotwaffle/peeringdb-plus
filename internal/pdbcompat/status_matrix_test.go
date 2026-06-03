@@ -267,3 +267,60 @@ func TestStatusMatrix(t *testing.T) {
 		}
 	})
 }
+
+// TestStatusMatrix_AllEntities asserts the Phase 68 status×since matrix is
+// wired into the list closure of EVERY one of the 13 entity types, with the
+// correct isCampus flag. The focused TestStatusMatrix above proves the
+// applyStatusMatrix function body against net + campus; this table-driven
+// test guards against a per-entity wiring omission — dropping the matrix
+// predicate, or flipping isCampus, in exactly one of the 13
+// registry_funcs.go closures — which would silently leak status=deleted
+// tombstones (or pending rows) onto the anonymous /api list surface for
+// that one type while leaving net + campus intact.
+//
+// Matrix (per applyStatusMatrix in filter.go):
+//   - no ?since        → status == "ok"            (deleted + pending hidden)
+//   - ?since=N, generic → status IN (ok, deleted)  (pending still hidden)
+//   - ?since=N, campus  → status IN (ok, deleted, pending)
+//
+// Each subtest seeds one ok + one deleted + one pending row of its type
+// (under freshly-seeded FK parents of OTHER types, which never appear on
+// the type's own list endpoint) in an isolated client.
+func TestStatusMatrix_AllEntities(t *testing.T) {
+	t.Parallel()
+
+	// Seeders + the entity table live in statusseed_test.go (shared with
+	// the depth PK status-matrix breadth test).
+	for _, e := range statusMatrixEntities {
+		t.Run(e.tag, func(t *testing.T) {
+			t.Parallel()
+			c := testutil.SetupClient(t)
+			seedStatusParentsFor(t, c, e.tag)
+			seedStatusRow(t, c, e.tag, 901, "ok")
+			seedStatusRow(t, c, e.tag, 902, "deleted")
+			seedStatusRow(t, c, e.tag, 903, "pending")
+
+			srv := httptest.NewServer(newMuxForOrdering(c))
+			t.Cleanup(srv.Close)
+
+			// No ?since: only the status=ok row. A missing matrix
+			// predicate would also return deleted (+pending) here.
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag); code != http.StatusOK || n != 1 {
+				t.Errorf("GET /api/%s (no since): got n=%d code=%d, want n=1 code=200 (only status=ok; deleted+pending must be hidden)",
+					e.tag, n, code)
+			}
+
+			// ?since=0: ok+deleted for generic types; +pending for campus.
+			// A flipped isCampus flag would change this count.
+			wantSince := 2
+			if e.isCampus {
+				wantSince = 3
+			}
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?since=0"); code != http.StatusOK || n != wantSince {
+				t.Errorf("GET /api/%s?since=0: got n=%d code=%d, want n=%d code=200 (isCampus=%v: pending %s)",
+					e.tag, n, code, wantSince, e.isCampus,
+					map[bool]string{true: "admitted", false: "hidden"}[e.isCampus])
+			}
+		})
+	}
+}

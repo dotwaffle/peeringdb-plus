@@ -181,13 +181,13 @@ See `docs/ARCHITECTURE.md § Response Memory Envelope` for budget, sizing table,
 
 ### Upstream parity regression
 
-`internal/pdbcompat/parity/` locks pdbcompat semantics via 6 category-split test files (`{ordering,status,limit,unicode,in,traversal}_test.go`) + `harness_helpers_test.go`. Fixtures from `internal/testutil/parity/fixtures.go`, ported by `cmd/pdb-fixture-port/` from upstream `pdb_api_test.py` — header records the pinned upstream commit SHA + source file `sha256:`.
+`internal/pdbcompat/parity/` locks pdbcompat semantics via 6 category-split test files (`{ordering,status,limit,unicode,in,traversal}_test.go`) + `harness_helpers_test.go`. Each test seeds its own clean rows **inline** via the ent client and cites the upstream source line in a comment. The earlier ported-fixture pipeline (`internal/testutil/parity` + `cmd/pdb-fixture-port`) was removed: the ports carried unseedable Python-source artefacts (`**kwargs` splats, `SHARED[...]` refs) and 5 of 6 slices had zero behavioural consumers, while the `--check` drift gate was wired into nothing.
 
-**Adding a parity test:** pick the category file by REQ-ID prefix, add a sub-test under `TestParity_<Category>` with `t.Parallel()` and a citation comment (`// upstream: pdb_api_test.py:<line>` or `// synthesised: phase-<NN>-<context>`). Seed via `seedFixtures(tb, client, parity.<Cat>Fixtures)` or harness helpers — do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
+**Adding a parity test:** pick the category file by REQ-ID prefix, add a sub-test under `TestParity_<Category>` with `t.Parallel()` and a citation comment (`// upstream: pdb_api_test.py:<line>` or `// synthesised: phase-<NN>-<context>`). Seed clean rows inline via `c.<Entity>.Create()` and the shared `harness_helpers_test.go` request/decode helpers (`newTestServer`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`) — do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
 
 **Divergence registry:** `docs/API.md § Known Divergences` is the SoT for intentional non-parity. Every entry has a matching `DIVERGENCE_<…>` sub-test. To add one: (1) write the parity test with `DIVERGENCE_` prefix, (2) append a Known Divergences row, (3) if it corrects a pdbfe-style claim, also append a Validation Notes row.
 
-`cmd/pdb-fixture-port/ --check` flags upstream drift (advisory, non-blocking). Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
+Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
 
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
@@ -298,7 +298,6 @@ Codegen tools (run by `go generate ./...`):
 - `cmd/pdb-schema-extract/` — extract PeeringDB API responses to JSON
 - `cmd/pdb-schema-generate/` — generate ent schemas from PeeringDB JSON
 - `cmd/pdb-compat-allowlist/` — emits `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`
-- `cmd/pdb-fixture-port/` — ports `pdb_api_test.py` rows into `internal/testutil/parity/fixtures.go`
 - `cmd/pdbcompat-check/` — validate PeeringDB API compatibility
 
 Operator tooling (NOT shipped in prod images, NOT invoked by CI):

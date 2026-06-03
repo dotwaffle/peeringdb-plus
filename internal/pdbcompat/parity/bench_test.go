@@ -28,10 +28,9 @@ package parity
 //	go test -run=^$ -bench=BenchmarkParity -benchtime=5x -count=6 \
 //	    ./internal/pdbcompat/parity/ | benchstat -
 //
-// The benchmarks share the parity harness (seedFixtures, newTestServer,
-// httpGet) which was widened from *testing.T to testing.TB in this
-// plan so the same setup works from both *testing.B and *testing.T
-// call sites.
+// The benchmarks share the parity harness (newTestServer, httpGet)
+// which was widened from *testing.T to testing.TB so the same setup
+// works from both *testing.B and *testing.T call sites.
 
 import (
 	"strconv"
@@ -40,7 +39,6 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
-	parityfix "github.com/dotwaffle/peeringdb-plus/internal/testutil/parity"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
@@ -203,18 +201,29 @@ func BenchmarkParity_LimitZeroStreaming(b *testing.B) {
 // the 999 cap) surfaces as a wall-clock spike and/or allocation
 // explosion before it reaches prod.
 //
-// Reuses InFixtures (parity fixture set Plan 72-03) via seedFixtures.
-// The InFixtures block holds network rows with IDs 100000..105000
-// inclusive (5001 rows); this benchmark queries the exact same range.
+// Seeds network rows with IDs 100000..105000 inclusive (5001 rows) —
+// the same range IN-01 (in_test.go) locks for correctness — and queries
+// the exact same range.
 func BenchmarkParity_InFiveThousandElements(b *testing.B) {
 	b.ReportAllocs()
 
 	c := testutil.SetupClient(b)
-	seedFixtures(b, c, parityfix.InFixtures)
+	ctx := b.Context()
+	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	const lo, hi = 100000, 105000 // matches in_test.go IN-01
+	for id := lo; id <= hi; id++ {
+		if _, err := c.Network.Create().
+			SetID(id).SetName("InBulk").SetNameFold(unifold.Fold("InBulk")).
+			SetAsn(4_300_000_000 + (id - lo)).SetStatus("ok").
+			SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			b.Fatalf("seed net id=%d: %v", id, err)
+		}
+	}
 
 	srv := newTestServer(b, c)
 
-	const lo, hi = 100000, 105000 // matches in_test.go IN-01
 	ids := make([]string, 0, hi-lo+1)
 	for id := lo; id <= hi; id++ {
 		ids = append(ids, strconv.Itoa(id))

@@ -251,6 +251,55 @@ func TestTransport_NormalAuthError403_NoRetry(t *testing.T) {
 	}
 }
 
+// forbiddenErrorBodyTransport returns a 403 whose Body errors on the first
+// Read, simulating a connection fault while the transport drains the body to
+// sniff for a WAF signature. errorReader is shared from client_test.go.
+type forbiddenErrorBodyTransport struct{}
+
+func (forbiddenErrorBodyTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: http.StatusForbidden,
+		Status:     "403 Forbidden",
+		Proto:      "HTTP/1.1",
+		Header:     make(http.Header),
+		Body:       errorReader{},
+	}, nil
+}
+
+// TestTransport_WAF403_BodyReadError covers the body-read failure path during
+// WAF sniffing on a 403: readAndRestoreBody's io.ReadAll error arm (close +
+// wrap "read response body") and RoundTrip's drainErr != nil return. Both were
+// untested — the existing WAF tests all serve fully-readable 403 bodies, and
+// TestFetchAll_BodyReadError replaces the whole transport and serves 200, so it
+// exercises the decode-path read error, not the WAF-sniff one.
+//
+// A read fault must abort the request with that error and MUST NOT be
+// misclassified as a WAF block (which would suppress retry on a transient
+// fault), so IsWAFBlocked must report false.
+func TestTransport_WAF403_BodyReadError(t *testing.T) {
+	t.Parallel()
+
+	tr := newRateLimitedTransport(forbiddenErrorBodyTransport{}, rate.NewLimiter(rate.Inf, 1), slog.Default())
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://example.invalid/api/org", nil)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
+
+	resp, err := tr.RoundTrip(req)
+	if err == nil {
+		t.Fatal("expected error when the 403 body errors during WAF sniff")
+	}
+	if resp != nil {
+		t.Errorf("resp = %v, want nil on body-read failure", resp)
+	}
+	if !strings.Contains(err.Error(), "read response body") {
+		t.Errorf("err = %q, want it to wrap %q", err, "read response body")
+	}
+	if IsWAFBlocked(err) {
+		t.Errorf("transient body-read fault misclassified as WAF block: %v", err)
+	}
+}
+
 // TestTransport_RateLimitSequencing asserts that concurrent goroutines
 // against a 2-RPS / burst-1 limiter serialise — at least the third
 // request must complete after ~1s of cumulative wait.

@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Historical release notes prior to v1.16 are preserved in the project's
 Git history (tags `v1.0.0` through `v1.15.0`).
 
+## [Unreleased]
+
+### Removed
+
+- **Ported parity-fixture pipeline (`internal/testutil/parity` +
+  `cmd/pdb-fixture-port`).** The ~55k lines of generated fixture data
+  carried unseedable Python-source artefacts and were consumed by no
+  behavioural test, and the `--check` drift command was wired into
+  neither CI nor the `go generate` drift gate. The
+  `internal/pdbcompat/parity` regression suite is unaffected: each test
+  already seeds clean rows inline via the ent client and cites the
+  upstream `pdb_api_test.py` source line in a comment.
+
+### Added
+
+- **Per-entity status×since matrix regression test** covering all 13
+  PeeringDB types (previously only `net` + `campus` had behavioural
+  coverage), guarding against a per-entity wiring omission that would
+  leak `deleted`/`pending` rows onto the anonymous `/api` list surface.
+- **`StreamIxLans` field-level redaction coverage** at both privacy
+  tiers, closing the one load-bearing redaction surface that had no
+  test for the gated `ixf_ixp_member_list_url` field.
+
 ## [1.19.0] — 2026-05-31
 
 _v1.17 and v1.18.x shipped as incremental patch work that was not

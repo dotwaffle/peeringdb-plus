@@ -21,9 +21,7 @@ Key test locations:
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
 | Phase 71 response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
-| Phase 72 parity tests | `internal/pdbcompat/parity/` | 6 category files + `harness_helpers_test.go` + `bench_test.go` |
-| Phase 72 parity fixtures | `internal/testutil/parity/fixtures.go` | 5560 rows ported from upstream `pdb_api_test.py` |
-| Fixture port tool | `cmd/pdb-fixture-port/` | Regenerates `internal/testutil/parity/fixtures.go` |
+| Phase 72 parity tests | `internal/pdbcompat/parity/` | 6 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
 | Benchmarks | `internal/pdbcompat/projection_bench_test.go`, `internal/pdbcompat/parity/bench_test.go` | `BenchmarkApplyFieldProjection`, `BenchmarkParity_*` |
 | Live gated tests | `*_live_test.go` | Require `-peeringdb-live` flag |
@@ -149,7 +147,7 @@ func TestNetworkLookup(t *testing.T) {
 Deterministic IDs are important because golden tests, handler tests, and grpcserver tests all
 assume the IDs and names produced by `seed.Full`. If you need a different shape, add a new
 helper rather than mutating `Full`. Phase 72 parity tests deliberately do **not** use
-`seed.Full` — they use the per-category helpers in `harness_helpers_test.go` to avoid
+`seed.Full` — each sub-test seeds the clean rows it needs inline via the ent client to avoid
 cross-test contamination (see [Phase 72 Parity Tests](#phase-72-parity-tests) below).
 
 ## Fixtures (`testdata/fixtures/`)
@@ -237,34 +235,24 @@ package is split into 6 category-specific test files plus shared infrastructure:
 | `unicode_test.go` | `TestParity_Unicode` | UNICODE REQ-IDs (Phase 69 fold-column routing) |
 | `in_test.go` | `TestParity_In` | IN REQ-IDs (large `__in` sets, empty-`__in` short-circuit) |
 | `traversal_test.go` | `TestParity_Traversal` | TRAVERSAL REQ-IDs (Phase 70 1-hop and 2-hop traversal) |
-| `harness_helpers_test.go` | (helpers only) | `seedFixtures(tb, client, fixtures)`, per-category seeders, request-builders |
+| `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring + response decoding; no seeders) |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
 
-### Fixtures (`internal/testutil/parity/fixtures.go`)
+### Seeding
 
-The parity tests are seeded from a generated file:
-
-- 5560 rows ported from upstream `peeringdb/peeringdb` commit
-  `99e92c726172ead7d224ce34c344eff0bccb3e63`, source path
-  `src/peeringdb_server/management/commands/pdb_api_test.py`.
-- Six exported category vars: `OrderingFixtures`, `StatusFixtures`, `LimitFixtures`,
-  `UnicodeFixtures`, `InFixtures`, `TraversalFixtures`.
-- The file header records the upstream commit SHA and the SHA256 of the source Python file so
-  drift can be detected across regenerations.
-
-Regenerate via `go generate ./internal/testutil/parity/`. The generator (`cmd/pdb-fixture-port/`)
-is idempotent: two runs against the same upstream produce byte-identical output. It accepts
-`--upstream-commit <sha>` to pin the SHA during snapshot-replay regeneration, and `--check` to
-compare the current upstream against the pinned SHA (advisory only — does not block merges per
-Phase 72 D-03).
+Each parity sub-test seeds the clean rows it needs inline via the ent client
+(`c.Network.Create()...`) and cites the upstream source line it mirrors in a
+comment. There is no generated fixtures package and no per-category seeder —
+the upstream test cases in `pdb_api_test.py` are transcribed directly into the
+relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
 
 ### Conventions for parity tests
 
 - **Isolation**: every parity test calls `testutil.SetupClient(tb)` for a fresh in-memory ent
   client. Do **not** reach into `internal/testutil/seed.Full` — it seeds a different shape and
   causes cross-test contamination (CONTEXT.md plan-hint).
-- **Seeding**: use `seedFixtures(t, client, parity.<Cat>Fixtures)` or one of the targeted
-  seeders in `harness_helpers_test.go` (e.g. seeding only the rows a single sub-test needs).
+- **Seeding**: seed clean rows inline via the ent client (`c.Network.Create()...`), seeding only
+  the rows a single sub-test needs.
 - **Parallelism**: every sub-test calls `t.Parallel()`.
 - **Citation comments**: every sub-test carries one of:
   - `// upstream: pdb_api_test.py:<line>` — when the assertion mirrors an upstream test case.

@@ -140,7 +140,6 @@ cmd/
   pdb-schema-extract/     # Parses PeeringDB Django source into schema/peeringdb.json
   pdb-schema-generate/    # Generates ent/schema/*.go from schema/peeringdb.json
   pdb-compat-allowlist/   # Generates internal/pdbcompat/allowlist_gen.go (Phase 70)
-  pdb-fixture-port/       # Ports pdb_api_test.py rows into parity fixtures (Phase 72)
   pdbcompat-check/        # Validates PeeringDB-compatibility responses
 ent/
   schema/                 # Hand-edited ent schemas + sibling files (*_fold.go,

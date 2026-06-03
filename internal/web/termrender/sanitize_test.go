@@ -2,6 +2,7 @@ package termrender
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 	"unicode"
@@ -158,5 +159,134 @@ func TestRenderWHOIS_StripsInjectedEscapes(t *testing.T) {
 	}
 	if hasInjectedControl(buf.String()) {
 		t.Errorf("whois-mode output carries a control byte from an upstream field: %q", buf.String())
+	}
+}
+
+// assertNoInjectedEscapes runs the three terminal-injection checks against a
+// rendered surface: no BEL, no ESC-prefixed payload marker, and — once the
+// renderer's own SGR styling is stripped — no escape-class control byte. Any
+// remaining control byte could only have come from an upstream field, so a
+// dropped sanitizeUpstream on any RENDERED field fails here. Fields that the
+// surface does not render simply never appear, so broad injection is safe.
+func assertNoInjectedEscapes(t *testing.T, surface, out string) {
+	t.Helper()
+	if strings.ContainsRune(out, '\x07') {
+		t.Errorf("%s: rendered output contains BEL (0x07) from an upstream field", surface)
+	}
+	for _, marker := range []string{oscTitlePayload, "\x1b]8;;", rawESCPayload} {
+		if strings.Contains(out, marker) {
+			t.Errorf("%s: rendered output contains injected escape sequence %q", surface, marker)
+		}
+	}
+	if residual := stripSGR(out); hasInjectedControl(residual) {
+		idx := strings.IndexFunc(residual, func(r rune) bool { return r != '\n' && unicode.IsControl(r) })
+		t.Errorf("%s: rendered output carries control byte 0x%02x from an upstream field (post-SGR-strip)", surface, residual[idx])
+	}
+}
+
+// p builds a field value that bundles all four escape payloads around a benign
+// marker, so any single rendered field proves on its own whether the surface
+// sanitises. Varying nothing per field keeps the fixtures terse; the payload
+// markers (not field identity) are what the assertions key on.
+func injected(benign string) string {
+	return benign + oscTitlePayload + rawESCPayload + osc8Payload + belPayload
+}
+
+// The detail/compare/search renderers below were previously unguarded by any
+// terminal-injection regression — only NetworkDetail was. Each call
+// sanitizeUpstream on attacker-controlled upstream strings across ~23 sites;
+// these fixtures inject every rendered free-text field (top-level + nested
+// rows) so a dropped sanitizeUpstream in any of the seven renderers fails.
+var (
+	injectedOrg = templates.OrgDetail{
+		ID: 1, Name: injected("Org"), NameLong: injected("OrgLong"), AKA: injected("OrgAKA"),
+		Website: injected("https://org/"), Notes: injected("OrgNotes"),
+		City: injected("OrgCity"), State: injected("OrgState"), Country: injected("ZZ"), Status: "ok",
+		Networks: []templates.OrgNetworkRow{{NetName: injected("OrgNet"), ASN: 64500}},
+		IXPs:     []templates.OrgIXRow{{IXName: injected("OrgIX"), IXID: 9}},
+		Facs:     []templates.OrgFacilityRow{{FacName: injected("OrgFac"), FacID: 5, City: injected("FacCity"), Country: injected("ZZ")}},
+		Campuses: []templates.OrgCampusRow{{CampusName: injected("OrgCampus"), CampusID: 3}},
+		Carriers: []templates.OrgCarrierRow{{CarrierName: injected("OrgCarrier"), CarrierID: 7}},
+	}
+	injectedIX = templates.IXDetail{
+		ID: 1, Name: injected("IX"), NameLong: injected("IXLong"), AKA: injected("IXAKA"),
+		Website: injected("https://ix/"), OrgName: injected("IXOrg"), City: injected("IXCity"),
+		Country: injected("ZZ"), RegionContinent: injected("Europe"), Media: injected("Ethernet"),
+		Notes: injected("IXNotes"), Status: "ok",
+		Participants: []templates.IXParticipantRow{{NetName: injected("IXPart"), ASN: 64500, IPAddr4: injected("192.0.2.1"), IPAddr6: injected("2001:db8::1")}},
+		Facilities:   []templates.IXFacilityRow{{FacName: injected("IXFac"), FacID: 2, City: injected("FacCity"), Country: injected("ZZ")}},
+		Prefixes:     []templates.IXPrefixRow{{Prefix: injected("10.0.0.0/24"), Protocol: "IPv4"}},
+	}
+	injectedFacility = templates.FacilityDetail{
+		ID: 1, Name: injected("Fac"), NameLong: injected("FacLong"), AKA: injected("FacAKA"),
+		Website: injected("https://fac/"), OrgName: injected("FacOrg"), CampusName: injected("FacCampus"),
+		Address1: injected("Addr1"), Address2: injected("Addr2"), City: injected("FacCity"),
+		State: injected("ST"), Country: injected("ZZ"), Zipcode: injected("00000"),
+		RegionContinent: injected("Europe"), CLLI: injected("CLLI"), Notes: injected("FacNotes"), Status: "ok",
+		Networks: []templates.FacNetworkRow{{NetName: injected("FacNet"), ASN: 64500, City: injected("C"), Country: injected("ZZ")}},
+		IXPs:     []templates.FacIXRow{{IXName: injected("FacIX"), IXID: 9}},
+		Carriers: []templates.FacCarrierRow{{CarrierName: injected("FacCarrier"), CarrierID: 7}},
+	}
+	injectedCarrier = templates.CarrierDetail{
+		ID: 1, Name: injected("Carrier"), NameLong: injected("CarrierLong"), AKA: injected("CarrierAKA"),
+		Website: injected("https://carrier/"), OrgName: injected("CarrierOrg"), Notes: injected("CarrierNotes"), Status: "ok",
+		Facilities: []templates.CarrierFacilityRow{{FacName: injected("CarrierFac"), FacID: 5}},
+	}
+	injectedCampus = templates.CampusDetail{
+		ID: 1, Name: injected("Campus"), NameLong: injected("CampusLong"), AKA: injected("CampusAKA"),
+		Website: injected("https://campus/"), OrgName: injected("CampusOrg"), City: injected("CampusCity"),
+		State: injected("ST"), Country: injected("ZZ"), Zipcode: injected("00000"), Notes: injected("CampusNotes"), Status: "ok",
+		Facilities: []templates.CampusFacilityRow{{FacName: injected("CampusFac"), FacID: 5, City: injected("C"), Country: injected("ZZ")}},
+	}
+	injectedCompare = &templates.CompareData{
+		NetA: templates.CompareNetwork{ASN: 64500, Name: injected("NetA"), ID: 1},
+		NetB: templates.CompareNetwork{ASN: 64501, Name: injected("NetB"), ID: 2},
+		SharedIXPs: []templates.CompareIXP{{IXID: 9, IXName: injected("CmpIX"), Shared: true,
+			NetA: &templates.CompareIXPresence{Speed: 10000, IPAddr4: injected("192.0.2.1"), IPAddr6: injected("2001:db8::1")},
+			NetB: &templates.CompareIXPresence{Speed: 10000}}},
+		SharedFacilities: []templates.CompareFacility{{FacID: 5, FacName: injected("CmpFac"), City: injected("C"), Country: injected("ZZ"), Shared: true,
+			NetA: &templates.CompareFacPresence{LocalASN: 64500}}},
+		SharedCampuses: []templates.CompareCampus{{CampusID: 3, CampusName: injected("CmpCampus"),
+			SharedFacilities: []templates.CompareCampusFacility{{FacID: 6, FacName: injected("CmpCampusFac")}}}},
+		ViewMode: "full",
+	}
+	injectedSearch = []templates.SearchGroup{{
+		TypeName: "Networks", TypeSlug: "net", AccentColor: "emerald",
+		Results: []templates.SearchResult{{Name: injected("Hit"), Country: injected("ZZ"), City: injected("HitCity"), ASN: 64500, DetailURL: "/ui/asn/64500"}},
+	}}
+)
+
+// TestRenderDetails_StripInjectedEscapes generalises the NetworkDetail
+// terminal-injection regression to the other seven render entrypoints. Each is
+// rendered in ModeRich (the curl/wget default, where colorprofile only
+// downsamples SGR and so passes OSC/BEL/raw-ESC through verbatim absent
+// sanitisation). A dropped sanitizeUpstream in any renderer leaks a payload and
+// fails its sub-test.
+func TestRenderDetails_StripInjectedEscapes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		render func(r *Renderer, w io.Writer) error
+	}{
+		{"org", func(r *Renderer, w io.Writer) error { return r.RenderOrgDetail(w, injectedOrg) }},
+		{"ix", func(r *Renderer, w io.Writer) error { return r.RenderIXDetail(w, injectedIX) }},
+		{"facility", func(r *Renderer, w io.Writer) error { return r.RenderFacilityDetail(w, injectedFacility) }},
+		{"carrier", func(r *Renderer, w io.Writer) error { return r.RenderCarrierDetail(w, injectedCarrier) }},
+		{"campus", func(r *Renderer, w io.Writer) error { return r.RenderCampusDetail(w, injectedCampus) }},
+		{"compare", func(r *Renderer, w io.Writer) error { return r.RenderCompare(w, injectedCompare) }},
+		{"search", func(r *Renderer, w io.Writer) error { return r.RenderSearch(w, injectedSearch) }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			r := NewRenderer(ModeRich, false)
+			var buf bytes.Buffer
+			if err := tt.render(r, &buf); err != nil {
+				t.Fatalf("render %s: %v", tt.name, err)
+			}
+			assertNoInjectedEscapes(t, tt.name, buf.String())
+		})
 	}
 }

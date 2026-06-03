@@ -706,3 +706,149 @@ func TestDepth(t *testing.T) {
 		}
 	})
 }
+
+// TestDepth_DefaultExpansion_RemainingEntities extends depth=2 expansion-shape
+// coverage to the eight getters TestDepth's org/net/ix/netfac subtests don't
+// reach. Each getXWithDepth in depth.go has DISTINCT edge-loading code
+// (different WithX calls and _set keys), so a per-entity bug — a wrong edge,
+// a missing _set, an unexpanded FK — would otherwise go uncaught. Reuses
+// setupDepthTestData, which seeds exactly one row of every type.
+func TestDepth_DefaultExpansion_RemainingEntities(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	firstID := func(t *testing.T, tag string) int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"?limit=1", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("list /api/%s: status %d: %s", tag, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("unmarshal list env: %v", err)
+		}
+		var items []map[string]any
+		if err := json.Unmarshal(env.Data, &items); err != nil {
+			t.Fatalf("unmarshal list items: %v", err)
+		}
+		if len(items) == 0 {
+			t.Fatalf("no %s rows seeded", tag)
+		}
+		return int(items[0]["id"].(float64))
+	}
+
+	detailAtDepth2 := func(t *testing.T, tag string, id int) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth=2", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("detail /api/%s/%d?depth=2: status %d: %s", tag, id, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("unmarshal detail env: %v", err)
+		}
+		var items []map[string]any
+		if err := json.Unmarshal(env.Data, &items); err != nil {
+			t.Fatalf("unmarshal detail items: %v", err)
+		}
+		if len(items) != 1 {
+			t.Fatalf("detail /api/%s/%d: expected 1 item, got %d", tag, id, len(items))
+		}
+		return items[0]
+	}
+
+	tests := []struct {
+		tag     string
+		objKeys []string       // FK edges expanded to objects (each must carry "id")
+		sets    map[string]int // _set collection -> expected item count under setupDepthTestData
+	}{
+		{"carrier", []string{"org"}, map[string]int{"carrierfac_set": 1}},
+		// campus has no campus-assigned facility in the fixture (its fac is
+		// org-only), so fac_set is the correctly-shaped EMPTY array.
+		{"campus", []string{"org"}, map[string]int{"fac_set": 0}},
+		{"ixlan", []string{"ix"}, map[string]int{"ixpfx_set": 1, "netixlan_set": 1}},
+		{"ixpfx", []string{"ixlan"}, nil},
+		{"poc", []string{"net"}, nil},
+		{"netixlan", []string{"net", "ixlan"}, nil},
+		{"ixfac", []string{"ix", "fac"}, nil},
+		{"carrierfac", []string{"carrier", "fac"}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.tag, func(t *testing.T) {
+			t.Parallel()
+			obj := detailAtDepth2(t, tt.tag, firstID(t, tt.tag))
+			for _, k := range tt.objKeys {
+				v, ok := obj[k]
+				if !ok {
+					t.Errorf("depth=2 %s: expanded %q missing", tt.tag, k)
+					continue
+				}
+				o, ok := v.(map[string]any)
+				if !ok {
+					t.Errorf("depth=2 %s: %q is not an object", tt.tag, k)
+					continue
+				}
+				if _, has := o["id"]; !has {
+					t.Errorf("depth=2 %s: expanded %q missing id", tt.tag, k)
+				}
+			}
+			for k, wantLen := range tt.sets {
+				v, ok := obj[k]
+				if !ok {
+					t.Errorf("depth=2 %s: %q set missing", tt.tag, k)
+					continue
+				}
+				arr, ok := v.([]any)
+				if !ok {
+					t.Errorf("depth=2 %s: %q is not an array", tt.tag, k)
+					continue
+				}
+				if len(arr) != wantLen {
+					t.Errorf("depth=2 %s: %q expected %d item(s), got %d", tt.tag, k, wantLen, len(arr))
+				}
+			}
+		})
+	}
+}
+
+// TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
+// — Query().Where(<type>.ID(id), <type>.StatusIn("ok","pending")), inlined at
+// all 26 depth.go getter sites — resolves identically across all 13 types: an
+// ok or pending row is fetchable (200) while a deleted row is a tombstone
+// (404). TestStatusMatrix proves this only for net; this covers the breadth.
+// Seeders are shared with TestStatusMatrix_AllEntities (statusseed_test.go).
+func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
+	t.Parallel()
+	for _, e := range statusMatrixEntities {
+		t.Run(e.tag, func(t *testing.T) {
+			t.Parallel()
+			c := testutil.SetupClient(t)
+			seedStatusParentsFor(t, c, e.tag)
+			seedStatusRow(t, c, e.tag, 901, "ok")
+			seedStatusRow(t, c, e.tag, 902, "deleted")
+			seedStatusRow(t, c, e.tag, 903, "pending")
+
+			srv := httptest.NewServer(newMuxForOrdering(c))
+			t.Cleanup(srv.Close)
+
+			cases := []struct {
+				id   int
+				want int
+			}{
+				{901, http.StatusOK},       // ok        -> 200
+				{902, http.StatusNotFound}, // deleted   -> 404 (tombstone hidden at PK)
+				{903, http.StatusOK},       // pending   -> 200 (STATUS-02/D-06)
+			}
+			for _, tc := range cases {
+				if code := fetchStatusCode(t, srv.URL+"/api/"+e.tag+"/"+itoa(tc.id)); code != tc.want {
+					t.Errorf("GET /api/%s/%d: got %d, want %d", e.tag, tc.id, code, tc.want)
+				}
+			}
+		})
+	}
+}

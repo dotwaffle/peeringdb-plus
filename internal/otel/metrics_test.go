@@ -225,6 +225,87 @@ func TestInitFreshnessGauge_RecordsValue(t *testing.T) {
 	}
 }
 
+// TestInitMemoryGauges_RecordsValues asserts both SEED-001 peak gauges emit
+// the values held in the SyncPeakHeapBytes / SyncPeakRSSBytes atomics that
+// internal/sync.(*Worker).emitMemoryTelemetry updates at end of cycle.
+func TestInitMemoryGauges_RecordsValues(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
+
+	const heap, rss = 419430400, 524288000 // 400 MiB, 500 MiB
+	SyncPeakHeapBytes.Store(heap)
+	SyncPeakRSSBytes.Store(rss)
+	// Reset so the globals don't leak into sibling (non-parallel) tests.
+	t.Cleanup(func() { SyncPeakHeapBytes.Store(0); SyncPeakRSSBytes.Store(0) })
+
+	if err := InitMemoryGauges(); err != nil {
+		t.Fatalf("InitMemoryGauges: %v", err)
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+
+	for name, want := range map[string]int64{
+		"pdbplus.sync.peak_heap": heap,
+		"pdbplus.sync.peak_rss":  rss,
+	} {
+		found := findMetric(rm, name)
+		if found == nil {
+			t.Errorf("%s metric not found", name)
+			continue
+		}
+		gauge, ok := found.Data.(metricdata.Gauge[int64])
+		if !ok {
+			t.Errorf("%s: expected Gauge[int64], got %T", name, found.Data)
+			continue
+		}
+		if len(gauge.DataPoints) == 0 {
+			t.Errorf("%s: no data points", name)
+			continue
+		}
+		if got := gauge.DataPoints[0].Value; got != want {
+			t.Errorf("%s = %d, want %d", name, got, want)
+		}
+	}
+}
+
+// TestInitMemoryGauges_ZeroSuppressed locks the documented zero-suppression
+// invariant: before the first sync (or non-Linux RSS) the atomics are 0 and
+// the callbacks MUST NOT observe, so dashboards don't plot misleading zeros.
+// Dropping the `v > 0` guard makes the gauge emit a 0 data point and fails here.
+func TestInitMemoryGauges_ZeroSuppressed(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
+
+	SyncPeakHeapBytes.Store(0)
+	SyncPeakRSSBytes.Store(0)
+
+	if err := InitMemoryGauges(); err != nil {
+		t.Fatalf("InitMemoryGauges: %v", err)
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+
+	for _, name := range []string{"pdbplus.sync.peak_heap", "pdbplus.sync.peak_rss"} {
+		found := findMetric(rm, name)
+		if found == nil {
+			continue // SDK omitted the metric entirely — correct (no observation).
+		}
+		if gauge, ok := found.Data.(metricdata.Gauge[int64]); ok && len(gauge.DataPoints) > 0 {
+			t.Errorf("%s emitted %d data point(s) for a zero value; want suppressed", name, len(gauge.DataPoints))
+		}
+	}
+}
+
 func TestInitObjectCountGauges_NoError(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
