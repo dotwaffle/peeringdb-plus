@@ -145,7 +145,7 @@ For machine-readable output, use one of the structured API surfaces
 | `GET /ui/about` | Build info, sync freshness, environment summary. Opted out of response caching in `middleware.NewCachingState` because it renders relative time (e.g. "5 minutes ago") |
 | `GET /ui/compare` | ASN comparison form. `?asn1=` and `?asn2=` pre-fill the form |
 | `GET /ui/compare/{asn1}` | Pre-fills the form with `asn1`, awaits `asn2` |
-| `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) / `all` / `differences` toggles the panes |
+| `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union with shared-flag highlighting. Any other `view` value falls back to the shared view. |
 | `GET /ui/completions/bash` | Installable bash completion script |
 | `GET /ui/completions/zsh` | Installable zsh completion script |
 | `GET /ui/completions/search?q=&type=` | Newline-separated name suggestions used by the shell completion scripts (`type=net|ix|fac|org`) |
@@ -528,8 +528,8 @@ curl -X POST https://peeringdb-plus.fly.dev/peeringdb.v1.NetworkService/GetNetwo
 
 PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker for
 the IX-F member list URL: `ixlan.ixf_ixp_member_list_url` is gated by the
-sibling `ixlan.ixf_ixp_member_list_url_visible` enum (`Public` / `Users` /
-`Private`). Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public`
+sibling string field `ixlan.ixf_ixp_member_list_url_visible`, which carries one
+of `Public` / `Users` / `Private` (a NULL/empty value defaults to `Public`). Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public`
 deployment) receive the value only when `_visible = Public`; for `Users` or
 `Private` the value is omitted across all five surfaces while the `_visible`
 companion field is **still emitted** (upstream parity).
@@ -679,7 +679,7 @@ boundaries intentionally. Each row cross-references a parity test under
 | `?limit=0` interpreted as "return a count envelope only" (pdbfe claim) | Upstream `rest.py:494-497` treats `limit=0` as **unlimited** (`if limit == 0: limit = None` — Python `None` means no SQL `LIMIT`). There is no count-only semantic upstream — pdbfe's gotchas doc is simply wrong on this point. | peeringdb-plus matches upstream: `limit=0` returns all matching rows unbounded, gated only by the `PDBPLUS_RESPONSE_MEMORY_LIMIT` budget (default 128 MiB). Callers wanting a count read the length of the returned `data` array — the `meta` envelope is empty (`{}`), matching upstream's non-paginated default (upstream only populates `meta.pagination.count` under its `?page` shape, which this mirror does not implement). | We match upstream semantics verbatim rather than codifying an invalid-pdbfe-claim as a behavioural divergence. See § Validation Notes entry 2. Parity-locked by `TestParity_Limit/bare_url_and_zero_both_return_all_rows` and `TestParity_Limit/zero_over_budget_returns_413_problem_json`. | v1.16 |
 | `?depth=N` on list endpoints (any `/api/<type>` without a pk) | Upstream `rest.py:744-748` accepts `?depth=` on list requests and caps row count at `API_DEPTH_ROW_LIMIT=250`. | peeringdb-plus silently drops `?depth=` on list endpoints with a `slog.DebugContext` paper trail (`opts.Depth` is never threaded into list closures). `?depth=` on single-object GET (`/api/<type>/<id>`) works as upstream specifies. Functional list+depth is deferred indefinitely — the `budget.go` memory envelope would refuse the resulting response sizes on 256 MB replicas anyway. | Memory envelope on 256 MB replicas — the 13-entity × 2-depth worst case exceeds the 128 MiB budget for any realistic row count. `docs/ARCHITECTURE.md § Response Memory Envelope` documents the per-entity ceiling. Parity-locked by `TestParity_Limit/depth_on_list_silently_dropped_DIVERGENCE`. | v1.16 |
 | `?<field>__contains=<non-ASCII>` / `?<field>__startswith=<non-ASCII>` against searchable text fields on `network`, `facility`, `ix`, `organization`, `campus`, `carrier` (16 fields total — see "Diacritic-insensitive substring / prefix search" above) | Upstream applies `unidecode.unidecode(v)` to BOTH the query value and the column at query time (`rest.py:576`), producing diacritic-insensitive matches in a single SQL pass. | peeringdb-plus precomputes the folded value into a sibling `<field>_fold` shadow column at sync time (via `internal/unifold.Fold` — NFKD normalisation + a small ligature map for `ß`/`æ`/`ø`/`ł`/`þ`/`đ`), then routes `__contains` / `__startswith` to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS. The end-state semantic match is identical, but it is staged differently: a brief one-time ASCII-only window exists between v1.16 deploy and the first post-deploy sync cycle (≤1h with default `PDBPLUS_SYNC_INTERVAL=1h`) during which rows have `<field>_fold = ''` and return no match for non-ASCII queries. ASCII queries continue to work via the non-folded columns throughout the window. No manual backfill is required — the next sync cycle's `OnConflict().UpdateNewValues()` path rewrites every row's `_fold` columns. | Shadow columns let SQLite use a single indexable comparison path (no per-query `unidecode` call), and benchstat (n=6, 10k rows) shows the shadow path within ±1% of the direct path so the trade-off is invisible at production scale. The folded columns carry `entgql.Skip(SkipAll)` + `entrest.WithSkip(true)` annotations and are never exposed on the GraphQL / REST / proto wire surfaces — they are server-side plumbing only. | v1.16 |
-| `GET /api/<type>?a__b__c__d=X` (3+ `__`-separated relation segments) | Upstream walks arbitrary Django ORM chains — no hard depth cap (bounded only by the Django ORM query planner). | peeringdb-plus silently ignores the filter (HTTP 200, unfiltered). One aggregated `slog.DebugContext("pdbcompat: unknown filter fields silently ignored", ...)` plus OTel span attribute `pdbplus.filter.unknown_fields` record the dropped key. Keys with exactly 1 or 2 relation segments resolve normally via Path A (explicit allowlist) or Path B (ent edge introspection). | DoS protection: 3+-hop joins in SQLite can trigger super-linear query plan scans at scale, and the 256 MB replica memory envelope cannot absorb unbounded Cartesian-product row counts. The 2-hop cap trades limitless traversal for a predictable cost ceiling gated in CI by `internal/pdbcompat/bench_traversal_test.go` (`<50ms/op @ 10k rows`). | v1.16 |
+| `GET /api/<type>?a__b__c__d=X` (3+ `__`-separated relation segments) | Upstream walks arbitrary Django ORM chains — no hard depth cap (bounded only by the Django ORM query planner). | peeringdb-plus silently ignores the filter (HTTP 200, unfiltered). One aggregated `slog.DebugContext("pdbcompat: unknown filter fields silently ignored", ...)` plus OTel span attribute `pdbplus.filter.unknown_fields` record the dropped key. Keys with exactly 1 or 2 relation segments resolve normally via Path A (explicit allowlist) or Path B (ent edge introspection). | DoS protection: 3+-hop joins in SQLite can trigger super-linear query plan scans at scale, and the 256 MB replica memory envelope cannot absorb unbounded Cartesian-product row counts. The 2-hop cap trades limitless traversal for a predictable cost ceiling checked locally by the build-tagged test `internal/pdbcompat/bench_traversal_test.go` (`<50ms/op @ 10k rows`, run with `go test -tags=bench`); it is not wired into CI. | v1.16 |
 | `GET /api/fac?ixlan__ix__fac_count__gt=0` (fac-ixlan-ix-fac_count-3hop; upstream citation `pdb_api_test.py:2340, 2348`) | Upstream resolves via a per-serializer `prepare_query` that joins `fac → ixfac → ix → fac_count` (3-hop bespoke SQL). | peeringdb-plus silently ignores the filter (HTTP 200, unfiltered result) because `fac` has no direct `ixlan` edge in the ent schema — `ixlan` belongs to `ix`, not to `fac` — and the 3-hop walk via `ixfac` exceeds the hard 2-hop cap. The generic 2-hop mechanism continues to work for entity pairs with direct edges (e.g. `/api/ixpfx?ixlan__ix__id=20` resolves correctly). | Relaxing the 2-hop cap re-opens cost-ceiling concerns the cap was designed to contain (unbounded Cartesian-product joins in SQLite under 256 MB replica memory envelope). Adding a bespoke per-serializer hook for this single upstream citation case doesn't fit the generic allowlist/introspection model cleanly. Tracked as a deferred divergence. | v1.16 (locked by `TestParity_Traversal/DIVERGENCE_fac_ixlan_ix_fac_count_silent_ignore`) |
 
 ## Validation Notes
@@ -784,10 +784,11 @@ silently ignored. Examples:
 
 Upstream PeeringDB has no hard cap but is bound by Django ORM's query
 planner. We trade limitless traversal for a predictable cost ceiling
-gated in CI at `<50ms/op @ 10k rows` via
-`internal/pdbcompat/bench_traversal_test.go`. If a
-legitimate 3-hop use case emerges, raise the cap together with a
-fresh benchstat run and a docs update here.
+of `<50ms/op @ 10k rows`, checked locally via the build-tagged
+gate `internal/pdbcompat/bench_traversal_test.go` (`go test -tags=bench`,
+without `-race`); CI does not run it. If a legitimate 3-hop use case
+emerges, raise the cap together with a fresh benchstat run and a docs
+update here.
 
 ### Unknown-field diagnostics
 
@@ -802,6 +803,6 @@ the following observability signals fire:
 
 Both are DEBUG-level; INFO and higher are untouched so that naive
 clients probing field names don't flood structured logs. To surface
-these in production, set `OTEL_LOG_LEVEL=debug` or query the span
+these in production, set `PDBPLUS_LOG_LEVEL=DEBUG` or query the span
 attribute in Grafana/Tempo.
 
