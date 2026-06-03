@@ -25,7 +25,7 @@ ConnectRPC `/peeringdb.v1.*`, Web UI `/ui`):
 | mode        | purpose                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
 | `endpoints` | One-shot inventory sweep (~114 distinct requests). Validates every API surface returns 2xx. |
-| `sync`      | Replays the 13-step ordered sync sequence (full or incremental). Mirrors `internal/sync/worker.go syncSteps()`. |
+| `sync`      | Replays the 13-step FK-ordered type sequence across 3 depth bands (`depth=0/1/2`) → 39 GETs (full or incremental). Mirrors `internal/sync/worker.go syncSteps()`. |
 | `soak`      | Sustained QPS-capped mixed-surface load. Defaults to 30 s × 4 workers × 5 req/s. |
 | `ramp`      | Per-surface concurrency ramp; finds the inflection point where p95/p99 latency or error rate degrades. Sequential per surface (no cross-surface contention). |
 
@@ -71,10 +71,13 @@ warmup and post-deploy validation, not concurrent stress.
 ./loadtest sync --mode=incremental --since=1714219200
 ```
 
-Issues exactly 13 GETs against `/api/<short>?limit=250&skip=0&depth=0`
-in **FK dependency order** — `org, campus, fac, carrier, carrierfac,
-ix, ixlan, ixpfx, ixfac, net, poc, netfac, netixlan` — mirroring the
-live worker at `internal/sync/worker.go syncSteps()`. The
+Issues 39 GETs — the 13-step FK-ordered type sequence (`org, campus,
+fac, carrier, carrierfac, ix, ixlan, ixpfx, ixfac, net, poc, netfac,
+netixlan`) replayed across 3 depth bands (`depth=0/1/2`), in type ×
+ascending-depth order — mirroring the live worker at
+`internal/sync/worker.go syncSteps()`. The URL shape depends on the
+mode: full mode issues a bare `/api/<short>?depth=N`, incremental mode
+issues `/api/<short>?limit=250&skip=0&depth=N&since=M`. The
 `internal/sync.StepOrder()` export is the single source of truth;
 the loadtest's parity test (`TestSync_OrderingMatchesWorker`) fails
 the build if a future syncSteps() reorder happens without updating
