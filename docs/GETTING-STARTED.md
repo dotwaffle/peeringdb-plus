@@ -184,7 +184,7 @@ playground.
 grpcurl -plaintext localhost:8080 list
 
 # Call a Get RPC against the Network service
-grpcurl -plaintext -d '{"id":1}' localhost:8080 peeringdb.v1.NetworkService/Get
+grpcurl -plaintext -d '{"id":1}' localhost:8080 peeringdb.v1.NetworkService/GetNetwork
 ```
 
 `buf curl` and `grpcui` work too — reflection is enabled and gRPC health
