@@ -96,7 +96,7 @@ Proto is frozen since v1.6 (`entproto.SkipGenFile` in `ent/entc.go`); dropped en
 
 ### Soft-delete tombstones
 
-Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit signal — the `?since=N` matrix returns `['ok', 'deleted']` (per `peeringdb_server/rest.py:694-727`). Inference-by-absence (the prior `markStaleDeleted*` family + `internal/sync/delete.go`) was removed in quick task 260428-2zl: it mis-classified rows missing from partial responses and dropped children whose upstream-deleted parents we never synced. The dormant tombstone-GC work stays dormant.
+Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit signal — the `?since=N` matrix returns `['ok', 'deleted']` (per `peeringdb_server/rest.py:694-727`). Inference-by-absence (the prior `markStaleDeleted*` family + `internal/sync/delete.go`) was removed: it mis-classified rows missing from partial responses and dropped children whose upstream-deleted parents we never synced. The dormant tombstone-GC work stays dormant.
 
 **Bootstrap (zero-cursor handling):** v1.18.2's `?since=1` bootstrap was reverted in v1.18.3 — the full-historical fetch tripped upstream's `API_THROTTLE_REPEATED_REQUEST` cap. Current behaviour: zero cursor → fall through to bare `/api/<type>` (status='ok' only). Historical-delete capture for fresh installs is deferred to a multi-cycle bootstrap design (v1.19+); FK backfill catches the orphans that matter on demand.
 
