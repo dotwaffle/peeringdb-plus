@@ -31,6 +31,41 @@ Git history (tags `v1.0.0` through `v1.15.0`).
   tiers, closing the one load-bearing redaction surface that had no
   test for the gated `ixf_ixp_member_list_url` field.
 
+### Changed
+
+- **CI collapsed from four parallel Go jobs to one.** The separate
+  lint / test / build / govulncheck jobs were folded into a single
+  cached `ci` job that runs them in order (generated-code drift check →
+  `go build` → race tests → `golangci-lint` → `govulncheck`) against one
+  warmed module/build cache; `docker-build` stays a separate parallel
+  job. `govulncheck` is now advisory (`continue-on-error`) — a flagged
+  vulnerability warns but does not block the merge.
+
+### Fixed
+
+- **`<field>_fold` shadow columns no longer leak on the REST surface.**
+  The diacritic-folding shadow columns are server-side plumbing and are
+  skipped on the GraphQL and proto wire surfaces, but the entrest path
+  still emitted them; they are now stripped from `/rest/v1/` responses.
+
+### Internal
+
+- **`go generate ./...` now converges in a single pass.** The
+  `pdb-schema-generate` step is sequenced ahead of `entc` inside
+  `ent/generate.go`, so the schema producer always runs before its
+  consumer and no second pass is needed.
+- **Treewide removal of internal planning and process vocabulary** from
+  comments, test identifiers, documentation, log/panic strings, the
+  Grafana dashboards, and the code-generation sources. Behaviour-
+  preserving; genuine external references (upstream source citations,
+  versions, dates) are kept.
+
+## [1.19.1] — 2026-05-31
+
+### Changed
+
+- **Vendored htmx bumped to 2.0.10.**
+
 ## [1.19.0] — 2026-05-31
 
 _v1.17 and v1.18.x shipped as incremental patch work that was not
