@@ -133,7 +133,7 @@ func applyNetworkIxLanStreamFilters(req *pb.StreamNetworkIxLansRequest) ([]func(
 }
 
 // ListNetworkIxLans returns a paginated list of network IX LANs under the
-// compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// compound default order (-updated, -created, -id).
 func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.ListNetworkIxLansRequest) (*pb.ListNetworkIxLansResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.NetworkIxLan, pb.NetworkIxLan]{
 		EntityName: "networkixlans",

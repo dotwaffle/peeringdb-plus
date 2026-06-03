@@ -156,7 +156,7 @@ func TestBuildReportMultiTarget(t *testing.T) {
 	}
 }
 
-// TestBuildReportFailFastEmptyOutDir asserts GO-CFG-1 rejects empty -out.
+// TestBuildReportFailFastEmptyOutDir asserts fail-fast rejects empty -out.
 func TestBuildReportFailFastEmptyOutDir(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()

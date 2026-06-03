@@ -16,12 +16,12 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
-// Quick task 260428-2zl Task 3: when fkCheckParent finds a missing
+// When fkCheckParent finds a missing
 // parent, attempt one live HTTP fetch from upstream to recover the row
 // before declaring the child an orphan. This closes the structural-drop
 // gap caused by upstream's soft-delete model never being represented in
-// our DB pre-2zl (carrier 277→278 worth, 575+/day across all child
-// types per production observation 2026-04-26).
+// our DB before FK backfill existed (carrier 277→278 worth, 575+/day
+// across all child types per production observation 2026-04-26).
 //
 // Per-cycle dedup cache prevents repeat fetches for the same (type, id)
 // pair within one sync — if 200 child rows reference the same missing
@@ -57,8 +57,8 @@ const (
 // fkBackfillParent is the single-row entry point preserved for the
 // existing per-row callers in worker.go (carrier→org check at
 // dispatchScratchChunk:fkCheckParent and the NetworkIxLan side-FK
-// null-on-miss path at nullSideFK). Quick task 260428-5xt refactored
-// the body to a thin wrapper around fkBackfillBatch so single-row and
+// null-on-miss path at nullSideFK). The body was refactored
+// to a thin wrapper around fkBackfillBatch so single-row and
 // batched paths share one HTTP / dedup / cap / deadline / recursion
 // implementation.
 //
@@ -79,8 +79,8 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 // exactly 2 batched HTTP requests (carriers, then orgs), bounded by
 // the per-cycle dedup cache.
 //
-// Quick task 260428-5xt — replaces the per-row HTTP fan-out from quick
-// task 260428-2zl. Catch-up / recovery cycles with hundreds-to-thousands
+// Replaces the per-row HTTP fan-out from the original single-row
+// backfill. Catch-up / recovery cycles with hundreds-to-thousands
 // of distinct missing parents previously bricked v1.18.2 by hitting
 // upstream's API_THROTTLE_REPEATED_REQUEST cap; batching collapses the
 // exposure to a small constant per parent type per chunk.
@@ -94,8 +94,8 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 //   - Cap is per-HTTP-request (v1.18.5): fkBackfillRequestCount is
 //     bumped by ⌈len(idsToFetch)/peeringdb.FetchByIDsBatchSize⌉ — the
 //     actual number of underlying HTTP requests this batch will issue
-//     through the rate-limited transport. SEMANTIC SHIFT from
-//     260428-5xt's per-row cap, which was a weak circuit breaker once
+//     through the rate-limited transport. SEMANTIC SHIFT from the
+//     earlier per-row cap, which was a weak circuit breaker once
 //     batching collapsed N rows into 1 request. The cap now directly
 //     bounds upstream HTTP traffic, which is the actual surface
 //     protected by upstream's API_THROTTLE_REPEATED_REQUEST and our
@@ -430,7 +430,7 @@ func (w *Worker) firstMissingRequiredFK(ctx context.Context, tx *ent.Tx, parentT
 // sequential per-row HTTP calls through the legacy fkBackfillParent
 // path.
 //
-// Quick task 260428-5xt: the per-cycle dedup cache (fkBackfillTried)
+// The per-cycle dedup cache (fkBackfillTried)
 // makes the per-row fkCheckParent → fkBackfillParent path a no-op for
 // any parent already loaded by this pre-pass — the dispatch order is
 // pre-pass first, dispatch switch after.

@@ -10,7 +10,7 @@ import (
 )
 
 // neutralPrivacySync is the "anon / public" PrivacySync payload reused by
-// the pre-Phase-61 About tests that only exercise freshness + endpoints.
+// the earlier About tests that only exercise freshness + endpoints.
 var neutralPrivacySync = templates.PrivacySync{
 	AuthMode:              "Anonymous (no key)",
 	PublicTier:            "public",
@@ -108,9 +108,9 @@ func TestRenderAboutPage_PlainMode(t *testing.T) {
 	}
 }
 
-// TestRenderAboutPage_PrivacySync exercises the Phase 61 OBS-02 Privacy & Sync
+// TestRenderAboutPage_PrivacySync exercises the Privacy & Sync
 // terminal section across the four (auth mode, public tier) combinations.
-// The "! " prefix on the Public Tier line is the D-06 override indicator —
+// The "! " prefix on the Public Tier line is the override indicator —
 // it must survive ANSI stripping so log-tailing operators still see it.
 func TestRenderAboutPage_PrivacySync(t *testing.T) {
 	t.Parallel()

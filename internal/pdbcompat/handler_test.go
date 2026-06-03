@@ -40,9 +40,9 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 	future := now.Add(2 * time.Hour)
 
 	// Create 3 networks with different names, ASNs, statuses, and timestamps.
-	// Phase 69 Plan 04: name_fold must be populated manually in tests — the
+	// name_fold must be populated manually in tests — the
 	// production path populates it inside sync.upsert but direct ent.Create
-	// calls skip that step. Filter-layer shadow routing (UNICODE-01) reads
+	// calls skip that step. Filter-layer shadow routing reads
 	// <field>_fold for gated columns.
 	_, err := client.Network.Create().
 		SetName("CloudNet").
@@ -68,8 +68,8 @@ func setupTestHandler(t *testing.T) (*Handler, *http.ServeMux) {
 		t.Fatalf("create network 2: %v", err)
 	}
 
-	// Phase 68 Plan 68-03: network 3 flipped from status="deleted" to
-	// status="ok". Under STATUS-01 (D-07) a list without ?since filters
+	// Network 3 flipped from status="deleted" to
+	// status="ok". A list without ?since filters
 	// unconditionally to status=ok, so a seeded deleted row would no
 	// longer appear in default list responses — the pre-existing
 	// assertions (3 items, 2 cloud matches, sorted [3,2,1], etc.) all
@@ -436,7 +436,7 @@ func TestListEndpointTrailingSlash(t *testing.T) {
 	rec1 := httptest.NewRecorder()
 	mux.ServeHTTP(rec1, req1)
 
-	// With trailing slash per D-02.
+	// With trailing slash.
 	req2 := httptest.NewRequest(http.MethodGet, "/api/net/", nil)
 	rec2 := httptest.NewRecorder()
 	mux.ServeHTTP(rec2, req2)
@@ -490,7 +490,7 @@ func TestDetailEndpoint(t *testing.T) {
 		t.Fatalf("unmarshal detail: %v", err)
 	}
 
-	// Pitfall 7: single object wrapped in array.
+	// Single object wrapped in array.
 	var detData []json.RawMessage
 	if err := json.Unmarshal(detEnv.Data, &detData); err != nil {
 		t.Fatalf("unmarshal detail data: %v", err)
@@ -512,7 +512,7 @@ func TestDetailNotFound(t *testing.T) {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	// Error responses use RFC 9457 Problem Details per ARCH-01.
+	// Error responses use RFC 9457 Problem Details.
 	ct := rec.Header().Get("Content-Type")
 	if ct != "application/problem+json" {
 		t.Errorf("Content-Type = %q, want application/problem+json", ct)
@@ -699,7 +699,7 @@ func TestExactFilter(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
 
-	// Phase 68 D-07: ?status= is no longer in the Fields map for any of
+	// ?status= is no longer in the Fields map for any of
 	// the 13 types, so ParseFilters silently drops it. The status matrix
 	// (applyStatusMatrix) applies unconditionally: list without ?since
 	// returns only status=ok rows regardless of what ?status= was passed.
@@ -744,12 +744,11 @@ func TestResponseHeaders(t *testing.T) {
 	}
 }
 
-// TestResultsSortedByDefaultOrder asserts the Phase 67 default-ordering
+// TestResultsSortedByDefaultOrder asserts the default-ordering
 // contract: pdbcompat list endpoints return rows in (-updated, -created, -id)
 // order per upstream django-handleref Meta.ordering. setupTestHandler seeds
 // three Network rows with distinct (created, updated) stamps: past, now,
-// future — so the expected id sequence is [3, 2, 1]. See Phase 67 Plan 03 /
-// CONTEXT.md D-02, D-07.
+// future — so the expected id sequence is [3, 2, 1].
 func TestResultsSortedByDefaultOrder(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
@@ -1084,8 +1083,8 @@ func TestSearchNetworkByASN(t *testing.T) {
 	}
 }
 
-// TestTraversal_StatusMatrix_Preserved guards Phase 68 D-07 + STATUS-01
-// under the Phase 70 parser refactor. seed.Full seeds org 8001 (TestOrg1)
+// TestTraversal_StatusMatrix_Preserved guards the status matrix
+// under the traversal parser. seed.Full seeds org 8001 (TestOrg1)
 // with 3 networks: id=8001 (ok), id=8002 (ok), id=8003 (status=deleted).
 // GET /api/net?org__name=TestOrg1 MUST return 8001 and 8002 and NOT 8003
 // because a list without ?since unconditionally filters to status=ok
@@ -1104,17 +1103,17 @@ func TestTraversal_StatusMatrix_Preserved(t *testing.T) {
 	ids := extractIDs(t, rec.Body.Bytes())
 	want := []int{8001, 8002}
 	if !equalIntSets(ids, want) {
-		t.Errorf("got IDs %v, want %v (DeletedNet id=8003 must be filtered by Phase 68 status matrix; response: %s)",
+		t.Errorf("got IDs %v, want %v (DeletedNet id=8003 must be filtered by the status matrix; response: %s)",
 			ids, want, rec.Body.String())
 	}
 	// Defensive: explicitly assert 8003 is absent.
 	if slices.Contains(ids, 8003) {
-		t.Errorf("DeletedNet (id=8003, status=deleted) leaked into response — Phase 68 D-07 regression")
+		t.Errorf("DeletedNet (id=8003, status=deleted) leaked into response — status matrix regression")
 	}
 }
 
-// TestTraversal_FoldRouting_Preserved guards Phase 69 UNICODE-01 under
-// the Phase 70 parser refactor. seed.Full includes net 8002 "Zürich GmbH"
+// TestTraversal_FoldRouting_Preserved guards shadow-column routing under
+// the traversal parser. seed.Full includes net 8002 "Zürich GmbH"
 // with name_fold="zurich gmbh" and net 8001 "TestNet1-Zurich" with
 // name_fold="testnet1-zurich". Both rows match a diacritic-free
 // name__contains=zurich query when routed through the _fold shadow
@@ -1132,13 +1131,13 @@ func TestTraversal_FoldRouting_Preserved(t *testing.T) {
 	}
 	ids := extractIDs(t, rec.Body.Bytes())
 	if !slices.Contains(ids, 8002) {
-		t.Errorf("id=8002 (Zürich GmbH) missing from name__contains=zurich response — Phase 69 _fold routing regression. got=%v",
+		t.Errorf("id=8002 (Zürich GmbH) missing from name__contains=zurich response — _fold routing regression. got=%v",
 			ids)
 	}
 }
 
-// TestTraversal_EmptyIn_ShortCircuits guards Phase 69 IN-02 under the
-// Phase 70 parser refactor. An empty __in parameter short-circuits the
+// TestTraversal_EmptyIn_ShortCircuits guards the empty-__in sentinel under
+// the traversal parser. An empty __in parameter short-circuits the
 // handler to return 200 with an empty data array — no SQL is executed.
 // seed.Full has multiple networks; without the short-circuit a naive
 // IN(empty) would either error or return all rows.

@@ -19,8 +19,8 @@ import (
 // elsewhere (cmd/peeringdb-plus/*_test.go); duplicating it here would
 // only obscure regression signals.
 //
-// budget=0 disables the Phase 71 pre-flight CheckBudget gate; tests
-// that exercise the 413 path pass a non-zero budget explicitly via
+// budget=0 disables the pre-flight CheckBudget gate; tests that
+// exercise the 413 path pass a non-zero budget explicitly via
 // newTestServerWithBudget.
 //
 // Accepts testing.TB so bench_test.go can reuse the same server setup;

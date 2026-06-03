@@ -14,9 +14,9 @@ import (
 // equivalent ent-runtime patch — that one is load-bearing for ent's own
 // codegen path and is NOT redundant with this annotation).
 //
-// Phase 73 BUG-01 (DEFER-70-06-01) fix per CONTEXT.md D-01 — the schema-level
-// annotation is the single source of truth for every entc.LoadGraph consumer:
-// cmd/pdb-compat-allowlist today, any future codegen tool tomorrow.
+// The schema-level annotation is the single source of truth for every
+// entc.LoadGraph consumer: cmd/pdb-compat-allowlist today, any future
+// codegen tool tomorrow.
 //
 // Lives in this sibling file rather than inside Annotations() on the
 // generated ent/schema/campus.go because cmd/pdb-schema-generate

@@ -13,10 +13,10 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 )
 
-// Phase 78 UAT-02 — in-process regression lock for v1.13 Phase 53 security
+// In-process regression lock for the v1.13 security
 // controls. Mirrors the live curl-driven assertions captured in
 // the project history so any drift fails CI
-// rather than the next year's UAT.
+// rather than later acceptance testing.
 //
 // Tests exercise SecurityHeaders + MaxBytesBody middleware directly rather
 // than spinning up the full middleware chain — full-chain coverage lives in
@@ -41,7 +41,7 @@ func uatSecurityChain() http.Handler {
 
 // TestSecurity_HeadersOnUIPath asserts that browser paths receive all four
 // headers: HSTS, X-Frame-Options, X-Content-Type-Options. Mirrors the live
-// curl evidence captured in UAT-RESULTS.md § UAT-02 for /ui/.
+// curl evidence captured for /ui/.
 func TestSecurity_HeadersOnUIPath(t *testing.T) {
 	t.Parallel()
 
@@ -64,7 +64,7 @@ func TestSecurity_HeadersOnUIPath(t *testing.T) {
 
 // TestSecurity_HeadersOnAPIPath asserts that JSON API paths receive HSTS
 // and X-Content-Type-Options but NOT X-Frame-Options. The X-Frame-Options
-// scoping is intentional per v1.13 Phase 53 — clickjacking protection only
+// scoping is intentional as of v1.13 — clickjacking protection only
 // matters for HTML responses, not JSON. Mirrors live curl on /api/net.
 func TestSecurity_HeadersOnAPIPath(t *testing.T) {
 	t.Parallel()

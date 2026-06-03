@@ -10,7 +10,6 @@ import (
 
 // RenderCompare renders a network comparison as terminal output showing shared
 // IXPs, facilities, and campuses with per-network presence details.
-// (RND-09)
 func (r *Renderer) RenderCompare(w io.Writer, data *templates.CompareData) error {
 	if data == nil {
 		var buf strings.Builder

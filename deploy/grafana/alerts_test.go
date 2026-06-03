@@ -45,7 +45,7 @@ const (
 )
 
 // loadAlerts reads and parses the alert YAML. testing.TB lets benchmarks
-// reuse this helper if they are added later (Phase 72 parity convention).
+// reuse this helper if they are added later.
 func loadAlerts(tb testing.TB) alertFile {
 	tb.Helper()
 	data, err := os.ReadFile(alertsPath)

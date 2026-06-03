@@ -158,7 +158,7 @@ func (Facility) Fields() []ent.Field {
 			Default("").
 			Comment("Postal / ZIP code"),
 
-		// Computed fields (from serializer, stored per D-40)
+		// Computed fields (from serializer)
 		field.String("org_name").
 			Optional().
 			Default("").

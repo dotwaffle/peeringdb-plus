@@ -81,7 +81,7 @@ func applyCarrierFacilityStreamFilters(req *pb.StreamCarrierFacilitiesRequest) (
 }
 
 // ListCarrierFacilities returns a paginated list of carrier facilities under
-// the compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// the compound default order (-updated, -created, -id).
 func (s *CarrierFacilityService) ListCarrierFacilities(ctx context.Context, req *pb.ListCarrierFacilitiesRequest) (*pb.ListCarrierFacilitiesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.CarrierFacility, pb.CarrierFacility]{
 		EntityName: "carrierfacilities",

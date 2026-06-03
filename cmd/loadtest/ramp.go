@@ -23,7 +23,7 @@ var verboseMu sync.Mutex
 
 // RampConfig captures the tunable parameters of one ramp invocation.
 //
-// Per GO-CS-5 / GO-CTX-1 the context is never stored here — every
+// The context is never stored here — every
 // helper that needs cancellation accepts ctx as the first argument.
 // All durations and ratios have plan-defined defaults set by the
 // flag parser in main.go.
@@ -237,7 +237,7 @@ func rampEndpointFor(surface Surface, entity string, id, asn int) Endpoint {
 //   - entity=net with mismatched   -> error: ASN slice must align
 //   - context cancellation         -> propagates after current step
 //
-// Per GO-CTX-1 ctx is the first parameter; per GO-CS-5 the tunable
+// ctx is the first parameter; the tunable
 // surface uses an input struct rather than a 12-arg signature.
 func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, stdout io.Writer) error {
 	if len(ids) == 0 {

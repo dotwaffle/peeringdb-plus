@@ -36,7 +36,7 @@ var anonParityTypes = []string{
 	"poc",
 }
 
-// anonFixtureRoot is the committed phase-57 anon fixture corpus (VIS-01).
+// anonFixtureRoot is the committed anonymous-tier fixture corpus.
 // Relative to this test file (internal/pdbcompat/) it sits two levels up.
 const anonFixtureRoot = "../../testdata/visibility-baseline/beta/anon/api"
 
@@ -49,17 +49,17 @@ const anonFixtureRoot = "../../testdata/visibility-baseline/beta/anon/api"
 //   - The exact divergent field/path
 //   - Why the divergence exists (schema history, upstream behaviour)
 //   - Whether it is a privacy leak (if yes — NOT a known divergence; fix it)
-//   - The tracking follow-up (plan/requirement id)
+//   - The tracking follow-up
 //
 // The intent of this test is to catch shape drift, not launder it. Entries
-// here require operator sign-off recorded in the plan SUMMARY.
+// here require operator sign-off.
 //
-// v1.15 Phase 63 (D-03): removed the "ixpfx|data[0].notes|extra_field"
+// v1.15 removed the "ixpfx|data[0].notes|extra_field"
 // entry after dropping the ent schema field and the peeringdb.IxPrefix
 // struct field — the divergence is now resolved at the source.
 var knownDivergences = map[string]struct{}{}
 
-// TestAnonParityFixtures replays each committed anonymous VIS-01 fixture
+// TestAnonParityFixtures replays each committed anonymous-tier fixture
 // against a local httptest.Server wrapping the pdbcompat handler with an
 // anonymous privacy-tier stamp, and asserts that conformance.CompareResponses
 // returns zero structural differences.
@@ -69,10 +69,9 @@ var knownDivergences = map[string]struct{}{}
 // middleware that materially affects the response shape for this test is
 // PrivacyTier, which we reproduce inline to avoid pulling the main package
 // into internal/pdbcompat (import-cycle risk and unnecessary coupling).
-// See 60-03-PLAN.md §1 design-decisions for the full rationale.
 //
-// The POC sub-test additionally asserts the absent-not-redacted invariant
-// (VIS-07, D-08): rows seeded via seed.Full with visible="Users" (IDs 9000,
+// The POC sub-test additionally asserts the absent-not-redacted invariant:
+// rows seeded via seed.Full with visible="Users" (IDs 9000,
 // 9001) must NOT appear in the anonymous /api/poc response at all — not
 // present-with-null-PII.
 func TestAnonParityFixtures(t *testing.T) {
@@ -86,7 +85,7 @@ func TestAnonParityFixtures(t *testing.T) {
 	// policy on the output path, matching what internal/middleware.PrivacyTier
 	// does in production without the chainConfig dependency.
 	mux := http.NewServeMux()
-	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// Budget=0 disables the pre-flight budget check — this test
 	// replays anonymous fixtures for shape parity, not memory
 	// guardrails.
 	pdbcompat.NewHandler(client, 0).Register(mux)
@@ -131,7 +130,7 @@ func TestAnonParityFixtures(t *testing.T) {
 			// internal/conformance/compare.go:94-101), so one local row is
 			// sufficient to characterise envelope + per-row structure.
 			//
-			// Phase 67 Plan 03: under the new default ordering
+			// Under the default ordering
 			// (-updated, -created, -id), seed.Full's two ixlan rows
 			// (id=100 gated / id=101 Public; identical timestamps) tie
 			// on updated+created and resolve id DESC => id=101 wins.
@@ -177,7 +176,7 @@ func TestAnonParityFixtures(t *testing.T) {
 					typeName, d.Path, d.Kind, d.Details)
 			}
 
-			// Absent-not-redacted invariant (VIS-07, D-08) for the POC
+			// Absent-not-redacted invariant for the POC
 			// type: the seeded Users-tier POCs (IDs 9000, 9001) must be
 			// structurally absent from the anonymous response, not present
 			// with null PII.
@@ -190,7 +189,7 @@ func TestAnonParityFixtures(t *testing.T) {
 
 // assertUsersPocsAbsent fails the test if the anonymous /api/poc response
 // body contains either of the seed.Full Users-tier POC IDs (9000, 9001),
-// or any row with visible="Users". This is the VIS-07 leak check.
+// or any row with visible="Users". This is the anonymous-tier leak check.
 func assertUsersPocsAbsent(t *testing.T, body []byte) {
 	t.Helper()
 	var env struct {

@@ -1,9 +1,9 @@
-// Package main privacy_surfaces_test.go — Phase 60-02 per-surface privacy
+// Package main privacy_surfaces_test.go — per-surface privacy
 // list-count regression tests against the canonical seed.Full fixture.
 //
-// This test is complementary to Phase 59's
+// This test is complementary to
 // TestE2E_AnonymousCannotSeeUsersPoc (e2e_privacy_test.go), which asserts
-// "row absent" on an ephemeral 1-POC fixture. Plan 60-02's version
+// "row absent" on an ephemeral 1-POC fixture. This version
 // asserts list-count shapes against the canonical seed.Full corpus
 // (3 POCs: 1 Public + 2 Users), so it catches regressions where the
 // privacy filter passes scalar containment checks but drops the wrong
@@ -17,13 +17,13 @@
 //   - entrest /rest/v1/pocs/9000 — detail returns 404
 //   - GraphQL pocs(first: 10)   — totalCount == 1, single node id "500"
 //   - ConnectRPC ListPocs       — len(resp.Pocs) == 1, id == 500
-//   - ConnectRPC GetPoc(9000)   — connect.CodeNotFound (D-13/D-14)
+//   - ConnectRPC GetPoc(9000)   — connect.CodeNotFound
 //   - /ui/asn/13335             — rendered HTML does not contain Users POC name/email
 //   - /ui/fragment/net/10/contacts — rendered HTML does not contain Users POC name/email
 //
 // All requests go through buildMiddlewareChain (the real production
 // middleware chain) via httptest.NewServer — direct handler invocation
-// via httptest.NewRecorder is explicitly forbidden by D-07 because it
+// via httptest.NewRecorder is explicitly avoided because it
 // bypasses the privacy-tier middleware.
 package main
 
@@ -141,7 +141,7 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
 
 	// pdbcompat (/api/…).
-	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// Budget=0 disables the pre-flight budget check — this test
 	// targets privacy-surface leak regression, not memory guardrails.
 	compatHandler := pdbcompat.NewHandler(client, 0)
 	compatHandler.Register(mux)
@@ -150,7 +150,7 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	webHandler := web.NewHandler(web.NewHandlerInput{Client: client, DB: rawDB})
 	webHandler.Register(mux)
 
-	// ConnectRPC PocService. Only the Poc service — this plan's scope
+	// ConnectRPC PocService. Only the Poc service — the scope here
 	// is POCs; bringing up the other 12 services would pad setup without
 	// adding coverage.
 	otelInterceptor, err := otelconnect.NewInterceptor(
@@ -170,7 +170,7 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	// Wrap the mux in the full production middleware chain with
 	// DefaultTier=TierPublic. This is the assertion centre: flipping
 	// DefaultTier to TierUsers would admit the Users POCs on every
-	// surface (that's SYNC-03, covered by Phase 59's E2E TierUsers
+	// surface (the Users-tier admit path is covered by the E2E TierUsers
 	// tests, not re-tested here).
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cachingState := middleware.NewCachingState(1 * time.Hour)
@@ -264,7 +264,7 @@ func snipBody(body []byte) string {
 // surface's native not-found idiom (404 / CodeNotFound / empty GraphQL
 // edges / HTML without the gated strings).
 //
-// This is the list-count/shape companion to Phase 59's
+// This is the list-count/shape companion to
 // TestE2E_AnonymousCannotSeeUsersPoc. That test asserts "row absent" on
 // a 1-POC fixture; this test asserts "list contains exactly the Public
 // row(s), no more, no fewer" on the 3-POC fixture. The two catch
@@ -330,7 +330,7 @@ func TestPrivacySurfaces(t *testing.T) {
 		url := fmt.Sprintf("%s/api/poc/%d", fix.server.URL, usersPocID)
 		body, status := surfacesGet(t, url)
 		if status != http.StatusNotFound {
-			t.Fatalf("GET %s: status=%d, want 404 (D-13: surface-native not-found, NOT 403); body=%s",
+			t.Fatalf("GET %s: status=%d, want 404 (surface-native not-found, NOT 403); body=%s",
 				url, status, snipBody(body))
 		}
 	})
@@ -470,15 +470,15 @@ func TestPrivacySurfaces(t *testing.T) {
 		if err == nil {
 			t.Fatalf("GetPoc(%d): expected error (CodeNotFound), got nil", usersPocID)
 		}
-		// D-13/D-14: the idiom MUST be CodeNotFound. CodePermissionDenied
+		// The idiom MUST be CodeNotFound. CodePermissionDenied
 		// (the 403 analogue) would distinguish "filtered" from "missing"
 		// and leak row existence.
 		if code := connect.CodeOf(err); code != connect.CodeNotFound {
 			if ce, ok := errors.AsType[*connect.Error](err); ok {
-				t.Fatalf("GetPoc(%d): code=%s, want CodeNotFound (D-13); message=%q",
+				t.Fatalf("GetPoc(%d): code=%s, want CodeNotFound; message=%q",
 					usersPocID, code, ce.Message())
 			}
-			t.Fatalf("GetPoc(%d): code=%s, want CodeNotFound (D-13); err=%v",
+			t.Fatalf("GetPoc(%d): code=%s, want CodeNotFound; err=%v",
 				usersPocID, code, err)
 		}
 	})
@@ -520,7 +520,7 @@ func TestPrivacySurfaces(t *testing.T) {
 	t.Run("ui_contacts_fragment_no_leak", func(t *testing.T) {
 		t.Parallel()
 		// The contacts fragment is the /ui/ surface where POC rows
-		// actually render. Phase 59's E2E test covers this on the
+		// actually render. The row-level E2E test covers this on the
 		// 1-POC fixture; re-asserting on seed.Full proves the privacy
 		// filter composes with a real mixed corpus (r.Poc visible,
 		// r.UsersPoc gated on the same network).

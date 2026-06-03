@@ -1,7 +1,6 @@
 package sync
 
-// Phase 75 Plan 01 (OBS-01): cold-start population of the
-// pdbplus_data_type_count gauge.
+// Cold-start population of the pdbplus_data_type_count gauge.
 //
 // Until v1.18.0 the gauge cache (cmd/peeringdb-plus/main.go atomic.Pointer)
 // was only ever primed by the OnSyncComplete callback, which fires after the
@@ -12,7 +11,7 @@ package sync
 // "Total Objects", "Objects by Type", and "Object Counts Over Time" panels
 // flat-zero or "No data".
 //
-// 260428-eda CHANGE 6: this primer now issues exactly ONE SQL query
+// This primer issues exactly ONE SQL query
 // (UNION ALL across the 13 entity tables) against the underlying *sql.DB
 // instead of 13 sequential ent Count(ctx) round-trips.
 
@@ -51,7 +50,7 @@ UNION ALL SELECT 'netixlan', COUNT(*) FROM network_ix_lans
 // the same atomic cache can be primed by either the startup path (this
 // helper) or the OnSyncComplete callback.
 //
-// Implements OBS-01 D-01: synchronous startup population so the
+// Synchronous startup population so the
 // pdbplus_data_type_count gauge reports correct values within 30s of
 // process start instead of holding zeros until the first sync cycle
 // completes (~15 min default, ~1h on unauthenticated instances).
@@ -60,9 +59,9 @@ UNION ALL SELECT 'netixlan', COUNT(*) FROM network_ix_lans
 // LiteFS DB. Replaces the prior 13 sequential ent Count() calls
 // (~15-20ms in aggregate). Counts include all rows regardless of status
 // (matching the existing OnSyncComplete cache contract — "raw upserted-
-// row count from the latest sync cycle"). Phase 68 tombstones
+// row count from the latest sync cycle"). Tombstones
 // (status="deleted") are rows the dashboard wants to see in "Total
-// Objects" until tombstone GC ships (SEED-004 dormant). If a future
+// Objects" until the dormant tombstone-GC work ships. If a future
 // requirement wants live-only counts, that's a separate metric.
 //
 // Privacy: raw SQL bypasses ent's Privacy policy entirely (no Privacy
@@ -70,7 +69,7 @@ UNION ALL SELECT 'netixlan', COUNT(*) FROM network_ix_lans
 // regardless of privacy tier — symmetric with the OnSyncComplete writer
 // (which runs under privacy.DecisionContext(ctx, privacy.Allow)).
 //
-// Phase 75 OBS-01 D-01 history: this function previously elevated ctx
+// History: this function previously elevated ctx
 // to TierUsers via privctx.WithTier to keep Poc.Policy from filtering
 // visible!="Public" rows. Without it, the cross-writer disagreement on
 // POC counts caused the pdbplus_data_type_count{type="poc"} 2x/0.5x
@@ -79,7 +78,7 @@ UNION ALL SELECT 'netixlan', COUNT(*) FROM network_ix_lans
 // only count P while the primary's cache flipped between T ≈ 2P (just
 // after a full sync) and tiny incremental deltas, and max by(type)
 // across the 8-instance fleet alternated between T and P accordingly.
-// 260428-eda CHANGE 6 retires the tier elevation entirely: raw SQL
+// The tier elevation was retired entirely: raw SQL
 // achieves the same row-set without going through ent privacy at all
 // (a COUNT bypass is intentional and safe). See
 // the project history for the full incident
@@ -93,7 +92,7 @@ func InitialObjectCounts(ctx context.Context, db *sql.DB) (map[string]int64, err
 	// killing a stuck instance during cold-start) unwinds promptly. The
 	// SQLite driver does check ctx, but on a FUSE-backed LiteFS mount
 	// that's still hydrating, syscall blocking can swallow cancellation
-	// for seconds at a time. REVIEW WR-02.
+	// for seconds at a time.
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("initial object counts: %w", err)
 	}

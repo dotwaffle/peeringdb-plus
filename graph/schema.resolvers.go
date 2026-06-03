@@ -13,14 +13,14 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/privfield"
 )
 
-// IxfIxpMemberListURL is the Phase 64 VIS-09 field-level privacy resolver
-// for ixlan.ixf_ixp_member_list_url. It redacts the URL via
+// IxfIxpMemberListURL is the field-level privacy resolver for
+// ixlan.ixf_ixp_member_list_url. It redacts the URL via
 // internal/privfield.Redact against the caller's ctx tier; returns nil
 // (GraphQL null) when the tier doesn't admit the field.
 //
 // The accompanying `ixfIxpMemberListURLVisible` field is served by the
 // autobind (ent's IxfIxpMemberListURLVisible accessor) so it remains
-// emitted at any tier (D-05 upstream parity).
+// emitted at any tier, matching upstream parity.
 func (r *ixLanResolver) IxfIxpMemberListURL(ctx context.Context, obj *ent.IxLan) (*string, error) {
 	url, omit := privfield.Redact(ctx, obj.IxfIxpMemberListURLVisible, obj.IxfIxpMemberListURL)
 	if omit {

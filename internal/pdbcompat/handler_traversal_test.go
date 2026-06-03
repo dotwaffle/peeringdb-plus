@@ -12,8 +12,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
-// TestServeList_UnknownFilterFields_SilentlyIgnored verifies Phase 70
-// D-05 / TRAVERSAL-04: unknown filter fields produce HTTP 200 with an
+// TestServeList_UnknownFilterFields_SilentlyIgnored verifies that
+// unknown filter fields produce HTTP 200 with an
 // unfiltered response, never 400. The slog.DebugContext call can't
 // easily be asserted without a test slog handler — we rely on the
 // observable HTTP behaviour and the OTel-attr test below.
@@ -39,7 +39,7 @@ func TestServeList_UnknownFilterFields_SilentlyIgnored(t *testing.T) {
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, req)
 			if rec.Code != http.StatusOK {
-				t.Errorf("status = %d, want 200 (TRAVERSAL-04: unknown fields must not 400): %s",
+				t.Errorf("status = %d, want 200 (unknown fields must not 400): %s",
 					rec.Code, rec.Body.String())
 			}
 			var env testEnvelope
@@ -53,8 +53,8 @@ func TestServeList_UnknownFilterFields_SilentlyIgnored(t *testing.T) {
 	}
 }
 
-// TestServeList_UnknownFilterFields_OTelAttrEmitted verifies Phase 70
-// D-05 OTel span attribute emission. Uses a tracetest in-memory exporter
+// TestServeList_UnknownFilterFields_OTelAttrEmitted verifies the
+// OTel span attribute emission. Uses a tracetest in-memory exporter
 // to capture spans produced during the handler call.
 func TestServeList_UnknownFilterFields_OTelAttrEmitted(t *testing.T) {
 	t.Parallel()
@@ -104,8 +104,8 @@ func TestServeList_UnknownFilterFields_OTelAttrEmitted(t *testing.T) {
 
 // TestServeList_ValidTraversalFilter_200 sanity-checks that a valid
 // traversal filter (?org__id=1) returns 200 and a sensible row set —
-// confirms the Phase 70 filter layer composes with the Phase 68 status
-// matrix and Phase 69 preserved invariants in the full serveList path.
+// confirms the traversal filter layer composes with the status
+// matrix and fold-routing invariants in the full serveList path.
 func TestServeList_ValidTraversalFilter_200(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)

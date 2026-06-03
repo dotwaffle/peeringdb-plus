@@ -52,7 +52,7 @@ func TestCheckBudget_OverBudget(t *testing.T) {
 }
 
 // TestCheckBudget_ZeroBudgetDisabled confirms budgetBytes=0 disables the
-// check entirely — SyncMemoryLimit-symmetric semantic (D-05).
+// check entirely — mirroring the SyncMemoryLimit "0 means disabled" semantic.
 func TestCheckBudget_ZeroBudgetDisabled(t *testing.T) {
 	t.Parallel()
 	// Absurd count at maximum depth — would be billions of bytes under
@@ -108,8 +108,8 @@ func TestCheckBudget_UnknownEntity(t *testing.T) {
 	}
 }
 
-// TestWriteBudgetProblem_Body asserts the 413 response shape matches D-04
-// verbatim: status, Content-Type, and all six required JSON fields plus
+// TestWriteBudgetProblem_Body asserts the 413 response shape:
+// status, Content-Type, and all six required JSON fields plus
 // optional instance.
 func TestWriteBudgetProblem_Body(t *testing.T) {
 	t.Parallel()
@@ -174,7 +174,7 @@ func TestWriteBudgetProblem_Body(t *testing.T) {
 
 // TestWriteBudgetProblem_DetailString asserts the human-readable detail
 // string cites the count, estimated bytes, and budget in the form
-// promised by D-04: "Request would return ~N rows totaling ~B bytes;
+// "Request would return ~N rows totaling ~B bytes;
 // limit is L bytes".
 func TestWriteBudgetProblem_DetailString(t *testing.T) {
 	t.Parallel()

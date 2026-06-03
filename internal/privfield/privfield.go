@@ -6,13 +6,16 @@
 // pre-existing <field>_visible companion string stored on the ent row.
 // Every surface MUST call Redact for every field guarded by a _visible
 // companion; there is no centralised enforcement — it's a per-serializer
-// discipline locked by the 5-surface E2E test in Plan 64-03.
+// discipline locked by the 5-surface end-to-end test.
 //
-// Design decisions locked in Phase 64 CONTEXT.md:
-//   - D-01 serializer-layer redaction (not ent Policy)
-//   - D-02 reusable package (this one)
-//   - D-03 fail-closed on unstamped ctx
-//   - D-04 omit key entirely when redacted (caller uses json omitempty)
+// Design rationale:
+//   - redaction happens at the serializer layer, not via an ent Policy,
+//     because ent's Privacy operates at the query/row level only.
+//   - it lives in this reusable package so every surface shares one
+//     implementation.
+//   - it fails closed on an unstamped ctx (the most restrictive tier).
+//   - it signals omission so the caller can drop the field entirely
+//     (callers rely on json omitempty for absence on the wire).
 package privfield
 
 import (

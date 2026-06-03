@@ -63,13 +63,13 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 Two ent fields carry upstream PeeringDB visibility signals:
 
 - `poc.visible` — row-level (`Public` / `Users`). Non-`Public` rows are filtered from anonymous responses by the ent Privacy policy. Only entity where a whole row can be hidden.
-- `ixlan.ixf_ixp_member_list_url_visible` — per-field (`Public` / `Users` / `Private`). Gates the sibling `ixf_ixp_member_list_url`; `internal/privfield.Redact` nulls/omits at the serializer layer across all 5 API surfaces. ent's built-in Privacy operates at query/row level only — field-level redaction is a serializer-layer concern (D-01).
+- `ixlan.ixf_ixp_member_list_url_visible` — per-field (`Public` / `Users` / `Private`). Gates the sibling `ixf_ixp_member_list_url`; `internal/privfield.Redact` nulls/omits at the serializer layer across all 5 API surfaces. ent's built-in Privacy operates at query/row level only — field-level redaction is a serializer-layer concern.
 
-### Field-level privacy (Phase 64)
+### Field-level privacy
 
 `internal/privfield.Redact(ctx, visible, value) (out string, omit bool)` is the single source of truth. Every API serializer calls it for each gated field; `privctx.TierFrom(ctx)` reads the tier stamped by `middleware.PrivacyTier`, and unstamped contexts fail-closed to `TierPublic`. Serializer surfaces that must call `Redact` today:
 
-- **pdbcompat** — `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`; the json struct tag `,omitempty` handles absence on the wire (D-04).
+- **pdbcompat** — `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`; the json struct tag `,omitempty` handles absence on the wire.
 - **ConnectRPC** — `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)`; nil `*wrapperspb.StringValue` → wire omission. Convert closures at `ListIxLans` / `StreamIxLans` capture `ctx` via an adapter so the generic pagination helper's `Convert func(*E) *P` signature stays intact.
 - **GraphQL** — `graph/gqlgen.yml` opts `IxLan.ixfIxpMemberListURL` into a custom resolver; `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns `nil` (GraphQL `null`) when `omit=true`.
 - **entrest** — `cmd/peeringdb-plus/main.go` `restFieldRedactMiddleware` buffers `/rest/v1/ix-lans*` responses and deletes the JSON key in-place when `omit=true`. Wraps INSIDE `restErrorMiddleware` so `application/problem+json` error bodies pass through untouched.
@@ -77,7 +77,7 @@ Two ent fields carry upstream PeeringDB visibility signals:
 
 **Adding a new gated field:** call `privfield.Redact` at EACH of the 5 surfaces above (missing one = privacy leak); seed both gated + Public rows in `internal/testutil/seed.Full`; extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with `Redacted{Anon,UsersTier}` sub-tests and a fail-closed-bypass assertion.
 
-**`_visible` companion emission:** the `_visible` field itself is STILL emitted for anonymous callers (Phase 64 D-05 — upstream parity).
+**`_visible` companion emission:** the `_visible` field itself is STILL emitted for anonymous callers (upstream parity).
 
 **NULL handling:** privacy policy treats NULL `*_visible` as the column default (`Public`), never `Users`. New auth-gated fields use `field.String` (not `Enum`); `internal/visbaseline/schema_alignment_test.go` flags upstream re-captures.
 
@@ -85,7 +85,7 @@ Two ent fields carry upstream PeeringDB visibility signals:
 
 **Hand-edited schema methods MUST live in sibling files** — `cmd/pdb-schema-generate` rewrites `ent/schema/{type}.go` from `schema/peeringdb.json` on every `go generate`, silently stripping anything hand-edited. Today's siblings:
 
-- `ent/schema/poc_policy.go` — `(Poc).Policy()` privacy rule (Phase 59).
+- `ent/schema/poc_policy.go` — `(Poc).Policy()` privacy rule.
 - `ent/schema/fold_mixin.go` + `ent/schema/{type}_fold.go` — `Mixin()` wiring for the 6 folded entities.
 - `ent/schema/pdb_allowlists.go` — `schema.PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist`.
 
@@ -95,7 +95,7 @@ Proto is frozen since v1.6 (`entproto.SkipGenFile` in `ent/entc.go`); dropped en
 
 ### Soft-delete tombstones
 
-Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit signal — the `?since=N` matrix returns `['ok', 'deleted']` (per `peeringdb_server/rest.py:694-727`). Inference-by-absence (the prior `markStaleDeleted*` family + `internal/sync/delete.go`) was removed in quick task 260428-2zl: it mis-classified rows missing from partial responses and dropped children whose upstream-deleted parents we never synced. SEED-004 (tombstone GC) stays dormant.
+Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit signal — the `?since=N` matrix returns `['ok', 'deleted']` (per `peeringdb_server/rest.py:694-727`). Inference-by-absence (the prior `markStaleDeleted*` family + `internal/sync/delete.go`) was removed in quick task 260428-2zl: it mis-classified rows missing from partial responses and dropped children whose upstream-deleted parents we never synced. The dormant tombstone-GC work stays dormant.
 
 **Bootstrap (zero-cursor handling):** v1.18.2's `?since=1` bootstrap was reverted in v1.18.3 — the full-historical fetch tripped upstream's `API_THROTTLE_REPEATED_REQUEST` cap. Current behaviour: zero cursor → fall through to bare `/api/<type>` (status='ok' only). Historical-delete capture for fresh installs is deferred to a multi-cycle bootstrap design (v1.19+); FK backfill catches the orphans that matter on demand.
 
@@ -111,9 +111,9 @@ Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit si
 - List path (`internal/pdbcompat/registry_funcs.go`) MUST append `applyStatusMatrix(isCampus, opts.Since != nil)` LAST in `preds` — mirrors upstream `rest.py:694-727` status × since matrix.
 - PK-lookup (`internal/pdbcompat/depth.go`) MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare. Inline the `StatusIn` literal at each of the 26 call sites; grep-ability trumps DRY here.
 
-Tombstone GC is dormant deferred work (SEED-004; triggers: storage >5% MoM, tombstone ratio >10%, operator request).
+Tombstone GC is dormant deferred work (triggers: storage >5% MoM, tombstone ratio >10%, operator request).
 
-### Shadow-column folding (Phase 69)
+### Shadow-column folding
 
 `internal/unifold` is the single source of truth for diacritic-insensitive folding (`Fold(s string) string` — NFKD normalisation via `golang.org/x/text/unicode/norm` + a hand-rolled ligature map for `ß→ss`, `æ→ae`, `ø→o`, `ł→l`, `þ→th`, `đ→d`, etc.). This mirrors upstream PeeringDB's `unidecode.unidecode(v)` (`peeringdb_server/rest.py:576`) without taking a third-party dep.
 
@@ -134,7 +134,7 @@ Each `_fold` column is declared with `entgql.Skip(SkipAll)` + `entrest.WithSkip(
 
 **pdbcompat filter-side routing pattern (`internal/pdbcompat/filter.go`):** `ParseFilters` reads `tc.FoldedFields[field]` (nil-safe) and threads `folded bool` into `buildPredicate`. When `folded == true`, `buildContains` / `buildStartsWith` route to `<field>_fold` with `unifold.Fold(value)` on the RHS via `sql.FieldContainsFold` / `FieldHasPrefixFold`. `__contains` and `__startswith` are coerced to their case-insensitive variants by `coerceToCaseInsensitive` per `rest.py:638-641`.
 
-**Adding a fold field** (existing or new entity): extend `foldMixin{fields: …}` in the entity's `ent/schema/{type}_fold.go` sibling, add the `.Set<Field>Fold(unifold.Fold(...))` setter to the matching `upsert<Type>s` chain in `internal/sync/upsert.go`, set `"<field>": true` in the entity's `FoldedFields` map in `internal/pdbcompat/registry.go`, and add a round-trip test in `internal/pdbcompat/phase69_filter_test.go`. For a new (7th+) entity, also create the sibling file declaring `Mixin()`.
+**Adding a fold field** (existing or new entity): extend `foldMixin{fields: …}` in the entity's `ent/schema/{type}_fold.go` sibling, add the `.Set<Field>Fold(unifold.Fold(...))` setter to the matching `upsert<Type>s` chain in `internal/sync/upsert.go`, set `"<field>": true` in the entity's `FoldedFields` map in `internal/pdbcompat/registry.go`, and add a round-trip test in `internal/pdbcompat/fold_filter_test.go`. For a new (7th+) entity, also create the sibling file declaring `Mixin()`.
 
 **Do NOT:**
 - Edit the generated `ent/schema/{type}.go` to add `_fold` fields — `cmd/pdb-schema-generate` strips them. Use the sibling.
@@ -155,17 +155,17 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 - Add traversal allowlists to grpcserver / entrest / GraphQL — out of v1.16 scope; those surfaces have their own filter models.
 - Invent filter keys that don't exist upstream — contract is parity with `peeringdb_server/serializers.py@99e92c72`.
 - Add 3+-hop keys — dropped by codegen AND by the 2-hop cap in `parseFieldOp` at request time.
-- Introduce runtime ent-client introspection or `sync.Once` lazy-init for the Edges map — map is codegen-time static (D-02 to avoid init-order coupling).
+- Introduce runtime ent-client introspection or `sync.Once` lazy-init for the Edges map — map is codegen-time static, which avoids init-order coupling.
 
-**Phase 68 + 69 composition.** Traversal predicates compose with the Phase 68 status matrix (`applyStatusMatrix` still appended LAST in all 13 `registry_funcs.go` closures) and with Phase 69's `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
+**Status-matrix and fold composition.** Traversal predicates compose with the status matrix (`applyStatusMatrix` still appended LAST in all 13 `registry_funcs.go` closures) and with the `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
 
-**Closed in Phase 73 (v1.18.0): DEFER-70-06-01.** `<entity>?campus__<field>=X` previously returned 500 due to go-openapi/inflect mis-singularising "campus" → "campu" on the `cmd/pdb-compat-allowlist` codegen path. Fixed by sibling-file mixin `ent/schema/campus_annotations.go` (`entsql.Annotation{Table: "campuses"}`) — see `MILESTONES.md` Phase 73 BUG-01 for audit trail. The `entc.LoadGraph` runtime patch in `ent/entc.go` (`fixCampusInflection`) remains; the two are complementary, not redundant.
+**Campus traversal fix (v1.18.0).** `<entity>?campus__<field>=X` previously returned 500 due to go-openapi/inflect mis-singularising "campus" → "campu" on the `cmd/pdb-compat-allowlist` codegen path. Fixed by sibling-file mixin `ent/schema/campus_annotations.go` (`entsql.Annotation{Table: "campuses"}`). The `entc.LoadGraph` runtime patch in `ent/entc.go` (`fixCampusInflection`) remains; the two are complementary, not redundant.
 
 ### Response memory envelope
 
 See `docs/ARCHITECTURE.md § Response Memory Envelope` for budget, sizing table, lifecycle, telemetry. Invariants:
 
-**Closure pairing:** `ListFunc` + `CountFunc` in `internal/pdbcompat/registry_funcs.go` MUST share a `<entity>Predicates` local helper — otherwise budget pre-check and served response can disagree (breaks the 413 guarantee). The 13 existing pairs preserve `applyStatusMatrix` (Phase 68) and `opts.EmptyResult` short-circuit (Phase 69).
+**Closure pairing:** `ListFunc` + `CountFunc` in `internal/pdbcompat/registry_funcs.go` MUST share a `<entity>Predicates` local helper — otherwise budget pre-check and served response can disagree (breaks the 413 guarantee). The 13 existing pairs preserve `applyStatusMatrix` and the `opts.EmptyResult` short-circuit.
 
 **Single-call-site telemetry:** `memStatsHeapInuseKiB` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer` at the top of `serveList`.
 
@@ -175,15 +175,15 @@ See `docs/ARCHITECTURE.md § Response Memory Envelope` for budget, sizing table,
 
 - Call `runtime.ReadMemStats` per row — STW cost is µs but compounds quickly; the single-call-site `memStatsHeapInuseKiB` invariant is grep-enforceable.
 - Skip the `CheckBudget` pre-flight for "trusted" entity types — none are trusted; the 256 MB replica cap is symmetric across all 13 types.
-- Add a per-endpoint budget override — D-07 rejected this; a single global budget keeps the operator mental model (and the Grafana panel legend) manageable.
+- Add a per-endpoint budget override — a single global budget keeps the operator mental model (and the Grafana panel legend) manageable.
 - Let the `CountFunc` closure diverge from its `ListFunc` sibling's predicates — if they disagree, the budget check and the served response become different queries and the 413 guarantee breaks.
-- Extend streaming/budget to grpcserver / entrest / GraphQL / Web UI — those surfaces have their own memory stories (D-07, see `docs/ARCHITECTURE.md § Response Memory Envelope` → Out of scope).
+- Extend streaming/budget to grpcserver / entrest / GraphQL / Web UI — those surfaces have their own memory stories (see `docs/ARCHITECTURE.md § Response Memory Envelope` → Out of scope).
 
 ### Upstream parity regression
 
 `internal/pdbcompat/parity/` locks pdbcompat semantics via 6 category-split test files (`{ordering,status,limit,unicode,in,traversal}_test.go`) + `harness_helpers_test.go`. Each test seeds its own clean rows **inline** via the ent client and cites the upstream source line in a comment. The earlier ported-fixture pipeline (`internal/testutil/parity` + `cmd/pdb-fixture-port`) was removed: the ports carried unseedable Python-source artefacts (`**kwargs` splats, `SHARED[...]` refs) and 5 of 6 slices had zero behavioural consumers, while the `--check` drift gate was wired into nothing.
 
-**Adding a parity test:** pick the category file by REQ-ID prefix, add a sub-test under `TestParity_<Category>` with `t.Parallel()` and a citation comment (`// upstream: pdb_api_test.py:<line>` or `// synthesised: phase-<NN>-<context>`). Seed clean rows inline via `c.<Entity>.Create()` and the shared `harness_helpers_test.go` request/decode helpers (`newTestServer`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`) — do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
+**Adding a parity test:** pick the category file matching the behaviour under test, add a sub-test under `TestParity_<Category>` with `t.Parallel()` and a citation comment (`// upstream: pdb_api_test.py:<line>` or `// synthesised: <context>`). Seed clean rows inline via `c.<Entity>.Create()` and the shared `harness_helpers_test.go` request/decode helpers (`newTestServer`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`) — do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
 
 **Divergence registry:** `docs/API.md § Known Divergences` is the SoT for intentional non-parity. Every entry has a matching `DIVERGENCE_<…>` sub-test. To add one: (1) write the parity test with `DIVERGENCE_` prefix, (2) append a Known Divergences row, (3) if it corrects a pdbfe-style claim, also append a Validation Notes row.
 
@@ -206,16 +206,16 @@ Authoritative table: `docs/CONFIGURATION.md`. Standard `OTEL_*` env vars also ap
 
 Operationally-critical defaults worth retaining in-context (the surprising or load-bearing ones):
 
-- `PDBPLUS_SYNC_MODE=incremental` (default flipped 2026-04-26 post-SEED-001; `full` is operator escape-hatch for first-sync / recovery)
+- `PDBPLUS_SYNC_MODE=incremental` (default flipped 2026-04-26 after the incremental-sync evaluation; `full` is operator escape-hatch for first-sync / recovery)
 - `PDBPLUS_SYNC_INTERVAL` defaults `1h` unauthenticated / `15m` when `PDBPLUS_PEERINGDB_API_KEY` is set (auth-conditional)
 - `PDBPLUS_RESPONSE_MEMORY_LIMIT=128MiB` — pdbcompat list pre-flight 413 budget; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected except literal `0` (disabled — dev only)
 - `PDBPLUS_SYNC_MEMORY_LIMIT=400MB` — sync-cycle peak heap ceiling; unit suffix required; `0` disables
-- `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384` — sync-cycle telemetry warn thresholds (Fly 512 MB cap; sustained breach re-fires SEED-001 trigger)
+- `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384` — sync-cycle telemetry warn thresholds (Fly 512 MB cap; sustained breach re-opens the incremental-sync evaluation)
 - `PDBPLUS_PEERINGDB_RPS=2` — sustained req/sec cap on every upstream PeeringDB call (sync + FK backfill share the budget); burst hardcoded at 1 to forbid concurrency; 429s honored via `Retry-After` (3-retry cap)
 - `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE=20` — per-cycle cap on **HTTP requests** issued by FK backfill (renamed v1.18.5 from MAX_PER_CYCLE which counted rows; rows is the wrong unit once `?id__in=` batches collapse N rows into 1 request). At 1 req/sec auth, 20 ≈ 20s of upstream pressure max per cycle. With `FetchByIDsBatchSize=100`, that covers up to 2,000 missing-parent rows. `0` disables backfill (orphans fall back to drop-on-miss)
 - `PDBPLUS_FK_BACKFILL_TIMEOUT=5m` — wall-clock budget for backfill HTTP activity per sync cycle; bounds tx-hold time (backfill happens inside the sync tx). On deadline → drop-on-miss with `result=deadline_exceeded` metric
 - `PDBPLUS_LOG_LEVEL=INFO` — minimum severity for the OTel logging branch (Loki). Stdout handler stays at INFO independently. Set `DEBUG` for opt-in deep debugging; invalid values fall back to INFO without crashing.
-- `PDBPLUS_CSP_ENFORCE=false` — defaults to report-only; flip to `true` after v1.13 UAT-01 verification
+- `PDBPLUS_CSP_ENFORCE=false` — defaults to report-only; flip to `true` after v1.13 user-acceptance verification
 - `PDBPLUS_PUBLIC_TIER=public` — set `users` only for private deployments (WARN at startup)
 - `PDBPLUS_IS_PRIMARY=true` — fallback primary detection when LiteFS not present
 
@@ -265,13 +265,13 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 
 ### Sync observability
 
-End-of-sync-cycle memory telemetry surfaces SEED-001's trigger. Implementation: `internal/sync/worker.go` `emitMemoryTelemetry`, called from `recordSuccess`/`rollbackAndRecord`/`recordFailure` (the three terminal paths of `Worker.Sync`). Span attrs `pdbplus.sync.peak_heap_bytes` + `pdbplus.sync.peak_rss_bytes` are mirrored as Prom gauges `pdbplus_sync_peak_heap_bytes` / `pdbplus_sync_peak_rss_bytes` (bytes is the canonical Prom unit; dashboards format MiB at render). Zero-valued observations are suppressed.
+End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that re-opens the incremental-sync evaluation. Implementation: `internal/sync/worker.go` `emitMemoryTelemetry`, called from `recordSuccess`/`rollbackAndRecord`/`recordFailure` (the three terminal paths of `Worker.Sync`). Span attrs `pdbplus.sync.peak_heap_bytes` + `pdbplus.sync.peak_rss_bytes` are mirrored as Prom gauges `pdbplus_sync_peak_heap_bytes` / `pdbplus_sync_peak_rss_bytes` (bytes is the canonical Prom unit; dashboards format MiB at render). Zero-valued observations are suppressed.
 
 **Log signal:** when a threshold is breached, worker emits `slog.Warn("heap threshold crossed", peak_heap_bytes, heap_warn_bytes, peak_rss_bytes, rss_warn_bytes, heap_over, rss_over)`. Thresholds gated by `PDBPLUS_HEAP_WARN_MIB` / `PDBPLUS_RSS_WARN_MIB` (defaults sit under the Fly 512 MB VM cap so order under pressure is: log → app crash → Fly OOM-kill).
 
 **FK-orphan summary:** each sync cycle emits one `slog.Warn("fk orphans summary", total, groups)` (DEBUG when `total=0`) and increments `pdbplus.sync.type.orphans{type, parent_type, field, action}` per row. Per-row events log at DEBUG only — replaces the prior per-row WARN spam that breached Tempo's 7.5 MB per-trace cap.
 
-**SEED-001 escalation:** sustained peak heap above `PDBPLUS_HEAP_WARN_MIB` across multiple cycles re-fires the incremental-sync-evaluation review (SEED-001).
+**Escalation:** sustained peak heap above `PDBPLUS_HEAP_WARN_MIB` across multiple cycles re-opens the incremental-sync evaluation.
 
 **Resource attribute filtering** (`internal/otel/provider.go` `buildResourceFiltered`): Grafana Cloud's hosted OTLP receiver only promotes `service.*` / `cloud.*` / `host.*` / `k8s.*` to Prom labels; custom `fly.*` keys are dropped on the metrics path. `service.instance.id` is stripped via `includeInstanceID=false` to bound fleet cardinality; `service.namespace` + `cloud.region` stay on metrics. Full attribute table + `http.route` middleware rationale in `docs/ARCHITECTURE.md`.
 

@@ -8,9 +8,9 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/privfield"
 )
 
-// TestRedact exercises the full admission matrix locked by Phase 64
-// CONTEXT.md D-11 plus the fail-closed case from D-03. The table mirrors
-// the truth table in 64-01-privfield-helper-PLAN.md §<behavior>.
+// TestRedact exercises the full admission matrix plus the fail-closed
+// case for an unstamped context. The table mirrors the helper's truth
+// table.
 func TestRedact(t *testing.T) {
 	t.Parallel()
 

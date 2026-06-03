@@ -24,7 +24,7 @@ type envelope struct {
 	Data []map[string]any `json:"data"`
 }
 
-// Redact applies the phase 57 redaction policy to an authenticated PeeringDB
+// Redact applies the redaction policy to an authenticated PeeringDB
 // response and returns bytes safe to commit. The policy:
 //
 //  1. Preserve envelope shape, row count, field names, integer row ids, and
@@ -125,7 +125,7 @@ func redactValue(fieldName string, val any, anonRow map[string]any) any {
 // placeholderFor maps a Go-decoded JSON value to the typed placeholder string.
 // Null stays null (no disclosure). Nested objects and arrays collapse to the
 // string placeholder — the baseline phase only tracks field presence + type,
-// not inner shape (Pitfall 4: structural reveal is also a leak surface).
+// not inner shape (structural reveal is also a leak surface).
 func placeholderFor(v any) any {
 	switch v.(type) {
 	case string:

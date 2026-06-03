@@ -107,7 +107,7 @@ func applyIxLanStreamFilters(req *pb.StreamIxLansRequest) ([]func(*sql.Selector)
 }
 
 // ListIxLans returns a paginated list of IX LANs under the compound default
-// order (-updated, -created, -id) per Phase 67 ORDER-02.
+// order (-updated, -created, -id).
 func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest) (*pb.ListIxLansResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxLan, pb.IxLan]{
 		EntityName: "ixlans",
@@ -125,7 +125,7 @@ func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest
 			}
 			return q.All(ctx)
 		},
-		// Phase 64: closure adapter so ixLanToProto can receive ctx without
+		// Closure adapter so ixLanToProto can receive ctx without
 		// altering the generic pagination helper's Convert field type
 		// (changing to func(ctx, *E) *P would cascade to all 13 entity
 		// types). The enclosing handler's ctx is captured by reference and
@@ -168,7 +168,7 @@ func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansReq
 			}
 			return q.All(ctx)
 		},
-		// Phase 64: closure adapter (see ListIxLans for rationale).
+		// Closure adapter (see ListIxLans for rationale).
 		Convert:    func(il *ent.IxLan) *pb.IxLan { return ixLanToProto(ctx, il) },
 		GetID:      func(il *ent.IxLan) int { return il.ID },
 		GetUpdated: func(il *ent.IxLan) time.Time { return il.Updated },
@@ -177,17 +177,17 @@ func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansReq
 }
 
 // ixLanToProto converts an ent IxLan entity to a protobuf IxLan message,
-// applying Phase 64 VIS-09 field-level redaction for the
+// applying field-level redaction for the
 // ixf_ixp_member_list_url field via internal/privfield.Redact.
 //
 // ctx MUST carry the caller's privacy tier (stamped by the PrivacyTier HTTP
 // middleware). Unstamped ctx fail-closes to TierPublic per privfield.Redact
-// semantics (Phase 64 D-03).
+// semantics.
 //
 // Proto3 wrapper field semantics: a nil *wrapperspb.StringValue is omitted
 // on the wire (matches upstream behaviour of omitting the JSON key for
-// un-authenticated callers, D-04). The _visible companion is always
-// emitted via stringVal (D-05 upstream parity).
+// un-authenticated callers). The _visible companion is always
+// emitted via stringVal (upstream parity).
 func ixLanToProto(ctx context.Context, il *ent.IxLan) *pb.IxLan {
 	url, omit := privfield.Redact(ctx, il.IxfIxpMemberListURLVisible, il.IxfIxpMemberListURL)
 	var urlProto *wrapperspb.StringValue

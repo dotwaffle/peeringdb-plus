@@ -11,7 +11,7 @@ import (
 )
 
 // NewDualLogger creates a slog.Logger that sends every log record to both
-// a JSON stdout handler and the OTel log pipeline via otelslog per D-03.
+// a JSON stdout handler and the OTel log pipeline via otelslog.
 // This ensures logs are always visible on stdout even if the OTel backend
 // is unavailable.
 //
@@ -19,7 +19,7 @@ import (
 // [otelLevelFromEnv] (env var PDBPLUS_LOG_LEVEL, default INFO) so DEBUG
 // records do not ship to the OTel logging pipeline (and from there to Loki)
 // unless the operator explicitly opts in. The stdout branch keeps its
-// existing INFO gate. See Phase 77 AUDIT.md for the audit finding.
+// existing INFO gate.
 func NewDualLogger(stdout io.Writer, logProvider *sdklog.LoggerProvider) *slog.Logger {
 	otelHandler := otelslog.NewHandler("peeringdb-plus",
 		otelslog.WithLoggerProvider(logProvider),
@@ -36,8 +36,8 @@ func NewDualLogger(stdout io.Writer, logProvider *sdklog.LoggerProvider) *slog.L
 // otelLevelFromEnv returns the slog.Level the otelslog branch should gate on.
 // Reads PDBPLUS_LOG_LEVEL; defaults to slog.LevelInfo. Invalid values fall
 // back to INFO without crashing — logging-level config is operator-friendly
-// per the v1.18 OBS-06 audit (CLAUDE.md GO-CFG-1 prefers fail-fast, but a
-// malformed log level should not take production down).
+// (the project prefers fail-fast, but a malformed log level should not
+// take production down).
 func otelLevelFromEnv() slog.Level {
 	v := os.Getenv("PDBPLUS_LOG_LEVEL")
 	if v == "" {

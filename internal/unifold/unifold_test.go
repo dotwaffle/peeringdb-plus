@@ -39,7 +39,7 @@ func TestFold(t *testing.T) {
 	}
 }
 
-// TestFold_RoundTrip locks the canonical UNICODE-01 invariant: an ASCII query
+// TestFold_RoundTrip locks the canonical invariant: an ASCII query
 // and its diacritic-bearing counterpart fold to the same value, and that value
 // is itself idempotent under Fold.
 func TestFold_RoundTrip(t *testing.T) {
@@ -60,7 +60,7 @@ func TestFold_RoundTrip(t *testing.T) {
 // TestFold_NoPanic exercises the contract that Fold is total: any UTF-8 input
 // (including invalid bytes, control characters, ZWJ sequences, RTL scripts,
 // or zalgo strings with thousands of combining marks on a single base) must
-// return without panicking. This underwrites Plan 69-05's fuzz harness.
+// return without panicking. This underwrites the fuzz harness.
 func TestFold_NoPanic(t *testing.T) {
 	t.Parallel()
 	inputs := []string{

@@ -54,7 +54,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 		return nil, fmt.Errorf("network ASN %d: %w", input.ASN2, err)
 	}
 
-	// Load presences in parallel (CC-4: errgroup for fan-out).
+	// Load presences in parallel (errgroup for fan-out).
 	// Pre-allocate result slots so each goroutine writes to its own index.
 	var (
 		ixLansA  []*ent.NetworkIxLan
@@ -144,7 +144,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 		ViewMode:         input.ViewMode,
 	}
 
-	// Always compute all facilities for map rendering (D-08, D-12).
+	// Always compute all facilities for map rendering.
 	data.AllFacilities = computeAllFacilities(facNetsA, facNetsB)
 
 	// Full view: compute union of all IXP presences with shared flags.

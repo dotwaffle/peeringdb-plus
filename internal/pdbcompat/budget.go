@@ -7,19 +7,18 @@ import (
 )
 
 // ResponseTooLargeType is the RFC 9457 problem-type URI for pre-flight
-// budget-exceeded 413 responses (Phase 71 D-04). Package constant so
-// Plan 04's handler wiring and Plan 72's parity tests reference the
-// same literal — drift between the wire value and the documented value
-// is a silent compatibility break.
+// budget-exceeded 413 responses. Package constant so the handler wiring
+// and the parity tests reference the same literal — drift between the
+// wire value and the documented value is a silent compatibility break.
 const ResponseTooLargeType = "https://peeringdb-plus.fly.dev/errors/response-too-large"
 
 // BudgetExceeded describes a request whose estimated response size
 // exceeds the configured PDBPLUS_RESPONSE_MEMORY_LIMIT. Populated by
-// CheckBudget; consumed by WriteBudgetProblem (413 writer) and (in
-// later plans) structured-log emission in the handler + OTel span
+// CheckBudget; consumed by WriteBudgetProblem (413 writer) and
+// structured-log emission in the handler + OTel span
 // attributes for the memory-budget counter.
 //
-// Only MaxRows and BudgetBytes are serialized onto the wire (D-04);
+// Only MaxRows and BudgetBytes are serialized onto the wire;
 // EstimatedBytes, Count, Entity, and Depth are internal diagnostics
 // carried in the struct so callers can log / trace them without a
 // second trip through TypicalRowBytes.
@@ -38,13 +37,13 @@ type BudgetExceeded struct {
 //
 // budgetBytes <= 0 disables the check entirely — same semantic as
 // PDBPLUS_SYNC_MEMORY_LIMIT=0. This is the documented local-dev escape
-// hatch and the reason Phase 68's unbounded limit=0 is safe to expose
+// hatch and the reason the unbounded limit=0 is safe to expose
 // in prod (the budget is the DoS safety net).
 //
 // The math: perRow = TypicalRowBytes(entity, depth); estimated = count
 // × perRow; over budget iff estimated > budgetBytes. The estimate is
 // conservative by construction — TypicalRowBytes is the measured mean
-// doubled and rounded up (D-03), and count is a precise SELECT COUNT(*)
+// doubled and rounded up, and count is a precise SELECT COUNT(*)
 // against the already-filtered query, so false-positive 413s are rare
 // and preferred over OOM.
 //
@@ -79,7 +78,7 @@ func CheckBudget(count int, entity string, depth int, budgetBytes int64) (Budget
 	}, false
 }
 
-// budgetProblemBody is the exact on-the-wire shape per Phase 71 D-04.
+// budgetProblemBody is the exact on-the-wire shape.
 // Hand-rolled rather than reusing httperr.ProblemDetail because the
 // latter hardcodes Type="about:blank" and lacks the max_rows /
 // budget_bytes extension fields. Keeping the custom shape in a local
@@ -94,8 +93,8 @@ type budgetProblemBody struct {
 	BudgetBytes int64  `json:"budget_bytes"`
 }
 
-// WriteBudgetProblem writes the RFC 9457 413 response described by
-// Phase 71 D-04. Does not set Retry-After — the failure is
+// WriteBudgetProblem writes the RFC 9457 413 response described
+// above. Does not set Retry-After — the failure is
 // request-shape (wrong filters / too-large page), not transient
 // resource pressure; retrying the same request would produce the same
 // 413. Operators who want to retrieve more rows must narrow their

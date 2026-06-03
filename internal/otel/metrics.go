@@ -35,7 +35,7 @@ var SyncDuration metric.Float64Histogram
 // Attributes: endpoint (e.g. "/api/net"), entity (e.g. "net"). Low-cardinality
 // by construction — 1 endpoint per type × 13 types = 13 label combinations.
 //
-// Registered by InitResponseHeapHistogram (Phase 71 Plan 05, D-06).
+// Registered by InitResponseHeapHistogram.
 var ResponseHeapDeltaBytes metric.Int64Histogram
 
 // SyncOperations counts sync operations by status (success/failed).
@@ -47,10 +47,10 @@ var SyncTypeObjects metric.Int64Counter
 // SyncTypeDeleted counts objects deleted per type.
 var SyncTypeDeleted metric.Int64Counter
 
-// SyncTypeFetchErrors counts PeeringDB API fetch errors per type per D-10.
+// SyncTypeFetchErrors counts PeeringDB API fetch errors per type.
 var SyncTypeFetchErrors metric.Int64Counter
 
-// SyncTypeUpsertErrors counts database upsert errors per type per D-10.
+// SyncTypeUpsertErrors counts database upsert errors per type.
 var SyncTypeUpsertErrors metric.Int64Counter
 
 // SyncTypeFallback counts incremental-to-full fallback events per type.
@@ -65,7 +65,7 @@ var SyncTypeOrphans metric.Int64Counter
 
 // SyncFKBackfill counts live FK-backfill attempts during sync, broken down
 // by {type, parent_type, result} where result ∈ {hit, miss, ratelimited,
-// error}. Quick task 260428-2zl: when fkCheckParent finds a missing
+// error}. When fkCheckParent finds a missing
 // parent, sync attempts one upstream fetch via ?since=1&id__in=N before
 // declaring the child an orphan. Cap-hit (per-cycle budget exhausted),
 // HTTP failures, and "parent truly absent upstream" each get their own
@@ -74,14 +74,14 @@ var SyncTypeOrphans metric.Int64Counter
 var SyncFKBackfill metric.Int64Counter
 
 // PeeringDBRequests counts outbound HTTP requests to the PeeringDB API by
-// status_class ∈ {2xx, 3xx, 4xx, 5xx, network_error}. Quick task 260428-2zl
-// — the sync-level fk_backfill counter only sees post-decision events;
+// status_class ∈ {2xx, 3xx, 4xx, 5xx, network_error}.
+// The sync-level fk_backfill counter only sees post-decision events;
 // this counter sees every request the transport makes (including retries).
 // Cardinality: 5 values × 1 metric = 5 series (well under any concern).
 var PeeringDBRequests metric.Int64Counter
 
 // PeeringDBRetries counts in-transport retries broken down by cause ∈
-// {429, 5xx, network_error}. Quick task 260428-2zl. The 429 axis catches
+// {429, 5xx, network_error}. The 429 axis catches
 // upstream rate-limit pressure that the limiter under-provisioned for;
 // 5xx catches upstream instability; network_error catches conn/DNS
 // failures. The application-level 5xx ladder in doWithRetry also bumps
@@ -89,7 +89,7 @@ var PeeringDBRequests metric.Int64Counter
 var PeeringDBRetries metric.Int64Counter
 
 // PeeringDBRateLimitWaitMS is a histogram of per-request rate-limiter
-// wait durations in milliseconds. Quick task 260428-2zl — replaces the
+// wait durations in milliseconds. Replaces the
 // span-event-only signal with a metric so operators can see p50/p95/p99
 // without enabling sampled tracing. Bucket boundaries cover 0 (always-
 // available bursts) up to 5s (the biggest gap a 1/3s limiter can impose
@@ -99,8 +99,8 @@ var PeeringDBRateLimitWaitMS metric.Float64Histogram
 // RoleTransitions counts LiteFS role transition events (promoted/demoted).
 var RoleTransitions metric.Int64Counter
 
-// InitMetrics registers custom metric instruments for sync operations per D-05.
-// HTTP metrics are handled automatically by otelhttp middleware (Plan 03).
+// InitMetrics registers custom metric instruments for sync operations.
+// HTTP metrics are handled automatically by otelhttp middleware.
 func InitMetrics() error {
 	meter := otel.Meter("peeringdb-plus")
 
@@ -214,7 +214,7 @@ func InitMetrics() error {
 	return nil
 }
 
-// InitFreshnessGauge registers the sync freshness observable gauge per D-09.
+// InitFreshnessGauge registers the sync freshness observable gauge.
 // The lastSyncFn callback returns the time of the last successful sync.
 // Must be called after OTel Setup() and database initialization.
 func InitFreshnessGauge(lastSyncFn func(ctx context.Context) (time.Time, bool)) error {
@@ -238,7 +238,7 @@ func InitFreshnessGauge(lastSyncFn func(ctx context.Context) (time.Time, bool)) 
 }
 
 // InitMemoryGauges registers observable gauges that report the most-recent
-// end-of-sync-cycle peak heap and RSS (bytes) for SEED-001 dashboard
+// end-of-sync-cycle peak heap and RSS (bytes) for the sync-memory dashboard
 // watch. Values are updated by internal/sync.(*Worker).emitMemoryTelemetry
 // via the SyncPeakHeapBytes / SyncPeakRSSBytes atomics. A zero value
 // suppresses the observation (no sync yet, or non-Linux for RSS) so
@@ -278,7 +278,7 @@ func InitMemoryGauges() error {
 }
 
 // InitResponseHeapHistogram registers the per-request heap-delta histogram
-// for pdbcompat response paths (Phase 71 D-06, MEMORY-03). Called from
+// for pdbcompat response paths. Called from
 // main.go at startup after the OTel SDK is ready. Analogous to
 // InitMemoryGauges but records a histogram (distribution over p50/p95/p99)
 // rather than a point-in-time gauge, because per-request deltas are the
@@ -309,7 +309,7 @@ func InitResponseHeapHistogram() error {
 
 // InitObjectCountGauges registers an observable Int64Gauge that reports the
 // number of objects stored per PeeringDB type. Reads from a cache function
-// that returns pre-computed counts updated at sync completion time (PERF-02).
+// that returns pre-computed counts updated at sync completion time.
 // Must be called after OTel Setup().
 func InitObjectCountGauges(countsFn func() map[string]int64) error {
 	meter := otel.Meter("peeringdb-plus")

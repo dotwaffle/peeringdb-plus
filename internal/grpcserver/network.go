@@ -189,7 +189,7 @@ func applyNetworkStreamFilters(req *pb.StreamNetworksRequest) ([]func(*sql.Selec
 }
 
 // ListNetworks returns a paginated list of networks ordered by the compound
-// default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// default order (-updated, -created, -id).
 // Supports all pdbcompat-parity filter fields with AND logic.
 func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksRequest) (*pb.ListNetworksResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Network, pb.Network]{

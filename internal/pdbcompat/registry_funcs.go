@@ -26,12 +26,12 @@ func init() {
 	wireCarrierFacFuncs()
 	wireCampusFuncs()
 
-	// Phase 71 WR-01 invariant: every entity that exposes a List closure
+	// List/count pairing invariant: every entity that exposes a List closure
 	// MUST also expose a Count closure. serveList's pre-flight budget
 	// check in handler.go is gated on `tc.Count != nil` — a missing Count
 	// would silently bypass the 413 guardrail and put the process back at
 	// OOM risk on an unbounded list. Failing fast at startup is cheap;
-	// silent DoS exposure is not. See CONTEXT.md D-02.
+	// silent DoS exposure is not.
 	//
 	// Runs as the LAST step of init() so it observes the fully-wired
 	// Registry. Iteration order over a map is unspecified but the panic
@@ -44,7 +44,7 @@ func init() {
 		}
 	}
 	if len(missing) > 0 {
-		panic(fmt.Sprintf("pdbcompat: Registry entries have List without CountFunc (Phase 71 WR-01): %v", missing))
+		panic(fmt.Sprintf("pdbcompat: Registry entries have List without CountFunc: %v", missing))
 	}
 }
 
@@ -93,13 +93,13 @@ func wireOrgFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.Organization(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.Organization(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeOrg,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -120,7 +120,7 @@ func wireOrgFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -141,13 +141,13 @@ func wireNetFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.Network(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.Network(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeNet,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -168,7 +168,7 @@ func wireNetFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -189,13 +189,13 @@ func wireFacFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.Facility(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.Facility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -216,7 +216,7 @@ func wireFacFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -237,13 +237,13 @@ func wireIXFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.InternetExchange(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.InternetExchange(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeIX,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -264,7 +264,7 @@ func wireIXFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -285,13 +285,13 @@ func wirePocFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.Poc(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.Poc(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypePoc,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -312,7 +312,7 @@ func wirePocFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -333,13 +333,13 @@ func wireIXLanFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.IxLan(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.IxLan(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeIXLan,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -360,7 +360,7 @@ func wireIXLanFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -381,13 +381,13 @@ func wireIXPfxFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.IxPrefix(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.IxPrefix(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeIXPfx,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -408,7 +408,7 @@ func wireIXPfxFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -429,13 +429,13 @@ func wireNetIXLanFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.NetworkIxLan(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.NetworkIxLan(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeNetIXLan,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -456,7 +456,7 @@ func wireNetIXLanFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -477,13 +477,13 @@ func wireNetFacFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.NetworkFacility(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.NetworkFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeNetFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -504,7 +504,7 @@ func wireNetFacFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -525,13 +525,13 @@ func wireIXFacFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.IxFacility(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.IxFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeIXFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -552,7 +552,7 @@ func wireIXFacFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -573,13 +573,13 @@ func wireCarrierFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.Carrier(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.Carrier(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeCarrier,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -600,7 +600,7 @@ func wireCarrierFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -621,13 +621,13 @@ func wireCarrierFacFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.CarrierFacility(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		preds = append(preds, predicate.CarrierFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeCarrierFac,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -648,7 +648,7 @@ func wireCarrierFacFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}
@@ -669,14 +669,14 @@ func wireCampusFuncs() {
 		if s := applySince(opts); s != nil {
 			preds = append(preds, predicate.Campus(s))
 		}
-		// Phase 68 D-05/D-07: upstream rest.py:694-727 status matrix.
+		// upstream rest.py:694-727 status matrix.
 		// Campus is the only type that admits status=pending on list+since (rest.py:721).
 		preds = append(preds, predicate.Campus(applyStatusMatrix(true /*isCampus*/, opts.Since != nil)))
 		return preds
 	}
 	setFuncs(peeringdb.TypeCampus,
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return []any{}, 0, nil
 			}
@@ -697,7 +697,7 @@ func wireCampusFuncs() {
 			return out, len(out), nil
 		},
 		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// Phase 69 IN-02: empty __in returns empty set per D-06.
+			// empty __in returns empty set.
 			if opts.EmptyResult {
 				return 0, nil
 			}

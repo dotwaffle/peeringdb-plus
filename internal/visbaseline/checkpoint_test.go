@@ -134,7 +134,7 @@ func TestCheckpointPromptAcceptsRestart(t *testing.T) {
 }
 
 // TestCheckpointContainsNoPayload asserts the serialised state has only the
-// whitelisted top-level and tuple keys — T-57-04 mitigation.
+// whitelisted top-level and tuple keys — checkpoint-leak mitigation.
 func TestCheckpointContainsNoPayload(t *testing.T) {
 	t.Parallel()
 

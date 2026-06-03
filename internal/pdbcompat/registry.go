@@ -66,7 +66,7 @@ type QueryOptions struct {
 	// __in filter with zero values (e.g. ?asn__in=). Each list closure in
 	// registry_funcs.go short-circuits on this flag and returns an empty
 	// result set without issuing any SQL — matches Django ORM
-	// Model.objects.filter(id__in=[]) per Phase 69 D-06 (IN-02).
+	// Model.objects.filter(id__in=[]).
 	EmptyResult bool
 }
 
@@ -74,7 +74,7 @@ type QueryOptions struct {
 type ListFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error)
 
 // CountFunc runs the predicate chain for a list query and returns the
-// matching row count WITHOUT fetching row data. Used by Phase 71
+// matching row count WITHOUT fetching row data. Used by the
 // serveList pre-flight budget check to decide whether to 413 up-front
 // before committing to an expensive .All(ctx) fetch.
 //
@@ -96,10 +96,10 @@ type TypeConfig struct {
 	Get          GetFunc
 
 	// FoldedFields lists the string fields on this type that have a sibling
-	// <field>_fold column populated by the sync worker (Phase 69 Plan 03).
+	// <field>_fold column populated by the sync worker.
 	// When non-nil, substring / prefix / iexact filters on these fields are
 	// routed to the _fold column with unifold.Fold(value) on the RHS for
-	// diacritic-insensitive matching (Phase 69 UNICODE-01). Nil is safe —
+	// diacritic-insensitive matching. Nil is safe —
 	// map reads on nil return the zero value (false).
 	FoldedFields map[string]bool
 }

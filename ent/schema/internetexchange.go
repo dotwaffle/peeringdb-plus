@@ -138,7 +138,7 @@ func (InternetExchange) Fields() []ent.Field {
 			Default("").
 			Comment("IX website URL"),
 
-		// Computed fields (from serializer, stored per D-40)
+		// Computed fields (from serializer)
 		field.Int("net_count").
 			Optional().
 			Default(0).

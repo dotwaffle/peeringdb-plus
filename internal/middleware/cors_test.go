@@ -10,7 +10,7 @@ import (
 )
 
 // TestCORSPreflightAllowed verifies that OPTIONS preflight from an allowed origin
-// gets the correct CORS headers per OPS-06.
+// gets the correct CORS headers.
 func TestCORSPreflightAllowed(t *testing.T) {
 	t.Parallel()
 

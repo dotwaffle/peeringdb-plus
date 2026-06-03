@@ -3,7 +3,7 @@ package schema
 
 import "github.com/ogen-go/ogen"
 
-// The SocialMedia value type moved to ent/schematypes (Phase 59-04) to
+// The SocialMedia value type moved to ent/schematypes to
 // break an import cycle introduced when poc.go's Policy() started
 // importing ent/poc for generated where-predicates. See
 // ent/schematypes/schematypes.go for the full rationale.

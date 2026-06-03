@@ -4,7 +4,7 @@
 // annotations. Regenerate via `go generate ./...` (runs
 // cmd/pdb-compat-allowlist after ent codegen per ent/generate.go).
 //
-// See Phase 70 D-01 / D-03 for the upstream PeeringDB parity rationale.
+// The allowlists and FilterExcludes mirror upstream PeeringDB parity.
 
 package pdbcompat
 
@@ -142,11 +142,11 @@ var FilterExcludes = map[string]map[string]bool{}
 // EdgeMetadata describing its outgoing ent edges. Consumed at request
 // time by internal/pdbcompat.LookupEdge for Path B traversal.
 //
-// Phase 70 D-02 (amended 2026-04-19): the map is emitted at
+// The map is emitted at
 // `go generate` time from gen.Graph — no runtime client.Schema walk,
 // no sync.Once, no init-order coupling. Freshness is enforced by the
-// existing go-generate drift-check CI gate (same precedent as
-// v1.15 Phase 63 hygiene drops).
+// existing go-generate drift-check CI gate (same precedent as the
+// v1.15 schema hygiene drops).
 //
 // TraversalKey is the <fk> token in filter params (equals TargetType
 // today). Excluded edges (WithFilterExcludeFromTraversal annotation)
@@ -154,7 +154,7 @@ var FilterExcludes = map[string]map[string]bool{}
 // callers so consumers see them as missing.
 //
 // ParentFKColumn, TargetTable, TargetIDColumn carry SQL-level metadata
-// for Plan 70-05's subquery construction. Edges whose FK column or
+// for the runtime subquery construction. Edges whose FK column or
 // target table could not be resolved at codegen time are logged and
 // skipped entirely (never emitted with blank metadata).
 var Edges = map[string][]EdgeMetadata{

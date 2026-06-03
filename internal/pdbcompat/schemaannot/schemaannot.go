@@ -1,6 +1,6 @@
 // Package schemaannot exposes ent schema annotation types consumed by
-// ent/schema/*.go to describe pdbcompat's Path A allowlist (Phase 70 D-01)
-// and per-edge FILTER_EXCLUDE (D-03). These types are split out of the
+// ent/schema/*.go to describe pdbcompat's Path A allowlist
+// and per-edge FILTER_EXCLUDE. These types are split out of the
 // parent internal/pdbcompat package so that ent/schema files can import
 // them without creating an import cycle at test-compile time
 // (pdbcompat → ent; ent/runtime → ent/schema; ent/schema → pdbcompat would
@@ -13,7 +13,7 @@
 package schemaannot
 
 // PrepareQueryAllowAnnotation is the ent schema.Annotation form of
-// upstream PeeringDB's per-serializer prepare_query allowlist (Phase 70 D-01).
+// upstream PeeringDB's per-serializer prepare_query allowlist.
 // Attached to a schema (node-level), its Fields slice enumerates the
 // filter keys that the pdbcompat parser will resolve via Path A. The
 // codegen tool cmd/pdb-compat-allowlist reads this annotation at
@@ -51,7 +51,7 @@ func WithPrepareQueryAllow(fields ...string) PrepareQueryAllowAnnotation {
 }
 
 // FilterExcludeFromTraversalAnnotation is the ent-edge-level form of
-// upstream serializers.py:128-157's FILTER_EXCLUDE list (Phase 70 D-03).
+// upstream serializers.py:128-157's FILTER_EXCLUDE list.
 // Attached to an edge (e.g. network.social_media), it signals the
 // codegen tool to mark the edge as un-traversable — Path B
 // introspection will skip it regardless of whether it matches the

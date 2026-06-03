@@ -11,7 +11,6 @@ import (
 
 // RenderOrgDetail renders an organization entity as terminal output with minimal layout.
 // Shows compact header with identity fields and simple name-only child entity lists.
-// (RND-05, D-03 minimal layout)
 func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error {
 	var buf strings.Builder
 	buf.Grow(len(data.Networks)*80 + len(data.IXPs)*60 + len(data.Facs)*80 +
@@ -21,7 +20,7 @@ func (r *Renderer) RenderOrgDetail(w io.Writer, data templates.OrgDetail) error 
 	buf.WriteString(styledHeading(data.Name))
 	buf.WriteString("\n")
 
-	// Key-value header (compact, identity fields only per D-03).
+	// Key-value header (compact, identity fields only).
 	writeKV(&buf, "Website", styledVal(data.Website), labelWidth)
 	writeKV(&buf, "Address", formatAddress(data.Address1, data.Address2), labelWidth)
 	writeKV(&buf, "Location", styledVal(formatLocation(data.City, data.Country)), labelWidth)

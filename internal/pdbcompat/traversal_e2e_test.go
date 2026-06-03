@@ -12,7 +12,7 @@ import (
 )
 
 // setupTraversalHandler builds a Handler over a seed.Full-populated
-// in-memory client. The E2E matrix below relies on the Phase 70 traversal
+// in-memory client. The E2E matrix below relies on the traversal
 // fixture rows (IDs 8000+) that seed.Full adds on top of the pre-existing
 // 13-entity baseline — assertions target specific row IDs, not smoke-level
 // counts.
@@ -68,7 +68,7 @@ func equalIntSets(a, b []int) bool {
 	return slices.Equal(aSorted, bSorted)
 }
 
-// TestTraversal_E2E_Matrix locks Phase 70 traversal behaviour end-to-end
+// TestTraversal_E2E_Matrix locks cross-entity traversal behaviour end-to-end
 // through the handler dispatch path against a seed.Full-populated client.
 // Every subtest asserts specific expected row IDs (or explicit empty set)
 // — no smoke-level "status==200 AND len(data) > 0" assertions. The seed
@@ -91,13 +91,13 @@ func equalIntSets(a, b []int) bool {
 //   - Unknown-field silent-ignore (5 cases): unknown local, unknown edge,
 //     known edge with unknown target field, 3-hop, 4-hop — each returns
 //     the unfiltered live-row set for the type (DeletedNet 8003 excluded
-//     by Phase 68 status matrix)
+//     by the status matrix)
 //   - Multi-filter composition (pdb_api_test.py:5047):
 //     net?org__id=8001&ix__name=TestIX — org__id resolves (8001/8002),
 //     ix__name silent-ignored
-//   - Phase 69 _fold preservation: net?name__contains=Zurich — matches
+//   - _fold preservation: net?name__contains=Zurich — matches
 //     both fold-normalised rows
-//   - Phase 69 __in sentinel: net?org_id__in= — empty __in short-circuits
+//   - __in sentinel: net?org_id__in= — empty __in short-circuits
 func TestTraversal_E2E_Matrix(t *testing.T) {
 	t.Parallel()
 	mux := setupTraversalHandler(t)
@@ -112,7 +112,7 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 	//   campus: 40 (Test Campus, org=1), 8001 (TestCampus1, org=8001)
 	//   org: 1 (Test Organization, Frankfurt), 8001 (TestOrg1)
 	//
-	// Tombstone (excluded by Phase 68 status matrix on list w/o ?since):
+	// Tombstone (excluded by the status matrix on list w/o ?since):
 	//   net 8003 (DeletedNet, org=8001, status=deleted)
 	allLiveNets := []int{10, 11, 8001, 8002}
 	allLiveFacs := []int{30, 31, 8001}
@@ -148,15 +148,15 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 		// seed.Full NetworkFacility 300 links net 10 (asn=13335). Filtering
 		// by net__asn (int field, no _fold routing) validates parent-FK
 		// column resolution on a non-org edge without depending on
-		// name_fold priming — seed.Full's pre-Phase-70 rows don't populate
+		// name_fold priming — seed.Full's baseline rows don't populate
 		// the fold shadow columns.
 		{
 			name:        "path_a_1hop_netfac_net_asn",
 			url:         "/api/netfac?net__asn=13335",
 			expectedIDs: []int{300},
 		},
-		// Phase 73 BUG-01: campus-target 1-hop traversal (DEFER-70-06-01
-		// fixed 2026-04-26 via entsql.Annotation{Table: "campuses"} on the
+		// Campus-target 1-hop traversal
+		// (entsql.Annotation{Table: "campuses"} on the
 		// Campus sibling-file mixin in ent/schema/campus_annotations.go).
 		// seed.Full creates campus 8001 "TestCampus1" (org 8001) and
 		// fac 8001 "TestFac1-Campus" with campus_id=8001 — the only fac
@@ -230,18 +230,18 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 			url:         "/api/net?org__id=8001&ix__name=TestIX",
 			expectedIDs: []int{8001, 8002},
 		},
-		// Phase 69 _fold preservation on traversal-parser path. `name` is
+		// _fold preservation on traversal-parser path. `name` is
 		// a local FoldedFields field; contains routes through the _fold
 		// column. TestNet1-Zurich (name_fold="testnet1-zurich") and
 		// Zürich GmbH (name_fold="zurich gmbh") both match "zurich".
 		{
-			name:        "phase69_fold_contains_ascii_zurich",
+			name:        "fold_contains_ascii_zurich",
 			url:         "/api/net?name__contains=Zurich",
 			expectedIDs: []int{8001, 8002},
 		},
-		// Phase 69 IN-02: empty __in short-circuits before SQL executes.
+		// Empty __in short-circuits before SQL executes.
 		{
-			name:        "phase69_empty_in_returns_empty_set",
+			name:        "empty_in_returns_empty_set",
 			url:         "/api/net?org_id__in=",
 			expectedIDs: []int{},
 		},
@@ -255,7 +255,7 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 			mux.ServeHTTP(rec, req)
 
 			if rec.Code != http.StatusOK {
-				t.Fatalf("%s: status = %d, want 200 (TRAVERSAL-04 silent-ignore contract): body=%s",
+				t.Fatalf("%s: status = %d, want 200 (silent-ignore contract): body=%s",
 					tc.name, rec.Code, rec.Body.String())
 			}
 			got := extractIDs(t, rec.Body.Bytes())

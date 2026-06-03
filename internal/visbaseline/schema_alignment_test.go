@@ -8,23 +8,23 @@ import (
 	"testing"
 )
 
-// TestSchemaAlignmentWithPhase57Diff locks in the Phase 58 empirical finding:
-// the committed Phase 57 diff.json contains only two auth-gated surfaces, both
-// already covered by existing ent fields —
+// TestSchemaAlignmentWithVisibilityDiff locks in the empirical finding that
+// the committed visibility diff.json contains only two auth-gated surfaces,
+// both already covered by existing ent fields —
 //
 //  1. poc row-level visibility — ent/schema/poc.go `visible` field
 //     (Public vs Users).
 //  2. ixlan.ixf_ixp_member_list_url — ent/schema/ixlan.go
 //     `ixf_ixp_member_list_url_visible` field.
 //
-// Any future Phase 57 re-capture that surfaces a new auth-gated field will
-// fail this test and force Phase 58 to be re-opened with planning before
-// Phase 59 (privacy policy) ships against a stale assumption.
+// Any future re-capture that surfaces a new auth-gated field will fail this
+// test and force the visibility assumptions to be re-evaluated before the
+// privacy policy ships against a stale assumption.
 //
 // This is a regression guard, not a feature test — if it fails, do not "fix"
 // it by editing the allowlist. Instead, add the appropriate <field>_visible
 // ent field per the v1.14 Key Decision.
-func TestSchemaAlignmentWithPhase57Diff(t *testing.T) {
+func TestSchemaAlignmentWithVisibilityDiff(t *testing.T) {
 	diffPath := filepath.Join("..", "..", "testdata", "visibility-baseline", "diff.json")
 
 	raw, err := os.ReadFile(diffPath)
@@ -55,7 +55,7 @@ func TestSchemaAlignmentWithPhase57Diff(t *testing.T) {
 	t.Run("all_13_types_present", func(t *testing.T) {
 		for _, tname := range expectedTypes {
 			if _, ok := report.Types[tname]; !ok {
-				t.Errorf("missing type %q in diff.json — Phase 57 capture is incomplete; re-run capture for all 13 types",
+				t.Errorf("missing type %q in diff.json — visibility capture is incomplete; re-run capture for all 13 types",
 					tname)
 			}
 		}
@@ -122,7 +122,7 @@ func TestSchemaAlignmentWithPhase57Diff(t *testing.T) {
 			t.Errorf("poc visible_values_auth missing \"Public\": got %v", pocRep.VisibleValuesAuth)
 		}
 		if !slices.Contains(pocRep.VisibleValuesAuth, "Users") {
-			t.Errorf("poc visible_values_auth missing \"Users\": got %v — this is the key Phase 57 signal that "+
+			t.Errorf("poc visible_values_auth missing \"Users\": got %v — this is the key visibility signal that "+
 				"Users-tier rows are hidden from anon responses; if absent, the capture did not include "+
 				"any Users-tier POCs and the sample is unrepresentative", pocRep.VisibleValuesAuth)
 		}

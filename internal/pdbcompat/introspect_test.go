@@ -66,7 +66,7 @@ func TestLookupEdge_KnownHops(t *testing.T) {
 
 // TestLookupEdge_SQLMetadataPopulated asserts that every non-excluded
 // edge in Edges carries non-empty ParentFKColumn, TargetTable, and
-// TargetIDColumn. Plan 70-05's join construction assumes these are
+// TargetIDColumn. The traversal join construction assumes these are
 // populated; the codegen tool must either emit them or skip the edge
 // entirely.
 func TestLookupEdge_SQLMetadataPopulated(t *testing.T) {

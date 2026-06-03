@@ -21,7 +21,7 @@ type Campus struct {
 	// ID of the ent.
 	// PeeringDB campus ID
 	ID int `json:"id,omitempty"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	NameFold string `json:"-"`
 	// FK to organization
 	OrgID *int `json:"org_id"`

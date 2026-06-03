@@ -4,15 +4,15 @@ import "github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 
 // RowSize holds the conservative estimated serialized size in bytes per
 // entity type at depth=0 (list-shape) and depth=2 (expanded-shape).
-// Values are doubled from measured means per D-03 so the budget check
+// Values are doubled from measured means so the budget check
 // prefers false-positive 413s over OOM. Recalibrated every major
-// milestone; drift >20% triggers a refresh plan.
+// milestone; drift >20% triggers a refresh.
 type RowSize struct {
 	Depth0 int
 	Depth2 int
 }
 
-// typicalRowBytes is the D-03 lookup table populated from
+// typicalRowBytes is the conservative lookup table populated from
 // BenchmarkRowSize in bench_row_size_test.go, then DOUBLED to cover
 // worst-case rows (unusually long notes, multi-paragraph aka, etc.).
 //
@@ -24,8 +24,8 @@ type RowSize struct {
 //  3. Double the measured mean, round UP to the nearest 64 bytes.
 //  4. Commit the updated map in the same PR as the bench run.
 //
-// Last calibrated: 2026-04-19 (Phase 71 Plan 02 — seed.Full scale, 2×
-// multiplier per D-03, rounded up to nearest 64 bytes).
+// Last calibrated: 2026-04-19 (seed.Full scale, 2×
+// multiplier, rounded up to nearest 64 bytes).
 //
 // Raw measurements (median bytes/op from the 2026-04-19 calibration):
 //
@@ -46,7 +46,7 @@ type RowSize struct {
 //
 // The Depth2 column feeds the detail-path budget check
 // (serveDetail → CheckBudget(1, type, 2, …)); lists are pinned to
-// depth 0 by the Phase 68 LIMIT-02 guardrail and never consult it. A
+// depth 0 by the list-depth guardrail and never consult it. A
 // bare /api/org/<id> at the default depth=2 bills roughly 8.6 KiB for
 // the single expanded org, so only a degenerately small budget would
 // 413 it — the check is a floor, not a bound on _set cardinality.
@@ -54,7 +54,7 @@ var typicalRowBytes = map[string]RowSize{
 	// Calibrated 2026-04-19 from seed.Full at benchtime=20x × count=3.
 	// Values = ceil(2 × measured_bytes_per_op / 64) * 64.
 	// Raw measurements preserved in the project history
-	peeringdb.TypeOrg:        {Depth0: 704, Depth2: 8576}, // org (Depth2 expands net/fac/ix/carrier/campus sets → largest row in the table). Depth0 bumped from 640 → 704 (Phase 71 WR-02 — seed.Full mean is 325 bytes vs bench's single-row 317, so 2× rounds up one 64-byte bucket higher).
+	peeringdb.TypeOrg:        {Depth0: 704, Depth2: 8576}, // org (Depth2 expands net/fac/ix/carrier/campus sets → largest row in the table). Depth0 bumped from 640 → 704 — seed.Full mean is 325 bytes vs bench's single-row 317, so 2× rounds up one 64-byte bucket higher.
 	peeringdb.TypeNet:        {Depth0: 1600, Depth2: 2368},
 	peeringdb.TypeFac:        {Depth0: 1344, Depth2: 2624},
 	peeringdb.TypeIX:         {Depth0: 1280, Depth2: 2496},

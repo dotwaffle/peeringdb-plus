@@ -10,8 +10,8 @@ import (
 func TestParseFieldOp(t *testing.T) {
 	t.Parallel()
 
-	// Phase 70 D-06: parseFieldOp returns (relationSegments, finalField, op).
-	// Max len(relationSegments) == 2 (caller enforces D-04 cap via
+	// parseFieldOp returns (relationSegments, finalField, op).
+	// Max len(relationSegments) == 2 (caller enforces the 2-hop cap via
 	// len>2 rejection — parser returns the raw split so caller sees it).
 	tests := []struct {
 		name        string
@@ -20,7 +20,7 @@ func TestParseFieldOp(t *testing.T) {
 		wantField   string
 		wantOp      string
 	}{
-		// Pre-Phase-70 cases (no traversal).
+		// Non-traversal cases.
 		{
 			name:      "field with contains operator",
 			input:     "name__contains",
@@ -57,7 +57,7 @@ func TestParseFieldOp(t *testing.T) {
 			wantField: "info_prefixes4",
 			wantOp:    "gt",
 		},
-		// Phase 70 traversal cases.
+		// Traversal cases.
 		{
 			name:        "1-hop no op",
 			input:       "org__name",
@@ -154,7 +154,7 @@ func slicesEqual(a, b []string) bool {
 func TestParseFilters(t *testing.T) {
 	t.Parallel()
 
-	// Test TypeConfig simulating "net" type. Phase 69 Plan 04: ParseFilters
+	// Test TypeConfig simulating "net" type. ParseFilters
 	// takes TypeConfig so it can consult FoldedFields for shadow-column
 	// routing.
 	tc := TypeConfig{
@@ -221,7 +221,7 @@ func TestParseFilters(t *testing.T) {
 			wantCount: 1,
 		},
 		{
-			name:      "unknown field silently ignored per D-20",
+			name:      "unknown field silently ignored",
 			params:    url.Values{"nonexistent_field": {"value"}},
 			wantCount: 0,
 		},
@@ -256,14 +256,14 @@ func TestParseFilters(t *testing.T) {
 			wantCount: 0,
 		},
 		{
-			// Phase 70 D-04/D-05 semantic change: unknown operator suffix
+			// Unknown operator suffix
 			// means the last segment ("regex") is treated as the final
 			// field and the preceding segment ("name") as a relation
 			// traversal. Since "name" is not an edge on this TypeConfig,
 			// the key is silently ignored — no error, no predicate.
 			// (Previously: parseFieldOp recognised ANY suffix as an op,
 			// so buildPredicate rejected "regex" with an error.)
-			name:      "unsupported operator silently ignored per TRAVERSAL-04",
+			name:      "unsupported operator silently ignored",
 			params:    url.Values{"name__regex": {".*cloud.*"}},
 			wantCount: 0,
 		},
@@ -283,7 +283,7 @@ func TestParseFilters(t *testing.T) {
 			wantCount: 1,
 		},
 		{
-			// Phase 69 IN-02: empty __in short-circuits with emptyResult=true
+			// Empty __in short-circuits with emptyResult=true
 			// and no predicates are emitted (caller returns []).
 			name:         "empty __in triggers emptyResult sentinel",
 			params:       url.Values{"asn__in": {""}},
@@ -772,8 +772,8 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 // allowlist becomes unresolvable — i.e. an entity loses all its Path A
 // plumbing due to a schema rename or annotation drop.
 //
-// Dynamically driven by the Allowlists map so adding a 14th entity via
-// future phases auto-extends coverage. Phase 70 TRAVERSAL-01 lock-in.
+// Dynamically driven by the Allowlists map so adding a 14th entity
+// auto-extends coverage. Path A allowlist-resolution lock-in.
 func TestParseFilters_AllThirteenEntitiesCoverPathA(t *testing.T) {
 	t.Parallel()
 
@@ -832,8 +832,8 @@ func TestParseFilters_AllThirteenEntitiesCoverPathA(t *testing.T) {
 	}
 }
 
-// TestParseFilters_UnknownFieldsAppendToCtx asserts Phase 70 D-05
-// diagnostics — unknown filter keys (per TRAVERSAL-04) are silently
+// TestParseFilters_UnknownFieldsAppendToCtx asserts the unknown-field
+// diagnostics — unknown filter keys are silently
 // dropped from the predicate slice AND appended to the ctx accumulator
 // so handlers can emit slog.Debug + OTel span attr. Three distinct
 // unknown-field shapes exercised: unknown top-level, 3-hop over-cap,
@@ -846,7 +846,7 @@ func TestParseFilters_UnknownFieldsAppendToCtx(t *testing.T) {
 	ctx := WithUnknownFields(context.Background())
 	params := url.Values{
 		"totally_bogus":    {"x"},
-		"a__b__c__d":       {"y"}, // over-cap 3-hop per D-04
+		"a__b__c__d":       {"y"}, // over-cap 3-hop
 		"bogus_edge__name": {"z"},
 	}
 	preds, emptyResult, err := ParseFiltersCtx(ctx, params, tc)

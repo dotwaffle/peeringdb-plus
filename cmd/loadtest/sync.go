@@ -36,7 +36,7 @@ var syncDepths = []int{0, 1, 2}
 //     PeeringDB clients send (and what internal/peeringdb/stream.go
 //     StreamAll sends to upstream). The mirror serves all rows on
 //     bare URLs since the DefaultLimit-fix on 2026-04-28 (see
-//     internal/pdbcompat/response.go); the Phase 71 response-memory
+//     internal/pdbcompat/response.go); the response-memory
 //     budget is the sole DoS gate.
 //   - Incremental mode: /api/<type>?limit=250&skip=0&depth=N&since=M
 //     — first page of the production paginated incremental fetch per
@@ -50,11 +50,11 @@ var syncDepths = []int{0, 1, 2}
 // syncOrder so FK dependency parents come before children within
 // each depth band.
 //
-// Note: pdbcompat silently drops `?depth=N` on list endpoints
-// (LIMIT-02 documented divergence), so depth=0/1/2 currently produce
-// identical bodies. The depth band still has value as a regression
-// signal — if/when LIMIT-02 is reverted, the loadtest will surface it
-// immediately via response-size drift across the bands.
+// Note: pdbcompat silently drops `?depth=N` on list endpoints (a
+// documented divergence), so depth=0/1/2 currently produce identical
+// bodies. The depth band still has value as a regression signal — if/when
+// that divergence is reverted, the loadtest will surface it immediately
+// via response-size drift across the bands.
 func buildSyncEndpoints(mode string, since time.Time) []Endpoint {
 	out := make([]Endpoint, 0, len(syncOrder)*len(syncDepths))
 	for _, depth := range syncDepths {

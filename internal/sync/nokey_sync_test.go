@@ -1,24 +1,24 @@
 package sync
 
-// nokey_sync_test.go — Plan 60-05 (SYNC-02): end-to-end integration test
+// nokey_sync_test.go — end-to-end integration test
 // proving that running the sync worker with no PeeringDB API key, against
-// a fake upstream serving the phase 57 anonymous fixtures, produces a DB
+// a fake upstream serving the anonymous fixtures, produces a DB
 // with zero visible="Users" POC rows, and that a subsequent anonymous read
 // through the pdbcompat handler observes the same row set the worker stored
 // (the privacy filter is effectively a no-op because there's nothing to
 // filter).
 //
-// Why this test exists (from 60-CONTEXT.md D-12, D-13):
-//   - The companion VIS-06/VIS-07 tests assert that the privacy policy
+// Why this test exists:
+//   - The companion privacy-policy tests assert that the policy
 //     filters Users-tier POCs correctly WHEN they are present in the DB.
 //   - This test asserts the inverse: the no-key deployment topology (a
-//     first-class operational mode per SYNC-02) never lands Users-tier
+//     first-class operational mode) never lands Users-tier
 //     rows in the DB in the first place, so the filter has nothing to
 //     catch if something upstream of the policy regresses.
 //
 // Assertion layout:
 //   Phase A (upstream boundary):
-//     * Fake upstream serves phase 57 anon fixtures for all 13 types.
+//     * Fake upstream serves anon fixtures for all 13 types.
 //     * Worker.Sync runs with an anonymous peeringdb.Client.
 //     * DB invariant: Poc.Query().Where(poc.Visible("Users")).Count() == 0.
 //     * Sanity: Poc.Query().Count() > 0 (the fake upstream/sync wiring is
@@ -70,7 +70,7 @@ var anonFixtureTypes = []string{
 	"ixlan", "ixpfx", "net", "netfac", "netixlan", "org", "poc",
 }
 
-// TestNoKeySync is the SYNC-02 end-to-end invariant: a no-API-key sync
+// TestNoKeySync is the no-API-key end-to-end invariant: a no-API-key sync
 // against an anon-only upstream must land zero visible="Users" rows in the
 // DB, and the surface read on the resulting DB must be a no-op for the
 // privacy filter (response matches DB contents 1:1, within the requested
@@ -84,7 +84,7 @@ func TestNoKeySync(t *testing.T) {
 
 	// --- Phase A wiring -------------------------------------------------
 
-	// Load the 13 anon fixtures from phase 57 at test start. A missing
+	// Load the 13 anon fixtures at test start. A missing
 	// fixture is fatal — this catches sparse-checkout misconfiguration,
 	// partial worktrees, and accidental removal. We never silently
 	// fall back to empty-data for types the plan promises to cover.
@@ -98,7 +98,7 @@ func TestNoKeySync(t *testing.T) {
 		path := filepath.Join(fixtureDir, typeName, "page-1.json")
 		b, err := os.ReadFile(path)
 		if err != nil {
-			t.Fatalf("read anon fixture %s: %v (phase 57 fixtures missing — check sparse checkout / worktree state)", path, err)
+			t.Fatalf("read anon fixture %s: %v (anon fixtures missing — check sparse checkout / worktree state)", path, err)
 		}
 		fixtures[typeName] = b
 	}
@@ -107,7 +107,7 @@ func TestNoKeySync(t *testing.T) {
 	// upstream with any Authorization header set. The production code
 	// path for an anonymous client is never to add one; a non-zero
 	// value here means the client was NOT anonymous and the whole
-	// premise of this test (SYNC-02) has regressed. Atomic because
+	// premise of this test has regressed. Atomic because
 	// the worker fetches serially in current code, but future parallel
 	// fetches must not silently corrupt the count.
 	var authHeaderCount atomic.Int64
@@ -195,7 +195,7 @@ func TestNoKeySync(t *testing.T) {
 		t.Fatalf("count users POCs: %v", err)
 	}
 	if usersCount != 0 {
-		t.Fatalf("SYNC-02 violation: %d Users-tier POCs in DB after no-key sync, want 0", usersCount)
+		t.Fatalf("anonymity violation: %d Users-tier POCs in DB after no-key sync, want 0", usersCount)
 	}
 
 	totalCount, err := client.Poc.Query().Count(bypass)
@@ -215,7 +215,7 @@ func TestNoKeySync(t *testing.T) {
 	t.Logf("no-key sync persisted %d POC rows, 0 Users-tier", totalCount)
 
 	if got := authHeaderCount.Load(); got != 0 {
-		t.Fatalf("worker sent %d Authorization headers — must be 0 for anonymous sync (SYNC-02 proof-of-anonymity)", got)
+		t.Fatalf("worker sent %d Authorization headers — must be 0 for anonymous sync (proof-of-anonymity)", got)
 	}
 
 	// --- Phase B: surface read through pdbcompat -----------------------
@@ -227,12 +227,12 @@ func TestNoKeySync(t *testing.T) {
 	// with the ent privacy policy for this test.
 	//
 	// We deliberately do NOT wire the full buildMiddlewareChain here —
-	// plans 60-02..04 own that surface-level coverage. This test's
+	// the surface-level privacy tests own that coverage. This test's
 	// contract is narrower: "the row set the surface returns is
 	// exactly the row set the worker persisted, given no Users rows
 	// exist to filter".
 	mux := http.NewServeMux()
-	// Budget=0 disables Phase 71 pre-flight budget check — this test
+	// Budget=0 disables the pre-flight budget check — this test
 	// exercises surface-level post-sync anonymous row parity, not
 	// memory guardrails.
 	pdbcompat.NewHandler(client, 0).Register(mux)

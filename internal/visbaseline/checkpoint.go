@@ -25,7 +25,7 @@ const stateVersion = 1
 // and flipped to Done=true as each successful fetch+write completes.
 //
 // Field names map to lowercase JSON keys so the persisted file uses the
-// PeeringDB-style lowercase convention and so the T-57-04 whitelist test
+// PeeringDB-style lowercase convention and so the whitelist test
 // can assert exact-key equality.
 type Tuple struct {
 	Target string `json:"target"` // "beta" | "prod"
@@ -44,7 +44,7 @@ func (t Tuple) String() string {
 // State is the capture checkpoint.
 //
 // State carries ONLY tuple metadata. No response bytes, no API keys, no
-// payload. See threat T-57-04 in the phase 57-02 threat register: the
+// payload. Per the checkpoint threat model: the
 // checkpoint file is written to /tmp and could be read by other users on
 // multi-tenant hosts, so it must never contain sensitive data. The
 // TestCheckpointContainsNoPayload unit test enforces this invariant by

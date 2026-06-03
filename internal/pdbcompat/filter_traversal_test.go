@@ -20,7 +20,7 @@ import (
 
 // TestParseFilters_Traversal_Table — syntactic / resolution table. Covers
 // Path A hits, Path B hits, over-cap rejection, unknown-edge rejection,
-// and unknown-field-on-known-edge rejection. Phase 70 TRAVERSAL-02..04.
+// and unknown-field-on-known-edge rejection.
 func TestParseFilters_Traversal_Table(t *testing.T) {
 	t.Parallel()
 
@@ -84,21 +84,21 @@ func TestParseFilters_Traversal_Table(t *testing.T) {
 			wantUnknown: []string{"org__notarealcolumn"},
 		},
 		{
-			name:        "3-hop over cap — silent ignore per D-04",
+			name:        "3-hop over cap — silent ignore",
 			tc:          netTC,
 			params:      url.Values{"a__b__c__d": {"x"}},
 			wantPreds:   0,
 			wantUnknown: []string{"a__b__c__d"},
 		},
 		{
-			name:        "4-hop over cap — silent ignore per D-04",
+			name:        "4-hop over cap — silent ignore",
 			tc:          netTC,
 			params:      url.Values{"a__b__c__d__e": {"x"}},
 			wantPreds:   0,
 			wantUnknown: []string{"a__b__c__d__e"},
 		},
 		{
-			// Phase 69 IN-02 preservation: empty __in on a traversal key
+			// Empty-__in preservation: empty __in on a traversal key
 			// also short-circuits (same as local field).
 			name:      "empty __in on traversal key short-circuits",
 			tc:        netTC,
@@ -107,7 +107,7 @@ func TestParseFilters_Traversal_Table(t *testing.T) {
 			wantEmpty: true,
 		},
 		{
-			// Phase 69 fold routing preservation on local field — the
+			// Fold-routing preservation on local field — the
 			// FoldedFields map on net has "name":true.
 			name:      "local _fold routing preserved",
 			tc:        netTC,
@@ -146,7 +146,7 @@ func TestParseFilters_Traversal_Table(t *testing.T) {
 
 // TestBuildTraversal_SingleHop_Integration executes a 1-hop predicate
 // against a real seeded database and asserts only the expected rows match.
-// Phase 70 TRAVERSAL-02 integration gate — the Path A/B resolution +
+// Integration gate — the Path A/B resolution +
 // subquery construction must actually produce correct SQL end-to-end.
 func TestBuildTraversal_SingleHop_Integration(t *testing.T) {
 	t.Parallel()
@@ -214,8 +214,8 @@ func TestBuildTraversal_SingleHop_Integration(t *testing.T) {
 	}
 
 	// Sanity: unfiltered returns the full seed set (live networks only —
-	// status=ok filters out the Phase 70 DeletedNet tombstone at id=8003).
-	// Phase 70 seed.Full extension adds 3 rows (id=8001 TestNet1-Zurich,
+	// status=ok filters out the DeletedNet tombstone at id=8003).
+	// seed.Full adds 3 rows (id=8001 TestNet1-Zurich,
 	// id=8002 Zürich GmbH, id=8003 DeletedNet); after the status filter,
 	// 4 live networks remain: 10, 11, 8001, 8002.
 	all, err := client.Network.Query().Where(network.StatusEQ("ok")).All(ctx)
@@ -223,12 +223,12 @@ func TestBuildTraversal_SingleHop_Integration(t *testing.T) {
 		t.Fatalf("unfiltered: %v", err)
 	}
 	if len(all) != 4 {
-		t.Errorf("unfiltered network count = %d, want 4 (seed invariant post-Phase-70)", len(all))
+		t.Errorf("unfiltered network count = %d, want 4 (seed invariant)", len(all))
 	}
 }
 
 // TestBuildTraversal_TwoHop_Integration executes a 2-hop predicate against
-// seed.Full and asserts at least one row matches. Phase 70 TRAVERSAL-03 —
+// seed.Full and asserts at least one row matches —
 // the nested-subquery SQL shape must compose correctly across two edges.
 func TestBuildTraversal_TwoHop_Integration(t *testing.T) {
 	t.Parallel()
@@ -286,7 +286,7 @@ func TestBuildTraversal_TwoHop_Integration(t *testing.T) {
 	}
 }
 
-// TestBuildTraversal_FoldRouting_Preserved asserts Phase 69 FoldedFields
+// TestBuildTraversal_FoldRouting_Preserved asserts FoldedFields
 // routing still applies at the target entity of a 1-hop traversal. The
 // predicate should use the <field>_fold shadow column, not the raw column,
 // when the target TypeConfig declares FoldedFields[field]=true.
@@ -354,8 +354,8 @@ func TestBuildTraversal_FoldRouting_Preserved(t *testing.T) {
 }
 
 // TestBuildTraversal_SingleHop_O2M_Integration exercises the O2M branch
-// of buildSinglHop — FK on the CHILD table, not the parent. Phase 70
-// REVIEW CR-01 regression guard: without the OwnFK branching, these
+// of buildSinglHop — FK on the CHILD table, not the parent.
+// Regression guard: without the OwnFK branching, these
 // queries would emit `parent.<fk> IN (SELECT child.id ...)` referencing
 // a non-existent column on the parent table and bubble up as HTTP 500.
 //
@@ -407,7 +407,7 @@ func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
 					}
 				}).Where(network.StatusEQ("ok")).All(ctx)
 				if err != nil {
-					t.Fatalf("Network.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+					t.Fatalf("Network.Query: %v (O2M regression: subquery emits invalid SQL)", err)
 				}
 				if len(nets) != 1 {
 					t.Errorf("expected 1 network with poc.name='NOC Contact', got %d", len(nets))
@@ -448,7 +448,7 @@ func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
 					}
 				}).Where(internetexchange.StatusEQ("ok")).All(ctx)
 				if err != nil {
-					t.Fatalf("InternetExchange.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+					t.Fatalf("InternetExchange.Query: %v (O2M regression: subquery emits invalid SQL)", err)
 				}
 				if len(ixs) != 1 {
 					t.Errorf("expected 1 ix via ixlan.name=TEST-LAN-100, got %d", len(ixs))
@@ -486,7 +486,7 @@ func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
 					}
 				}).Where(facility.StatusEQ("ok")).All(ctx)
 				if err != nil {
-					t.Fatalf("Facility.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+					t.Fatalf("Facility.Query: %v (O2M regression: subquery emits invalid SQL)", err)
 				}
 				if len(facs) != 1 {
 					t.Errorf("expected 1 fac via netfac.id=300, got %d", len(facs))
@@ -517,7 +517,7 @@ func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
 					}
 				}).Where(organization.StatusEQ("ok")).All(ctx)
 				if err != nil {
-					t.Fatalf("Organization.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+					t.Fatalf("Organization.Query: %v (O2M regression: subquery emits invalid SQL)", err)
 				}
 				if len(orgs) != 1 {
 					t.Errorf("expected 1 org via net.asn=13335, got %d", len(orgs))
@@ -548,7 +548,7 @@ func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
 					}
 				}).Where(campus.StatusEQ("ok")).All(ctx)
 				if err != nil {
-					t.Fatalf("Campus.Query: %v (CR-01 regression: O2M subquery emits invalid SQL)", err)
+					t.Fatalf("Campus.Query: %v (O2M regression: subquery emits invalid SQL)", err)
 				}
 				if len(camps) != 1 {
 					t.Errorf("expected 1 campus via fac.id=31, got %d", len(camps))

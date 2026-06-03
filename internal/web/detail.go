@@ -410,7 +410,7 @@ func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Reque
 }
 
 // handleIXParticipantsFragment returns an HTML fragment listing an IXP's participants.
-// Uses the IxLan -> NetworkIxLan path (Research Pitfall 1: do NOT go directly from InternetExchange).
+// Uses the IxLan -> NetworkIxLan path (do NOT go directly from InternetExchange).
 func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Request, ixID int) {
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID))).
@@ -481,7 +481,7 @@ func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Requ
 }
 
 // handleIXPrefixesFragment returns an HTML fragment listing an IXP's prefixes.
-// Uses the IxLan -> IxPrefix path (Research Pitfall 2: do NOT go directly from InternetExchange).
+// Uses the IxLan -> IxPrefix path (do NOT go directly from InternetExchange).
 func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Request, ixID int) {
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID))).

@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// iterFromSlice moved to stream.go in Plan 71-04 Task 2 — it is now
+// iterFromSlice now lives in stream.go — it is
 // production code driven by serveList, not a test-only helper.
 
 // iterWithError returns a RowsIter that yields rows 1..failAt-1 cleanly, then
@@ -188,7 +188,7 @@ func TestStreamListResponse_IteratorError(t *testing.T) {
 	if !errors.Is(err, sentinel) {
 		t.Fatalf("errors.Is(err, sentinel) = false; err=%v", err)
 	}
-	// We do NOT assert body is valid JSON — partial write is by design per D-01.
+	// We do NOT assert body is valid JSON — partial write is by design.
 	// But we do assert the prelude and first two rows made it out.
 	got := rec.Body.String()
 	if !strings.HasPrefix(got, `{"meta":{},"data":[`) {

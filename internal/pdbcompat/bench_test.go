@@ -139,22 +139,22 @@ func benchNameContains(b *testing.B, rows int, shadow bool) {
 	}
 }
 
-// BenchmarkNameContains_100_Direct measures the Phase 68 non-shadow
+// BenchmarkNameContains_100_Direct measures the non-shadow
 // path (FieldContainsFold on `name` with raw value) at 100 rows.
 func BenchmarkNameContains_100_Direct(b *testing.B) { benchNameContains(b, 100, false) }
 
-// BenchmarkNameContains_100_Shadow measures the Phase 69 shadow path
+// BenchmarkNameContains_100_Shadow measures the shadow-column path
 // (FieldContainsFold on `name_fold` with unifold.Fold(value)) at 100
 // rows.
 func BenchmarkNameContains_100_Shadow(b *testing.B) { benchNameContains(b, 100, true) }
 
-// BenchmarkNameContains_10000_Direct measures the Phase 68 non-shadow
-// path at 10k rows — this is the acceptance threshold target from
-// coordination_notes ("no slower than current NOCASE LIKE").
+// BenchmarkNameContains_10000_Direct measures the non-shadow
+// path at 10k rows — this is the acceptance threshold target
+// ("no slower than current NOCASE LIKE").
 func BenchmarkNameContains_10000_Direct(b *testing.B) { benchNameContains(b, 10_000, false) }
 
-// BenchmarkNameContains_10000_Shadow measures the Phase 69 shadow
+// BenchmarkNameContains_10000_Shadow measures the shadow-column
 // path at 10k rows — compared against BenchmarkNameContains_10000_Direct
 // to decide whether `_fold` columns need `@index(...)` annotations in
-// the 6 ent schemas (Plan 05 Step D).
+// the 6 ent schemas.
 func BenchmarkNameContains_10000_Shadow(b *testing.B) { benchNameContains(b, 10_000, true) }

@@ -6,14 +6,14 @@
 // Tier is set by the HTTP middleware (internal/middleware.PrivacyTier)
 // at the edge of every HTTP request, and — starting v1.15 — by the OAuth
 // callback. The sync worker does NOT use this package; it bypasses the
-// policy via privacy.DecisionContext at worker entry (D-07, D-08).
+// policy via privacy.DecisionContext at worker entry.
 package privctx
 
 import "context"
 
 // Tier identifies the visibility scope of the caller. TierPublic is the
 // zero value so any un-stamped context defaults to the most restrictive
-// (safest) tier — fail-safe-closed per CONTEXT.md D-04.
+// (safest) tier — fail-safe-closed.
 type Tier int
 
 const (

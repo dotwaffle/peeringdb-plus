@@ -43,10 +43,10 @@ func eqFilter[REQ, V any](
 // connect.CodeInvalidArgument with the filter name included in the error text.
 //
 // The error format is "invalid filter: <name> <validator_err>" — e.g.
-// "invalid filter: asn must be positive". This matches the pre-Phase-56
+// "invalid filter: asn must be positive". This matches the earlier
 // per-entity error format verbatim so that existing grpcserver_test.go
 // assertions (containsStr on substrings like "asn must be positive") stay
-// green without test modification. See 56-02-PLAN.md Task 1 Step 0 (option A).
+// green without test modification.
 func validatingFilter[REQ, V any](
 	name string,
 	get func(*REQ) *V,
@@ -85,7 +85,7 @@ func applyFilters[REQ any](req *REQ, fns []filterFn[REQ]) ([]func(*sql.Selector)
 
 // fieldEQInt builds an int-equality predicate factory for the given ent field.
 // The returned closure accepts a proto-idiomatic int64 and truncates to int
-// on the sql layer, matching pre-Phase-56 per-entity behavior (see
+// on the sql layer, matching the earlier per-entity behavior (see
 // network.go applyNetworkListFilters before consolidation).
 func fieldEQInt(field string) func(int64) func(*sql.Selector) {
 	return func(v int64) func(*sql.Selector) {
@@ -135,7 +135,7 @@ func fieldInTimeRange(field string) func(time.Time) func(*sql.Selector) {
 }
 
 // positiveInt64 returns a validator that rejects non-positive int64 values
-// with the canonical "must be positive" error. Preserves the pre-Phase-56
+// with the canonical "must be positive" error. Preserves the earlier
 // semantic that 0 is NOT positive (see network.go line 44 in the
 // pre-consolidation code).
 //

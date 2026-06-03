@@ -23,26 +23,26 @@ import (
 type Handler struct {
 	client *ent.Client
 	// responseMemoryLimit is the per-response byte budget consumed by
-	// the pre-flight CheckBudget gate (Phase 71 D-02). 0 disables the
+	// the pre-flight CheckBudget gate. 0 disables the
 	// check entirely — documented local-dev / test escape hatch. See
 	// cmd/peeringdb-plus/main.go for the Config.ResponseMemoryLimit
-	// wiring (default 128 MiB per D-05).
+	// wiring (default 128 MiB).
 	responseMemoryLimit int64
 }
 
 // NewHandler creates a Handler for PeeringDB-compatible API endpoints.
 // responseMemoryLimit is the per-response byte budget consumed by the
-// pre-flight CheckBudget gate (Phase 71 D-02). Pass 0 to disable the
+// pre-flight CheckBudget gate. Pass 0 to disable the
 // budget check (local dev / tests only; operators ship a non-zero
-// PDBPLUS_RESPONSE_MEMORY_LIMIT in prod — default 128 MiB per D-05).
+// PDBPLUS_RESPONSE_MEMORY_LIMIT in prod — default 128 MiB).
 func NewHandler(client *ent.Client, responseMemoryLimit int64) *Handler {
 	return &Handler{client: client, responseMemoryLimit: responseMemoryLimit}
 }
 
 // Register sets up PeeringDB-compatible routes on the given mux.
 // Routes follow PeeringDB's URL patterns: /api/{type}, /api/{type}/{id}.
-// Both with and without trailing slash variants are handled per D-02.
-// The index endpoint at /api/ lists all available types per D-17.
+// Both with and without trailing slash variants are handled.
+// The index endpoint at /api/ lists all available types.
 func (h *Handler) Register(mux *http.ServeMux) {
 	// Single wildcard pattern handles all /api/ sub-paths including the
 	// index itself. Go 1.22+ {rest...} wildcard matches the empty string
@@ -136,7 +136,7 @@ func (h *Handler) serveIndex(w http.ResponseWriter) {
 
 // serveList handles list requests for the given type.
 func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request) {
-	// Phase 71 Plan 05 (MEMORY-03, D-06): per-request heap-delta sampler.
+	// Per-request heap-delta sampler.
 	// Samples HeapInuse once at entry and once at handler exit (via defer);
 	// emits OTel span attribute pdbplus.response.heap_delta_bytes and a
 	// Prometheus histogram observation (pdbplus.response.heap_delta).
@@ -153,29 +153,28 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 
 	params := r.URL.Query()
 
-	// Phase 68 LIMIT-02 guardrail (research Open Question 1, recommendation b):
-	// list + ?depth= is not supported in Phase 68. Phase 71 owns the memory-safe
-	// list+depth implementation. Silently ignore the param here so callers get
-	// normal list behaviour rather than a 400 (matches upstream rest.py:
-	// unsupported request shapes fall through to default list semantics).
-	// opts.Depth is never populated on list requests, so there is no leak —
-	// list closures never see a non-zero depth. The debug slog documents the
-	// no-op for operators who enable DEBUG logging.
+	// List-depth guardrail: list + ?depth= is not supported. Silently
+	// ignore the param here so callers get normal list behaviour rather
+	// than a 400 (matches upstream rest.py: unsupported request shapes
+	// fall through to default list semantics). opts.Depth is never
+	// populated on list requests, so there is no leak — list closures
+	// never see a non-zero depth. The debug slog documents the no-op for
+	// operators who enable DEBUG logging.
 	if params.Get("depth") != "" {
-		slog.DebugContext(r.Context(), "pdbcompat list: ignoring unsupported ?depth= param (Phase 68 LIMIT-02 guardrail; Phase 71 will add list+depth)",
+		slog.DebugContext(r.Context(), "pdbcompat list: ignoring unsupported ?depth= param (list-depth guardrail)",
 			slog.String("path", r.URL.Path),
 			slog.String("type", tc.Name),
 		)
 	}
 
-	// Parse pagination per D-16.
+	// Parse pagination.
 	limit, skip := ParsePaginationParams(params)
 
-	// Parse filters per D-09, D-11. Phase 69 Plan 04 adds the emptyResult
-	// short-circuit for ?field__in= (IN-02) and threads TypeConfig so that
-	// shadow-column routing (UNICODE-01) can consult tc.FoldedFields.
+	// Parse filters. The emptyResult short-circuit handles ?field__in=
+	// and TypeConfig is threaded so that shadow-column routing can
+	// consult tc.FoldedFields.
 	//
-	// Phase 70 D-05 / TRAVERSAL-04: thread the ctx through an unknown-field
+	// Thread the ctx through an unknown-field
 	// accumulator so operators can observe silently-ignored filter keys via
 	// slog DEBUG + OTel span attribute. ParseFiltersCtx writes to the
 	// accumulator; we emit the diagnostics AFTER it returns so the request
@@ -192,7 +191,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 	if unknown := UnknownFieldsFromCtx(ctx); len(unknown) > 0 {
 		csv := strings.Join(unknown, ",")
-		slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently ignored (Phase 70 TRAVERSAL-04)",
+		slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently ignored",
 			slog.String("endpoint", r.URL.Path),
 			slog.String("type", tc.Name),
 			slog.String("unknown_fields", csv),
@@ -206,7 +205,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	// Parse since per D-15.
+	// Parse since.
 	since, err := ParseSinceParam(params)
 	if err != nil {
 		WriteProblem(w, httperr.WriteProblemInput{
@@ -217,7 +216,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Parse search (?q=) per D-13.
+	// Parse search (?q=).
 	if q := params.Get("q"); q != "" {
 		var sp func(*sql.Selector)
 		if tc.Name == peeringdb.TypeNet {
@@ -230,7 +229,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	// Parse field projection (?fields=) per D-14.
+	// Parse field projection (?fields=).
 	var fields []string
 	if f := params.Get("fields"); f != "" {
 		fields = strings.Split(f, ",")
@@ -244,7 +243,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		EmptyResult: emptyResult,
 	}
 
-	// Phase 71 pre-flight budget check (D-02).
+	// Pre-flight budget check.
 	//
 	// Runs BEFORE tc.List so an over-budget response 413s without
 	// committing to the expensive .All(ctx) + serialise path. Two
@@ -253,11 +252,11 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	//   - h.responseMemoryLimit <= 0: budget disabled (local dev / tests).
 	//     CheckBudget already treats budget<=0 as "always fits" but we
 	//     avoid the round-trip to COUNT(*) for the dev path.
-	//   - emptyResult: Phase 69 IN-02 short-circuit (?asn__in=). The
+	//   - emptyResult: the empty-__in short-circuit (?asn__in=). The
 	//     result is known-empty; counting 0 rows and then streaming []
 	//     is wasted work and would paper over a broken CountFunc.
 	//
-	// List depth is always 0 per Phase 68 LIMIT-02 guardrail (the
+	// List depth is always 0 per the list-depth guardrail (the
 	// ?depth= param is ignored on list endpoints; opts.Depth is never
 	// populated by ParsePaginationParams).
 	if h.responseMemoryLimit > 0 && !emptyResult && tc.Count != nil {
@@ -278,7 +277,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			})
 			return
 		}
-		if info, ok := CheckBudget(count, tc.Name, 0 /*list depth=0 per Phase 68 LIMIT-02*/, h.responseMemoryLimit); !ok {
+		if info, ok := CheckBudget(count, tc.Name, 0 /*list depth=0 per the list-depth guardrail*/, h.responseMemoryLimit); !ok {
 			slog.WarnContext(r.Context(), "pdbcompat: response budget exceeded",
 				slog.String("endpoint", r.URL.Path),
 				slog.String("type", tc.Name),
@@ -290,7 +289,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			WriteBudgetProblem(w, r.URL.Path, info)
 			return
 		}
-		// Audit P1: a budget count of 0 means no rows will be served —
+		// A budget count of 0 means no rows will be served —
 		// a genuinely empty match, or a ?skip= past the end of the result
 		// set. Stream the empty list now rather than calling tc.List,
 		// which would run ORDER BY + OFFSET over the whole matching set
@@ -372,7 +371,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
-	// Parse depth per D-06, D-07. Default = 2 for detail endpoints to
+	// Parse depth. Default = 2 for detail endpoints to
 	// match upstream's `default_depth(is_list=False)` (serializers.py:823).
 	// Explicit `?depth=0` is honoured to keep the bare-row escape hatch
 	// (matches upstream's rest.py:852 short-circuit when depth<=0).
@@ -384,7 +383,7 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 		}
 	}
 
-	// Audit P2: gate the detail response against the same per-response
+	// Gate the detail response against the same per-response
 	// memory budget as the list path. A single object is one row, but at
 	// depth=2 it embeds the per-type _set collections + parent FK objects,
 	// so its size tracks TypicalRowBytes(<type>, depth), not the bare
@@ -393,7 +392,7 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 	// detail path symmetric with serveList and trips a clean 413 rather
 	// than serving under a degenerately small budget. This is also the
 	// only caller that exercises the depth=2 row-size estimate (lists are
-	// pinned to depth 0 by Phase 68 LIMIT-02). budget<=0 disables the
+	// pinned to depth 0 by the list-depth guardrail). budget<=0 disables the
 	// check (dev/test) exactly as on the list path.
 	if h.responseMemoryLimit > 0 {
 		if info, ok := CheckBudget(1, tc.Name, depth, h.responseMemoryLimit); !ok {
@@ -409,7 +408,7 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 		}
 	}
 
-	// Parse field projection (?fields=) per D-14.
+	// Parse field projection (?fields=).
 	var fields []string
 	if f := params.Get("fields"); f != "" {
 		fields = strings.Split(f, ",")
@@ -440,7 +439,7 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 		return
 	}
 
-	// Pitfall 7: single object wrapped in array.
+	// Single object wrapped in array.
 	data := []any{result}
 
 	// Apply field projection after retrieval.

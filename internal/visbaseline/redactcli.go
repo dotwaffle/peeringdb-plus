@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// RedactDirConfig parameterises a RedactDir run. Grouped per GO-CS-5 because
+// RedactDirConfig parameterises a RedactDir run. Grouped because
 // the caller passes more than two arguments.
 //
 // Layout expectations:
@@ -43,7 +43,7 @@ type RedactDirConfig struct {
 // Errors are fail-fast: a missing anon counterpart, a malformed JSON, or a
 // failed write halts the walk. Partial output under Dst is left as-is for
 // the operator to inspect — the caller is expected to `rm -rf` Dst before a
-// retry. Raw auth input bytes are never echoed in error messages (T-57-05).
+// retry. Raw auth input bytes are never echoed in error messages.
 //
 // RedactDir honours ctx between files: cancellation mid-walk returns
 // ctx.Err() wrapped.

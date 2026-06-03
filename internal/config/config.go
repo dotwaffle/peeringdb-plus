@@ -1,5 +1,5 @@
 // Package config loads application configuration from environment variables.
-// All configuration is immutable after initialization (CFG-2).
+// All configuration is immutable after initialization.
 package config
 
 import (
@@ -28,7 +28,7 @@ const (
 )
 
 // privateIPNets are the RFC 1918 private-use IPv4 ranges that may appear in
-// http:// URLs for PDBPLUS_PEERINGDB_URL (local dev carveout per SEC-06).
+// http:// URLs for PDBPLUS_PEERINGDB_URL (local dev carveout).
 // Parsed once at package init so validate() is allocation-free on the hot
 // path (even though validate is startup-only, package-level parsing keeps the
 // CIDR strings in one place and eliminates per-call net.ParseCIDR failures).
@@ -76,15 +76,15 @@ type Config struct {
 	DrainTimeout time.Duration
 
 	// OTelSampleRate is the trace sampling ratio (0.0 to 1.0).
-	// Configured via PDBPLUS_OTEL_SAMPLE_RATE. Default is 1.0 (always sample) per D-02.
+	// Configured via PDBPLUS_OTEL_SAMPLE_RATE. Default is 1.0 (always sample).
 	OTelSampleRate float64
 
 	// SyncStaleThreshold is the maximum age of sync data before health reports degraded.
-	// Configured via PDBPLUS_SYNC_STALE_THRESHOLD. Default is 24h per D-12.
+	// Configured via PDBPLUS_SYNC_STALE_THRESHOLD. Default is 24h.
 	SyncStaleThreshold time.Duration
 
 	// SyncMode controls whether sync uses full re-fetch or incremental delta fetch.
-	// Configured via PDBPLUS_SYNC_MODE. Default is "incremental" (SEED-001 active
+	// Configured via PDBPLUS_SYNC_MODE. Default is "incremental" (flipped
 	// 2026-04-26 — upstream ?since= empirically confirmed to emit status='deleted'
 	// tombstones for converged deletion semantics). 'full' remains an explicit
 	// operator override for first-sync, recovery, and escape-hatch use.
@@ -93,9 +93,9 @@ type Config struct {
 	// PublicTier is the resolved visibility tier for anonymous HTTP callers.
 	// Configured via PDBPLUS_PUBLIC_TIER. Default TierPublic admits only
 	// visible="Public" rows. Setting PDBPLUS_PUBLIC_TIER=users elevates
-	// anonymous callers to TierUsers for private-instance deployments
-	// (D-11, SYNC-03). Parsed case-sensitive lowercase only (D-12); any
-	// other value is a fail-fast startup error per GO-CFG-1.
+	// anonymous callers to TierUsers for private-instance deployments.
+	// Parsed case-sensitive lowercase only; any other value is a
+	// fail-fast startup error.
 	PublicTier privctx.Tier
 
 	// PeeringDBAPIKey is the optional PeeringDB API key for authenticated access.
@@ -108,8 +108,8 @@ type Config struct {
 
 	// CSPEnforce controls whether the CSP middleware serves the enforcing
 	// Content-Security-Policy header (true) or the Content-Security-Policy-Report-Only
-	// header (false). Configured via PDBPLUS_CSP_ENFORCE. Default is false per SEC-07
-	// rollout strategy — enforcement is opt-in per deploy through v1.13.
+	// header (false). Configured via PDBPLUS_CSP_ENFORCE. Default is false —
+	// enforcement is opt-in per deploy through v1.13.
 	CSPEnforce bool
 
 	// SyncMemoryLimit is the peak Go heap ceiling (bytes) checked after
@@ -120,7 +120,7 @@ type Config struct {
 	// retries normally after the current batches are reclaimed by GC.
 	//
 	// Configured via PDBPLUS_SYNC_MEMORY_LIMIT. Default is 400MB —
-	// matches the DEBT-03 regression gate in BenchmarkSyncWorker_FullMemoryPeak
+	// matches the regression gate in BenchmarkSyncWorker_FullMemoryPeak
 	// and leaves 112 MB headroom under the 512 MB Fly.io VM cap per
 	// v1.13 hard constraint. Set to 0 to disable the guardrail (local
 	// dev only; guardrail is defense-in-depth against runtime memory
@@ -138,12 +138,12 @@ type Config struct {
 	// any row data is materialised.
 	//
 	// Configured via PDBPLUS_RESPONSE_MEMORY_LIMIT. Default is 128 MiB
-	// (134217728 bytes) per Phase 71 D-05 — sized against the 256 MB
-	// replica total minus an 80 MB Go runtime baseline and 48 MB slack
-	// for other in-flight requests + GC overhead. Unit suffix is
-	// REQUIRED (KB/MB/GB/TB, base 1024); bare numbers are rejected.
-	// Set to 0 to disable the check (local dev only; guardrail is the
-	// reason Phase 68's limit=0 is safe to expose in prod).
+	// (134217728 bytes) — sized against the 256 MB replica total minus
+	// an 80 MB Go runtime baseline and 48 MB slack for other in-flight
+	// requests + GC overhead. Unit suffix is REQUIRED (KB/MB/GB/TB,
+	// base 1024); bare numbers are rejected.
+	// Set to 0 to disable the check (local dev only; the guardrail is
+	// the reason exposing limit=0 is safe in prod).
 	ResponseMemoryLimit int64
 
 	// HeapWarnBytes is the peak Go heap threshold (bytes) above which the
@@ -153,11 +153,12 @@ type Config struct {
 	// is threshold-gated. Configured via PDBPLUS_HEAP_WARN_MIB (integer
 	// MiB, no unit suffix — env var name retained for compatibility).
 	// Default 400 MiB matches the Fly 512 MB VM cap minus a 112 MB
-	// safety margin (D-04). Zero disables the warn (attr still emitted
+	// safety margin. Zero disables the warn (attr still emitted
 	// so dashboards retain timeseries).
 	//
-	// SEED-001: sustained breach is the escalation signal for considering
-	// PDBPLUS_SYNC_MODE=incremental.
+	// A sustained breach across multiple cycles is the operational
+	// signal to re-evaluate whether PDBPLUS_SYNC_MODE=incremental is
+	// keeping memory pressure within bounds.
 	HeapWarnBytes int64
 
 	// RSSWarnBytes is the peak OS RSS threshold (bytes) above which the
@@ -173,7 +174,7 @@ type Config struct {
 	// (float, must be >0). Default 2.0. Burst is hardcoded at 1 in the
 	// peeringdb client. Authenticated requests (PDBPLUS_PEERINGDB_API_KEY
 	// set) override this to 60 req/min — the upstream auth quota is fixed
-	// regardless of operator preference. Quick task 260428-2zl.
+	// regardless of operator preference.
 	PeeringDBRPS float64
 
 	// FKBackfillMaxRequestsPerCycle caps the number of underlying HTTP
@@ -183,7 +184,7 @@ type Config struct {
 	// pressure per cycle, well within budget. Set to 0 to disable
 	// backfill entirely (drop-on-miss behavior).
 	//
-	// Semantic shift (260428-5xt → v1.18.5): the previous cap counted
+	// Semantic shift (v1.18.5): the previous cap counted
 	// rows. With the dataloader pattern (one ?id__in= request per up to
 	// FetchByIDsBatchSize rows), counting rows is a weak circuit
 	// breaker — a 200-row backfill is 2 HTTP requests, not 200, and
@@ -211,15 +212,15 @@ type Config struct {
 	// R is permanently missed without periodic full refetch). Configured
 	// via PDBPLUS_FULL_SYNC_INTERVAL (Go duration). Default 24h. Zero
 	// disables the escape hatch (only the per-cycle MAX(updated) cursor
-	// applies). 260428-mu0.
+	// applies).
 	FullSyncInterval time.Duration
 }
 
 // Load reads configuration from environment variables, applies defaults,
 // validates required fields, and returns an immutable Config.
-// It fails fast on invalid configuration per CFG-1.
+// It fails fast on invalid configuration.
 func Load() (*Config, error) {
-	// Resolve listen address: PDBPLUS_PORT takes precedence over PDBPLUS_LISTEN_ADDR per D-24.
+	// Resolve listen address: PDBPLUS_PORT takes precedence over PDBPLUS_LISTEN_ADDR.
 	listenAddr := envOrDefault("PDBPLUS_LISTEN_ADDR", ":8080")
 	if port := os.Getenv("PDBPLUS_PORT"); port != "" {
 		listenAddr = ":" + port
@@ -255,7 +256,7 @@ func Load() (*Config, error) {
 		cfg.SyncInterval = 1 * time.Hour
 	}
 
-	// PDBPLUS_INCLUDE_DELETED was removed in v1.16 Phase 68 (D-01). Sync now
+	// PDBPLUS_INCLUDE_DELETED was removed in v1.16. Sync now
 	// always persists deleted rows as tombstones; pdbcompat applies the
 	// upstream status × since matrix regardless of any legacy gate. The
 	// variable carried a v1.16 → v1.17 deprecation grace period during which
@@ -373,7 +374,7 @@ func Load() (*Config, error) {
 	)
 
 	// Operator-visible announcement of the resolved sync mode. The default
-	// flipped from full → incremental on 2026-04-26 (SEED-001). Surfacing the
+	// flipped from full → incremental on 2026-04-26. Surfacing the
 	// effective mode at startup makes triage trivial: "is this instance running
 	// the new default, or did the operator pin it to full?"
 	slog.Info("sync mode configured", slog.String("mode", string(cfg.SyncMode)))
@@ -427,7 +428,7 @@ func (c *Config) validate() error {
 	return nil
 }
 
-// validatePeeringDBURL enforces SEC-06: PDBPLUS_PEERINGDB_URL must be https://,
+// validatePeeringDBURL enforces that PDBPLUS_PEERINGDB_URL must be https://,
 // or http:// against loopback (localhost / 127.0.0.1 / ::1) or RFC 1918 private
 // ranges (10/8, 172.16/12, 192.168/16). Each rejection class produces a distinct
 // error message so operators can diagnose misconfiguration from a log line.
@@ -548,14 +549,14 @@ func parseSyncMode(key string, defaultVal SyncMode) (SyncMode, error) {
 
 // parsePublicTier reads key from the environment and maps its value to a
 // privctx.Tier. Empty / unset → defaultVal. Only the lowercase strings
-// "public" and "users" are accepted (D-12). Any other value — including
+// "public" and "users" are accepted. Any other value — including
 // case variants ("Users", "PUBLIC") and whitespace-adjacent forms
-// ("public ") — is a hard error so the process fails fast at startup per
-// GO-CFG-1. Mirrors parseSyncMode verbatim.
+// ("public ") — is a hard error so the process fails fast at startup.
+// Mirrors parseSyncMode verbatim.
 //
 // The strict switch (not strings.ToLower + parse) is a deliberate fail-
 // safe-closed choice: a typo like PDBPLUS_PUBLIC_TIER=Users must not
-// silently default to either tier (T-59-05 threat mitigation).
+// silently default to either tier.
 func parsePublicTier(key string, defaultVal privctx.Tier) (privctx.Tier, error) {
 	v := os.Getenv(key)
 	switch v {
@@ -580,7 +581,7 @@ func parsePublicTier(key string, defaultVal privctx.Tier) (privctx.Tier, error) 
 // coercion.
 //
 // Accepted: "", "0", "400", "16" (bare non-negative integers).
-// Rejected: "-5", "abc", "400MB", "1.5" — all fail-fast per GO-CFG-1.
+// Rejected: "-5", "abc", "400MB", "1.5" — all fail-fast.
 func parseMiB(key string, defaultMiB int64) (int64, error) {
 	v := os.Getenv(key)
 	if v == "" {
@@ -604,8 +605,8 @@ func parseMiB(key string, defaultMiB int64) (int64, error) {
 // suffix (KB, MB, GB, TB — base 1024). An empty env var falls back to
 // defaultVal. The literal "0" is accepted as an explicit disable value.
 // A bare number without a unit is REJECTED to eliminate ambiguity in
-// operator configuration (PERF-05 ergonomics) — was the 500 meant as
-// 500 bytes, 500 KB, or 500 MB? Force the operator to be explicit.
+// operator configuration — was the 500 meant as 500 bytes, 500 KB, or
+// 500 MB? Force the operator to be explicit.
 //
 // Accepted forms: "0", "100KB", "400MB", "2GB", "1TB" (case-insensitive
 // suffix). The short forms "K", "M", "G", "T" are accepted as aliases
@@ -659,7 +660,7 @@ func parseByteSize(key string, defaultVal int64) (int64, error) {
 	}
 	// Overflow guard: num*mult must fit in int64. Operators realistically
 	// never configure petabyte heap limits, but the helper is shaped as a
-	// general-purpose parser; defense in depth. See 54-REVIEW.md WR-02.
+	// general-purpose parser; defense in depth.
 	if num != 0 && mult != 0 && num > math.MaxInt64/mult {
 		return 0, fmt.Errorf("invalid byte size %q for %s: overflows int64", v, key)
 	}
@@ -668,9 +669,9 @@ func parseByteSize(key string, defaultVal int64) (int64, error) {
 
 // parseNonNegativeInt reads key from the environment as a non-negative
 // integer. Empty / unset → defaultVal. Negative or non-integer values
-// return an error so the process fails fast at startup per GO-CFG-1.
+// return an error so the process fails fast at startup.
 //
-// Quick task 260428-2zl: introduced for PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE.
+// Introduced for PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE.
 // Distinct from parseFloat64 / parseMiB / parseByteSize because the
 // underlying value is a count, not a measurement — a unit suffix would
 // be misleading.

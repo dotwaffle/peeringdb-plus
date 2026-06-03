@@ -50,7 +50,7 @@ func (m RenderMode) String() string {
 }
 
 // DetectInput holds parameters for detecting the render mode.
-// Defined per CS-5 to bundle >2 function arguments.
+// Defined to bundle >2 function arguments.
 type DetectInput struct {
 	Query     url.Values
 	Accept    string
@@ -59,7 +59,7 @@ type DetectInput struct {
 }
 
 // terminalPrefixes are User-Agent prefixes that identify terminal/CLI clients.
-// Sourced from wttr.in's PLAIN_TEXT_AGENTS and user decisions (D-01).
+// Sourced from wttr.in's PLAIN_TEXT_AGENTS and user decisions.
 // Note: "fetch" has no trailing slash because some implementations omit version.
 var terminalPrefixes = []string{
 	"curl/",
@@ -73,7 +73,7 @@ var terminalPrefixes = []string{
 // Detect returns the appropriate render mode based on the priority chain:
 // query params > Accept header > User-Agent > HX-Request > default (HTML).
 func Detect(input DetectInput) RenderMode {
-	// 1. Query param overrides (highest priority per D-02).
+	// 1. Query param overrides (highest priority).
 	if input.Query != nil {
 		if _, ok := input.Query["T"]; ok {
 			return ModePlain
@@ -90,7 +90,7 @@ func Detect(input DetectInput) RenderMode {
 		}
 	}
 
-	// 2. Accept header (secondary per D-03).
+	// 2. Accept header (secondary).
 	if strings.Contains(input.Accept, "text/plain") {
 		return ModeRich
 	}
@@ -98,7 +98,7 @@ func Detect(input DetectInput) RenderMode {
 		return ModeJSON
 	}
 
-	// 3. User-Agent prefix match (tertiary per D-01).
+	// 3. User-Agent prefix match (tertiary).
 	if isTerminalUA(input.UserAgent) {
 		return ModeRich
 	}
@@ -112,7 +112,7 @@ func Detect(input DetectInput) RenderMode {
 }
 
 // HasNoColor reports whether the request includes a ?nocolor query parameter,
-// which suppresses all ANSI escape codes regardless of render mode (D-04, RND-18).
+// which suppresses all ANSI escape codes regardless of render mode.
 func HasNoColor(input DetectInput) bool {
 	if input.Query == nil {
 		return false

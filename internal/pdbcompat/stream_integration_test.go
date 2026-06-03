@@ -73,7 +73,7 @@ func TestServeList_OverBudget413(t *testing.T) {
 		t.Fatalf("read body: %v", err)
 	}
 
-	// Budget-problem body shape per D-04.
+	// Budget-problem body shape.
 	var problem struct {
 		Type        string `json:"type"`
 		Title       string `json:"title"`
@@ -180,7 +180,7 @@ func TestServeList_UnderBudgetStreams(t *testing.T) {
 //   - StreamListResponse closes with "]}" and does NOT append a trailing
 //     newline — the bytes on the wire are one byte shorter.
 //
-// This divergence is intentional (Phase 71 D-07) and cheap to document
+// This divergence is intentional and cheap to document
 // rather than paper over; clients that .Unmarshal() the body never
 // notice, and tests can trim.
 func TestServeList_ByteExactParityWithLegacy(t *testing.T) {
@@ -239,7 +239,7 @@ func TestServeList_ByteExactParityWithLegacy(t *testing.T) {
 	// a future maintainer who breaks parity by appending a newline
 	// anywhere else fails the test loudly rather than silently.
 	if bytes.HasSuffix(streamedBody, []byte("\n")) {
-		t.Errorf("streamed body unexpectedly has trailing newline (Phase 71 D-07 divergence broken): %q",
+		t.Errorf("streamed body unexpectedly has trailing newline (trailing-newline divergence broken): %q",
 			string(streamedBody))
 	}
 	if !bytes.HasPrefix(streamedBody, []byte(`{"meta":{},"data":[`)) {
@@ -253,7 +253,7 @@ func TestServeList_ByteExactParityWithLegacy(t *testing.T) {
 }
 
 // TestServeList_EmptyResultShortCircuitsBeforeBudget asserts that the
-// Phase 69 IN-02 empty-result short-circuit (?asn__in= with no values)
+// empty-result short-circuit (?asn__in= with no values)
 // bypasses the pre-flight budget check entirely. A 1-byte budget would
 // 413 any non-empty result; an empty-result request must 200 through.
 func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
@@ -262,7 +262,7 @@ func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
 	srv, client := newHandlerForStream(t, 1)
 	_ = seed.Full(t, client)
 
-	// ?asn__in= — empty IN list per Phase 69 IN-02 / D-06.
+	// ?asn__in= — empty IN list.
 	resp, err := http.Get(srv.URL + "/api/net?asn__in=")
 	if err != nil {
 		t.Fatalf("GET /api/net?asn__in=: %v", err)
@@ -287,7 +287,7 @@ func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
 
 // seedBulkNetworks creates n rows in client.Network using CreateBulk in
 // 500-row chunks (under SQLite's 32,766-variable cap for Network's ~30
-// columns per row). Intended for the WR-03 streaming integration test —
+// columns per row). Intended for the streaming integration test —
 // a production-shape row count (5,000 rows) is needed so the response
 // exceeds gzhttp's minimum-size threshold and the flush cadence is
 // actually stressed by the middleware chain.
@@ -299,7 +299,7 @@ func seedBulkNetworks(tb testing.TB, client *ent.Client, n int) {
 	// One Org to parent every network; FK constraint would fail without it.
 	org, err := client.Organization.Create().
 		SetID(1).
-		SetName("WR-03 Bulk Org").
+		SetName("Bulk Org").
 		SetStatus("ok").
 		SetCreated(now).
 		SetUpdated(now).
@@ -335,7 +335,7 @@ func seedBulkNetworks(tb testing.TB, client *ent.Client, n int) {
 	}
 }
 
-// TestServeList_StreamingThroughGzipMiddleware is the Phase 71 WR-03
+// TestServeList_StreamingThroughGzipMiddleware is the
 // full-middleware streaming integration test. The
 // httptest.NewRecorder-based tests elsewhere in this file exercise
 // StreamListResponse directly; this test plugs the handler into the
@@ -352,7 +352,7 @@ func seedBulkNetworks(tb testing.TB, client *ent.Client, n int) {
 // the handler stopped flushing) net/http would set Content-Length and
 // omit Transfer-Encoding: chunked. That would silently defeat
 // StreamListResponse's bounded-allocation guarantee and re-expose the
-// OOM vector Phase 71 closed.
+// OOM vector that streaming closed.
 //
 // The test is gated on testing.Short() because seeding 5,000 rows is a
 // ~1-2s operation — trivial under the normal CI matrix but visible in a
@@ -411,7 +411,7 @@ func TestServeList_StreamingThroughGzipMiddleware(t *testing.T) {
 
 	// Streaming invariants — both must hold. A present Content-Length
 	// header proves the response was buffered whole before headers were
-	// flushed, which is exactly the OOM vector Phase 71 closes.
+	// flushed, which is exactly the OOM vector streaming closes.
 	if cl := resp.Header.Get("Content-Length"); cl != "" {
 		t.Errorf("Content-Length: got %q, want empty (streaming response should not pre-declare length)", cl)
 	}

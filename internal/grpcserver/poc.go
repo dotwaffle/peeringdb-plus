@@ -91,7 +91,7 @@ func applyPocStreamFilters(req *pb.StreamPocsRequest) ([]func(*sql.Selector), er
 }
 
 // ListPocs returns a paginated list of points of contact under the compound
-// default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// default order (-updated, -created, -id).
 func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb.ListPocsResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Poc, pb.Poc]{
 		EntityName: "pocs",

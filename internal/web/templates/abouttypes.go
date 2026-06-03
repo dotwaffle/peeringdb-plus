@@ -9,14 +9,14 @@ type DataFreshness struct {
 	Age        time.Duration
 }
 
-// PrivacySync carries the Phase 61 OBS-02 Privacy & Sync section payload
+// PrivacySync carries the Privacy & Sync section payload
 // for both the HTML (about.templ) and terminal (termrender/about.go)
 // About page renderings. Populated by web.Handler.handleAbout from the
 // handler's captured startup values; the renderers do not read env vars
 // or config at request time.
 //
 // OverrideActive is true iff PDBPLUS_PUBLIC_TIER=users was in effect at
-// process start — the "never silent escalation" flag (D-06).
+// process start — the "never silent escalation" flag.
 type PrivacySync struct {
 	// AuthMode is the human-readable label: "Authenticated with PeeringDB
 	// API key" or "Anonymous (no key)".
@@ -41,7 +41,7 @@ type PrivacySync struct {
 // AboutPageData bundles the two payloads consumed by the terminal About
 // renderer. The dispatch table (internal/web/termrender/dispatch.go)
 // registers a single concrete type per page; this struct is that type
-// for /ui/about post-Phase-61.
+// for /ui/about.
 type AboutPageData struct {
 	Freshness DataFreshness
 	Privacy   PrivacySync

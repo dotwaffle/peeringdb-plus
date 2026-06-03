@@ -11,7 +11,7 @@ import (
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 )
 
-// Phase 71 Plan 05 (MEMORY-03, D-06): per-request heap-delta telemetry.
+// Per-request heap-delta telemetry.
 //
 // The sampler is called exactly TWICE per request:
 //  1. At the top of serveList (via memStatsHeapInuseBytes) to capture the
@@ -21,7 +21,7 @@ import (
 //
 // The runtime memstats read is stop-the-world (STW) for the duration
 // of the call. At our observed heap size (<200 MiB on primary, ~80 MiB
-// on replicas post-Phase-66 telemetry), STW is a few microseconds —
+// on replicas), STW is a few microseconds —
 // acceptable once per request but NEVER per row. This invariant is
 // enforced by only calling the sampler at entry and exit, never inside
 // any row iterator or per-object serialiser.
@@ -34,7 +34,7 @@ import (
 // can even be negative (clamped to 0 below). The histogram is only
 // meaningful in aggregate: p50/p95/p99 over many samples track how much
 // the process heap moves while a handler is in flight, which is what the
-// SEED-001 watch panel actually wants. Do NOT read a high percentile as
+// sustained-heap watch panel actually wants. Do NOT read a high percentile as
 // "this endpoint allocated N bytes" — attributing the delta to one
 // request would require per-goroutine heap accounting, which the Go
 // runtime does not expose.

@@ -22,11 +22,11 @@ type Facility struct {
 	// ID of the ent.
 	// PeeringDB facility ID
 	ID int `json:"id,omitempty"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	NameFold string `json:"-"`
-	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	AkaFold string `json:"-"`
-	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	CityFold string `json:"-"`
 	// FK to campus
 	CampusID *int `json:"campus_id"`

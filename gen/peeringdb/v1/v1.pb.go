@@ -1192,7 +1192,7 @@ type IxLan struct {
 	Created                    *timestamppb.Timestamp  `protobuf:"bytes,11,opt,name=created,proto3" json:"created,omitempty"`
 	Updated                    *timestamppb.Timestamp  `protobuf:"bytes,12,opt,name=updated,proto3" json:"updated,omitempty"`
 	Status                     string                  `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"`
-	// Phase 64 (VIS-09): auth-gated data field. Field-level privacy is
+	// Auth-gated data field. Field-level privacy is
 	// enforced at the serializer layer (internal/privfield) before the
 	// *wrapperspb.StringValue is set — nil on the wire when redacted.
 	// Appended at field number 14 to preserve proto wire compat for

@@ -68,8 +68,8 @@ func TestTypicalRowBytes_DepthClamp(t *testing.T) {
 }
 
 // TestTypicalRowBytes_CalibrationDrift fails if a serializer grew since the
-// last calibration (Phase 71 Plan 02) such that typicalRowBytes[name].Depth0
-// no longer covers the 2× safety margin documented in rowsize.go D-03.
+// last calibration such that typicalRowBytes[name].Depth0
+// no longer covers the 2× safety margin documented in rowsize.go.
 //
 // The test seeds seed.Full, runs each entity's List at Limit=100, marshals
 // every returned row to JSON, and asserts:
@@ -136,8 +136,8 @@ func TestTypicalRowBytes_CalibrationDrift(t *testing.T) {
 			required := 2 * mean
 			if want < required {
 				t.Errorf("%s: Depth0 calibration drifted — typicalRowBytes[%q].Depth0 = %d, "+
-					"but 2 × measured mean (%d bytes) = %d. Serializer grew since Phase 71 "+
-					"Plan 02 calibration. Re-run BenchmarkRowSize (see rowsize.go update "+
+					"but 2 × measured mean (%d bytes) = %d. Serializer grew since the last "+
+					"calibration. Re-run BenchmarkRowSize (see rowsize.go update "+
 					"procedure) and commit fresh values.",
 					name, name, want, mean, required)
 			}

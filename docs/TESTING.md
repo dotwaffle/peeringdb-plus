@@ -20,8 +20,8 @@ Key test locations:
 | Golden files (pdbcompat) | `internal/pdbcompat/testdata/golden/` | Per-type `list.json`, `detail.json` |
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
-| Phase 71 response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
-| Phase 72 parity tests | `internal/pdbcompat/parity/` | 6 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
+| Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
+| Parity tests | `internal/pdbcompat/parity/` | 6 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
 | Benchmarks | `internal/pdbcompat/projection_bench_test.go`, `internal/pdbcompat/parity/bench_test.go` | `BenchmarkApplyFieldProjection`, `BenchmarkParity_*` |
 | Live gated tests | `*_live_test.go` | Require `-peeringdb-live` flag |
@@ -63,7 +63,7 @@ Run benchmarks:
 # Hand-written projection benchmark
 go test -bench=. -benchmem ./internal/pdbcompat/
 
-# Phase 72 parity benchmarks (b.Loop idiom; not run in CI per Phase 72 D-06)
+# Parity benchmarks (b.Loop idiom; not run in CI — no benchstat gate)
 go test -run=^$ -bench=BenchmarkParity -benchtime=5x -count=6 ./internal/pdbcompat/parity/
 ```
 
@@ -97,8 +97,8 @@ go test ./...
 isolated ent client backed by an in-memory SQLite database (shared-cache mode with foreign keys
 enabled). Each call gets a unique DSN (`file:test_N?mode=memory&cache=shared&_pragma=foreign_keys(1)`)
 so tests that call `t.Parallel()` do not see each other's data. Both helpers accept `testing.TB`
-so they work under `*testing.T` and `*testing.B` (the widening was established in Phase 72 Plan
-72-05 to support the parity benchmarks). The ent client and, when returned, the raw `*sql.DB`,
+so they work under `*testing.T` and `*testing.B` (the widening supports the parity
+benchmarks). The ent client and, when returned, the raw `*sql.DB`,
 are closed automatically via `t.Cleanup`.
 
 ```go
@@ -146,9 +146,9 @@ func TestNetworkLookup(t *testing.T) {
 
 Deterministic IDs are important because golden tests, handler tests, and grpcserver tests all
 assume the IDs and names produced by `seed.Full`. If you need a different shape, add a new
-helper rather than mutating `Full`. Phase 72 parity tests deliberately do **not** use
+helper rather than mutating `Full`. Parity tests deliberately do **not** use
 `seed.Full` — each sub-test seeds the clean rows it needs inline via the ent client to avoid
-cross-test contamination (see [Phase 72 Parity Tests](#phase-72-parity-tests) below).
+cross-test contamination (see [Parity Tests](#parity-tests) below).
 
 ## Fixtures (`testdata/fixtures/`)
 
@@ -207,9 +207,9 @@ compares field names, value types, null/array/object shapes, and nesting depth �
 `internal/conformance/compare_test.go` exercises the comparer itself; `live_test.go` compares a
 live fetch against the golden files in `internal/pdbcompat/testdata/golden/`.
 
-## Phase 71 Response Budget Tests
+## Response Budget Tests
 
-Phase 71 added a 128 MiB pre-flight memory budget to the pdbcompat list path. Two integration
+The pdbcompat list path carries a 128 MiB pre-flight memory budget. Two integration
 tests in `internal/pdbcompat/stream_integration_test.go` lock the contract:
 
 | Test | Asserts |
@@ -222,19 +222,19 @@ When adding a new entity type to `internal/pdbcompat/registry_funcs.go`, extend
 over-budget assertions mirroring the existing pattern. See `CLAUDE.md § Response memory envelope`
 for the full maintainer checklist.
 
-## Phase 72 Parity Tests
+## Parity Tests
 
 `internal/pdbcompat/parity/` locks the v1.16 pdbcompat semantics against future regression. The
 package is split into 6 category-specific test files plus shared infrastructure:
 
 | File | Entry test | Covers |
 |------|------------|--------|
-| `ordering_test.go` | `TestParity_Ordering` | ORDER REQ-IDs (sort key resolution, null handling) |
-| `status_test.go` | `TestParity_Status` | STATUS REQ-IDs (Phase 68 status × since matrix, tombstone visibility) |
-| `limit_test.go` | `TestParity_Limit` | LIMIT REQ-IDs (limit=0 streaming, max-cap, depth pairing) |
-| `unicode_test.go` | `TestParity_Unicode` | UNICODE REQ-IDs (Phase 69 fold-column routing) |
-| `in_test.go` | `TestParity_In` | IN REQ-IDs (large `__in` sets, empty-`__in` short-circuit) |
-| `traversal_test.go` | `TestParity_Traversal` | TRAVERSAL REQ-IDs (Phase 70 1-hop and 2-hop traversal) |
+| `ordering_test.go` | `TestParity_Ordering` | Ordering (sort key resolution, null handling) |
+| `status_test.go` | `TestParity_Status` | Status (status × since matrix, tombstone visibility) |
+| `limit_test.go` | `TestParity_Limit` | Limit (limit=0 streaming, max-cap, depth pairing) |
+| `unicode_test.go` | `TestParity_Unicode` | Unicode (fold-column routing) |
+| `in_test.go` | `TestParity_In` | `__in` filters (large `__in` sets, empty-`__in` short-circuit) |
+| `traversal_test.go` | `TestParity_Traversal` | Traversal (1-hop and 2-hop traversal) |
 | `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring + response decoding; no seeders) |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
 
@@ -250,19 +250,19 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
 
 - **Isolation**: every parity test calls `testutil.SetupClient(tb)` for a fresh in-memory ent
   client. Do **not** reach into `internal/testutil/seed.Full` — it seeds a different shape and
-  causes cross-test contamination (CONTEXT.md plan-hint).
+  causes cross-test contamination.
 - **Seeding**: seed clean rows inline via the ent client (`c.Network.Create()...`), seeding only
   the rows a single sub-test needs.
 - **Parallelism**: every sub-test calls `t.Parallel()`.
 - **Citation comments**: every sub-test carries one of:
   - `// upstream: pdb_api_test.py:<line>` — when the assertion mirrors an upstream test case.
-  - `// synthesised: phase-<NN>-<context>` — when the semantic is v1.16-new and has no upstream
-    counterpart (Phase 68 tombstones, Phase 69 folding, Phase 70 traversal, Phase 71 budgets).
+  - `// synthesised: <context>` — when the semantic is v1.16-new and has no upstream
+    counterpart (tombstones, folding, traversal, budgets).
 - **Divergence prefix**: sub-tests whose names begin with `DIVERGENCE_` mark intentional
   non-parity outcomes. Each such test must have a matching row in `docs/API.md § Known
   Divergences` cross-referencing it.
 - **TB widening**: parity helpers accept `testing.TB` (not `*testing.T`) so the same code paths
-  run under benchmarks. Established in Phase 72 Plan 72-05 across the 9 helper functions.
+  run under benchmarks. Applied across the 9 helper functions.
 
 ### Benchmarks
 
@@ -270,9 +270,9 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
 
 | Benchmark | Locks |
 |-----------|-------|
-| `BenchmarkParity_TwoHopTraversal` | Phase 70 cross-entity traversal performance |
-| `BenchmarkParity_LimitZeroStreaming` | Phase 71 stream.go path latency |
-| `BenchmarkParity_InFiveThousandElements` | Phase 69 D-05 large-`__in` planner cost |
+| `BenchmarkParity_TwoHopTraversal` | Cross-entity traversal performance |
+| `BenchmarkParity_LimitZeroStreaming` | `stream.go` path latency |
+| `BenchmarkParity_InFiveThousandElements` | Large-`__in` planner cost |
 
 Run locally:
 
@@ -284,7 +284,7 @@ go test -run=^$ -bench=BenchmarkParity -benchtime=1x ./internal/pdbcompat/parity
 go test -run=^$ -bench=BenchmarkParity -benchtime=5x -count=6 ./internal/pdbcompat/parity/
 ```
 
-Benchmarks are **not** gated in CI per Phase 72 CONTEXT.md D-06 (no benchstat threshold). They
+Benchmarks are **not** gated in CI (no benchstat threshold). They
 exist to detect order-of-magnitude regressions during local development.
 
 ## Fuzz Tests
@@ -365,7 +365,7 @@ func TestParseBool(t *testing.T) {
 
 ### Parallelism
 
-Call `t.Parallel()` at the top of every test and subtest where safe (GO-T-3). `SetupClient`
+Call `t.Parallel()` at the top of every test and subtest where safe. `SetupClient`
 constructs per-test isolated databases specifically to make `t.Parallel()` safe. The live
 conformance test is deliberately **not** parallel because it must sequence requests to respect
 upstream rate limits.
@@ -388,7 +388,7 @@ finishes, ensuring goroutines started by handlers or workers do not leak between
 - Benchmarks: `BenchmarkFoo`.
 - Fuzz tests: `FuzzFoo`.
 - Live tests: `TestFooLive` in a `*_live_test.go` file, gated by the `-peeringdb-live` flag.
-- Parity tests: `TestParity_<Category>` with sub-tests prefixed by REQ-ID
+- Parity tests: `TestParity_<Category>` with sub-tests prefixed by category
   (`ORDER_*`, `STATUS_*`, `LIMIT_*`, `UNICODE_*`, `IN_*`, `TRAVERSAL_*`); intentional
   non-parity uses `DIVERGENCE_<...>`.
 

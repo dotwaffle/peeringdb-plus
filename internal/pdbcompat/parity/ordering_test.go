@@ -12,7 +12,7 @@ import (
 
 // TestParity_Ordering locks the v1.16 default ordering semantics
 // (`-updated, -created, -id`) under upstream parity per
-// django-handleref/models.py:95-101 (Phase 67 D-02).
+// django-handleref/models.py:95-101.
 //
 // Subtests use inline-built clean rows because the ported
 // OrderingFixtures slice carries Python-source artefacts in `name`
@@ -73,7 +73,7 @@ func TestParity_Ordering(t *testing.T) {
 		got := extractIDs(t, body)
 		want := []int{20, 10, 5}
 		if !slices.Equal(got, want) {
-			t.Errorf("default order: got %v, want %v (ORDER-01)", got, want)
+			t.Errorf("default order: got %v, want %v", got, want)
 		}
 	})
 
@@ -117,18 +117,17 @@ func TestParity_Ordering(t *testing.T) {
 		got := extractIDs(t, body)
 		want := []int{11, 10}
 		if !slices.Equal(got, want) {
-			t.Errorf("tiebreak by created DESC: got %v, want %v (ORDER-02)", got, want)
+			t.Errorf("tiebreak by created DESC: got %v, want %v", got, want)
 		}
 	})
 
 	t.Run("tiebreak_by_id_desc", func(t *testing.T) {
 		t.Parallel()
 		// upstream: django-handleref/models.py:95-101 — `id` DESC is the
-		// implicit final tiebreak in Meta.ordering (Phase 67 D-05).
-		// synthesised: phase67-plan-03 — upstream test corpus has no
-		// fixture pair with identical updated AND created; the tertiary
-		// id-DESC behaviour is documented but not asserted in
-		// pdb_api_test.py.
+		// implicit final tiebreak in Meta.ordering.
+		// synthesised: upstream test corpus has no fixture pair with
+		// identical updated AND created; the tertiary id-DESC behaviour
+		// is documented but not asserted in pdb_api_test.py.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		org, err := c.Organization.Create().
@@ -162,7 +161,7 @@ func TestParity_Ordering(t *testing.T) {
 		got := extractIDs(t, body)
 		want := []int{99, 50}
 		if !slices.Equal(got, want) {
-			t.Errorf("tiebreak by id DESC: got %v, want %v (ORDER-03)", got, want)
+			t.Errorf("tiebreak by id DESC: got %v, want %v", got, want)
 		}
 	})
 }

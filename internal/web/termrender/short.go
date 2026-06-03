@@ -9,7 +9,7 @@ import (
 
 // RenderShort writes a single pipe-delimited summary line for the given entity.
 // Designed for scripting and shell integration (?format=short). Each entity type
-// produces a compact one-liner terminated by \n. (DIF-01, D-01 through D-05)
+// produces a compact one-liner terminated by \n.
 func (r *Renderer) RenderShort(w io.Writer, data any) error {
 	var line string
 	switch d := data.(type) {

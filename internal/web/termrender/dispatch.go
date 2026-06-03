@@ -45,7 +45,7 @@ func init() {
 		return r.RenderCompare(w, d)
 	})
 	// /ui/about dispatches via the AboutPageData bundle so both the
-	// freshness and the Phase 61 Privacy & Sync payload reach the
+	// freshness and the Privacy & Sync payload reach the
 	// terminal renderer in a single registered type.
 	Register(func(d templates.AboutPageData, w io.Writer, r *Renderer) error {
 		return r.RenderAboutPage(w, d.Freshness, d.Privacy)

@@ -489,7 +489,7 @@ func TestAllSchemasCRUD(t *testing.T) {
 	})
 }
 
-// TestNullableFK verifies that nullable FK fields accept nil values per D-20.
+// TestNullableFK verifies that nullable FK fields accept nil values.
 // PeeringDB has referential integrity violations that must not break our schema.
 func TestNullableFK(t *testing.T) {
 	t.Parallel()

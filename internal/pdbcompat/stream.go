@@ -16,7 +16,7 @@ import (
 //     the failing row index.
 //
 // A "zombie" iterator that returns ok=true forever is caller-unsafe; the
-// upstream memory budget (Plan 71-03) is responsible for ensuring bounded
+// upstream memory budget is responsible for ensuring bounded
 // iteration length by capping the filtered row count pre-flight.
 type RowsIter = func() (row any, ok bool, err error)
 
@@ -26,8 +26,7 @@ type RowsIter = func() (row any, ok bool, err error)
 const FlushEvery = 100
 
 // StreamListResponse writes a PeeringDB envelope {"meta":...,"data":[...]}
-// token-by-token without materialising the full result slice, per Phase 71
-// CONTEXT.md D-01.
+// token-by-token without materialising the full result slice.
 //
 // Write sequence:
 //  1. Set Content-Type: application/json and X-Powered-By headers.
@@ -50,7 +49,7 @@ const FlushEvery = 100
 // driven by ent.All() or a keyset-chunked query that already respects ctx at
 // its own boundary, so threading ctx.Err() per row is redundant.
 func StreamListResponse(ctx context.Context, w http.ResponseWriter, meta any, rowsIter RowsIter) error {
-	_ = ctx // TODO(71-future): honor ctx.Done() inside the loop for cancellation backpressure.
+	_ = ctx // TODO(future): honor ctx.Done() inside the loop for cancellation backpressure.
 
 	metaBytes, err := json.Marshal(meta)
 	if err != nil {
@@ -113,9 +112,8 @@ func StreamListResponse(ctx context.Context, w http.ResponseWriter, meta any, ro
 // token-writer's bounded-allocation emission path.
 //
 // This is a deliberate half-step toward full cursor-based streaming:
-// Plan 71-04 adopts it so the handler contract lands today; a future
-// plan can flip tc.List to a true pull-iterator without touching
-// serveList.
+// the handler contract adopts it today; future work can flip tc.List to
+// a true pull-iterator without touching serveList.
 func iterFromSlice(rows []any) RowsIter {
 	i := 0
 	return func() (any, bool, error) {

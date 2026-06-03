@@ -104,8 +104,8 @@ func TestPageTokenRoundTrip(t *testing.T) {
 
 // TestStreamCursorRoundTrip verifies that streamCursor values survive an
 // encode/decode cycle intact across a range of timestamp boundaries and ids.
-// The compound keyset cursor is the foundation for Phase 67's default
-// (-updated, -created, -id) ordering (CONTEXT.md D-01); a round-trip failure
+// The compound keyset cursor is the foundation for the default
+// (-updated, -created, -id) ordering; a round-trip failure
 // here would silently corrupt stream resume positions.
 func TestStreamCursorRoundTrip(t *testing.T) {
 	t.Parallel()
@@ -176,7 +176,7 @@ func TestStreamCursorEmpty(t *testing.T) {
 // TestStreamCursorInvalidBase64 verifies that malformed base64 input is
 // rejected with a decode error rather than silently returning garbage.
 // Trust-boundary input: page_token arrives over the wire from untrusted
-// clients (threat T-67-04-01).
+// clients.
 func TestStreamCursorInvalidBase64(t *testing.T) {
 	t.Parallel()
 	bad := []string{
@@ -199,7 +199,7 @@ func TestStreamCursorInvalidBase64(t *testing.T) {
 // malformed three-field cursor is rejected. The body must split into exactly
 // three pipe-delimited fields with two parseable RFC3339Nano timestamps and a
 // non-negative integer id. This protects the ORDER BY predicate from a crafted
-// token forcing nonsense into the keyset comparison (threat T-67-04-01).
+// token forcing nonsense into the keyset comparison.
 func TestStreamCursorInvalidFormat(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

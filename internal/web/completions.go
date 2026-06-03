@@ -8,7 +8,7 @@ import (
 
 // bashCompletionScript is the downloadable bash completion script for PeeringDB Plus.
 // Security: completion search returns integer IDs only, preventing shell injection
-// from entity names containing metacharacters (per research Pitfall 4).
+// from entity names containing metacharacters.
 const bashCompletionScript = `#!/bin/bash
 # PeeringDB Plus shell completions
 # Install: eval "$(curl -s peeringdb-plus.fly.dev/ui/completions/bash)"
@@ -100,7 +100,7 @@ func (h *Handler) handleCompletionZsh(w http.ResponseWriter, _ *http.Request) {
 
 // handleCompletionSearch returns newline-delimited entity IDs matching the query.
 // Accepts query params: q (search term, min 2 chars) and type (optional: net, ix, fac, org, campus, carrier).
-// Returns integer IDs only to prevent shell injection from entity names (SEC-1).
+// Returns integer IDs only to prevent shell injection from entity names.
 func (h *Handler) handleCompletionSearch(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	typeFilter := r.URL.Query().Get("type")

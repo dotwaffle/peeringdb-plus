@@ -106,7 +106,7 @@ When `mode == SyncModeIncremental` and a non-zero cursor exists for the type, `s
 
 The returned zero-time is propagated directly into the cursor map (`worker.go:744 → recordSuccess → UpsertCursor`). `UpsertCursor` (`internal/sync/status.go:72`) writes the zero timestamp without guarding against it. **There is no fallback like the v1.5-era `time.Now().Add(-5 * time.Minute)` line.** A successful incremental sync therefore writes `last_sync_at = 0` to `sync_cursors`, which would cause the next incremental tick to retry from epoch 0 — equivalent to a full re-sync, which is then absorbed by the same `stageType` machinery without harm.
 
-As of v1.17.0 (2026-04-26, post-SEED-001), `PDBPLUS_SYNC_MODE` defaults to `incremental` (`internal/config/config.go` calls `parseSyncMode("PDBPLUS_SYNC_MODE", SyncModeIncremental)`), so the incremental path is now the default. `full` remains as the operator escape-hatch for first-sync / recovery.
+As of v1.17.0 (2026-04-26, once upstream deletion tombstones were confirmed), `PDBPLUS_SYNC_MODE` defaults to `incremental` (`internal/config/config.go` calls `parseSyncMode("PDBPLUS_SYNC_MODE", SyncModeIncremental)`), so the incremental path is now the default. `full` remains as the operator escape-hatch for first-sync / recovery.
 
 ### `parseMeta` implementation
 

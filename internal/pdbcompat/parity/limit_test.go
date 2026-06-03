@@ -11,16 +11,15 @@ import (
 
 // TestParity_Limit locks the v1.16 limit semantics:
 //
-//   - LIMIT-01: ?limit=0 returns ALL rows unbounded (matches upstream
+//   - ?limit=0 returns ALL rows unbounded (matches upstream
 //     rest.py:494-497, NOT count-only as some clients incorrectly
 //     assume).
-//   - LIMIT-01b: ?limit=0 paired with the Phase 71 D-04 response
-//     budget returns 413 application/problem+json when the precount
-//     × TypicalRowBytes exceeds the budget.
-//   - LIMIT-02: ?depth=N on a list endpoint is silently dropped
-//     (Phase 68 LIMIT-02 guardrail). DIVERGENCE from upstream which
-//     accepts depth on list. See docs/API.md § Known Divergences and
-//     CONTEXT.md D-04.
+//   - ?limit=0 paired with the response budget returns 413
+//     application/problem+json when the precount × TypicalRowBytes
+//     exceeds the budget.
+//   - ?depth=N on a list endpoint is silently dropped by the
+//     guardrail. DIVERGENCE from upstream which accepts depth on
+//     list. See docs/API.md § Known Divergences.
 //
 // upstream: peeringdb_server/rest.py:494-497 (limit=0 = unlimited)
 // upstream: peeringdb_server/rest.py:734-737 (page_size_query_param)
@@ -29,7 +28,7 @@ func TestParity_Limit(t *testing.T) {
 
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	t.Run("LIMIT-01_bare_url_and_zero_both_return_all_rows", func(t *testing.T) {
+	t.Run("bare_url_and_zero_both_return_all_rows", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:495 (limit defaults to 0) + rest.py:737
 		// (limit=0 → qset[skip:], no slice). Both bare URL and explicit
@@ -44,7 +43,7 @@ func TestParity_Limit(t *testing.T) {
 		// 2026-04-28 against upstream live data (parity-results.txt):
 		// bare /api/org returned 33,556 rows upstream vs 250 on the
 		// then-buggy mirror. DefaultLimit was changed from 250 to 0
-		// to restore parity; the Phase 71 response-memory budget is
+		// to restore parity; the response-memory budget is
 		// now the sole DoS gate, returning 413 application/problem+json
 		// when precount × TypicalRowBytes exceeds the budget.
 		c := testutil.SetupClient(t)
@@ -61,7 +60,7 @@ func TestParity_Limit(t *testing.T) {
 		}
 
 		// budget=0 disables CheckBudget — exercises the pure
-		// LIMIT-01 path without the Phase 71 413 layer interfering.
+		// limit=0-returns-all path without the 413 layer interfering.
 		srv := newTestServer(t, c)
 
 		// Bare URL: returns all 300 rows (matches upstream).
@@ -71,7 +70,7 @@ func TestParity_Limit(t *testing.T) {
 		}
 		bare := decodeDataArray(t, body)
 		if len(bare) != seedN {
-			t.Errorf("LIMIT-01 bare /api/net: got %d rows, want %d "+
+			t.Errorf("bare /api/net: got %d rows, want %d "+
 				"(upstream returns all rows when neither limit= nor page= is set)",
 				len(bare), seedN)
 		}
@@ -83,19 +82,19 @@ func TestParity_Limit(t *testing.T) {
 		}
 		all := decodeDataArray(t, body)
 		if len(all) != seedN {
-			t.Errorf("LIMIT-01 ?limit=0: got %d rows, want %d (all unbounded)",
+			t.Errorf("?limit=0: got %d rows, want %d (all unbounded)",
 				len(all), seedN)
 		}
 	})
 
-	t.Run("LIMIT-01b_zero_over_budget_returns_413_problem_json", func(t *testing.T) {
+	t.Run("zero_over_budget_returns_413_problem_json", func(t *testing.T) {
 		t.Parallel()
-		// Phase 71 D-02/D-04: pre-flight CheckBudget gate. With a tiny
-		// per-response budget and a non-empty result, the count ×
-		// TypicalRowBytes math returns 413 application/problem+json
-		// before the .All() materialises anything.
-		// synthesised: phase71-plan-04 (the budget mechanism is novel
-		// to this fork; upstream has no equivalent gate).
+		// pre-flight CheckBudget gate. With a tiny per-response budget
+		// and a non-empty result, the count × TypicalRowBytes math
+		// returns 413 application/problem+json before the .All()
+		// materialises anything.
+		// synthesised: the budget mechanism is novel to this fork;
+		// upstream has no equivalent gate.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		// Seed enough rows that even one TypicalRowBytes (~1600B for
@@ -134,17 +133,16 @@ func TestParity_Limit(t *testing.T) {
 		}
 	})
 
-	t.Run("LIMIT-02_depth_on_list_silently_dropped_DIVERGENCE", func(t *testing.T) {
+	t.Run("depth_on_list_silently_dropped_DIVERGENCE", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream rest.py accepts ?depth on list
-		// endpoints and embeds related objects per row. Phase 68
-		// LIMIT-02 guardrail (handler.go:163-168) silently drops the
-		// param to avoid memory blow-up at scale. Phase 71 owns the
-		// safe list+depth implementation; until then the response is
-		// IDENTICAL to a no-depth call.
-		// See docs/API.md § Known Divergences and CONTEXT.md D-04.
-		// synthesised: phase68-plan-03 (the silent-drop is novel to
-		// this fork).
+		// endpoints and embeds related objects per row. The list
+		// guardrail (handler.go:163-168) silently drops the param to
+		// avoid memory blow-up at scale; until a safe list+depth
+		// implementation lands the response is IDENTICAL to a
+		// no-depth call.
+		// See docs/API.md § Known Divergences.
+		// synthesised: the silent-drop is novel to this fork.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		for _, id := range []int{1, 2} {
@@ -166,7 +164,7 @@ func TestParity_Limit(t *testing.T) {
 		idsPlain := extractIDs(t, bodyPlain)
 		idsDepth := extractIDs(t, bodyDepth)
 		if !equalIntSlice(idsPlain, idsDepth) {
-			t.Errorf("LIMIT-02 DIVERGENCE: ?depth=2 must produce identical id list as no-depth (silent-drop). got plain=%v depth=%v",
+			t.Errorf("DIVERGENCE: ?depth=2 must produce identical id list as no-depth (silent-drop). got plain=%v depth=%v",
 				idsPlain, idsDepth)
 		}
 	})

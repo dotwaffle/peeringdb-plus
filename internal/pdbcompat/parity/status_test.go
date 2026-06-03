@@ -11,8 +11,8 @@ import (
 )
 
 // TestParity_Status locks the upstream rest.py:694-727 status × since
-// matrix (Phase 68 D-05/D-07) against future regression. Each subtest
-// covers one cell of the matrix:
+// matrix against future regression. Each subtest covers one cell of
+// the matrix:
 //
 //	{no since, since=N} × {list, pk-lookup} × {campus, non-campus}
 //
@@ -63,7 +63,7 @@ func TestParity_Status(t *testing.T) {
 		}
 	}
 
-	t.Run("STATUS-01_list_no_since_status_ok_only", func(t *testing.T) {
+	t.Run("list_no_since_status_ok_only", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:694-700 (default branch — list filters to
 		// status=ok unconditionally without ?since)
@@ -81,11 +81,11 @@ func TestParity_Status(t *testing.T) {
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 1 {
-			t.Errorf("STATUS-01 list w/o since: got ids %v, want [1] (only status=ok)", ids)
+			t.Errorf("list w/o since: got ids %v, want [1] (only status=ok)", ids)
 		}
 	})
 
-	t.Run("STATUS-02_pk_lookup_admits_pending", func(t *testing.T) {
+	t.Run("pk_lookup_admits_pending", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:702-710 (pk-lookup branch admits pending)
 		// upstream: pdb_api_test.py:1242 (pk lookup on a pending row
@@ -97,12 +97,12 @@ func TestParity_Status(t *testing.T) {
 		srv := newTestServer(t, c)
 		status, body := httpGet(t, srv, "/api/net/20")
 		if status != http.StatusOK {
-			t.Errorf("STATUS-02 pk lookup on pending: got %d, want 200; body=%s",
+			t.Errorf("pk lookup on pending: got %d, want 200; body=%s",
 				status, string(body))
 		}
 	})
 
-	t.Run("STATUS-03_pk_lookup_deleted_returns_404", func(t *testing.T) {
+	t.Run("pk_lookup_deleted_returns_404", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:702-710 (pk-lookup branch excludes deleted)
 		// upstream: pdb_api_test.py:1247 (deleted row pk lookup → 404)
@@ -112,11 +112,11 @@ func TestParity_Status(t *testing.T) {
 		srv := newTestServer(t, c)
 		status, _ := httpGet(t, srv, "/api/net/30")
 		if status != http.StatusNotFound {
-			t.Errorf("STATUS-03 pk lookup on deleted: got %d, want 404", status)
+			t.Errorf("pk lookup on deleted: got %d, want 404", status)
 		}
 	})
 
-	t.Run("STATUS-04_list_since_admits_deleted_excludes_pending_noncampus", func(t *testing.T) {
+	t.Run("list_since_admits_deleted_excludes_pending_noncampus", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:712-715 (since>0 admits ok+deleted, excludes
 		// pending — except for campus carve-out)
@@ -136,11 +136,11 @@ func TestParity_Status(t *testing.T) {
 		// id=2 (pending) excluded.
 		want := []int{3, 1}
 		if !equalIntSlice(ids, want) {
-			t.Errorf("STATUS-04 since admits ok+deleted: got %v, want %v", ids, want)
+			t.Errorf("since admits ok+deleted: got %v, want %v", ids, want)
 		}
 	})
 
-	t.Run("STATUS-05_list_since_campus_admits_pending", func(t *testing.T) {
+	t.Run("list_since_campus_admits_pending", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:712-715 (campus carve-out: pending admitted
 		// on since>0 list — the IXP onboarding workflow needs pending
@@ -160,11 +160,11 @@ func TestParity_Status(t *testing.T) {
 		// All 3 admitted on since>0 for campus.
 		want := []int{3, 2, 1}
 		if !equalIntSlice(ids, want) {
-			t.Errorf("STATUS-05 campus since admits all 3: got %v, want %v", ids, want)
+			t.Errorf("campus since admits all 3: got %v, want %v", ids, want)
 		}
 	})
 
-	t.Run("STATUS-06_explicit_status_deleted_no_since_is_empty", func(t *testing.T) {
+	t.Run("explicit_status_deleted_no_since_is_empty", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:694-700 (default branch overrides explicit
 		// ?status= when ?since is absent — the implicit ok-filter wins)
@@ -180,7 +180,7 @@ func TestParity_Status(t *testing.T) {
 		}
 		ids := extractIDs(t, body)
 		if len(ids) != 0 {
-			t.Errorf("STATUS-06 ?status=deleted w/o since: got %v, want []", ids)
+			t.Errorf("?status=deleted w/o since: got %v, want []", ids)
 		}
 	})
 }

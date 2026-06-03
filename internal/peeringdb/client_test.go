@@ -644,10 +644,10 @@ func TestFetchAllCreatesSpanHierarchy(t *testing.T) {
 		t.Fatal("expected peeringdb.stream/net span, not found")
 	}
 
-	// PERF-08: Individual request spans are omitted.
+	// Individual request spans are omitted.
 	requestSpans := findSpansByName(spans, "peeringdb.request")
 	if len(requestSpans) != 0 {
-		t.Fatalf("expected no peeringdb.request spans due to PERF-08, found %d", len(requestSpans))
+		t.Fatalf("expected no peeringdb.request spans, found %d", len(requestSpans))
 	}
 }
 
@@ -689,7 +689,7 @@ func TestFetchAllRecordsStreamedEvent(t *testing.T) {
 		return
 	}
 
-	// PERF-08: page.streamed events are omitted to avoid event bloat.
+	// page.streamed events are omitted to avoid event bloat.
 	// Only the final "streamed" event with the total count is recorded.
 	var streamedEvent *sdktrace.Event
 	for _, evt := range fetchSpan.Events {
@@ -763,7 +763,7 @@ func TestDoWithRetryRecordsRetryEvents(t *testing.T) {
 		return
 	}
 
-	// PERF-08: Retries are recorded as events on the parent span.
+	// Retries are recorded as events on the parent span.
 	var retryEvent *sdktrace.Event
 	for _, evt := range fetchSpan.Events {
 		if evt.Name == "request.retry" {
@@ -843,7 +843,7 @@ func TestAuthenticatedRateLimit(t *testing.T) {
 func TestUnauthenticatedRateLimit(t *testing.T) {
 	t.Parallel()
 
-	// Quick task 260428-2zl: default unauth RPS bumped from 0.33 (1/3s) to
+	// Default unauth RPS bumped from 0.33 (1/3s) to
 	// 2.0 (PDBPLUS_PEERINGDB_RPS default). Burst stays at 1.
 	client := NewClient("http://127.0.0.1:1", slog.Default())
 	wantLimit := rate.Limit(defaultRPS)
@@ -853,7 +853,7 @@ func TestUnauthenticatedRateLimit(t *testing.T) {
 }
 
 // TestWithRPS_OverridesDefault asserts the WithRPS option sets the
-// unauthenticated limiter rate. Quick task 260428-2zl.
+// unauthenticated limiter rate.
 func TestWithRPS_OverridesDefault(t *testing.T) {
 	t.Parallel()
 
@@ -864,7 +864,7 @@ func TestWithRPS_OverridesDefault(t *testing.T) {
 }
 
 // TestWithAPIKey_OverridesWithRPS asserts that even with a WithRPS option,
-// the auth path picks the upstream-fixed 60/min quota. Quick task 260428-2zl.
+// the auth path picks the upstream-fixed 60/min quota.
 func TestWithAPIKey_OverridesWithRPS(t *testing.T) {
 	t.Parallel()
 

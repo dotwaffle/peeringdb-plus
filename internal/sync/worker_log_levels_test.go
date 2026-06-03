@@ -11,25 +11,25 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
-// Phase 77 OBS-06 — log-level lock for the post-AUDIT.md slog levels.
+// Log-level lock for the reviewed slog levels.
 //
-// AUDIT.md rows demoted in `internal/sync/worker.go`:
+// Log lines demoted in `internal/sync/worker.go`:
 //
-//   - L815 "fetching"             INFO → DEBUG
-//   - L971 "upserted"              INFO → DEBUG
-//   - L1401 "marked stale deleted" INFO → DEBUG
-//   - L824 "failed to get cursor, using full sync" WARN → INFO
-//   - L1452 "sync rate-limited, deferring to next scheduled tick" WARN → INFO
-//   - L1484 "sync rate-limited during retry, deferring" WARN → INFO
-//   - L1577 "failed to get last sync time" WARN → DEBUG
+//   - "fetching"             INFO → DEBUG
+//   - "upserted"              INFO → DEBUG
+//   - "marked stale deleted" INFO → DEBUG
+//   - "failed to get cursor, using full sync" WARN → INFO
+//   - "sync rate-limited, deferring to next scheduled tick" WARN → INFO
+//   - "sync rate-limited during retry, deferring" WARN → INFO
+//   - "failed to get last sync time" WARN → DEBUG
 //
 // Security signals explicitly preserved (locked by acceptance criteria):
 //
-//   - L246  "fk orphans summary" WARN (when total>0)
-//   - L643  "heap threshold crossed" WARN
-//   - L869  "incremental sync failed, falling back to full" WARN
-//   - L1492 "sync failed after all retries" ERROR
-//   - L1533 "demoted during sync, aborting cycle" WARN
+//   - "fk orphans summary" WARN (when total>0)
+//   - "heap threshold crossed" WARN
+//   - "incremental sync failed, falling back to full" WARN
+//   - "sync failed after all retries" ERROR
+//   - "demoted during sync, aborting cycle" WARN
 //
 // These tests drive a single full sync cycle through the existing fixture
 // harness and assert level placement on the captured slog records.
@@ -70,7 +70,7 @@ func captureSyncLogs(t *testing.T, handlerLevel slog.Level) string {
 }
 
 // TestSyncLogLevels_FetchingIsDebug verifies that the per-type "fetching"
-// line emits at DEBUG (post-AUDIT) and is suppressed at INFO.
+// line emits at DEBUG and is suppressed at INFO.
 func TestSyncLogLevels_FetchingIsDebug(t *testing.T) {
 	t.Parallel()
 
@@ -81,15 +81,15 @@ func TestSyncLogLevels_FetchingIsDebug(t *testing.T) {
 	}
 	// Every fetching record must carry level=DEBUG.
 	if strings.Contains(out, `"level":"INFO","msg":"fetching"`) {
-		t.Errorf("AUDIT.md L815: 'fetching' must be DEBUG, found INFO; output:\n%s", out)
+		t.Errorf("'fetching' must be DEBUG, found INFO; output:\n%s", out)
 	}
 	if !strings.Contains(out, `"level":"DEBUG","msg":"fetching"`) {
-		t.Errorf("AUDIT.md L815: 'fetching' must be DEBUG; output:\n%s", out)
+		t.Errorf("'fetching' must be DEBUG; output:\n%s", out)
 	}
 }
 
 // TestSyncLogLevels_UpsertedIsDebug verifies that the per-type "upserted"
-// line emits at DEBUG (post-AUDIT) and is suppressed at INFO.
+// line emits at DEBUG and is suppressed at INFO.
 func TestSyncLogLevels_UpsertedIsDebug(t *testing.T) {
 	t.Parallel()
 
@@ -99,10 +99,10 @@ func TestSyncLogLevels_UpsertedIsDebug(t *testing.T) {
 		t.Fatalf("expected at least one upserted log; output:\n%s", out)
 	}
 	if strings.Contains(out, `"level":"INFO","msg":"upserted"`) {
-		t.Errorf("AUDIT.md L971: 'upserted' must be DEBUG, found INFO; output:\n%s", out)
+		t.Errorf("'upserted' must be DEBUG, found INFO; output:\n%s", out)
 	}
 	if !strings.Contains(out, `"level":"DEBUG","msg":"upserted"`) {
-		t.Errorf("AUDIT.md L971: 'upserted' must be DEBUG; output:\n%s", out)
+		t.Errorf("'upserted' must be DEBUG; output:\n%s", out)
 	}
 }
 
@@ -123,16 +123,16 @@ func TestSyncLogLevels_DefaultINFOFiltersDebug(t *testing.T) {
 		t.Errorf("at handler INFO, 'upserted' must be filtered out; output:\n%s", out)
 	}
 	// Sanity: the per-cycle "sync complete" INFO summary still emits at
-	// INFO — it is explicitly KEEP per AUDIT.md.
+	// INFO — it is explicitly preserved.
 	if !strings.Contains(out, `"msg":"sync complete"`) {
-		t.Errorf("'sync complete' must remain INFO (AUDIT.md L736 KEEP); output:\n%s", out)
+		t.Errorf("'sync complete' must remain INFO; output:\n%s", out)
 	}
 }
 
 // TestSyncLogLevels_FKOrphansSummaryStaysWarn locks the security-signal
 // preservation invariant: when fk orphan rows are observed in a cycle,
 // the per-cycle aggregate MUST fire at WARN. Demoting this would
-// re-introduce the data-integrity blind spot the Phase 68 per-row →
+// re-introduce the data-integrity blind spot the per-row →
 // per-cycle refactor solved (and re-breach Tempo's 7.5 MB cap).
 //
 // Driven directly via recordOrphan + emitOrphanSummary because the FK
@@ -155,7 +155,7 @@ func TestSyncLogLevels_FKOrphansSummaryStaysWarn(t *testing.T) {
 
 	out := buf.String()
 	if !strings.Contains(out, `"level":"WARN","msg":"fk orphans summary"`) {
-		t.Errorf("AUDIT.md L246: 'fk orphans summary' (total>0) must be WARN; output:\n%s", out)
+		t.Errorf("'fk orphans summary' (total>0) must be WARN; output:\n%s", out)
 	}
 	if !strings.Contains(out, `"total":2`) {
 		t.Errorf("expected total=2 in summary; output:\n%s", out)

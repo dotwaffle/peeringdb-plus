@@ -24,9 +24,9 @@ var allTypes = []string{
 
 // TestLiveConformance fetches anonymous responses from beta.peeringdb.com and
 // compares them structurally against our locally-captured anonymous baseline
-// (VIS-01 fixtures) for all 13 PeeringDB types. This is the single conformance
-// comparison mode per phase 60 D-10; the authenticated mode was removed per
-// D-11 because CI does not hold an API key secret. Gated by -peeringdb-live.
+// fixtures for all 13 PeeringDB types. This is the single conformance
+// comparison mode; the authenticated mode was removed because CI does not
+// hold an API key secret. Gated by -peeringdb-live.
 func TestLiveConformance(t *testing.T) {
 	if !*peeringdbLive {
 		t.Skip("skipping live conformance test (use -peeringdb-live to enable)")

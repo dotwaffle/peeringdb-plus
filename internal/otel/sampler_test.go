@@ -11,10 +11,9 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-// Phase 77 OBS-07: per-route sampler that dispatches sampling decisions
-// based on URL path prefix read from SamplingParameters.Attributes
-// (url.path / http.target). See AUDIT.md § Tempo Trace Audit (OBS-07)
-// for the route → ratio matrix this sampler enforces.
+// Per-route sampler that dispatches sampling decisions based on URL path
+// prefix read from SamplingParameters.Attributes (url.path / http.target).
+// Tests the route → ratio matrix this sampler enforces.
 
 // allOnesTraceID is the maximum-valued TraceID. TraceIDRatioBased(0.0)
 // drops it deterministically; TraceIDRatioBased(1.0) admits it. We use
@@ -342,9 +341,9 @@ func TestPerRouteSampler_DotDoesNotMatchPlainSlash(t *testing.T) {
 func TestParentBased_InheritsDecisionForSampledIn(t *testing.T) {
 	t.Parallel()
 
-	// Locks the cross-service trace continuity invariant from CONTEXT.md
-	// D-02: a child span with a sampled parent inherits RecordAndSample
-	// even when the child route would otherwise be dropped.
+	// Locks the cross-service trace continuity invariant: a child span with
+	// a sampled parent inherits RecordAndSample even when the child route
+	// would otherwise be dropped.
 
 	inner := NewPerRouteSampler(PerRouteSamplerInput{
 		DefaultRatio: 1.0,

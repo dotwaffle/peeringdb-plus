@@ -139,7 +139,7 @@ cmd/
   peeringdb-plus/         # Main binary: HTTP server, sync worker wiring
   pdb-schema-extract/     # Parses PeeringDB Django source into schema/peeringdb.json
   pdb-schema-generate/    # Generates ent/schema/*.go from schema/peeringdb.json
-  pdb-compat-allowlist/   # Generates internal/pdbcompat/allowlist_gen.go (Phase 70)
+  pdb-compat-allowlist/   # Generates internal/pdbcompat/allowlist_gen.go (cross-entity traversal allowlist)
   pdbcompat-check/        # Validates PeeringDB-compatibility responses
 ent/
   schema/                 # Hand-edited ent schemas + sibling files (*_fold.go,
@@ -160,7 +160,7 @@ schema/
   peeringdb.json          # Intermediate PeeringDB schema used by pdb-schema-generate
   generate.go             # go:generate directive for schema regeneration
 internal/
-  config/                 # Env-var config loading, validation, fail-fast (CFG-1)
+  config/                 # Env-var config loading, validation, fail-fast
   database/               # SQLite open + ent client setup (WAL, FKs, busy timeout)
   litefs/                 # Primary/replica detection
   peeringdb/              # PeeringDB API client (rate-limiting, Retry-After parsing)
@@ -203,7 +203,7 @@ deploy/                   # Deployment-adjacent assets (Grafana dashboards, aler
 
 2. `ent/generate.go` then runs `cmd/pdb-compat-allowlist` to regenerate
    `internal/pdbcompat/allowlist_gen.go` from `schema.PrepareQueryAllows` declared in
-   `ent/schema/pdb_allowlists.go` (Phase 70 cross-entity traversal allowlist).
+   `ent/schema/pdb_allowlists.go` (the cross-entity traversal allowlist).
 
 3. `ent/generate.go` then runs `go tool buf generate` at the repo root, which reads `buf.gen.yaml`
    and invokes `protoc-gen-go` + `protoc-gen-connect-go` to emit Go types and ConnectRPC service
@@ -235,7 +235,7 @@ The HTTP middleware stack is assembled by `buildMiddlewareChain`
    exports the standard `http.server.*` metrics.
 5. **Logging** (`internal/middleware/logging.go`) — Structured slog access log with request ID
    correlation.
-6. **PrivacyTier** (`internal/middleware/privacy_tier.go`, Phase 59 D-05) — Stamps the resolved
+6. **PrivacyTier** (`internal/middleware/privacy_tier.go`) — Stamps the resolved
    `PDBPLUS_PUBLIC_TIER` value onto every inbound request context via `privctx.WithTier`. Sits
    between Logging and Readiness so even the Readiness 503 path carries the tier; downstream ent
    privacy policies and `privfield.Redact` callers consume it via `privctx.TierFrom(ctx)`.
@@ -285,10 +285,10 @@ same ent client:
 
 - **PeeringDB-compatible — `/api/*`** (`internal/pdbcompat/`) — Drop-in replacement for the
   PeeringDB API shape, including `depth` expansion, filter parameters, the canonical response
-  envelope, and the response memory envelope (Phase 71 — see § Response Memory Envelope below).
+  envelope, and the response memory envelope (see § Response Memory Envelope below).
   Uses a type registry (`internal/pdbcompat/registry.go`) to dispatch by object type. The pk-lookup
   path (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site so
-  Phase 68 tombstones return 404 on direct-ID GETs.
+  soft-delete tombstones return 404 on direct-ID GETs.
 
 - **ConnectRPC / gRPC — `/peeringdb.v1.*`** (`internal/grpcserver/`, `gen/peeringdb/v1/`) — All 13
   entity types expose `Get`, `List`, and `Stream` RPCs. Handlers are registered in a loop in
@@ -359,7 +359,7 @@ The pieces:
    (`/ui/`, `/graphql`, `/rest/v1/`, `/api/`, `/peeringdb.v1.*`) all flow
    through the same `ent.Client`, so there is exactly one filter, not five.
    POC is the only entity where a whole row can be hidden.
-3. **Field-level — `privfield.Redact`** (`internal/privfield/`, Phase 64).
+3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
    `Redact(ctx, visible, value) (out string, omit bool)` is the single
    source of truth for per-field redaction. Every API serializer that
    exposes a gated field calls `Redact`; unstamped contexts fail-closed to
@@ -388,9 +388,9 @@ The pieces:
    in `privacy.DecisionContext(syncCtx, privacy.Allow)`. This marker
    short-circuits the policy so writes land the full dataset —
    `Users`-tier rows go into the DB — regardless of the caller tier that
-   would otherwise apply. A single-call-site audit test (Phase 59) keeps
+   would otherwise apply. A single-call-site audit test keeps
    the bypass scoped to the worker.
-5. **Observability** (Phase 61). Startup logs a `sync mode` line
+5. **Observability**. Startup logs a `sync mode` line
    (`auth=authenticated|anonymous`). A WARN line
    (`public tier override active`) fires whenever `PDBPLUS_PUBLIC_TIER=users`.
    Read-path spans carry an OTel attribute `pdbplus.privacy.tier` with
@@ -447,7 +447,7 @@ for the operator-facing rollout.
 
 ## Soft-delete tombstones
 
-Sync uses soft-delete (Phase 68) rather than hard-delete across all 13 entity types. The 13
+Sync uses soft-delete rather than hard-delete across all 13 entity types. The 13
 `markStaleDeleted*` functions in `internal/sync/delete.go` set
 `status='deleted', updated=cycleStart` on rows absent from the upstream response, where
 `cycleStart` is the `start := time.Now()` timestamp captured at the top of `Worker.Sync` and
@@ -460,12 +460,12 @@ mirror upstream PeeringDB's `rest.py` status × since matrix; the pk-lookup path
 (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site so
 direct-ID GETs return 404 for tombstones.
 
-Tombstone GC is dormant (SEED-004); triggers are storage
+Tombstone GC is dormant work; triggers are storage
 growth >5% MoM, tombstone ratio >10%, or operator request.
 
 ## Shadow-column folding
 
-`internal/unifold` is the single source of truth for diacritic-insensitive folding (Phase 69).
+`internal/unifold` is the single source of truth for diacritic-insensitive folding.
 Sixteen `<field>_fold` shadow columns are spread across 6 entity types
 (`organization`, `network`, `facility`, `internetexchange`, `carrier`, `campus`), declared via
 the `foldMixin` in sibling files (`{type}_fold.go`). Each `_fold` column carries
@@ -485,7 +485,7 @@ filter semantics.
 ## Cross-entity traversal
 
 Filter keys with `__` separators (e.g. `?org__name__contains=acme`) traverse from the requested
-entity to a related entity (Phase 70). Two paths resolve the target field:
+entity to a related entity. Two paths resolve the target field:
 
 - **Path A (allowlist)** — `internal/pdbcompat/allowlist_gen.go`, regenerated by
   `cmd/pdb-compat-allowlist` from `schema.PrepareQueryAllows` declared in
@@ -553,8 +553,8 @@ OTel is set up once at startup in `internal/otel/provider.go` (`Setup`). Three s
 are configured via the OpenTelemetry autoexport package, which reads standard `OTEL_*` env vars
 to select exporters (OTLP, stdout, none):
 
-- **`TracerProvider`** — Sampler is `sdktrace.ParentBased(NewPerRouteSampler(...))` per Phase 77
-  OBS-07. Per-route ratios live in `internal/otel/provider.go` (`defaultSamplerInput`) and the
+- **`TracerProvider`** — Sampler is `sdktrace.ParentBased(NewPerRouteSampler(...))`.
+  Per-route ratios live in `internal/otel/provider.go` (`defaultSamplerInput`) and the
   dispatch is in `internal/otel/sampler.go` (`perRouteSampler`); see the Sampling Matrix below.
   The known-app-route ratio honours `PDBPLUS_OTEL_SAMPLE_RATE` (default `1.0`); unknown-path
   traces drop to 1% to defend against opportunistic scanners (incident 2026-05-02). Sync-worker
@@ -566,15 +566,15 @@ to select exporters (OTLP, stdout, none):
 ### Sampling Matrix
 
 Per-route sampling is configured in `internal/otel/sampler.go` (`perRouteSampler`) and wrapped
-in `sdktrace.ParentBased` so child spans inherit the root decision (cross-service trace
-continuity invariant from Phase 77 CONTEXT.md D-02):
+in `sdktrace.ParentBased` so child spans inherit the root decision (the cross-service trace
+continuity invariant):
 
 | Route prefix | Ratio | Rationale |
 |--------------|-------|-----------|
 | `/.`, `/wp-` | 0.001 | Scanner-bait deny-prefixes (`.env`, `.git/`, `.aws/`, `.kube/`, `.htpasswd`, `.npmrc`, `wp-admin`, `wp-login.php`). Added 2026-05-03 after a 9M-spans/hour scanner spike from 45.148.10.238 (UA `SecurityScanner/1.0`) peaked at 384 KB/s and tripped `live_traces_exceeded` discards in Grafana Cloud Tempo. |
-| `/healthz`, `/readyz`, `/grpc.health.v1.Health/` | 0.01 | Fly health probes — 1% sample is enough for liveness debugging without dominating Tempo volume. Pre-Phase-77 measurement: `/healthz` was ~99% of HTTP trace volume. |
+| `/healthz`, `/readyz`, `/grpc.health.v1.Health/` | 0.01 | Fly health probes — 1% sample is enough for liveness debugging without dominating Tempo volume. Before per-route sampling, `/healthz` was ~99% of HTTP trace volume. |
 | `/api/`, `/rest/v1/`, `/peeringdb.v1.`, `/graphql` | `PDBPLUS_OTEL_SAMPLE_RATE` (default 1.0) | Primary API surfaces — full sampling for debugging by default. The env var is the operator's incident-time dampener for known-app-route volume; it no longer drives the unknown-path floor. |
-| `/ui/` | 0.5 | Browser traffic; halved per the Phase 77 audit. |
+| `/ui/` | 0.5 | Browser traffic; halved per the telemetry audit. |
 | `/static/`, `/favicon.ico` | 0.01 | Static assets; rare debugging value. |
 | (default — unknown paths, sync worker, internal spans) | 0.01 | Deny-by-default for unknown URL paths (scanner protection, hardcoded). Sync-worker / internal spans without a `url.path` attribute also land here at 1%. To raise this floor, edit `defaultSamplerInput` in `internal/otel/provider.go`. |
 
@@ -590,9 +590,9 @@ alphanumeric character (e.g. `/api`) require `/` after them; prefixes that end i
 alphanumeric character (e.g. `/peeringdb.v1.` or `/static/`) accept any next character —
 needed for ConnectRPC's dot-terminated package prefixes.
 
-`OTEL_BSP_SCHEDULE_DELAY=5s` and `OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512` (PERF-08 baseline) are
+`OTEL_BSP_SCHEDULE_DELAY=5s` and `OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512` are
 hardcoded in `internal/otel/provider.go` and confirmed appropriate for current cardinality per
-the Phase 77 telemetry audit.
+the telemetry audit.
 
 - **`MeterProvider`** — Exposes standard `http.server.*` metrics (from otelhttp) and custom sync
   metrics registered in `internal/otel/metrics.go` (`InitMetrics`):
@@ -615,7 +615,7 @@ the Phase 77 telemetry audit.
   dropped (low debugging value, high cardinality), and `rpc.server.duration` buckets are capped at
   a 5-boundary set.
 
-  **Resource attributes (post-260426-lod).** `internal/otel/provider.go` `buildResourceFiltered`
+  **Resource attributes.** `internal/otel/provider.go` `buildResourceFiltered`
   emits the OTel resource via two filtered constructors — `buildResource` (full) for traces /
   logs, `buildMetricResource` (omits `service.instance.id`) for metrics. Grafana Cloud's hosted
   OTLP receiver only promotes a small allowlist of OTel semconv resource attrs to Prometheus
@@ -654,9 +654,9 @@ on SIGINT/SIGTERM via the `SetupOutput.Shutdown` closure, which runs inside the 
 
 ## Response Memory Envelope
 
-v1.16 Phase 71 — pdbcompat list responses are gated by a per-request
+Since v1.16, pdbcompat list responses are gated by a per-request
 memory budget so the 256 MB Fly replicas never OOM under `limit=0`,
-depth=2, or 2-hop traversal responses enabled by Phases 68 + 70. The
+depth=2, or 2-hop traversal responses. The
 ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes`
 heuristic that returns RFC 9457 `application/problem+json` 413 BEFORE
 any row data is fetched, and bytes are streamed through the response
@@ -666,7 +666,7 @@ writer once the budget check passes.
 
 ```
 256 MB replica total
-  − 80 MB Go runtime baseline (observed v1.15 Phase 66 telemetry)
+  − 80 MB Go runtime baseline (observed v1.15 telemetry)
   − 48 MB slack (other in-flight requests + GC overhead)
   = 128 MiB PDBPLUS_RESPONSE_MEMORY_LIMIT default
 ```
@@ -683,13 +683,13 @@ operator action, never OOM-kill.
 | File | Responsibility |
 |---|---|
 | `internal/pdbcompat/stream.go` | Hand-rolled JSON token writer. `StreamListResponse(ctx, w, meta, rowsIter)` emits `{"meta":…,"data":[…]}` with per-row `json.Marshal` and periodic `http.Flusher.Flush()` (every 100 rows). No full-result `[]any` materialisation on the wire. |
-| `internal/pdbcompat/rowsize.go` | Hardcoded `map[string]RowSize{Depth0, Depth2}` calibrated from `bench_row_size_test.go` then doubled per D-03. Conservative by design — false-positive 413s are preferred over OOM. Recalibrated every major milestone; drift >20% triggers a refresh plan. |
+| `internal/pdbcompat/rowsize.go` | Hardcoded `map[string]RowSize{Depth0, Depth2}` calibrated from `bench_row_size_test.go` then doubled. Conservative by design — false-positive 413s are preferred over OOM. Recalibrated every major release; drift >20% triggers a refresh. |
 | `internal/pdbcompat/budget.go` | `CheckBudget(count, entity, depth, budgetBytes) (BudgetExceeded, bool)` multiplies `count × TypicalRowBytes(entity, depth)`. Over-budget requests get 413 via `WriteBudgetProblem` BEFORE the row data is fetched; the RFC 9457 body carries `max_rows = budget / per_row` and `budget_bytes` so clients can re-slice their request. |
 
 ### Per-entity worst-case sizing
 
-Values are the DOUBLED figure from `BenchmarkRowSize_*` (Plan 02
-calibration, 2026-04-19, with the WR-02 bump for `org` Depth0), rounded
+Values are the DOUBLED figure from `BenchmarkRowSize_*` (calibrated
+2026-04-19, with the later bump for `org` Depth0), rounded
 up to 64 bytes. At the 128 MiB default budget, the `max_rows` column
 shows the row count at which the pre-flight check trips. Unknown
 entities fall back to `defaultRowSize = 4096` (fail-closed).
@@ -724,8 +724,8 @@ production. Full table lives in `internal/pdbcompat/rowsize.go`.
    baseline).
 3. **Pre-flight count:** handler runs `tc.CountFunc(ctx, client, opts)` —
    a filtered `SELECT COUNT(*)` using the same predicate chain as the
-   upcoming `tc.ListFunc` call. The per-entity `CountFunc` sibling was
-   added in Plan 71-04; it shares an `<entity>Predicates` local helper
+   upcoming `tc.ListFunc` call. The per-entity `CountFunc` sibling
+   shares an `<entity>Predicates` local helper
    with its List sibling so the budget check and the served response
    can never disagree on filter semantics.
 4. **Budget check:** `CheckBudget(count, tc.Name, 0, cfg.ResponseMemoryLimit)`.
@@ -739,12 +739,12 @@ production. Full table lives in `internal/pdbcompat/rowsize.go`.
    `http.Flusher.Flush()` every 100 rows, bounding intermediate
    allocations.
 
-### Telemetry (MEMORY-03)
+### Telemetry
 
 - **OTel span attribute** `pdbplus.response.heap_delta_bytes` — process
   `runtime.MemStats.HeapInuse` delta, sampled once at handler entry
   and once via `defer` at exit. `ReadMemStats` is STW (~µs at our heap
-  size); D-06 permits ONE sample per request but NEVER per row. The
+  size); the contract permits ONE sample per request but NEVER per row. The
   sampler lives in `internal/pdbcompat/telemetry.go`
   (`memStatsHeapInuseBytes` + `recordResponseHeapDelta`) and is called
   via `defer` at the top of `serveList` so every terminal path (200
@@ -764,15 +764,15 @@ production. Full table lives in `internal/pdbcompat/rowsize.go`.
   the 2026-04-26 audit unit canonicalisation); Grafana formats KiB /
   MiB at render time via the "bytes" field unit.
 - **Grafana** — panel id 36 "Response Heap Delta — p50/p95/p99 by
-  endpoint" at the bottom of the SEED-001 watch row in
+  endpoint" at the bottom of the sustained-heap watch row in
   `deploy/grafana/dashboards/pdbplus-overview.json`. <!-- VERIFY: Grafana panel id 36 still present in deployed dashboard -->
-  Companion to the v1.15 Phase 66 sync-cycle peak heap/RSS panels; two
+  Companion to the v1.15 sync-cycle peak heap/RSS panels; two
   visual tiers now read "per-cycle peaks" (top) and "per-request
   deltas" (bottom).
 
 ### Out of scope
 
-Streaming + budget apply to **pdbcompat only** (D-07). Other surfaces
+Streaming + budget apply to **pdbcompat only**. Other surfaces
 have their own memory stories:
 
 - **grpcserver** already streams via batched keyset pagination
@@ -784,7 +784,7 @@ have their own memory stories:
   terminal renderer buffers per-response but is already gated by the
   `/ui/` middleware body cap.
 
-If a future phase extends streaming/budget to any of these surfaces,
+If streaming/budget is ever extended to any of these surfaces,
 start from the pdbcompat shape documented above rather than redesigning
 from scratch.
 
@@ -799,8 +799,8 @@ Adding a new entity type requires:
    bytes). Follow the procedure in the `typicalRowBytes` godoc.
 2. `internal/pdbcompat/registry_funcs.go` — pair a `ListFunc` closure
    with a sibling `CountFunc` closure via a shared
-   `<entity>Predicates` local helper (preserves Phase 68
-   `applyStatusMatrix` and Phase 69 `EmptyResult` invariants; never
+   `<entity>Predicates` local helper (preserves the
+   `applyStatusMatrix` and `EmptyResult` invariants; never
    let the two closures diverge).
 3. New row in the per-entity sizing table above.
 4. Extend `cmd/peeringdb-plus/…_e2e_test.go` with an under-budget

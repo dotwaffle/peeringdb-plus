@@ -20,7 +20,7 @@ import (
 )
 
 // BenchmarkRowSize measures serialized bytes per row for each entity type
-// at depth=0 (list shape) and depth=2 (detail expansion). Drives D-03
+// at depth=0 (list shape) and depth=2 (detail expansion). Drives
 // calibration of typicalRowBytes — run with:
 //
 //	go test -run=NONE -bench=BenchmarkRowSize ./internal/pdbcompat -benchtime=20x -count=3

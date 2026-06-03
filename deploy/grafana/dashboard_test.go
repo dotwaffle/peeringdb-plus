@@ -297,11 +297,10 @@ func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
 // TestDashboard_NoOrphanTemplateVars asserts that every template variable
 // declared in templating.list is referenced somewhere in the dashboard JSON.
 //
-// Phase 74 D-02 — replaces the prior TestDashboard_RegionVariableUsed which
-// checked only the cloud_region Prometheus label and silently passed even
-// after the $region template variable became dead UI cruft. This positive
-// structural invariant catches the whole class of orphan-template-var
-// accumulation.
+// This replaces an earlier region-variable check that looked only at the
+// cloud_region Prometheus label and silently passed even after the $region
+// template variable became dead UI cruft. This positive structural invariant
+// catches the whole class of orphan-template-var accumulation.
 //
 // Implementation note: the haystack is built by walking the raw JSON tree
 // (map[string]any) and concatenating every string leaf. This catches every
@@ -351,7 +350,7 @@ func TestDashboard_NoOrphanTemplateVars(t *testing.T) {
 		pat := regexp.MustCompile(`\$(?:\{` + name + `[}:]|` + name + `(?:[^A-Za-z0-9_]|$))`)
 
 		if !pat.MatchString(haystack) {
-			t.Errorf("template variable %q (type=%q) is declared but no dashboard string references it (looked for $%s / ${%s} with boundary across all JSON string leaves) — orphan UI cruft per Phase 74 D-02", v.Name, v.Type, v.Name, v.Name)
+			t.Errorf("template variable %q (type=%q) is declared but no dashboard string references it (looked for $%s / ${%s} with boundary across all JSON string leaves) — orphan UI cruft", v.Name, v.Type, v.Name, v.Name)
 		}
 	}
 }
@@ -433,9 +432,9 @@ func TestDashboard_ProvisioningYAMLExists(t *testing.T) {
 }
 
 // TestDashboard_GoMetricsFilterByService asserts that every PromQL expression
-// referencing a go_* metric carries a {service_name="$service"} filter. Phase 76
-// OBS-03 (per D-01) — collision-safety against shared Prometheus tenants where
-// another scrape target may emit go_* metrics with overlapping names.
+// referencing a go_* metric carries a {service_name="$service"} filter. This is
+// collision-safety against shared Prometheus tenants where another scrape
+// target may emit go_* metrics with overlapping names.
 //
 // The literal substring match on `service_name="$service"` (not just
 // `service_name`) is intentional: it catches mid-rename / partial edits as well
@@ -453,7 +452,7 @@ func TestDashboard_GoMetricsFilterByService(t *testing.T) {
 			}
 			if !strings.Contains(tgt.Expr, `service_name="$service"`) {
 				t.Errorf("panel %q target references a go_* metric but lacks "+
-					`service_name="$service" filter (Phase 76 OBS-03): %s`,
+					`service_name="$service" filter: %s`,
 					p.Title, tgt.Expr)
 			}
 		}

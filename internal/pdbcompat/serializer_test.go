@@ -282,10 +282,9 @@ func TestSerializerNetworkJSON_OrgIDFieldName(t *testing.T) {
 }
 
 // TestIxPrefixFromEnt_NoNotesKey asserts that the serialized IxPrefix wire
-// shape does NOT contain a "notes" key — Phase 63 (D-01) drops the field
+// shape does NOT contain a "notes" key — the field is dropped
 // from the ent schema AND from the peeringdb.IxPrefix wire struct to match
-// upstream PeeringDB's /api/ixpfx response shape exactly. See
-// the project history D-01.
+// upstream PeeringDB's /api/ixpfx response shape exactly.
 //
 // The test marshals the peeringdb.IxPrefix wire struct (zero value) and
 // confirms the emitted JSON has no "notes" key. This is the output path
@@ -304,13 +303,13 @@ func TestIxPrefixFromEnt_NoNotesKey(t *testing.T) {
 		t.Fatalf("json.Unmarshal: %v", err)
 	}
 	if _, ok := m["notes"]; ok {
-		t.Errorf("peeringdb.IxPrefix JSON output must NOT contain \"notes\" key (Phase 63 D-01); got keys=%v", keys(m))
+		t.Errorf("peeringdb.IxPrefix JSON output must NOT contain \"notes\" key; got keys=%v", keys(m))
 	}
 }
 
 // TestOrganizationJSON_NoCountKeys asserts that the peeringdb.Organization
-// wire shape does NOT contain "fac_count" or "net_count" keys — Phase 63
-// (D-02) drops these ent schema fields as schema-only vestigials that were
+// wire shape does NOT contain "fac_count" or "net_count" keys — these
+// ent schema fields are dropped as schema-only vestigials that were
 // never in the wire struct (already clean; this test regression-locks that
 // state so a future re-add of those keys would fail loudly).
 func TestOrganizationJSON_NoCountKeys(t *testing.T) {
@@ -327,7 +326,7 @@ func TestOrganizationJSON_NoCountKeys(t *testing.T) {
 	}
 	for _, forbidden := range []string{"fac_count", "net_count"} {
 		if _, ok := m[forbidden]; ok {
-			t.Errorf("peeringdb.Organization JSON output must NOT contain %q key (Phase 63 D-02); got keys=%v", forbidden, keys(m))
+			t.Errorf("peeringdb.Organization JSON output must NOT contain %q key; got keys=%v", forbidden, keys(m))
 		}
 	}
 }
@@ -381,7 +380,7 @@ func TestSerializerAllTypesCompile(t *testing.T) {
 }
 
 // TestSerializerSocialMediaConversion verifies schematypes.SocialMedia to
-// peeringdb.SocialMedia conversion. Phase 59-04 moved the value type from
+// peeringdb.SocialMedia conversion. The value type was moved from
 // ent/schema to ent/schematypes to break an import cycle introduced by
 // the Poc Policy(); the conversion itself is unchanged.
 func TestSerializerSocialMediaConversion(t *testing.T) {
@@ -430,9 +429,9 @@ func TestSerializerSocialMediaConversion(t *testing.T) {
 	}
 }
 
-// TestIxLanFromEnt_FieldPrivacy is the unit-level VIS-09 contract for the
-// pdbcompat serializer. Phase 64 pushes field-level redaction of
-// ixf_ixp_member_list_url into the per-surface serializers (D-01); this
+// TestIxLanFromEnt_FieldPrivacy is the unit-level field-privacy contract for the
+// pdbcompat serializer. Field-level redaction of
+// ixf_ixp_member_list_url lives in the per-surface serializers; this
 // test locks the pdbcompat surface.
 //
 // The full 5-surface E2E lives in cmd/peeringdb-plus/field_privacy_e2e_test.go
@@ -465,7 +464,7 @@ func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
 	if got := ixLanFromEnt(anon, usersGated); got.IXFIXPMemberListURL != "" {
 		t.Errorf("anon tier, _visible=Users: URL = %q, want empty", got.IXFIXPMemberListURL)
 	}
-	// Verify the _visible companion is STILL emitted (D-05 upstream parity).
+	// Verify the _visible companion is STILL emitted (upstream parity).
 	if got := ixLanFromEnt(anon, usersGated); got.IXFIXPMemberListURLVisible != "Users" {
 		t.Errorf("anon tier, _visible=Users: visible companion = %q, want %q", got.IXFIXPMemberListURLVisible, "Users")
 	}
@@ -483,8 +482,8 @@ func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
 	}
 
 	// JSON wire shape: with the value blanked, the json:"...,omitempty" tag
-	// MUST cause the key to be absent (Phase 64 D-04). This is the wire-level
-	// correctness the entire plan hinges on.
+	// MUST cause the key to be absent. This is the wire-level
+	// correctness the whole redaction approach hinges on.
 	out := ixLanFromEnt(anon, usersGated)
 	b, err := json.Marshal(out)
 	if err != nil {
@@ -495,6 +494,6 @@ func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
 	}
 	// Companion visible key MUST still be present.
 	if !bytes.Contains(b, []byte(`"ixf_ixp_member_list_url_visible"`)) {
-		t.Errorf("anon tier JSON MUST still emit _visible key (D-05), got body=%s", b)
+		t.Errorf("anon tier JSON MUST still emit _visible key, got body=%s", b)
 	}
 }

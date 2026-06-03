@@ -225,7 +225,7 @@ func TestInitFreshnessGauge_RecordsValue(t *testing.T) {
 	}
 }
 
-// TestInitMemoryGauges_RecordsValues asserts both SEED-001 peak gauges emit
+// TestInitMemoryGauges_RecordsValues asserts both peak gauges emit
 // the values held in the SyncPeakHeapBytes / SyncPeakRSSBytes atomics that
 // internal/sync.(*Worker).emitMemoryTelemetry updates at end of cycle.
 func TestInitMemoryGauges_RecordsValues(t *testing.T) {
@@ -428,7 +428,7 @@ func findMetric(rm metricdata.ResourceMetrics, name string) *metricdata.Metrics 
 }
 
 // TestInitResponseHeapHistogram_NoError verifies the per-request heap-delta
-// histogram registration succeeds. Phase 71 Plan 05 (MEMORY-03, D-06).
+// histogram registration succeeds.
 func TestInitResponseHeapHistogram_NoError(t *testing.T) {
 	t.Setenv("OTEL_METRICS_EXPORTER", "none")
 

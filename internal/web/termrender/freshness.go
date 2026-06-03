@@ -6,8 +6,7 @@ import (
 
 // FormatFreshness formats a sync timestamp as a styled footer line for terminal
 // responses. Returns "Data: {RFC3339}" with leading and trailing newlines for
-// visual separation. Returns "" for zero time (footer omitted). (DIF-02, D-13,
-// D-14, D-15)
+// visual separation. Returns "" for zero time (footer omitted).
 //
 // The output is intentionally free of wall-clock-relative phrasing ("N minutes
 // ago"). The terminal footer is rendered into responses that are cached by

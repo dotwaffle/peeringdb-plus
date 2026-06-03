@@ -842,7 +842,7 @@ func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 			}{
 				{901, http.StatusOK},       // ok        -> 200
 				{902, http.StatusNotFound}, // deleted   -> 404 (tombstone hidden at PK)
-				{903, http.StatusOK},       // pending   -> 200 (STATUS-02/D-06)
+				{903, http.StatusOK},       // pending   -> 200 (PK lookup admits pending)
 			}
 			for _, tc := range cases {
 				if code := fetchStatusCode(t, srv.URL+"/api/"+e.tag+"/"+itoa(tc.id)); code != tc.want {

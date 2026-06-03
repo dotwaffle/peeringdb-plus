@@ -16,10 +16,10 @@ import (
 )
 
 // TestFKFilter_NetworkIxLan_NullsSideFKOnMiss is the regression guard for
-// quick task 260428-2zl Task 4. NetworkIxLan side FKs (net_side_id,
+// the NetworkIxLan side-FK null-on-miss behavior. The side FKs (net_side_id,
 // ix_side_id) are upstream-declared as `null=True, on_delete=SET_NULL`.
-// Pre-2zl the worker would drop the entire NetworkIxLan row when either
-// side FK pointed at a missing facility. Post-2zl: the row survives,
+// Previously the worker would drop the entire NetworkIxLan row when either
+// side FK pointed at a missing facility. Now the row survives,
 // the side FK is nulled in place, and an orphan is recorded with
 // action="null".
 func TestFKFilter_NetworkIxLan_NullsSideFKOnMiss(t *testing.T) {
@@ -134,7 +134,7 @@ func TestFKFilter_NetworkIxLan_NullsSideFKOnMiss(t *testing.T) {
 	// netixlan 10 must SURVIVE (the row is NOT dropped).
 	got, err := client.NetworkIxLan.Get(t.Context(), 10)
 	if err != nil {
-		t.Fatalf("netixlan 10 missing — pre-2zl drop behavior leaked: %v", err)
+		t.Fatalf("netixlan 10 missing — drop behavior leaked: %v", err)
 	}
 	// net_side_id should now be NULL (NetSideID is *int; nil means NULL).
 	if got.NetSideID != nil {

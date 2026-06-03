@@ -8,7 +8,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
-// TestTier_Roundtrip (VALIDATION.md 59-a) verifies that values stamped via
+// TestTier_Roundtrip verifies that values stamped via
 // WithTier are recovered verbatim by TierFrom for every defined tier.
 func TestTier_Roundtrip(t *testing.T) {
 	t.Parallel()
@@ -34,9 +34,9 @@ func TestTier_Roundtrip(t *testing.T) {
 	}
 }
 
-// TestTierFrom_ZeroValueIsPublic (VALIDATION.md 59-b) asserts that an
+// TestTierFrom_ZeroValueIsPublic asserts that an
 // un-stamped context defaults to TierPublic — the most restrictive tier,
-// i.e. fail-safe-closed per D-04.
+// i.e. fail-safe-closed.
 func TestTierFrom_ZeroValueIsPublic(t *testing.T) {
 	t.Parallel()
 

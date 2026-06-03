@@ -103,7 +103,7 @@ func TestLivenessHandler(t *testing.T) {
 	}
 }
 
-// TestHealth_GenericResponse is the SEC-08 regression lock. It asserts that
+// TestHealth_GenericResponse is the generic-response regression lock. It asserts that
 // the /readyz wire body is a fixed generic shape and that all detail flows to
 // the structured logger via slog attrs. Consumers MUST NOT see err.Error(),
 // sync.Status.ErrorMessage, or any internal file paths/driver messages.
@@ -278,11 +278,11 @@ func TestHealth_GenericResponse(t *testing.T) {
 			wantStatus: http.StatusServiceUnavailable,
 			wantBody:   `{"status":"unhealthy"}`,
 			logAssert: func(_ *testing.T, records []slog.Record) string {
-				// Phase 77 OBS-06: "readyz no sync completed" demoted
-				// from WARN to DEBUG — fires on every Fly health probe
-				// during the 5-15min pre-first-sync window and is not
+				// "readyz no sync completed" demoted from WARN to
+				// DEBUG — fires on every Fly health probe during the
+				// 5-15min pre-first-sync window and is not
 				// operator-actionable (the 503 already drives proxy
-				// failover). See AUDIT.md.
+				// failover).
 				for _, r := range records {
 					if r.Level != slog.LevelDebug {
 						continue
@@ -329,7 +329,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 	}
 }
 
-// TestHealth_RunningFallback_LastSyncFailed is the FIX-2 regression lock.
+// TestHealth_RunningFallback_LastSyncFailed is the running-fallback regression lock.
 // When the most recent sync_status row is "running" (an in-flight cycle),
 // /readyz falls back to the most recent *successful* sync. It MUST NOT
 // fall back to the most recent *completed* row, because a completed row

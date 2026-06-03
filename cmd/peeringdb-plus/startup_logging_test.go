@@ -118,7 +118,7 @@ func assertUsersTierOverrideWarn(t *testing.T, r slog.Record) {
 	}
 }
 
-// TestStartup_LogsSyncMode_Anonymous — OBS-01: when no PeeringDB API key is
+// TestStartup_LogsSyncMode_Anonymous: when no PeeringDB API key is
 // configured, the startup classification Info line must report auth=anonymous.
 // The tier defaults to public so no override warning is emitted.
 func TestStartup_LogsSyncMode_Anonymous(t *testing.T) {
@@ -133,7 +133,7 @@ func TestStartup_LogsSyncMode_Anonymous(t *testing.T) {
 	assertSyncModeInfo(t, recs[0], "anonymous", "public")
 }
 
-// TestStartup_LogsSyncMode_Authenticated — OBS-01: when PeeringDB API key is
+// TestStartup_LogsSyncMode_Authenticated: when PeeringDB API key is
 // configured, the startup classification Info line must report
 // auth=authenticated. The tier defaults to public so no override warning is
 // emitted.
@@ -149,7 +149,7 @@ func TestStartup_LogsSyncMode_Authenticated(t *testing.T) {
 	assertSyncModeInfo(t, recs[0], "authenticated", "public")
 }
 
-// TestStartup_WarnsOnUsersTier — SYNC-04: when PDBPLUS_PUBLIC_TIER=users is in
+// TestStartup_WarnsOnUsersTier: when PDBPLUS_PUBLIC_TIER=users is in
 // effect, the startup classification must emit BOTH the Info line (tier=users)
 // AND a Warn line naming the override env var. Verified for both auth states
 // so the override warning is not swallowed by the auth classification.
@@ -179,7 +179,7 @@ func TestStartup_WarnsOnUsersTier(t *testing.T) {
 	}
 }
 
-// TestStartup_NoWarnOnPublicTier — SYNC-04 guarantees the override warning
+// TestStartup_NoWarnOnPublicTier guarantees the override warning
 // fires only when tier=users. This test asserts the WARN record is absent
 // from the capture under both auth states when tier=public.
 func TestStartup_NoWarnOnPublicTier(t *testing.T) {

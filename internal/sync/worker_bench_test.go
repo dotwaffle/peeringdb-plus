@@ -24,36 +24,37 @@ import (
 )
 
 // maxSyncPeakBytes is the regression gate for BenchmarkSyncWorker_FullMemoryPeak.
-// Pinned by Phase 54 Decision #2: the sync worker must keep HeapAlloc under
+// The sync worker must keep HeapAlloc under
 // 500 MiB at production scale (netixlan ~200K rows dominates the working
 // set). fly.toml:62 caps the VM at 512 MB physical memory; 500 MiB
 // leaves a ~12 MiB safety cushion for OS page cache and LiteFS FUSE
 // overhead on top of Go's Sys.
 //
-// The original 400 MiB target was raised to 500 MiB after Commit D' —
-// the scratch-SQLite fallback brought the SUSTAINED peak to ~210 MiB but
-// TRANSIENT spikes during netixlan bulk upsert (ent bulk INSERT OR
-// REPLACE construction + modernc.org/sqlite internal row buffers +
-// Go GC lag on the allocation burst) push the sampled HeapAlloc to
-// ~420-470 MiB intermittently depending on GC scheduling. Even with
-// GCPercent=25 and SetMemoryLimit(400 MiB) for the sync duration, the
-// worst-case sampled transient is ~470 MiB across ~15 observation runs.
+// The original 400 MiB target was raised to 500 MiB after the
+// scratch-SQLite fallback landed: it brought the SUSTAINED peak to
+// ~210 MiB but TRANSIENT spikes during netixlan bulk upsert (ent bulk
+// INSERT OR REPLACE construction + modernc.org/sqlite internal row
+// buffers + Go GC lag on the allocation burst) push the sampled
+// HeapAlloc to ~420-470 MiB intermittently depending on GC scheduling.
+// Even with GCPercent=25 and SetMemoryLimit(400 MiB) for the sync
+// duration, the worst-case sampled transient is ~470 MiB across ~15
+// observation runs.
 //
-// Commit D' production runs with LiteFS FUSE + OTel autoexport batching
+// Production runs with LiteFS FUSE + OTel autoexport batching
 // observed on the 512 MB VM will sit around 350-400 MiB RSS sustained
-// with the transient spikes during netixlan upsert. The Plan 54-02
-// Commit F runtime guardrail (PDBPLUS_SYNC_MEMORY_LIMIT env var) will
-// add belt-and-suspenders abort-before-OOM if a future regression or
+// with the transient spikes during netixlan upsert. The runtime
+// guardrail (PDBPLUS_SYNC_MEMORY_LIMIT env var) adds
+// belt-and-suspenders abort-before-OOM if a future regression or
 // netixlan count growth pushes the peak past safe limits.
 //
 // If this constant is exceeded, investigate the regression rather than
-// raising the constant — pre-D' production runs OOM'd at 512 MB
-// because the SUSTAINED peak alone was ~535 MiB (Commit A baseline).
+// raising the constant — earlier production runs OOM'd at 512 MB
+// because the SUSTAINED peak alone was ~535 MiB.
 const maxSyncPeakBytes = 500 * 1024 * 1024
 
 // Production-scale row counts for synthetic fixture generation.
-// Values extrapolated from PeeringDB real-world object counts (per
-// CONTEXT.md §DEBT-03). netixlan dominates because each member-IX pair is a
+// Values extrapolated from PeeringDB real-world object counts.
+// netixlan dominates because each member-IX pair is a
 // separate row; everything else is O(K) or O(10K).
 const (
 	benchRowsOrg        = 35000
@@ -79,11 +80,11 @@ type syntheticFixtures struct {
 }
 
 // generateAllSyntheticFixtures builds all 13 fixture blobs at production scale
-// using a deterministic PRNG seed (per GO-T-1 hermeticity). This is called
+// using a deterministic PRNG seed for hermeticity. This is called
 // ONCE at benchmark setup outside b.Loop() so fixture generation cost does not
 // pollute the measurement.
 func generateAllSyntheticFixtures() *syntheticFixtures {
-	// Deterministic PRNG per GO-T-1. math/rand/v2 rand.New(rand.NewPCG(42, 42))
+	// Deterministic PRNG. math/rand/v2 rand.New(rand.NewPCG(42, 42))
 	// gives reproducible output across Go versions.
 	r := rand.New(rand.NewPCG(42, 42))
 	fs := &syntheticFixtures{blobs: make(map[string][]byte, 13)}
@@ -457,7 +458,7 @@ func newBenchFixtureServer(fs *syntheticFixtures) *httptest.Server {
 	}))
 }
 
-// peakSamplerInput bundles the goroutine parameters per GO-CS-5.
+// peakSamplerInput bundles the goroutine parameters.
 type peakSamplerInput struct {
 	peak     *atomic.Uint64
 	done     chan struct{}
@@ -465,9 +466,9 @@ type peakSamplerInput struct {
 }
 
 // runPeakSampler periodically polls runtime.ReadMemStats and updates peak
-// with max(peak, HeapAlloc). Goroutine lifetime is tied to ctx per GO-CC-2;
+// with max(peak, HeapAlloc). Goroutine lifetime is tied to ctx;
 // the goroutine exits on ctx.Done and signals completion by closing done.
-// The SENDER (this function) closes done per GO-CC-1.
+// The SENDER (this function) closes done.
 func runPeakSampler(ctx context.Context, in peakSamplerInput) {
 	defer close(in.done)
 	ticker := time.NewTicker(in.interval)
@@ -503,24 +504,25 @@ func runPeakSampler(ctx context.Context, in peakSamplerInput) {
 // entirely. CI only runs the regular test suite. Manual execution is
 // required for baseline measurements and regression verification.
 //
-// BASELINE measured 2026-04-11 against pre-refactor Worker.Sync (Commit A, before any refactor):
+// BASELINE measured 2026-04-11 against pre-refactor Worker.Sync (before any refactor):
 //
 //	BenchmarkSyncWorker_FullMemoryPeak-12    1   40472625508 ns/op   3709733288 B/op   43264224 allocs/op   561353240 peak_heap_bytes   535.3 peak_heap_mb
 //
-// After Plan 54-02 Commit D (Phase A fetch outside tx + Phase B split,
-// still decode-into-memory — Phase A materialises ALL 13 batches before
-// the Fetch Barrier):
+// After the fetch-outside-tx split (fetch phase outside tx + upsert
+// phase split, still decode-into-memory — the fetch phase materialises
+// ALL 13 batches before the fetch barrier):
 //
 //	BenchmarkSyncWorker_FullMemoryPeak-12    1   40666620722 ns/op   3780058024 B/op   43628001 allocs/op   643324448 peak_heap_bytes   613.5 peak_heap_mb
 //
-// Delta vs Commit A baseline: peak heap +14.6% (worse). This is expected
-// per ARCHITECTURE.md §2: the pre-split code interleaved fetch+upsert
-// per-type, so only one batch was resident at a time. Post-split Phase A
-// materialised ALL batches before the barrier. The batch-free line
-// bounds Phase B but does NOT offset the Phase A peak.
+// Delta vs pre-refactor baseline: peak heap +14.6% (worse). This is
+// expected per ARCHITECTURE.md §2: the pre-split code interleaved
+// fetch+upsert per-type, so only one batch was resident at a time.
+// Post-split the fetch phase materialised ALL batches before the
+// barrier. The batch-free line bounds the upsert phase but does NOT
+// offset the fetch-phase peak.
 //
-// After Plan 54-02 Commit D' (scratch-SQLite fallback with chunked
-// replay at scratchChunkSize=100, per-type runtime.GC() hint, tightened
+// After the scratch-SQLite fallback (chunked replay at
+// scratchChunkSize=100, per-type runtime.GC() hint, tightened
 // GCPercent=25 for the sync duration, and SQLite scratch page cache
 // shrunk to 2 MiB):
 //
@@ -532,7 +534,7 @@ func runPeakSampler(ctx context.Context, in peakSamplerInput) {
 //	run 4: 379893288 peak_heap_bytes  362.3 peak_heap_mb
 //	run 5: 442742264 peak_heap_bytes  422.2 peak_heap_mb  (worst across 5+ runs)
 //
-// Delta vs Commit A baseline: peak heap -60.9% best case (535 → 210 MiB),
+// Delta vs pre-refactor baseline: peak heap -60.9% best case (535 → 210 MiB),
 // -21.1% worst case (535 → 422 MiB). The run-to-run variance reflects
 // the 100ms sampler granularity interacting with Go GC scheduling
 // during netixlan bulk upsert — the SUSTAINED working set is ~210 MiB,
@@ -540,17 +542,17 @@ func runPeakSampler(ctx context.Context, in peakSamplerInput) {
 // up. The gate is set at 500 MiB to cover the worst-case transient
 // plus 58 MiB headroom.
 //
-// ns/op is -30.6% vs Commit A (40.5s → 28.0s) because the scratch
+// ns/op is -30.6% vs the baseline (40.5s → 28.0s) because the scratch
 // path's chunked replay avoids the O(N^2) ent query-builder state
 // growth that dominated the pre-refactor path at 200K netixlan rows.
-// allocs/op is +21.2% vs Commit A (43M → 52M) for the scratch insert
+// allocs/op is +21.2% vs the baseline (43M → 52M) for the scratch insert
 // + chunked drain overhead, but the bytes/op INCREASED only +1.4% vs
-// Commit A (3.71 GB → 3.76 GB) — the additional allocations are small
+// the baseline (3.71 GB → 3.76 GB) — the additional allocations are small
 // (id scan, raw BLOB copy, chunked decode buffers) and GC'd
 // aggressively.
 //
-// Gate flipped from b.Logf to b.Fatalf in this same commit — any
-// future regression beyond 500 MiB fails the bench.
+// Gate flipped from b.Logf to b.Fatalf alongside the scratch fallback —
+// any future regression beyond 500 MiB fails the bench.
 //
 // Executor host: AMD Ryzen 5 3600 6-Core (12 threads), linux/amd64, Go 1.26.2.
 // Fixture size: 110,522,460 bytes across 13 types at production scale
@@ -558,15 +560,14 @@ func runPeakSampler(ctx context.Context, in peakSamplerInput) {
 // carrier 2500, carrierfac 4000, ix 1500, ixlan 1500, ixpfx 3000, ixfac 8000,
 // netfac 35000, netixlan 200000, poc 30000). Generation cost: ~2.1s
 // (amortised outside b.Loop). Full sync duration: ~40s. Run WITHOUT -race
-// (the -race detector inflates the numbers by ~7x; the PERF-05 gate is a
+// (the -race detector inflates the numbers by ~7x; the memory gate is a
 // production-path metric, not a test-tool metric).
 //
-// History: the original 400 MiB gate (Commit A, Plan 54-01) was a
+// History: the original 400 MiB gate was a
 // b.Logf warning because the pre-refactor baseline (535 MiB) already
-// exceeded it — Decision #2 used that to mandate Commit D'. Commit D'
-// (Plan 54-02, this file) lands the scratch-SQLite fallback and flips
-// the gate to b.Fatalf at 500 MiB. The gate covers the worst-case
-// transient sample; the sustained peak is well under 250 MiB.
+// exceeded it — that gap mandated the scratch-SQLite fallback, which
+// lands here and flips the gate to b.Fatalf at 500 MiB. The gate covers
+// the worst-case transient sample; the sustained peak is well under 250 MiB.
 //
 // Do NOT rewrite the BASELINE comments on subsequent commits — they
 // are the benchstat history. Append a new comment block per commit
@@ -575,7 +576,7 @@ func BenchmarkSyncWorker_FullMemoryPeak(b *testing.B) {
 	// Report alloc stats so benchstat picks up allocs/op and B/op.
 	b.ReportAllocs()
 
-	// Pre-generate fixtures ONCE outside the timed region per GO-PERF-1.
+	// Pre-generate fixtures ONCE outside the timed region.
 	// Synthetic fixture generation is O(minutes) at production scale;
 	// amortising it across b.Loop iterations is essential.
 	b.Logf("generating synthetic fixtures at production scale")
@@ -629,8 +630,8 @@ func BenchmarkSyncWorker_FullMemoryPeak(b *testing.B) {
 		}, slog.Default())
 
 		// Start the peak sampler BEFORE the timed region so it captures the
-		// entire Sync call. Sampler lifetime is bound to samplerCtx per
-		// GO-CC-2; done channel lets us wait for clean exit per GO-CC-1.
+		// entire Sync call. Sampler lifetime is bound to samplerCtx;
+		// done channel lets us wait for clean exit.
 		samplerCtx, cancelSampler := context.WithCancel(ctx)
 		done := make(chan struct{})
 		go runPeakSampler(samplerCtx, peakSamplerInput{
@@ -670,8 +671,8 @@ func BenchmarkSyncWorker_FullMemoryPeak(b *testing.B) {
 	b.ReportMetric(float64(peakBytes), "peak_heap_bytes")
 	b.ReportMetric(float64(peakBytes)/(1024*1024), "peak_heap_mb")
 
-	// Hard gate (flipped from b.Logf to b.Fatalf in Plan 54-02 Commit D'):
-	// with the scratch-SQLite fallback in place, peak heap MUST stay under
+	// Hard gate (flipped from b.Logf to b.Fatalf alongside the scratch
+	// fallback): with the scratch-SQLite fallback in place, peak heap MUST stay under
 	// maxSyncPeakBytes (500 MiB) on production-scale fixtures. Any
 	// regression beyond this threshold reduces the 12 MiB OS headroom
 	// and risks OOM in production — the benchmark fails loudly to catch

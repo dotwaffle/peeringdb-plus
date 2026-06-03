@@ -34,7 +34,7 @@ func (CarrierFacility) Fields() []ent.Field {
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("FK to facility"),
 
-		// Computed fields (from serializer, stored per D-40)
+		// Computed fields (from serializer)
 		field.String("name").
 			Optional().
 			Default("").

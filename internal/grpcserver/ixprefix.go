@@ -79,7 +79,7 @@ func applyIxPrefixStreamFilters(req *pb.StreamIxPrefixesRequest) ([]func(*sql.Se
 }
 
 // ListIxPrefixes returns a paginated list of IX prefixes under the compound
-// default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// default order (-updated, -created, -id).
 func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPrefixesRequest) (*pb.ListIxPrefixesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.IxPrefix, pb.IxPrefix]{
 		EntityName: "ixprefixes",
@@ -145,7 +145,7 @@ func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIx
 // ixPrefixToProto converts an ent IxPrefix entity to a protobuf IxPrefix
 // message.
 //
-// Phase 63 (D-01): Notes is no longer emitted — the ent schema dropped the
+// Notes is no longer emitted — the ent schema dropped the
 // field. The protobuf message still carries an unpopulated Notes field
 // (proto file is frozen since v1.6 per entc.go SkipGenFile), so it is
 // serialized as the zero-value pointer (nil *wrappers.StringValue), which

@@ -123,7 +123,7 @@ func applyOrganizationStreamFilters(req *pb.StreamOrganizationsRequest) ([]func(
 }
 
 // ListOrganizations returns a paginated list of organizations under the
-// compound default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// compound default order (-updated, -created, -id).
 // Supports all pdbcompat-parity filter fields with AND logic.
 func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.ListOrganizationsRequest) (*pb.ListOrganizationsResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Organization, pb.Organization]{
@@ -208,7 +208,7 @@ func organizationToProto(o *ent.Organization) *pb.Organization {
 		Suite:     stringVal(o.Suite),
 		Website:   stringVal(o.Website),
 		Zipcode:   stringVal(o.Zipcode),
-		// Phase 63 (D-02): NetCount / FacCount were dropped from the ent
+		// NetCount / FacCount were dropped from the ent
 		// Organization schema. The protobuf message still carries the
 		// fields (proto is frozen since v1.6); they serialize as the
 		// zero-value pointer (absent on the wire).

@@ -71,7 +71,7 @@ func (NetworkIxLan) Fields() []ent.Field {
 		field.Int("speed").
 			Comment("Port speed in Mbps"),
 
-		// Computed fields (from serializer, stored per D-40)
+		// Computed fields (from serializer)
 		field.Int("ix_id").
 			Optional().
 			Comment("Internet exchange ID (computed)"),

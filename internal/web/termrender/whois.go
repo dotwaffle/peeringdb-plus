@@ -31,14 +31,14 @@ func writeWHOISField(buf *strings.Builder, key, value string) {
 }
 
 // writeWHOISMulti writes multiple values for the same key using RPSL repeated
-// key convention (D-14). Each value gets its own line with the same key.
+// key convention. Each value gets its own line with the same key.
 func writeWHOISMulti(buf *strings.Builder, key string, values []string) {
 	for _, v := range values {
 		writeWHOISField(buf, key, v)
 	}
 }
 
-// writeWHOISHeader writes the standard WHOIS header comments (D-15).
+// writeWHOISHeader writes the standard WHOIS header comments.
 // Includes source identification and query echo.
 func writeWHOISHeader(buf *strings.Builder, query string) {
 	buf.WriteString("% Source: PeeringDB-Plus\n")
@@ -49,7 +49,6 @@ func writeWHOISHeader(buf *strings.Builder, query string) {
 // RenderWHOIS renders entity data in RPSL-like WHOIS format.
 // Dispatches to per-entity WHOIS renderers based on data type.
 // Returns an "unsupported" message for search/compare views.
-// (RND-17, D-10 through D-15)
 func (r *Renderer) RenderWHOIS(w io.Writer, _ string, data any) error {
 	switch d := data.(type) {
 	case templates.NetworkDetail:
@@ -71,7 +70,7 @@ func (r *Renderer) RenderWHOIS(w io.Writer, _ string, data any) error {
 	}
 }
 
-// whoisNetwork renders a network entity in RPSL aut-num format (D-11, RFC 2622).
+// whoisNetwork renders a network entity in RPSL aut-num format (RFC 2622).
 func (r *Renderer) whoisNetwork(w io.Writer, data templates.NetworkDetail) error {
 	var buf strings.Builder
 	buf.Grow(len(data.IXPresences)*40 + len(data.FacPresences)*40 + 500)
@@ -102,7 +101,7 @@ func (r *Renderer) whoisNetwork(w io.Writer, data templates.NetworkDetail) error
 		writeWHOISField(&buf, "fac-count", strconv.Itoa(data.FacCount))
 	}
 
-	// Multi-value IX and facility lines (D-14).
+	// Multi-value IX and facility lines.
 	ixNames := make([]string, 0, len(data.IXPresences))
 	for _, ix := range data.IXPresences {
 		ixNames = append(ixNames, ix.IXName)
@@ -121,7 +120,7 @@ func (r *Renderer) whoisNetwork(w io.Writer, data templates.NetworkDetail) error
 	return err
 }
 
-// whoisIX renders an IX entity in RPSL-like format (D-12, custom ix: class).
+// whoisIX renders an IX entity in RPSL-like format (custom ix: class).
 func (r *Renderer) whoisIX(w io.Writer, data templates.IXDetail) error {
 	var buf strings.Builder
 	buf.Grow(500)
@@ -172,7 +171,7 @@ func (r *Renderer) whoisIX(w io.Writer, data templates.IXDetail) error {
 	return err
 }
 
-// whoisFacility renders a facility entity in RPSL-like format (D-12, site: class).
+// whoisFacility renders a facility entity in RPSL-like format (site: class).
 func (r *Renderer) whoisFacility(w io.Writer, data templates.FacilityDetail) error {
 	var buf strings.Builder
 	buf.Grow(500)
@@ -216,7 +215,7 @@ func (r *Renderer) whoisFacility(w io.Writer, data templates.FacilityDetail) err
 	return err
 }
 
-// whoisOrg renders an organization entity in RPSL-like format (D-13, organisation: class).
+// whoisOrg renders an organization entity in RPSL-like format (organisation: class).
 func (r *Renderer) whoisOrg(w io.Writer, data templates.OrgDetail) error {
 	var buf strings.Builder
 	buf.Grow(500)
@@ -256,7 +255,7 @@ func (r *Renderer) whoisOrg(w io.Writer, data templates.OrgDetail) error {
 	return err
 }
 
-// whoisCampus renders a campus entity in RPSL-like format (D-13, campus: class).
+// whoisCampus renders a campus entity in RPSL-like format (campus: class).
 func (r *Renderer) whoisCampus(w io.Writer, data templates.CampusDetail) error {
 	var buf strings.Builder
 	buf.Grow(300)
@@ -280,7 +279,7 @@ func (r *Renderer) whoisCampus(w io.Writer, data templates.CampusDetail) error {
 	return err
 }
 
-// whoisCarrier renders a carrier entity in RPSL-like format (D-13, carrier: class).
+// whoisCarrier renders a carrier entity in RPSL-like format (carrier: class).
 func (r *Renderer) whoisCarrier(w io.Writer, data templates.CarrierDetail) error {
 	var buf strings.Builder
 	buf.Grow(300)

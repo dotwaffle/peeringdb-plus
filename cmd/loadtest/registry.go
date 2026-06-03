@@ -84,9 +84,9 @@ var rpcListMethods = map[string]string{
 }
 
 // foldedEntities is the set of 6 PeeringDB types whose name/aka/city
-// columns have shadow `_fold` companions per Phase 69. Used to
-// generate `?<field>__contains=...` filter shapes against the
-// case-insensitive routing.
+// columns have shadow `_fold` companions. Used to generate
+// `?<field>__contains=...` filter shapes against the case-insensitive
+// routing.
 var foldedEntities = map[string]bool{
 	peeringdb.TypeOrg:     true,
 	peeringdb.TypeNet:     true,
@@ -203,7 +203,7 @@ func pdbCompatEndpoints(t string, sinceUnix int64, id int) []Endpoint {
 		Path:       pdbCompatFilterPath(t, sinceUnix),
 	})
 
-	// Phase 69 folded routing — exercise the `_fold` column path on
+	// Folded routing — exercise the `_fold` column path on
 	// the 6 entities that have shadow columns.
 	if foldedEntities[t] {
 		out = append(out, Endpoint{
@@ -215,7 +215,7 @@ func pdbCompatEndpoints(t string, sinceUnix int64, id int) []Endpoint {
 		})
 	}
 
-	// Phase 70 cross-entity traversal smoke — net only.
+	// Cross-entity traversal smoke — net only.
 	if t == peeringdb.TypeNet {
 		out = append(out, Endpoint{
 			Surface:    SurfacePdbCompat,

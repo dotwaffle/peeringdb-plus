@@ -13,7 +13,7 @@ const ReportSchemaVersion = 1
 
 // Report is the per-run diff artifact. It carries aggregate counts and
 // field-level deltas for each PeeringDB type, but NEVER actual field values
-// (except for the controlled enum `visible`). See threat T-57-02.
+// (except for the controlled enum `visible`).
 type Report struct {
 	SchemaVersion int                   `json:"schema_version"`
 	GeneratedAt   time.Time             `json:"generated"`
@@ -35,7 +35,7 @@ type TypeReport struct {
 
 // FieldDelta describes a single field-level observation. It DOES NOT carry
 // field values, lengths, hashes, or any signal that could fingerprint the
-// underlying data. See threat T-57-02 and 57-RESEARCH.md Pitfall 4.
+// underlying data.
 type FieldDelta struct {
 	Name          string `json:"name"`
 	AuthOnly      bool   `json:"auth_only"`
@@ -113,7 +113,7 @@ func Diff(typeName string, anonBytes, authBytes []byte) (TypeReport, error) {
 	rep.AuthOnlyRowCount = authOnlyRows
 
 	// Extract the visible enum set for both modes. This is a controlled
-	// vocabulary (Public/Users/Private) — NOT PII per 57-RESEARCH.md Pitfall 2.
+	// vocabulary (Public/Users/Private) — NOT PII.
 	rep.VisibleValuesAnon = extractVisibleSet(anon.Data)
 	rep.VisibleValuesAuth = extractVisibleSet(auth.Data)
 	visibleDrift := !stringSliceEqual(rep.VisibleValuesAnon, rep.VisibleValuesAuth)

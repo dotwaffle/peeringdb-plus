@@ -111,24 +111,24 @@ PR #13)._
 
 ## [1.16.0] — 2026-04-19
 
-v1.16 is a coordinated milestone release. Phases 67, 68, 69, 70, and 71 ship
-together in a single deploy window; Phase 72 (upstream parity regression)
-ships independently as a code-only test lock-in. Do not deploy any individual
-Phase 68 commit in isolation — pdbcompat `?limit=0` now returns all matching
-rows, and the memory-safe response paths that bound that behaviour land in
-Phase 71.
+v1.16 is a coordinated release. The cross-surface default ordering,
+status×since matrix, `?limit=0` semantics, Unicode folding, cross-entity
+traversal, and memory-safe response paths ship together in a single deploy
+window; the upstream parity regression suite ships independently as a
+code-only test lock-in. Do not deploy the `?limit=0` change in isolation —
+pdbcompat `?limit=0` now returns all matching rows, and the memory-safe
+response paths that bound that behaviour ship alongside it.
 
-> **Coordinated release window:** v1.16 phases 67-71 are now complete
-> and ready to deploy as a bundle. `limit=0` unbounded semantics
-> (Phase 68) are safe in prod only with the Phase 71 memory budget in
-> place — do NOT ship 67-70 without 71. Phase 72 (parity regression
-> test lock-in) ships independently as a follow-up — no production
-> deploy required; it is a CI regression gate only.
+> **Coordinated release window:** the v1.16 behavioural changes are now
+> complete and ready to deploy as a bundle. The `limit=0` unbounded
+> semantics are safe in prod only with the memory budget in place — do
+> NOT ship the unbounded-limit change without the memory budget. The
+> parity regression test lock-in ships independently as a follow-up —
+> no production deploy required; it is a CI regression gate only.
 >
-> **v1.16 milestone complete (2026-04-19):** All 6 phases (67, 68, 69,
-> 70, 71, 72) shipped. 25/25 requirements across 8 categories (ORDER,
-> STATUS, LIMIT, IN, UNICODE, TRAVERSAL, MEMORY, PARITY) traced and
-> complete.
+> **v1.16 complete (2026-04-19):** all behavioural changes shipped.
+> Default ordering, status, limit, `__in`, Unicode, traversal, memory,
+> and parity coverage are traced and complete.
 
 ### Breaking
 
@@ -158,12 +158,12 @@ Phase 71.
 
 - **pdbcompat `?limit=0` semantics** match upstream `rest.py:734-737`:
   an explicit `limit=0` returns all matching rows. The default-when-unset
-  remains `250`. `?depth=` on list endpoints is silently ignored in
-  Phase 68; Phase 71 will add list+depth support with the
-  `API_DEPTH_ROW_LIMIT=250` cap.
+  remains `250`. `?depth=` on list endpoints is silently ignored at this
+  stage; list+depth support with the `API_DEPTH_ROW_LIMIT=250` cap
+  follows later.
 
 - **pdbcompat cross-surface default ordering** flipped to
-  `(-updated, -created, -id)` (Phase 67, shipped earlier in v1.16).
+  `(-updated, -created, -id)` (shipped earlier in v1.16).
   Applies to pdbcompat `/api/`, entrest `/rest/v1/`, ConnectRPC list
   RPCs, and GraphQL list queries. Single-object lookups and nested
   `_set` fields are unchanged.
@@ -176,34 +176,33 @@ Phase 71.
   `ß`/`æ`/`ø`/`ł`/`þ`/`đ`). 16 shadow columns across 6 entity types
   (network, facility, internetexchange, organization, campus,
   carrier). Matches upstream `peeringdb_server/rest.py:576`
-  (`unidecode.unidecode(v)`). Closes UNICODE-01.
+  (`unidecode.unidecode(v)`).
 
 - **pdbcompat operator coercion**: `__contains` is now equivalent to
   `__icontains` (case-insensitive) and `__startswith` is equivalent
   to `__istartswith`, per upstream `rest.py:638-641`. All other
   operators (`__exact`, `__iexact`, `__gt`, `__lt`, `__gte`, `__lte`,
-  `__in`) are unchanged. Closes UNICODE-02.
+  `__in`) are unchanged.
 
 - **pdbcompat `__in` large-list support**: `?<field>__in=` now accepts
   arbitrarily-large comma-separated lists via a SQLite `json_each`
   single-bind rewrite, bypassing the 999-variable parameter limit.
   Empty `__in` (e.g. `?asn__in=`) returns `{"data":[],"meta":{}}`
   with no SQL executed, matching Django ORM `Model.objects.filter(id__in=[])`
-  semantics. Closes IN-01 and IN-02.
+  semantics.
 
 - **pdbcompat fuzz corpus** extended with 21 non-ASCII and `__in`
   edge-case seeds (diacritics, CJK, RTL, RLO/LRO overrides, ZWJ,
   combining marks, null bytes, 70 KB literals, 1201-element `__in`,
   empty `__in`, all-empty `__in` parts). Local 60s run on a Ryzen 5
   3600 logged 469k executions / 65 new interesting / zero panics.
-  Closes UNICODE-03.
 
-- **Cross-entity `__` traversal in pdbcompat (Phase 70).** The
+- **Cross-entity `__` traversal in pdbcompat.** The
   `/api/<type>?<fk>__<field>=` and
   `/api/<type>?<fk>__<fk>__<field>=` query shapes now resolve across
   foreign-key edges, mirroring upstream PeeringDB's `prepare_query`
   allowlists (Path A) and `queryable_relations()` auto-introspection
-  (Path B). Hard-capped at 2 hops (cite: Phase 70 D-04). Every 13-entity
+  (Path B). Hard-capped at 2 hops. Every 13-entity
   allowlist was translated 1:1 from `peeringdb_server/serializers.py`
   (SHA `99e92c72`); each annotation carries a `serializers.py:<line>`
   source comment for audit. A new codegen tool `cmd/pdb-compat-allowlist`
@@ -211,35 +210,32 @@ Phase 71.
   `internal/pdbcompat/allowlist_gen.go` (Path A allowlists + Path B
   `Edges` map) wired into `go generate ./...` after ent codegen and
   before buf codegen. Example 2-hop case working:
-  `GET /api/fac?ixlan__ix__fac_count__gt=0`. Closes TRAVERSAL-01,
-  TRAVERSAL-02, and TRAVERSAL-03.
+  `GET /api/fac?ixlan__ix__fac_count__gt=0`.
 
-- **Unknown filter fields silently ignored (TRAVERSAL-04).**
+- **Unknown filter fields silently ignored.**
   `GET /api/net?totally_unknown_field=x` returns HTTP 200 with a
   silently-unfiltered result rather than 400, matching upstream
   `rest.py:544-662`. Operators gain DEBUG-level visibility via
-  `slog.DebugContext("pdbcompat: unknown filter fields silently ignored
-  (Phase 70 TRAVERSAL-04)", ...)` and OTel span attribute
+  `slog.DebugContext("pdbcompat: unknown filter fields silently ignored", ...)`
+  and OTel span attribute
   `pdbplus.filter.unknown_fields` (CSV of all unknowns per request).
   The same diagnostic fires for typos, deprecated field names, and
-  filter keys with >2 `__`-separated relation segments (the 2-hop cap
-  per Phase 70 D-04). Closes TRAVERSAL-04.
+  filter keys with >2 `__`-separated relation segments (the 2-hop cap).
 
 - **2-hop cost ceiling (<50ms/op @ 10k rows).** New
   `BenchmarkTraversal_*` in `internal/pdbcompat/bench_traversal_test.go`
-  plus a go-test-time `TestBenchTraversal_D07_Ceiling` gate guard the
+  plus a go-test-time `TestBenchTraversal_TwoHopCeiling` gate guard the
   2-hop query cost ceiling. A nightly CI workflow
   (`.github/workflows/bench.yml`) regression-gates via benchstat —
-  prevents a future Cartesian-join regression from landing silently
-  (Phase 70 D-07).
+  prevents a future Cartesian-join regression from landing silently.
 
-- **Phase 71 (MEMORY-01..04): Memory-safe response paths on 256 MB replicas.**
+- **Memory-safe response paths on 256 MB replicas.**
   - **Streaming JSON emission** for pdbcompat list responses —
     `internal/pdbcompat/stream.go` `StreamListResponse` writes
     `{"meta":…,"data":[…]}` token-by-token via per-row `json.Marshal`
     and `http.Flusher.Flush()` every 100 rows. Replaces the legacy
     full-slice `json.NewEncoder` materialisation on the `serveList`
-    path. Closes MEMORY-01.
+    path.
   - **`PDBPLUS_RESPONSE_MEMORY_LIMIT` env var** (default 128 MiB =
     256 MB replica − 80 MB Go runtime baseline − 48 MB slack). Gates
     response size via a pre-flight `SELECT COUNT(*) × typical_row_bytes`
@@ -251,8 +247,8 @@ Phase 71.
     `0` disables the check for local development. No `Retry-After` —
     413 is request-shape, not transient. Per-entity
     `typical_row_bytes` calibrated via `BenchmarkRowSize_*` and
-    doubled per D-03 (13 types × 2 depths in
-    `internal/pdbcompat/rowsize.go`). Closes MEMORY-02.
+    doubled for headroom (13 types × 2 depths in
+    `internal/pdbcompat/rowsize.go`).
   - **Per-request heap-delta telemetry.** New OTel span attribute
     `pdbplus.response.heap_delta_kib` (sampled once at handler entry
     and once at exit via `defer`; STW ~µs, NEVER per row) plus
@@ -260,31 +256,30 @@ Phase 71.
     `pdbplus_response_heap_delta_kib{endpoint,entity}`. Registered
     via `pdbotel.InitResponseHeapHistogram()`. Grafana gains a
     "Response Heap Delta (KiB) — p50/p95/p99 by endpoint" panel (id
-    36) at the bottom of the SEED-001 watch row in
-    `deploy/grafana/dashboards/pdbplus-overview.json`. Closes
-    MEMORY-03.
+    36) at the bottom of the sync-memory watch row in
+    `deploy/grafana/dashboards/pdbplus-overview.json`.
   - **`docs/ARCHITECTURE.md` § Response Memory Envelope** documents
     the envelope derivation, the three moving parts (stream / rowsize
     / budget), a per-entity worst-case sizing table with computed
     `max_rows` at the 128 MiB default, the request lifecycle, and the
     telemetry wire-up. `CLAUDE.md` gains a sibling § Response memory
-    envelope (Phase 71) convention with the maintainer checklist for
-    adding new entity types. Closes MEMORY-04.
+    envelope convention with the maintainer checklist for
+    adding new entity types.
 
-- **Phase 72 (PARITY-01, PARITY-02): Upstream parity regression lock-in.**
+- **Upstream parity regression lock-in.**
   - **`internal/pdbcompat/parity/` category-split regression suite** —
     6 test files (`ordering_test.go`, `status_test.go`,
     `limit_test.go`, `unicode_test.go`, `in_test.go`,
     `traversal_test.go`) + a shared `harness_helpers_test.go`. 31
-    hard-pass tests total: 27 v1.16-semantic sub-tests covering
-    ORDER-01..03 / STATUS-01..06 / LIMIT-01/01b/02 / UNICODE-01/02 /
-    IN-01/02/03 / TRAVERSAL-01..04 plus 4 harness probes. 2 explicit
+    hard-pass tests total: 27 v1.16-semantic sub-tests covering the
+    default-ordering, status, limit, Unicode, `__in`, and traversal
+    behaviours plus 4 harness probes. 2 explicit
     `DIVERGENCE_` sub-tests lock the v1.16 silent-ignore semantic for
-    DEFER-70-verifier-01 (`fac?ixlan__ix__fac_count__gt=0`) and the
-    HTTP 500 outcome for DEFER-70-06-01 (`fac?campus__name=X`). 15
+    the 3-hop `fac?ixlan__ix__fac_count__gt=0` case and the
+    HTTP 500 outcome for the `fac?campus__name=X` case. 15
     `pdb_api_test.py`-or-synthesised citation hits, 36 `t.Parallel()`
-    call sites, 4 `DIVERGENCE` markers per CONTEXT.md grep invariants.
-    Suite wall time 15.4s under `-race`. Closes PARITY-01.
+    call sites, 4 `DIVERGENCE` markers.
+    Suite wall time 15.4s under `-race`.
   - **`cmd/pdb-fixture-port/` fixture-porting tool** reads upstream
     `src/peeringdb_server/management/commands/pdb_api_test.py` and
     emits Go fixture literals into
@@ -295,27 +290,26 @@ Phase 71.
     generated header. `--upstream-commit <sha>` override preserves the
     pinned SHA during snapshot-replay regeneration;
     `--check` flag compares current upstream against the pinned SHA
-    and reports drift (advisory only per CONTEXT.md D-03, not
-    blocking).
+    and reports drift (advisory only, not blocking).
   - **`internal/pdbcompat/parity/bench_test.go` performance lock-in** —
-    3 `b.Loop()`-style benchmarks per GO-TOOL-1:
+    3 `b.Loop()`-style benchmarks:
     `BenchmarkParity_TwoHopTraversal` (`ixpfx?ixlan__ix__id=20`,
     ~580μs/op on Ryzen 5 3600),
     `BenchmarkParity_LimitZeroStreaming` (5000-row seeded end-to-end
-    Phase 71 `stream.go` path, ~82.7ms/op),
-    `BenchmarkParity_InFiveThousandElements` (5001-id IN via Phase 69
+    `stream.go` path, ~82.7ms/op),
+    `BenchmarkParity_InFiveThousandElements` (5001-id IN via the
     `json_each` rewrite, ~98.6ms/op). Benchstat-on-main is out of
-    scope per CONTEXT.md D-06 — benchmarks are local-run only, gated
+    scope — benchmarks are local-run only, gated
     by the standard `go test -race ./...` tier. `testing.TB` widening
     plumbed through `testutil.SetupClient` + 9 parity harness helpers
     (type-only change, every `*testing.T` call site still satisfies
     the interface).
   - **`docs/API.md § Known Divergences` extended** with 3 new rows
-    (pre-Phase-68 hard-delete gap parity cross-ref; pdbfe `limit=0`
-    count-only invalid claim; depth-on-list silent-drop LIMIT-02
+    (pre-soft-delete hard-delete gap parity cross-ref; pdbfe `limit=0`
+    count-only invalid claim; depth-on-list silent-drop
     guardrail) plus `TestParity_*` cross-refs appended to the Since
-    columns of the existing DEFER-70-06-01 + DEFER-70-verifier-01
-    rows. Closes PARITY-02.
+    columns of the existing `fac?campus__name=X` +
+    `fac?ixlan__ix__fac_count__gt=0` divergence rows.
   - **`docs/API.md § Validation Notes` NEW sub-section** documenting
     5 invalid third-party claims about upstream behaviour with pinned
     `peeringdb/peeringdb@99e92c72…` SHA refs: (1) `net?country=NL` is
@@ -327,7 +321,7 @@ Phase 71.
     Each row cites the specific upstream file:line and cross-
     references the parity sub-test locking the corrected behaviour.
     Future conformance audits against pdbfe's gotchas doc don't re-
-    research the same invalid claims. Closes PARITY-02.
+    research the same invalid claims.
 
 ### Changed
 
@@ -337,14 +331,14 @@ Phase 71.
   `UPDATE ... SET status='deleted', updated=<cycle_start>` per sync
   cycle. One `cycleStart` timestamp is stamped on every tombstone
   within a cycle so `?since=N` windows stay atomic. Tombstone
-  garbage-collection policy is deferred to SEED-004 (planted
+  garbage-collection policy is deferred as dormant work (planted
   2026-04-19).
 
 - **`parseFieldOp` signature extended** in
   `internal/pdbcompat/filter.go`. Return tuple expanded from
   `(field, op string)` to `(relationSegments []string, finalField,
   op string)` so the parser can detect `<fk>__<field>` patterns before
-  consulting Path A / Path B and enforce the 2-hop cap (Phase 70 D-06).
+  consulting Path A / Path B and enforce the 2-hop cap.
   Internal-only — no callers exist outside `internal/pdbcompat`.
 
 - **`ParseFilters` gains a context-aware sibling.** New
@@ -378,8 +372,8 @@ Phase 71.
   `OnConflict().UpdateNewValues()` path. See
   [`docs/API.md` § Known Divergences](./docs/API.md#known-divergences).
 
-- **Unknown filter fields silently ignored is a feature, not a bug
-  (Phase 70 TRAVERSAL-04).** Typos (`?nmae=x`), deprecated field names,
+- **Unknown filter fields silently ignored is a feature, not a bug.**
+  Typos (`?nmae=x`), deprecated field names,
   and filter keys with >2 `__`-separated relation segments do not
   return HTTP 400 — the filter is silently dropped and the response
   contains the full unfiltered result set. This matches upstream
@@ -389,7 +383,7 @@ Phase 71.
   `pdbplus.filter.unknown_fields` or enable DEBUG-level logging to
   surface the dropped keys.
 
-- **`campus` edge table-name codegen bug (DEFER-70-06-01).**
+- **`campus` edge table-name codegen bug.**
   `cmd/pdb-compat-allowlist` emits `TargetTable: "campus"` instead
   of the correct `"campuses"` for all edges targeting the Campus
   entity, because `entc.LoadGraph` does not apply the
@@ -402,8 +396,8 @@ Phase 71.
 
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is
   silent-ignored** — requires 3-hop traversal via `ixfac` which
-  exceeds the documented 2-hop cap; Phase 72 will lock this as
-  documented divergence. Tracked as DEFER-70-verifier-01. The
+  exceeds the documented 2-hop cap; the parity suite locks this as a
+  documented divergence. The
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 

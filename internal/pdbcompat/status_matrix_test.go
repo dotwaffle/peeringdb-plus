@@ -45,8 +45,8 @@ func fetchStatusCode(t *testing.T, url string) int {
 	return resp.StatusCode
 }
 
-// TestStatusMatrix covers the Phase 68 Plan 68-03 STATUS-01, STATUS-02,
-// STATUS-04 + LIMIT-01 + LIMIT-02 requirements via end-to-end HTTP
+// TestStatusMatrix covers the status × since matrix and the bare-URL
+// limit behaviour via end-to-end HTTP
 // exercise of the pdbcompat handler against mixed-status fixtures.
 // Each subtest uses its own isolated client per testutil.SetupClient,
 // so the subtests are safe to t.Parallel() independently.
@@ -110,7 +110,7 @@ func TestStatusMatrix(t *testing.T) {
 			t.Fatalf("GET /api/net: status %d", code)
 		}
 		if n != 1 {
-			t.Errorf("list without since: got %d items, want 1 (only status=ok) per STATUS-01", n)
+			t.Errorf("list without since: got %d items, want 1 (only status=ok)", n)
 		}
 	})
 
@@ -132,7 +132,7 @@ func TestStatusMatrix(t *testing.T) {
 			t.Fatalf("GET /api/net?since=0: status %d", code)
 		}
 		if n != 2 {
-			t.Errorf("list with since=0 (non-campus): got %d items, want 2 (ok + deleted; pending excluded) per STATUS-03", n)
+			t.Errorf("list with since=0 (non-campus): got %d items, want 2 (ok + deleted; pending excluded)", n)
 		}
 	})
 
@@ -151,7 +151,7 @@ func TestStatusMatrix(t *testing.T) {
 			t.Fatalf("GET /api/campus?since=0: status %d", code)
 		}
 		if n != 3 {
-			t.Errorf("list campus with since=0: got %d items, want 3 (ok + pending + deleted) per D-05", n)
+			t.Errorf("list campus with since=0: got %d items, want 3 (ok + pending + deleted)", n)
 		}
 	})
 
@@ -177,7 +177,7 @@ func TestStatusMatrix(t *testing.T) {
 		t.Cleanup(srv.Close)
 
 		if code := fetchStatusCode(t, srv.URL+"/api/net/20"); code != http.StatusOK {
-			t.Errorf("pk lookup on pending row: got %d, want 200 per STATUS-02/D-06", code)
+			t.Errorf("pk lookup on pending row: got %d, want 200", code)
 		}
 	})
 
@@ -190,7 +190,7 @@ func TestStatusMatrix(t *testing.T) {
 		t.Cleanup(srv.Close)
 
 		if code := fetchStatusCode(t, srv.URL+"/api/net/30"); code != http.StatusNotFound {
-			t.Errorf("pk lookup on deleted row: got %d, want 404 per STATUS-02/D-06", code)
+			t.Errorf("pk lookup on deleted row: got %d, want 404", code)
 		}
 	})
 
@@ -198,7 +198,7 @@ func TestStatusMatrix(t *testing.T) {
 		t.Parallel()
 		client := testutil.SetupClient(t)
 		// Seed only a deleted row. With no ?since, the list filters to
-		// status=ok regardless of any ?status= override (D-07).
+		// status=ok regardless of any ?status= override.
 		seedNet(t, client, 1, 64501, "deleted", t0)
 
 		srv := httptest.NewServer(newMuxForOrdering(client))
@@ -210,7 +210,7 @@ func TestStatusMatrix(t *testing.T) {
 			t.Fatalf("GET /api/net?status=deleted: status %d", code)
 		}
 		if n != 0 {
-			t.Errorf("?status=deleted without since: got %d items, want 0 per STATUS-04/D-07", n)
+			t.Errorf("?status=deleted without since: got %d items, want 0", n)
 		}
 	})
 
@@ -220,7 +220,7 @@ func TestStatusMatrix(t *testing.T) {
 		ctx := t.Context()
 		// Seed 300 status=ok networks (above the historical 250 cap,
 		// below MaxLimit=1000). Both bare URL and ?limit=0 return all
-		// rows per LIMIT-01 (matches upstream rest.py:495 + :737).
+		// rows (matches upstream rest.py:495 + :737).
 		const seedN = 300
 		for i := 1; i <= seedN; i++ {
 			if _, err := client.Network.Create().
@@ -237,13 +237,13 @@ func TestStatusMatrix(t *testing.T) {
 		// Bare URL: upstream parity — returns all 300 rows.
 		n, _ := fetchDataLength(t, srv.URL+"/api/net")
 		if n != seedN {
-			t.Errorf("bare /api/net: got %d, want %d (LIMIT-01: bare URL returns all rows, matching upstream)", n, seedN)
+			t.Errorf("bare /api/net: got %d, want %d (bare URL returns all rows, matching upstream)", n, seedN)
 		}
 
 		// Explicit ?limit=0: also returns all 300 rows.
 		n, _ = fetchDataLength(t, srv.URL+"/api/net?limit=0")
 		if n != seedN {
-			t.Errorf("?limit=0: got %d, want %d (all rows) per LIMIT-01", n, seedN)
+			t.Errorf("?limit=0: got %d, want %d (all rows)", n, seedN)
 		}
 	})
 
@@ -263,12 +263,12 @@ func TestStatusMatrix(t *testing.T) {
 			t.Fatalf("status: plain=%d depth=%d (both must be 200)", codePlain, codeDepth)
 		}
 		if nPlain != nDepth {
-			t.Errorf("LIMIT-02 guardrail failed: /api/net returned %d, /api/net?depth=2 returned %d (expected equal)", nPlain, nDepth)
+			t.Errorf("depth-on-list guardrail failed: /api/net returned %d, /api/net?depth=2 returned %d (expected equal)", nPlain, nDepth)
 		}
 	})
 }
 
-// TestStatusMatrix_AllEntities asserts the Phase 68 status×since matrix is
+// TestStatusMatrix_AllEntities asserts the status×since matrix is
 // wired into the list closure of EVERY one of the 13 entity types, with the
 // correct isCampus flag. The focused TestStatusMatrix above proves the
 // applyStatusMatrix function body against net + campus; this table-driven

@@ -13,7 +13,7 @@ import (
 )
 
 // TestServer_NoWriteTimeoutOnStreamingPaths is a signature-lock regression
-// test for SEC-05. It asserts the production http.Server literal built by
+// test. It asserts the production http.Server literal built by
 // buildServer carries exact values for all four timeout fields, so any
 // future refactor that "fixes" the deliberate WriteTimeout=0 (or drifts the
 // other three values) fails CI.
@@ -21,7 +21,7 @@ import (
 // WriteTimeout must remain 0 because StreamEntities in
 // internal/grpcserver/generic.go already enforces cfg.StreamTimeout per
 // stream via context.WithTimeout; a server-wide WriteTimeout would race
-// with it and silently truncate streams (see PITFALLS.md §CP-2).
+// with it and silently truncate streams (see PITFALLS.md).
 func TestServer_NoWriteTimeoutOnStreamingPaths(t *testing.T) {
 	t.Parallel()
 
@@ -37,7 +37,7 @@ func TestServer_NoWriteTimeoutOnStreamingPaths(t *testing.T) {
 			name:  "WriteTimeout",
 			got:   srv.WriteTimeout,
 			want:  0,
-			fatal: "WriteTimeout must be 0 — StreamEntities uses per-stream context deadlines (PITFALLS.md §CP-2). Do NOT 'fix' this.",
+			fatal: "WriteTimeout must be 0 — StreamEntities uses per-stream context deadlines (PITFALLS.md). Do NOT 'fix' this.",
 		},
 		{
 			name:  "ReadHeaderTimeout",
@@ -49,7 +49,7 @@ func TestServer_NoWriteTimeoutOnStreamingPaths(t *testing.T) {
 			name:  "ReadTimeout",
 			got:   srv.ReadTimeout,
 			want:  30 * time.Second,
-			fatal: "ReadTimeout regression — slowloris body-stall mitigation requires 30s (SEC-05)",
+			fatal: "ReadTimeout regression — slowloris body-stall mitigation requires 30s",
 		},
 		{
 			name:  "IdleTimeout",

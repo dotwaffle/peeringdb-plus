@@ -1,4 +1,4 @@
-// Quick task 260428-mu0: replaces the meta.generated-based cursor with a
+// Replaces the meta.generated-based cursor with a
 // SELECT MAX(updated) per type. PeeringDB does not include meta.generated on
 // ?since= responses (see internal/peeringdb/client_live_test.go
 // TestMetaGeneratedLive/paginated_incremental); the prior worker.go path
@@ -10,7 +10,7 @@
 // corresponding entity table. The `updated` column is indexed on all 13
 // tables (`index.Fields("updated")`), and PeeringDB's ?since=N is inclusive
 // (`updated >= since`), so re-fetching the boundary row each cycle is
-// idempotent — the existing OnConflict UPDATE is a no-op via the Phase 75
+// idempotent — the existing OnConflict UPDATE is a no-op via the
 // skip-on-unchanged predicate.
 
 package sync
@@ -54,7 +54,7 @@ var entityTables = map[string]string{
 //     (`index.Fields("updated")` in every ent/schema/<type>.go).
 //   - PeeringDB's `?since=N` is inclusive (`updated >= since` per
 //     internal/pdbcompat/filter.go applySince), so re-fetching the boundary
-//     row each cycle is idempotent (the Phase 75 skip-on-unchanged predicate
+//     row each cycle is idempotent (the skip-on-unchanged predicate
 //     turns the OnConflict UPDATE into a no-op).
 //   - Empty table → NULL → zero time → caller falls through to the full
 //     bare-list path (existing stageOneTypeToScratch behaviour preserved).

@@ -23,7 +23,7 @@ type Status struct {
 // InitStatusTable creates the sync_status and sync_cursors tables if they don't exist.
 // These are not ent-managed entities; they store operational metadata via raw SQL.
 //
-// 260428-mu0: a `mode TEXT NOT NULL DEFAULT 'incremental'` column is added
+// A `mode TEXT NOT NULL DEFAULT 'incremental'` column is added
 // to sync_status. Fresh databases get the column via a future CREATE TABLE
 // adjustment (kept off the schema literal here for rollback simplicity);
 // existing databases get it via an idempotent ALTER TABLE probed against
@@ -45,7 +45,7 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 		return fmt.Errorf("create sync_status table: %w", err)
 	}
 
-	// 260428-mu0: idempotent migration — add the `mode` column if it's
+	// Idempotent migration — add the `mode` column if it's
 	// missing. SQLite does not support `IF NOT EXISTS` on `ALTER TABLE
 	// ADD COLUMN`, so we probe via pragma_table_info first. Existing
 	// primary instances upgrade their table in-place; fresh databases
@@ -66,7 +66,7 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 		}
 	}
 
-	// DEPRECATED v1.18.10 (260428-mu0): the sync_cursors table is no
+	// DEPRECATED v1.18.10: the sync_cursors table is no
 	// longer written to — cursors are now derived from MAX(updated) per
 	// table by internal/sync/cursor.go GetMaxUpdated. The CREATE TABLE
 	// statement is preserved so an emergency rollback to a binary that
@@ -87,7 +87,7 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-// DEPRECATED v1.18.10 (260428-mu0): cursor is now derived from
+// DEPRECATED v1.18.10: cursor is now derived from
 // MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
 // Slated for removal in v1.19. Do not call from new code. The
 // sync_cursors table CREATE TABLE in InitStatusTable is preserved for
@@ -119,7 +119,7 @@ func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, erro
 	return lastSyncAt, nil
 }
 
-// DEPRECATED v1.18.10 (260428-mu0): cursor is now derived from
+// DEPRECATED v1.18.10: cursor is now derived from
 // MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
 // Slated for removal in v1.19. Do not call from new code. The
 // sync_cursors table CREATE TABLE in InitStatusTable is preserved for
@@ -128,14 +128,14 @@ func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, erro
 //
 // UpsertCursor updates or inserts the sync cursor for a type.
 //
-// 260428-eda CHANGE 2: called WITHIN the main sync transaction (via *ent.Tx)
+// Called WITHIN the main sync transaction (via *ent.Tx)
 // so cursor writes commit atomically with their corresponding ent upserts.
 // This closes the prior gap where cursor writes were 13 separate post-commit
 // *sql.DB Exec calls — each one a LiteFS-replicated commit — and removes the
 // failure window where ent upserts were durable but the cursor advance was
 // not (resulting in re-fetching already-applied rows on the next cycle).
 //
-// D-19 atomicity: sync_status (the outcome record) remains a separate
+// Atomicity: sync_status (the outcome record) remains a separate
 // raw-SQL Exec because it must reflect the OUTCOME of the tx
 // (success/failure/error message) — that's correct. Cursors describe DATA
 // STATE and belong inside the data tx.
@@ -146,7 +146,7 @@ func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, erro
 // divergence between upserts-committed and cursor-not-advanced is the very
 // bug being fixed. The OTel span attribute
 // pdbplus.sync.cursor_write_caused_rollback is set true on the sync root
-// span when a rollback was caused by cursor write failure (B3).
+// span when a rollback was caused by cursor write failure.
 // SyncWithRetry handles transient failures by re-running the cycle.
 func UpsertCursor(ctx context.Context, tx *ent.Tx, objType string, lastSyncAt time.Time, status string) error {
 	_, err := tx.ExecContext(ctx,
@@ -198,7 +198,7 @@ func ReapStaleRunningRows(ctx context.Context, db *sql.DB) (int, error) {
 
 // RecordSyncStart inserts a new running sync status row and returns its ID.
 //
-// 260428-mu0: mode is "full" or "incremental" — persisted in the
+// Mode is "full" or "incremental" — persisted in the
 // sync_status.mode column so GetLastSuccessfulFullSyncTime can find the
 // most recent full-sync completion (used by the
 // PDBPLUS_FULL_SYNC_INTERVAL escape hatch). The mode parameter MUST
@@ -226,8 +226,6 @@ func RecordSyncStart(ctx context.Context, db *sql.DB, startedAt time.Time, mode 
 // pathological upstream cross-row inconsistency where a since= response
 // includes row R' (updated=M) but is missing earlier row R (updated < M);
 // R is permanently missed under any since-based design.
-//
-// 260428-mu0.
 func GetLastSuccessfulFullSyncTime(ctx context.Context, db *sql.DB) (time.Time, error) {
 	var completedAt time.Time
 	err := db.QueryRowContext(ctx,
@@ -248,7 +246,7 @@ func GetLastSuccessfulFullSyncTime(ctx context.Context, db *sql.DB) (time.Time, 
 // table. Implemented via pragma_table_info — the only built-in SQLite
 // way to introspect a column without parsing CREATE TABLE statements.
 // Used by InitStatusTable to make the sync_status.mode migration
-// idempotent (260428-mu0).
+// idempotent.
 func columnExists(ctx context.Context, db *sql.DB, table, column string) (bool, error) {
 	// #nosec G201 — table/column are package-internal constants, not
 	// caller-supplied; SQL injection is not possible. Same justification

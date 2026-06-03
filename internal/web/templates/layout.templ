@@ -114,7 +114,7 @@ templ Layout(title string, contents templ.Component) {
 			});
 			</script>
 		<script>
-		// Keyboard navigation for search results (SRCH-05).
+		// Keyboard navigation for search results.
 		// Listens on keydown when search input or results are focused.
 		(function() {
 			function getOptions() {
@@ -194,7 +194,7 @@ templ Layout(title string, contents templ.Component) {
 		})();
 		</script>
 		<script>
-		// htmx error handling for collapsible sections (UI-04).
+		// htmx error handling for collapsible sections.
 		// On failed fetch inside a <details> element, replaces "Loading..." with
 		// an error message and retry button.
 		(function() {
@@ -223,7 +223,7 @@ templ Layout(title string, contents templ.Component) {
 		})();
 		</script>
 		<script>
-		// Client-side table sorting for sortable tables (SORT-01, SORT-02).
+		// Client-side table sorting for sortable tables.
 		// Handles click on th[data-sortable], toggles asc/desc, re-orders rows.
 		(function() {
 			function sortTable(th) {

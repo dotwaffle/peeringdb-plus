@@ -18,7 +18,7 @@ import (
 // DefaultTier: TierPublic stamps every inbound request's context so the
 // inner handler observes TierPublic via privctx.TierFrom. This is the
 // baseline behaviour for anonymous callers when PDBPLUS_PUBLIC_TIER is
-// unset or "public" (D-11). Acceptance criterion 59-f.
+// unset or "public".
 func TestPrivacyTier_StampsDefault(t *testing.T) {
 	t.Parallel()
 
@@ -44,8 +44,7 @@ func TestPrivacyTier_StampsDefault(t *testing.T) {
 // TestPrivacyTier_StampsUsers verifies that a middleware constructed with
 // DefaultTier: TierUsers stamps every inbound request's context so the
 // inner handler observes TierUsers. This is the internal-deployment
-// override path (PDBPLUS_PUBLIC_TIER=users) per D-11. Acceptance
-// criterion 59-g.
+// override path (PDBPLUS_PUBLIC_TIER=users).
 func TestPrivacyTier_StampsUsers(t *testing.T) {
 	t.Parallel()
 
@@ -163,7 +162,7 @@ func findStringAttr(span tracetest.SpanStub, key string) (string, bool) {
 	return "", false
 }
 
-// TestPrivacyTier_SetsOTelAttribute covers OBS-03 / D-07 / D-09.
+// TestPrivacyTier_SetsOTelAttribute covers the observability contract.
 // The PrivacyTier middleware must stamp pdbplus.privacy.tier on the
 // active HTTP server span with the canonical string form of the
 // resolved tier. Values are strictly "public" or "users" — a third

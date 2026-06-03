@@ -5,7 +5,7 @@ import "fmt"
 const (
 	// DefaultLimit is the default page size for offset/limit queries.
 	DefaultLimit = 100
-	// MaxLimit is the maximum page size per D-14.
+	// MaxLimit is the maximum page size.
 	MaxLimit = 1000
 )
 

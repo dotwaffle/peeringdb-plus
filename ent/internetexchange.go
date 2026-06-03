@@ -21,13 +21,13 @@ type InternetExchange struct {
 	// ID of the ent.
 	// PeeringDB internetexchange ID
 	ID int `json:"id,omitempty"`
-	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	NameFold string `json:"-"`
-	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	AkaFold string `json:"-"`
-	// Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	NameLongFold string `json:"-"`
-	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
+	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (populated by internal/sync.upsert via internal/unifold.Fold)
 	CityFold string `json:"-"`
 	// FK to organization
 	OrgID *int `json:"org_id"`

@@ -51,8 +51,8 @@ func TestWithFilterExcludeFromTraversal(t *testing.T) {
 }
 
 // TestAllowlistEntry_Shape is a structural smoke test — locks
-// AllowlistEntry field shape against silent drift. Plan 70-02's codegen
-// emits values of this type.
+// AllowlistEntry field shape against silent drift. The traversal
+// allowlist codegen emits values of this type.
 func TestAllowlistEntry_Shape(t *testing.T) {
 	t.Parallel()
 	entry := AllowlistEntry{

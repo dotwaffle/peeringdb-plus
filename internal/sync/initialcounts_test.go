@@ -1,4 +1,4 @@
-// Phase 75 Plan 01 (OBS-01): tests for InitialObjectCounts.
+// Tests for InitialObjectCounts.
 //
 // These tests lock the contract that InitialObjectCounts populates the SAME
 // 13 keys as the existing sync-completion path (worker.syncSteps()), so the
@@ -94,7 +94,7 @@ func TestInitialObjectCounts_KeyParityWithSyncSteps(t *testing.T) {
 // the project history
 //
 // seed.Full creates 3 POCs: 1 visible="Public" (ID 500) + 2 visible="Users"
-// (IDs 9000, 9001). 260428-eda CHANGE 6: this helper now uses raw SQL
+// (IDs 9000, 9001). This helper uses raw SQL
 // (db.QueryContext) which bypasses ent's Privacy policy entirely — no
 // Privacy Hook fires, so all 3 rows are counted regardless of context tier.
 // Symmetric with the OnSyncComplete writer that runs under
@@ -132,8 +132,6 @@ func TestInitialObjectCounts_PocPolicyBypass(t *testing.T) {
 // in the live ent schema. Fails fast on an entgo bump that re-pluralises a
 // table — a typo or rename here would silently produce wrong counts (or
 // runtime errors only at deploy time on a real LiteFS DB).
-//
-// 260428-eda CHANGE 6 W5.
 func TestInitialCountsQuery_TableNamesMatchSchema(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)

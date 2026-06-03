@@ -11,7 +11,7 @@ import (
 
 // RenderIXDetail renders an IX entity as terminal output with rich layout.
 // Shows key-value header, participant table with speed/RS/IPs, facility list,
-// and prefix list. (RND-03, D-02 rich layout)
+// and prefix list.
 func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 	var buf strings.Builder
 	buf.Grow(len(data.Participants)*120 + len(data.Facilities)*80 + len(data.Prefixes)*60 + 500)

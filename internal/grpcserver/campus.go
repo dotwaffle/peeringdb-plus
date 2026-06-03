@@ -118,7 +118,7 @@ func applyCampusStreamFilters(req *pb.StreamCampusesRequest) ([]func(*sql.Select
 }
 
 // ListCampuses returns a paginated list of campuses under the compound
-// default order (-updated, -created, -id) per Phase 67 ORDER-02.
+// default order (-updated, -created, -id).
 func (s *CampusService) ListCampuses(ctx context.Context, req *pb.ListCampusesRequest) (*pb.ListCampusesResponse, error) {
 	items, nextToken, err := ListEntities(ctx, ListParams[ent.Campus, pb.Campus]{
 		EntityName: "campuses",

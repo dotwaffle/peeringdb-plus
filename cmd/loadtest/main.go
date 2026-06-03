@@ -54,7 +54,7 @@ operator use only against deployed instances.
 `
 
 // Config carries flag-parsed runtime state through the three mode
-// dispatchers. Per GO-CTX-1 the context is NEVER stored on Config —
+// dispatchers. The context is NEVER stored on Config —
 // it is always passed as the first argument to every helper.
 type Config struct {
 	Base       string

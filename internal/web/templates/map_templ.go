@@ -58,7 +58,7 @@ func buildPopupHTML(m MapMarker) string {
 
 // buildMultiPinPopupHTML returns the HTML content for a multi-pin Leaflet map popup.
 // It includes the facility name, location, optional extra line (e.g. network names),
-// and a link to the facility detail page. All user content is HTML-escaped (SEC-1).
+// and a link to the facility detail page. All user content is HTML-escaped.
 func buildMultiPinPopupHTML(m MapMarker) string {
 	s := `<div>`
 	s += fmt.Sprintf(`<div style="font-weight:600;font-size:14px;margin-bottom:4px;">%s</div>`, html.EscapeString(m.Name))
@@ -131,8 +131,8 @@ func initMap(elementID string, lat float64, lng float64, zoom int, popupHTML str
 // markerClusterGroup for clustering, fitBounds for auto-zoom, and an optional legend.
 func initMultiPinMap(elementID string, markersJSON string, showLegend bool, legendJSON string) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_initMultiPinMap_5ef3`,
-		Function: `function __templ_initMultiPinMap_5ef3(elementID, markersJSON, showLegend, legendJSON){var markers = JSON.parse(markersJSON);
+		Name: `__templ_initMultiPinMap_3487`,
+		Function: `function __templ_initMultiPinMap_3487(elementID, markersJSON, showLegend, legendJSON){var markers = JSON.parse(markersJSON);
 	if (!markers || markers.length === 0) return;
 
 	var isDark = document.documentElement.classList.contains('dark');
@@ -184,7 +184,7 @@ func initMultiPinMap(elementID string, markersJSON string, showLegend bool, lege
 			div.style.cssText = 'background:' + bg + ';padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:' + shadow + ';color:' + textColor;
 			// Legend content uses server-side labels that are not user-provided input.
 			// The labels are static ASN identifiers set by the Go template, not from
-			// untrusted sources. This follows the same pattern as Phase 44 buildPopupHTML.
+			// untrusted sources. This follows the same pattern as buildPopupHTML.
 			function row(color, label) {
 				return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><svg width="10" height="10"><circle cx="5" cy="5" r="5" fill="' + color + '"/></svg><span>' + label + '</span></div>';
 			}
@@ -194,14 +194,14 @@ func initMultiPinMap(elementID string, markersJSON string, showLegend bool, lege
 		ctrl.addTo(map);
 	}
 }`,
-		Call:       templ.SafeScript(`__templ_initMultiPinMap_5ef3`, elementID, markersJSON, showLegend, legendJSON),
-		CallInline: templ.SafeScriptInline(`__templ_initMultiPinMap_5ef3`, elementID, markersJSON, showLegend, legendJSON),
+		Call:       templ.SafeScript(`__templ_initMultiPinMap_3487`, elementID, markersJSON, showLegend, legendJSON),
+		CallInline: templ.SafeScriptInline(`__templ_initMultiPinMap_3487`, elementID, markersJSON, showLegend, legendJSON),
 	}
 }
 
 // MapContainer renders a map container div and initializes a Leaflet map
-// with the provided markers. For Phase 44, exactly one marker is expected.
-// Phase 45 will extend this to handle multiple markers with fitBounds.
+// with the provided markers. Exactly one marker is expected.
+// A future extension will handle multiple markers with fitBounds.
 func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -251,8 +251,8 @@ func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 }
 
 // MultiPinMapContainer renders a taller map container with clustered circleMarkers.
-// If no markers have valid coordinates, nothing is rendered (D-10). When some markers
-// lack coordinates, an unmapped count message is shown below the map (D-11).
+// If no markers have valid coordinates, nothing is rendered. When some markers
+// lack coordinates, an unmapped count message is shown below the map.
 func MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, showLegend bool, legendLabels map[string]string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

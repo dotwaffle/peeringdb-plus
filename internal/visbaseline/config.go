@@ -8,8 +8,8 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
-// Config parameterises a capture run. Grouped per GO-CS-5 (input structs
-// for >2-arg callers).
+// Config parameterises a capture run. Grouped into an input struct because
+// the caller passes more than two arguments.
 //
 // Required fields: Target, BaseURL, Modes, Types, OutDir, Logger. Optional
 // fields fall back to documented defaults. When Modes contains "auth",
@@ -31,7 +31,7 @@ type Config struct {
 	Types []string
 
 	// Pages is the number of pages per (mode, type) to fetch. Defaults to
-	// 2 when <1. The phase 57 baseline uses 2.
+	// 2 when <1. The baseline uses 2.
 	Pages int
 
 	// OutDir is the REPO-SIDE output root for anon fixtures. Auth fixtures
@@ -41,7 +41,7 @@ type Config struct {
 	OutDir string
 
 	// APIKey is the PeeringDB API key. Required when Modes contains "auth".
-	// Must never be logged (T-57-05); the Capture implementation uses the
+	// Must never be logged (secret-leak mitigation); the Capture implementation uses the
 	// peeringdb.Client's built-in Authorization header path, which does
 	// not log the value.
 	APIKey string

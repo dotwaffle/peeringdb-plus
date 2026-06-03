@@ -30,8 +30,8 @@ import (
 // For callers that need the full []json.RawMessage slice (e.g. the
 // pdbcompat-check CLI), FetchAll wraps StreamAll with a simple append-all
 // handler. Do NOT rewrite FetchAll's callers to decode into the tx —
-// PERF-05 option (b) in internal/sync/worker.go requires the batch
-// materialised before the tx opens.
+// the batch-materialisation strategy in internal/sync/worker.go requires
+// the batch materialised before the tx opens.
 func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(raw json.RawMessage) error, opts ...FetchOption) (FetchMeta, error) {
 	var cfg fetchConfig
 	for _, opt := range opts {

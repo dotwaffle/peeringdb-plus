@@ -10,7 +10,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 )
 
-// TestSyncHandler_TokenCompare verifies SEC-04: the /sync token compare is
+// TestSyncHandler_TokenCompare verifies the /sync token compare is
 // constant-time AND preserves the empty-token "disabled" mode early-out.
 //
 // Rows cover: disabled-mode with empty header, disabled-mode with nonempty

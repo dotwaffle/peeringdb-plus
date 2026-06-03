@@ -93,8 +93,8 @@ func TestLoad_SyncStaleThreshold(t *testing.T) {
 
 // TestLoad_SyncMode covers the default + explicit value matrix for
 // PDBPLUS_SYNC_MODE. Default flipped from "full" to "incremental" on 2026-04-26
-// (SEED-001 trigger fired — upstream ?since= empirically confirmed to emit
-// status='deleted' tombstones). "full" remains an explicit operator override.
+// (upstream ?since= empirically confirmed to emit status='deleted'
+// tombstones). "full" remains an explicit operator override.
 func TestLoad_SyncMode(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -501,7 +501,7 @@ func TestLoad_OTelEndpointRemoved(t *testing.T) {
 	_ = cfg
 }
 
-// TestConfig_PeeringDBURLValidation verifies SEC-06: PDBPLUS_PEERINGDB_URL must
+// TestConfig_PeeringDBURLValidation verifies that PDBPLUS_PEERINGDB_URL must
 // be https://, OR http:// against loopback / RFC 1918 private IPs / literal
 // "localhost". Each rejection class produces a distinct error message.
 //
@@ -650,9 +650,8 @@ func TestConfig_PeeringDBURLValidation(t *testing.T) {
 }
 
 // TestLoad_SyncMemoryLimit_Default asserts the default (no env var set)
-// resolves to 400 MB per Commit F decision. The default matches the
-// DEBT-03 benchmark regression gate and leaves 112 MB headroom under
-// the 512 MB Fly.io VM cap.
+// resolves to 400 MB. The default matches the benchmark regression
+// gate and leaves 112 MB headroom under the 512 MB Fly.io VM cap.
 func TestLoad_SyncMemoryLimit_Default(t *testing.T) {
 	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 	cfg, err := Load()
@@ -669,7 +668,7 @@ func TestLoad_SyncMemoryLimit_Default(t *testing.T) {
 // helper for PDBPLUS_SYNC_MEMORY_LIMIT: standard units (KB/MB/GB/TB),
 // short aliases (K/M/G/T), lowercase, explicit "0" disable, and the
 // REJECTED forms (bare number, unknown unit, negative, empty prefix,
-// non-numeric prefix). Table-driven per GO-T-1.
+// non-numeric prefix). Table-driven.
 func TestLoad_SyncMemoryLimit_Parse(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -718,9 +717,9 @@ func TestLoad_SyncMemoryLimit_Parse(t *testing.T) {
 }
 
 // TestLoad_PublicTierDefault asserts that an unset or empty
-// PDBPLUS_PUBLIC_TIER resolves to the safe default privctx.TierPublic
-// (D-04, D-11, 59-c). Fail-safe-closed: un-stamped contexts default to
-// the most restrictive tier.
+// PDBPLUS_PUBLIC_TIER resolves to the safe default privctx.TierPublic.
+// Fail-safe-closed: un-stamped contexts default to the most
+// restrictive tier.
 func TestLoad_PublicTierDefault(t *testing.T) {
 	// Do NOT Setenv — the env var must be entirely absent to exercise the
 	// default branch. t.Setenv would still set it to the empty string,
@@ -738,7 +737,7 @@ func TestLoad_PublicTierDefault(t *testing.T) {
 }
 
 // TestLoad_PublicTierPublicExplicit asserts that the literal "public"
-// resolves to privctx.TierPublic (D-11).
+// resolves to privctx.TierPublic.
 func TestLoad_PublicTierPublicExplicit(t *testing.T) {
 	t.Setenv("PDBPLUS_PUBLIC_TIER", "public")
 	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
@@ -753,7 +752,7 @@ func TestLoad_PublicTierPublicExplicit(t *testing.T) {
 }
 
 // TestLoad_PublicTierUsers asserts that "users" resolves to
-// privctx.TierUsers for private-instance deployments (D-11, SYNC-03, 59-d).
+// privctx.TierUsers for private-instance deployments.
 func TestLoad_PublicTierUsers(t *testing.T) {
 	t.Setenv("PDBPLUS_PUBLIC_TIER", "users")
 	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
@@ -769,10 +768,9 @@ func TestLoad_PublicTierUsers(t *testing.T) {
 
 // TestLoad_PublicTierInvalid asserts fail-fast on invalid values,
 // including case variants ("Users", "PUBLIC"), whitespace-adjacent
-// ("public "), and unsupported tiers ("admin", "anon"). Per D-12 only
+// ("public "), and unsupported tiers ("admin", "anon"). Only
 // lowercase "public" / "users" are accepted. Error message must name
-// the env var and enumerate valid values so operators can self-diagnose
-// (GO-CFG-1, 59-e).
+// the env var and enumerate valid values so operators can self-diagnose.
 func TestLoad_PublicTierInvalid(t *testing.T) {
 	for _, v := range []string{"Users", "admin", "public ", "PUBLIC", "anon"} {
 		t.Run(v, func(t *testing.T) {
@@ -796,7 +794,7 @@ func TestLoad_PublicTierInvalid(t *testing.T) {
 // TestLoad_HeapWarnMiB_Parse covers all branches of the parseMiB helper
 // for PDBPLUS_HEAP_WARN_MIB: default-on-unset, explicit zero disable,
 // custom bare integers, and the REJECTED forms (negative, unit suffix,
-// non-numeric, float). Table-driven per GO-T-1.
+// non-numeric, float). Table-driven.
 func TestLoad_HeapWarnMiB_Parse(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -839,9 +837,9 @@ func TestLoad_HeapWarnMiB_Parse(t *testing.T) {
 }
 
 // TestLoad_ResponseMemoryLimit_Default asserts the default (no env var set)
-// resolves to 128 MiB per Phase 71 D-05. Sized against the 256 MB replica
-// cap minus 80 MB Go runtime baseline minus 48 MB slack for in-flight
-// requests and GC overhead.
+// resolves to 128 MiB. Sized against the 256 MB replica cap minus 80 MB
+// Go runtime baseline minus 48 MB slack for in-flight requests and GC
+// overhead.
 func TestLoad_ResponseMemoryLimit_Default(t *testing.T) {
 	t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
 	cfg, err := Load()

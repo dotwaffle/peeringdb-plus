@@ -9,8 +9,7 @@ import (
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 )
 
-// Phase 77 OBS-06 — env-configurable level filter for the otelslog branch
-// of the dual logger. AUDIT.md architectural finding:
+// Env-configurable level filter for the otelslog branch of the dual logger:
 //
 // The otelslog handler had no level filter, so DEBUG records produced by
 // any caller were shipped to Loki via the OTel log pipeline regardless of
@@ -122,7 +121,7 @@ func TestOTelLevelFromEnv_ParsesValid(t *testing.T) {
 }
 
 func TestOTelLevelFromEnv_FallsBackOnGarbage(t *testing.T) {
-	// Per CLAUDE.md GO-CFG-1 (fail-fast), but logging-level is
+	// Fail-fast is the general preference, but logging-level is
 	// operator-friendly: invalid values fall back to INFO. The contract
 	// is that the wrapper never crashes on malformed PDBPLUS_LOG_LEVEL.
 	t.Setenv("PDBPLUS_LOG_LEVEL", "garbage")

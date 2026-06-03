@@ -1,6 +1,6 @@
 package parity
 
-// Parity benchmark companion (Phase 72 CONTEXT.md D-07).
+// Parity benchmark companion.
 //
 // Locks cost envelopes on the v1.16 performance-sensitive pdbcompat
 // paths so a future PR that regresses performance (re-materialises
@@ -8,9 +8,9 @@ package parity
 // per-row N+1 traversal lookups) shows up on the benchstat diff even
 // when the correctness tests in this package still pass.
 //
-// All three benchmarks follow the modern b.Loop() idiom per GO-TOOL-1
-// and the Phase 46 / projection_bench_test.go precedent — no
-// hand-rolled `for i := 0; i < b.N; i++` loops.
+// All three benchmarks follow the modern b.Loop() idiom
+// and the projection_bench_test.go precedent — no hand-rolled
+// `for i := 0; i < b.N; i++` loops.
 //
 // CI workflow: these benchmarks run on pushes to main via a
 // benchstat-comparing job (not per-PR — benchmark numbers are noisy
@@ -42,12 +42,12 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
-// BenchmarkParity_TwoHopTraversal measures the canonical Phase 70
+// BenchmarkParity_TwoHopTraversal measures the canonical
 // Path A 2-hop case: `/api/ixpfx?ixlan__ix__id=N`. The underlying
 // filter pipeline resolves via ent edge ixpfx → ixlan → ix, both of
 // which exist in the schema and in the Allowlist.
 //
-// Regression signal: the D-07 wall-clock ceiling lives in
+// Regression signal: the wall-clock ceiling lives in
 // internal/pdbcompat/bench_traversal_test.go (at 10k-row scale). This
 // parity-companion benchmark tracks the smaller-N shape that the
 // category-split parity suite locks for correctness, so a bench-shape
@@ -63,10 +63,10 @@ func BenchmarkParity_TwoHopTraversal(b *testing.B) {
 	ctx := b.Context()
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	// Inline seeds — mirrors TRAVERSAL-02 in traversal_test.go. The
-	// mustOrg/mustIX/... helpers in that file take *testing.T and
-	// aren't callable here; widening them further would bloat the
-	// plan's widening footprint without benefit.
+	// Inline seeds — mirrors the Path A 2-hop case in
+	// traversal_test.go. The mustOrg/mustIX/... helpers in that file
+	// take *testing.T and aren't callable here; widening them further
+	// would bloat the widening footprint without benefit.
 	if _, err := c.Organization.Create().
 		SetID(1).SetName("IXOrg").SetNameFold(unifold.Fold("IXOrg")).
 		SetStatus("ok").SetCreated(t0).SetUpdated(t0).
@@ -140,17 +140,17 @@ func BenchmarkParity_TwoHopTraversal(b *testing.B) {
 	}
 }
 
-// BenchmarkParity_LimitZeroStreaming exercises Phase 71 stream.go
-// end-to-end at a 5000-row population. `?limit=0` is the "unbounded"
-// surface (see LIMIT-01 in limit_test.go); the streaming path must
-// emit one row at a time through the json.Encoder without
+// BenchmarkParity_LimitZeroStreaming exercises stream.go end-to-end
+// at a 5000-row population. `?limit=0` is the "unbounded" surface
+// (see the limit=0-returns-all case in limit_test.go); the streaming
+// path must emit one row at a time through the json.Encoder without
 // materialising the full result slice.
 //
 // Regression signal: a PR that re-introduces full-slice
 // materialisation would 10x+ allocs/op here (one *ent.Network per
 // row retained through serialisation), making the regression visible
-// on benchstat even if the correctness assertions in LIMIT-01 still
-// hold (they only check row count, not memory shape).
+// on benchstat even if the correctness assertions still hold (they
+// only check row count, not memory shape).
 func BenchmarkParity_LimitZeroStreaming(b *testing.B) {
 	b.ReportAllocs()
 
@@ -193,17 +193,17 @@ func BenchmarkParity_LimitZeroStreaming(b *testing.B) {
 	}
 }
 
-// BenchmarkParity_InFiveThousandElements measures the Phase 69 D-05
-// json_each(?) single-bind rewrite at the 5001-ID boundary that the
-// raw SQLite variable limit (999) would otherwise hit. The IN-01
-// test in in_test.go locks correctness; this benchmark locks the
-// cost shape so a PR that rolls back to bound-per-element (re-tripping
-// the 999 cap) surfaces as a wall-clock spike and/or allocation
-// explosion before it reaches prod.
+// BenchmarkParity_InFiveThousandElements measures the json_each(?)
+// single-bind rewrite at the 5001-ID boundary that the raw SQLite
+// variable limit (999) would otherwise hit. The 5001-element test in
+// in_test.go locks correctness; this benchmark locks the cost shape
+// so a PR that rolls back to bound-per-element (re-tripping the 999
+// cap) surfaces as a wall-clock spike and/or allocation explosion
+// before it reaches prod.
 //
 // Seeds network rows with IDs 100000..105000 inclusive (5001 rows) —
-// the same range IN-01 (in_test.go) locks for correctness — and queries
-// the exact same range.
+// the same range in_test.go locks for correctness — and queries the
+// exact same range.
 func BenchmarkParity_InFiveThousandElements(b *testing.B) {
 	b.ReportAllocs()
 
@@ -211,7 +211,7 @@ func BenchmarkParity_InFiveThousandElements(b *testing.B) {
 	ctx := b.Context()
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	const lo, hi = 100000, 105000 // matches in_test.go IN-01
+	const lo, hi = 100000, 105000 // matches in_test.go 5001-element case
 	for id := lo; id <= hi; id++ {
 		if _, err := c.Network.Create().
 			SetID(id).SetName("InBulk").SetNameFold(unifold.Fold("InBulk")).

@@ -1,7 +1,7 @@
-// Package main field_privacy_e2e_test.go — Phase 64 D-10 end-to-end
+// Package main field_privacy_e2e_test.go — end-to-end
 // field-level privacy contract for ixlan.ixf_ixp_member_list_url.
 //
-// Mirrors e2e_privacy_test.go's 5-surface pattern (Phase 59 D-15) but
+// Mirrors e2e_privacy_test.go's 5-surface pattern but
 // operates at field level instead of row level. Asserts:
 //
 //   - Anonymous callers (TierPublic) get NO ixf_ixp_member_list_url
@@ -11,16 +11,16 @@
 //     (id=101 seed row locks always-admit behaviour — proves the helper
 //     does not over-redact).
 //   - The companion _visible field is ALWAYS emitted regardless of
-//     tier (D-05 — upstream parity).
-//   - Fail-closed at surface level (D-03): bypassing the PrivacyTier
+//     tier (upstream parity).
+//   - Fail-closed at surface level: bypassing the PrivacyTier
 //     middleware at the ConnectRPC handler STILL redacts for id=100.
 //
 // Uses the shared buildE2EFixture(t, tier) helper from e2e_privacy_test.go,
 // which seeds the two required ixlan rows (id=100 Users-gated and id=101
-// Public) via the Phase 64 fixture extension.
+// Public) via the fixture extension.
 //
 // Web UI is skipped with a TODO — UI does not currently render the URL
-// field (Phase 64 RESEARCH.md Finding). Re-enable when/if it does.
+// field. Re-enable when/if it does.
 package main
 
 import (
@@ -60,8 +60,8 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 			t.Fatalf("GET /api/ixlan/%d: status=%d; body=%s", fix.gatedIxLanID, status, body)
 		}
 		row := extractPdbcompatFirst(t, body)
-		assertHasKey(t, row, "ixf_ixp_member_list_url_visible") // D-05
-		assertLacksKey(t, row, "ixf_ixp_member_list_url")       // VIS-09
+		assertHasKey(t, row, "ixf_ixp_member_list_url_visible") // companion always emitted
+		assertLacksKey(t, row, "ixf_ixp_member_list_url")       // gated URL redacted
 	})
 
 	t.Run("pdbcompat/detail/public", func(t *testing.T) {
@@ -144,7 +144,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 			t.Errorf("anon tier received url = %v, want nil", resp.IxLan.IxfIxpMemberListUrl)
 		}
 		if resp.IxLan.IxfIxpMemberListUrlVisible.GetValue() == "" {
-			t.Error("expected _visible companion to remain populated (D-05)")
+			t.Error("expected _visible companion to remain populated")
 		}
 	})
 
@@ -190,7 +190,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 	})
 
 	// Stream surface: the StreamIxLans Convert closure captures the
-	// handler ctx by reference (Phase 64 adapter); this asserts the
+	// handler ctx by reference via an adapter; this asserts the
 	// captured tier reaches privfield.Redact so the gated URL is blanked
 	// on the streaming path, not just the unary Get/List paths.
 	t.Run("connectrpc/stream", func(t *testing.T) {
@@ -225,7 +225,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 		}
 	})
 
-	// D-03: surface-level fail-closed. Construct the request against the
+	// Surface-level fail-closed. Construct the request against the
 	// raw ConnectRPC handler (no middleware chain), so the ctx reaching
 	// the handler has no tier stamp. privfield.Redact MUST still blank
 	// the URL — if it didn't, a future code path that forgets to route
@@ -265,7 +265,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 			t.Errorf("unstamped ctx leaked url = %v; fail-closed violated", *resp.IxLan.IxfIxpMemberListURL)
 		}
 		if resp.IxLan.IxfIxpMemberListURLVisible == "" {
-			t.Errorf("_visible companion missing; D-05 regression\nbody=%s", rec.Body.String())
+			t.Errorf("_visible companion missing; regression\nbody=%s", rec.Body.String())
 		}
 	})
 
@@ -286,7 +286,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 			t.Errorf("anon tier received URL = %v, want null", got)
 		}
 		if v, _ := node["ixfIxpMemberListURLVisible"].(string); v != "Users" {
-			t.Errorf("_visible = %q, want %q (D-05)", v, "Users")
+			t.Errorf("_visible = %q, want %q", v, "Users")
 		}
 	})
 
@@ -308,12 +308,12 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 
 	// -------------------------------------------------------------------------
 	// Surface 5: Web UI — the UI does not currently render
-	// ixf_ixp_member_list_url. When a future phase adds it to
+	// ixf_ixp_member_list_url. When it is later added to
 	// /ui/ixlan/{id} or a fragment, extend this sub-test to parse the
 	// rendered HTML and assert the URL is NOT present at TierPublic.
 	// -------------------------------------------------------------------------
 	t.Run("webui", func(t *testing.T) {
-		t.Skip("UI does not render ixf_ixp_member_list_url (Phase 64 RESEARCH)")
+		t.Skip("UI does not render ixf_ixp_member_list_url")
 	})
 }
 
@@ -482,7 +482,7 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 	})
 
 	t.Run("webui", func(t *testing.T) {
-		t.Skip("UI does not render ixf_ixp_member_list_url (Phase 64 RESEARCH)")
+		t.Skip("UI does not render ixf_ixp_member_list_url")
 	})
 }
 

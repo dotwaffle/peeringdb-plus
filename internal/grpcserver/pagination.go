@@ -67,17 +67,16 @@ func encodePageToken(offset int) string {
 // streamCursor is the compound keyset cursor used by Stream* RPCs. It carries
 // the full three-key keyset (`updated`, `created`, `id`) so that resume
 // positions stay exact under the `ORDER BY updated DESC, created DESC, id DESC`
-// default order (Phase 67 ORDER-02, CONTEXT.md D-01). A two-key cursor
+// default order. A two-key cursor
 // (updated, id) silently drops rows at a batch boundary whenever an
 // equal-`updated` group is ordered by `created` DESC but resumed on `id`
 // alone — `created` is the middle ORDER BY key and must travel in the cursor.
 //
-// The wire envelope remains the opaque `string page_token` proto field
-// (RESEARCH §G-08); only the base64-encoded body shape changes — no proto
+// The wire envelope remains the opaque `string page_token` proto field;
+// only the base64-encoded body shape changes — no proto
 // regen required. Stream cursors are internal page-through state, not a
 // persisted client contract, so the body format is free to change. Existing
-// offset-based encodePageToken / decodePageToken are retained for List* RPCs
-// per RESEARCH §4 "Note on ListEntities".
+// offset-based encodePageToken / decodePageToken are retained for List* RPCs.
 type streamCursor struct {
 	Updated time.Time
 	Created time.Time
@@ -122,7 +121,7 @@ func encodeStreamCursor(c streamCursor) string {
 // empty token decodes to a zero-value cursor (start of stream). Base64, both
 // timestamps, and the id are all validated; the body must split into exactly
 // three pipe-delimited fields. A negative id is rejected because the id is a
-// positive-monotonic primary-key surrogate (threat T-67-04-01).
+// positive-monotonic primary-key surrogate.
 //
 // Only tokens minted by encodeStreamCursor in the same release are
 // supported; the format is session-local internal state, not a durable

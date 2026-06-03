@@ -1,8 +1,7 @@
 // Package otel — sampler.go provides perRouteSampler, a composite
 // sdktrace.Sampler that dispatches sampling decisions based on the HTTP
 // route prefix read from SamplingParameters.Attributes (url.path /
-// http.target). Per CONTEXT.md D-02 and AUDIT.md § Recommended sampling
-// matrix, used to keep /healthz + /readyz at low ratio while
+// http.target). Used to keep /healthz + /readyz at low ratio while
 // /api/* /rest/v1/* /peeringdb.v1.* stay at full ratio. Wrapped in
 // sdktrace.ParentBased at provider.go so child span decisions inherit
 // from the root.

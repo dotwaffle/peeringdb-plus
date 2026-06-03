@@ -890,10 +890,10 @@ func TestAboutPage_FallbackToLastSuccess(t *testing.T) {
 	}
 }
 
-// TestHandleAbout_PrivacySync asserts the Phase 61 OBS-02 Privacy & Sync
+// TestHandleAbout_PrivacySync asserts the Privacy & Sync
 // section renders the right values for each (auth mode, public tier) combo,
 // and that the amber "Override active" badge appears iff PublicTier == users.
-// D-04/D-05/D-06 + threat T-61-05 (tampering / badge suppression).
+// Guards against badge suppression (tampering).
 func TestHandleAbout_PrivacySync(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -1277,7 +1277,7 @@ func TestTerminal404JSON(t *testing.T) {
 	if !strings.HasPrefix(ct, "application/json") {
 		t.Errorf("Content-Type = %q, want application/json prefix", ct)
 	}
-	// RFC 9457 Problem Detail format per ARCH-01.
+	// RFC 9457 Problem Detail format.
 	body := rec.Body.String()
 	if !strings.Contains(body, `"type"`) || !strings.Contains(body, `about:blank`) {
 		t.Errorf("JSON 404 body missing RFC 9457 type field: %s", body)
@@ -1530,7 +1530,7 @@ func TestHandleServerError(t *testing.T) {
 	}
 }
 
-// TestParseASN_Boundary verifies SEC-11: parseASN uses strconv.ParseUint with
+// TestParseASN_Boundary verifies parseASN uses strconv.ParseUint with
 // bit size 32, so the parser natively rejects values > 2^32-1 without a
 // manual cap. Covers boundary conditions (0, 1, max 32-bit, overflow) and
 // several "looks numeric but isn't" rejection cases.

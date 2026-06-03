@@ -3,7 +3,7 @@
 // checks database connectivity and sync data freshness before reporting the
 // service as ready to receive traffic.
 //
-// SEC-08: the wire body for both endpoints is a fixed generic shape —
+// The wire body for both endpoints is a fixed generic shape —
 // {"status":"ok"} or {"status":"unhealthy"}. Detailed errors (DB driver
 // messages, sync.Status.ErrorMessage, upstream error paths) are routed to a
 // structured slog.Logger via LogAttrs with component/error/last_sync_at/age

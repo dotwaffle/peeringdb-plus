@@ -11,7 +11,7 @@ import (
 )
 
 // handleAbout renders the about page with live data freshness and the
-// Phase 61 OBS-02 Privacy & Sync section.
+// Privacy & Sync section.
 //
 // Freshness lookup strategy: the about page wants to show "when was the
 // last known-good data?", so we go straight to GetLastSuccessfulStatus

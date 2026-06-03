@@ -1,14 +1,13 @@
 package peeringdb_test
 
-// Phase 64 (VIS-09) JSON-decoder contract test.
+// JSON-decoder contract test for the ixf_ixp_member_list_url field.
 //
 // Proves that once IXFIXPMemberListURL is defined on peeringdb.IxLan with
 // the json tag `ixf_ixp_member_list_url,omitempty`, the stdlib json decoder
-// picks up the upstream field without any client.go change — matches the
-// Phase 64 RESEARCH.md Finding #5 claim.
+// picks up the upstream field without any client.go change.
 //
 // Guards against a future regression where the tag is accidentally stripped
-// or renamed. The Phase 57 auth baseline fixture is canonical.
+// or renamed. The authenticated baseline fixture is canonical.
 
 import (
 	"encoding/json"
