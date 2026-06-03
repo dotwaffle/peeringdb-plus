@@ -236,10 +236,11 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - App serves directly on `:8080` with h2c — does NOT use LiteFS proxy (needed for gRPC/ConnectRPC support).
 
 ### CI
-- 5 jobs on PR + main: lint, test (`-race`), build, govulncheck, Docker build (dev + prod).
-- **Generated code drift check**: CI runs `go generate ./...` then fails if `ent/`, `gen/`, `graph/`, `internal/web/templates/` differ from committed files.
+- 2 jobs on PR + main: `ci` (one cached Go job running, in order: generated-code drift check, `go build`, race tests with coverage comment, golangci-lint, advisory govulncheck) and `docker-build` (dev + prod images, separate BuildKit `type=gha` cache). The four formerly-parallel Go jobs were collapsed so the module download + compile warm once.
+- **Generated code drift check**: first step of the `ci` job — runs `go generate ./...` then fails if `ent/`, `gen/`, `graph/`, `internal/web/templates/` differ from committed files.
 - Coverage excludes `ent/` and `gen/` (generated code).
-- Linters: contextcheck, exhaustive, gocritic, gosec, misspell, nolintlint, revive (see `.golangci.yml`).
+- govulncheck is advisory (`continue-on-error`): a flagged vuln warns but does not block merge.
+- Linters: contextcheck, exhaustive, gocritic, gosec, misspell, modernize, nolintlint, revive (see `.golangci.yml`).
 
 ### Go Module
 - `GONOSUMCHECK=* GONOSUMDB=*` may be needed for `go mod tidy` / `go get` when sumdb is read-only.

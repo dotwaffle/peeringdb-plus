@@ -414,7 +414,7 @@ In addition, the CI test step builds its `-coverpkg` list by excluding `ent/` an
 denominator:
 
 ```bash
-# .github/workflows/ci.yml (test job)
+# .github/workflows/ci.yml (the race-test step of the `ci` job)
 COVERPKG=$(go list ./... | grep -vE '/ent(/|$)|/gen(/|$)' | tr '\n' ',' | sed 's/,$//')
 CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...
 ```
@@ -423,17 +423,18 @@ The `k1LoW/octocov-action` CI step posts the coverage summary as a PR comment.
 
 ## CI Integration
 
-The `.github/workflows/ci.yml` workflow runs five jobs on every pull request and every push to
-`main`:
+The `.github/workflows/ci.yml` workflow runs two jobs on every pull request and every push to
+`main`. The `ci` job is a single cached Go job whose steps run in order, each reusing the prior
+compile; `docker-build` runs in parallel:
 
-| Job | Step | Command |
+| Job | Step (in order) | Command |
 |-----|------|---------|
-| `lint` | Lint | `golangci-lint run` |
-| `lint` | Generated code drift check | `go generate ./...` then `git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/` |
-| `test` | Tests with race detector + coverage | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...` |
-| `build` | Compile check | `go build ./...` |
-| `govulncheck` | Vulnerability scan | `govulncheck ./...` |
+| `ci` | Generated code drift check | `go generate ./...` then `git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/` |
+| `ci` | Compile check | `go build ./...` |
+| `ci` | Tests with race detector + coverage | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...` |
+| `ci` | Lint | `golangci-lint run` |
+| `ci` | Vulnerability scan (advisory, `continue-on-error`) | `govulncheck ./...` |
 | `docker-build` | Dev and prod image builds | `docker build` using `./Dockerfile` and `./Dockerfile.prod` |
 
 Any test failure, race detection, coverage file write failure, or generated-code drift fails the
-workflow.
+workflow. `govulncheck` is advisory: a flagged vulnerability warns but does not block the merge.

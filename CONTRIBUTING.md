@@ -82,19 +82,18 @@ This regenerates `ent/`, `gen/`, `graph/`, and `internal/web/templates/*_templ.g
 
 ## Required CI Checks
 
-Every pull request runs the following jobs (defined in `.github/workflows/ci.yml`):
+Every pull request runs two jobs (defined in `.github/workflows/ci.yml`). The `ci` job is a single cached Go job whose steps run in order; `docker-build` runs in parallel:
 
 | Job | What it runs |
 |---|---|
-| **Lint** | `golangci-lint` + generated-code drift check |
-| **Test** | `go test -race -coverprofile=coverage.out ./...` with coverage comment |
-| **Build** | `go build ./...` |
-| **Govulncheck** | `govulncheck ./...` |
-| **Docker Build** | Builds both `Dockerfile` (dev) and `Dockerfile.prod` (prod) images |
+| **`ci`** | In order: generated-code drift check → `go build ./...` → `go test -race -coverprofile=coverage.out ./...` (with coverage comment) → `golangci-lint` → advisory `govulncheck ./...` |
+| **`docker-build`** | Builds both `Dockerfile` (dev) and `Dockerfile.prod` (prod) images |
+
+`govulncheck` runs with `continue-on-error`: a flagged vulnerability surfaces as a workflow warning but does **not** block the merge. The four formerly-parallel Go jobs (lint / test / build / govulncheck) were collapsed into `ci` so the module download and compile warm once and are reused.
 
 ### Generated Code Drift Check
 
-The lint job runs `go generate ./...` and then `git diff --exit-code` across `ent/`, `gen/`, `graph/`, and `internal/web/templates/`. If any generated file differs from what's committed, the build fails with:
+The `ci` job's first real step runs `go generate ./...` and then `git diff --exit-code` across `ent/`, `gen/`, `graph/`, and `internal/web/templates/` — ahead of `go build` so a forgotten regeneration fails in seconds. If any generated file differs from what's committed, the build fails with:
 
 > Generated code is out of date. Run 'go generate ./...' and commit the changes.
 
@@ -102,7 +101,7 @@ Always commit generated output alongside the source changes that produced it (sc
 
 ### Lint Configuration
 
-See `.golangci.yml` for the enabled linters. Notable ones: `contextcheck`, `exhaustive`, `gocritic`, `gosec`, `misspell`, `nolintlint`, `revive`. Coverage excludes `ent/` and `gen/` (generated).
+See `.golangci.yml` for the enabled linters. Notable ones: `contextcheck`, `exhaustive`, `gocritic`, `gosec`, `misspell`, `modernize`, `nolintlint`, `revive`. Coverage excludes `ent/` and `gen/` (generated).
 
 ## Contributor Gotchas
 

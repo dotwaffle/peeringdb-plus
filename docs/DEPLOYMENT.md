@@ -43,19 +43,30 @@ Both images use `cgr.dev/chainguard/go` as the build stage and
 ## Build pipeline
 
 GitHub Actions workflow `.github/workflows/ci.yml` runs on every pull request
-and on pushes to `main`. It comprises five jobs:
+and on pushes to `main`. It comprises two jobs:
 
-1. **Lint** — `golangci-lint` plus a generated-code drift check that runs
-   `go generate ./...` and fails if `ent/`, `gen/`, `graph/`, or
-   `internal/web/templates/` differ from committed files.
-2. **Test** — `CGO_ENABLED=1 go test -race -coverprofile=coverage.out` with
-   coverage excluding `ent/` and `gen/`. Posts a coverage comment via
-   `k1LoW/octocov-action`.
-3. **Build** — `go build ./...` to confirm compilation.
-4. **Govulncheck** — installs and runs `govulncheck ./...`.
-5. **Docker Build** — builds both `Dockerfile` and `Dockerfile.prod` using
-   `docker/build-push-action@v7` with GitHub Actions cache. Images are built
-   but **not pushed** from CI.
+1. **`ci`** — a single Go job that warms one manually-managed module/build
+   cache, then runs these steps in order, each reusing the prior compile:
+   1. **Generated-code drift check** — `go generate ./...` then
+      `git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/`. Runs
+      first so a forgotten regeneration fails in seconds, ahead of the
+      expensive build and test steps.
+   2. **Build** — `go build ./...` to confirm compilation and warm the cache.
+   3. **Test** — `CGO_ENABLED=1 go test -race -coverprofile=coverage.out` with
+      coverage excluding `ent/` and `gen/`; posts a coverage comment via
+      `k1LoW/octocov-action`.
+   4. **Lint** — `golangci-lint run`.
+   5. **Govulncheck** — installs and runs `govulncheck ./...`. Advisory
+      (`continue-on-error`): a flagged vulnerability surfaces as a workflow
+      warning but does **not** block the merge.
+2. **`docker-build`** — a separate parallel job that builds both `Dockerfile`
+   and `Dockerfile.prod` using `docker/build-push-action@v7` with BuildKit's
+   `type=gha` cache. Images are built but **not pushed** from CI.
+
+The four formerly-parallel Go jobs (lint / test / build / govulncheck) were
+collapsed into the single `ci` job so the module download and compile warm
+once and are reused; `docker-build` stays separate because its BuildKit cache
+is independent of the Go build cache.
 
 There is no automated deploy step. Deployment to Fly.io is a manual action
 run from a developer workstation, as documented in `fly.toml`.

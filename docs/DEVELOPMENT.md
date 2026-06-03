@@ -573,7 +573,7 @@ To add a new parity test:
 - **`golangci-lint run`** uses `.golangci.yml`:
   - Default linter set: `standard`.
   - Additionally enabled: `contextcheck`, `exhaustive`, `gocritic`, `gosec`,
-    `misspell`, `nolintlint`, `revive`.
+    `misspell`, `modernize`, `nolintlint`, `revive`.
   - Generated code is excluded via `exclusions.generated: strict`.
   - `_test.go` files and the schema-generation/compat-check binaries
     (`cmd/pdb-schema-extract`, `cmd/pdb-schema-generate`,
@@ -604,9 +604,10 @@ convention is documented in the repo; match existing patterns in
    `internal/web/templates/*_templ.go`, `internal/pdbcompat/allowlist_gen.go`)
    alongside the changes that produced them. CI will fail on
    generated-code drift otherwise.
-3. Open a PR against `main`. CI runs five jobs: `lint` (includes the drift
-   check), `test` (with `-race` and coverage comment), `build`, `govulncheck`,
-   and `docker-build` (both `Dockerfile` and `Dockerfile.prod`).
+3. Open a PR against `main`. CI runs two jobs: `ci` — a single cached Go job
+   that runs, in order, the generated-code drift check, `go build`, race tests
+   with a coverage comment, `golangci-lint`, and advisory `govulncheck` — and
+   `docker-build`, which builds both `Dockerfile` and `Dockerfile.prod`.
 4. Coverage excludes `ent/` and `gen/` (generated code). Aim to keep coverage
    on new hand-written code.
 
@@ -626,9 +627,10 @@ convention is documented in the repo; match existing patterns in
   `.primary` file **absent** = this node is primary (inverted semantics). For
   local dev without LiteFS, `PDBPLUS_IS_PRIMARY=true` is the default.
 - **Generated code drift in CI:** run `go generate ./...` locally and commit
-  the resulting diff. The drift check compares `ent/`, `gen/`, `graph/`,
-  `internal/pdbcompat/allowlist_gen.go`, and `internal/web/templates/`
-  against HEAD.
+  the resulting diff. The drift check compares `ent/`, `gen/`, `graph/`, and
+  `internal/web/templates/` against the working tree. (`internal/pdbcompat/allowlist_gen.go`
+  is regenerated too but lives outside the diffed paths, so commit it alongside
+  schema changes — CI will not catch its drift on its own.)
 - **Schema hand-edits keep disappearing:** you almost certainly added them
   to the generated `ent/schema/{type}.go` file. Move the methods to a
   sibling file `ent/schema/{type}_{method}.go`. See "Sibling-file
