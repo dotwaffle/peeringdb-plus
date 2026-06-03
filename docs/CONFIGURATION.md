@@ -231,12 +231,15 @@ Validation errors (which do abort startup) are produced for:
 | `PDBPLUS_LISTEN_ADDR` | Contains `:` | `PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')` |
 | `PDBPLUS_PEERINGDB_URL` | Non-empty; `https://` always allowed; `http://` only to loopback or RFC 1918; scheme must be set; host must be set | Multiple messages, one per rejection class (empty, missing scheme, unsupported scheme, empty host, non-local `http://`). |
 | `PDBPLUS_DRAIN_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_DRAIN_TIMEOUT must be greater than 0` |
+| `PDBPLUS_SYNC_STALE_THRESHOLD` | `> 0` after duration parse | `PDBPLUS_SYNC_STALE_THRESHOLD must be greater than 0` |
 | `PDBPLUS_PUBLIC_TIER` | Case-sensitive lowercase `public` or `users` only; any other value (including `Users`, `PUBLIC`, whitespace-padded forms) rejected | `invalid value %q for PDBPLUS_PUBLIC_TIER: must be 'public' or 'users'` |
 | `PDBPLUS_SYNC_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
 | `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_RESPONSE_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
 | `PDBPLUS_HEAP_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `400MB` rejected | `PDBPLUS_HEAP_WARN_MIB must be non-negative (0 = disabled)`, plus parse-level messages. |
 | `PDBPLUS_RSS_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `384MB` rejected | `PDBPLUS_RSS_WARN_MIB must be non-negative (0 = disabled)`, plus parse-level messages. |
 | `PDBPLUS_SYNC_MODE` | Must be `full` or `incremental` | `invalid sync mode %q for PDBPLUS_SYNC_MODE: must be 'full' or 'incremental'` |
+| `PDBPLUS_PEERINGDB_RPS` | `> 0` after float parse | `PDBPLUS_PEERINGDB_RPS must be greater than 0` |
+| `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` | `≥ 0` (bare non-negative integer; `0` disables backfill) | `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE must be non-negative (0 = disabled)` |
 
 `PDBPLUS_LOG_LEVEL` is **not** in this table by design — invalid values fall
 back to `INFO` rather than aborting startup, because a malformed log-level
