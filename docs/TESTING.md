@@ -17,7 +17,7 @@ Key test locations:
 | Shared ent client helper | `internal/testutil/testutil.go` | `SetupClient`, `SetupClientWithDB` |
 | Seed fixtures for ent | `internal/testutil/seed/seed.go` | `Full(tb, client)` — all 13 entity types |
 | PeeringDB API fixtures | `testdata/fixtures/` | 13 JSON files, one per object type |
-| Golden files (pdbcompat) | `internal/pdbcompat/testdata/golden/` | Per-type `list.json`, `detail.json` |
+| Golden files (pdbcompat) | `internal/pdbcompat/testdata/golden/` | Per-type `list.json`, `detail.json`, `depth.json` |
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
 | Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
@@ -262,7 +262,9 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
   non-parity outcomes. Each such test must have a matching row in `docs/API.md § Known
   Divergences` cross-referencing it.
 - **TB widening**: parity helpers accept `testing.TB` (not `*testing.T`) so the same code paths
-  run under benchmarks. Applied across the 9 helper functions.
+  run under benchmarks. Applied across the 6 helper functions in `harness_helpers_test.go`
+  (`newTestServer`, `newTestServerWithBudget`, `httpGet`, `decodeDataArray`, `extractIDs`,
+  `mustDecodeProblem`).
 
 ### Benchmarks
 
@@ -388,9 +390,11 @@ finishes, ensuring goroutines started by handlers or workers do not leak between
 - Benchmarks: `BenchmarkFoo`.
 - Fuzz tests: `FuzzFoo`.
 - Live tests: `TestFooLive` in a `*_live_test.go` file, gated by the `-peeringdb-live` flag.
-- Parity tests: `TestParity_<Category>` with sub-tests prefixed by category
-  (`ORDER_*`, `STATUS_*`, `LIMIT_*`, `UNICODE_*`, `IN_*`, `TRAVERSAL_*`); intentional
-  non-parity uses `DIVERGENCE_<...>`.
+- Parity tests: a `TestParity_<Category>` entry function per category
+  (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`, `TestParity_Unicode`,
+  `TestParity_In`, `TestParity_Traversal`), each with descriptive snake_case `t.Run` sub-tests
+  (e.g. `default_list_order_updated_desc`); intentional non-parity sub-tests carry a `DIVERGENCE`
+  marker in the name (e.g. `depth_on_list_silently_dropped_DIVERGENCE`).
 
 ## Coverage
 
