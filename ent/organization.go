@@ -21,11 +21,11 @@ type Organization struct {
 	// PeeringDB organization ID
 	ID int `json:"id,omitempty"`
 	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameFold string `json:"name_fold"`
+	NameFold string `json:"-"`
 	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	AkaFold string `json:"aka_fold"`
+	AkaFold string `json:"-"`
 	// Unicode-folded form of city for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	CityFold string `json:"city_fold"`
+	CityFold string `json:"-"`
 	// Address line 1
 	Address1 string `json:"address1"`
 	// Address line 2

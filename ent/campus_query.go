@@ -338,7 +338,7 @@ func (_q *CampusQuery) WithOrganization(opts ...func(*OrganizationQuery)) *Campu
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -361,7 +361,7 @@ func (_q *CampusQuery) GroupBy(field string, fields ...string) *CampusGroupBy {
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //	}
 //
 //	client.Campus.Query().

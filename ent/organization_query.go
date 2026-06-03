@@ -450,7 +450,7 @@ func (_q *OrganizationQuery) WithNetworks(opts ...func(*NetworkQuery)) *Organiza
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -473,7 +473,7 @@ func (_q *OrganizationQuery) GroupBy(field string, fields ...string) *Organizati
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //	}
 //
 //	client.Organization.Query().
