@@ -338,7 +338,7 @@ func (_q *CarrierQuery) WithOrganization(opts ...func(*OrganizationQuery)) *Carr
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -361,7 +361,7 @@ func (_q *CarrierQuery) GroupBy(field string, fields ...string) *CarrierGroupBy 
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //	}
 //
 //	client.Carrier.Query().

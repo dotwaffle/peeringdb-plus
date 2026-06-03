@@ -22,11 +22,11 @@ type Network struct {
 	// PeeringDB network ID
 	ID int `json:"id,omitempty"`
 	// Unicode-folded form of name for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameFold string `json:"name_fold"`
+	NameFold string `json:"-"`
 	// Unicode-folded form of aka for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	AkaFold string `json:"aka_fold"`
+	AkaFold string `json:"-"`
 	// Unicode-folded form of name_long for pdbcompat diacritic-insensitive matching (Phase 69 UNICODE-01; populated by internal/sync.upsert via internal/unifold.Fold)
-	NameLongFold string `json:"name_long_fold"`
+	NameLongFold string `json:"-"`
 	// FK to organization
 	OrgID *int `json:"org_id"`
 	// Also known as

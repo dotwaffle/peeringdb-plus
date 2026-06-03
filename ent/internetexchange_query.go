@@ -375,7 +375,7 @@ func (_q *InternetExchangeQuery) WithOrganization(opts ...func(*OrganizationQuer
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -398,7 +398,7 @@ func (_q *InternetExchangeQuery) GroupBy(field string, fields ...string) *Intern
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //	}
 //
 //	client.InternetExchange.Query().

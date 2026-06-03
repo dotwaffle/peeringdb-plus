@@ -412,7 +412,7 @@ func (_q *NetworkQuery) WithPocs(opts ...func(*PocQuery)) *NetworkQuery {
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -435,7 +435,7 @@ func (_q *NetworkQuery) GroupBy(field string, fields ...string) *NetworkGroupBy 
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //	}
 //
 //	client.Network.Query().

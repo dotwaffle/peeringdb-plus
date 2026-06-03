@@ -448,7 +448,7 @@ func (_q *FacilityQuery) WithOrganization(opts ...func(*OrganizationQuery)) *Fac
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
@@ -471,7 +471,7 @@ func (_q *FacilityQuery) GroupBy(field string, fields ...string) *FacilityGroupB
 // Example:
 //
 //	var v []struct {
-//		NameFold string `json:"name_fold"`
+//		NameFold string `json:"-"`
 //	}
 //
 //	client.Facility.Query().

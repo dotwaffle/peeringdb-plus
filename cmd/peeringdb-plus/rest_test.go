@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -660,6 +661,78 @@ func TestREST_EagerLoad(t *testing.T) {
 	}
 	if len(networksArr) != 3 {
 		t.Fatalf("expected 3 eager-loaded networks, got %d", len(networksArr))
+	}
+}
+
+// foldKeysIn recursively collects every map key ending in "_fold" anywhere in
+// a decoded JSON value (top-level objects, arrays, and nested edge objects).
+func foldKeysIn(v any) []string {
+	var out []string
+	switch t := v.(type) {
+	case map[string]any:
+		for k, val := range t {
+			if strings.HasSuffix(k, "_fold") {
+				out = append(out, k)
+			}
+			out = append(out, foldKeysIn(val)...)
+		}
+	case []any:
+		for _, e := range t {
+			out = append(out, foldKeysIn(e)...)
+		}
+	}
+	return out
+}
+
+// TestREST_NoFoldColumns is the regression lock for the Phase-69 `_fold`
+// shadow columns leaking onto the REST wire. entrest serialises the raw ent
+// model with encoding/json (ent/rest/server.go Encode), so entrest.WithSkip
+// alone did NOT keep the columns off /rest/v1/* — the model's json tag does.
+// The fold fields now carry json:"-" (ent/schema/fold_mixin.go); this asserts
+// that no key ending in "_fold" appears anywhere (list, detail, or nested
+// edges) for the six folded entity types. Reverting the StructTag re-adds the
+// keys (e.g. "name_fold") and fails this test. pdbcompat and GraphQL have
+// their own omission paths and are out of scope here.
+func TestREST_NoFoldColumns(t *testing.T) {
+	t.Parallel()
+	ts := restTestServer(t)
+
+	// Endpoints whose entities carry _fold shadow columns (Phase 69):
+	// organization, network, facility, internetexchange, carrier, campus.
+	endpoints := []string{
+		"/organizations", "/networks", "/facilities",
+		"/internet-exchanges", "/carriers", "/campuses",
+	}
+
+	getJSON := func(t *testing.T, path string) any {
+		t.Helper()
+		resp, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatalf("GET %s: %v", path, err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("GET %s status = %d, want 200", path, resp.StatusCode)
+		}
+		var body any
+		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+			t.Fatalf("decode %s: %v", path, err)
+		}
+		return body
+	}
+
+	for _, ep := range endpoints {
+		t.Run(ep, func(t *testing.T) {
+			t.Parallel()
+			// List surface (the collection envelope + content[]).
+			if leaked := foldKeysIn(getJSON(t, ep)); len(leaked) > 0 {
+				t.Errorf("list %s leaked shadow columns %v (fold fields must be json:\"-\")", ep, leaked)
+			}
+			// Detail surface (single entity + eager-loaded edges).
+			if leaked := foldKeysIn(getJSON(t, ep+"/1")); len(leaked) > 0 {
+				t.Errorf("detail %s/1 leaked shadow columns %v (fold fields must be json:\"-\")", ep, leaked)
+			}
+		})
 	}
 }
 
