@@ -159,7 +159,7 @@ proto/
     common.proto          # Hand-written shared types (e.g., SocialMedia)
 schema/
   peeringdb.json          # Intermediate PeeringDB schema used by pdb-schema-generate
-  generate.go             # go:generate directive for schema regeneration
+  generate.go             # package doc for extraction (schema regen runs from ent/generate.go)
 internal/
   config/                 # Env-var config loading, validation, fail-fast
   database/               # SQLite open + ent client setup (WAL, FKs, busy timeout)
@@ -179,7 +179,7 @@ internal/
   health/                 # /healthz and /readyz probes
   httperr/                # RFC 9457 Problem Details responses
   conformance/            # API-surface conformance tests
-  testutil/               # Test helpers + deterministic seed data + parity fixtures
+  testutil/               # Test helpers + deterministic seed data (seed/)
 testdata/
   fixtures/               # 13 JSON files matching PeeringDB API response shapes
 deploy/                   # Deployment-adjacent assets (Grafana dashboards, alerts)
@@ -551,7 +551,7 @@ LHR, `shared-cpu-2x`/512 MB, persistent `litefs_data` volume) and
 `replica` (7 machines, other regions, `shared-cpu-1x`/256 MB,
 ephemeral rootfs). The process-group split reinforces but does not
 replace the region-gated LiteFS candidacy: `litefs.yml`'s
-`lease.candidate: ${FLY_REGION == PRIMARY_REGION}` <!-- VERIFY: litefs.yml `lease.candidate` expression --> remains the sole
+`lease.candidate: ${FLY_REGION == PRIMARY_REGION}` remains the sole
 source of truth for "which machine may become primary". The process
 groups exist to scope `[[vm]]` sizing and `[[mounts]]` to the
 primary-only tier (per `fly.toml`'s `[[mounts]] processes = ["primary"]`
@@ -574,8 +574,11 @@ to select exporters (OTLP, stdout, none):
   traces drop to 1% to defend against opportunistic scanners (incident 2026-05-02). Sync-worker
   and other non-HTTP spans hit the same 1% deny-by-default floor. Spans are created automatically
   by `otelhttp` middleware for HTTP requests, by `otelconnect.NewInterceptor` for ConnectRPC RPCs,
-  and by the sync worker for sync cycles. Ent schema hooks (`ent/runtime` imported for side
-  effects in `cmd/peeringdb-plus/main.go`) emit mutation spans for every ent write.
+  and by the sync worker for sync cycles. There is no per-mutation tracing: the per-Op
+  `otelMutationHook` was removed in v1.18.6 (it created one span per ent mutation, blowing past
+  Tempo's per-trace cap during large catch-up cycles), and every schema's `Hooks()` now returns
+  `nil`. Per-cycle and per-type sync spans (`sync-fetch-<type>` / `sync-upsert-<type>`) provide
+  the coarser-grained signal instead.
 
 ### Sampling Matrix
 
@@ -604,9 +607,10 @@ alphanumeric character (e.g. `/api`) require `/` after them; prefixes that end i
 alphanumeric character (e.g. `/peeringdb.v1.` or `/static/`) accept any next character —
 needed for ConnectRPC's dot-terminated package prefixes.
 
-`OTEL_BSP_SCHEDULE_DELAY=5s` and `OTEL_BSP_MAX_EXPORT_BATCH_SIZE=512` are
-hardcoded in `internal/otel/provider.go` and confirmed appropriate for current cardinality per
-the telemetry audit.
+Span batching uses the OTel SDK batch-processor defaults (5s schedule delay, 512 max export
+batch size): `internal/otel/provider.go` calls `sdktrace.WithBatcher(spanExporter)` without
+overriding either, so both remain operator-tunable via the standard `OTEL_BSP_SCHEDULE_DELAY` /
+`OTEL_BSP_MAX_EXPORT_BATCH_SIZE` autoexport env vars.
 
 - **`MeterProvider`** — Exposes standard `http.server.*` metrics (from otelhttp) and custom sync
   metrics registered in `internal/otel/metrics.go` (`InitMetrics`):
@@ -641,7 +645,7 @@ the telemetry audit.
   | `FLY_REGION` | `cloud.region` | `semconv.CloudRegion` | yes | yes |
   | `FLY_PROCESS_GROUP` | `service.namespace` | `semconv.ServiceNamespace` | yes | yes |
   | `FLY_MACHINE_ID` | `service.instance.id` | `semconv.ServiceInstanceID` | NO (per-VM cardinality) | yes |
-  | `FLY_APP_NAME` | `fly.app_name` | (custom) | dropped by GC <!-- VERIFY: Grafana Cloud allowlist behaviour --> | yes (human grep) |
+  | `FLY_APP_NAME` | `fly.app_name` | (custom) | dropped by GC | yes (human grep) |
   | (constant) | `cloud.provider="fly_io"` | `semconv.CloudProviderKey` | yes | yes |
   | (constant) | `cloud.platform="fly_io_apps"` | `semconv.CloudPlatformKey` | yes | yes |
 
@@ -779,7 +783,7 @@ production. Full table lives in `internal/pdbcompat/rowsize.go`.
   MiB at render time via the "bytes" field unit.
 - **Grafana** — panel id 36 "Response Heap Delta — p50/p95/p99 by
   endpoint" at the bottom of the sustained-heap watch row in
-  `deploy/grafana/dashboards/pdbplus-overview.json`. <!-- VERIFY: Grafana panel id 36 still present in deployed dashboard -->
+  `deploy/grafana/dashboards/pdbplus-overview.json`.
   Companion to the v1.15 sync-cycle peak heap/RSS panels; two
   visual tiers now read "per-cycle peaks" (top) and "per-request
   deltas" (bottom).
@@ -817,8 +821,8 @@ Adding a new entity type requires:
    `applyStatusMatrix` and `EmptyResult` invariants; never
    let the two closures diverge).
 3. New row in the per-entity sizing table above.
-4. Extend `cmd/peeringdb-plus/…_e2e_test.go` with an under-budget
-   smoke case and an over-budget 413 assertion mirroring
+4. Extend `internal/pdbcompat/stream_integration_test.go` with an
+   under-budget smoke case and an over-budget 413 assertion mirroring
    `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
 
 See `internal/pdbcompat/stream.go`, `rowsize.go`, `budget.go`, and
