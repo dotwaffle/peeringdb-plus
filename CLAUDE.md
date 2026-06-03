@@ -2,7 +2,7 @@
 
 **PeeringDB Plus**
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data. It syncs all PeeringDB objects via full re-fetch on a regular schedule (hourly or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and presents the data through modern API surfaces: GraphQL, gRPC, and OpenAPI-compliant REST. Built in Go using entgo as the ORM.
+A high-performance, globally distributed, read-only mirror of PeeringDB data. It syncs PeeringDB objects incrementally by default (full re-fetch is an operator escape-hatch) on a regular schedule (default 1h, 15m when authenticated, or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and presents the data through modern API surfaces: GraphQL, gRPC, and OpenAPI-compliant REST. Built in Go using entgo as the ORM.
 
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 

@@ -35,7 +35,7 @@ This file provides instructional context for the `peeringdb-plus` project to fac
 
 ## Development Conventions
 - **Configuration:** All configuration is via environment variables (prefixed `PDBPLUS_`).
-- **Syncing:** Syncs automatically (default: hourly, `PDBPLUS_SYNC_INTERVAL`).
+- **Syncing:** Syncs automatically. Mode defaults to incremental (`PDBPLUS_SYNC_MODE`; `full` is the operator escape-hatch). Interval defaults to 1h unauthenticated, 15m when `PDBPLUS_PEERINGDB_API_KEY` is set (`PDBPLUS_SYNC_INTERVAL`).
 - **Codegen:** Uses `ent`, `templ`, `gqlgen`, and `protobuf`. `go generate` is essential after schema or proto changes.
 - **Minimal Dependencies:** Built for container efficiency; prefers pure Go implementations.
 
