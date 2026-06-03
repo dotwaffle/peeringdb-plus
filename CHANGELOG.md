@@ -10,6 +10,17 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+### Removed
+
+- **Ported parity-fixture pipeline (`internal/testutil/parity` +
+  `cmd/pdb-fixture-port`).** The ~55k lines of generated fixture data
+  carried unseedable Python-source artefacts and were consumed by no
+  behavioural test, and the `--check` drift command was wired into
+  neither CI nor the `go generate` drift gate. The
+  `internal/pdbcompat/parity` regression suite is unaffected: each test
+  already seeds clean rows inline via the ent client and cites the
+  upstream `pdb_api_test.py` source line in a comment.
+
 ### Added
 
 - **Per-entity status×since matrix regression test** covering all 13

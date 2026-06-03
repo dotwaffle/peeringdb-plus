@@ -692,8 +692,7 @@ the v1.16 audit (Phases 67-72) and one (`org_flags`) from the
 2026-05-30 audit — each with a pinned `peeringdb/peeringdb@<sha>`
 reference so the authoritative upstream source can be re-read without
 re-research. All 6 were confirmed against commit
-`peeringdb/peeringdb@99e92c726172ead7d224ce34c344eff0bccb3e63` (the
-same SHA pinned in `internal/testutil/parity/fixtures.go`).
+`peeringdb/peeringdb@99e92c726172ead7d224ce34c344eff0bccb3e63`.
 
 | Claim | Verdict | Upstream truth | Our implementation |
 |-------|---------|----------------|--------------------|
@@ -704,9 +703,8 @@ same SHA pinned in `internal/testutil/parity/fixtures.go`).
 | Filter surface is a DRF `filterset_class` per ViewSet | **WRONG** | Filter surface is a per-serializer `prepare_query(...)` method plus an auto-`queryable_relations()` mechanism with a `FILTER_EXCLUDE` denylist. See `peeringdb/peeringdb@99e92c726172ead7d224ce34c344eff0bccb3e63:src/peeringdb_server/serializers.py:754-780` (`queryable_relations()`) and `:128-157` (`FILTER_EXCLUDE`). No `django_filters.FilterSet` subclass exists anywhere in the upstream codebase. | Phase 70 Path A = `pdbcompat.WithPrepareQueryAllow` ent-schema annotations → `allowlist_gen.go` `Allowlists` map (13 entries verbatim from upstream); Path B = ent edge introspection via the generated `Edges` map. The Phase 70 D-03 `WithFilterExcludeFromTraversal` edge annotation mirrors upstream's `FILTER_EXCLUDE` — currently empty across all 13 schemas (every FK edge exposed in v1.16). Parity-locked by `TestParity_Traversal/TRAVERSAL-01_path_a_1hop_org_name` and `TRAVERSAL-03_path_b_1hop_org_city`. |
 | `org_flags` is a valid filter param on `/api/org` | **WRONG** | No `org_flags` (or `flags`) filter key or column exists upstream. Grepping `peeringdb/peeringdb@99e92c726172ead7d224ce34c344eff0bccb3e63:src/peeringdb_server/{rest.py,serializers.py,models.py}` returns zero matches, and the `django-peeringdb` Organization model has no `flags` field — `OrganizationSerializer.prepare_query` exposes no such key. This is not a real upstream parameter. | Filter key silently ignored via the TRAVERSAL-04 silent-ignore mechanism (Phase 70 D-04) — response unfiltered, `pdbplus.filter.unknown_fields` records the dropped key. NOT a § Known Divergences entry: there is no upstream behaviour to diverge from. Covered by the generic `TestParity_Traversal/TRAVERSAL-04_unknown_field_silently_ignored_with_otel_attr`. |
 
-Quarterly re-validation against upstream (manually or via
-`cmd/pdb-fixture-port/ --check`) is advisory only per Phase 72
-CONTEXT.md D-03 — a drift alert does not block merges. Drift that
+Quarterly re-validation against upstream is a manual review against
+the pinned commit above — it does not block merges. Drift that
 invalidates a Validation Note row should be surfaced as a GitHub
 issue and reviewed against the parity test suite; if upstream has
 changed semantics, update the row here and flip or retain the
