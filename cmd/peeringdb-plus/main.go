@@ -31,7 +31,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
-	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register schema hooks (OTel mutation tracing)
+	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register ent schema runtime config (field defaults/validators, privacy policy)
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/graph"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
