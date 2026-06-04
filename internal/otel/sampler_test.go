@@ -66,6 +66,46 @@ func TestPerRouteSampler_APIDispatchedToFullRatio(t *testing.T) {
 	}
 }
 
+// TestPerRouteSampler_SyncTraceGating locks the sync-trace gates: a sync-origin
+// span is dropped by default (scheduled cycles emit no trace), force_sample
+// always samples (manual POST /sync), and force wins over origin. allOnes
+// TraceID makes the assertions deterministic against the route/default ratios.
+func TestPerRouteSampler_SyncTraceGating(t *testing.T) {
+	t.Parallel()
+
+	// DefaultRatio 1.0 would otherwise admit allOnes — proves the gate
+	// overrides route/default for sync-origin spans.
+	s := NewPerRouteSampler(PerRouteSamplerInput{
+		DefaultRatio: 1.0,
+		Routes:       map[string]float64{"/api/": 1.0},
+	})
+
+	if res := s.ShouldSample(sampleParams(allOnesTraceID,
+		attribute.String(AttrSyncOrigin, SyncOriginValue))); res.Decision != sdktrace.Drop {
+		t.Errorf("origin=sync (no force): got %v, want Drop", res.Decision)
+	}
+
+	// force_sample always samples — here against a 0-ratio default that would
+	// otherwise drop the all-ones TraceID.
+	s0 := NewPerRouteSampler(PerRouteSamplerInput{DefaultRatio: 0.0})
+	if res := s0.ShouldSample(sampleParams(allOnesTraceID,
+		attribute.Bool(AttrForceSample, true))); res.Decision != sdktrace.RecordAndSample {
+		t.Errorf("force_sample: got %v, want RecordAndSample", res.Decision)
+	}
+
+	if res := s.ShouldSample(sampleParams(allOnesTraceID,
+		attribute.String(AttrSyncOrigin, SyncOriginValue),
+		attribute.Bool(AttrForceSample, true))); res.Decision != sdktrace.RecordAndSample {
+		t.Errorf("force_sample + origin=sync: got %v, want RecordAndSample (force wins)", res.Decision)
+	}
+
+	// No sync markers: ordinary per-route logic still applies.
+	if res := s.ShouldSample(sampleParams(allOnesTraceID,
+		attribute.String("url.path", "/api/net"))); res.Decision != sdktrace.RecordAndSample {
+		t.Errorf("no markers, /api/ at 1.0: got %v, want RecordAndSample", res.Decision)
+	}
+}
+
 func TestPerRouteSampler_RestV1PrefixMatch(t *testing.T) {
 	t.Parallel()
 

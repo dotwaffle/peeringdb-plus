@@ -127,7 +127,7 @@ func main() {
 	}
 
 	// Open database.
-	entClient, db, err := database.Open(cfg.DBPath)
+	entClient, db, err := database.Open(cfg.DBPath, cfg.OTelSQL)
 	if err != nil {
 		logger.Error("failed to open database", slog.Any("error", err))
 		os.Exit(1)
@@ -1202,7 +1202,16 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 		}
 		// Use application root ctx, NOT r.Context() -- request context
 		// is cancelled when the response is sent, which would kill the sync.
-		go in.SyncFn(appCtx, mode)
+		//
+		// A manually-triggered sync is traced by default (you asked for it,
+		// you want to see it); ?trace=0 opts out. Scheduled timer syncs are
+		// never traced (see internal/otel sampler). The force-trace flag rides
+		// the app root ctx so it reaches the worker's root span.
+		syncCtx := appCtx
+		if r.URL.Query().Get("trace") != "0" {
+			syncCtx = pdbsync.WithForceTrace(appCtx)
+		}
+		go in.SyncFn(syncCtx, mode)
 		w.WriteHeader(http.StatusAccepted)
 		fmt.Fprint(w, `{"status":"accepted"}`)
 	}

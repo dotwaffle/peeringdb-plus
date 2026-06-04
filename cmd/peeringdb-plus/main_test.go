@@ -140,7 +140,7 @@ func TestFreshnessFromDB(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
-	_, db, err := database.Open(filepath.Join(t.TempDir(), "freshness.db"))
+	_, db, err := database.Open(filepath.Join(t.TempDir(), "freshness.db"), false)
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
