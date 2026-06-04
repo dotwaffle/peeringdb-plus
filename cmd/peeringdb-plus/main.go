@@ -183,25 +183,16 @@ func main() {
 		}
 	}
 
-	// Cached last-successful-sync time for the freshness gauge.
-	//
-	// The observable gauge callback fires on every Prometheus scrape
-	// (~15-30s). Querying sync_status per scrape is ~86k SQLite reads/day
-	// for a value that only changes once per sync, so seed the cache once
-	// at startup and let the sync worker refresh it via OnSyncComplete —
-	// the same atomic-pointer pattern used for objectCountCache below. A
-	// nil pointer means no successful sync yet, so the gauge makes no
-	// observation (matching the prior status != "success" short-circuit).
-	var lastSyncTimeCache atomic.Pointer[time.Time]
-	if status, err := pdbsync.GetLastStatus(ctx, db); err == nil && status != nil && status.Status == "success" {
-		seedTime := status.LastSyncAt
-		lastSyncTimeCache.Store(&seedTime)
-	}
-
-	// Initialize sync freshness gauge. Reads the atomic cache
-	// instead of issuing a live sync_status query per scrape.
-	if err := pdbotel.InitFreshnessGauge(func(_ context.Context) (time.Time, bool) {
-		return freshnessFromCache(&lastSyncTimeCache)
+	// Initialize sync freshness gauge. The observable callback fires once per
+	// OTel metric-export interval (default 60s) and reads sync_status live on
+	// each call. The read is a single-row, primary-key-ordered lookup against
+	// the local (LiteFS-replicated) SQLite file with no network hop, so it is
+	// far too cheap to be worth caching. Reading per call rather than from a
+	// cache is deliberate: on a replica — which never runs the sync worker —
+	// it reflects real replication lag (e.g. during a deploy) instead of a
+	// value frozen at boot.
+	if err := pdbotel.InitFreshnessGauge(func(ctx context.Context) (time.Time, bool) {
+		return freshnessFromDB(ctx, db)
 	}); err != nil {
 		logger.Error("failed to init freshness gauge", slog.Any("error", err))
 		os.Exit(1)
@@ -321,12 +312,6 @@ func main() {
 			} else {
 				objectCountCache.Store(&counts)
 			}
-			// Refresh the freshness gauge cache with the completion
-			// timestamp so the per-scrape gauge reads it without touching
-			// the DB. Kept outside the counts err branch — the sync
-			// itself succeeded even if the count refresh failed.
-			freshTime := syncTime
-			lastSyncTimeCache.Store(&freshTime)
 			// Swap the cached ETag using the exact completion
 			// timestamp the worker persisted to sync_status. One SHA-256
 			// per sync, zero per request. Kept outside the err branch
@@ -1106,17 +1091,26 @@ func readinessMiddleware(sr syncReadiness, next http.Handler) http.Handler {
 	})
 }
 
-// freshnessFromCache reads the last-successful-sync time the freshness
-// gauge reports. A nil pointer (no successful sync yet) yields
-// (zero, false) so the observable gauge makes no observation. Lifted out
-// of the gauge closure so the cache-read path is unit-testable without a
-// metric reader (audit P3).
-func freshnessFromCache(cache *atomic.Pointer[time.Time]) (time.Time, bool) {
-	t := cache.Load()
-	if t == nil {
+// freshnessReadTimeout bounds the sync_status read behind the freshness
+// gauge so a slow or locked SQLite read cannot stall metric collection.
+const freshnessReadTimeout = 2 * time.Second
+
+// freshnessFromDB returns the last successful sync's completion time for the
+// pdbplus.sync.freshness gauge, read live from sync_status on every call. The
+// query is a single-row, primary-key-ordered lookup against the local SQLite
+// file (no network on a LiteFS replica), so polling per metric read is cheap
+// and lets the gauge reflect real replication lag rather than a cached value.
+// A read error or the absence of a successful sync yields (zero, false) so
+// the observable gauge makes no observation, matching the upstream behaviour
+// and the status != "success" short-circuit.
+func freshnessFromDB(ctx context.Context, db *sql.DB) (time.Time, bool) {
+	ctx, cancel := context.WithTimeout(ctx, freshnessReadTimeout)
+	defer cancel()
+	status, err := pdbsync.GetLastStatus(ctx, db)
+	if err != nil || status == nil || status.Status != "success" {
 		return time.Time{}, false
 	}
-	return *t, true
+	return status.LastSyncAt, true
 }
 
 func seedObjectCountCache(ctx context.Context, db *sql.DB, logger *slog.Logger) (map[string]int64, error) {
