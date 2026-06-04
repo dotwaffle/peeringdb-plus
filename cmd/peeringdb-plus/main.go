@@ -940,7 +940,15 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	h = readinessMiddleware(cc.SyncWorker, h)
 	h = middleware.PrivacyTier(middleware.PrivacyTierInput{DefaultTier: cc.DefaultTier})(h)
 	h = middleware.Logging(cc.Logger)(h)
-	h = otelhttp.NewMiddleware("peeringdb-plus")(h)
+	// Public endpoint: start a fresh root span per request instead of joining
+	// any client-supplied traceparent. We serve arbitrary external callers, so
+	// inheriting their trace context would let them pick our trace-ids and —
+	// through the ParentBased sampler — dictate our sampling decision (a
+	// sampled traceparent overriding the per-route rate is a trace-volume/cost
+	// vector). The inbound span context is preserved as a link, not a parent;
+	// the global propagator (outbound propagation, baggage) is unaffected.
+	h = otelhttp.NewMiddleware("peeringdb-plus",
+		otelhttp.WithPublicEndpointFn(func(*http.Request) bool { return true }))(h)
 	h = middleware.CORS(middleware.CORSInput{AllowedOrigins: cc.CORSOrigins})(h)
 	h = middleware.MaxBytesBody(middleware.MaxBytesBodyInput{MaxBytes: cc.MaxBodyBytes})(h)
 	h = middleware.Recovery(cc.Logger)(h)

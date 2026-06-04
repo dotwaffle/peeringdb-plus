@@ -10,6 +10,32 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.19.4] — 2026-06-04
+
+### Changed
+
+- **Request access log and server spans now record the query string.**
+  The `Logging` middleware logged only `method`/`path`/`status`/`duration`,
+  and the otelhttp server span carried `url.path` but not the query — so
+  `/api` requests were uninspectable from either surface (a trace or log
+  entry showed `/api/net` with no hint of the filter the caller sent).
+  The middleware now adds `query` to the access log and stamps
+  `url.query` onto the active span, for every API surface, so a request
+  can be reconstructed from Loki or a trace alike. Health/readiness
+  probes remain skipped.
+
+### Security
+
+- **The HTTP server is now treated as a public OTel endpoint**
+  (`otelhttp.WithPublicEndpointFn`). An inbound `traceparent` previously
+  made our server span a child of the caller's trace, letting a client
+  choose our trace-ids and — via the ParentBased sampler — force our
+  sampling decision (a sampled traceparent overriding the per-route rate
+  is a trace-volume/cost vector). Each request now starts a fresh root
+  span with its own trace-id; the inbound context is kept as a span link.
+  The global W3C TraceContext + Baggage propagator is unchanged, so
+  outbound propagation still works once a downstream service exists.
+
 ## [1.19.3] — 2026-06-04
 
 ### Fixed
