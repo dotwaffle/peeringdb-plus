@@ -10,6 +10,8 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.19.2] — 2026-06-04
+
 ### Removed
 
 - **Ported parity-fixture pipeline (`internal/testutil/parity` +
@@ -40,6 +42,14 @@ Git history (tags `v1.0.0` through `v1.15.0`).
   warmed module/build cache; `docker-build` stays a separate parallel
   job. `govulncheck` is now advisory (`continue-on-error`) — a flagged
   vulnerability warns but does not block the merge.
+- **Five overview-dashboard panels reworked for honest rendering.**
+  Sync Duration (p95) draws as points (sparse per-sync data, not a
+  holey line); Sync Operations shows `round(increase())` bars (cycle
+  counts, not a meaningless sub-0.01 ops/s rate); Request Rate by Route
+  labels the empty-route series `(unrouted)` instead of "Value"; Latency
+  adds p50 and excludes health/readiness probes (~92% of requests,
+  which masked the real API tail); Objects Synced per Type rounds the
+  edge-extrapolated counts.
 
 ### Fixed
 
@@ -47,6 +57,14 @@ Git history (tags `v1.0.0` through `v1.15.0`).
   The diacritic-folding shadow columns are server-side plumbing and are
   skipped on the GraphQL and proto wire surfaces, but the entrest path
   still emitted them; they are now stripped from `/rest/v1/` responses.
+- **Sync-freshness gauge reported replica uptime, not data age.** The
+  `pdbplus.sync.freshness` value was cached and refreshed only by the
+  sync worker's `OnSyncComplete`, which never fires on replicas (they
+  do not run the worker), so the gauge climbed with replica uptime — a
+  node up 22h reported 22h of staleness while serving fresh data,
+  tripping the >2h alert fleet-wide. It now reads `sync_status` live on
+  each metric collection (a cheap single-row local lookup), so replicas
+  report true data age and real LiteFS replication lag.
 
 ### Internal
 
