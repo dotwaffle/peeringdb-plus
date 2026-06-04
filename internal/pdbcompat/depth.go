@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
@@ -49,6 +50,82 @@ func orEmptySlice[T any](v []T) []any {
 	return out
 }
 
+// setWithout serializes each element of an embedded reverse-relation set to a
+// map and drops the named keys. It is used to strip the back-reference parent
+// FK (e.g. net_id inside a Network's netixlan_set) from nested elements, which
+// upstream PeeringDB omits when the relation is reached through its parent — a
+// netixlan embedded under /api/net/<id>?depth=2 carries no net_id. Empty input
+// yields []any{} so the field serializes as [] rather than null.
+func setWithout[T any](items []T, dropKeys ...string) []any {
+	out := make([]any, 0, len(items))
+	for _, item := range items {
+		m := toMap(item)
+		for _, k := range dropKeys {
+			delete(m, k)
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+// sortedIDsOrEmpty normalises an ent IDs() result into an ascending, non-nil
+// slice so empty sets serialize as [] (not null) and ordering is deterministic,
+// matching upstream's ascending-id nested ID lists.
+func sortedIDsOrEmpty(ids []int, err error) ([]int, error) {
+	if err != nil {
+		return nil, err
+	}
+	if ids == nil {
+		ids = []int{}
+	}
+	sort.Ints(ids)
+	return ids, nil
+}
+
+// nestedOrgMap renders an organization as it appears when embedded in a parent
+// object at depth=2 (e.g. the `org` field of a Network). Upstream expands the
+// org's own scalar fields and represents its reverse relations as bare ID
+// lists (the depth budget is exhausted one level down), so callers get
+// net_set/fac_set/ix_set/carrier_set/campus_set as []int rather than full
+// objects. The org entity must already be loaded by the caller.
+func nestedOrgMap(ctx context.Context, o *ent.Organization) (map[string]any, error) {
+	m := toMap(organizationFromEnt(o))
+	var err error
+	if m["net_set"], err = sortedIDsOrEmpty(o.QueryNetworks().Where(network.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested org %d net_set: %w", o.ID, err)
+	}
+	if m["fac_set"], err = sortedIDsOrEmpty(o.QueryFacilities().Where(facility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested org %d fac_set: %w", o.ID, err)
+	}
+	if m["ix_set"], err = sortedIDsOrEmpty(o.QueryInternetExchanges().Where(internetexchange.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested org %d ix_set: %w", o.ID, err)
+	}
+	if m["carrier_set"], err = sortedIDsOrEmpty(o.QueryCarriers().Where(carrier.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested org %d carrier_set: %w", o.ID, err)
+	}
+	if m["campus_set"], err = sortedIDsOrEmpty(o.QueryCampuses().Where(campus.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested org %d campus_set: %w", o.ID, err)
+	}
+	return m, nil
+}
+
+// nestedCampusMap renders a campus embedded one level down (its `org` is then
+// at the depth boundary, so it expands as a flat object with no further sets;
+// its fac_set is a bare ID list). The campus must be loaded with its
+// organization edge (WithCampus(q.WithOrganization())).
+func nestedCampusMap(ctx context.Context, c *ent.Campus) (map[string]any, error) {
+	m := toMap(campusFromEnt(c))
+	ids, err := sortedIDsOrEmpty(c.QueryFacilities().Where(facility.StatusIn("ok", "pending")).IDs(ctx))
+	if err != nil {
+		return nil, fmt.Errorf("nested campus %d fac_set: %w", c.ID, err)
+	}
+	m["fac_set"] = ids
+	if c.Edges.Organization != nil {
+		m["org"] = organizationFromEnt(c.Edges.Organization)
+	}
+	return m, nil
+}
+
 // resolveFacilitiesFromIxFacilities walks an IX → IxFacility through-relation
 // and returns the embedded Facility records. Mirrors upstream PeeringDB's
 // `nested(FacilitySerializer, through="ixfac_set", getter="facility")` shape:
@@ -86,11 +163,11 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		}
 		base := organizationFromEnt(o)
 		m := toMap(base)
-		m["net_set"] = orEmptySlice(networksFromEnt(o.Edges.Networks))
-		m["fac_set"] = orEmptySlice(facilitiesFromEnt(o.Edges.Facilities))
-		m["ix_set"] = orEmptySlice(internetExchangesFromEnt(o.Edges.InternetExchanges))
-		m["carrier_set"] = orEmptySlice(carriersFromEnt(o.Edges.Carriers))
-		m["campus_set"] = orEmptySlice(campusesFromEnt(o.Edges.Campuses))
+		m["net_set"] = setWithout(networksFromEnt(o.Edges.Networks), "org_id")
+		m["fac_set"] = setWithout(facilitiesFromEnt(o.Edges.Facilities), "org_id")
+		m["ix_set"] = setWithout(internetExchangesFromEnt(o.Edges.InternetExchanges), "org_id")
+		m["carrier_set"] = setWithout(carriersFromEnt(o.Edges.Carriers), "org_id")
+		m["campus_set"] = setWithout(campusesFromEnt(o.Edges.Campuses), "org_id")
 		return m, nil
 	}
 
@@ -120,11 +197,13 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		base := networkFromEnt(n)
 		m := toMap(base)
 		if n.Edges.Organization != nil {
-			m["org"] = organizationFromEnt(n.Edges.Organization)
+			if m["org"], err = nestedOrgMap(ctx, n.Edges.Organization); err != nil {
+				return nil, err
+			}
 		}
-		m["poc_set"] = orEmptySlice(pocsFromEnt(n.Edges.Pocs))
-		m["netfac_set"] = orEmptySlice(networkFacilitiesFromEnt(n.Edges.NetworkFacilities))
-		m["netixlan_set"] = orEmptySlice(networkIxLansFromEnt(n.Edges.NetworkIxLans))
+		m["poc_set"] = setWithout(pocsFromEnt(n.Edges.Pocs), "net_id")
+		m["netfac_set"] = setWithout(networkFacilitiesFromEnt(n.Edges.NetworkFacilities), "net_id")
+		m["netixlan_set"] = setWithout(networkIxLansFromEnt(n.Edges.NetworkIxLans), "net_id")
 		return m, nil
 	}
 
@@ -142,13 +221,14 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 // carrierfac_set.
 func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
+		// Upstream's FacilitySerializer does NOT nest netfac/ixfac/carrierfac
+		// reverse sets at depth=2 (verified against /api/fac/1?depth=2: only
+		// the inline social_media / available_voltage_services lists appear).
+		// It expands the org and campus FK objects only.
 		f, err := client.Facility.Query().
 			Where(facility.ID(id), facility.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithCampus().
-			WithNetworkFacilities().
-			WithIxFacilities().
-			WithCarrierFacilities().
+			WithCampus(func(q *ent.CampusQuery) { q.WithOrganization() }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get facility %d: %w", id, err)
@@ -156,14 +236,15 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		base := facilityFromEnt(f)
 		m := toMap(base)
 		if f.Edges.Organization != nil {
-			m["org"] = organizationFromEnt(f.Edges.Organization)
+			if m["org"], err = nestedOrgMap(ctx, f.Edges.Organization); err != nil {
+				return nil, err
+			}
 		}
 		if f.Edges.Campus != nil {
-			m["campus"] = campusFromEnt(f.Edges.Campus)
+			if m["campus"], err = nestedCampusMap(ctx, f.Edges.Campus); err != nil {
+				return nil, err
+			}
 		}
-		m["netfac_set"] = orEmptySlice(networkFacilitiesFromEnt(f.Edges.NetworkFacilities))
-		m["ixfac_set"] = orEmptySlice(ixFacilitiesFromEnt(f.Edges.IxFacilities))
-		m["carrierfac_set"] = orEmptySlice(carrierFacilitiesFromEnt(f.Edges.CarrierFacilities))
 		return m, nil
 	}
 
@@ -199,9 +280,13 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 		base := internetExchangeFromEnt(ix)
 		m := toMap(base)
 		if ix.Edges.Organization != nil {
-			m["org"] = organizationFromEnt(ix.Edges.Organization)
+			if m["org"], err = nestedOrgMap(ctx, ix.Edges.Organization); err != nil {
+				return nil, err
+			}
 		}
-		m["ixlan_set"] = orEmptySlice(ixLansFromEnt(ctx, ix.Edges.IxLans))
+		m["ixlan_set"] = setWithout(ixLansFromEnt(ctx, ix.Edges.IxLans), "ix_id")
+		// fac_set reaches Facility through the IxFacility join, so its elements
+		// carry no ix back-reference to strip (verified: elem keys match upstream).
 		m["fac_set"] = orEmptySlice(facilitiesFromEnt(resolveFacilitiesFromIxFacilities(ix.Edges.IxFacilities)))
 		return m, nil
 	}
@@ -231,10 +316,12 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixLanFromEnt(ctx, l)
 		m := toMap(base)
 		if l.Edges.InternetExchange != nil {
+			// ix is expanded flat here; its own reverse sets as ID-lists
+			// (a depth-3 detail) are not reproduced — see depth parity notes.
 			m["ix"] = internetExchangeFromEnt(l.Edges.InternetExchange)
 		}
-		m["ixpfx_set"] = orEmptySlice(ixPrefixesFromEnt(l.Edges.IxPrefixes))
-		m["netixlan_set"] = orEmptySlice(networkIxLansFromEnt(l.Edges.NetworkIxLans))
+		m["ixpfx_set"] = setWithout(ixPrefixesFromEnt(l.Edges.IxPrefixes), "ixlan_id")
+		m["netixlan_set"] = setWithout(networkIxLansFromEnt(l.Edges.NetworkIxLans), "ixlan_id")
 		return m, nil
 	}
 
@@ -262,9 +349,11 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 		base := carrierFromEnt(c)
 		m := toMap(base)
 		if c.Edges.Organization != nil {
-			m["org"] = organizationFromEnt(c.Edges.Organization)
+			if m["org"], err = nestedOrgMap(ctx, c.Edges.Organization); err != nil {
+				return nil, err
+			}
 		}
-		m["carrierfac_set"] = orEmptySlice(carrierFacilitiesFromEnt(c.Edges.CarrierFacilities))
+		m["carrierfac_set"] = setWithout(carrierFacilitiesFromEnt(c.Edges.CarrierFacilities), "carrier_id")
 		return m, nil
 	}
 
@@ -292,9 +381,11 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 		base := campusFromEnt(c)
 		m := toMap(base)
 		if c.Edges.Organization != nil {
-			m["org"] = organizationFromEnt(c.Edges.Organization)
+			if m["org"], err = nestedOrgMap(ctx, c.Edges.Organization); err != nil {
+				return nil, err
+			}
 		}
-		m["fac_set"] = orEmptySlice(facilitiesFromEnt(c.Edges.Facilities))
+		m["fac_set"] = setWithout(facilitiesFromEnt(c.Edges.Facilities), "campus_id")
 		return m, nil
 	}
 

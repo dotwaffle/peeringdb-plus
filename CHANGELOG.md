@@ -10,6 +10,25 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.19.3] — 2026-06-04
+
+### Fixed
+
+- **`/api/<type>/<id>?depth=2` nested serialization now matches upstream
+  PeeringDB.** A conformance comparison against live `www.peeringdb.com`
+  surfaced three divergences in single-object depth-2 expansion, now
+  corrected: nested reverse-set elements drop the parent back-reference
+  FK (a netixlan embedded under a net no longer carries `net_id`); an
+  embedded `org` carries its own reverse relations as bare ID lists
+  (`net_set`/`fac_set`/…) instead of being flattened away; and the
+  Facility serializer no longer embeds `netfac_set`/`ixfac_set`/
+  `carrierfac_set` at depth=2 (a ~28x payload reduction for dense
+  facilities), expanding only its `org` and `campus` FK objects. Flat
+  (depth-0) list/detail responses were already byte-faithful across all
+  13 types. The one remaining bounded gap — second-level nested FK
+  objects stay flat — is recorded under § Known Divergences in the API
+  reference.
+
 ## [1.19.2] — 2026-06-04
 
 ### Removed
