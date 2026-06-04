@@ -79,6 +79,14 @@ type Config struct {
 	// Configured via PDBPLUS_OTEL_SAMPLE_RATE. Default is 1.0 (always sample).
 	OTelSampleRate float64
 
+	// OTelSQL enables per-query OpenTelemetry DB spans (XSAM/otelsql) on the
+	// shared *sql.DB. Configured via PDBPLUS_OTEL_SQL. Default true — the data
+	// is useful and its volume is bounded by the trace sampler; set
+	// PDBPLUS_OTEL_SQL=false to disable. Scheduled sync cycles are never traced
+	// regardless (the prior high-volume concern); only a manually-triggered
+	// POST /sync is — see internal/otel sampler.
+	OTelSQL bool
+
 	// SyncStaleThreshold is the maximum age of sync data before health reports degraded.
 	// Configured via PDBPLUS_SYNC_STALE_THRESHOLD. Default is 24h.
 	SyncStaleThreshold time.Duration
@@ -279,6 +287,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_OTEL_SAMPLE_RATE: %w", err)
 	}
 	cfg.OTelSampleRate = sampleRate
+
+	otelSQL, err := parseBool("PDBPLUS_OTEL_SQL", true)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_OTEL_SQL: %w", err)
+	}
+	cfg.OTelSQL = otelSQL
 
 	syncStaleThreshold, err := parseDuration("PDBPLUS_SYNC_STALE_THRESHOLD", 24*time.Hour)
 	if err != nil {

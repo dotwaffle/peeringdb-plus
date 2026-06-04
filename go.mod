@@ -13,6 +13,7 @@ require (
 	entgo.io/ent v0.14.6
 	github.com/99designs/gqlgen v0.17.90
 	github.com/KimMachineGun/automemlimit v0.7.5
+	github.com/XSAM/otelsql v0.42.0
 	github.com/a-h/templ v0.3.1020
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/go-playground/form/v4 v4.3.0

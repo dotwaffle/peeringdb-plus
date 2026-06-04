@@ -580,6 +580,24 @@ func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.Syn
 	return configured
 }
 
+// forceTraceKey is the context key carrying the manual-sync force-trace flag.
+type forceTraceKey struct{}
+
+// WithForceTrace marks ctx so the sync cycle run under it force-samples its
+// trace, overriding the sampler's default of dropping scheduled-sync traces.
+// It is set by the manual POST /sync handler and never by the timer scheduler,
+// so an on-demand sync is observable end to end — including its per-query DB
+// spans when PDBPLUS_OTEL_SQL is enabled.
+func WithForceTrace(ctx context.Context) context.Context {
+	return context.WithValue(ctx, forceTraceKey{}, true)
+}
+
+// forceTraceFromContext reports whether ctx was marked by WithForceTrace.
+func forceTraceFromContext(ctx context.Context) bool {
+	v, _ := ctx.Value(forceTraceKey{}).(bool)
+	return v
+}
+
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // privacy bypass — sole production call site
 	if !w.running.CompareAndSwap(false, true) {
@@ -588,7 +606,15 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	}
 	defer w.running.Store(false)
 
-	ctx, span := otel.Tracer("sync").Start(ctx, "sync-"+string(mode))
+	// Tag the root sync span so the sampler can gate sync traces: origin=sync
+	// makes scheduled cycles drop by default; a manual POST /sync sets
+	// force_sample (via WithForceTrace) so that one cycle — and its per-query
+	// DB spans when PDBPLUS_OTEL_SQL is on — is sampled.
+	spanAttrs := []attribute.KeyValue{attribute.String(pdbotel.AttrSyncOrigin, pdbotel.SyncOriginValue)}
+	if forceTraceFromContext(ctx) {
+		spanAttrs = append(spanAttrs, attribute.Bool(pdbotel.AttrForceSample, true))
+	}
+	ctx, span := otel.Tracer("sync").Start(ctx, "sync-"+string(mode), trace.WithAttributes(spanAttrs...))
 	defer span.End()
 
 	start := time.Now()

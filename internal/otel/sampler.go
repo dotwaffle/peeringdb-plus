@@ -17,6 +17,19 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
+// Span-start attributes the sync worker stamps on its root span so this
+// sampler can gate sync traces independently of HTTP route. AttrSyncOrigin set
+// to SyncOriginValue marks a scheduled sync cycle (dropped by default so it
+// emits no trace — and, with PDBPLUS_OTEL_SQL on, no per-query DB spans);
+// AttrForceSample set true marks a manually-triggered sync (POST /sync) and
+// forces the trace to be sampled. Untyped string constants so they compare
+// directly against attribute.Key in the ShouldSample scan.
+const (
+	AttrSyncOrigin  = "pdbplus.origin"
+	SyncOriginValue = "sync"
+	AttrForceSample = "pdbplus.force_sample"
+)
+
 // PerRouteSamplerInput configures NewPerRouteSampler.
 //
 // Routes maps URL-path prefix (e.g. "/healthz", "/api/") to a 0–1
@@ -102,6 +115,18 @@ type perRouteSampler struct {
 // Hot-path allocation is bounded — the entries slice is pre-sorted at
 // construction time and the SamplingResult is the only allocation.
 func (s *perRouteSampler) ShouldSample(params sdktrace.SamplingParameters) sdktrace.SamplingResult {
+	// Sync-trace gating, independent of route: a manual force-sample wins;
+	// otherwise a sync-origin span (scheduled cycle) is dropped so it emits no
+	// trace. Non-sync spans fall through to the per-route logic below.
+	switch syncSampleDecision(params.Attributes) {
+	case decideForceSample:
+		return sdktrace.AlwaysSample().ShouldSample(params)
+	case decideDrop:
+		return sdktrace.NeverSample().ShouldSample(params)
+	case decideUnset:
+		// Not a sync span — fall through to per-route sampling below.
+	}
+
 	path := pathFromAttributes(params.Attributes)
 	if path == "" {
 		return s.defaultSampler.ShouldSample(params)
@@ -161,6 +186,38 @@ func pathFromAttributes(attrs []attribute.KeyValue) string {
 		}
 	}
 	return legacy
+}
+
+type syncDecision int
+
+const (
+	decideUnset syncDecision = iota
+	decideForceSample
+	decideDrop
+)
+
+// syncSampleDecision inspects a span's start attributes for the sync-trace
+// gating markers. Returns decideForceSample when AttrForceSample is true
+// (manual POST /sync), decideDrop when the span is sync-origin without a force
+// flag (scheduled cycle), or decideUnset for everything else (HTTP/internal).
+func syncSampleDecision(attrs []attribute.KeyValue) syncDecision {
+	origin := false
+	for _, kv := range attrs {
+		switch kv.Key {
+		case AttrForceSample:
+			if kv.Value.AsBool() {
+				return decideForceSample
+			}
+		case AttrSyncOrigin:
+			if kv.Value.AsString() == SyncOriginValue {
+				origin = true
+			}
+		}
+	}
+	if origin {
+		return decideDrop
+	}
+	return decideUnset
 }
 
 // Description returns a stable human-readable identifier for OTel debug

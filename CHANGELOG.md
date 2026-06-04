@@ -10,6 +10,31 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.19.5] — 2026-06-04
+
+### Added
+
+- **Per-query SQL tracing (`PDBPLUS_OTEL_SQL`, on by default).** The shared
+  `*sql.DB` is opened through XSAM/otelsql so every statement — ent's and the
+  raw `sync_status` queries — emits a DB span nested under the active
+  request/sync span, surfacing the SQL behind a request that flat traces
+  couldn't show. On by default (the data is useful and bounded); set
+  `PDBPLUS_OTEL_SQL=false` to disable. DB-span volume is bounded by the
+  existing sampler: API reads inherit `PDBPLUS_OTEL_SAMPLE_RATE`, and
+  **scheduled sync cycles are no longer traced at all** (so they emit no DB
+  spans — the historical high-volume concern), while a **manually triggered
+  `POST /sync` is traced by default** — pass `?trace=0` to opt out.
+  Implemented via two new sampler gates (`pdbplus.origin=sync` drops scheduled
+  cycles; `pdbplus.force_sample` force-samples a manual run) and a
+  `WithForceTrace` context flag threaded from the `/sync` handler.
+
+### Changed
+
+- **Scheduled sync cycles are no longer sampled into traces** (previously the
+  per-route default ~1%). They are dropped by the new `pdbplus.origin=sync`
+  sampler gate so the sync path stays trace-free unless a sync is triggered
+  manually via `POST /sync`. Independent of `PDBPLUS_OTEL_SQL`.
+
 ## [1.19.4] — 2026-06-04
 
 ### Changed

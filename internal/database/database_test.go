@@ -8,7 +8,7 @@ import (
 func TestOpen_Success(t *testing.T) {
 	t.Parallel()
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	client, db, err := Open(dbPath)
+	client, db, err := Open(dbPath, false)
 	if err != nil {
 		t.Fatalf("Open(%q) error: %v", dbPath, err)
 	}
@@ -26,7 +26,7 @@ func TestOpen_Success(t *testing.T) {
 func TestOpen_Pragmas(t *testing.T) {
 	t.Parallel()
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	client, db, err := Open(dbPath)
+	client, db, err := Open(dbPath, false)
 	if err != nil {
 		t.Fatalf("Open(%q) error: %v", dbPath, err)
 	}
@@ -55,10 +55,33 @@ func TestOpen_Pragmas(t *testing.T) {
 	}
 }
 
+// TestOpen_TracedSQL verifies the otelsql-wrapped path (traceSQL=true) opens a
+// working handle — the instrumentation is transparent to query execution.
+// (Span emission is exercised live with PDBPLUS_OTEL_SQL=1, not here, to avoid
+// mutating the global TracerProvider from a parallel test.)
+func TestOpen_TracedSQL(t *testing.T) {
+	t.Parallel()
+	dbPath := filepath.Join(t.TempDir(), "traced.db")
+	client, db, err := Open(dbPath, true)
+	if err != nil {
+		t.Fatalf("Open(%q, true) error: %v", dbPath, err)
+	}
+	defer client.Close()
+	defer db.Close()
+
+	var n int
+	if err := db.QueryRow("SELECT 1").Scan(&n); err != nil {
+		t.Fatalf("query on otelsql-wrapped DB: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("SELECT 1 = %d, want 1", n)
+	}
+}
+
 func TestOpen_PoolConfig(t *testing.T) {
 	t.Parallel()
 	dbPath := filepath.Join(t.TempDir(), "test.db")
-	client, db, err := Open(dbPath)
+	client, db, err := Open(dbPath, false)
 	if err != nil {
 		t.Fatalf("Open(%q) error: %v", dbPath, err)
 	}
