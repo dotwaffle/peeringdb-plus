@@ -8,15 +8,17 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"golang.org/x/net/http2"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
+	"github.com/dotwaffle/peeringdb-plus/internal/database"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
+	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 )
 
 // TestRedactIxlanJSON_FastPath verifies the redact writer skips the
@@ -130,27 +132,62 @@ func TestRESTWriters_FlushContract(t *testing.T) {
 	})
 }
 
-// TestFreshnessFromCache verifies the freshness gauge reads its value
-// from the atomic cache pointer — never the database — and reflects
-// updates (audit P3). A nil pointer reports no observation.
-func TestFreshnessFromCache(t *testing.T) {
+// TestFreshnessFromDB verifies the freshness gauge reads sync_status live:
+// no successful sync reports no observation, a failed sync is ignored, and a
+// successful sync reports its completion time. Backed by a real SQLite DB so
+// the read path is exercised end-to-end without a metric reader.
+func TestFreshnessFromDB(t *testing.T) {
 	t.Parallel()
-	var cache atomic.Pointer[time.Time]
+	ctx := context.Background()
 
-	if _, ok := freshnessFromCache(&cache); ok {
-		t.Error("empty cache should report no observation")
+	_, db, err := database.Open(filepath.Join(t.TempDir(), "freshness.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := pdbsync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
 	}
 
-	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	cache.Store(&t1)
-	if got, ok := freshnessFromCache(&cache); !ok || !got.Equal(t1) {
-		t.Errorf("got (%v, %v), want (%v, true)", got, ok, t1)
+	// No rows yet → no observation.
+	if _, ok := freshnessFromDB(ctx, db); ok {
+		t.Error("empty sync_status should report no observation")
 	}
 
-	t2 := t1.Add(time.Hour)
-	cache.Store(&t2)
-	if got, ok := freshnessFromCache(&cache); !ok || !got.Equal(t2) {
-		t.Errorf("after update got (%v, %v), want (%v, true)", got, ok, t2)
+	// Most recent sync failed → still no observation (freshness tracks the
+	// last *successful* sync only).
+	failID, err := pdbsync.RecordSyncStart(ctx, db, time.Now(), "incremental")
+	if err != nil {
+		t.Fatalf("record failed start: %v", err)
+	}
+	if err := pdbsync.RecordSyncComplete(ctx, db, failID, pdbsync.Status{
+		LastSyncAt: time.Now(),
+		Status:     "failed",
+	}); err != nil {
+		t.Fatalf("record failed complete: %v", err)
+	}
+	if _, ok := freshnessFromDB(ctx, db); ok {
+		t.Error("failed sync should report no observation")
+	}
+
+	// A successful sync → reports its completion time.
+	want := time.Now().Add(-2 * time.Minute).UTC().Truncate(time.Second)
+	okID, err := pdbsync.RecordSyncStart(ctx, db, want, "incremental")
+	if err != nil {
+		t.Fatalf("record success start: %v", err)
+	}
+	if err := pdbsync.RecordSyncComplete(ctx, db, okID, pdbsync.Status{
+		LastSyncAt: want,
+		Status:     "success",
+	}); err != nil {
+		t.Fatalf("record success complete: %v", err)
+	}
+	got, ok := freshnessFromDB(ctx, db)
+	if !ok {
+		t.Fatal("successful sync should report an observation")
+	}
+	if !got.Equal(want) {
+		t.Errorf("freshness time = %v, want %v", got, want)
 	}
 }
 
