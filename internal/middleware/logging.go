@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -44,13 +45,31 @@ var accessLogSkipPaths = map[string]struct{}{
 	"/readyz":  {},
 }
 
-// Logging returns middleware that logs each HTTP request with method, path, status,
-// duration, and trace context (trace_id, span_id) when available.
-// Uses structured slog with LogAttrs for attribute-based API.
+// Logging returns middleware that logs each HTTP request with method, path,
+// query, status, duration, and trace context (trace_id, span_id) when
+// available. It also attaches the query string to the active server span as
+// url.query. url.path alone left /api traffic uninspectable on both surfaces —
+// the caller's actual intent (filters, since, depth, pagination) lives in the
+// query string — so it is recorded on the access log and the trace alike,
+// covering every API surface from one place. Uses structured slog with
+// LogAttrs for an attribute-based API.
 func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
+
+			// Capture the query before next.ServeHTTP (while the otelhttp
+			// server span is unambiguously live and before any handler can
+			// rewrite r.URL) and stamp it onto that span. SpanFromContext
+			// returns a no-op span when tracing is unconfigured, so the
+			// IsValid guard keeps this safe in tests.
+			rawQuery := r.URL.RawQuery
+			if rawQuery != "" {
+				if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() {
+					span.SetAttributes(attribute.String("url.query", rawQuery))
+				}
+			}
+
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 			next.ServeHTTP(wrapped, r)
 
@@ -64,6 +83,9 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 				slog.String("path", r.URL.Path),
 				slog.Int("status", wrapped.statusCode),
 				slog.Duration("duration", time.Since(start)),
+			}
+			if rawQuery != "" {
+				attrs = append(attrs, slog.String("query", rawQuery))
 			}
 			if spanCtx.HasTraceID() {
 				attrs = append(attrs,

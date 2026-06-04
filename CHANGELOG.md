@@ -10,6 +10,20 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.19.4] — 2026-06-04
+
+### Changed
+
+- **Request access log and server spans now record the query string.**
+  The `Logging` middleware logged only `method`/`path`/`status`/`duration`,
+  and the otelhttp server span carried `url.path` but not the query — so
+  `/api` requests were uninspectable from either surface (a trace or log
+  entry showed `/api/net` with no hint of the filter the caller sent).
+  The middleware now adds `query` to the access log and stamps
+  `url.query` onto the active span, for every API surface, so a request
+  can be reconstructed from Loki or a trace alike. Health/readiness
+  probes remain skipped.
+
 ## [1.19.3] — 2026-06-04
 
 ### Fixed

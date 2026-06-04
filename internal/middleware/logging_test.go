@@ -9,6 +9,9 @@ import (
 	"sync"
 	"testing"
 
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 )
 
@@ -114,6 +117,89 @@ func TestLogging_Attributes(t *testing.T) {
 		if !bytes.Contains([]byte(output), []byte(want)) {
 			t.Errorf("log output missing %q; got: %s", want, output)
 		}
+	}
+}
+
+// TestLogging_QueryAttribute verifies the request query string is recorded on
+// the access log (as `query`) when present and omitted when absent — the fix
+// for /api traffic being uninspectable from url.path alone.
+func TestLogging_QueryAttribute(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		target    string
+		wantQuery string
+		wantHas   bool
+	}{
+		{"with query", "/api/net?asn=6939&since=1", "asn=6939&since=1", true},
+		{"no query", "/api/net", "", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ch := &captureHandler{}
+			logger := slog.New(ch)
+			inner := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
+			handler := middleware.Logging(logger)(inner)
+
+			req := httptest.NewRequest("GET", tc.target, nil)
+			handler.ServeHTTP(httptest.NewRecorder(), req)
+
+			ch.mu.Lock()
+			defer ch.mu.Unlock()
+			if len(ch.records) != 1 {
+				t.Fatalf("expected 1 record, got %d", len(ch.records))
+			}
+			var gotQuery string
+			var hasQuery bool
+			ch.records[0].Attrs(func(a slog.Attr) bool {
+				if a.Key == "query" {
+					gotQuery, hasQuery = a.Value.String(), true
+				}
+				return true
+			})
+			if hasQuery != tc.wantHas {
+				t.Errorf("query attr present = %v, want %v", hasQuery, tc.wantHas)
+			}
+			if tc.wantHas && gotQuery != tc.wantQuery {
+				t.Errorf("query = %q, want %q", gotQuery, tc.wantQuery)
+			}
+		})
+	}
+}
+
+// TestLogging_SpanGetsQueryAttribute verifies the query string is stamped onto
+// the active server span as url.query, so a trace of an /api request shows the
+// filter the caller sent (the original gap this enrichment closes).
+func TestLogging_SpanGetsQueryAttribute(t *testing.T) {
+	t.Parallel()
+
+	sr := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
+	ctx, span := tp.Tracer("test").Start(context.Background(), "GET /api/{rest...}")
+
+	logger := slog.New(&captureHandler{})
+	inner := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
+	handler := middleware.Logging(logger)(inner)
+
+	req := httptest.NewRequest("GET", "/api/net?asn=6939", nil).WithContext(ctx)
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+	span.End()
+
+	spans := sr.Ended()
+	if len(spans) != 1 {
+		t.Fatalf("expected 1 ended span, got %d", len(spans))
+	}
+	var got string
+	for _, a := range spans[0].Attributes() {
+		if string(a.Key) == "url.query" {
+			got = a.Value.AsString()
+		}
+	}
+	if got != "asn=6939" {
+		t.Errorf("span url.query = %q, want %q", got, "asn=6939")
 	}
 }
 
