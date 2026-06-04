@@ -816,6 +816,176 @@ func TestDepth_DefaultExpansion_RemainingEntities(t *testing.T) {
 	}
 }
 
+// TestDepth_UpstreamParityShape locks the depth=2 nested-serialization fixes
+// that bring single-object detail responses in line with upstream PeeringDB
+// (validated against live www.peeringdb.com/api payloads, 2026-06-04):
+//  1. nested reverse-set elements drop the parent back-reference FK — a
+//     netixlan embedded under a net carries no net_id;
+//  2. an embedded FK object (the `org` on net/ix/fac/...) carries its own
+//     reverse relations as bare ID lists, not full objects;
+//  3. the Facility serializer does NOT embed netfac/ixfac/carrierfac reverse
+//     sets at depth=2 — it expands only its org and campus FK objects.
+func TestDepth_UpstreamParityShape(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	firstID := func(t *testing.T, tag string) int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"?limit=1", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) == 0 {
+			t.Fatalf("no %s rows", tag)
+		}
+		return int(items[0]["id"].(float64))
+	}
+	detail := func(t *testing.T, m *http.ServeMux, tag string, id int) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth=2", nil)
+		rec := httptest.NewRecorder()
+		m.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("detail %s/%d: %d: %s", tag, id, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) != 1 {
+			t.Fatalf("detail %s/%d: expected 1 item, got %d", tag, id, len(items))
+		}
+		return items[0]
+	}
+
+	t.Run("nested_reverse_set_drops_back_ref_fk", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, mux, "net", firstID(t, "net"))
+		for _, sk := range []string{"netixlan_set", "netfac_set", "poc_set"} {
+			arr, _ := obj[sk].([]any)
+			if len(arr) == 0 {
+				t.Errorf("%s empty; cannot verify back-ref strip", sk)
+				continue
+			}
+			if _, has := arr[0].(map[string]any)["net_id"]; has {
+				t.Errorf("%s[0] retains net_id; upstream strips the parent back-ref in nested context", sk)
+			}
+		}
+	})
+
+	t.Run("nested_org_sets_are_id_lists", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, mux, "net", firstID(t, "net"))
+		org, ok := obj["org"].(map[string]any)
+		if !ok {
+			t.Fatal("net.org is not an object")
+		}
+		for _, sk := range []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"} {
+			arr, ok := org[sk].([]any)
+			if !ok {
+				t.Errorf("nested org %s missing or not an array", sk)
+				continue
+			}
+			for _, e := range arr {
+				if _, isObj := e.(map[string]any); isObj {
+					t.Errorf("nested org %s must be an ID list, found an embedded object", sk)
+				}
+			}
+		}
+		if netSet, _ := org["net_set"].([]any); len(netSet) != 1 {
+			t.Errorf("nested org net_set: expected 1 id, got %d", len(netSet))
+		}
+	})
+
+	t.Run("root_org_set_elements_drop_org_id_but_stay_full_objects", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, mux, "org", firstID(t, "org"))
+		arr, _ := obj["net_set"].([]any)
+		if len(arr) == 0 {
+			t.Fatal("org net_set empty")
+		}
+		el := arr[0].(map[string]any)
+		if _, has := el["org_id"]; has {
+			t.Error("org.net_set[0] retains org_id; upstream strips the back-ref")
+		}
+		if _, has := el["asn"]; !has {
+			t.Error("org.net_set[0] should remain a full network object (asn missing)")
+		}
+	})
+
+	t.Run("fac_omits_reverse_sets_expands_org_and_campus", func(t *testing.T) {
+		t.Parallel()
+		client := testutil.SetupClient(t)
+		ctx := t.Context()
+		now := time.Now().Truncate(time.Second).UTC()
+		org := client.Organization.Create().SetName("FacOrg").SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		cmp := client.Campus.Create().SetName("FacCampus").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		fac := client.Facility.Create().SetName("ParityFac").SetOrganization(org).SetCampus(cmp).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		net := client.Network.Create().SetName("N").SetAsn(65010).SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		ix := client.InternetExchange.Create().SetName("X").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		car := client.Carrier.Create().SetName("C").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		// Reverse relations upstream does NOT embed on fac at depth=2:
+		client.NetworkFacility.Create().SetNetwork(net).SetFacility(fac).SetLocalAsn(65010).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.IxFacility.Create().SetInternetExchange(ix).SetFacility(fac).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.CarrierFacility.Create().SetCarrier(car).SetFacility(fac).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+		h := NewHandler(client, 0)
+		m := http.NewServeMux()
+		h.Register(m)
+		obj := detail(t, m, "fac", fac.ID)
+
+		for _, sk := range []string{"netfac_set", "ixfac_set", "carrierfac_set"} {
+			if _, has := obj[sk]; has {
+				t.Errorf("fac depth=2 must NOT embed %s (upstream omits it)", sk)
+			}
+		}
+		orgObj, ok := obj["org"].(map[string]any)
+		if !ok {
+			t.Fatal("fac.org missing or not an object")
+		}
+		if _, has := orgObj["net_set"]; !has {
+			t.Error("fac.org should carry ID-list sets (net_set missing)")
+		}
+		cmpObj, ok := obj["campus"].(map[string]any)
+		if !ok {
+			t.Fatal("fac.campus missing or not an object")
+		}
+		if _, has := cmpObj["fac_set"]; !has {
+			t.Error("fac.campus should carry fac_set")
+		}
+		if _, has := cmpObj["org"]; !has {
+			t.Error("fac.campus should expand its org")
+		}
+	})
+
+	// Intentional bounded divergence (docs/API.md § Known Divergences): the
+	// FIRST-level nested FK object carries ID-list sets, but a SECOND-level
+	// nested FK object — the `ix` embedded under an ixlan — is expanded flat.
+	// Upstream would give that ix its own ixlan_set/fac_set ID lists; we stop
+	// one level short. Reproducing the full recursive depth budget for every
+	// leaf permutation is disproportionate effort for data almost no client
+	// reads two levels deep.
+	t.Run("second_level_nested_fk_stays_flat_DIVERGENCE", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, mux, "ixlan", firstID(t, "ixlan"))
+		ix, ok := obj["ix"].(map[string]any)
+		if !ok {
+			t.Fatal("ixlan.ix is not an object")
+		}
+		if _, has := ix["id"]; !has {
+			t.Error("ixlan.ix should be an expanded object with id")
+		}
+		for _, sk := range []string{"ixlan_set", "fac_set"} {
+			if _, has := ix[sk]; has {
+				t.Errorf("ixlan.ix unexpectedly carries %s; second-level nesting is intentionally flat", sk)
+			}
+		}
+	})
+}
+
 // TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
 // — Query().Where(<type>.ID(id), <type>.StatusIn("ok","pending")), inlined at
 // all 26 depth.go getter sites — resolves identically across all 13 types: an
