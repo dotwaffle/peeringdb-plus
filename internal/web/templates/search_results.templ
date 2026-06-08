@@ -51,11 +51,11 @@ templ SearchRow(result SearchResult) {
 			{ result.Name }
 		</span>
 		<span class="shrink-0 ml-3 flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 font-mono">
-			if result.Country != "" {
-				@CountryFlag(result.Country)
-			}
 			if result.City != "" {
 				<span class="hidden md:inline">{ result.City }</span>
+			}
+			if result.Country != "" {
+				@CountryFlag(result.Country)
 			}
 			if result.ASN > 0 {
 				<span>{ fmt.Sprintf("AS%d", result.ASN) }</span>

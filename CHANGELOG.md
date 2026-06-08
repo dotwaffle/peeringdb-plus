@@ -10,6 +10,16 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.20.2] — 2026-06-08
+
+### Changed
+
+- **Search result location renders the city before the country flag.** The flag
+  was rendered first, so it floated at a position determined by the city text
+  width and flags did not line up down the result list. Putting the city first
+  makes the fixed-width flag the rightmost (flush-right) element, so flags align
+  on the right edge across all rows.
+
 ## [1.20.1] — 2026-06-08
 
 ### Changed
