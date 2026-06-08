@@ -986,6 +986,77 @@ func TestDepth_UpstreamParityShape(t *testing.T) {
 	})
 }
 
+// TestDepth_BackRefStripParity locks which parent-FK each nested reverse-set
+// element keeps vs drops at depth=2, matching upstream's per-serializer
+// `exclude=` lists (peeringdb_server/serializers.py, verified against live
+// www.peeringdb.com payloads 2026-06-08):
+//   - CampusSerializer.fac_set (serializers.py:3917) excludes ["org_id","org"],
+//     so a facility nested under a campus KEEPS campus_id and DROPS org_id.
+//   - CarrierSerializer.carrierfac_set (serializers.py:2196) excludes ["fac"],
+//     so a carrierfac nested under a carrier KEEPS carrier_id.
+func TestDepth_BackRefStripParity(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Now().Truncate(time.Second).UTC()
+	org := client.Organization.Create().SetName("BR Org").SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	cmp := client.Campus.Create().SetName("BR Campus").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	// Facility assigned to BOTH the org and the campus, so its serialized form
+	// carries org_id and campus_id and we can observe which the nested context drops.
+	fac := client.Facility.Create().SetName("BR Fac").SetOrganization(org).SetCampus(cmp).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	car := client.Carrier.Create().SetName("BR Carrier").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.CarrierFacility.Create().SetCarrier(car).SetFacility(fac).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	detail := func(t *testing.T, tag string, id int) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth=2", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("detail %s/%d: %d: %s", tag, id, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) != 1 {
+			t.Fatalf("detail %s/%d: expected 1 item, got %d", tag, id, len(items))
+		}
+		return items[0]
+	}
+
+	t.Run("campus_fac_set_keeps_campus_id_drops_org_id", func(t *testing.T) {
+		t.Parallel()
+		arr, _ := detail(t, "campus", cmp.ID)["fac_set"].([]any)
+		if len(arr) != 1 {
+			t.Fatalf("campus fac_set: expected 1 item, got %d", len(arr))
+		}
+		el := arr[0].(map[string]any)
+		if _, has := el["campus_id"]; !has {
+			t.Error("campus.fac_set[0] must KEEP campus_id (upstream excludes only org_id/org)")
+		}
+		if _, has := el["org_id"]; has {
+			t.Error("campus.fac_set[0] must DROP org_id (CampusSerializer.fac_set exclude=[\"org_id\",\"org\"])")
+		}
+	})
+
+	t.Run("carrier_carrierfac_set_keeps_carrier_id", func(t *testing.T) {
+		t.Parallel()
+		arr, _ := detail(t, "carrier", car.ID)["carrierfac_set"].([]any)
+		if len(arr) != 1 {
+			t.Fatalf("carrier carrierfac_set: expected 1 item, got %d", len(arr))
+		}
+		el := arr[0].(map[string]any)
+		if _, has := el["carrier_id"]; !has {
+			t.Error("carrier.carrierfac_set[0] must KEEP carrier_id (CarrierSerializer.carrierfac_set exclude=[\"fac\"])")
+		}
+	})
+}
+
 // TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
 // — Query().Where(<type>.ID(id), <type>.StatusIn("ok","pending")), inlined at
 // all 26 depth.go getter sites — resolves identically across all 13 types: an

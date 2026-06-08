@@ -353,7 +353,11 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 				return nil, err
 			}
 		}
-		m["carrierfac_set"] = setWithout(carrierFacilitiesFromEnt(c.Edges.CarrierFacilities), "carrier_id")
+		// Upstream CarrierSerializer.carrierfac_set (serializers.py:2196)
+		// excludes only ["fac"] (the nested Facility object, which our flat
+		// CarrierFacility serializer never emits) — carrier_id and fac_id both
+		// stay on each element.
+		m["carrierfac_set"] = setWithout(carrierFacilitiesFromEnt(c.Edges.CarrierFacilities))
 		return m, nil
 	}
 
@@ -385,7 +389,10 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 				return nil, err
 			}
 		}
-		m["fac_set"] = setWithout(facilitiesFromEnt(c.Edges.Facilities), "campus_id")
+		// Upstream CampusSerializer.fac_set (serializers.py:3917) excludes
+		// ["org_id","org"], so a facility nested under a campus keeps campus_id
+		// (the parent back-ref) and drops org_id — the inverse of the org case.
+		m["fac_set"] = setWithout(facilitiesFromEnt(c.Edges.Facilities), "org_id")
 		return m, nil
 	}
 
