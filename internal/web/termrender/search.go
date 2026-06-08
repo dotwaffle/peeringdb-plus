@@ -25,12 +25,10 @@ func (r *Renderer) RenderSearch(w io.Writer, groups []templates.SearchGroup) err
 			buf.WriteString("\n")
 		}
 
-		// Group header: TypeName (N results) or TypeName (N+ results) if more exist.
-		suffix := ""
-		if group.HasMore {
-			suffix = "+"
-		}
-		header := fmt.Sprintf("%s (%d%s results)", group.TypeName, len(group.Results), suffix)
+		// Group header: TypeName (N results), where N is the exact total match
+		// count (Total), consistent with the web UI's count badge and "View all"
+		// link. Only the first len(Results) rows are listed below.
+		header := fmt.Sprintf("%s (%s results)", group.TypeName, templates.FormatThousands(group.Total))
 		buf.WriteString(StyleHeading.Render(header))
 		buf.WriteString("\n")
 

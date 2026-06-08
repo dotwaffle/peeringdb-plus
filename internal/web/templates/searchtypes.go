@@ -26,15 +26,6 @@ type SearchGroup struct {
 	Total int
 }
 
-// hasMoreSuffix returns "+" when hasMore is true, empty string otherwise.
-// Used in count badge display to indicate additional results exist.
-func hasMoreSuffix(hasMore bool) string {
-	if hasMore {
-		return "+"
-	}
-	return ""
-}
-
 // SearchTypeView holds the data for one page of the per-type "view all"
 // results page (and its "Load more" fragment). It mirrors web.SearchTypeResult
 // but lives in the templates package to avoid a web -> templates import cycle.
@@ -78,8 +69,8 @@ func homeQueryURL(query string) string {
 	return "/ui/?q=" + url.QueryEscape(query)
 }
 
-// formatThousands renders n with comma thousands separators (e.g. 1234 -> "1,234").
-func formatThousands(n int) string {
+// FormatThousands renders n with comma thousands separators (e.g. 1234 -> "1,234").
+func FormatThousands(n int) string {
 	s := strconv.Itoa(n)
 	neg := strings.HasPrefix(s, "-")
 	if neg {
