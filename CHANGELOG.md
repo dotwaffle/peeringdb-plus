@@ -10,6 +10,50 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.20.5] — 2026-06-08
+
+### Fixed
+
+- **pdbcompat `/api/` single-object depth responses now match upstream
+  PeeringDB.** A live shape comparison of all 13 types at `?depth=0/1/2`
+  against `www.peeringdb.com/api` (2026-06-08) surfaced several divergences,
+  all corrected and locked by `internal/pdbcompat/depth_test.go`:
+  - **`?depth=1` is now a real, distinct level.** The detail handler honoured
+    only `?depth=0/2` and silently coerced every other value (including `1`) to
+    `2`. Depth is now clamped to `[0, 4]` as upstream does; `depth=1` expands
+    forward FK objects flat with reverse `_set` fields as bare ID lists. Depths
+    3–4 render the depth-2 shape.
+  - **`ixlan` exposes `net_set`, not `netixlan_set`.** Upstream's
+    IXLanSerializer resolves the netixlan join to its networks
+    (`nested(NetworkSerializer, through="netixlan_set", getter="network")`); the
+    mirror was exposing the raw join rows under the wrong key and omitting
+    `net_set` entirely.
+  - **Second-level nested FK objects at `?depth=2` now carry their own
+    reverse-relation ID lists** (e.g. a netixlan's `net` carries
+    `poc_set`/`netfac_set`/`netixlan_set`, its `ixlan` carries
+    `net_set`/`ixpfx_set`), matching upstream's recursive depth budget. Removes
+    the bounded divergence deferred in v1.19.3.
+  - **Nested back-reference FK stripping corrected** to match upstream's
+    per-serializer `exclude=` lists: a facility nested under a campus keeps
+    `campus_id` and drops `org_id`; a carrierfac nested under a carrier keeps
+    `carrier_id`.
+  - **Campus-less facilities emit `campus:null` at detail depth** rather than
+    omitting the key (upstream's `FacilitySerializer.campus` is a related
+    field present at detail depth).
+
+### Changed
+
+- Response-budget row-size floor (`internal/pdbcompat/rowsize.go`) recalibrated
+  for the larger depth=2 rows (leaf join entities grew most now that each
+  embeds its FK objects' own ID-list sets); a `?depth=1` request bills the
+  depth=2 estimate.
+- One intentional non-parity is retained and documented in
+  `docs/API.md § Known Divergences`: anonymous `poc_set` ID lists omit
+  non-`Public` POC ids that upstream lists at `?depth=1` (upstream hides them
+  only on expansion). Matching upstream there would leak the existence of
+  non-`Public` contacts, contradicting the row-level `poc.visible` privacy
+  policy.
+
 ## [1.20.4] — 2026-06-08
 
 ### Changed

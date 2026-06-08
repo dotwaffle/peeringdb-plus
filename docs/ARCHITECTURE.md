@@ -706,33 +706,38 @@ operator action, never OOM-kill.
 
 ### Per-entity worst-case sizing
 
-Values are the DOUBLED figure from `BenchmarkRowSize_*` (calibrated
-2026-04-19, with the later bump for `org` Depth0), rounded
-up to 64 bytes. At the 128 MiB default budget, the `max_rows` column
-shows the row count at which the pre-flight check trips. Unknown
-entities fall back to `defaultRowSize = 4096` (fail-closed).
+Values are the DOUBLED figure from `BenchmarkRowSize_*`, rounded up to 64
+bytes (Depth0 calibrated 2026-04-19 with the later `org` bump; Depth2
+recalibrated 2026-06-08 after the v1.20.5 depth-parity work grew every
+expanded row). At the 128 MiB default budget, the `max_rows` column shows
+the row count at which the pre-flight check trips. A detail request at
+`?depth=1` bills the Depth=2 estimate (a safe over-estimate — its ID-list
+sets are smaller than the depth=2 full objects). Unknown entities fall back
+to `defaultRowSize = 4096` (fail-closed).
 
 | Entity | Depth=0 bytes/row | Max rows @ 128 MiB (D=0) | Depth=2 bytes/row | Max rows @ 128 MiB (D=2) |
 |---|---:|---:|---:|---:|
-| org | 704 | 190,650 | 8,576 | 15,650 |
-| net | 1,600 | 83,886 | 2,368 | 56,679 |
-| fac | 1,344 | 99,864 | 2,624 | 51,150 |
-| ix | 1,280 | 104,857 | 2,496 | 53,773 |
-| poc | 384 | 349,525 | 1,984 | 67,650 |
-| ixlan | 576 | 233,016 | 1,856 | 72,315 |
-| ixpfx | 384 | 349,525 | 896 | 149,796 |
-| netixlan | 640 | 209,715 | 2,752 | 48,770 |
-| netfac | 384 | 349,525 | 3,264 | 41,120 |
-| ixfac | 384 | 349,525 | 3,008 | 44,620 |
-| carrier | 512 | 262,144 | 1,472 | 91,180 |
-| carrierfac | 320 | 419,430 | 2,112 | 63,550 |
-| campus | 576 | 233,016 | 2,560 | 52,428 |
+| org | 704 | 190,650 | 8,448 | 15,886 |
+| net | 1,600 | 83,886 | 2,496 | 53,772 |
+| fac | 1,344 | 99,864 | 3,392 | 39,569 |
+| ix | 1,280 | 104,857 | 2,688 | 49,932 |
+| poc | 384 | 349,525 | 2,752 | 48,770 |
+| ixlan | 576 | 233,016 | 2,560 | 52,428 |
+| ixpfx | 384 | 349,525 | 2,240 | 59,918 |
+| netixlan | 640 | 209,715 | 4,928 | 27,235 |
+| netfac | 384 | 349,525 | 4,736 | 28,339 |
+| ixfac | 384 | 349,525 | 4,416 | 30,393 |
+| carrier | 512 | 262,144 | 1,664 | 80,659 |
+| carrierfac | 320 | 419,430 | 3,520 | 38,129 |
+| campus | 576 | 233,016 | 2,688 | 49,932 |
 
 `org` at depth=2 is the envelope's worst case (Depth2 row expands every
-`net_set` / `fac_set` / `ix_set` / `carrier_set` / `campus_set` at ~8.6 KiB/row)
-and still admits ~15k rows under the default budget — comfortably above
+`net_set` / `fac_set` / `ix_set` / `carrier_set` / `campus_set` at ~8.4 KiB/row)
+and still admits ~15.9k rows under the default budget — comfortably above
 the ~35 live organisations that currently carry populated child sets in
-production. Full table lives in `internal/pdbcompat/rowsize.go`.
+production. The leaf join entities (netixlan, netfac, ixfac) grew most in
+v1.20.5 now that each embeds its FK objects' own ID-list sets. Full table
+lives in `internal/pdbcompat/rowsize.go`.
 
 ### Request lifecycle
 
