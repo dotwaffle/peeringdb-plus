@@ -18,6 +18,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		TypeSlug:    "net",
 		AccentColor: "emerald",
 		HasMore:     true,
+		Total:       1234,
 		Results: []templates.SearchResult{
 			{Name: "Equinix (WAN)", ASN: 47541, DetailURL: "/ui/asn/47541"},
 			{Name: "Equinix LLC", ASN: 21928, DetailURL: "/ui/asn/21928"},
@@ -28,6 +29,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		TypeSlug:    "ix",
 		AccentColor: "sky",
 		HasMore:     true,
+		Total:       56,
 		Results: []templates.SearchResult{
 			{Name: "Equinix Chicago", Country: "US", City: "Chicago", DetailURL: "/ui/ix/81"},
 		},
@@ -37,6 +39,7 @@ var fullSearchGroups = []templates.SearchGroup{
 		TypeSlug:    "fac",
 		AccentColor: "orange",
 		HasMore:     true,
+		Total:       7,
 		Results: []templates.SearchResult{
 			{Name: "Equinix AM1/AM2", Country: "NL", City: "Amsterdam", DetailURL: "/ui/fac/4"},
 		},
@@ -52,6 +55,7 @@ var singleSearchGroup = []templates.SearchGroup{
 		TypeName: "Networks",
 		TypeSlug: "net",
 		HasMore:  false,
+		Total:    1,
 		Results: []templates.SearchResult{
 			{Name: "Test Network", ASN: 64512, DetailURL: "/ui/asn/64512"},
 		},
@@ -129,19 +133,22 @@ func TestRenderSearch_GroupedOutput(t *testing.T) {
 	}
 }
 
-func TestRenderSearch_HasMoreInHeader(t *testing.T) {
+func TestRenderSearch_ExactTotalInHeader(t *testing.T) {
 	t.Parallel()
 
 	out := renderSearch(t, ModeRich, false, fullSearchGroups)
 	stripped := regexp.MustCompile(`\x1b\[[0-9;]*m`).ReplaceAllString(out, "")
 
-	// Headers should show len(Results) with "+" suffix when HasMore is true.
-	// Networks has 2 results and HasMore=true -> "2+ results".
-	if !strings.Contains(stripped, "2+ results") {
-		t.Error("Networks header should show '2+ results' (HasMore=true)")
+	// Headers show the exact total match count (Total), comma-formatted, to match
+	// the web UI count badge and "View all" link — not the displayed-row count.
+	if !strings.Contains(stripped, "Networks (1,234 results)") {
+		t.Error("Networks header should show exact total 'Networks (1,234 results)'")
 	}
-	if !strings.Contains(stripped, "1+ results") {
-		t.Error("IXPs/Facilities header should show '1+ results' (HasMore=true)")
+	if !strings.Contains(stripped, "IXPs (56 results)") {
+		t.Error("IXPs header should show exact total 'IXPs (56 results)'")
+	}
+	if !strings.Contains(stripped, "Facilities (7 results)") {
+		t.Error("Facilities header should show exact total 'Facilities (7 results)'")
 	}
 }
 

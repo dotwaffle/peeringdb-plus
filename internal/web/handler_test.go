@@ -997,6 +997,7 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 			TypeSlug:    "net",
 			AccentColor: "emerald",
 			HasMore:     false,
+			Total:       1,
 			Results: []templates.SearchResult{
 				{Name: "Cloudflare", ASN: 13335, DetailURL: "/ui/asn/13335"},
 			},
@@ -1042,6 +1043,7 @@ func TestSearchResults_FadeIn(t *testing.T) {
 			TypeSlug:    "net",
 			AccentColor: "emerald",
 			HasMore:     false,
+			Total:       1,
 			Results: []templates.SearchResult{
 				{Name: "Cloudflare", ASN: 13335, DetailURL: "/ui/asn/13335"},
 			},

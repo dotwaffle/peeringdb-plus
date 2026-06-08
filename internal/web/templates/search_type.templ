@@ -13,7 +13,7 @@ templ SearchTypePage(data SearchTypeView) {
 				<span class={ groupBadgeClasses(data.AccentColor) }>{ data.TypeName }</span>
 			</h1>
 			<p class="mt-2 text-neutral-500 dark:text-neutral-400 text-sm">
-				{ fmt.Sprintf("%s results matching %q", formatThousands(data.Total), data.Query) }
+				{ fmt.Sprintf("%s results matching %q", FormatThousands(data.Total), data.Query) }
 			</p>
 		</div>
 		if len(data.Hits) == 0 {
