@@ -770,7 +770,7 @@ func TestDepth_DefaultExpansion_RemainingEntities(t *testing.T) {
 		// campus has no campus-assigned facility in the fixture (its fac is
 		// org-only), so fac_set is the correctly-shaped EMPTY array.
 		{"campus", []string{"org"}, map[string]int{"fac_set": 0}},
-		{"ixlan", []string{"ix"}, map[string]int{"ixpfx_set": 1, "netixlan_set": 1}},
+		{"ixlan", []string{"ix"}, map[string]int{"ixpfx_set": 1, "net_set": 1}},
 		{"ixpfx", []string{"ixlan"}, nil},
 		{"poc", []string{"net"}, nil},
 		{"netixlan", []string{"net", "ixlan"}, nil},
@@ -984,6 +984,66 @@ func TestDepth_UpstreamParityShape(t *testing.T) {
 			}
 		}
 	})
+}
+
+// TestDepth_IxLanNetSetParity locks the IXLan reverse-relation surface to
+// upstream. Upstream IXLanSerializer (serializers.py:3407) exposes ONE
+// reverse collection: net_set = nested(NetworkSerializer, through="netixlan_set",
+// getter="network") — a list of flat Network objects reached through the
+// netixlan join (one per active join row, no dedup). There is NO netixlan_set
+// on the ixlan surface. We previously exposed the raw netixlan join rows under
+// netixlan_set and omitted net_set entirely (verified against live payloads).
+func TestDepth_IxLanNetSetParity(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/ixlan?limit=1", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	var env testEnvelope
+	_ = json.Unmarshal(rec.Body.Bytes(), &env)
+	var items []map[string]any
+	_ = json.Unmarshal(env.Data, &items)
+	if len(items) == 0 {
+		t.Fatal("no ixlan rows")
+	}
+	ixlanID := int(items[0]["id"].(float64))
+
+	detReq := httptest.NewRequest(http.MethodGet, "/api/ixlan/"+itoa(ixlanID)+"?depth=2", nil)
+	detRec := httptest.NewRecorder()
+	mux.ServeHTTP(detRec, detReq)
+	if detRec.Code != http.StatusOK {
+		t.Fatalf("ixlan detail: %d: %s", detRec.Code, detRec.Body.String())
+	}
+	var detEnv testEnvelope
+	_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+	var detItems []map[string]any
+	_ = json.Unmarshal(detEnv.Data, &detItems)
+	obj := detItems[0]
+
+	if _, has := obj["netixlan_set"]; has {
+		t.Error("ixlan must NOT expose netixlan_set (upstream IXLanSerializer has no such field)")
+	}
+	arr, ok := obj["net_set"].([]any)
+	if !ok {
+		t.Fatal("ixlan must expose net_set as an array")
+	}
+	if len(arr) != 1 {
+		t.Fatalf("ixlan net_set: expected 1 network (one netixlan join row), got %d", len(arr))
+	}
+	el := arr[0].(map[string]any)
+	// Element must be a flat Network (NetworkSerializer), not a NetworkIxLan
+	// join row: a Network carries asn + info_* but no ipaddr4/speed.
+	if _, has := el["asn"]; !has {
+		t.Error("ixlan.net_set[0] must be a Network object (asn missing)")
+	}
+	if _, has := el["ipaddr4"]; has {
+		t.Error("ixlan.net_set[0] looks like a raw NetworkIxLan join row (has ipaddr4); must be an expanded Network")
+	}
+	// The Network's id is the network's, and its asn matches the seeded net.
+	if asn, _ := el["asn"].(float64); asn != 65001 {
+		t.Errorf("ixlan.net_set[0].asn = %v, want 65001 (the seeded network reached through netixlan)", el["asn"])
+	}
 }
 
 // TestDepth_BackRefStripParity locks which parent-FK each nested reverse-set

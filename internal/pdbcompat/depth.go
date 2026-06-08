@@ -301,14 +301,21 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 }
 
 // getIXLanWithDepth fetches an IXLan by ID with optional depth expansion.
-// At depth >= 2, expands ix object and adds ixpfx_set, netixlan_set.
+// At depth >= 2, expands ix object and adds ixpfx_set plus net_set (the
+// networks reached through the netixlan join, matching upstream's
+// IXLanSerializer which exposes net_set rather than the raw netixlan rows).
 func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		l, err := client.IxLan.Query().
 			Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
 			WithInternetExchange().
 			WithIxPrefixes().
-			WithNetworkIxLans().
+			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) {
+				q.Where(networkixlan.StatusIn("ok", "pending")).
+					WithNetwork(func(nq *ent.NetworkQuery) {
+						nq.Where(network.StatusIn("ok", "pending"))
+					})
+			}).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get ixlan %d: %w", id, err)
@@ -321,7 +328,18 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 			m["ix"] = internetExchangeFromEnt(l.Edges.InternetExchange)
 		}
 		m["ixpfx_set"] = setWithout(ixPrefixesFromEnt(l.Edges.IxPrefixes), "ixlan_id")
-		m["netixlan_set"] = setWithout(networkIxLansFromEnt(l.Edges.NetworkIxLans), "ixlan_id")
+		// Upstream IXLanSerializer exposes net_set, NOT netixlan_set:
+		// nested(NetworkSerializer, through="netixlan_set", getter="network")
+		// (serializers.py:3407) yields one flat Network per active netixlan
+		// join row — no dedup, join order. We resolve each join row to its
+		// Network and emit the flat NetworkSerializer shape.
+		netSet := make([]any, 0, len(l.Edges.NetworkIxLans))
+		for _, nixl := range l.Edges.NetworkIxLans {
+			if nixl != nil && nixl.Edges.Network != nil {
+				netSet = append(netSet, networkFromEnt(nixl.Edges.Network))
+			}
+		}
+		m["net_set"] = netSet
 		return m, nil
 	}
 
