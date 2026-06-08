@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/facility"
+	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
@@ -61,16 +64,22 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 		}
 	}
 
-	// Eager-load facility networks.
+	// Eager-load facility networks. The association row's own `name` is the
+	// facility name, so resolve the network name from the Network edge.
 	facNetItems, err := h.client.NetworkFacility.Query().
 		Where(networkfacility.HasFacilityWith(facility.ID(id))).
-		Order(networkfacility.ByName()).
+		WithNetwork().
+		Order(networkfacility.ByNetworkField(network.FieldName)).
 		All(ctx)
 	if err == nil {
 		netRows := make([]templates.FacNetworkRow, len(facNetItems))
 		for i, nf := range facNetItems {
+			netName := ""
+			if nf.Edges.Network != nil {
+				netName = nf.Edges.Network.Name
+			}
 			netRows[i] = templates.FacNetworkRow{
-				NetName: nf.Name,
+				NetName: netName,
 				ASN:     nf.LocalAsn,
 				City:    nf.City,
 				Country: nf.Country,
@@ -81,19 +90,21 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 		slog.Error("eager-load fac networks", slog.Int("fac_id", id), slog.Any("error", err))
 	}
 
-	// Eager-load facility IXPs.
+	// Eager-load facility IXPs. The association row's own `name` is the facility
+	// name, so resolve the exchange name from the InternetExchange edge.
 	facIXItems, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasFacilityWith(facility.ID(id))).
-		Order(ixfacility.ByName()).
+		WithInternetExchange().
+		Order(ixfacility.ByInternetExchangeField(internetexchange.FieldName)).
 		All(ctx)
 	if err == nil {
 		var ixRows []templates.FacIXRow
 		for _, ixf := range facIXItems {
-			if ixf.IxID == nil {
+			if ixf.IxID == nil || ixf.Edges.InternetExchange == nil {
 				continue
 			}
 			ixRows = append(ixRows, templates.FacIXRow{
-				IXName: ixf.Name,
+				IXName: ixf.Edges.InternetExchange.Name,
 				IXID:   *ixf.IxID,
 			})
 		}
@@ -102,19 +113,21 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 		slog.Error("eager-load fac ixps", slog.Int("fac_id", id), slog.Any("error", err))
 	}
 
-	// Eager-load facility carriers.
+	// Eager-load facility carriers. The association row's own `name` is the
+	// facility name, so resolve the carrier name from the Carrier edge.
 	facCarrierItems, err := h.client.CarrierFacility.Query().
 		Where(carrierfacility.HasFacilityWith(facility.ID(id))).
-		Order(carrierfacility.ByName()).
+		WithCarrier().
+		Order(carrierfacility.ByCarrierField(carrier.FieldName)).
 		All(ctx)
 	if err == nil {
 		var carrierRows []templates.FacCarrierRow
 		for _, cf := range facCarrierItems {
-			if cf.CarrierID == nil {
+			if cf.CarrierID == nil || cf.Edges.Carrier == nil {
 				continue
 			}
 			carrierRows = append(carrierRows, templates.FacCarrierRow{
-				CarrierName: cf.Name,
+				CarrierName: cf.Edges.Carrier.Name,
 				CarrierID:   *cf.CarrierID,
 			})
 		}

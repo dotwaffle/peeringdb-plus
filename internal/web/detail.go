@@ -512,7 +512,8 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.NetworkFacility.Query().
 		Where(networkfacility.HasFacilityWith(facility.ID(facID))).
-		Order(networkfacility.ByName()).
+		WithNetwork().
+		Order(networkfacility.ByNetworkField(network.FieldName)).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac networks", slog.Int("fac_id", facID), slog.Any("error", err))
@@ -522,8 +523,12 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 
 	rows := make([]templates.FacNetworkRow, len(items))
 	for i, nf := range items {
+		netName := ""
+		if nf.Edges.Network != nil {
+			netName = nf.Edges.Network.Name
+		}
 		rows[i] = templates.FacNetworkRow{
-			NetName: nf.Name,
+			NetName: netName,
 			ASN:     nf.LocalAsn,
 			City:    nf.City,
 			Country: nf.Country,
@@ -540,7 +545,7 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 	items, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasFacilityWith(facility.ID(facID))).
 		WithInternetExchange().
-		Order(ixfacility.ByName()).
+		Order(ixfacility.ByInternetExchangeField(internetexchange.FieldName)).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac ixps", slog.Int("fac_id", facID), slog.Any("error", err))
@@ -568,7 +573,8 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.CarrierFacility.Query().
 		Where(carrierfacility.HasFacilityWith(facility.ID(facID))).
-		Order(carrierfacility.ByName()).
+		WithCarrier().
+		Order(carrierfacility.ByCarrierField(carrier.FieldName)).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac carriers", slog.Int("fac_id", facID), slog.Any("error", err))
@@ -578,11 +584,11 @@ func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Reque
 
 	var rows []templates.FacCarrierRow
 	for _, cf := range items {
-		if cf.CarrierID == nil {
+		if cf.CarrierID == nil || cf.Edges.Carrier == nil {
 			continue
 		}
 		rows = append(rows, templates.FacCarrierRow{
-			CarrierName: cf.Name,
+			CarrierName: cf.Edges.Carrier.Name,
 			CarrierID:   *cf.CarrierID,
 		})
 	}
