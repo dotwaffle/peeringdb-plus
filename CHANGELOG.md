@@ -10,6 +10,26 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.20.6] — 2026-06-08
+
+### Fixed
+
+- **The `/api/` index now matches upstream PeeringDB's shape.** It returned a
+  peeringdb-plus-specific `{"<type>":{"list_endpoint":"/api/<type>"},...}` with
+  relative paths; it now emits upstream's
+  `{"data":[{"<type>":"<absolute-url>",...}],"meta":{}}` envelope with absolute
+  list-endpoint URLs built from the request host, so a drop-in client can follow
+  them directly. Locked by `TestIndex`. Upstream's 14th endpoint `as_set` (a
+  bulk `asn → irr_as_set` dump) remains unmirrored and is omitted from the index
+  so it never advertises a dead link — documented in
+  `docs/API.md § Known Divergences`.
+- **The root `/` discovery JSON reports the real build version.** It served a
+  hardcoded `"version":"0.1.0"` and never consulted `internal/buildinfo`, even
+  though `Dockerfile.prod` already injects `git describe` into it via -ldflags.
+  The banner now reflects the deployed build. Go's `debug.ReadBuildInfo` records
+  only the commit, never the tag, so the tag must be injected — `buildinfo`
+  resolves injected → `Main.Version` → `vcs.revision` → `unknown`.
+
 ## [1.20.5] — 2026-06-08
 
 ### Fixed
