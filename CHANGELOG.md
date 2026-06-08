@@ -10,6 +10,17 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.20.4] — 2026-06-08
+
+### Changed
+
+- **Trimmed low-signal SQL trace spans.** otelsql now omits `sql.rows` and
+  `sql.conn.reset_session` spans (via `SpanOptions`). These roughly halve the
+  DB-span count on every request trace and eliminate the orphan single-span
+  traces that connection-pool lifecycle and boot-time schema-migration DB
+  operations previously emitted with no request root. The `sql.conn.query`
+  spans (carrying `db.statement`) are retained.
+
 ## [1.20.3] — 2026-06-08
 
 ### Fixed
