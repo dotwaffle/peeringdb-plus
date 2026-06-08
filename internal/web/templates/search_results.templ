@@ -52,7 +52,7 @@ templ SearchRow(result SearchResult) {
 		</span>
 		<span class="shrink-0 ml-3 flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 font-mono">
 			if result.City != "" {
-				<span class="hidden md:inline">{ result.City }</span>
+				<span class="hidden md:inline-block max-w-[12rem] truncate align-middle" title={ result.City }>{ result.City }</span>
 			}
 			if result.Country != "" {
 				@CountryFlag(result.Country)
