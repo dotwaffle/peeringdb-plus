@@ -113,11 +113,16 @@ func seedAllTestData(t *testing.T, client *ent.Client) {
 		t.Fatalf("creating networkfacility: %v", err)
 	}
 
+	// Upstream sets the association row's `name` to the FACILITY name, not the
+	// related entity's name (see peeringdb_server models: netfac/ixfac/carrierfac
+	// .name == facility.name). Seed all three join rows that way so detail-page
+	// tests can distinguish "showing the facility name" (the bug) from "showing
+	// the related entity name" (correct).
 	_, err = client.IxFacility.Create().
 		SetID(400).
 		SetFacID(fac.ID).SetFacility(fac).
 		SetIxID(ix.ID).SetInternetExchange(ix).
-		SetName("DE-CIX Frankfurt").
+		SetName("Equinix FR5").
 		SetCity("Frankfurt").SetCountry("DE").
 		SetCreated(testHandlerTimestamp).SetUpdated(testHandlerTimestamp).
 		Save(ctx)
@@ -257,6 +262,43 @@ func TestDetailPages_AllTypes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestQueryFacility_RelatedEntityNames guards the facility detail data path
+// (terminal/JSON rendering) against the regression where carrier/network/IXP
+// rows showed the FACILITY name. Upstream sets each association row's `name` to
+// the facility name, so the names must be resolved from the related entity edge.
+func TestQueryFacility_RelatedEntityNames(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedAllTestData(t, client)
+	h := NewHandler(NewHandlerInput{Client: client})
+
+	data, err := h.queryFacility(t.Context(), 30)
+	if err != nil {
+		t.Fatalf("queryFacility: %v", err)
+	}
+
+	if len(data.Carriers) != 1 {
+		t.Fatalf("Carriers len = %d, want 1", len(data.Carriers))
+	}
+	if got := data.Carriers[0].CarrierName; got != "Test Carrier" {
+		t.Errorf("CarrierName = %q, want %q (carrier name, not facility name)", got, "Test Carrier")
+	}
+
+	if len(data.Networks) != 1 {
+		t.Fatalf("Networks len = %d, want 1", len(data.Networks))
+	}
+	if got := data.Networks[0].NetName; got != "Cloudflare" {
+		t.Errorf("NetName = %q, want %q (network name, not facility name)", got, "Cloudflare")
+	}
+
+	if len(data.IXPs) != 1 {
+		t.Fatalf("IXPs len = %d, want 1", len(data.IXPs))
+	}
+	if got := data.IXPs[0].IXName; got != "DE-CIX Frankfurt" {
+		t.Errorf("IXName = %q, want %q (IX name, not facility name)", got, "DE-CIX Frankfurt")
 	}
 }
 
@@ -445,11 +487,11 @@ func TestFragments_AllTypes(t *testing.T) {
 		{"net facilities", "/ui/fragment/net/10/facilities", http.StatusOK, []string{"Equinix", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"net contacts", "/ui/fragment/net/10/contacts", http.StatusOK, []string{"NOC", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"ix participants", "/ui/fragment/ix/20/participants", http.StatusOK, []string{"13335", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
-		{"ix facilities", "/ui/fragment/ix/20/facilities", http.StatusOK, []string{"DE-CIX Frankfurt", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"ix facilities", "/ui/fragment/ix/20/facilities", http.StatusOK, []string{"Equinix FR5", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"ix prefixes", "/ui/fragment/ix/20/prefixes", http.StatusOK, []string{"80.81.192.0/22", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
-		{"fac networks", "/ui/fragment/fac/30/networks", http.StatusOK, []string{"Equinix", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
-		{"fac ixps", "/ui/fragment/fac/30/ixps", http.StatusOK, []string{"DE-CIX", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
-		{"fac carriers", "/ui/fragment/fac/30/carriers", http.StatusOK, []string{"Equinix FR5", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
+		{"fac networks", "/ui/fragment/fac/30/networks", http.StatusOK, []string{"Cloudflare", "AS13335", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50", "Equinix FR5"}},
+		{"fac ixps", "/ui/fragment/fac/30/ixps", http.StatusOK, []string{"DE-CIX Frankfurt", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50", "Equinix FR5"}},
+		{"fac carriers", "/ui/fragment/fac/30/carriers", http.StatusOK, []string{"Test Carrier", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50", "Equinix FR5"}},
 		{"org networks", "/ui/fragment/org/1/networks", http.StatusOK, []string{"Cloudflare", "<table", "data-sortable", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"org ixps", "/ui/fragment/org/1/ixps", http.StatusOK, []string{"DE-CIX", "<table"}, []string{"<!doctype", "data-sortable", "px-4 py-3 hover:bg-neutral-800/50"}},
 		{"org facilities", "/ui/fragment/org/1/facilities", http.StatusOK, []string{"Equinix", "<table", "data-sortable", "fi fi-", "data-sort-value"}, []string{"<!doctype", "px-4 py-3 hover:bg-neutral-800/50"}},
