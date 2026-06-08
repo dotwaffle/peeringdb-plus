@@ -10,6 +10,19 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.20.3] — 2026-06-08
+
+### Fixed
+
+- **Overlong location text no longer overflows search rows or detail headers.**
+  Some exchanges store a comma-separated list of cities in the upstream `city`
+  field (e.g. IX 3958 "1-IX EU" lists eleven cities, ~95 chars). In search
+  results this expanded and squashed the entity name out of the row; in the
+  detail-page header it overflowed the subtitle. The search-row city is now
+  width-capped with ellipsis truncation, and the detail-header subtitle
+  truncates to the available width. Both keep the full text available via a
+  `title` tooltip; normal short locations are unaffected.
+
 ## [1.20.2] — 2026-06-08
 
 ### Changed
