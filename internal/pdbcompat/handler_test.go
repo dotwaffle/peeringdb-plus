@@ -573,25 +573,38 @@ func TestIndex(t *testing.T) {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	var index map[string]map[string]string
-	if err := json.Unmarshal(rec.Body.Bytes(), &index); err != nil {
+	// Upstream PeeringDB shape: {"data":[{"<type>":"<absolute url>",...}],"meta":{}}.
+	var env struct {
+		Data []map[string]string `json:"data"`
+		Meta map[string]any      `json:"meta"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
 		t.Fatalf("unmarshal index: %v", err)
 	}
-
-	// Should have all 13 types.
-	if len(index) != 13 {
-		t.Errorf("expected 13 types in index, got %d", len(index))
+	if env.Meta == nil || len(env.Meta) != 0 {
+		t.Errorf("meta must be an empty object, got %v", env.Meta)
 	}
-
-	// Check a few known entries.
-	for _, typeName := range []string{"net", "ix", "fac", "org", "poc"} {
-		entry, ok := index[typeName]
+	if len(env.Data) != 1 {
+		t.Fatalf("data must hold exactly one object, got %d", len(env.Data))
+	}
+	types := env.Data[0]
+	if len(types) != 13 {
+		t.Errorf("expected 13 types in index, got %d", len(types))
+	}
+	// The legacy {"<type>":{"list_endpoint":...}} shape must be gone.
+	if _, has := types["list_endpoint"]; has {
+		t.Error("index must not carry the legacy list_endpoint shape")
+	}
+	// Each entry is an absolute URL built from the request host, matching
+	// upstream's full-URL form (httptest defaults to http://example.com).
+	for _, typeName := range []string{"net", "ix", "fac", "org", "poc", "campus", "carrierfac"} {
+		got, ok := types[typeName]
 		if !ok {
 			t.Errorf("missing type %q in index", typeName)
 			continue
 		}
-		if entry["list_endpoint"] != "/api/"+typeName {
-			t.Errorf("type %q: expected list_endpoint /api/%s, got %q", typeName, typeName, entry["list_endpoint"])
+		if want := "http://example.com/api/" + typeName; got != want {
+			t.Errorf("type %q: got %q, want %q", typeName, got, want)
 		}
 	}
 }
