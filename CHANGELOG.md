@@ -10,6 +10,23 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.20.1] — 2026-06-08
+
+### Changed
+
+- **Search count badges now show the exact total match count.** A grouped
+  search type that overflowed the 10-result quick-search cap previously showed
+  "(10+)", which disagreed with the "View all N" link's exact figure. The badge
+  now shows the same exact total (e.g. "Networks (1,234)"), comma-formatted. The
+  terminal search header (`curl`/plain user agents) shows the exact total too,
+  for parity. The total is already computed for overflowing types, so this adds
+  no extra query.
+
+### Dependencies
+
+- Bump `golang.org/x/sync` v0.20.0 → v0.21.0 and `modernc.org/sqlite`
+  v1.51.0 → v1.52.0.
+
 ## [1.20.0] — 2026-06-08
 
 ### Added
