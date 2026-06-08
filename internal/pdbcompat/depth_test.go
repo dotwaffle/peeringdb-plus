@@ -961,14 +961,11 @@ func TestDepth_UpstreamParityShape(t *testing.T) {
 		}
 	})
 
-	// Intentional bounded divergence (docs/API.md § Known Divergences): the
-	// FIRST-level nested FK object carries ID-list sets, but a SECOND-level
-	// nested FK object — the `ix` embedded under an ixlan — is expanded flat.
-	// Upstream would give that ix its own ixlan_set/fac_set ID lists; we stop
-	// one level short. Reproducing the full recursive depth budget for every
-	// leaf permutation is disproportionate effort for data almost no client
-	// reads two levels deep.
-	t.Run("second_level_nested_fk_stays_flat_DIVERGENCE", func(t *testing.T) {
+	// nested_ix_under_ixlan_carries_id_list_sets: a singular FK object embedded
+	// one level down (the `ix` under an ixlan) carries its own reverse relations
+	// as bare ID lists, matching upstream's recursive depth budget. (Previously
+	// we stopped one level short and rendered it flat — fixed for parity.)
+	t.Run("nested_ix_under_ixlan_carries_id_list_sets", func(t *testing.T) {
 		t.Parallel()
 		obj := detail(t, mux, "ixlan", firstID(t, "ixlan"))
 		ix, ok := obj["ix"].(map[string]any)
@@ -979,10 +976,128 @@ func TestDepth_UpstreamParityShape(t *testing.T) {
 			t.Error("ixlan.ix should be an expanded object with id")
 		}
 		for _, sk := range []string{"ixlan_set", "fac_set"} {
-			if _, has := ix[sk]; has {
-				t.Errorf("ixlan.ix unexpectedly carries %s; second-level nesting is intentionally flat", sk)
+			arr, ok := ix[sk].([]any)
+			if !ok {
+				t.Errorf("ixlan.ix.%s must be an ID-list array (upstream embeds it)", sk)
+				continue
+			}
+			for _, e := range arr {
+				if _, isObj := e.(map[string]any); isObj {
+					t.Errorf("ixlan.ix.%s must be an ID list, found an embedded object", sk)
+				}
 			}
 		}
+	})
+}
+
+// TestDepth_LeafSecondLevelParity locks the depth=2 recursive shape for the
+// leaf/join entities: each singular FK object they embed (poc.net,
+// netixlan.{net,ixlan}, netfac.{net,fac}, ixfac.{ix,fac}, carrierfac.carrier,
+// ixpfx.ixlan) is rendered as a full object carrying its OWN reverse relations
+// as bare ID lists plus its own forward FK as a flat object — exactly as
+// upstream's depth budget does (verified against live payloads 2026-06-08).
+// Previously these FK objects were rendered flat (no reverse sets), the
+// intentional v1.19.3 bounded divergence now removed for full parity.
+func TestDepth_LeafSecondLevelParity(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	detail := func(t *testing.T, tag string) map[string]any {
+		t.Helper()
+		lreq := httptest.NewRequest(http.MethodGet, "/api/"+tag+"?limit=1", nil)
+		lrec := httptest.NewRecorder()
+		mux.ServeHTTP(lrec, lreq)
+		var lenv testEnvelope
+		_ = json.Unmarshal(lrec.Body.Bytes(), &lenv)
+		var litems []map[string]any
+		_ = json.Unmarshal(lenv.Data, &litems)
+		if len(litems) == 0 {
+			t.Fatalf("no %s rows", tag)
+		}
+		id := int(litems[0]["id"].(float64))
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth=2", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s detail: %d: %s", tag, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		return items[0]
+	}
+
+	// idListSets asserts obj[fk] is an object whose listed keys are all ID-list
+	// arrays (elements are numbers, never embedded objects).
+	idListSets := func(t *testing.T, parent map[string]any, fk string, sets ...string) {
+		t.Helper()
+		o, ok := parent[fk].(map[string]any)
+		if !ok {
+			t.Fatalf("nested %q is not an object", fk)
+		}
+		for _, sk := range sets {
+			arr, ok := o[sk].([]any)
+			if !ok {
+				t.Errorf("%s.%s must be an ID-list array (upstream embeds it)", fk, sk)
+				continue
+			}
+			for _, e := range arr {
+				if _, isObj := e.(map[string]any); isObj {
+					t.Errorf("%s.%s must be an ID list, found an embedded object", fk, sk)
+				}
+			}
+		}
+	}
+	hasFlatObj := func(t *testing.T, parent map[string]any, fk, sub string) {
+		t.Helper()
+		o, ok := parent[fk].(map[string]any)
+		if !ok {
+			t.Fatalf("nested %q is not an object", fk)
+		}
+		if _, ok := o[sub].(map[string]any); !ok {
+			t.Errorf("%s.%s must be an expanded (flat) object", fk, sub)
+		}
+	}
+
+	t.Run("poc_net", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "poc")
+		idListSets(t, obj, "net", "poc_set", "netfac_set", "netixlan_set")
+		hasFlatObj(t, obj, "net", "org")
+	})
+	t.Run("netixlan_net_and_ixlan", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "netixlan")
+		idListSets(t, obj, "net", "poc_set", "netfac_set", "netixlan_set")
+		hasFlatObj(t, obj, "net", "org")
+		idListSets(t, obj, "ixlan", "net_set", "ixpfx_set")
+		hasFlatObj(t, obj, "ixlan", "ix")
+	})
+	t.Run("netfac_net_and_fac", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "netfac")
+		idListSets(t, obj, "net", "poc_set", "netfac_set", "netixlan_set")
+		hasFlatObj(t, obj, "fac", "org")
+	})
+	t.Run("ixfac_ix_and_fac", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "ixfac")
+		idListSets(t, obj, "ix", "ixlan_set", "fac_set")
+		hasFlatObj(t, obj, "ix", "org")
+		hasFlatObj(t, obj, "fac", "org")
+	})
+	t.Run("carrierfac_carrier", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "carrierfac")
+		idListSets(t, obj, "carrier", "carrierfac_set")
+		hasFlatObj(t, obj, "carrier", "org")
+	})
+	t.Run("ixpfx_ixlan", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "ixpfx")
+		idListSets(t, obj, "ixlan", "net_set", "ixpfx_set")
+		hasFlatObj(t, obj, "ixlan", "ix")
 	})
 }
 

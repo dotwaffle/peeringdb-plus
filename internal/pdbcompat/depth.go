@@ -82,6 +82,22 @@ func sortedIDsOrEmpty(ids []int, err error) ([]int, error) {
 	return ids, nil
 }
 
+// intsOrEmpty normalises an ent Ints() result into a non-nil slice WITHOUT
+// sorting. Upstream renders through-relation ID lists (an ixlan's net_set
+// reached via the netixlan join, an ix's fac_set via the ixfac join) in join
+// order with duplicates preserved — unlike the direct reverse-set ID lists
+// which come back ascending. Empty input yields []int{} so the field
+// serializes as [] rather than null.
+func intsOrEmpty(ids []int, err error) ([]int, error) {
+	if err != nil {
+		return nil, err
+	}
+	if ids == nil {
+		ids = []int{}
+	}
+	return ids, nil
+}
+
 // nestedOrgMap renders an organization as it appears when embedded in a parent
 // object at depth=2 (e.g. the `org` field of a Network). Upstream expands the
 // org's own scalar fields and represents its reverse relations as bare ID
@@ -122,6 +138,112 @@ func nestedCampusMap(ctx context.Context, c *ent.Campus) (map[string]any, error)
 	m["fac_set"] = ids
 	if c.Edges.Organization != nil {
 		m["org"] = organizationFromEnt(c.Edges.Organization)
+	}
+	return m, nil
+}
+
+// The nested*Map builders below render a singular FK object embedded one level
+// down at depth=2 (e.g. the `net` under a poc/netfac/netixlan). They mirror
+// nestedOrgMap's contract: a full object whose own reverse relations are bare
+// ID lists and whose own forward FK objects are flat (their sets popped). This
+// is exactly upstream's recursive depth budget — verified against live
+// www.peeringdb.com payloads (2026-06-08). The same builders render a top-level
+// object at ?depth=1 (see the depth==1 getter branches).
+
+// nestedNetMap renders a Network as a singular FK at depth=2 (or as a top-level
+// object at depth=1): the network's poc_set/netfac_set/netixlan_set as ascending
+// ID lists and its org as a flat object.
+func nestedNetMap(ctx context.Context, n *ent.Network) (map[string]any, error) {
+	m := toMap(networkFromEnt(n))
+	if org, err := n.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested net %d org: %w", n.ID, err)
+	}
+	var err error
+	if m["poc_set"], err = sortedIDsOrEmpty(n.QueryPocs().Where(poc.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested net %d poc_set: %w", n.ID, err)
+	}
+	if m["netfac_set"], err = sortedIDsOrEmpty(n.QueryNetworkFacilities().Where(networkfacility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested net %d netfac_set: %w", n.ID, err)
+	}
+	if m["netixlan_set"], err = sortedIDsOrEmpty(n.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested net %d netixlan_set: %w", n.ID, err)
+	}
+	return m, nil
+}
+
+// nestedFacMap renders a Facility as a singular FK at depth=2 (or top-level at
+// depth=1): the FacilitySerializer embeds NO reverse sets (netfac/ixfac/
+// carrierfac are omitted), only its org and campus FK objects, both flat.
+func nestedFacMap(ctx context.Context, f *ent.Facility) (map[string]any, error) {
+	m := toMap(facilityFromEnt(f))
+	if org, err := f.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested fac %d org: %w", f.ID, err)
+	}
+	if cmp, err := f.QueryCampus().Only(ctx); err == nil {
+		m["campus"] = campusFromEnt(cmp)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested fac %d campus: %w", f.ID, err)
+	}
+	return m, nil
+}
+
+// nestedIxMap renders an InternetExchange as a singular FK at depth=2 (or
+// top-level at depth=1): ixlan_set as an ascending ID list, fac_set as the
+// facility IDs reached through the ixfac join (join order, no dedup), and org
+// as a flat object.
+func nestedIxMap(ctx context.Context, ix *ent.InternetExchange) (map[string]any, error) {
+	m := toMap(internetExchangeFromEnt(ix))
+	if org, err := ix.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested ix %d org: %w", ix.ID, err)
+	}
+	var err error
+	if m["ixlan_set"], err = sortedIDsOrEmpty(ix.QueryIxLans().Where(ixlan.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ix %d ixlan_set: %w", ix.ID, err)
+	}
+	if m["fac_set"], err = intsOrEmpty(ix.QueryIxFacilities().Where(ixfacility.StatusIn("ok", "pending")).Select(ixfacility.FieldFacID).Ints(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ix %d fac_set: %w", ix.ID, err)
+	}
+	return m, nil
+}
+
+// nestedIxLanMap renders an IXLan as a singular FK at depth=2 (or top-level at
+// depth=1): ixpfx_set as an ascending ID list, net_set as the network IDs
+// reached through the netixlan join (join order, no dedup), and ix flat.
+func nestedIxLanMap(ctx context.Context, l *ent.IxLan) (map[string]any, error) {
+	m := toMap(ixLanFromEnt(ctx, l))
+	if ix, err := l.QueryInternetExchange().Only(ctx); err == nil {
+		m["ix"] = internetExchangeFromEnt(ix)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested ixlan %d ix: %w", l.ID, err)
+	}
+	var err error
+	if m["ixpfx_set"], err = sortedIDsOrEmpty(l.QueryIxPrefixes().Where(ixprefix.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ixlan %d ixpfx_set: %w", l.ID, err)
+	}
+	if m["net_set"], err = intsOrEmpty(l.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "pending")).Select(networkixlan.FieldNetID).Ints(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ixlan %d net_set: %w", l.ID, err)
+	}
+	return m, nil
+}
+
+// nestedCarrierMap renders a Carrier as a singular FK at depth=2 (or top-level
+// at depth=1): carrierfac_set as an ascending ID list and org flat.
+func nestedCarrierMap(ctx context.Context, c *ent.Carrier) (map[string]any, error) {
+	m := toMap(carrierFromEnt(c))
+	if org, err := c.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested carrier %d org: %w", c.ID, err)
+	}
+	var err error
+	if m["carrierfac_set"], err = sortedIDsOrEmpty(c.QueryCarrierFacilities().Where(carrierfacility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested carrier %d carrierfac_set: %w", c.ID, err)
 	}
 	return m, nil
 }
@@ -323,9 +445,11 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixLanFromEnt(ctx, l)
 		m := toMap(base)
 		if l.Edges.InternetExchange != nil {
-			// ix is expanded flat here; its own reverse sets as ID-lists
-			// (a depth-3 detail) are not reproduced — see depth parity notes.
-			m["ix"] = internetExchangeFromEnt(l.Edges.InternetExchange)
+			// ix is a singular FK one level down: full object carrying its own
+			// ixlan_set/fac_set as ID lists (nestedIxMap), matching upstream.
+			if m["ix"], err = nestedIxMap(ctx, l.Edges.InternetExchange); err != nil {
+				return nil, err
+			}
 		}
 		m["ixpfx_set"] = setWithout(ixPrefixesFromEnt(l.Edges.IxPrefixes), "ixlan_id")
 		// Upstream IXLanSerializer exposes net_set, NOT netixlan_set:
@@ -441,10 +565,14 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 		base := networkFacilityFromEnt(nf)
 		m := toMap(base)
 		if nf.Edges.Network != nil {
-			m["net"] = networkFromEnt(nf.Edges.Network)
+			if m["net"], err = nestedNetMap(ctx, nf.Edges.Network); err != nil {
+				return nil, err
+			}
 		}
 		if nf.Edges.Facility != nil {
-			m["fac"] = facilityFromEnt(nf.Edges.Facility)
+			if m["fac"], err = nestedFacMap(ctx, nf.Edges.Facility); err != nil {
+				return nil, err
+			}
 		}
 		return m, nil
 	}
@@ -473,10 +601,14 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 		base := networkIxLanFromEnt(nixl)
 		m := toMap(base)
 		if nixl.Edges.Network != nil {
-			m["net"] = networkFromEnt(nixl.Edges.Network)
+			if m["net"], err = nestedNetMap(ctx, nixl.Edges.Network); err != nil {
+				return nil, err
+			}
 		}
 		if nixl.Edges.IxLan != nil {
-			m["ixlan"] = ixLanFromEnt(ctx, nixl.Edges.IxLan)
+			if m["ixlan"], err = nestedIxLanMap(ctx, nixl.Edges.IxLan); err != nil {
+				return nil, err
+			}
 		}
 		return m, nil
 	}
@@ -505,10 +637,14 @@ func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixFacilityFromEnt(ixf)
 		m := toMap(base)
 		if ixf.Edges.InternetExchange != nil {
-			m["ix"] = internetExchangeFromEnt(ixf.Edges.InternetExchange)
+			if m["ix"], err = nestedIxMap(ctx, ixf.Edges.InternetExchange); err != nil {
+				return nil, err
+			}
 		}
 		if ixf.Edges.Facility != nil {
-			m["fac"] = facilityFromEnt(ixf.Edges.Facility)
+			if m["fac"], err = nestedFacMap(ctx, ixf.Edges.Facility); err != nil {
+				return nil, err
+			}
 		}
 		return m, nil
 	}
@@ -537,10 +673,14 @@ func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth i
 		base := carrierFacilityFromEnt(cf)
 		m := toMap(base)
 		if cf.Edges.Carrier != nil {
-			m["carrier"] = carrierFromEnt(cf.Edges.Carrier)
+			if m["carrier"], err = nestedCarrierMap(ctx, cf.Edges.Carrier); err != nil {
+				return nil, err
+			}
 		}
 		if cf.Edges.Facility != nil {
-			m["fac"] = facilityFromEnt(cf.Edges.Facility)
+			if m["fac"], err = nestedFacMap(ctx, cf.Edges.Facility); err != nil {
+				return nil, err
+			}
 		}
 		return m, nil
 	}
@@ -567,7 +707,9 @@ func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		base := pocFromEnt(p)
 		m := toMap(base)
 		if p.Edges.Network != nil {
-			m["net"] = networkFromEnt(p.Edges.Network)
+			if m["net"], err = nestedNetMap(ctx, p.Edges.Network); err != nil {
+				return nil, err
+			}
 		}
 		return m, nil
 	}
@@ -595,7 +737,9 @@ func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixPrefixFromEnt(p)
 		m := toMap(base)
 		if p.Edges.IxLan != nil {
-			m["ixlan"] = ixLanFromEnt(ctx, p.Edges.IxLan)
+			if m["ixlan"], err = nestedIxLanMap(ctx, p.Edges.IxLan); err != nil {
+				return nil, err
+			}
 		}
 		return m, nil
 	}
