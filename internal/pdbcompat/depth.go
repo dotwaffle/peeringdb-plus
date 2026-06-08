@@ -82,6 +82,22 @@ func sortedIDsOrEmpty(ids []int, err error) ([]int, error) {
 	return ids, nil
 }
 
+// intsOrEmpty normalises an ent Ints() result into a non-nil slice WITHOUT
+// sorting. Upstream renders through-relation ID lists (an ixlan's net_set
+// reached via the netixlan join, an ix's fac_set via the ixfac join) in join
+// order with duplicates preserved — unlike the direct reverse-set ID lists
+// which come back ascending. Empty input yields []int{} so the field
+// serializes as [] rather than null.
+func intsOrEmpty(ids []int, err error) ([]int, error) {
+	if err != nil {
+		return nil, err
+	}
+	if ids == nil {
+		ids = []int{}
+	}
+	return ids, nil
+}
+
 // nestedOrgMap renders an organization as it appears when embedded in a parent
 // object at depth=2 (e.g. the `org` field of a Network). Upstream expands the
 // org's own scalar fields and represents its reverse relations as bare ID
@@ -122,6 +138,116 @@ func nestedCampusMap(ctx context.Context, c *ent.Campus) (map[string]any, error)
 	m["fac_set"] = ids
 	if c.Edges.Organization != nil {
 		m["org"] = organizationFromEnt(c.Edges.Organization)
+	}
+	return m, nil
+}
+
+// The nested*Map builders below render a singular FK object embedded one level
+// down at depth=2 (e.g. the `net` under a poc/netfac/netixlan). They mirror
+// nestedOrgMap's contract: a full object whose own reverse relations are bare
+// ID lists and whose own forward FK objects are flat (their sets popped). This
+// is exactly upstream's recursive depth budget — verified against live
+// www.peeringdb.com payloads (2026-06-08). The same builders render a top-level
+// object at ?depth=1 (see the depth==1 getter branches).
+
+// nestedNetMap renders a Network as a singular FK at depth=2 (or as a top-level
+// object at depth=1): the network's poc_set/netfac_set/netixlan_set as ascending
+// ID lists and its org as a flat object.
+func nestedNetMap(ctx context.Context, n *ent.Network) (map[string]any, error) {
+	m := toMap(networkFromEnt(n))
+	if org, err := n.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested net %d org: %w", n.ID, err)
+	}
+	var err error
+	if m["poc_set"], err = sortedIDsOrEmpty(n.QueryPocs().Where(poc.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested net %d poc_set: %w", n.ID, err)
+	}
+	if m["netfac_set"], err = sortedIDsOrEmpty(n.QueryNetworkFacilities().Where(networkfacility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested net %d netfac_set: %w", n.ID, err)
+	}
+	if m["netixlan_set"], err = sortedIDsOrEmpty(n.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested net %d netixlan_set: %w", n.ID, err)
+	}
+	return m, nil
+}
+
+// nestedFacMap renders a Facility as a singular FK at depth=2 (or top-level at
+// depth=1): the FacilitySerializer embeds NO reverse sets (netfac/ixfac/
+// carrierfac are omitted), only its org and campus FK objects, both flat.
+func nestedFacMap(ctx context.Context, f *ent.Facility) (map[string]any, error) {
+	m := toMap(facilityFromEnt(f))
+	if org, err := f.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested fac %d org: %w", f.ID, err)
+	}
+	if cmp, err := f.QueryCampus().Only(ctx); err == nil {
+		m["campus"] = campusFromEnt(cmp)
+	} else if ent.IsNotFound(err) {
+		// Upstream FacilitySerializer.campus is a related field emitted at
+		// detail depth as null for a campus-less facility, not omitted.
+		m["campus"] = nil
+	} else {
+		return nil, fmt.Errorf("nested fac %d campus: %w", f.ID, err)
+	}
+	return m, nil
+}
+
+// nestedIxMap renders an InternetExchange as a singular FK at depth=2 (or
+// top-level at depth=1): ixlan_set as an ascending ID list, fac_set as the
+// facility IDs reached through the ixfac join (join order, no dedup), and org
+// as a flat object.
+func nestedIxMap(ctx context.Context, ix *ent.InternetExchange) (map[string]any, error) {
+	m := toMap(internetExchangeFromEnt(ix))
+	if org, err := ix.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested ix %d org: %w", ix.ID, err)
+	}
+	var err error
+	if m["ixlan_set"], err = sortedIDsOrEmpty(ix.QueryIxLans().Where(ixlan.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ix %d ixlan_set: %w", ix.ID, err)
+	}
+	if m["fac_set"], err = intsOrEmpty(ix.QueryIxFacilities().Where(ixfacility.StatusIn("ok", "pending")).Select(ixfacility.FieldFacID).Ints(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ix %d fac_set: %w", ix.ID, err)
+	}
+	return m, nil
+}
+
+// nestedIxLanMap renders an IXLan as a singular FK at depth=2 (or top-level at
+// depth=1): ixpfx_set as an ascending ID list, net_set as the network IDs
+// reached through the netixlan join (join order, no dedup), and ix flat.
+func nestedIxLanMap(ctx context.Context, l *ent.IxLan) (map[string]any, error) {
+	m := toMap(ixLanFromEnt(ctx, l))
+	if ix, err := l.QueryInternetExchange().Only(ctx); err == nil {
+		m["ix"] = internetExchangeFromEnt(ix)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested ixlan %d ix: %w", l.ID, err)
+	}
+	var err error
+	if m["ixpfx_set"], err = sortedIDsOrEmpty(l.QueryIxPrefixes().Where(ixprefix.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ixlan %d ixpfx_set: %w", l.ID, err)
+	}
+	if m["net_set"], err = intsOrEmpty(l.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "pending")).Select(networkixlan.FieldNetID).Ints(ctx)); err != nil {
+		return nil, fmt.Errorf("nested ixlan %d net_set: %w", l.ID, err)
+	}
+	return m, nil
+}
+
+// nestedCarrierMap renders a Carrier as a singular FK at depth=2 (or top-level
+// at depth=1): carrierfac_set as an ascending ID list and org flat.
+func nestedCarrierMap(ctx context.Context, c *ent.Carrier) (map[string]any, error) {
+	m := toMap(carrierFromEnt(c))
+	if org, err := c.QueryOrganization().Only(ctx); err == nil {
+		m["org"] = organizationFromEnt(org)
+	} else if !ent.IsNotFound(err) {
+		return nil, fmt.Errorf("nested carrier %d org: %w", c.ID, err)
+	}
+	var err error
+	if m["carrierfac_set"], err = sortedIDsOrEmpty(c.QueryCarrierFacilities().Where(carrierfacility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+		return nil, fmt.Errorf("nested carrier %d carrierfac_set: %w", c.ID, err)
 	}
 	return m, nil
 }
@@ -177,6 +303,10 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	if err != nil {
 		return nil, fmt.Errorf("get organization %d: %w", id, err)
 	}
+	if depth == 1 {
+		// depth=1: org's reverse sets as ID lists (org has no forward FK).
+		return nestedOrgMap(ctx, o)
+	}
 	return organizationFromEnt(o), nil
 }
 
@@ -213,6 +343,10 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	if err != nil {
 		return nil, fmt.Errorf("get network %d: %w", id, err)
 	}
+	if depth == 1 {
+		// depth=1: flat org FK + poc_set/netfac_set/netixlan_set as ID lists.
+		return nestedNetMap(ctx, n)
+	}
 	return networkFromEnt(n), nil
 }
 
@@ -244,6 +378,10 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 			if m["campus"], err = nestedCampusMap(ctx, f.Edges.Campus); err != nil {
 				return nil, err
 			}
+		} else {
+			// Upstream emits campus:null for a campus-less facility at detail
+			// depth rather than omitting the key.
+			m["campus"] = nil
 		}
 		return m, nil
 	}
@@ -253,6 +391,11 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get facility %d: %w", id, err)
+	}
+	if depth == 1 {
+		// depth=1: flat org + campus FK objects, no reverse sets (upstream's
+		// FacilitySerializer omits netfac/ixfac/carrierfac).
+		return nestedFacMap(ctx, f)
 	}
 	return facilityFromEnt(f), nil
 }
@@ -297,18 +440,29 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 	if err != nil {
 		return nil, fmt.Errorf("get internet exchange %d: %w", id, err)
 	}
+	if depth == 1 {
+		// depth=1: flat org FK + ixlan_set/fac_set as ID lists.
+		return nestedIxMap(ctx, ix)
+	}
 	return internetExchangeFromEnt(ix), nil
 }
 
 // getIXLanWithDepth fetches an IXLan by ID with optional depth expansion.
-// At depth >= 2, expands ix object and adds ixpfx_set, netixlan_set.
+// At depth >= 2, expands ix object and adds ixpfx_set plus net_set (the
+// networks reached through the netixlan join, matching upstream's
+// IXLanSerializer which exposes net_set rather than the raw netixlan rows).
 func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		l, err := client.IxLan.Query().
 			Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
 			WithInternetExchange().
 			WithIxPrefixes().
-			WithNetworkIxLans().
+			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) {
+				q.Where(networkixlan.StatusIn("ok", "pending")).
+					WithNetwork(func(nq *ent.NetworkQuery) {
+						nq.Where(network.StatusIn("ok", "pending"))
+					})
+			}).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get ixlan %d: %w", id, err)
@@ -316,12 +470,25 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixLanFromEnt(ctx, l)
 		m := toMap(base)
 		if l.Edges.InternetExchange != nil {
-			// ix is expanded flat here; its own reverse sets as ID-lists
-			// (a depth-3 detail) are not reproduced — see depth parity notes.
-			m["ix"] = internetExchangeFromEnt(l.Edges.InternetExchange)
+			// ix is a singular FK one level down: full object carrying its own
+			// ixlan_set/fac_set as ID lists (nestedIxMap), matching upstream.
+			if m["ix"], err = nestedIxMap(ctx, l.Edges.InternetExchange); err != nil {
+				return nil, err
+			}
 		}
 		m["ixpfx_set"] = setWithout(ixPrefixesFromEnt(l.Edges.IxPrefixes), "ixlan_id")
-		m["netixlan_set"] = setWithout(networkIxLansFromEnt(l.Edges.NetworkIxLans), "ixlan_id")
+		// Upstream IXLanSerializer exposes net_set, NOT netixlan_set:
+		// nested(NetworkSerializer, through="netixlan_set", getter="network")
+		// (serializers.py:3407) yields one flat Network per active netixlan
+		// join row — no dedup, join order. We resolve each join row to its
+		// Network and emit the flat NetworkSerializer shape.
+		netSet := make([]any, 0, len(l.Edges.NetworkIxLans))
+		for _, nixl := range l.Edges.NetworkIxLans {
+			if nixl != nil && nixl.Edges.Network != nil {
+				netSet = append(netSet, networkFromEnt(nixl.Edges.Network))
+			}
+		}
+		m["net_set"] = netSet
 		return m, nil
 	}
 
@@ -330,6 +497,11 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get ixlan %d: %w", id, err)
+	}
+	if depth == 1 {
+		// depth=1: flat ix FK + net_set/ixpfx_set as ID lists (the same shape
+		// nestedIxLanMap renders when an ixlan is embedded one level down).
+		return nestedIxLanMap(ctx, l)
 	}
 	return ixLanFromEnt(ctx, l), nil
 }
@@ -353,7 +525,11 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 				return nil, err
 			}
 		}
-		m["carrierfac_set"] = setWithout(carrierFacilitiesFromEnt(c.Edges.CarrierFacilities), "carrier_id")
+		// Upstream CarrierSerializer.carrierfac_set (serializers.py:2196)
+		// excludes only ["fac"] (the nested Facility object, which our flat
+		// CarrierFacility serializer never emits) — carrier_id and fac_id both
+		// stay on each element.
+		m["carrierfac_set"] = setWithout(carrierFacilitiesFromEnt(c.Edges.CarrierFacilities))
 		return m, nil
 	}
 
@@ -362,6 +538,10 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get carrier %d: %w", id, err)
+	}
+	if depth == 1 {
+		// depth=1: flat org FK + carrierfac_set as ID list.
+		return nestedCarrierMap(ctx, c)
 	}
 	return carrierFromEnt(c), nil
 }
@@ -385,8 +565,23 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 				return nil, err
 			}
 		}
-		m["fac_set"] = setWithout(facilitiesFromEnt(c.Edges.Facilities), "campus_id")
+		// Upstream CampusSerializer.fac_set (serializers.py:3917) excludes
+		// ["org_id","org"], so a facility nested under a campus keeps campus_id
+		// (the parent back-ref) and drops org_id — the inverse of the org case.
+		m["fac_set"] = setWithout(facilitiesFromEnt(c.Edges.Facilities), "org_id")
 		return m, nil
+	}
+
+	if depth == 1 {
+		c, err := client.Campus.Query().
+			Where(campus.ID(id), campus.StatusIn("ok", "pending")).
+			WithOrganization().
+			Only(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("get campus %d: %w", id, err)
+		}
+		// depth=1: flat org FK + fac_set as ID list.
+		return nestedCampusMap(ctx, c)
 	}
 
 	c, err := client.Campus.Query().
@@ -404,7 +599,7 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 // getNetFacWithDepth fetches a network facility by ID. At depth >= 2, expands
 // the net and fac FK edges to full objects.
 func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
-	if depth >= 2 {
+	if depth >= 1 {
 		nf, err := client.NetworkFacility.Query().
 			Where(networkfacility.ID(id), networkfacility.StatusIn("ok", "pending")).
 			WithNetwork().
@@ -416,10 +611,22 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 		base := networkFacilityFromEnt(nf)
 		m := toMap(base)
 		if nf.Edges.Network != nil {
-			m["net"] = networkFromEnt(nf.Edges.Network)
+			if depth >= 2 {
+				if m["net"], err = nestedNetMap(ctx, nf.Edges.Network); err != nil {
+					return nil, err
+				}
+			} else {
+				m["net"] = networkFromEnt(nf.Edges.Network)
+			}
 		}
 		if nf.Edges.Facility != nil {
-			m["fac"] = facilityFromEnt(nf.Edges.Facility)
+			if depth >= 2 {
+				if m["fac"], err = nestedFacMap(ctx, nf.Edges.Facility); err != nil {
+					return nil, err
+				}
+			} else {
+				m["fac"] = facilityFromEnt(nf.Edges.Facility)
+			}
 		}
 		return m, nil
 	}
@@ -436,7 +643,7 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 // getNetIXLanWithDepth fetches a network IX LAN by ID. At depth >= 2, expands
 // the net and ixlan FK edges to full objects.
 func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
-	if depth >= 2 {
+	if depth >= 1 {
 		nixl, err := client.NetworkIxLan.Query().
 			Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "pending")).
 			WithNetwork().
@@ -448,10 +655,22 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 		base := networkIxLanFromEnt(nixl)
 		m := toMap(base)
 		if nixl.Edges.Network != nil {
-			m["net"] = networkFromEnt(nixl.Edges.Network)
+			if depth >= 2 {
+				if m["net"], err = nestedNetMap(ctx, nixl.Edges.Network); err != nil {
+					return nil, err
+				}
+			} else {
+				m["net"] = networkFromEnt(nixl.Edges.Network)
+			}
 		}
 		if nixl.Edges.IxLan != nil {
-			m["ixlan"] = ixLanFromEnt(ctx, nixl.Edges.IxLan)
+			if depth >= 2 {
+				if m["ixlan"], err = nestedIxLanMap(ctx, nixl.Edges.IxLan); err != nil {
+					return nil, err
+				}
+			} else {
+				m["ixlan"] = ixLanFromEnt(ctx, nixl.Edges.IxLan)
+			}
 		}
 		return m, nil
 	}
@@ -468,7 +687,7 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 // getIXFacWithDepth fetches an IX facility by ID. At depth >= 2, expands
 // the ix and fac FK edges to full objects.
 func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
-	if depth >= 2 {
+	if depth >= 1 {
 		ixf, err := client.IxFacility.Query().
 			Where(ixfacility.ID(id), ixfacility.StatusIn("ok", "pending")).
 			WithInternetExchange().
@@ -480,10 +699,22 @@ func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixFacilityFromEnt(ixf)
 		m := toMap(base)
 		if ixf.Edges.InternetExchange != nil {
-			m["ix"] = internetExchangeFromEnt(ixf.Edges.InternetExchange)
+			if depth >= 2 {
+				if m["ix"], err = nestedIxMap(ctx, ixf.Edges.InternetExchange); err != nil {
+					return nil, err
+				}
+			} else {
+				m["ix"] = internetExchangeFromEnt(ixf.Edges.InternetExchange)
+			}
 		}
 		if ixf.Edges.Facility != nil {
-			m["fac"] = facilityFromEnt(ixf.Edges.Facility)
+			if depth >= 2 {
+				if m["fac"], err = nestedFacMap(ctx, ixf.Edges.Facility); err != nil {
+					return nil, err
+				}
+			} else {
+				m["fac"] = facilityFromEnt(ixf.Edges.Facility)
+			}
 		}
 		return m, nil
 	}
@@ -500,7 +731,7 @@ func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 // getCarrierFacWithDepth fetches a carrier facility by ID. At depth >= 2,
 // expands the carrier and fac FK edges to full objects.
 func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
-	if depth >= 2 {
+	if depth >= 1 {
 		cf, err := client.CarrierFacility.Query().
 			Where(carrierfacility.ID(id), carrierfacility.StatusIn("ok", "pending")).
 			WithCarrier().
@@ -512,10 +743,22 @@ func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth i
 		base := carrierFacilityFromEnt(cf)
 		m := toMap(base)
 		if cf.Edges.Carrier != nil {
-			m["carrier"] = carrierFromEnt(cf.Edges.Carrier)
+			if depth >= 2 {
+				if m["carrier"], err = nestedCarrierMap(ctx, cf.Edges.Carrier); err != nil {
+					return nil, err
+				}
+			} else {
+				m["carrier"] = carrierFromEnt(cf.Edges.Carrier)
+			}
 		}
 		if cf.Edges.Facility != nil {
-			m["fac"] = facilityFromEnt(cf.Edges.Facility)
+			if depth >= 2 {
+				if m["fac"], err = nestedFacMap(ctx, cf.Edges.Facility); err != nil {
+					return nil, err
+				}
+			} else {
+				m["fac"] = facilityFromEnt(cf.Edges.Facility)
+			}
 		}
 		return m, nil
 	}
@@ -531,7 +774,7 @@ func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth i
 
 // getPocWithDepth fetches a POC by ID. At depth >= 2, expands the net FK edge.
 func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
-	if depth >= 2 {
+	if depth >= 1 {
 		p, err := client.Poc.Query().
 			Where(poc.ID(id), poc.StatusIn("ok", "pending")).
 			WithNetwork().
@@ -542,7 +785,13 @@ func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		base := pocFromEnt(p)
 		m := toMap(base)
 		if p.Edges.Network != nil {
-			m["net"] = networkFromEnt(p.Edges.Network)
+			if depth >= 2 {
+				if m["net"], err = nestedNetMap(ctx, p.Edges.Network); err != nil {
+					return nil, err
+				}
+			} else {
+				m["net"] = networkFromEnt(p.Edges.Network)
+			}
 		}
 		return m, nil
 	}
@@ -559,7 +808,7 @@ func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 // getIXPfxWithDepth fetches an IX prefix by ID. At depth >= 2, expands the
 // ixlan FK edge.
 func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
-	if depth >= 2 {
+	if depth >= 1 {
 		p, err := client.IxPrefix.Query().
 			Where(ixprefix.ID(id), ixprefix.StatusIn("ok", "pending")).
 			WithIxLan().
@@ -570,7 +819,13 @@ func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		base := ixPrefixFromEnt(p)
 		m := toMap(base)
 		if p.Edges.IxLan != nil {
-			m["ixlan"] = ixLanFromEnt(ctx, p.Edges.IxLan)
+			if depth >= 2 {
+				if m["ixlan"], err = nestedIxLanMap(ctx, p.Edges.IxLan); err != nil {
+					return nil, err
+				}
+			} else {
+				m["ixlan"] = ixLanFromEnt(ctx, p.Edges.IxLan)
+			}
 		}
 		return m, nil
 	}

@@ -770,7 +770,7 @@ func TestDepth_DefaultExpansion_RemainingEntities(t *testing.T) {
 		// campus has no campus-assigned facility in the fixture (its fac is
 		// org-only), so fac_set is the correctly-shaped EMPTY array.
 		{"campus", []string{"org"}, map[string]int{"fac_set": 0}},
-		{"ixlan", []string{"ix"}, map[string]int{"ixpfx_set": 1, "netixlan_set": 1}},
+		{"ixlan", []string{"ix"}, map[string]int{"ixpfx_set": 1, "net_set": 1}},
 		{"ixpfx", []string{"ixlan"}, nil},
 		{"poc", []string{"net"}, nil},
 		{"netixlan", []string{"net", "ixlan"}, nil},
@@ -961,14 +961,11 @@ func TestDepth_UpstreamParityShape(t *testing.T) {
 		}
 	})
 
-	// Intentional bounded divergence (docs/API.md § Known Divergences): the
-	// FIRST-level nested FK object carries ID-list sets, but a SECOND-level
-	// nested FK object — the `ix` embedded under an ixlan — is expanded flat.
-	// Upstream would give that ix its own ixlan_set/fac_set ID lists; we stop
-	// one level short. Reproducing the full recursive depth budget for every
-	// leaf permutation is disproportionate effort for data almost no client
-	// reads two levels deep.
-	t.Run("second_level_nested_fk_stays_flat_DIVERGENCE", func(t *testing.T) {
+	// nested_ix_under_ixlan_carries_id_list_sets: a singular FK object embedded
+	// one level down (the `ix` under an ixlan) carries its own reverse relations
+	// as bare ID lists, matching upstream's recursive depth budget. (Previously
+	// we stopped one level short and rendered it flat — fixed for parity.)
+	t.Run("nested_ix_under_ixlan_carries_id_list_sets", func(t *testing.T) {
 		t.Parallel()
 		obj := detail(t, mux, "ixlan", firstID(t, "ixlan"))
 		ix, ok := obj["ix"].(map[string]any)
@@ -979,10 +976,475 @@ func TestDepth_UpstreamParityShape(t *testing.T) {
 			t.Error("ixlan.ix should be an expanded object with id")
 		}
 		for _, sk := range []string{"ixlan_set", "fac_set"} {
-			if _, has := ix[sk]; has {
-				t.Errorf("ixlan.ix unexpectedly carries %s; second-level nesting is intentionally flat", sk)
+			arr, ok := ix[sk].([]any)
+			if !ok {
+				t.Errorf("ixlan.ix.%s must be an ID-list array (upstream embeds it)", sk)
+				continue
+			}
+			for _, e := range arr {
+				if _, isObj := e.(map[string]any); isObj {
+					t.Errorf("ixlan.ix.%s must be an ID list, found an embedded object", sk)
+				}
 			}
 		}
+	})
+}
+
+// TestDepth_LeafSecondLevelParity locks the depth=2 recursive shape for the
+// leaf/join entities: each singular FK object they embed (poc.net,
+// netixlan.{net,ixlan}, netfac.{net,fac}, ixfac.{ix,fac}, carrierfac.carrier,
+// ixpfx.ixlan) is rendered as a full object carrying its OWN reverse relations
+// as bare ID lists plus its own forward FK as a flat object — exactly as
+// upstream's depth budget does (verified against live payloads 2026-06-08).
+// Previously these FK objects were rendered flat (no reverse sets), the
+// intentional v1.19.3 bounded divergence now removed for full parity.
+func TestDepth_LeafSecondLevelParity(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	detail := func(t *testing.T, tag string) map[string]any {
+		t.Helper()
+		lreq := httptest.NewRequest(http.MethodGet, "/api/"+tag+"?limit=1", nil)
+		lrec := httptest.NewRecorder()
+		mux.ServeHTTP(lrec, lreq)
+		var lenv testEnvelope
+		_ = json.Unmarshal(lrec.Body.Bytes(), &lenv)
+		var litems []map[string]any
+		_ = json.Unmarshal(lenv.Data, &litems)
+		if len(litems) == 0 {
+			t.Fatalf("no %s rows", tag)
+		}
+		id := int(litems[0]["id"].(float64))
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth=2", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s detail: %d: %s", tag, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		return items[0]
+	}
+
+	// idListSets asserts obj[fk] is an object whose listed keys are all ID-list
+	// arrays (elements are numbers, never embedded objects).
+	idListSets := func(t *testing.T, parent map[string]any, fk string, sets ...string) {
+		t.Helper()
+		o, ok := parent[fk].(map[string]any)
+		if !ok {
+			t.Fatalf("nested %q is not an object", fk)
+		}
+		for _, sk := range sets {
+			arr, ok := o[sk].([]any)
+			if !ok {
+				t.Errorf("%s.%s must be an ID-list array (upstream embeds it)", fk, sk)
+				continue
+			}
+			for _, e := range arr {
+				if _, isObj := e.(map[string]any); isObj {
+					t.Errorf("%s.%s must be an ID list, found an embedded object", fk, sk)
+				}
+			}
+		}
+	}
+	hasFlatObj := func(t *testing.T, parent map[string]any, fk, sub string) {
+		t.Helper()
+		o, ok := parent[fk].(map[string]any)
+		if !ok {
+			t.Fatalf("nested %q is not an object", fk)
+		}
+		if _, ok := o[sub].(map[string]any); !ok {
+			t.Errorf("%s.%s must be an expanded (flat) object", fk, sub)
+		}
+	}
+
+	t.Run("poc_net", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "poc")
+		idListSets(t, obj, "net", "poc_set", "netfac_set", "netixlan_set")
+		hasFlatObj(t, obj, "net", "org")
+	})
+	t.Run("netixlan_net_and_ixlan", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "netixlan")
+		idListSets(t, obj, "net", "poc_set", "netfac_set", "netixlan_set")
+		hasFlatObj(t, obj, "net", "org")
+		idListSets(t, obj, "ixlan", "net_set", "ixpfx_set")
+		hasFlatObj(t, obj, "ixlan", "ix")
+	})
+	t.Run("netfac_net_and_fac", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "netfac")
+		idListSets(t, obj, "net", "poc_set", "netfac_set", "netixlan_set")
+		hasFlatObj(t, obj, "fac", "org")
+	})
+	t.Run("ixfac_ix_and_fac", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "ixfac")
+		idListSets(t, obj, "ix", "ixlan_set", "fac_set")
+		hasFlatObj(t, obj, "ix", "org")
+		hasFlatObj(t, obj, "fac", "org")
+	})
+	t.Run("carrierfac_carrier", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "carrierfac")
+		idListSets(t, obj, "carrier", "carrierfac_set")
+		hasFlatObj(t, obj, "carrier", "org")
+	})
+	t.Run("ixpfx_ixlan", func(t *testing.T) {
+		t.Parallel()
+		obj := detail(t, "ixpfx")
+		idListSets(t, obj, "ixlan", "net_set", "ixpfx_set")
+		hasFlatObj(t, obj, "ixlan", "ix")
+	})
+}
+
+// TestDepth_IxLanNetSetParity locks the IXLan reverse-relation surface to
+// upstream. Upstream IXLanSerializer (serializers.py:3407) exposes ONE
+// reverse collection: net_set = nested(NetworkSerializer, through="netixlan_set",
+// getter="network") — a list of flat Network objects reached through the
+// netixlan join (one per active join row, no dedup). There is NO netixlan_set
+// on the ixlan surface. We previously exposed the raw netixlan join rows under
+// netixlan_set and omitted net_set entirely (verified against live payloads).
+func TestDepth_IxLanNetSetParity(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/ixlan?limit=1", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	var env testEnvelope
+	_ = json.Unmarshal(rec.Body.Bytes(), &env)
+	var items []map[string]any
+	_ = json.Unmarshal(env.Data, &items)
+	if len(items) == 0 {
+		t.Fatal("no ixlan rows")
+	}
+	ixlanID := int(items[0]["id"].(float64))
+
+	detReq := httptest.NewRequest(http.MethodGet, "/api/ixlan/"+itoa(ixlanID)+"?depth=2", nil)
+	detRec := httptest.NewRecorder()
+	mux.ServeHTTP(detRec, detReq)
+	if detRec.Code != http.StatusOK {
+		t.Fatalf("ixlan detail: %d: %s", detRec.Code, detRec.Body.String())
+	}
+	var detEnv testEnvelope
+	_ = json.Unmarshal(detRec.Body.Bytes(), &detEnv)
+	var detItems []map[string]any
+	_ = json.Unmarshal(detEnv.Data, &detItems)
+	obj := detItems[0]
+
+	if _, has := obj["netixlan_set"]; has {
+		t.Error("ixlan must NOT expose netixlan_set (upstream IXLanSerializer has no such field)")
+	}
+	arr, ok := obj["net_set"].([]any)
+	if !ok {
+		t.Fatal("ixlan must expose net_set as an array")
+	}
+	if len(arr) != 1 {
+		t.Fatalf("ixlan net_set: expected 1 network (one netixlan join row), got %d", len(arr))
+	}
+	el := arr[0].(map[string]any)
+	// Element must be a flat Network (NetworkSerializer), not a NetworkIxLan
+	// join row: a Network carries asn + info_* but no ipaddr4/speed.
+	if _, has := el["asn"]; !has {
+		t.Error("ixlan.net_set[0] must be a Network object (asn missing)")
+	}
+	if _, has := el["ipaddr4"]; has {
+		t.Error("ixlan.net_set[0] looks like a raw NetworkIxLan join row (has ipaddr4); must be an expanded Network")
+	}
+	// The Network's id is the network's, and its asn matches the seeded net.
+	if asn, _ := el["asn"].(float64); asn != 65001 {
+		t.Errorf("ixlan.net_set[0].asn = %v, want 65001 (the seeded network reached through netixlan)", el["asn"])
+	}
+}
+
+// TestDepth_BackRefStripParity locks which parent-FK each nested reverse-set
+// element keeps vs drops at depth=2, matching upstream's per-serializer
+// `exclude=` lists (peeringdb_server/serializers.py, verified against live
+// www.peeringdb.com payloads 2026-06-08):
+//   - CampusSerializer.fac_set (serializers.py:3917) excludes ["org_id","org"],
+//     so a facility nested under a campus KEEPS campus_id and DROPS org_id.
+//   - CarrierSerializer.carrierfac_set (serializers.py:2196) excludes ["fac"],
+//     so a carrierfac nested under a carrier KEEPS carrier_id.
+func TestDepth_BackRefStripParity(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Now().Truncate(time.Second).UTC()
+	org := client.Organization.Create().SetName("BR Org").SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	cmp := client.Campus.Create().SetName("BR Campus").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	// Facility assigned to BOTH the org and the campus, so its serialized form
+	// carries org_id and campus_id and we can observe which the nested context drops.
+	fac := client.Facility.Create().SetName("BR Fac").SetOrganization(org).SetCampus(cmp).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	car := client.Carrier.Create().SetName("BR Carrier").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.CarrierFacility.Create().SetCarrier(car).SetFacility(fac).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	detail := func(t *testing.T, tag string, id int) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth=2", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("detail %s/%d: %d: %s", tag, id, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) != 1 {
+			t.Fatalf("detail %s/%d: expected 1 item, got %d", tag, id, len(items))
+		}
+		return items[0]
+	}
+
+	t.Run("campus_fac_set_keeps_campus_id_drops_org_id", func(t *testing.T) {
+		t.Parallel()
+		arr, _ := detail(t, "campus", cmp.ID)["fac_set"].([]any)
+		if len(arr) != 1 {
+			t.Fatalf("campus fac_set: expected 1 item, got %d", len(arr))
+		}
+		el := arr[0].(map[string]any)
+		if _, has := el["campus_id"]; !has {
+			t.Error("campus.fac_set[0] must KEEP campus_id (upstream excludes only org_id/org)")
+		}
+		if _, has := el["org_id"]; has {
+			t.Error("campus.fac_set[0] must DROP org_id (CampusSerializer.fac_set exclude=[\"org_id\",\"org\"])")
+		}
+	})
+
+	t.Run("carrier_carrierfac_set_keeps_carrier_id", func(t *testing.T) {
+		t.Parallel()
+		arr, _ := detail(t, "carrier", car.ID)["carrierfac_set"].([]any)
+		if len(arr) != 1 {
+			t.Fatalf("carrier carrierfac_set: expected 1 item, got %d", len(arr))
+		}
+		el := arr[0].(map[string]any)
+		if _, has := el["carrier_id"]; !has {
+			t.Error("carrier.carrierfac_set[0] must KEEP carrier_id (CarrierSerializer.carrierfac_set exclude=[\"fac\"])")
+		}
+	})
+}
+
+// TestDepth_DepthOne locks the real ?depth=1 level, distinct from both depth=0
+// (bare row) and depth=2 (fully expanded). Upstream (serializers.py:817-823 +
+// the recursive prefetch_related budget) renders depth=1 as: forward FK objects
+// FLAT (no sets of their own) and reverse _set fields as bare ID lists. The
+// mirror previously honoured only ?depth=0/2 and silently coerced depth=1 to 2.
+func TestDepth_DepthOne(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	firstID := func(t *testing.T, tag string) int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"?limit=1", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) == 0 {
+			t.Fatalf("no %s rows", tag)
+		}
+		return int(items[0]["id"].(float64))
+	}
+	get := func(t *testing.T, tag string, id int, depthQuery string) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+depthQuery, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s%s: %d: %s", tag, depthQuery, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		return items[0]
+	}
+	isIDList := func(v any) bool {
+		arr, ok := v.([]any)
+		if !ok {
+			return false
+		}
+		for _, e := range arr {
+			if _, isObj := e.(map[string]any); isObj {
+				return false
+			}
+		}
+		return true
+	}
+
+	t.Run("org_reverse_sets_are_id_lists", func(t *testing.T) {
+		t.Parallel()
+		orgID := firstID(t, "org")
+		d0 := get(t, "org", orgID, "?depth=0")
+		d1 := get(t, "org", orgID, "?depth=1")
+		d2 := get(t, "org", orgID, "?depth=2")
+		for _, sk := range []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"} {
+			if _, has := d0[sk]; has {
+				t.Errorf("org depth=0 must NOT carry %s", sk)
+			}
+			if !isIDList(d1[sk]) {
+				t.Errorf("org depth=1: %s must be an ID list (got %T / objects)", sk, d1[sk])
+			}
+		}
+		// depth=2 keeps full objects — proves depth=1 != depth=2.
+		if arr, _ := d2["net_set"].([]any); len(arr) > 0 {
+			if _, isObj := arr[0].(map[string]any); !isObj {
+				t.Error("org depth=2 net_set must be full objects (regression: depth=1 and depth=2 collapsed)")
+			}
+		}
+	})
+
+	t.Run("net_fk_flat_sets_are_ids", func(t *testing.T) {
+		t.Parallel()
+		d1 := get(t, "net", firstID(t, "net"), "?depth=1")
+		org, ok := d1["org"].(map[string]any)
+		if !ok {
+			t.Fatal("net depth=1: org must be a flat object")
+		}
+		if _, has := org["net_set"]; has {
+			t.Error("net depth=1: nested org must be FLAT (no net_set)")
+		}
+		for _, sk := range []string{"poc_set", "netfac_set", "netixlan_set"} {
+			if !isIDList(d1[sk]) {
+				t.Errorf("net depth=1: %s must be an ID list", sk)
+			}
+		}
+	})
+
+	t.Run("leaf_fk_flat_no_sets", func(t *testing.T) {
+		t.Parallel()
+		id := firstID(t, "netixlan")
+		d1 := get(t, "netixlan", id, "?depth=1")
+		net, ok := d1["net"].(map[string]any)
+		if !ok {
+			t.Fatal("netixlan depth=1: net must be an object")
+		}
+		if _, has := net["poc_set"]; has {
+			t.Error("netixlan depth=1: net must be FLAT (no poc_set at depth=1)")
+		}
+		// depth=2 DOES carry the set — proves the levels differ.
+		d2 := get(t, "netixlan", id, "?depth=2")
+		if d2net, _ := d2["net"].(map[string]any); d2net != nil {
+			if _, has := d2net["poc_set"]; !has {
+				t.Error("netixlan depth=2: net must carry poc_set (regression)")
+			}
+		}
+	})
+
+	t.Run("depth_clamped_to_0_4", func(t *testing.T) {
+		t.Parallel()
+		orgID := firstID(t, "org")
+		// depth >= 3 renders the depth=2 shape (full-object sets).
+		for _, q := range []string{"?depth=3", "?depth=4", "?depth=99"} {
+			arr, _ := get(t, "org", orgID, q)["net_set"].([]any)
+			if len(arr) == 0 {
+				t.Errorf("org %s: net_set missing", q)
+				continue
+			}
+			if _, isObj := arr[0].(map[string]any); !isObj {
+				t.Errorf("org %s: expected depth=2 shape (net_set objects)", q)
+			}
+		}
+		// negative depth floors to 0 (bare row, no sets).
+		if _, has := get(t, "org", orgID, "?depth=-1")["net_set"]; has {
+			t.Error("org depth=-1 must clamp to 0 (no net_set)")
+		}
+		// non-numeric keeps the default detail depth (2).
+		if arr, _ := get(t, "org", orgID, "?depth=foo")["net_set"].([]any); len(arr) > 0 {
+			if _, isObj := arr[0].(map[string]any); !isObj {
+				t.Error("org depth=foo must fall back to default depth=2")
+			}
+		}
+	})
+}
+
+// TestDepth_FacCampusNullParity locks upstream's FacilitySerializer.campus
+// behaviour: campus is a related field (serializers.py:1728, related_fields
+// 1816, list_exclude 1818) — absent on the bare/list row but present at detail
+// depth, emitting `campus: null` for a campus-less facility rather than omitting
+// the key. Verified against live www.peeringdb.com payloads (up_fac_d1 carries
+// campus; a carrierfac's campus-less fac carries campus:null).
+func TestDepth_FacCampusNullParity(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Now().Truncate(time.Second).UTC()
+	org := client.Organization.Create().SetName("CN Org").SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	// Facility deliberately WITHOUT a campus.
+	fac := client.Facility.Create().SetName("CN Fac").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	car := client.Carrier.Create().SetName("CN Carrier").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.CarrierFacility.Create().SetCarrier(car).SetFacility(fac).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+	get := func(t *testing.T, tag string, id int, depth string) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth="+depth, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s/%d?depth=%s: %d: %s", tag, id, depth, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		return items[0]
+	}
+	assertCampusNull := func(t *testing.T, obj map[string]any, where string) {
+		t.Helper()
+		v, present := obj["campus"]
+		if !present {
+			t.Errorf("%s: campus key must be present (upstream emits it at detail depth)", where)
+			return
+		}
+		if v != nil {
+			t.Errorf("%s: campus-less facility must emit campus:null, got %T", where, v)
+		}
+	}
+
+	t.Run("depth0_omits_campus", func(t *testing.T) {
+		t.Parallel()
+		if _, present := get(t, "fac", fac.ID, "0")["campus"]; present {
+			t.Error("fac depth=0 must NOT carry campus (upstream list_exclude)")
+		}
+	})
+	t.Run("depth1_top_level_emits_null", func(t *testing.T) {
+		t.Parallel()
+		assertCampusNull(t, get(t, "fac", fac.ID, "1"), "fac depth=1")
+	})
+	t.Run("depth2_top_level_emits_null", func(t *testing.T) {
+		t.Parallel()
+		assertCampusNull(t, get(t, "fac", fac.ID, "2"), "fac depth=2")
+	})
+	t.Run("depth2_nested_under_carrierfac_emits_null", func(t *testing.T) {
+		t.Parallel()
+		cfID := func() int {
+			req := httptest.NewRequest(http.MethodGet, "/api/carrierfac?limit=1", nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			var env testEnvelope
+			_ = json.Unmarshal(rec.Body.Bytes(), &env)
+			var items []map[string]any
+			_ = json.Unmarshal(env.Data, &items)
+			return int(items[0]["id"].(float64))
+		}()
+		nestedFac, ok := get(t, "carrierfac", cfID, "2")["fac"].(map[string]any)
+		if !ok {
+			t.Fatal("carrierfac.fac is not an object")
+		}
+		assertCampusNull(t, nestedFac, "carrierfac.fac depth=2")
 	})
 }
 

@@ -51,19 +51,21 @@ func TestTypicalRowBytes_Depth0LessThanDepth2(t *testing.T) {
 }
 
 func TestTypicalRowBytes_DepthClamp(t *testing.T) {
-	// depth values other than 0 or >=2 should still resolve to a sensible bucket.
-	// Current behaviour: depth<2 uses Depth0; depth>=2 uses Depth2.
+	// Two buckets: depth=0 (bare row) uses Depth0; depth>=1 (any expanded
+	// response — ?depth=1 ID-list sets through ?depth=4) uses the conservative
+	// Depth2 estimate. ?depth=1 is now a served level, so it must NOT bucket to
+	// the bare-row figure (that would under-count the budget).
 	if TypicalRowBytes(peeringdb.TypeNet, 0) != typicalRowBytes[peeringdb.TypeNet].Depth0 {
 		t.Error("depth=0 lookup mismatch")
 	}
-	if TypicalRowBytes(peeringdb.TypeNet, 1) != typicalRowBytes[peeringdb.TypeNet].Depth0 {
-		t.Error("depth=1 should bucket to Depth0 (pdbcompat does not expose depth=1)")
+	if TypicalRowBytes(peeringdb.TypeNet, 1) != typicalRowBytes[peeringdb.TypeNet].Depth2 {
+		t.Error("depth=1 should bucket to Depth2 (expanded; ID-list sets exceed the bare row)")
 	}
 	if TypicalRowBytes(peeringdb.TypeNet, 2) != typicalRowBytes[peeringdb.TypeNet].Depth2 {
 		t.Error("depth=2 lookup mismatch")
 	}
 	if TypicalRowBytes(peeringdb.TypeNet, 5) != typicalRowBytes[peeringdb.TypeNet].Depth2 {
-		t.Error("depth>2 should bucket to Depth2 (future-proof against depth=3)")
+		t.Error("depth>2 should bucket to Depth2")
 	}
 }
 
