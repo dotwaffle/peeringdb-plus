@@ -185,7 +185,11 @@ func nestedFacMap(ctx context.Context, f *ent.Facility) (map[string]any, error) 
 	}
 	if cmp, err := f.QueryCampus().Only(ctx); err == nil {
 		m["campus"] = campusFromEnt(cmp)
-	} else if !ent.IsNotFound(err) {
+	} else if ent.IsNotFound(err) {
+		// Upstream FacilitySerializer.campus is a related field emitted at
+		// detail depth as null for a campus-less facility, not omitted.
+		m["campus"] = nil
+	} else {
 		return nil, fmt.Errorf("nested fac %d campus: %w", f.ID, err)
 	}
 	return m, nil
@@ -374,6 +378,10 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 			if m["campus"], err = nestedCampusMap(ctx, f.Edges.Campus); err != nil {
 				return nil, err
 			}
+		} else {
+			// Upstream emits campus:null for a campus-less facility at detail
+			// depth rather than omitting the key.
+			m["campus"] = nil
 		}
 		return m, nil
 	}

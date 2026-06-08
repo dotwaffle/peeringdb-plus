@@ -1368,6 +1368,86 @@ func TestDepth_DepthOne(t *testing.T) {
 	})
 }
 
+// TestDepth_FacCampusNullParity locks upstream's FacilitySerializer.campus
+// behaviour: campus is a related field (serializers.py:1728, related_fields
+// 1816, list_exclude 1818) — absent on the bare/list row but present at detail
+// depth, emitting `campus: null` for a campus-less facility rather than omitting
+// the key. Verified against live www.peeringdb.com payloads (up_fac_d1 carries
+// campus; a carrierfac's campus-less fac carries campus:null).
+func TestDepth_FacCampusNullParity(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Now().Truncate(time.Second).UTC()
+	org := client.Organization.Create().SetName("CN Org").SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	// Facility deliberately WITHOUT a campus.
+	fac := client.Facility.Create().SetName("CN Fac").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	car := client.Carrier.Create().SetName("CN Carrier").SetOrganization(org).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.CarrierFacility.Create().SetCarrier(car).SetFacility(fac).SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+	get := func(t *testing.T, tag string, id int, depth string) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+"?depth="+depth, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s/%d?depth=%s: %d: %s", tag, id, depth, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		return items[0]
+	}
+	assertCampusNull := func(t *testing.T, obj map[string]any, where string) {
+		t.Helper()
+		v, present := obj["campus"]
+		if !present {
+			t.Errorf("%s: campus key must be present (upstream emits it at detail depth)", where)
+			return
+		}
+		if v != nil {
+			t.Errorf("%s: campus-less facility must emit campus:null, got %T", where, v)
+		}
+	}
+
+	t.Run("depth0_omits_campus", func(t *testing.T) {
+		t.Parallel()
+		if _, present := get(t, "fac", fac.ID, "0")["campus"]; present {
+			t.Error("fac depth=0 must NOT carry campus (upstream list_exclude)")
+		}
+	})
+	t.Run("depth1_top_level_emits_null", func(t *testing.T) {
+		t.Parallel()
+		assertCampusNull(t, get(t, "fac", fac.ID, "1"), "fac depth=1")
+	})
+	t.Run("depth2_top_level_emits_null", func(t *testing.T) {
+		t.Parallel()
+		assertCampusNull(t, get(t, "fac", fac.ID, "2"), "fac depth=2")
+	})
+	t.Run("depth2_nested_under_carrierfac_emits_null", func(t *testing.T) {
+		t.Parallel()
+		cfID := func() int {
+			req := httptest.NewRequest(http.MethodGet, "/api/carrierfac?limit=1", nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			var env testEnvelope
+			_ = json.Unmarshal(rec.Body.Bytes(), &env)
+			var items []map[string]any
+			_ = json.Unmarshal(env.Data, &items)
+			return int(items[0]["id"].(float64))
+		}()
+		nestedFac, ok := get(t, "carrierfac", cfID, "2")["fac"].(map[string]any)
+		if !ok {
+			t.Fatal("carrierfac.fac is not an object")
+		}
+		assertCampusNull(t, nestedFac, "carrierfac.fac depth=2")
+	})
+}
+
 // TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
 // — Query().Where(<type>.ID(id), <type>.StatusIn("ok","pending")), inlined at
 // all 26 depth.go getter sites — resolves identically across all 13 types: an
