@@ -3,6 +3,7 @@ package web
 import (
 	"cmp"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -150,8 +151,14 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 // handleSearch returns search results as an HTML fragment for htmx partial updates.
 // Sets HX-Push-Url header to keep the browser URL in sync with the search query
-// and create history entries for back/forward navigation.
+// and create history entries for back/forward navigation. When a ?type= slug is
+// present it dispatches to the per-type "view all" page instead.
 func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("type") != "" {
+		h.handleSearchType(w, r)
+		return
+	}
+
 	query := r.URL.Query().Get("q")
 	var groups []templates.SearchGroup
 
@@ -177,13 +184,107 @@ func (h *Handler) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	page := PageContent{
 		Title:     "Search",
-		Content:   templates.SearchResults(groups),
+		Content:   templates.SearchResults(groups, query),
 		Data:      groups,
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}
+}
+
+// handleSearchType serves the per-type "view all" results page and its "Load
+// more" pages. An offset > 0 returns a bare htmx fragment (next rows + button);
+// offset 0 (or absent) returns the full page. An unknown type slug is a 404.
+func (h *Handler) handleSearchType(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	query := q.Get("q")
+	slug := q.Get("type")
+
+	// Non-numeric/negative offsets clamp to 0 (the initial page).
+	offset, err := strconv.Atoi(q.Get("offset"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	res, err := h.searcher.SearchType(r.Context(), SearchTypeInput{
+		Query:    query,
+		TypeSlug: slug,
+		Offset:   offset,
+		Limit:    pageSize,
+	})
+	if err != nil {
+		if errors.Is(err, ErrUnknownSearchType) {
+			h.handleNotFound(w, r)
+			return
+		}
+		slog.Error("search type", slog.String("type", slug), slog.Any("error", err))
+		h.handleServerError(w, r)
+		return
+	}
+
+	view := templates.SearchTypeView{
+		TypeName:    res.TypeName,
+		TypeSlug:    res.TypeSlug,
+		AccentColor: res.AccentColor,
+		Query:       query,
+		Total:       res.Total,
+		Hits:        searchHitsToResults(res.Hits),
+		HasMore:     res.HasMore,
+		NextOffset:  offset + len(res.Hits),
+	}
+
+	// A "Load more" request (offset > 0) is always an htmx call and wants only
+	// the next rows + button fragment, never the full page chrome.
+	if offset > 0 {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := templates.SearchTypeMore(view).Render(r.Context(), w); err != nil {
+			slog.Error("render search type more", slog.String("type", slug), slog.Any("error", err))
+		}
+		return
+	}
+
+	// Initial page: full layout for browsers, single-group data for terminal/JSON.
+	page := PageContent{
+		Title:     "Search",
+		Content:   templates.SearchTypePage(view),
+		Data:      searchTypeViewData(res),
+		Freshness: h.getFreshness(r.Context()),
+	}
+	if err := renderPage(r.Context(), w, r, page); err != nil {
+		h.handleServerError(w, r)
+	}
+}
+
+// searchHitsToResults maps service-layer hits to template result rows.
+func searchHitsToResults(hits []SearchHit) []templates.SearchResult {
+	out := make([]templates.SearchResult, len(hits))
+	for i, h := range hits {
+		out[i] = templates.SearchResult{
+			Name:      h.Name,
+			Country:   h.Country,
+			City:      h.City,
+			ASN:       h.ASN,
+			DetailURL: h.DetailURL,
+		}
+	}
+	return out
+}
+
+// searchTypeViewData wraps a single-type result as a one-element SearchGroup
+// slice so terminal and JSON clients reuse the existing grouped-search renderer.
+func searchTypeViewData(res SearchTypeResult) []templates.SearchGroup {
+	if len(res.Hits) == 0 {
+		return nil
+	}
+	return []templates.SearchGroup{{
+		TypeName:    res.TypeName,
+		TypeSlug:    res.TypeSlug,
+		AccentColor: res.AccentColor,
+		Results:     searchHitsToResults(res.Hits),
+		HasMore:     res.HasMore,
+		Total:       res.Total,
+	}}
 }
 
 func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
@@ -223,6 +324,7 @@ func convertToSearchGroups(results []TypeResult) []templates.SearchGroup {
 			AccentColor: r.AccentColor,
 			Results:     hits,
 			HasMore:     r.HasMore,
+			Total:       r.Total,
 		}
 	}
 	return groups

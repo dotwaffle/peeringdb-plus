@@ -80,7 +80,7 @@ templ SearchForm(query string, groups []SearchGroup) {
 	</style>
 	<div id="search-results" class="mt-6 text-left" role="listbox" aria-label="Search results">
 		if len(groups) > 0 {
-			@SearchResults(groups)
+			@SearchResults(groups, query)
 		}
 	</div>
 }

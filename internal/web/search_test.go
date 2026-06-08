@@ -1,11 +1,13 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
@@ -767,5 +769,210 @@ func TestParseASNQuery(t *testing.T) {
 				t.Errorf("parseASNQuery(%q) n = %d, want %d", tc.in, n, tc.wantN)
 			}
 		})
+	}
+}
+
+// seedNetworksForPaging creates n networks whose names sort deterministically
+// (PageNet 01..n) plus an org parent, all matching the term "PageNet".
+func seedNetworksForPaging(t *testing.T, client *ent.Client, n int) {
+	t.Helper()
+	ctx := t.Context()
+	org, err := client.Organization.Create().
+		SetID(1).SetName("Paging Org").
+		SetCreated(testSearchTimestamp).SetUpdated(testSearchTimestamp).Save(ctx)
+	if err != nil {
+		t.Fatalf("creating organization: %v", err)
+	}
+	for i := 1; i <= n; i++ {
+		_, err := client.Network.Create().
+			SetID(i).SetName(fmt.Sprintf("PageNet %02d", i)).SetAsn(65000 + i).
+			SetOrgID(1).SetOrganization(org).
+			SetCreated(testSearchTimestamp).SetUpdated(testSearchTimestamp).Save(ctx)
+		if err != nil {
+			t.Fatalf("creating network %d: %v", i, err)
+		}
+	}
+}
+
+func TestSearchType_Pagination(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedNetworksForPaging(t, client, 5)
+	svc := NewSearchService(client)
+	ctx := t.Context()
+
+	// First page of 2: two hits, more remain, exact total of 5.
+	page1, err := svc.SearchType(ctx, SearchTypeInput{Query: "PageNet", TypeSlug: "net", Offset: 0, Limit: 2})
+	if err != nil {
+		t.Fatalf("SearchType page1: %v", err)
+	}
+	if len(page1.Hits) != 2 {
+		t.Fatalf("page1 hits = %d, want 2", len(page1.Hits))
+	}
+	if !page1.HasMore {
+		t.Error("page1 HasMore = false, want true")
+	}
+	if page1.Total != 5 {
+		t.Errorf("page1 Total = %d, want 5", page1.Total)
+	}
+	if page1.TypeName != "Networks" {
+		t.Errorf("page1 TypeName = %q, want %q", page1.TypeName, "Networks")
+	}
+	// Deterministic name-ascending order.
+	if page1.Hits[0].Name != "PageNet 01" || page1.Hits[1].Name != "PageNet 02" {
+		t.Errorf("page1 order = [%q, %q], want [PageNet 01, PageNet 02]", page1.Hits[0].Name, page1.Hits[1].Name)
+	}
+
+	// Middle page continues the sequence without gaps or repeats.
+	page2, err := svc.SearchType(ctx, SearchTypeInput{Query: "PageNet", TypeSlug: "net", Offset: 2, Limit: 2})
+	if err != nil {
+		t.Fatalf("SearchType page2: %v", err)
+	}
+	if page2.Hits[0].Name != "PageNet 03" || page2.Hits[1].Name != "PageNet 04" {
+		t.Errorf("page2 order = [%q, %q], want [PageNet 03, PageNet 04]", page2.Hits[0].Name, page2.Hits[1].Name)
+	}
+	if !page2.HasMore {
+		t.Error("page2 HasMore = false, want true (1 remains)")
+	}
+
+	// Last page: single trailing hit, no more.
+	page3, err := svc.SearchType(ctx, SearchTypeInput{Query: "PageNet", TypeSlug: "net", Offset: 4, Limit: 2})
+	if err != nil {
+		t.Fatalf("SearchType page3: %v", err)
+	}
+	if len(page3.Hits) != 1 || page3.Hits[0].Name != "PageNet 05" {
+		t.Errorf("page3 hits = %v, want single PageNet 05", page3.Hits)
+	}
+	if page3.HasMore {
+		t.Error("page3 HasMore = true, want false")
+	}
+	if page3.Total != 5 {
+		t.Errorf("page3 Total = %d, want 5", page3.Total)
+	}
+
+	// Offset past the end: empty page, still no error, exact total preserved.
+	pastEnd, err := svc.SearchType(ctx, SearchTypeInput{Query: "PageNet", TypeSlug: "net", Offset: 50, Limit: 2})
+	if err != nil {
+		t.Fatalf("SearchType pastEnd: %v", err)
+	}
+	if len(pastEnd.Hits) != 0 || pastEnd.HasMore {
+		t.Errorf("pastEnd hits = %d hasMore = %v, want 0/false", len(pastEnd.Hits), pastEnd.HasMore)
+	}
+	if pastEnd.Total != 5 {
+		t.Errorf("pastEnd Total = %d, want 5", pastEnd.Total)
+	}
+}
+
+func TestSearchType_UnknownType(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	svc := NewSearchService(client)
+
+	_, err := svc.SearchType(t.Context(), SearchTypeInput{Query: "anything", TypeSlug: "bogus", Offset: 0, Limit: 10})
+	if !errors.Is(err, ErrUnknownSearchType) {
+		t.Fatalf("err = %v, want ErrUnknownSearchType", err)
+	}
+}
+
+func TestSearchType_ShortQuery(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedNetworksForPaging(t, client, 3)
+	svc := NewSearchService(client)
+
+	res, err := svc.SearchType(t.Context(), SearchTypeInput{Query: "a", TypeSlug: "net", Offset: 0, Limit: 10})
+	if err != nil {
+		t.Fatalf("SearchType short query: %v", err)
+	}
+	if len(res.Hits) != 0 || res.Total != 0 || res.HasMore {
+		t.Errorf("short query result = %+v, want empty", res)
+	}
+	// Metadata is still populated for rendering an empty-state page.
+	if res.TypeName != "Networks" {
+		t.Errorf("TypeName = %q, want Networks", res.TypeName)
+	}
+}
+
+func TestSearchType_NegativeOffsetAndZeroLimit(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedNetworksForPaging(t, client, 3)
+	svc := NewSearchService(client)
+
+	// Negative offset clamps to 0; zero limit defaults to pageSize, so all 3 show.
+	res, err := svc.SearchType(t.Context(), SearchTypeInput{Query: "PageNet", TypeSlug: "net", Offset: -10, Limit: 0})
+	if err != nil {
+		t.Fatalf("SearchType: %v", err)
+	}
+	if len(res.Hits) != 3 {
+		t.Fatalf("hits = %d, want 3", len(res.Hits))
+	}
+	if res.HasMore {
+		t.Error("HasMore = true, want false (3 < pageSize)")
+	}
+	if res.Hits[0].Name != "PageNet 01" {
+		t.Errorf("first hit = %q, want PageNet 01", res.Hits[0].Name)
+	}
+}
+
+func TestSearchType_NetworkASNLiteral(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedNetworksForPaging(t, client, 3) // ASNs 65001..65003
+	svc := NewSearchService(client)
+
+	// An ASN literal matches by exact asn even though it isn't in any name.
+	res, err := svc.SearchType(t.Context(), SearchTypeInput{Query: "AS65002", TypeSlug: "net", Offset: 0, Limit: 10})
+	if err != nil {
+		t.Fatalf("SearchType ASN literal: %v", err)
+	}
+	if len(res.Hits) != 1 || res.Hits[0].ASN != 65002 {
+		t.Errorf("ASN literal hits = %v, want single ASN 65002", res.Hits)
+	}
+}
+
+func TestSearch_TotalWhenHasMore(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedNetworksForPaging(t, client, 15) // exceeds displayLimit of 10
+	svc := NewSearchService(client)
+
+	results, err := svc.Search(t.Context(), "PageNet")
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("type groups = %d, want 1 (networks)", len(results))
+	}
+	net := results[0]
+	if len(net.Results) != displayLimit {
+		t.Errorf("Results = %d, want %d", len(net.Results), displayLimit)
+	}
+	if !net.HasMore {
+		t.Error("HasMore = false, want true")
+	}
+	if net.Total != 15 {
+		t.Errorf("Total = %d, want 15 (exact count when HasMore)", net.Total)
+	}
+}
+
+func TestSearch_TotalEqualsLenWhenNotMore(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedNetworksForPaging(t, client, 3) // under displayLimit
+	svc := NewSearchService(client)
+
+	results, err := svc.Search(t.Context(), "PageNet")
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("type groups = %d, want 1", len(results))
+	}
+	if results[0].HasMore {
+		t.Error("HasMore = true, want false")
+	}
+	if results[0].Total != 3 {
+		t.Errorf("Total = %d, want 3 (== len(Results) when no more)", results[0].Total)
 	}
 }

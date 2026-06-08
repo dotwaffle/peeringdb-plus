@@ -4,8 +4,9 @@ import "fmt"
 
 // SearchResults renders grouped search results with per-type colored badges,
 // count badges, and compact single-line result rows with inline metadata.
-// Returns empty output when groups is nil or empty.
-templ SearchResults(groups []SearchGroup) {
+// query is echoed into the per-type "View all" link. Returns empty output when
+// groups is nil or empty.
+templ SearchResults(groups []SearchGroup, query string) {
 	for _, group := range groups {
 		<div class="mb-6 animate-fade-in">
 			<div class="flex items-center gap-2 mb-3">
@@ -18,32 +19,49 @@ templ SearchResults(groups []SearchGroup) {
 			</div>
 			<div class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 				for _, result := range group.Results {
-					<a
-						href={ templ.SafeURL(result.DetailURL) }
-						role="option"
-						tabindex="-1"
-						aria-selected="false"
-						class="flex items-center justify-between px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
-					>
-						<span class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate min-w-0 group-hover:text-emerald-400 transition-colors">
-							{ result.Name }
-						</span>
-						<span class="shrink-0 ml-3 flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 font-mono">
-							if result.Country != "" {
-								@CountryFlag(result.Country)
-							}
-							if result.City != "" {
-								<span class="hidden md:inline">{ result.City }</span>
-							}
-							if result.ASN > 0 {
-								<span>{ fmt.Sprintf("AS%d", result.ASN) }</span>
-							}
-						</span>
-					</a>
+					@SearchRow(result)
 				}
 			</div>
+			if group.HasMore {
+				<div class="mt-2 px-4">
+					<a
+						href={ templ.SafeURL(searchTypeURL(query, group.TypeSlug, 0)) }
+						class="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors"
+					>
+						{ fmt.Sprintf("View all %s →", formatThousands(group.Total)) }
+					</a>
+				</div>
+			}
 		</div>
 	}
+}
+
+// SearchRow renders a single compact search hit row: name on the left, inline
+// country/city/ASN metadata on the right. Shared by the grouped quick-search
+// and the per-type "view all" page so the two never drift.
+templ SearchRow(result SearchResult) {
+	<a
+		href={ templ.SafeURL(result.DetailURL) }
+		role="option"
+		tabindex="-1"
+		aria-selected="false"
+		class="flex items-center justify-between px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
+	>
+		<span class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate min-w-0 group-hover:text-emerald-400 transition-colors">
+			{ result.Name }
+		</span>
+		<span class="shrink-0 ml-3 flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400 font-mono">
+			if result.Country != "" {
+				@CountryFlag(result.Country)
+			}
+			if result.City != "" {
+				<span class="hidden md:inline">{ result.City }</span>
+			}
+			if result.ASN > 0 {
+				<span>{ fmt.Sprintf("AS%d", result.ASN) }</span>
+			}
+		</span>
+	</a>
 }
 
 // groupBadgeClasses returns Tailwind classes for a type group header badge.

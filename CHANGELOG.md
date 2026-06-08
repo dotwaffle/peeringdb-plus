@@ -10,6 +10,31 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.20.0] — 2026-06-08
+
+### Added
+
+- **"View all" search results.** Each grouped search type that exceeds the
+  10-result quick-search cap now links to a per-type results page
+  (`/ui/search?q=<term>&type=<slug>`) that shows the exact total match count and
+  the full result set, paginated with an htmx "Load more" button (50 per page).
+  Each request loads at most one page, so memory stays bounded. The exact total
+  is computed only for types that overflow the quick-search cap, and the link
+  reads "View all N". Result ordering is now deterministic (name, then id)
+  across both the quick-search top-10 and the view-all pages.
+
+### Fixed
+
+- **Facility detail pages showed the facility's own name for every related
+  carrier, network, and exchange.** PeeringDB's association objects
+  (`carrierfac`, `netfac`, `ixfac`) carry a `name` equal to the facility name,
+  not the related entity; the web UI rendered that value directly, so e.g.
+  every carrier at "Global Switch Paris" displayed as "Global Switch Paris".
+  Names are now resolved from the related-entity edge, and the carrier and IXP
+  lists are sorted by the related entity's name. The `/api`, REST, GraphQL, and
+  gRPC surfaces are unchanged: there the association `name` equals the facility
+  name by upstream contract (drop-in parity).
+
 ## [1.19.5] — 2026-06-04
 
 ### Added
