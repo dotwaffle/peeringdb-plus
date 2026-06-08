@@ -1002,7 +1002,7 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 			},
 		},
 	}
-	body := renderComponent(t, templates.SearchResults(groups))
+	body := renderComponent(t, templates.SearchResults(groups, ""))
 
 	checks := []string{
 		`role="option"`,
@@ -1047,7 +1047,7 @@ func TestSearchResults_FadeIn(t *testing.T) {
 			},
 		},
 	}
-	body := renderComponent(t, templates.SearchResults(groups))
+	body := renderComponent(t, templates.SearchResults(groups, ""))
 
 	if !strings.Contains(body, "animate-fade-in") {
 		t.Error("search results missing animate-fade-in class")

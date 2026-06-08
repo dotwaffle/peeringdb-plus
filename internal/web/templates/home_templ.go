@@ -89,7 +89,7 @@ func SearchForm(query string, groups []SearchGroup) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(groups) > 0 {
-			templ_7745c5c3_Err = SearchResults(groups).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = SearchResults(groups, query).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -1,0 +1,64 @@
+package templates
+
+import "fmt"
+
+// SearchTypePage renders the per-type "view all" results page: a header with
+// the exact match count, the first page of rows, and an htmx "Load more" button
+// that appends subsequent pages.
+templ SearchTypePage(data SearchTypeView) {
+	<div class="max-w-3xl mx-auto">
+		@Breadcrumb("Search", data.TypeName)
+		<div class="mb-4">
+			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+				<span class={ groupBadgeClasses(data.AccentColor) }>{ data.TypeName }</span>
+			</h1>
+			<p class="mt-2 text-neutral-500 dark:text-neutral-400 text-sm">
+				{ fmt.Sprintf("%s results matching %q", formatThousands(data.Total), data.Query) }
+			</p>
+		</div>
+		if len(data.Hits) == 0 {
+			<div class="px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm">No results found.</div>
+		} else {
+			<div id="search-type-results" class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50" role="list">
+				for _, hit := range data.Hits {
+					@SearchRow(hit)
+				}
+				if data.HasMore {
+					@searchTypeLoadMore(data.Query, data.TypeSlug, data.NextOffset)
+				}
+			</div>
+		}
+		<div class="mt-6">
+			<a href={ templ.SafeURL(homeQueryURL(data.Query)) } class="text-sm text-emerald-500 hover:text-emerald-400 transition-colors">
+				← Back to search
+			</a>
+		</div>
+	</div>
+}
+
+// SearchTypeMore is the htmx response to a "Load more" click: the next page of
+// rows followed by a fresh "Load more" button (or nothing when exhausted). It
+// replaces the previous button via hx-swap="outerHTML", so rows accumulate in
+// the same divided container.
+templ SearchTypeMore(data SearchTypeView) {
+	for _, hit := range data.Hits {
+		@SearchRow(hit)
+	}
+	if data.HasMore {
+		@searchTypeLoadMore(data.Query, data.TypeSlug, data.NextOffset)
+	}
+}
+
+// searchTypeLoadMore renders the "Load more" button. It targets itself and
+// swaps its own outerHTML with the next SearchTypeMore fragment.
+templ searchTypeLoadMore(query, slug string, nextOffset int) {
+	<button
+		type="button"
+		hx-get={ searchTypeURL(query, slug, nextOffset) }
+		hx-target="this"
+		hx-swap="outerHTML"
+		class="w-full text-center px-4 py-3 text-sm font-medium text-emerald-500 hover:text-emerald-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors"
+	>
+		Load more
+	</button>
+}
