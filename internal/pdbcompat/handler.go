@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"maps"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -61,7 +59,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 
 	if typeName == "" {
 		// /api/ or /api -- serve the index.
-		h.serveIndex(w)
+		h.serveIndex(w, r)
 		return
 	}
 
@@ -106,32 +104,40 @@ func splitTypeID(rest string) (typeName, id string) {
 	return typeName, id
 }
 
-// indexBody is computed once at init time since the Registry does not change.
-var indexBody []byte
-
-func init() {
-	type indexEntry struct {
-		ListEndpoint string `json:"list_endpoint"`
+// serveIndex writes the API index in upstream PeeringDB's shape:
+//
+//	{"data": [{"<type>": "<absolute-url>", ...}], "meta": {}}
+//
+// a single object mapping every mirrored type to its absolute list-endpoint
+// URL, built from the request scheme + host. Upstream additionally lists
+// `as_set`, a network-derived AS-SET lookup this mirror does not serve (see
+// docs/API.md § Known Divergences); listing only the 13 served types keeps the
+// index from advertising a dead link.
+func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
+	scheme := "https"
+	if xfp := r.Header.Get("X-Forwarded-Proto"); xfp != "" {
+		scheme = xfp
+	} else if r.TLS == nil {
+		scheme = "http"
 	}
+	base := scheme + "://" + r.Host + "/api/"
 
-	// Collect sorted type names for deterministic output.
-	names := slices.Sorted(maps.Keys(Registry))
-
-	index := make(map[string]indexEntry, len(Registry))
-	for _, name := range names {
-		index[name] = indexEntry{
-			ListEndpoint: "/api/" + name,
-		}
+	types := make(map[string]string, len(Registry))
+	for name := range Registry {
+		types[name] = base + name
 	}
+	body := struct {
+		Data []map[string]string `json:"data"`
+		Meta map[string]any      `json:"meta"`
+	}{
+		Data: []map[string]string{types},
+		Meta: map[string]any{},
+	}
+	b, _ := json.Marshal(body)
 
-	indexBody, _ = json.Marshal(index)
-}
-
-// serveIndex writes the API index listing all available types.
-func (h *Handler) serveIndex(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Powered-By", poweredByHeader)
-	_, _ = w.Write(indexBody)
+	_, _ = w.Write(b)
 }
 
 // serveList handles list requests for the given type.
