@@ -1232,6 +1232,142 @@ func TestDepth_BackRefStripParity(t *testing.T) {
 	})
 }
 
+// TestDepth_DepthOne locks the real ?depth=1 level, distinct from both depth=0
+// (bare row) and depth=2 (fully expanded). Upstream (serializers.py:817-823 +
+// the recursive prefetch_related budget) renders depth=1 as: forward FK objects
+// FLAT (no sets of their own) and reverse _set fields as bare ID lists. The
+// mirror previously honoured only ?depth=0/2 and silently coerced depth=1 to 2.
+func TestDepth_DepthOne(t *testing.T) {
+	t.Parallel()
+	_, mux := setupDepthTestData(t)
+
+	firstID := func(t *testing.T, tag string) int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"?limit=1", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) == 0 {
+			t.Fatalf("no %s rows", tag)
+		}
+		return int(items[0]["id"].(float64))
+	}
+	get := func(t *testing.T, tag string, id int, depthQuery string) map[string]any {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/api/"+tag+"/"+itoa(id)+depthQuery, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s%s: %d: %s", tag, depthQuery, rec.Code, rec.Body.String())
+		}
+		var env testEnvelope
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		var items []map[string]any
+		_ = json.Unmarshal(env.Data, &items)
+		return items[0]
+	}
+	isIDList := func(v any) bool {
+		arr, ok := v.([]any)
+		if !ok {
+			return false
+		}
+		for _, e := range arr {
+			if _, isObj := e.(map[string]any); isObj {
+				return false
+			}
+		}
+		return true
+	}
+
+	t.Run("org_reverse_sets_are_id_lists", func(t *testing.T) {
+		t.Parallel()
+		orgID := firstID(t, "org")
+		d0 := get(t, "org", orgID, "?depth=0")
+		d1 := get(t, "org", orgID, "?depth=1")
+		d2 := get(t, "org", orgID, "?depth=2")
+		for _, sk := range []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"} {
+			if _, has := d0[sk]; has {
+				t.Errorf("org depth=0 must NOT carry %s", sk)
+			}
+			if !isIDList(d1[sk]) {
+				t.Errorf("org depth=1: %s must be an ID list (got %T / objects)", sk, d1[sk])
+			}
+		}
+		// depth=2 keeps full objects — proves depth=1 != depth=2.
+		if arr, _ := d2["net_set"].([]any); len(arr) > 0 {
+			if _, isObj := arr[0].(map[string]any); !isObj {
+				t.Error("org depth=2 net_set must be full objects (regression: depth=1 and depth=2 collapsed)")
+			}
+		}
+	})
+
+	t.Run("net_fk_flat_sets_are_ids", func(t *testing.T) {
+		t.Parallel()
+		d1 := get(t, "net", firstID(t, "net"), "?depth=1")
+		org, ok := d1["org"].(map[string]any)
+		if !ok {
+			t.Fatal("net depth=1: org must be a flat object")
+		}
+		if _, has := org["net_set"]; has {
+			t.Error("net depth=1: nested org must be FLAT (no net_set)")
+		}
+		for _, sk := range []string{"poc_set", "netfac_set", "netixlan_set"} {
+			if !isIDList(d1[sk]) {
+				t.Errorf("net depth=1: %s must be an ID list", sk)
+			}
+		}
+	})
+
+	t.Run("leaf_fk_flat_no_sets", func(t *testing.T) {
+		t.Parallel()
+		id := firstID(t, "netixlan")
+		d1 := get(t, "netixlan", id, "?depth=1")
+		net, ok := d1["net"].(map[string]any)
+		if !ok {
+			t.Fatal("netixlan depth=1: net must be an object")
+		}
+		if _, has := net["poc_set"]; has {
+			t.Error("netixlan depth=1: net must be FLAT (no poc_set at depth=1)")
+		}
+		// depth=2 DOES carry the set — proves the levels differ.
+		d2 := get(t, "netixlan", id, "?depth=2")
+		if d2net, _ := d2["net"].(map[string]any); d2net != nil {
+			if _, has := d2net["poc_set"]; !has {
+				t.Error("netixlan depth=2: net must carry poc_set (regression)")
+			}
+		}
+	})
+
+	t.Run("depth_clamped_to_0_4", func(t *testing.T) {
+		t.Parallel()
+		orgID := firstID(t, "org")
+		// depth >= 3 renders the depth=2 shape (full-object sets).
+		for _, q := range []string{"?depth=3", "?depth=4", "?depth=99"} {
+			arr, _ := get(t, "org", orgID, q)["net_set"].([]any)
+			if len(arr) == 0 {
+				t.Errorf("org %s: net_set missing", q)
+				continue
+			}
+			if _, isObj := arr[0].(map[string]any); !isObj {
+				t.Errorf("org %s: expected depth=2 shape (net_set objects)", q)
+			}
+		}
+		// negative depth floors to 0 (bare row, no sets).
+		if _, has := get(t, "org", orgID, "?depth=-1")["net_set"]; has {
+			t.Error("org depth=-1 must clamp to 0 (no net_set)")
+		}
+		// non-numeric keeps the default detail depth (2).
+		if arr, _ := get(t, "org", orgID, "?depth=foo")["net_set"].([]any); len(arr) > 0 {
+			if _, isObj := arr[0].(map[string]any); !isObj {
+				t.Error("org depth=foo must fall back to default depth=2")
+			}
+		}
+	})
+}
+
 // TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
 // — Query().Where(<type>.ID(id), <type>.StatusIn("ok","pending")), inlined at
 // all 26 depth.go getter sites — resolves identically across all 13 types: an

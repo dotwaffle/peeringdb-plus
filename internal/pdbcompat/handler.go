@@ -371,15 +371,18 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
-	// Parse depth. Default = 2 for detail endpoints to
-	// match upstream's `default_depth(is_list=False)` (serializers.py:823).
-	// Explicit `?depth=0` is honoured to keep the bare-row escape hatch
-	// (matches upstream's rest.py:852 short-circuit when depth<=0).
+	// Parse depth. Default = 2 for detail endpoints to match upstream's
+	// `default_depth(is_list=False)` (serializers.py:817-823). Upstream parses
+	// `?depth=` as a raw int clamped to [0, max_depth] with max_depth=4 for
+	// single GETs (serializers.py:789-814), so we honour 0/1/2/3/4: 0 is the
+	// bare-row escape hatch (rest.py:852), 1 expands forward FKs flat with
+	// reverse sets as ID lists, 2 fully expands. Depths >2 render the depth=2
+	// shape (the deeper sub-level nesting they add is not reproduced). A
+	// non-numeric value keeps the default; negatives floor to 0.
 	depth := 2
 	if v := params.Get("depth"); v != "" {
-		parsed, err := strconv.Atoi(v)
-		if err == nil && (parsed == 0 || parsed == 2) {
-			depth = parsed
+		if parsed, err := strconv.Atoi(v); err == nil {
+			depth = min(max(parsed, 0), 4)
 		}
 	}
 
