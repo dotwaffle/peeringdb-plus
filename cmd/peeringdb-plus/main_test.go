@@ -21,6 +21,29 @@ import (
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 )
 
+// TestDiscoveryBody locks the GET / service-discovery payload to a dynamic
+// version (sourced from buildinfo via -ldflags injection) rather than the old
+// hardcoded "0.1.0" banner, and guards that it stays valid JSON.
+func TestDiscoveryBody(t *testing.T) {
+	t.Parallel()
+	body := discoveryBody("v9.9.9-test")
+	var m map[string]any
+	if err := json.Unmarshal([]byte(body), &m); err != nil {
+		t.Fatalf("discovery body is not valid JSON: %v\nbody: %s", err, body)
+	}
+	if m["version"] != "v9.9.9-test" {
+		t.Errorf("version = %v, want the passed-in v9.9.9-test (regression: must not be a hardcoded banner)", m["version"])
+	}
+	if m["name"] != "peeringdb-plus" {
+		t.Errorf("name = %v, want peeringdb-plus", m["name"])
+	}
+	// The version must interpolate dynamically — distinct inputs yield distinct
+	// bodies — so the old static "0.1.0" banner can't silently creep back.
+	if strings.Contains(discoveryBody("vAAA"), "vBBB") || !strings.Contains(discoveryBody("vBBB"), "vBBB") {
+		t.Error("discoveryBody must interpolate the version argument, not hardcode it")
+	}
+}
+
 // TestRedactIxlanJSON_FastPath verifies the redact writer skips the
 // re-marshal when nothing is gated out, returning the original bytes
 // (audit P6). The input uses a non-alphabetical key order; json.Marshal

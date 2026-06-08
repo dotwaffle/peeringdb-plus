@@ -34,6 +34,7 @@ import (
 	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register ent schema runtime config (field defaults/validators, privacy policy)
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/graph"
+	"github.com/dotwaffle/peeringdb-plus/internal/buildinfo"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
 	pdbgql "github.com/dotwaffle/peeringdb-plus/internal/graphql"
@@ -67,6 +68,16 @@ func init() {
 				memlimit.FromSystem,
 			),
 		),
+	)
+}
+
+// discoveryBody builds the JSON service-discovery payload returned to API
+// clients on GET /. The version is passed in (rather than read inside) so the
+// body can be unit-tested without build-time ldflags injection.
+func discoveryBody(version string) string {
+	return fmt.Sprintf(
+		`{"name":"peeringdb-plus","version":%q,"graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`,
+		version,
 	)
 }
 
@@ -522,7 +533,11 @@ func main() {
 	// GET /: content negotiation for terminal, browser, and API clients.
 	// Terminal clients (curl, wget, HTTPie) receive help text.
 	// Browsers (Accept: text/html) redirect to /ui/.
-	// API clients (Accept: application/json) get JSON discovery.
+	// API clients (Accept: application/json) get JSON discovery. The version
+	// comes from internal/buildinfo (injected via -ldflags from `git describe`
+	// in Dockerfile.prod — Go's debug.ReadBuildInfo records only the commit,
+	// never the tag, so it must be injected). Built once per process.
+	discoveryJSON := discoveryBody(buildinfo.Version())
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		mode := termrender.Detect(termrender.DetectInput{
 			Query:     r.URL.Query(),
@@ -549,7 +564,7 @@ func main() {
 		case termrender.ModeJSON:
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.Header().Set("Vary", "User-Agent, Accept")
-			fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
+			fmt.Fprint(w, discoveryJSON)
 			return
 
 		default:
@@ -559,7 +574,7 @@ func main() {
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
-			fmt.Fprint(w, `{"name":"peeringdb-plus","version":"0.1.0","graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`)
+			fmt.Fprint(w, discoveryJSON)
 		}
 	})
 
