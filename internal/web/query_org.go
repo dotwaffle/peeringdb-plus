@@ -18,7 +18,7 @@ import (
 // Returns the fully populated OrgDetail or an error (including ent.IsNotFound).
 func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, error) {
 	org, err := h.client.Organization.Query().
-		Where(organization.ID(id)).
+		Where(organization.ID(id), organization.StatusIn("ok", "pending")).
 		Only(ctx)
 	if err != nil {
 		return templates.OrgDetail{}, fmt.Errorf("query org %d: %w", id, err)
@@ -26,35 +26,35 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 
 	// Count non-pre-computed child entity counts.
 	ixCount, err := h.client.InternetExchange.Query().
-		Where(internetexchange.HasOrganizationWith(organization.ID(id))).
+		Where(internetexchange.HasOrganizationWith(organization.ID(id)), internetexchange.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org IXPs", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	campusCount, err := h.client.Campus.Query().
-		Where(campus.HasOrganizationWith(organization.ID(id))).
+		Where(campus.HasOrganizationWith(organization.ID(id)), campus.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org campuses", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	carrierCount, err := h.client.Carrier.Query().
-		Where(carrier.HasOrganizationWith(organization.ID(id))).
+		Where(carrier.HasOrganizationWith(organization.ID(id)), carrier.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org carriers", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	netCount, err := h.client.Network.Query().
-		Where(network.HasOrganizationWith(organization.ID(id))).
+		Where(network.HasOrganizationWith(organization.ID(id)), network.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org networks", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
 	facCount, err := h.client.Facility.Query().
-		Where(facility.HasOrganizationWith(organization.ID(id))).
+		Where(facility.HasOrganizationWith(organization.ID(id)), facility.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org facilities", slog.Int("org_id", id), slog.Any("error", err))
@@ -83,7 +83,7 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 
 	// Eager-load org networks.
 	orgNetItems, err := h.client.Network.Query().
-		Where(network.HasOrganizationWith(organization.ID(id))).
+		Where(network.HasOrganizationWith(organization.ID(id)), network.StatusIn("ok", "pending")).
 		Order(network.ByAsn()).
 		All(ctx)
 	if err == nil {
@@ -101,7 +101,7 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 
 	// Eager-load org IXPs.
 	orgIXItems, err := h.client.InternetExchange.Query().
-		Where(internetexchange.HasOrganizationWith(organization.ID(id))).
+		Where(internetexchange.HasOrganizationWith(organization.ID(id)), internetexchange.StatusIn("ok", "pending")).
 		Order(internetexchange.ByName()).
 		All(ctx)
 	if err == nil {
@@ -119,7 +119,7 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 
 	// Eager-load org facilities.
 	orgFacItems, err := h.client.Facility.Query().
-		Where(facility.HasOrganizationWith(organization.ID(id))).
+		Where(facility.HasOrganizationWith(organization.ID(id)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
 		All(ctx)
 	if err == nil {
@@ -139,7 +139,7 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 
 	// Eager-load org campuses.
 	orgCampusItems, err := h.client.Campus.Query().
-		Where(campus.HasOrganizationWith(organization.ID(id))).
+		Where(campus.HasOrganizationWith(organization.ID(id)), campus.StatusIn("ok", "pending")).
 		Order(campus.ByName()).
 		All(ctx)
 	if err == nil {
@@ -157,7 +157,7 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 
 	// Eager-load org carriers.
 	orgCarrierItems, err := h.client.Carrier.Query().
-		Where(carrier.HasOrganizationWith(organization.ID(id))).
+		Where(carrier.HasOrganizationWith(organization.ID(id)), carrier.StatusIn("ok", "pending")).
 		Order(carrier.ByName()).
 		All(ctx)
 	if err == nil {

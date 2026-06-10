@@ -9,6 +9,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/facility"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
@@ -44,12 +45,12 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 	}
 
 	// Look up both networks by ASN.
-	netA, err := s.client.Network.Query().Where(network.Asn(input.ASN1)).First(ctx)
+	netA, err := s.client.Network.Query().Where(network.Asn(input.ASN1), network.StatusIn("ok", "pending")).First(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("network ASN %d: %w", input.ASN1, err)
 	}
 
-	netB, err := s.client.Network.Query().Where(network.Asn(input.ASN2)).First(ctx)
+	netB, err := s.client.Network.Query().Where(network.Asn(input.ASN2), network.StatusIn("ok", "pending")).First(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("network ASN %d: %w", input.ASN2, err)
 	}
@@ -68,7 +69,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 	g.Go(func() error {
 		var err error
 		ixLansA, err = s.client.NetworkIxLan.Query().
-			Where(networkixlan.HasNetworkWith(network.ID(netA.ID))).
+			Where(networkixlan.HasNetworkWith(network.ID(netA.ID)), networkixlan.StatusIn("ok", "pending")).
 			All(gctx)
 		if err != nil {
 			return fmt.Errorf("query IX presences for ASN %d: %w", input.ASN1, err)
@@ -79,7 +80,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 	g.Go(func() error {
 		var err error
 		ixLansB, err = s.client.NetworkIxLan.Query().
-			Where(networkixlan.HasNetworkWith(network.ID(netB.ID))).
+			Where(networkixlan.HasNetworkWith(network.ID(netB.ID)), networkixlan.StatusIn("ok", "pending")).
 			All(gctx)
 		if err != nil {
 			return fmt.Errorf("query IX presences for ASN %d: %w", input.ASN2, err)
@@ -90,7 +91,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 	g.Go(func() error {
 		var err error
 		facNetsA, err = s.client.NetworkFacility.Query().
-			Where(networkfacility.HasNetworkWith(network.ID(netA.ID))).
+			Where(networkfacility.HasNetworkWith(network.ID(netA.ID)), networkfacility.StatusIn("ok", "pending")).
 			WithFacility(). // Eager-load for coordinates
 			All(gctx)
 		if err != nil {
@@ -102,7 +103,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*temp
 	g.Go(func() error {
 		var err error
 		facNetsB, err = s.client.NetworkFacility.Query().
-			Where(networkfacility.HasNetworkWith(network.ID(netB.ID))).
+			Where(networkfacility.HasNetworkWith(network.ID(netB.ID)), networkfacility.StatusIn("ok", "pending")).
 			WithFacility(). // Eager-load for coordinates
 			All(gctx)
 		if err != nil {
@@ -309,7 +310,11 @@ type facCampusInfo struct {
 // facCampusMap queries facilities by ID that have a campus and returns a mapping.
 func (s *CompareService) facCampusMap(ctx context.Context, facIDs []int) ([]facCampusInfo, error) {
 	facs, err := s.client.Facility.Query().
-		Where(facility.IDIn(facIDs...), facility.HasCampus()).
+		Where(
+			facility.IDIn(facIDs...),
+			facility.StatusIn("ok", "pending"),
+			facility.HasCampusWith(campus.StatusIn("ok", "pending")),
+		).
 		WithCampus().
 		All(ctx)
 	if err != nil {
