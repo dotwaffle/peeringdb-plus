@@ -814,7 +814,11 @@ have their own memory stories:
   (500-row chunks) through `StreamEntities`; no slice materialisation.
 - **entrest** uses ent-generated handlers that do not buffer unbounded
   results; REST `/rest/v1/*` paths page via the entrest cursor model.
-- **GraphQL** has its own depth/complexity limits from v1.12.
+- **GraphQL** has depth (15) and complexity limits from v1.12; since the
+  2026-06-10 audit the complexity costing is fan-out-aware
+  (`graph/complexity.go` weights connection fields by requested page size
+  and unpaginated edge lists by average per-parent cardinality), so the
+  budget bounds rows materialized rather than fields mentioned.
 - **Web UI** renders on the server with bounded htmx fragments; the
   terminal renderer buffers per-response but is already gated by the
   `/ui/` middleware body cap.

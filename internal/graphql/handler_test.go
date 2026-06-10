@@ -116,21 +116,24 @@ func TestErrorPresenter_SetsCodeExtension(t *testing.T) {
 	}
 }
 
-func TestComplexityLimit_RejectsComplex(t *testing.T) {
+func TestComplexityLimit_RejectsFanOut(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
 	resolver := graph.NewResolver(client, nil)
 	h := NewHandler(resolver)
 
-	// gqlgen's default complexity counts 1 per field selection. Without custom
-	// complexity functions the `first` arg does NOT act as a multiplier.
-	// Each alias of `organizations(first:1){edges{node{name aka nameLong}}}` costs 6.
-	// 100 aliases = 600 > limit of 500.
-	var parts [100]string
-	for i := range parts {
-		parts[i] = fmt.Sprintf(`a%d: organizations(first:1) { edges { node { name aka nameLong } } }`, i)
-	}
-	query := "{ " + strings.Join(parts[:], " ") + " }"
+	// graph.ComplexityLimits weights connection fields by the requested
+	// page size and unpaginated edge lists by average per-parent
+	// cardinality, so nested fan-out multiplies: 1000 exchanges, each
+	// expanding ixLans (×4) → networkIxLans (×64) → ixLan → networkIxLans
+	// (×64) ≈ 16M units — far over graph.ComplexityLimit. This is the
+	// replica-OOM shape from the 2026-06-10 audit: under gqlgen's default
+	// 1-per-field costing it cost ~10 units and sailed through.
+	query := `{
+		internetExchanges(first: 1000) {
+			edges { node { ixLans { networkIxLans { ixLan { networkIxLans { asn } } } } } }
+		}
+	}`
 	resp := postGQL(t, h, query)
 
 	if len(resp.Errors) == 0 {
@@ -155,6 +158,45 @@ func TestComplexityLimit_RejectsComplex(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("no error mentions complexity; errors: %+v", resp.Errors)
+	}
+}
+
+// TestComplexityLimit_AllowsLegitimateQueries guards the fan-out weights
+// against over-rejection: the shapes real consumers use — a full page of
+// networks with scalar fields, and a single exchange's complete member
+// list — must stay well inside graph.ComplexityLimit.
+func TestComplexityLimit_AllowsLegitimateQueries(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	resolver := graph.NewResolver(client, nil)
+	h := NewHandler(resolver)
+
+	queries := map[string]string{
+		"full page of networks": `{
+			networks(first: 1000) {
+				edges { node { name asn infoType website policyGeneral irrAsSet } }
+			}
+		}`,
+		"single IX member list": `{
+			internetExchanges(first: 1) {
+				edges { node { name ixLans { mtu networkIxLans { asn speed ipaddr4 ipaddr6 isRsPeer operational } } } }
+			}
+		}`,
+		"alias fan within budget": `{
+			a: organizations(first: 100) { edges { node { name networks { asn } } } }
+			b: facilitiesList(limit: 100) { name city networkFacilities { localAsn } }
+		}`,
+	}
+	for name, query := range queries {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			resp := postGQL(t, h, query)
+			for _, gqlErr := range resp.Errors {
+				if strings.Contains(strings.ToLower(gqlErr.Message), "complexity") {
+					t.Fatalf("legitimate query rejected by complexity limit: %+v", gqlErr)
+				}
+			}
+		})
 	}
 }
 

@@ -21,12 +21,18 @@ import (
 func NewHandler(resolver *graph.Resolver) http.Handler {
 	srv := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
-			Resolvers: resolver,
+			Resolvers:  resolver,
+			Complexity: graph.ComplexityLimits(),
 		}),
 	)
 
-	// Query complexity limit (500).
-	srv.Use(extension.FixedComplexityLimit(500))
+	// Query complexity limit. The budget approximates "fields of rows
+	// materialized": graph.ComplexityLimits weights connection fields by
+	// the requested page size and unpaginated edge lists by their average
+	// per-parent cardinality, so the limit bounds rows fetched rather
+	// than fields mentioned (gqlgen's default charges 1 per field, which
+	// let a ~15-field query materialize millions of rows).
+	srv.Use(extension.FixedComplexityLimit(graph.ComplexityLimit))
 
 	// Query depth limit (15).
 	srv.Use(depth.FixedDepthLimit(15))
