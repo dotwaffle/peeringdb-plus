@@ -59,6 +59,20 @@ import (
 const maxRequestBodySize = 1 << 20
 const initialObjectCountsTimeout = 5 * time.Second
 
+// connectHandlerOpts builds the handler options shared by all 13 ConnectRPC
+// service registrations: OTel tracing plus an inbound message-size cap.
+// WithReadMaxBytes bounds each received message (raw AND decompressed) at the
+// connect protocol layer. The HTTP-level MaxBytesBody middleware skips
+// ConnectRPC paths so server-to-client streaming is not truncated, which
+// would otherwise leave unary request bodies unbounded (gzip-bomb OOM).
+// Request messages here are small filter/pagination structs; 1 MB is ample.
+func connectHandlerOpts(interceptor connect.Interceptor) connect.HandlerOption {
+	return connect.WithHandlerOptions(
+		connect.WithInterceptors(interceptor),
+		connect.WithReadMaxBytes(maxRequestBodySize),
+	)
+}
+
 func init() {
 	// Best-effort memory limit configuration from cgroup/system.
 	_, _ = memlimit.SetGoMemLimitWithOpts(
@@ -453,7 +467,7 @@ func main() {
 		logger.Error("failed to create otel interceptor", slog.Any("error", err))
 		os.Exit(1)
 	}
-	handlerOpts := connect.WithInterceptors(otelInterceptor)
+	handlerOpts := connectHandlerOpts(otelInterceptor)
 
 	// Service names for reflection and health checking.
 	serviceNames := []string{
