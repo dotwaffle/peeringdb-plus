@@ -248,24 +248,32 @@ drift check" below.
 
 ## Adding a new ent field
 
-1. Edit the relevant file in `ent/schema/`, e.g. `ent/schema/network.go`.
-   Add the field to the `Fields()` slice:
-   ```go
-   field.String("new_field").
-       Optional().
-       Default("").
-       Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-       Comment("Free-form description"),
-   ```
+Do **NOT** add the field to the `Fields()` slice in `ent/schema/{type}.go` —
+those files are regenerated wholesale from `schema/peeringdb.json` by
+`cmd/pdb-schema-generate` on every `go generate ./...` run, so a hand-added
+field is silently stripped before entc ever sees it (see "Sibling-file
+convention" above). Add the field at its source instead:
+
+1. Pick the path that matches the field's origin:
+   - **Upstream-derived field** (mirrors a PeeringDB API field): add a field
+     object to the entity's `fields` map in `schema/peeringdb.json`, copying
+     the shape of an existing entry (`type`, `required`, `nullable`,
+     `help_text`, `default`, …). The generator turns it into the ent field
+     definition.
+   - **peeringdb-plus-local field** (server-side only, like the `_fold`
+     shadow columns): declare it in a sibling-file `Mixin()` that the
+     generator never touches, following the `ent/schema/{type}_fold.go` +
+     `ent/schema/fold_mixin.go` pattern.
 2. If the field should appear in ConnectRPC filters, also update the
    corresponding `proto/peeringdb/v1/services.proto` `List*Request` message
    (add an `optional string new_field = N;`).
 3. Regenerate:
    ```bash
-   go generate ./ent
+   go generate ./...
    ```
-   This updates `ent/`, `graph/`, `proto/peeringdb/v1/v1.proto`, the REST
-   OpenAPI spec, and `internal/pdbcompat/allowlist_gen.go`.
+   This rewrites `ent/schema/{type}.go` from `schema/peeringdb.json` first,
+   then updates `ent/`, `graph/`, `proto/peeringdb/v1/v1.proto`, the REST
+   OpenAPI spec, and `internal/pdbcompat/allowlist_gen.go` in a single pass.
 4. Extend the ConnectRPC filter table in `internal/grpcserver/<entity>.go` so
    the new field is honoured at query time. See the `networkListFilters` slice
    in `internal/grpcserver/network.go` for the pattern.
@@ -282,8 +290,9 @@ permanently on (`cmd/peeringdb-plus/main.go`). Dropping a field is therefore a
 checklist, not a migration script:
 
 1. Edit `schema/peeringdb.json` (remove the field from the upstream-derived
-   schema), OR remove the field directly from `ent/schema/{type}.go` if it is
-   peeringdb-plus-local.
+   schema), OR remove it from its sibling-file Mixin (e.g.
+   `ent/schema/{type}_fold.go`) if it is peeringdb-plus-local — never from
+   the generated `ent/schema/{type}.go` itself.
 2. Run `go generate ./...`.
 3. Remove references in:
    - `internal/peeringdb/types.go` (PeeringDB API client types)

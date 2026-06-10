@@ -72,12 +72,16 @@ kill_timeout = 30
   #   type = "requests"
   #   soft_limit = 10
 
+  # /readyz (not /healthz): the readiness probe fail-closes during replica
+  # cold-sync hydration and on stale sync data, so Fly Proxy routes around
+  # a machine that cannot serve fresh data yet. /healthz always returns 200
+  # and would keep hydrating replicas in rotation.
   [[http_service.checks]]
     grace_period = "30s"
     interval = "15s"
     method = "GET"
     timeout = "5s"
-    path = "/healthz"
+    path = "/readyz"
 
 # Primary group VM: unchanged from today (shared-cpu-2x / 512 MB).
 [[vm]]

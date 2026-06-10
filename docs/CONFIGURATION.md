@@ -211,7 +211,7 @@ Two deployment-adjacent files exist in the repository:
   `PDBPLUS_LISTEN_ADDR` (`:8080`), `PDBPLUS_DB_PATH`
   (`/litefs/peeringdb-plus.db`), and `PRIMARY_REGION` (`lhr`), along with
   VM sizing (`shared-cpu-2x`, `512mb`), the rolling deploy strategy
-  (`max_unavailable = 0.5`), and the `/healthz` HTTP check.
+  (`max_unavailable = 0.5`), and the `/readyz` HTTP check.
 - `litefs.yml` — LiteFS FUSE and lease configuration. Uses `${FLY_REGION}`,
   `${PRIMARY_REGION}`, `${FLY_APP_NAME}`, `${HOSTNAME}`, and
   `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
@@ -321,10 +321,13 @@ operator controls that reduce blast radius.
   your identity to upstream abuse handling.
   - Mitigations: inject via secrets manager, rotate on suspicion, avoid logging
     key material, scope access to deploy pipeline only.
-- **Misconfigured public sync trigger:** empty `PDBPLUS_SYNC_TOKEN` leaves
-  `/sync` callable without auth.
-  - Mitigations: set `PDBPLUS_SYNC_TOKEN` in all persistent environments and
-    alert on startup warning logs.
+- **Unset sync token (fail-closed):** an empty `PDBPLUS_SYNC_TOKEN` does NOT
+  leave `/sync` open — the handler rejects every request with 401, so
+  on-demand sync is disabled (the scheduled sync worker is unaffected). The
+  operational risk is availability, not exposure: operators cannot trigger a
+  recovery sync until a token is set.
+  - Mitigations: set `PDBPLUS_SYNC_TOKEN` in all persistent environments where
+    on-demand sync is wanted; the startup log notes the disabled state.
 
 Operationally, start with defaults and tighten one variable at a time while
 watching `pdbplus_sync_*` and HTTP error metrics.

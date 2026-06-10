@@ -17,7 +17,7 @@ RUN \
     --mount=type=cache,target=/root/.cache/go-build \
     VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo unknown) && \
     echo "Building peeringdb-plus version=$VERSION" && \
-    GOOS=linux go build \
+    CGO_ENABLED=0 GOOS=linux go build \
         -trimpath \
         -ldflags="-s -w -X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION" \
         -o /bin/peeringdb-plus ./cmd/peeringdb-plus
