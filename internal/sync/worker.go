@@ -2040,6 +2040,23 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 
 		if !isPrimary {
 			// Still a replica — heartbeat for the next role check.
+			//
+			// While the readiness latch is unset, re-read sync_status on
+			// each heartbeat: a replica that booted before the primary's
+			// first successful sync (fresh-fleet bootstrap, wiped-primary
+			// recovery, or a transient read failure at boot) would
+			// otherwise latch synced=false for the life of the process
+			// and serve 503 on every data route even after LiteFS
+			// replication delivers a fully-synced database. The read is
+			// one local-SQLite row per interval, only while unsynced.
+			if !w.synced.Load() {
+				if ls, lsErr := GetLastSuccessfulSyncTime(ctx, w.db); lsErr == nil && !ls.IsZero() {
+					w.logger.LogAttrs(ctx, slog.LevelInfo, "replicated sync history observed, marking ready",
+						slog.Time("last_sync", ls),
+					)
+					w.synced.Store(true)
+				}
+			}
 			w.logger.LogAttrs(ctx, slog.LevelDebug, "not primary, skipping sync")
 			nextAt = time.Now().Add(interval)
 			continue
