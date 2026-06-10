@@ -10,6 +10,90 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.21.0] — 2026-06-10
+
+Fixes for all 42 confirmed findings of the 2026-06-10 full-codebase audit
+(4 high, 16 medium, 22 low; 3 further findings were refuted during
+adversarial verification).
+
+### Security
+
+- **REST no longer leaks the tier-gated `ixf_ixp_member_list_url` through
+  eager-loaded edges.** Redaction was scoped to `/rest/v1/ix-lans*` and
+  top-level JSON keys, but entrest eager-loads the ixlan edge on
+  internet-exchange, ix-prefix, and network-ix-lan responses — the gated URL
+  reached anonymous callers under `edges.*`. The middleware now buffers all
+  `/rest/v1/` responses and redacts recursively wherever the `_visible`
+  companion appears.
+- **ConnectRPC request bodies are capped at 1 MB** via
+  `connect.WithReadMaxBytes` (raw and decompressed). The HTTP-level body cap
+  deliberately exempts ConnectRPC paths for streaming, which had left unary
+  endpoints unbounded — a single gzip-bombed POST could OOM a 256 MB replica.
+- **GraphQL complexity costing is fan-out aware.** Default gqlgen costing
+  charged 1 per field, so nested unpaginated edge lists could materialize
+  millions of rows under the old limit. Connections now cost by requested
+  page size and edge lists by average per-parent cardinality.
+- **The pdbcompat response budget accounts for concurrency.** Admission
+  charges a shared in-flight pool; requests that would jointly exceed the
+  budget get 503 + Retry-After instead of stacking past replica memory.
+
+### Fixed
+
+- **Full-mode syncs no longer lose the tombstone window.** A bare list is
+  `status='ok'`-only and committing the snapshot advances the derived cursor,
+  so the daily forced-full cycle silently discarded upstream deletes in the
+  window — permanently. Full staging now issues a follow-up `?since=<cursor>`
+  fetch (tombstones win via scratch `INSERT OR REPLACE`); a window-fetch
+  failure fails the type so the cursor never advances past unseen deletes.
+- **Full-mode syncs now reconcile completely.** The upsert skip gate
+  (`excluded.updated > updated`) applied in every mode despite docs claiming
+  otherwise, so rows mutated locally without an `updated` bump (orphan-filter
+  FK nulls) never re-converged. Full cycles now bypass the gate.
+- **Tombstoned rows are hidden everywhere.** Depth≥2 `_set` collections, all
+  web UI queries (52 sites), and GraphQL's `networkByAsn` now filter
+  `StatusIn("ok", "pending")`, matching the list-path status matrix.
+- **pdbcompat parity restored on five fronts:** `?since=0` is inert
+  (upstream's `if since > 0` gate), the since boundary is strictly greater,
+  and since lists order `updated` ascending; non-numeric/negative
+  `limit`/`skip` return 400 and the hidden 1000-row clamp is gone; bare
+  `city`/`address1`/`state` filters are substring matches and `country`
+  follows the 2-char-iexact rule; time filters accept ISO 8601 with
+  upstream's date day-window semantics; string `__in` is case-insensitive
+  and routes folded fields through the `_fold` shadow columns.
+- **Caching headers corrected:** error responses and `/healthz`/`/readyz`
+  are `no-store` (the readiness 304 short-circuit no longer masks health
+  flips); render paths `Add` to `Vary` instead of clobbering gzhttp's
+  `Accept-Encoding`; web 404/500 pages set headers before the status.
+- **Replica readiness latch recovers.** A replica booted before the
+  primary's first successful sync no longer serves 503 forever — the
+  heartbeat re-reads sync_status until ready.
+- **`unifold` folds `œ`/`Œ`, `ð`/`Ð`, and dotless `ı`** like upstream's
+  unidecode. Run one full sync after deploying to converge stale `_fold`
+  values.
+- **The served shell-completion scripts work** (`pdb asn 13335` no longer
+  issues two URLs; zsh subcommand completion expands).
+- **`fly.toml` health checks probe `/readyz`** so Fly Proxy actually
+  excludes hydrating replicas; `Dockerfile.prod` builds with
+  `CGO_ENABLED=0` as documented.
+
+### Changed
+
+- GraphQL flat-list resolvers batch edge loads via `CollectFields`
+  (previously 1+N queries per request).
+- SQLite page cache is 8 MB per connection (was 32 MB; the pool multiplied
+  it to 320 MB worst-case on a 256 MB replica).
+- `POST /sync` returns 409 when a cycle is already running instead of a
+  202 whose trigger was silently dropped; on-demand syncs honour demotion;
+  the retry ladder short-circuits on upstream WAF blocks.
+- `/rest/v1/` 4xx errors carry entrest's validation detail; the served
+  OpenAPI spec documents the problem+json error shape actually emitted.
+- Incremental since-pagination stops on a short page, saving one upstream
+  request per type per cycle.
+- Dead exported code removed (`peeringdb.FetchType`, the grpcserver
+  stream-cursor wire codec); the `/api/` problem+json error envelope and
+  the poc_set/fold-window divergences are now registered and test-locked
+  in `docs/API.md § Known Divergences`.
+
 ## [1.20.6] — 2026-06-08
 
 ### Fixed
