@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
@@ -1482,5 +1484,150 @@ func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestToMap_MatchesJSONRoundTrip locks the reflect-based toMap against the
+// json.Marshal/Unmarshal round-trip it replaced: marshalling the map must
+// produce byte-equivalent wire JSON to marshalling the struct directly,
+// including `omitempty` key omission (the privacy-load-bearing
+// ixf_ixp_member_list_url case) and pointer/time field rendering.
+func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	asn := 65001
+	lat := 51.5
+
+	tests := []struct {
+		name string
+		in   any
+	}{
+		{"ixlan redacted url omits key", peeringdb.IxLan{
+			ID: 1, IXID: 2, Name: "LAN", RSASN: &asn,
+			IXFIXPMemberListURLVisible: "Users",
+			IXFIXPMemberListURL:        "", // redacted -> key absent
+			Created:                    now, Updated: now, Status: "ok",
+		}},
+		{"ixlan public url keeps key", peeringdb.IxLan{
+			ID: 1, IXID: 2, Name: "LAN",
+			IXFIXPMemberListURLVisible: "Public",
+			IXFIXPMemberListURL:        "https://example.com/members",
+			Created:                    now, Updated: now, Status: "ok",
+		}},
+		{"organization with nil and set pointers", peeringdb.Organization{
+			ID: 3, Name: "Org", Latitude: &lat, Logo: nil,
+			SocialMedia: []peeringdb.SocialMedia{{Service: "website", Identifier: "https://example.com"}},
+			Created:     now, Updated: now, Status: "ok",
+		}},
+		{"network zero values stay present", peeringdb.Network{
+			ID: 4, OrgID: 3, Name: "Net", ASN: 65001,
+			Created: now, Updated: now, Status: "ok",
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			direct, err := json.Marshal(tc.in)
+			if err != nil {
+				t.Fatalf("marshal struct: %v", err)
+			}
+			viaMap, err := json.Marshal(toMap(tc.in))
+			if err != nil {
+				t.Fatalf("marshal toMap: %v", err)
+			}
+			// Key order differs (map iteration); compare decoded shapes.
+			var want, got map[string]any
+			if err := json.Unmarshal(direct, &want); err != nil {
+				t.Fatalf("unmarshal direct: %v", err)
+			}
+			if err := json.Unmarshal(viaMap, &got); err != nil {
+				t.Fatalf("unmarshal viaMap: %v", err)
+			}
+			if !reflect.DeepEqual(want, got) {
+				t.Errorf("toMap wire shape diverges from json round-trip:\n direct=%s\n viaMap=%s", direct, viaMap)
+			}
+		})
+	}
+}
+
+// TestDepth_PocSetPrivacy_DIVERGENCE locks the intentional divergence
+// registered in docs/API.md § Known Divergences (v1.20.5 row): upstream
+// PeeringDB lists EVERY poc id in a depth=1 `poc_set` ID list regardless of
+// visibility (filtering non-Public POCs only when expanded to objects at
+// depth=2), while this mirror applies the row-level poc.visible privacy
+// policy uniformly — a non-Public POC id never appears in an anonymous
+// poc_set ID list. Stricter than upstream by design; if this test fails the
+// way upstream behaves, that is a privacy leak, not a parity win.
+//
+// upstream: peeringdb_server/serializers.py poc_set nested ID-list rendering
+// (no visibility filter on the ID-list path).
+func TestDepth_PocSetPrivacy_DIVERGENCE(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+
+	org, err := client.Organization.Create().
+		SetName("Privacy Org").SetCreated(now).SetUpdated(now).SetStatus("ok").
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	net, err := client.Network.Create().
+		SetName("Privacy Net").SetAsn(65010).SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create net: %v", err)
+	}
+	pubPoc, err := client.Poc.Create().
+		SetName("Public Contact").SetRole("Abuse").SetVisible("Public").
+		SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create public poc: %v", err)
+	}
+	usersPoc, err := client.Poc.Create().
+		SetName("Users-Only Contact").SetRole("Technical").SetVisible("Users").
+		SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create users poc: %v", err)
+	}
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	// Anonymous request (no privacy tier stamped -> fail-closed TierPublic).
+	resp, err := http.Get(srv.URL + "/api/net/" + itoa(net.ID) + "?depth=1") //nolint:noctx // test code, local httptest server
+	if err != nil {
+		t.Fatalf("GET net depth=1: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET net depth=1: status %d", resp.StatusCode)
+	}
+	var env struct {
+		Data []struct {
+			PocSet []int `json:"poc_set"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
+		t.Fatalf("decode envelope: %v", err)
+	}
+	if len(env.Data) != 1 {
+		t.Fatalf("got %d data rows, want 1", len(env.Data))
+	}
+	got := env.Data[0].PocSet
+	for _, id := range got {
+		if id == usersPoc.ID {
+			t.Errorf("anonymous depth=1 poc_set leaked non-Public poc id %d (got %v)", usersPoc.ID, got)
+		}
+	}
+	if len(got) != 1 || got[0] != pubPoc.ID {
+		t.Errorf("anonymous depth=1 poc_set = %v, want [%d] (Public poc only)", got, pubPoc.ID)
 	}
 }

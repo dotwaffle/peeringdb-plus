@@ -2,8 +2,8 @@ package pdbcompat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -22,18 +22,59 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 )
 
-// toMap converts a struct to map[string]any using JSON marshal/unmarshal.
-// Used only for depth=2 responses where _set fields must be added dynamically.
+// toMap converts a serializer struct to map[string]any so depth responses can
+// add `_set` fields and strip back-reference keys dynamically. It walks the
+// cached reflect field maps from search.go (one pass, no intermediate JSON
+// encoding — the former json.Marshal/Unmarshal round-trip cost 2N+1 full JSON
+// passes per detail request). Field values are stored as their Go values; the
+// final WriteResponse marshal renders them identically to the round-trip.
+//
+// `omitempty` parity is load-bearing: peeringdb.IxLan declares
+// `ixf_ixp_member_list_url,omitempty` so a privfield-redacted (zero) value
+// must drop the KEY, exactly as json.Marshal would — emitting an empty string
+// would leak the field's presence to anonymous callers.
+// TestToMap_MatchesJSONRoundTrip locks the equivalence.
 func toMap(v any) map[string]any {
-	b, err := json.Marshal(v)
-	if err != nil {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return map[string]any{}
+		}
+		rv = rv.Elem()
+	}
+	if rv.Kind() != reflect.Struct {
 		return map[string]any{}
 	}
-	var m map[string]any
-	if err := json.Unmarshal(b, &m); err != nil {
-		return map[string]any{}
+	fm := getFieldMap(rv.Type())
+	m := make(map[string]any, len(fm))
+	for name, acc := range fm {
+		fv := rv.Field(acc.index)
+		if acc.omitEmpty && isEmptyJSONValue(fv) {
+			continue
+		}
+		m[name] = fv.Interface()
 	}
 	return m
+}
+
+// isEmptyJSONValue mirrors encoding/json's isEmptyValue: the values that the
+// `omitempty` tag option suppresses.
+func isEmptyJSONValue(v reflect.Value) bool {
+	switch v.Kind() { //nolint:exhaustive // default arm mirrors encoding/json's isEmptyValue
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
+		reflect.Float32, reflect.Float64:
+		return v.IsZero()
+	case reflect.Interface, reflect.Pointer:
+		return v.IsNil()
+	default:
+		// Structs (e.g. time.Time), complex, chan, func, etc.: never
+		// "empty" for omitempty purposes — matches encoding/json.
+		return false
+	}
 }
 
 // orEmptySlice converts a typed slice to []any, returning an empty []any{}

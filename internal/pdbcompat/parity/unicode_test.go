@@ -185,3 +185,60 @@ func TestParity_Unicode(t *testing.T) {
 		}
 	})
 }
+
+// TestParity_Unicode_FoldWindow_DIVERGENCE locks the intentional divergence
+// registered in docs/API.md § Known Divergences (fold-window row): upstream
+// folds the query value via unidecode at request time (rest.py:576), so
+// non-ASCII matching works the moment a row exists. This mirror instead
+// matches against a sync-populated `_fold` shadow column — a row whose shadow
+// column has not yet been (re)populated by a sync cycle is unreachable by a
+// folded query until the next sync's OnConflict().UpdateNewValues() rewrites
+// it. The two halves below pin both sides of the window: unsynced rows miss,
+// and the sync-shaped fold-column write closes the window.
+//
+// upstream: peeringdb_server/rest.py:576 (query-time unidecode — no window)
+func TestParity_Unicode_FoldWindow_DIVERGENCE(t *testing.T) {
+	t.Parallel()
+
+	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+
+	// A row in the pre-sync window: canonical name present, _fold
+	// shadow column still empty (the state a schema migration leaves
+	// pre-existing rows in until the first post-deploy sync).
+	name := "Köln Exchange"
+	if _, err := c.Network.Create().
+		SetID(1).SetName(name).SetNameFold("").
+		SetAsn(64501).SetStatus("ok").
+		SetCreated(t0).SetUpdated(t0).
+		Save(ctx); err != nil {
+		t.Fatalf("seed net: %v", err)
+	}
+	srv := newTestServer(t, c)
+
+	// DIVERGENCE: upstream would match immediately; the empty fold
+	// column makes the folded query miss during the window.
+	status, body := httpGet(t, srv, "/api/net?name__contains=koln")
+	if status != http.StatusOK {
+		t.Fatalf("window query status = %d; body=%s", status, string(body))
+	}
+	if ids := extractIDs(t, body); len(ids) != 0 {
+		t.Errorf("fold window: unsynced row matched %v; the registered divergence says it must NOT match until sync populates name_fold", ids)
+	}
+
+	// Simulate the next sync cycle's fold-column write
+	// (upsert chains .SetNameFold(unifold.Fold(name))).
+	if err := c.Network.UpdateOneID(1).
+		SetNameFold(unifold.Fold(name)).
+		Exec(ctx); err != nil {
+		t.Fatalf("simulate sync fold write: %v", err)
+	}
+	status, body = httpGet(t, srv, "/api/net?name__contains=koln")
+	if status != http.StatusOK {
+		t.Fatalf("post-sync query status = %d; body=%s", status, string(body))
+	}
+	if ids := extractIDs(t, body); len(ids) != 1 || ids[0] != 1 {
+		t.Errorf("post-sync fold query: got %v, want [1] (window must close after sync)", ids)
+	}
+}
