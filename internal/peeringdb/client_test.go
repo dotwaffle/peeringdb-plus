@@ -50,7 +50,9 @@ func emptyResponse() []byte {
 func TestFetchAllPagination(t *testing.T) {
 	t.Parallel()
 
-	// Incremental sync (WithSince) paginates: 250 items on page 0, 100 on page 1, empty on page 2.
+	// Incremental sync (WithSince) paginates: 250 items on page 0, 100 on
+	// page 1. The short page terminates the stream — no trailing
+	// empty-page request is issued.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		page := requestCount.Add(1)
@@ -79,9 +81,10 @@ func TestFetchAllPagination(t *testing.T) {
 		t.Errorf("got %d items, want 350", len(result.Data))
 	}
 
-	// Verify we made exactly 3 requests (250, 100, empty).
-	if got := requestCount.Load(); got != 3 {
-		t.Errorf("made %d requests, want 3", got)
+	// Verify we made exactly 2 requests (250, then the short 100-row
+	// page which ends the stream without a trailing empty-page fetch).
+	if got := requestCount.Load(); got != 2 {
+		t.Errorf("made %d requests, want 2", got)
 	}
 }
 
@@ -409,14 +412,17 @@ func TestFetchAllRateLimiter(t *testing.T) {
 	t.Parallel()
 
 	// Incremental sync (WithSince) paginates and is rate-limited.
+	// Non-final pages must be exactly pageSize rows: StreamAll stops on
+	// the first short page (the trailing empty-page request was dropped),
+	// so a short page 1 would end the fetch after a single request.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		n := requestCount.Add(1)
-		if n <= 3 {
-			_, _ = w.Write(makeOrgPage(int(n)*10, 10))
+		if n <= 2 {
+			_, _ = w.Write(makeOrgPage(int(n)*pageSize, pageSize))
 			return
 		}
-		_, _ = w.Write(emptyResponse())
+		_, _ = w.Write(makeOrgPage(3*pageSize, 10))
 	}))
 	defer server.Close()
 
@@ -432,12 +438,12 @@ func TestFetchAllRateLimiter(t *testing.T) {
 		t.Fatalf("FetchAll: %v", err)
 	}
 
-	if len(result.Data) != 30 {
-		t.Errorf("got %d items, want 30", len(result.Data))
+	if want := 2*pageSize + 10; len(result.Data) != want {
+		t.Errorf("got %d items, want %d", len(result.Data), want)
 	}
 
-	// With 4 requests at 10/sec (burst 1), we need at least ~300ms.
-	if elapsed < 200*time.Millisecond {
+	// With 3 requests at 10/sec (burst 1), we need at least ~200ms.
+	if elapsed < 150*time.Millisecond {
 		t.Errorf("completed in %v, expected rate limiting to slow it down", elapsed)
 	}
 }
@@ -479,68 +485,6 @@ func TestFetchAllUnknownFieldsIgnored(t *testing.T) {
 
 	if len(result.Data) != 1 {
 		t.Errorf("got %d items, want 1", len(result.Data))
-	}
-}
-
-func TestFetchTypeDeserialization(t *testing.T) {
-	t.Parallel()
-
-	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		n := requestCount.Add(1)
-		if n == 1 {
-			_, _ = w.Write([]byte(`{
-				"meta": {},
-				"data": [
-					{
-						"id": 1,
-						"name": "Test Org",
-						"aka": "",
-						"name_long": "",
-						"website": "",
-						"social_media": [],
-						"notes": "",
-						"logo": null,
-						"address1": "",
-						"address2": "",
-						"city": "Berlin",
-						"state": "",
-						"country": "DE",
-						"zipcode": "",
-						"suite": "",
-						"floor": "",
-						"latitude": 52.52,
-						"longitude": 13.405,
-						"created": "2020-01-01T00:00:00Z",
-						"updated": "2020-01-01T00:00:00Z",
-						"status": "ok"
-					}
-				]
-			}`))
-			return
-		}
-		_, _ = w.Write(emptyResponse())
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, slog.Default())
-	client.limiter.SetLimit(1000)
-	client.limiter.SetBurst(1000)
-
-	orgs, err := FetchType[Organization](t.Context(), client, TypeOrg)
-	if err != nil {
-		t.Fatalf("FetchType: %v", err)
-	}
-
-	if len(orgs) != 1 {
-		t.Fatalf("got %d orgs, want 1", len(orgs))
-	}
-
-	if orgs[0].City != "Berlin" {
-		t.Errorf("City = %q, want %q", orgs[0].City, "Berlin")
-	}
-	if orgs[0].Country != "DE" {
-		t.Errorf("Country = %q, want %q", orgs[0].Country, "DE")
 	}
 }
 
@@ -1140,32 +1084,6 @@ func TestFetchAll_DecodeError(t *testing.T) {
 	}
 }
 
-func TestFetchType_UnmarshalError(t *testing.T) {
-	t.Parallel()
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		// Valid JSON envelope but the data items can't be unmarshaled to the target type.
-		_, _ = w.Write([]byte(`{"meta": {}, "data": [{"id": "not_a_number"}]}`))
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, slog.Default())
-	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
-
-	// strictItem has ID as int; "not_a_number" string won't unmarshal to int.
-	type strictItem struct {
-		ID int `json:"id"`
-	}
-
-	_, err := FetchType[strictItem](t.Context(), client, "test")
-	if err == nil {
-		t.Fatal("expected unmarshal error")
-	}
-	if !strings.Contains(err.Error(), "unmarshal") {
-		t.Errorf("error = %q, want substring %q", err, "unmarshal")
-	}
-}
-
 func TestSetRateLimit(t *testing.T) {
 	t.Parallel()
 
@@ -1200,25 +1118,6 @@ func TestSetRetryBaseDelay(t *testing.T) {
 	_, err := client.FetchAll(t.Context(), TypeOrg)
 	if err != nil {
 		t.Fatalf("FetchAll after SetRetryBaseDelay: %v", err)
-	}
-}
-
-func TestFetchType_FetchAllError(t *testing.T) {
-	t.Parallel()
-
-	// Server returns non-retryable 404 -- FetchAll returns error.
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, slog.Default())
-	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
-
-	type item struct{ ID int }
-	_, err := FetchType[item](t.Context(), client, "test")
-	if err == nil {
-		t.Fatal("expected error from FetchAll failure")
 	}
 }
 
