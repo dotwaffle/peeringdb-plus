@@ -1190,6 +1190,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // FK backfill catches the orphans that matter on
 // demand, including via recursive grandparent backfill (v1.18.3).
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (bool, error) {
+	fellBack := false
 	// Incremental attempt requires a populated cursor. Zero cursor falls
 	// through to the full-sync path below (bare list, status='ok' only).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
@@ -1197,6 +1198,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 		if incErr == nil {
 			return true, nil
 		}
+		fellBack = true
 		// Fallback: clear partial incremental state and retry as full.
 		typeAttr := metric.WithAttributes(attribute.String("type", name))
 		pdbotel.SyncTypeFallback.Add(ctx, 1, typeAttr)
@@ -1217,6 +1219,43 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
 	if _, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
 		return false, err
+	}
+	// Tombstone-window capture: a bare list contains only status='ok' rows
+	// (upstream filters bare lists per rest.py), and committing the full
+	// snapshot advances the derived cursor (MAX(updated)) past the
+	// pre-cycle window — without a follow-up ?since= fetch, deletes that
+	// landed upstream since the last cycle would be permanently lost:
+	// served live by all surfaces forever and absent from our own ?since=
+	// exports. Stage the window on top of the snapshot; the scratch
+	// INSERT OR REPLACE is keyed on id, so window rows (including
+	// tombstones) win over their bare-list versions.
+	//
+	// In explicit full mode a failure here MUST fail the type: committing
+	// the snapshot without the window would advance the cursor past
+	// deletes we never saw, so the cycle retries instead. On the
+	// incremental-fallback path the window fetch is the same request
+	// shape that just failed — it is retried once best-effort (the
+	// earlier failure may have been transient), but a second failure is
+	// logged and tolerated so the fallback keeps its purpose: a cycle
+	// that lands fresh 'ok' rows despite a broken ?since= endpoint.
+	if !cursor.IsZero() {
+		if _, err := scratch.stageType(ctx, w.pdbClient, name, cursor); err != nil {
+			if !fellBack {
+				return false, fmt.Errorf("stage tombstone window %s since %s: %w",
+					name, cursor.Format(time.RFC3339), err)
+			}
+			stepSpan.AddEvent("tombstone_window.discarded",
+				trace.WithAttributes(
+					attribute.String("type", name),
+					attribute.String("error", err.Error()),
+				),
+			)
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "tombstone window discarded after incremental fallback",
+				slog.String("type", name),
+				slog.Time("since", cursor),
+				slog.Any("error", err),
+			)
+		}
 	}
 	return false, nil
 }

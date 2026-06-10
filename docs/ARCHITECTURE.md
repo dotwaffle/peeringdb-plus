@@ -468,6 +468,18 @@ family and `internal/sync/delete.go` were removed for exactly this reason — ab
 inference mis-classified rows omitted from partial responses and dropped children whose
 upstream-deleted parents had never been synced.)
 
+Full-mode fetches capture the tombstone window. A bare `/api/<type>` list contains only
+`status='ok'` rows (upstream filters bare lists), and committing a full snapshot advances the
+derived `MAX(updated)` cursor past the pre-cycle window — so a full-mode cycle (the daily
+`PDBPLUS_FULL_SYNC_INTERVAL` escalation, or the per-type incremental-fallback) would otherwise
+permanently discard any deletes that landed upstream inside that window. To prevent this,
+full-mode staging over a populated table issues a follow-up `?since=<cursor>` fetch on top of
+the bare snapshot (`internal/sync/worker.go` `stageOneTypeToScratch`); the scratch table's
+`INSERT OR REPLACE` is keyed on id, so window rows — including tombstones — win over their
+bare-list versions. If the window fetch fails, the type's fetch fails and the cycle retries:
+committing the snapshot without the window would advance the cursor past deletes that were
+never seen.
+
 The pdbcompat list path (`internal/pdbcompat/registry_funcs.go`) appends
 `applyStatusMatrix(isCampus, opts.Since != nil)` to the predicate chain for every entity to
 mirror upstream PeeringDB's `rest.py` status × since matrix; the pk-lookup path

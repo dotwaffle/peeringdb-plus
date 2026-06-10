@@ -3332,11 +3332,14 @@ func TestSync_TwoCycle_NoFullRefetch(t *testing.T) {
 // TestSync_FullSyncIntervalForcesBareList locks the escape
 // hatch: when the configured PDBPLUS_FULL_SYNC_INTERVAL has elapsed since
 // the last successful full sync, the next cycle ignores cursors and
-// every per-type request is bare-list (no `?since=` parameter).
+// every per-type fetch starts from the bare list (no `?since=`), followed
+// by a ?since=<cursor> tombstone-window fetch on populated tables (the
+// bare list is status='ok'-only; without the window fetch the forced-full
+// cycle would permanently discard the window's deletes — 2026-06-10 audit).
 //
 // Seed: full success @ T-25h, then cycle a sync with FullSyncInterval=24h
-// → expect bare list. The cycle records as 'full' so a follow-up sync
-// (now with last_full ≈ now) goes back to using ?since=.
+// → expect bare list + window fetch. The cycle records as 'full' so a
+// follow-up sync (now with last_full ≈ now) goes back to using ?since=.
 func TestSync_FullSyncIntervalForcesBareList(t *testing.T) {
 	t.Parallel()
 	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
@@ -3412,9 +3415,19 @@ func TestSync_FullSyncIntervalForcesBareList(t *testing.T) {
 	if len(values) == 0 {
 		t.Fatalf("no first-page org request seen on cycle 1")
 	}
-	cycle1Since := values[len(values)-1]
-	if cycle1Since != "" {
-		t.Errorf("cycle 1 (forced full) should issue bare list; got since=%q", cycle1Since)
+	var sawBare, sawWindow bool
+	for _, v := range values {
+		if v == "" {
+			sawBare = true
+		} else {
+			sawWindow = true
+		}
+	}
+	if !sawBare {
+		t.Errorf("cycle 1 (forced full) should issue a bare list; got since values %v", values)
+	}
+	if !sawWindow {
+		t.Errorf("cycle 1 (forced full over populated table) should issue a ?since=<cursor> tombstone-window fetch; got since values %v", values)
 	}
 
 	// Confirm cycle 1 recorded as 'full' in sync_status.

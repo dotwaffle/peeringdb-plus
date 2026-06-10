@@ -89,9 +89,6 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 			span.RecordError(decErr)
 			return FetchMeta{}, decErr
 		}
-		if pageCount == 0 {
-			break
-		}
 		totalCount += pageCount
 		// Track earliest generated timestamp across pages, matching the
 		// legacy FetchAll aggregation rule.
@@ -99,6 +96,13 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 			if combined.Generated.IsZero() || pageMeta.Generated.Before(combined.Generated) {
 				combined.Generated = pageMeta.Generated
 			}
+		}
+		// A short page means the result set is exhausted — upstream applies
+		// its status filters before limit/skip, so every non-final page is
+		// exactly pageSize rows. Breaking here (rather than only on an
+		// empty page) saves the trailing empty-page request per type.
+		if pageCount < pageSize {
+			break
 		}
 	}
 	span.AddEvent("streamed", trace.WithAttributes(attribute.Int("count", totalCount)))
