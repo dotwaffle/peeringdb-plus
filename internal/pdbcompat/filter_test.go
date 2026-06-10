@@ -653,7 +653,8 @@ func TestParseBoolErrors(t *testing.T) {
 	}
 }
 
-// TestParseTimeErrors tests error paths in parseTime.
+// TestParseTimeErrors tests error paths in parseEpoch (the strict
+// integer parser used by ?since=).
 func TestParseTimeErrors(t *testing.T) {
 	t.Parallel()
 
@@ -670,7 +671,7 @@ func TestParseTimeErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := parseTime(tt.input)
+			_, err := parseEpoch(tt.input)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}

@@ -118,7 +118,7 @@ func ParseSinceParam(params url.Values) (*time.Time, error) {
 	if v == "" {
 		return nil, nil
 	}
-	t, err := parseTime(v)
+	t, err := parseEpoch(v)
 	if err != nil {
 		return nil, err
 	}
