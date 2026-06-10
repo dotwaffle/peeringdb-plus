@@ -174,7 +174,18 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 
 	// Parse pagination.
-	limit, skip := ParsePaginationParams(params)
+	limit, skip, err := ParsePaginationParams(params)
+	if err != nil {
+		// upstream rest.py:490-497 raises a 400 for non-numeric
+		// limit/skip; silently ignoring a typo'd limit would turn a
+		// bounded page request into a full-table dump.
+		WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusBadRequest,
+			Detail:   err.Error(),
+			Instance: r.URL.Path,
+		})
+		return
+	}
 
 	// Parse filters. The emptyResult short-circuit handles ?field__in=
 	// and TypeConfig is threaded so that shadow-column routing can

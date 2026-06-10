@@ -169,6 +169,54 @@ func TestParity_Limit(t *testing.T) {
 		}
 	})
 
+	t.Run("limit_above_1000_honoured_uncapped", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:734-735 — qset[skip:skip+limit] with NO
+		// upper cap. An earlier revision clamped explicit limit to
+		// 1000, silently truncating each page for clients paginating
+		// with larger windows (rows past the clamp were permanently
+		// skipped). The response-memory budget is the cost bound, not
+		// a hidden clamp.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		const seedN = 1100
+		for i := 1; i <= seedN; i++ {
+			if _, err := c.Network.Create().
+				SetID(i).SetName("UncappedLimit").SetNameFold(unifold.Fold("UncappedLimit")).
+				SetAsn(100000 + i).SetStatus("ok").
+				SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed net %d: %v", i, err)
+			}
+		}
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?limit=5000")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		rows := decodeDataArray(t, body)
+		if len(rows) != seedN {
+			t.Errorf("limit=5000 over %d rows: got %d, want all %d (no hidden clamp)",
+				seedN, len(rows), seedN)
+		}
+	})
+
+	t.Run("non_numeric_limit_and_skip_return_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:490-497 raises RestValidationError
+		// ("'limit' needs to be a number") for non-numeric limit/skip.
+		// Silently ignoring a typo'd limit turned a bounded page
+		// request into a full-table dump.
+		c := testutil.SetupClient(t)
+		srv := newTestServer(t, c)
+		for _, q := range []string{"limit=abc", "skip=abc", "limit=-5", "skip=-1"} {
+			status, body := httpGet(t, srv, "/api/net?"+q)
+			if status != http.StatusBadRequest {
+				t.Errorf("?%s: status = %d, want 400; body=%s", q, status, string(body))
+			}
+		}
+	})
+
 	t.Run("explicit_limit_200_honoured", func(t *testing.T) {
 		t.Parallel()
 		// Control: explicit limit < DefaultLimit is honoured exactly.
