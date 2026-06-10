@@ -280,7 +280,9 @@ func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, 
 
 // rampOneSurface drives the ramp loop for a single surface. Returns
 // the ordered set of labelled steps (baseline, inflection,
-// inflection+1, inflection+2) and the inflection reason
+// inflection+1, inflection+2 — or, when no inflection fires before
+// MaxConcurrency, baseline plus every measured step with the final
+// one labelled "max-concurrency") and the inflection reason
 // string, or an error if the baseline step itself fails.
 //
 // The stdout writer is plumbed through to runRampStep for verbose
@@ -309,10 +311,13 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 	}
 	labels := []surfaceLabel{{Label: "baseline", Stats: baseline}}
 
-	// 2. Ramp until inflection or MaxConcurrency.
+	// 2. Ramp until inflection or MaxConcurrency. Every measured step
+	// is retained in `steps` so the no-inflection path can report them
+	// instead of discarding minutes of generated load.
 	prevC := rcfg.Start
 	var inflection stepStats
 	var reason string
+	var steps []stepStats
 	hit := false
 	for prevC < rcfg.MaxConcurrency {
 		nextC := int(math.Ceil(float64(prevC) * rcfg.Growth))
@@ -326,6 +331,7 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 		if stepErr != nil {
 			return labels, "", fmt.Errorf("ramp step C=%d: %w", nextC, stepErr)
 		}
+		steps = append(steps, step)
 		r, isInflection := detectInflection(step, baseline, rcfg)
 		if isInflection {
 			inflection = step
@@ -338,10 +344,15 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 	}
 
 	if !hit {
-		// Reached MaxConcurrency without inflection — record the
-		// final step as inflection-equivalent (still useful info).
-		if len(labels) >= 2 {
-			labels[len(labels)-1].Label = "max-concurrency"
+		// Reached MaxConcurrency without inflection — report every
+		// measured step, labelling the final one "max-concurrency"
+		// (inflection-equivalent: still useful info).
+		for i, step := range steps {
+			label := fmt.Sprintf("C=%d", step.Concurrency)
+			if i == len(steps)-1 {
+				label = "max-concurrency"
+			}
+			labels = append(labels, surfaceLabel{Label: label, Stats: step})
 		}
 		return labels, "no inflection detected within --max-concurrency", nil
 	}

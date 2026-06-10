@@ -155,6 +155,15 @@ func run(argv []string, stdout, stderr *os.File) error {
 		return err
 	}
 
+	// Refuse upstream PeeringDB hosts in EVERY mode, before any HTTP is
+	// issued. soak/endpoints/sync generate strictly more upstream
+	// pressure than ramp (sustained QPS / multi-surface sweeps / 39
+	// sequential GETs), so the defence-in-depth gate that used to guard
+	// only the ramp branch applies to all four.
+	if err := rejectUpstreamBase(cfg.Base); err != nil {
+		return err
+	}
+
 	cfg.AuthToken = os.Getenv("PDBPLUS_LOADTEST_AUTH_TOKEN")
 	cfg.HTTPClient = &http.Client{Timeout: cfg.Timeout}
 
@@ -184,9 +193,6 @@ func run(argv []string, stdout, stderr *os.File) error {
 		ids := discoverIDs(ctx, cfg, stdout)
 		err = runSoak(ctx, cfg, cfg.SoakDuration, cfg.SoakConcurrency, cfg.SoakQPS, registryAll(ids), rep)
 	case "ramp":
-		if rejErr := rejectUpstreamBase(cfg.Base); rejErr != nil {
-			return rejErr
-		}
 		surfaces, perr := parseSurfaces(surfacesCSV)
 		if perr != nil {
 			return perr
@@ -213,8 +219,10 @@ func run(argv []string, stdout, stderr *os.File) error {
 // upstream PeeringDB host (peeringdb.com / www.peeringdb.com /
 // auth.peeringdb.com). Defence-in-depth — the safety banner already
 // warns operators, but a script that bypasses the banner via
-// stdin-piped flag input still hits this gate. localhost,
-// peeringdb-plus.fly.dev, and beta.peeringdb.com are all allowed.
+// stdin-piped flag input still hits this gate. Called from run() right
+// after flag parsing so EVERY mode (endpoints/sync/soak/ramp) is gated.
+// localhost, peeringdb-plus.fly.dev, and beta.peeringdb.com are all
+// allowed.
 func rejectUpstreamBase(base string) error {
 	u, err := url.Parse(base)
 	if err != nil {
@@ -223,7 +231,7 @@ func rejectUpstreamBase(base string) error {
 	host := u.Hostname()
 	switch host {
 	case "peeringdb.com", "www.peeringdb.com", "auth.peeringdb.com":
-		return fmt.Errorf("refusing to ramp against upstream PeeringDB host %q — point --target at peeringdb-plus.fly.dev or your local mirror", host)
+		return fmt.Errorf("refusing to load-test upstream PeeringDB host %q — point --base/--target at peeringdb-plus.fly.dev or your local mirror", host)
 	}
 	return nil
 }
