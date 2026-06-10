@@ -268,28 +268,6 @@ func (c *Client) FetchAll(ctx context.Context, objectType string, opts ...FetchO
 	return FetchResult{Data: data, Meta: meta}, nil
 }
 
-// FetchType streams objects of the given type and unmarshals each directly
-// into the concrete type T. Unknown JSON fields are silently ignored.
-// This is a package-level function because Go does not allow type
-// parameters on methods. Unlike FetchAll, FetchType does not clone the
-// raw bytes — each element is decoded into a fresh T immediately and the
-// underlying decoder buffer can be reused for the next element.
-func FetchType[T any](ctx context.Context, c *Client, objectType string, opts ...FetchOption) ([]T, error) {
-	var items []T
-	handler := func(raw json.RawMessage) error {
-		var v T
-		if err := json.Unmarshal(raw, &v); err != nil {
-			return fmt.Errorf("unmarshal %s item %d: %w", objectType, len(items), err)
-		}
-		items = append(items, v)
-		return nil
-	}
-	if _, err := c.StreamAll(ctx, objectType, handler, opts...); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 // FetchRaw issues a single non-paginated request with the given query
 // params and returns each top-level data element as a json.RawMessage
 // clone. Used by the sync FK-backfill
