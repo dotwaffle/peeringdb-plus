@@ -20,14 +20,16 @@ cold-sync from the primary on boot.
   blocks (`shared-cpu-2x` / 512 MB for `primary`, `shared-cpu-1x` / 256 MB
   for `replica`), a 1 GB auto-extending `litefs_data` volume mounted at
   `/var/lib/litefs` **scoped to `processes = ["primary"]`** (replicas have
-  no volume), and an HTTP health check on `GET /healthz` every 15s.
+  no volume), and an HTTP health check on `GET /readyz` every 15s (the
+  readiness probe, so Fly Proxy routes around hydrating or stale machines;
+  `GET /healthz` remains the always-200 liveness probe).
 - `Dockerfile.prod` — LiteFS-aware production image. Chainguard
   `glibc-dynamic` runtime with `fuse3` and `sqlite` (CLI for incident
   response — see [Incident-response debug shell](#sync-memory-watch))
   installed, copies the LiteFS 0.5 binary from `flyio/litefs:0.5`, copies
   `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point, and
   sets `ENTRYPOINT ["litefs", "mount"]`. The application binary is built
-  with `CGO_ENABLED` unset (pure Go via `modernc.org/sqlite`) and
+  with `CGO_ENABLED=0` (pure Go via `modernc.org/sqlite`) and
   `-trimpath -ldflags="-s -w …"` (the version string is injected via
   `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
 - `Dockerfile` — development image. Chainguard `glibc-dynamic` runtime,
@@ -215,7 +217,7 @@ During a rolling deploy the LiteFS FUSE mount takes a brief moment to
 come up on each new machine, and Fly's proxy may log "not listening"
 warnings while the machine is between `litefs mount` starting and the app
 binary binding to `:8080`. This is expected and self-clears once the mount
-completes. The `grace_period = "30s"` on the `/healthz` check in `fly.toml`
+completes. The `grace_period = "30s"` on the `/readyz` check in `fly.toml`
 is sized to accommodate this.
 
 `fly.toml` sets `strategy = "rolling"` with `max_unavailable = 0.5`, which
@@ -350,11 +352,13 @@ available through the Fly dashboard without additional configuration.
 
 Runtime health:
 
-- `GET /healthz` — liveness probe, used by `fly.toml`'s HTTP service check.
-- `GET /readyz` — readiness probe that turns unready during graceful
-  shutdown drain (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`) **and during
-  LiteFS cold-sync hydration on replica boot** so Fly Proxy
-  routes around the machine until the database is live.
+- `GET /healthz` — liveness probe; always 200 while the process is alive.
+- `GET /readyz` — readiness probe, used by `fly.toml`'s HTTP service check.
+  It turns unready during graceful shutdown drain
+  (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`), **during LiteFS cold-sync
+  hydration on replica boot**, and when the latest successful sync exceeds
+  `PDBPLUS_SYNC_STALE_THRESHOLD`, so Fly Proxy routes around the machine
+  until the database is live and fresh.
 
 ## Capacity probing
 

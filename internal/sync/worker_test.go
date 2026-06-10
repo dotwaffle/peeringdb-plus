@@ -374,10 +374,11 @@ func TestSyncMutex(t *testing.T) {
 	// Manually set running to true.
 	w.running.Store(true)
 
-	// Second call should return nil without error (skipped).
+	// Second call must surface the dropped trigger via the sentinel so
+	// callers (POST /sync handler) can distinguish started vs discarded.
 	err := w.Sync(t.Context(), config.SyncModeFull)
-	if err != nil {
-		t.Errorf("expected nil when sync already running, got: %v", err)
+	if !errors.Is(err, ErrSyncAlreadyRunning) {
+		t.Errorf("expected ErrSyncAlreadyRunning when sync already running, got: %v", err)
 	}
 
 	// Reset and verify it can run after.
@@ -385,6 +386,101 @@ func TestSyncMutex(t *testing.T) {
 	err = w.Sync(t.Context(), config.SyncModeFull)
 	if err != nil {
 		t.Errorf("expected sync to succeed after mutex release: %v", err)
+	}
+}
+
+// TestSyncAlreadyRunning verifies the CAS-guard drop path: the sentinel is
+// returned, SyncWithRetry propagates it WITHOUT entering the retry ladder,
+// and the WARN log records the requested mode (the operator's ?mode=full
+// escape hatch must not vanish without a trace).
+func TestSyncAlreadyRunning(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+
+	client, db := testutil.SetupClientWithDB(t)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	w := NewWorker(newFastPDBClient(t, f.server.URL), client, db, WorkerConfig{}, logger)
+	// Long backoffs that would block the test if SyncWithRetry retried.
+	w.SetRetryBackoffs([]time.Duration{10 * time.Second, 10 * time.Second})
+
+	w.running.Store(true)
+	t.Cleanup(func() { w.running.Store(false) })
+
+	tests := []struct {
+		name string
+		call func(ctx context.Context) error
+	}{
+		{name: "Sync", call: func(ctx context.Context) error { return w.Sync(ctx, config.SyncModeFull) }},
+		{name: "SyncWithRetry", call: func(ctx context.Context) error { return w.SyncWithRetry(ctx, config.SyncModeFull) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			start := time.Now()
+			err := tt.call(t.Context())
+			if !errors.Is(err, ErrSyncAlreadyRunning) {
+				t.Fatalf("expected ErrSyncAlreadyRunning, got: %v", err)
+			}
+			if elapsed := time.Since(start); elapsed > 2*time.Second {
+				t.Errorf("call took %s — already-running drop must not enter the retry ladder", elapsed)
+			}
+		})
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, `"msg":"sync already running, dropping trigger"`) {
+		t.Errorf("expected dropped-trigger WARN; output:\n%s", out)
+	}
+	if !strings.Contains(out, `"requested_mode":"full"`) {
+		t.Errorf("dropped-trigger log must record the requested mode; output:\n%s", out)
+	}
+	if got := f.callCount.Load(); got != 0 {
+		t.Errorf("dropped trigger issued %d upstream requests, want 0", got)
+	}
+}
+
+// TestPrefetchSkippedWhenBackfillDisabled locks the cap=0 escape hatch
+// against telemetry pollution: with backfill disabled, the per-chunk
+// prefetch pre-pass must short-circuit instead of flowing missing parents
+// into fkBackfillBatch, where a zero budget records every id as
+// result="ratelimited" and emits a misleading "fk backfill cap reached"
+// WARN per chunk.
+func TestPrefetchSkippedWhenBackfillDisabled(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	f := newFixture(t)
+	// A net referencing a missing org (id 99) forces the missing-parent
+	// path during the net chunk dispatch.
+	f.responses["net"] = []any{makeNet(1, 99, 65001, "Orphan Net", "ok")}
+
+	client, db := testutil.SetupClientWithDB(t)
+	if err := InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	// WorkerConfig zero value: FKBackfillMaxRequestsPerCycle=0 (disabled).
+	w := NewWorker(newFastPDBClient(t, f.server.URL), client, db, WorkerConfig{}, logger)
+
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	out := buf.String()
+	if strings.Contains(out, "fk backfill cap reached") {
+		t.Errorf("cap=0 must skip the prefetch pre-pass, got cap-reached WARN; output:\n%s", out)
+	}
+	// Functional contract unchanged: the orphan net is still dropped.
+	netCount, err := client.Network.Query().Count(ctx)
+	if err != nil {
+		t.Fatalf("count nets: %v", err)
+	}
+	if netCount != 0 {
+		t.Errorf("netCount = %d, want 0 (cap=0 → drop on FK miss)", netCount)
 	}
 }
 
@@ -818,6 +914,64 @@ func TestSyncWithRetryShortCircuitsOnRateLimit(t *testing.T) {
 	// Exactly one attempt against the server — no retries.
 	if got := orgAttempts.Load(); got != 1 {
 		t.Errorf("org fetched %d times, want 1 (rate limit must short-circuit the retry ladder)", got)
+	}
+}
+
+// TestSyncWithRetryShortCircuitsOnWAFBlock locks the WAF short-circuit
+// contract: when PeeringDB's WAF returns an IP-block 403, SyncWithRetry must
+// abort the 30s/2m/8m retry ladder immediately. Retrying within the same
+// source IP is pointless against an IP-level block, and hammering an
+// actively-blocking upstream risks prolonging the block — the cycle defers
+// to the next scheduled tick, exactly like the 429 path.
+//
+// Mirrors TestSyncWithRetryShortCircuitsOnRateLimit: long backoffs that the
+// test would block on if the short-circuit failed, plus an attempt counter
+// asserting exactly one upstream request.
+func TestSyncWithRetryShortCircuitsOnWAFBlock(t *testing.T) {
+	t.Parallel()
+
+	var orgAttempts atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
+		if parts[0] == "org" {
+			orgAttempts.Add(1)
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`<html><body>Request blocked by AWS WAF</body></html>`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
+	}))
+	t.Cleanup(srv.Close)
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, srv.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+	w := NewWorker(pdbClient, client, db, WorkerConfig{}, slog.Default())
+	// Long backoffs that would block the test if the short-circuit fails.
+	w.SetRetryBackoffs([]time.Duration{10 * time.Second, 10 * time.Second, 10 * time.Second})
+
+	start := time.Now()
+	err := w.SyncWithRetry(t.Context(), config.SyncModeFull)
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("expected error from WAF short-circuit, got nil")
+	}
+	if !peeringdb.IsWAFBlocked(err) {
+		t.Fatalf("expected IsWAFBlocked(err)=true, got %T: %v", err, err)
+	}
+
+	// Strict upper bound: short-circuit must not block on any retry backoff.
+	if elapsed > 2*time.Second {
+		t.Errorf("SyncWithRetry took %s — WAF short-circuit should return immediately (< 2s)", elapsed)
+	}
+
+	// Exactly one attempt against the server — no retries.
+	if got := orgAttempts.Load(); got != 1 {
+		t.Errorf("org fetched %d times, want 1 (WAF block must short-circuit the retry ladder)", got)
 	}
 }
 
@@ -2764,9 +2918,8 @@ func TestSync_MemoryLimitAbort(t *testing.T) {
 	}
 
 	// Verify running mutex released — a second Sync call reaches the
-	// abort path again instead of being silently dropped by the
-	// running CAS guard (which logs "sync already running, skipping"
-	// and returns nil).
+	// abort path again instead of being dropped by the running CAS
+	// guard (which returns ErrSyncAlreadyRunning).
 	err2 := worker.Sync(ctx, config.SyncModeFull)
 	if !errors.Is(err2, ErrSyncMemoryLimitExceeded) {
 		t.Errorf("second Sync after mutex release: expected ErrSyncMemoryLimitExceeded, got %v", err2)
@@ -3332,11 +3485,14 @@ func TestSync_TwoCycle_NoFullRefetch(t *testing.T) {
 // TestSync_FullSyncIntervalForcesBareList locks the escape
 // hatch: when the configured PDBPLUS_FULL_SYNC_INTERVAL has elapsed since
 // the last successful full sync, the next cycle ignores cursors and
-// every per-type request is bare-list (no `?since=` parameter).
+// every per-type fetch starts from the bare list (no `?since=`), followed
+// by a ?since=<cursor> tombstone-window fetch on populated tables (the
+// bare list is status='ok'-only; without the window fetch the forced-full
+// cycle would permanently discard the window's deletes — 2026-06-10 audit).
 //
 // Seed: full success @ T-25h, then cycle a sync with FullSyncInterval=24h
-// → expect bare list. The cycle records as 'full' so a follow-up sync
-// (now with last_full ≈ now) goes back to using ?since=.
+// → expect bare list + window fetch. The cycle records as 'full' so a
+// follow-up sync (now with last_full ≈ now) goes back to using ?since=.
 func TestSync_FullSyncIntervalForcesBareList(t *testing.T) {
 	t.Parallel()
 	t1 := time.Date(2026, 4, 28, 10, 0, 0, 0, time.UTC)
@@ -3412,9 +3568,19 @@ func TestSync_FullSyncIntervalForcesBareList(t *testing.T) {
 	if len(values) == 0 {
 		t.Fatalf("no first-page org request seen on cycle 1")
 	}
-	cycle1Since := values[len(values)-1]
-	if cycle1Since != "" {
-		t.Errorf("cycle 1 (forced full) should issue bare list; got since=%q", cycle1Since)
+	var sawBare, sawWindow bool
+	for _, v := range values {
+		if v == "" {
+			sawBare = true
+		} else {
+			sawWindow = true
+		}
+	}
+	if !sawBare {
+		t.Errorf("cycle 1 (forced full) should issue a bare list; got since values %v", values)
+	}
+	if !sawWindow {
+		t.Errorf("cycle 1 (forced full over populated table) should issue a ?since=<cursor> tombstone-window fetch; got since values %v", values)
 	}
 
 	// Confirm cycle 1 recorded as 'full' in sync_status.

@@ -116,9 +116,13 @@ func applyFieldProjection(data []any, fields []string) []any {
 	return out
 }
 
-// fieldAccessor holds the struct field index for a JSON-tagged field.
+// fieldAccessor holds the struct field index for a JSON-tagged field, plus
+// whether the tag carries the `omitempty` option (consumed by depth.go's
+// toMap, which must mirror json.Marshal's key-omission semantics; itemToMap
+// below ignores it for backwards-compatible projection behaviour).
 type fieldAccessor struct {
-	index int
+	index     int
+	omitEmpty bool
 }
 
 // fieldMaps caches per-type field accessor maps to avoid rebuilding on every call.
@@ -135,11 +139,18 @@ func getFieldMap(t reflect.Type) map[string]fieldAccessor {
 	for i := range t.NumField() {
 		f := t.Field(i)
 		tag := f.Tag.Get("json")
-		name, _, _ := strings.Cut(tag, ",")
+		name, opts, _ := strings.Cut(tag, ",")
 		if name == "" || name == "-" {
 			continue
 		}
-		m[name] = fieldAccessor{index: i}
+		omitEmpty := false
+		for opt := range strings.SplitSeq(opts, ",") {
+			if opt == "omitempty" {
+				omitEmpty = true
+				break
+			}
+		}
+		m[name] = fieldAccessor{index: i, omitEmpty: omitEmpty}
 	}
 	fieldMaps.Store(t, m)
 	return m

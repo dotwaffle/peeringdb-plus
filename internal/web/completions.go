@@ -17,8 +17,12 @@ const bashCompletionScript = `#!/bin/bash
 
 _PDB_HOST="${PDB_HOST:-peeringdb-plus.fly.dev}"
 
+# Join the arguments with "/" so "pdb asn 13335" requests /ui/asn/13335.
+# A naive "$@" would expand to separate words ("/ui/asn" "13335"), making
+# curl treat the bare ID as a second URL.
 pdb() {
-  curl -s "${_PDB_HOST}/ui/$@"
+  local IFS=/
+  curl -s "${_PDB_HOST}/ui/$*"
 }
 
 _pdb_completions() {
@@ -55,16 +59,22 @@ const zshCompletionScript = `#!/bin/zsh
 
 _PDB_HOST="${PDB_HOST:-peeringdb-plus.fly.dev}"
 
+# Join the arguments with "/" so "pdb asn 13335" requests /ui/asn/13335.
+# A naive "$@" would expand to separate words ("/ui/asn" "13335"), making
+# curl treat the bare ID as a second URL.
 pdb() {
-  curl -s "${_PDB_HOST}/ui/$@"
+  local IFS=/
+  curl -s "${_PDB_HOST}/ui/$*"
 }
 
 _pdb() {
   local -a subcmds
   subcmds=(asn ix fac org campus carrier compare)
 
+  # Double quotes so $subcmds expands; single quotes would offer the
+  # literal string ${subcmds} as the only completion.
   _arguments \
-    '1:entity type:(${subcmds})' \
+    "1:entity type:($subcmds)" \
     '2:identifier:->ident'
 
   case $state in

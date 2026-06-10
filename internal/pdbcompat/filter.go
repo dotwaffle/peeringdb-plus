@@ -114,6 +114,32 @@ func coerceToCaseInsensitive(op string) string {
 	return op
 }
 
+// coerceLocationFilterOp mirrors upstream rest.py:562-574, which
+// special-cases bare location filters before generic handling:
+// `address1`, `city`, and `state` become `<field>__icontains`
+// (substring match — ?city=Frankfurt also matches "Frankfurt am
+// Main"), and `country` becomes `__iexact` for 2-char values /
+// `__icontains` for longer ones. Only BARE local filters coerce:
+// upstream's special-case list matches the raw param name, so an
+// explicit operator suffix or a relation prefix (fac__city=…) takes
+// the generic path there too. The 2-char country case needs no
+// rewrite because buildExact's string branch is already
+// case-insensitive (FieldEqualFold == iexact).
+func coerceLocationFilterOp(field, op, value string) string {
+	if op != "" {
+		return op
+	}
+	switch field {
+	case "address1", "city", "state":
+		return "icontains"
+	case "country":
+		if len(value) != 2 {
+			return "icontains"
+		}
+	}
+	return op
+}
+
 // unknownFieldsCtxKey is an unexported context key used by ParseFiltersCtx
 // to record filter params whose fields don't resolve.
 // Retrieved via UnknownFieldsFromCtx at the handler layer for OTel span
@@ -264,6 +290,7 @@ func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Sele
 		return nil, false, false, nil
 	}
 	folded := tc.FoldedFields[field]
+	op = coerceLocationFilterOp(field, op, value)
 	p, err := buildPredicate(field, op, value, ft, folded)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
@@ -577,15 +604,15 @@ func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*s
 		// falls back to buildExact's per-type handling.
 		return buildExact(field, value, ft, folded)
 	case "in":
-		return buildIn(field, value, ft)
+		return buildIn(field, value, ft, folded)
 	case "lt":
-		return buildComparison(field, value, ft, sql.FieldLT)
+		return buildComparison(field, op, value, ft, sql.FieldLT)
 	case "gt":
-		return buildComparison(field, value, ft, sql.FieldGT)
+		return buildComparison(field, op, value, ft, sql.FieldGT)
 	case "lte":
-		return buildComparison(field, value, ft, sql.FieldLTE)
+		return buildComparison(field, op, value, ft, sql.FieldLTE)
 	case "gte":
-		return buildComparison(field, value, ft, sql.FieldGTE)
+		return buildComparison(field, op, value, ft, sql.FieldGTE)
 	default:
 		return nil, fmt.Errorf("unsupported operator %q", op)
 	}
@@ -614,11 +641,21 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 		}
 		return sql.FieldEQ(field, v), nil
 	case FieldTime:
-		v, err := parseTime(value)
+		t, dateOnly, err := parseTimeValue(value)
 		if err != nil {
 			return nil, fmt.Errorf("convert %q to time: %w", value, err)
 		}
-		return sql.FieldEQ(field, v), nil
+		if dateOnly {
+			// upstream rest.py:657-658 turns bare datetime equality
+			// into __startswith — ?created=2024-01-01 matches the
+			// whole day, not the instant of midnight.
+			end := t.Add(24 * time.Hour)
+			return func(s *sql.Selector) {
+				sql.FieldGTE(field, t)(s)
+				sql.FieldLT(field, end)(s)
+			}, nil
+		}
+		return sql.FieldEQ(field, t), nil
 	case FieldFloat:
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
@@ -665,7 +702,7 @@ func buildStartsWith(field, value string, ft FieldType, folded bool) (func(*sql.
 //
 // An empty value (?asn__in=) returns errEmptyIn which ParseFilters
 // translates to QueryOptions.EmptyResult=true.
-func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
+func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
 	if value == "" {
 		return nil, errEmptyIn
 	}
@@ -686,9 +723,21 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 	var marshalErr error
 	switch ft {
 	case FieldString:
+		// Upstream folds ALL filter values with unidecode (rest.py:576)
+		// and matches under MySQL's case-insensitive collation, so
+		// string __in is case- and diacritic-insensitive there. SQLite
+		// resolves a bare IN with the column's BINARY collation, so
+		// lower-case both sides here (and route folded fields through
+		// the <field>_fold shadow column), keeping __in consistent
+		// with the exact/contains/startswith operators on the same
+		// field.
 		trimmed := make([]string, len(parts))
 		for i, p := range parts {
-			trimmed[i] = strings.TrimSpace(p)
+			v := strings.TrimSpace(p)
+			if folded {
+				v = unifold.Fold(v)
+			}
+			trimmed[i] = strings.ToLower(v)
 		}
 		jsonArr, marshalErr = json.Marshal(trimmed)
 	case FieldInt:
@@ -726,7 +775,7 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 	case FieldTime:
 		times := make([]time.Time, 0, len(parts))
 		for _, p := range parts {
-			v, parseErr := parseTime(strings.TrimSpace(p))
+			v, _, parseErr := parseTimeValue(strings.TrimSpace(p))
 			if parseErr != nil {
 				return nil, fmt.Errorf("convert %q to time for IN: %w", p, parseErr)
 			}
@@ -740,18 +789,43 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 		return nil, fmt.Errorf("marshal IN array: %w", marshalErr)
 	}
 	jsonStr := string(jsonArr)
+	col := field
+	if ft == FieldString && folded {
+		col = field + "_fold"
+	}
+	lowered := ft == FieldString
 	return func(s *sql.Selector) {
-		// s.C(field) quotes the column identifier via the ent builder —
+		// s.C(col) quotes the column identifier via the ent builder —
 		// the column name itself is already validated against tc.Fields
 		// by ParseFilters, so no injection surface. The JSON payload
 		// binds as a single parameter via ExprP (SQL-injection mitigation).
-		s.Where(sql.ExprP(s.C(field)+" IN (SELECT value FROM json_each(?))", jsonStr))
+		// String lists were lower-cased at build time, so the column is
+		// wrapped in LOWER() to match; int lists compare numerically.
+		expr := s.C(col)
+		if lowered {
+			expr = "LOWER(" + expr + ")"
+		}
+		s.Where(sql.ExprP(expr+" IN (SELECT value FROM json_each(?))", jsonStr))
 	}, nil
 }
 
 // buildComparison builds a comparison predicate (lt, gt, lte, gte) with value
 // type conversion.
-func buildComparison(field, value string, ft FieldType, cmp func(string, any) func(*sql.Selector)) (func(*sql.Selector), error) {
+func buildComparison(field, op, value string, ft FieldType, cmp func(string, any) func(*sql.Selector)) (func(*sql.Selector), error) {
+	if ft == FieldTime {
+		t, dateOnly, err := parseTimeValue(value)
+		if err != nil {
+			return nil, err
+		}
+		if dateOnly && (op == "gt" || op == "lte") {
+			// upstream rest.py:621-623: a 10-char date in gt/lte gets
+			// its time forced to end-of-day (23:59:59.999), so
+			// updated__gt=2024-01-01 means "after that whole day"
+			// and updated__lte=2024-01-01 includes the whole day.
+			t = t.Add(24*time.Hour - time.Millisecond)
+		}
+		return cmp(field, t), nil
+	}
 	v, err := convertValue(value, ft)
 	if err != nil {
 		return nil, err
@@ -770,7 +844,8 @@ func convertValue(s string, ft FieldType) (any, error) {
 	case FieldBool:
 		return parseBool(s)
 	case FieldTime:
-		return parseTime(s)
+		t, _, err := parseTimeValue(s)
+		return t, err
 	case FieldFloat:
 		return strconv.ParseFloat(s, 64)
 	default:
@@ -791,11 +866,35 @@ func parseBool(s string) (bool, error) {
 	}
 }
 
-// parseTime converts a Unix timestamp string to time.Time.
-func parseTime(s string) (time.Time, error) {
+// parseEpoch converts a strict integer Unix-seconds string. ?since= uses
+// this directly: upstream coerces since with int() (rest.py:696), so ISO
+// strings must keep failing there.
+func parseEpoch(s string) (time.Time, error) {
 	epoch, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("invalid unix timestamp %q: %w", s, err)
 	}
 	return time.Unix(epoch, 0), nil
+}
+
+// parseTimeValue converts a time-filter value. Accepts Unix epoch seconds
+// plus the ISO 8601 layouts DRF's DateTimeField().to_python accepts
+// upstream (rest.py:625-627): date-only, datetime with 'T' or space
+// separator, and RFC 3339 with offset. dateOnly reports a bare 10-char
+// date, which carries day-window semantics upstream (rest.py:619-658).
+// Layouts without an explicit offset are interpreted as UTC, matching
+// the stored timestamps.
+func parseTimeValue(s string) (t time.Time, dateOnly bool, err error) {
+	if epoch, perr := strconv.ParseInt(s, 10, 64); perr == nil {
+		return time.Unix(epoch, 0), false, nil
+	}
+	if t, perr := time.ParseInLocation(time.DateOnly, s, time.UTC); perr == nil {
+		return t, true, nil
+	}
+	for _, layout := range []string{time.RFC3339, "2006-01-02T15:04:05", "2006-01-02 15:04:05"} {
+		if t, perr := time.ParseInLocation(layout, s, time.UTC); perr == nil {
+			return t, false, nil
+		}
+	}
+	return time.Time{}, false, fmt.Errorf("invalid time value %q (want unix epoch seconds or ISO 8601)", s)
 }

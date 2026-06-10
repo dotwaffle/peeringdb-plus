@@ -131,6 +131,42 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 		assertIxlanListShape(t, env.Content, fix.gatedIxLanID, fix.publicIxLanID)
 	})
 
+	// Eager-loaded edges on sibling entrest endpoints — regression for the
+	// 2026-06-10 audit finding: entrest unconditionally eager-loads the
+	// ix_lans edge on internet-exchange responses, so redaction must reach
+	// ixlan objects embedded under edges.ix_lans, not just /rest/v1/ix-lans*.
+	t.Run("entrest/embedded/ix-detail", func(t *testing.T) {
+		body, status := mustGet(t, fix.server.URL+"/rest/v1/internet-exchanges/"+strconv.Itoa(e2eIxID))
+		if status != http.StatusOK {
+			t.Fatalf("GET /rest/v1/internet-exchanges/%d: status=%d; body=%s", e2eIxID, status, body)
+		}
+		var obj map[string]any
+		if err := json.Unmarshal(body, &obj); err != nil {
+			t.Fatalf("decode ix detail: %v\nbody=%s", err, body)
+		}
+		assertIxlanListShape(t, extractEmbeddedIxLans(t, obj), fix.gatedIxLanID, fix.publicIxLanID)
+	})
+
+	t.Run("entrest/embedded/ix-list", func(t *testing.T) {
+		body, status := mustGet(t, fix.server.URL+"/rest/v1/internet-exchanges")
+		if status != http.StatusOK {
+			t.Fatalf("GET /rest/v1/internet-exchanges: status=%d; body=%s", status, body)
+		}
+		var env struct {
+			Content []map[string]any `json:"content"`
+		}
+		if err := json.Unmarshal(body, &env); err != nil {
+			t.Fatalf("decode /rest/v1/internet-exchanges: %v\nbody=%s", err, body)
+		}
+		for _, ix := range env.Content {
+			if id, ok := ix["id"].(float64); ok && int(id) == e2eIxID {
+				assertIxlanListShape(t, extractEmbeddedIxLans(t, ix), fix.gatedIxLanID, fix.publicIxLanID)
+				return
+			}
+		}
+		t.Fatalf("seeded IX id=%d not found in list; body=%s", e2eIxID, body)
+	})
+
 	// -------------------------------------------------------------------------
 	// Surface 3: ConnectRPC IxLanService
 	// -------------------------------------------------------------------------
@@ -370,6 +406,29 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 		assertStringValue(t, obj, "ixf_ixp_member_list_url", e2ePublicIxlanURL)
 	})
 
+	// Users tier must still see the gated URL inside eager-loaded edges —
+	// guards the recursive redaction walker against over-redacting.
+	t.Run("entrest/embedded/ix-detail", func(t *testing.T) {
+		body, status := mustGet(t, fix.server.URL+"/rest/v1/internet-exchanges/"+strconv.Itoa(e2eIxID))
+		if status != http.StatusOK {
+			t.Fatalf("GET /rest/v1/internet-exchanges/%d: status=%d; body=%s", e2eIxID, status, body)
+		}
+		var obj map[string]any
+		if err := json.Unmarshal(body, &obj); err != nil {
+			t.Fatalf("decode ix detail: %v\nbody=%s", err, body)
+		}
+		var gatedSeen bool
+		for _, row := range extractEmbeddedIxLans(t, obj) {
+			if id, ok := row["id"].(float64); ok && int(id) == fix.gatedIxLanID {
+				gatedSeen = true
+				assertStringValue(t, row, "ixf_ixp_member_list_url", e2eGatedIxlanURL)
+			}
+		}
+		if !gatedSeen {
+			t.Fatalf("gated ixlan id=%d not embedded in IX detail; body=%s", fix.gatedIxLanID, body)
+		}
+	})
+
 	t.Run("connectrpc/get/gated", func(t *testing.T) {
 		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
 		resp, err := cl.GetIxLan(t.Context(), &pbv1.GetIxLanRequest{Id: int64(fix.gatedIxLanID)})
@@ -586,6 +645,27 @@ func assertIxlanListShape(t *testing.T, rows []map[string]any, gatedID, publicID
 		t.Fatalf("expected both rows in list: gated(id=%d)=%v public(id=%d)=%v",
 			gatedID, gatedSeen, publicID, publicSeen)
 	}
+}
+
+// extractEmbeddedIxLans pulls the eager-loaded edges.ix_lans array out of
+// an entrest internet-exchange JSON object.
+func extractEmbeddedIxLans(t *testing.T, obj map[string]any) []map[string]any {
+	t.Helper()
+	edges, ok := obj["edges"].(map[string]any)
+	if !ok {
+		t.Fatalf("internet-exchange object has no edges map: %+v", obj)
+	}
+	raw, ok := edges["ix_lans"].([]any)
+	if !ok || len(raw) == 0 {
+		t.Fatalf("internet-exchange edges has no eager-loaded ix_lans: %+v", edges)
+	}
+	rows := make([]map[string]any, 0, len(raw))
+	for _, entry := range raw {
+		if m, ok := entry.(map[string]any); ok {
+			rows = append(rows, m)
+		}
+	}
+	return rows
 }
 
 // Compile-time reference to io so "unused import" lint doesn't trip if

@@ -14,7 +14,7 @@ import (
 // Returns the fully populated CarrierDetail or an error (including ent.IsNotFound).
 func (h *Handler) queryCarrier(ctx context.Context, id int) (templates.CarrierDetail, error) {
 	cr, err := h.client.Carrier.Query().
-		Where(carrier.ID(id)).
+		Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
 		WithOrganization().
 		Only(ctx)
 	if err != nil {
@@ -38,7 +38,7 @@ func (h *Handler) queryCarrier(ctx context.Context, id int) (templates.CarrierDe
 
 	// Eager-load carrier facilities.
 	carrierFacItems, err := h.client.CarrierFacility.Query().
-		Where(carrierfacility.HasCarrierWith(carrier.ID(id))).
+		Where(carrierfacility.HasCarrierWith(carrier.ID(id)), carrierfacility.StatusIn("ok", "pending")).
 		Order(carrierfacility.ByName()).
 		All(ctx)
 	if err == nil {

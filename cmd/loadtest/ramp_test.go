@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -389,6 +390,51 @@ func TestRamp_Inflection_TriggersOnErrorRate(t *testing.T) {
 	}
 }
 
+// TestRamp_NoInflection_ReportsAllSteps drives a ramp against a
+// healthy server that never degrades (no synthetic latency growth, no
+// errors, triggers raised out of reach) and asserts every measured
+// step appears in the markdown — the final one labelled
+// "max-concurrency" — rather than only the baseline row. Regression
+// guard for the bug where the no-inflection path discarded all
+// intermediate step measurements.
+func TestRamp_NoInflection_ReportsAllSteps(t *testing.T) {
+	t.Parallel()
+
+	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0)
+	cfg := Config{Base: rts.srv.URL, HTTPClient: rts.srv.Client(), Timeout: 5 * time.Second}
+	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	// Make every trigger unreachable so the ramp runs to MaxConcurrency.
+	rcfg.P95Multiplier = 1000.0
+	rcfg.P99Absolute = 10 * time.Second
+	rcfg.ErrorRateThreshold = 1.0
+	rcfg.MaxConcurrency = 8 // Start=1, Growth=2 -> steps at C=2, 4, 8
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var stdout bytes.Buffer
+	if err := runRamp(ctx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout); err != nil {
+		t.Fatalf("runRamp: %v", err)
+	}
+
+	out := stdout.String()
+	if !strings.Contains(out, "| baseline") {
+		t.Errorf("output missing baseline row\n%s", out)
+	}
+	// Intermediate steps must be reported, not discarded.
+	for _, label := range []string{"| C=2", "| C=4"} {
+		if !strings.Contains(out, label) {
+			t.Errorf("output missing intermediate step row %q\n%s", label, out)
+		}
+	}
+	if !strings.Contains(out, "| max-concurrency") {
+		t.Errorf("output missing max-concurrency row for the final step\n%s", out)
+	}
+	if !strings.Contains(out, "no inflection detected") {
+		t.Errorf("output missing no-inflection reason\n%s", out)
+	}
+}
+
 // TestRamp_HoldDuration_PastInflection asserts that after inflection
 // the ramp emits at least a hold step and one inflection+1 step
 // (subject to MaxConcurrency).
@@ -592,6 +638,31 @@ func TestRejectUpstreamBase(t *testing.T) {
 			}
 			if !tc.wantErr && err != nil {
 				t.Errorf("rejectUpstreamBase(%q) = %v, want nil", tc.base, err)
+			}
+		})
+	}
+}
+
+// TestRun_AllModesRefuseUpstreamBase asserts the upstream-host gate
+// fires for EVERY subcommand, not just ramp — soak/endpoints/sync
+// generate strictly more traffic than ramp's baseline step and were
+// previously unguarded.
+func TestRun_AllModesRefuseUpstreamBase(t *testing.T) {
+	t.Parallel()
+	devnull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatalf("open %s: %v", os.DevNull, err)
+	}
+	t.Cleanup(func() { _ = devnull.Close() })
+
+	for _, mode := range []string{"endpoints", "sync", "soak", "ramp"} {
+		t.Run(mode, func(t *testing.T) {
+			err := run([]string{mode, "--base", "https://www.peeringdb.com"}, devnull, devnull)
+			if err == nil {
+				t.Fatalf("run(%s --base upstream) = nil, want refusal error", mode)
+			}
+			if !strings.Contains(err.Error(), "refusing to load-test upstream") {
+				t.Errorf("run(%s) error = %q, want upstream refusal", mode, err)
 			}
 		})
 	}

@@ -319,7 +319,7 @@ func (h *Handler) handleFragment(w http.ResponseWriter, r *http.Request, path st
 // handleNetIXLansFragment returns an HTML fragment listing a network's IX presences.
 func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	items, err := h.client.NetworkIxLan.Query().
-		Where(networkixlan.HasNetworkWith(network.ID(netID))).
+		Where(networkixlan.HasNetworkWith(network.ID(netID)), networkixlan.StatusIn("ok", "pending")).
 		Order(networkixlan.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -353,7 +353,7 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 // handleNetFacilitiesFragment returns an HTML fragment listing a network's facility presences.
 func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	items, err := h.client.NetworkFacility.Query().
-		Where(networkfacility.HasNetworkWith(network.ID(netID))).
+		Where(networkfacility.HasNetworkWith(network.ID(netID)), networkfacility.StatusIn("ok", "pending")).
 		Order(networkfacility.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -384,7 +384,7 @@ func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Req
 // handleNetContactsFragment returns an HTML fragment listing a network's contacts.
 func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	items, err := h.client.Poc.Query().
-		Where(poc.HasNetworkWith(network.ID(netID))).
+		Where(poc.HasNetworkWith(network.ID(netID)), poc.StatusIn("ok", "pending")).
 		Order(poc.ByRole(), poc.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -413,8 +413,9 @@ func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Reque
 // Uses the IxLan -> NetworkIxLan path (do NOT go directly from InternetExchange).
 func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Request, ixID int) {
 	items, err := h.client.IxLan.Query().
-		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID))).
+		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID)), ixlan.StatusIn("ok", "pending")).
 		QueryNetworkIxLans().
+		Where(networkixlan.StatusIn("ok", "pending")).
 		WithNetwork().
 		Order(networkixlan.ByAsn()).
 		All(r.Context())
@@ -453,7 +454,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 // handleIXFacilitiesFragment returns an HTML fragment listing an IXP's facilities.
 func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Request, ixID int) {
 	items, err := h.client.IxFacility.Query().
-		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(ixID))).
+		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(ixID)), ixfacility.StatusIn("ok", "pending")).
 		Order(ixfacility.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -484,8 +485,9 @@ func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Requ
 // Uses the IxLan -> IxPrefix path (do NOT go directly from InternetExchange).
 func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Request, ixID int) {
 	items, err := h.client.IxLan.Query().
-		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID))).
+		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID)), ixlan.StatusIn("ok", "pending")).
 		QueryIxPrefixes().
+		Where(ixprefix.StatusIn("ok", "pending")).
 		Order(ixprefix.ByPrefix()).
 		All(r.Context())
 	if err != nil {
@@ -511,7 +513,7 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 // handleFacNetworksFragment returns an HTML fragment listing a facility's networks.
 func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.NetworkFacility.Query().
-		Where(networkfacility.HasFacilityWith(facility.ID(facID))).
+		Where(networkfacility.HasFacilityWith(facility.ID(facID)), networkfacility.StatusIn("ok", "pending")).
 		WithNetwork().
 		Order(networkfacility.ByNetworkField(network.FieldName)).
 		All(r.Context())
@@ -543,7 +545,7 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 // handleFacIXPsFragment returns an HTML fragment listing a facility's IXPs.
 func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.IxFacility.Query().
-		Where(ixfacility.HasFacilityWith(facility.ID(facID))).
+		Where(ixfacility.HasFacilityWith(facility.ID(facID)), ixfacility.StatusIn("ok", "pending")).
 		WithInternetExchange().
 		Order(ixfacility.ByInternetExchangeField(internetexchange.FieldName)).
 		All(r.Context())
@@ -572,7 +574,7 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 // handleFacCarriersFragment returns an HTML fragment listing a facility's carriers.
 func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Request, facID int) {
 	items, err := h.client.CarrierFacility.Query().
-		Where(carrierfacility.HasFacilityWith(facility.ID(facID))).
+		Where(carrierfacility.HasFacilityWith(facility.ID(facID)), carrierfacility.StatusIn("ok", "pending")).
 		WithCarrier().
 		Order(carrierfacility.ByCarrierField(carrier.FieldName)).
 		All(r.Context())
@@ -601,7 +603,7 @@ func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Reque
 // handleOrgNetworksFragment returns an HTML fragment listing an org's networks.
 func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Network.Query().
-		Where(network.HasOrganizationWith(organization.ID(orgID))).
+		Where(network.HasOrganizationWith(organization.ID(orgID)), network.StatusIn("ok", "pending")).
 		Order(network.ByAsn()).
 		All(r.Context())
 	if err != nil {
@@ -626,7 +628,7 @@ func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Reque
 // handleOrgIXPsFragment returns an HTML fragment listing an org's IXPs.
 func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.InternetExchange.Query().
-		Where(internetexchange.HasOrganizationWith(organization.ID(orgID))).
+		Where(internetexchange.HasOrganizationWith(organization.ID(orgID)), internetexchange.StatusIn("ok", "pending")).
 		Order(internetexchange.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -651,7 +653,7 @@ func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, 
 // handleOrgFacilitiesFragment returns an HTML fragment listing an org's facilities.
 func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Facility.Query().
-		Where(facility.HasOrganizationWith(organization.ID(orgID))).
+		Where(facility.HasOrganizationWith(organization.ID(orgID)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -678,7 +680,7 @@ func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Req
 // handleOrgCampusesFragment returns an HTML fragment listing an org's campuses.
 func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Campus.Query().
-		Where(campus.HasOrganizationWith(organization.ID(orgID))).
+		Where(campus.HasOrganizationWith(organization.ID(orgID)), campus.StatusIn("ok", "pending")).
 		Order(campus.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -703,7 +705,7 @@ func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Reque
 // handleOrgCarriersFragment returns an HTML fragment listing an org's carriers.
 func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Request, orgID int) {
 	items, err := h.client.Carrier.Query().
-		Where(carrier.HasOrganizationWith(organization.ID(orgID))).
+		Where(carrier.HasOrganizationWith(organization.ID(orgID)), carrier.StatusIn("ok", "pending")).
 		Order(carrier.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -728,7 +730,7 @@ func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Reque
 // handleCampusFacilitiesFragment returns an HTML fragment listing a campus's facilities.
 func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.Request, campusID int) {
 	items, err := h.client.Facility.Query().
-		Where(facility.HasCampusWith(campus.ID(campusID))).
+		Where(facility.HasCampusWith(campus.ID(campusID)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
 		All(r.Context())
 	if err != nil {
@@ -755,7 +757,7 @@ func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.
 // handleCarrierFacilitiesFragment returns an HTML fragment listing a carrier's facilities.
 func (h *Handler) handleCarrierFacilitiesFragment(w http.ResponseWriter, r *http.Request, carrierID int) {
 	items, err := h.client.CarrierFacility.Query().
-		Where(carrierfacility.HasCarrierWith(carrier.ID(carrierID))).
+		Where(carrierfacility.HasCarrierWith(carrier.ID(carrierID)), carrierfacility.StatusIn("ok", "pending")).
 		Order(carrierfacility.ByName()).
 		All(r.Context())
 	if err != nil {

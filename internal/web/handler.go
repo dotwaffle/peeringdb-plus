@@ -288,8 +288,7 @@ func searchTypeViewData(res SearchTypeResult) []templates.SearchGroup {
 }
 
 func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
-	page := PageContent{Title: "Not Found", Content: templates.NotFoundPage()}
+	page := PageContent{Title: "Not Found", Content: templates.NotFoundPage(), Status: http.StatusNotFound}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
@@ -297,8 +296,7 @@ func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
 
 // handleServerError renders a styled 500 error page.
 func (h *Handler) handleServerError(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusInternalServerError)
-	page := PageContent{Title: "Server Error", Content: templates.ServerErrorPage()}
+	page := PageContent{Title: "Server Error", Content: templates.ServerErrorPage(), Status: http.StatusInternalServerError}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}

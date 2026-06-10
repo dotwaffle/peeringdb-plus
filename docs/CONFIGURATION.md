@@ -42,7 +42,7 @@ SDK package and are documented in their own sections below.
 | `PDBPLUS_PEERINGDB_RPS` | No | `2.0` | float (req/sec) | Sustained requests-per-second cap to the upstream PeeringDB API. Burst is hardcoded at 1 in the client. Authenticated requests (`PDBPLUS_PEERINGDB_API_KEY` set) override this to 60 req/min — the upstream auth quota is fixed and cannot be exceeded by operator preference. Values ≤ 0 are rejected at startup. The transport (`internal/peeringdb/transport.go`) records per-request wait time on the `pdbplus.peeringdb.rate_limit_wait_ms` histogram for dashboard observability. |
 | `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` | No | `20` | non-negative integer | Maximum **underlying HTTP requests** issued by FK-backfill per sync cycle. Current semantic: the previous cap counted rows, which became a weak circuit breaker once batching collapsed N rows into 1 request via `?id__in=`. This now bounds the actual upstream surface — at 1 req/sec authenticated, 20 requests ≈ 20s of upstream pressure per cycle. With internal `FetchByIDsBatchSize=100`, each request can carry up to 100 IDs, so 20 requests cover up to 2,000 missing-parent rows per cycle. When `fkCheckParent` finds a missing parent (cache miss + DB miss), the worker attempts one batched fetch via `?since=1&id__in=<csv>` to recover rows before declaring children orphaned (the `since=1` path returns both `ok` and `deleted` rows per upstream `rest.py:694-727`). A per-cycle dedup cache prevents repeat fetches for the same `(type, id)` pair; recursive grandparent backfill is enabled so a missing parent's own missing parents are chained-in before the parent upserts. When the cap is reached, additional missing parents fall through to drop-on-miss with the `pdbplus.sync.fk_backfill{result="ratelimited"}` counter incremented. Set to `0` to disable backfill entirely (operator escape-hatch). |
 | `PDBPLUS_FK_BACKFILL_TIMEOUT` | No | `5m` | Go duration | Per-cycle wall-clock budget for FK-backfill HTTP activity. Backfill calls happen inside the sync transaction; without a deadline a cascade of slow / rate-limited backfills could hold the tx open for tens of minutes, stalling LiteFS replication. After the deadline, `fkBackfillParent` short-circuits to drop-on-miss with the `pdbplus.sync.fk_backfill{result="deadline_exceeded"}` counter incremented; the rest of the sync (bulk fetches + upserts) commits cleanly and the next cycle picks up where we left off. Set to `0` (or any negative duration) to disable the deadline (only the cap applies). |
-| `PDBPLUS_FULL_SYNC_INTERVAL` | No | `24h` | Go duration | Interval after which a sync cycle forces a full bare-list refetch of every type, regardless of the per-table `MAX(updated)` cursor. Defends against pathological upstream cross-row inconsistency in any `?since=`-based design (a response with row R' (`updated=M`) present but earlier row R (`updated < M`) missing → R is permanently missed without periodic full refetch). The forced cycle is recorded in `sync_status.mode='full'`; `GetLastSuccessfulFullSyncTime` reads that column to decide whether the next cycle must escalate. Single sync_status query per cycle (NOT per-type). Set to `0` to disable the escape hatch — only the per-cycle `MAX(updated)` cursor applies. |
+| `PDBPLUS_FULL_SYNC_INTERVAL` | No | `24h` | Go duration | Interval after which a sync cycle forces a full bare-list refetch of every type, regardless of the per-table `MAX(updated)` cursor. Defends against pathological upstream cross-row inconsistency in any `?since=`-based design (a response with row R' (`updated=M`) present but earlier row R (`updated < M`) missing → R is permanently missed without periodic full refetch). The forced cycle is recorded in `sync_status.mode='full'`; `GetLastSuccessfulFullSyncTime` reads that column to decide whether the next cycle must escalate. Single sync_status query per cycle (NOT per-type). Forced-full cycles over a populated table also fetch `?since=<cursor>` per type on top of the bare snapshot so the window's tombstones are captured (bare lists are `status='ok'`-only). Set to `0` to disable the escape hatch — only the per-cycle `MAX(updated)` cursor applies. |
 
 #### WAF behavior
 
@@ -211,7 +211,7 @@ Two deployment-adjacent files exist in the repository:
   `PDBPLUS_LISTEN_ADDR` (`:8080`), `PDBPLUS_DB_PATH`
   (`/litefs/peeringdb-plus.db`), and `PRIMARY_REGION` (`lhr`), along with
   VM sizing (`shared-cpu-2x`, `512mb`), the rolling deploy strategy
-  (`max_unavailable = 0.5`), and the `/healthz` HTTP check.
+  (`max_unavailable = 0.5`), and the `/readyz` HTTP check.
 - `litefs.yml` — LiteFS FUSE and lease configuration. Uses `${FLY_REGION}`,
   `${PRIMARY_REGION}`, `${FLY_APP_NAME}`, `${HOSTNAME}`, and
   `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
@@ -321,10 +321,13 @@ operator controls that reduce blast radius.
   your identity to upstream abuse handling.
   - Mitigations: inject via secrets manager, rotate on suspicion, avoid logging
     key material, scope access to deploy pipeline only.
-- **Misconfigured public sync trigger:** empty `PDBPLUS_SYNC_TOKEN` leaves
-  `/sync` callable without auth.
-  - Mitigations: set `PDBPLUS_SYNC_TOKEN` in all persistent environments and
-    alert on startup warning logs.
+- **Unset sync token (fail-closed):** an empty `PDBPLUS_SYNC_TOKEN` does NOT
+  leave `/sync` open — the handler rejects every request with 401, so
+  on-demand sync is disabled (the scheduled sync worker is unaffected). The
+  operational risk is availability, not exposure: operators cannot trigger a
+  recovery sync until a token is set.
+  - Mitigations: set `PDBPLUS_SYNC_TOKEN` in all persistent environments where
+    on-demand sync is wanted; the startup log notes the disabled state.
 
 Operationally, start with defaults and tighten one variable at a time while
 watching `pdbplus_sync_*` and HTTP error metrics.

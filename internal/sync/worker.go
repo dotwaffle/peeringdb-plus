@@ -56,6 +56,14 @@ import (
 // the sentinel via errors.Is.
 var ErrSyncMemoryLimitExceeded = errors.New("sync aborted: memory limit exceeded")
 
+// ErrSyncAlreadyRunning is returned by Sync (and propagated unchanged by
+// SyncWithRetry) when a cycle is already in flight and the trigger is
+// dropped by the running-CAS guard. There is no queueing or pending-mode
+// coalescing: the requested mode is lost. Callers that need to surface the
+// drop (e.g. the POST /sync handler answering 409 Conflict instead of 202)
+// detect it via errors.Is.
+var ErrSyncAlreadyRunning = errors.New("sync already running, trigger dropped")
+
 // defaultRetryBackoffs defines the backoff durations for sync-level retries.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
@@ -124,8 +132,11 @@ type WorkerConfig struct {
 	// of slow / rate-limited backfills could hold the tx open for tens
 	// of minutes, stalling LiteFS replication. After the deadline,
 	// fkBackfillParent short-circuits to drop-on-miss so the rest of
-	// the sync (bulk fetches + upserts) can commit and the next cycle
-	// picks up where we left off. Default 5 minutes
+	// the sync (bulk fetches + upserts) can commit. Dropped rows are
+	// recovered by the next FULL-mode cycle (which re-fetches every
+	// row, stages the tombstone window, and bypasses the upsert skip
+	// gate) — NOT by the next incremental, whose MAX(updated) cursor
+	// typically advances past the dropped rows. Default 5 minutes
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
 	// deadline (only the cap applies).
 	FKBackfillTimeout time.Duration
@@ -206,7 +217,8 @@ type Worker struct {
 	// fkBackfillTimeout. After the deadline, fkBackfillParent short-
 	// circuits to drop-on-miss so the rest of the sync (which is
 	// independent of backfill — bulk fetches and upserts continue) can
-	// commit and the next cycle picks up where we left off. v1.18.3:
+	// commit; dropped rows are recovered by the next full-mode
+	// reconcile cycle, not the next incremental. v1.18.3:
 	// added because backfill HTTP calls happen inside the sync tx;
 	// without a deadline, a cascade of slow backfills could hold the tx
 	// open indefinitely and stall LiteFS replication.
@@ -601,8 +613,12 @@ func forceTraceFromContext(ctx context.Context) bool {
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // privacy bypass — sole production call site
 	if !w.running.CompareAndSwap(false, true) {
-		w.logger.Warn("sync already running, skipping")
-		return nil
+		// The trigger (and its requested mode — possibly the operator's
+		// ?mode=full escape hatch) is dropped, not queued. Return the
+		// sentinel so callers can tell "started" from "discarded".
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync already running, dropping trigger",
+			slog.String("requested_mode", string(mode)))
+		return ErrSyncAlreadyRunning
 	}
 	defer w.running.Store(false)
 
@@ -716,6 +732,16 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	const syncMemLimit = 400 * 1024 * 1024
 	prevMemLimit := debug.SetMemoryLimit(syncMemLimit)
 	defer debug.SetMemoryLimit(prevMemLimit)
+
+	// Full-mode cycles reconcile completely: the reconcile-all marker
+	// disables the upsert pass's updated-timestamp skip gate so rows the
+	// sync mutated locally without bumping `updated` (orphan-filter FK
+	// nulls) re-converge with upstream, and newly added _fold columns
+	// backfill. This is the documented purpose of the daily forced-full
+	// escalation; without the marker the gate skipped those rows forever.
+	if effectiveMode == config.SyncModeFull {
+		ctx = withReconcileAll(ctx)
+	}
 
 	scratch, err := openScratchDB(ctx)
 	if err != nil {
@@ -1034,12 +1060,21 @@ func (w *Worker) recordSuccess(
 		// sync_status row update (separate raw-SQL Exec, by design —
 		// outcome record, not data state).
 		_, statusSpan := otel.Tracer("sync").Start(ctx, "sync-record-status")
-		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
+		// Bookkeeping failure must not fail the cycle (the data commit
+		// already succeeded), but it must be VISIBLE: a persistently
+		// failing write leaves sync_status rows stuck "running" and
+		// freshness reporting frozen at the last successful write.
+		if recErr := RecordSyncComplete(ctx, w.db, statusID, Status{
 			LastSyncAt:   completedAt,
 			Duration:     elapsed,
 			ObjectCounts: objectCounts,
 			Status:       "success",
-		})
+		}); recErr != nil {
+			w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync completion",
+				slog.Int64("status_id", statusID),
+				slog.String("outcome", "success"),
+				slog.Any("error", recErr))
+		}
 		statusSpan.End()
 	}
 	w.synced.Store(true)
@@ -1190,6 +1225,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // FK backfill catches the orphans that matter on
 // demand, including via recursive grandparent backfill (v1.18.3).
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (bool, error) {
+	fellBack := false
 	// Incremental attempt requires a populated cursor. Zero cursor falls
 	// through to the full-sync path below (bare list, status='ok' only).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
@@ -1197,6 +1233,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 		if incErr == nil {
 			return true, nil
 		}
+		fellBack = true
 		// Fallback: clear partial incremental state and retry as full.
 		typeAttr := metric.WithAttributes(attribute.String("type", name))
 		pdbotel.SyncTypeFallback.Add(ctx, 1, typeAttr)
@@ -1217,6 +1254,43 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
 	if _, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
 		return false, err
+	}
+	// Tombstone-window capture: a bare list contains only status='ok' rows
+	// (upstream filters bare lists per rest.py), and committing the full
+	// snapshot advances the derived cursor (MAX(updated)) past the
+	// pre-cycle window — without a follow-up ?since= fetch, deletes that
+	// landed upstream since the last cycle would be permanently lost:
+	// served live by all surfaces forever and absent from our own ?since=
+	// exports. Stage the window on top of the snapshot; the scratch
+	// INSERT OR REPLACE is keyed on id, so window rows (including
+	// tombstones) win over their bare-list versions.
+	//
+	// In explicit full mode a failure here MUST fail the type: committing
+	// the snapshot without the window would advance the cursor past
+	// deletes we never saw, so the cycle retries instead. On the
+	// incremental-fallback path the window fetch is the same request
+	// shape that just failed — it is retried once best-effort (the
+	// earlier failure may have been transient), but a second failure is
+	// logged and tolerated so the fallback keeps its purpose: a cycle
+	// that lands fresh 'ok' rows despite a broken ?since= endpoint.
+	if !cursor.IsZero() {
+		if _, err := scratch.stageType(ctx, w.pdbClient, name, cursor); err != nil {
+			if !fellBack {
+				return false, fmt.Errorf("stage tombstone window %s since %s: %w",
+					name, cursor.Format(time.RFC3339), err)
+			}
+			stepSpan.AddEvent("tombstone_window.discarded",
+				trace.WithAttributes(
+					attribute.String("type", name),
+					attribute.String("error", err.Error()),
+				),
+			)
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "tombstone window discarded after incremental fallback",
+				slog.String("type", name),
+				slog.Time("since", cursor),
+				slog.Any("error", err),
+			)
+		}
 	}
 	return false, nil
 }
@@ -1767,12 +1841,21 @@ func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, status
 	pdbotel.SyncOperations.Add(recCtx, 1, attrs)
 
 	if statusID > 0 {
-		_ = RecordSyncComplete(recCtx, w.db, statusID, Status{
+		// Same visibility contract as recordSuccess: never fail the
+		// terminal path on a bookkeeping write, but never swallow it
+		// silently either — otherwise rows stuck "running" accumulate
+		// with no operator signal.
+		if recErr := RecordSyncComplete(recCtx, w.db, statusID, Status{
 			LastSyncAt:   time.Now(),
 			Duration:     time.Since(start),
 			Status:       "failed",
 			ErrorMessage: syncErr.Error(),
-		})
+		}); recErr != nil {
+			w.logger.LogAttrs(recCtx, slog.LevelError, "failed to record sync completion",
+				slog.Int64("status_id", statusID),
+				slog.String("outcome", "failed"),
+				slog.Any("error", recErr))
+		}
 	}
 }
 
@@ -1785,13 +1868,32 @@ func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, status
 // is guaranteed to 429 again AND consumes another slot against the hourly
 // quota. Returning immediately lets the hourly scheduler retry naturally on
 // its next tick (1h interval ≥ most Retry-After values we've observed).
+//
+// WAF short-circuit: a WAF / IP-block 403 (peeringdb.IsWAFBlocked) also skips
+// the ladder. Retrying within the same source IP is pointless against an
+// IP-level block, and hammering an actively-blocking upstream risks
+// prolonging the block. Defer to the next scheduled tick, same as the 429
+// path.
+//
+// Already-running short-circuit: ErrSyncAlreadyRunning from the CAS guard is
+// returned as-is without retrying — the in-flight cycle owns the worker and a
+// 30s-later retry would race it.
 func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error {
 	err := w.Sync(ctx, mode)
 	if err == nil {
 		return nil
 	}
+	if errors.Is(err, ErrSyncAlreadyRunning) {
+		return err
+	}
 	if rateLimited(err) {
 		w.logger.LogAttrs(ctx, slog.LevelInfo, "sync rate-limited, deferring to next scheduled tick",
+			slog.Any("error", err),
+		)
+		return err
+	}
+	if peeringdb.IsWAFBlocked(err) {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync blocked by upstream WAF, deferring to next scheduled tick",
 			slog.Any("error", err),
 		)
 		return err
@@ -1829,6 +1931,15 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 			)
 			return err
 		}
+		// Same for a WAF block surfacing mid-ladder: further retries
+		// only dig the IP-block deeper.
+		if peeringdb.IsWAFBlocked(err) {
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "sync blocked by upstream WAF during retry, deferring",
+				slog.Int("attempt", attempt+1),
+				slog.Any("error", err),
+			)
+			return err
+		}
 	}
 
 	w.logger.LogAttrs(ctx, slog.LevelError, "sync failed after all retries",
@@ -1844,6 +1955,15 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 func rateLimited(err error) bool {
 	_, ok := errors.AsType[*peeringdb.RateLimitError](err)
 	return ok
+}
+
+// Running reports whether a sync cycle is currently in flight. Used by
+// the POST /sync handler for a best-effort synchronous 409: the check
+// races a concurrently starting cycle (TOCTOU), but the CAS guard in
+// Sync remains the authoritative gate — a lost race only degrades the
+// response back to 202 with the trigger logged and dropped.
+func (w *Worker) Running() bool {
+	return w.running.Load()
 }
 
 // HasCompletedSync reports whether at least one successful sync has completed.
@@ -2001,6 +2121,23 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 
 		if !isPrimary {
 			// Still a replica — heartbeat for the next role check.
+			//
+			// While the readiness latch is unset, re-read sync_status on
+			// each heartbeat: a replica that booted before the primary's
+			// first successful sync (fresh-fleet bootstrap, wiped-primary
+			// recovery, or a transient read failure at boot) would
+			// otherwise latch synced=false for the life of the process
+			// and serve 503 on every data route even after LiteFS
+			// replication delivers a fully-synced database. The read is
+			// one local-SQLite row per interval, only while unsynced.
+			if !w.synced.Load() {
+				if ls, lsErr := GetLastSuccessfulSyncTime(ctx, w.db); lsErr == nil && !ls.IsZero() {
+					w.logger.LogAttrs(ctx, slog.LevelInfo, "replicated sync history observed, marking ready",
+						slog.Time("last_sync", ls),
+					)
+					w.synced.Store(true)
+				}
+			}
 			w.logger.LogAttrs(ctx, slog.LevelDebug, "not primary, skipping sync")
 			nextAt = time.Now().Add(interval)
 			continue

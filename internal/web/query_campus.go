@@ -14,7 +14,7 @@ import (
 // Returns the fully populated CampusDetail or an error (including ent.IsNotFound).
 func (h *Handler) queryCampus(ctx context.Context, id int) (templates.CampusDetail, error) {
 	c, err := h.client.Campus.Query().
-		Where(campus.ID(id)).
+		Where(campus.ID(id), campus.StatusIn("ok", "pending")).
 		WithOrganization().
 		Only(ctx)
 	if err != nil {
@@ -22,7 +22,7 @@ func (h *Handler) queryCampus(ctx context.Context, id int) (templates.CampusDeta
 	}
 
 	facCount, err := h.client.Facility.Query().
-		Where(facility.HasCampusWith(campus.ID(id))).
+		Where(facility.HasCampusWith(campus.ID(id)), facility.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count campus facilities", slog.Int("campus_id", id), slog.Any("error", err))
@@ -53,7 +53,7 @@ func (h *Handler) queryCampus(ctx context.Context, id int) (templates.CampusDeta
 
 	// Eager-load campus facilities.
 	campusFacItems, err := h.client.Facility.Query().
-		Where(facility.HasCampusWith(campus.ID(id))).
+		Where(facility.HasCampusWith(campus.ID(id)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
 		All(ctx)
 	if err == nil {

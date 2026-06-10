@@ -19,7 +19,7 @@ import (
 // Returns the fully populated NetworkDetail or an error (including ent.IsNotFound).
 func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkDetail, error) {
 	net, err := h.client.Network.Query().
-		Where(network.Asn(asn)).
+		Where(network.Asn(asn), network.StatusIn("ok", "pending")).
 		WithOrganization().
 		First(ctx)
 	if err != nil {
@@ -27,7 +27,7 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 	}
 
 	pocCount, err := h.client.Poc.Query().
-		Where(poc.HasNetworkWith(network.ID(net.ID))).
+		Where(poc.HasNetworkWith(network.ID(net.ID)), poc.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count network contacts", slog.Int("network_id", net.ID), slog.Any("error", err))
@@ -72,7 +72,7 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 
 	// Compute aggregate bandwidth across all IX presences for the section header.
 	ixlans, err := h.client.NetworkIxLan.Query().
-		Where(networkixlan.HasNetworkWith(network.ID(net.ID))).
+		Where(networkixlan.HasNetworkWith(network.ID(net.ID)), networkixlan.StatusIn("ok", "pending")).
 		All(ctx)
 	if err == nil {
 		var totalBW int
@@ -107,7 +107,7 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 
 	// Build facility presence rows for terminal and JSON rendering.
 	facItems, facErr := h.client.NetworkFacility.Query().
-		Where(networkfacility.HasNetworkWith(network.ID(net.ID))).
+		Where(networkfacility.HasNetworkWith(network.ID(net.ID)), networkfacility.StatusIn("ok", "pending")).
 		WithFacility(). // Eager-load facility entity for lat/lng
 		Order(networkfacility.ByName()).
 		All(ctx)

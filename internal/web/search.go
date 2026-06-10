@@ -328,6 +328,7 @@ func trimPage[T any](items []T, limit int) ([]T, bool) {
 func (s *SearchService) listNetworks(ctx context.Context, pred func(*sql.Selector), pg searchPage) ([]SearchHit, bool, error) {
 	items, err := s.client.Network.Query().
 		Where(pred).
+		Where(network.StatusIn("ok", "pending")).
 		Order(network.ByName(), network.ByID()).
 		Offset(pg.offset).Limit(pg.limit + 1).
 		All(ctx)
@@ -348,12 +349,13 @@ func (s *SearchService) listNetworks(ctx context.Context, pred func(*sql.Selecto
 }
 
 func (s *SearchService) countNetworks(ctx context.Context, pred func(*sql.Selector)) (int, error) {
-	return s.client.Network.Query().Where(pred).Count(ctx)
+	return s.client.Network.Query().Where(pred).Where(network.StatusIn("ok", "pending")).Count(ctx)
 }
 
 func (s *SearchService) listIXPs(ctx context.Context, pred func(*sql.Selector), pg searchPage) ([]SearchHit, bool, error) {
 	items, err := s.client.InternetExchange.Query().
 		Where(pred).
+		Where(internetexchange.StatusIn("ok", "pending")).
 		Order(internetexchange.ByName(), internetexchange.ByID()).
 		Offset(pg.offset).Limit(pg.limit + 1).
 		All(ctx)
@@ -375,12 +377,13 @@ func (s *SearchService) listIXPs(ctx context.Context, pred func(*sql.Selector), 
 }
 
 func (s *SearchService) countIXPs(ctx context.Context, pred func(*sql.Selector)) (int, error) {
-	return s.client.InternetExchange.Query().Where(pred).Count(ctx)
+	return s.client.InternetExchange.Query().Where(pred).Where(internetexchange.StatusIn("ok", "pending")).Count(ctx)
 }
 
 func (s *SearchService) listFacilities(ctx context.Context, pred func(*sql.Selector), pg searchPage) ([]SearchHit, bool, error) {
 	items, err := s.client.Facility.Query().
 		Where(pred).
+		Where(facility.StatusIn("ok", "pending")).
 		Order(facility.ByName(), facility.ByID()).
 		Offset(pg.offset).Limit(pg.limit + 1).
 		All(ctx)
@@ -402,12 +405,13 @@ func (s *SearchService) listFacilities(ctx context.Context, pred func(*sql.Selec
 }
 
 func (s *SearchService) countFacilities(ctx context.Context, pred func(*sql.Selector)) (int, error) {
-	return s.client.Facility.Query().Where(pred).Count(ctx)
+	return s.client.Facility.Query().Where(pred).Where(facility.StatusIn("ok", "pending")).Count(ctx)
 }
 
 func (s *SearchService) listOrganizations(ctx context.Context, pred func(*sql.Selector), pg searchPage) ([]SearchHit, bool, error) {
 	items, err := s.client.Organization.Query().
 		Where(pred).
+		Where(organization.StatusIn("ok", "pending")).
 		Order(organization.ByName(), organization.ByID()).
 		Offset(pg.offset).Limit(pg.limit + 1).
 		All(ctx)
@@ -429,12 +433,13 @@ func (s *SearchService) listOrganizations(ctx context.Context, pred func(*sql.Se
 }
 
 func (s *SearchService) countOrganizations(ctx context.Context, pred func(*sql.Selector)) (int, error) {
-	return s.client.Organization.Query().Where(pred).Count(ctx)
+	return s.client.Organization.Query().Where(pred).Where(organization.StatusIn("ok", "pending")).Count(ctx)
 }
 
 func (s *SearchService) listCampuses(ctx context.Context, pred func(*sql.Selector), pg searchPage) ([]SearchHit, bool, error) {
 	items, err := s.client.Campus.Query().
 		Where(pred).
+		Where(campus.StatusIn("ok", "pending")).
 		Order(campus.ByName(), campus.ByID()).
 		Offset(pg.offset).Limit(pg.limit + 1).
 		All(ctx)
@@ -456,12 +461,13 @@ func (s *SearchService) listCampuses(ctx context.Context, pred func(*sql.Selecto
 }
 
 func (s *SearchService) countCampuses(ctx context.Context, pred func(*sql.Selector)) (int, error) {
-	return s.client.Campus.Query().Where(pred).Count(ctx)
+	return s.client.Campus.Query().Where(pred).Where(campus.StatusIn("ok", "pending")).Count(ctx)
 }
 
 func (s *SearchService) listCarriers(ctx context.Context, pred func(*sql.Selector), pg searchPage) ([]SearchHit, bool, error) {
 	items, err := s.client.Carrier.Query().
 		Where(pred).
+		Where(carrier.StatusIn("ok", "pending")).
 		Order(carrier.ByName(), carrier.ByID()).
 		Offset(pg.offset).Limit(pg.limit + 1).
 		All(ctx)
@@ -481,7 +487,7 @@ func (s *SearchService) listCarriers(ctx context.Context, pred func(*sql.Selecto
 }
 
 func (s *SearchService) countCarriers(ctx context.Context, pred func(*sql.Selector)) (int, error) {
-	return s.client.Carrier.Query().Where(pred).Count(ctx)
+	return s.client.Carrier.Query().Where(pred).Where(carrier.StatusIn("ok", "pending")).Count(ctx)
 }
 
 // networkSearchPredicate builds the network search WHERE clause: a case-

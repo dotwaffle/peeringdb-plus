@@ -59,6 +59,20 @@ import (
 const maxRequestBodySize = 1 << 20
 const initialObjectCountsTimeout = 5 * time.Second
 
+// connectHandlerOpts builds the handler options shared by all 13 ConnectRPC
+// service registrations: OTel tracing plus an inbound message-size cap.
+// WithReadMaxBytes bounds each received message (raw AND decompressed) at the
+// connect protocol layer. The HTTP-level MaxBytesBody middleware skips
+// ConnectRPC paths so server-to-client streaming is not truncated, which
+// would otherwise leave unary request bodies unbounded (gzip-bomb OOM).
+// Request messages here are small filter/pagination structs; 1 MB is ample.
+func connectHandlerOpts(interceptor connect.Interceptor) connect.HandlerOption {
+	return connect.WithHandlerOptions(
+		connect.WithInterceptors(interceptor),
+		connect.WithReadMaxBytes(maxRequestBodySize),
+	)
+}
+
 func init() {
 	// Best-effort memory limit configuration from cgroup/system.
 	_, _ = memlimit.SetGoMemLimitWithOpts(
@@ -88,6 +102,18 @@ func main() {
 		slog.Error("failed to load config", slog.Any("error", err))
 		os.Exit(1)
 	}
+
+	// exitCode is delivered to the OS by the deferred os.Exit below. The
+	// defer is registered FIRST so it runs LAST — after the OTel flush and
+	// entClient.Close defers — letting a server failure exit non-zero
+	// without dropping the buffered telemetry that explains it. (An os.Exit
+	// inside the serve goroutine would skip every deferred cleanup.)
+	exitCode := 0
+	defer func() {
+		if exitCode != 0 {
+			os.Exit(exitCode)
+		}
+	}()
 
 	// Initialize OpenTelemetry.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -258,12 +284,15 @@ func main() {
 			slog.Float64("rps", cfg.PeeringDBRPS))
 	}
 
-	// Make the disabled-sync-auth state loud at boot so operators see it
-	// in deploy logs rather than discovering it via a curl probe.
+	// Make the disabled-sync state loud at boot so operators see it in
+	// deploy logs rather than discovering it via 401s from a curl probe.
+	// Empty token is fail-closed: newSyncHandler rejects EVERY request
+	// (regression-locked by TestSyncHandler_TokenCompare's disabled-mode
+	// rows) — the endpoint is disabled, not open.
 	if cfg.SyncToken == "" {
-		logger.Warn("sync endpoint is unauthenticated — set PDBPLUS_SYNC_TOKEN to require authentication",
+		logger.Warn("PDBPLUS_SYNC_TOKEN not set — POST /sync is disabled (all requests rejected with 401)",
 			slog.String("endpoint", "/sync"),
-			slog.String("action", "set PDBPLUS_SYNC_TOKEN"))
+			slog.String("action", "set PDBPLUS_SYNC_TOKEN to enable on-demand sync"))
 	}
 
 	// Classify sync mode + public tier at startup.
@@ -285,7 +314,10 @@ func main() {
 	// relative text ("N minutes ago") that would freeze at cache-creation
 	// time under the sync-time-keyed ETag. See internal/web/about.go and
 	// internal/web/templates/about.templ.
-	cachingState := middleware.NewCachingState(cfg.SyncInterval, "/ui/about")
+	// /healthz and /readyz are opted out alongside /ui/about: a shared
+	// cache pinning a stale health verdict (or a 304 short-circuit that
+	// skips the readiness probes entirely) defeats their purpose.
+	cachingState := middleware.NewCachingState(cfg.SyncInterval, "/ui/about", "/healthz", "/readyz")
 	if t, err := pdbsync.GetLastSuccessfulSyncTime(ctx, db); err == nil && !t.IsZero() {
 		cachingState.UpdateETag(t)
 	}
@@ -374,9 +406,17 @@ func main() {
 		IsPrimaryFn: isPrimaryFn,
 		SyncToken:   cfg.SyncToken,
 		DefaultMode: cfg.SyncMode,
+		// Route on-demand syncs through the same demotion monitor the
+		// scheduler gets via internal/sync's runSyncCycle, so a node
+		// demoted mid-cycle aborts instead of burning upstream quota.
 		SyncFn: func(syncCtx context.Context, mode config.SyncMode) {
-			syncWorker.SyncWithRetry(syncCtx, mode) //nolint:errcheck,gosec // fire-and-forget
+			runSyncWithDemotionMonitor(syncCtx, mode, monitoredSyncInput{
+				IsPrimary: isPrimaryFn,
+				Logger:    logger,
+				Sync:      syncWorker.SyncWithRetry,
+			})
 		},
+		SyncRunning: syncWorker.Running,
 	})
 	mux.HandleFunc("POST /sync", func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
@@ -417,6 +457,20 @@ func main() {
 		logger.Error("failed to create REST server", slog.Any("error", err))
 		os.Exit(1)
 	}
+	// Rewrite the served OpenAPI spec's error responses to describe the RFC
+	// 9457 application/problem+json bodies restErrorMiddleware actually
+	// emits. The entrest-generated spec documents its native ErrorResponse
+	// shape ({error,type,code,timestamp} as application/json), which this
+	// server never puts on the wire — clients generated from the unpatched
+	// spec would fail to deserialize every error. rest.Server.Spec serves
+	// the package-level rest.OpenAPI bytes, so patching the var once at
+	// startup fixes /rest/v1/openapi.json for the process lifetime.
+	patchedSpec, err := patchOpenAPIErrorResponses(rest.OpenAPI)
+	if err != nil {
+		logger.Error("failed to patch OpenAPI error responses", slog.Any("error", err))
+		os.Exit(1)
+	}
+	rest.OpenAPI = patchedSpec
 	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
 	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
@@ -453,7 +507,7 @@ func main() {
 		logger.Error("failed to create otel interceptor", slog.Any("error", err))
 		os.Exit(1)
 	}
-	handlerOpts := connect.WithInterceptors(otelInterceptor)
+	handlerOpts := connectHandlerOpts(otelInterceptor)
 
 	// Service names for reflection and health checking.
 	serviceNames := []string{
@@ -549,7 +603,8 @@ func main() {
 		switch mode { //nolint:exhaustive // default case handles remaining modes
 		case termrender.ModeRich, termrender.ModePlain:
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			w.Header().Set("Vary", "User-Agent, Accept")
+			// Add, not Set: gzhttp already added Vary: Accept-Encoding.
+			w.Header().Add("Vary", "User-Agent, Accept")
 			renderer := termrender.NewRenderer(mode, noColor)
 			var freshness time.Time
 			status, err := pdbsync.GetLastStatus(r.Context(), db)
@@ -563,11 +618,14 @@ func main() {
 
 		case termrender.ModeJSON:
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			w.Header().Set("Vary", "User-Agent, Accept")
+			w.Header().Add("Vary", "User-Agent, Accept")
 			fmt.Fprint(w, discoveryJSON)
 			return
 
 		default:
+			// The branch taken depends on Accept and (via Detect above)
+			// User-Agent, so caches must key on both here too.
+			w.Header().Add("Vary", "User-Agent, Accept")
 			accept := r.Header.Get("Accept")
 			if strings.Contains(accept, "text/html") {
 				http.Redirect(w, r, "/ui/", http.StatusFound)
@@ -613,9 +671,13 @@ func main() {
 
 	server := buildServer(cfg.ListenAddr, handler, &protocols)
 
-	// Graceful shutdown on SIGINT/SIGTERM.
+	// Graceful shutdown on SIGINT/SIGTERM, or on server failure. The serve
+	// goroutine reports failure via serveErr instead of calling os.Exit so
+	// main's normal return path — and therefore the deferred OTel flush and
+	// DB close — runs either way (see awaitShutdown).
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	serveErr := make(chan error, 1)
 
 	go func() {
 		logger.Info("starting server",
@@ -623,14 +685,16 @@ func main() {
 			slog.Bool("is_primary", isPrimary),
 			slog.Bool("h2c", true),
 		)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server error", slog.Any("error", err))
-			os.Exit(1)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- err
 		}
 	}()
 
-	sig := <-sigChan
-	logger.Info("shutting down", slog.String("signal", sig.String()))
+	exitCode = awaitShutdown(awaitShutdownInput{
+		SigChan:  sigChan,
+		ServeErr: serveErr,
+		Logger:   logger,
+	})
 	cancel() // Stop scheduler and background syncs.
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.DrainTimeout)
@@ -645,43 +709,84 @@ type syncReadiness interface {
 	HasCompletedSync() bool
 }
 
-// restErrorMiddleware wraps entrest error responses in RFC 9457 Problem Details format.
-// It intercepts non-2xx responses and rewrites the body as application/problem+json.
+// restErrorMiddleware wraps entrest error responses in RFC 9457 Problem
+// Details format. It buffers non-2xx entrest bodies, then rewrites them as
+// application/problem+json — preserving entrest's client-actionable error
+// message (e.g. "per_page 0 is out of bounds, must be >= 1") as the problem
+// Detail for 4xx responses. 5xx detail is dropped: those messages can carry
+// SQL/driver internals that must not reach anonymous callers.
 func restErrorMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := &restErrorWriter{ResponseWriter: w, r: r}
 		next.ServeHTTP(rw, r)
+		rw.finish()
 	})
 }
 
-// restErrorWriter captures non-2xx status codes from entrest and converts them
-// to RFC 9457 Problem Details responses.
+// restErrorWriter captures non-2xx status codes and bodies from entrest and
+// converts them to RFC 9457 Problem Details responses in finish().
 type restErrorWriter struct {
 	http.ResponseWriter
 	r           *http.Request
-	wroteHeader bool
+	wroteHeader bool // true once a >=400 status has been intercepted
+	status      int
+	errBody     bytes.Buffer
 }
 
-// WriteHeader intercepts non-2xx status codes and writes RFC 9457 problem detail.
+// WriteHeader intercepts non-2xx status codes; the problem+json response is
+// deferred to finish() so entrest's error body can be captured first.
 func (w *restErrorWriter) WriteHeader(code int) {
 	if code >= 400 && !w.wroteHeader {
 		w.wroteHeader = true
-		httperr.WriteProblem(w.ResponseWriter, httperr.WriteProblemInput{
-			Status:   code,
-			Instance: w.r.URL.Path,
-		})
+		w.status = code
 		return
 	}
 	w.ResponseWriter.WriteHeader(code)
 }
 
-// Write passes through for 2xx responses or suppresses body for error responses
-// (already written by WriteHeader).
+// Write passes through for 2xx responses, or buffers entrest's error body
+// so finish() can extract the client-actionable detail from it.
 func (w *restErrorWriter) Write(b []byte) (int, error) {
 	if w.wroteHeader {
-		return len(b), nil // discard entrest's error body
+		return w.errBody.Write(b)
 	}
 	return w.ResponseWriter.Write(b)
+}
+
+// finish emits the problem+json response for an intercepted error. No-op on
+// the 2xx pass-through path. Called by restErrorMiddleware after the inner
+// handler returns.
+func (w *restErrorWriter) finish() {
+	if !w.wroteHeader {
+		return
+	}
+	// The header map is shared with the underlying writer, so any
+	// Content-Length entrest set for the discarded JSON body is stale;
+	// WriteProblem sets its own Content-Type.
+	w.ResponseWriter.Header().Del("Content-Length")
+	httperr.WriteProblem(w.ResponseWriter, httperr.WriteProblemInput{
+		Status:   w.status,
+		Detail:   restErrorDetail(w.status, w.errBody.Bytes()),
+		Instance: w.r.URL.Path,
+	})
+}
+
+// restErrorDetail extracts the client-actionable message from an entrest
+// error body ({"error": "...", ...}). Only 4xx messages are returned: they
+// describe the caller's mistake (bad filter method, out-of-bounds page).
+// 5xx messages may embed SQL/driver internals and are dropped. A body that
+// fails to parse yields an empty detail (generic problem shape).
+func restErrorDetail(status int, body []byte) string {
+	if status >= http.StatusInternalServerError {
+		return ""
+	}
+	var er struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(body, &er); err != nil {
+		return ""
+	}
+	return er.Error
 }
 
 // Unwrap returns the underlying ResponseWriter for middleware-aware interface detection.
@@ -690,41 +795,116 @@ func (w *restErrorWriter) Unwrap() http.ResponseWriter {
 }
 
 // Flush forwards to the underlying writer per the http.Flusher contract
-// for middleware-aware response writers (CLAUDE.md §Middleware). This
-// writer is a pass-through for 2xx bodies — error bodies are replaced
-// wholesale in WriteHeader — so flushing the underlying is always safe.
+// for middleware-aware response writers (CLAUDE.md §Middleware) — but only
+// on the 2xx pass-through path. Once an error has been intercepted, nothing
+// has reached the underlying writer yet (the body is buffered for finish());
+// forwarding Flush would commit an implicit 200 before finish() writes the
+// real status and problem body.
 func (w *restErrorWriter) Flush() {
+	if w.wroteHeader {
+		return
+	}
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
 }
 
-// restListWrapperKey is the JSON key under which entrest's PagedResponse
-// serialises the items slice. Confirmed at planning time by grepping:
-//
-//	$ grep -rn 'json:"content"' ent/rest/
-//	ent/rest/list.go:153:    Content    []*T `json:"content"`      // Paged data.
-//
-// If a future entrest upgrade changes this tag, this constant MUST move
-// in lock-step or restFieldRedactMiddleware silently stops redacting list
-// responses — a privacy leak. The wave-2 E2E list sub-test catches the
-// regression.
-const restListWrapperKey = "content"
+// patchOpenAPIErrorResponses rewrites the entrest-generated OpenAPI spec so
+// every components.responses.Error* entry declares the RFC 9457
+// application/problem+json body that restErrorMiddleware actually emits,
+// referencing a single ProblemDetail schema (mirroring
+// internal/httperr.ProblemDetail). The now-unreferenced entrest Error*
+// schemas are removed so the spec carries no dead shapes. The input bytes
+// are not modified; a freshly marshalled spec is returned.
+func patchOpenAPIErrorResponses(spec []byte) ([]byte, error) {
+	var doc map[string]any
+	if err := json.Unmarshal(spec, &doc); err != nil {
+		return nil, fmt.Errorf("parse openapi spec: %w", err)
+	}
+	components, ok := doc["components"].(map[string]any)
+	if !ok {
+		return nil, errors.New("openapi spec: missing components object")
+	}
+	responses, ok := components["responses"].(map[string]any)
+	if !ok {
+		return nil, errors.New("openapi spec: missing components.responses object")
+	}
+	schemas, ok := components["schemas"].(map[string]any)
+	if !ok {
+		return nil, errors.New("openapi spec: missing components.schemas object")
+	}
+
+	for name, v := range responses {
+		if !strings.HasPrefix(name, "Error") {
+			continue
+		}
+		resp, ok := v.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("openapi spec: response %s is not an object", name)
+		}
+		resp["content"] = map[string]any{
+			"application/problem+json": map[string]any{
+				"schema": map[string]any{"$ref": "#/components/schemas/ProblemDetail"},
+			},
+		}
+		// The same-named entrest ErrorResponse schema is only referenced
+		// from this response entry; drop it now that the ref is gone.
+		delete(schemas, name)
+	}
+
+	schemas["ProblemDetail"] = map[string]any{
+		"type":        "object",
+		"description": "RFC 9457 Problem Details error response.",
+		"properties": map[string]any{
+			"type": map[string]any{
+				"type":        "string",
+				"description": "A URI reference identifying the problem type.",
+				"example":     "about:blank",
+			},
+			"title": map[string]any{
+				"type":        "string",
+				"description": "Short, human-readable summary of the problem type.",
+				"example":     "Bad Request",
+			},
+			"status": map[string]any{
+				"type":        "integer",
+				"description": "The HTTP status code.",
+				"example":     400,
+			},
+			"detail": map[string]any{
+				"type":        "string",
+				"description": "Human-readable explanation specific to this occurrence.",
+			},
+			"instance": map[string]any{
+				"type":        "string",
+				"description": "URI reference identifying this occurrence.",
+				"example":     "/rest/v1/networks",
+			},
+		},
+		"required": []any{"type", "title", "status"},
+	}
+
+	return json.Marshal(doc)
+}
 
 // restFieldRedactMiddleware removes the `ixf_ixp_member_list_url` key
-// from /rest/v1/ix-lans* JSON responses when the caller's ctx tier
-// does not admit the field (per internal/privfield.Redact).
+// from /rest/v1/ JSON responses when the caller's ctx tier does not
+// admit the field (per internal/privfield.Redact).
 //
 // entrest has no native per-field conditional-omission hook (verified
 // against the lrstanley/entrest annotation reference and local behavior notes
 // Finding #1). This middleware is the workaround: it buffers the
-// response body on the ixlan paths, parses the JSON, walks the ixlan
-// object(s), and re-emits with the field deleted when privfield.Redact
-// says omit.
+// response body, parses the JSON, and re-emits with the field deleted
+// wherever privfield.Redact says omit.
 //
-// Scope: only /rest/v1/ix-lans (prefix match). Detail responses are
-// single objects; list responses wrap entries in {restListWrapperKey:[…]}.
-// Non-ixlan REST paths and non-JSON bodies pass through unchanged.
+// Scope: ALL /rest/v1/ paths, with the gated object located by a
+// recursive walk rather than by response shape. entrest eager-loads the
+// ixlan edge unconditionally (ent/rest/eagerload.go), so ixlan objects
+// appear nested under edges.ix_lans / edges.ix_lan on internet-exchange,
+// ix-prefix, and network-ix-lan responses — scoping redaction to the
+// flat /rest/v1/ix-lans* paths leaked the gated URL through every
+// embedding endpoint (2026-06-10 audit). Non-JSON bodies pass through
+// unchanged.
 //
 // Ordering: this middleware MUST be wrapped INSIDE restErrorMiddleware
 // so that problem+json error bodies pass through without being mis-parsed
@@ -733,7 +913,7 @@ const restListWrapperKey = "content"
 // Required for privacy-redaction correctness.
 func restFieldRedactMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/rest/v1/ix-lans") {
+		if !strings.HasPrefix(r.URL.Path, "/rest/v1/") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -816,51 +996,56 @@ func (w *restFieldRedactWriter) flush() {
 	_, _ = w.ResponseWriter.Write(rewritten)
 }
 
-// redactIxlanJSON parses body as JSON and applies Redact to any ixlan
-// object (detail shape) or list of ixlan objects (under restListWrapperKey).
-// Returns the re-encoded body.
+// redactIxlanJSON parses body as JSON, recursively redacts every embedded
+// ixlan object, and returns the re-encoded body.
 func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
-	var top map[string]any
+	var top any
 	if err := json.Unmarshal(body, &top); err != nil {
 		return nil, err
 	}
-	changed := false
-	// List shape: {page, total_count, last_page, is_last_page, content:[…]}
-	if wrapped, ok := top[restListWrapperKey].([]any); ok {
-		for _, entry := range wrapped {
-			obj, ok := entry.(map[string]any)
-			if !ok {
-				continue
-			}
-			if redactIxlanObject(ctx, obj) {
-				changed = true
-			}
-		}
-	} else {
-		// Detail shape: single ixlan object at the top level.
-		changed = redactIxlanObject(ctx, top)
-	}
-	if !changed {
+	if !redactGatedFields(ctx, top) {
 		// Nothing was gated out (the common case: public tier, or a row
 		// whose URL is admitted). Return the original bytes and skip the
-		// re-marshal — the parsed map is byte-for-byte equivalent.
+		// re-marshal — the parsed value is byte-for-byte equivalent.
 		return body, nil
 	}
 	return json.Marshal(top)
 }
 
-// redactIxlanObject drops the ixf_ixp_member_list_url key in-place when
-// privfield.Redact says omit, and reports whether it removed the key. The
-// _visible companion is left alone (always emitted).
-func redactIxlanObject(ctx context.Context, obj map[string]any) bool {
-	visible, _ := obj["ixf_ixp_member_list_url_visible"].(string)
-	url, _ := obj["ixf_ixp_member_list_url"].(string)
-	_, omit := privfield.Redact(ctx, visible, url)
-	if omit {
-		delete(obj, "ixf_ixp_member_list_url")
-		return true
+// redactGatedFields walks an unmarshalled JSON value and drops the
+// ixf_ixp_member_list_url key in-place from every object carrying the
+// _visible companion whenever privfield.Redact says omit, reporting
+// whether anything was removed. Identifying gated objects by the
+// companion key (rather than by response shape or URL path) covers
+// detail objects, list entries, and ixlans eager-loaded under edges.*
+// on other entity types alike. The _visible companion itself is left
+// alone (always emitted, upstream parity).
+func redactGatedFields(ctx context.Context, v any) bool {
+	changed := false
+	switch t := v.(type) {
+	case map[string]any:
+		if visible, ok := t["ixf_ixp_member_list_url_visible"].(string); ok {
+			url, _ := t["ixf_ixp_member_list_url"].(string)
+			if _, omit := privfield.Redact(ctx, visible, url); omit {
+				if _, present := t["ixf_ixp_member_list_url"]; present {
+					delete(t, "ixf_ixp_member_list_url")
+					changed = true
+				}
+			}
+		}
+		for _, child := range t {
+			if redactGatedFields(ctx, child) {
+				changed = true
+			}
+		}
+	case []any:
+		for _, child := range t {
+			if redactGatedFields(ctx, child) {
+				changed = true
+			}
+		}
 	}
-	return false
+	return changed
 }
 
 // buildServer constructs the production http.Server with all timeouts
@@ -1172,12 +1357,103 @@ func newStartupPolicy(isPrimary bool) startupPolicy {
 	}
 }
 
+// awaitShutdownInput holds the channels awaitShutdown selects over.
+type awaitShutdownInput struct {
+	SigChan  <-chan os.Signal
+	ServeErr <-chan error
+	Logger   *slog.Logger
+}
+
+// awaitShutdown blocks until an OS signal arrives or the HTTP server fails,
+// returning the process exit code: 0 for a signal-driven graceful shutdown,
+// 1 for a server failure. Routing the serve error here (instead of calling
+// os.Exit inside the serve goroutine) lets main's deferred OTel flush and
+// DB close run, so the log record explaining the failure reaches the OTel
+// backend instead of dying in the batch processor buffer.
+func awaitShutdown(in awaitShutdownInput) int {
+	select {
+	case sig := <-in.SigChan:
+		in.Logger.Info("shutting down", slog.String("signal", sig.String()))
+		return 0
+	case err := <-in.ServeErr:
+		in.Logger.Error("server error", slog.Any("error", err))
+		return 1
+	}
+}
+
+// demotionMonitorPollInterval is how often the on-demand sync demotion
+// monitor re-checks IsPrimary. Mirrors the 1s poll in the scheduler's
+// internal/sync runSyncCycle wrapper.
+const demotionMonitorPollInterval = 1 * time.Second
+
+// monitoredSyncInput holds dependencies for runSyncWithDemotionMonitor.
+type monitoredSyncInput struct {
+	// IsPrimary is the live LiteFS primary-detection function.
+	IsPrimary func() bool
+	Logger    *slog.Logger
+	// Sync is the underlying sync invocation (Worker.SyncWithRetry).
+	Sync func(ctx context.Context, mode config.SyncMode) error
+	// PollInterval overrides demotionMonitorPollInterval when > 0 (tests).
+	PollInterval time.Duration
+}
+
+// runSyncWithDemotionMonitor wraps an on-demand sync in the same demotion
+// monitor the scheduler applies via internal/sync's (unexported)
+// runSyncCycle: a goroutine polls IsPrimary and cancels the cycle context
+// the moment the node loses the LiteFS lease, aborting SyncWithRetry (and
+// its retry ladder) early. Without it, a node demoted mid-cycle would keep
+// burning upstream PeeringDB quota — concurrently with the new primary's
+// own sync — until Phase B fails against the read-only replica mount.
+func runSyncWithDemotionMonitor(ctx context.Context, mode config.SyncMode, in monitoredSyncInput) {
+	cycleCtx, cycleCancel := context.WithCancel(ctx)
+	defer cycleCancel()
+
+	poll := in.PollInterval
+	if poll <= 0 {
+		poll = demotionMonitorPollInterval
+	}
+
+	// Monitor goroutine: polls IsPrimary and cancels on demotion.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(poll)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-cycleCtx.Done():
+				return
+			case <-ticker.C:
+				if !in.IsPrimary() {
+					in.Logger.LogAttrs(cycleCtx, slog.LevelWarn,
+						"demoted during on-demand sync, aborting cycle")
+					cycleCancel()
+					return
+				}
+			}
+		}
+	}()
+
+	if err := in.Sync(cycleCtx, mode); err != nil {
+		in.Logger.LogAttrs(ctx, slog.LevelError, "on-demand sync failed",
+			slog.Any("error", err))
+	}
+	cycleCancel() // ensure monitor goroutine exits
+	<-done        // wait for clean exit (no goroutine leak)
+}
+
 // SyncHandlerInput holds dependencies for the sync handler.
 type SyncHandlerInput struct {
 	IsPrimaryFn func() bool
 	SyncToken   string
 	DefaultMode config.SyncMode
 	SyncFn      func(ctx context.Context, mode config.SyncMode)
+	// SyncRunning reports whether a cycle is already in flight, so the
+	// handler can answer 409 instead of a misleading 202 whose trigger
+	// the worker's CAS guard would silently drop (the operator's
+	// ?mode=full escape hatch must not no-op invisibly). Best-effort:
+	// a race with a starting cycle degrades to the logged-drop path.
+	SyncRunning func() bool
 }
 
 // newSyncHandler creates the POST /sync handler with fly-replay write forwarding.
@@ -1225,6 +1501,12 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 		syncCtx := appCtx
 		if r.URL.Query().Get("trace") != "0" {
 			syncCtx = pdbsync.WithForceTrace(appCtx)
+		}
+		if in.SyncRunning != nil && in.SyncRunning() {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			fmt.Fprint(w, `{"status":"conflict","detail":"a sync cycle is already running"}`)
+			return
 		}
 		go in.SyncFn(syncCtx, mode)
 		w.WriteHeader(http.StatusAccepted)

@@ -468,6 +468,18 @@ family and `internal/sync/delete.go` were removed for exactly this reason — ab
 inference mis-classified rows omitted from partial responses and dropped children whose
 upstream-deleted parents had never been synced.)
 
+Full-mode fetches capture the tombstone window. A bare `/api/<type>` list contains only
+`status='ok'` rows (upstream filters bare lists), and committing a full snapshot advances the
+derived `MAX(updated)` cursor past the pre-cycle window — so a full-mode cycle (the daily
+`PDBPLUS_FULL_SYNC_INTERVAL` escalation, or the per-type incremental-fallback) would otherwise
+permanently discard any deletes that landed upstream inside that window. To prevent this,
+full-mode staging over a populated table issues a follow-up `?since=<cursor>` fetch on top of
+the bare snapshot (`internal/sync/worker.go` `stageOneTypeToScratch`); the scratch table's
+`INSERT OR REPLACE` is keyed on id, so window rows — including tombstones — win over their
+bare-list versions. If the window fetch fails, the type's fetch fails and the cycle retries:
+committing the snapshot without the window would advance the cursor past deletes that were
+never seen.
+
 The pdbcompat list path (`internal/pdbcompat/registry_funcs.go`) appends
 `applyStatusMatrix(isCampus, opts.Since != nil)` to the predicate chain for every entity to
 mirror upstream PeeringDB's `rest.py` status × since matrix; the pk-lookup path
@@ -802,7 +814,11 @@ have their own memory stories:
   (500-row chunks) through `StreamEntities`; no slice materialisation.
 - **entrest** uses ent-generated handlers that do not buffer unbounded
   results; REST `/rest/v1/*` paths page via the entrest cursor model.
-- **GraphQL** has its own depth/complexity limits from v1.12.
+- **GraphQL** has depth (15) and complexity limits from v1.12; since the
+  2026-06-10 audit the complexity costing is fan-out-aware
+  (`graph/complexity.go` weights connection fields by requested page size
+  and unpaginated edge lists by average per-parent cardinality), so the
+  budget bounds rows materialized rather than fields mentioned.
 - **Web UI** renders on the server with bounded htmx fragments; the
   terminal renderer buffers per-response but is already gated by the
   `/ui/` middleware body cap.

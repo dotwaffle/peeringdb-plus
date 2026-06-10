@@ -39,9 +39,13 @@ func (r *queryResolver) SyncStatus(ctx context.Context) (*model.SyncStatus, erro
 
 // NetworkByAsn is the resolver for the networkByAsn field.
 func (r *queryResolver) NetworkByAsn(ctx context.Context, asn int) (*ent.Network, error) {
-	n, err := r.client.Network.Query().
-		Where(network.Asn(asn)).
-		Only(ctx)
+	query, err := r.client.Network.Query().
+		Where(network.Asn(asn), network.StatusIn("ok", "pending")).
+		CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
+	n, err := query.Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, nil
@@ -67,6 +71,14 @@ func (r *queryResolver) OrganizationsList(ctx context.Context, offset *int, limi
 		}
 		query = query.Where(p)
 	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
 	return query.All(ctx)
 }
 
@@ -85,6 +97,14 @@ func (r *queryResolver) NetworksList(ctx context.Context, offset *int, limit *in
 			return nil, fmt.Errorf("apply network filter: %w", err)
 		}
 		query = query.Where(p)
+	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
 	}
 	return query.All(ctx)
 }
@@ -105,6 +125,14 @@ func (r *queryResolver) FacilitiesList(ctx context.Context, offset *int, limit *
 		}
 		query = query.Where(p)
 	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
 	return query.All(ctx)
 }
 
@@ -123,6 +151,14 @@ func (r *queryResolver) InternetExchangesList(ctx context.Context, offset *int, 
 			return nil, fmt.Errorf("apply internet exchange filter: %w", err)
 		}
 		query = query.Where(p)
+	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
 	}
 	return query.All(ctx)
 }
@@ -143,6 +179,14 @@ func (r *queryResolver) PocsList(ctx context.Context, offset *int, limit *int, w
 		}
 		query = query.Where(p)
 	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
 	return query.All(ctx)
 }
 
@@ -161,6 +205,14 @@ func (r *queryResolver) IxLansList(ctx context.Context, offset *int, limit *int,
 			return nil, fmt.Errorf("apply ix lan filter: %w", err)
 		}
 		query = query.Where(p)
+	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
 	}
 	return query.All(ctx)
 }
@@ -181,6 +233,14 @@ func (r *queryResolver) IxPrefixesList(ctx context.Context, offset *int, limit *
 		}
 		query = query.Where(p)
 	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
 	return query.All(ctx)
 }
 
@@ -199,6 +259,14 @@ func (r *queryResolver) IxFacilitiesList(ctx context.Context, offset *int, limit
 			return nil, fmt.Errorf("apply ix facility filter: %w", err)
 		}
 		query = query.Where(p)
+	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
 	}
 	return query.All(ctx)
 }
@@ -219,6 +287,14 @@ func (r *queryResolver) NetworkIxLansList(ctx context.Context, offset *int, limi
 		}
 		query = query.Where(p)
 	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
 	return query.All(ctx)
 }
 
@@ -237,6 +313,14 @@ func (r *queryResolver) NetworkFacilitiesList(ctx context.Context, offset *int, 
 			return nil, fmt.Errorf("apply network facility filter: %w", err)
 		}
 		query = query.Where(p)
+	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
 	}
 	return query.All(ctx)
 }
@@ -257,6 +341,14 @@ func (r *queryResolver) CarriersList(ctx context.Context, offset *int, limit *in
 		}
 		query = query.Where(p)
 	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
 	return query.All(ctx)
 }
 
@@ -276,6 +368,14 @@ func (r *queryResolver) CarrierFacilitiesList(ctx context.Context, offset *int, 
 		}
 		query = query.Where(p)
 	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
+	}
 	return query.All(ctx)
 }
 
@@ -294,6 +394,14 @@ func (r *queryResolver) CampusesList(ctx context.Context, offset *int, limit *in
 			return nil, fmt.Errorf("apply campus filter: %w", err)
 		}
 		query = query.Where(p)
+	}
+	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
+	// batched queries; without it every nested edge selection falls into
+	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
+	// The relay connection resolvers get this from entgql's Paginate.
+	query, err = query.CollectFields(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("collect fields: %w", err)
 	}
 	return query.All(ctx)
 }

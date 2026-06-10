@@ -115,6 +115,39 @@ func TestShadowRouting_Network_NameFold(t *testing.T) {
 	}
 }
 
+// TestShadowRouting_Network_LigatureFold — rows whose names carry the
+// non-NFKD-decomposable code points œ, ð, and dotless ı (folded by upstream's
+// unidecode, rest.py:576) must match their plain-ASCII query spellings
+// end-to-end through the _fold shadow column.
+func TestShadowRouting_Network_LigatureFold(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedFoldedNetwork(t, client, 1, 64501, "Cœur Défense")
+	seedFoldedNetwork(t, client, 2, 64502, "Suðurnes Net")
+	seedFoldedNetwork(t, client, 3, 64503, "Kadıköy Net")
+
+	srv := httptest.NewServer(newFoldFilterMux(client))
+	t.Cleanup(srv.Close)
+
+	cases := []struct {
+		name  string
+		query string
+		want  []int
+	}{
+		{"oe ligature folds to oe", "name__contains=coeur", []int{1}},
+		{"eth folds to d", "name__contains=sudurnes", []int{2}},
+		{"dotless i folds to i", "name__startswith=kadikoy", []int{3}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ids := foldFetchIDs(t, srv.URL+"/api/net?"+tc.query)
+			if !sameIDs(ids, tc.want) {
+				t.Errorf("query %q: got ids %v, want %v", tc.query, ids, tc.want)
+			}
+		})
+	}
+}
+
 // TestShadowRouting_Network_NonFoldedField — `website` has no _fold shadow.
 // Queries on website must still work via the existing FieldContainsFold path.
 func TestShadowRouting_Network_NonFoldedField(t *testing.T) {
@@ -222,17 +255,17 @@ func TestInJsonEach_StringValues(t *testing.T) {
 	client := testutil.SetupClient(t)
 	ctx := t.Context()
 	now := time.Now().UTC()
-	_, err := client.Network.Create().SetID(1).SetName("alpha").SetAsn(1).
+	_, err := client.Network.Create().SetID(1).SetName("alpha").SetNameFold(unifold.Fold("alpha")).SetAsn(1).
 		SetStatus("ok").SetCreated(now).SetUpdated(now).Save(ctx)
 	if err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	_, err = client.Network.Create().SetID(2).SetName("beta").SetAsn(2).
+	_, err = client.Network.Create().SetID(2).SetName("beta").SetNameFold(unifold.Fold("beta")).SetAsn(2).
 		SetStatus("ok").SetCreated(now).SetUpdated(now).Save(ctx)
 	if err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	_, err = client.Network.Create().SetID(3).SetName("gamma").SetAsn(3).
+	_, err = client.Network.Create().SetID(3).SetName("gamma").SetNameFold(unifold.Fold("gamma")).SetAsn(3).
 		SetStatus("ok").SetCreated(now).SetUpdated(now).Save(ctx)
 	if err != nil {
 		t.Fatalf("seed: %v", err)

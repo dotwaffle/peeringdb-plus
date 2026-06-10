@@ -4,7 +4,8 @@
 // The pipeline is: hand-mapped ligature substitution → NFKD normalisation
 // (golang.org/x/text/unicode/norm) → drop combining marks (unicode.Mn) →
 // ToLower. The hand map covers non-decomposable diacritics that NFKD alone
-// leaves intact (ß, æ, ø, ł, þ, đ, and their upper-case variants).
+// leaves intact (ß, æ, œ, ø, ł, þ, đ, ð, dotless ı, and their
+// upper-case variants).
 //
 // Scope: reproduces upstream PeeringDB's `unidecode.unidecode(v)` behaviour
 // (rest.py:576) closely enough for filter-value matching in the pdbcompat
@@ -27,13 +28,17 @@ import (
 // substitution is order-independent with respect to ToLower.
 //
 // Sourced from upstream `unidecode` behaviour for these specific code
-// points; keep the list tight — expanding beyond these 6 pairs is a
-// deliberate decision, not a casual addition.
+// points; keep the list tight — expanding beyond these pairs is a
+// deliberate decision, not a casual addition. (œ/Œ, ð/Ð, and dotless ı
+// were added after the 2026-06-10 audit found unidecode folds them
+// while NFKD leaves them intact.)
 var foldMap = map[rune]string{
 	'ß': "ss", // U+00DF LATIN SMALL LETTER SHARP S
 	'ẞ': "ss", // U+1E9E LATIN CAPITAL LETTER SHARP S
 	'æ': "ae",
 	'Æ': "ae",
+	'œ': "oe", // U+0153 LATIN SMALL LIGATURE OE (unidecode: "oe")
+	'Œ': "oe", // U+0152 LATIN CAPITAL LIGATURE OE (unidecode: "OE"; ToLower follows)
 	'ø': "o",
 	'Ø': "o",
 	'ł': "l",
@@ -42,6 +47,9 @@ var foldMap = map[rune]string{
 	'Þ': "th",
 	'đ': "d",
 	'Đ': "d",
+	'ð': "d", // U+00F0 LATIN SMALL LETTER ETH (unidecode: "d")
+	'Ð': "d", // U+00D0 LATIN CAPITAL LETTER ETH (unidecode: "D"; ToLower follows)
+	'ı': "i", // U+0131 LATIN SMALL LETTER DOTLESS I (unidecode: "i"; no NFKD decomposition)
 }
 
 // Fold normalises s for case-insensitive, diacritic-insensitive matching.

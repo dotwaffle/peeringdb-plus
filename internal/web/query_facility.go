@@ -19,7 +19,7 @@ import (
 // Returns the fully populated FacilityDetail or an error (including ent.IsNotFound).
 func (h *Handler) queryFacility(ctx context.Context, id int) (templates.FacilityDetail, error) {
 	fac, err := h.client.Facility.Query().
-		Where(facility.ID(id)).
+		Where(facility.ID(id), facility.StatusIn("ok", "pending")).
 		WithOrganization().
 		WithCampus().
 		Only(ctx)
@@ -67,7 +67,7 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 	// Eager-load facility networks. The association row's own `name` is the
 	// facility name, so resolve the network name from the Network edge.
 	facNetItems, err := h.client.NetworkFacility.Query().
-		Where(networkfacility.HasFacilityWith(facility.ID(id))).
+		Where(networkfacility.HasFacilityWith(facility.ID(id)), networkfacility.StatusIn("ok", "pending")).
 		WithNetwork().
 		Order(networkfacility.ByNetworkField(network.FieldName)).
 		All(ctx)
@@ -93,7 +93,7 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 	// Eager-load facility IXPs. The association row's own `name` is the facility
 	// name, so resolve the exchange name from the InternetExchange edge.
 	facIXItems, err := h.client.IxFacility.Query().
-		Where(ixfacility.HasFacilityWith(facility.ID(id))).
+		Where(ixfacility.HasFacilityWith(facility.ID(id)), ixfacility.StatusIn("ok", "pending")).
 		WithInternetExchange().
 		Order(ixfacility.ByInternetExchangeField(internetexchange.FieldName)).
 		All(ctx)
@@ -116,7 +116,7 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 	// Eager-load facility carriers. The association row's own `name` is the
 	// facility name, so resolve the carrier name from the Carrier edge.
 	facCarrierItems, err := h.client.CarrierFacility.Query().
-		Where(carrierfacility.HasFacilityWith(facility.ID(id))).
+		Where(carrierfacility.HasFacilityWith(facility.ID(id)), carrierfacility.StatusIn("ok", "pending")).
 		WithCarrier().
 		Order(carrierfacility.ByCarrierField(carrier.FieldName)).
 		All(ctx)

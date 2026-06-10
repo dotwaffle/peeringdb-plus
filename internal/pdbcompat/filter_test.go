@@ -499,7 +499,7 @@ func TestBuildInErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := buildIn(tt.field, tt.value, tt.ft)
+			_, err := buildIn(tt.field, tt.value, tt.ft, false)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -528,7 +528,7 @@ func TestBuildIn_CoercesBoolFloatTime(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			pred, err := buildIn(c.field, c.value, c.ft)
+			pred, err := buildIn(c.field, c.value, c.ft, false)
 			if err != nil {
 				t.Fatalf("buildIn(%s) returned error: %v", c.ft, err)
 			}
@@ -599,7 +599,7 @@ func TestFilterErrorsUseTypeNames(t *testing.T) {
 	t.Parallel()
 	_, exactErr := buildExact("f", "v", FieldType(99), false)
 	_, convErr := convertValue("v", FieldType(99))
-	_, inErr := buildIn("f", "v", FieldType(99))
+	_, inErr := buildIn("f", "v", FieldType(99), false)
 	checks := []struct {
 		name string
 		err  error
@@ -653,7 +653,8 @@ func TestParseBoolErrors(t *testing.T) {
 	}
 }
 
-// TestParseTimeErrors tests error paths in parseTime.
+// TestParseTimeErrors tests error paths in parseEpoch (the strict
+// integer parser used by ?since=).
 func TestParseTimeErrors(t *testing.T) {
 	t.Parallel()
 
@@ -670,7 +671,7 @@ func TestParseTimeErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := parseTime(tt.input)
+			_, err := parseEpoch(tt.input)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}

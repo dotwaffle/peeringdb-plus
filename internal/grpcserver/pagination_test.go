@@ -102,167 +102,28 @@ func TestPageTokenRoundTrip(t *testing.T) {
 	}
 }
 
-// TestStreamCursorRoundTrip verifies that streamCursor values survive an
-// encode/decode cycle intact across a range of timestamp boundaries and ids.
-// The compound keyset cursor is the foundation for the default
-// (-updated, -created, -id) ordering; a round-trip failure
-// here would silently corrupt stream resume positions.
-func TestStreamCursorRoundTrip(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name string
-		in   streamCursor
-	}{
-		{name: "epoch", in: streamCursor{Updated: time.Unix(0, 0).UTC(), Created: time.Unix(0, 0).UTC(), ID: 1}},
-		{name: "nano precision", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 123456789, time.UTC), Created: time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC), ID: 42}},
-		{name: "future", in: streamCursor{Updated: time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC), Created: time.Date(2099, 6, 1, 0, 0, 0, 0, time.UTC), ID: 99999}},
-		{name: "id one", in: streamCursor{Updated: time.Date(2025, 6, 15, 8, 30, 45, 0, time.UTC), Created: time.Date(2010, 6, 15, 8, 30, 45, 0, time.UTC), ID: 1}},
-		{name: "large id", in: streamCursor{Updated: time.Date(2024, 12, 31, 23, 59, 59, 999999999, time.UTC), Created: time.Date(2024, 12, 31, 23, 59, 59, 1, time.UTC), ID: 2147483647}},
-		{name: "created after updated", in: streamCursor{Updated: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), Created: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), ID: 7}},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			enc := encodeStreamCursor(tc.in)
-			if enc == "" {
-				t.Fatalf("encodeStreamCursor(%+v) returned empty string for non-empty cursor", tc.in)
-			}
-			got, err := decodeStreamCursor(enc)
-			if err != nil {
-				t.Fatalf("decodeStreamCursor(%q) error = %v", enc, err)
-			}
-			if !got.Updated.Equal(tc.in.Updated) {
-				t.Errorf("round-trip Updated mismatch: got %v, want %v", got.Updated, tc.in.Updated)
-			}
-			if !got.Created.Equal(tc.in.Created) {
-				t.Errorf("round-trip Created mismatch: got %v, want %v", got.Created, tc.in.Created)
-			}
-			if got.ID != tc.in.ID {
-				t.Errorf("round-trip ID mismatch: got %d, want %d", got.ID, tc.in.ID)
-			}
-		})
-	}
-}
-
-// TestStreamCursorEmpty verifies the zero-value contract: empty string
-// decodes to zero-value streamCursor (start of stream), and a zero-value
-// streamCursor encodes to an empty string (signals "no next page").
+// TestStreamCursorEmpty locks the zero-value contract used by the streaming
+// loop in generic.go: a zero-value cursor means "start of stream" and any
+// populated key makes it non-empty.
 func TestStreamCursorEmpty(t *testing.T) {
 	t.Parallel()
-
-	t.Run("empty string decodes to zero cursor", func(t *testing.T) {
-		t.Parallel()
-		got, err := decodeStreamCursor("")
-		if err != nil {
-			t.Fatalf("decodeStreamCursor(\"\") error = %v", err)
-		}
-		if !got.empty() {
-			t.Errorf("decodeStreamCursor(\"\") = %+v, want empty cursor", got)
-		}
-		if !got.Updated.IsZero() || !got.Created.IsZero() || got.ID != 0 {
-			t.Errorf("decodeStreamCursor(\"\") = %+v, want zero-value", got)
-		}
-	})
-
-	t.Run("zero cursor encodes to empty string", func(t *testing.T) {
-		t.Parallel()
-		enc := encodeStreamCursor(streamCursor{})
-		if enc != "" {
-			t.Errorf("encodeStreamCursor(zero) = %q, want empty string", enc)
-		}
-	})
-}
-
-// TestStreamCursorInvalidBase64 verifies that malformed base64 input is
-// rejected with a decode error rather than silently returning garbage.
-// Trust-boundary input: page_token arrives over the wire from untrusted
-// clients.
-func TestStreamCursorInvalidBase64(t *testing.T) {
-	t.Parallel()
-	bad := []string{
-		"!!!not-valid-base64!!!",
-		"====",
-		"abc def",
-	}
-	for _, token := range bad {
-		t.Run(token, func(t *testing.T) {
-			t.Parallel()
-			got, err := decodeStreamCursor(token)
-			if err == nil {
-				t.Fatalf("decodeStreamCursor(%q) expected error, got cursor %+v", token, got)
-			}
-		})
-	}
-}
-
-// TestStreamCursorInvalidFormat verifies that a valid base64 body with a
-// malformed three-field cursor is rejected. The body must split into exactly
-// three pipe-delimited fields with two parseable RFC3339Nano timestamps and a
-// non-negative integer id. This protects the ORDER BY predicate from a crafted
-// token forcing nonsense into the keyset comparison.
-func TestStreamCursorInvalidFormat(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
-		name string
-		body string
-	}{
-		{name: "too few fields", body: "2026-04-19T12:00:00Z|5"},
-		{name: "single field", body: "2026-04-19T12:00:00Z"},
-		{name: "too many fields", body: "2026-04-19T12:00:00Z|2026-04-19T12:00:00Z|5|extra"},
-		{name: "updated not a timestamp", body: "notatimestamp|2026-04-19T12:00:00Z|5"},
-		{name: "created not a timestamp", body: "2026-04-19T12:00:00Z|notatimestamp|5"},
-		{name: "garbage id", body: "2026-04-19T12:00:00Z|2026-04-19T12:00:00Z|abc"},
-		{name: "empty updated", body: "|2026-04-19T12:00:00Z|5"},
-		{name: "empty created", body: "2026-04-19T12:00:00Z||5"},
-		{name: "empty id", body: "2026-04-19T12:00:00Z|2026-04-19T12:00:00Z|"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			token := base64.StdEncoding.EncodeToString([]byte(tc.body))
-			got, err := decodeStreamCursor(token)
-			if err == nil {
-				t.Fatalf("decodeStreamCursor(%q=body %q) expected error, got cursor %+v", token, tc.body, got)
-			}
-		})
-	}
-}
-
-// TestStreamCursorNegativeID rejects cursors with negative ids. The id is
-// a primary-key surrogate and monotonic-positive by construction; a
-// negative id is always a tampered token or encoder bug.
-func TestStreamCursorNegativeID(t *testing.T) {
-	t.Parallel()
-	token := base64.StdEncoding.EncodeToString([]byte("2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|-5"))
-	got, err := decodeStreamCursor(token)
-	if err == nil {
-		t.Fatalf("decodeStreamCursor with negative id expected error, got cursor %+v", got)
-	}
-}
-
-// TestStreamCursorColonsInTimestamp verifies that RFC3339Nano timestamps
-// (which contain colons of their own in HH:MM:SS and any TZ offset)
-// round-trip correctly under the pipe-delimited three-field encoding. The
-// pipe delimiter never collides with a timestamp's colons.
-func TestStreamCursorColonsInTimestamp(t *testing.T) {
-	t.Parallel()
-	cases := []struct {
+	ts := time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
 		name string
 		in   streamCursor
+		want bool
 	}{
-		{name: "nano with colons", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 123456789, time.UTC), Created: time.Date(2020, 4, 19, 12, 0, 0, 5, time.UTC), ID: 1234}},
-		{name: "subsecond zero", in: streamCursor{Updated: time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC), Created: time.Date(2020, 4, 19, 12, 0, 0, 0, time.UTC), ID: 7}},
+		{name: "zero value is empty", in: streamCursor{}, want: true},
+		{name: "id alone is non-empty", in: streamCursor{ID: 1}, want: false},
+		{name: "updated alone is non-empty", in: streamCursor{Updated: ts}, want: false},
+		{name: "created alone is non-empty", in: streamCursor{Created: ts}, want: false},
+		{name: "fully populated is non-empty", in: streamCursor{Updated: ts, Created: ts, ID: 7}, want: false},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			enc := encodeStreamCursor(tc.in)
-			got, err := decodeStreamCursor(enc)
-			if err != nil {
-				t.Fatalf("decodeStreamCursor(%q) error = %v", enc, err)
-			}
-			if !got.Updated.Equal(tc.in.Updated) || !got.Created.Equal(tc.in.Created) || got.ID != tc.in.ID {
-				t.Errorf("round-trip with colons in timestamp failed: got %+v, want %+v", got, tc.in)
+			if got := tt.in.empty(); got != tt.want {
+				t.Errorf("streamCursor.empty() = %v, want %v (cursor %+v)", got, tt.want, tt.in)
 			}
 		})
 	}

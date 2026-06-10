@@ -32,11 +32,16 @@ func init() {
 //     redundant overhead. Halves the per-commit syscall cost on the bulk-
 //     upsert tx; the Fly primary's local WAL is replayed on replicas
 //     regardless of the local fsync mode.
-//   - cache_size(-32000): 32 MB page cache (negative value = KiB). Default
-//     is ~2 MB. The bulk-upsert workload reuses recently-read pages heavily
-//     during the ~60s upsert burst; 32 MB fits comfortably under the Fly
-//     512 MB primary VM cap (sync peak heap ~37 MB, peak RSS ~232 MB
-//     observed in production).
+//   - cache_size(-8000): 8 MB page cache PER CONNECTION (negative value =
+//     KiB; SQLite's default is ~2 MB). The page cache multiplies by the
+//     pool: with MaxOpenConns=10 the worst case is 10 x cache_size, and
+//     MaxIdleConns=5 retains up to 5 x cache_size for ConnMaxLifetime
+//     after a read burst. The earlier -32000 (32 MB) was sized for the
+//     primary's single-connection bulk-upsert burst but capped at 320 MB
+//     pooled — more than an entire 256 MB replica VM serving the
+//     read-heavy full-dump traffic that actually fills caches. 8 MB
+//     bounds the pool at 80 MB worst-case while still quadrupling the
+//     default for the upsert tx's page reuse.
 //   - temp_store(MEMORY): keeps sorter and temp tables in RAM. modernc.org/
 //     sqlite's default is FILE which on Fly hits the rootfs overlay (NOT
 //     tmpfs — verified via /proc/mounts).
@@ -54,7 +59,7 @@ func init() {
 func Open(dbPath string, traceSQL bool) (*ent.Client, *sql.DB, error) {
 	dsn := fmt.Sprintf(
 		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"+
-			"&_pragma=synchronous(NORMAL)&_pragma=cache_size(-32000)&_pragma=temp_store(MEMORY)",
+			"&_pragma=synchronous(NORMAL)&_pragma=cache_size(-8000)&_pragma=temp_store(MEMORY)",
 		dbPath,
 	)
 	var (

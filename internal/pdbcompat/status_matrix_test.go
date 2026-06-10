@@ -126,13 +126,13 @@ func TestStatusMatrix(t *testing.T) {
 		srv := httptest.NewServer(newMuxForOrdering(client))
 		t.Cleanup(srv.Close)
 
-		// since=0 admits all historical rows.
-		n, code := fetchDataLength(t, srv.URL+"/api/net?since=0")
+		// since=1 admits all historical rows.
+		n, code := fetchDataLength(t, srv.URL+"/api/net?since=1")
 		if code != http.StatusOK {
-			t.Fatalf("GET /api/net?since=0: status %d", code)
+			t.Fatalf("GET /api/net?since=1: status %d", code)
 		}
 		if n != 2 {
-			t.Errorf("list with since=0 (non-campus): got %d items, want 2 (ok + deleted; pending excluded)", n)
+			t.Errorf("list with since=1 (non-campus): got %d items, want 2 (ok + deleted; pending excluded)", n)
 		}
 	})
 
@@ -146,12 +146,12 @@ func TestStatusMatrix(t *testing.T) {
 		srv := httptest.NewServer(newMuxForOrdering(client))
 		t.Cleanup(srv.Close)
 
-		n, code := fetchDataLength(t, srv.URL+"/api/campus?since=0")
+		n, code := fetchDataLength(t, srv.URL+"/api/campus?since=1")
 		if code != http.StatusOK {
-			t.Fatalf("GET /api/campus?since=0: status %d", code)
+			t.Fatalf("GET /api/campus?since=1: status %d", code)
 		}
 		if n != 3 {
-			t.Errorf("list campus with since=0: got %d items, want 3 (ok + pending + deleted)", n)
+			t.Errorf("list campus with since=1: got %d items, want 3 (ok + pending + deleted)", n)
 		}
 	})
 
@@ -310,14 +310,14 @@ func TestStatusMatrix_AllEntities(t *testing.T) {
 					e.tag, n, code)
 			}
 
-			// ?since=0: ok+deleted for generic types; +pending for campus.
+			// ?since=1: ok+deleted for generic types; +pending for campus.
 			// A flipped isCampus flag would change this count.
 			wantSince := 2
 			if e.isCampus {
 				wantSince = 3
 			}
-			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?since=0"); code != http.StatusOK || n != wantSince {
-				t.Errorf("GET /api/%s?since=0: got n=%d code=%d, want n=%d code=200 (isCampus=%v: pending %s)",
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?since=1"); code != http.StatusOK || n != wantSince {
+				t.Errorf("GET /api/%s?since=1: got n=%d code=%d, want n=%d code=200 (isCampus=%v: pending %s)",
 					e.tag, n, code, wantSince, e.isCampus,
 					map[bool]string{true: "admitted", false: "hidden"}[e.isCampus])
 			}

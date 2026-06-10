@@ -17,7 +17,7 @@ import (
 // Returns the fully populated IXDetail or an error (including ent.IsNotFound).
 func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, error) {
 	ix, err := h.client.InternetExchange.Query().
-		Where(internetexchange.ID(id)).
+		Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
 		WithOrganization().
 		Only(ctx)
 	if err != nil {
@@ -45,7 +45,10 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 
 	// Count prefixes via IxLan traversal: InternetExchange -> IxLan -> IxPrefix.
 	prefixCount, err := h.client.IxPrefix.Query().
-		Where(ixprefix.HasIxLanWith(ixlan.HasInternetExchangeWith(internetexchange.ID(id)))).
+		Where(
+			ixprefix.HasIxLanWith(ixlan.HasInternetExchangeWith(internetexchange.ID(id)), ixlan.StatusIn("ok", "pending")),
+			ixprefix.StatusIn("ok", "pending"),
+		).
 		Count(ctx)
 	if err == nil {
 		data.PrefixCount = prefixCount
@@ -57,8 +60,9 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 
 	// Compute aggregate bandwidth and eager-load participant rows.
 	ixParticipants, err := h.client.IxLan.Query().
-		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id))).
+		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id)), ixlan.StatusIn("ok", "pending")).
 		QueryNetworkIxLans().
+		Where(networkixlan.StatusIn("ok", "pending")).
 		WithNetwork().
 		Order(networkixlan.ByAsn()).
 		All(ctx)
@@ -93,7 +97,7 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 
 	// Eager-load IX facilities with facility coordinates for map rendering.
 	ixFacItems, err := h.client.IxFacility.Query().
-		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(id))).
+		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(id)), ixfacility.StatusIn("ok", "pending")).
 		WithFacility(). // Eager-load facility entity for lat/lng
 		Order(ixfacility.ByName()).
 		All(ctx)
@@ -126,8 +130,9 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 
 	// Eager-load IX prefixes.
 	ixPrefixItems, err := h.client.IxLan.Query().
-		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id))).
+		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id)), ixlan.StatusIn("ok", "pending")).
 		QueryIxPrefixes().
+		Where(ixprefix.StatusIn("ok", "pending")).
 		Order(ixprefix.ByPrefix()).
 		All(ctx)
 	if err == nil {
