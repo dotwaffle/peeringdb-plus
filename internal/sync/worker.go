@@ -717,6 +717,16 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	prevMemLimit := debug.SetMemoryLimit(syncMemLimit)
 	defer debug.SetMemoryLimit(prevMemLimit)
 
+	// Full-mode cycles reconcile completely: the reconcile-all marker
+	// disables the upsert pass's updated-timestamp skip gate so rows the
+	// sync mutated locally without bumping `updated` (orphan-filter FK
+	// nulls) re-converge with upstream, and newly added _fold columns
+	// backfill. This is the documented purpose of the daily forced-full
+	// escalation; without the marker the gate skipped those rows forever.
+	if effectiveMode == config.SyncModeFull {
+		ctx = withReconcileAll(ctx)
+	}
+
 	scratch, err := openScratchDB(ctx)
 	if err != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)

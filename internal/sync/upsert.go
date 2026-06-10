@@ -51,8 +51,11 @@ import (
 // edited at upstream within the same second as the prior cursor
 // advance will skip on the next incremental cycle. Mitigations:
 // (a) the next upstream change will bump `updated` past the cursor and
-// reconcile naturally; (b) full-mode runs (PDBPLUS_SYNC_MODE=full)
-// ignore this predicate and reconcile completely. We deliberately use
+// reconcile naturally; (b) full-mode cycles carry the reconcile-all
+// marker (withReconcileAll, set in syncCycle) which disables this
+// predicate so the cycle reconciles completely — healing rows the sync
+// mutated locally without bumping `updated` (orphan-filter FK nulls)
+// and backfilling newly added _fold columns. We deliberately use
 // strict `>` rather than `>=`: `>=` would defeat the optimization
 // entirely, since PeeringDB's ?since=N is inclusive and every refetch
 // produces excluded.updated >= existing.updated. The bounded same-
@@ -69,8 +72,17 @@ import (
 // at the 13 call sites — it documents which table this predicate is
 // targeting even though the qualifier is supplied by ent at emission
 // time.
-func skipUnchangedPredicate(table string) *sql.Predicate {
+func skipUnchangedPredicate(ctx context.Context, table string) *sql.Predicate {
 	_ = table // documentation parameter; see godoc above
+	if reconcileAll(ctx) {
+		// Full-mode cycle: every conflicting row is rewritten from the
+		// upstream snapshot regardless of the updated gate. Expressed
+		// as an always-true UpdateWhere rather than omitting the clause
+		// so the 13 OnConflict call sites stay uniform.
+		return sql.P(func(b *sql.Builder) {
+			b.WriteString("1=1")
+		})
+	}
 	return sql.P(func(b *sql.Builder) {
 		b.WriteString("excluded.updated > ")
 		b.Ident("updated")
@@ -80,6 +92,25 @@ func skipUnchangedPredicate(table string) *sql.Predicate {
 		b.Ident("updated")
 		b.WriteString(" <= '1900-01-01'")
 	})
+}
+
+// reconcileAllKey marks a sync cycle whose upserts must rewrite every
+// conflicting row regardless of the updated-timestamp gate. Carried on
+// the cycle context (cycle-scoped data, set once in syncCycle for
+// full-mode runs) so the flag reaches the 13 upsert closures without
+// widening every signature in the dispatch chain.
+type reconcileAllKey struct{}
+
+// withReconcileAll returns ctx marked for full reconciliation.
+func withReconcileAll(ctx context.Context) context.Context {
+	return context.WithValue(ctx, reconcileAllKey{}, true)
+}
+
+// reconcileAll reports whether the cycle context carries the
+// full-reconciliation marker.
+func reconcileAll(ctx context.Context) bool {
+	v, _ := ctx.Value(reconcileAllKey{}).(bool)
+	return v
 }
 
 // batchSize limits the number of builders per bulk upsert to stay within
@@ -164,7 +195,7 @@ func upsertOrganizations(ctx context.Context, tx *ent.Tx, orgs []peeringdb.Organ
 				OnConflict(
 					sql.ConflictColumns(organization.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("organizations")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "organizations")),
 				).
 				Exec(ctx)
 		},
@@ -203,7 +234,7 @@ func upsertCampuses(ctx context.Context, tx *ent.Tx, items []peeringdb.Campus) (
 				OnConflict(
 					sql.ConflictColumns(campus.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("campuses")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "campuses")),
 				).
 				Exec(ctx)
 		},
@@ -266,7 +297,7 @@ func upsertFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.Facilit
 				OnConflict(
 					sql.ConflictColumns(facility.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "facilities")),
 				).
 				Exec(ctx)
 		},
@@ -303,7 +334,7 @@ func upsertCarriers(ctx context.Context, tx *ent.Tx, items []peeringdb.Carrier) 
 				OnConflict(
 					sql.ConflictColumns(carrier.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("carriers")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "carriers")),
 				).
 				Exec(ctx)
 		},
@@ -330,7 +361,7 @@ func upsertCarrierFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 				OnConflict(
 					sql.ConflictColumns(carrierfacility.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("carrier_facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "carrier_facilities")),
 				).
 				Exec(ctx)
 		},
@@ -390,7 +421,7 @@ func upsertInternetExchanges(ctx context.Context, tx *ent.Tx, items []peeringdb.
 				OnConflict(
 					sql.ConflictColumns(internetexchange.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("internet_exchanges")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "internet_exchanges")),
 				).
 				Exec(ctx)
 		},
@@ -424,7 +455,7 @@ func upsertIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.IxLan) ([]i
 				OnConflict(
 					sql.ConflictColumns(ixlan.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("ix_lans")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_lans")),
 				).
 				Exec(ctx)
 		},
@@ -452,7 +483,7 @@ func upsertIxPrefixes(ctx context.Context, tx *ent.Tx, items []peeringdb.IxPrefi
 				OnConflict(
 					sql.ConflictColumns(ixprefix.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("ix_prefixes")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_prefixes")),
 				).
 				Exec(ctx)
 		},
@@ -481,7 +512,7 @@ func upsertIxFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.IxFac
 				OnConflict(
 					sql.ConflictColumns(ixfacility.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("ix_facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_facilities")),
 				).
 				Exec(ctx)
 		},
@@ -546,7 +577,7 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 				OnConflict(
 					sql.ConflictColumns(network.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("networks")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "networks")),
 				).
 				Exec(ctx)
 		},
@@ -577,7 +608,7 @@ func upsertPocs(ctx context.Context, tx *ent.Tx, items []peeringdb.Poc) ([]int, 
 				OnConflict(
 					sql.ConflictColumns(poc.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("pocs")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "pocs")),
 				).
 				Exec(ctx)
 		},
@@ -607,7 +638,7 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 				OnConflict(
 					sql.ConflictColumns(networkfacility.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("network_facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "network_facilities")),
 				).
 				Exec(ctx)
 		},
@@ -740,7 +771,7 @@ func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.Netw
 				OnConflict(
 					sql.ConflictColumns(networkixlan.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate("network_ix_lans")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, "network_ix_lans")),
 				).
 				Exec(ctx)
 		},
