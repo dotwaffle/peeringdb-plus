@@ -222,17 +222,17 @@ func TestInJsonEach_StringValues(t *testing.T) {
 	client := testutil.SetupClient(t)
 	ctx := t.Context()
 	now := time.Now().UTC()
-	_, err := client.Network.Create().SetID(1).SetName("alpha").SetAsn(1).
+	_, err := client.Network.Create().SetID(1).SetName("alpha").SetNameFold(unifold.Fold("alpha")).SetAsn(1).
 		SetStatus("ok").SetCreated(now).SetUpdated(now).Save(ctx)
 	if err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	_, err = client.Network.Create().SetID(2).SetName("beta").SetAsn(2).
+	_, err = client.Network.Create().SetID(2).SetName("beta").SetNameFold(unifold.Fold("beta")).SetAsn(2).
 		SetStatus("ok").SetCreated(now).SetUpdated(now).Save(ctx)
 	if err != nil {
 		t.Fatalf("seed: %v", err)
 	}
-	_, err = client.Network.Create().SetID(3).SetName("gamma").SetAsn(3).
+	_, err = client.Network.Create().SetID(3).SetName("gamma").SetNameFold(unifold.Fold("gamma")).SetAsn(3).
 		SetStatus("ok").SetCreated(now).SetUpdated(now).Save(ctx)
 	if err != nil {
 		t.Fatalf("seed: %v", err)

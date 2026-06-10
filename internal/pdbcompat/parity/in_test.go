@@ -108,6 +108,50 @@ func TestParity_In(t *testing.T) {
 		}
 	})
 
+	t.Run("string_in_is_case_insensitive_and_folded", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:576 (`v = unidecode.unidecode(v)` applies
+		// to ALL filter values, including __in) + MySQL's
+		// case-insensitive utf8mb4 collation. ?name=decix matching
+		// "DECIX" while ?name__in=decix missed it was an internal
+		// inconsistency on the same field.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seed := func(id int, name string) {
+			if _, err := c.Network.Create().
+				SetID(id).SetName(name).SetNameFold(unifold.Fold(name)).
+				SetAsn(64500 + id).SetStatus("ok").
+				SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed net %d: %v", id, err)
+			}
+		}
+		seed(1, "DECIX Test")
+		seed(2, "Drüben Networks")
+		seed(3, "Other")
+
+		srv := newTestServer(t, c)
+
+		// Case-insensitive: lowercase query matches uppercase row.
+		status, body := httpGet(t, srv, "/api/net?name__in=decix%20test")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		if ids := extractIDs(t, body); len(ids) != 1 || ids[0] != 1 {
+			t.Errorf("case-insensitive __in: got %v, want [1]", ids)
+		}
+
+		// Diacritic-folded: ASCII query matches the umlaut row via the
+		// name_fold shadow column.
+		status, body = httpGet(t, srv, "/api/net?name__in=druben%20networks")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		if ids := extractIDs(t, body); len(ids) != 1 || ids[0] != 2 {
+			t.Errorf("fold-routed __in: got %v, want [2]", ids)
+		}
+	})
+
 	t.Run("malformed_int_csv_returns_400_problem_json", func(t *testing.T) {
 		t.Parallel()
 		// v1.16 behaviour lock: malformed values in a typed-int

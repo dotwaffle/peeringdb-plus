@@ -604,7 +604,7 @@ func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*s
 		// falls back to buildExact's per-type handling.
 		return buildExact(field, value, ft, folded)
 	case "in":
-		return buildIn(field, value, ft)
+		return buildIn(field, value, ft, folded)
 	case "lt":
 		return buildComparison(field, op, value, ft, sql.FieldLT)
 	case "gt":
@@ -702,7 +702,7 @@ func buildStartsWith(field, value string, ft FieldType, folded bool) (func(*sql.
 //
 // An empty value (?asn__in=) returns errEmptyIn which ParseFilters
 // translates to QueryOptions.EmptyResult=true.
-func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
+func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
 	if value == "" {
 		return nil, errEmptyIn
 	}
@@ -723,9 +723,21 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 	var marshalErr error
 	switch ft {
 	case FieldString:
+		// Upstream folds ALL filter values with unidecode (rest.py:576)
+		// and matches under MySQL's case-insensitive collation, so
+		// string __in is case- and diacritic-insensitive there. SQLite
+		// resolves a bare IN with the column's BINARY collation, so
+		// lower-case both sides here (and route folded fields through
+		// the <field>_fold shadow column), keeping __in consistent
+		// with the exact/contains/startswith operators on the same
+		// field.
 		trimmed := make([]string, len(parts))
 		for i, p := range parts {
-			trimmed[i] = strings.TrimSpace(p)
+			v := strings.TrimSpace(p)
+			if folded {
+				v = unifold.Fold(v)
+			}
+			trimmed[i] = strings.ToLower(v)
 		}
 		jsonArr, marshalErr = json.Marshal(trimmed)
 	case FieldInt:
@@ -777,12 +789,23 @@ func buildIn(field, value string, ft FieldType) (func(*sql.Selector), error) {
 		return nil, fmt.Errorf("marshal IN array: %w", marshalErr)
 	}
 	jsonStr := string(jsonArr)
+	col := field
+	if ft == FieldString && folded {
+		col = field + "_fold"
+	}
+	lowered := ft == FieldString
 	return func(s *sql.Selector) {
-		// s.C(field) quotes the column identifier via the ent builder —
+		// s.C(col) quotes the column identifier via the ent builder —
 		// the column name itself is already validated against tc.Fields
 		// by ParseFilters, so no injection surface. The JSON payload
 		// binds as a single parameter via ExprP (SQL-injection mitigation).
-		s.Where(sql.ExprP(s.C(field)+" IN (SELECT value FROM json_each(?))", jsonStr))
+		// String lists were lower-cased at build time, so the column is
+		// wrapped in LOWER() to match; int lists compare numerically.
+		expr := s.C(col)
+		if lowered {
+			expr = "LOWER(" + expr + ")"
+		}
+		s.Where(sql.ExprP(expr+" IN (SELECT value FROM json_each(?))", jsonStr))
 	}, nil
 }
 
