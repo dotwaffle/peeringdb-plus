@@ -713,32 +713,24 @@ func (w *restErrorWriter) Flush() {
 	}
 }
 
-// restListWrapperKey is the JSON key under which entrest's PagedResponse
-// serialises the items slice. Confirmed at planning time by grepping:
-//
-//	$ grep -rn 'json:"content"' ent/rest/
-//	ent/rest/list.go:153:    Content    []*T `json:"content"`      // Paged data.
-//
-// If a future entrest upgrade changes this tag, this constant MUST move
-// in lock-step or restFieldRedactMiddleware silently stops redacting list
-// responses — a privacy leak. The wave-2 E2E list sub-test catches the
-// regression.
-const restListWrapperKey = "content"
-
 // restFieldRedactMiddleware removes the `ixf_ixp_member_list_url` key
-// from /rest/v1/ix-lans* JSON responses when the caller's ctx tier
-// does not admit the field (per internal/privfield.Redact).
+// from /rest/v1/ JSON responses when the caller's ctx tier does not
+// admit the field (per internal/privfield.Redact).
 //
 // entrest has no native per-field conditional-omission hook (verified
 // against the lrstanley/entrest annotation reference and local behavior notes
 // Finding #1). This middleware is the workaround: it buffers the
-// response body on the ixlan paths, parses the JSON, walks the ixlan
-// object(s), and re-emits with the field deleted when privfield.Redact
-// says omit.
+// response body, parses the JSON, and re-emits with the field deleted
+// wherever privfield.Redact says omit.
 //
-// Scope: only /rest/v1/ix-lans (prefix match). Detail responses are
-// single objects; list responses wrap entries in {restListWrapperKey:[…]}.
-// Non-ixlan REST paths and non-JSON bodies pass through unchanged.
+// Scope: ALL /rest/v1/ paths, with the gated object located by a
+// recursive walk rather than by response shape. entrest eager-loads the
+// ixlan edge unconditionally (ent/rest/eagerload.go), so ixlan objects
+// appear nested under edges.ix_lans / edges.ix_lan on internet-exchange,
+// ix-prefix, and network-ix-lan responses — scoping redaction to the
+// flat /rest/v1/ix-lans* paths leaked the gated URL through every
+// embedding endpoint (2026-06-10 audit). Non-JSON bodies pass through
+// unchanged.
 //
 // Ordering: this middleware MUST be wrapped INSIDE restErrorMiddleware
 // so that problem+json error bodies pass through without being mis-parsed
@@ -747,7 +739,7 @@ const restListWrapperKey = "content"
 // Required for privacy-redaction correctness.
 func restFieldRedactMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/rest/v1/ix-lans") {
+		if !strings.HasPrefix(r.URL.Path, "/rest/v1/") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -830,51 +822,56 @@ func (w *restFieldRedactWriter) flush() {
 	_, _ = w.ResponseWriter.Write(rewritten)
 }
 
-// redactIxlanJSON parses body as JSON and applies Redact to any ixlan
-// object (detail shape) or list of ixlan objects (under restListWrapperKey).
-// Returns the re-encoded body.
+// redactIxlanJSON parses body as JSON, recursively redacts every embedded
+// ixlan object, and returns the re-encoded body.
 func redactIxlanJSON(ctx context.Context, body []byte) ([]byte, error) {
-	var top map[string]any
+	var top any
 	if err := json.Unmarshal(body, &top); err != nil {
 		return nil, err
 	}
-	changed := false
-	// List shape: {page, total_count, last_page, is_last_page, content:[…]}
-	if wrapped, ok := top[restListWrapperKey].([]any); ok {
-		for _, entry := range wrapped {
-			obj, ok := entry.(map[string]any)
-			if !ok {
-				continue
-			}
-			if redactIxlanObject(ctx, obj) {
-				changed = true
-			}
-		}
-	} else {
-		// Detail shape: single ixlan object at the top level.
-		changed = redactIxlanObject(ctx, top)
-	}
-	if !changed {
+	if !redactGatedFields(ctx, top) {
 		// Nothing was gated out (the common case: public tier, or a row
 		// whose URL is admitted). Return the original bytes and skip the
-		// re-marshal — the parsed map is byte-for-byte equivalent.
+		// re-marshal — the parsed value is byte-for-byte equivalent.
 		return body, nil
 	}
 	return json.Marshal(top)
 }
 
-// redactIxlanObject drops the ixf_ixp_member_list_url key in-place when
-// privfield.Redact says omit, and reports whether it removed the key. The
-// _visible companion is left alone (always emitted).
-func redactIxlanObject(ctx context.Context, obj map[string]any) bool {
-	visible, _ := obj["ixf_ixp_member_list_url_visible"].(string)
-	url, _ := obj["ixf_ixp_member_list_url"].(string)
-	_, omit := privfield.Redact(ctx, visible, url)
-	if omit {
-		delete(obj, "ixf_ixp_member_list_url")
-		return true
+// redactGatedFields walks an unmarshalled JSON value and drops the
+// ixf_ixp_member_list_url key in-place from every object carrying the
+// _visible companion whenever privfield.Redact says omit, reporting
+// whether anything was removed. Identifying gated objects by the
+// companion key (rather than by response shape or URL path) covers
+// detail objects, list entries, and ixlans eager-loaded under edges.*
+// on other entity types alike. The _visible companion itself is left
+// alone (always emitted, upstream parity).
+func redactGatedFields(ctx context.Context, v any) bool {
+	changed := false
+	switch t := v.(type) {
+	case map[string]any:
+		if visible, ok := t["ixf_ixp_member_list_url_visible"].(string); ok {
+			url, _ := t["ixf_ixp_member_list_url"].(string)
+			if _, omit := privfield.Redact(ctx, visible, url); omit {
+				if _, present := t["ixf_ixp_member_list_url"]; present {
+					delete(t, "ixf_ixp_member_list_url")
+					changed = true
+				}
+			}
+		}
+		for _, child := range t {
+			if redactGatedFields(ctx, child) {
+				changed = true
+			}
+		}
+	case []any:
+		for _, child := range t {
+			if redactGatedFields(ctx, child) {
+				changed = true
+			}
+		}
 	}
-	return false
+	return changed
 }
 
 // buildServer constructs the production http.Server with all timeouts
