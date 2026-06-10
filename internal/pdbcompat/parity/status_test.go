@@ -1,6 +1,7 @@
 package parity
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -127,14 +128,15 @@ func TestParity_Status(t *testing.T) {
 		seedNet(t, c, 3, 64503, "deleted", t0.Add(2*time.Hour))
 
 		srv := newTestServer(t, c)
-		status, body := httpGet(t, srv, "/api/net?since=0")
+		status, body := httpGet(t, srv, "/api/net?since=1")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d; body=%s", status, string(body))
 		}
 		ids := extractIDs(t, body)
-		// (-updated, -created): id=3 (deleted, t0+2h) > id=1 (ok, t0)
-		// id=2 (pending) excluded.
-		want := []int{3, 1}
+		// since lists order updated-ASCENDING (upstream django-handleref
+		// since() ordering, 2026-06-10 audit): id=1 (ok, t0) before
+		// id=3 (deleted, t0+2h). id=2 (pending) excluded.
+		want := []int{1, 3}
 		if !equalIntSlice(ids, want) {
 			t.Errorf("since admits ok+deleted: got %v, want %v", ids, want)
 		}
@@ -152,15 +154,79 @@ func TestParity_Status(t *testing.T) {
 		seedCampus(t, c, 3, "deleted", t0.Add(2*time.Hour))
 
 		srv := newTestServer(t, c)
-		status, body := httpGet(t, srv, "/api/campus?since=0")
+		status, body := httpGet(t, srv, "/api/campus?since=1")
 		if status != http.StatusOK {
 			t.Fatalf("status = %d; body=%s", status, string(body))
 		}
 		ids := extractIDs(t, body)
-		// All 3 admitted on since>0 for campus.
-		want := []int{3, 2, 1}
+		// All 3 admitted on since>0 for campus, ordered updated-ascending.
+		want := []int{1, 2, 3}
 		if !equalIntSlice(ids, want) {
 			t.Errorf("campus since admits all 3: got %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("since_zero_is_inert_like_bare_list", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:696 (`if since > 0` — since=0 never
+		// activates the matrix; the plain status='ok' list serves).
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		seedNet(t, c, 2, 64502, "deleted", t0.Add(time.Hour))
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?since=0")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		want := []int{1}
+		if len(ids) != 1 || ids[0] != 1 {
+			t.Errorf("since=0 must behave like a bare list (ok only): got %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("since_boundary_is_strictly_greater", func(t *testing.T) {
+		t.Parallel()
+		// upstream: django-handleref manager.py since() filters
+		// Q(updated__gt=timestamp) — strictly greater, so a poller
+		// re-using the max updated it has already seen does NOT
+		// re-receive the boundary row.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)                // exactly at the boundary
+		seedNet(t, c, 2, 64502, "ok", t0.Add(time.Hour)) // inside the window
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, fmt.Sprintf("/api/net?since=%d", t0.Unix()))
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		want := []int{2}
+		if !equalIntSlice(ids, want) {
+			t.Errorf("since boundary must be exclusive (updated > since): got %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("since_orders_updated_ascending", func(t *testing.T) {
+		t.Parallel()
+		// upstream: django-handleref since() returns rows ordered by
+		// updated ascending so incremental pollers resume from the
+		// last row's updated value.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0.Add(3*time.Hour))
+		seedNet(t, c, 2, 64502, "ok", t0.Add(1*time.Hour))
+		seedNet(t, c, 3, 64503, "ok", t0.Add(2*time.Hour))
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?since=1")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		want := []int{2, 3, 1}
+		if !equalIntSlice(ids, want) {
+			t.Errorf("since list must order updated ascending: got %v, want %v", ids, want)
 		}
 	})
 

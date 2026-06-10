@@ -7,6 +7,19 @@ import (
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/campus"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/facility"
+	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	"github.com/dotwaffle/peeringdb-plus/ent/network"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/organization"
+	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
@@ -67,12 +80,28 @@ func castPredicates[T ~func(*sql.Selector)](filters []func(*sql.Selector)) []T {
 	return out
 }
 
-// applySince adds an updated >= since filter if Since is set in opts.
+// applySince adds an updated > since filter if Since is set in opts.
+// Strictly-greater mirrors upstream django-handleref's since() filter
+// (Q(created__gt) | Q(updated__gt)); updated__gt alone subsumes
+// created__gt because created <= updated on every row. GTE would
+// re-serve every boundary row to a client polling with
+// since=<max updated seen>.
 func applySince(opts QueryOptions) func(*sql.Selector) {
 	if opts.Since == nil {
 		return nil
 	}
-	return sql.FieldGTE("updated", *opts.Since)
+	return sql.FieldGT("updated", *opts.Since)
+}
+
+// listOrder returns the ordering for a list query. Plain lists keep the
+// stable newest-first triple; ?since= lists are ordered updated-ascending
+// (id-ascending tiebreak) to mirror upstream's incremental-update
+// ordering, so pollers can resume from the last row's updated value.
+func listOrder[T ~func(*sql.Selector)](opts QueryOptions) []T {
+	if opts.Since != nil {
+		return []T{T(ent.Asc("updated")), T(ent.Asc("id"))}
+	}
+	return []T{T(ent.Desc("updated")), T(ent.Desc("created")), T(ent.Desc("id"))}
 }
 
 // servedRowCount computes the post-Offset/Limit row count the handler
@@ -104,7 +133,7 @@ func wireOrgFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := orgPredicates(opts)
-			q := client.Organization.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.Organization.Query().Where(preds...).Order(listOrder[organization.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -152,7 +181,7 @@ func wireNetFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := netPredicates(opts)
-			q := client.Network.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.Network.Query().Where(preds...).Order(listOrder[network.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -200,7 +229,7 @@ func wireFacFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := facPredicates(opts)
-			q := client.Facility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.Facility.Query().Where(preds...).Order(listOrder[facility.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -248,7 +277,7 @@ func wireIXFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := ixPredicates(opts)
-			q := client.InternetExchange.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.InternetExchange.Query().Where(preds...).Order(listOrder[internetexchange.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -296,7 +325,7 @@ func wirePocFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := pocPredicates(opts)
-			q := client.Poc.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.Poc.Query().Where(preds...).Order(listOrder[poc.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -344,7 +373,7 @@ func wireIXLanFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := ixLanPredicates(opts)
-			q := client.IxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.IxLan.Query().Where(preds...).Order(listOrder[ixlan.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -392,7 +421,7 @@ func wireIXPfxFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := ixPfxPredicates(opts)
-			q := client.IxPrefix.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.IxPrefix.Query().Where(preds...).Order(listOrder[ixprefix.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -440,7 +469,7 @@ func wireNetIXLanFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := netIXLanPredicates(opts)
-			q := client.NetworkIxLan.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.NetworkIxLan.Query().Where(preds...).Order(listOrder[networkixlan.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -488,7 +517,7 @@ func wireNetFacFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := netFacPredicates(opts)
-			q := client.NetworkFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.NetworkFacility.Query().Where(preds...).Order(listOrder[networkfacility.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -536,7 +565,7 @@ func wireIXFacFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := ixFacPredicates(opts)
-			q := client.IxFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.IxFacility.Query().Where(preds...).Order(listOrder[ixfacility.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -584,7 +613,7 @@ func wireCarrierFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := carrierPredicates(opts)
-			q := client.Carrier.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.Carrier.Query().Where(preds...).Order(listOrder[carrier.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -632,7 +661,7 @@ func wireCarrierFacFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := carrierFacPredicates(opts)
-			q := client.CarrierFacility.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.CarrierFacility.Query().Where(preds...).Order(listOrder[carrierfacility.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)
@@ -681,7 +710,7 @@ func wireCampusFuncs() {
 				return []any{}, 0, nil
 			}
 			preds := campusPredicates(opts)
-			q := client.Campus.Query().Where(preds...).Order(ent.Desc("updated"), ent.Desc("created"), ent.Desc("id"))
+			q := client.Campus.Query().Where(preds...).Order(listOrder[campus.OrderOption](opts)...)
 			q2 := q.Offset(opts.Skip)
 			if opts.Limit > 0 {
 				q2 = q2.Limit(opts.Limit)

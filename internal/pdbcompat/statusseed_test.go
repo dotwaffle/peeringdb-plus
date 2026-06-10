@@ -10,7 +10,7 @@ import (
 )
 
 // statusSeedT0 is the fixed timestamp for all rows seeded by the
-// per-entity helpers below. A constant epoch keeps `?since=0` windows
+// per-entity helpers below. A constant epoch keeps `?since=1` windows
 // and default ordering deterministic.
 var statusSeedT0 = time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
 
