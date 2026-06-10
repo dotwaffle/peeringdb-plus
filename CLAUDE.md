@@ -50,7 +50,7 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 ### Code Generation
 - `go generate ./...` runs the full codegen pipeline and converges in a SINGLE pass on a clean tree (the schema producer is sequenced ahead of entc, its consumer):
   1. `ent/generate.go` — runs `cmd/pdb-schema-generate` (peeringdb.json → ent/schema/*.go) FIRST, then entc.go (ent + entgql + entrest + entproto), then `cmd/pdb-compat-allowlist`, then `buf generate` for proto Go types
-  2. `graph/generate.go` — runs `gqlgen generate` for GraphQL resolvers/models
+  2. `graph/generate.go` — runs `gqlgen generate` for GraphQL resolvers/models. GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` — a `package graph_test` file sorting before `custom.resolvers.go` breaks generation with "exec and model define the same import path (graph vs graph_test)". Name new test files so they sort after it (e.g. `resolver_*_test.go`).
   3. `internal/web/templates/generate.go` — runs `templ generate` for templ Go files
   - `schema/generate.go` carries no `go:generate` directive (package doc for the manual `pdb-schema-extract` step); the schema-regen step now lives first in `ent/generate.go`.
 - `buf`, `templ`, and `gqlgen` are Go tool dependencies (`go tool buf`, `go tool templ`, `go tool gqlgen`) — no external install needed.

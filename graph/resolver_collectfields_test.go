@@ -1,3 +1,8 @@
+// This file MUST NOT sort alphabetically before the package-graph .go
+// files (custom.resolvers.go is the first): gqlgen's config loader takes
+// the package name from the first file in the directory, and a
+// graph_test file in that position breaks `go generate ./graph` with
+// "exec and model define the same import path ... (graph vs graph_test)".
 package graph_test
 
 import (
