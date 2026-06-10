@@ -278,11 +278,11 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	if depth >= 2 {
 		o, err := client.Organization.Query().
 			Where(organization.ID(id), organization.StatusIn("ok", "pending")).
-			WithNetworks().
-			WithFacilities().
-			WithInternetExchanges().
-			WithCarriers().
-			WithCampuses().
+			WithNetworks(func(q *ent.NetworkQuery) { q.Where(network.StatusIn("ok", "pending")) }).
+			WithFacilities(func(q *ent.FacilityQuery) { q.Where(facility.StatusIn("ok", "pending")) }).
+			WithInternetExchanges(func(q *ent.InternetExchangeQuery) { q.Where(internetexchange.StatusIn("ok", "pending")) }).
+			WithCarriers(func(q *ent.CarrierQuery) { q.Where(carrier.StatusIn("ok", "pending")) }).
+			WithCampuses(func(q *ent.CampusQuery) { q.Where(campus.StatusIn("ok", "pending")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get organization %d: %w", id, err)
@@ -317,9 +317,9 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		n, err := client.Network.Query().
 			Where(network.ID(id), network.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithPocs().
-			WithNetworkFacilities().
-			WithNetworkIxLans().
+			WithPocs(func(q *ent.PocQuery) { q.Where(poc.StatusIn("ok", "pending")) }).
+			WithNetworkFacilities(func(q *ent.NetworkFacilityQuery) { q.Where(networkfacility.StatusIn("ok", "pending")) }).
+			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) { q.Where(networkixlan.StatusIn("ok", "pending")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get network %d: %w", id, err)
@@ -412,9 +412,9 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 		ix, err := client.InternetExchange.Query().
 			Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithIxLans().
+			WithIxLans(func(q *ent.IxLanQuery) { q.Where(ixlan.StatusIn("ok", "pending")) }).
 			WithIxFacilities(func(q *ent.IxFacilityQuery) {
-				q.WithFacility()
+				q.Where(ixfacility.StatusIn("ok", "pending")).WithFacility()
 			}).
 			Only(ctx)
 		if err != nil {
@@ -513,7 +513,7 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 		c, err := client.Carrier.Query().
 			Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithCarrierFacilities().
+			WithCarrierFacilities(func(q *ent.CarrierFacilityQuery) { q.Where(carrierfacility.StatusIn("ok", "pending")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get carrier %d: %w", id, err)
@@ -553,7 +553,7 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 		c, err := client.Campus.Query().
 			Where(campus.ID(id), campus.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithFacilities().
+			WithFacilities(func(q *ent.FacilityQuery) { q.Where(facility.StatusIn("ok", "pending")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get campus %d: %w", id, err)
