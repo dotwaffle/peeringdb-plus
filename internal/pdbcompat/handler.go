@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"entgo.io/ent/dialect/sql"
 	"go.opentelemetry.io/otel/attribute"
@@ -26,6 +27,16 @@ type Handler struct {
 	// cmd/peeringdb-plus/main.go for the Config.ResponseMemoryLimit
 	// wiring (default 128 MiB).
 	responseMemoryLimit int64
+
+	// inflightBytes tracks the summed estimated bytes of list responses
+	// admitted by CheckBudget and not yet finished serving. The per-
+	// request budget alone admits each request in isolation, so two
+	// concurrent near-budget dumps — each individually under the limit
+	// — could jointly materialize ~2x the budget and OOM a 256 MB
+	// replica. Admission charges the estimate here and rejects with 503
+	// + Retry-After when the pool would exceed responseMemoryLimit;
+	// serveList releases the charge on return.
+	inflightBytes atomic.Int64
 }
 
 // NewHandler creates a Handler for PeeringDB-compatible API endpoints.
@@ -306,6 +317,33 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			WriteBudgetProblem(w, r.URL.Path, info)
 			return
 		}
+
+		// Global admission: the per-request check above treats each
+		// request in isolation, but the budget is a process-wide memory
+		// envelope — concurrent near-budget dumps must not stack past
+		// it. Charge this request's estimate against the shared
+		// in-flight pool and reject with 503 + Retry-After when the
+		// pool would overflow; the charge is released when serveList
+		// returns (response fully serialized, slices unreachable).
+		estimate := int64(count) * int64(TypicalRowBytes(tc.Name, 0))
+		if pooled := h.inflightBytes.Add(estimate); pooled > h.responseMemoryLimit {
+			h.inflightBytes.Add(-estimate)
+			slog.WarnContext(r.Context(), "pdbcompat: concurrent budget pool exhausted",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.Int64("estimated_bytes", estimate),
+				slog.Int64("pooled_bytes", pooled),
+				slog.Int64("budget_bytes", h.responseMemoryLimit),
+			)
+			w.Header().Set("Retry-After", "1")
+			WriteProblem(w, httperr.WriteProblemInput{
+				Status:   http.StatusServiceUnavailable,
+				Detail:   "server is serving other large responses; retry shortly",
+				Instance: r.URL.Path,
+			})
+			return
+		}
+		defer h.inflightBytes.Add(-estimate)
 		// A budget count of 0 means no rows will be served —
 		// a genuinely empty match, or a ?skip= past the end of the result
 		// set. Stream the empty list now rather than calling tc.List,
