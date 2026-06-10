@@ -149,8 +149,57 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			// Error responses must not inherit the public caching
+			// headers: a shared cache replaying a 404/413/500 for a
+			// full sync interval turns a transient failure into an
+			// hour-long outage for that URL. The wrapper downgrades
+			// to no-store at WriteHeader time for any status >= 400.
+			next.ServeHTTP(&cacheStripWriter{ResponseWriter: w}, r)
 		})
+	}
+}
+
+// cacheStripWriter downgrades the caching headers to no-store when the
+// wrapped handler responds with an error status. Implements http.Flusher
+// and Unwrap per the middleware response-writer contract (CLAUDE.md
+// Middleware section).
+type cacheStripWriter struct {
+	http.ResponseWriter
+	wroteHeader bool
+}
+
+// WriteHeader strips Cache-Control/ETag for error statuses, then
+// delegates. Only the first call wins, matching net/http semantics.
+func (w *cacheStripWriter) WriteHeader(code int) {
+	if w.wroteHeader {
+		w.ResponseWriter.WriteHeader(code)
+		return
+	}
+	w.wroteHeader = true
+	if code >= http.StatusBadRequest {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Del("ETag")
+	}
+	w.ResponseWriter.WriteHeader(code)
+}
+
+// Write commits an implicit 200 on first write, like net/http.
+func (w *cacheStripWriter) Write(b []byte) (int, error) {
+	if w.wroteHeader {
+		return w.ResponseWriter.Write(b)
+	}
+	w.wroteHeader = true
+	return w.ResponseWriter.Write(b)
+}
+
+// Unwrap returns the underlying ResponseWriter for middleware-aware
+// interface detection.
+func (w *cacheStripWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+// Flush forwards to the underlying writer per the http.Flusher contract.
+func (w *cacheStripWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
 	}
 }
 

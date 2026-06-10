@@ -299,7 +299,10 @@ func main() {
 	// relative text ("N minutes ago") that would freeze at cache-creation
 	// time under the sync-time-keyed ETag. See internal/web/about.go and
 	// internal/web/templates/about.templ.
-	cachingState := middleware.NewCachingState(cfg.SyncInterval, "/ui/about")
+	// /healthz and /readyz are opted out alongside /ui/about: a shared
+	// cache pinning a stale health verdict (or a 304 short-circuit that
+	// skips the readiness probes entirely) defeats their purpose.
+	cachingState := middleware.NewCachingState(cfg.SyncInterval, "/ui/about", "/healthz", "/readyz")
 	if t, err := pdbsync.GetLastSuccessfulSyncTime(ctx, db); err == nil && !t.IsZero() {
 		cachingState.UpdateETag(t)
 	}
@@ -563,7 +566,8 @@ func main() {
 		switch mode { //nolint:exhaustive // default case handles remaining modes
 		case termrender.ModeRich, termrender.ModePlain:
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			w.Header().Set("Vary", "User-Agent, Accept")
+			// Add, not Set: gzhttp already added Vary: Accept-Encoding.
+			w.Header().Add("Vary", "User-Agent, Accept")
 			renderer := termrender.NewRenderer(mode, noColor)
 			var freshness time.Time
 			status, err := pdbsync.GetLastStatus(r.Context(), db)
@@ -577,11 +581,14 @@ func main() {
 
 		case termrender.ModeJSON:
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			w.Header().Set("Vary", "User-Agent, Accept")
+			w.Header().Add("Vary", "User-Agent, Accept")
 			fmt.Fprint(w, discoveryJSON)
 			return
 
 		default:
+			// The branch taken depends on Accept and (via Detect above)
+			// User-Agent, so caches must key on both here too.
+			w.Header().Add("Vary", "User-Agent, Accept")
 			accept := r.Header.Get("Accept")
 			if strings.Contains(accept, "text/html") {
 				http.Redirect(w, r, "/ui/", http.StatusFound)

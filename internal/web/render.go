@@ -24,6 +24,7 @@ type PageContent struct {
 	Content   templ.Component
 	Data      any       // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
 	Freshness time.Time // Freshness is the last successful sync time for terminal footer display.
+	Status    int       // HTTP status (0 means 200). Committed by renderPage AFTER headers — WriteHeader first drops Vary/Content-Type.
 }
 
 // renderPage renders a response in the appropriate format based on terminal detection.
@@ -44,10 +45,25 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 	})
 	noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
 
+	// Add (not Set): the outer Compression middleware (gzhttp) already
+	// added Vary: Accept-Encoding before dispatch; Set would clobber it
+	// and let shared caches replay a gzipped variant to identity clients.
+	w.Header().Add("Vary", "HX-Request, User-Agent, Accept")
+
+	// setHead sets the negotiated Content-Type and THEN commits the
+	// response status. Order matters: net/http drops header mutations
+	// made after WriteHeader, which previously stripped Vary and let the
+	// body sniffer override Content-Type on 404/500 pages.
+	setHead := func(contentType string) {
+		w.Header().Set("Content-Type", contentType)
+		if page.Status != 0 && page.Status != http.StatusOK {
+			w.WriteHeader(page.Status)
+		}
+	}
+
 	switch mode { //nolint:exhaustive // default case handles remaining modes (ModeHTML)
 	case termrender.ModeShort:
-		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		setHead("text/plain; charset=utf-8")
 		renderer := termrender.NewRenderer(mode, noColor)
 		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
 		if wStr := r.URL.Query().Get("w"); wStr != "" {
@@ -68,8 +84,7 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		return nil
 
 	case termrender.ModeRich, termrender.ModePlain:
-		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		setHead("text/plain; charset=utf-8")
 		renderer := termrender.NewRenderer(mode, noColor)
 		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
 		if wStr := r.URL.Query().Get("w"); wStr != "" {
@@ -101,8 +116,7 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		}
 
 	case termrender.ModeJSON:
-		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		setHead("application/json; charset=utf-8")
 		if page.Data != nil {
 			return termrender.RenderJSON(w, page.Data)
 		}
@@ -122,8 +136,7 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		}
 
 	case termrender.ModeWHOIS:
-		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		setHead("text/plain; charset=utf-8")
 		renderer := termrender.NewRenderer(mode, true) // noColor always true for WHOIS
 		renderer.Sections = termrender.ParseSections(r.URL.Query().Get("section"))
 		if wStr := r.URL.Query().Get("w"); wStr != "" {
@@ -137,13 +150,11 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		return renderer.RenderWHOIS(w, page.Title, page.Data)
 
 	case termrender.ModeHTMX:
-		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		setHead("text/html; charset=utf-8")
 		return page.Content.Render(ctx, w)
 
 	default: // ModeHTML
-		w.Header().Set("Vary", "HX-Request, User-Agent, Accept")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		setHead("text/html; charset=utf-8")
 		return templates.Layout(page.Title, page.Content).Render(ctx, w)
 	}
 }
