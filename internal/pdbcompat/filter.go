@@ -114,6 +114,32 @@ func coerceToCaseInsensitive(op string) string {
 	return op
 }
 
+// coerceLocationFilterOp mirrors upstream rest.py:562-574, which
+// special-cases bare location filters before generic handling:
+// `address1`, `city`, and `state` become `<field>__icontains`
+// (substring match — ?city=Frankfurt also matches "Frankfurt am
+// Main"), and `country` becomes `__iexact` for 2-char values /
+// `__icontains` for longer ones. Only BARE local filters coerce:
+// upstream's special-case list matches the raw param name, so an
+// explicit operator suffix or a relation prefix (fac__city=…) takes
+// the generic path there too. The 2-char country case needs no
+// rewrite because buildExact's string branch is already
+// case-insensitive (FieldEqualFold == iexact).
+func coerceLocationFilterOp(field, op, value string) string {
+	if op != "" {
+		return op
+	}
+	switch field {
+	case "address1", "city", "state":
+		return "icontains"
+	case "country":
+		if len(value) != 2 {
+			return "icontains"
+		}
+	}
+	return op
+}
+
 // unknownFieldsCtxKey is an unexported context key used by ParseFiltersCtx
 // to record filter params whose fields don't resolve.
 // Retrieved via UnknownFieldsFromCtx at the handler layer for OTel span
@@ -264,6 +290,7 @@ func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Sele
 		return nil, false, false, nil
 	}
 	folded := tc.FoldedFields[field]
+	op = coerceLocationFilterOp(field, op, value)
 	p, err := buildPredicate(field, op, value, ft, folded)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
