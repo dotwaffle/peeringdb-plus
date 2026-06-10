@@ -227,7 +227,9 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 		if err := json.Unmarshal(raw, &idHolder); err != nil || idHolder.ID <= 0 {
 			// Best-effort: skip rows we can't identify. The original
 			// id__in still consumed its cap slot; the unrecoverable row
-			// will be re-tried on the next cycle if upstream returns it.
+			// is re-tried by the next full-mode cycle's bare list
+			// re-fetch (an incremental's MAX(updated) cursor has
+			// typically advanced past it by then).
 			continue
 		}
 		rows = append(rows, rawWithID{id: idHolder.ID, raw: raw})
@@ -271,8 +273,13 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	//    sync cycle (all 13 types) — and it is self-perpetuating because
 	//    each cycle re-exhausts the cap the same way. Withholding the
 	//    dangling parent here mirrors the fkFilter drop-on-miss contract:
-	//    the orphan is recorded and retried next cycle while the commit
-	//    succeeds. Only REQUIRED FKs gate the upsert — nullable side-FKs
+	//    the orphan is recorded and the commit succeeds. Recovery comes
+	//    from the next FULL-mode cycle, which re-fetches every row,
+	//    stages the tombstone window, and bypasses the upsert skip gate
+	//    (reconcile-all) — an incremental cycle does NOT retry the
+	//    withheld row, because its MAX(updated) cursor has typically
+	//    advanced past the row's updated by the time the cycle commits.
+	//    Only REQUIRED FKs gate the upsert — nullable side-FKs
 	//    (campus, net_side_id, ix_side_id) are absent from parentFKSpec
 	//    and follow the existing null-on-miss path, so they never block
 	//    here.
@@ -453,6 +460,16 @@ func (w *Worker) firstMissingRequiredFK(ctx context.Context, tx *ent.Tx, parentT
 // the optional path if the dashboard ever shows them as a hot source
 // of per-row HTTP fan-out.
 func (w *Worker) prefetchMissingParentsForChunk(ctx context.Context, tx *ent.Tx, chunkType string, rows []scratchRow) {
+	// Backfill disabled (cap=0 escape-hatch): mirror the fkCheckParent /
+	// nullSideFK gates and skip the pre-pass entirely. Without this,
+	// every chunk with missing parents would flow into fkBackfillBatch,
+	// where a zero budget records every id as result="ratelimited" and
+	// emits a per-chunk "fk backfill cap reached" WARN — falsely
+	// suggesting cap pressure when the operator deliberately turned
+	// backfill off.
+	if w.fkBackfillRequestCap <= 0 {
+		return
+	}
 	spec, ok := parentFKSpec[chunkType]
 	if !ok || len(spec) == 0 {
 		// Org has no required parents; nothing to prefetch.

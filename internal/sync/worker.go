@@ -56,6 +56,14 @@ import (
 // the sentinel via errors.Is.
 var ErrSyncMemoryLimitExceeded = errors.New("sync aborted: memory limit exceeded")
 
+// ErrSyncAlreadyRunning is returned by Sync (and propagated unchanged by
+// SyncWithRetry) when a cycle is already in flight and the trigger is
+// dropped by the running-CAS guard. There is no queueing or pending-mode
+// coalescing: the requested mode is lost. Callers that need to surface the
+// drop (e.g. the POST /sync handler answering 409 Conflict instead of 202)
+// detect it via errors.Is.
+var ErrSyncAlreadyRunning = errors.New("sync already running, trigger dropped")
+
 // defaultRetryBackoffs defines the backoff durations for sync-level retries.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
@@ -124,8 +132,11 @@ type WorkerConfig struct {
 	// of slow / rate-limited backfills could hold the tx open for tens
 	// of minutes, stalling LiteFS replication. After the deadline,
 	// fkBackfillParent short-circuits to drop-on-miss so the rest of
-	// the sync (bulk fetches + upserts) can commit and the next cycle
-	// picks up where we left off. Default 5 minutes
+	// the sync (bulk fetches + upserts) can commit. Dropped rows are
+	// recovered by the next FULL-mode cycle (which re-fetches every
+	// row, stages the tombstone window, and bypasses the upsert skip
+	// gate) — NOT by the next incremental, whose MAX(updated) cursor
+	// typically advances past the dropped rows. Default 5 minutes
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
 	// deadline (only the cap applies).
 	FKBackfillTimeout time.Duration
@@ -206,7 +217,8 @@ type Worker struct {
 	// fkBackfillTimeout. After the deadline, fkBackfillParent short-
 	// circuits to drop-on-miss so the rest of the sync (which is
 	// independent of backfill — bulk fetches and upserts continue) can
-	// commit and the next cycle picks up where we left off. v1.18.3:
+	// commit; dropped rows are recovered by the next full-mode
+	// reconcile cycle, not the next incremental. v1.18.3:
 	// added because backfill HTTP calls happen inside the sync tx;
 	// without a deadline, a cascade of slow backfills could hold the tx
 	// open indefinitely and stall LiteFS replication.
@@ -601,8 +613,12 @@ func forceTraceFromContext(ctx context.Context) bool {
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // privacy bypass — sole production call site
 	if !w.running.CompareAndSwap(false, true) {
-		w.logger.Warn("sync already running, skipping")
-		return nil
+		// The trigger (and its requested mode — possibly the operator's
+		// ?mode=full escape hatch) is dropped, not queued. Return the
+		// sentinel so callers can tell "started" from "discarded".
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync already running, dropping trigger",
+			slog.String("requested_mode", string(mode)))
+		return ErrSyncAlreadyRunning
 	}
 	defer w.running.Store(false)
 
@@ -1044,12 +1060,21 @@ func (w *Worker) recordSuccess(
 		// sync_status row update (separate raw-SQL Exec, by design —
 		// outcome record, not data state).
 		_, statusSpan := otel.Tracer("sync").Start(ctx, "sync-record-status")
-		_ = RecordSyncComplete(ctx, w.db, statusID, Status{
+		// Bookkeeping failure must not fail the cycle (the data commit
+		// already succeeded), but it must be VISIBLE: a persistently
+		// failing write leaves sync_status rows stuck "running" and
+		// freshness reporting frozen at the last successful write.
+		if recErr := RecordSyncComplete(ctx, w.db, statusID, Status{
 			LastSyncAt:   completedAt,
 			Duration:     elapsed,
 			ObjectCounts: objectCounts,
 			Status:       "success",
-		})
+		}); recErr != nil {
+			w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync completion",
+				slog.Int64("status_id", statusID),
+				slog.String("outcome", "success"),
+				slog.Any("error", recErr))
+		}
 		statusSpan.End()
 	}
 	w.synced.Store(true)
@@ -1816,12 +1841,21 @@ func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, status
 	pdbotel.SyncOperations.Add(recCtx, 1, attrs)
 
 	if statusID > 0 {
-		_ = RecordSyncComplete(recCtx, w.db, statusID, Status{
+		// Same visibility contract as recordSuccess: never fail the
+		// terminal path on a bookkeeping write, but never swallow it
+		// silently either — otherwise rows stuck "running" accumulate
+		// with no operator signal.
+		if recErr := RecordSyncComplete(recCtx, w.db, statusID, Status{
 			LastSyncAt:   time.Now(),
 			Duration:     time.Since(start),
 			Status:       "failed",
 			ErrorMessage: syncErr.Error(),
-		})
+		}); recErr != nil {
+			w.logger.LogAttrs(recCtx, slog.LevelError, "failed to record sync completion",
+				slog.Int64("status_id", statusID),
+				slog.String("outcome", "failed"),
+				slog.Any("error", recErr))
+		}
 	}
 }
 
@@ -1834,13 +1868,32 @@ func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, status
 // is guaranteed to 429 again AND consumes another slot against the hourly
 // quota. Returning immediately lets the hourly scheduler retry naturally on
 // its next tick (1h interval ≥ most Retry-After values we've observed).
+//
+// WAF short-circuit: a WAF / IP-block 403 (peeringdb.IsWAFBlocked) also skips
+// the ladder. Retrying within the same source IP is pointless against an
+// IP-level block, and hammering an actively-blocking upstream risks
+// prolonging the block. Defer to the next scheduled tick, same as the 429
+// path.
+//
+// Already-running short-circuit: ErrSyncAlreadyRunning from the CAS guard is
+// returned as-is without retrying — the in-flight cycle owns the worker and a
+// 30s-later retry would race it.
 func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error {
 	err := w.Sync(ctx, mode)
 	if err == nil {
 		return nil
 	}
+	if errors.Is(err, ErrSyncAlreadyRunning) {
+		return err
+	}
 	if rateLimited(err) {
 		w.logger.LogAttrs(ctx, slog.LevelInfo, "sync rate-limited, deferring to next scheduled tick",
+			slog.Any("error", err),
+		)
+		return err
+	}
+	if peeringdb.IsWAFBlocked(err) {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "sync blocked by upstream WAF, deferring to next scheduled tick",
 			slog.Any("error", err),
 		)
 		return err
@@ -1878,6 +1931,15 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 			)
 			return err
 		}
+		// Same for a WAF block surfacing mid-ladder: further retries
+		// only dig the IP-block deeper.
+		if peeringdb.IsWAFBlocked(err) {
+			w.logger.LogAttrs(ctx, slog.LevelWarn, "sync blocked by upstream WAF during retry, deferring",
+				slog.Int("attempt", attempt+1),
+				slog.Any("error", err),
+			)
+			return err
+		}
 	}
 
 	w.logger.LogAttrs(ctx, slog.LevelError, "sync failed after all retries",
@@ -1893,6 +1955,15 @@ func (w *Worker) SyncWithRetry(ctx context.Context, mode config.SyncMode) error 
 func rateLimited(err error) bool {
 	_, ok := errors.AsType[*peeringdb.RateLimitError](err)
 	return ok
+}
+
+// Running reports whether a sync cycle is currently in flight. Used by
+// the POST /sync handler for a best-effort synchronous 409: the check
+// races a concurrently starting cycle (TOCTOU), but the CAS guard in
+// Sync remains the authoritative gate — a lost race only degrades the
+// response back to 202 with the trigger logged and dropped.
+func (w *Worker) Running() bool {
+	return w.running.Load()
 }
 
 // HasCompletedSync reports whether at least one successful sync has completed.
