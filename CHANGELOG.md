@@ -10,6 +10,28 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.21.1] — 2026-06-25
+
+Maintenance release: dependency and CI-tooling updates only. No functional or
+API changes, and `govulncheck` reported no vulnerabilities — this release keeps
+the module graph and CI actions current.
+
+### Changed
+
+- Bump direct Go modules to their latest patch/minor releases:
+  `golang.org/x/net` 0.55.0→0.56.0, `golang.org/x/text` 0.37.0→0.38.0,
+  `modernc.org/sqlite` 1.52.0→1.53.0, `charm.land/lipgloss/v2` 2.0.3→2.0.4,
+  `github.com/99designs/gqlgen` 0.17.90→0.17.92,
+  `github.com/vektah/gqlparser/v2` 2.5.33→2.5.35, and
+  `github.com/ogen-go/ogen` 1.20.3→1.22.0. The `buf` build tool moves
+  1.68.4→1.71.0; `go mod tidy` settled the transitive graph, and the gqlgen
+  GraphQL output was regenerated for the bump.
+- Raise the `go` directive to 1.26.4 to match the toolchain.
+- Update CI action pins to their latest majors: `actions/checkout` v6→v7 and
+  `actions/cache` v5→v6.
+- Add `-v` to the production image's `go build` so compile progress is visible
+  in build logs, making a stalled build distinguishable from a slow one.
+
 ## [1.21.0] — 2026-06-10
 
 Fixes for all 42 confirmed findings of the 2026-06-10 full-codebase audit
