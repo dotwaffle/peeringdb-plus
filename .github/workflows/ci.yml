@@ -34,7 +34,7 @@ jobs:
       pull-requests: write # octocov posts the coverage comment
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -46,7 +46,7 @@ jobs:
           cache: false
 
       - name: Restore Go cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/go-build
@@ -111,7 +111,7 @@ jobs:
           fi
 
       - name: Trim Go mod download zip cache before save
-        # MUST be last: actions/cache@v5 snapshots the cached paths at
+        # MUST be last: actions/cache@v6 snapshots the cached paths at
         # job end. Earlier go commands repopulate the download-zip cache;
         # the unpacked modules under ~/go/pkg/mod/<module>@<v>/ are what
         # the build actually consumes, so dropping the raw *.zip archives
@@ -126,7 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
