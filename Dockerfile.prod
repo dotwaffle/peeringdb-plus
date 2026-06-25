@@ -12,12 +12,16 @@ COPY . .
 # Injected into internal/buildinfo via `-ldflags -X` so both the OTel
 # resource (service.version) and the PeeringDB User-Agent emit the
 # same string. Single source of truth — see internal/buildinfo/.
+#
+# `go build -v` lists each compiled package on stderr, so a stalled build is
+# distinguishable from a merely slow one during cold (post-dep-bump) compiles.
 RUN \
     --mount=type=cache,target=/root/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo unknown) && \
     echo "Building peeringdb-plus version=$VERSION" && \
     CGO_ENABLED=0 GOOS=linux go build \
+        -v \
         -trimpath \
         -ldflags="-s -w -X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION" \
         -o /bin/peeringdb-plus ./cmd/peeringdb-plus
