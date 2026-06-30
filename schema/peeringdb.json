@@ -478,6 +478,15 @@
           "help_text": "Allow IXP update",
           "default": false
         },
+        "ixp_update_exclude": {
+          "type": "json_array",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "IX-F fields to exclude from automatic import updates (speed, is_rs_peer, operational)",
+          "default": []
+        },
         "status_dashboard": {
           "type": "string",
           "required": false,

@@ -964,6 +964,8 @@ type UpdateNetworkParams struct {
 	InfoUnicast Option[bool] `json:"info_unicast"`
 	// IRR AS-SET
 	IrrAsSet Option[string] `json:"irr_as_set,omitempty"`
+	// IX-F fields to exclude from automatic import updates (speed, is_rs_peer, operational)
+	IxpUpdateExclude Option[[]string] `json:"ixp_update_exclude,omitempty"`
 	// Logo URL
 	Logo Option[*string] `json:"logo,omitempty"`
 	// Looking glass URL
@@ -1072,6 +1074,9 @@ func (u *UpdateNetworkParams) ApplyInputs(_builder *ent.NetworkUpdateOne) *ent.N
 	}
 	if v, ok := u.IrrAsSet.Get(); ok {
 		_builder.SetIrrAsSet(v)
+	}
+	if v, ok := u.IxpUpdateExclude.Get(); ok {
+		_builder.SetIxpUpdateExclude(v)
 	}
 	if v, ok := u.Logo.Get(); ok {
 		if v != nil {

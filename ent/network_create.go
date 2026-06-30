@@ -277,6 +277,12 @@ func (_c *NetworkCreate) SetNillableIrrAsSet(v *string) *NetworkCreate {
 	return _c
 }
 
+// SetIxpUpdateExclude sets the "ixp_update_exclude" field.
+func (_c *NetworkCreate) SetIxpUpdateExclude(v []string) *NetworkCreate {
+	_c.mutation.SetIxpUpdateExclude(v)
+	return _c
+}
+
 // SetLogo sets the "logo" field.
 func (_c *NetworkCreate) SetLogo(v string) *NetworkCreate {
 	_c.mutation.SetLogo(v)
@@ -946,6 +952,10 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldIrrAsSet, field.TypeString, value)
 		_node.IrrAsSet = value
 	}
+	if value, ok := _c.mutation.IxpUpdateExclude(); ok {
+		_spec.SetField(network.FieldIxpUpdateExclude, field.TypeJSON, value)
+		_node.IxpUpdateExclude = value
+	}
 	if value, ok := _c.mutation.Logo(); ok {
 		_spec.SetField(network.FieldLogo, field.TypeString, value)
 		_node.Logo = &value
@@ -1480,6 +1490,24 @@ func (u *NetworkUpsert) UpdateIrrAsSet() *NetworkUpsert {
 // ClearIrrAsSet clears the value of the "irr_as_set" field.
 func (u *NetworkUpsert) ClearIrrAsSet() *NetworkUpsert {
 	u.SetNull(network.FieldIrrAsSet)
+	return u
+}
+
+// SetIxpUpdateExclude sets the "ixp_update_exclude" field.
+func (u *NetworkUpsert) SetIxpUpdateExclude(v []string) *NetworkUpsert {
+	u.Set(network.FieldIxpUpdateExclude, v)
+	return u
+}
+
+// UpdateIxpUpdateExclude sets the "ixp_update_exclude" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateIxpUpdateExclude() *NetworkUpsert {
+	u.SetExcluded(network.FieldIxpUpdateExclude)
+	return u
+}
+
+// ClearIxpUpdateExclude clears the value of the "ixp_update_exclude" field.
+func (u *NetworkUpsert) ClearIxpUpdateExclude() *NetworkUpsert {
+	u.SetNull(network.FieldIxpUpdateExclude)
 	return u
 }
 
@@ -2311,6 +2339,27 @@ func (u *NetworkUpsertOne) UpdateIrrAsSet() *NetworkUpsertOne {
 func (u *NetworkUpsertOne) ClearIrrAsSet() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
 		s.ClearIrrAsSet()
+	})
+}
+
+// SetIxpUpdateExclude sets the "ixp_update_exclude" field.
+func (u *NetworkUpsertOne) SetIxpUpdateExclude(v []string) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetIxpUpdateExclude(v)
+	})
+}
+
+// UpdateIxpUpdateExclude sets the "ixp_update_exclude" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateIxpUpdateExclude() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateIxpUpdateExclude()
+	})
+}
+
+// ClearIxpUpdateExclude clears the value of the "ixp_update_exclude" field.
+func (u *NetworkUpsertOne) ClearIxpUpdateExclude() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearIxpUpdateExclude()
 	})
 }
 
@@ -3375,6 +3424,27 @@ func (u *NetworkUpsertBulk) UpdateIrrAsSet() *NetworkUpsertBulk {
 func (u *NetworkUpsertBulk) ClearIrrAsSet() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
 		s.ClearIrrAsSet()
+	})
+}
+
+// SetIxpUpdateExclude sets the "ixp_update_exclude" field.
+func (u *NetworkUpsertBulk) SetIxpUpdateExclude(v []string) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetIxpUpdateExclude(v)
+	})
+}
+
+// UpdateIxpUpdateExclude sets the "ixp_update_exclude" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateIxpUpdateExclude() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateIxpUpdateExclude()
+	})
+}
+
+// ClearIxpUpdateExclude clears the value of the "ixp_update_exclude" field.
+func (u *NetworkUpsertBulk) ClearIxpUpdateExclude() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearIxpUpdateExclude()
 	})
 }
 

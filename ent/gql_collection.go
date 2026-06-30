@@ -1718,6 +1718,11 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldIrrAsSet)
 				fieldSeen[network.FieldIrrAsSet] = struct{}{}
 			}
+		case "ixpUpdateExclude":
+			if _, ok := fieldSeen[network.FieldIxpUpdateExclude]; !ok {
+				selectedFields = append(selectedFields, network.FieldIxpUpdateExclude)
+				fieldSeen[network.FieldIxpUpdateExclude] = struct{}{}
+			}
 		case "logo":
 			if _, ok := fieldSeen[network.FieldLogo]; !ok {
 				selectedFields = append(selectedFields, network.FieldLogo)

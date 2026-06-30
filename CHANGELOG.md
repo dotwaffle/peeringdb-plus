@@ -10,6 +10,36 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+### Added
+
+- **`ixp_update_exclude` on `/api/net`.** PeeringDB 2.80.1 added this field —
+  a JSON list of the IX-F fields a network excludes from automatic import
+  updates (`speed`, `is_rs_peer`, `operational`) — to `NetworkSerializer`. The
+  pdbcompat `/api`, entrest REST, and GraphQL surfaces now emit it (an empty
+  list `[]` when unset, matching upstream), and it is synced from upstream and
+  round-trips through storage. ConnectRPC is unchanged: the proto surface has
+  been frozen since v1.6.
+
+### Changed
+
+- Refresh the pdbcompat upstream parity anchor from `99e92c72` (~2.77) to
+  `545c58a4` (PeeringDB 2.80.1) and re-verify the cited upstream line numbers
+  throughout `docs/API.md`. A full schema re-extract confirmed the only
+  read-path field drift across all 13 types in that range is the
+  `ixp_update_exclude` field above; every other upstream change in the window
+  is write-path and irrelevant to a read-only mirror.
+- Rebuild `cmd/pdb-schema-extract` around DRF serializer introspection so it
+  parses the current django-peeringdb 3.7.0 / peeringdb-server source layout,
+  and document it explicitly as an upstream drift detector — not the schema
+  source of truth, which stays hand-curated and is consumed as such by
+  `cmd/pdb-schema-generate`.
+- Bump Go modules to their latest releases via `go get -u`; `golangci-lint`
+  and `govulncheck` are clean.
+
+### Removed
+
+- Drop the obsolete `GEMINI.md` agent-scaffolding file.
+
 ## [1.21.1] — 2026-06-25
 
 Maintenance release: dependency and CI-tooling updates only. No functional or

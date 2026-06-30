@@ -94,6 +94,7 @@ type Network struct {
 	PolicyRatio             bool          `json:"policy_ratio"`
 	PolicyContracts         string        `json:"policy_contracts"`
 	AllowIXPUpdate          bool          `json:"allow_ixp_update"`
+	IxpUpdateExclude        []string      `json:"ixp_update_exclude"`
 	StatusDashboard         *string       `json:"status_dashboard"`
 	RIRStatus               *string       `json:"rir_status"`
 	RIRStatusUpdated        *time.Time    `json:"rir_status_updated"`

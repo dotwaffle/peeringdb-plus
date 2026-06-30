@@ -842,6 +842,8 @@ type CreateNetworkParams struct {
 	InfoUnicast *bool `json:"info_unicast"`
 	// IRR AS-SET
 	IrrAsSet *string `json:"irr_as_set,omitempty"`
+	// IX-F fields to exclude from automatic import updates (speed, is_rs_peer, operational)
+	IxpUpdateExclude []string `json:"ixp_update_exclude,omitempty"`
 	// Logo URL
 	Logo *string `json:"logo,omitempty"`
 	// Looking glass URL
@@ -938,6 +940,9 @@ func (c *CreateNetworkParams) ApplyInputs(_builder *ent.NetworkCreate) *ent.Netw
 	}
 	if c.IrrAsSet != nil {
 		_builder.SetIrrAsSet(*c.IrrAsSet)
+	}
+	if c.IxpUpdateExclude != nil {
+		_builder.SetIxpUpdateExclude(c.IxpUpdateExclude)
 	}
 	if c.Logo != nil {
 		_builder.SetLogo(*c.Logo)

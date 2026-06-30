@@ -86,6 +86,9 @@ func (Network) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Comment("IRR AS-SET"),
+		field.JSON("ixp_update_exclude", []string{}).
+			Optional().
+			Comment("IX-F fields to exclude from automatic import updates (speed, is_rs_peer, operational)"),
 		field.String("logo").
 			Optional().
 			Nillable().

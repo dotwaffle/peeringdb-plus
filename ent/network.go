@@ -59,6 +59,8 @@ type Network struct {
 	InfoUnicast bool `json:"info_unicast"`
 	// IRR AS-SET
 	IrrAsSet string `json:"irr_as_set"`
+	// IX-F fields to exclude from automatic import updates (speed, is_rs_peer, operational)
+	IxpUpdateExclude []string `json:"ixp_update_exclude"`
 	// Logo URL
 	Logo *string `json:"logo"`
 	// Looking glass URL
@@ -177,7 +179,7 @@ func (*Network) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case network.FieldInfoTypes, network.FieldSocialMedia:
+		case network.FieldInfoTypes, network.FieldIxpUpdateExclude, network.FieldSocialMedia:
 			values[i] = new([]byte)
 		case network.FieldAllowIxpUpdate, network.FieldInfoIpv6, network.FieldInfoMulticast, network.FieldInfoNeverViaRouteServers, network.FieldInfoUnicast, network.FieldPolicyRatio:
 			values[i] = new(sql.NullBool)
@@ -326,6 +328,14 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field irr_as_set", values[i])
 			} else if value.Valid {
 				_m.IrrAsSet = value.String
+			}
+		case network.FieldIxpUpdateExclude:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field ixp_update_exclude", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.IxpUpdateExclude); err != nil {
+					return fmt.Errorf("unmarshal field ixp_update_exclude: %w", err)
+				}
 			}
 		case network.FieldLogo:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -598,6 +608,9 @@ func (_m *Network) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("irr_as_set=")
 	builder.WriteString(_m.IrrAsSet)
+	builder.WriteString(", ")
+	builder.WriteString("ixp_update_exclude=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IxpUpdateExclude))
 	builder.WriteString(", ")
 	if v := _m.Logo; v != nil {
 		builder.WriteString("logo=")

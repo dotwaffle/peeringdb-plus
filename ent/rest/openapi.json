@@ -10852,6 +10852,13 @@
                         "type": "string",
                         "default": ""
                     },
+                    "ixp_update_exclude": {
+                        "description": "IX-F fields to exclude from automatic import updates (speed, is_rs_peer, operational)",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "logo": {
                         "description": "Logo URL",
                         "type": "string",

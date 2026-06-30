@@ -558,6 +558,7 @@ var (
 		{Name: "info_types", Type: field.TypeJSON, Nullable: true},
 		{Name: "info_unicast", Type: field.TypeBool, Default: false},
 		{Name: "irr_as_set", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "ixp_update_exclude", Type: field.TypeJSON, Nullable: true},
 		{Name: "logo", Type: field.TypeString, Nullable: true},
 		{Name: "looking_glass", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "name", Type: field.TypeString},
@@ -592,7 +593,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "networks_organizations_networks",
-				Columns:    []*schema.Column{NetworksColumns[43]},
+				Columns:    []*schema.Column{NetworksColumns[44]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -606,27 +607,27 @@ var (
 			{
 				Name:    "network_name",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[21]},
+				Columns: []*schema.Column{NetworksColumns[22]},
 			},
 			{
 				Name:    "network_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[43]},
+				Columns: []*schema.Column{NetworksColumns[44]},
 			},
 			{
 				Name:    "network_status",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[42]},
+				Columns: []*schema.Column{NetworksColumns[43]},
 			},
 			{
 				Name:    "network_updated",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[41]},
+				Columns: []*schema.Column{NetworksColumns[42]},
 			},
 			{
 				Name:    "network_status_updated_created_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[42], NetworksColumns[41], NetworksColumns[40], NetworksColumns[0]},
+				Columns: []*schema.Column{NetworksColumns[43], NetworksColumns[42], NetworksColumns[41], NetworksColumns[0]},
 			},
 		},
 	}
