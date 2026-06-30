@@ -337,6 +337,7 @@ type ComplexityRoot struct {
 		InfoUnicast              func(childComplexity int) int
 		IrrAsSet                 func(childComplexity int) int
 		IxCount                  func(childComplexity int) int
+		IxpUpdateExclude         func(childComplexity int) int
 		Logo                     func(childComplexity int) int
 		LookingGlass             func(childComplexity int) int
 		Name                     func(childComplexity int) int
@@ -1973,6 +1974,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Network.IxCount(childComplexity), true
+	case "Network.ixpUpdateExclude":
+		if e.ComplexityRoot.Network.IxpUpdateExclude == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Network.IxpUpdateExclude(childComplexity), true
 	case "Network.logo":
 		if e.ComplexityRoot.Network.Logo == nil {
 			break
@@ -3803,6 +3810,8 @@ func (ec *executionContext) childFields_Network(ctx context.Context, field graph
 		return ec.fieldContext_Network_infoUnicast(ctx, field)
 	case "irrAsSet":
 		return ec.fieldContext_Network_irrAsSet(ctx, field)
+	case "ixpUpdateExclude":
+		return ec.fieldContext_Network_ixpUpdateExclude(ctx, field)
 	case "logo":
 		return ec.fieldContext_Network_logo(ctx, field)
 	case "lookingGlass":
@@ -10934,6 +10943,29 @@ func (ec *executionContext) _Network_irrAsSet(ctx context.Context, field graphql
 	)
 }
 func (ec *executionContext) fieldContext_Network_irrAsSet(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Network_ixpUpdateExclude(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_ixpUpdateExclude(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IxpUpdateExclude, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalOString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Network_ixpUpdateExclude(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
@@ -39601,6 +39633,11 @@ func (ec *executionContext) _Network(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "irrAsSet":
 			out.Values[i] = ec._Network_irrAsSet(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "ixpUpdateExclude":
+			out.Values[i] = ec._Network_ixpUpdateExclude(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
 			}

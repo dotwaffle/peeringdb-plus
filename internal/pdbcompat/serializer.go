@@ -33,6 +33,16 @@ func socialMediaFromSchema(sm []schematypes.SocialMedia) []peeringdb.SocialMedia
 	return out
 }
 
+// stringsOrEmpty returns an empty, non-nil slice when s is nil so JSON
+// serialization emits [] rather than null. Upstream PeeringDB always emits a
+// list for ixp_update_exclude (the model default is an empty list).
+func stringsOrEmpty(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}
+
 // organizationFromEnt maps an ent Organization to a peeringdb Organization.
 func organizationFromEnt(o *ent.Organization) peeringdb.Organization {
 	return peeringdb.Organization{
@@ -102,6 +112,7 @@ func networkFromEnt(n *ent.Network) peeringdb.Network {
 		PolicyRatio:             n.PolicyRatio,
 		PolicyContracts:         n.PolicyContracts,
 		AllowIXPUpdate:          n.AllowIxpUpdate,
+		IxpUpdateExclude:        stringsOrEmpty(n.IxpUpdateExclude),
 		StatusDashboard:         n.StatusDashboard,
 		RIRStatus:               n.RirStatus,
 		RIRStatusUpdated:        n.RirStatusUpdated,

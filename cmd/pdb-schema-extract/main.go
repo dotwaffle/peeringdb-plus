@@ -1,17 +1,33 @@
-// pdb-schema-extract parses PeeringDB Django serializer and model Python source
-// to produce an intermediate JSON schema representation. The JSON describes all 13
-// PeeringDB object types with field metadata, FK references, and read-only annotations.
+// pdb-schema-extract parses PeeringDB's Django serializer and model Python source
+// into an intermediate JSON schema describing all 13 PeeringDB object types: the
+// scalar wire fields (derived from DRF serializer introspection), their FK
+// references, and computed-field names.
+//
+// Role: this is a DRIFT DETECTOR, not the schema source of truth. The committed
+// schema/peeringdb.json is hand-curated (help_text becomes ent .Comment(), the
+// name uniqueness is deliberately relaxed, info_types is curated to a list,
+// etc.), and pdb-schema-generate consumes that curation. Use this tool to diff a
+// fresh upstream checkout against the committed schema and surface genuine
+// field-level drift (adds/removes/type/ref/required/nullable changes); apply any
+// real drift to the curated schema by hand. Do NOT overwrite schema/peeringdb.json
+// with this tool's raw output — it would regress the curation.
+//
+// Known limitations (acceptable for drift detection): custom DRF field classes
+// that are not serializers.<X> constructors (e.g. LegacyInfoTypeField) are not
+// recognised, and some abstract-base inheritance for org/fac is incompletely
+// resolved, so those types under-report fields. Cross-check unexpected removals
+// against upstream source before treating them as real.
 //
 // Usage:
 //
 //	pdb-schema-extract <peeringdb-repo-path> [--validate]
 //
-// The repo path should point to the root of a local peeringdb/peeringdb checkout.
-// The tool expects to find:
+// The repo path should point at the src/ root of a local peeringdb/peeringdb
+// checkout. The tool expects to find:
 //
 //   - {repo}/peeringdb_server/serializers.py
+//   - {repo}/peeringdb_server/models.py
 //   - {repo}/../django-peeringdb/src/django_peeringdb/models/abstract.py
-//   - {repo}/../django-peeringdb/src/django_peeringdb/models/concrete.py
 //   - {repo}/../django-peeringdb/src/django_peeringdb/const.py
 //
 // When --validate is passed, the tool also fetches sample data from
@@ -107,14 +123,20 @@ func extractSchema(repoPath string) (*Schema, error) {
 		return nil, fmt.Errorf("read serializers.py: %w", err)
 	}
 
+	// The scalar fields live on django-peeringdb's abstract *Base classes.
 	abstractSrc, err := readSourceFile(repoPath, "../django-peeringdb/src/django_peeringdb/models/abstract.py")
 	if err != nil {
 		return nil, fmt.Errorf("read abstract.py: %w", err)
 	}
 
-	concreteSrc, err := readSourceFile(repoPath, "../django-peeringdb/src/django_peeringdb/models/concrete.py")
+	// The concrete models the API actually serves live in peeringdb-server:
+	// each subclasses the matching django-peeringdb *Base and adds the foreign
+	// keys, server-specific fields (e.g. allow_ixp_update, ixp_update_exclude)
+	// and field-bearing mixins (LogoMixin, SocialMediaMixin). django-peeringdb's
+	// own concrete.py is not used by the server and is intentionally skipped.
+	serverModelsSrc, err := readSourceFile(repoPath, "peeringdb_server/models.py")
 	if err != nil {
-		return nil, fmt.Errorf("read concrete.py: %w", err)
+		return nil, fmt.Errorf("read models.py: %w", err)
 	}
 
 	constSrc, err := readSourceFile(repoPath, "../django-peeringdb/src/django_peeringdb/const.py")
@@ -124,7 +146,7 @@ func extractSchema(repoPath string) (*Schema, error) {
 
 	// Parse source files.
 	serializers := parseSerializers(serializersSrc)
-	modelFields := parseModelFields(abstractSrc, concreteSrc)
+	modelFields := parseModelFields(abstractSrc, serverModelsSrc)
 	_ = parseChoiceConstants(constSrc) // Captured for reference, constants stored as field metadata.
 
 	// Build object types.
@@ -153,10 +175,28 @@ type SerializerInfo struct {
 	Name           string
 	ModelName      string
 	BaseClasses    []string
-	Fields         map[string]FieldDef
+	SerFields      map[string]serField // explicitly-declared serializer fields
+	MethodReturns  map[string]string   // get_<name> -> Python return annotation
 	ReadOnlyFields []string
-	AllFields      bool // True when fields = "__all__"
-	FieldList      []string
+	RelatedFields  []string // Meta.related_fields (nested objects + reverse sets)
+	AllFields      bool     // True when fields = "__all__"
+	FieldList      []string // Meta.fields, the authoritative output field order
+}
+
+// serField is a field declared explicitly in a serializer body (as opposed to
+// one DRF derives from the model). It records just enough to resolve the field
+// onto the wire schema: its DRF type, any source= remap, the related model of a
+// PrimaryKeyRelatedField, and the read_only/write_only/allow_null flags.
+type serField struct {
+	drfType   string
+	source    string
+	refModel  string
+	readOnly  bool
+	writeOnly bool
+	allowNull bool
+	maxLength int
+	hasDef    bool
+	def       any
 }
 
 // Regex patterns for parsing Django source.
@@ -176,11 +216,37 @@ var (
 	// Read-only fields, e.g.: read_only_fields = ["id", "created", ...]
 	reReadOnlyFields = regexp.MustCompile(`^\s+read_only_fields\s*=\s*\[([^\]]*)\]`)
 
-	// Serializer field definition, e.g.: name = serializers.CharField(max_length=255, required=True)
-	reSerializerField = regexp.MustCompile(`^\s+(\w+)\s*=\s*serializers\.(\w+)\(([^)]*)\)`)
+	// Related fields (nested objects + reverse sets), e.g.:
+	//   related_fields = ["org", "netfac_set", ...]
+	reRelatedFields = regexp.MustCompile(`^\s+related_fields\s*=\s*\[([^\]]*)\]`)
 
-	// Django model field definition, e.g.: name = models.CharField(max_length=255, ...)
-	reModelField = regexp.MustCompile(`^\s+(\w+)\s*=\s*models\.(\w+)\(([^)]*)\)`)
+	// SerializerMethodField getter with a return annotation, e.g.:
+	//   def get_proto_ipv6(self, inst) -> bool:
+	reMethodDef = regexp.MustCompile(`^\s+def\s+get_(\w+)\s*\(.*\)\s*->\s*([\w.]+)`)
+
+	// source= remap on a serializer field, e.g.: source="network"
+	reSource = regexp.MustCompile(`source\s*=\s*["']([\w.]+)["']`)
+
+	// queryset target of a PrimaryKeyRelatedField, e.g.: queryset=Network.objects.all()
+	reQuerySet = regexp.MustCompile(`queryset\s*=\s*(\w+)\.objects`)
+
+	// write_only / allow_null flags.
+	reWriteOnly = regexp.MustCompile(`write_only\s*=\s*True`)
+	reAllowNull = regexp.MustCompile(`allow_null\s*=\s*True`)
+
+	// Serializer field definition. Tolerates an optional PEP 526 type
+	// annotation and logical-line-joined (multi-line) arguments, e.g.:
+	//   name = serializers.CharField(max_length=255, required=True)
+	//   asn: serializers.IntegerField = serializers.IntegerField(read_only=True)
+	reSerializerField = regexp.MustCompile(`^\s+(\w+)\s*(?::\s*[^=]+?)?\s*=\s*serializers\.(\w+)\((.*)\)\s*$`)
+
+	// Django model field definition. Tolerates an optional PEP 526 type
+	// annotation, a bare custom field-type constructor (e.g. ASNField,
+	// URLField, CountryField) as well as a dotted models.X constructor, and
+	// logical-line-joined arguments, e.g.:
+	//   name: models.CharField = models.CharField(_("Name"), max_length=255)
+	//   asn: ASNField = ASNField(verbose_name="ASN", unique=True)
+	reModelField = regexp.MustCompile(`^\s+(\w+)\s*(?::\s*[^=]+?)?\s*=\s*([A-Za-z_][\w.]*)\((.*)\)\s*$`)
 
 	// Foreign key, e.g.: org = models.ForeignKey(Organization, ...) or ForeignKey("Organization", ...)
 	reForeignKey = regexp.MustCompile(`ForeignKey\(\s*["']?(\w+)["']?`)
@@ -219,10 +285,112 @@ var (
 	reReadOnly = regexp.MustCompile(`read_only\s*=\s*(True|False)`)
 )
 
+// logicalLines joins physically-wrapped Python statements into single logical
+// lines by tracking code-context bracket depth, so the downstream single-line
+// regexes match multi-line class declarations, field definitions and list
+// literals alike. The leading indentation of the first physical line is
+// preserved (the field regexes anchor on it); continuation lines are trimmed
+// and appended with a single separating space. Whole-line comments outside any
+// open bracket are dropped.
+//
+// Bracket counting ignores brackets inside string literals (including
+// multi-line triple-quoted docstrings) and inline comments, so an unbalanced
+// bracket in prose does not run statements together.
+func logicalLines(src string) []string {
+	var out []string
+	var buf strings.Builder
+	var sc pyScanner
+	depth := 0
+	for raw := range strings.SplitSeq(src, "\n") {
+		if depth == 0 && !sc.inString() {
+			if strings.HasPrefix(strings.TrimSpace(raw), "#") {
+				continue
+			}
+			buf.Reset()
+			buf.WriteString(strings.TrimRight(raw, " \t"))
+		} else {
+			buf.WriteString(" ")
+			buf.WriteString(strings.TrimSpace(raw))
+		}
+		depth += sc.delta(raw)
+		if depth <= 0 && !sc.inString() {
+			depth = 0
+			out = append(out, buf.String())
+		}
+	}
+	if buf.Len() > 0 {
+		out = append(out, buf.String())
+	}
+	return out
+}
+
+// pyScanner tracks Python lexical state across physical lines so that bracket
+// counting can ignore brackets appearing inside string literals or comments.
+// It understands single- and double-quoted strings (with backslash escapes)
+// and triple-quoted strings that span multiple lines.
+type pyScanner struct {
+	triple string // "\"\"\"" or "'''" while inside a triple-quoted string, else ""
+}
+
+// inString reports whether the scanner is currently inside a multi-line
+// triple-quoted string.
+func (s *pyScanner) inString() bool { return s.triple != "" }
+
+// delta scans one physical line and returns the net change in code-context
+// bracket depth (opening minus closing round/square/curly brackets), updating
+// the scanner's multi-line string state.
+func (s *pyScanner) delta(line string) int {
+	d := 0
+	for i := 0; i < len(line); {
+		if s.triple != "" {
+			if strings.HasPrefix(line[i:], s.triple) {
+				s.triple = ""
+				i += 3
+				continue
+			}
+			i++
+			continue
+		}
+		switch {
+		case line[i] == '#':
+			return d // remainder of the line is a comment
+		case strings.HasPrefix(line[i:], `"""`):
+			s.triple = `"""`
+			i += 3
+		case strings.HasPrefix(line[i:], `'''`):
+			s.triple = `'''`
+			i += 3
+		case line[i] == '"' || line[i] == '\'':
+			q := line[i]
+			i++
+			for i < len(line) {
+				if line[i] == '\\' {
+					i += 2
+					continue
+				}
+				if line[i] == q {
+					i++
+					break
+				}
+				i++
+			}
+		case line[i] == '(' || line[i] == '[' || line[i] == '{':
+			d++
+			i++
+		case line[i] == ')' || line[i] == ']' || line[i] == '}':
+			d--
+			i++
+		default:
+			i++
+		}
+	}
+	return d
+}
+
 // parseSerializers extracts serializer class definitions from serializers.py.
 func parseSerializers(src string) []SerializerInfo {
 	var result []SerializerInfo
-	lines := strings.Split(src, "\n")
+	lines := logicalLines(src)
 	var current *SerializerInfo
 	inMeta := false
 
@@ -237,9 +405,10 @@ func parseSerializers(src string) []SerializerInfo {
 				bases[i] = strings.TrimSpace(bases[i])
 			}
 			current = &SerializerInfo{
-				Name:        m[1],
-				BaseClasses: bases,
-				Fields:      make(map[string]FieldDef),
+				Name:          m[1],
+				BaseClasses:   bases,
+				SerFields:     make(map[string]serField),
+				MethodReturns: make(map[string]string),
 			}
 			inMeta = false
 			continue
@@ -273,15 +442,23 @@ func parseSerializers(src string) []SerializerInfo {
 			if m := reReadOnlyFields.FindStringSubmatch(line); m != nil {
 				current.ReadOnlyFields = parseStringList(m[1])
 			}
+			if m := reRelatedFields.FindStringSubmatch(line); m != nil {
+				current.RelatedFields = parseStringList(m[1])
+			}
 			continue
 		}
 
-		// Parse inline field definitions in serializer body.
+		// A SerializerMethodField getter records its declared return type so the
+		// derived field can be typed (e.g. get_proto_ipv6(...) -> bool).
+		if m := reMethodDef.FindStringSubmatch(line); m != nil {
+			current.MethodReturns[m[1]] = lastSegment(m[2])
+			continue
+		}
+
+		// Parse an explicitly-declared serializer field, e.g.:
+		//   net_id = serializers.PrimaryKeyRelatedField(queryset=Network.objects..., source="network")
 		if m := reSerializerField.FindStringSubmatch(line); m != nil {
-			fieldName := m[1]
-			fieldType := m[2]
-			args := m[3]
-			current.Fields[fieldName] = parseFieldFromArgs(fieldType, args, "serializer")
+			current.SerFields[m[1]] = parseSerField(m[2], m[3])
 		}
 	}
 	if current != nil {
@@ -290,26 +467,72 @@ func parseSerializers(src string) []SerializerInfo {
 	return result
 }
 
-// parseModelFields parses Django model field definitions from abstract and concrete sources.
-func parseModelFields(abstractSrc, concreteSrc string) map[string]map[string]FieldDef {
-	result := make(map[string]map[string]FieldDef)
-	for _, src := range []string{abstractSrc, concreteSrc} {
-		parseModelSource(src, result)
+// parseSerField parses the constructor arguments of an explicitly-declared
+// serializer field into a serField.
+func parseSerField(drfType, args string) serField {
+	sf := serField{drfType: drfType}
+	if m := reSource.FindStringSubmatch(args); m != nil {
+		sf.source = m[1]
 	}
-	return result
+	if m := reQuerySet.FindStringSubmatch(args); m != nil {
+		sf.refModel = m[1]
+	}
+	if m := reMaxLength.FindStringSubmatch(args); m != nil {
+		sf.maxLength = atoi(m[1])
+	}
+	sf.writeOnly = reWriteOnly.MatchString(args)
+	sf.allowNull = reAllowNull.MatchString(args)
+	if m := reReadOnly.FindStringSubmatch(args); m != nil {
+		sf.readOnly = m[1] == "True"
+	}
+	if m := reDefault.FindStringSubmatch(args); m != nil {
+		sf.hasDef = true
+		sf.def = parsePythonDefault(strings.TrimSpace(m[1]))
+	}
+	return sf
+}
+
+// modelDefs holds parsed Django model data: the field set of each model class
+// keyed by class name, plus each model's declared base classes. The bases let
+// buildObjectTypes resolve django-peeringdb's concrete -> abstract-base ->
+// shared-base inheritance chain (e.g. Network -> NetworkBase -> HandleRefModel)
+// when assembling a serializer's effective field set.
+type modelDefs struct {
+	fields map[string]map[string]FieldDef
+	bases  map[string][]string
+}
+
+// parseModelFields parses Django model field definitions from the abstract base
+// classes and the concrete server models, merging both into one set keyed by
+// class name. Abstract bases are parsed first so a concrete server model of the
+// same name (django-peeringdb and peeringdb-server both define e.g. "Network")
+// contributes its foreign keys and server-specific fields on top.
+func parseModelFields(abstractSrc, serverSrc string) modelDefs {
+	defs := modelDefs{
+		fields: make(map[string]map[string]FieldDef),
+		bases:  make(map[string][]string),
+	}
+	for _, src := range []string{abstractSrc, serverSrc} {
+		parseModelSource(src, &defs)
+	}
+	return defs
 }
 
 // parseModelSource parses model class definitions from a single Python source.
-func parseModelSource(src string, result map[string]map[string]FieldDef) {
-	lines := strings.Split(src, "\n")
+func parseModelSource(src string, defs *modelDefs) {
 	var currentModel string
 
-	for _, line := range lines {
+	for _, line := range logicalLines(src) {
 		if m := reModelClass.FindStringSubmatch(line); m != nil {
 			currentModel = m[1]
-			if _, ok := result[currentModel]; !ok {
-				result[currentModel] = make(map[string]FieldDef)
+			if _, ok := defs.fields[currentModel]; !ok {
+				defs.fields[currentModel] = make(map[string]FieldDef)
 			}
+			bases := strings.Split(m[2], ",")
+			for i := range bases {
+				bases[i] = lastSegment(strings.TrimSpace(bases[i]))
+			}
+			defs.bases[currentModel] = bases
 			continue
 		}
 
@@ -317,28 +540,35 @@ func parseModelSource(src string, result map[string]map[string]FieldDef) {
 			continue
 		}
 
-		// New top-level construct ends the current model.
-		if len(line) > 0 && line[0] != ' ' && line[0] != '\t' && !strings.HasPrefix(strings.TrimSpace(line), "#") && strings.TrimSpace(line) != "" {
+		// A new unindented construct ends the current model body.
+		if len(line) > 0 && line[0] != ' ' && line[0] != '\t' && strings.TrimSpace(line) != "" {
 			currentModel = ""
 			continue
 		}
 
-		if m := reModelField.FindStringSubmatch(line); m != nil {
-			fieldName := m[1]
-			fieldType := m[2]
-			args := m[3]
-			fd := parseFieldFromArgs(fieldType, args, "model")
-
-			// Detect FK references.
-			if fieldType == "ForeignKey" {
-				if fkm := reForeignKey.FindStringSubmatch(line); fkm != nil {
-					fd.References = modelNameToAPIPath(fkm[1])
-				}
-				fd.Type = "integer"
-			}
-
-			result[currentModel][fieldName] = fd
+		m := reModelField.FindStringSubmatch(line)
+		if m == nil {
+			continue
 		}
+		fieldName := m[1]
+		ctor := lastSegment(m[2])
+		if !isFieldConstructor(ctor) {
+			continue
+		}
+		fd := parseFieldFromArgs(ctor, m[3], "model")
+
+		// Foreign keys surface on the API as "<name>_id" integers that carry a
+		// reference to the target type's API path (the model field `org`
+		// becomes the schema field `org_id` referencing `org`).
+		if ctor == "ForeignKey" || ctor == "OneToOneField" {
+			if fkm := reForeignKey.FindStringSubmatch(line); fkm != nil {
+				fd.References = modelNameToAPIPath(fkm[1])
+			}
+			fd.Type = "integer"
+			fieldName += "_id"
+		}
+
+		defs.fields[currentModel][fieldName] = fd
 	}
 }
 
@@ -420,18 +650,24 @@ func parseFieldFromArgs(fieldType, args, source string) FieldDef {
 	return fd
 }
 
-// djangoFieldToJSONType maps Django/DRF field types to simple JSON schema types.
+// djangoFieldToJSONType maps a Django/DRF field type (the bare constructor name,
+// e.g. "CharField" from "models.CharField", or a custom field class such as
+// "ASNField") to a simple JSON schema type. Custom field classes used by
+// django-peeringdb resolve through their documented base type: ASNField is an
+// integer, the django_inet address/prefix/mac fields and the URL/country
+// wrappers are strings.
 func djangoFieldToJSONType(fieldType string) string {
 	switch fieldType {
-	case "CharField", "TextField", "URLField", "EmailField",
-		"SlugField", "IPAddressField", "GenericIPAddressField",
+	case "CharField", "TextField", "URLField", "LG_URLField", "EmailField",
+		"SlugField", "IPAddressField", "IPPrefixField", "GenericIPAddressField",
 		"FileField", "ImageField", "FilePathField",
 		"SerializerMethodField", "StringRelatedField",
-		"ChoiceField", "RegexField", "MacAddressField":
+		"ChoiceField", "MultipleChoiceField", "RegexField",
+		"MacAddressField", "CountryField":
 		return "string"
 	case "IntegerField", "PositiveIntegerField", "BigIntegerField",
 		"SmallIntegerField", "AutoField", "BigAutoField",
-		"PrimaryKeyRelatedField", "ForeignKey":
+		"PrimaryKeyRelatedField", "ForeignKey", "ASNField":
 		return "integer"
 	case "FloatField", "DecimalField":
 		return "float"
@@ -446,26 +682,69 @@ func djangoFieldToJSONType(fieldType string) string {
 	}
 }
 
-// buildObjectTypes assembles object type definitions from serializer and model data.
-func buildObjectTypes(serializers []SerializerInfo, modelFields map[string]map[string]FieldDef) map[string]ObjectType {
-	result := make(map[string]ObjectType)
-
-	// Map serializer names to API paths.
-	serializerAPIMap := map[string]string{
-		"OrganizationSerializer":           "org",
-		"CampusSerializer":                 "campus",
-		"FacilitySerializer":               "fac",
-		"CarrierSerializer":                "carrier",
-		"CarrierFacSerializer":             "carrierfac",
-		"InternetExchangeSerializer":       "ix",
-		"InternetExchangeLanSerializer":    "ixlan",
-		"InternetExchangePrefixSerializer": "ixpfx",
-		"IXFacSerializer":                  "ixfac",
-		"NetworkSerializer":                "net",
-		"NetworkContactSerializer":         "poc",
-		"NetworkFacilitySerializer":        "netfac",
-		"NetworkIXLanSerializer":           "netixlan",
+// isFieldConstructor reports whether a bare constructor name denotes a Django
+// model field (as opposed to a manager, manual property, or other class-body
+// assignment). Only recognised field constructors are admitted so the model
+// parser does not mistake e.g. `objects = Manager()` for a schema field.
+func isFieldConstructor(name string) bool {
+	switch name {
+	case "CharField", "TextField", "URLField", "LG_URLField", "EmailField",
+		"SlugField", "IPAddressField", "IPPrefixField", "GenericIPAddressField",
+		"FileField", "ImageField", "FilePathField", "ChoiceField",
+		"MultipleChoiceField", "RegexField", "MacAddressField", "CountryField",
+		"IntegerField", "PositiveIntegerField", "BigIntegerField",
+		"SmallIntegerField", "AutoField", "BigAutoField", "ASNField",
+		"FloatField", "DecimalField", "BooleanField", "NullBooleanField",
+		"DateTimeField", "DateField", "TimeField", "JSONField", "ArrayField",
+		"ForeignKey", "OneToOneField":
+		return true
+	default:
+		return false
 	}
+}
+
+// lastSegment returns the final dotted component of a callable reference, so
+// "models.CharField" becomes "CharField" and a bare "ASNField" is unchanged.
+func lastSegment(s string) string {
+	if i := strings.LastIndex(s, "."); i >= 0 {
+		return s[i+1:]
+	}
+	return s
+}
+
+// serializerAPIMap maps a DRF serializer class name to its PeeringDB API path.
+// django-peeringdb 3.x renamed several serializers (e.g. the IX-LAN/prefix and
+// the *Fac serializers); the keys track the current upstream class names.
+var serializerAPIMap = map[string]string{
+	"OrganizationSerializer":             "org",
+	"CampusSerializer":                   "campus",
+	"FacilitySerializer":                 "fac",
+	"CarrierSerializer":                  "carrier",
+	"CarrierFacilitySerializer":          "carrierfac",
+	"InternetExchangeSerializer":         "ix",
+	"IXLanSerializer":                    "ixlan",
+	"IXLanPrefixSerializer":              "ixpfx",
+	"InternetExchangeFacilitySerializer": "ixfac",
+	"NetworkSerializer":                  "net",
+	"NetworkContactSerializer":           "poc",
+	"NetworkFacilitySerializer":          "netfac",
+	"NetworkIXLanSerializer":             "netixlan",
+}
+
+// buildObjectTypes assembles object type definitions from serializer and model
+// data using DRF serializer introspection. The authoritative output field set
+// is Meta.fields, from which the scalar wire fields are derived by removing:
+//   - ent-codegen-injected columns (id/status/created/updated),
+//   - reverse-relation sets (<x>_set) and Meta.related_fields nested objects,
+//   - SerializerMethodField getters (computed, not DB columns),
+//   - write-only serializer fields.
+//
+// Each surviving field is resolved to a FieldDef: an explicitly-declared
+// serializer field (PrimaryKeyRelatedField FK, typed method/char field) takes
+// its shape from the serializer declaration plus the underlying model field it
+// sources from; otherwise the model field of the same name supplies it.
+func buildObjectTypes(serializers []SerializerInfo, models modelDefs) map[string]ObjectType {
+	result := make(map[string]ObjectType)
 
 	for _, ser := range serializers {
 		apiPath, ok := serializerAPIMap[ser.Name]
@@ -473,78 +752,171 @@ func buildObjectTypes(serializers []SerializerInfo, modelFields map[string]map[s
 			continue // Skip non-PeeringDB-type serializers.
 		}
 
+		modelFields := resolveModelFields(models, ser.ModelName, make(map[string]bool))
+		related := sliceToSet(ser.RelatedFields)
+		readOnly := sliceToSet(ser.ReadOnlyFields)
+
 		ot := ObjectType{
 			ModelName:   ser.ModelName,
 			APIPath:     apiPath,
-			BaseClasses: ser.BaseClasses,
+			BaseClasses: primaryBaseClasses(models, ser.ModelName),
 			Fields:      make(map[string]FieldDef),
 		}
 
-		// Merge model fields for the serializer's model.
-		if ser.ModelName != "" {
-			if mf, ok := modelFields[ser.ModelName]; ok {
-				maps.Copy(ot.Fields, mf)
+		for _, name := range ser.FieldList {
+			switch {
+			case name == "id" || name == "status" || name == "created" || name == "updated":
+				continue // Injected by ent codegen, not schema fields.
+			case related[name]:
+				// Reverse <x>_set relations and nested related objects are all
+				// listed explicitly in Meta.related_fields. A bare _set-suffix
+				// test would also drop the genuine scalar field irr_as_set.
+				continue
 			}
-			// Also check base model classes for inherited fields.
-			for modelName, mf := range modelFields {
-				if isBaseModel(modelName) {
-					for name, fd := range mf {
-						if _, exists := ot.Fields[name]; !exists {
-							ot.Fields[name] = fd
-						}
-					}
+
+			// A SerializerMethodField getter (get_<name>) yields a computed
+			// field, not a DB column.
+			if _, isMethod := ser.MethodReturns[name]; isMethod {
+				ot.ComputedFields = append(ot.ComputedFields, name)
+				continue
+			}
+
+			if sf, ok := ser.SerFields[name]; ok {
+				switch {
+				case sf.writeOnly:
+					continue // Write-only fields are not serialized.
+				case sf.drfType == "SerializerMethodField":
+					// A method field whose getter lacks a return annotation (so
+					// it never reached MethodReturns) is still computed, not a
+					// DB column.
+					ot.ComputedFields = append(ot.ComputedFields, name)
+					continue
 				}
+				ot.Fields[name] = serFieldToDef(name, sf, modelFields)
+				continue
 			}
+
+			if fd, ok := modelFields[name]; ok {
+				if readOnly[name] {
+					fd.ReadOnly = true
+				}
+				ot.Fields[name] = fd
+				continue
+			}
+			// Field listed in Meta.fields but neither declared on the serializer
+			// nor found on the model: skip silently — it is typically a method
+			// field whose getter lacks a return annotation, or an inherited
+			// helper not relevant to the wire schema.
 		}
 
-		// Overlay serializer-declared fields (override model fields).
-		maps.Copy(ot.Fields, ser.Fields)
-
-		// Apply read_only_fields from Meta.
-		for _, roField := range ser.ReadOnlyFields {
-			if fd, ok := ot.Fields[roField]; ok {
-				fd.ReadOnly = true
-				ot.Fields[roField] = fd
-			}
-		}
-
-		// Detect computed fields and relationships.
-		ot.ComputedFields = detectComputedFields(apiPath)
 		ot.Relationships = detectRelationships(apiPath, ot.Fields)
-
 		result[apiPath] = ot
 	}
 
 	return result
 }
 
-// isBaseModel returns true if the model name is a known base abstract model.
-func isBaseModel(name string) bool {
-	baseModels := []string{
-		"HandleRefModel", "AddressModel", "SocialMediaMixin",
+// serFieldToDef resolves an explicitly-declared serializer field to a FieldDef.
+// PrimaryKeyRelatedField becomes an integer FK carrying the reference and the
+// required/nullable shape of the underlying model foreign key (looked up via the
+// source= remap, falling back to the field name minus the _id suffix).
+// SerializerMethodField is typed from its getter's return annotation. Any other
+// declared field maps its DRF type and overlays the model field it sources from.
+func serFieldToDef(name string, sf serField, modelFields map[string]FieldDef) FieldDef {
+	switch sf.drfType {
+	case "PrimaryKeyRelatedField":
+		fd := FieldDef{Type: "integer"}
+		src := sf.source
+		if src == "" {
+			src = strings.TrimSuffix(name, "_id")
+		}
+		if mf, ok := modelFields[src+"_id"]; ok {
+			fd.References, fd.Required, fd.Nullable = mf.References, mf.Required, mf.Nullable
+		} else if mf, ok := modelFields[src]; ok {
+			fd.References, fd.Required, fd.Nullable = mf.References, mf.Required, mf.Nullable
+		}
+		if sf.refModel != "" {
+			fd.References = modelNameToAPIPath(sf.refModel)
+		}
+		if sf.allowNull {
+			fd.Nullable, fd.Required = true, false
+		}
+		return fd
+	default:
+		fd := FieldDef{Type: djangoFieldToJSONType(sf.drfType)}
+		fd.MaxLength = sf.maxLength
+		fd.ReadOnly = sf.readOnly
+		if sf.hasDef {
+			fd.Default = sf.def
+		}
+		// Overlay the underlying model field for required/nullable/unique and to
+		// recover attributes the serializer declaration omits.
+		src := sf.source
+		if src == "" {
+			src = name
+		}
+		if mf, ok := modelFields[src]; ok {
+			fd.Required, fd.Nullable, fd.Unique = mf.Required, mf.Nullable, mf.Unique
+			if fd.MaxLength == 0 {
+				fd.MaxLength = mf.MaxLength
+			}
+			if !sf.hasDef {
+				fd.Default = mf.Default
+			}
+			if sf.drfType == "" || fd.Type == "string" {
+				fd.Type = mf.Type
+			}
+		}
+		if sf.allowNull {
+			fd.Nullable, fd.Required = true, false
+		}
+		return fd
 	}
-	return slices.Contains(baseModels, name)
 }
 
-// detectComputedFields returns known computed (serializer-added) field names
-// for a given API path.
-func detectComputedFields(apiPath string) []string {
-	known := map[string][]string{
-		"org":        {"net_count", "fac_count"},
-		"net":        {"ix_count", "fac_count", "netixlan_updated", "netfac_updated", "poc_updated"},
-		"fac":        {"org_name", "net_count", "ix_count", "carrier_count"},
-		"ix":         {"net_count", "fac_count", "ixf_import_request", "ixf_import_request_status"},
-		"ixfac":      {"name", "city", "country"},
-		"netfac":     {"name", "city", "country"},
-		"netixlan":   {"ix_id", "name"},
-		"carrier":    {"org_name", "fac_count"},
-		"carrierfac": {"name"},
-		"campus":     {"org_name"},
+// sliceToSet builds a set from a string slice for O(1) membership tests.
+func sliceToSet(xs []string) map[string]bool {
+	if len(xs) == 0 {
+		return nil
 	}
-	if cf, ok := known[apiPath]; ok {
-		return cf
+	s := make(map[string]bool, len(xs))
+	for _, x := range xs {
+		s[x] = true
 	}
-	return nil
+	return s
+}
+
+// resolveModelFields returns the merged field set for a model class, walking its
+// base classes depth-first so abstract bases (which hold the scalar fields) and
+// shared mixins such as AddressModel contribute. A field declared on a more-
+// derived class overrides an inherited definition of the same name. External
+// bases not present in the parsed sources (e.g. HandleRefModel, models.Model)
+// contribute nothing and terminate the walk for that branch.
+func resolveModelFields(models modelDefs, model string, seen map[string]bool) map[string]FieldDef {
+	if model == "" || seen[model] {
+		return nil
+	}
+	seen[model] = true
+
+	merged := make(map[string]FieldDef)
+	for _, base := range models.bases[model] {
+		maps.Copy(merged, resolveModelFields(models, base, seen))
+	}
+	maps.Copy(merged, models.fields[model])
+	return merged
+}
+
+// primaryBaseClasses returns the base classes that define a concrete model's
+// shape for the schema's base_classes metadata: the bases of the model's first
+// parsed abstract base (e.g. NetworkBase for Network), falling back to the
+// model's own declared bases when no parsed abstract base is found.
+func primaryBaseClasses(models modelDefs, model string) []string {
+	for _, base := range models.bases[model] {
+		if len(models.fields[base]) > 0 {
+			return models.bases[base]
+		}
+	}
+	return models.bases[model]
 }
 
 // detectRelationships infers FK relationships from fields with References set.
@@ -614,8 +986,8 @@ func modelNameToAPIPath(modelName string) string {
 		"Carrier":                  "carrier",
 		"CarrierFacility":          "carrierfac",
 		"InternetExchange":         "ix",
-		"InternetExchangeLan":      "ixlan",
-		"InternetExchangePrefix":   "ixpfx",
+		"IXLan":                    "ixlan",
+		"IXLanPrefix":              "ixpfx",
 		"InternetExchangeFacility": "ixfac",
 		"Network":                  "net",
 		"NetworkContact":           "poc",
@@ -652,8 +1024,12 @@ func parsePythonDefault(s string) any {
 		return ""
 	case strings.HasPrefix(s, `"`) || strings.HasPrefix(s, `'`):
 		return strings.Trim(s, `"'`)
-	case s == "[]":
+	case s == "[]" || s == "list":
+		// "list" is the callable form `default=list` (an empty list factory).
 		return []any{}
+	case s == "{}" || s == "dict":
+		// "dict" is the callable form `default=dict` (an empty dict factory).
+		return map[string]any{}
 	case s == "0":
 		return float64(0) // JSON number.
 	default:

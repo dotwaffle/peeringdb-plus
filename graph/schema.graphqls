@@ -3195,6 +3195,10 @@ type Network implements Node {
   """
   irrAsSet: String
   """
+  IX-F fields to exclude from automatic import updates (speed, is_rs_peer, operational)
+  """
+  ixpUpdateExclude: [String!]
+  """
   Logo URL
   """
   logo: String

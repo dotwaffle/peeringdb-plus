@@ -1165,6 +1165,16 @@ func IrrAsSetContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldIrrAsSet, v))
 }
 
+// IxpUpdateExcludeIsNil applies the IsNil predicate on the "ixp_update_exclude" field.
+func IxpUpdateExcludeIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldIxpUpdateExclude))
+}
+
+// IxpUpdateExcludeNotNil applies the NotNil predicate on the "ixp_update_exclude" field.
+func IxpUpdateExcludeNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldIxpUpdateExclude))
+}
+
 // LogoEQ applies the EQ predicate on the "logo" field.
 func LogoEQ(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldLogo, v))

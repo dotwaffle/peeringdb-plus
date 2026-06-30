@@ -17,8 +17,8 @@ func setupTestRepo(t *testing.T) string {
 
 	// Create directory structure:
 	//   base/peeringdb/peeringdb_server/serializers.py
+	//   base/peeringdb/peeringdb_server/models.py
 	//   base/django-peeringdb/src/django_peeringdb/models/abstract.py
-	//   base/django-peeringdb/src/django_peeringdb/models/concrete.py
 	//   base/django-peeringdb/src/django_peeringdb/const.py
 	repoDir := filepath.Join(base, "peeringdb")
 	dirs := []string{
@@ -34,8 +34,8 @@ func setupTestRepo(t *testing.T) string {
 	// Copy test fixtures.
 	fixtures := map[string]string{
 		"testdata/serializers.py": filepath.Join(repoDir, "peeringdb_server", "serializers.py"),
+		"testdata/models.py":      filepath.Join(repoDir, "peeringdb_server", "models.py"),
 		"testdata/abstract.py":    filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "models", "abstract.py"),
-		"testdata/concrete.py":    filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "models", "concrete.py"),
 		"testdata/const.py":       filepath.Join(base, "django-peeringdb", "src", "django_peeringdb", "const.py"),
 	}
 	for src, dst := range fixtures {
@@ -159,12 +159,15 @@ func TestParseModelFields(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read abstract.py: %v", err)
 	}
-	concreteSrc, err := os.ReadFile("testdata/concrete.py")
+	serverSrc, err := os.ReadFile("testdata/models.py")
 	if err != nil {
-		t.Fatalf("read concrete.py: %v", err)
+		t.Fatalf("read models.py: %v", err)
 	}
 
-	modelFields := parseModelFields(string(abstractSrc), string(concreteSrc))
+	// Fields land under the class that declares them: scalar fields on the
+	// abstract *Base classes, foreign keys and server fields on the concrete
+	// server model. buildObjectTypes resolves the inheritance chain later.
+	defs := parseModelFields(string(abstractSrc), string(serverSrc))
 
 	tests := []struct {
 		model    string
@@ -176,7 +179,7 @@ func TestParseModelFields(t *testing.T) {
 		wantHelp string
 	}{
 		{
-			model:    "Organization",
+			model:    "OrganizationBase",
 			field:    "name",
 			wantType: "string",
 			wantMaxL: 255,
@@ -184,17 +187,23 @@ func TestParseModelFields(t *testing.T) {
 			wantHelp: "Organization name",
 		},
 		{
-			model:    "Network",
+			model:    "NetworkBase",
 			field:    "asn",
 			wantType: "integer",
 			wantUniq: true,
 			wantHelp: "Autonomous System Number",
 		},
 		{
+			// Foreign keys declared on the server model surface as "<name>_id".
 			model:    "Network",
-			field:    "org",
+			field:    "org_id",
 			wantType: "integer",
 			wantRef:  "org",
+		},
+		{
+			model:    "Network",
+			field:    "ixp_update_exclude",
+			wantType: "json_array",
 		},
 		{
 			model:    "AddressModel",
@@ -212,7 +221,7 @@ func TestParseModelFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.model+"/"+tt.field, func(t *testing.T) {
 			t.Parallel()
-			fields, ok := modelFields[tt.model]
+			fields, ok := defs.fields[tt.model]
 			if !ok {
 				t.Fatalf("model %q not found", tt.model)
 			}
@@ -236,6 +245,89 @@ func TestParseModelFields(t *testing.T) {
 				t.Errorf("help_text = %q, want %q", fd.HelpText, tt.wantHelp)
 			}
 		})
+	}
+}
+
+// TestBuildObjectTypesMembership locks the DRF membership rule: Meta.fields,
+// minus codegen-injected columns, reverse <x>_set relations, related_fields
+// nested objects, write-only fields, and SerializerMethodField getters (which
+// become computed_fields). It also checks FK id resolution and that inherited
+// scalar fields appear only when the serializer lists them.
+func TestBuildObjectTypesMembership(t *testing.T) {
+	t.Parallel()
+	repoDir := setupTestRepo(t)
+
+	schema, err := extractSchema(repoDir)
+	if err != nil {
+		t.Fatalf("extractSchema: %v", err)
+	}
+
+	net, ok := schema.ObjectTypes["net"]
+	if !ok {
+		t.Fatal("missing net object type")
+	}
+
+	// Scalar fields that must appear, with their resolved type.
+	wantNet := map[string]string{
+		"org_id":             "integer",
+		"name":               "string",
+		"asn":                "integer",
+		"irr_as_set":         "string",
+		"info_prefixes4":     "integer",
+		"allow_ixp_update":   "boolean",
+		"ixp_update_exclude": "json_array",
+	}
+	for name, wantType := range wantNet {
+		fd, ok := net.Fields[name]
+		if !ok {
+			t.Errorf("net.Fields missing %q", name)
+			continue
+		}
+		if fd.Type != wantType {
+			t.Errorf("net.Fields[%q].type = %q, want %q", name, fd.Type, wantType)
+		}
+	}
+
+	// Excluded from scalar fields: the nested related object, reverse set, the
+	// SerializerMethodField, and the codegen-injected columns.
+	for _, name := range []string{"org", "poc_set", "ix_count", "id", "status", "created", "updated"} {
+		if _, ok := net.Fields[name]; ok {
+			t.Errorf("net.Fields should not contain %q", name)
+		}
+	}
+
+	// The SerializerMethodField getter becomes a computed field.
+	if !slices.Contains(net.ComputedFields, "ix_count") {
+		t.Errorf("net.ComputedFields should contain ix_count, got %v", net.ComputedFields)
+	}
+
+	// The FK id resolves its reference and inherits the nullable FK shape.
+	if got := net.Fields["org_id"].References; got != "org" {
+		t.Errorf("net.Fields[org_id].references = %q, want org", got)
+	}
+	if !net.Fields["org_id"].Nullable {
+		t.Errorf("net.Fields[org_id].nullable = false, want true (FK is null=True)")
+	}
+
+	// JSONField default=list resolves to an empty list, not the literal "list".
+	if gotJSON, _ := json.Marshal(net.Fields["ixp_update_exclude"].Default); string(gotJSON) != "[]" {
+		t.Errorf("net.Fields[ixp_update_exclude].default = %s, want []", gotJSON)
+	}
+
+	// Inherited scalar fields appear only when the serializer lists them:
+	// Organization inherits city/latitude from AddressModel but OrganizationSerializer
+	// omits them, so they must not leak onto the wire schema.
+	org, ok := schema.ObjectTypes["org"]
+	if !ok {
+		t.Fatal("missing org object type")
+	}
+	if _, ok := org.Fields["name"]; !ok {
+		t.Error("org.Fields should contain name (in Meta.fields, inherited from OrganizationBase)")
+	}
+	for _, name := range []string{"city", "latitude", "longitude", "country"} {
+		if _, ok := org.Fields[name]; ok {
+			t.Errorf("org.Fields should not contain %q (not in Meta.fields)", name)
+		}
 	}
 }
 
@@ -347,7 +439,8 @@ func TestModelNameToAPIPath(t *testing.T) {
 		{"Network", "net"},
 		{"Facility", "fac"},
 		{"InternetExchange", "ix"},
-		{"InternetExchangeLan", "ixlan"},
+		{"IXLan", "ixlan"},
+		{"IXLanPrefix", "ixpfx"},
 		{"NetworkIXLan", "netixlan"},
 		{"Campus", "campus"},
 		{"Carrier", "carrier"},

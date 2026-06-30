@@ -56,8 +56,8 @@ var typicalRowBytes = map[string]RowSize{
 	// Depth0 calibrated 2026-04-19; Depth2 recalibrated 2026-06-08 after the
 	// depth-parity work, both from seed.Full at benchtime=20x × count=3.
 	// Values = ceil(2 × measured_bytes_per_op / 64) * 64.
-	peeringdb.TypeOrg:        {Depth0: 704, Depth2: 8448}, // org (Depth2 expands net/fac/ix/carrier/campus sets → largest row in the table). Depth0 bumped from 640 → 704 — seed.Full mean is 325 bytes vs bench's single-row 317, so 2× rounds up one 64-byte bucket higher.
-	peeringdb.TypeNet:        {Depth0: 1600, Depth2: 2496},
+	peeringdb.TypeOrg:        {Depth0: 704, Depth2: 8448},  // org (Depth2 expands net/fac/ix/carrier/campus sets → largest row in the table). Depth0 bumped from 640 → 704 — seed.Full mean is 325 bytes vs bench's single-row 317, so 2× rounds up one 64-byte bucket higher.
+	peeringdb.TypeNet:        {Depth0: 1664, Depth2: 2560}, // Depth0/Depth2 bumped one 64-byte bucket each when ixp_update_exclude joined NetworkSerializer (2.80.1 parity).
 	peeringdb.TypeFac:        {Depth0: 1344, Depth2: 3392},
 	peeringdb.TypeIX:         {Depth0: 1280, Depth2: 2688},
 	peeringdb.TypePoc:        {Depth0: 384, Depth2: 2752},

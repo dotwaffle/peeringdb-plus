@@ -397,6 +397,24 @@ func (_u *NetworkUpdate) ClearIrrAsSet() *NetworkUpdate {
 	return _u
 }
 
+// SetIxpUpdateExclude sets the "ixp_update_exclude" field.
+func (_u *NetworkUpdate) SetIxpUpdateExclude(v []string) *NetworkUpdate {
+	_u.mutation.SetIxpUpdateExclude(v)
+	return _u
+}
+
+// AppendIxpUpdateExclude appends value to the "ixp_update_exclude" field.
+func (_u *NetworkUpdate) AppendIxpUpdateExclude(v []string) *NetworkUpdate {
+	_u.mutation.AppendIxpUpdateExclude(v)
+	return _u
+}
+
+// ClearIxpUpdateExclude clears the value of the "ixp_update_exclude" field.
+func (_u *NetworkUpdate) ClearIxpUpdateExclude() *NetworkUpdate {
+	_u.mutation.ClearIxpUpdateExclude()
+	return _u
+}
+
 // SetLogo sets the "logo" field.
 func (_u *NetworkUpdate) SetLogo(v string) *NetworkUpdate {
 	_u.mutation.SetLogo(v)
@@ -1136,6 +1154,17 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.IrrAsSetCleared() {
 		_spec.ClearField(network.FieldIrrAsSet, field.TypeString)
 	}
+	if value, ok := _u.mutation.IxpUpdateExclude(); ok {
+		_spec.SetField(network.FieldIxpUpdateExclude, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedIxpUpdateExclude(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, network.FieldIxpUpdateExclude, value)
+		})
+	}
+	if _u.mutation.IxpUpdateExcludeCleared() {
+		_spec.ClearField(network.FieldIxpUpdateExclude, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Logo(); ok {
 		_spec.SetField(network.FieldLogo, field.TypeString, value)
 	}
@@ -1817,6 +1846,24 @@ func (_u *NetworkUpdateOne) SetNillableIrrAsSet(v *string) *NetworkUpdateOne {
 // ClearIrrAsSet clears the value of the "irr_as_set" field.
 func (_u *NetworkUpdateOne) ClearIrrAsSet() *NetworkUpdateOne {
 	_u.mutation.ClearIrrAsSet()
+	return _u
+}
+
+// SetIxpUpdateExclude sets the "ixp_update_exclude" field.
+func (_u *NetworkUpdateOne) SetIxpUpdateExclude(v []string) *NetworkUpdateOne {
+	_u.mutation.SetIxpUpdateExclude(v)
+	return _u
+}
+
+// AppendIxpUpdateExclude appends value to the "ixp_update_exclude" field.
+func (_u *NetworkUpdateOne) AppendIxpUpdateExclude(v []string) *NetworkUpdateOne {
+	_u.mutation.AppendIxpUpdateExclude(v)
+	return _u
+}
+
+// ClearIxpUpdateExclude clears the value of the "ixp_update_exclude" field.
+func (_u *NetworkUpdateOne) ClearIxpUpdateExclude() *NetworkUpdateOne {
+	_u.mutation.ClearIxpUpdateExclude()
 	return _u
 }
 
@@ -2588,6 +2635,17 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	}
 	if _u.mutation.IrrAsSetCleared() {
 		_spec.ClearField(network.FieldIrrAsSet, field.TypeString)
+	}
+	if value, ok := _u.mutation.IxpUpdateExclude(); ok {
+		_spec.SetField(network.FieldIxpUpdateExclude, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedIxpUpdateExclude(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, network.FieldIxpUpdateExclude, value)
+		})
+	}
+	if _u.mutation.IxpUpdateExcludeCleared() {
+		_spec.ClearField(network.FieldIxpUpdateExclude, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Logo(); ok {
 		_spec.SetField(network.FieldLogo, field.TypeString, value)

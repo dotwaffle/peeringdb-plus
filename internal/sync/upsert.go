@@ -555,6 +555,7 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 				SetPolicyRatio(n.PolicyRatio).
 				SetPolicyContracts(n.PolicyContracts).
 				SetAllowIxpUpdate(n.AllowIXPUpdate).
+				SetIxpUpdateExclude(n.IxpUpdateExclude).
 				SetNillableStatusDashboard(n.StatusDashboard).
 				SetNillableRirStatus(n.RIRStatus).
 				SetNillableRirStatusUpdated(n.RIRStatusUpdated).

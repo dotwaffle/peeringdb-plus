@@ -50,6 +50,8 @@ const (
 	FieldInfoUnicast = "info_unicast"
 	// FieldIrrAsSet holds the string denoting the irr_as_set field in the database.
 	FieldIrrAsSet = "irr_as_set"
+	// FieldIxpUpdateExclude holds the string denoting the ixp_update_exclude field in the database.
+	FieldIxpUpdateExclude = "ixp_update_exclude"
 	// FieldLogo holds the string denoting the logo field in the database.
 	FieldLogo = "logo"
 	// FieldLookingGlass holds the string denoting the looking_glass field in the database.
@@ -160,6 +162,7 @@ var Columns = []string{
 	FieldInfoTypes,
 	FieldInfoUnicast,
 	FieldIrrAsSet,
+	FieldIxpUpdateExclude,
 	FieldLogo,
 	FieldLookingGlass,
 	FieldName,

@@ -14175,6 +14175,8 @@ type NetworkMutation struct {
 	appendinfo_types             []string
 	info_unicast                 *bool
 	irr_as_set                   *string
+	ixp_update_exclude           *[]string
+	appendixp_update_exclude     []string
 	logo                         *string
 	looking_glass                *string
 	name                         *string
@@ -15252,6 +15254,71 @@ func (m *NetworkMutation) IrrAsSetCleared() bool {
 func (m *NetworkMutation) ResetIrrAsSet() {
 	m.irr_as_set = nil
 	delete(m.clearedFields, network.FieldIrrAsSet)
+}
+
+// SetIxpUpdateExclude sets the "ixp_update_exclude" field.
+func (m *NetworkMutation) SetIxpUpdateExclude(s []string) {
+	m.ixp_update_exclude = &s
+	m.appendixp_update_exclude = nil
+}
+
+// IxpUpdateExclude returns the value of the "ixp_update_exclude" field in the mutation.
+func (m *NetworkMutation) IxpUpdateExclude() (r []string, exists bool) {
+	v := m.ixp_update_exclude
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIxpUpdateExclude returns the old "ixp_update_exclude" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldIxpUpdateExclude(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIxpUpdateExclude is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIxpUpdateExclude requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIxpUpdateExclude: %w", err)
+	}
+	return oldValue.IxpUpdateExclude, nil
+}
+
+// AppendIxpUpdateExclude adds s to the "ixp_update_exclude" field.
+func (m *NetworkMutation) AppendIxpUpdateExclude(s []string) {
+	m.appendixp_update_exclude = append(m.appendixp_update_exclude, s...)
+}
+
+// AppendedIxpUpdateExclude returns the list of values that were appended to the "ixp_update_exclude" field in this mutation.
+func (m *NetworkMutation) AppendedIxpUpdateExclude() ([]string, bool) {
+	if len(m.appendixp_update_exclude) == 0 {
+		return nil, false
+	}
+	return m.appendixp_update_exclude, true
+}
+
+// ClearIxpUpdateExclude clears the value of the "ixp_update_exclude" field.
+func (m *NetworkMutation) ClearIxpUpdateExclude() {
+	m.ixp_update_exclude = nil
+	m.appendixp_update_exclude = nil
+	m.clearedFields[network.FieldIxpUpdateExclude] = struct{}{}
+}
+
+// IxpUpdateExcludeCleared returns if the "ixp_update_exclude" field was cleared in this mutation.
+func (m *NetworkMutation) IxpUpdateExcludeCleared() bool {
+	_, ok := m.clearedFields[network.FieldIxpUpdateExclude]
+	return ok
+}
+
+// ResetIxpUpdateExclude resets all changes to the "ixp_update_exclude" field.
+func (m *NetworkMutation) ResetIxpUpdateExclude() {
+	m.ixp_update_exclude = nil
+	m.appendixp_update_exclude = nil
+	delete(m.clearedFields, network.FieldIxpUpdateExclude)
 }
 
 // SetLogo sets the "logo" field.
@@ -16659,7 +16726,7 @@ func (m *NetworkMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NetworkMutation) Fields() []string {
-	fields := make([]string, 0, 43)
+	fields := make([]string, 0, 44)
 	if m.name_fold != nil {
 		fields = append(fields, network.FieldNameFold)
 	}
@@ -16716,6 +16783,9 @@ func (m *NetworkMutation) Fields() []string {
 	}
 	if m.irr_as_set != nil {
 		fields = append(fields, network.FieldIrrAsSet)
+	}
+	if m.ixp_update_exclude != nil {
+		fields = append(fields, network.FieldIxpUpdateExclude)
 	}
 	if m.logo != nil {
 		fields = append(fields, network.FieldLogo)
@@ -16835,6 +16905,8 @@ func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
 		return m.InfoUnicast()
 	case network.FieldIrrAsSet:
 		return m.IrrAsSet()
+	case network.FieldIxpUpdateExclude:
+		return m.IxpUpdateExclude()
 	case network.FieldLogo:
 		return m.Logo()
 	case network.FieldLookingGlass:
@@ -16930,6 +17002,8 @@ func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldInfoUnicast(ctx)
 	case network.FieldIrrAsSet:
 		return m.OldIrrAsSet(ctx)
+	case network.FieldIxpUpdateExclude:
+		return m.OldIxpUpdateExclude(ctx)
 	case network.FieldLogo:
 		return m.OldLogo(ctx)
 	case network.FieldLookingGlass:
@@ -17119,6 +17193,13 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIrrAsSet(v)
+		return nil
+	case network.FieldIxpUpdateExclude:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIxpUpdateExclude(v)
 		return nil
 	case network.FieldLogo:
 		v, ok := value.(string)
@@ -17420,6 +17501,9 @@ func (m *NetworkMutation) ClearedFields() []string {
 	if m.FieldCleared(network.FieldIrrAsSet) {
 		fields = append(fields, network.FieldIrrAsSet)
 	}
+	if m.FieldCleared(network.FieldIxpUpdateExclude) {
+		fields = append(fields, network.FieldIxpUpdateExclude)
+	}
 	if m.FieldCleared(network.FieldLogo) {
 		fields = append(fields, network.FieldLogo)
 	}
@@ -17529,6 +17613,9 @@ func (m *NetworkMutation) ClearField(name string) error {
 		return nil
 	case network.FieldIrrAsSet:
 		m.ClearIrrAsSet()
+		return nil
+	case network.FieldIxpUpdateExclude:
+		m.ClearIxpUpdateExclude()
 		return nil
 	case network.FieldLogo:
 		m.ClearLogo()
@@ -17651,6 +17738,9 @@ func (m *NetworkMutation) ResetField(name string) error {
 		return nil
 	case network.FieldIrrAsSet:
 		m.ResetIrrAsSet()
+		return nil
+	case network.FieldIxpUpdateExclude:
+		m.ResetIxpUpdateExclude()
 		return nil
 	case network.FieldLogo:
 		m.ResetLogo()
