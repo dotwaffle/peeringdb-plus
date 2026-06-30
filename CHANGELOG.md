@@ -10,6 +10,12 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.22.0] — 2026-06-30
+
+Upstream parity refresh to PeeringDB 2.80.1, plus a maintenance sweep. The new
+`net.ixp_update_exclude` field is the only read-path addition across all 13
+types since the prior ~2.77 anchor.
+
 ### Added
 
 - **`ixp_update_exclude` on `/api/net`.** PeeringDB 2.80.1 added this field —
