@@ -32,11 +32,15 @@ func TestItemToMapReflect(t *testing.T) {
 			wantKeys: []string{"id", "name", "value", "org_set"},
 		},
 		{
-			name:      "omitempty tag name parsed correctly",
+			// omitempty is honoured exactly as json.Marshal would: an
+			// empty value drops the KEY. Load-bearing for the redacted
+			// gated field under ?fields= projection (a present-but-empty
+			// key would diverge from the unprojected response).
+			name:      "omitempty drops empty value",
 			input:     testEntity{ID: 2, Name: "OmitTest"},
 			wantOK:    true,
-			wantKeys:  []string{"id", "name", "value"},
-			absentKey: "-",
+			wantKeys:  []string{"id", "name"},
+			absentKey: "value",
 		},
 		{
 			name:     "pointer to struct",

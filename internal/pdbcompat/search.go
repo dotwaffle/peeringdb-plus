@@ -117,9 +117,8 @@ func applyFieldProjection(data []any, fields []string) []any {
 }
 
 // fieldAccessor holds the struct field index for a JSON-tagged field, plus
-// whether the tag carries the `omitempty` option (consumed by depth.go's
-// toMap, which must mirror json.Marshal's key-omission semantics; itemToMap
-// below ignores it for backwards-compatible projection behaviour).
+// whether the tag carries the `omitempty` option (honoured by structToMap
+// below, which must mirror json.Marshal's key-omission semantics).
 type fieldAccessor struct {
 	index     int
 	omitEmpty bool
@@ -156,30 +155,52 @@ func getFieldMap(t reflect.Type) map[string]fieldAccessor {
 	return m
 }
 
-// itemToMap converts an item (struct or map) to a map[string]any using reflect.
-// If the item is already a map[string]any it is returned directly. Struct fields
-// are accessed via cached field index maps derived from json tags, avoiding
-// json.Marshal/Unmarshal overhead.
+// structToMap converts a serializer struct (or pointer to one) to
+// map[string]any via the cached field maps, mirroring json.Marshal's
+// semantics: keys come from json tags, and `omitempty` fields with empty
+// values are dropped. Returns ok=false when v is not a struct (nil
+// pointer, scalar, …) so callers can decide their own fallback. This is
+// the single struct→map converter for the package — depth.go's toMap and
+// itemToMap below are thin adapters over it; it previously existed as two
+// near-duplicate walkers that disagreed on omitempty, which let a
+// privfield-redacted (zero) gated field keep its KEY under ?fields=
+// projection while the unprojected response dropped it.
+//
+// The omitempty parity is load-bearing: peeringdb.IxLan declares
+// `ixf_ixp_member_list_url,omitempty` so a redacted value must drop the
+// key exactly as json.Marshal would — emitting an empty string would leak
+// the field's presence to anonymous callers.
+func structToMap(v any) (map[string]any, bool) {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return nil, false
+		}
+		rv = rv.Elem()
+	}
+	if rv.Kind() != reflect.Struct {
+		return nil, false
+	}
+	fm := getFieldMap(rv.Type())
+	m := make(map[string]any, len(fm))
+	for name, acc := range fm {
+		fv := rv.Field(acc.index)
+		if acc.omitEmpty && isEmptyJSONValue(fv) {
+			continue
+		}
+		m[name] = fv.Interface()
+	}
+	return m, true
+}
+
+// itemToMap converts a projection item (struct or map) to map[string]any.
+// A map[string]any (depth-expanded object) passes through unchanged;
+// structs convert via structToMap, honouring omitempty.
 func itemToMap(item any) (map[string]any, bool) {
 	if m, ok := item.(map[string]any); ok {
 		return m, true
 	}
-	v := reflect.ValueOf(item)
-	if v.Kind() == reflect.Pointer {
-		if v.IsNil() {
-			return nil, false
-		}
-		v = v.Elem()
-	}
-	if v.Kind() != reflect.Struct {
-		return nil, false
-	}
-	fm := getFieldMap(v.Type())
-	m := make(map[string]any, len(fm))
-	for name, acc := range fm {
-		m[name] = v.Field(acc.index).Interface()
-	}
-	return m, true
+	return structToMap(item)
 }
 
 // isExpandedObject checks if a value is an expanded FK object (a map with
