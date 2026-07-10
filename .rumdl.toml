@@ -1,0 +1,20 @@
+# rumdl configuration — https://rumdl.dev
+#
+# Prose in docs/, README.md, and CONTRIBUTING.md uses Semantic Line
+# Breaks (https://sembr.org): MD013's reflow rewraps at sentence and
+# clause boundaries so prose edits produce line-scoped diffs.
+
+[global]
+# CHANGELOG.md is append-only history; CLAUDE.md is agent memory kept
+# in its own terse format; testdata markdown is golden fixtures that
+# must stay byte-exact.
+exclude = [
+  "CHANGELOG.md",
+  "CLAUDE.md",
+  "testdata/",
+  "internal/visbaseline/testdata/",
+]
+
+[MD013]
+reflow = true
+reflow-mode = "semantic-line-breaks"

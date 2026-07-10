@@ -1,27 +1,30 @@
 # API Reference
 
-PeeringDB Plus exposes the mirrored PeeringDB dataset through **five coexisting API
-surfaces** served from the same process on the same port, plus a small set of
-infrastructure endpoints for health, on-demand sync, and service discovery. This
-document is the comprehensive reference; see `README.md` for a one-page overview
-and `docs/ARCHITECTURE.md` for the rationale behind each surface.
+PeeringDB Plus exposes the mirrored PeeringDB dataset through
+**five coexisting API surfaces** served from the same process on the same port,
+plus a small set of infrastructure endpoints for health, on-demand sync, and
+service discovery.
+This document is the comprehensive reference;
+see `README.md` for a one-page overview and `docs/ARCHITECTURE.md`
+for the rationale behind each surface.
 
-All routes are registered in `cmd/peeringdb-plus/main.go` and pass through the
-production middleware chain:
+All routes are registered in `cmd/peeringdb-plus/main.go`
+and pass through the production middleware chain:
 
-```
+```text
 Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier ->
 Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
 ```
 
-The server speaks HTTP/1.1 and h2c (HTTP/2 cleartext) on the same listener so
-that Connect, gRPC, and gRPC-Web clients can use the same base URL as browser
-and CLI clients.
+The server speaks HTTP/1.1 and h2c
+(HTTP/2 cleartext)
+on the same listener so that Connect, gRPC,
+and gRPC-Web clients can use the same base URL as browser and CLI clients.
 
 ## Authentication
 
-Most endpoints are **unauthenticated and read-only** — they expose the
-same public data that PeeringDB itself publishes.
+Most endpoints are **unauthenticated and read-only** —
+they expose the same public data that PeeringDB itself publishes.
 
 | Endpoint | Authentication |
 |----------|----------------|
@@ -29,11 +32,12 @@ same public data that PeeringDB itself publishes.
 | `POST /sync` | `X-Sync-Token` header must match `PDBPLUS_SYNC_TOKEN` (constant-time compare) |
 | Upstream fetch from `api.peeringdb.com` | Optional — set `PDBPLUS_PEERINGDB_API_KEY` to use an authenticated client with higher rate limits |
 
-If `PDBPLUS_SYNC_TOKEN` is empty at startup the sync endpoint logs a warning and
-rejects every request as `401 unauthorized` — there is no "accept anything"
-mode. Replica instances reject the request with a `fly-replay` header that
-routes the request to the primary region on Fly.io, or return `503 not primary`
-when running outside Fly.io.
+If `PDBPLUS_SYNC_TOKEN` is empty at startup the sync endpoint logs a warning
+and rejects every request as `401 unauthorized` —
+there is no "accept anything" mode.
+Replica instances reject the request with a `fly-replay` header
+that routes the request to the primary region on Fly.io,
+or return `503 not primary` when running outside Fly.io.
 
 ## Endpoints overview
 
@@ -76,18 +80,19 @@ The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`,
 `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`,
 `netixlan`, `org`, `poc`.
 
-There is no `/metrics` endpoint. Prometheus / Grafana metrics are exported
-via OTLP to the configured collector (see `docs/CONFIGURATION.md`'s
-`OTEL_*` variables); no Prometheus scrape endpoint is exposed by the
-process. <!-- VERIFY: OTLP collector endpoint configured for the peeringdb-plus.fly.dev deployment -->
+There is no `/metrics` endpoint.
+Prometheus / Grafana metrics are exported via OTLP to the configured collector
+(see `docs/CONFIGURATION.md`'s `OTEL_*` variables);
+no Prometheus scrape endpoint is exposed by the process. <!-- VERIFY:
+OTLP collector endpoint configured for the peeringdb-plus.fly.dev deployment -->
 
 ## 1. Web UI (`/ui/`)
 
 The Web UI is implemented in `internal/web/` using [templ](https://templ.guide)
-for type-safe HTML templates and [htmx](https://htmx.org) for interactive
-behavior without a JavaScript build pipeline. The same URL space can render
-HTML, ANSI-colored terminal text, plain text, or JSON depending on client
-characteristics.
+for type-safe HTML templates and [htmx](https://htmx.org)
+for interactive behavior without a JavaScript build pipeline.
+The same URL space can render HTML, ANSI-colored terminal text, plain text,
+or JSON depending on client characteristics.
 
 ### Content negotiation
 
@@ -105,11 +110,12 @@ The server inspects each request through `internal/web/termrender.Detect`
 
 ### The curl gotcha
 
-Because `curl` and `wget` are detected by User-Agent, running
-`curl https://peeringdb-plus.fly.dev/ui/asn/15169` returns **ANSI-colored text
-intended for a terminal**. If you pipe this output to a file, a logger, or a
-tool that does not render ANSI codes, you will see escape sequences like
-`\x1b[38;5;...`.
+Because `curl` and `wget` are detected by User-Agent,
+running `curl https://peeringdb-plus.fly.dev/ui/asn/15169` returns
+**ANSI-colored text intended for a terminal**.
+If you pipe this output to a file, a logger,
+or a tool that does not render ANSI codes,
+you will see escape sequences like `\x1b[38;5;...`.
 
 Three ways to get clean output:
 
@@ -155,8 +161,8 @@ Unknown `/ui/*` paths render the themed 404 page via `handleNotFound`.
 ## 2. GraphQL (`/graphql`)
 
 GraphQL is served by [gqlgen](https://gqlgen.com) wired through
-[entgql](https://entgo.io/docs/graphql-integration/). The handler lives in
-`internal/graphql/handler.go`.
+[entgql](https://entgo.io/docs/graphql-integration/).
+The handler lives in `internal/graphql/handler.go`.
 
 | Method | Behavior |
 |--------|----------|
@@ -199,14 +205,15 @@ Every error also includes a populated `path` pointing at the offending field.
 }
 ```
 
-Schema browsing is easiest through the GraphiQL playground. The schema is
-generated from `ent/schema/` and committed to `graph/schema.graphqls`.
+Schema browsing is easiest through the GraphiQL playground.
+The schema is generated from `ent/schema/`
+and committed to `graph/schema.graphqls`.
 
 ## 3. REST (`/rest/v1/`)
 
-The REST surface is generated by
-[entrest](https://github.com/lrstanley/entrest) directly from the ent schemas
-with read-only operations only (`OperationRead` + `OperationList`).
+The REST surface is generated by [entrest](https://github.com/lrstanley/entrest)
+directly from the ent schemas with read-only operations only (`OperationRead` +
+`OperationList`).
 
 | Path | Description |
 |------|-------------|
@@ -214,23 +221,26 @@ with read-only operations only (`OperationRead` + `OperationList`).
 | `GET /rest/v1/{collection}` | List resources with filtering and pagination per the OpenAPI spec |
 | `GET /rest/v1/{collection}/{id}` | Get a single resource |
 
-The collection paths and filter parameters are defined by entrest annotations
-in `ent/schema/`; consult the OpenAPI spec for the canonical list.
+The collection paths and filter parameters are defined by entrest annotations in
+`ent/schema/`; consult the OpenAPI spec for the canonical list.
 
 ### Error format
 
-Non-2xx responses are rewritten to [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)
-by `restErrorMiddleware` in `cmd/peeringdb-plus/main.go`. The response
-`Content-Type` is `application/problem+json` and the body includes at minimum
-`status`, `title`, `detail`, and `instance` fields.
+Non-2xx responses are rewritten to
+[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) by
+`restErrorMiddleware` in `cmd/peeringdb-plus/main.go`.
+The response `Content-Type` is `application/problem+json`
+and the body includes at minimum `status`, `title`, `detail`,
+and `instance` fields.
 
 ## 4. PeeringDB Compatibility API (`/api/`)
 
-Implemented in `internal/pdbcompat/`, this surface is a **drop-in replacement
-for the PeeringDB REST API** — URL structure, response envelope, filter
-operators, and the single-object-wrapped-in-array quirk all match the upstream
-API so existing clients can switch to a PeeringDB Plus instance with only a
-base-URL change.
+Implemented in `internal/pdbcompat/`,
+this surface is a **drop-in replacement for the PeeringDB REST API** —
+URL structure, response envelope, filter operators,
+and the single-object-wrapped-in-array quirk all match the upstream API
+so existing clients can switch to a PeeringDB Plus instance with only a base-URL
+change.
 
 ### Routes
 
@@ -256,25 +266,30 @@ Valid `{type}` values are the same 13 constants defined in
 | `since` | List | Only return rows with `updated` greater than the given timestamp (Unix seconds). Invalid input returns `400`. Activates the upstream "since matrix" — see "Soft-delete tombstones" below |
 | `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream `rest.py:638-641`. Typed against the field; invalid types (e.g. `asn__contains`) return `400` |
 
-Unknown query parameters that are not in the reserved set (`limit`, `skip`,
-`depth`, `since`, `q`, `fields`) are treated as field filters and validated
-against the type's schema. Unknown filter keys (including over-cap traversal
-keys) are silently ignored — they do not cause `400` — and a debug-level slog
-record plus an `pdbplus.filter.unknown_fields` OTel span attribute are
-emitted so operators can observe them. See § Cross-entity traversal for the
-2-hop cap and § Validation Notes for the rationale.
+Unknown query parameters that are not in the reserved set
+(`limit`, `skip`, `depth`, `since`, `q`, `fields`)
+are treated as field filters and validated against the type's schema.
+Unknown filter keys (including over-cap traversal keys) are silently ignored —
+they do not cause `400` —
+and a debug-level slog record plus an `pdbplus.filter.unknown_fields` OTel span
+attribute are emitted so operators can observe them.
+See § Cross-entity traversal for the 2-hop cap and § Validation Notes
+for the rationale.
 
-`__in` accepts a CSV value and binds as a single JSON array via SQLite's
-`json_each()`, sidestepping the variable-binding limit. An empty `__in`
-(`?asn__in=`) short-circuits the request to an empty `data: []` envelope
-without running SQL. Malformed `__in` values for typed
-fields (e.g. non-integer in `asn__in=`) return `400`.
+`__in` accepts a CSV value and binds
+as a single JSON array via SQLite's `json_each()`,
+sidestepping the variable-binding limit.
+An empty `__in` (`?asn__in=`) short-circuits the request to an empty `data: []`
+envelope without running SQL.
+Malformed `__in` values for typed fields
+(e.g. non-integer in `asn__in=`) return `400`.
 
 ### Diacritic-insensitive substring / prefix search
 
-`?<field>__contains=` and `?<field>__startswith=` (and their `__icontains` /
-`__istartswith` aliases) on the following 16 fields are diacritic-insensitive
-— they match `Köln` and `koln` interchangeably:
+`?<field>__contains=` and `?<field>__startswith=`
+(and their `__icontains` / `__istartswith` aliases)
+on the following 16 fields are diacritic-insensitive —
+they match `Köln` and `koln` interchangeably:
 
 | Entity | Folded fields |
 |--------|---------------|
@@ -287,20 +302,22 @@ fields (e.g. non-integer in `asn__in=`) return `400`.
 
 Implementation: each row carries a sibling `<field>_fold` shadow column
 populated at sync time via `internal/unifold.Fold` (NFKD decomposition + a
-ligature map). Filter routing happens in `internal/pdbcompat/filter.go`
-`buildContains` / `buildStartsWith` — when `tc.FoldedFields[<field>]` is
-`true` the predicate runs against `<field>_fold` with `unifold.Fold(value)`
-on the RHS. The shadow columns carry `entgql.Skip(SkipAll)` and
-`entrest.WithSkip(true)` so they are invisible to GraphQL, REST, and proto
-wire surfaces — they exist only to power pdbcompat folding. See § Known
-Divergences for the upstream-parity comparison and § Validation Notes for
-why MySQL collation is *not* the upstream mechanism.
+ligature map).
+Filter routing happens in `internal/pdbcompat/filter.go` `buildContains` /
+`buildStartsWith` — when `tc.FoldedFields[<field>]` is `true` the predicate runs
+against `<field>_fold` with `unifold.Fold(value)` on the RHS.
+The shadow columns carry `entgql.Skip(SkipAll)` and `entrest.WithSkip(true)`
+so they are invisible to GraphQL, REST, and proto wire surfaces —
+they exist only to power pdbcompat folding.
+See § Known Divergences for the upstream-parity comparison
+and § Validation Notes for why MySQL collation is *not* the upstream mechanism.
 
 ### Soft-delete tombstones
 
 Sync soft-deletes rows by setting `status='deleted'` rather than physically
-removing them. The list path applies the upstream `rest.py:707-738` status
-matrix as the final predicate via `applyStatusMatrix`:
+removing them.
+The list path applies the upstream `rest.py:707-738` status matrix
+as the final predicate via `applyStatusMatrix`:
 
 | Request shape | Admitted statuses |
 |---------------|-------------------|
@@ -308,20 +325,22 @@ matrix as the final predicate via `applyStatusMatrix`:
 | List with `?since=N` | `status IN ('ok', 'deleted')`; `pending` additionally admitted on `/api/campus` |
 | Single-object GET `/api/<type>/<id>` | `status IN ('ok', 'pending')` — tombstones return `404` |
 
-`?status=<value>` is dropped at the filter layer (the key is absent from
-every type's `Fields` map in `internal/pdbcompat/registry.go`) — the
-observable outcome is identical to upstream's effective behaviour, where a
-caller-supplied `?status=` is overridden by a final unconditional
-`filter(status='ok')` (`rest.py:733-738`). This is parity, not a divergence.
+`?status=<value>` is dropped at the filter layer
+(the key is absent from every type's `Fields` map in
+`internal/pdbcompat/registry.go`) — the observable outcome is identical to
+upstream's effective behaviour, where a caller-supplied `?status=` is overridden
+by a final unconditional `filter(status='ok')` (`rest.py:733-738`).
+This is parity, not a divergence.
 
 ### Response memory budget
 
-Every list response is gated by a pre-flight 413 budget check before any
-SQL is executed. `serveList` in `internal/pdbcompat/handler.go` runs a
-`SELECT COUNT(*)` against the filtered query, multiplies by the per-entity
-typical row size, and refuses up-front if the projected response exceeds
-`PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MiB`). `0` disables the check
-(local-dev escape hatch only).
+Every list response is gated by a pre-flight 413 budget check
+before any SQL is executed.
+`serveList` in `internal/pdbcompat/handler.go` runs a `SELECT COUNT(*)` against
+the filtered query, multiplies by the per-entity typical row size, and refuses
+up-front if the projected response exceeds `PDBPLUS_RESPONSE_MEMORY_LIMIT`
+(default `128MiB`).
+`0` disables the check (local-dev escape hatch only).
 
 A budget-exceeded request returns:
 
@@ -331,15 +350,16 @@ A budget-exceeded request returns:
 - Body extension fields `max_rows` (the largest result set that *would* fit)
   and `budget_bytes` (the configured ceiling)
 
-Operators receiving a 413 should narrow their filters or page smaller — the
-budget is request-shape, so retrying the identical request returns the same
-413. Separately, a process-wide in-flight byte pool admission-controls
-concurrent near-budget responses: when simultaneous large dumps would
-overflow it, the request is rejected with `503 Service Unavailable` and
-`Retry-After: 1` — that one *is* transient, and a retry can succeed. The
-budget is enforced only on the
-pdbcompat list path; entrest, GraphQL, ConnectRPC, and Web UI have their own
-memory stories (see `docs/ARCHITECTURE.md § Response Memory Envelope`).
+Operators receiving a 413 should narrow their filters or page smaller —
+the budget is request-shape,
+so retrying the identical request returns the same 413.
+Separately, a process-wide in-flight byte pool admission-controls concurrent
+near-budget responses: when simultaneous large dumps would overflow it, the
+request is rejected with `503 Service Unavailable` and `Retry-After: 1` — that
+one *is* transient, and a retry can succeed.
+The budget is enforced only on the pdbcompat list path; entrest, GraphQL,
+ConnectRPC, and Web UI have their own memory stories
+(see `docs/ARCHITECTURE.md § Response Memory Envelope`).
 
 ### Examples
 
@@ -385,13 +405,15 @@ All responses follow the PeeringDB shape:
 }
 ```
 
-Detail endpoints return a single-element `data` array, not a bare object, to
-preserve parity with upstream PeeringDB clients.
+Detail endpoints return a single-element `data` array, not a bare object,
+to preserve parity with upstream PeeringDB clients.
 
 ### Errors
 
-Errors use [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html)
-with `Content-Type: application/problem+json`. Typical status codes:
+Errors use
+[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) with
+`Content-Type: application/problem+json`.
+Typical status codes:
 
 | Status | Cause |
 |--------|-------|
@@ -401,14 +423,14 @@ with `Content-Type: application/problem+json`. Typical status codes:
 | `500` | Database error (details redacted from response body, full error logged) |
 | `503` | Concurrent in-flight response pool exhausted (transient; `Retry-After: 1`) |
 
-Responses include an `X-Powered-By` header identifying the server as
-PeeringDB Plus.
+Responses include an `X-Powered-By` header identifying the server
+as PeeringDB Plus.
 
 ## 5. ConnectRPC / gRPC (`/peeringdb.v1.*`)
 
 Implemented in `internal/grpcserver/` using
-[ConnectRPC](https://connectrpc.com/) — a gRPC-compatible framework that
-speaks three protocols on the same endpoint:
+[ConnectRPC](https://connectrpc.com/) — a gRPC-compatible framework that speaks
+three protocols on the same endpoint:
 
 | Protocol | Typical client | Content types |
 |----------|----------------|---------------|
@@ -417,8 +439,8 @@ speaks three protocols on the same endpoint:
 | gRPC-Web | Browser gRPC-Web clients | `application/grpc-web`, `application/grpc-web-text` |
 
 The server listens on a single port with h2c enabled
-(`buildServer` in `cmd/peeringdb-plus/main.go`), so there is no separate
-port for gRPC.
+(`buildServer` in `cmd/peeringdb-plus/main.go`),
+so there is no separate port for gRPC.
 
 ### Services
 
@@ -446,12 +468,15 @@ e.g. `/peeringdb.v1.NetworkService/GetNetwork`.
 
 ### Filtering
 
-List and Stream requests accept type-specific optional filter fields (see
-`proto/peeringdb/v1/services.proto`). All filters AND together. String filters
-for free-text columns (name, aka, name_long) use case-insensitive substring
-match (`ContainsFold`); other strings are matched exactly. Integer filters
-such as `asn` and `org_id` are validated to be positive; invalid values return
-`INVALID_ARGUMENT`.
+List and Stream requests accept type-specific optional filter fields
+(see `proto/peeringdb/v1/services.proto`).
+All filters AND together.
+String filters for free-text columns
+(name, aka, name_long)
+use case-insensitive substring match (`ContainsFold`);
+other strings are matched exactly.
+Integer filters such as `asn` and `org_id` are validated to be positive;
+invalid values return `INVALID_ARGUMENT`.
 
 ### Pagination (List)
 
@@ -462,10 +487,11 @@ such as `asn` and `org_id` are validated to be positive; invalid values return
 
 ### Streaming semantics
 
-`Stream{Type}` RPCs use **batched compound keyset pagination** under the
-hood (`StreamEntities` in `internal/grpcserver/generic.go`), fetching
-`streamBatchSize` (`500`) rows per database round-trip and emitting one proto
-message per row. The cursor is the compound `(updated, created, id)` triple;
+`Stream{Type}` RPCs use **batched compound keyset pagination** under the hood
+(`StreamEntities` in `internal/grpcserver/generic.go`),
+fetching `streamBatchSize` (`500`) rows per database round-trip
+and emitting one proto message per row.
+The cursor is the compound `(updated, created, id)` triple;
 under the default `(-updated, -created, -id)` order each batch resumes via:
 
 ```sql
@@ -474,27 +500,29 @@ WHERE (updated < cursor.updated)
    OR (updated = cursor.updated AND created = cursor.created AND id < cursor.id)
 ```
 
-The keyset carries every sort key, so it matches the three-key ordering
-exactly: progress stays monotonic and no row is skipped or repeated even when
-many rows share an `updated` timestamp (or an `updated`+`created` pair).
+The keyset carries every sort key, so it matches the three-key ordering exactly:
+progress stays monotonic and no row is skipped or repeated even
+when many rows share an `updated` timestamp (or an `updated`+`created` pair).
 
 | Field | Semantics |
 |-------|-----------|
 | `since_id` | Filter — emits only rows with `id > since_id`. Applied as a `WHERE` predicate; **does not seed the keyset cursor** |
 | `updated_since` | Filter — emits only rows with `updated > updated_since`. Applied as a `WHERE` predicate; **does not seed the keyset cursor** |
 
-Every stream is capped by `PDBPLUS_STREAM_TIMEOUT` (default `60s`) enforced via
-`context.WithTimeout` at the handler. Exceeding the timeout closes the stream
-with a cancellation error.
+Every stream is capped by `PDBPLUS_STREAM_TIMEOUT`
+(default `60s`) enforced via `context.WithTimeout` at the handler.
+Exceeding the timeout closes the stream with a cancellation error.
 
 ### `grpc-total-count` response header
 
-On **full streams** (both `since_id` and `updated_since` unset), the handler
-runs a `SELECT COUNT(*)` preflight and sets the `grpc-total-count` response
-header to the total matching row count. On **delta streams** (either `since_id`
-or `updated_since` set), the COUNT preflight is skipped entirely and the
-`grpc-total-count` header is **absent** — not "present with 0" and not
-"present with -1". Clients of delta streams have no use for a full-table total
+On **full streams** (both `since_id` and `updated_since` unset),
+the handler runs a `SELECT COUNT(*)` preflight
+and sets the `grpc-total-count` response header to the total matching row count.
+On **delta streams** (either `since_id` or `updated_since` set),
+the COUNT preflight is skipped entirely
+and the `grpc-total-count` header is **absent** —
+not "present with 0" and not "present with -1".
+Clients of delta streams have no use for a full-table total
 and the skip avoids a needless full-table scan.
 
 ### Reflection and health
@@ -505,13 +533,15 @@ and the skip avoids a needless full-table scan.
 | gRPC reflection v1alpha | `/grpc.reflection.v1alpha.ServerReflection/*` |
 | gRPC health check | `/grpc.health.v1.Health/*` |
 
-Reflection serves all 13 service descriptors, enabling `grpcurl` and `grpcui`
-to discover the API with no additional wiring. The health checker reports
-`NOT_SERVING` until the first sync completes (`HasCompletedSync` in the sync
-worker), then flips to `SERVING` for the empty service name and for every
-`peeringdb.v1.*` service. The health handler bypasses the readiness middleware
-so that health checks can poll the service during sync-in-progress state
-without being intercepted by the 503 syncing page.
+Reflection serves all 13 service descriptors,
+enabling `grpcurl` and `grpcui` to discover the API with no additional wiring.
+The health checker reports `NOT_SERVING` until the first sync completes
+(`HasCompletedSync` in the sync worker),
+then flips to `SERVING` for the empty service name and
+for every `peeringdb.v1.*` service.
+The health handler bypasses the readiness middleware so
+that health checks can poll the service during sync-in-progress state without
+being intercepted by the 503 syncing page.
 
 ### Example clients
 
@@ -536,19 +566,21 @@ curl -X POST https://peeringdb-plus.fly.dev/peeringdb.v1.NetworkService/GetNetwo
 
 ## Field-level privacy
 
-PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker for
-the IX-F member list URL: `ixlan.ixf_ixp_member_list_url` is gated by the
-sibling string field `ixlan.ixf_ixp_member_list_url_visible`, which carries one
-of `Public` / `Users` / `Private` (the schema default is `Private`, and a
-NULL/empty or unknown value fails closed to redacted). Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public`
-deployment) receive the value only when `_visible = Public`; for `Users` or
-`Private` the value is omitted across all five surfaces while the `_visible`
-companion field is **still emitted** (upstream parity).
+PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker
+for the IX-F member list URL:
+`ixlan.ixf_ixp_member_list_url` is gated by the sibling string field
+`ixlan.ixf_ixp_member_list_url_visible`, which carries one of `Public` / `Users`
+/ `Private` (the schema default is `Private`, and a NULL/empty or unknown value
+fails closed to redacted).
+Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public` deployment) receive
+the value only when `_visible = Public`; for `Users` or `Private` the value is
+omitted across all five surfaces while the `_visible` companion field is
+**still emitted** (upstream parity).
 
-The single source of truth is `internal/privfield.Redact(ctx, visible,
-value)`. Every serializer calls it, and `internal/middleware.PrivacyTier`
-stamps the resolved tier on the request context — unstamped contexts
-fail-closed to `TierPublic`.
+The single source of truth is `internal/privfield.Redact(ctx, visible, value)`.
+Every serializer calls it,
+and `internal/middleware.PrivacyTier` stamps the resolved tier on the request
+context — unstamped contexts fail-closed to `TierPublic`.
 
 | Surface | Mechanism |
 |---------|-----------|
@@ -558,10 +590,9 @@ fail-closed to `TierPublic`.
 | `/graphql` | `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns Go `nil` → GraphQL `null` |
 | `/ui/` | No render path renders the URL today; future templates must call `privfield.Redact` in the data-prep step |
 
-Operators who run a private deployment can flip `PDBPLUS_PUBLIC_TIER=users`
-to make anonymous callers behave as authenticated users — the startup logger
-emits a `WARN` with `public_tier=users` so the override is visible in deploy
-logs.
+Operators who run a private deployment can flip `PDBPLUS_PUBLIC_TIER=users` to
+make anonymous callers behave as authenticated users — the startup logger emits
+a `WARN` with `public_tier=users` so the override is visible in deploy logs.
 
 ## Infrastructure endpoints
 
@@ -597,32 +628,37 @@ while the first sync is in progress.
 
 ### `GET /healthz`
 
-Liveness probe. Always returns `200 OK` with a fixed JSON body as long as the
-process can serve HTTP. It does **not** check database connectivity or sync
-state — a failing `/healthz` means the process itself is wedged and should be
-restarted.
+Liveness probe.
+Always returns `200 OK` with a fixed JSON body as long
+as the process can serve HTTP.
+It does **not** check database connectivity or sync state —
+a failing `/healthz` means the process itself is wedged and should be restarted.
 
 Bypasses the readiness middleware.
 
 ### `GET /readyz`
 
-Readiness probe. Returns `200 OK` only when:
+Readiness probe.
+Returns `200 OK` only when:
 
 1. The database is reachable (`db.PingContext`).
 2. The most recent sync is more recent than `PDBPLUS_SYNC_STALE_THRESHOLD`
    (default `24h`).
 
-Returns `503 Service Unavailable` otherwise. The response body is the opaque
-shape `{"status":"ok"}` or `{"status":"unhealthy"}` — detailed error strings
-are written to structured logs only (security hardening: the wire body does
-not leak internal failure detail).
+Returns `503 Service Unavailable` otherwise.
+The response body is the opaque shape `{"status":"ok"}`
+or `{"status":"unhealthy"}` —
+detailed error strings are written to structured logs only
+(security hardening: the wire body does not leak internal failure detail).
 
-Bypasses the readiness-gate middleware itself (so a probe can observe the
-unready state rather than being redirected to the syncing page).
+Bypasses the readiness-gate middleware itself
+(so a probe can observe the unready state rather than being redirected to the
+syncing page).
 
 ### `POST /sync`
 
-On-demand sync trigger. Only served by the LiteFS primary.
+On-demand sync trigger.
+Only served by the LiteFS primary.
 
 | Header / Param | Purpose |
 |----------------|---------|
@@ -644,8 +680,8 @@ before any sync has completed.
 
 ## Rate limits
 
-PeeringDB Plus does not itself enforce request rate limits at any edge. The
-only operational limits are:
+PeeringDB Plus does not itself enforce request rate limits at any edge.
+The only operational limits are:
 
 | Limit | Scope | Default | Configured by |
 |-------|-------|---------|---------------|
@@ -663,28 +699,34 @@ only operational limits are:
 Upstream PeeringDB rate limits apply to the sync worker's outbound requests —
 setting `PDBPLUS_PEERINGDB_API_KEY` raises that ceiling.
 
-Deployment-level rate limiting (e.g., Fly.io edge, Cloudflare, or a load
-balancer) is not configured in this repository. <!-- VERIFY: rate limiting policy on the peeringdb-plus.fly.dev deployment -->
+Deployment-level rate limiting
+(e.g., Fly.io edge, Cloudflare, or a load balancer)
+is not configured in this repository. <!-- VERIFY:
+rate limiting policy on the peeringdb-plus.fly.dev deployment -->
 
 ## CORS
 
 All surfaces pass through the shared `middleware.CORS` configured by
-`PDBPLUS_CORS_ORIGINS` (default `*`). The middleware allows the full set of
-headers required by Connect / gRPC / gRPC-Web in addition to standard
-application headers; see `internal/middleware/cors.go`. The REST handler
-additionally wraps its subtree in its own CORS middleware so that preflight
-requests for `/rest/v1/*` are handled even if another middleware short-circuits.
+`PDBPLUS_CORS_ORIGINS` (default `*`).
+The middleware allows the full set of headers required by Connect / gRPC /
+gRPC-Web in addition to standard application headers; see
+`internal/middleware/cors.go`.
+The REST handler additionally wraps its subtree in its own CORS middleware so
+that preflight requests for `/rest/v1/*` are handled even
+if another middleware short-circuits.
 
 ## Known Divergences
 
 PeeringDB Plus strives for behavioural parity with the upstream PeeringDB API
-(`peeringdb/peeringdb`) at the `/api/` surface. The remaining divergences are
-listed below, each with an upstream citation and a guarding test. The
-single-object `?depth=0/1/2` response shape — including reverse `_set` ID
-lists, `net_set` through-relations, back-reference stripping, second-level
-nested ID-list sets, and `campus:null` — was brought to full parity in v1.20.5
-and verified against live `www.peeringdb.com/api` payloads (2026-06-08); see
-`internal/pdbcompat/depth_test.go`.
+(`peeringdb/peeringdb`) at the `/api/` surface.
+The remaining divergences are listed below,
+each with an upstream citation and a guarding test.
+The single-object `?depth=0/1/2` response shape —
+including reverse `_set` ID lists, `net_set` through-relations,
+back-reference stripping, second-level nested ID-list sets, and `campus:null` —
+was brought to full parity in v1.20.5
+and verified against live `www.peeringdb.com/api` payloads (2026-06-08);
+see `internal/pdbcompat/depth_test.go`.
 
 | Request | Upstream behaviour | peeringdb-plus behaviour | Rationale | Since |
 |---------|-------------------|-------------------------|-----------|-------|
@@ -699,15 +741,16 @@ and verified against live `www.peeringdb.com/api` payloads (2026-06-08); see
 ## Validation Notes
 
 Future conformance auditors reading third-party gotchas documentation
-(notably pdbfe's upstream-behaviour claims) against the PeeringDB Plus
-codebase may encounter assertions about upstream behaviour that turn
-out to be wrong. This section documents 6 such invalid claims — 5 from
-the v1.16 audit and one (`org_flags`) from the
-2026-05-30 audit — each with a pinned `peeringdb/peeringdb@<sha>`
-reference so the authoritative upstream source can be re-read without
-re-research. All 6 were re-confirmed against commit
-`peeringdb/peeringdb@545c58a44af5273e9ddc844b6389e130a023e5ab`
-(PeeringDB 2.80.1), the parity anchor as of 2026-06-30.
+(notably pdbfe's upstream-behaviour claims)
+against the PeeringDB Plus codebase may encounter assertions about upstream
+behaviour that turn out to be wrong.
+This section documents 6 such invalid claims — 5 from the v1.16 audit
+and one (`org_flags`) from the 2026-05-30 audit —
+each with a pinned `peeringdb/peeringdb@<sha>` reference
+so the authoritative upstream source can be re-read without re-research.
+All 6 were re-confirmed against commit
+`peeringdb/peeringdb@545c58a44af5273e9ddc844b6389e130a023e5ab` (PeeringDB
+2.80.1), the parity anchor as of 2026-06-30.
 
 | Claim | Verdict | Upstream truth | Our implementation |
 |-------|---------|----------------|--------------------|
@@ -718,48 +761,50 @@ re-research. All 6 were re-confirmed against commit
 | Filter surface is a DRF `filterset_class` per ViewSet | **WRONG** | Filter surface is a per-serializer `prepare_query(...)` method plus an auto-`queryable_relations()` mechanism with a `FILTER_EXCLUDE` denylist. See `peeringdb/peeringdb@545c58a44af5273e9ddc844b6389e130a023e5ab:src/peeringdb_server/serializers.py:756` (`queryable_relations()`) and `:130-159` (`FILTER_EXCLUDE`). No `django_filters.FilterSet` subclass exists anywhere in the upstream codebase. | Path A = `pdbcompat.WithPrepareQueryAllow` ent-schema annotations → `allowlist_gen.go` `Allowlists` map (13 entries verbatim from upstream); Path B = ent edge introspection via the generated `Edges` map. The `WithFilterExcludeFromTraversal` edge annotation mirrors upstream's `FILTER_EXCLUDE` — currently empty across all 13 schemas (every FK edge exposed in v1.16). Parity-locked by `TestParity_Traversal/path_a_1hop_org_name` and `path_b_1hop_org_city`. |
 | `org_flags` is a valid filter param on `/api/org` | **WRONG** | No `org_flags` (or `flags`) filter key or column exists upstream. Grepping `peeringdb/peeringdb@545c58a44af5273e9ddc844b6389e130a023e5ab:src/peeringdb_server/{rest.py,serializers.py,models.py}` returns zero matches, and the `django-peeringdb` Organization model has no `flags` field — `OrganizationSerializer.prepare_query` exposes no such key. This is not a real upstream parameter. | Filter key silently ignored via the unknown-field silent-ignore mechanism — response unfiltered, `pdbplus.filter.unknown_fields` records the dropped key. NOT a § Known Divergences entry: there is no upstream behaviour to diverge from. Covered by the generic `TestParity_Traversal/unknown_field_silently_ignored_with_otel_attr`. |
 
-Quarterly re-validation against upstream is a manual review against
-the pinned commit above — it does not block merges. Drift that
-invalidates a Validation Note row should be surfaced as a GitHub
-issue and reviewed against the parity test suite; if upstream has
-changed semantics, update the row here and flip or retain the
-matching parity assertion as a new § Known Divergences row.
+Quarterly re-validation against upstream is a manual review against the pinned
+commit above — it does not block merges.
+Drift that invalidates a Validation Note row should be surfaced
+as a GitHub issue and reviewed against the parity test suite;
+if upstream has changed semantics,
+update the row here and flip or retain the matching parity assertion
+as a new § Known Divergences row.
 
 ## Cross-entity traversal
 
-pdbcompat resolves `<fk>__<field>` and `<fk>__<fk>__<field>` filter
-paths through two mechanisms, both driven by codegen from ent schema
-annotations at `go generate` time:
+pdbcompat resolves `<fk>__<field>`
+and `<fk>__<fk>__<field>` filter paths through two mechanisms,
+both driven by codegen from ent schema annotations at `go generate` time:
 
-- **Path A — per-serializer allowlists.** Mirrors upstream
-  `peeringdb_server/serializers.py` `prepare_query(...)` /
-  `get_relation_filters(...)` lists verbatim. Generated from ent schema
-  `pdbcompat.WithPrepareQueryAllow(...)` annotations via
-  `cmd/pdb-compat-allowlist`; emitted into
-  `internal/pdbcompat/allowlist_gen.go`. This is the "explicitly
-  blessed" set of filter keys — every entry carries a
-  `// serializers.py:<line>` comment anchoring it to upstream.
-- **Path B — ent edge introspection.** When a filter key does not
-  match Path A, the parser consults the generated `Edges` map (also
-  emitted into `allowlist_gen.go`). Every non-excluded FK edge
-  auto-exposes `<fk>__<field>` for any filterable field on the target
-  entity. Mirrors upstream `queryable_relations()`. Resolution uses a
-  codegen-time static map — no runtime ent-client introspection, no
-  `sync.Once`, no init-order coupling.
+- **Path A — per-serializer allowlists.**
+  Mirrors upstream `peeringdb_server/serializers.py` `prepare_query(...)` /
+  `get_relation_filters(...)` lists verbatim.
+  Generated from ent schema `pdbcompat.WithPrepareQueryAllow(...)` annotations
+  via `cmd/pdb-compat-allowlist`; emitted into
+  `internal/pdbcompat/allowlist_gen.go`.
+  This is the "explicitly blessed" set of filter keys —
+  every entry carries a `// serializers.py:<line>` comment anchoring it to
+  upstream.
+- **Path B — ent edge introspection.**
+  When a filter key does not match Path A,
+  the parser consults the generated `Edges` map
+  (also emitted into `allowlist_gen.go`).
+  Every non-excluded FK edge auto-exposes `<fk>__<field>`
+  for any filterable field on the target entity.
+  Mirrors upstream `queryable_relations()`.
+  Resolution uses a codegen-time static map —
+  no runtime ent-client introspection, no `sync.Once`, no init-order coupling.
 
-The resolution order is implemented in
-`internal/pdbcompat/filter.go` `buildTraversalPredicate`: Path A
-first; on a soft miss (allowlist hit but downstream introspection
-unavailable) the parser falls through to Path B rather than
-suppressing the key. `parseFieldOp` returns
-the 3-tuple `(relationSegments, finalField, op)` so the same machinery
-serves 1-hop and 2-hop paths with a single split.
+The resolution order is implemented in `internal/pdbcompat/filter.go`
+`buildTraversalPredicate`: Path A first; on a soft miss (allowlist hit but
+downstream introspection unavailable) the parser falls through to Path B rather
+than suppressing the key.
+`parseFieldOp` returns the 3-tuple `(relationSegments, finalField, op)`
+so the same machinery serves 1-hop and 2-hop paths with a single split.
 
 ### Supported shapes per entity (1-hop + 2-hop)
 
-All 13 entity types support Path A 1-hop shapes via
-`?<fk>__<field>=X`. The 2-hop subset tracks upstream
-`pdb_api_test.py`:
+All 13 entity types support Path A 1-hop shapes via `?<fk>__<field>=X`.
+The 2-hop subset tracks upstream `pdb_api_test.py`:
 
 | Query | Hops | Path | Upstream citation |
 |-------|------|------|-------------------|
@@ -772,24 +817,25 @@ All 13 entity types support Path A 1-hop shapes via
 | `?<fk>__<field>=X` for any non-excluded edge | 1 | B | `serializers.py:756` (`queryable_relations()`) |
 
 1-hop Path B fallthrough means the explicit Path A allowlists are
-**additive, not restrictive**: a key that is not in Path A but is a
-valid ent FK edge still resolves via Path B. The exclusion list
-(below) is the only way to block a Path B key.
+**additive, not restrictive**: a key that is not in Path A but is a valid ent FK
+edge still resolves via Path B. The exclusion list (below) is the only way to
+block a Path B key.
 
 ### FILTER_EXCLUDE list
 
-The `pdbcompat.WithFilterExcludeFromTraversal()` ent edge annotation
-hides specific edges from Path B traversal. Mirrors
-upstream `serializers.py:130-159`.
+The `pdbcompat.WithFilterExcludeFromTraversal()` ent edge annotation hides
+specific edges from Path B traversal.
+Mirrors upstream `serializers.py:130-159`.
 
 | Entity | Edge | Reason |
 |--------|------|--------|
-| _(none — all FK edges exposed in v1.16)_ | _—_ | Initial release. Field-level privacy (`ixlan.ixf_ixp_member_list_url_visible`) operates at the **serializer layer**, not the edge layer, so no edge exclusion is required for the v1.16 surface. Future OAuth-gated relations will populate this table. |
+| *(none — all FK edges exposed in v1.16)* | *—* | Initial release. Field-level privacy (`ixlan.ixf_ixp_member_list_url_visible`) operates at the **serializer layer**, not the edge layer, so no edge exclusion is required for the v1.16 surface. Future OAuth-gated relations will populate this table. |
 
 ### 2-hop cap
 
-Filter keys with more than 2 `__`-separated relation segments are
-silently ignored. Examples:
+Filter keys with more than 2 `__`-separated relation segments are silently
+ignored.
+Examples:
 
 - `?org__name=X` — 1 hop, resolves via Path A (every primary entity).
 - `?ixlan__ix__fac_count__gt=0` — 2 hops, resolves via Path A
@@ -797,13 +843,14 @@ silently ignored. Examples:
 - `?ixlan__ix__org__name=X` — 3 hops, SILENTLY IGNORED (HTTP 200,
   result set is unfiltered).
 
-Upstream PeeringDB has no hard cap but is bound by Django ORM's query
-planner. We trade limitless traversal for a predictable cost ceiling
-of `<50ms/op @ 10k rows`, checked locally via the build-tagged
-gate `internal/pdbcompat/bench_traversal_test.go` (`go test -tags=bench`,
-without `-race`); CI does not run it. If a legitimate 3-hop use case
-emerges, raise the cap together with a fresh benchstat run and a docs
-update here.
+Upstream PeeringDB has no hard cap but is bound by Django ORM's query planner.
+We trade limitless traversal
+for a predictable cost ceiling of `<50ms/op @ 10k rows`,
+checked locally via the build-tagged gate
+`internal/pdbcompat/bench_traversal_test.go` (`go test -tags=bench`, without
+`-race`); CI does not run it.
+If a legitimate 3-hop use case emerges,
+raise the cap together with a fresh benchstat run and a docs update here.
 
 ### Unknown-field diagnostics
 
@@ -816,8 +863,7 @@ the following observability signals fire:
 - OTel span attribute `pdbplus.filter.unknown_fields` (CSV of all
   unknown keys in the request)
 
-Both are DEBUG-level; INFO and higher are untouched so that naive
-clients probing field names don't flood structured logs. To surface
-these in production, set `PDBPLUS_LOG_LEVEL=DEBUG` or query the span
-attribute in Grafana/Tempo.
-
+Both are DEBUG-level; INFO and higher are untouched so
+that naive clients probing field names don't flood structured logs.
+To surface these in production,
+set `PDBPLUS_LOG_LEVEL=DEBUG` or query the span attribute in Grafana/Tempo.
