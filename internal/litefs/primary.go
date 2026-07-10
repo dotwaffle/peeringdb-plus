@@ -4,6 +4,7 @@ package litefs
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -85,8 +86,33 @@ func IsPrimaryWithFallback(path string, envKey string) bool {
 	}
 	b, parseErr := strconv.ParseBool(v)
 	if parseErr != nil {
-		// Unparseable value — default to primary for safety.
-		return true
+		// ValidateEnvFallback rejects unparseable values at startup, so
+		// this branch is unreachable in practice. If it ever fires, fail
+		// SAFE to replica — the previous "default to primary for safety"
+		// had it exactly backwards: a misclassified primary runs
+		// destructive Schema.Create DDL, a declining replica is harmless.
+		slog.Warn("litefs: unparseable env fallback, failing safe to replica",
+			slog.String("key", envKey),
+			slog.String("value", v),
+			slog.Any("error", parseErr),
+		)
+		return false
 	}
 	return b
+}
+
+// ValidateEnvFallback checks that the environment fallback variable, if
+// set, parses as a boolean. Call once at startup so an operator typo in
+// PDBPLUS_IS_PRIMARY fails fast with a clear message instead of being
+// silently coerced into a role at every scheduler tick. Unset is valid
+// (the documented "default primary" local-dev behaviour).
+func ValidateEnvFallback(envKey string) error {
+	v := os.Getenv(envKey)
+	if v == "" {
+		return nil
+	}
+	if _, err := strconv.ParseBool(v); err != nil {
+		return fmt.Errorf("%s=%q is not a boolean (use true/false/1/0): %w", envKey, v, err)
+	}
+	return nil
 }

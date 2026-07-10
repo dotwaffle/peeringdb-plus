@@ -150,7 +150,7 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 			wantPrimary: true,
 		},
 		{
-			name: "no litefs directory and unparseable env var defaults to true",
+			name: "no litefs directory and unparseable env var fails safe to replica",
 			setup: func(t *testing.T) (string, string) {
 				// An env value strconv.ParseBool can't decode ("maybe", a
 				// typo'd config) must hit the parse-error fallback, which
@@ -161,7 +161,7 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 				t.Setenv(envKey, "maybe")
 				return path, envKey
 			},
-			wantPrimary: true,
+			wantPrimary: false,
 		},
 	}
 
@@ -171,6 +171,41 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 			got := litefs.IsPrimaryWithFallback(path, envKey)
 			if got != tt.wantPrimary {
 				t.Errorf("IsPrimaryWithFallback(%q, %q) = %v, want %v", path, envKey, got, tt.wantPrimary)
+			}
+		})
+	}
+}
+
+// TestValidateEnvFallback locks the fail-fast contract for the
+// PDBPLUS_IS_PRIMARY-style fallback variable: unset and boolean values
+// pass, anything else errors so startup can abort with a clear message
+// instead of coercing a typo into a cluster role.
+func TestValidateEnvFallback(t *testing.T) {
+	tests := []struct {
+		name    string
+		set     bool
+		value   string
+		wantErr bool
+	}{
+		{name: "unset is valid"},
+		{name: "true", set: true, value: "true"},
+		{name: "false", set: true, value: "false"},
+		{name: "numeric one", set: true, value: "1"},
+		{name: "typo yes", set: true, value: "yes", wantErr: true},
+		{name: "garbage", set: true, value: "primary", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			const key = "PDBPLUS_TEST_IS_PRIMARY_VALIDATE"
+			if tt.set {
+				t.Setenv(key, tt.value)
+			}
+			err := litefs.ValidateEnvFallback(key)
+			if tt.wantErr && err == nil {
+				t.Errorf("ValidateEnvFallback(%q=%q) = nil, want error", key, tt.value)
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("ValidateEnvFallback(%q=%q) = %v, want nil", key, tt.value, err)
 			}
 		})
 	}

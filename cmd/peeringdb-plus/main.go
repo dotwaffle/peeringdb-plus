@@ -172,6 +172,13 @@ func main() {
 	defer entClient.Close()
 
 	// Detect primary status via LiteFS lease file with env fallback.
+	// Validate the fallback var up front: a typo'd PDBPLUS_IS_PRIMARY
+	// must fail startup, not be silently coerced into a role (the
+	// primary role runs destructive DDL).
+	if err := litefs.ValidateEnvFallback("PDBPLUS_IS_PRIMARY"); err != nil {
+		logger.Error("invalid primary-role configuration", slog.Any("error", err))
+		os.Exit(1)
+	}
 	isPrimary := litefs.IsPrimaryWithFallback(litefs.PrimaryFile, "PDBPLUS_IS_PRIMARY")
 	policy := newStartupPolicy(isPrimary)
 
