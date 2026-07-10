@@ -19,29 +19,9 @@ A high-performance, globally distributed, read-only mirror of PeeringDB data. It
 - Canonical user/operator/contributor docs live in `docs/` (`ARCHITECTURE.md`, `CONFIGURATION.md`, `GETTING-STARTED.md`, `DEVELOPMENT.md`, `TESTING.md`, `API.md`, `DEPLOYMENT.md`) and `CONTRIBUTING.md` at the root. Read the relevant doc before re-deriving information from code or duplicating content into a response.
 - `CLAUDE.md` is Claude's project memory, not user-facing docs. Keep it out of any docs-generation workflow; edit it directly.
 
-## Commands
-
-```bash
-go build ./...                    # Build all packages
-go test -race ./...               # Run tests with race detector
-go generate ./...                 # Full codegen pipeline (ent, templ, proto)
-golangci-lint run                 # Lint
-govulncheck ./...                 # Vulnerability check
-fly deploy                        # Deploy to Fly.io (app: peeringdb-plus)
-```
-
 ## Technology Stack
 
-Key dependencies (see `go.mod` for exact versions):
-- **ORM/codegen**: entgo.io/ent + entgql + entproto + entrest — generates all API surfaces from ent schemas
-- **GraphQL**: gqlgen (via entgql)
-- **ConnectRPC**: connectrpc.com/connect — gRPC-compatible RPC over HTTP, with reflection and health checks
-- **Protobuf**: google.golang.org/protobuf + buf CLI (`go tool buf`)
-- **SQLite**: modernc.org/sqlite (CGo-free) + LiteFS for edge replication
-- **Observability**: go.opentelemetry.io/otel + otelslog bridge + otelhttp instrumentation
-- **Web UI**: templ (type-safe HTML) + htmx (no JS build toolchain)
-- **Logging**: log/slog (stdlib) with OTel bridge
-- **HTTP**: net/http stdlib (Go 1.22+ ServeMux with method routing)
+Dependencies and standard build/test/lint commands are derivable from `go.mod` and `docs/DEVELOPMENT.md`.
 
 LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-in alternative exists for edge SQLite replication.
 
@@ -292,9 +272,6 @@ End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that
 - **REST**: `/rest/v1/` — entrest, OpenAPI-compliant
 - **PeeringDB Compat**: `/api/` — drop-in replacement for PeeringDB API
 - **ConnectRPC**: `/peeringdb.v1.*/` — Get/List RPCs for all 13 types with typed filtering, reflection, health check
-
-### Middleware Chain
-`Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> CSP -> Caching -> Gzip -> mux`
 
 ### Key Packages
 
