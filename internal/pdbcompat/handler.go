@@ -305,7 +305,8 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			})
 			return
 		}
-		if info, ok := CheckBudget(count, tc.Name, 0 /*list depth=0 per the list-depth guardrail*/, h.responseMemoryLimit); !ok {
+		info, ok := CheckBudget(count, tc.Name, 0 /*list depth=0 per the list-depth guardrail*/, h.responseMemoryLimit)
+		if !ok {
 			slog.WarnContext(r.Context(), "pdbcompat: response budget exceeded",
 				slog.String("endpoint", r.URL.Path),
 				slog.String("type", tc.Name),
@@ -321,11 +322,13 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		// Global admission: the per-request check above treats each
 		// request in isolation, but the budget is a process-wide memory
 		// envelope — concurrent near-budget dumps must not stack past
-		// it. Charge this request's estimate against the shared
-		// in-flight pool and reject with 503 + Retry-After when the
-		// pool would overflow; the charge is released when serveList
-		// returns (response fully serialized, slices unreachable).
-		estimate := int64(count) * int64(TypicalRowBytes(tc.Name, 0))
+		// it. Charge the estimate CheckBudget already computed (a single
+		// pricing source — recomputing count × row size here could drift
+		// from the 413 math) against the shared in-flight pool and
+		// reject with 503 + Retry-After when the pool would overflow;
+		// the charge is released when serveList returns (response fully
+		// serialized, slices unreachable).
+		estimate := info.EstimatedBytes
 		if pooled := h.inflightBytes.Add(estimate); pooled > h.responseMemoryLimit {
 			h.inflightBytes.Add(-estimate)
 			slog.WarnContext(r.Context(), "pdbcompat: concurrent budget pool exhausted",

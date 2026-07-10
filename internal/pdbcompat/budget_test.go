@@ -10,16 +10,26 @@ import (
 )
 
 // TestCheckBudget_UnderBudget confirms a modest request fits comfortably
-// under a generous budget and returns (zero, true). Regression guard
-// against accidental off-by-one in the comparison.
+// under a generous budget and returns ok=true WITH populated diagnostics —
+// serveList charges info.EstimatedBytes into the in-flight pool on the
+// success path, so a zero estimate would silently disable global
+// admission. Also a regression guard against accidental off-by-one in the
+// comparison.
 func TestCheckBudget_UnderBudget(t *testing.T) {
 	t.Parallel()
 	info, ok := CheckBudget(100, peeringdb.TypeNet, 0, 1<<20) // 1 MiB budget
 	if !ok {
 		t.Fatalf("CheckBudget ok = false, want true (100 net rows @ depth=0 fits in 1 MiB)")
 	}
-	if info != (BudgetExceeded{}) {
-		t.Errorf("info should be zero value when ok=true, got %+v", info)
+	wantEstimate := int64(100) * int64(TypicalRowBytes(peeringdb.TypeNet, 0))
+	if info.EstimatedBytes != wantEstimate {
+		t.Errorf("EstimatedBytes = %d, want %d (must be populated on success for pool admission)", info.EstimatedBytes, wantEstimate)
+	}
+	if info.Count != 100 {
+		t.Errorf("Count = %d, want 100", info.Count)
+	}
+	if info.Entity != peeringdb.TypeNet {
+		t.Errorf("Entity = %q, want %q", info.Entity, peeringdb.TypeNet)
 	}
 }
 

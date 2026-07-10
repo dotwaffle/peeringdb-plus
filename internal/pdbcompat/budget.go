@@ -32,8 +32,11 @@ type BudgetExceeded struct {
 }
 
 // CheckBudget reports whether a request of `count` rows for `entity` at
-// `depth` fits under `budgetBytes`. Returns (zero, true) when it does,
-// or (populated, false) with diagnostic fields when it does not.
+// `depth` fits under `budgetBytes`. The BudgetExceeded diagnostics are
+// populated on BOTH outcomes so the caller can reuse EstimatedBytes for
+// in-flight pool admission without recomputing the count × row-size math
+// (a second computation could silently drift from the 413 pricing); ok
+// distinguishes fits (true) from over-budget (false).
 //
 // budgetBytes <= 0 disables the check entirely — same semantic as
 // PDBPLUS_SYNC_MEMORY_LIMIT=0. This is the documented local-dev escape
@@ -64,18 +67,15 @@ func CheckBudget(count int, entity string, depth int, budgetBytes int64) (Budget
 		perRow = defaultRowSize
 	}
 	estimated := int64(count) * int64(perRow)
-	if estimated <= budgetBytes {
-		return BudgetExceeded{}, true
-	}
-	maxRows := int(budgetBytes / int64(perRow))
-	return BudgetExceeded{
-		MaxRows:        maxRows,
+	info := BudgetExceeded{
+		MaxRows:        int(budgetBytes / int64(perRow)),
 		BudgetBytes:    budgetBytes,
 		EstimatedBytes: estimated,
 		Count:          count,
 		Entity:         entity,
 		Depth:          depth,
-	}, false
+	}
+	return info, estimated <= budgetBytes
 }
 
 // budgetProblemBody is the exact on-the-wire shape.
