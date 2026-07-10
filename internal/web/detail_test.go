@@ -711,12 +711,35 @@ func TestLayout_MapDarkModeHook(t *testing.T) {
 	body := rec.Body.String()
 	checks := []string{
 		"__pdbMaps",
-		"leaflet@1.9.4/dist/leaflet.css",
-		"leaflet@1.9.4/dist/leaflet.js",
+		"/static/leaflet.css",
+		"/static/leaflet.js",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
 			t.Errorf("layout missing %q", want)
+		}
+	}
+}
+
+// TestLayout_MapAssetsConditional verifies the Leaflet includes only ship
+// on map-bearing pages: a page without a MapContainer must not pay for them.
+func TestLayout_MapAssetsConditional(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	for _, unwanted := range []string{"/static/leaflet.js", "L.CircleMarker", "marker-cluster-small"} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("non-map page includes %q", unwanted)
 		}
 	}
 }

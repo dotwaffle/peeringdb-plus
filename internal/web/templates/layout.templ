@@ -1,12 +1,56 @@
 package templates
 
-templ Layout(title string, contents templ.Component) {
+// LayoutOptions carries per-page head configuration for Layout.
+// NeedsMap gates the Leaflet/markercluster includes: only the pages
+// that render a MapContainer pay the ~200 KB of map assets.
+type LayoutOptions struct {
+	Title    string
+	NeedsMap bool
+}
+
+// mapHead emits the self-hosted Leaflet + markercluster assets and the
+// cluster theme. Scripts are synchronous on purpose: the CircleMarker
+// patch and the inline initMap calls in page bodies need the L global
+// defined before they run.
+templ mapHead() {
+	<link rel="stylesheet" href="/static/leaflet.css"/>
+	<link rel="stylesheet" href="/static/MarkerCluster.css"/>
+	<link rel="stylesheet" href="/static/MarkerCluster.Default.css"/>
+	<script src="/static/leaflet.js"></script>
+	<script src="/static/leaflet.markercluster.js"></script>
+	<script>
+	L.CircleMarker.include({
+		setOpacity: function(opacity) {
+			this.setStyle({ opacity: opacity, fillOpacity: opacity });
+		}
+	});
+	</script>
+	<style>
+		/* Markercluster emerald theme */
+		.marker-cluster-small { background-color: rgba(16, 185, 129, 0.3); }
+		.marker-cluster-small div { background-color: rgba(16, 185, 129, 0.6); }
+		.marker-cluster-medium { background-color: rgba(16, 185, 129, 0.4); }
+		.marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.7); }
+		.marker-cluster-large { background-color: rgba(16, 185, 129, 0.5); }
+		.marker-cluster-large div { background-color: rgba(16, 185, 129, 0.8); }
+		.marker-cluster div { color: #ffffff; font-size: 12px; font-weight: 600; }
+		/* Dark mode adjustments */
+		.dark .marker-cluster-small { background-color: rgba(16, 185, 129, 0.25); }
+		.dark .marker-cluster-small div { background-color: rgba(16, 185, 129, 0.55); }
+		.dark .marker-cluster-medium { background-color: rgba(16, 185, 129, 0.35); }
+		.dark .marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.65); }
+		.dark .marker-cluster-large { background-color: rgba(16, 185, 129, 0.45); }
+		.dark .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.75); }
+	</style>
+}
+
+templ Layout(opts LayoutOptions, contents templ.Component) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>{ title } - PeeringDB Plus</title>
+			<title>{ opts.Title } - PeeringDB Plus</title>
 			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 			<link rel="icon" type="image/x-icon" href="/static/favicon.ico"/>
 			<script>
@@ -21,39 +65,9 @@ templ Layout(title string, contents templ.Component) {
 			<link rel="stylesheet" href="/static/tailwind.css"/>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css"/>
 			<script src="/static/htmx.min.js"></script>
-			<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-				integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-				crossorigin=""/>
-			<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin=""/>
-			<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin=""/>
-			<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-				integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-				crossorigin=""></script>
-			<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
-			<script>
-			L.CircleMarker.include({
-				setOpacity: function(opacity) {
-					this.setStyle({ opacity: opacity, fillOpacity: opacity });
-				}
-			});
-			</script>
-			<style>
-				/* Markercluster emerald theme */
-				.marker-cluster-small { background-color: rgba(16, 185, 129, 0.3); }
-				.marker-cluster-small div { background-color: rgba(16, 185, 129, 0.6); }
-				.marker-cluster-medium { background-color: rgba(16, 185, 129, 0.4); }
-				.marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.7); }
-				.marker-cluster-large { background-color: rgba(16, 185, 129, 0.5); }
-				.marker-cluster-large div { background-color: rgba(16, 185, 129, 0.8); }
-				.marker-cluster div { color: #ffffff; font-size: 12px; font-weight: 600; }
-				/* Dark mode adjustments */
-				.dark .marker-cluster-small { background-color: rgba(16, 185, 129, 0.25); }
-				.dark .marker-cluster-small div { background-color: rgba(16, 185, 129, 0.55); }
-				.dark .marker-cluster-medium { background-color: rgba(16, 185, 129, 0.35); }
-				.dark .marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.65); }
-				.dark .marker-cluster-large { background-color: rgba(16, 185, 129, 0.45); }
-				.dark .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.75); }
-			</style>
+			if opts.NeedsMap {
+				@mapHead()
+			}
 			<style>
 				html.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
 					transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;

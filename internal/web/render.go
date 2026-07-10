@@ -25,6 +25,7 @@ type PageContent struct {
 	Data      any       // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
 	Freshness time.Time // Freshness is the last successful sync time for terminal footer display.
 	Status    int       // HTTP status (0 means 200). Committed by renderPage AFTER headers — WriteHeader first drops Vary/Content-Type.
+	NeedsMap  bool      // NeedsMap emits the Leaflet/markercluster head includes; set only on pages that render a MapContainer.
 }
 
 // renderPage renders a response in the appropriate format based on terminal detection.
@@ -155,6 +156,6 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 
 	default: // ModeHTML
 		setHead("text/html; charset=utf-8")
-		return templates.Layout(page.Title, page.Content).Render(ctx, w)
+		return templates.Layout(templates.LayoutOptions{Title: page.Title, NeedsMap: page.NeedsMap}, page.Content).Render(ctx, w)
 	}
 }

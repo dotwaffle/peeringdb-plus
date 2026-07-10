@@ -400,6 +400,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 		Content:   templates.CompareResultsPage(*data),
 		Data:      data,
 		Freshness: h.getFreshness(r.Context()),
+		NeedsMap:  true,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render compare", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err))

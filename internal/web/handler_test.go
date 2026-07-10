@@ -154,7 +154,7 @@ func TestStaticAssets_NotFound(t *testing.T) {
 func TestLayout_TailwindClasses(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test content</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	checks := []string{"container", "mx-auto", "flex-col"}
 	for _, want := range checks {
@@ -167,7 +167,7 @@ func TestLayout_TailwindClasses(t *testing.T) {
 func TestLayout_ColorScheme(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	checks := []string{"dark:bg-neutral-900", "dark:text-neutral-100", "emerald-500"}
 	for _, want := range checks {
@@ -180,7 +180,7 @@ func TestLayout_ColorScheme(t *testing.T) {
 func TestLayout_DarkModeInit(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	// The @custom-variant dark declaration moved from the layout's
 	// text/tailwindcss block into tailwind.input.css when the static
@@ -989,7 +989,7 @@ func TestHandleAbout_PrivacySync(t *testing.T) {
 func TestLayout_CSSAnimations(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	checks := []string{
 		"@keyframes fadeIn",
@@ -1091,7 +1091,7 @@ func TestSearchResults_FadeIn(t *testing.T) {
 func TestLayout_KeyboardNavScript(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	checks := []string{
 		"ArrowDown",
