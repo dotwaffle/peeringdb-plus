@@ -2,7 +2,9 @@ package grpcserver
 
 import (
 	"errors"
+	"fmt"
 	"math"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
@@ -480,6 +483,13 @@ type entityFilterSpec struct {
 	streamReq     protoreflect.Message
 	listFilters   int // len of the xListFilters slice
 	streamFilters int // len of the xStreamFilters slice
+
+	// renderList/renderStream render every predicate the entity's filter
+	// table produces for a fully-populated request (see renderTableSQL).
+	// renderList skips the id field — Stream tables intentionally omit
+	// it because StreamEntities paginates by since_id.
+	renderList   func(t *testing.T) []string
+	renderStream func(t *testing.T) []string
 }
 
 func allEntityFilterSpecs() []entityFilterSpec {
@@ -490,6 +500,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamNetworksRequest{}).ProtoReflect(),
 			listFilters:   len(networkListFilters),
 			streamFilters: len(networkStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListNetworksRequest, *pb.ListNetworksRequest](t, networkListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamNetworksRequest, *pb.StreamNetworksRequest](t, networkStreamFilters)
+			},
 		},
 		{
 			name:          "facility",
@@ -497,6 +513,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamFacilitiesRequest{}).ProtoReflect(),
 			listFilters:   len(facilityListFilters),
 			streamFilters: len(facilityStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListFacilitiesRequest, *pb.ListFacilitiesRequest](t, facilityListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamFacilitiesRequest, *pb.StreamFacilitiesRequest](t, facilityStreamFilters)
+			},
 		},
 		{
 			name:          "internetexchange",
@@ -504,6 +526,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamInternetExchangesRequest{}).ProtoReflect(),
 			listFilters:   len(internetExchangeListFilters),
 			streamFilters: len(internetExchangeStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListInternetExchangesRequest, *pb.ListInternetExchangesRequest](t, internetExchangeListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamInternetExchangesRequest, *pb.StreamInternetExchangesRequest](t, internetExchangeStreamFilters)
+			},
 		},
 		{
 			name:          "ixfacility",
@@ -511,6 +539,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamIxFacilitiesRequest{}).ProtoReflect(),
 			listFilters:   len(ixFacilityListFilters),
 			streamFilters: len(ixFacilityStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListIxFacilitiesRequest, *pb.ListIxFacilitiesRequest](t, ixFacilityListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamIxFacilitiesRequest, *pb.StreamIxFacilitiesRequest](t, ixFacilityStreamFilters)
+			},
 		},
 		{
 			name:          "ixlan",
@@ -518,6 +552,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamIxLansRequest{}).ProtoReflect(),
 			listFilters:   len(ixLanListFilters),
 			streamFilters: len(ixLanStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListIxLansRequest, *pb.ListIxLansRequest](t, ixLanListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamIxLansRequest, *pb.StreamIxLansRequest](t, ixLanStreamFilters)
+			},
 		},
 		{
 			name:          "ixprefix",
@@ -525,6 +565,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamIxPrefixesRequest{}).ProtoReflect(),
 			listFilters:   len(ixPrefixListFilters),
 			streamFilters: len(ixPrefixStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListIxPrefixesRequest, *pb.ListIxPrefixesRequest](t, ixPrefixListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamIxPrefixesRequest, *pb.StreamIxPrefixesRequest](t, ixPrefixStreamFilters)
+			},
 		},
 		{
 			name:          "networkfacility",
@@ -532,6 +578,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamNetworkFacilitiesRequest{}).ProtoReflect(),
 			listFilters:   len(networkFacilityListFilters),
 			streamFilters: len(networkFacilityStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListNetworkFacilitiesRequest, *pb.ListNetworkFacilitiesRequest](t, networkFacilityListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamNetworkFacilitiesRequest, *pb.StreamNetworkFacilitiesRequest](t, networkFacilityStreamFilters)
+			},
 		},
 		{
 			name:          "networkixlan",
@@ -539,6 +591,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamNetworkIxLansRequest{}).ProtoReflect(),
 			listFilters:   len(networkIxLanListFilters),
 			streamFilters: len(networkIxLanStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListNetworkIxLansRequest, *pb.ListNetworkIxLansRequest](t, networkIxLanListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamNetworkIxLansRequest, *pb.StreamNetworkIxLansRequest](t, networkIxLanStreamFilters)
+			},
 		},
 		{
 			name:          "carrier",
@@ -546,6 +604,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamCarriersRequest{}).ProtoReflect(),
 			listFilters:   len(carrierListFilters),
 			streamFilters: len(carrierStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListCarriersRequest, *pb.ListCarriersRequest](t, carrierListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamCarriersRequest, *pb.StreamCarriersRequest](t, carrierStreamFilters)
+			},
 		},
 		{
 			name:          "carrierfacility",
@@ -553,6 +617,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamCarrierFacilitiesRequest{}).ProtoReflect(),
 			listFilters:   len(carrierFacilityListFilters),
 			streamFilters: len(carrierFacilityStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListCarrierFacilitiesRequest, *pb.ListCarrierFacilitiesRequest](t, carrierFacilityListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamCarrierFacilitiesRequest, *pb.StreamCarrierFacilitiesRequest](t, carrierFacilityStreamFilters)
+			},
 		},
 		{
 			name:          "campus",
@@ -560,6 +630,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamCampusesRequest{}).ProtoReflect(),
 			listFilters:   len(campusListFilters),
 			streamFilters: len(campusStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListCampusesRequest, *pb.ListCampusesRequest](t, campusListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamCampusesRequest, *pb.StreamCampusesRequest](t, campusStreamFilters)
+			},
 		},
 		{
 			name:          "organization",
@@ -567,6 +643,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamOrganizationsRequest{}).ProtoReflect(),
 			listFilters:   len(organizationListFilters),
 			streamFilters: len(organizationStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListOrganizationsRequest, *pb.ListOrganizationsRequest](t, organizationListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamOrganizationsRequest, *pb.StreamOrganizationsRequest](t, organizationStreamFilters)
+			},
 		},
 		{
 			name:          "poc",
@@ -574,6 +656,12 @@ func allEntityFilterSpecs() []entityFilterSpec {
 			streamReq:     (&pb.StreamPocsRequest{}).ProtoReflect(),
 			listFilters:   len(pocListFilters),
 			streamFilters: len(pocStreamFilters),
+			renderList: func(t *testing.T) []string {
+				return renderTableSQL[pb.ListPocsRequest, *pb.ListPocsRequest](t, pocListFilters, "id")
+			},
+			renderStream: func(t *testing.T) []string {
+				return renderTableSQL[pb.StreamPocsRequest, *pb.StreamPocsRequest](t, pocStreamFilters)
+			},
 		},
 	}
 }
@@ -624,6 +712,103 @@ func TestAllFilterFieldsExercised(t *testing.T) {
 			if spec.streamFilters != wantStream {
 				t.Errorf("%sStreamFilters: got %d entries, want %d (reflected from %s StreamRequest proto descriptor); a new field was likely added without a filter table entry",
 					spec.name, spec.streamFilters, wantStream, spec.name)
+			}
+		})
+	}
+}
+
+// populateFilterFields sets every filterable optional scalar on msg to a
+// deterministic non-zero value that passes the table validators
+// (positiveInt64 accepts 1, nonEmptyString accepts "x"). Pagination and
+// metadata fields plus any names in skip are left unset.
+func populateFilterFields(t *testing.T, msg protoreflect.Message, skip map[string]struct{}) {
+	t.Helper()
+	fields := msg.Descriptor().Fields()
+	for i := range fields.Len() {
+		fd := fields.Get(i)
+		name := string(fd.Name())
+		if _, s := paginationFields[name]; s {
+			continue
+		}
+		if _, s := skip[name]; s {
+			continue
+		}
+		if !fd.HasOptionalKeyword() {
+			continue
+		}
+		//nolint:exhaustive // The default t.Fatalf covers every unlisted
+		// kind — failing loudly on a new field kind is the desired signal.
+		switch fd.Kind() {
+		case protoreflect.StringKind:
+			msg.Set(fd, protoreflect.ValueOfString("x"))
+		case protoreflect.Int64Kind:
+			msg.Set(fd, protoreflect.ValueOfInt64(1))
+		case protoreflect.Int32Kind:
+			msg.Set(fd, protoreflect.ValueOfInt32(1))
+		case protoreflect.BoolKind:
+			msg.Set(fd, protoreflect.ValueOfBool(true))
+		case protoreflect.DoubleKind:
+			msg.Set(fd, protoreflect.ValueOfFloat64(1))
+		case protoreflect.FloatKind:
+			msg.Set(fd, protoreflect.ValueOfFloat32(1))
+		default:
+			t.Fatalf("populateFilterFields: unhandled proto kind %v for field %s", fd.Kind(), name)
+		}
+	}
+}
+
+// renderTableSQL runs the filter table over a fully-populated request and
+// returns the sorted rendered SQL of every predicate it produces (WHERE
+// clause plus positional args on a sqlite selector). skipFields names
+// proto fields to leave unset, so their table entries emit no predicate.
+func renderTableSQL[REQ any, PR interface {
+	*REQ
+	proto.Message
+}](t *testing.T, table []filterFn[REQ], skipFields ...string) []string {
+	t.Helper()
+	skip := make(map[string]struct{}, len(skipFields))
+	for _, f := range skipFields {
+		skip[f] = struct{}{}
+	}
+	var req REQ
+	populateFilterFields(t, PR(&req).ProtoReflect(), skip)
+	preds, err := applyFilters(&req, table)
+	if err != nil {
+		t.Fatalf("applyFilters over populated request: %v", err)
+	}
+	out := make([]string, 0, len(preds))
+	for _, pred := range preds {
+		q, args := sqlitePredSQL(t, "", pred)
+		out = append(out, fmt.Sprintf("%s %v", q, args))
+	}
+	slices.Sort(out)
+	return out
+}
+
+// TestFilterTables_ListStreamSQLParity locks each entity's List and Stream
+// filter tables to identical rendered SQL, field by field. The count-based
+// TestAllFilterFieldsExercised catches a MISSING entry but not a DIVERGENT
+// one — e.g. a Stream entry pointing fieldEQString at the wrong column, or
+// dropping the fold variant its List sibling uses, would keep the counts
+// equal while making the same filter behave differently across the two
+// RPCs. Rendering every predicate over a fully-populated request and
+// comparing the sorted SQL makes any such divergence concrete and visible.
+// The id field is excluded from the List side: Stream tables intentionally
+// omit it (StreamEntities paginates by since_id).
+func TestFilterTables_ListStreamSQLParity(t *testing.T) {
+	t.Parallel()
+
+	for _, spec := range allEntityFilterSpecs() {
+		t.Run(spec.name, func(t *testing.T) {
+			t.Parallel()
+			listSQL := spec.renderList(t)
+			streamSQL := spec.renderStream(t)
+			if len(listSQL) == 0 {
+				t.Fatal("rendered zero predicates — populated request produced no filters, parity check is vacuous")
+			}
+			if !slices.Equal(listSQL, streamSQL) {
+				t.Errorf("%s List vs Stream rendered filter SQL diverges:\nlist (id excluded):\n  %s\nstream:\n  %s",
+					spec.name, strings.Join(listSQL, "\n  "), strings.Join(streamSQL, "\n  "))
 			}
 		})
 	}
