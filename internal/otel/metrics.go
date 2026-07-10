@@ -34,8 +34,6 @@ var SyncDuration metric.Float64Histogram
 //
 // Attributes: endpoint (e.g. "/api/net"), entity (e.g. "net"). Low-cardinality
 // by construction — 1 endpoint per type × 13 types = 13 label combinations.
-//
-// Registered by InitResponseHeapHistogram.
 var ResponseHeapDeltaBytes metric.Int64Histogram
 
 // SyncOperations counts sync operations by status (success/failed).
@@ -99,119 +97,119 @@ var PeeringDBRateLimitWaitMS metric.Float64Histogram
 // RoleTransitions counts LiteFS role transition events (promoted/demoted).
 var RoleTransitions metric.Int64Counter
 
-// InitMetrics registers custom metric instruments for sync operations.
-// HTTP metrics are handled automatically by otelhttp middleware.
-func InitMetrics() error {
-	meter := otel.Meter("peeringdb-plus")
+func init() {
+	BindInstruments()
+}
 
-	var err error
-	SyncDuration, err = meter.Float64Histogram("pdbplus.sync.duration",
+// BindInstruments (re)creates every package-level instrument on the
+// current global MeterProvider. It runs automatically at package init,
+// so the instruments are never nil and callers need no nil-guards or
+// init-ordering discipline: instruments created before the first
+// otel.SetMeterProvider are delegating shims that bind to the real
+// provider when main wires it.
+//
+// That delegation happens exactly ONCE per process (otel's global
+// delegateMeterOnce). Production sets one provider at startup and never
+// needs this function. Tests that install a fresh MeterProvider after
+// another provider was already set in the same process MUST call
+// BindInstruments afterwards to rebind the instruments to the new
+// provider — otherwise recorded values flow to the previously-bound
+// provider and the test's reader collects nothing.
+func BindInstruments() {
+	SyncDuration = mustFloat64Histogram("pdbplus.sync.duration",
 		metric.WithDescription("Duration of sync operations in seconds"),
 		metric.WithUnit("s"),
 		metric.WithExplicitBucketBoundaries(1, 5, 10, 30, 60, 120, 300),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.duration histogram: %w", err)
-	}
-
-	SyncOperations, err = meter.Int64Counter("pdbplus.sync.operations",
+	SyncOperations = mustInt64Counter("pdbplus.sync.operations",
 		metric.WithDescription("Count of sync operations by status"),
 		metric.WithUnit("{operation}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.operations counter: %w", err)
-	}
-
-	SyncTypeObjects, err = meter.Int64Counter("pdbplus.sync.type.objects",
+	SyncTypeObjects = mustInt64Counter("pdbplus.sync.type.objects",
 		metric.WithDescription("Number of objects synced per type"),
 		metric.WithUnit("{object}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.type.objects counter: %w", err)
-	}
-
-	SyncTypeDeleted, err = meter.Int64Counter("pdbplus.sync.type.deleted",
+	SyncTypeDeleted = mustInt64Counter("pdbplus.sync.type.deleted",
 		metric.WithDescription("Number of objects deleted per type"),
 		metric.WithUnit("{object}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.type.deleted counter: %w", err)
-	}
-
-	SyncTypeFetchErrors, err = meter.Int64Counter("pdbplus.sync.type.fetch_errors",
+	SyncTypeFetchErrors = mustInt64Counter("pdbplus.sync.type.fetch_errors",
 		metric.WithDescription("PeeringDB API fetch errors per type"),
 		metric.WithUnit("{error}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.type.fetch_errors counter: %w", err)
-	}
-
-	SyncTypeUpsertErrors, err = meter.Int64Counter("pdbplus.sync.type.upsert_errors",
+	SyncTypeUpsertErrors = mustInt64Counter("pdbplus.sync.type.upsert_errors",
 		metric.WithDescription("Database upsert errors per type"),
 		metric.WithUnit("{error}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.type.upsert_errors counter: %w", err)
-	}
-
-	SyncTypeFallback, err = meter.Int64Counter("pdbplus.sync.type.fallback",
+	SyncTypeFallback = mustInt64Counter("pdbplus.sync.type.fallback",
 		metric.WithDescription("Incremental-to-full sync fallback events per type"),
 		metric.WithUnit("{event}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.type.fallback counter: %w", err)
-	}
-
-	SyncTypeOrphans, err = meter.Int64Counter("pdbplus.sync.type.orphans",
+	SyncTypeOrphans = mustInt64Counter("pdbplus.sync.type.orphans",
 		metric.WithDescription("FK-orphan rows observed per sync cycle, by type/parent_type/field/action"),
 		metric.WithUnit("{row}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.type.orphans counter: %w", err)
-	}
-
-	SyncFKBackfill, err = meter.Int64Counter("pdbplus.sync.fk_backfill",
+	SyncFKBackfill = mustInt64Counter("pdbplus.sync.fk_backfill",
 		metric.WithDescription("Live FK-backfill attempts during sync, by type/parent_type/result"),
 		metric.WithUnit("{attempt}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.sync.fk_backfill counter: %w", err)
-	}
-
-	PeeringDBRequests, err = meter.Int64Counter("pdbplus.peeringdb.requests",
+	PeeringDBRequests = mustInt64Counter("pdbplus.peeringdb.requests",
 		metric.WithDescription("Outbound HTTP requests to PeeringDB API, by status_class"),
 		metric.WithUnit("{request}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.peeringdb.requests counter: %w", err)
-	}
-
-	PeeringDBRetries, err = meter.Int64Counter("pdbplus.peeringdb.retries",
+	PeeringDBRetries = mustInt64Counter("pdbplus.peeringdb.retries",
 		metric.WithDescription("In-transport PeeringDB request retries, by cause"),
 		metric.WithUnit("{retry}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.peeringdb.retries counter: %w", err)
-	}
-
-	PeeringDBRateLimitWaitMS, err = meter.Float64Histogram("pdbplus.peeringdb.rate_limit_wait_ms",
+	PeeringDBRateLimitWaitMS = mustFloat64Histogram("pdbplus.peeringdb.rate_limit_wait_ms",
 		metric.WithDescription("Per-request PeeringDB rate-limiter wait duration in milliseconds"),
 		metric.WithUnit("ms"),
 		metric.WithExplicitBucketBoundaries(0, 1, 10, 50, 100, 250, 500, 1000, 2500, 5000),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.peeringdb.rate_limit_wait_ms histogram: %w", err)
-	}
-
-	RoleTransitions, err = meter.Int64Counter("pdbplus.role.transitions",
+	RoleTransitions = mustInt64Counter("pdbplus.role.transitions",
 		metric.WithDescription("Role transition events (promoted/demoted)"),
 		metric.WithUnit("{event}"),
 	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.role.transitions counter: %w", err)
-	}
+	ResponseHeapDeltaBytes = mustInt64Histogram("pdbplus.response.heap_delta",
+		metric.WithDescription("Per-request Go heap HeapInuse delta on pdbcompat list handlers, in bytes"),
+		metric.WithUnit("By"),
+		// Buckets span 512 B to 512 MiB: the low end catches
+		// near-zero-delta responses, the high end the budget-breach
+		// neighbourhood (PDBPLUS_RESPONSE_MEMORY_LIMIT default
+		// 128 MiB; buckets step past that so outliers still count).
+		metric.WithExplicitBucketBoundaries(
+			512, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304,
+			16777216, 67108864, 268435456, 536870912,
+		),
+	)
+}
 
-	return nil
+// The must* helpers panic on registration failure. The global
+// (delegating) meter never fails; an SDK meter fails only on an invalid
+// instrument name or unit — a programming error caught by any test run.
+
+func mustInt64Counter(name string, opts ...metric.Int64CounterOption) metric.Int64Counter {
+	c, err := otel.Meter("peeringdb-plus").Int64Counter(name, opts...)
+	if err != nil {
+		panic(fmt.Sprintf("otel: registering %s counter: %v", name, err))
+	}
+	return c
+}
+
+func mustInt64Histogram(name string, opts ...metric.Int64HistogramOption) metric.Int64Histogram {
+	h, err := otel.Meter("peeringdb-plus").Int64Histogram(name, opts...)
+	if err != nil {
+		panic(fmt.Sprintf("otel: registering %s histogram: %v", name, err))
+	}
+	return h
+}
+
+func mustFloat64Histogram(name string, opts ...metric.Float64HistogramOption) metric.Float64Histogram {
+	h, err := otel.Meter("peeringdb-plus").Float64Histogram(name, opts...)
+	if err != nil {
+		panic(fmt.Sprintf("otel: registering %s histogram: %v", name, err))
+	}
+	return h
 }
 
 // InitFreshnessGauge registers the sync freshness observable gauge.
@@ -274,36 +272,6 @@ func InitMemoryGauges() error {
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.peak_rss gauge: %w", err)
 	}
-	return nil
-}
-
-// InitResponseHeapHistogram registers the per-request heap-delta histogram
-// for pdbcompat response paths. Called from
-// main.go at startup after the OTel SDK is ready. Analogous to
-// InitMemoryGauges but records a histogram (distribution over p50/p95/p99)
-// rather than a point-in-time gauge, because per-request deltas are the
-// thing operators want a distribution over — not a last-write-wins value.
-//
-// Bucket boundaries span 512 B to 512 MiB (in bytes per the post-2026-04-26
-// audit unit canonicalisation): the low end catches near-zero-delta
-// responses (cached small payloads), the high end the budget-breach
-// neighbourhood (PDBPLUS_RESPONSE_MEMORY_LIMIT default 128 MiB; buckets
-// step past that into 256 / 512 MiB territory so outliers still get
-// counted).
-func InitResponseHeapHistogram() error {
-	meter := otel.Meter("peeringdb-plus")
-	h, err := meter.Int64Histogram("pdbplus.response.heap_delta",
-		metric.WithDescription("Per-request Go heap HeapInuse delta on pdbcompat list handlers, in bytes"),
-		metric.WithUnit("By"),
-		metric.WithExplicitBucketBoundaries(
-			512, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304,
-			16777216, 67108864, 268435456, 536870912,
-		),
-	)
-	if err != nil {
-		return fmt.Errorf("registering pdbplus.response.heap_delta histogram: %w", err)
-	}
-	ResponseHeapDeltaBytes = h
 	return nil
 }
 

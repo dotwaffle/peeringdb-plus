@@ -61,10 +61,8 @@ func memStatsHeapInuseBytes() int64 {
 //   - OTel span attribute pdbplus.response.heap_delta_bytes on the active
 //     span (no-op if the span is not recording / not installed).
 //   - Prometheus histogram observation on pdbplus.response.heap_delta
-//     with endpoint + entity labels (no-op if
-//     pdbotel.ResponseHeapDeltaBytes is nil, e.g. if
-//     InitResponseHeapHistogram was not called — the request path must
-//     never crash over a missing telemetry instrument).
+//     with endpoint + entity labels (the instrument is bound at
+//     internal/otel package init, so it is never nil).
 //
 // Intended usage: `defer recordResponseHeapDelta(ctx, endpoint, entity,
 // startBytes)` in dispatch after the Registry lookup (after startBytes :=
@@ -87,14 +85,10 @@ func recordResponseHeapDelta(ctx context.Context, endpoint, entity string, start
 	if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
 		span.SetAttributes(attribute.Int64("pdbplus.response.heap_delta_bytes", delta))
 	}
-	// Prometheus histogram. Nil-guarded so a failed registration cannot
-	// panic the request path (telemetry is best-effort).
-	if pdbotel.ResponseHeapDeltaBytes != nil {
-		pdbotel.ResponseHeapDeltaBytes.Record(ctx, delta,
-			metric.WithAttributes(
-				attribute.String("endpoint", endpoint),
-				attribute.String("entity", entity),
-			),
-		)
-	}
+	pdbotel.ResponseHeapDeltaBytes.Record(ctx, delta,
+		metric.WithAttributes(
+			attribute.String("endpoint", endpoint),
+			attribute.String("entity", entity),
+		),
+	)
 }

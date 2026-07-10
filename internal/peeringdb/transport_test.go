@@ -353,9 +353,9 @@ func TestTransport_TelemetryFires(t *testing.T) {
 	otel.SetMeterProvider(provider)
 	t.Cleanup(func() { otel.SetMeterProvider(prev) })
 
-	if err := pdbotel.InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics: %v", err)
-	}
+	// Rebind the package-init instruments: otel's global delegation is
+	// once-only, so they may be bound to a provider another test set.
+	pdbotel.BindInstruments()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))

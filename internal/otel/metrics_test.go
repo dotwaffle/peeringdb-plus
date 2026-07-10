@@ -12,42 +12,40 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
-func TestInitMetrics_NoError(t *testing.T) {
-	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+// TestInstruments_BoundAtPackageInit locks the package-init binding
+// contract: every package-level instrument is usable without any Init
+// call, so callers need no nil-guards.
+func TestInstruments_BoundAtPackageInit(t *testing.T) {
+	t.Parallel()
 
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics returned error: %v", err)
+	tests := []struct {
+		name  string
+		value any
+	}{
+		{"SyncDuration", SyncDuration},
+		{"SyncOperations", SyncOperations},
+		{"SyncTypeObjects", SyncTypeObjects},
+		{"SyncTypeDeleted", SyncTypeDeleted},
+		{"SyncTypeFetchErrors", SyncTypeFetchErrors},
+		{"SyncTypeUpsertErrors", SyncTypeUpsertErrors},
+		{"SyncTypeFallback", SyncTypeFallback},
+		{"SyncTypeOrphans", SyncTypeOrphans},
+		{"SyncFKBackfill", SyncFKBackfill},
+		{"PeeringDBRequests", PeeringDBRequests},
+		{"PeeringDBRetries", PeeringDBRetries},
+		{"PeeringDBRateLimitWaitMS", PeeringDBRateLimitWaitMS},
+		{"RoleTransitions", RoleTransitions},
+		{"ResponseHeapDeltaBytes", ResponseHeapDeltaBytes},
 	}
-}
-
-func TestInitMetrics_SyncDurationNotNil(t *testing.T) {
-	t.Setenv("OTEL_METRICS_EXPORTER", "none")
-
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics returned error: %v", err)
-	}
-	if SyncDuration == nil {
-		t.Fatal("SyncDuration is nil after InitMetrics")
-	}
-}
-
-func TestInitMetrics_SyncOperationsNotNil(t *testing.T) {
-	t.Setenv("OTEL_METRICS_EXPORTER", "none")
-
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics returned error: %v", err)
-	}
-	if SyncOperations == nil {
-		t.Fatal("SyncOperations is nil after InitMetrics")
+	for _, tc := range tests {
+		if tc.value == nil {
+			t.Errorf("%s is nil at package init", tc.name)
+		}
 	}
 }
 
 func TestSyncDuration_RecordDoesNotPanic(t *testing.T) {
 	t.Setenv("OTEL_METRICS_EXPORTER", "none")
-
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics returned error: %v", err)
-	}
 
 	// Recording a value should not panic.
 	SyncDuration.Record(t.Context(), 5.0,
@@ -58,45 +56,14 @@ func TestSyncDuration_RecordDoesNotPanic(t *testing.T) {
 func TestSyncOperations_AddDoesNotPanic(t *testing.T) {
 	t.Setenv("OTEL_METRICS_EXPORTER", "none")
 
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics returned error: %v", err)
-	}
-
 	// Adding a value should not panic.
 	SyncOperations.Add(t.Context(), 1,
 		metric.WithAttributes(attribute.String("status", "success")),
 	)
 }
 
-func TestInitMetrics_PerTypeInstruments(t *testing.T) {
+func TestPerTypeRecordDoesNotPanic(t *testing.T) {
 	t.Setenv("OTEL_METRICS_EXPORTER", "none")
-
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics returned error: %v", err)
-	}
-
-	tests := []struct {
-		name  string
-		value any
-	}{
-		{"SyncTypeObjects", SyncTypeObjects},
-		{"SyncTypeDeleted", SyncTypeDeleted},
-		{"SyncTypeFetchErrors", SyncTypeFetchErrors},
-		{"SyncTypeUpsertErrors", SyncTypeUpsertErrors},
-	}
-	for _, tc := range tests {
-		if tc.value == nil {
-			t.Errorf("%s is nil after InitMetrics", tc.name)
-		}
-	}
-}
-
-func TestInitMetrics_PerTypeRecordDoesNotPanic(t *testing.T) {
-	t.Setenv("OTEL_METRICS_EXPORTER", "none")
-
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics returned error: %v", err)
-	}
 
 	ctx := t.Context()
 	typeAttr := metric.WithAttributes(attribute.String("type", "org"))
@@ -153,15 +120,16 @@ func TestInitFreshnessGauge_NoSync(t *testing.T) {
 	// when no Observe calls were made). The callback was still invoked.
 }
 
-func TestInitMetrics_RecordsValues(t *testing.T) {
+func TestBindInstruments_RecordsValues(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
-	if err := InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics: %v", err)
-	}
+	// Rebind: otel's global delegation is once-only, so instruments
+	// created at package init may be bound to a provider another test
+	// installed earlier in this process.
+	BindInstruments()
 
 	ctx := t.Context()
 	typeAttr := metric.WithAttributes(attribute.String("type", "org"))
@@ -427,29 +395,12 @@ func findMetric(rm metricdata.ResourceMetrics, name string) *metricdata.Metrics 
 	return nil
 }
 
-// TestInitResponseHeapHistogram_NoError verifies the per-request heap-delta
-// histogram registration succeeds.
-func TestInitResponseHeapHistogram_NoError(t *testing.T) {
-	t.Setenv("OTEL_METRICS_EXPORTER", "none")
-
-	if err := InitResponseHeapHistogram(); err != nil {
-		t.Fatalf("InitResponseHeapHistogram returned error: %v", err)
-	}
-	if ResponseHeapDeltaBytes == nil {
-		t.Fatal("ResponseHeapDeltaBytes is nil after InitResponseHeapHistogram")
-	}
-}
-
 // TestResponseHeapDeltaBytes_RecordDoesNotPanic verifies the histogram
 // instrument records samples without panicking when no reader is wired,
 // matching the best-effort behaviour expected from
 // internal/pdbcompat.recordResponseHeapDelta on a misconfigured exporter.
 func TestResponseHeapDeltaBytes_RecordDoesNotPanic(t *testing.T) {
 	t.Setenv("OTEL_METRICS_EXPORTER", "none")
-
-	if err := InitResponseHeapHistogram(); err != nil {
-		t.Fatalf("InitResponseHeapHistogram returned error: %v", err)
-	}
 
 	ResponseHeapDeltaBytes.Record(t.Context(), 42,
 		metric.WithAttributes(
@@ -459,17 +410,15 @@ func TestResponseHeapDeltaBytes_RecordDoesNotPanic(t *testing.T) {
 	)
 }
 
-// TestInitResponseHeapHistogram_RecordsValues verifies an actual observation
+// TestResponseHeapHistogram_RecordsValues verifies an actual observation
 // flows through the OTel manual reader with the expected attributes.
-func TestInitResponseHeapHistogram_RecordsValues(t *testing.T) {
+func TestResponseHeapHistogram_RecordsValues(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
-	if err := InitResponseHeapHistogram(); err != nil {
-		t.Fatalf("InitResponseHeapHistogram: %v", err)
-	}
+	BindInstruments()
 
 	ctx := t.Context()
 	ResponseHeapDeltaBytes.Record(ctx, 128,

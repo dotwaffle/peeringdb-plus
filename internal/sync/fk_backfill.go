@@ -511,11 +511,7 @@ func (w *Worker) prefetchMissingParentsForChunk(ctx context.Context, tx *ent.Tx,
 }
 
 // recordBackfill emits the per-attempt fk_backfill counter.
-// Nil-guarded because tests run without InitMetrics().
 func (w *Worker) recordBackfill(ctx context.Context, childType, parentType string, result fkBackfillResult) {
-	if pdbotel.SyncFKBackfill == nil {
-		return
-	}
 	pdbotel.SyncFKBackfill.Add(ctx, 1, metric.WithAttributes(
 		otelattr.String("type", childType),
 		otelattr.String("parent_type", parentType),

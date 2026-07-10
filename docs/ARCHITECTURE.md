@@ -770,8 +770,10 @@ vars.
 
 - **`MeterProvider`** — Exposes standard `http.server.*` metrics
   (from otelhttp)
-  and custom sync metrics registered in `internal/otel/metrics.go`
-  (`InitMetrics`):
+  and custom sync metrics bound at package init in
+  `internal/otel/metrics.go` (`BindInstruments`; instruments created
+  before `SetMeterProvider` delegate to the real provider once main
+  wires it):
   - `pdbplus.sync.duration` (histogram) — buckets 1/5/10/30/60/120/300 seconds.
   - `pdbplus.sync.operations` (counter) — labelled by status (success/failed).
   - `pdbplus.sync.type.objects` (counter) — per-type object counts.
@@ -785,8 +787,8 @@ vars.
     table.
   - Sync-cycle peak heap/RSS gauges (`InitMemoryGauges` —
     `pdbplus.sync.peak_heap_bytes`, `pdbplus.sync.peak_rss_bytes`).
-  - Per-request response heap-delta histogram (`InitResponseHeapHistogram` —
-    `pdbplus.response.heap_delta`, exported to Prometheus as
+  - Per-request response heap-delta histogram
+    (`pdbplus.response.heap_delta`, exported to Prometheus as
     `pdbplus_response_heap_delta_bytes`).
 
   Two explicit views reshape instruments for cost control:
@@ -981,8 +983,7 @@ cannot stack with other large responses.
   — buckets 512 B, 1 KiB, 4 KiB, 16 KiB, 64 KiB, 256 KiB, 1 MiB, 4 MiB, 16 MiB,
   64 MiB, 256 MiB, 512 MiB (near-zero through 512 MiB, with the 128 MiB default
   budget sitting at the 9th bucket boundary).
-  Registered via `pdbotel.InitResponseHeapHistogram()` in
-  `internal/otel/metrics.go`.
+  Bound at package init in `internal/otel/metrics.go`.
   Bytes is the canonical Prom unit
   (per the 2026-04-26 audit unit canonicalisation);
   Grafana formats KiB / MiB at render time via the "bytes" field unit.

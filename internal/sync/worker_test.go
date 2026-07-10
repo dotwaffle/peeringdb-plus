@@ -57,23 +57,6 @@ import (
 // then run without -update to verify the refactor preserved behavior.
 var updateGolden = flag.Bool("update", false, "update golden files")
 
-// TestMain initializes OTel metrics once before any tests run, preventing
-// race conditions on global metric variables between parallel tests.
-func TestMain(m *testing.M) {
-	mp := sdkmetric.NewMeterProvider()
-	otel.SetMeterProvider(mp)
-	if err := pdbotel.InitMetrics(); err != nil {
-		panic(fmt.Sprintf("InitMetrics: %v", err))
-	}
-	os.Exit(m.Run())
-}
-
-// ensureMetrics is a no-op kept for backward compatibility with tests that
-// call it. Metrics are now initialized in TestMain before any tests run.
-func ensureMetrics(t *testing.T) {
-	t.Helper()
-}
-
 // fixture builds a minimal mock PeeringDB API server with configurable responses.
 type fixture struct {
 	server    *httptest.Server
@@ -730,7 +713,6 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 // TestSyncScheduler verifies scheduler starts periodic sync via time.Ticker.
 func TestSyncScheduler(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f)
@@ -1084,17 +1066,16 @@ func TestSyncWithNetAndFac(t *testing.T) {
 	}
 }
 
-// setupMetricTest installs a ManualReader-backed MeterProvider, initializes
-// sync metric instruments, and returns the reader for post-sync assertions.
+// setupMetricTest installs a ManualReader-backed MeterProvider, rebinds
+// the package-init sync instruments to it (otel's global delegation is
+// once-only), and returns the reader for post-sync assertions.
 func setupMetricTest(t *testing.T) *sdkmetric.ManualReader {
 	t.Helper()
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
+	pdbotel.BindInstruments()
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
-	if err := pdbotel.InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics: %v", err)
-	}
 	return reader
 }
 
@@ -1994,7 +1975,6 @@ func TestSchedulerSkipsSyncWithExistingData(t *testing.T) {
 // an immediate full sync when no prior successful sync exists.
 func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f)
@@ -2028,7 +2008,6 @@ func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 // sync when the last successful sync is older than the configured interval.
 func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, db := newTestWorker(t, f)
@@ -2090,7 +2069,6 @@ func (p *primarySwitch) IsPrimary() bool {
 // never calls SyncWithRetry. Runs scheduler for 2+ ticks, asserts zero API calls.
 func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
@@ -2122,7 +2100,6 @@ func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 // (IsPrimary flips from false to true) and triggers a sync.
 func TestStartScheduler_PromotionSync(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
@@ -2162,7 +2139,6 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 // cycle context, causing SyncWithRetry to return early.
 func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 
 	ps := &primarySwitch{}
 	ps.v.Store(true) // Start as primary.

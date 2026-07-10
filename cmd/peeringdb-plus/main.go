@@ -143,23 +143,14 @@ func main() {
 	logger := pdbotel.NewDualLogger(os.Stdout, otelOut.LogProvider)
 	slog.SetDefault(logger)
 
-	// Initialize custom sync metrics.
-	if err := pdbotel.InitMetrics(); err != nil {
-		logger.Error("failed to init metrics", slog.Any("error", err))
-		os.Exit(1)
-	}
+	// Sync/transport/response instruments need no Init call — they are
+	// bound at internal/otel package init and delegate to the provider
+	// installed by Setup() above. Observable gauges still register here
+	// because they need runtime callbacks.
 
 	// Initialize peak heap / RSS observable gauges for runtime memory visibility.
 	if err := pdbotel.InitMemoryGauges(); err != nil {
 		logger.Error("failed to init memory gauges", slog.Any("error", err))
-		os.Exit(1)
-	}
-
-	// Initialize per-request response heap-delta histogram for pdbcompat
-	// list handlers. Populated by
-	// internal/pdbcompat.recordResponseHeapDelta via defer in serveList.
-	if err := pdbotel.InitResponseHeapHistogram(); err != nil {
-		logger.Error("failed to init response heap histogram", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -386,11 +377,11 @@ func main() {
 	// series after the first non-zero .Add() — which for some metrics
 	// (e.g. role-transitions on a single-primary fleet) may be never.
 	//
-	// MUST run AFTER InitMetrics() (line ~96) populates the counter vars
-	// (calling .Add on a nil counter panics) and BEFORE StartScheduler
-	// spawns the sync goroutine (preserves the "all observability set up
-	// before background work starts" startup ordering established by the
-	// other Init* calls above).
+	// MUST run AFTER otel Setup() installs the real MeterProvider (the
+	// package-init instruments delegate to it; pre-warming a no-op is
+	// useless) and BEFORE StartScheduler spawns the sync goroutine
+	// (preserves the "all observability set up before background work
+	// starts" startup ordering established by the Init* calls above).
 	//
 	// Total baseline series introduced: 4 per-type × 13 types + 1 direction × 2 = 54.
 	pdbotel.PrewarmCounters(ctx)
