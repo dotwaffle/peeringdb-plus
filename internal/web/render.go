@@ -124,7 +124,7 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 				renderer.Width = wVal
 			}
 		}
-		switch page.Kind {
+		switch page.Kind { //nolint:exhaustive // default renders ordinary pages (KindEntity)
 		case KindNotFound:
 			return renderer.RenderError(w, http.StatusNotFound, "Not Found",
 				"The page you're looking for doesn't exist. Try searching instead.")
@@ -149,7 +149,7 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		if page.Data != nil {
 			return termrender.RenderJSON(w, page.Data)
 		}
-		switch page.Kind {
+		switch page.Kind { //nolint:exhaustive // default renders ordinary pages (KindEntity, KindHome)
 		case KindNotFound:
 			return termrender.RenderJSON(w, httperr.NewProblemDetail(httperr.WriteProblemInput{
 				Status: http.StatusNotFound,

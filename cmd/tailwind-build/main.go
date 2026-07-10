@@ -65,7 +65,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd := exec.Command(bin, "--input", *in, "--output", *out, "--minify")
+	// bin comes from ensureCLI: a sha256-verified binary in our own
+	// cache dir, not attacker-influenced input.
+	cmd := exec.Command(bin, "--input", *in, "--output", *out, "--minify") //nolint:gosec // path is the verified cached CLI
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -94,7 +96,7 @@ func ensureCLI() (string, error) {
 		return bin, nil
 	}
 
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", fmt.Errorf("create cache dir %s: %w", dir, err)
 	}
 	url := "https://github.com/tailwindlabs/tailwindcss/releases/download/" + cliVersion + "/" + rel.asset
@@ -110,7 +112,7 @@ func ensureCLI() (string, error) {
 	} else if !ok {
 		return "", fmt.Errorf("sha256 mismatch for %s — release asset changed or download corrupted; refusing to run it", url)
 	}
-	if err := os.Chmod(tmp, 0o755); err != nil {
+	if err := os.Chmod(tmp, 0o700); err != nil { //nolint:gosec // it is a binary we are about to execute; owner-only
 		return "", fmt.Errorf("chmod %s: %w", tmp, err)
 	}
 	if err := os.Rename(tmp, bin); err != nil {
@@ -135,12 +137,12 @@ func download(url, dir string) (string, error) {
 		return "", fmt.Errorf("create temp file: %w", err)
 	}
 	if _, err := io.Copy(f, resp.Body); err != nil {
-		f.Close()
-		os.Remove(f.Name())
+		_ = f.Close()
+		_ = os.Remove(f.Name())
 		return "", fmt.Errorf("write %s: %w", f.Name(), err)
 	}
 	if err := f.Close(); err != nil {
-		os.Remove(f.Name())
+		_ = os.Remove(f.Name())
 		return "", fmt.Errorf("close %s: %w", f.Name(), err)
 	}
 	return f.Name(), nil
@@ -148,7 +150,7 @@ func download(url, dir string) (string, error) {
 
 // verifyFile reports whether path exists and hashes to wantHex.
 func verifyFile(path, wantHex string) (bool, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // path is built from our own cache dir + pinned asset name
 	if err != nil {
 		return false, nil // treat missing/unreadable as "not verified"
 	}
