@@ -1042,27 +1042,32 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 	body := renderComponent(t, templates.SearchResults(groups, ""))
 
 	checks := []string{
-		`role="option"`,
+		"data-result",
 		`tabindex="-1"`,
-		`aria-selected="false"`,
 		"focus:ring-2",
 		"focus:ring-emerald-500",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
-			t.Errorf("search results missing ARIA attribute %q", want)
+			t.Errorf("search results missing keyboard-nav attribute %q", want)
+		}
+	}
+	// Results are plain links; the listbox/option ARIA pattern was
+	// dropped (it mislabels anchors and demanded aria-selected upkeep).
+	for _, unwanted := range []string{`role="option"`, "aria-selected"} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("search results still carry %q", unwanted)
 		}
 	}
 }
 
-func TestSearchForm_ListboxRole(t *testing.T) {
+func TestSearchForm_ResultsContainer(t *testing.T) {
 	t.Parallel()
 	body := renderComponent(t, templates.SearchForm("", nil))
 
 	checks := []string{
-		`role="listbox"`,
 		"autofocus",
-		`aria-label="Search results"`,
+		`id="search-results"`,
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
@@ -1117,9 +1122,9 @@ func TestLayout_KeyboardNavScript(t *testing.T) {
 	checks := []string{
 		"ArrowDown",
 		"ArrowUp",
-		"aria-selected",
+		"tabindex",
 		"htmx:afterSwap",
-		`[role="option"]`,
+		"[data-result]",
 	}
 	for _, want := range checks {
 		if !strings.Contains(string(js), want) {
@@ -1478,8 +1483,8 @@ func TestKeyboardNav_Integration(t *testing.T) {
 		desc string
 	}{
 		{"/static/ui.js", "behaviour script include (keyboard nav lives there)"},
-		{`role="option"`, "ARIA option role on results"},
-		{`role="listbox"`, "ARIA listbox role on container"},
+		{"data-result", "keyboard-nav hook on results"},
+		{`id="search-results"`, "results container"},
 		{"Cloudflare", "search result content"},
 	}
 	for _, c := range checks {

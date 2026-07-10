@@ -106,23 +106,25 @@
 	function getOptions() {
 		var container = document.getElementById('search-results');
 		if (!container) return [];
-		return Array.from(container.querySelectorAll('[role="option"]'));
+		return Array.from(container.querySelectorAll('[data-result]'));
 	}
 
+	// Roving tabindex: the active link carries tabindex="0", the rest
+	// stay at -1, so Tab lands on at most one result.
 	function getActiveIndex(options) {
 		for (var i = 0; i < options.length; i++) {
-			if (options[i].getAttribute('aria-selected') === 'true') return i;
+			if (options[i].getAttribute('tabindex') === '0') return i;
 		}
 		return -1;
 	}
 
 	function setActive(options, index) {
 		for (var i = 0; i < options.length; i++) {
-			options[i].setAttribute('aria-selected', 'false');
+			options[i].setAttribute('tabindex', '-1');
 			options[i].classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-1');
 		}
 		if (index >= 0 && index < options.length) {
-			options[index].setAttribute('aria-selected', 'true');
+			options[index].setAttribute('tabindex', '0');
 			options[index].classList.add('ring-2', 'ring-emerald-500', 'ring-offset-1');
 			options[index].focus();
 			options[index].scrollIntoView({ block: 'nearest' });
@@ -321,23 +323,24 @@
 
 		// Keyboard navigation for spotlight results.
 		function getOptions() {
-			return Array.from(resultsContainer.querySelectorAll('[role="option"]'));
+			return Array.from(resultsContainer.querySelectorAll('[data-result]'));
 		}
 
+		// Roving tabindex, mirroring the page-level keyboard nav above.
 		function getActiveIndex(options) {
 			for (var i = 0; i < options.length; i++) {
-				if (options[i].getAttribute('aria-selected') === 'true') return i;
+				if (options[i].getAttribute('tabindex') === '0') return i;
 			}
 			return -1;
 		}
 
 		function setActive(options, index) {
 			for (var i = 0; i < options.length; i++) {
-				options[i].setAttribute('aria-selected', 'false');
+				options[i].setAttribute('tabindex', '-1');
 				options[i].classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-1');
 			}
 			if (index >= 0 && index < options.length) {
-				options[index].setAttribute('aria-selected', 'true');
+				options[index].setAttribute('tabindex', '0');
 				options[index].classList.add('ring-2', 'ring-emerald-500', 'ring-offset-1');
 				options[index].focus();
 				options[index].scrollIntoView({ block: 'nearest' });

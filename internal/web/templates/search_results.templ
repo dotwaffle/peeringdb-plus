@@ -42,9 +42,8 @@ templ SearchResults(groups []SearchGroup, query string) {
 templ SearchRow(result SearchResult) {
 	<a
 		href={ templ.SafeURL(result.DetailURL) }
-		role="option"
+		data-result
 		tabindex="-1"
-		aria-selected="false"
 		class="flex items-center justify-between px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 focus:ring-offset-white dark:focus:ring-offset-neutral-900"
 	>
 		<span class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate min-w-0 group-hover:text-emerald-400 transition-colors">

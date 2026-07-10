@@ -93,8 +93,9 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 			<div id="global-indicator" class="htmx-indicator bg-emerald-500">
 				<div class="h-full w-full bg-emerald-400 animate-pulse"></div>
 			</div>
+			<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-3 focus:py-1.5 focus:rounded">Skip to content</a>
 			@Nav()
-			<main class="flex-1 container mx-auto px-4 py-8">
+			<main id="main-content" class="flex-1 container mx-auto px-4 py-8">
 				@contents
 			</main>
 			@Footer()
@@ -125,7 +126,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 							<kbd class="absolute right-4 top-3.5 hidden sm:inline-flex items-center px-1.5 py-0.5 text-xs font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">esc</kbd>
 						</div>
 					</form>
-					<div id="spotlight-results" class="max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0" role="listbox" aria-label="Search results"></div>
+					<div id="spotlight-results" class="max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0"></div>
 				</div>
 			</div>
 		</div>
