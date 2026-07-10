@@ -63,6 +63,45 @@ groups:
             for 10m. Expected fleet is 8 machines (1 primary LHR + 7
             replicas). Check Fly machine status: fly status -a peeringdb-plus.
 
+      - alert: PdbPlusTelemetryAbsent
+        expr: absent(go_memory_used_bytes{service_name="peeringdb-plus"})
+        for: 10m
+        labels:
+          severity: critical
+          receiver: grafana-default-email
+        annotations:
+          summary: "PeeringDB Plus telemetry has stopped arriving entirely"
+          description: |
+            absent(go_memory_used_bytes{service_name="peeringdb-plus"})
+            has been true for 10m: not a single machine is exporting the
+            OTel runtime metrics that every other rule in this file keys
+            on. Every other alert silently stops evaluating in this state
+            (empty vectors fire nothing), so this meta-rule is the only
+            signal for a broken export pipeline — rotated OTLP
+            credentials, exporter misconfiguration on deploy, Grafana
+            Cloud ingest outage — or a whole-fleet outage. Check
+            fly status -a peeringdb-plus first to split the two.
+
+      - alert: PdbPlusPrimaryAbsent
+        expr: absent(go_memory_used_bytes{service_name="peeringdb-plus", service_namespace="primary"})
+        for: 10m
+        labels:
+          severity: critical
+          receiver: grafana-default-email
+        annotations:
+          summary: "PeeringDB Plus primary machine is not reporting"
+          description: |
+            No series with service_namespace="primary" for 10m. The
+            primary is the fleet's single stateful machine (LHR volume)
+            and the only sync writer: with it down, replicas keep serving
+            but data freshness degrades until PdbPlusSyncFreshnessHigh
+            fires at 2h — this rule exists to cut that detection gap to
+            10m. Note PdbPlusFleetMachineCountLow triggers at <6 of 8, so
+            losing exactly the primary does not trip it. If
+            PdbPlusTelemetryAbsent is firing too, suspect the export
+            pipeline rather than the machine. Check:
+            fly status -a peeringdb-plus.
+
   - name: pdbplus-warning
     interval: 1m
     rules:

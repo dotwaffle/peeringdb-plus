@@ -42782,8 +42782,7 @@ func (ec *executionContext) marshalNID2int(ctx context.Context, sel ast.Selectio
 }
 
 func (ec *executionContext) unmarshalNID2ᚕintᚄ(ctx context.Context, v any) ([]int, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]int, len(vSlice))
 	for i := range vSlice {
@@ -43377,8 +43376,7 @@ func (ec *executionContext) marshalN__DirectiveLocation2string(ctx context.Conte
 }
 
 func (ec *executionContext) unmarshalN__DirectiveLocation2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
@@ -43569,8 +43567,7 @@ func (ec *executionContext) unmarshalOCampusWhereInput2ᚕᚖgithubᚗcomᚋdotw
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.CampusWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -43687,8 +43684,7 @@ func (ec *executionContext) unmarshalOCarrierFacilityWhereInput2ᚕᚖgithubᚗc
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.CarrierFacilityWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -43721,8 +43717,7 @@ func (ec *executionContext) unmarshalOCarrierWhereInput2ᚕᚖgithubᚗcomᚋdot
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.CarrierWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -43817,8 +43812,7 @@ func (ec *executionContext) unmarshalOFacilityWhereInput2ᚕᚖgithubᚗcomᚋdo
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.FacilityWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -43843,8 +43837,7 @@ func (ec *executionContext) unmarshalOFloat2ᚕfloat64ᚄ(ctx context.Context, v
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]float64, len(vSlice))
 	for i := range vSlice {
@@ -43896,8 +43889,7 @@ func (ec *executionContext) unmarshalOID2ᚕintᚄ(ctx context.Context, v any) (
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]int, len(vSlice))
 	for i := range vSlice {
@@ -43962,8 +43954,7 @@ func (ec *executionContext) unmarshalOInt2ᚕintᚄ(ctx context.Context, v any) 
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]int, len(vSlice))
 	for i := range vSlice {
@@ -44070,8 +44061,7 @@ func (ec *executionContext) unmarshalOInternetExchangeWhereInput2ᚕᚖgithubᚗ
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.InternetExchangeWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44142,8 +44132,7 @@ func (ec *executionContext) unmarshalOIxFacilityWhereInput2ᚕᚖgithubᚗcomᚋ
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.IxFacilityWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44214,8 +44203,7 @@ func (ec *executionContext) unmarshalOIxLanWhereInput2ᚕᚖgithubᚗcomᚋdotwa
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.IxLanWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44286,8 +44274,7 @@ func (ec *executionContext) unmarshalOIxPrefixWhereInput2ᚕᚖgithubᚗcomᚋdo
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.IxPrefixWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44422,8 +44409,7 @@ func (ec *executionContext) unmarshalONetworkFacilityWhereInput2ᚕᚖgithubᚗc
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.NetworkFacilityWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44494,8 +44480,7 @@ func (ec *executionContext) unmarshalONetworkIxLanWhereInput2ᚕᚖgithubᚗcom�
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.NetworkIxLanWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44528,8 +44513,7 @@ func (ec *executionContext) unmarshalONetworkWhereInput2ᚕᚖgithubᚗcomᚋdot
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.NetworkWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44596,8 +44580,7 @@ func (ec *executionContext) unmarshalOOrganizationWhereInput2ᚕᚖgithubᚗcom�
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.OrganizationWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44668,8 +44651,7 @@ func (ec *executionContext) unmarshalOPocWhereInput2ᚕᚖgithubᚗcomᚋdotwaff
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]*ent.PocWhereInput, len(vSlice))
 	for i := range vSlice {
@@ -44725,8 +44707,7 @@ func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]string, len(vSlice))
 	for i := range vSlice {
@@ -44786,8 +44767,7 @@ func (ec *executionContext) unmarshalOTime2ᚕtimeᚐTimeᚄ(ctx context.Context
 	if v == nil {
 		return nil, nil
 	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
+	vSlice := graphql.CoerceList(v)
 	var err error
 	res := make([]time.Time, len(vSlice))
 	for i := range vSlice {

@@ -2,12 +2,22 @@
 FROM cgr.dev/chainguard/go AS build
 
 WORKDIR /app
+
+# Module download in its own layer, keyed on go.mod/go.sum only, and
+# deliberately WITHOUT a cache mount: BuildKit cache-mount contents are
+# builder-local and are NOT exported by the CI `type=gha` cache, so
+# modules baked into a real layer are what make CI rebuilds skip the
+# download. The go-build cache mount below still helps local iterative
+# builds (fly deploy --local-only).
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
 # Compute version from git: tagged release → `v1.17`, post-tag dev →
 # `v1.17-3-gabc1234`, dirty tree → trailing `-dirty`. Falls back to short
 # sha (`git rev-parse --short`) if no tags reachable, "unknown" if .git
-# is missing entirely (defensive — .git IS in the build context as of
-# 2026-04-26: no .dockerignore exists).
+# is missing entirely (defensive — .git IS in the build context: the
+# .dockerignore deliberately does NOT exclude it, for exactly this step).
 #
 # Injected into internal/buildinfo via `-ldflags -X` so both the OTel
 # resource (service.version) and the PeeringDB User-Agent emit the
@@ -16,7 +26,6 @@ COPY . .
 # `go build -v` lists each compiled package on stderr, so a stalled build is
 # distinguishable from a merely slow one during cold (post-dep-bump) compiles.
 RUN \
-    --mount=type=cache,target=/root/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo unknown) && \
     echo "Building peeringdb-plus version=$VERSION" && \

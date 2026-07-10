@@ -67,13 +67,24 @@ based on `severity=critical` vs `severity=warning`).
 
 ## Severity tier policy
 
-| Tier       | Behaviour       | Used for                                                         |
-|------------|-----------------|------------------------------------------------------------------|
-| `critical` | Page on-call    | Sync stalls (>2h freshness), sync-failure rate >50%, fleet drop. |
-| `warning`  | Notify only     | Heap/RSS sustained breach, single sync failure.                  |
+| Tier       | Behaviour       | Used for                                                          |
+|------------|-----------------|-------------------------------------------------------------------|
+| `critical` | Page on-call    | Sync stalls (>2h freshness), sync-failure rate >50%, fleet drop, telemetry absent, primary absent. |
+| `warning`  | Notify only     | Heap/RSS sustained breach, single sync failure.                   |
 
 Total rule count is capped at 8 to stay below Grafana Cloud free-tier
-alertmanager limits. Current count: 6 rules across both groups.
+alertmanager limits. Current count: 8 rules across both groups — the
+cap is full. Next rule in line if the cap ever rises (paid tier or a
+raised limit): a serving-path 5xx-rate alert on
+`http_server_request_duration_seconds_count{http_response_status_code=~"5.."}`
+— today a fleet returning errors while processes stay alive never
+alerts (the closest proxies are the freshness and absence rules).
+
+Note on absence coverage: all metric-presence rules key on
+`go_memory_used_bytes`, which ticks on every machine via the OTel
+runtime meter. `PdbPlusTelemetryAbsent` is the meta-rule that fires
+when the export pipeline itself dies — every other rule evaluates to
+an empty vector (and stays silent) in that state.
 
 ## Forbidden content
 

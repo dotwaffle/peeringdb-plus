@@ -1,0 +1,45 @@
+# Keep the build context to what the image build actually consumes:
+# Go sources (go build ./cmd/peeringdb-plus), go.mod/go.sum, litefs.yml
+# (COPY'd into the prod image), and .git — Dockerfile.prod derives the
+# injected version from `git describe`, so .git MUST stay in context.
+#
+# Everything below is either operator/CI tooling, documentation, test
+# fixtures, or local editor/agent state. Excluding it shrinks the
+# context upload, stops local-only files leaking into the build stage,
+# and keeps the compile layer's cache key stable across doc-only edits.
+
+# Test fixtures and docs
+testdata/
+docs/
+*.md
+LICENSE
+
+# Deploy/CI/operator tooling (not consumed by the image build)
+deploy/
+scripts/
+.github/
+.golangci.yml
+.octocov.yml
+fly.toml
+Dockerfile
+Dockerfile.prod
+.dockerignore
+buf.yaml
+buf.gen.yaml
+proto/
+
+# Local editor / shell / agent state
+.claude/
+.idea
+.vscode/
+.mcp.json
+.gitconfig
+.gitmodules
+.gitignore
+.git-blame-ignore-revs
+.bash_profile
+.bashrc
+.profile
+.ripgreprc
+.rumdl_cache/
+.rumdl.toml

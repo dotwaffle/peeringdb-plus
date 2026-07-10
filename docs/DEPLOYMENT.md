@@ -62,9 +62,14 @@ It comprises two jobs:
    cache, then runs these steps in order, each reusing the prior compile:
    1. **Generated-code drift check** —
       `go generate ./...` then
-      `git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/`.
+      `git diff --exit-code` scoped to
+      `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
+      and `internal/pdbcompat/allowlist_gen.go`
+      (the security-load-bearing `/api` traversal allowlist).
       Runs first so a forgotten regeneration fails in seconds,
       ahead of the expensive build and test steps.
+      A `go mod tidy` gate follows it,
+      failing the job when go.mod/go.sum are untidy.
    2. **Build** — `go build ./...` to confirm compilation and warm the cache.
    3. **Test** — `CGO_ENABLED=1 go test -race -coverprofile=coverage.out` with
       coverage excluding `ent/` and `gen/`; posts a coverage comment via
@@ -88,6 +93,33 @@ because its BuildKit cache is independent of the Go build cache.
 There is no automated deploy step.
 Deployment to Fly.io is a manual action run from a developer workstation,
 as documented in `fly.toml`.
+
+### Production image: accepted risks
+
+Two deliberate trade-offs in `Dockerfile.prod`,
+recorded here so they read as decisions rather than oversights:
+
+- **The process tree runs as root.**
+  The LiteFS FUSE mount genuinely requires root,
+  and the application process — which parses untrusted internet input
+  on five API surfaces — currently inherits it
+  (LiteFS `exec:`s the app without dropping privileges).
+  Accepted for now because the container boundary
+  (Fly microVM per machine) is the primary isolation layer.
+  Revisit if LiteFS grows a privilege-drop option
+  or the app moves off FUSE.
+- **The runtime base is `glibc-dynamic:latest-dev`** —
+  the `-dev` variant ships a shell, `apk`, and the `sqlite3` CLI.
+  This is deliberate incident-response tooling:
+  `fly ssh console` + `sqlite3 /litefs/peeringdb-plus.db`
+  is the documented production debugging path.
+  The dev `Dockerfile` uses the plain (shell-less) variant,
+  since nothing execs into it.
+  Both base tags float (`:latest`);
+  Chainguard's free tier offers no pinned tags,
+  and digest-pinning without bump automation
+  (deliberately not installed)
+  would only freeze staleness in place.
 
 ## Environment setup
 
@@ -567,7 +599,13 @@ fly deploy
 
 ### 4) `/sync` auth misconfiguration
 
-- Symptoms: startup warning that sync endpoint is unauthenticated.
+- Symptoms: every `POST /sync` returns 401,
+  and startup logs carry
+  `PDBPLUS_SYNC_TOKEN not set — POST /sync is disabled`.
+  With no token configured the endpoint fail-closes —
+  it rejects all requests rather than accepting them unauthenticated,
+  so a missing token disables on-demand sync entirely
+  (scheduled syncs are unaffected).
 - First checks: `PDBPLUS_SYNC_TOKEN` present in runtime env and deploy secrets.
 - Immediate action: set token and redeploy;
   confirm with an authenticated `/sync` probe.
