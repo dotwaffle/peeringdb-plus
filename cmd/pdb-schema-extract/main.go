@@ -47,6 +47,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/buildinfo"
 )
 
 // Schema is the top-level intermediate JSON representation of the PeeringDB
@@ -102,7 +104,11 @@ func main() {
 	}
 
 	if validate {
-		if err := validateAgainstAPI(schema); err != nil {
+		if err := validateAgainstAPI(schema, validateAPIInput{
+			BaseURL: "https://beta.peeringdb.com/api",
+			Client:  &http.Client{Timeout: 30 * time.Second},
+			Pause:   3 * time.Second,
+		}); err != nil {
 			log.Fatalf("validation failed: %v", err)
 		}
 	}
@@ -1049,32 +1055,33 @@ func atoi(s string) int {
 	return n
 }
 
-// validateAgainstAPI fetches sample API responses from beta.peeringdb.com and
-// compares field names against the extracted schema.
-func validateAgainstAPI(schema *Schema) error {
-	baseURL := "https://beta.peeringdb.com/api"
-	client := &http.Client{Timeout: 30 * time.Second}
+// validateAPIInput parameterises validateAgainstAPI so tests can point
+// it at an httptest server with zero pacing instead of live
+// beta.peeringdb.com with the 3s courtesy interval.
+type validateAPIInput struct {
+	BaseURL string        // e.g. "https://beta.peeringdb.com/api"
+	Client  *http.Client  // owns the timeout
+	Pause   time.Duration // sleep between object types (0 in tests)
+}
+
+// validateAgainstAPI fetches one sample row per object type from the
+// configured PeeringDB API and compares field names against the
+// extracted schema. Types are visited in sorted order with in.Pause
+// between requests — this is a manually-run drift detector against a
+// rate-limited third-party service, so it identifies itself with a
+// buildinfo User-Agent and paces itself instead of bursting 13 requests.
+func validateAgainstAPI(schema *Schema, in validateAPIInput) error {
+	apiPaths := slices.Sorted(maps.Keys(schema.ObjectTypes))
 
 	var errors []string
-	for apiPath, ot := range schema.ObjectTypes {
-		url := fmt.Sprintf("%s/%s?limit=1", baseURL, apiPath)
-		resp, err := client.Get(url)
-		if err != nil {
-			errors = append(errors, fmt.Sprintf("%s: fetch error: %v", apiPath, err))
-			continue
+	for i, apiPath := range apiPaths {
+		ot := schema.ObjectTypes[apiPath]
+		if i > 0 && in.Pause > 0 {
+			time.Sleep(in.Pause)
 		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			errors = append(errors, fmt.Sprintf("%s: HTTP %d", apiPath, resp.StatusCode))
-			continue
-		}
-
-		var apiResp struct {
-			Data []map[string]any `json:"data"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-			errors = append(errors, fmt.Sprintf("%s: decode error: %v", apiPath, err))
+		apiResp, fetchErr := fetchSampleRow(in.Client, fmt.Sprintf("%s/%s?limit=1", in.BaseURL, apiPath))
+		if fetchErr != nil {
+			errors = append(errors, fmt.Sprintf("%s: %v", apiPath, fetchErr))
 			continue
 		}
 
@@ -1133,4 +1140,35 @@ func validateAgainstAPI(schema *Schema) error {
 		return fmt.Errorf("validation errors:\n  %s", strings.Join(errors, "\n  "))
 	}
 	return nil
+}
+
+// sampleResponse is the slice of a PeeringDB list envelope the
+// validator needs.
+type sampleResponse struct {
+	Data []map[string]any `json:"data"`
+}
+
+// fetchSampleRow GETs one list URL and decodes the envelope, closing
+// the response body before returning (the previous in-loop `defer`
+// held all 13 bodies open until the whole validation pass finished).
+func fetchSampleRow(client *http.Client, url string) (*sampleResponse, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("User-Agent", "pdb-schema-extract/"+buildinfo.Version()+" (+https://github.com/dotwaffle/peeringdb-plus)")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	var apiResp sampleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("decode error: %w", err)
+	}
+	return &apiResp, nil
 }

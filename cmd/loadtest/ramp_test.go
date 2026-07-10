@@ -628,6 +628,16 @@ func TestRejectUpstreamBase(t *testing.T) {
 		{"mirror beta", "https://beta.peeringdb.com", false},
 		{"localhost", "http://localhost:8080", false},
 		{"127.0.0.1", "http://127.0.0.1:8080", false},
+		// Bypass attempts the hostname-literal denylist missed: casing,
+		// trailing FQDN dot, and unenumerated subdomains.
+		{"upstream uppercase", "https://WWW.PeeringDB.com", true},
+		{"upstream trailing dot", "https://www.peeringdb.com.", true},
+		{"upstream apex trailing dot", "https://peeringdb.com.", true},
+		{"upstream docs subdomain", "https://docs.peeringdb.com", true},
+		{"upstream nested subdomain", "https://api.www.peeringdb.com", true},
+		{"mirror beta uppercase", "https://BETA.peeringdb.com", false},
+		{"mirror beta trailing dot", "https://beta.peeringdb.com.", false},
+		{"lookalike suffix not blocked", "https://notpeeringdb.com", false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

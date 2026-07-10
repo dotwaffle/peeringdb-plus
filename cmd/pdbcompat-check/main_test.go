@@ -127,15 +127,6 @@ func TestCheckTypeAuthErrors(t *testing.T) {
 	}
 }
 
-// resolveAPIKey mirrors the env var fallback logic from main():
-// if the flag value is empty, fall back to the given env value.
-func resolveAPIKey(flagVal, envVal string) string {
-	if flagVal != "" {
-		return flagVal
-	}
-	return envVal
-}
-
 func TestAPIKeyFlagPrecedence(t *testing.T) {
 	t.Parallel()
 
@@ -189,13 +180,67 @@ func TestAPIKeyFlagPrecedence(t *testing.T) {
 func TestAPIKeyEnvVarFallback(t *testing.T) {
 	t.Setenv("PDBPLUS_PEERINGDB_API_KEY", "env-key-from-os")
 
-	cfg := runConfig{}
-	// Simulate the flag being empty and the fallback logic in main().
-	if cfg.apiKey == "" {
-		cfg.apiKey = os.Getenv("PDBPLUS_PEERINGDB_API_KEY")
+	got := resolveAPIKey("", os.Getenv("PDBPLUS_PEERINGDB_API_KEY"))
+	if got != "env-key-from-os" {
+		t.Errorf("apiKey = %q, want %q", got, "env-key-from-os")
+	}
+}
+
+// TestRunSubcommandDispatch exercises the error paths of the subcommand
+// shell: missing subcommand, unknown subcommand, and per-mode flag
+// isolation (a capture-only flag must be rejected by the check mode).
+func TestRunSubcommandDispatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		argv    []string
+		wantErr string // substring of the returned error; empty = nil error
+	}{
+		{
+			name:    "no arguments",
+			argv:    nil,
+			wantErr: "missing subcommand",
+		},
+		{
+			name:    "unknown subcommand",
+			argv:    []string{"observe"},
+			wantErr: `unknown subcommand "observe"`,
+		},
+		{
+			name:    "capture flag rejected by check mode",
+			argv:    []string{"check", "-target=prod"},
+			wantErr: "-target",
+		},
+		{
+			name:    "check flag rejected by diff mode",
+			argv:    []string{"diff", "-url=http://example.invalid"},
+			wantErr: "-url",
+		},
+		{
+			name: "help flag succeeds",
+			argv: []string{"--help"},
+		},
 	}
 
-	if cfg.apiKey != "env-key-from-os" {
-		t.Errorf("apiKey = %q, want %q", cfg.apiKey, "env-key-from-os")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var stdout, stderr strings.Builder
+			err := run(tt.argv, &stdout, &stderr)
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("run(%v) = %v, want nil", tt.argv, err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("run(%v) = nil, want error containing %q", tt.argv, tt.wantErr)
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("run(%v) error = %q, want it to contain %q", tt.argv, err.Error(), tt.wantErr)
+			}
+		})
 	}
 }

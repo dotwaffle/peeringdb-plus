@@ -98,7 +98,7 @@ logged.
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
-| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) `/litefs/` directory present but no `.primary` file → primary; (3) otherwise parse this variable (default `true`, unparseable values default to `true` for safety). Consumed by `internal/litefs/primary.go` — not parsed by `internal/config`. |
+| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) `/litefs/` directory present but no `.primary` file → primary; (3) otherwise parse this variable (default `true` when unset; unparseable values fail startup — a typo must not be coerced into a cluster role). Consumed by `internal/litefs/primary.go` — not parsed by `internal/config`. |
 
 ### Fly.io Resource Attribution (read-only)
 

@@ -14,9 +14,9 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/visbaseline"
 )
 
-// runCapture is the -capture mode entrypoint. Parses the capture-specific
-// flags, constructs visbaseline.Config, and drives the walk with a
-// signal-aware context so SIGINT/SIGTERM preserve the checkpoint.
+// runCapture is the capture subcommand entrypoint. Takes the parsed
+// capture flags, constructs visbaseline.Config, and drives the walk with
+// a signal-aware context so SIGINT/SIGTERM preserve the checkpoint.
 func runCapture(cfg runConfig, logger *slog.Logger) error {
 	baseURL, err := targetBaseURL(cfg.target)
 	if err != nil {

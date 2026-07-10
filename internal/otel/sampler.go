@@ -79,11 +79,11 @@ func NewPerRouteSampler(in PerRouteSamplerInput) sdktrace.Sampler {
 	}
 }
 
-// normalisePrefix strips a single trailing slash so "/api" and "/api/"
-// collapse to the same canonical form. The check at sample time uses
-// strings.HasPrefix; for "/api" to match "/api/network", the prefix
-// stored is "/api" (no trailing slash). Single-slash root "/" is
-// preserved as-is.
+// normalisePrefix strips all trailing slashes (TrimRight, not
+// TrimSuffix) so "/api", "/api/", and "/api//" collapse to the same
+// canonical form. The check at sample time uses strings.HasPrefix; for
+// "/api" to match "/api/network", the prefix stored is "/api" (no
+// trailing slash). Single-slash root "/" is preserved as-is.
 func normalisePrefix(p string) string {
 	if len(p) > 1 && strings.HasSuffix(p, "/") {
 		return strings.TrimRight(p, "/")

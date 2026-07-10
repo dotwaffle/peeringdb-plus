@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -215,22 +216,27 @@ func run(argv []string, stdout, stderr *os.File) error {
 	return err
 }
 
-// rejectUpstreamBase returns an error if base resolves to the
-// upstream PeeringDB host (peeringdb.com / www.peeringdb.com /
-// auth.peeringdb.com). Defence-in-depth — the safety banner already
-// warns operators, but a script that bypasses the banner via
+// rejectUpstreamBase returns an error if base resolves to the upstream
+// PeeringDB domain — the apex or ANY subdomain, so casing tricks
+// (WWW.PeeringDB.com), a trailing FQDN dot (www.peeringdb.com.), and
+// unenumerated subdomains (docs., api., tutorial.) can't slip past a
+// hostname-literal denylist. Defence-in-depth — the safety banner
+// already warns operators, but a script that bypasses the banner via
 // stdin-piped flag input still hits this gate. Called from run() right
 // after flag parsing so EVERY mode (endpoints/sync/soak/ramp) is gated.
-// localhost, peeringdb-plus.fly.dev, and beta.peeringdb.com are all
-// allowed.
+// localhost and peeringdb-plus.fly.dev are allowed; beta.peeringdb.com
+// is the single upstream exemption (the sanctioned test instance,
+// exercised by the -peeringdb-live suite).
 func rejectUpstreamBase(base string) error {
 	u, err := url.Parse(base)
 	if err != nil {
 		return fmt.Errorf("parse --target/--base %q: %w", base, err)
 	}
-	host := u.Hostname()
-	switch host {
-	case "peeringdb.com", "www.peeringdb.com", "auth.peeringdb.com":
+	host := strings.TrimSuffix(strings.ToLower(u.Hostname()), ".")
+	if host == "beta.peeringdb.com" {
+		return nil
+	}
+	if host == "peeringdb.com" || strings.HasSuffix(host, ".peeringdb.com") {
 		return fmt.Errorf("refusing to load-test upstream PeeringDB host %q — point --base/--target at peeringdb-plus.fly.dev or your local mirror", host)
 	}
 	return nil

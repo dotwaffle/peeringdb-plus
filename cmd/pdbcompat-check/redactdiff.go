@@ -13,7 +13,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/visbaseline"
 )
 
-// runRedact is the -redact mode entrypoint. It takes -in (raw auth staging
+// runRedact is the redact subcommand entrypoint. It takes -in (raw auth staging
 // dir, e.g. /tmp/pdb-vis-capture-xxx/auth) and -out (destination for
 // redacted auth under the repo's visibility-baseline tree, e.g.
 // testdata/visibility-baseline/beta/auth). Anon pairs are sourced from the
@@ -21,16 +21,16 @@ import (
 // on -in and -out.
 func runRedact(cfg runConfig, logger *slog.Logger) error {
 	if cfg.inDir == "" {
-		return errors.New("-redact requires -in pointing at a raw auth staging dir")
+		return errors.New("redact requires -in pointing at a raw auth staging dir")
 	}
 	if cfg.outDir == "" {
-		return errors.New("-redact requires -out pointing at the redacted auth destination")
+		return errors.New("redact requires -out pointing at the redacted auth destination")
 	}
 
 	// Derive anon dir by replacing the trailing "auth" component of -out
 	// with "anon". This matches the capture layout and the orchestrator's
 	// prescribed command:
-	//     pdbcompat-check -redact -in=/tmp/beta-raw/auth
+	//     pdbcompat-check redact -in=/tmp/beta-raw/auth
 	//                     -out=testdata/visibility-baseline/beta/auth
 	// → anon dir = testdata/visibility-baseline/beta/anon
 	//
@@ -42,14 +42,14 @@ func runRedact(cfg runConfig, logger *slog.Logger) error {
 	outParent := filepath.Dir(outClean)
 	outLeaf := filepath.Base(outClean)
 	if outLeaf != "auth" {
-		return fmt.Errorf("-redact: -out %q must end in a /auth/ component so anon pair can be derived", cfg.outDir)
+		return fmt.Errorf("redact: -out %q must end in a /auth/ component so anon pair can be derived", cfg.outDir)
 	}
 	// Reject degenerate paths where -out has no meaningful parent directory.
 	// filepath.Dir("auth") returns ".", and filepath.Dir("/auth") returns "/".
 	// Both cases would write the anon sibling into the CWD or the filesystem
 	// root — almost certainly an operator mistake.
 	if outParent == "." || outParent == string(filepath.Separator) {
-		return fmt.Errorf("-redact: -out %q must have a parent directory holding the anon/ sibling (e.g. testdata/visibility-baseline/beta/auth)", cfg.outDir)
+		return fmt.Errorf("redact: -out %q must have a parent directory holding the anon/ sibling (e.g. testdata/visibility-baseline/beta/auth)", cfg.outDir)
 	}
 	anonDir := filepath.Join(outParent, "anon")
 
@@ -73,12 +73,12 @@ func runRedact(cfg runConfig, logger *slog.Logger) error {
 		return fmt.Errorf("redact: %w", err)
 	}
 	fmt.Fprintf(os.Stdout,
-		"\nRedaction complete.\nRedacted auth fixtures: %s\nAnon source: %s\nRaw auth source: %s\nNext: run `pdbcompat-check -diff -out=%s` to emit DIFF.md + diff.json.\n",
+		"\nRedaction complete.\nRedacted auth fixtures: %s\nAnon source: %s\nRaw auth source: %s\nNext: run `pdbcompat-check diff -out=%s` to emit DIFF.md + diff.json.\n",
 		cfg.outDir, anonDir, cfg.inDir, filepath.Dir(outClean))
 	return nil
 }
 
-// runDiff is the -diff mode entrypoint. It treats -out as the baseline root
+// runDiff is the diff subcommand entrypoint. It treats -out as the baseline root
 // (either a single-target dir holding anon/+auth/ or a parent dir of
 // per-target subdirs) and delegates to visbaseline.BuildReport.
 //
@@ -88,7 +88,7 @@ func runRedact(cfg runConfig, logger *slog.Logger) error {
 // testdata/visibility-baseline/diff.json.
 func runDiff(cfg runConfig, logger *slog.Logger) error {
 	if cfg.outDir == "" {
-		return errors.New("-diff requires -out pointing at the baseline root (containing anon/+auth/ or per-target subdirs)")
+		return errors.New("diff requires -out pointing at the baseline root (containing anon/+auth/ or per-target subdirs)")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"go/format"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -149,5 +151,52 @@ func TestGoNameFor_UnknownReturnsEmpty(t *testing.T) {
 	t.Parallel()
 	if got := goNameFor("not-a-real-pdb-type"); got != "" {
 		t.Errorf("goNameFor(unknown) = %q, want empty string", got)
+	}
+}
+
+// TestGroupExcludes_TwoEdgesOneEntity locks the duplicate-key codegen
+// fix: two excluded edges on one entity must fold into a single
+// ExcludeGroup (one outer map literal) — the previous one-entry-per-
+// tuple template emitted duplicate map keys, i.e. generated Go that
+// does not compile.
+func TestGroupExcludes_TwoEdgesOneEntity(t *testing.T) {
+	t.Parallel()
+	got := groupExcludes([]ExcludeEntry{
+		{Entity: "Network", Edge: "pocs"},
+		{Entity: "Campus", Edge: "facilities"},
+		{Entity: "Network", Edge: "network_ix_lans"},
+	})
+	want := []ExcludeGroup{
+		{Entity: "Campus", Edges: []string{"facilities"}},
+		{Entity: "Network", Edges: []string{"network_ix_lans", "pocs"}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("groupExcludes = %+v, want %+v", got, want)
+	}
+}
+
+// TestRender_TwoExcludedEdgesCompiles proves the rendered FilterExcludes
+// block parses as Go when an entity carries two excluded edges — the
+// go/format.Source pass inside render acts as the syntax gate (it
+// rejects duplicate map keys in a literal).
+func TestRender_TwoExcludedEdgesCompiles(t *testing.T) {
+	t.Parallel()
+	src, err := render(AllowlistData{
+		FilterExcludes: groupExcludes([]ExcludeEntry{
+			{Entity: "Network", Edge: "pocs"},
+			{Entity: "Network", Edge: "network_ix_lans"},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if _, err := format.Source(src); err != nil {
+		t.Fatalf("rendered source does not parse: %v\n%s", err, src)
+	}
+	if !strings.Contains(string(src), `"Network": {`) {
+		t.Errorf("rendered source missing grouped Network entry:\n%s", src)
+	}
+	if strings.Count(string(src), `"Network": {`) != 1 {
+		t.Errorf("Network must appear exactly once in FilterExcludes:\n%s", src)
 	}
 }

@@ -54,7 +54,7 @@ const (
 // AllowlistData is the template input assembled by main() before render.
 type AllowlistData struct {
 	Entries        []NodeEntry    // sorted by PDBType (Path A — per-entity prepare_query allowlist)
-	FilterExcludes []ExcludeEntry // sorted by entity+edge (upstream FILTER_EXCLUDE parity)
+	FilterExcludes []ExcludeGroup // sorted by entity, edges sorted within (upstream FILTER_EXCLUDE parity)
 	EdgeEntries    []EdgeMapEntry // sorted by PDBType (Path B — codegen-emitted edge map)
 }
 
@@ -77,6 +77,34 @@ type ViaEntry struct {
 type ExcludeEntry struct {
 	Entity string // ent Go name, e.g. "Network"
 	Edge   string // edge name, e.g. "pocs"
+}
+
+// ExcludeGroup groups one entity's excluded edges for the template. The
+// grouping is load-bearing: rendering one map entry per (entity, edge)
+// tuple emitted duplicate outer-map keys as soon as an entity carried
+// two excluded edges, producing generated code that does not compile.
+type ExcludeGroup struct {
+	Entity string   // ent Go name, e.g. "Network"
+	Edges  []string // sorted edge names
+}
+
+// groupExcludes folds the flat (entity, edge) tuples into per-entity
+// groups, sorted by entity with edges sorted within each group, so the
+// rendered map literal is deterministic and duplicate-key-free.
+func groupExcludes(entries []ExcludeEntry) []ExcludeGroup {
+	byEntity := make(map[string][]string)
+	for _, e := range entries {
+		byEntity[e.Entity] = append(byEntity[e.Entity], e.Edge)
+	}
+	out := make([]ExcludeGroup, 0, len(byEntity))
+	for entity, edges := range byEntity {
+		slices.Sort(edges)
+		out = append(out, ExcludeGroup{Entity: entity, Edges: edges})
+	}
+	slices.SortFunc(out, func(a, b ExcludeGroup) int {
+		return cmp.Compare(a.Entity, b.Entity)
+	})
+	return out
 }
 
 // EdgeMapEntry groups the outgoing edges of one PeeringDB type for
@@ -141,22 +169,18 @@ func main() {
 	// Path B + FilterExcludes still walk the ent gen.Graph — they describe
 	// edge relationships that are authoritatively modelled in ent schema,
 	// not hand-authored annotations.
+	var excludeEntries []ExcludeEntry
 	for _, node := range graph.Nodes {
-		data.FilterExcludes = append(data.FilterExcludes, extractExcludes(node)...)
+		excludeEntries = append(excludeEntries, extractExcludes(node)...)
 		if edgeEntry := extractEdges(node); edgeEntry != nil {
 			data.EdgeEntries = append(data.EdgeEntries, *edgeEntry)
 		}
 	}
+	data.FilterExcludes = groupExcludes(excludeEntries)
 
 	// Deterministic ordering for byte-stable output across runs.
 	slices.SortFunc(data.Entries, func(a, b NodeEntry) int {
 		return cmp.Compare(a.PDBType, b.PDBType)
-	})
-	slices.SortFunc(data.FilterExcludes, func(a, b ExcludeEntry) int {
-		if r := cmp.Compare(a.Entity, b.Entity); r != 0 {
-			return r
-		}
-		return cmp.Compare(a.Edge, b.Edge)
 	})
 	slices.SortFunc(data.EdgeEntries, func(a, b EdgeMapEntry) int {
 		return cmp.Compare(a.PDBType, b.PDBType)
@@ -429,7 +453,11 @@ var Allowlists = map[string]AllowlistEntry{
 // (e.g. "pocs"). Value is always true; the map is used as a set.
 var FilterExcludes = map[string]map[string]bool{
 {{- range .FilterExcludes }}
-	{{ printf "%q" .Entity }}: {{"{"}}{{ printf "%q" .Edge }}: true{{"}"}},
+	{{ printf "%q" .Entity }}: {
+{{- range .Edges }}
+		{{ printf "%q" . }}: true,
+{{- end }}
+	},
 {{- end }}
 }
 
