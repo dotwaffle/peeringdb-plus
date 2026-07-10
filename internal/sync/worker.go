@@ -206,6 +206,16 @@ type Worker struct {
 	// siblings hit this cache instead of repeating the Exist() query.
 	// Reset alongside fkRegistry in resetFKState.
 	fkPresence map[fkBackfillKey]struct{}
+	// fkMissing is the per-cycle negative cache: parent IDs whose
+	// backfill already ran this cycle and whose row is confirmed absent
+	// from the local DB. fkBackfillParent consults it before repeating
+	// the dbHasRecord Exist() query — when many child rows reference
+	// the same unrecoverable parent, the siblings short-circuit here.
+	// Safe because Phase B stages parents before children and a parent
+	// landing later in the cycle can only arrive via backfill of the
+	// same ID, which the dedup cache prevents from re-running. Reset
+	// alongside fkRegistry in resetFKState.
+	fkMissing map[fkBackfillKey]struct{}
 	// fkBackfillRequestCount is the per-cycle counter of underlying HTTP
 	// requests issued by FK-backfill, compared against fkBackfillRequestCap.
 	// Bumped by ⌈len(idsToFetch)/peeringdb.FetchByIDsBatchSize⌉ in
@@ -292,6 +302,7 @@ func (w *Worker) resetFKState() {
 	// once at NewWorker time; only the per-cycle bookkeeping resets.
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
 	w.fkPresence = make(map[fkBackfillKey]struct{}, 64)
+	w.fkMissing = make(map[fkBackfillKey]struct{}, 64)
 	w.fkBackfillRequestCount = 0
 	// v1.18.3: per-cycle deadline for backfill HTTP activity. Zero
 	// timeout → zero deadline → fkBackfillParent's deadline check
@@ -1481,8 +1492,18 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 // recordIDs, when non-nil, is called with the []int returned by the
 // upsert closure so downstream child types can validate their FK
 // references against the parent set (see Worker.fkRegisterIDs).
+//
+// fkRefs, when non-nil, returns the row's REQUIRED parent FK references
+// (mirroring parentFKSpec) from the typed decode. Together with the
+// prefetch hook it drives the chunk-level missing-parent pre-pass on
+// the already-decoded rows — the pre-pass previously re-decoded every
+// row's raw JSON into a map to read the same FK fields the typed
+// struct already carries. Nullable FKs (fac.campus_id, netixlan side
+// FKs) are deliberately excluded, matching parentFKSpec.
 type syncIncrementalInput[E any] struct {
 	objectType string
+	fkRefs     func(*E) []parentFKRef
+	prefetch   func(refs []parentFKRef)
 	fkFilter   func(*E) bool
 	recordIDs  func(ids []int)
 	upsert     func(ctx context.Context, tx *ent.Tx, items []E) ([]int, error)
@@ -1525,6 +1546,17 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 		}
 		items = append(items, v)
 	}
+	// Chunk-level missing-parent pre-pass on the typed rows, BEFORE the
+	// per-row fkFilter closures fire — the prefetch hook batches the
+	// missing-parent HTTP fetches so the per-row fkCheckParent path
+	// dedup-short-circuits.
+	if in.fkRefs != nil && in.prefetch != nil {
+		refs := make([]parentFKRef, 0, len(items))
+		for i := range items {
+			refs = append(refs, in.fkRefs(&items[i])...)
+		}
+		in.prefetch(refs)
+	}
 	if in.fkFilter != nil {
 		kept := make([]E, 0, len(items))
 		for i := range items {
@@ -1551,12 +1583,6 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 // syncIncremental[E]). Adding a new PeeringDB type requires a single
 // descriptor entry in registry.go.
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
-	// Chunk pre-pass batches missing required
-	// parent FK fetches per parent type per chunk, turning N per-row
-	// HTTP requests into ⌈N/100⌉ per parent type. The per-cycle dedup
-	// cache makes the per-row fkCheckParent → fkBackfillParent path a
-	// no-op for any parent already loaded by this pre-pass.
-	w.prefetchMissingParentsForChunk(ctx, tx, name, rows)
 	desc, ok := descriptorByName[name]
 	if !ok {
 		return 0, fmt.Errorf("unknown sync type: %s", name)

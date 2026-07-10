@@ -64,9 +64,22 @@ const (
 //
 // Returns true iff the row is now present in the local DB and the
 // child can be linked.
+//
+// The fkMissing negative cache short-circuits repeat callers: once a
+// parent's backfill has run this cycle and the row is confirmed absent,
+// sibling child rows referencing the same parent skip both the (deduped,
+// no-op) batch call and the repeat dbHasRecord Exist() query.
 func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, parentType string, parentID int) bool {
+	key := fkBackfillKey{Type: parentType, ID: parentID}
+	if _, missing := w.fkMissing[key]; missing {
+		return false
+	}
 	w.fkBackfillBatch(ctx, tx, parentType, []int{parentID}, childType)
-	return w.dbHasRecord(ctx, tx, parentType, parentID)
+	if w.dbHasRecord(ctx, tx, parentType, parentID) {
+		return true
+	}
+	w.fkMissing[key] = struct{}{}
+	return false
 }
 
 // fkBackfillBatch is the dataloader-style entry point: given a set of
@@ -429,11 +442,12 @@ func (w *Worker) firstMissingRequiredFK(ctx context.Context, tx *ent.Tx, parentT
 	return parentFKRef{}, false
 }
 
-// prefetchMissingParentsForChunk is the chunk-level pre-pass that
-// runs ONCE per chunk in dispatchScratchChunk before the per-type
-// fkFilter closures fire. For each FK field declared in
-// parentFKSpec[chunkType], it walks every row in the chunk, groups
-// missing required-parent IDs per parent type, and issues ONE batched
+// prefetchMissingParents is the chunk-level pre-pass, called ONCE per
+// chunk from syncIncremental (via the prefetch hook) before the
+// per-type fkFilter closures fire. Given the chunk's required parent
+// FK references — produced by the per-type fkRefs accessors on the
+// typed decode, so no second JSON pass over the raw rows — it groups
+// missing-parent IDs per parent type and issues ONE batched
 // fkBackfillBatch call per parent type. So a chunk of 50 carrierfacs
 // missing 30 distinct carriers + 25 distinct facs collapses to
 // exactly 2 batched HTTP calls (carriers, then facs) instead of 55
@@ -442,27 +456,25 @@ func (w *Worker) firstMissingRequiredFK(ctx context.Context, tx *ent.Tx, parentT
 //
 // The per-cycle dedup cache (fkBackfillTried)
 // makes the per-row fkCheckParent → fkBackfillParent path a no-op for
-// any parent already loaded by this pre-pass — the dispatch order is
-// pre-pass first, dispatch switch after.
+// any parent already loaded by this pre-pass.
 //
-// No-ops for entity types with no required parent FKs (org). Errors
-// from individual fkBackfillBatch calls are logged inside the batch
-// path and do NOT abort the chunk — the legacy per-row path remains
-// as a fallback for any IDs the pre-pass couldn't recover (the
-// dedup cache will short-circuit them after they've been attempted).
+// Errors from individual fkBackfillBatch calls are logged inside the
+// batch path and do NOT abort the chunk — the legacy per-row path
+// remains as a fallback for any IDs the pre-pass couldn't recover
+// (the dedup cache will short-circuit them after they've been
+// attempted).
 //
 // Single-writer: fkRegistry / fkBackfillTried writes are serialised by
 // Worker.Sync (atomic Worker.running guard). Same assumption as
 // fkBackfillBatch.
 //
 // Nullable FKs (Facility.campus_id, NetworkIxLan.{net_side_id,
-// ix_side_id}) are intentionally NOT batched here — they're handled
-// by the existing fkFilter null-on-miss path. The goal is to batch the
+// ix_side_id}) are intentionally NOT batched here — the fkRefs
+// accessors exclude them (mirroring parentFKSpec); they're handled by
+// the existing fkFilter null-on-miss path. The goal is to batch the
 // REQUIRED FKs that drive drops, not the optional FKs that drive
-// null-overrides. A future quick task could add a nullableFKSpec for
-// the optional path if the dashboard ever shows them as a hot source
-// of per-row HTTP fan-out.
-func (w *Worker) prefetchMissingParentsForChunk(ctx context.Context, tx *ent.Tx, chunkType string, rows []scratchRow) {
+// null-overrides.
+func (w *Worker) prefetchMissingParents(ctx context.Context, tx *ent.Tx, chunkType string, refs []parentFKRef) {
 	// Backfill disabled (cap=0 escape-hatch): mirror the fkCheckParent /
 	// nullSideFK gates and skip the pre-pass entirely. Without this,
 	// every chunk with missing parents would flow into fkBackfillBatch,
@@ -473,27 +485,20 @@ func (w *Worker) prefetchMissingParentsForChunk(ctx context.Context, tx *ent.Tx,
 	if w.fkBackfillRequestCap <= 0 {
 		return
 	}
-	spec, ok := parentFKSpec[chunkType]
-	if !ok || len(spec) == 0 {
-		// Org has no required parents; nothing to prefetch.
-		return
-	}
 	missing := make(map[string]map[int]struct{})
-	for i := range rows {
-		for _, fk := range parentFKsOf(chunkType, rows[i].raw) {
-			if fk.ID <= 0 {
-				continue
-			}
-			if w.fkHasParent(ctx, tx, fk.ParentType, fk.ID) {
-				continue
-			}
-			set, exists := missing[fk.ParentType]
-			if !exists {
-				set = make(map[int]struct{})
-				missing[fk.ParentType] = set
-			}
-			set[fk.ID] = struct{}{}
+	for _, fk := range refs {
+		if fk.ID <= 0 {
+			continue
 		}
+		if w.fkHasParent(ctx, tx, fk.ParentType, fk.ID) {
+			continue
+		}
+		set, exists := missing[fk.ParentType]
+		if !exists {
+			set = make(map[int]struct{})
+			missing[fk.ParentType] = set
+		}
+		set[fk.ID] = struct{}{}
 	}
 	// Sequential per parent type — concurrent fetches would fight the
 	// rate limiter and add zero throughput. Sorted parent-type

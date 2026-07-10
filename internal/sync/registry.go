@@ -78,6 +78,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{
 				objectType: peeringdb.TypeCampus,
+				fkRefs: func(v *peeringdb.Campus) []parentFKRef {
+					return []parentFKRef{{FieldName: "org_id", ParentType: peeringdb.TypeOrg, ID: v.OrgID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeCampus, refs)
+				},
 				fkFilter: func(v *peeringdb.Campus) bool {
 					return w.fkCheckParent(ctx, tx, peeringdb.TypeCampus, v.ID,
 						peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -98,6 +104,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{
 				objectType: peeringdb.TypeFac,
+				fkRefs: func(v *peeringdb.Facility) []parentFKRef {
+					return []parentFKRef{{FieldName: "org_id", ParentType: peeringdb.TypeOrg, ID: v.OrgID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeFac, refs)
+				},
 				fkFilter: func(v *peeringdb.Facility) bool {
 					if !w.fkCheckParent(ctx, tx, peeringdb.TypeFac, v.ID,
 						peeringdb.TypeOrg, v.OrgID, "org_id") {
@@ -135,6 +147,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{
 				objectType: peeringdb.TypeCarrier,
+				fkRefs: func(v *peeringdb.Carrier) []parentFKRef {
+					return []parentFKRef{{FieldName: "org_id", ParentType: peeringdb.TypeOrg, ID: v.OrgID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeCarrier, refs)
+				},
 				fkFilter: func(v *peeringdb.Carrier) bool {
 					return w.fkCheckParent(ctx, tx, peeringdb.TypeCarrier, v.ID,
 						peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -155,6 +173,15 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{
 				objectType: peeringdb.TypeCarrierFac,
+				fkRefs: func(v *peeringdb.CarrierFacility) []parentFKRef {
+					return []parentFKRef{
+						{FieldName: "carrier_id", ParentType: peeringdb.TypeCarrier, ID: v.CarrierID},
+						{FieldName: "fac_id", ParentType: peeringdb.TypeFac, ID: v.FacID},
+					}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeCarrierFac, refs)
+				},
 				fkFilter: func(v *peeringdb.CarrierFacility) bool {
 					if !w.fkCheckParent(ctx, tx, peeringdb.TypeCarrierFac, v.ID,
 						peeringdb.TypeCarrier, v.CarrierID, "carrier_id") {
@@ -179,6 +206,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{
 				objectType: peeringdb.TypeIX,
+				fkRefs: func(v *peeringdb.InternetExchange) []parentFKRef {
+					return []parentFKRef{{FieldName: "org_id", ParentType: peeringdb.TypeOrg, ID: v.OrgID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeIX, refs)
+				},
 				fkFilter: func(v *peeringdb.InternetExchange) bool {
 					return w.fkCheckParent(ctx, tx, peeringdb.TypeIX, v.ID,
 						peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -199,6 +232,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{
 				objectType: peeringdb.TypeIXLan,
+				fkRefs: func(v *peeringdb.IxLan) []parentFKRef {
+					return []parentFKRef{{FieldName: "ix_id", ParentType: peeringdb.TypeIX, ID: v.IXID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeIXLan, refs)
+				},
 				fkFilter: func(v *peeringdb.IxLan) bool {
 					return w.fkCheckParent(ctx, tx, peeringdb.TypeIXLan, v.ID,
 						peeringdb.TypeIX, v.IXID, "ix_id")
@@ -219,6 +258,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{
 				objectType: peeringdb.TypeIXPfx,
+				fkRefs: func(v *peeringdb.IxPrefix) []parentFKRef {
+					return []parentFKRef{{FieldName: "ixlan_id", ParentType: peeringdb.TypeIXLan, ID: v.IXLanID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeIXPfx, refs)
+				},
 				fkFilter: func(v *peeringdb.IxPrefix) bool {
 					return w.fkCheckParent(ctx, tx, peeringdb.TypeIXPfx, v.ID,
 						peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
@@ -239,6 +284,15 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{
 				objectType: peeringdb.TypeIXFac,
+				fkRefs: func(v *peeringdb.IxFacility) []parentFKRef {
+					return []parentFKRef{
+						{FieldName: "ix_id", ParentType: peeringdb.TypeIX, ID: v.IXID},
+						{FieldName: "fac_id", ParentType: peeringdb.TypeFac, ID: v.FacID},
+					}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeIXFac, refs)
+				},
 				fkFilter: func(v *peeringdb.IxFacility) bool {
 					if !w.fkCheckParent(ctx, tx, peeringdb.TypeIXFac, v.ID,
 						peeringdb.TypeIX, v.IXID, "ix_id") {
@@ -263,6 +317,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{
 				objectType: peeringdb.TypeNet,
+				fkRefs: func(v *peeringdb.Network) []parentFKRef {
+					return []parentFKRef{{FieldName: "org_id", ParentType: peeringdb.TypeOrg, ID: v.OrgID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeNet, refs)
+				},
 				fkFilter: func(v *peeringdb.Network) bool {
 					return w.fkCheckParent(ctx, tx, peeringdb.TypeNet, v.ID,
 						peeringdb.TypeOrg, v.OrgID, "org_id")
@@ -283,6 +343,12 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{
 				objectType: peeringdb.TypePoc,
+				fkRefs: func(v *peeringdb.Poc) []parentFKRef {
+					return []parentFKRef{{FieldName: "net_id", ParentType: peeringdb.TypeNet, ID: v.NetID}}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypePoc, refs)
+				},
 				fkFilter: func(v *peeringdb.Poc) bool {
 					return w.fkCheckParent(ctx, tx, peeringdb.TypePoc, v.ID,
 						peeringdb.TypeNet, v.NetID, "net_id")
@@ -303,6 +369,15 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{
 				objectType: peeringdb.TypeNetFac,
+				fkRefs: func(v *peeringdb.NetworkFacility) []parentFKRef {
+					return []parentFKRef{
+						{FieldName: "net_id", ParentType: peeringdb.TypeNet, ID: v.NetID},
+						{FieldName: "fac_id", ParentType: peeringdb.TypeFac, ID: v.FacID},
+					}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeNetFac, refs)
+				},
 				fkFilter: func(v *peeringdb.NetworkFacility) bool {
 					if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetFac, v.ID,
 						peeringdb.TypeNet, v.NetID, "net_id") {
@@ -327,6 +402,15 @@ var typeRegistry = []typeDescriptor{
 		chunkUpsert: func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error) {
 			return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{
 				objectType: peeringdb.TypeNetIXLan,
+				fkRefs: func(v *peeringdb.NetworkIxLan) []parentFKRef {
+					return []parentFKRef{
+						{FieldName: "net_id", ParentType: peeringdb.TypeNet, ID: v.NetID},
+						{FieldName: "ixlan_id", ParentType: peeringdb.TypeIXLan, ID: v.IXLanID},
+					}
+				},
+				prefetch: func(refs []parentFKRef) {
+					w.prefetchMissingParents(ctx, tx, peeringdb.TypeNetIXLan, refs)
+				},
 				fkFilter: func(v *peeringdb.NetworkIxLan) bool {
 					// Required FKs: net_id, ixlan_id. Drop on miss after
 					// backfill attempt (legacy behavior).
