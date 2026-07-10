@@ -53,13 +53,13 @@ templ NetworkDetailPage(data NetworkDetail) {
 				if data.InfoPrefixes4 > 0 {
 					<div class="text-sm">
 						<span class="text-neutral-500">IPv4 Prefixes:</span>
-						<span class="text-neutral-100 font-mono ml-1">{ fmt.Sprintf("%d", data.InfoPrefixes4) }</span>
+						<span class="text-neutral-900 dark:text-neutral-100 font-mono ml-1">{ fmt.Sprintf("%d", data.InfoPrefixes4) }</span>
 					</div>
 				}
 				if data.InfoPrefixes6 > 0 {
 					<div class="text-sm">
 						<span class="text-neutral-500">IPv6 Prefixes:</span>
-						<span class="text-neutral-100 font-mono ml-1">{ fmt.Sprintf("%d", data.InfoPrefixes6) }</span>
+						<span class="text-neutral-900 dark:text-neutral-100 font-mono ml-1">{ fmt.Sprintf("%d", data.InfoPrefixes6) }</span>
 					</div>
 				}
 			</div>

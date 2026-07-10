@@ -37,27 +37,27 @@ func Breadcrumb(typePlural string, entityName string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav aria-label=\"Breadcrumb\" class=\"text-sm mb-4\"><ol class=\"flex items-center gap-1.5 text-neutral-400\"><li><a href=\"/ui/\" class=\"hover:text-emerald-400 transition-colors\">Home</a></li><li class=\"text-neutral-500\">&gt;</li><li class=\"text-neutral-300\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav aria-label=\"Breadcrumb\" class=\"text-sm mb-4\"><ol class=\"flex items-center gap-1.5 text-neutral-400\"><li><a href=\"/ui/\" class=\"hover:text-emerald-400 transition-colors\">Home</a></li><li class=\"text-neutral-500\">&gt;</li><li class=\"text-neutral-600 dark:text-neutral-300\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(typePlural)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 16, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 16, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</li><li class=\"text-neutral-500\">&gt;</li><li class=\"text-neutral-100\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</li><li class=\"text-neutral-500\">&gt;</li><li class=\"text-neutral-900 dark:text-neutral-100\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(entityName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 18, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_shared.templ`, Line: 18, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -565,7 +565,7 @@ func CopyableIP(label string, addr string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</span> <span class=\"font-mono text-neutral-100 cursor-pointer\" data-copy=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</span> <span class=\"font-mono text-neutral-900 dark:text-neutral-100 cursor-pointer\" data-copy=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -658,7 +658,7 @@ func CountryFlag(code string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" aria-hidden=\"true\"></span> <span class=\"font-mono text-neutral-300 dark:text-neutral-300 text-xs\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" aria-hidden=\"true\"></span> <span class=\"font-mono text-neutral-600 dark:text-neutral-300 text-xs\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

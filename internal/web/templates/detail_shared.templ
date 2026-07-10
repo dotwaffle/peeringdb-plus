@@ -13,9 +13,9 @@ templ Breadcrumb(typePlural string, entityName string) {
 		<ol class="flex items-center gap-1.5 text-neutral-400">
 			<li><a href="/ui/" class="hover:text-emerald-400 transition-colors">Home</a></li>
 			<li class="text-neutral-500">&gt;</li>
-			<li class="text-neutral-300">{ typePlural }</li>
+			<li class="text-neutral-600 dark:text-neutral-300">{ typePlural }</li>
 			<li class="text-neutral-500">&gt;</li>
-			<li class="text-neutral-100">{ entityName }</li>
+			<li class="text-neutral-900 dark:text-neutral-100">{ entityName }</li>
 		</ol>
 	</nav>
 }
@@ -175,7 +175,7 @@ templ CopyableIP(label string, addr string) {
 	<div data-copy-group class="group flex items-center gap-1.5">
 		<span class="text-neutral-500 text-xs">{ label }</span>
 		<span
-			class="font-mono text-neutral-100 cursor-pointer"
+			class="font-mono text-neutral-900 dark:text-neutral-100 cursor-pointer"
 			data-copy={ addr }
 			title="Click to copy"
 		>{ addr }</span>
@@ -196,7 +196,7 @@ templ CountryFlag(code string) {
 	if code != "" {
 		<span class="inline-flex items-center gap-1.5">
 			<span class={ "fi fi-" + strings.ToLower(code) } aria-hidden="true"></span>
-			<span class="font-mono text-neutral-300 dark:text-neutral-300 text-xs">{ code }</span>
+			<span class="font-mono text-neutral-600 dark:text-neutral-300 text-xs">{ code }</span>
 		</span>
 	}
 }
