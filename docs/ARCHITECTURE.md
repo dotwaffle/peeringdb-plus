@@ -78,8 +78,9 @@ authenticated):
 1. The scheduler in `internal/sync/worker.go` (`Worker.StartScheduler`) wakes up and
    checks `IsPrimary()`. Replicas loop without syncing.
 2. Phase A — fetch: the worker calls `api.peeringdb.com` for every object type using
-   `internal/peeringdb/client.go`, accumulating all responses in memory scratch space
-   (`internal/sync/scratch.go`).
+   `internal/peeringdb/client.go`, staging all responses in an on-disk SQLite
+   scratch database in `os.TempDir()` (`internal/sync/scratch.go`) — deliberately
+   spilled to disk to keep heap under the sync memory gate.
 3. A memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT`, default `400MB`) aborts the sync if
    `runtime.MemStats.HeapAlloc` exceeds the ceiling before the transaction opens.
 4. Phase B — apply: the worker opens a single ent transaction and upserts all rows
@@ -730,7 +731,7 @@ to `defaultRowSize = 4096` (fail-closed).
 | Entity | Depth=0 bytes/row | Max rows @ 128 MiB (D=0) | Depth=2 bytes/row | Max rows @ 128 MiB (D=2) |
 |---|---:|---:|---:|---:|
 | org | 704 | 190,650 | 8,448 | 15,886 |
-| net | 1,600 | 83,886 | 2,496 | 53,772 |
+| net | 1,664 | 80,659 | 2,560 | 52,428 |
 | fac | 1,344 | 99,864 | 3,392 | 39,569 |
 | ix | 1,280 | 104,857 | 2,688 | 49,932 |
 | poc | 384 | 349,525 | 2,752 | 48,770 |

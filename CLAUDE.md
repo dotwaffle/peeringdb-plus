@@ -177,7 +177,7 @@ Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.
-- Full chain (outermost first): `Recovery -> CORS -> OTel HTTP -> Logging -> Readiness -> CSP -> Caching -> Gzip -> mux`
+- Full chain (outermost first): `Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux`
 
 ### ConnectRPC / gRPC
 - Services registered via loop in `cmd/peeringdb-plus/main.go` with otelconnect interceptor.

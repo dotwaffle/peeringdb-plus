@@ -410,6 +410,11 @@ Because deploys are manual and built from the local working tree,
 # Deploy the current working tree
 fly deploy
 
+# Prefer building on the local Docker daemon: Fly's remote builder is a
+# machine that cold-starts (or gets recreated) on demand, which has caused
+# multi-minute hangs and flaky deploys from this repo
+fly deploy --local-only
+
 # Deploy with a specific Dockerfile (defaults to Dockerfile.prod per fly.toml)
 fly deploy --dockerfile Dockerfile.prod
 

@@ -168,7 +168,7 @@ GraphQL is served by [gqlgen](https://gqlgen.com) wired through
 | Limit | Value | Enforcement |
 |-------|-------|-------------|
 | Request body | 1 MB | `http.MaxBytesReader` wrap at the route + global `MaxBytesBody` middleware |
-| Query complexity | 500 | `gqlgen.extension.FixedComplexityLimit(500)` |
+| Query complexity | 1,000,000 (weighted) | `gqlgen.extension.FixedComplexityLimit(graph.ComplexityLimit)` — per-field costs weighted by row materialization via `graph.ComplexityLimits()`, not a raw field count |
 | Query depth | 15 | `gqlgen-depth-limit-extension` |
 
 ### Error envelope
@@ -254,7 +254,7 @@ Valid `{type}` values are the same 13 constants defined in
 | `depth` | Detail | Edge expansion depth, clamped to `0`–`4` (the range upstream accepts, `serializers.py:802-826` — `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2). `0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default — `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists. The detail default is `2` (`default_depth(is_list=False)`). Non-numeric keeps the default; negatives floor to `0`. `3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced). **List endpoints silently drop `?depth=`** — see § Known Divergences |
 | `fields` | Both | Comma-separated projection — only the listed JSON keys are returned after retrieval |
 | `since` | List | Only return rows with `updated` greater than the given timestamp (Unix seconds). Invalid input returns `400`. Activates the upstream "since matrix" — see "Soft-delete tombstones" below |
-| `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream `rest.py:645-650`. Typed against the field; invalid types (e.g. `asn__contains`) return `400` |
+| `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream `rest.py:638-641`. Typed against the field; invalid types (e.g. `asn__contains`) return `400` |
 
 Unknown query parameters that are not in the reserved set (`limit`, `skip`,
 `depth`, `since`, `q`, `fields`) are treated as field filters and validated
@@ -332,8 +332,12 @@ A budget-exceeded request returns:
   and `budget_bytes` (the configured ceiling)
 
 Operators receiving a 413 should narrow their filters or page smaller — the
-budget is request-shape, not transient resource pressure, so retrying the
-identical request returns the same 413. The budget is enforced only on the
+budget is request-shape, so retrying the identical request returns the same
+413. Separately, a process-wide in-flight byte pool admission-controls
+concurrent near-budget responses: when simultaneous large dumps would
+overflow it, the request is rejected with `503 Service Unavailable` and
+`Retry-After: 1` — that one *is* transient, and a retry can succeed. The
+budget is enforced only on the
 pdbcompat list path; entrest, GraphQL, ConnectRPC, and Web UI have their own
 memory stories (see `docs/ARCHITECTURE.md § Response Memory Envelope`).
 
@@ -395,6 +399,7 @@ with `Content-Type: application/problem+json`. Typical status codes:
 | `404` | Unknown `{type}`, missing `{id}`, or detail GET on a tombstoned row |
 | `413` | Pre-flight response memory budget exceeded — see "Response memory budget" above |
 | `500` | Database error (details redacted from response body, full error logged) |
+| `503` | Concurrent in-flight response pool exhausted (transient; `Retry-After: 1`) |
 
 Responses include an `X-Powered-By` header identifying the server as
 PeeringDB Plus.
@@ -534,7 +539,8 @@ curl -X POST https://peeringdb-plus.fly.dev/peeringdb.v1.NetworkService/GetNetwo
 PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker for
 the IX-F member list URL: `ixlan.ixf_ixp_member_list_url` is gated by the
 sibling string field `ixlan.ixf_ixp_member_list_url_visible`, which carries one
-of `Public` / `Users` / `Private` (a NULL/empty value defaults to `Public`). Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public`
+of `Public` / `Users` / `Private` (the schema default is `Private`, and a
+NULL/empty or unknown value fails closed to redacted). Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public`
 deployment) receive the value only when `_visible = Public`; for `Users` or
 `Private` the value is omitted across all five surfaces while the `_visible`
 companion field is **still emitted** (upstream parity).
@@ -575,7 +581,7 @@ Service discovery JSON body:
 ```json
 {
   "name": "peeringdb-plus",
-  "version": "0.1.0",
+  "version": "<injected build version, e.g. v1.22.0>",
   "graphql": "/graphql",
   "rest": "/rest/v1/",
   "api": "/api/",
@@ -651,7 +657,7 @@ only operational limits are:
 | Graceful drain timeout | Shutdown | `10s` | `PDBPLUS_DRAIN_TIMEOUT` |
 | Sync memory ceiling | Sync worker heap | `400MB` | `PDBPLUS_SYNC_MEMORY_LIMIT` |
 | Response memory budget | pdbcompat `/api/` list | `128MiB` | `PDBPLUS_RESPONSE_MEMORY_LIMIT` |
-| GraphQL query complexity | `POST /graphql` | `500` | `FixedComplexityLimit` (hardcoded) |
+| GraphQL query complexity | `POST /graphql` | `1,000,000` (weighted) | `FixedComplexityLimit(graph.ComplexityLimit)` |
 | GraphQL query depth | `POST /graphql` | `15` | `FixedDepthLimit` (hardcoded) |
 
 Upstream PeeringDB rate limits apply to the sync worker's outbound requests —

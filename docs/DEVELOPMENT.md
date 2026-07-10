@@ -7,7 +7,7 @@ environment variables and runtime configuration, see
 
 ## Prerequisites
 
-- **Go 1.26+** (declared in `go.mod` as `go 1.26.1`).
+- **Go 1.26+** (declared in `go.mod` as `go 1.26.4`).
 - Git and a local clone of this repository.
 
 No external install is required for code generation. `buf`, `templ`, and
@@ -42,7 +42,7 @@ package rationale. Code-change-relevant directories:
 | Path | Purpose |
 |---|---|
 | `cmd/peeringdb-plus/` | Main binary — config load, server wiring, handler registration |
-| `cmd/pdb-schema-extract/` | Parses the PeeringDB Django source into `schema/peeringdb.json` |
+| `cmd/pdb-schema-extract/` | Drift detector — diffs an upstream PeeringDB checkout against the hand-curated `schema/peeringdb.json`; never writes it |
 | `cmd/pdb-schema-generate/` | Generates `ent/schema/*.go` from `schema/peeringdb.json` |
 | `cmd/pdb-compat-allowlist/` | Codegens `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go` |
 | `cmd/pdbcompat-check/` | Validates PeeringDB API compatibility |
@@ -61,7 +61,7 @@ package rationale. Code-change-relevant directories:
 | `internal/web/templates/` | `.templ` source + generated `*_templ.go` |
 | `internal/sync/` | PeeringDB sync worker |
 | `internal/testutil/` | `SetupClient(t)` and `seed/` helpers for tests |
-| `schema/` | Intermediate `peeringdb.json` + schema-extract wiring |
+| `schema/` | Hand-curated `peeringdb.json` (the schema source of truth) + drift-check wiring |
 | `testdata/fixtures/` | JSON fixtures for 13 PeeringDB entity types, used by sync tests |
 
 ## Build commands
@@ -97,7 +97,9 @@ runs every stage in the correct order and converges in a single pass. The
    regenerate `*_templ.go` from `.templ` sources.
 
 `schema/generate.go` carries no `go:generate` directive; it only documents the
-manual `pdb-schema-extract` step. Sequencing `pdb-schema-generate` **first**
+manual drift-detection step (run `pdb-schema-extract` against an upstream
+checkout, then hand-apply any real drift to the curated JSON). Sequencing
+`pdb-schema-generate` **first**
 within `ent/generate.go` — rather than under `schema/`, which `go generate ./...`
 visits after `ent/` — is what lets a single pass converge: the schema producer
 always runs before entc, its consumer.
@@ -158,9 +160,10 @@ output, the patch is broken — check `ent/entc.go`.
 
 ```
 PeeringDB Django source
-    │  (cmd/pdb-schema-extract, needs PEERINGDB_REPO_PATH)
+    │  (cmd/pdb-schema-extract, needs PEERINGDB_REPO_PATH —
+    │   drift check only: reports differences, never writes the JSON)
     ▼
-schema/peeringdb.json   ← committed, canonical
+schema/peeringdb.json   ← committed, canonical, hand-curated
     │  (cmd/pdb-schema-generate, sequenced first in ent/generate.go)
     ▼
 ent/schema/{type}.go    ← regenerated; do NOT hand-edit (use siblings)
@@ -642,10 +645,10 @@ convention is documented in the repo; match existing patterns in
   `.primary` file **absent** = this node is primary (inverted semantics). For
   local dev without LiteFS, `PDBPLUS_IS_PRIMARY=true` is the default.
 - **Generated code drift in CI:** run `go generate ./...` locally and commit
-  the resulting diff. The drift check compares `ent/`, `gen/`, `graph/`, and
-  `internal/web/templates/` against the working tree. (`internal/pdbcompat/allowlist_gen.go`
-  is regenerated too but lives outside the diffed paths, so commit it alongside
-  schema changes — CI will not catch its drift on its own.)
+  the resulting diff. The drift check stages untracked files (`git add -A -N`)
+  and compares `ent/`, `gen/`, `graph/`, `internal/web/templates/`, and
+  `internal/pdbcompat/allowlist_gen.go` against the working tree, so a stale
+  allowlist fails CI too.
 - **Schema hand-edits keep disappearing:** you almost certainly added them
   to the generated `ent/schema/{type}.go` file. Move the methods to a
   sibling file `ent/schema/{type}_{method}.go`. See "Sibling-file

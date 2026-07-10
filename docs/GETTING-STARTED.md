@@ -13,11 +13,11 @@ For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 | Requirement | Version | Why |
 |-------------|---------|-----|
-| Go toolchain | `1.26.1` or newer | Declared in `go.mod`. The project uses Go 1.22+ `net/http` method routing and Go 1.26 toolchain features. |
+| Go toolchain | `1.26.4` or newer | Declared in `go.mod`. The project uses Go 1.22+ `net/http` method routing and Go 1.26 toolchain features. |
 | Git | any recent | Cloning the repo. |
 | Docker (optional) | any recent | Only if you want to run the container image instead of a local binary. |
 | `grpcurl` or `buf` CLI (optional) | any recent | Only needed to poke the ConnectRPC/gRPC endpoints manually. |
-| A few hundred MB of disk | — | The SQLite database grows to roughly 200–400 MB after a full sync. |
+| A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
 Everything else — `buf`, `templ`, `gqlgen` — is a Go tool dependency declared
 in `go.mod`. You do not need to install them separately; `go generate` and
@@ -243,7 +243,7 @@ For the production image with LiteFS edge replication, see
 ## Common setup issues
 
 - **`go: go.mod requires go >= 1.26`** — Upgrade your Go toolchain. The
-  project pins `go 1.26.1` in `go.mod`.
+  project pins `go 1.26.4` in `go.mod`.
 - **`/readyz` stays 503 forever** — Check the server log for the sync
   worker. The most common causes are: no outbound network to
   `api.peeringdb.com`, a corporate proxy rewriting TLS, or rate-limiting on

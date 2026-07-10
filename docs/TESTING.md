@@ -433,7 +433,7 @@ compile; `docker-build` runs in parallel:
 
 | Job | Step (in order) | Command |
 |-----|------|---------|
-| `ci` | Generated code drift check | `go generate ./...` then `git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/` |
+| `ci` | Generated code drift check | `go generate ./...` then `git add -A -N` and `git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/ internal/pdbcompat/allowlist_gen.go` |
 | `ci` | Compile check | `go build ./...` |
 | `ci` | Tests with race detector + coverage | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...` |
 | `ci` | Lint | `golangci-lint run` |
