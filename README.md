@@ -5,11 +5,11 @@
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
 A high-performance, globally distributed, read-only mirror of
-[PeeringDB](https://www.peeringdb.com) data. PeeringDB Plus periodically
-re-fetches every PeeringDB object, stores the result in SQLite with edge
-replication via [LiteFS](https://fly.io/docs/litefs/) on
-[Fly.io](https://fly.io), and serves the same dataset through five coexisting
-API surfaces.
+[PeeringDB](https://www.peeringdb.com) data. PeeringDB Plus incrementally
+syncs PeeringDB objects on a regular schedule (escalating to a periodic full
+re-fetch as a safety net), stores the result in SQLite with edge replication
+via [LiteFS](https://fly.io/docs/litefs/) on [Fly.io](https://fly.io), and
+serves the same dataset through five coexisting API surfaces.
 
 **Live instance:** <https://peeringdb-plus.fly.dev>
 
@@ -20,8 +20,8 @@ API surfaces.
 The upstream PeeringDB API is the canonical source for peering coordination
 data, but it is single-region and rate-limited. PeeringDB Plus offers:
 
-- **Low-latency reads** from the nearest Fly.io region (LiteFS replicates the
-  SQLite WAL to every replica).
+- **Low-latency reads** from the nearest Fly.io region (LiteFS replicates
+  SQLite transactions to every replica).
 - **Multiple wire formats from a single dataset** — drop-in PeeringDB API
   compatibility, OpenAPI REST, GraphQL, ConnectRPC/gRPC, and a Web UI all read
   from the same `ent.Client`.
@@ -174,7 +174,7 @@ are honoured via OpenTelemetry autoexport.
 
 ## Technology
 
-- **Language:** Go 1.26.1+
+- **Language:** Go 1.26.4+
 - **ORM / codegen:** [entgo](https://entgo.io/) drives all five API surfaces
   from a single set of schemas in `ent/schema/` (entgql + entrest + entproto)
 - **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)
