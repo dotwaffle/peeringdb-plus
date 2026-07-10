@@ -10,17 +10,13 @@ import (
 	"slices"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
-// AllTypes is the canonical list of PeeringDB object types captured in the
-// visibility baseline walk. Mirrored from cmd/pdbcompat-check/main.go
-// (lines 22-26) because Go import-direction hygiene forbids `internal`
-// packages from importing `cmd` packages.
-var AllTypes = []string{
-	"campus", "carrier", "carrierfac", "fac", "ix", "ixfac",
-	"ixlan", "ixpfx", "net", "netfac", "netixlan", "org", "poc",
-}
+// AllTypes is the list of PeeringDB object types captured in the
+// visibility baseline walk, in alphabetical order.
+var AllTypes = pdbtypes.SortedNames()
 
 // ProdTypes is the reduced list used for the prod confirmation pass.
 // Only the high-signal privacy types are fetched against production to

@@ -10,7 +10,7 @@ import (
 
 // TestPatchOpenAPIErrorResponses verifies the served-spec patch: every
 // components.responses.Error* entry must describe the RFC 9457
-// application/problem+json body restErrorMiddleware actually emits, the
+// application/problem+json body middleware.RESTError actually emits, the
 // ProblemDetail schema must exist, and entrest's never-emitted Error*
 // schemas must be gone.
 func TestPatchOpenAPIErrorResponses(t *testing.T) {

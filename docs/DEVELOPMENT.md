@@ -410,10 +410,10 @@ never hand-roll a tier check.
    - **GraphQL** — opt the field into a custom resolver via `graph/gqlgen.yml`,
      then return `nil` from the resolver in `graph/schema.resolvers.go` when
      `omit=true`.
-   - **entrest** — extend `restFieldRedactMiddleware` in
-     `cmd/peeringdb-plus/main.go` to buffer the response body, parse JSON, and
+   - **entrest** — extend `middleware.RESTFieldRedact` in
+     `internal/middleware/rest_redact.go` to buffer the response body, parse JSON, and
      delete the redacted key when `omit=true`.
-     Wrap **inside** `restErrorMiddleware`
+     Wrap **inside** `middleware.RESTError`
      so `application/problem+json` error bodies pass through untouched.
    - **Web UI** — call `privfield.Redact` in the template data-prep step if
      the field has any render path.

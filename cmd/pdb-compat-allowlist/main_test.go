@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
 // TestBuildAllowlistEntry locks the verbatim-field-list → NodeEntry
@@ -95,8 +97,9 @@ func TestBuildAllowlistEntry_DropsInvalidHops(t *testing.T) {
 }
 
 // TestPdbTypeFor_AllThirteen locks the ent-Go-name → pdb-type mapping
-// that the traversal allowlist codegen relies on. If a future schema is added,
-// the test will fail and force the author to extend pdbTypeMap.
+// that the traversal allowlist codegen relies on. If a future schema is
+// added, the test will fail and force the author to extend
+// internal/pdbtypes.All.
 func TestPdbTypeFor_AllThirteen(t *testing.T) {
 	t.Parallel()
 	expected := map[string]string{
@@ -124,7 +127,7 @@ func TestPdbTypeFor_AllThirteen(t *testing.T) {
 // TestPdbTypeFor_UnknownReturnsEmpty documents the fallback contract:
 // unknown Go names return "" (caller skips them) rather than error.
 // This keeps the tool resilient if the schema grows a new type before
-// pdbTypeMap is updated.
+// internal/pdbtypes is updated.
 func TestPdbTypeFor_UnknownReturnsEmpty(t *testing.T) {
 	t.Parallel()
 	if got := pdbTypeFor("NotARealEntity"); got != "" {
@@ -132,14 +135,15 @@ func TestPdbTypeFor_UnknownReturnsEmpty(t *testing.T) {
 	}
 }
 
-// TestGoNameFor_RoundTrip locks the reverse mapping — every entry in
-// pdbTypeMap must round-trip pdbTypeFor ⇌ goNameFor. Guarantees that
-// any future extension of the map keeps both directions consistent.
+// TestGoNameFor_RoundTrip locks the reverse mapping — every canonical
+// type must round-trip pdbTypeFor ⇌ goNameFor. Guarantees that any
+// future extension of internal/pdbtypes keeps both directions
+// consistent.
 func TestGoNameFor_RoundTrip(t *testing.T) {
 	t.Parallel()
-	for goName, pdbType := range pdbTypeMap {
-		if got := goNameFor(pdbType); got != goName {
-			t.Errorf("goNameFor(%q) = %q, want %q (reverse of pdbTypeFor)", pdbType, got, goName)
+	for _, ty := range pdbtypes.All {
+		if got := goNameFor(pdbTypeFor(ty.GoName)); got != ty.GoName {
+			t.Errorf("goNameFor(pdbTypeFor(%q)) = %q, want round-trip", ty.GoName, got)
 		}
 	}
 }

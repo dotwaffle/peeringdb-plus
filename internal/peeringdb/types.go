@@ -3,17 +3,7 @@
 // PeeringDB object types.
 package peeringdb
 
-import (
-	"encoding/json"
-	"time"
-)
-
-// Response wraps PeeringDB API responses. The meta field is always
-// empty in practice. Data contains the array of objects.
-type Response[T any] struct {
-	Meta json.RawMessage `json:"meta"`
-	Data []T             `json:"data"`
-}
+import "time"
 
 // Object type constants for PeeringDB API paths.
 const (

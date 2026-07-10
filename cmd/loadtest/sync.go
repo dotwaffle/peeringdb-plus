@@ -5,20 +5,17 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
-// syncOrder is the loadtest's mirror of internal/sync.canonicalStepOrder.
-// The TestSync_OrderingMatchesWorker parity guard fails the build if
-// the live worker reorders syncSteps() without an accompanying update
-// here — that's the design intent (drift detection).
-//
-// Held as a flat slice (not a function) so the test can DeepEqual it
-// against syncpkg.StepOrder() without any Worker construction.
-var syncOrder = []string{
-	"org", "campus", "fac", "carrier", "carrierfac",
-	"ix", "ixlan", "ixpfx", "ixfac",
-	"net", "poc", "netfac", "netixlan",
-}
+// syncOrder is the canonical parent-before-child order from
+// internal/pdbtypes. The TestSync_OrderingMatchesWorker parity guard
+// DeepEquals it against syncpkg.StepOrder(), so internal/sync's own
+// ordered step list and the pdbtypes canonical order guard each other
+// — reordering either without the other fails the build (drift
+// detection by design).
+var syncOrder = pdbtypes.Names()
 
 // syncDepths is the set of `?depth=` values the loadtest issues per
 // entity type per cycle. depth=0 mirrors the project's own sync (see

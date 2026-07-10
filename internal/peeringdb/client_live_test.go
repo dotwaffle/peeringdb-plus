@@ -32,6 +32,23 @@ type apiResponse struct {
 // Sync no longer relies on meta.generated for cursor advancement —
 // cursors are derived from MAX(updated) per table (see
 // internal/sync/cursor.go).
+// parseMeta extracts the generated epoch from a PeeringDB API response
+// meta field. Test-only: the production sync path no longer reads
+// meta.generated (cursors derive from MAX(updated) per table); this
+// helper survives solely for the live conformance assertions below.
+func parseMeta(raw json.RawMessage) time.Time {
+	if len(raw) == 0 {
+		return time.Time{}
+	}
+	var meta struct {
+		Generated float64 `json:"generated"`
+	}
+	if err := json.Unmarshal(raw, &meta); err != nil || meta.Generated == 0 {
+		return time.Time{}
+	}
+	return time.Unix(int64(meta.Generated), 0)
+}
+
 func TestMetaGeneratedLive(t *testing.T) {
 	if !*peeringdbLive {
 		t.Skip("skipping live meta.generated test (use -peeringdb-live to enable)")

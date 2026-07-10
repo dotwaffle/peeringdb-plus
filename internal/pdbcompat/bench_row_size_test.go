@@ -90,7 +90,7 @@ func BenchmarkRowSize(b *testing.B) {
 				b.Fatalf("registry missing %q", name)
 			}
 			b.Run(fmt.Sprintf("%s_Depth%d", name, depth), func(b *testing.B) {
-				rows, _, err := tc.List(ctx, client, QueryOptions{Limit: 100})
+				rows, err := tc.List(ctx, client, QueryOptions{Limit: 100})
 				if err != nil {
 					b.Fatalf("list %s: %v", name, err)
 				}

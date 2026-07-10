@@ -229,21 +229,6 @@ type FetchResult struct {
 	Meta FetchMeta
 }
 
-// parseMeta extracts the generated epoch from a PeeringDB API response meta field.
-// Returns zero time if meta is empty or generated field is absent.
-func parseMeta(raw json.RawMessage) time.Time {
-	if len(raw) == 0 {
-		return time.Time{}
-	}
-	var meta struct {
-		Generated float64 `json:"generated"`
-	}
-	if err := json.Unmarshal(raw, &meta); err != nil || meta.Generated == 0 {
-		return time.Time{}
-	}
-	return time.Unix(int64(meta.Generated), 0)
-}
-
 // FetchAll pages through all objects of the given type, collecting each
 // element as a json.RawMessage in a FetchResult. It is a thin wrapper
 // over StreamAll — new callers should prefer StreamAll directly to avoid

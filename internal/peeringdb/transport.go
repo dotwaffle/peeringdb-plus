@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -222,21 +221,15 @@ func (t *rateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, err
 
 // waitLimiter blocks on the rate limiter and records the wait duration as
 // both a span event (compat with the earlier behavior) and a histogram
-// (for dashboard visibility).
-//
-// Telemetry instruments are nil-guarded because unit tests run without
-// calling InitMetrics() — and a nil-instrument call panics inside the
-// OTel SDK. Production codepath always has the instruments populated
-// (cmd/peeringdb-plus/main.go calls InitMetrics before NewWorker).
+// (for dashboard visibility). The instruments are bound at
+// internal/otel package init, so they are never nil.
 func (t *rateLimitedTransport) waitLimiter(ctx context.Context, span trace.Span, url string) error {
 	waitStart := time.Now()
 	if err := t.limiter.Wait(ctx); err != nil {
 		return err
 	}
 	wait := time.Since(waitStart)
-	if pdbotel.PeeringDBRateLimitWaitMS != nil {
-		pdbotel.PeeringDBRateLimitWaitMS.Record(ctx, float64(wait.Milliseconds()))
-	}
+	pdbotel.PeeringDBRateLimitWaitMS.Record(ctx, float64(wait.Milliseconds()))
 	if wait > time.Millisecond {
 		span.AddEvent("rate_limiter.wait",
 			trace.WithAttributes(
@@ -248,22 +241,15 @@ func (t *rateLimitedTransport) waitLimiter(ctx context.Context, span trace.Span,
 	return nil
 }
 
-// recordRequest emits the per-request status_class counter. Nil-guarded
-// for the same reason as waitLimiter — tests run without InitMetrics().
+// recordRequest emits the per-request status_class counter.
 func recordRequest(ctx context.Context, statusClass string) {
-	if pdbotel.PeeringDBRequests == nil {
-		return
-	}
 	pdbotel.PeeringDBRequests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String("status_class", statusClass),
 	))
 }
 
-// recordRetry emits the per-retry cause counter. Nil-guarded as above.
+// recordRetry emits the per-retry cause counter.
 func recordRetry(ctx context.Context, cause string) {
-	if pdbotel.PeeringDBRetries == nil {
-		return
-	}
 	pdbotel.PeeringDBRetries.Add(ctx, 1, metric.WithAttributes(
 		attribute.String("cause", cause),
 	))
@@ -337,11 +323,3 @@ func matchesWAF(body []byte) bool {
 func IsWAFBlocked(err error) bool {
 	return errors.Is(err, errWAFBlocked)
 }
-
-// quietContains is a tiny helper for tests to assert WAF logging without
-// having to set up a full slog handler. Production code does not use it.
-func quietContains(haystack, needle string) bool {
-	return strings.Contains(haystack, needle)
-}
-
-var _ = quietContains // keep helper available for tests without unused-symbol lint noise

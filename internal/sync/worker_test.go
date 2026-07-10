@@ -57,23 +57,6 @@ import (
 // then run without -update to verify the refactor preserved behavior.
 var updateGolden = flag.Bool("update", false, "update golden files")
 
-// TestMain initializes OTel metrics once before any tests run, preventing
-// race conditions on global metric variables between parallel tests.
-func TestMain(m *testing.M) {
-	mp := sdkmetric.NewMeterProvider()
-	otel.SetMeterProvider(mp)
-	if err := pdbotel.InitMetrics(); err != nil {
-		panic(fmt.Sprintf("InitMetrics: %v", err))
-	}
-	os.Exit(m.Run())
-}
-
-// ensureMetrics is a no-op kept for backward compatibility with tests that
-// call it. Metrics are now initialized in TestMain before any tests run.
-func ensureMetrics(t *testing.T) {
-	t.Helper()
-}
-
 // fixture builds a minimal mock PeeringDB API server with configurable responses.
 type fixture struct {
 	server    *httptest.Server
@@ -730,7 +713,6 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 // TestSyncScheduler verifies scheduler starts periodic sync via time.Ticker.
 func TestSyncScheduler(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f)
@@ -1084,17 +1066,16 @@ func TestSyncWithNetAndFac(t *testing.T) {
 	}
 }
 
-// setupMetricTest installs a ManualReader-backed MeterProvider, initializes
-// sync metric instruments, and returns the reader for post-sync assertions.
+// setupMetricTest installs a ManualReader-backed MeterProvider, rebinds
+// the package-init sync instruments to it (otel's global delegation is
+// once-only), and returns the reader for post-sync assertions.
 func setupMetricTest(t *testing.T) *sdkmetric.ManualReader {
 	t.Helper()
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
+	pdbotel.BindInstruments()
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
-	if err := pdbotel.InitMetrics(); err != nil {
-		t.Fatalf("InitMetrics: %v", err)
-	}
 	return reader
 }
 
@@ -1994,7 +1975,6 @@ func TestSchedulerSkipsSyncWithExistingData(t *testing.T) {
 // an immediate full sync when no prior successful sync exists.
 func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f)
@@ -2028,7 +2008,6 @@ func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 // sync when the last successful sync is older than the configured interval.
 func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, db := newTestWorker(t, f)
@@ -2090,7 +2069,6 @@ func (p *primarySwitch) IsPrimary() bool {
 // never calls SyncWithRetry. Runs scheduler for 2+ ticks, asserts zero API calls.
 func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
@@ -2122,7 +2100,6 @@ func TestStartScheduler_SkipsOnReplica(t *testing.T) {
 // (IsPrimary flips from false to true) and triggers a sync.
 func TestStartScheduler_PromotionSync(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
@@ -2162,7 +2139,6 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 // cycle context, causing SyncWithRetry to return early.
 func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	t.Parallel()
-	ensureMetrics(t)
 
 	ps := &primarySwitch{}
 	ps.v.Store(true) // Start as primary.
@@ -2730,77 +2706,6 @@ func TestSync_PhaseAFetchHasNoTx(t *testing.T) {
 	t.Logf("syncFetchPass signature: %s", sig)
 }
 
-// TestSync_BatchFreeAfterUpsert is a structural regression lock for the
-// MANDATORY memory optimization in the Phase B chunked replay loop:
-// after each per-chunk upsert completes, the batch entry MUST be set to
-// the zero value so the slice backing array can be reclaimed by GC. Per
-// ARCHITECTURE.md §2 this is the difference between "fits in 512 MB VM"
-// and "OOM" on production scale. The scratch-SQLite fallback moved the
-// batch-free line from syncUpsertPass (old in-memory path) into
-// drainAndUpsertType (the chunked scratch replay) where each loop
-// iteration processes one scratchChunkSize-bounded chunk.
-func TestSync_BatchFreeAfterUpsert(t *testing.T) {
-	t.Parallel()
-
-	src, err := os.ReadFile("worker.go")
-	if err != nil {
-		t.Fatalf("read worker.go: %v", err)
-	}
-
-	// Locate drainAndUpsertType function body and search within it only.
-	needle := "func (w *Worker) drainAndUpsertType("
-	start := strings.Index(string(src), needle)
-	if start < 0 {
-		t.Fatalf("did not find %q in worker.go", needle)
-	}
-	body := string(src)[start:]
-	// Find the next top-level func declaration to bound the search.
-	nextFunc := strings.Index(body[1:], "\nfunc ")
-	if nextFunc > 0 {
-		body = body[:nextFunc+1]
-	}
-
-	// Accept either `batches[name]` or `batches[step.name]` — the inner
-	// chunked replay loop uses `name` because step.name is out of scope.
-	if !strings.Contains(body, "batches[name] = syncBatch{}") && !strings.Contains(body, "batches[step.name] = syncBatch{}") {
-		t.Fatalf("drainAndUpsertType does not contain the MANDATORY batch-free line " +
-			"`batches[name] = syncBatch{}` (or the step.name variant). This is the " +
-			"core memory optimization (ARCHITECTURE.md §2) — removing it " +
-			"breaks the 512 MB VM hard cap and is a regression.")
-	}
-}
-
-// TestSync_PhaseOrderComments is a structural regression lock for the
-// three load-bearing phase marker comments in Worker.Sync. A future edit
-// that reorders or drops one of these markers will fail this test.
-func TestSync_PhaseOrderComments(t *testing.T) {
-	t.Parallel()
-
-	src, err := os.ReadFile("worker.go")
-	if err != nil {
-		t.Fatalf("read worker.go: %v", err)
-	}
-	body := string(src)
-
-	markers := []string{
-		"=== Phase A — NO TX HELD ===",
-		"=== Fetch Barrier ===",
-		"=== Phase B — SINGLE REAL TX ===",
-	}
-	lastIdx := -1
-	for _, m := range markers {
-		idx := strings.Index(body, m)
-		if idx < 0 {
-			t.Fatalf("missing phase marker comment: %q", m)
-		}
-		if idx <= lastIdx {
-			t.Fatalf("phase marker %q out of order (index %d <= previous %d)",
-				m, idx, lastIdx)
-		}
-		lastIdx = idx
-	}
-}
-
 // TestSync_RollbackAtomicity is the regression lock for single-
 // transaction atomicity AND the coverage for the in-tx rollback terminal
 // path (Worker.syncCycle → rollbackAndRecord). It asserts that when a Phase B
@@ -3043,7 +2948,7 @@ func TestCheckMemoryLimit_HelperUnit(t *testing.T) {
 			var logBuf bytes.Buffer
 			logger := slog.New(slog.NewJSONHandler(&logBuf, &slog.HandlerOptions{Level: slog.LevelWarn}))
 			w := &Worker{logger: logger}
-			err := w.checkMemoryLimit(t.Context(), tt.heapAlloc, tt.limit, 13)
+			err := w.checkMemoryLimit(t.Context(), tt.heapAlloc, tt.limit)
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("checkMemoryLimit(%d, %d) = %v, want %v", tt.heapAlloc, tt.limit, err, tt.wantErr)
 			}

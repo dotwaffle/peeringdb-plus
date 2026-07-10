@@ -371,7 +371,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	results, _, err := tc.List(r.Context(), h.client, opts)
+	results, err := tc.List(r.Context(), h.client, opts)
 	if err != nil {
 		// Log raw error server-side only; keep the client Detail generic
 		// so ent/SQL internals never reach the /api wire (SEC).

@@ -113,7 +113,7 @@ func TestTypicalRowBytes_CalibrationDrift(t *testing.T) {
 			if !ok {
 				t.Fatalf("registry missing %q", name)
 			}
-			rows, _, err := tc.List(ctx, client, QueryOptions{Limit: 100})
+			rows, err := tc.List(ctx, client, QueryOptions{Limit: 100})
 			if err != nil {
 				t.Fatalf("list %s: %v", name, err)
 			}

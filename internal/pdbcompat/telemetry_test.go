@@ -15,12 +15,16 @@ import (
 
 // installManualMetricReader installs a manual-reader MeterProvider as the
 // global provider for the duration of the test and returns the reader so
-// the test can collect observations synchronously.
+// the test can collect observations synchronously. Rebinds the
+// package-init instruments in internal/otel: the global delegation is
+// once-only, so instruments may be bound to a provider another test
+// installed earlier in this process.
 func installManualMetricReader(t *testing.T) *sdkmetric.ManualReader {
 	t.Helper()
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	otel.SetMeterProvider(mp)
+	pdbotel.BindInstruments()
 	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
 	return reader
 }
@@ -85,10 +89,6 @@ func TestRecordResponseHeapDelta_RecordsHistogram(t *testing.T) {
 	// Not parallel: installs global MeterProvider.
 	reader := installManualMetricReader(t)
 
-	if err := pdbotel.InitResponseHeapHistogram(); err != nil {
-		t.Fatalf("InitResponseHeapHistogram: %v", err)
-	}
-
 	recordResponseHeapDelta(context.Background(), "/api/net", "net", 0)
 
 	var rm metricdata.ResourceMetrics
@@ -141,10 +141,6 @@ func TestRecordResponseHeapDelta_FiresOnce(t *testing.T) {
 	// Not parallel: installs global providers.
 	exporter := installInMemorySpanExporter(t)
 	reader := installManualMetricReader(t)
-
-	if err := pdbotel.InitResponseHeapHistogram(); err != nil {
-		t.Fatalf("InitResponseHeapHistogram: %v", err)
-	}
 
 	handler := func(ctx context.Context) {
 		startBytes := memStatsHeapInuseBytes()
@@ -199,17 +195,4 @@ func TestRecordResponseHeapDelta_FiresOnce(t *testing.T) {
 	if len(hist.DataPoints) == 1 && hist.DataPoints[0].Count != 1 {
 		t.Errorf("histogram data point Count = %d, want 1", hist.DataPoints[0].Count)
 	}
-}
-
-// TestRecordResponseHeapDelta_NilHistogramSafe verifies that if the
-// global histogram pointer is nil (e.g. InitResponseHeapHistogram was
-// never called), the sampler does not panic — telemetry is best-effort.
-func TestRecordResponseHeapDelta_NilHistogramSafe(t *testing.T) {
-	// Not parallel: mutates package-level pdbotel.ResponseHeapDeltaBytes.
-	prev := pdbotel.ResponseHeapDeltaBytes
-	pdbotel.ResponseHeapDeltaBytes = nil
-	t.Cleanup(func() { pdbotel.ResponseHeapDeltaBytes = prev })
-
-	// Must not panic.
-	recordResponseHeapDelta(context.Background(), "/api/net", "net", 0)
 }

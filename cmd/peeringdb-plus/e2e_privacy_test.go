@@ -96,7 +96,7 @@ const (
 )
 
 // e2eAlwaysReady is the readiness bypass used by the test fixture. The
-// production readinessMiddleware 503s every non-infrastructure path until
+// production middleware.Readiness 503s every non-infrastructure path until
 // HasCompletedSync() returns true. The E2E test is about privacy, not
 // readiness, so we keep this loud-and-simple rather than plumbing a real
 // sync worker into the fixture.
@@ -259,10 +259,10 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	if err != nil {
 		t.Fatalf("create REST server: %v", err)
 	}
-	// The field-redact middleware is wired INSIDE restErrorMiddleware
+	// The field-redact middleware is wired INSIDE middleware.RESTError
 	// so problem+json error responses pass through untouched. Matches
 	// main.go's production chain order.
-	mux.Handle("/rest/v1/", restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler())))
+	mux.Handle("/rest/v1/", middleware.RESTError(middleware.RESTFieldRedact(restSrv.Handler())))
 
 	// pdbcompat (/api/). Registers /api/{rest...} internally.
 	// Budget=0 disables the pre-flight budget check — this test
