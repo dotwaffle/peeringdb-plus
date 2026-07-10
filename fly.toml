@@ -26,6 +26,17 @@ kill_timeout = 30
 [consul]
   enable = true
 
+# Always restart crashed machines. Fly's default on-failure policy gives
+# a bounded retry count, after which the machine is stopped and only
+# traffic-driven auto_start might revive it — a transient crash loop on
+# the LHR primary (e.g. OOM during a pathological catch-up sync; the
+# documented pressure order ends in Fly OOM-kill) would otherwise halt
+# sync until an operator intervenes, while replicas served increasingly
+# stale data. With "always", the machine self-recovers and genuinely
+# persistent failure still surfaces via the freshness/absence alerts.
+[[restart]]
+  policy = "always"
+
 # Two process groups: primary (1 machine, LHR) and replica (7 machines).
 # Both run `litefs mount` (the container ENTRYPOINT) — no separate binary.
 # The command string here is informational; the image ENTRYPOINT wins at runtime.
