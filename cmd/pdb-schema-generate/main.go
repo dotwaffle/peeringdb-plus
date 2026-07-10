@@ -311,31 +311,47 @@ func generateEntSchema(apiPath string, ot ObjectType, schema *Schema) ([]byte, e
 }
 
 // generateFieldCode produces the Go code for a single entgo field definition.
+// stringFieldModifiers derives the three interlocking modifiers for a
+// generated string field from (name, Required, Nullable, References):
+//
+//   - notEmpty: only identity-style fields (isNameField) that are
+//     required, non-nullable, non-FK, AND not on the tombstone-scrub
+//     list get NotEmpty(). Upstream ?since= responses emit
+//     status='deleted' tombstones with PII-scrubbed empty strings
+//     (observed live 2026-04-26), so NotEmpty() on "name"/"role" would
+//     abort incremental sync at the upsert builder — "prefix" keeps it
+//     (an IP prefix is row identity, not PII). See
+//     isTombstoneVulnerableField for the drop list.
+//   - optional: for a read-only mirror, Django form-validation
+//     Required does not translate to a storage constraint — every
+//     non-name string field is Optional, as is any nullable or
+//     non-required name field.
+//   - defaultEmpty: required non-name, non-nullable string fields get
+//     Default("") so the mirror can upsert rows the upstream form
+//     would have rejected. An explicit fd.Default (checked by the
+//     caller first) takes precedence.
+func stringFieldModifiers(name string, fd FieldDef) (notEmpty, optional, defaultEmpty bool) {
+	notEmpty = fd.Required && !fd.Nullable && fd.References == "" &&
+		isNameField(name) && !isTombstoneVulnerableField(name)
+	optional = !isNameField(name) || !fd.Required || fd.Nullable
+	defaultEmpty = fd.Required && !fd.Nullable && !isNameField(name)
+	return notEmpty, optional, defaultEmpty
+}
+
 func generateFieldCode(name string, fd FieldDef) string {
 	var b strings.Builder
 
 	switch fd.Type {
 	case "string":
 		fmt.Fprintf(&b, "field.String(%q)", name)
-		// Upstream PeeringDB ?since= responses emit status='deleted'
-		// tombstones with PII-scrubbed empty strings on identity-correlated
-		// text fields (observed 2026-04-26). NotEmpty() was dropped
-		// for "name" on the 6 folded entities after the live spike
-		// confirmed name="" tombstones, and the same drop extends to "role"
-		// on poc — symmetric prevention for the next likely scrub target.
-		// NotEmpty() is preserved for "prefix" (ixprefix —
-		// structurally meaningful, IP prefix is row identity not PII).
-		// See isTombstoneVulnerableField below for the explicit drop list.
-		if fd.Required && !fd.Nullable && fd.References == "" && isNameField(name) && !isTombstoneVulnerableField(name) {
+		notEmpty, optional, defaultEmpty := stringFieldModifiers(name, fd)
+		if notEmpty {
 			b.WriteString(".\n\t\t\tNotEmpty()")
 		}
 		if fd.Unique {
 			b.WriteString(".\n\t\t\tUnique()")
 		}
-		// For a read-only mirror, string fields with Required from Django
-		// form validation are stored as Optional with defaults. Only name-type
-		// fields enforce NotEmpty. All non-name string fields are Optional.
-		if !isNameField(name) || !fd.Required || fd.Nullable {
+		if optional {
 			b.WriteString(".\n\t\t\tOptional()")
 		}
 		if fd.Nullable {
@@ -343,8 +359,7 @@ func generateFieldCode(name string, fd FieldDef) string {
 		}
 		if fd.Default != nil && !fd.Nullable {
 			fmt.Fprintf(&b, ".\n\t\t\tDefault(%q)", fmt.Sprintf("%v", fd.Default))
-		} else if !fd.Nullable && !isNameField(name) && fd.Required {
-			// Required non-name string fields get empty default for the mirror.
+		} else if defaultEmpty {
 			b.WriteString(".\n\t\t\tDefault(\"\")")
 		}
 
