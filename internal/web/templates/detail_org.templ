@@ -31,11 +31,11 @@ templ OrgDetailPage(data OrgDetail) {
 		@DetailLink("Website", data.Website)
 		@DetailField("Notes", data.Notes)
 		<div class="space-y-3 pt-4">
-			@CollapsibleSection("Networks", data.NetCount, fmt.Sprintf("/ui/fragment/org/%d/networks", data.ID))
-			@CollapsibleSection("IXPs", data.IXCount, fmt.Sprintf("/ui/fragment/org/%d/ixps", data.ID))
-			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/org/%d/facilities", data.ID))
-			@CollapsibleSection("Campuses", data.CampusCount, fmt.Sprintf("/ui/fragment/org/%d/campuses", data.ID))
-			@CollapsibleSection("Carriers", data.CarrierCount, fmt.Sprintf("/ui/fragment/org/%d/carriers", data.ID))
+			@CollapsibleSection("Networks", data.NetCount, "", fmt.Sprintf("/ui/fragment/org/%d/networks", data.ID))
+			@CollapsibleSection("IXPs", data.IXCount, "", fmt.Sprintf("/ui/fragment/org/%d/ixps", data.ID))
+			@CollapsibleSection("Facilities", data.FacCount, "", fmt.Sprintf("/ui/fragment/org/%d/facilities", data.ID))
+			@CollapsibleSection("Campuses", data.CampusCount, "", fmt.Sprintf("/ui/fragment/org/%d/campuses", data.ID))
+			@CollapsibleSection("Carriers", data.CarrierCount, "", fmt.Sprintf("/ui/fragment/org/%d/carriers", data.ID))
 		</div>
 	</div>
 }

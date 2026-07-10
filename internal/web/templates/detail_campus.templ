@@ -36,7 +36,7 @@ templ CampusDetailPage(data CampusDetail) {
 		@DetailLink("Website", data.Website)
 		@DetailField("Notes", data.Notes)
 		<div class="space-y-3 pt-4">
-			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/campus/%d/facilities", data.ID))
+			@CollapsibleSection("Facilities", data.FacCount, "", fmt.Sprintf("/ui/fragment/campus/%d/facilities", data.ID))
 		</div>
 	</div>
 }

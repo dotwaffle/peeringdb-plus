@@ -10,7 +10,7 @@ templ SearchResults(groups []SearchGroup, query string) {
 	for _, group := range groups {
 		<div class="mb-6 animate-fade-in">
 			<div class="flex items-center gap-2 mb-3">
-				<span class={ groupBadgeClasses(group.AccentColor) }>
+				<span class={ typeBadgeClasses(group.AccentColor) }>
 					{ group.TypeName }
 				</span>
 				<span class="text-neutral-400 dark:text-neutral-500 text-sm font-mono">
@@ -63,22 +63,3 @@ templ SearchRow(result SearchResult) {
 	</a>
 }
 
-// groupBadgeClasses returns Tailwind classes for a type group header badge.
-func groupBadgeClasses(color string) string {
-	switch color {
-	case "emerald":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-	case "sky":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20"
-	case "violet":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20"
-	case "amber":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
-	case "rose":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20"
-	case "cyan":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-	default:
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-500/10 text-neutral-400 border border-neutral-500/20"
-	}
-}

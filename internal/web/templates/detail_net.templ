@@ -70,9 +70,9 @@ templ NetworkDetailPage(data NetworkDetail) {
 		@DetailLink("Policy URL", data.PolicyURL)
 		@DetailField("Notes", data.Notes)
 		<div class="space-y-3 pt-4">
-			@CollapsibleSectionWithBandwidth("IX Presences", data.IXCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/net/%d/ixlans", data.ID))
-			@CollapsibleSection("Facility Presences", data.FacCount, fmt.Sprintf("/ui/fragment/net/%d/facilities", data.ID))
-			@CollapsibleSection("Contacts", data.PocCount, fmt.Sprintf("/ui/fragment/net/%d/contacts", data.ID))
+			@CollapsibleSection("IX Presences", data.IXCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/net/%d/ixlans", data.ID))
+			@CollapsibleSection("Facility Presences", data.FacCount, "", fmt.Sprintf("/ui/fragment/net/%d/facilities", data.ID))
+			@CollapsibleSection("Contacts", data.PocCount, "", fmt.Sprintf("/ui/fragment/net/%d/contacts", data.ID))
 		</div>
 		<div class="pt-4">
 			@netFacilityMap(data)

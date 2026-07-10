@@ -117,7 +117,7 @@ func CarrierDetailPage(data CarrierDetail) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/carrier/%d/facilities", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Facilities", data.FacCount, "", fmt.Sprintf("/ui/fragment/carrier/%d/facilities", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

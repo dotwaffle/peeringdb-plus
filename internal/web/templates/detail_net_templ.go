@@ -241,15 +241,15 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSectionWithBandwidth("IX Presences", data.IXCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/net/%d/ixlans", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("IX Presences", data.IXCount, formatAggregateBW(data.AggregateBW), fmt.Sprintf("/ui/fragment/net/%d/ixlans", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Facility Presences", data.FacCount, fmt.Sprintf("/ui/fragment/net/%d/facilities", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Facility Presences", data.FacCount, "", fmt.Sprintf("/ui/fragment/net/%d/facilities", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Contacts", data.PocCount, fmt.Sprintf("/ui/fragment/net/%d/contacts", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Contacts", data.PocCount, "", fmt.Sprintf("/ui/fragment/net/%d/contacts", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

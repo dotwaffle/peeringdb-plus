@@ -53,9 +53,9 @@ templ FacilityDetailPage(data FacilityDetail) {
 		@DetailLink("Website", data.Website)
 		@DetailField("Notes", data.Notes)
 		<div class="space-y-3 pt-4">
-			@CollapsibleSection("Networks", data.NetCount, fmt.Sprintf("/ui/fragment/fac/%d/networks", data.ID))
-			@CollapsibleSection("IXPs", data.IXCount, fmt.Sprintf("/ui/fragment/fac/%d/ixps", data.ID))
-			@CollapsibleSection("Carriers", data.CarrierCount, fmt.Sprintf("/ui/fragment/fac/%d/carriers", data.ID))
+			@CollapsibleSection("Networks", data.NetCount, "", fmt.Sprintf("/ui/fragment/fac/%d/networks", data.ID))
+			@CollapsibleSection("IXPs", data.IXCount, "", fmt.Sprintf("/ui/fragment/fac/%d/ixps", data.ID))
+			@CollapsibleSection("Carriers", data.CarrierCount, "", fmt.Sprintf("/ui/fragment/fac/%d/carriers", data.ID))
 		</div>
 		if data.Latitude != 0 || data.Longitude != 0 {
 			<div class="pt-4">

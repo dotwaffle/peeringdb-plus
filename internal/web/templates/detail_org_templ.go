@@ -124,23 +124,23 @@ func OrgDetailPage(data OrgDetail) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Networks", data.NetCount, fmt.Sprintf("/ui/fragment/org/%d/networks", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Networks", data.NetCount, "", fmt.Sprintf("/ui/fragment/org/%d/networks", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("IXPs", data.IXCount, fmt.Sprintf("/ui/fragment/org/%d/ixps", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("IXPs", data.IXCount, "", fmt.Sprintf("/ui/fragment/org/%d/ixps", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/org/%d/facilities", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Facilities", data.FacCount, "", fmt.Sprintf("/ui/fragment/org/%d/facilities", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Campuses", data.CampusCount, fmt.Sprintf("/ui/fragment/org/%d/campuses", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Campuses", data.CampusCount, "", fmt.Sprintf("/ui/fragment/org/%d/campuses", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = CollapsibleSection("Carriers", data.CarrierCount, fmt.Sprintf("/ui/fragment/org/%d/carriers", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = CollapsibleSection("Carriers", data.CarrierCount, "", fmt.Sprintf("/ui/fragment/org/%d/carriers", data.ID)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

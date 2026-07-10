@@ -64,33 +64,8 @@ templ CompareResultsPage(data CompareData) {
 			</div>
 		</div>
 		<div class="flex gap-2 mb-4">
-			if data.ViewMode != "full" {
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-				>
-					Shared Only
-				</a>
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-				>
-					Full View
-				</a>
-			} else {
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
-				>
-					Shared Only
-				</a>
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-				>
-					Full View
-				</a>
-			}
+			@viewToggleLink(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN), "Shared Only", data.ViewMode != "full")
+			@viewToggleLink(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN), "Full View", data.ViewMode == "full")
 		</div>
 		<div class="flex flex-wrap gap-2 mb-4">
 			@StatBadge("Shared IXPs", len(data.SharedIXPs))
@@ -112,6 +87,27 @@ templ CompareResultsPage(data CompareData) {
 			</a>
 		</div>
 	</div>
+}
+
+// viewToggleLink renders one pill of the shared/full view-mode toggle;
+// the active pill gets the emerald treatment, the inactive one is a
+// bordered button-style link.
+templ viewToggleLink(href string, label string, active bool) {
+	if active {
+		<a
+			href={ templ.SafeURL(href) }
+			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
+		>
+			{ label }
+		</a>
+	} else {
+		<a
+			href={ templ.SafeURL(href) }
+			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+		>
+			{ label }
+		</a>
+	}
 }
 
 // compareIXPsSection renders the IXP comparison as a sortable table.

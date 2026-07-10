@@ -40,7 +40,7 @@ func SearchResults(groups []SearchGroup, query string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var2 = []any{groupBadgeClasses(group.AccentColor)}
+			var templ_7745c5c3_Var2 = []any{typeBadgeClasses(group.AccentColor)}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -256,26 +256,6 @@ func SearchRow(result SearchResult) templ.Component {
 		}
 		return nil
 	})
-}
-
-// groupBadgeClasses returns Tailwind classes for a type group header badge.
-func groupBadgeClasses(color string) string {
-	switch color {
-	case "emerald":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-	case "sky":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20"
-	case "violet":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20"
-	case "amber":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
-	case "rose":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20"
-	case "cyan":
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-	default:
-		return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-500/10 text-neutral-400 border border-neutral-500/20"
-	}
 }
 
 var _ = templruntime.GeneratedTemplate
