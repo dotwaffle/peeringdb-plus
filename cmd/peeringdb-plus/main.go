@@ -368,6 +368,7 @@ func main() {
 		RSSWarnBytes:                  cfg.RSSWarnBytes,
 		FKBackfillMaxRequestsPerCycle: cfg.FKBackfillMaxRequestsPerCycle,
 		FKBackfillTimeout:             cfg.FKBackfillTimeout,
+		SyncTimeout:                   cfg.SyncTimeout,
 		FullSyncInterval:              cfg.FullSyncInterval,
 	}, logger)
 

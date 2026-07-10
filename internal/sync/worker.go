@@ -64,6 +64,12 @@ var ErrSyncMemoryLimitExceeded = errors.New("sync aborted: memory limit exceeded
 // detect it via errors.Is.
 var ErrSyncAlreadyRunning = errors.New("sync already running, trigger dropped")
 
+// ErrSyncAttemptTimeout is the cancellation cause installed when a sync
+// attempt exceeds WorkerConfig.SyncTimeout. It distinguishes the watchdog
+// firing (context.Cause) from the other cycle-cancellation sources —
+// demotion, shutdown — in logs and tests.
+var ErrSyncAttemptTimeout = errors.New("sync attempt exceeded PDBPLUS_SYNC_TIMEOUT")
+
 // defaultRetryBackoffs defines the backoff durations for sync-level retries.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
@@ -140,6 +146,18 @@ type WorkerConfig struct {
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
 	// deadline (only the cap applies).
 	FKBackfillTimeout time.Duration
+
+	// SyncTimeout bounds the wall clock of a single sync attempt (each
+	// SyncWithRetry attempt gets its own budget, so the retry ladder can
+	// still recover with a fresh connection after a timed-out attempt).
+	// The peeringdb.Client deliberately has no whole-request timeout —
+	// a full-sync body read is legitimately slow — so this deadline is
+	// what stops a body that trickles bytes forever from wedging the
+	// cycle, and with it the running latch, for the life of the process
+	// (every later trigger would return ErrSyncAlreadyRunning while data
+	// went silently stale fleet-wide). Wired from PDBPLUS_SYNC_TIMEOUT
+	// (default 30m). Zero or negative disables the deadline.
+	SyncTimeout time.Duration
 
 	// FullSyncInterval is the interval after which a sync cycle forces
 	// a full bare-list refetch of every type, regardless of the
@@ -621,6 +639,17 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 		return ErrSyncAlreadyRunning
 	}
 	defer w.running.Store(false)
+
+	// Watchdog: bound this attempt's wall clock. The upstream client has
+	// no whole-request timeout by design (see peeringdb.NewClient), so this
+	// deadline is the only thing standing between a trickling body read and
+	// a permanently wedged running latch. Cancellation propagates into
+	// every in-flight HTTP body read via the request context.
+	if t := w.config.SyncTimeout; t > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeoutCause(ctx, t, ErrSyncAttemptTimeout)
+		defer cancel()
+	}
 
 	// Tag the root sync span so the sampler can gate sync traces: origin=sync
 	// makes scheduled cycles drop by default; a manual POST /sync sets

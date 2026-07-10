@@ -186,10 +186,11 @@ func NewClient(baseURL string, logger *slog.Logger, opts ...ClientOption) *Clien
 	// (2) truncates the transport's bounded 429 Retry-After wait (up to
 	// retryAfterCap = 60s), turning a *RateLimitError — the worker's quota
 	// short-circuit signal — into a generic context-deadline error. Overall
-	// request time is bounded by the per-request context deadline the sync
-	// worker and FK backfill attach; the granular transport timeouts below
-	// catch a stalled or unresponsive server without capping a slow but
-	// progressing body read.
+	// wall-clock time is instead bounded per sync attempt by the worker's
+	// PDBPLUS_SYNC_TIMEOUT watchdog (sync.WorkerConfig.SyncTimeout), whose
+	// cancellation reaches in-flight body reads through the request
+	// context; the granular transport timeouts below catch a stalled or
+	// unresponsive server without capping a slow but progressing body read.
 	base := http.DefaultTransport.(*http.Transport).Clone()
 	base.ResponseHeaderTimeout = 30 * time.Second
 	base.TLSHandshakeTimeout = 10 * time.Second

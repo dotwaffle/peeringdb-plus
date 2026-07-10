@@ -845,6 +845,62 @@ func TestSyncWithRetryExhaustsRetries(t *testing.T) {
 	}
 }
 
+// TestSync_AttemptTimeoutReleasesRunningLatch locks the PDBPLUS_SYNC_TIMEOUT
+// watchdog contract: an upstream body that stalls forever must not wedge the
+// cycle. The peeringdb.Client deliberately has no whole-request timeout and
+// its ResponseHeaderTimeout only covers the pre-header window, so before the
+// watchdog a handler like this one — headers sent, body never completed —
+// held Worker.running for the life of the process: every later trigger
+// returned ErrSyncAlreadyRunning and data went silently stale fleet-wide.
+func TestSync_AttemptTimeoutReleasesRunningLatch(t *testing.T) {
+	t.Parallel()
+
+	stall := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"meta": {}, "data": [`))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		// Stall the body until the request context is cancelled (the
+		// watchdog firing) or the test tears down.
+		select {
+		case <-r.Context().Done():
+		case <-stall:
+		}
+	}))
+	t.Cleanup(func() {
+		close(stall)
+		srv.Close()
+	})
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := newFastPDBClient(t, srv.URL)
+	if err := InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status: %v", err)
+	}
+
+	w := NewWorker(pdbClient, client, db, WorkerConfig{SyncTimeout: 250 * time.Millisecond}, slog.Default())
+
+	start := time.Now()
+	err := w.Sync(t.Context(), config.SyncModeFull)
+	if err == nil {
+		t.Fatal("expected sync to fail against a stalled upstream body")
+	}
+	if elapsed := time.Since(start); elapsed > 10*time.Second {
+		t.Fatalf("watchdog did not bound the attempt: took %v", elapsed)
+	}
+	if w.Running() {
+		t.Error("running latch still held after the timed-out attempt")
+	}
+	// The latch must be re-acquirable: a follow-up trigger gets a real
+	// attempt (failing fast against the still-stalled upstream), not the
+	// ErrSyncAlreadyRunning drop.
+	if err := w.Sync(t.Context(), config.SyncModeFull); errors.Is(err, ErrSyncAlreadyRunning) {
+		t.Errorf("second trigger dropped, latch was not released: %v", err)
+	}
+}
+
 // TestSyncWithRetryShortCircuitsOnRateLimit locks the rate-limit short-circuit
 // contract: when PeeringDB returns HTTP 429, SyncWithRetry must abort the
 // 30s/2m/8m retry ladder immediately instead of waiting through backoffs that
