@@ -116,6 +116,18 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 				return
 			}
 
+			// Embedded static assets change only on deploy, never on
+			// sync, so the sync-time-keyed ETag is the wrong key: it
+			// would invalidate every stylesheet and script each sync
+			// cycle. A fixed day-long public max-age is appropriate for
+			// content this stable (and self-corrects within a day of a
+			// deploy that changes an asset).
+			if strings.HasPrefix(r.URL.Path, "/static/") {
+				w.Header().Set("Cache-Control", "public, max-age=86400")
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Opt-out list: pages with wall-clock-relative rendering
 			// (e.g. /ui/about's "5 minutes ago") must never be cached
 			// by the sync-time-keyed ETag, or the relative text freezes
