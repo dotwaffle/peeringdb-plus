@@ -108,10 +108,11 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 //     fkBackfillDeadlineExceeded.
 //   - Cap overflow records fkBackfillRateLimited for each dropped ID.
 //
-// childType is the metric "type" attribute. Single-row callers pass
-// the originating child type ("net", "carrierfac", …); the chunk
-// pre-pass (Task 3) and recursive grandparent path pass "" because no
-// single child triggered the lookup.
+// childType is the metric "type" attribute. Single-row callers and the
+// chunk pre-pass pass the originating child type ("net", "carrierfac",
+// …) — in the pre-pass every row in the chunk shares it. Only the
+// recursive grandparent path passes the "recursive" sentinel, because
+// no child row triggered that lookup.
 //
 // Single-writer: fkBackfillTried, fkBackfillRequestCount, fkBackfillDeadline,
 // and fkRegistry are all touched here without locks because
@@ -251,10 +252,12 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 
 	// Recurse one parent type at a time, sorted IDs for deterministic
 	// URL shape (test assertions on id__in= rely on stable ordering).
-	// childType="" — recursion is parent-driven, not child-driven.
+	// childType="recursive" — the recursion is parent-driven, no child
+	// row triggered it; the sentinel keeps the metric's type label
+	// non-empty so dashboards don't render a blank series.
 	for _, gpType := range slices.Sorted(maps.Keys(gpMissing)) {
 		gpIDs := slices.Sorted(maps.Keys(gpMissing[gpType]))
-		w.fkBackfillBatch(ctx, tx, gpType, gpIDs, "")
+		w.fkBackfillBatch(ctx, tx, gpType, gpIDs, "recursive")
 	}
 
 	// 7. Upsert each parent row; record per-row hit/error. Per-row
@@ -498,9 +501,12 @@ func (w *Worker) prefetchMissingParentsForChunk(ctx context.Context, tx *ent.Tx,
 	// recorded URL sequences depend on it).
 	for _, parentType := range slices.Sorted(maps.Keys(missing)) {
 		ids := slices.Sorted(maps.Keys(missing[parentType]))
-		// childType="" — chunk-driven, no single child triggered the
-		// lookup. The metric still records parent_type correctly.
-		w.fkBackfillBatch(ctx, tx, parentType, ids, "")
+		// Every row in the chunk is of chunkType, so the batched path
+		// carries the same metric "type" attribute as the per-row path.
+		// (This pre-pass handles most backfills since v1.18.5 — an empty
+		// label here made dashboards grouping by type show one unlabeled
+		// series absorbing the majority of activity.)
+		w.fkBackfillBatch(ctx, tx, parentType, ids, chunkType)
 	}
 }
 
