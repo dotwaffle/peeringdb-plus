@@ -139,9 +139,14 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 	if len(strings.TrimSpace(query)) >= 2 {
 		results, err := h.searcher.Search(r.Context(), query)
-		if err == nil {
-			groups = convertToSearchGroups(results)
+		if err != nil {
+			// Mirror handleSearch: a failed search is a server error,
+			// not an empty result set silently posing as one.
+			slog.Error("homepage search", slog.String("query", query), slog.Any("error", err))
+			h.handleServerError(w, r)
+			return
 		}
+		groups = convertToSearchGroups(results)
 	}
 
 	page := PageContent{
