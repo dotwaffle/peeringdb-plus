@@ -12,7 +12,7 @@ import (
 // TestMiddlewareChain_Order is a source-scan regression lock against
 // reorder or accidental removal of any middleware in the production
 // chain. It parses the body of buildMiddlewareChain directly from
-// main.go and asserts that every expected middleware appears exactly
+// server.go and asserts that every expected middleware appears exactly
 // once, in the innermost-first order.
 //
 // This is deliberately structural, not runtime: spinning up the real
@@ -25,15 +25,15 @@ import (
 func TestMiddlewareChain_Order(t *testing.T) {
 	t.Parallel()
 
-	src, err := os.ReadFile("main.go")
+	src, err := os.ReadFile("server.go")
 	if err != nil {
-		t.Fatalf("read main.go: %v", err)
+		t.Fatalf("read server.go: %v", err)
 	}
 
 	const startMarker = "func buildMiddlewareChain("
 	start := bytes.Index(src, []byte(startMarker))
 	if start < 0 {
-		t.Fatalf("%q not found in main.go", startMarker)
+		t.Fatalf("%q not found in server.go", startMarker)
 	}
 	// The function body ends at the closing `return h` statement.
 	tail := src[start:]
@@ -61,7 +61,7 @@ func TestMiddlewareChain_Order(t *testing.T) {
 		"cc.CachingState.Middleware(",
 		"middleware.CSP(",
 		"middleware.SecurityHeaders(",
-		"readinessMiddleware(",
+		"middleware.Readiness(",
 		"middleware.PrivacyTier(",
 		"middleware.Logging(",
 		"otelhttp.NewMiddleware(",

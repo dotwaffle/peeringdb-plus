@@ -228,7 +228,7 @@ The collection paths and filter parameters are defined by entrest annotations in
 
 Non-2xx responses are rewritten to
 [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) by
-`restErrorMiddleware` in `cmd/peeringdb-plus/main.go`.
+`RESTError` in `internal/middleware/rest_error.go`.
 The response `Content-Type` is `application/problem+json`
 and the body includes at minimum `status`, `title`, `detail`,
 and `instance` fields.
@@ -593,7 +593,7 @@ context — unstamped contexts fail-closed to `TierPublic`.
 | Surface | Mechanism |
 |---------|-----------|
 | `/api/` (pdbcompat) | `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`; the JSON struct tag `,omitempty` produces wire absence |
-| `/rest/v1/ix-lans*` (entrest) | `restFieldRedactMiddleware` in `cmd/peeringdb-plus/main.go` buffers the JSON response and deletes the key in-place when `Redact` returns `omit=true`. Wraps INSIDE `restErrorMiddleware` so error bodies pass through |
+| `/rest/v1/ix-lans*` (entrest) | `RESTFieldRedact` in `internal/middleware/rest_redact.go` buffers the JSON response and deletes the key in-place when `Redact` returns `omit=true`. Wraps INSIDE `middleware.RESTError` so error bodies pass through |
 | `/peeringdb.v1.IxLanService/*` (ConnectRPC) | `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)` returns `nil *wrapperspb.StringValue` — wire absence under proto3 optional |
 | `/graphql` | `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns Go `nil` → GraphQL `null` |
 | `/ui/` | No render path renders the URL today; future templates must call `privfield.Redact` in the data-prep step |

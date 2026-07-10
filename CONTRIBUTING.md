@@ -212,7 +212,7 @@ and missing **any one** of them is a privacy leak:
 1. `internal/pdbcompat/serializer.go` — `/api` (PeeringDB-compat surface)
 2. `internal/grpcserver/ixlan.go` — ConnectRPC / `/peeringdb.v1.*`
 3. `graph/schema.resolvers.go` — GraphQL `/graphql`
-4. `cmd/peeringdb-plus/main.go` `restFieldRedactMiddleware` —
+4. `internal/middleware/rest_redact.go` `RESTFieldRedact` —
    entrest `/rest/v1/`
 5. Web UI templates — `/ui/` (when/if a render path is added)
 

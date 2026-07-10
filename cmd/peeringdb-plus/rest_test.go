@@ -14,6 +14,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent/enttest"
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
+	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 )
 
 // restDBCounter provides unique database names for parallel tests.
@@ -774,7 +775,7 @@ func TestREST_Readiness(t *testing.T) {
 	tracker := &syncCompletedTracker{completed: false}
 
 	// Wrap REST handler with readiness middleware matching main.go behavior.
-	handler := readinessMiddleware(tracker, http.StripPrefix("/rest/v1", restSrv.Handler()))
+	handler := middleware.Readiness(tracker, http.StripPrefix("/rest/v1", restSrv.Handler()))
 
 	t.Run("503_before_sync", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/rest/v1/organizations", nil)

@@ -9,7 +9,7 @@ import (
 )
 
 // TestRESTOpenAPIRedactExemption locks the openapi.json skip in
-// restFieldRedactMiddleware: the spec is a static document that
+// middleware.RESTFieldRedact: the spec is a static document that
 // describes the ixf_ixp_member_list_url SCHEMA but can never carry the
 // _visible companion as a data key, so it bypasses the buffer+parse+walk
 // and must still contain the schema property intact. The sibling

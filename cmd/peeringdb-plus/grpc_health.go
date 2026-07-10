@@ -5,6 +5,7 @@ import (
 
 	"connectrpc.com/connect"
 	"connectrpc.com/grpchealth"
+	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 )
 
 // syncHealthChecker reports gRPC health from the sync worker's live
@@ -14,7 +15,7 @@ import (
 // there is no poller and no push-state to keep in step; any future
 // un-latching of the worker's readiness propagates on the next check.
 type syncHealthChecker struct {
-	worker   syncReadiness
+	worker   middleware.SyncReadiness
 	services map[string]struct{}
 }
 
@@ -22,7 +23,7 @@ type syncHealthChecker struct {
 // service name (whole-process health) plus each named ConnectRPC
 // service, mirroring the per-service registrations the previous
 // StaticChecker carried.
-func newSyncHealthChecker(worker syncReadiness, serviceNames []string) *syncHealthChecker {
+func newSyncHealthChecker(worker middleware.SyncReadiness, serviceNames []string) *syncHealthChecker {
 	services := make(map[string]struct{}, len(serviceNames))
 	for _, name := range serviceNames {
 		services[name] = struct{}{}
