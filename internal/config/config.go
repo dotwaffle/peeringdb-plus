@@ -213,6 +213,16 @@ type Config struct {
 	// (only the cap applies).
 	FKBackfillTimeout time.Duration
 
+	// SyncTimeout bounds the wall clock of a single sync attempt (each
+	// retry inside SyncWithRetry gets its own budget). The upstream HTTP
+	// client deliberately carries no whole-request timeout (a full-sync
+	// body read is legitimately slow), so without this deadline a body
+	// that trickles bytes forever would wedge the cycle — and the
+	// worker's running latch — for the life of the process, silently
+	// freezing sync fleet-wide. Configured via PDBPLUS_SYNC_TIMEOUT
+	// (Go duration). Default 30m. Zero disables (dev/debug only).
+	SyncTimeout time.Duration
+
 	// FullSyncInterval is the interval after which sync cycles force a
 	// full bare-list refetch — escape hatch against pathological upstream
 	// cross-row inconsistency in any since= design (a response with row
@@ -366,6 +376,12 @@ func Load() (*Config, error) {
 	}
 	cfg.FKBackfillTimeout = fkTimeout
 
+	syncTimeout, err := parseDuration("PDBPLUS_SYNC_TIMEOUT", 30*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_SYNC_TIMEOUT: %w", err)
+	}
+	cfg.SyncTimeout = syncTimeout
+
 	fullSyncInterval, err := parseDuration("PDBPLUS_FULL_SYNC_INTERVAL", 24*time.Hour)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_FULL_SYNC_INTERVAL: %w", err)
@@ -438,6 +454,9 @@ func (c *Config) validate() error {
 	}
 	if c.FKBackfillMaxRequestsPerCycle < 0 {
 		return errors.New("PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE must be non-negative (0 = disabled)")
+	}
+	if c.SyncTimeout < 0 {
+		return errors.New("PDBPLUS_SYNC_TIMEOUT must be non-negative (0 = disabled)")
 	}
 	return nil
 }

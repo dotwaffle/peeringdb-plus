@@ -497,7 +497,9 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		l, err := client.IxLan.Query().
 			Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
 			WithInternetExchange().
-			WithIxPrefixes().
+			WithIxPrefixes(func(q *ent.IxPrefixQuery) {
+				q.Where(ixprefix.StatusIn("ok", "pending"))
+			}).
 			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) {
 				q.Where(networkixlan.StatusIn("ok", "pending")).
 					WithNetwork(func(nq *ent.NetworkQuery) {

@@ -186,10 +186,11 @@ func NewClient(baseURL string, logger *slog.Logger, opts ...ClientOption) *Clien
 	// (2) truncates the transport's bounded 429 Retry-After wait (up to
 	// retryAfterCap = 60s), turning a *RateLimitError — the worker's quota
 	// short-circuit signal — into a generic context-deadline error. Overall
-	// request time is bounded by the per-request context deadline the sync
-	// worker and FK backfill attach; the granular transport timeouts below
-	// catch a stalled or unresponsive server without capping a slow but
-	// progressing body read.
+	// wall-clock time is instead bounded per sync attempt by the worker's
+	// PDBPLUS_SYNC_TIMEOUT watchdog (sync.WorkerConfig.SyncTimeout), whose
+	// cancellation reaches in-flight body reads through the request
+	// context; the granular transport timeouts below catch a stalled or
+	// unresponsive server without capping a slow but progressing body read.
 	base := http.DefaultTransport.(*http.Transport).Clone()
 	base.ResponseHeaderTimeout = 30 * time.Second
 	base.TLSHandshakeTimeout = 10 * time.Second
@@ -442,15 +443,23 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 
-		// Auth errors indicate invalid API key -- log and fail immediately.
+		// Auth errors fail immediately. The diagnosis depends on whether a
+		// key is configured: blaming "invalid API key" on an anonymous
+		// client sends the operator down the wrong path when the real
+		// cause is an upstream access-policy change or a proxy misconfig.
 		// Note: WAF-blocked 403 responses never reach here — the transport
 		// short-circuits them with errWAFBlocked.
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB API key may be invalid",
+			diagnosis := "forbidden without credentials — check upstream access policy"
+			if c.apiKey != "" {
+				diagnosis = "API key may be invalid"
+			}
+			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB rejected request: "+diagnosis,
 				slog.Int("status", resp.StatusCode),
 				slog.String("url", url),
+				slog.Bool("authenticated", c.apiKey != ""),
 			)
-			authErr := fmt.Errorf("fetch %s: HTTP %d (API key may be invalid)", url, resp.StatusCode)
+			authErr := fmt.Errorf("fetch %s: HTTP %d (%s)", url, resp.StatusCode, diagnosis)
 			return nil, authErr
 		}
 

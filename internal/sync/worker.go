@@ -64,6 +64,12 @@ var ErrSyncMemoryLimitExceeded = errors.New("sync aborted: memory limit exceeded
 // detect it via errors.Is.
 var ErrSyncAlreadyRunning = errors.New("sync already running, trigger dropped")
 
+// ErrSyncAttemptTimeout is the cancellation cause installed when a sync
+// attempt exceeds WorkerConfig.SyncTimeout. It distinguishes the watchdog
+// firing (context.Cause) from the other cycle-cancellation sources —
+// demotion, shutdown — in logs and tests.
+var ErrSyncAttemptTimeout = errors.New("sync attempt exceeded PDBPLUS_SYNC_TIMEOUT")
+
 // defaultRetryBackoffs defines the backoff durations for sync-level retries.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
@@ -140,6 +146,18 @@ type WorkerConfig struct {
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
 	// deadline (only the cap applies).
 	FKBackfillTimeout time.Duration
+
+	// SyncTimeout bounds the wall clock of a single sync attempt (each
+	// SyncWithRetry attempt gets its own budget, so the retry ladder can
+	// still recover with a fresh connection after a timed-out attempt).
+	// The peeringdb.Client deliberately has no whole-request timeout —
+	// a full-sync body read is legitimately slow — so this deadline is
+	// what stops a body that trickles bytes forever from wedging the
+	// cycle, and with it the running latch, for the life of the process
+	// (every later trigger would return ErrSyncAlreadyRunning while data
+	// went silently stale fleet-wide). Wired from PDBPLUS_SYNC_TIMEOUT
+	// (default 30m). Zero or negative disables the deadline.
+	SyncTimeout time.Duration
 
 	// FullSyncInterval is the interval after which a sync cycle forces
 	// a full bare-list refetch of every type, regardless of the
@@ -228,6 +246,17 @@ type Worker struct {
 	// WorkerConfig.FKBackfillTimeout; zero or negative disables the
 	// deadline (no timeout — only the cap applies).
 	fkBackfillTimeout time.Duration
+	// cyclePeakHeapBytes is the running per-cycle maximum of HeapInuse,
+	// folded in by foldPeakHeap at the points where the cycle's heap
+	// actually peaks: after the Phase A fetch and after each type's
+	// Phase B upsert BEFORE its runtime.GC() call. emitMemoryTelemetry
+	// previously sampled HeapInuse once at end-of-cycle — i.e. after all
+	// 13 per-type GC calls had reclaimed the upsert spike — so the
+	// "peak_heap" gauge systematically reported the post-cycle floor and
+	// the documented escalation trigger (sustained peak heap above
+	// PDBPLUS_HEAP_WARN_MIB) could never fire. Reset at the top of each
+	// Sync; single-writer because Worker.running serialises cycles.
+	cyclePeakHeapBytes int64
 }
 
 // fkOrphanKey is the dimension grouping a single class of FK-orphan
@@ -621,6 +650,18 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 		return ErrSyncAlreadyRunning
 	}
 	defer w.running.Store(false)
+	w.cyclePeakHeapBytes = 0 // fresh peak-heap high-water mark per cycle
+
+	// Watchdog: bound this attempt's wall clock. The upstream client has
+	// no whole-request timeout by design (see peeringdb.NewClient), so this
+	// deadline is the only thing standing between a trickling body read and
+	// a permanently wedged running latch. Cancellation propagates into
+	// every in-flight HTTP body read via the request context.
+	if t := w.config.SyncTimeout; t > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeoutCause(ctx, t, ErrSyncAttemptTimeout)
+		defer cancel()
+	}
 
 	// Tag the root sync span so the sampler can gate sync traces: origin=sync
 	// makes scheduled cycles drop by default; a manual POST /sync sets
@@ -760,6 +801,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	// Memory guardrail: see checkMemoryLimit godoc (defense-in-depth).
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
+	w.foldPeakHeap(ms.HeapInuse) // post-Phase-A is one of the cycle's heap peaks
 	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, memErr)
 		return memErr
@@ -839,11 +881,42 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 	return ErrSyncMemoryLimitExceeded
 }
 
-// emitMemoryTelemetry samples the Go runtime heap and (on Linux) the
-// OS RSS high-water mark at the end of a sync cycle, attaches them as
-// OTel attributes to the current sync-cycle span, and emits
+// foldPeakHeap folds a HeapInuse observation into the per-cycle peak
+// high-water mark. Callers sit where the cycle's heap actually peaks
+// (post-Phase-A, and post-upsert pre-GC for each type); see the
+// cyclePeakHeapBytes field comment for why end-of-cycle sampling alone
+// under-reports.
+func (w *Worker) foldPeakHeap(heapInuse uint64) {
+	const maxInt64 = uint64(1<<63 - 1)
+	hb := int64(maxInt64)
+	if heapInuse < maxInt64 {
+		hb = int64(heapInuse)
+	}
+	if hb > w.cyclePeakHeapBytes {
+		w.cyclePeakHeapBytes = hb
+	}
+}
+
+// samplePeakHeap reads the runtime heap and folds it into the per-cycle
+// peak. ~µs of STW per call; called 14 times per cycle (once after
+// Phase A via the existing memory-limit read, once per type in Phase B).
+func (w *Worker) samplePeakHeap() {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	w.foldPeakHeap(ms.HeapInuse)
+}
+
+// emitMemoryTelemetry reports the cycle's peak Go heap (the maximum of
+// the per-cycle foldPeakHeap samples and one final end-of-cycle read)
+// and (on Linux) the OS RSS high-water mark, attaches them as OTel
+// attributes to the current sync-cycle span, and emits
 // slog.Warn("heap threshold crossed") when either value exceeds its
 // configured threshold.
+//
+// Note the two values have different lifetimes: peak_heap_bytes is
+// per-cycle (reset at the top of Sync), while peak_rss_bytes (VmHWM)
+// is a process-lifetime high-water mark that includes API-serving load
+// and only resets on restart.
 //
 // Attribute naming follows the pdbplus.* convention (e.g.
 // pdbplus.privacy.tier): pdbplus.sync.peak_heap_bytes and
@@ -861,13 +934,10 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 // Sampling frequency is sync cycle frequency (default 1h via
 // PDBPLUS_SYNC_INTERVAL). No periodic background sampler.
 func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarnBytes int64) {
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-	const maxInt64 = uint64(1<<63 - 1)
-	heapBytes := int64(maxInt64)
-	if ms.HeapInuse < maxInt64 {
-		heapBytes = int64(ms.HeapInuse)
-	}
+	// Fold one final sample so early-failure paths (which never reached a
+	// foldPeakHeap call site) still report a real observation.
+	w.samplePeakHeap()
+	heapBytes := w.cyclePeakHeapBytes
 
 	rssBytes, rssOK := readLinuxVMHWM()
 
@@ -1360,6 +1430,10 @@ func (w *Worker) syncUpsertPass(
 
 		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 		objectCounts[step.name] = count
+
+		// Capture the true peak BEFORE the GC below reclaims the upsert
+		// spike — this is where the cycle's heap high-water mark lives.
+		w.samplePeakHeap()
 
 		// Memory hard gate (400 MB): force a GC cycle between types
 		// to deterministically reclaim the chunked decode buffers and
