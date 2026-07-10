@@ -376,13 +376,21 @@ and not encoded in the repository -->
 
 ### Sync memory watch
 
-Every sync cycle, the worker samples `runtime.MemStats.HeapInuse` and
-(on Linux)
+Every sync cycle, the worker tracks the per-cycle
+`runtime.MemStats.HeapInuse` high-water mark
+(sampled after the Phase A fetch
+and after each type's Phase B upsert,
+*before* the per-type GC reclaims the spike)
+and reads (on Linux)
 `/proc/self/status` VmHWM, attaches both as OTel span attrs
 (`pdbplus.sync.peak_heap_bytes`, `pdbplus.sync.peak_rss_bytes`)
 on the `sync-full` / `sync-incremental` span,
 and fires `slog.Warn("heap threshold crossed", ...)`
 when either breaches its configured threshold.
+Lifetimes differ:
+the heap peak resets every cycle,
+while VmHWM is a process-lifetime high-water mark
+that includes API-serving load and only resets on restart.
 The same values are exported as Prometheus gauges
 (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`)
 for dashboard timeseries.

@@ -3319,6 +3319,43 @@ func TestEmitMemoryTelemetry_Attrs(t *testing.T) {
 	}
 }
 
+// TestEmitMemoryTelemetry_ReportsCycleMax locks the peak semantics: the
+// reported value is the per-cycle MAX of foldPeakHeap observations, not
+// the end-of-cycle sample. Before this contract, emitMemoryTelemetry read
+// HeapInuse once from the terminal paths — i.e. after the 13 per-type
+// runtime.GC() calls had reclaimed the upsert spike — so the gauge
+// reported the post-cycle floor and the documented escalation trigger
+// (sustained peak heap above PDBPLUS_HEAP_WARN_MIB) could never fire.
+func TestEmitMemoryTelemetry_ReportsCycleMax(t *testing.T) {
+	var buf bytes.Buffer
+	w := &Worker{logger: slog.New(slog.NewJSONHandler(&buf, nil))}
+
+	// A synthetic mid-cycle observation far above any real test heap: the
+	// final end-of-cycle sample must not override it.
+	const synthetic = int64(1) << 40 // 1 TiB
+	w.foldPeakHeap(uint64(synthetic))
+
+	sr := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sr))
+	ctx, span := tp.Tracer("t").Start(context.Background(), "sync-test")
+	w.emitMemoryTelemetry(ctx, 0, 0)
+	span.End()
+
+	spans := sr.Ended()
+	if len(spans) != 1 {
+		t.Fatalf("want 1 span, got %d", len(spans))
+	}
+	for _, a := range spans[0].Attributes() {
+		if string(a.Key) == "pdbplus.sync.peak_heap_bytes" {
+			if got := a.Value.AsInt64(); got != synthetic {
+				t.Errorf("peak_heap_bytes = %d, want the folded cycle max %d", got, synthetic)
+			}
+			return
+		}
+	}
+	t.Fatal("missing span attr pdbplus.sync.peak_heap_bytes")
+}
+
 // TestEmitOrphanSummary_Aggregates asserts that recordOrphan increments
 // per-cycle counts and that emitOrphanSummary collapses them into a
 // single WARN log when any orphans were observed (and a DEBUG log on a
