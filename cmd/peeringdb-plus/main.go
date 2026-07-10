@@ -472,8 +472,9 @@ func main() {
 		os.Exit(1)
 	}
 	rest.OpenAPI = patchedSpec
-	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: cfg.CORSOrigins})
-	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
+	// CORS is applied once by the outer middleware chain (buildHandlerChain);
+	// an inner wrap here double-appended Vary: Origin on every REST response.
+	mux.Handle("/rest/v1/", restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler())))
 	logger.Info("REST API mounted", slog.String("prefix", "/rest/v1/"))
 
 	// Mount PeeringDB compatibility API at /api/.

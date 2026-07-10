@@ -131,14 +131,14 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	gqlHandler := pdbgql.NewHandler(resolver)
 	mux.Handle("POST /graphql", gqlHandler)
 
-	// entrest (/rest/v1/). Wrap with the same restCORS + restErrorMiddleware
-	// pair as production main.go so response shapes match the wire.
+	// entrest (/rest/v1/). Wrap with the same restErrorMiddleware as
+	// production main.go so response shapes match the wire (CORS comes
+	// from the outer chain only, as in production).
 	restSrv, err := rest.NewServer(client, &rest.ServerConfig{BasePath: "/rest/v1"})
 	if err != nil {
 		t.Fatalf("create REST server: %v", err)
 	}
-	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})
-	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restSrv.Handler())))
+	mux.Handle("/rest/v1/", restErrorMiddleware(restSrv.Handler()))
 
 	// pdbcompat (/api/…).
 	// Budget=0 disables the pre-flight budget check — this test
