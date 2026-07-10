@@ -926,9 +926,9 @@ Full table lives in `internal/pdbcompat/rowsize.go`.
 3. **Pre-flight count:** handler runs `tc.CountFunc(ctx, client, opts)` —
    a filtered `SELECT COUNT(*)` using the same predicate chain
    as the upcoming `tc.ListFunc` call.
-   The per-entity `CountFunc` sibling shares an `<entity>Predicates` local
-   helper with its List sibling so the budget check and the served response can
-   never disagree on filter semantics.
+   Both closures are produced by the generic `wireEntity` helper from a
+   single shared predicate builder, so the budget check and the served
+   response can never disagree on filter semantics.
 4. **Budget check:** `CheckBudget(count, tc.Name, 0, cfg.ResponseMemoryLimit)`.
    - Under budget → step 5.
    - Over budget → `WriteBudgetProblem(w, r.URL.Path, info)` emits 413
@@ -1026,11 +1026,11 @@ Adding a new entity type requires:
    against a seeded fixture, double the measured mean, round UP to the nearest
    64 bytes).
    Follow the procedure in the `typicalRowBytes` godoc.
-2. `internal/pdbcompat/registry_funcs.go` — pair a `ListFunc` closure
-   with a sibling `CountFunc` closure via a shared
-   `<entity>Predicates` local helper (preserves the
-   `applyStatusMatrix` and `EmptyResult` invariants; never
-   let the two closures diverge).
+2. `internal/pdbcompat/registry_funcs.go` — add a `wireEntity` entry to
+   `init()` naming the entity's query constructor, serializer, and depth
+   getter (the generic helper preserves the `applyStatusMatrix` and
+   `EmptyResult` invariants and derives List and Count from one shared
+   predicate builder).
 3. New row in the per-entity sizing table above.
 4. Extend `internal/pdbcompat/stream_integration_test.go` with an
    under-budget smoke case and an over-budget 413 assertion mirroring

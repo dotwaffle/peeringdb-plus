@@ -518,15 +518,14 @@ Any new entity wired into `/api/` must integrate with this budget:
 
    against a seeded fixture, doubling the measured mean,
    and rounding **up** to the nearest 64 bytes.
-2. **Paired ListFunc / CountFunc** — in `internal/pdbcompat/registry_funcs.go`,
-   pair a `ListFunc` closure with a sibling `CountFunc` closure via a shared
-   `<entity>Predicates` local helper.
-   The two closures **must never diverge** — if they do,
-   the budget check and the served response become different queries
-   and the 413 guarantee breaks.
-   The shared helper preserves the
-   `applyStatusMatrix(isCampus, opts.Since != nil)` last-predicate invariant and
-   the `EmptyResult` short-circuit.
+2. **wireEntity registration** — in `internal/pdbcompat/registry_funcs.go`,
+   add a `wireEntity(entityWiring[...]{...})` entry to `init()` naming the
+   entity's ent query constructor, serializer, and depth getter.
+   The generic helper derives the List and Count closures from a single
+   shared predicate builder — they cannot diverge, which is what upholds
+   the 413 guarantee — and preserves the
+   `applyStatusMatrix(isCampus, opts.Since != nil)` last-predicate invariant
+   and the `EmptyResult` short-circuit.
 3. **Architecture doc** — add a row to the per-entity sizing table in
    `docs/ARCHITECTURE.md § Response Memory Envelope` with the computed
    `max_rows @ 128 MiB`.

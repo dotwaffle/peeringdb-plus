@@ -150,20 +150,20 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 
 See `docs/ARCHITECTURE.md § Response Memory Envelope` for budget, sizing table, lifecycle, telemetry. Invariants:
 
-**Closure pairing:** `ListFunc` + `CountFunc` in `internal/pdbcompat/registry_funcs.go` MUST share a `<entity>Predicates` local helper — otherwise budget pre-check and served response can disagree (breaks the 413 guarantee). The 13 existing pairs preserve `applyStatusMatrix` and the `opts.EmptyResult` short-circuit.
+**Closure pairing:** the 13 List/Count pairs in `internal/pdbcompat/registry_funcs.go` are built by one generic `wireEntity` helper from a single shared predicate builder (v1.23.0), so budget pre-check and served response cannot disagree (the 413 guarantee). `applyStatusMatrix` LAST and the `opts.EmptyResult` short-circuit both live in exactly one place inside `wireEntity` — do not add per-entity closures outside it.
 
 **Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer` in `dispatch` (covers list + detail terminal paths).
 
 **Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (child `COUNT(*)` × child `Depth0` per embedded `_set`, table in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads). Changing a depth expansion's set list means updating `detailChildSets` too. The 413 check stays flat (`CheckBudget(1, type, depth, …)`) — fan-out feeds only the pool.
 
-**Adding an entity type:** add a `typicalRowBytes` entry to `internal/pdbcompat/rowsize.go` (bench via `BenchmarkRowSize`, double the mean, round to 64 bytes), pair a `ListFunc`/`CountFunc` via the shared-predicates pattern, extend the sizing table in `docs/ARCHITECTURE.md`, add under-/over-budget E2E cases mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+**Adding an entity type:** add a `typicalRowBytes` entry to `internal/pdbcompat/rowsize.go` (bench via `BenchmarkRowSize`, double the mean, round to 64 bytes), add a `wireEntity(entityWiring[...]{...})` entry in `registry_funcs.go` `init()`, extend the sizing table in `docs/ARCHITECTURE.md`, add under-/over-budget E2E cases mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
 
 **Do NOT:**
 
 - Call `runtime.ReadMemStats` per row — STW cost is µs but compounds quickly; the single-call-site `memStatsHeapInuseBytes` invariant is grep-enforceable.
 - Skip the `CheckBudget` pre-flight for "trusted" entity types — none are trusted; the 256 MB replica cap is symmetric across all 13 types.
 - Add a per-endpoint budget override — a single global budget keeps the operator mental model (and the Grafana panel legend) manageable.
-- Let the `CountFunc` closure diverge from its `ListFunc` sibling's predicates — if they disagree, the budget check and the served response become different queries and the 413 guarantee breaks.
+- Bypass `wireEntity` with hand-written List/Count closures — the generic helper exists so the budget check and the served response can never become different queries (413 guarantee).
 - Extend streaming/budget to grpcserver / entrest / GraphQL / Web UI — those surfaces have their own memory stories (see `docs/ARCHITECTURE.md § Response Memory Envelope` → Out of scope).
 
 ### Upstream parity regression
