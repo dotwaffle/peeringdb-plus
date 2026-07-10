@@ -18,7 +18,7 @@ templ Layout(title string, contents templ.Component) {
 				}
 			})();
 			</script>
-			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<link rel="stylesheet" href="/static/tailwind.css"/>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css"/>
 			<script src="/static/htmx.min.js"></script>
 			<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -53,12 +53,6 @@ templ Layout(title string, contents templ.Component) {
 				.dark .marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.65); }
 				.dark .marker-cluster-large { background-color: rgba(16, 185, 129, 0.45); }
 				.dark .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.75); }
-			</style>
-			<style type="text/tailwindcss">
-				@custom-variant dark (&:where(.dark, .dark *));
-				@theme {
-					--color-accent: #10b981;
-				}
 			</style>
 			<style>
 				html.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {

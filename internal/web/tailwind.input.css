@@ -1,0 +1,18 @@
+/* Source for the committed static/tailwind.css.
+ *
+ * Compiled by `go generate ./...` via cmd/tailwind-build (the pinned
+ * Tailwind standalone CLI — no Node.js anywhere). source(none) turns
+ * off Tailwind's automatic source detection so the scan is hermetic:
+ * only the templates tree below feeds the utility scan, making the
+ * output deterministic for the CI drift gate.
+ *
+ * The @custom-variant/@theme lines used to live in a
+ * <style type="text/tailwindcss"> block in layout.templ, consumed by
+ * the in-browser JIT build this static file replaced.
+ */
+@import "tailwindcss" source(none);
+@source "./templates";
+@custom-variant dark (&:where(.dark, .dark *));
+@theme {
+	--color-accent: #10b981;
+}

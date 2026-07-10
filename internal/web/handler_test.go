@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"database/sql"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -58,7 +59,7 @@ func TestHomeHandler_FullPage(t *testing.T) {
 		"<!doctype html>",
 		"PeeringDB Plus",
 		"htmx.min.js",
-		"@tailwindcss/browser@4",
+		"/static/tailwind.css",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
@@ -181,15 +182,40 @@ func TestLayout_DarkModeInit(t *testing.T) {
 	inner := templ.Raw("<p>test</p>")
 	body := renderComponent(t, templates.Layout("Test", inner))
 
+	// The @custom-variant dark declaration moved from the layout's
+	// text/tailwindcss block into tailwind.input.css when the static
+	// build replaced the in-browser JIT; the class-toggle mechanism the
+	// layout still owns is what's asserted here.
 	checks := []string{
 		"localStorage.getItem('darkMode')",
 		"prefers-color-scheme",
 		"dark:bg-neutral-900",
-		"@custom-variant dark",
+		"/static/tailwind.css",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
 			t.Errorf("layout missing dark mode init element %q", want)
+		}
+	}
+}
+
+// TestStaticTailwindCSS_DarkVariantCompiled guards the static Tailwind
+// build: the embedded stylesheet must exist, be non-trivial, and carry
+// the class-based dark variant (from @custom-variant dark in
+// tailwind.input.css). A regression here means dark mode silently
+// stopped compiling even though the toggle JS still flips the class.
+func TestStaticTailwindCSS_DarkVariantCompiled(t *testing.T) {
+	t.Parallel()
+	css, err := fs.ReadFile(StaticFS, "tailwind.css")
+	if err != nil {
+		t.Fatalf("embedded tailwind.css missing: %v", err)
+	}
+	if len(css) < 10_000 {
+		t.Fatalf("tailwind.css suspiciously small (%d bytes) — utility scan may have found nothing", len(css))
+	}
+	for _, want := range []string{".dark", "dark\\:bg-neutral-900"} {
+		if !strings.Contains(string(css), want) {
+			t.Errorf("tailwind.css missing %q — dark variant not compiled", want)
 		}
 	}
 }

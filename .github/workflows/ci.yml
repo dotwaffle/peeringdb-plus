@@ -52,6 +52,7 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
+            ~/.cache/peeringdb-plus
           # The resolved Go version is part of the key: `go-version: stable`
           # floats, and a toolchain bump would otherwise silently restore
           # (and keep re-saving) a build cache compiled by the old
@@ -73,10 +74,14 @@ jobs:
         # copy must fail CI, not ship silently. `git add -A -N` stages
         # intent for untracked files so brand-new generated files are
         # caught by the diff too.
+        # internal/web/static/tailwind.css is compiled by
+        # cmd/tailwind-build (the pinned Tailwind standalone CLI,
+        # downloaded+sha256-verified into ~/.cache/peeringdb-plus, which
+        # the cache step above persists across runs).
         run: |
           go generate ./...
           git add -A -N
-          if ! git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/ internal/pdbcompat/allowlist_gen.go; then
+          if ! git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/ internal/web/static/tailwind.css internal/pdbcompat/allowlist_gen.go; then
             echo "::error::Generated code is out of date. Run 'go generate ./...' and commit the changes."
             exit 1
           fi
