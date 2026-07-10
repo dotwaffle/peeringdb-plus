@@ -25,25 +25,110 @@ import (
 )
 
 func init() {
-	wireOrgFuncs()
-	wireNetFuncs()
-	wireFacFuncs()
-	wireIXFuncs()
-	wirePocFuncs()
-	wireIXLanFuncs()
-	wireIXPfxFuncs()
-	wireNetIXLanFuncs()
-	wireNetFacFuncs()
-	wireIXFacFuncs()
-	wireCarrierFuncs()
-	wireCarrierFacFuncs()
-	wireCampusFuncs()
+	wireEntity(entityWiring[*ent.OrganizationQuery, predicate.Organization, organization.OrderOption, *ent.Organization]{
+		name:    peeringdb.TypeOrg,
+		plural:  "organizations",
+		query:   func(c *ent.Client) *ent.OrganizationQuery { return c.Organization.Query() },
+		convert: func(_ context.Context, o *ent.Organization) any { return organizationFromEnt(o) },
+		get:     getOrgWithDepth,
+	})
+	wireEntity(entityWiring[*ent.NetworkQuery, predicate.Network, network.OrderOption, *ent.Network]{
+		name:    peeringdb.TypeNet,
+		plural:  "networks",
+		query:   func(c *ent.Client) *ent.NetworkQuery { return c.Network.Query() },
+		convert: func(_ context.Context, n *ent.Network) any { return networkFromEnt(n) },
+		get:     getNetWithDepth,
+	})
+	wireEntity(entityWiring[*ent.FacilityQuery, predicate.Facility, facility.OrderOption, *ent.Facility]{
+		name:    peeringdb.TypeFac,
+		plural:  "facilities",
+		query:   func(c *ent.Client) *ent.FacilityQuery { return c.Facility.Query() },
+		convert: func(_ context.Context, f *ent.Facility) any { return facilityFromEnt(f) },
+		get:     getFacWithDepth,
+	})
+	wireEntity(entityWiring[*ent.InternetExchangeQuery, predicate.InternetExchange, internetexchange.OrderOption, *ent.InternetExchange]{
+		name:    peeringdb.TypeIX,
+		plural:  "internet exchanges",
+		query:   func(c *ent.Client) *ent.InternetExchangeQuery { return c.InternetExchange.Query() },
+		convert: func(_ context.Context, ix *ent.InternetExchange) any { return internetExchangeFromEnt(ix) },
+		get:     getIXWithDepth,
+	})
+	wireEntity(entityWiring[*ent.PocQuery, predicate.Poc, poc.OrderOption, *ent.Poc]{
+		name:    peeringdb.TypePoc,
+		plural:  "pocs",
+		query:   func(c *ent.Client) *ent.PocQuery { return c.Poc.Query() },
+		convert: func(_ context.Context, p *ent.Poc) any { return pocFromEnt(p) },
+		get:     getPocWithDepth,
+	})
+	wireEntity(entityWiring[*ent.IxLanQuery, predicate.IxLan, ixlan.OrderOption, *ent.IxLan]{
+		name:   peeringdb.TypeIXLan,
+		plural: "ixlans",
+		query:  func(c *ent.Client) *ent.IxLanQuery { return c.IxLan.Query() },
+		// ixLanFromEnt is the only ctx-aware serializer: it redacts
+		// ixf_ixp_member_list_url per the caller's privacy tier.
+		convert: func(ctx context.Context, l *ent.IxLan) any { return ixLanFromEnt(ctx, l) },
+		get:     getIXLanWithDepth,
+	})
+	wireEntity(entityWiring[*ent.IxPrefixQuery, predicate.IxPrefix, ixprefix.OrderOption, *ent.IxPrefix]{
+		name:    peeringdb.TypeIXPfx,
+		plural:  "ixprefixes",
+		query:   func(c *ent.Client) *ent.IxPrefixQuery { return c.IxPrefix.Query() },
+		convert: func(_ context.Context, p *ent.IxPrefix) any { return ixPrefixFromEnt(p) },
+		get:     getIXPfxWithDepth,
+	})
+	wireEntity(entityWiring[*ent.NetworkIxLanQuery, predicate.NetworkIxLan, networkixlan.OrderOption, *ent.NetworkIxLan]{
+		name:    peeringdb.TypeNetIXLan,
+		plural:  "networkixlans",
+		query:   func(c *ent.Client) *ent.NetworkIxLanQuery { return c.NetworkIxLan.Query() },
+		convert: func(_ context.Context, n *ent.NetworkIxLan) any { return networkIxLanFromEnt(n) },
+		get:     getNetIXLanWithDepth,
+	})
+	wireEntity(entityWiring[*ent.NetworkFacilityQuery, predicate.NetworkFacility, networkfacility.OrderOption, *ent.NetworkFacility]{
+		name:    peeringdb.TypeNetFac,
+		plural:  "networkfacilities",
+		query:   func(c *ent.Client) *ent.NetworkFacilityQuery { return c.NetworkFacility.Query() },
+		convert: func(_ context.Context, n *ent.NetworkFacility) any { return networkFacilityFromEnt(n) },
+		get:     getNetFacWithDepth,
+	})
+	wireEntity(entityWiring[*ent.IxFacilityQuery, predicate.IxFacility, ixfacility.OrderOption, *ent.IxFacility]{
+		name:    peeringdb.TypeIXFac,
+		plural:  "ixfacilities",
+		query:   func(c *ent.Client) *ent.IxFacilityQuery { return c.IxFacility.Query() },
+		convert: func(_ context.Context, f *ent.IxFacility) any { return ixFacilityFromEnt(f) },
+		get:     getIXFacWithDepth,
+	})
+	wireEntity(entityWiring[*ent.CarrierQuery, predicate.Carrier, carrier.OrderOption, *ent.Carrier]{
+		name:    peeringdb.TypeCarrier,
+		plural:  "carriers",
+		query:   func(c *ent.Client) *ent.CarrierQuery { return c.Carrier.Query() },
+		convert: func(_ context.Context, cr *ent.Carrier) any { return carrierFromEnt(cr) },
+		get:     getCarrierWithDepth,
+	})
+	wireEntity(entityWiring[*ent.CarrierFacilityQuery, predicate.CarrierFacility, carrierfacility.OrderOption, *ent.CarrierFacility]{
+		name:    peeringdb.TypeCarrierFac,
+		plural:  "carrierfacilities",
+		query:   func(c *ent.Client) *ent.CarrierFacilityQuery { return c.CarrierFacility.Query() },
+		convert: func(_ context.Context, cf *ent.CarrierFacility) any { return carrierFacilityFromEnt(cf) },
+		get:     getCarrierFacWithDepth,
+	})
+	wireEntity(entityWiring[*ent.CampusQuery, predicate.Campus, campus.OrderOption, *ent.Campus]{
+		name:   peeringdb.TypeCampus,
+		plural: "campuses",
+		// Campus is the only type that admits status=pending on
+		// list+since (rest.py:721).
+		isCampus: true,
+		query:    func(c *ent.Client) *ent.CampusQuery { return c.Campus.Query() },
+		convert:  func(_ context.Context, cp *ent.Campus) any { return campusFromEnt(cp) },
+		get:      getCampusWithDepth,
+	})
 
 	// List/count pairing invariant: every entity that exposes a List closure
 	// MUST also expose a Count closure. serveList's pre-flight budget
 	// check in handler.go is gated on `tc.Count != nil` — a missing Count
 	// would silently bypass the 413 guardrail and put the process back at
-	// OOM risk on an unbounded list. Failing fast at startup is cheap;
+	// OOM risk on an unbounded list. wireEntity registers both halves from
+	// one wiring entry, so this can only trip if a Registry entry is
+	// mutated outside this file. Failing fast at startup is cheap;
 	// silent DoS exposure is not.
 	//
 	// Runs as the LAST step of init() so it observes the fully-wired
@@ -59,6 +144,81 @@ func init() {
 	if len(missing) > 0 {
 		panic(fmt.Sprintf("pdbcompat: Registry entries have List without CountFunc: %v", missing))
 	}
+}
+
+// listQuery is the builder shape every generated ent query type shares.
+// Q is the concrete builder (self-referential so chained calls keep the
+// concrete type), P its predicate type, O its order option, and E the
+// row type returned by All.
+type listQuery[Q any, P, O ~func(*sql.Selector), E any] interface {
+	Where(...P) Q
+	Order(...O) Q
+	Offset(int) Q
+	Limit(int) Q
+	All(context.Context) ([]E, error)
+	Count(context.Context) (int, error)
+}
+
+// entityWiring declares one entity's list/count/get registration for
+// wireEntity. The four type parameters name the entity's generated ent
+// types explicitly at each wiring site — verbose, but it keeps every
+// entry greppable by concrete type.
+type entityWiring[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any] struct {
+	name     string
+	plural   string // noun for "list <plural>" / "count <plural>" error wrapping
+	isCampus bool   // campus-only status-matrix branch (rest.py:721)
+	query    func(*ent.Client) Q
+	convert  func(context.Context, E) any
+	get      GetFunc
+}
+
+// wireEntity registers one entity's List, Count, and Get functions in
+// the Registry. List and Count are built from a SINGLE shared predicate
+// builder, so the pre-flight budget count and the served response can
+// never disagree — predicate divergence (which would break the 413
+// guarantee) is unrepresentable by construction.
+func wireEntity[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any](w entityWiring[Q, P, O, E]) {
+	predicates := func(opts QueryOptions) []P {
+		preds := castPredicates[P](opts.Filters)
+		if s := applySince(opts); s != nil {
+			preds = append(preds, P(s))
+		}
+		// upstream rest.py:694-727 status matrix — appended LAST so no
+		// client-supplied filter can widen the visible status set.
+		preds = append(preds, P(applyStatusMatrix(w.isCampus, opts.Since != nil)))
+		return preds
+	}
+	list := func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, error) {
+		// empty __in returns empty set.
+		if opts.EmptyResult {
+			return []any{}, nil
+		}
+		q := w.query(client).Where(predicates(opts)...).Order(listOrder[O](opts)...).Offset(opts.Skip)
+		if opts.Limit > 0 {
+			q = q.Limit(opts.Limit)
+		}
+		rows, err := q.All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list %s: %w", w.plural, err)
+		}
+		out := make([]any, len(rows))
+		for i, row := range rows {
+			out[i] = w.convert(ctx, row)
+		}
+		return out, nil
+	}
+	count := func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
+		// empty __in returns empty set.
+		if opts.EmptyResult {
+			return 0, nil
+		}
+		total, err := w.query(client).Where(predicates(opts)...).Count(ctx)
+		if err != nil {
+			return 0, fmt.Errorf("count %s: %w", w.plural, err)
+		}
+		return servedRowCount(total, opts), nil
+	}
+	setFuncs(w.name, list, count, w.get)
 }
 
 // setFuncs updates a Registry entry's List, Count, and Get functions.
@@ -114,629 +274,4 @@ func servedRowCount(total int, opts QueryOptions) int {
 		served = opts.Limit
 	}
 	return served
-}
-
-func wireOrgFuncs() {
-	orgPredicates := func(opts QueryOptions) []predicate.Organization {
-		preds := castPredicates[predicate.Organization](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.Organization(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.Organization(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeOrg,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := orgPredicates(opts)
-			q := client.Organization.Query().Where(preds...).Order(listOrder[organization.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			orgs, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list organizations: %w", err)
-			}
-			out := make([]any, len(orgs))
-			for i, o := range orgs {
-				out[i] = organizationFromEnt(o)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := orgPredicates(opts)
-			total, err := client.Organization.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count organizations: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getOrgWithDepth,
-	)
-}
-
-func wireNetFuncs() {
-	netPredicates := func(opts QueryOptions) []predicate.Network {
-		preds := castPredicates[predicate.Network](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.Network(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.Network(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeNet,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := netPredicates(opts)
-			q := client.Network.Query().Where(preds...).Order(listOrder[network.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			nets, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list networks: %w", err)
-			}
-			out := make([]any, len(nets))
-			for i, n := range nets {
-				out[i] = networkFromEnt(n)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := netPredicates(opts)
-			total, err := client.Network.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count networks: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getNetWithDepth,
-	)
-}
-
-func wireFacFuncs() {
-	facPredicates := func(opts QueryOptions) []predicate.Facility {
-		preds := castPredicates[predicate.Facility](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.Facility(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.Facility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeFac,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := facPredicates(opts)
-			q := client.Facility.Query().Where(preds...).Order(listOrder[facility.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			facs, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list facilities: %w", err)
-			}
-			out := make([]any, len(facs))
-			for i, f := range facs {
-				out[i] = facilityFromEnt(f)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := facPredicates(opts)
-			total, err := client.Facility.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count facilities: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getFacWithDepth,
-	)
-}
-
-func wireIXFuncs() {
-	ixPredicates := func(opts QueryOptions) []predicate.InternetExchange {
-		preds := castPredicates[predicate.InternetExchange](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.InternetExchange(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.InternetExchange(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeIX,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := ixPredicates(opts)
-			q := client.InternetExchange.Query().Where(preds...).Order(listOrder[internetexchange.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			ixes, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list internet exchanges: %w", err)
-			}
-			out := make([]any, len(ixes))
-			for i, ix := range ixes {
-				out[i] = internetExchangeFromEnt(ix)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := ixPredicates(opts)
-			total, err := client.InternetExchange.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count internet exchanges: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getIXWithDepth,
-	)
-}
-
-func wirePocFuncs() {
-	pocPredicates := func(opts QueryOptions) []predicate.Poc {
-		preds := castPredicates[predicate.Poc](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.Poc(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.Poc(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypePoc,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := pocPredicates(opts)
-			q := client.Poc.Query().Where(preds...).Order(listOrder[poc.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			pocs, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list pocs: %w", err)
-			}
-			out := make([]any, len(pocs))
-			for i, p := range pocs {
-				out[i] = pocFromEnt(p)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := pocPredicates(opts)
-			total, err := client.Poc.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count pocs: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getPocWithDepth,
-	)
-}
-
-func wireIXLanFuncs() {
-	ixLanPredicates := func(opts QueryOptions) []predicate.IxLan {
-		preds := castPredicates[predicate.IxLan](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.IxLan(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.IxLan(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeIXLan,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := ixLanPredicates(opts)
-			q := client.IxLan.Query().Where(preds...).Order(listOrder[ixlan.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			lans, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list ixlans: %w", err)
-			}
-			out := make([]any, len(lans))
-			for i, l := range lans {
-				out[i] = ixLanFromEnt(ctx, l)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := ixLanPredicates(opts)
-			total, err := client.IxLan.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count ixlans: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getIXLanWithDepth,
-	)
-}
-
-func wireIXPfxFuncs() {
-	ixPfxPredicates := func(opts QueryOptions) []predicate.IxPrefix {
-		preds := castPredicates[predicate.IxPrefix](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.IxPrefix(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.IxPrefix(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeIXPfx,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := ixPfxPredicates(opts)
-			q := client.IxPrefix.Query().Where(preds...).Order(listOrder[ixprefix.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			pfxs, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list ixprefixes: %w", err)
-			}
-			out := make([]any, len(pfxs))
-			for i, p := range pfxs {
-				out[i] = ixPrefixFromEnt(p)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := ixPfxPredicates(opts)
-			total, err := client.IxPrefix.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count ixprefixes: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getIXPfxWithDepth,
-	)
-}
-
-func wireNetIXLanFuncs() {
-	netIXLanPredicates := func(opts QueryOptions) []predicate.NetworkIxLan {
-		preds := castPredicates[predicate.NetworkIxLan](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.NetworkIxLan(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.NetworkIxLan(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeNetIXLan,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := netIXLanPredicates(opts)
-			q := client.NetworkIxLan.Query().Where(preds...).Order(listOrder[networkixlan.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			nixls, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list networkixlans: %w", err)
-			}
-			out := make([]any, len(nixls))
-			for i, nixl := range nixls {
-				out[i] = networkIxLanFromEnt(nixl)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := netIXLanPredicates(opts)
-			total, err := client.NetworkIxLan.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count networkixlans: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getNetIXLanWithDepth,
-	)
-}
-
-func wireNetFacFuncs() {
-	netFacPredicates := func(opts QueryOptions) []predicate.NetworkFacility {
-		preds := castPredicates[predicate.NetworkFacility](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.NetworkFacility(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.NetworkFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeNetFac,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := netFacPredicates(opts)
-			q := client.NetworkFacility.Query().Where(preds...).Order(listOrder[networkfacility.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			nfacs, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list networkfacilities: %w", err)
-			}
-			out := make([]any, len(nfacs))
-			for i, nfac := range nfacs {
-				out[i] = networkFacilityFromEnt(nfac)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := netFacPredicates(opts)
-			total, err := client.NetworkFacility.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count networkfacilities: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getNetFacWithDepth,
-	)
-}
-
-func wireIXFacFuncs() {
-	ixFacPredicates := func(opts QueryOptions) []predicate.IxFacility {
-		preds := castPredicates[predicate.IxFacility](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.IxFacility(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.IxFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeIXFac,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := ixFacPredicates(opts)
-			q := client.IxFacility.Query().Where(preds...).Order(listOrder[ixfacility.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			ixfacs, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list ixfacilities: %w", err)
-			}
-			out := make([]any, len(ixfacs))
-			for i, ixfac := range ixfacs {
-				out[i] = ixFacilityFromEnt(ixfac)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := ixFacPredicates(opts)
-			total, err := client.IxFacility.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count ixfacilities: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getIXFacWithDepth,
-	)
-}
-
-func wireCarrierFuncs() {
-	carrierPredicates := func(opts QueryOptions) []predicate.Carrier {
-		preds := castPredicates[predicate.Carrier](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.Carrier(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.Carrier(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeCarrier,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := carrierPredicates(opts)
-			q := client.Carrier.Query().Where(preds...).Order(listOrder[carrier.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			carriers, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list carriers: %w", err)
-			}
-			out := make([]any, len(carriers))
-			for i, c := range carriers {
-				out[i] = carrierFromEnt(c)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := carrierPredicates(opts)
-			total, err := client.Carrier.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count carriers: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getCarrierWithDepth,
-	)
-}
-
-func wireCarrierFacFuncs() {
-	carrierFacPredicates := func(opts QueryOptions) []predicate.CarrierFacility {
-		preds := castPredicates[predicate.CarrierFacility](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.CarrierFacility(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		preds = append(preds, predicate.CarrierFacility(applyStatusMatrix(false /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeCarrierFac,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := carrierFacPredicates(opts)
-			q := client.CarrierFacility.Query().Where(preds...).Order(listOrder[carrierfacility.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			cfs, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list carrierfacilities: %w", err)
-			}
-			out := make([]any, len(cfs))
-			for i, cf := range cfs {
-				out[i] = carrierFacilityFromEnt(cf)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := carrierFacPredicates(opts)
-			total, err := client.CarrierFacility.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count carrierfacilities: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getCarrierFacWithDepth,
-	)
-}
-
-func wireCampusFuncs() {
-	campusPredicates := func(opts QueryOptions) []predicate.Campus {
-		preds := castPredicates[predicate.Campus](opts.Filters)
-		if s := applySince(opts); s != nil {
-			preds = append(preds, predicate.Campus(s))
-		}
-		// upstream rest.py:694-727 status matrix.
-		// Campus is the only type that admits status=pending on list+since (rest.py:721).
-		preds = append(preds, predicate.Campus(applyStatusMatrix(true /*isCampus*/, opts.Since != nil)))
-		return preds
-	}
-	setFuncs(peeringdb.TypeCampus,
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return []any{}, 0, nil
-			}
-			preds := campusPredicates(opts)
-			q := client.Campus.Query().Where(preds...).Order(listOrder[campus.OrderOption](opts)...)
-			q2 := q.Offset(opts.Skip)
-			if opts.Limit > 0 {
-				q2 = q2.Limit(opts.Limit)
-			}
-			campuses, err := q2.All(ctx)
-			if err != nil {
-				return nil, 0, fmt.Errorf("list campuses: %w", err)
-			}
-			out := make([]any, len(campuses))
-			for i, c := range campuses {
-				out[i] = campusFromEnt(c)
-			}
-			return out, len(out), nil
-		},
-		func(ctx context.Context, client *ent.Client, opts QueryOptions) (int, error) {
-			// empty __in returns empty set.
-			if opts.EmptyResult {
-				return 0, nil
-			}
-			preds := campusPredicates(opts)
-			total, err := client.Campus.Query().Where(preds...).Count(ctx)
-			if err != nil {
-				return 0, fmt.Errorf("count campuses: %w", err)
-			}
-			return servedRowCount(total, opts), nil
-		},
-		getCampusWithDepth,
-	)
 }

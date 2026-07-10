@@ -58,9 +58,6 @@ type QueryOptions struct {
 	Limit   int
 	Skip    int
 	Since   *time.Time
-	Search  string   // ?q= parameter
-	Fields  []string // ?fields= parameter
-	Depth   int      // depth parameter (only used on detail)
 
 	// EmptyResult is set by ParseFilters when the request contains an
 	// __in filter with zero values (e.g. ?asn__in=). Each list closure in
@@ -70,8 +67,8 @@ type QueryOptions struct {
 	EmptyResult bool
 }
 
-// ListFunc queries entities and returns serialized objects plus total count.
-type ListFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, int, error)
+// ListFunc queries entities and returns their serialized objects.
+type ListFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, error)
 
 // CountFunc runs the predicate chain for a list query and returns the
 // matching row count WITHOUT fetching row data. Used by the
