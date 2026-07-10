@@ -41,164 +41,138 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []int) ([]ent.Noder, erro
 
 // Campuses is the resolver for the campuses field.
 func (r *queryResolver) Campuses(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.CampusOrder, where *ent.CampusWhereInput) (*ent.CampusConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.Campus.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithCampusOrder(orderBy),
-			ent.WithCampusFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.CampusConnection, error) {
+		return r.client.Campus.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithCampusOrder(orderBy),
+				ent.WithCampusFilter(where.Filter),
+			)
+	})
 }
 
 // Carriers is the resolver for the carriers field.
 func (r *queryResolver) Carriers(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.CarrierOrder, where *ent.CarrierWhereInput) (*ent.CarrierConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.Carrier.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithCarrierOrder(orderBy),
-			ent.WithCarrierFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.CarrierConnection, error) {
+		return r.client.Carrier.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithCarrierOrder(orderBy),
+				ent.WithCarrierFilter(where.Filter),
+			)
+	})
 }
 
 // CarrierFacilities is the resolver for the carrierFacilities field.
 func (r *queryResolver) CarrierFacilities(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, where *ent.CarrierFacilityWhereInput) (*ent.CarrierFacilityConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.CarrierFacility.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithCarrierFacilityFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.CarrierFacilityConnection, error) {
+		return r.client.CarrierFacility.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithCarrierFacilityFilter(where.Filter),
+			)
+	})
 }
 
 // Facilities is the resolver for the facilities field.
 func (r *queryResolver) Facilities(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.FacilityOrder, where *ent.FacilityWhereInput) (*ent.FacilityConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.Facility.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithFacilityOrder(orderBy),
-			ent.WithFacilityFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.FacilityConnection, error) {
+		return r.client.Facility.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithFacilityOrder(orderBy),
+				ent.WithFacilityFilter(where.Filter),
+			)
+	})
 }
 
 // InternetExchanges is the resolver for the internetExchanges field.
 func (r *queryResolver) InternetExchanges(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.InternetExchangeOrder, where *ent.InternetExchangeWhereInput) (*ent.InternetExchangeConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.InternetExchange.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithInternetExchangeOrder(orderBy),
-			ent.WithInternetExchangeFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.InternetExchangeConnection, error) {
+		return r.client.InternetExchange.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithInternetExchangeOrder(orderBy),
+				ent.WithInternetExchangeFilter(where.Filter),
+			)
+	})
 }
 
 // IxFacilities is the resolver for the ixFacilities field.
 func (r *queryResolver) IxFacilities(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, where *ent.IxFacilityWhereInput) (*ent.IxFacilityConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.IxFacility.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithIxFacilityFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.IxFacilityConnection, error) {
+		return r.client.IxFacility.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithIxFacilityFilter(where.Filter),
+			)
+	})
 }
 
 // IxLans is the resolver for the ixLans field.
 func (r *queryResolver) IxLans(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, where *ent.IxLanWhereInput) (*ent.IxLanConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.IxLan.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithIxLanFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.IxLanConnection, error) {
+		return r.client.IxLan.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithIxLanFilter(where.Filter),
+			)
+	})
 }
 
 // IxPrefixes is the resolver for the ixPrefixes field.
 func (r *queryResolver) IxPrefixes(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, where *ent.IxPrefixWhereInput) (*ent.IxPrefixConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.IxPrefix.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithIxPrefixFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.IxPrefixConnection, error) {
+		return r.client.IxPrefix.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithIxPrefixFilter(where.Filter),
+			)
+	})
 }
 
 // Networks is the resolver for the networks field.
 func (r *queryResolver) Networks(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.NetworkOrder, where *ent.NetworkWhereInput) (*ent.NetworkConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.Network.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithNetworkOrder(orderBy),
-			ent.WithNetworkFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.NetworkConnection, error) {
+		return r.client.Network.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithNetworkOrder(orderBy),
+				ent.WithNetworkFilter(where.Filter),
+			)
+	})
 }
 
 // NetworkFacilities is the resolver for the networkFacilities field.
 func (r *queryResolver) NetworkFacilities(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, where *ent.NetworkFacilityWhereInput) (*ent.NetworkFacilityConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.NetworkFacility.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithNetworkFacilityFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.NetworkFacilityConnection, error) {
+		return r.client.NetworkFacility.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithNetworkFacilityFilter(where.Filter),
+			)
+	})
 }
 
 // NetworkIxLans is the resolver for the networkIxLans field.
 func (r *queryResolver) NetworkIxLans(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, where *ent.NetworkIxLanWhereInput) (*ent.NetworkIxLanConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.NetworkIxLan.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithNetworkIxLanFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.NetworkIxLanConnection, error) {
+		return r.client.NetworkIxLan.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithNetworkIxLanFilter(where.Filter),
+			)
+	})
 }
 
 // Organizations is the resolver for the organizations field.
 func (r *queryResolver) Organizations(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, orderBy *ent.OrganizationOrder, where *ent.OrganizationWhereInput) (*ent.OrganizationConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.Organization.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithOrganizationOrder(orderBy),
-			ent.WithOrganizationFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.OrganizationConnection, error) {
+		return r.client.Organization.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithOrganizationOrder(orderBy),
+				ent.WithOrganizationFilter(where.Filter),
+			)
+	})
 }
 
 // Pocs is the resolver for the pocs field.
 func (r *queryResolver) Pocs(ctx context.Context, after *entgql.Cursor[int], first *int, before *entgql.Cursor[int], last *int, where *ent.PocWhereInput) (*ent.PocConnection, error) {
-	if err := validatePageSize(first, last); err != nil {
-		return nil, err
-	}
-	first = defaultFirst(first, last)
-	return r.client.Poc.Query().
-		Paginate(ctx, after, first, before, last,
-			ent.WithPocFilter(where.Filter),
-		)
+	return connResolve(first, last, func(first *int) (*ent.PocConnection, error) {
+		return r.client.Poc.Query().
+			Paginate(ctx, after, first, before, last,
+				ent.WithPocFilter(where.Filter),
+			)
+	})
 }
 
 // IxLan returns IxLanResolver implementation.

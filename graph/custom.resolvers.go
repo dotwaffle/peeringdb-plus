@@ -11,6 +11,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
+	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	"github.com/dotwaffle/peeringdb-plus/graph/model"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 )
@@ -57,353 +58,158 @@ func (r *queryResolver) NetworkByAsn(ctx context.Context, asn int) (*ent.Network
 
 // OrganizationsList is the resolver for the organizationsList field.
 func (r *queryResolver) OrganizationsList(ctx context.Context, offset *int, limit *int, where *ent.OrganizationWhereInput) ([]*ent.Organization, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.Organization.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply organization filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.OrganizationQuery, predicate.Organization, *ent.Organization](ctx,
+		listResolveInput[*ent.OrganizationQuery, predicate.Organization]{
+			offset: offset,
+			limit:  limit,
+			entity: "organization",
+			query:  r.client.Organization.Query(),
+			whereP: wherePredicate[predicate.Organization](where),
+		})
 }
 
 // NetworksList is the resolver for the networksList field.
 func (r *queryResolver) NetworksList(ctx context.Context, offset *int, limit *int, where *ent.NetworkWhereInput) ([]*ent.Network, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.Network.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply network filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.NetworkQuery, predicate.Network, *ent.Network](ctx,
+		listResolveInput[*ent.NetworkQuery, predicate.Network]{
+			offset: offset,
+			limit:  limit,
+			entity: "network",
+			query:  r.client.Network.Query(),
+			whereP: wherePredicate[predicate.Network](where),
+		})
 }
 
 // FacilitiesList is the resolver for the facilitiesList field.
 func (r *queryResolver) FacilitiesList(ctx context.Context, offset *int, limit *int, where *ent.FacilityWhereInput) ([]*ent.Facility, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.Facility.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply facility filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.FacilityQuery, predicate.Facility, *ent.Facility](ctx,
+		listResolveInput[*ent.FacilityQuery, predicate.Facility]{
+			offset: offset,
+			limit:  limit,
+			entity: "facility",
+			query:  r.client.Facility.Query(),
+			whereP: wherePredicate[predicate.Facility](where),
+		})
 }
 
 // InternetExchangesList is the resolver for the internetExchangesList field.
 func (r *queryResolver) InternetExchangesList(ctx context.Context, offset *int, limit *int, where *ent.InternetExchangeWhereInput) ([]*ent.InternetExchange, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.InternetExchange.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply internet exchange filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.InternetExchangeQuery, predicate.InternetExchange, *ent.InternetExchange](ctx,
+		listResolveInput[*ent.InternetExchangeQuery, predicate.InternetExchange]{
+			offset: offset,
+			limit:  limit,
+			entity: "internet exchange",
+			query:  r.client.InternetExchange.Query(),
+			whereP: wherePredicate[predicate.InternetExchange](where),
+		})
 }
 
 // PocsList is the resolver for the pocsList field.
 func (r *queryResolver) PocsList(ctx context.Context, offset *int, limit *int, where *ent.PocWhereInput) ([]*ent.Poc, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.Poc.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply poc filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.PocQuery, predicate.Poc, *ent.Poc](ctx,
+		listResolveInput[*ent.PocQuery, predicate.Poc]{
+			offset: offset,
+			limit:  limit,
+			entity: "poc",
+			query:  r.client.Poc.Query(),
+			whereP: wherePredicate[predicate.Poc](where),
+		})
 }
 
 // IxLansList is the resolver for the ixLansList field.
 func (r *queryResolver) IxLansList(ctx context.Context, offset *int, limit *int, where *ent.IxLanWhereInput) ([]*ent.IxLan, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.IxLan.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply ix lan filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.IxLanQuery, predicate.IxLan, *ent.IxLan](ctx,
+		listResolveInput[*ent.IxLanQuery, predicate.IxLan]{
+			offset: offset,
+			limit:  limit,
+			entity: "ix lan",
+			query:  r.client.IxLan.Query(),
+			whereP: wherePredicate[predicate.IxLan](where),
+		})
 }
 
 // IxPrefixesList is the resolver for the ixPrefixesList field.
 func (r *queryResolver) IxPrefixesList(ctx context.Context, offset *int, limit *int, where *ent.IxPrefixWhereInput) ([]*ent.IxPrefix, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.IxPrefix.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply ix prefix filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.IxPrefixQuery, predicate.IxPrefix, *ent.IxPrefix](ctx,
+		listResolveInput[*ent.IxPrefixQuery, predicate.IxPrefix]{
+			offset: offset,
+			limit:  limit,
+			entity: "ix prefix",
+			query:  r.client.IxPrefix.Query(),
+			whereP: wherePredicate[predicate.IxPrefix](where),
+		})
 }
 
 // IxFacilitiesList is the resolver for the ixFacilitiesList field.
 func (r *queryResolver) IxFacilitiesList(ctx context.Context, offset *int, limit *int, where *ent.IxFacilityWhereInput) ([]*ent.IxFacility, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.IxFacility.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply ix facility filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.IxFacilityQuery, predicate.IxFacility, *ent.IxFacility](ctx,
+		listResolveInput[*ent.IxFacilityQuery, predicate.IxFacility]{
+			offset: offset,
+			limit:  limit,
+			entity: "ix facility",
+			query:  r.client.IxFacility.Query(),
+			whereP: wherePredicate[predicate.IxFacility](where),
+		})
 }
 
 // NetworkIxLansList is the resolver for the networkIxLansList field.
 func (r *queryResolver) NetworkIxLansList(ctx context.Context, offset *int, limit *int, where *ent.NetworkIxLanWhereInput) ([]*ent.NetworkIxLan, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.NetworkIxLan.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply network ix lan filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.NetworkIxLanQuery, predicate.NetworkIxLan, *ent.NetworkIxLan](ctx,
+		listResolveInput[*ent.NetworkIxLanQuery, predicate.NetworkIxLan]{
+			offset: offset,
+			limit:  limit,
+			entity: "network ix lan",
+			query:  r.client.NetworkIxLan.Query(),
+			whereP: wherePredicate[predicate.NetworkIxLan](where),
+		})
 }
 
 // NetworkFacilitiesList is the resolver for the networkFacilitiesList field.
 func (r *queryResolver) NetworkFacilitiesList(ctx context.Context, offset *int, limit *int, where *ent.NetworkFacilityWhereInput) ([]*ent.NetworkFacility, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.NetworkFacility.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply network facility filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.NetworkFacilityQuery, predicate.NetworkFacility, *ent.NetworkFacility](ctx,
+		listResolveInput[*ent.NetworkFacilityQuery, predicate.NetworkFacility]{
+			offset: offset,
+			limit:  limit,
+			entity: "network facility",
+			query:  r.client.NetworkFacility.Query(),
+			whereP: wherePredicate[predicate.NetworkFacility](where),
+		})
 }
 
 // CarriersList is the resolver for the carriersList field.
 func (r *queryResolver) CarriersList(ctx context.Context, offset *int, limit *int, where *ent.CarrierWhereInput) ([]*ent.Carrier, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.Carrier.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply carrier filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.CarrierQuery, predicate.Carrier, *ent.Carrier](ctx,
+		listResolveInput[*ent.CarrierQuery, predicate.Carrier]{
+			offset: offset,
+			limit:  limit,
+			entity: "carrier",
+			query:  r.client.Carrier.Query(),
+			whereP: wherePredicate[predicate.Carrier](where),
+		})
 }
 
 // CarrierFacilitiesList is the resolver for the carrierFacilitiesList field.
 func (r *queryResolver) CarrierFacilitiesList(ctx context.Context, offset *int, limit *int, where *ent.CarrierFacilityWhereInput) ([]*ent.CarrierFacility, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.CarrierFacility.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply carrier facility filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.CarrierFacilityQuery, predicate.CarrierFacility, *ent.CarrierFacility](ctx,
+		listResolveInput[*ent.CarrierFacilityQuery, predicate.CarrierFacility]{
+			offset: offset,
+			limit:  limit,
+			entity: "carrier facility",
+			query:  r.client.CarrierFacility.Query(),
+			whereP: wherePredicate[predicate.CarrierFacility](where),
+		})
 }
 
 // CampusesList is the resolver for the campusesList field.
 func (r *queryResolver) CampusesList(ctx context.Context, offset *int, limit *int, where *ent.CampusWhereInput) ([]*ent.Campus, error) {
-	ol, err := ValidateOffsetLimit(offset, limit)
-	if err != nil {
-		return nil, err
-	}
-	query := r.client.Campus.Query().
-		Offset(ol.Offset).
-		Limit(ol.Limit)
-	if where != nil {
-		p, err := where.P()
-		if err != nil {
-			return nil, fmt.Errorf("apply campus filter: %w", err)
-		}
-		query = query.Where(p)
-	}
-	// CollectFields eager-loads the GraphQL-selected edges in O(edges)
-	// batched queries; without it every nested edge selection falls into
-	// ent's per-row lazy-load path (N+1 queries and N otelsql spans).
-	// The relay connection resolvers get this from entgql's Paginate.
-	query, err = query.CollectFields(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("collect fields: %w", err)
-	}
-	return query.All(ctx)
+	return listResolve[*ent.CampusQuery, predicate.Campus, *ent.Campus](ctx,
+		listResolveInput[*ent.CampusQuery, predicate.Campus]{
+			offset: offset,
+			limit:  limit,
+			entity: "campus",
+			query:  r.client.Campus.Query(),
+			whereP: wherePredicate[predicate.Campus](where),
+		})
 }
 
 // ObjectCounts is the resolver for the objectCounts field.
