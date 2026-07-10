@@ -94,6 +94,22 @@ func TestDepth_DeletedRowsExcludedFromSets(t *testing.T) {
 		SetNetwork(netOK).SetIxLan(ixlanDel).SetAsn(65001).SetSpeed(1000).
 		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
 
+	ixpfxOK := client.IxPrefix.Create().
+		SetIxLan(ixlanOK).SetPrefix("10.0.0.0/24").SetProtocol("IPv4").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	ixpfxDel := client.IxPrefix.Create().
+		SetIxLan(ixlanOK).SetPrefix("10.0.1.0/24").SetProtocol("IPv4").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+
+	// A tombstoned netixlan join row on the live ixlan: its (live) network
+	// must not surface in the ixlan's net_set.
+	netOK2 := client.Network.Create().
+		SetName("Live Net 2").SetAsn(65003).SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.NetworkIxLan.Create().
+		SetNetwork(netOK2).SetIxLan(ixlanOK).SetAsn(65003).SetSpeed(1000).
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+
 	ixfacOK := client.IxFacility.Create().
 		SetInternetExchange(ixOK).SetFacility(facOK).
 		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
@@ -170,6 +186,8 @@ func TestDepth_DeletedRowsExcludedFromSets(t *testing.T) {
 		{fmt.Sprintf("/api/net/%d", netOK.ID), "netixlan_set", nilOK.ID, nilDel.ID},
 		{fmt.Sprintf("/api/ix/%d", ixOK.ID), "ixlan_set", ixlanOK.ID, ixlanDel.ID},
 		{fmt.Sprintf("/api/ix/%d", ixOK.ID), "fac_set", facOK.ID, facDel.ID},
+		{fmt.Sprintf("/api/ixlan/%d", ixlanOK.ID), "ixpfx_set", ixpfxOK.ID, ixpfxDel.ID},
+		{fmt.Sprintf("/api/ixlan/%d", ixlanOK.ID), "net_set", netOK.ID, netOK2.ID},
 		{fmt.Sprintf("/api/carrier/%d", carOK.ID), "carrierfac_set", cfOK.ID, cfDel.ID},
 		{fmt.Sprintf("/api/campus/%d", campOK.ID), "fac_set", campFacOK.ID, campFacDel.ID},
 	}
