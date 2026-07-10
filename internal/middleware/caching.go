@@ -229,7 +229,11 @@ func computeETag(syncTime time.Time) string {
 }
 
 // etagMatch reports whether the If-None-Match header value matches the
-// current ETag. Supports the "*" wildcard which matches any ETag.
+// current ETag. Per RFC 9110 §13.1.2 the header carries a comma-separated
+// list of entity tags (or the "*" wildcard, which matches any ETag);
+// clients that cached several representations legitimately send
+// `W/"a", W/"b"` and expect a 304 when ANY member matches — the previous
+// whole-string comparison failed every multi-tag request into a full 200.
 func etagMatch(ifNoneMatch, etag string) bool {
 	ifNoneMatch = strings.TrimSpace(ifNoneMatch)
 	if ifNoneMatch == "" {
@@ -238,5 +242,12 @@ func etagMatch(ifNoneMatch, etag string) bool {
 	if ifNoneMatch == "*" {
 		return true
 	}
-	return strings.TrimSpace(ifNoneMatch) == etag
+	// Commas cannot appear inside an entity-tag (RFC 9110 etagc excludes
+	// them), so a plain split is a correct list parse.
+	for tag := range strings.SplitSeq(ifNoneMatch, ",") {
+		if strings.TrimSpace(tag) == etag {
+			return true
+		}
+	}
+	return false
 }

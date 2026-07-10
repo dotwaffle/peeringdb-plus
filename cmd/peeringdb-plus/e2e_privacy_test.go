@@ -253,17 +253,16 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	gqlHandler := pdbgql.NewHandler(resolver)
 	mux.Handle("POST /graphql", gqlHandler)
 
-	// entrest (/rest/v1/). Matches main.go: wrap with restCORS and the
+	// entrest (/rest/v1/). Matches main.go: wrap with the
 	// restErrorWriter so response shapes match production.
 	restSrv, err := rest.NewServer(client, &rest.ServerConfig{BasePath: "/rest/v1"})
 	if err != nil {
 		t.Fatalf("create REST server: %v", err)
 	}
-	restCORS := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})
 	// The field-redact middleware is wired INSIDE restErrorMiddleware
 	// so problem+json error responses pass through untouched. Matches
 	// main.go's production chain order.
-	mux.Handle("/rest/v1/", restCORS(restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler()))))
+	mux.Handle("/rest/v1/", restErrorMiddleware(restFieldRedactMiddleware(restSrv.Handler())))
 
 	// pdbcompat (/api/). Registers /api/{rest...} internally.
 	// Budget=0 disables the pre-flight budget check — this test

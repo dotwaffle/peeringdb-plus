@@ -91,12 +91,18 @@ type StreamParams[E any, P any] struct {
 // Handles timeout, count header, SinceID/UpdatedSince, and batch iteration.
 //
 // Header contract: on full streams (SinceID == nil AND UpdatedSince ==
-// nil) a SELECT COUNT(*) preflight runs and the grpc-total-count response header
-// is set to the total matching row count. On delta streams (SinceID or
+// nil) a SELECT COUNT(*) preflight runs and the pdbplus-total-count response
+// header is set to the total matching row count. On delta streams (SinceID or
 // UpdatedSince set) the COUNT preflight is skipped entirely and
-// the grpc-total-count response header is absent — not "present with 0", not
+// the pdbplus-total-count response header is absent — not "present with 0", not
 // "present with -1". Delta clients pull incremental ranges and have no use for a
 // full-table total, so we do not pay for the count.
+//
+// The legacy grpc-total-count header is dual-emitted for a deprecation
+// window: connect-go reserves the Grpc- prefix for protocol metadata
+// (protocol/grpc strips or refuses application headers named grpc-*
+// depending on transport), so the application header moved to the
+// pdbplus- prefix. Drop the legacy emission after clients migrate.
 func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P], stream *connect.ServerStream[P]) error {
 	// Apply stream timeout.
 	if params.Timeout > 0 {
@@ -128,6 +134,8 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 			return connect.NewError(connect.CodeInternal,
 				fmt.Errorf("count %s: %w", params.EntityName, err))
 		}
+		stream.ResponseHeader().Set("pdbplus-total-count", strconv.Itoa(total))
+		// Deprecated alias — see the header-contract comment above.
 		stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
 	}
 

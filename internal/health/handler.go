@@ -28,21 +28,6 @@ const (
 	bodyUnhealthy = `{"status":"unhealthy"}`
 )
 
-// Response is retained for backwards compatibility with any downstream
-// consumer that imports the type symbol. The health handlers themselves no
-// longer write this shape to the wire — see bodyOK/bodyUnhealthy.
-type Response struct {
-	Status     string               `json:"status"`
-	Components map[string]Component `json:"components"`
-}
-
-// Component mirrors Response: retained as an exported symbol for
-// backwards-source-compat only. Not written to the wire by this package.
-type Component struct {
-	Status  string `json:"status"`
-	Message string `json:"message,omitempty"`
-}
-
 // writeGeneric emits a fixed generic body with the given HTTP status. The
 // body is one of bodyOK or bodyUnhealthy; callers MUST NOT pass other
 // strings.

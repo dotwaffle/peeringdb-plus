@@ -513,17 +513,25 @@ Every stream is capped by `PDBPLUS_STREAM_TIMEOUT`
 (default `60s`) enforced via `context.WithTimeout` at the handler.
 Exceeding the timeout closes the stream with a cancellation error.
 
-### `grpc-total-count` response header
+### `pdbplus-total-count` response header
 
 On **full streams** (both `since_id` and `updated_since` unset),
 the handler runs a `SELECT COUNT(*)` preflight
-and sets the `grpc-total-count` response header to the total matching row count.
+and sets the `pdbplus-total-count` response header
+to the total matching row count.
 On **delta streams** (either `since_id` or `updated_since` set),
 the COUNT preflight is skipped entirely
-and the `grpc-total-count` header is **absent** —
+and the `pdbplus-total-count` header is **absent** —
 not "present with 0" and not "present with -1".
 Clients of delta streams have no use for a full-table total
 and the skip avoids a needless full-table scan.
+
+The header was named `grpc-total-count` before v1.23;
+the `Grpc-` prefix is reserved for protocol metadata by connect-go/gRPC,
+so the application header moved to the `pdbplus-` prefix.
+The legacy `grpc-total-count` name is still dual-emitted
+for a deprecation window and will be removed in a future release —
+migrate clients to `pdbplus-total-count`.
 
 ### Reflection and health
 

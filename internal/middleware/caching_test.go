@@ -109,6 +109,31 @@ func TestCaching(t *testing.T) {
 			wantEmptyBody: true,
 		},
 		{
+			// RFC 9110 §13.1.2: If-None-Match is a comma-separated list;
+			// a 304 is due when ANY member matches.
+			name:          "GET with matching tag in a comma-separated list returns 304",
+			method:        http.MethodGet,
+			callUpdate:    true,
+			syncTime:      fixedTime,
+			ifNoneMatch:   `W/"0000000000000000000000000000dead", ` + currentETag + `, W/"0000000000000000000000000000beef"`,
+			wantStatus:    http.StatusNotModified,
+			wantETag:      true,
+			wantETagValue: currentETag,
+			wantCalled:    false,
+			wantEmptyBody: true,
+		},
+		{
+			name:          "GET with no matching tag in a comma-separated list returns normal response",
+			method:        http.MethodGet,
+			callUpdate:    true,
+			syncTime:      fixedTime,
+			ifNoneMatch:   `W/"0000000000000000000000000000dead", W/"0000000000000000000000000000beef"`,
+			wantStatus:    http.StatusOK,
+			wantCacheCtrl: "public, max-age=3720",
+			wantETag:      true,
+			wantCalled:    true,
+		},
+		{
 			name:          "GET with non-matching If-None-Match returns normal response",
 			method:        http.MethodGet,
 			callUpdate:    true,
