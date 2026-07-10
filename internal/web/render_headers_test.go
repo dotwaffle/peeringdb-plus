@@ -53,7 +53,7 @@ func TestRenderPage_ErrorStatusAfterHeaders(t *testing.T) {
 	req.Header.Set("User-Agent", "curl/8.5.0")
 	req.Header.Set("Accept", "application/json")
 
-	page := PageContent{Title: "Not Found", Status: http.StatusNotFound}
+	page := PageContent{Title: "Not Found", Kind: KindNotFound, Status: http.StatusNotFound}
 	if err := renderPage(req.Context(), rec, req, page); err != nil {
 		t.Fatalf("renderPage: %v", err)
 	}
@@ -69,5 +69,31 @@ func TestRenderPage_ErrorStatusAfterHeaders(t *testing.T) {
 	}
 	if body := rec.Body.String(); strings.Contains(body, "doesn't exist") == false {
 		t.Errorf("problem-detail body missing: %q", body)
+	}
+}
+
+// TestRenderPage_EntityTitledHome locks the PageKind dispatch: "Home",
+// "Not Found", and "Server Error" are legal entity names, so an entity
+// page whose Title collides with one must still render as data, not be
+// misrouted to the help/error output the magic-string switch produced.
+func TestRenderPage_EntityTitledHome(t *testing.T) {
+	t.Parallel()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/ui/net/1", nil)
+	req.Header.Set("User-Agent", "curl/8.5.0")
+	req.Header.Set("Accept", "application/json")
+
+	page := PageContent{Title: "Home", Kind: KindEntity}
+	if err := renderPage(req.Context(), rec, req, page); err != nil {
+		t.Fatalf("renderPage: %v", err)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `"title"`) || !strings.Contains(body, "Home") {
+		t.Errorf("entity page misrouted, body: %q", body)
+	}
+	if strings.Contains(body, "doesn't exist") {
+		t.Errorf("entity page rendered as error page: %q", body)
 	}
 }

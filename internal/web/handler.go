@@ -137,11 +137,13 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 
 	page := PageContent{
 		Title:     "Home",
+		Kind:      KindHome,
 		Content:   templates.Home(query, groups),
 		Freshness: h.getFreshness(r.Context()),
 	}
 	if len(groups) > 0 {
 		page.Title = "Search"
+		page.Kind = KindEntity
 		page.Data = groups
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
@@ -288,7 +290,7 @@ func searchTypeViewData(res SearchTypeResult) []templates.SearchGroup {
 }
 
 func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
-	page := PageContent{Title: "Not Found", Content: templates.NotFoundPage(), Status: http.StatusNotFound}
+	page := PageContent{Title: "Not Found", Kind: KindNotFound, Content: templates.NotFoundPage(), Status: http.StatusNotFound}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
@@ -296,7 +298,7 @@ func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
 
 // handleServerError renders a styled 500 error page.
 func (h *Handler) handleServerError(w http.ResponseWriter, r *http.Request) {
-	page := PageContent{Title: "Server Error", Content: templates.ServerErrorPage(), Status: http.StatusInternalServerError}
+	page := PageContent{Title: "Server Error", Kind: KindServerError, Content: templates.ServerErrorPage(), Status: http.StatusInternalServerError}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
