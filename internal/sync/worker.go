@@ -24,19 +24,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/ent/campus"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/facility"
-	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
-	"github.com/dotwaffle/peeringdb-plus/ent/network"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
@@ -435,41 +422,14 @@ func (w *Worker) fkHasParent(ctx context.Context, tx *ent.Tx, typeName string, i
 }
 
 // dbHasRecord checks the real database for the existence of an ID for
-// the named PeeringDB type.
+// the named PeeringDB type via its typeRegistry descriptor.
 func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, id int) bool {
-	var err error
-	var exists bool
-	switch typeName {
-	case peeringdb.TypeOrg:
-		exists, err = tx.Organization.Query().Where(organization.ID(id)).Exist(ctx)
-	case peeringdb.TypeCampus:
-		exists, err = tx.Campus.Query().Where(campus.ID(id)).Exist(ctx)
-	case peeringdb.TypeFac:
-		exists, err = tx.Facility.Query().Where(facility.ID(id)).Exist(ctx)
-	case peeringdb.TypeCarrier:
-		exists, err = tx.Carrier.Query().Where(carrier.ID(id)).Exist(ctx)
-	case peeringdb.TypeCarrierFac:
-		exists, err = tx.CarrierFacility.Query().Where(carrierfacility.ID(id)).Exist(ctx)
-	case peeringdb.TypeIX:
-		exists, err = tx.InternetExchange.Query().Where(internetexchange.ID(id)).Exist(ctx)
-	case peeringdb.TypeIXLan:
-		exists, err = tx.IxLan.Query().Where(ixlan.ID(id)).Exist(ctx)
-	case peeringdb.TypeIXPfx:
-		exists, err = tx.IxPrefix.Query().Where(ixprefix.ID(id)).Exist(ctx)
-	case peeringdb.TypeIXFac:
-		exists, err = tx.IxFacility.Query().Where(ixfacility.ID(id)).Exist(ctx)
-	case peeringdb.TypeNet:
-		exists, err = tx.Network.Query().Where(network.ID(id)).Exist(ctx)
-	case peeringdb.TypePoc:
-		exists, err = tx.Poc.Query().Where(poc.ID(id)).Exist(ctx)
-	case peeringdb.TypeNetFac:
-		exists, err = tx.NetworkFacility.Query().Where(networkfacility.ID(id)).Exist(ctx)
-	case peeringdb.TypeNetIXLan:
-		exists, err = tx.NetworkIxLan.Query().Where(networkixlan.ID(id)).Exist(ctx)
-	default:
+	desc, ok := descriptorByName[typeName]
+	if !ok {
 		w.logger.LogAttrs(ctx, slog.LevelError, "unknown type for DB record check", slog.String("type", typeName))
 		return false
 	}
+	exists, err := desc.exists(ctx, tx, id)
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to check DB for record",
 			slog.String("type", typeName),
@@ -498,16 +458,6 @@ func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, i
 // the dormant tombstone-GC work still owns the eventual GC story.
 type syncStep struct {
 	name string
-}
-
-// canonicalStepOrder is the single source of truth for sync step
-// ordering (FK dependency order). syncSteps() zips this with
-// the per-type delete-fns; StepOrder() exposes a defensive copy for
-// out-of-package consumers (e.g. cmd/loadtest's sync mode parity test).
-var canonicalStepOrder = []string{
-	"org", "campus", "fac", "carrier", "carrierfac",
-	"ix", "ixlan", "ixpfx", "ixfac",
-	"net", "poc", "netfac", "netixlan",
 }
 
 // StepOrder returns a copy of the canonical 13-name sync step
@@ -1595,24 +1545,11 @@ func syncIncremental[E any](ctx context.Context, tx *ent.Tx, in syncIncrementalI
 }
 
 // dispatchScratchChunk routes a chunk of scratch rows for the named
-// PeeringDB type through the generic syncIncremental[E] helper. This
-// is the single dispatch point for the 13 closed-set entity types —
-// each case binds the concrete type E plus its per-type status accessor
-// and upsert helper, then calls the generic.
-//
-// This 13-arm dispatch replaces the two separate
-// 13-arm type-switches that used to live in decodeScratchChunk and
-// upsertOneType. Adding a new PeeringDB type now requires a single
-// case entry here (and the corresponding entry in syncSteps /
-// scratchTypes). Removing or reordering cases must stay in lockstep
-// with syncSteps() to preserve FK dependency ordering.
-//
-// v1.13 FK orphan filter: cases for child types supply a fkFilter
-// closure that checks each incoming row's FK references against the
-// parent sets populated by earlier syncIncremental.recordIDs
-// callbacks. Rows whose parents are missing are dropped and logged.
-// This handles PeeringDB snapshots that expose live children pointing
-// at server-side-suppressed parents (e.g. NTT America carrier → org).
+// PeeringDB type through its typeRegistry descriptor's chunkUpsert
+// closure (which binds the concrete type E, the per-type FK-orphan
+// fkFilter policy, and the bulk upsert helper, then calls the generic
+// syncIncremental[E]). Adding a new PeeringDB type requires a single
+// descriptor entry in registry.go.
 func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name string, rows []scratchRow) (int, error) {
 	// Chunk pre-pass batches missing required
 	// parent FK fetches per parent type per chunk, turning N per-row
@@ -1620,188 +1557,11 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 	// cache makes the per-row fkCheckParent → fkBackfillParent path a
 	// no-op for any parent already loaded by this pre-pass.
 	w.prefetchMissingParentsForChunk(ctx, tx, name, rows)
-	switch name {
-	case peeringdb.TypeOrg:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Organization]{
-			objectType: name,
-			recordIDs:  func(ids []int) { w.fkRegisterIDs(peeringdb.TypeOrg, ids) },
-			upsert:     upsertOrganizations,
-		}, rows)
-	case peeringdb.TypeCampus:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Campus]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.Campus) bool {
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeCampus, v.ID,
-					peeringdb.TypeOrg, v.OrgID, "org_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCampus, ids) },
-			upsert:    upsertCampuses,
-		}, rows)
-	case peeringdb.TypeFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Facility]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.Facility) bool {
-				if !w.fkCheckParent(ctx, tx, peeringdb.TypeFac, v.ID,
-					peeringdb.TypeOrg, v.OrgID, "org_id") {
-					return false
-				}
-				// campus_id is Optional().Nillable() in the ent
-				// schema — if the referenced campus is missing,
-				// null the reference out and keep the facility
-				// (avoids cascading the drop through netfac /
-				// ixfac / carrierfac children of the facility).
-				if v.CampusID != nil && !w.fkHasParent(ctx, tx, peeringdb.TypeCampus, *v.CampusID) {
-					w.recordOrphan(ctx, fkOrphanKey{
-						ChildType:  peeringdb.TypeFac,
-						ParentType: peeringdb.TypeCampus,
-						Field:      "campus_id",
-						Action:     "null",
-					}, v.ID, *v.CampusID)
-					v.CampusID = nil
-				}
-				return true
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeFac, ids) },
-			upsert:    upsertFacilities,
-		}, rows)
-	case peeringdb.TypeCarrier:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Carrier]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.Carrier) bool {
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeCarrier, v.ID,
-					peeringdb.TypeOrg, v.OrgID, "org_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrier, ids) },
-			upsert:    upsertCarriers,
-		}, rows)
-	case peeringdb.TypeCarrierFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.CarrierFacility]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.CarrierFacility) bool {
-				if !w.fkCheckParent(ctx, tx, peeringdb.TypeCarrierFac, v.ID,
-					peeringdb.TypeCarrier, v.CarrierID, "carrier_id") {
-					return false
-				}
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeCarrierFac, v.ID,
-					peeringdb.TypeFac, v.FacID, "fac_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeCarrierFac, ids) },
-			upsert:    upsertCarrierFacilities,
-		}, rows)
-	case peeringdb.TypeIX:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.InternetExchange]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.InternetExchange) bool {
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeIX, v.ID,
-					peeringdb.TypeOrg, v.OrgID, "org_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIX, ids) },
-			upsert:    upsertInternetExchanges,
-		}, rows)
-	case peeringdb.TypeIXLan:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxLan]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.IxLan) bool {
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXLan, v.ID,
-					peeringdb.TypeIX, v.IXID, "ix_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXLan, ids) },
-			upsert:    upsertIxLans,
-		}, rows)
-	case peeringdb.TypeIXPfx:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxPrefix]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.IxPrefix) bool {
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXPfx, v.ID,
-					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXPfx, ids) },
-			upsert:    upsertIxPrefixes,
-		}, rows)
-	case peeringdb.TypeIXFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.IxFacility]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.IxFacility) bool {
-				if !w.fkCheckParent(ctx, tx, peeringdb.TypeIXFac, v.ID,
-					peeringdb.TypeIX, v.IXID, "ix_id") {
-					return false
-				}
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeIXFac, v.ID,
-					peeringdb.TypeFac, v.FacID, "fac_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeIXFac, ids) },
-			upsert:    upsertIxFacilities,
-		}, rows)
-	case peeringdb.TypeNet:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Network]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.Network) bool {
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeNet, v.ID,
-					peeringdb.TypeOrg, v.OrgID, "org_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNet, ids) },
-			upsert:    upsertNetworks,
-		}, rows)
-	case peeringdb.TypePoc:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.Poc]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.Poc) bool {
-				return w.fkCheckParent(ctx, tx, peeringdb.TypePoc, v.ID,
-					peeringdb.TypeNet, v.NetID, "net_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypePoc, ids) },
-			upsert:    upsertPocs,
-		}, rows)
-	case peeringdb.TypeNetFac:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkFacility]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.NetworkFacility) bool {
-				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetFac, v.ID,
-					peeringdb.TypeNet, v.NetID, "net_id") {
-					return false
-				}
-				return w.fkCheckParent(ctx, tx, peeringdb.TypeNetFac, v.ID,
-					peeringdb.TypeFac, v.FacID, "fac_id")
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetFac, ids) },
-			upsert:    upsertNetworkFacilities,
-		}, rows)
-	case peeringdb.TypeNetIXLan:
-		return syncIncremental(ctx, tx, syncIncrementalInput[peeringdb.NetworkIxLan]{
-			objectType: name,
-			fkFilter: func(v *peeringdb.NetworkIxLan) bool {
-				// Required FKs: net_id, ixlan_id. Drop on miss after
-				// backfill attempt (legacy behavior).
-				//
-				// NOTE: ix_id is NOT an independent FK upstream — it is
-				// serializer-computed from ixlan.ix_id (peeringdb_server/
-				// serializers.py NetworkIxLanSerializer). Validating
-				// ixlan_id (below) is sufficient. We
-				// removed the redundant ix_id check that was producing
-				// false-positive orphans whenever an ix mid-sync was a
-				// missing parent for an otherwise-valid netixlan row.
-				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
-					peeringdb.TypeNet, v.NetID, "net_id") {
-					return false
-				}
-				if !w.fkCheckParent(ctx, tx, peeringdb.TypeNetIXLan, v.ID,
-					peeringdb.TypeIXLan, v.IXLanID, "ixlan_id") {
-					return false
-				}
-				// Optional side FKs: net_side_id, ix_side_id. Upstream
-				// peeringdb_server/models.py:5630-5642 declares both as
-				// `null=True, on_delete=SET_NULL`. We
-				// mirror that contract by null-on-miss (after backfill
-				// attempt) rather than dropping the entire row.
-				w.nullSideFK(ctx, tx, &v.NetSideID, "net_side_id", v.ID)
-				w.nullSideFK(ctx, tx, &v.IXSideID, "ix_side_id", v.ID)
-				return true
-			},
-			recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeNetIXLan, ids) },
-			upsert:    upsertNetworkIxLans,
-		}, rows)
+	desc, ok := descriptorByName[name]
+	if !ok {
+		return 0, fmt.Errorf("unknown sync type: %s", name)
 	}
-	return 0, fmt.Errorf("unknown sync type: %s", name)
+	return desc.chunkUpsert(w, ctx, tx, rows)
 }
 
 // fkCheckParent is the per-row FK validation helper called from the

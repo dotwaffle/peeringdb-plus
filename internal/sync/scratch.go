@@ -39,25 +39,6 @@ import (
 // peak heap well under the 400 MiB hard gate.
 const scratchChunkSize = 100
 
-// scratchTypes is the closed-set of PeeringDB types that get a scratch
-// staging table. Order does not matter here — the FK parent-first order
-// is enforced later at the Phase B replay loop via syncSteps().
-var scratchTypes = []string{
-	peeringdb.TypeOrg,
-	peeringdb.TypeCampus,
-	peeringdb.TypeFac,
-	peeringdb.TypeCarrier,
-	peeringdb.TypeCarrierFac,
-	peeringdb.TypeIX,
-	peeringdb.TypeIXLan,
-	peeringdb.TypeIXPfx,
-	peeringdb.TypeIXFac,
-	peeringdb.TypeNet,
-	peeringdb.TypePoc,
-	peeringdb.TypeNetFac,
-	peeringdb.TypeNetIXLan,
-}
-
 // scratchDB is a sql.DB handle to the per-sync /tmp SQLite file plus the
 // absolute path so closeScratchDB can unlink it on teardown.
 //

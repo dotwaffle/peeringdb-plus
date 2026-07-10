@@ -23,28 +23,6 @@ import (
 	"time"
 )
 
-// entityTables maps a PeeringDB type name (the keys produced by syncSteps())
-// to the underlying ent table name. Stays in lock-step with
-// initialcounts.go's UNION ALL — both consumers read raw SQLite tables
-// outside the ent client. Adding a 14th type requires updating BOTH maps
-// (TestEntityTablesMatchSchema introspects sqlite_master to enforce that
-// every value here is a real table).
-var entityTables = map[string]string{
-	"org":        "organizations",
-	"campus":     "campuses",
-	"fac":        "facilities",
-	"carrier":    "carriers",
-	"carrierfac": "carrier_facilities",
-	"ix":         "internet_exchanges",
-	"ixlan":      "ix_lans",
-	"ixpfx":      "ix_prefixes",
-	"ixfac":      "ix_facilities",
-	"net":        "networks",
-	"poc":        "pocs",
-	"netfac":     "network_facilities",
-	"netixlan":   "network_ix_lans",
-}
-
 // GetMaxUpdated returns the maximum `updated` timestamp across all rows in
 // the given table, or zero time if the table is empty (NULL).
 //

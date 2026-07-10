@@ -21,29 +21,6 @@ import (
 	"fmt"
 )
 
-// initialCountsQuery is the package-private UNION ALL holding the 13 PeeringDB
-// entity counts. Held as a const for grep-ability — table-name regression
-// in TestInitialCountsQuery_TableNamesMatchSchema introspects sqlite_master
-// to assert each table here exists in the live ent schema.
-//
-// Table names verified against ent/migrate/schema.go (the codegen's own
-// truth source). Do NOT rename a table here without re-grepping.
-const initialCountsQuery = `
-SELECT 'org' AS t, COUNT(*) AS c FROM organizations
-UNION ALL SELECT 'campus', COUNT(*) FROM campuses
-UNION ALL SELECT 'fac', COUNT(*) FROM facilities
-UNION ALL SELECT 'carrier', COUNT(*) FROM carriers
-UNION ALL SELECT 'carrierfac', COUNT(*) FROM carrier_facilities
-UNION ALL SELECT 'ix', COUNT(*) FROM internet_exchanges
-UNION ALL SELECT 'ixlan', COUNT(*) FROM ix_lans
-UNION ALL SELECT 'ixpfx', COUNT(*) FROM ix_prefixes
-UNION ALL SELECT 'ixfac', COUNT(*) FROM ix_facilities
-UNION ALL SELECT 'net', COUNT(*) FROM networks
-UNION ALL SELECT 'poc', COUNT(*) FROM pocs
-UNION ALL SELECT 'netfac', COUNT(*) FROM network_facilities
-UNION ALL SELECT 'netixlan', COUNT(*) FROM network_ix_lans
-`
-
 // InitialObjectCounts runs a one-shot UNION ALL COUNT(*) against each of
 // the 13 PeeringDB entity tables and returns the result keyed by
 // PeeringDB type name. The keys match those produced by syncSteps() so
