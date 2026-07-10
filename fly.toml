@@ -41,7 +41,7 @@ kill_timeout = 30
 # Both run `litefs mount` (the container ENTRYPOINT) — no separate binary.
 # The command string here is informational; the image ENTRYPOINT wins at runtime.
 # Fly docs state the command is passed to the Dockerfile entrypoint; since our
-# ENTRYPOINT is ["litefs", "mount"] (Dockerfile.prod:35), the effective command
+# ENTRYPOINT is ["litefs", "mount"] (see Dockerfile.prod), the effective command
 # is unchanged from today. Both groups share identical image + entrypoint.
 [processes]
   primary = ""
