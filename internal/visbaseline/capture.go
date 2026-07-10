@@ -10,8 +10,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
 // AllTypes is the list of PeeringDB object types captured in the
