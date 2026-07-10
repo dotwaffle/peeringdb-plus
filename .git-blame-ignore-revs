@@ -1,0 +1,8 @@
+# Bulk mechanical commits that should not pollute git blame.
+#
+# Activate locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub's blame view honours this file automatically.
+
+# docs: reformat prose with semantic line breaks
+1d68a0034e6784fd9b687c4a1d9d6784d7f7cb63
