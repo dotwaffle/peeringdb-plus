@@ -321,15 +321,21 @@ func (h *Handler) handleFragment(w http.ResponseWriter, r *http.Request, path st
 
 // handleNetIXLansFragment returns an HTML fragment listing a network's IX presences.
 func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request, netID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.NetworkIxLan.Query().
 		Where(networkixlan.HasNetworkWith(network.ID(netID)), networkixlan.StatusIn("ok", "pending")).
 		Order(networkixlan.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network ixlans", slog.Int("network_id", netID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.NetworkIXLanRow, len(items))
 	for i, nix := range items {
@@ -348,22 +354,32 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 		rows[i] = row
 	}
 
-	if err := templates.NetworkIXLansList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.NetworkIXLansList(rows, moreURL)
+	if off > 0 {
+		frag = templates.NetworkIXLansRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render network ixlans fragment", slog.Int("network_id", netID), slog.Any("error", err))
 	}
 }
 
 // handleNetFacilitiesFragment returns an HTML fragment listing a network's facility presences.
 func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Request, netID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.NetworkFacility.Query().
 		Where(networkfacility.HasNetworkWith(network.ID(netID)), networkfacility.StatusIn("ok", "pending")).
 		Order(networkfacility.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network facilities", slog.Int("network_id", netID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.NetworkFacRow, len(items))
 	for i, nf := range items {
@@ -379,22 +395,32 @@ func (h *Handler) handleNetFacilitiesFragment(w http.ResponseWriter, r *http.Req
 		rows[i] = row
 	}
 
-	if err := templates.NetworkFacilitiesList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.NetworkFacilitiesList(rows, moreURL)
+	if off > 0 {
+		frag = templates.NetworkFacilitiesRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render network facilities fragment", slog.Int("network_id", netID), slog.Any("error", err))
 	}
 }
 
 // handleNetContactsFragment returns an HTML fragment listing a network's contacts.
 func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Request, netID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.Poc.Query().
 		Where(poc.HasNetworkWith(network.ID(netID)), poc.StatusIn("ok", "pending")).
 		Order(poc.ByRole(), poc.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query network contacts", slog.Int("network_id", netID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.ContactRow, len(items))
 	for i, p := range items {
@@ -407,7 +433,11 @@ func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	if err := templates.NetworkContactsList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.NetworkContactsList(rows, moreURL)
+	if off > 0 {
+		frag = templates.NetworkContactsRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render network contacts fragment", slog.Int("network_id", netID), slog.Any("error", err))
 	}
 }
@@ -415,18 +445,24 @@ func (h *Handler) handleNetContactsFragment(w http.ResponseWriter, r *http.Reque
 // handleIXParticipantsFragment returns an HTML fragment listing an IXP's participants.
 // Uses the IxLan -> NetworkIxLan path (do NOT go directly from InternetExchange).
 func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Request, ixID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID)), ixlan.StatusIn("ok", "pending")).
 		QueryNetworkIxLans().
 		Where(networkixlan.StatusIn("ok", "pending")).
 		WithNetwork().
 		Order(networkixlan.ByAsn()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix participants", slog.Int("ix_id", ixID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.IXParticipantRow, len(items))
 	for i, nix := range items {
@@ -449,22 +485,32 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 		rows[i] = row
 	}
 
-	if err := templates.IXParticipantsList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.IXParticipantsList(rows, moreURL)
+	if off > 0 {
+		frag = templates.IXParticipantsRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render ix participants fragment", slog.Int("ix_id", ixID), slog.Any("error", err))
 	}
 }
 
 // handleIXFacilitiesFragment returns an HTML fragment listing an IXP's facilities.
 func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Request, ixID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(ixID)), ixfacility.StatusIn("ok", "pending")).
 		Order(ixfacility.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix facilities", slog.Int("ix_id", ixID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	var rows []templates.IXFacilityRow
 	for _, ixf := range items {
@@ -479,7 +525,11 @@ func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Requ
 		})
 	}
 
-	if err := templates.IXFacilitiesList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.IXFacilitiesList(rows, moreURL)
+	if off > 0 {
+		frag = templates.IXFacilitiesRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render ix facilities fragment", slog.Int("ix_id", ixID), slog.Any("error", err))
 	}
 }
@@ -487,17 +537,23 @@ func (h *Handler) handleIXFacilitiesFragment(w http.ResponseWriter, r *http.Requ
 // handleIXPrefixesFragment returns an HTML fragment listing an IXP's prefixes.
 // Uses the IxLan -> IxPrefix path (do NOT go directly from InternetExchange).
 func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Request, ixID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID)), ixlan.StatusIn("ok", "pending")).
 		QueryIxPrefixes().
 		Where(ixprefix.StatusIn("ok", "pending")).
 		Order(ixprefix.ByPrefix()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query ix prefixes", slog.Int("ix_id", ixID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.IXPrefixRow, len(items))
 	for i, p := range items {
@@ -508,23 +564,33 @@ func (h *Handler) handleIXPrefixesFragment(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	if err := templates.IXPrefixesList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.IXPrefixesList(rows, moreURL)
+	if off > 0 {
+		frag = templates.IXPrefixesRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render ix prefixes fragment", slog.Int("ix_id", ixID), slog.Any("error", err))
 	}
 }
 
 // handleFacNetworksFragment returns an HTML fragment listing a facility's networks.
 func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Request, facID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.NetworkFacility.Query().
 		Where(networkfacility.HasFacilityWith(facility.ID(facID)), networkfacility.StatusIn("ok", "pending")).
 		WithNetwork().
 		Order(networkfacility.ByNetworkField(network.FieldName)).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac networks", slog.Int("fac_id", facID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.FacNetworkRow, len(items))
 	for i, nf := range items {
@@ -540,23 +606,33 @@ func (h *Handler) handleFacNetworksFragment(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	if err := templates.FacNetworksList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.FacNetworksList(rows, moreURL)
+	if off > 0 {
+		frag = templates.FacNetworksRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render fac networks fragment", slog.Int("fac_id", facID), slog.Any("error", err))
 	}
 }
 
 // handleFacIXPsFragment returns an HTML fragment listing a facility's IXPs.
 func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, facID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.IxFacility.Query().
 		Where(ixfacility.HasFacilityWith(facility.ID(facID)), ixfacility.StatusIn("ok", "pending")).
 		WithInternetExchange().
 		Order(ixfacility.ByInternetExchangeField(internetexchange.FieldName)).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac ixps", slog.Int("fac_id", facID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	var rows []templates.FacIXRow
 	for _, ixf := range items {
@@ -569,23 +645,33 @@ func (h *Handler) handleFacIXPsFragment(w http.ResponseWriter, r *http.Request, 
 		})
 	}
 
-	if err := templates.FacIXPsList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.FacIXPsList(rows, moreURL)
+	if off > 0 {
+		frag = templates.FacIXPsRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render fac ixps fragment", slog.Int("fac_id", facID), slog.Any("error", err))
 	}
 }
 
 // handleFacCarriersFragment returns an HTML fragment listing a facility's carriers.
 func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Request, facID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.CarrierFacility.Query().
 		Where(carrierfacility.HasFacilityWith(facility.ID(facID)), carrierfacility.StatusIn("ok", "pending")).
 		WithCarrier().
 		Order(carrierfacility.ByCarrierField(carrier.FieldName)).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query fac carriers", slog.Int("fac_id", facID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	var rows []templates.FacCarrierRow
 	for _, cf := range items {
@@ -598,22 +684,32 @@ func (h *Handler) handleFacCarriersFragment(w http.ResponseWriter, r *http.Reque
 		})
 	}
 
-	if err := templates.FacCarriersList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.FacCarriersList(rows, moreURL)
+	if off > 0 {
+		frag = templates.FacCarriersRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render fac carriers fragment", slog.Int("fac_id", facID), slog.Any("error", err))
 	}
 }
 
 // handleOrgNetworksFragment returns an HTML fragment listing an org's networks.
 func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Request, orgID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.Network.Query().
 		Where(network.HasOrganizationWith(organization.ID(orgID)), network.StatusIn("ok", "pending")).
 		Order(network.ByAsn()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org networks", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.OrgNetworkRow, len(items))
 	for i, n := range items {
@@ -623,22 +719,32 @@ func (h *Handler) handleOrgNetworksFragment(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	if err := templates.OrgNetworksList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.OrgNetworksList(rows, moreURL)
+	if off > 0 {
+		frag = templates.OrgNetworksRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render org networks fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
 // handleOrgIXPsFragment returns an HTML fragment listing an org's IXPs.
 func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, orgID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.InternetExchange.Query().
 		Where(internetexchange.HasOrganizationWith(organization.ID(orgID)), internetexchange.StatusIn("ok", "pending")).
 		Order(internetexchange.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org ixps", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.OrgIXRow, len(items))
 	for i, ix := range items {
@@ -648,22 +754,32 @@ func (h *Handler) handleOrgIXPsFragment(w http.ResponseWriter, r *http.Request, 
 		}
 	}
 
-	if err := templates.OrgIXPsList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.OrgIXPsList(rows, moreURL)
+	if off > 0 {
+		frag = templates.OrgIXPsRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render org ixps fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
 // handleOrgFacilitiesFragment returns an HTML fragment listing an org's facilities.
 func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Request, orgID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.Facility.Query().
 		Where(facility.HasOrganizationWith(organization.ID(orgID)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org facilities", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.OrgFacilityRow, len(items))
 	for i, f := range items {
@@ -675,22 +791,32 @@ func (h *Handler) handleOrgFacilitiesFragment(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	if err := templates.OrgFacilitiesList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.OrgFacilitiesList(rows, moreURL)
+	if off > 0 {
+		frag = templates.OrgFacilitiesRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render org facilities fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
 // handleOrgCampusesFragment returns an HTML fragment listing an org's campuses.
 func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Request, orgID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.Campus.Query().
 		Where(campus.HasOrganizationWith(organization.ID(orgID)), campus.StatusIn("ok", "pending")).
 		Order(campus.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org campuses", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.OrgCampusRow, len(items))
 	for i, c := range items {
@@ -700,22 +826,32 @@ func (h *Handler) handleOrgCampusesFragment(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	if err := templates.OrgCampusesList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.OrgCampusesList(rows, moreURL)
+	if off > 0 {
+		frag = templates.OrgCampusesRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render org campuses fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
 // handleOrgCarriersFragment returns an HTML fragment listing an org's carriers.
 func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Request, orgID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.Carrier.Query().
 		Where(carrier.HasOrganizationWith(organization.ID(orgID)), carrier.StatusIn("ok", "pending")).
 		Order(carrier.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query org carriers", slog.Int("org_id", orgID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.OrgCarrierRow, len(items))
 	for i, c := range items {
@@ -725,22 +861,32 @@ func (h *Handler) handleOrgCarriersFragment(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	if err := templates.OrgCarriersList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.OrgCarriersList(rows, moreURL)
+	if off > 0 {
+		frag = templates.OrgCarriersRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render org carriers fragment", slog.Int("org_id", orgID), slog.Any("error", err))
 	}
 }
 
 // handleCampusFacilitiesFragment returns an HTML fragment listing a campus's facilities.
 func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.Request, campusID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.Facility.Query().
 		Where(facility.HasCampusWith(campus.ID(campusID)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query campus facilities", slog.Int("campus_id", campusID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	rows := make([]templates.CampusFacilityRow, len(items))
 	for i, f := range items {
@@ -752,22 +898,32 @@ func (h *Handler) handleCampusFacilitiesFragment(w http.ResponseWriter, r *http.
 		}
 	}
 
-	if err := templates.CampusFacilitiesList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.CampusFacilitiesList(rows, moreURL)
+	if off > 0 {
+		frag = templates.CampusFacilitiesRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render campus facilities fragment", slog.Int("campus_id", campusID), slog.Any("error", err))
 	}
 }
 
 // handleCarrierFacilitiesFragment returns an HTML fragment listing a carrier's facilities.
 func (h *Handler) handleCarrierFacilitiesFragment(w http.ResponseWriter, r *http.Request, carrierID int) {
+	off := fragmentOffset(r)
 	items, err := h.client.CarrierFacility.Query().
 		Where(carrierfacility.HasCarrierWith(carrier.ID(carrierID)), carrierfacility.StatusIn("ok", "pending")).
 		Order(carrierfacility.ByName()).
+		Offset(off).
+		Limit(fragmentPageSize + 1).
 		All(r.Context())
 	if err != nil {
 		slog.Error("query carrier facilities", slog.Int("carrier_id", carrierID), slog.Any("error", err))
 		h.handleServerError(w, r)
 		return
 	}
+
+	items, hasMore := trimPage(items, fragmentPageSize)
+	moreURL := fragmentMoreURL(r, off, hasMore)
 
 	var rows []templates.CarrierFacilityRow
 	for _, cf := range items {
@@ -780,7 +936,11 @@ func (h *Handler) handleCarrierFacilitiesFragment(w http.ResponseWriter, r *http
 		})
 	}
 
-	if err := templates.CarrierFacilitiesList(rows).Render(r.Context(), w); err != nil {
+	frag := templates.CarrierFacilitiesList(rows, moreURL)
+	if off > 0 {
+		frag = templates.CarrierFacilitiesRows(rows, moreURL)
+	}
+	if err := frag.Render(r.Context(), w); err != nil {
 		slog.Error("render carrier facilities fragment", slog.Int("carrier_id", carrierID), slog.Any("error", err))
 	}
 }

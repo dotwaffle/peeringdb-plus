@@ -79,7 +79,7 @@ templ FacilityDetailPage(data FacilityDetail) {
 
 // FacNetworksList renders facility networks as a 3-column sortable table
 // with Name, ASN, and Country+flag columns.
-templ FacNetworksList(rows []FacNetworkRow) {
+templ FacNetworksList(rows []FacNetworkRow, moreURL string) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm">No networks found.</div>
 	} else {
@@ -93,74 +93,107 @@ templ FacNetworksList(rows []FacNetworkRow) {
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
-					for _, row := range rows {
-						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
-							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.NetName) }>
-								<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
-									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
-									{ row.NetName }
-								</a>
-							</td>
-							<td class="px-3 py-1.5 font-mono text-neutral-500 dark:text-neutral-400" data-sort-value={ fmt.Sprintf("%d", row.ASN) }>
-								{ fmt.Sprintf("AS%d", row.ASN) }
-							</td>
-							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.Country) }>
-								@CountryFlag(row.Country)
-							</td>
-						</tr>
-					}
+					@FacNetworksRows(rows, moreURL)
 				</tbody>
 			</table>
 		</div>
 	}
 }
 
+// FacNetworksRows renders one page of rows for FacNetworksList, followed by a "Load
+// more" row while another page remains. It is also the htmx response
+// shape for the load-more request, so fetched pages accumulate in the
+// same tbody.
+templ FacNetworksRows(rows []FacNetworkRow, moreURL string) {
+		for _, row := range rows {
+			<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+				<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.NetName) }>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/asn/%d", row.ASN)) }
+						class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
+						{ row.NetName }
+					</a>
+				</td>
+				<td class="px-3 py-1.5 font-mono text-neutral-500 dark:text-neutral-400" data-sort-value={ fmt.Sprintf("%d", row.ASN) }>
+					{ fmt.Sprintf("AS%d", row.ASN) }
+				</td>
+				<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.Country) }>
+					@CountryFlag(row.Country)
+				</td>
+			</tr>
+		}
+	if moreURL != "" {
+		@fragmentLoadMoreRow(moreURL, 3)
+	}
+}
+
 // FacIXPsList renders facility IXPs as a single-column name-only table.
 // Pre-sorted alphabetically server-side, no sort UI.
-templ FacIXPsList(rows []FacIXRow) {
+templ FacIXPsList(rows []FacIXRow, moreURL string) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm">No IXPs found.</div>
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left">
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
-					for _, row := range rows {
-						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
-							<td class="px-3 py-1.5">
-								<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)) }
-									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
-									{ row.IXName }
-								</a>
-							</td>
-						</tr>
-					}
+					@FacIXPsRows(rows, moreURL)
 				</tbody>
 			</table>
 		</div>
 	}
 }
 
+// FacIXPsRows renders one page of rows for FacIXPsList, followed by a "Load
+// more" row while another page remains. It is also the htmx response
+// shape for the load-more request, so fetched pages accumulate in the
+// same tbody.
+templ FacIXPsRows(rows []FacIXRow, moreURL string) {
+		for _, row := range rows {
+			<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+				<td class="px-3 py-1.5">
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", row.IXID)) }
+						class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
+						{ row.IXName }
+					</a>
+				</td>
+			</tr>
+		}
+	if moreURL != "" {
+		@fragmentLoadMoreRow(moreURL, 1)
+	}
+}
+
 // FacCarriersList renders facility carriers as a single-column name-only table.
 // Pre-sorted alphabetically server-side, no sort UI.
-templ FacCarriersList(rows []FacCarrierRow) {
+templ FacCarriersList(rows []FacCarrierRow, moreURL string) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm">No carriers found.</div>
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left">
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
-					for _, row := range rows {
-						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
-							<td class="px-3 py-1.5">
-								<a href={ templ.SafeURL(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)) }
-									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
-									{ row.CarrierName }
-								</a>
-							</td>
-						</tr>
-					}
+					@FacCarriersRows(rows, moreURL)
 				</tbody>
 			</table>
 		</div>
+	}
+}
+
+// FacCarriersRows renders one page of rows for FacCarriersList, followed by a "Load
+// more" row while another page remains. It is also the htmx response
+// shape for the load-more request, so fetched pages accumulate in the
+// same tbody.
+templ FacCarriersRows(rows []FacCarrierRow, moreURL string) {
+		for _, row := range rows {
+			<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+				<td class="px-3 py-1.5">
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/carrier/%d", row.CarrierID)) }
+						class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors">
+						{ row.CarrierName }
+					</a>
+				</td>
+			</tr>
+		}
+	if moreURL != "" {
+		@fragmentLoadMoreRow(moreURL, 1)
 	}
 }
