@@ -79,7 +79,7 @@ func filterMappableMarkers(markers []MapMarker) (mappable []MapMarker, unmapped 
 	return mappable, unmapped
 }
 
-// jsMarker is the JSON-serializable structure passed to the initMultiPinMap script.
+// jsMarker is the JSON-serializable structure map-init.js reads from the data-markers attribute.
 type jsMarker struct {
 	Lat       float64 `json:"lat"`
 	Lng       float64 `json:"lng"`
@@ -88,124 +88,51 @@ type jsMarker struct {
 	PopupHTML string  `json:"popup"`
 }
 
-// initMap initializes a Leaflet map with a single marker and popup.
-// It selects CARTO Voyager or Dark Matter tiles based on current dark mode,
-// and registers the tile layer for live theme switching via window.__pdbMaps.
-script initMap(elementID string, lat float64, lng float64, zoom int, popupHTML string) {
-	var isDark = document.documentElement.classList.contains('dark');
-	var lightURL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-	var darkURL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-	var tileURL = isDark ? darkURL : lightURL;
-
-	var map = L.map(elementID, { scrollWheelZoom: false }).setView([lat, lng], zoom);
-	var tileLayer = L.tileLayer(tileURL, {
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-		subdomains: 'abcd',
-		maxZoom: 19
-	}).addTo(map);
-
-	L.marker([lat, lng]).addTo(map).bindPopup(popupHTML);
-
-	map.on('click', function() { map.scrollWheelZoom.enable(); });
-	map.on('mouseout', function() { map.scrollWheelZoom.disable(); });
-
-	window.__pdbMaps = window.__pdbMaps || [];
-	window.__pdbMaps.push({ tileLayer: tileLayer, lightURL: lightURL, darkURL: darkURL });
-}
-
-// initMultiPinMap initializes a Leaflet map with multiple circleMarker pins,
-// markerClusterGroup for clustering, fitBounds for auto-zoom, and an optional legend.
-script initMultiPinMap(elementID string, markersJSON string, showLegend bool, legendJSON string) {
-	var markers = JSON.parse(markersJSON);
-	if (!markers || markers.length === 0) return;
-
-	var isDark = document.documentElement.classList.contains('dark');
-	var lightURL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-	var darkURL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-	var tileURL = isDark ? darkURL : lightURL;
-
-	var map = L.map(elementID, { scrollWheelZoom: false });
-	var tileLayer = L.tileLayer(tileURL, {
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-		subdomains: 'abcd',
-		maxZoom: 19
-	}).addTo(map);
-
-	var clusterGroup = L.markerClusterGroup();
-	var bounds = [];
-
-	for (var i = 0; i < markers.length; i++) {
-		var m = markers[i];
-		var cm = L.circleMarker([m.lat, m.lng], {
-			radius: 7,
-			fillColor: m.color,
-			color: m.stroke,
-			weight: 2,
-			opacity: 1,
-			fillOpacity: 0.8
-		}).bindPopup(m.popup);
-		clusterGroup.addLayer(cm);
-		bounds.push([m.lat, m.lng]);
-	}
-
-	map.addLayer(clusterGroup);
-	map.fitBounds(bounds, { maxZoom: 13, padding: [20, 20] });
-
-	map.on('click', function() { map.scrollWheelZoom.enable(); });
-	map.on('mouseout', function() { map.scrollWheelZoom.disable(); });
-
-	window.__pdbMaps = window.__pdbMaps || [];
-	window.__pdbMaps.push({ tileLayer: tileLayer, lightURL: lightURL, darkURL: darkURL });
-
-	if (showLegend && legendJSON) {
-		var legend = JSON.parse(legendJSON);
-		var ctrl = L.control({ position: 'bottomleft' });
-		ctrl.onAdd = function() {
-			var div = L.DomUtil.create('div', '');
-			var bg = isDark ? 'rgba(38,38,38,0.92)' : 'rgba(255,255,255,0.92)';
-			var textColor = isDark ? '#d4d4d4' : '#171717';
-			var shadow = isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.1)';
-			div.style.cssText = 'background:' + bg + ';padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:' + shadow + ';color:' + textColor;
-			// Legend content uses server-side labels that are not user-provided input.
-			// The labels are static ASN identifiers set by the Go template, not from
-			// untrusted sources. This follows the same pattern as buildPopupHTML.
-			function row(color, label) {
-				return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><svg width="10" height="10"><circle cx="5" cy="5" r="5" fill="' + color + '"/></svg><span>' + label + '</span></div>';
-			}
-			div.innerHTML = row('#10b981', legend.shared) + row('#38bdf8', legend.netA) + row('#f59e0b', legend.netB);
-			return div;
-		};
-		ctrl.addTo(map);
-	}
-}
-
-// MapContainer renders a map container div and initializes a Leaflet map
-// with the provided markers. Exactly one marker is expected.
-// A future extension will handle multiple markers with fitBounds.
+// MapContainer renders a map container div carrying data attributes that
+// /static/map-init.js reads to initialize a single-marker Leaflet map
+// (CARTO tiles, theme-aware via window.__pdbMaps). Exactly one marker is
+// expected. A future extension will handle multiple markers with fitBounds.
 templ MapContainer(id string, markers []MapMarker, zoom int) {
-	<div
-		id={ id }
-		class="w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
-		role="application"
-		aria-label="Map showing facility location"
-	></div>
 	if len(markers) > 0 {
-		@initMap(id, markers[0].Lat, markers[0].Lng, zoom, buildPopupHTML(markers[0]))
+		<div
+			id={ id }
+			data-map="single"
+			data-lat={ strconv.FormatFloat(markers[0].Lat, 'f', -1, 64) }
+			data-lng={ strconv.FormatFloat(markers[0].Lng, 'f', -1, 64) }
+			data-zoom={ strconv.Itoa(zoom) }
+			data-popup={ buildPopupHTML(markers[0]) }
+			class="w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
+			role="application"
+			aria-label="Map showing facility location"
+		></div>
+	} else {
+		<div
+			id={ id }
+			class="w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
+			role="application"
+			aria-label="Map showing facility location"
+		></div>
 	}
 }
 
-// MultiPinMapContainer renders a taller map container with clustered circleMarkers.
-// If no markers have valid coordinates, nothing is rendered. When some markers
-// lack coordinates, an unmapped count message is shown below the map.
+// MultiPinMapContainer renders a taller map container whose data attributes
+// /static/map-init.js reads to build a clustered circleMarker Leaflet map
+// (fitBounds auto-zoom, optional legend). If no markers have valid
+// coordinates, nothing is rendered. When some markers lack coordinates,
+// an unmapped count message is shown below the map.
 templ MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, showLegend bool, legendLabels map[string]string) {
 	if mappable, unmapped := filterMappableMarkers(markers); len(mappable) > 0 {
 		<div
 			id={ id }
+			data-map="multi"
+			data-markers={ marshalMarkers(mappable) }
+			if showLegend {
+				data-legend={ marshalLegend(legendLabels) }
+			}
 			class="w-full h-[250px] md:h-[450px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
 			role="application"
 			aria-label={ ariaLabel }
 		></div>
-		@initMultiPinMap(id, marshalMarkers(mappable), showLegend, marshalLegend(legendLabels))
 		if unmapped > 0 {
 			if unmapped == 1 {
 				<p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
@@ -220,7 +147,7 @@ templ MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, sho
 	}
 }
 
-// marshalMarkers serializes mappable markers to a JSON string for the initMultiPinMap script.
+// marshalMarkers serializes mappable markers to a JSON string for the data-markers attribute.
 // Each marker includes pre-built popup HTML to avoid building HTML in JavaScript.
 func marshalMarkers(markers []MapMarker) string {
 	jsMarkers := make([]jsMarker, len(markers))
@@ -249,7 +176,7 @@ func formatMapLocation(city, country string) string {
 	return country
 }
 
-// marshalLegend serializes legend labels to a JSON string for the initMultiPinMap script.
+// marshalLegend serializes legend labels to a JSON string for the data-legend attribute.
 func marshalLegend(labels map[string]string) string {
 	if len(labels) == 0 {
 		return ""

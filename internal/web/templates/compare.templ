@@ -10,7 +10,7 @@ import (
 templ CompareFormPage(asn1 string, asn2 string) {
 	<div class="max-w-3xl mx-auto py-12">
 		<div class="text-center mb-8">
-			<h1 class="text-2xl font-bold text-neutral-100 mb-2">Compare Networks</h1>
+			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Compare Networks</h1>
 			<p class="text-neutral-400">Find shared IXPs, facilities, and campuses between two networks</p>
 		</div>
 		<form id="compare-form" method="GET" action="/ui/compare" class="space-y-6">
@@ -23,7 +23,7 @@ templ CompareFormPage(asn1 string, asn2 string) {
 						name="asn1"
 						value={ asn1 }
 						placeholder="e.g. 13335"
-						class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+						class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
 					/>
 				</div>
 				<div>
@@ -34,7 +34,7 @@ templ CompareFormPage(asn1 string, asn2 string) {
 						name="asn2"
 						value={ asn2 }
 						placeholder="e.g. 15169"
-						class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+						class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
 					/>
 				</div>
 			</div>
@@ -47,14 +47,6 @@ templ CompareFormPage(asn1 string, asn2 string) {
 				</button>
 			</div>
 		</form>
-		<script>
-		document.getElementById('compare-form').addEventListener('submit', function(e) {
-			e.preventDefault();
-			var a1 = document.getElementById('compare-asn1').value;
-			var a2 = document.getElementById('compare-asn2').value;
-			if (a1 && a2) { window.location.href = '/ui/compare/' + a1 + '/' + a2; }
-		});
-		</script>
 	</div>
 }
 
@@ -62,7 +54,7 @@ templ CompareFormPage(asn1 string, asn2 string) {
 templ CompareResultsPage(data CompareData) {
 	<div class="space-y-6">
 		<div class="mb-6">
-			<h1 class="text-2xl font-bold text-neutral-100">
+			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
 				{ data.NetA.Name } <span class="text-neutral-500">vs</span> { data.NetB.Name }
 			</h1>
 			<div class="flex gap-3 mt-1 text-sm text-neutral-400 font-mono">
@@ -72,33 +64,8 @@ templ CompareResultsPage(data CompareData) {
 			</div>
 		</div>
 		<div class="flex gap-2 mb-4">
-			if data.ViewMode != "full" {
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-				>
-					Shared Only
-				</a>
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-neutral-800 text-neutral-400 border-neutral-700 hover:bg-neutral-700 transition-colors"
-				>
-					Full View
-				</a>
-			} else {
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-neutral-800 text-neutral-400 border-neutral-700 hover:bg-neutral-700 transition-colors"
-				>
-					Shared Only
-				</a>
-				<a
-					href={ templ.SafeURL(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN)) }
-					class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-				>
-					Full View
-				</a>
-			}
+			@viewToggleLink(fmt.Sprintf("/ui/compare/%d/%d", data.NetA.ASN, data.NetB.ASN), "Shared Only", data.ViewMode != "full")
+			@viewToggleLink(fmt.Sprintf("/ui/compare/%d/%d?view=full", data.NetA.ASN, data.NetB.ASN), "Full View", data.ViewMode == "full")
 		</div>
 		<div class="flex flex-wrap gap-2 mb-4">
 			@StatBadge("Shared IXPs", len(data.SharedIXPs))
@@ -122,11 +89,32 @@ templ CompareResultsPage(data CompareData) {
 	</div>
 }
 
+// viewToggleLink renders one pill of the shared/full view-mode toggle;
+// the active pill gets the emerald treatment, the inactive one is a
+// bordered button-style link.
+templ viewToggleLink(href string, label string, active bool) {
+	if active {
+		<a
+			href={ templ.SafeURL(href) }
+			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
+		>
+			{ label }
+		</a>
+	} else {
+		<a
+			href={ templ.SafeURL(href) }
+			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+		>
+			{ label }
+		</a>
+	}
+}
+
 // compareIXPsSection renders the IXP comparison as a sortable table.
 templ compareIXPsSection(data CompareData) {
-	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
-		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
-			<span class="font-medium text-neutral-100">Internet Exchanges</span>
+	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+			<span class="font-medium text-neutral-900 dark:text-neutral-100">Internet Exchanges</span>
 			<span class="text-neutral-500 text-sm font-mono">
 				if data.ViewMode == "full" {
 					{ fmt.Sprintf("(%d)", len(data.AllIXPs)) }
@@ -300,9 +288,9 @@ templ compareIXPsSection(data CompareData) {
 
 // compareFacilitiesSection renders the facility comparison as a sortable table.
 templ compareFacilitiesSection(data CompareData) {
-	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
-		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
-			<span class="font-medium text-neutral-100">Facilities</span>
+	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+			<span class="font-medium text-neutral-900 dark:text-neutral-100">Facilities</span>
 			<span class="text-neutral-500 text-sm font-mono">
 				if data.ViewMode == "full" {
 					{ fmt.Sprintf("(%d)", len(data.AllFacilities)) }
@@ -400,9 +388,9 @@ templ compareFacilitiesSection(data CompareData) {
 
 // compareCampusesSection renders the campus comparison as a sortable table.
 templ compareCampusesSection(data CompareData) {
-	<div class="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
-		<div class="px-4 py-3 border-b border-neutral-700 flex items-center justify-between">
-			<span class="font-medium text-neutral-100">Campuses</span>
+	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+			<span class="font-medium text-neutral-900 dark:text-neutral-100">Campuses</span>
 			<span class="text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", len(data.SharedCampuses)) }</span>
 		</div>
 		<div class="overflow-x-auto">

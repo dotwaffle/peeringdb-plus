@@ -87,7 +87,7 @@ func filterMappableMarkers(markers []MapMarker) (mappable []MapMarker, unmapped 
 	return mappable, unmapped
 }
 
-// jsMarker is the JSON-serializable structure passed to the initMultiPinMap script.
+// jsMarker is the JSON-serializable structure map-init.js reads from the data-markers attribute.
 type jsMarker struct {
 	Lat       float64 `json:"lat"`
 	Lng       float64 `json:"lng"`
@@ -96,112 +96,10 @@ type jsMarker struct {
 	PopupHTML string  `json:"popup"`
 }
 
-// initMap initializes a Leaflet map with a single marker and popup.
-// It selects CARTO Voyager or Dark Matter tiles based on current dark mode,
-// and registers the tile layer for live theme switching via window.__pdbMaps.
-func initMap(elementID string, lat float64, lng float64, zoom int, popupHTML string) templ.ComponentScript {
-	return templ.ComponentScript{
-		Name: `__templ_initMap_9537`,
-		Function: `function __templ_initMap_9537(elementID, lat, lng, zoom, popupHTML){var isDark = document.documentElement.classList.contains('dark');
-	var lightURL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-	var darkURL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-	var tileURL = isDark ? darkURL : lightURL;
-
-	var map = L.map(elementID, { scrollWheelZoom: false }).setView([lat, lng], zoom);
-	var tileLayer = L.tileLayer(tileURL, {
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-		subdomains: 'abcd',
-		maxZoom: 19
-	}).addTo(map);
-
-	L.marker([lat, lng]).addTo(map).bindPopup(popupHTML);
-
-	map.on('click', function() { map.scrollWheelZoom.enable(); });
-	map.on('mouseout', function() { map.scrollWheelZoom.disable(); });
-
-	window.__pdbMaps = window.__pdbMaps || [];
-	window.__pdbMaps.push({ tileLayer: tileLayer, lightURL: lightURL, darkURL: darkURL });
-}`,
-		Call:       templ.SafeScript(`__templ_initMap_9537`, elementID, lat, lng, zoom, popupHTML),
-		CallInline: templ.SafeScriptInline(`__templ_initMap_9537`, elementID, lat, lng, zoom, popupHTML),
-	}
-}
-
-// initMultiPinMap initializes a Leaflet map with multiple circleMarker pins,
-// markerClusterGroup for clustering, fitBounds for auto-zoom, and an optional legend.
-func initMultiPinMap(elementID string, markersJSON string, showLegend bool, legendJSON string) templ.ComponentScript {
-	return templ.ComponentScript{
-		Name: `__templ_initMultiPinMap_3487`,
-		Function: `function __templ_initMultiPinMap_3487(elementID, markersJSON, showLegend, legendJSON){var markers = JSON.parse(markersJSON);
-	if (!markers || markers.length === 0) return;
-
-	var isDark = document.documentElement.classList.contains('dark');
-	var lightURL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-	var darkURL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-	var tileURL = isDark ? darkURL : lightURL;
-
-	var map = L.map(elementID, { scrollWheelZoom: false });
-	var tileLayer = L.tileLayer(tileURL, {
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-		subdomains: 'abcd',
-		maxZoom: 19
-	}).addTo(map);
-
-	var clusterGroup = L.markerClusterGroup();
-	var bounds = [];
-
-	for (var i = 0; i < markers.length; i++) {
-		var m = markers[i];
-		var cm = L.circleMarker([m.lat, m.lng], {
-			radius: 7,
-			fillColor: m.color,
-			color: m.stroke,
-			weight: 2,
-			opacity: 1,
-			fillOpacity: 0.8
-		}).bindPopup(m.popup);
-		clusterGroup.addLayer(cm);
-		bounds.push([m.lat, m.lng]);
-	}
-
-	map.addLayer(clusterGroup);
-	map.fitBounds(bounds, { maxZoom: 13, padding: [20, 20] });
-
-	map.on('click', function() { map.scrollWheelZoom.enable(); });
-	map.on('mouseout', function() { map.scrollWheelZoom.disable(); });
-
-	window.__pdbMaps = window.__pdbMaps || [];
-	window.__pdbMaps.push({ tileLayer: tileLayer, lightURL: lightURL, darkURL: darkURL });
-
-	if (showLegend && legendJSON) {
-		var legend = JSON.parse(legendJSON);
-		var ctrl = L.control({ position: 'bottomleft' });
-		ctrl.onAdd = function() {
-			var div = L.DomUtil.create('div', '');
-			var bg = isDark ? 'rgba(38,38,38,0.92)' : 'rgba(255,255,255,0.92)';
-			var textColor = isDark ? '#d4d4d4' : '#171717';
-			var shadow = isDark ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.1)';
-			div.style.cssText = 'background:' + bg + ';padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;box-shadow:' + shadow + ';color:' + textColor;
-			// Legend content uses server-side labels that are not user-provided input.
-			// The labels are static ASN identifiers set by the Go template, not from
-			// untrusted sources. This follows the same pattern as buildPopupHTML.
-			function row(color, label) {
-				return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;"><svg width="10" height="10"><circle cx="5" cy="5" r="5" fill="' + color + '"/></svg><span>' + label + '</span></div>';
-			}
-			div.innerHTML = row('#10b981', legend.shared) + row('#38bdf8', legend.netA) + row('#f59e0b', legend.netB);
-			return div;
-		};
-		ctrl.addTo(map);
-	}
-}`,
-		Call:       templ.SafeScript(`__templ_initMultiPinMap_3487`, elementID, markersJSON, showLegend, legendJSON),
-		CallInline: templ.SafeScriptInline(`__templ_initMultiPinMap_3487`, elementID, markersJSON, showLegend, legendJSON),
-	}
-}
-
-// MapContainer renders a map container div and initializes a Leaflet map
-// with the provided markers. Exactly one marker is expected.
-// A future extension will handle multiple markers with fitBounds.
+// MapContainer renders a map container div carrying data attributes that
+// /static/map-init.js reads to initialize a single-marker Leaflet map
+// (CARTO tiles, theme-aware via window.__pdbMaps). Exactly one marker is
+// expected. A future extension will handle multiple markers with fitBounds.
 func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -223,25 +121,91 @@ func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 187, Col: 9}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"Map showing facility location\"></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
 		if len(markers) > 0 {
-			templ_7745c5c3_Err = initMap(id, markers[0].Lat, markers[0].Lng, zoom, buildPopupHTML(markers[0])).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var2 string
+			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 98, Col: 10}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" data-map=\"single\" data-lat=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var3 string
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatFloat(markers[0].Lat, 'f', -1, 64))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 100, Col: 62}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" data-lng=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var4 string
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatFloat(markers[0].Lng, 'f', -1, 64))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 101, Col: 62}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-zoom=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(zoom))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 102, Col: 33}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" data-popup=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var6 string
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(buildPopupHTML(markers[0]))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 103, Col: 42}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"Map showing facility location\"></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div id=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var7 string
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 110, Col: 10}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"Map showing facility location\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -250,9 +214,11 @@ func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 	})
 }
 
-// MultiPinMapContainer renders a taller map container with clustered circleMarkers.
-// If no markers have valid coordinates, nothing is rendered. When some markers
-// lack coordinates, an unmapped count message is shown below the map.
+// MultiPinMapContainer renders a taller map container whose data attributes
+// /static/map-init.js reads to build a clustered circleMarker Leaflet map
+// (fitBounds auto-zoom, optional legend). If no markers have valid
+// coordinates, nothing is rendered. When some markers lack coordinates,
+// an unmapped count message is shown below the map.
 func MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, showLegend bool, legendLabels map[string]string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -269,71 +235,99 @@ func MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, show
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var3 == nil {
-			templ_7745c5c3_Var3 = templ.NopComponent
+		templ_7745c5c3_Var8 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var8 == nil {
+			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		if mappable, unmapped := filterMappableMarkers(markers); len(mappable) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div id=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 203, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 126, Col: 10}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"w-full h-[250px] md:h-[450px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var5 string
-			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(ariaLabel)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 206, Col: 25}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" data-map=\"multi\" data-markers=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"></div>")
+			var templ_7745c5c3_Var10 string
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(marshalMarkers(mappable))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 128, Col: 42}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = initMultiPinMap(id, marshalMarkers(mappable), showLegend, marshalLegend(legendLabels)).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " ")
+			if showLegend {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " data-legend=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var11 string
+				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(marshalLegend(legendLabels))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 130, Col: 45}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " class=\"w-full h-[250px] md:h-[450px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var12 string
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(ariaLabel)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 134, Col: 25}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if unmapped > 0 {
 				if unmapped == 1 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">1 facility not shown (no location data)</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">1 facility not shown (no location data)</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var6 string
-					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(unmapped))
+					var templ_7745c5c3_Var13 string
+					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(unmapped))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 216, Col: 29}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `map.templ`, Line: 143, Col: 29}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, " facilities not shown (no location data)</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, " facilities not shown (no location data)</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -344,7 +338,7 @@ func MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, show
 	})
 }
 
-// marshalMarkers serializes mappable markers to a JSON string for the initMultiPinMap script.
+// marshalMarkers serializes mappable markers to a JSON string for the data-markers attribute.
 // Each marker includes pre-built popup HTML to avoid building HTML in JavaScript.
 func marshalMarkers(markers []MapMarker) string {
 	jsMarkers := make([]jsMarker, len(markers))
@@ -373,7 +367,7 @@ func formatMapLocation(city, country string) string {
 	return country
 }
 
-// marshalLegend serializes legend labels to a JSON string for the initMultiPinMap script.
+// marshalLegend serializes legend labels to a JSON string for the data-legend attribute.
 func marshalLegend(labels map[string]string) string {
 	if len(labels) == 0 {
 		return ""

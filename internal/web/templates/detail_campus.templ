@@ -36,14 +36,14 @@ templ CampusDetailPage(data CampusDetail) {
 		@DetailLink("Website", data.Website)
 		@DetailField("Notes", data.Notes)
 		<div class="space-y-3 pt-4">
-			@CollapsibleSection("Facilities", data.FacCount, fmt.Sprintf("/ui/fragment/campus/%d/facilities", data.ID))
+			@CollapsibleSection("Facilities", data.FacCount, "", fmt.Sprintf("/ui/fragment/campus/%d/facilities", data.ID))
 		</div>
 	</div>
 }
 
 // CampusFacilitiesList renders the list of campus facilities as a 3-column sortable table
 // (Name, City, Country+flag) linking to the respective facility detail page.
-templ CampusFacilitiesList(rows []CampusFacilityRow) {
+templ CampusFacilitiesList(rows []CampusFacilityRow, moreURL string) {
 	if len(rows) == 0 {
 		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
 	} else {
@@ -57,24 +57,35 @@ templ CampusFacilitiesList(rows []CampusFacilityRow) {
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
-					for _, row := range rows {
-						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
-							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.FacName) }>
-								<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
-									class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-400 transition-colors">
-									{ row.FacName }
-								</a>
-							</td>
-							<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(row.City) }>
-								{ row.City }
-							</td>
-							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.Country) }>
-								@CountryFlag(row.Country)
-							</td>
-						</tr>
-					}
+					@CampusFacilitiesRows(rows, moreURL)
 				</tbody>
 			</table>
 		</div>
+	}
+}
+
+// CampusFacilitiesRows renders one page of rows for CampusFacilitiesList, followed by a "Load
+// more" row while another page remains. It is also the htmx response
+// shape for the load-more request, so fetched pages accumulate in the
+// same tbody.
+templ CampusFacilitiesRows(rows []CampusFacilityRow, moreURL string) {
+		for _, row := range rows {
+			<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
+				<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.FacName) }>
+					<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
+						class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-400 transition-colors">
+						{ row.FacName }
+					</a>
+				</td>
+				<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(row.City) }>
+					{ row.City }
+				</td>
+				<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(row.Country) }>
+					@CountryFlag(row.Country)
+				</td>
+			</tr>
+		}
+	if moreURL != "" {
+		@fragmentLoadMoreRow(moreURL, 3)
 	}
 }

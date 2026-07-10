@@ -51,9 +51,11 @@ func (h *Handler) handleAbout(w http.ResponseWriter, r *http.Request) {
 	privacy := buildPrivacySync(h.authMode, h.publicTier)
 
 	page := PageContent{
-		Title:   "About",
-		Content: templates.AboutPage(freshness, privacy),
-		Data:    templates.AboutPageData{Freshness: freshness, Privacy: privacy},
+		Title:       "About",
+		Description: "About PeeringDB Plus: a globally distributed, read-only PeeringDB mirror with REST, GraphQL, gRPC, and PeeringDB-compatible APIs.",
+		Canonical:   canonicalURL(r),
+		Content:     templates.AboutPage(freshness, privacy),
+		Data:        templates.AboutPageData{Freshness: freshness, Privacy: privacy},
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)

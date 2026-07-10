@@ -1,65 +1,73 @@
 package templates
 
-templ Layout(title string, contents templ.Component) {
+// LayoutOptions carries per-page head configuration for Layout.
+// NeedsMap gates the Leaflet/markercluster includes: only the pages
+// that render a MapContainer pay the ~200 KB of map assets.
+// Description and Canonical are optional SEO fields: when set they emit
+// the meta description / canonical link and their OpenGraph twins.
+type LayoutOptions struct {
+	Title       string
+	Description string
+	Canonical   string
+	NeedsMap    bool
+}
+
+// mapHead emits the self-hosted Leaflet + markercluster assets and the
+// cluster theme. Scripts are synchronous on purpose: map-init.js needs
+// the L global defined before it runs.
+templ mapHead() {
+	<link rel="stylesheet" href="/static/leaflet.css"/>
+	<link rel="stylesheet" href="/static/MarkerCluster.css"/>
+	<link rel="stylesheet" href="/static/MarkerCluster.Default.css"/>
+	<script src="/static/leaflet.js"></script>
+	<script src="/static/leaflet.markercluster.js"></script>
+	<script src="/static/map-init.js"></script>
+	<style>
+		/* Markercluster emerald theme */
+		.marker-cluster-small { background-color: rgba(16, 185, 129, 0.3); }
+		.marker-cluster-small div { background-color: rgba(16, 185, 129, 0.6); }
+		.marker-cluster-medium { background-color: rgba(16, 185, 129, 0.4); }
+		.marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.7); }
+		.marker-cluster-large { background-color: rgba(16, 185, 129, 0.5); }
+		.marker-cluster-large div { background-color: rgba(16, 185, 129, 0.8); }
+		.marker-cluster div { color: #ffffff; font-size: 12px; font-weight: 600; }
+		/* Dark mode adjustments */
+		.dark .marker-cluster-small { background-color: rgba(16, 185, 129, 0.25); }
+		.dark .marker-cluster-small div { background-color: rgba(16, 185, 129, 0.55); }
+		.dark .marker-cluster-medium { background-color: rgba(16, 185, 129, 0.35); }
+		.dark .marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.65); }
+		.dark .marker-cluster-large { background-color: rgba(16, 185, 129, 0.45); }
+		.dark .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.75); }
+	</style>
+}
+
+templ Layout(opts LayoutOptions, contents templ.Component) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>{ title } - PeeringDB Plus</title>
+			<title>{ opts.Title } - PeeringDB Plus</title>
+			<meta property="og:title" content={ opts.Title + " - PeeringDB Plus" }/>
+			<meta property="og:type" content="website"/>
+			if opts.Description != "" {
+				<meta name="description" content={ opts.Description }/>
+				<meta property="og:description" content={ opts.Description }/>
+			}
+			if opts.Canonical != "" {
+				<link rel="canonical" href={ opts.Canonical }/>
+				<meta property="og:url" content={ opts.Canonical }/>
+			}
 			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 			<link rel="icon" type="image/x-icon" href="/static/favicon.ico"/>
-			<script>
-			(function(){
-				var d=document.documentElement;
-				var t=localStorage.getItem('darkMode');
-				if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){
-					d.classList.add('dark');
-				}
-			})();
-			</script>
-			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<script src="/static/theme-init.js"></script>
+			<link rel="stylesheet" href="/static/tailwind.css"/>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css"/>
 			<script src="/static/htmx.min.js"></script>
-			<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-				integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-				crossorigin=""/>
-			<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin=""/>
-			<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin=""/>
-			<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-				integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-				crossorigin=""></script>
-			<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
-			<script>
-			L.CircleMarker.include({
-				setOpacity: function(opacity) {
-					this.setStyle({ opacity: opacity, fillOpacity: opacity });
-				}
-			});
-			</script>
-			<style>
-				/* Markercluster emerald theme */
-				.marker-cluster-small { background-color: rgba(16, 185, 129, 0.3); }
-				.marker-cluster-small div { background-color: rgba(16, 185, 129, 0.6); }
-				.marker-cluster-medium { background-color: rgba(16, 185, 129, 0.4); }
-				.marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.7); }
-				.marker-cluster-large { background-color: rgba(16, 185, 129, 0.5); }
-				.marker-cluster-large div { background-color: rgba(16, 185, 129, 0.8); }
-				.marker-cluster div { color: #ffffff; font-size: 12px; font-weight: 600; }
-				/* Dark mode adjustments */
-				.dark .marker-cluster-small { background-color: rgba(16, 185, 129, 0.25); }
-				.dark .marker-cluster-small div { background-color: rgba(16, 185, 129, 0.55); }
-				.dark .marker-cluster-medium { background-color: rgba(16, 185, 129, 0.35); }
-				.dark .marker-cluster-medium div { background-color: rgba(16, 185, 129, 0.65); }
-				.dark .marker-cluster-large { background-color: rgba(16, 185, 129, 0.45); }
-				.dark .marker-cluster-large div { background-color: rgba(16, 185, 129, 0.75); }
-			</style>
-			<style type="text/tailwindcss">
-				@custom-variant dark (&:where(.dark, .dark *));
-				@theme {
-					--color-accent: #10b981;
-				}
-			</style>
+			<script src="/static/ui.js" defer></script>
+			if opts.NeedsMap {
+				@mapHead()
+			}
 			<style>
 				html.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
 					transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
@@ -85,215 +93,18 @@ templ Layout(title string, contents templ.Component) {
 			<div id="global-indicator" class="htmx-indicator bg-emerald-500">
 				<div class="h-full w-full bg-emerald-400 animate-pulse"></div>
 			</div>
+			<a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-3 focus:py-1.5 focus:rounded">Skip to content</a>
 			@Nav()
-			<main class="flex-1 container mx-auto px-4 py-8">
+			<main id="main-content" class="flex-1 container mx-auto px-4 py-8">
 				@contents
 			</main>
 			@Footer()
-			<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				document.querySelectorAll('#dark-mode-toggle').forEach(function(btn) {
-					btn.addEventListener('click', function() {
-						var html = document.documentElement;
-						html.classList.add('theme-transition');
-						if (html.classList.contains('dark')) {
-							html.classList.remove('dark');
-							localStorage.setItem('darkMode', 'light');
-						} else {
-							html.classList.add('dark');
-							localStorage.setItem('darkMode', 'dark');
-						}
-						if (window.__pdbMaps) {
-							window.__pdbMaps.forEach(function(m) {
-								m.tileLayer.setUrl(html.classList.contains('dark') ? m.darkURL : m.lightURL);
-							});
-						}
-						setTimeout(function() { html.classList.remove('theme-transition'); }, 200);
-					});
-				});
-			});
-			</script>
-		<script>
-		// Keyboard navigation for search results.
-		// Listens on keydown when search input or results are focused.
-		(function() {
-			function getOptions() {
-				var container = document.getElementById('search-results');
-				if (!container) return [];
-				return Array.from(container.querySelectorAll('[role="option"]'));
-			}
-
-			function getActiveIndex(options) {
-				for (var i = 0; i < options.length; i++) {
-					if (options[i].getAttribute('aria-selected') === 'true') return i;
-				}
-				return -1;
-			}
-
-			function setActive(options, index) {
-				for (var i = 0; i < options.length; i++) {
-					options[i].setAttribute('aria-selected', 'false');
-					options[i].classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-1');
-				}
-				if (index >= 0 && index < options.length) {
-					options[index].setAttribute('aria-selected', 'true');
-					options[index].classList.add('ring-2', 'ring-emerald-500', 'ring-offset-1');
-					options[index].focus();
-					options[index].scrollIntoView({ block: 'nearest' });
-				}
-			}
-
-			document.addEventListener('keydown', function(e) {
-				// Defer to spotlight handler when it is open.
-				if (window.__spotlightIsOpen && window.__spotlightIsOpen()) return;
-
-				var searchInput = document.querySelector('#search-form input[name="q"]');
-				if (!searchInput) return;
-
-				var isSearchFocused = document.activeElement === searchInput;
-				var options = getOptions();
-				if (options.length === 0) return;
-
-				var currentIndex = getActiveIndex(options);
-
-				if (e.key === 'ArrowDown') {
-					e.preventDefault();
-					if (isSearchFocused || currentIndex < 0) {
-						setActive(options, 0);
-					} else if (currentIndex < options.length - 1) {
-						setActive(options, currentIndex + 1);
-					}
-				} else if (e.key === 'ArrowUp') {
-					e.preventDefault();
-					if (currentIndex > 0) {
-						setActive(options, currentIndex - 1);
-					} else if (currentIndex === 0) {
-						setActive(options, -1);
-						searchInput.focus();
-					}
-				} else if (e.key === 'Enter') {
-					if (!isSearchFocused && currentIndex >= 0) {
-						e.preventDefault();
-						window.location.href = options[currentIndex].getAttribute('href');
-					}
-				} else if (e.key === 'Escape') {
-					if (!isSearchFocused) {
-						e.preventDefault();
-						setActive(options, -1);
-						searchInput.focus();
-					}
-				}
-			});
-
-			document.addEventListener('htmx:afterSwap', function(e) {
-				if (e.detail.target && e.detail.target.id === 'search-results') {
-					var options = getOptions();
-					setActive(options, -1);
-				}
-			});
-		})();
-		</script>
-		<script>
-		// htmx error handling for collapsible sections.
-		// On failed fetch inside a <details> element, replaces "Loading..." with
-		// an error message and retry button.
-		(function() {
-			document.body.addEventListener('htmx:afterRequest', function(evt) {
-				if (!evt.detail.successful && evt.detail.elt && evt.detail.elt.closest('details')) {
-					var el = evt.detail.elt;
-					var url = el.getAttribute('hx-get');
-					el.textContent = '';
-					var wrapper = document.createElement('div');
-					wrapper.className = 'px-4 py-3 text-center';
-					var msg = document.createElement('span');
-					msg.className = 'text-red-400 text-sm';
-					msg.textContent = 'Failed to load.';
-					var btn = document.createElement('button');
-					btn.className = 'text-emerald-400 hover:text-emerald-300 text-sm underline ml-2';
-					btn.textContent = 'Retry';
-					btn.setAttribute('hx-get', url);
-					btn.setAttribute('hx-target', 'closest div');
-					btn.setAttribute('hx-swap', 'innerHTML');
-					wrapper.appendChild(msg);
-					wrapper.appendChild(btn);
-					el.appendChild(wrapper);
-					htmx.process(el);
-				}
-			});
-		})();
-		</script>
-		<script>
-		// Client-side table sorting for sortable tables.
-		// Handles click on th[data-sortable], toggles asc/desc, re-orders rows.
-		(function() {
-			function sortTable(th) {
-				var table = th.closest('table');
-				if (!table) return;
-				var tbody = table.querySelector('tbody');
-				if (!tbody) return;
-				var col = parseInt(th.getAttribute('data-sort-col'), 10);
-				var type = th.getAttribute('data-sort-type') || 'alpha';
-				var current = th.getAttribute('data-sort-active');
-				var dir = (current === 'asc') ? 'desc' : 'asc';
-
-				// Clear all sort indicators in this table
-				table.querySelectorAll('th[data-sortable]').forEach(function(h) {
-					h.removeAttribute('data-sort-active');
-				});
-				th.setAttribute('data-sort-active', dir);
-
-				var rows = Array.from(tbody.querySelectorAll('tr'));
-				rows.sort(function(a, b) {
-					var cellA = a.children[col];
-					var cellB = b.children[col];
-					var valA = cellA ? (cellA.getAttribute('data-sort-value') || '') : '';
-					var valB = cellB ? (cellB.getAttribute('data-sort-value') || '') : '';
-
-					// Empty values sort last regardless of direction
-					if (valA === '' && valB !== '') return 1;
-					if (valA !== '' && valB === '') return -1;
-					if (valA === '' && valB === '') return 0;
-
-					var cmp;
-					if (type === 'numeric') {
-						cmp = parseFloat(valA) - parseFloat(valB);
-					} else {
-						cmp = valA.localeCompare(valB);
-					}
-					return dir === 'asc' ? cmp : -cmp;
-				});
-
-				rows.forEach(function(row) { tbody.appendChild(row); });
-			}
-
-			function applyDefaultSort(root) {
-				var tables = (root || document).querySelectorAll('table.sortable');
-				tables.forEach(function(table) {
-					var defaultTh = table.querySelector('th[data-sort-default]');
-					if (defaultTh && !table.querySelector('th[data-sort-active]')) {
-						sortTable(defaultTh);
-					}
-				});
-			}
-
-			document.addEventListener('click', function(e) {
-				var th = e.target.closest('th[data-sortable]');
-				if (th) sortTable(th);
-			});
-
-			document.addEventListener('htmx:afterSwap', function(e) {
-				applyDefaultSort(e.detail.target);
-			});
-
-			applyDefaultSort();
-		})();
-		</script>
 		<!-- Spotlight search overlay -->
 		<div id="spotlight-overlay" class="hidden fixed inset-0 z-50" aria-modal="true" role="dialog" aria-label="Quick search">
 			<div id="spotlight-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 			<div class="relative max-w-2xl mx-auto mt-[15vh] px-4">
 				<div class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
-					<form id="spotlight-form" onsubmit="return handleSpotlightSubmit(event)">
+					<form id="spotlight-form">
 						<div class="relative">
 							<svg class="absolute left-4 top-3.5 h-5 w-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -315,139 +126,10 @@ templ Layout(title string, contents templ.Component) {
 							<kbd class="absolute right-4 top-3.5 hidden sm:inline-flex items-center px-1.5 py-0.5 text-xs font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">esc</kbd>
 						</div>
 					</form>
-					<div id="spotlight-results" class="max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0" role="listbox" aria-label="Search results"></div>
+					<div id="spotlight-results" class="max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0"></div>
 				</div>
 			</div>
 		</div>
-		<script>
-		// Spotlight search: "/" to open, Escape to close.
-		(function() {
-			var overlay = document.getElementById('spotlight-overlay');
-			var backdrop = document.getElementById('spotlight-backdrop');
-			var input = document.getElementById('spotlight-input');
-			var resultsContainer = document.getElementById('spotlight-results');
-
-			function isOpen() {
-				return overlay.classList.contains('open');
-			}
-
-			function open() {
-				overlay.classList.remove('hidden');
-				// Force reflow so the transition triggers.
-				overlay.offsetHeight;
-				overlay.classList.add('open');
-				input.value = '';
-				resultsContainer.replaceChildren();
-				input.focus();
-			}
-
-			function close() {
-				overlay.classList.remove('open');
-				setTimeout(function() { overlay.classList.add('hidden'); }, 150);
-			}
-
-			function isInputFocused() {
-				var el = document.activeElement;
-				return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
-			}
-
-			// Numeric ASN redirect from spotlight.
-			window.handleSpotlightSubmit = function(event) {
-				var q = input.value.trim();
-				if (/^\d+$/.test(q)) {
-					event.preventDefault();
-					close();
-					window.location.href = '/ui/asn/' + q;
-					return false;
-				}
-				event.preventDefault();
-				return false;
-			};
-
-			// Keyboard navigation for spotlight results.
-			function getOptions() {
-				return Array.from(resultsContainer.querySelectorAll('[role="option"]'));
-			}
-
-			function getActiveIndex(options) {
-				for (var i = 0; i < options.length; i++) {
-					if (options[i].getAttribute('aria-selected') === 'true') return i;
-				}
-				return -1;
-			}
-
-			function setActive(options, index) {
-				for (var i = 0; i < options.length; i++) {
-					options[i].setAttribute('aria-selected', 'false');
-					options[i].classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-1');
-				}
-				if (index >= 0 && index < options.length) {
-					options[index].setAttribute('aria-selected', 'true');
-					options[index].classList.add('ring-2', 'ring-emerald-500', 'ring-offset-1');
-					options[index].focus();
-					options[index].scrollIntoView({ block: 'nearest' });
-				}
-			}
-
-			document.addEventListener('keydown', function(e) {
-				// "/" opens spotlight when not typing in an input.
-				if (e.key === '/' && !isOpen() && !isInputFocused()) {
-					e.preventDefault();
-					open();
-					return;
-				}
-
-				if (!isOpen()) return;
-
-				// Escape closes spotlight.
-				if (e.key === 'Escape') {
-					e.preventDefault();
-					close();
-					return;
-				}
-
-				var options = getOptions();
-				if (options.length === 0) return;
-				var currentIndex = getActiveIndex(options);
-				var isInInput = document.activeElement === input;
-
-				if (e.key === 'ArrowDown') {
-					e.preventDefault();
-					if (isInInput || currentIndex < 0) {
-						setActive(options, 0);
-					} else if (currentIndex < options.length - 1) {
-						setActive(options, currentIndex + 1);
-					}
-				} else if (e.key === 'ArrowUp') {
-					e.preventDefault();
-					if (currentIndex > 0) {
-						setActive(options, currentIndex - 1);
-					} else if (currentIndex === 0) {
-						setActive(options, -1);
-						input.focus();
-					}
-				} else if (e.key === 'Enter' && !isInInput && currentIndex >= 0) {
-					e.preventDefault();
-					close();
-					window.location.href = options[currentIndex].getAttribute('href');
-				}
-			});
-
-			// Close on backdrop click.
-			backdrop.addEventListener('click', close);
-
-			// Reset selection after htmx swaps in new results.
-			document.addEventListener('htmx:afterSwap', function(e) {
-				if (e.detail.target && e.detail.target.id === 'spotlight-results') {
-					var options = getOptions();
-					setActive(options, -1);
-				}
-			});
-
-			// Expose isOpen for the homepage search nav guard.
-			window.__spotlightIsOpen = isOpen;
-		})();
-		</script>
 		</body>
 	</html>
 }

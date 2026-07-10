@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"database/sql"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -58,7 +59,7 @@ func TestHomeHandler_FullPage(t *testing.T) {
 		"<!doctype html>",
 		"PeeringDB Plus",
 		"htmx.min.js",
-		"@tailwindcss/browser@4",
+		"/static/tailwind.css",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
@@ -153,7 +154,7 @@ func TestStaticAssets_NotFound(t *testing.T) {
 func TestLayout_TailwindClasses(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test content</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	checks := []string{"container", "mx-auto", "flex-col"}
 	for _, want := range checks {
@@ -166,7 +167,7 @@ func TestLayout_TailwindClasses(t *testing.T) {
 func TestLayout_ColorScheme(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	checks := []string{"dark:bg-neutral-900", "dark:text-neutral-100", "emerald-500"}
 	for _, want := range checks {
@@ -179,17 +180,52 @@ func TestLayout_ColorScheme(t *testing.T) {
 func TestLayout_DarkModeInit(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
+	// The theme bootstrap moved from an inline head <script> to
+	// /static/theme-init.js when script-src dropped 'unsafe-inline':
+	// the layout must load it synchronously in head (before the
+	// stylesheet paints), and the script itself must still carry the
+	// localStorage/prefers-color-scheme logic.
 	checks := []string{
-		"localStorage.getItem('darkMode')",
-		"prefers-color-scheme",
+		"/static/theme-init.js",
 		"dark:bg-neutral-900",
-		"@custom-variant dark",
+		"/static/tailwind.css",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
 			t.Errorf("layout missing dark mode init element %q", want)
+		}
+	}
+
+	js, err := fs.ReadFile(StaticFS, "theme-init.js")
+	if err != nil {
+		t.Fatalf("embedded theme-init.js missing: %v", err)
+	}
+	for _, want := range []string{"localStorage.getItem('darkMode')", "prefers-color-scheme"} {
+		if !strings.Contains(string(js), want) {
+			t.Errorf("theme-init.js missing %q", want)
+		}
+	}
+}
+
+// TestStaticTailwindCSS_DarkVariantCompiled guards the static Tailwind
+// build: the embedded stylesheet must exist, be non-trivial, and carry
+// the class-based dark variant (from @custom-variant dark in
+// tailwind.input.css). A regression here means dark mode silently
+// stopped compiling even though the toggle JS still flips the class.
+func TestStaticTailwindCSS_DarkVariantCompiled(t *testing.T) {
+	t.Parallel()
+	css, err := fs.ReadFile(StaticFS, "tailwind.css")
+	if err != nil {
+		t.Fatalf("embedded tailwind.css missing: %v", err)
+	}
+	if len(css) < 10_000 {
+		t.Fatalf("tailwind.css suspiciously small (%d bytes) — utility scan may have found nothing", len(css))
+	}
+	for _, want := range []string{".dark", "dark\\:bg-neutral-900"} {
+		if !strings.Contains(string(css), want) {
+			t.Errorf("tailwind.css missing %q — dark variant not compiled", want)
 		}
 	}
 }
@@ -963,7 +999,7 @@ func TestHandleAbout_PrivacySync(t *testing.T) {
 func TestLayout_CSSAnimations(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
 	checks := []string{
 		"@keyframes fadeIn",
@@ -1006,27 +1042,32 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 	body := renderComponent(t, templates.SearchResults(groups, ""))
 
 	checks := []string{
-		`role="option"`,
+		"data-result",
 		`tabindex="-1"`,
-		`aria-selected="false"`,
 		"focus:ring-2",
 		"focus:ring-emerald-500",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
-			t.Errorf("search results missing ARIA attribute %q", want)
+			t.Errorf("search results missing keyboard-nav attribute %q", want)
+		}
+	}
+	// Results are plain links; the listbox/option ARIA pattern was
+	// dropped (it mislabels anchors and demanded aria-selected upkeep).
+	for _, unwanted := range []string{`role="option"`, "aria-selected"} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("search results still carry %q", unwanted)
 		}
 	}
 }
 
-func TestSearchForm_ListboxRole(t *testing.T) {
+func TestSearchForm_ResultsContainer(t *testing.T) {
 	t.Parallel()
 	body := renderComponent(t, templates.SearchForm("", nil))
 
 	checks := []string{
-		`role="listbox"`,
 		"autofocus",
-		`aria-label="Search results"`,
+		`id="search-results"`,
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
@@ -1065,18 +1106,29 @@ func TestSearchResults_FadeIn(t *testing.T) {
 func TestLayout_KeyboardNavScript(t *testing.T) {
 	t.Parallel()
 	inner := templ.Raw("<p>test</p>")
-	body := renderComponent(t, templates.Layout("Test", inner))
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
+	// The behaviour scripts moved to /static/ui.js so the CSP could
+	// drop 'unsafe-inline' from script-src: the layout must reference
+	// it, and the script must still carry the keyboard-nav logic.
+	if !strings.Contains(body, "/static/ui.js") {
+		t.Error("layout missing /static/ui.js include")
+	}
+
+	js, err := fs.ReadFile(StaticFS, "ui.js")
+	if err != nil {
+		t.Fatalf("embedded ui.js missing: %v", err)
+	}
 	checks := []string{
 		"ArrowDown",
 		"ArrowUp",
-		"aria-selected",
+		"tabindex",
 		"htmx:afterSwap",
-		`role="option"`,
+		"[data-result]",
 	}
 	for _, want := range checks {
-		if !strings.Contains(body, want) {
-			t.Errorf("layout missing keyboard nav element %q", want)
+		if !strings.Contains(string(js), want) {
+			t.Errorf("ui.js missing keyboard nav element %q", want)
 		}
 	}
 }
@@ -1430,9 +1482,9 @@ func TestKeyboardNav_Integration(t *testing.T) {
 		want string
 		desc string
 	}{
-		{"ArrowDown", "keyboard nav script"},
-		{`role="option"`, "ARIA option role on results"},
-		{`role="listbox"`, "ARIA listbox role on container"},
+		{"/static/ui.js", "behaviour script include (keyboard nav lives there)"},
+		{"data-result", "keyboard-nav hook on results"},
+		{`id="search-results"`, "results container"},
 		{"Cloudflare", "search result content"},
 	}
 	for _, c := range checks {

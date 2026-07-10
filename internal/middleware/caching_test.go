@@ -556,3 +556,45 @@ func TestCaching_SkipPath(t *testing.T) {
 		t.Errorf("non-skipped path: Cache-Control = %q, want %q", got, "public, max-age=3720")
 	}
 }
+
+// TestCaching_StaticAssets locks the /static/ prefix rule: embedded
+// assets change on deploy, not on sync, so they get a fixed day-long
+// public max-age instead of the sync-time-keyed ETag (which would
+// invalidate every stylesheet and script each sync cycle).
+func TestCaching_StaticAssets(t *testing.T) {
+	t.Parallel()
+
+	state := middleware.NewCachingState(time.Hour)
+	state.UpdateETag(time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC))
+
+	var called atomic.Bool
+	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called.Store(true)
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	rec := httptest.NewRecorder()
+	mw.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/static/tailwind.css", nil))
+	if !called.Load() {
+		t.Error("inner handler not called for static asset")
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "public, max-age=86400" {
+		t.Errorf("Cache-Control = %q, want %q", got, "public, max-age=86400")
+	}
+	if got := rec.Header().Get("ETag"); got != "" {
+		t.Errorf("ETag = %q, want empty on static asset", got)
+	}
+
+	// The sync-keyed 304 short-circuit must not apply either.
+	called.Store(false)
+	req := httptest.NewRequest(http.MethodGet, "/static/ui.js", nil)
+	req.Header.Set("If-None-Match", "*")
+	rec2 := httptest.NewRecorder()
+	mw.ServeHTTP(rec2, req)
+	if rec2.Code != http.StatusOK {
+		t.Errorf("status with If-None-Match:* = %d, want 200 on static asset", rec2.Code)
+	}
+	if !called.Load() {
+		t.Error("inner handler not called for static asset with If-None-Match: *")
+	}
+}
