@@ -23,17 +23,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/conformance"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
 // allTypes lists all PeeringDB object types in sorted order.
-var allTypes = []string{
-	"campus", "carrier", "carrierfac", "fac", "ix", "ixfac",
-	"ixlan", "ixpfx", "net", "netfac", "netixlan", "org", "poc",
-}
+var allTypes = pdbtypes.SortedNames()
 
 // runConfig holds parsed command-line flags. Each subcommand registers
 // only the fields it consumes; the rest stay zero-valued.
@@ -262,7 +259,7 @@ func checkType(ctx context.Context, client *http.Client, baseURL, goldenDir, typ
 
 // isValidType reports whether the given name is a known PeeringDB type.
 func isValidType(name string) bool {
-	return slices.Contains(allTypes, name)
+	return pdbtypes.Valid(name)
 }
 
 // findGoldenDir attempts to locate the golden file directory relative to the
@@ -284,9 +281,4 @@ func findGoldenDir() string {
 
 	// Fall back to CWD-relative path.
 	return "internal/pdbcompat/testdata/golden"
-}
-
-func init() {
-	// Ensure allTypes stays sorted.
-	slices.Sort(allTypes)
 }

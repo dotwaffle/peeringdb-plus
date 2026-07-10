@@ -36,6 +36,7 @@ import (
 	"entgo.io/ent/entc/gen"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schema"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
 // Annotation name constants — must match internal/pdbcompat/annotations.go.
@@ -358,11 +359,10 @@ func resolveParentFKColumn(e *gen.Edge) string {
 
 // pdbTypeFor maps ent Go type names to PeeringDB API type strings (the
 // "net" / "fac" / "ix" namespace used by pdbcompat Registry keys and
-// URLs). Mirrors the map in internal/peeringdb/types.go and
-// modelNameOverrides in cmd/pdb-schema-generate/main.go. Unknown names
+// URLs) via the canonical internal/pdbtypes table. Unknown names
 // return "" and are skipped by the caller.
 func pdbTypeFor(goName string) string {
-	if v, ok := pdbTypeMap[goName]; ok {
+	if v, ok := pdbtypes.FromGoName(goName); ok {
 		return v
 	}
 	log.Printf("pdb-compat-allowlist: no PeeringDB type mapping for %q — skipping", goName)
@@ -375,33 +375,11 @@ func pdbTypeFor(goName string) string {
 // type strings). Unknown inputs return "" and are logged — the caller
 // skips the entry.
 func goNameFor(pdbType string) string {
-	for goName, pt := range pdbTypeMap {
-		if pt == pdbType {
-			return goName
-		}
+	if v, ok := pdbtypes.GoNameOf(pdbType); ok {
+		return v
 	}
 	log.Printf("pdb-compat-allowlist: no Go type mapping for PDB type %q — skipping", pdbType)
 	return ""
-}
-
-// pdbTypeMap is the single source-of-truth for the PDB-type ↔ Go-name
-// correspondence. Exposed as a package-level var (not built inline in
-// pdbTypeFor) so goNameFor can do a reverse lookup without maintaining
-// a second parallel declaration.
-var pdbTypeMap = map[string]string{
-	"Organization":     "org",
-	"Network":          "net",
-	"Facility":         "fac",
-	"InternetExchange": "ix",
-	"Poc":              "poc",
-	"IxLan":            "ixlan",
-	"IxPrefix":         "ixpfx",
-	"NetworkIxLan":     "netixlan",
-	"NetworkFacility":  "netfac",
-	"IxFacility":       "ixfac",
-	"Carrier":          "carrier",
-	"CarrierFacility":  "carrierfac",
-	"Campus":           "campus",
 }
 
 // outputTemplate is the Go source template for allowlist_gen.go. Every

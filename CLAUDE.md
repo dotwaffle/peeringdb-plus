@@ -289,6 +289,7 @@ Operator tooling (NOT shipped in prod images, NOT invoked by CI):
 - `cmd/loadtest/` — read-only HTTP traffic generator with 4 modes: `endpoints` (sweep), `sync` (replay 13-step ordered GET sequence), `soak` (sustained QPS-capped mixed load), `ramp` (per-surface inflection-point capacity probe → markdown table to stdout, added v1.18.7). Default `--target=https://peeringdb-plus.fly.dev`; **never** point at upstream `https://www.peeringdb.com` (1 req/hour/IP cap will block). See `cmd/loadtest/README.md` and `docs/DEPLOYMENT.md § Capacity probing`.
 
 Single-source-of-truth packages:
+- `internal/pdbtypes/` — leaf package (imports nothing) naming the 13 PeeringDB types across three domains (`Name`/`GoName`/`DjangoModel`); consumers derive their lists/maps from `pdbtypes.All`. Exception: `internal/sync` keeps its own ordered step list — loadtest's ordering parity test cross-checks the two.
 - `internal/pdbcompat/` — PeeringDB-compatible `/api` layer (filter routing, allowlist, status matrix, response budget)
 - `internal/privfield/` `Redact(ctx, visible, value)` — field-level redaction across all 5 surfaces
 - `internal/privctx/` `TierFrom(ctx)` — privacy tier reader

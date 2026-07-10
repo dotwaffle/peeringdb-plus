@@ -49,6 +49,7 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/buildinfo"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
 // Schema is the top-level intermediate JSON representation of the PeeringDB
@@ -718,23 +719,17 @@ func lastSegment(s string) string {
 	return s
 }
 
-// serializerAPIMap maps a DRF serializer class name to its PeeringDB API path.
-// django-peeringdb 3.x renamed several serializers (e.g. the IX-LAN/prefix and
-// the *Fac serializers); the keys track the current upstream class names.
-var serializerAPIMap = map[string]string{
-	"OrganizationSerializer":             "org",
-	"CampusSerializer":                   "campus",
-	"FacilitySerializer":                 "fac",
-	"CarrierSerializer":                  "carrier",
-	"CarrierFacilitySerializer":          "carrierfac",
-	"InternetExchangeSerializer":         "ix",
-	"IXLanSerializer":                    "ixlan",
-	"IXLanPrefixSerializer":              "ixpfx",
-	"InternetExchangeFacilitySerializer": "ixfac",
-	"NetworkSerializer":                  "net",
-	"NetworkContactSerializer":           "poc",
-	"NetworkFacilitySerializer":          "netfac",
-	"NetworkIXLanSerializer":             "netixlan",
+// serializerAPIMap maps a DRF serializer class name to its PeeringDB API
+// path. Upstream names every serializer <DjangoModel>Serializer, so the
+// map derives from the canonical internal/pdbtypes table.
+var serializerAPIMap = buildSerializerAPIMap()
+
+func buildSerializerAPIMap() map[string]string {
+	m := make(map[string]string, len(pdbtypes.All))
+	for _, t := range pdbtypes.All {
+		m[t.DjangoModel+"Serializer"] = t.Name
+	}
+	return m
 }
 
 // buildObjectTypes assembles object type definitions from serializer and model
@@ -983,24 +978,11 @@ func detectRelationships(apiPath string, fields map[string]FieldDef) map[string]
 	return rels
 }
 
-// modelNameToAPIPath converts a Django model class name to its PeeringDB API path.
+// modelNameToAPIPath converts a Django model class name to its PeeringDB
+// API path via the canonical internal/pdbtypes table. Unknown models
+// fall back to the lowercased class name.
 func modelNameToAPIPath(modelName string) string {
-	m := map[string]string{
-		"Organization":             "org",
-		"Campus":                   "campus",
-		"Facility":                 "fac",
-		"Carrier":                  "carrier",
-		"CarrierFacility":          "carrierfac",
-		"InternetExchange":         "ix",
-		"IXLan":                    "ixlan",
-		"IXLanPrefix":              "ixpfx",
-		"InternetExchangeFacility": "ixfac",
-		"Network":                  "net",
-		"NetworkContact":           "poc",
-		"NetworkFacility":          "netfac",
-		"NetworkIXLan":             "netixlan",
-	}
-	if p, ok := m[modelName]; ok {
+	if p, ok := pdbtypes.FromDjangoModel(modelName); ok {
 		return p
 	}
 	return strings.ToLower(modelName)

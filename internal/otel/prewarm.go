@@ -7,24 +7,9 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-)
 
-// PeeringDBEntityTypes is the canonical list of 13 PeeringDB entity type
-// names used as the `type` attribute on per-type sync counters. The list
-// is hand-copied from internal/sync/worker.go syncSteps() and MUST stay
-// in sync with that source — adding a 14th entity to syncSteps without
-// updating this list will leave the new type's panels showing "No data"
-// until its first real event fires.
-//
-// internal/otel cannot import internal/sync (would create an import cycle),
-// so parity is enforced by manual review + a grep gate. If this constraint
-// becomes load-bearing, promote the canonical list to a leaf package
-// (e.g. internal/pdbtypes) that both packages can import.
-var PeeringDBEntityTypes = []string{
-	"org", "campus", "fac", "carrier", "carrierfac",
-	"ix", "ixlan", "ixpfx", "ixfac",
-	"net", "poc", "netfac", "netixlan",
-}
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
+)
 
 // PrewarmCounters emits a single zero-valued .Add(ctx, 0, ...) on each of
 // the 5 zero-rate sync/role counters with the baseline attribute set so
@@ -75,7 +60,7 @@ func PrewarmCounters(ctx context.Context) {
 		}
 	}
 
-	for _, t := range PeeringDBEntityTypes {
+	for _, t := range pdbtypes.Names() {
 		typeAttr := metric.WithAttributes(attribute.String("type", t))
 		if SyncTypeFallback != nil {
 			SyncTypeFallback.Add(ctx, 0, typeAttr)
