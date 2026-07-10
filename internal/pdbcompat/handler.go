@@ -28,14 +28,16 @@ type Handler struct {
 	// wiring (default 128 MiB).
 	responseMemoryLimit int64
 
-	// inflightBytes tracks the summed estimated bytes of list responses
-	// admitted by CheckBudget and not yet finished serving. The per-
-	// request budget alone admits each request in isolation, so two
-	// concurrent near-budget dumps — each individually under the limit
-	// — could jointly materialize ~2x the budget and OOM a 256 MB
-	// replica. Admission charges the estimate here and rejects with 503
-	// + Retry-After when the pool would exceed responseMemoryLimit;
-	// serveList releases the charge on return.
+	// inflightBytes tracks the summed estimated bytes of list AND detail
+	// responses admitted by CheckBudget and not yet finished serving.
+	// The per-request budget alone admits each request in isolation, so
+	// two concurrent near-budget dumps — each individually under the
+	// limit — could jointly materialize ~2x the budget and OOM a 256 MB
+	// replica. Admission charges the estimate here (lists: the CheckBudget
+	// figure; depth>=2 details: the child-count fan-out from
+	// detailInflightEstimate) and rejects with 503 + Retry-After when the
+	// pool would exceed responseMemoryLimit; serveList / serveDetail
+	// release the charge on return.
 	inflightBytes atomic.Int64
 }
 
@@ -84,6 +86,22 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	// Per-request heap-delta sampler — covers BOTH the list and detail
+	// paths (it used to live in serveList only, leaving detail requests
+	// unobserved). Samples HeapInuse once here and once at handler exit
+	// (via defer); emits OTel span attribute
+	// pdbplus.response.heap_delta_bytes and a Prometheus histogram
+	// observation (pdbplus.response.heap_delta). runtime.ReadMemStats is
+	// STW but acceptable once per request. MUST NOT be called per-row.
+	//
+	// Fires on EVERY terminal path (200 success, 400 bad-id/filter, 404,
+	// 413 budget-exceeded, 500 query-error, 503 pool-exhausted) — that's
+	// the point of a defer; observing the small delta of a cheap error
+	// path gives us a noise floor reference. The index path above is not
+	// sampled: it has no entity label and serves a constant-size body.
+	startHeapBytes := memStatsHeapInuseBytes()
+	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
 
 	if idStr == "" {
 		// List endpoint: /api/{type} or /api/{type}/
@@ -151,23 +169,9 @@ func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(b)
 }
 
-// serveList handles list requests for the given type.
+// serveList handles list requests for the given type. The per-request
+// heap-delta sampler lives in dispatch (shared with serveDetail).
 func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request) {
-	// Per-request heap-delta sampler.
-	// Samples HeapInuse once at entry and once at handler exit (via defer);
-	// emits OTel span attribute pdbplus.response.heap_delta_bytes and a
-	// Prometheus histogram observation (pdbplus.response.heap_delta).
-	// runtime.ReadMemStats is STW but acceptable once per request. MUST
-	// NOT be called per-row.
-	//
-	// Fires on EVERY terminal path (200 success, 413 budget-exceeded, 400
-	// filter-error, 500 query-error) — that's the point of a defer; a
-	// budget-exceeded 413 is still a useful data point for the
-	// distribution, and observing the small delta of a cheap error path
-	// gives us a noise floor reference.
-	startHeapBytes := memStatsHeapInuseBytes()
-	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
-
 	params := r.URL.Query()
 
 	// List-depth guardrail: list + ?depth= is not supported. Silently
@@ -467,6 +471,37 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 			WriteBudgetProblem(w, r.URL.Path, info)
 			return
 		}
+
+		// Global admission, mirroring serveList: the flat check above
+		// treats the request in isolation AND bills only the typical
+		// expanded row, but a depth>=2 detail embeds unbounded _set
+		// collections — a hub org expands thousands of full network
+		// objects, easily rivalling a large list response.
+		// detailInflightEstimate prices that fan-out (child COUNT(*) ×
+		// child Depth0 per embedded set) so concurrent hub-object dumps
+		// cannot stack past the process-wide envelope. 503 + Retry-After
+		// on overflow; the charge releases when serveDetail returns. The
+		// deliberate 413-vs-actual-response-size deferral is untouched:
+		// the fan-out estimate feeds only the pool, never the 413.
+		estimate := detailInflightEstimate(r.Context(), h.client, tc.Name, id, depth)
+		if pooled := h.inflightBytes.Add(estimate); pooled > h.responseMemoryLimit {
+			h.inflightBytes.Add(-estimate)
+			slog.WarnContext(r.Context(), "pdbcompat: concurrent budget pool exhausted",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.Int64("estimated_bytes", estimate),
+				slog.Int64("pooled_bytes", pooled),
+				slog.Int64("budget_bytes", h.responseMemoryLimit),
+			)
+			w.Header().Set("Retry-After", "1")
+			WriteProblem(w, httperr.WriteProblemInput{
+				Status:   http.StatusServiceUnavailable,
+				Detail:   "server is serving other large responses; retry shortly",
+				Instance: r.URL.Path,
+			})
+			return
+		}
+		defer h.inflightBytes.Add(-estimate)
 	}
 
 	// Parse field projection (?fields=).

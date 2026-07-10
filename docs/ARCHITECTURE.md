@@ -842,7 +842,8 @@ closure, which runs inside the drain window (`PDBPLUS_DRAIN_TIMEOUT`, default
 
 ## Response Memory Envelope
 
-Since v1.16, pdbcompat list responses are gated by a per-request memory budget
+Since v1.16, pdbcompat list and detail responses are gated by a per-request
+memory budget
 so the 256 MB Fly replicas never OOM under `limit=0`, depth=2,
 or 2-hop traversal responses.
 The ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes`
@@ -938,6 +939,23 @@ Full table lives in `internal/pdbcompat/rowsize.go`.
    `http.Flusher.Flush()` every 100 rows, bounding intermediate
    allocations.
 
+**Global admission (shared in-flight pool).**
+The per-request check treats each request in isolation,
+so two concurrent near-budget responses could jointly materialise
+~2× the budget.
+Every admitted request therefore also charges its estimate into a
+process-wide `inflightBytes` pool
+and gets 503 + `Retry-After: 1` when the pool would overflow;
+the charge releases when the handler returns.
+Lists charge the `CheckBudget` figure directly.
+Detail requests participate too:
+the flat 413 check bills only the typical expanded row,
+but at depth ≥ 2 the pool charge is count-based —
+child `COUNT(*)` × child Depth0 per embedded `_set`
+(`internal/pdbcompat/detail_budget.go`) —
+so a hub-organisation detail (thousands of embedded networks)
+cannot stack with other large responses.
+
 ### Telemetry
 
 - **OTel span attribute** `pdbplus.response.heap_delta_bytes` —
@@ -947,8 +965,10 @@ Full table lives in `internal/pdbcompat/rowsize.go`.
   the contract permits ONE sample per request but NEVER per row.
   The sampler lives in `internal/pdbcompat/telemetry.go`
   (`memStatsHeapInuseBytes` + `recordResponseHeapDelta`)
-  and is called via `defer` at the top of `serveList` so every terminal path
-  (200 success, 413 budget-exceeded, 400 filter-error, 500 query-error)
+  and is called via `defer` in `dispatch` right after the Registry lookup,
+  covering both the list and detail paths, so every terminal path
+  (200 success, 400 bad-id/filter-error, 404, 413 budget-exceeded,
+  500 query-error, 503 pool-exhausted)
   fires exactly once.
   **Caveat:** `HeapInuse` is process-global,
   so under concurrent requests a single delta also reflects other in-flight
