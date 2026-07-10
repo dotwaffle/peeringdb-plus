@@ -118,12 +118,6 @@ jobs:
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
-        with:
-          # Pinned: without an explicit version the action installs
-          # whatever golangci-lint released last, so a new release that
-          # changes the `standard` linter set or a rule's behaviour can
-          # fail main with zero repo change. Bump deliberately.
-          version: v2.12.2
 
       - name: Run govulncheck
         # Advisory: a freshly disclosed vuln in a transitive dep surfaces
