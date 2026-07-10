@@ -14,8 +14,9 @@ import (
 // Per-request heap-delta telemetry.
 //
 // The sampler is called exactly TWICE per request:
-//  1. At the top of serveList (via memStatsHeapInuseBytes) to capture the
-//     baseline HeapInuse.
+//  1. In dispatch, right after the Registry lookup (via
+//     memStatsHeapInuseBytes), to capture the baseline HeapInuse — this
+//     covers both the list and detail paths.
 //  2. At the terminal path (via defer recordResponseHeapDelta) to capture
 //     the exit HeapInuse and compute delta.
 //
@@ -66,10 +67,11 @@ func memStatsHeapInuseBytes() int64 {
 //     never crash over a missing telemetry instrument).
 //
 // Intended usage: `defer recordResponseHeapDelta(ctx, endpoint, entity,
-// startBytes)` at the top of serveList (after startBytes :=
-// memStatsHeapInuseBytes()). Every terminal path of the handler — 200
-// success, 413 budget-exceeded, 400 filter-error, 500 query-error —
-// triggers exactly one observation via the defer.
+// startBytes)` in dispatch after the Registry lookup (after startBytes :=
+// memStatsHeapInuseBytes()). Every terminal path of the list and detail
+// handlers — 200 success, 400 bad-id/filter-error, 404, 413
+// budget-exceeded, 500 query-error, 503 pool-exhausted — triggers exactly
+// one observation via the defer.
 //
 // Negative deltas (end < start) are clamped to 0. GC cycles between
 // entry and exit can legitimately shrink HeapInuse; a negative histogram

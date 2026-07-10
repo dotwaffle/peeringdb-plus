@@ -242,3 +242,81 @@ func TestParity_Unicode_FoldWindow_DIVERGENCE(t *testing.T) {
 		t.Errorf("post-sync fold query: got %v, want [1] (window must close after sync)", ids)
 	}
 }
+
+// TestParity_Unicode_QSearchExtension_DIVERGENCE locks the registered
+// divergence for the `?q=` list parameter (docs/API.md § Known
+// Divergences).
+//
+// upstream: rest.py:545 — the db-field filter loop explicitly skips
+// `k == "q"`, and no other consumer of the parameter exists on the /api
+// surface (the separate `name_search` parameter triggers the
+// Elasticsearch-backed search_v2 at rest.py:512-532; there is no DRF
+// SearchFilter backend). Upstream therefore returns the UNFILTERED list
+// for any `?q=` value.
+//
+// peeringdb-plus treats `?q=` as a convenience extension: substring
+// search across the type's SearchFields (ContainsFold — case-insensitive
+// but NOT diacritic-folded; the `_fold` shadow routing applies to
+// `__contains`-family filters only, so `?q=munchen` does not match
+// "München" while `?name__contains=munchen` does).
+func TestParity_Unicode_QSearchExtension_DIVERGENCE(t *testing.T) {
+	t.Parallel()
+
+	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+
+	seed := []struct {
+		id   int
+		name string
+	}{
+		{1, "München Exchange Peering"},
+		{2, "Unrelated Networks"},
+	}
+	for _, s := range seed {
+		if _, err := c.Network.Create().
+			SetID(s.id).SetName(s.name).SetNameFold(unifold.Fold(s.name)).
+			SetAsn(64500 + s.id).SetStatus("ok").
+			SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed net %d: %v", s.id, err)
+		}
+	}
+	srv := newTestServer(t, c)
+
+	// DIVERGENCE: upstream ignores ?q= and would return BOTH rows here;
+	// the extension narrows to the substring match.
+	status, body := httpGet(t, srv, "/api/net?q="+url.QueryEscape("München"))
+	if status != http.StatusOK {
+		t.Fatalf("status = %d; body=%s", status, string(body))
+	}
+	if ids := extractIDs(t, body); len(ids) != 1 || ids[0] != 1 {
+		t.Errorf("?q= extension: got %v, want [1] (substring-filtered, unlike upstream's unfiltered list)", ids)
+	}
+
+	// Case-insensitivity comes from ContainsFold.
+	status, body = httpGet(t, srv, "/api/net?q="+url.QueryEscape("münchen"))
+	if status != http.StatusOK {
+		t.Fatalf("status = %d; body=%s", status, string(body))
+	}
+	if ids := extractIDs(t, body); len(ids) != 1 || ids[0] != 1 {
+		t.Errorf("?q= case fold: got %v, want [1]", ids)
+	}
+
+	// No diacritic folding: the ASCII form does NOT match, unlike the
+	// __contains filter family, which routes to the _fold shadow.
+	status, body = httpGet(t, srv, "/api/net?q=munchen")
+	if status != http.StatusOK {
+		t.Fatalf("status = %d; body=%s", status, string(body))
+	}
+	if ids := extractIDs(t, body); len(ids) != 0 {
+		t.Errorf("?q= diacritic fold: got %v, want [] (q search is not fold-routed; registered divergence)", ids)
+	}
+	status, body = httpGet(t, srv, "/api/net?name__contains=munchen")
+	if status != http.StatusOK {
+		t.Fatalf("status = %d; body=%s", status, string(body))
+	}
+	if ids := extractIDs(t, body); len(ids) != 1 || ids[0] != 1 {
+		t.Errorf("__contains contrast: got %v, want [1] (the filter family IS fold-routed)", ids)
+	}
+}
