@@ -1,11 +1,21 @@
-// Command pdbcompat-check fetches responses from the PeeringDB API and
-// compares their structure against local golden files to detect drift.
-// It uses structural comparison only: field names, value types, and
-// nesting depth are checked, but actual values are not.
+// Command pdbcompat-check validates PeeringDB API compatibility via four
+// subcommands, each with its own flag set:
+//
+//	check    fetch live responses and compare their structure against
+//	         local golden files (field names, value types, nesting depth —
+//	         never actual values)
+//	capture  walk the API anonymously and authenticated, writing
+//	         visibility-baseline fixtures (raw auth bytes staged off-repo)
+//	redact   pair raw auth bytes with anon fixtures and write the
+//	         redacted auth form under the baseline tree
+//	diff     build DIFF.md + diff.json from a captured baseline tree
+//
+// Run `pdbcompat-check <subcommand> -h` for per-mode flags.
 package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -25,106 +35,126 @@ var allTypes = []string{
 	"ixlan", "ixpfx", "net", "netfac", "netixlan", "org", "poc",
 }
 
-// runConfig holds parsed command-line flags.
+// runConfig holds parsed command-line flags. Each subcommand registers
+// only the fields it consumes; the rest stay zero-valued.
 type runConfig struct {
+	// check flags.
 	baseURL   string
 	typeName  string
 	goldenDir string
 	timeout   time.Duration
-	apiKey    string
+	apiKey    string // also capture
 
-	// Capture mode fields. Activated by -capture; the existing
-	// default path is untouched when -capture is not passed.
-	capture   bool
+	// capture flags.
 	target    string
 	mode      string
-	outDir    string
 	types     string
 	prodAuth  bool
 	statePath string
 
-	// Post-capture CLI modes.
-	//
-	//   -redact : read raw auth bytes under -in, pair with anon fixtures
-	//             under the path derived from -out (…/auth → …/anon), run
-	//             Redact on each page, and write the redacted form under
-	//             -out. Never writes raw auth anywhere on-repo.
-	//
-	//   -diff   : walk -out as a visibility-baseline root (either a single
-	//             target dir with anon/+auth/ or a parent dir of per-target
-	//             subdirs), run Diff per type, and emit DIFF.md + diff.json
-	//             (plus per-target DIFF-{target}.md in multi-target mode).
-	//
-	// The two flags are mutually exclusive and mutually exclusive with
-	// -capture — `run` enforces this.
-	redact bool
-	diff   bool
+	// redact/diff flags. outDir is capture=anon fixtures root,
+	// redact=redacted auth destination, diff=baseline root.
+	outDir string
 	inDir  string
 }
 
 func main() {
-	cfg := runConfig{}
-	flag.StringVar(&cfg.baseURL, "url", "https://beta.peeringdb.com", "PeeringDB API base URL")
-	flag.StringVar(&cfg.typeName, "type", "", "PeeringDB type to check (empty = all)")
-	flag.StringVar(&cfg.goldenDir, "golden-dir", "", "path to golden file directory (default: auto-detect)")
-	flag.DurationVar(&cfg.timeout, "timeout", 30*time.Second, "HTTP request timeout")
-	flag.StringVar(&cfg.apiKey, "api-key", "", "PeeringDB API key (overrides PDBPLUS_PEERINGDB_API_KEY env var)")
-
-	// Capture mode flags.
-	flag.BoolVar(&cfg.capture, "capture", false, "capture visibility baseline instead of running the structural check")
-	flag.StringVar(&cfg.target, "target", "beta", "capture target: beta | prod")
-	flag.StringVar(&cfg.mode, "mode", "both", "capture mode: anon | auth | both")
-	flag.StringVar(&cfg.outDir, "out", "", "output dir: capture=anon fixtures root, redact=redacted auth dst, diff=baseline root")
-	flag.StringVar(&cfg.types, "types", "", "comma-separated types to capture (default: 13 for beta, poc,org,net for prod)")
-	flag.BoolVar(&cfg.prodAuth, "prod-auth", false, "allow auth mode against prod target (requires API key; default false)")
-	flag.StringVar(&cfg.statePath, "state", "", "checkpoint file path (default: /tmp/pdb-vis-capture-state.json)")
-
-	// Post-capture flags.
-	flag.BoolVar(&cfg.redact, "redact", false, "redact raw auth bytes under -in and write the redacted form under -out")
-	flag.BoolVar(&cfg.diff, "diff", false, "build DIFF.md + diff.json from the baseline tree rooted at -out")
-	flag.StringVar(&cfg.inDir, "in", "", "input dir: redact=raw auth staging dir (e.g. /tmp/pdb-vis-capture-xxx/auth)")
-
-	flag.Parse()
-
-	if cfg.apiKey == "" {
-		cfg.apiKey = os.Getenv("PDBPLUS_PEERINGDB_API_KEY")
-	}
-
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-
-	if err := run(cfg, logger); err != nil {
+	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(cfg runConfig, logger *slog.Logger) error {
-	// Mode dispatch. At most one of -capture / -redact / -diff may
-	// be set; combining them is a user error.
-	modeCount := 0
-	if cfg.capture {
-		modeCount++
+// run dispatches on the subcommand in argv[0], parses that mode's flag
+// set, and delegates to the matching runX entrypoint. Mode exclusivity
+// is structural: exactly one subcommand runs per invocation.
+func run(argv []string, stdout, stderr io.Writer) error {
+	if len(argv) == 0 || argv[0] == "-h" || argv[0] == "--help" {
+		printHelp(stdout)
+		if len(argv) == 0 {
+			return errors.New("missing subcommand (check|capture|redact|diff)")
+		}
+		return nil
 	}
-	if cfg.redact {
-		modeCount++
+
+	sub := argv[0]
+	fs := flag.NewFlagSet(sub, flag.ContinueOnError)
+	fs.SetOutput(stderr)
+
+	cfg := runConfig{}
+	switch sub {
+	case "check":
+		fs.StringVar(&cfg.baseURL, "url", "https://beta.peeringdb.com", "PeeringDB API base URL")
+		fs.StringVar(&cfg.typeName, "type", "", "PeeringDB type to check (empty = all)")
+		fs.StringVar(&cfg.goldenDir, "golden-dir", "", "path to golden file directory (default: auto-detect)")
+		fs.DurationVar(&cfg.timeout, "timeout", 30*time.Second, "HTTP request timeout")
+		fs.StringVar(&cfg.apiKey, "api-key", "", "PeeringDB API key (overrides PDBPLUS_PEERINGDB_API_KEY env var)")
+	case "capture":
+		fs.StringVar(&cfg.target, "target", "beta", "capture target: beta | prod")
+		fs.StringVar(&cfg.mode, "mode", "both", "capture mode: anon | auth | both")
+		fs.StringVar(&cfg.outDir, "out", "", "anon fixtures root (default: testdata/visibility-baseline/<target>)")
+		fs.StringVar(&cfg.types, "types", "", "comma-separated types to capture (default: 13 for beta, poc,org,net for prod)")
+		fs.BoolVar(&cfg.prodAuth, "prod-auth", false, "allow auth mode against prod target (requires API key; default false)")
+		fs.StringVar(&cfg.statePath, "state", "", "checkpoint file path (default: /tmp/pdb-vis-capture-state.json)")
+		fs.StringVar(&cfg.apiKey, "api-key", "", "PeeringDB API key (overrides PDBPLUS_PEERINGDB_API_KEY env var)")
+	case "redact":
+		fs.StringVar(&cfg.inDir, "in", "", "raw auth staging dir (e.g. /tmp/pdb-vis-capture-xxx/auth)")
+		fs.StringVar(&cfg.outDir, "out", "", "redacted auth destination (must end in /auth so the anon sibling can be derived)")
+	case "diff":
+		fs.StringVar(&cfg.outDir, "out", "", "baseline root (containing anon/+auth/ or per-target subdirs)")
+	default:
+		printHelp(stderr)
+		return fmt.Errorf("unknown subcommand %q (want check|capture|redact|diff)", sub)
 	}
-	if cfg.diff {
-		modeCount++
+
+	if err := fs.Parse(argv[1:]); err != nil {
+		return err
 	}
-	if modeCount > 1 {
-		return fmt.Errorf("at most one of -capture, -redact, -diff may be set")
-	}
-	if cfg.capture {
+
+	cfg.apiKey = resolveAPIKey(cfg.apiKey, os.Getenv("PDBPLUS_PEERINGDB_API_KEY"))
+
+	logger := slog.New(slog.NewTextHandler(stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+
+	switch sub {
+	case "check":
+		return runCheck(cfg, logger)
+	case "capture":
 		return runCapture(cfg, logger)
-	}
-	if cfg.redact {
+	case "redact":
 		return runRedact(cfg, logger)
-	}
-	if cfg.diff {
+	default: // "diff" — the unknown-subcommand case returned above.
 		return runDiff(cfg, logger)
 	}
+}
+
+// resolveAPIKey applies the env-var fallback: an explicit flag value
+// wins, otherwise the PDBPLUS_PEERINGDB_API_KEY env value is used.
+func resolveAPIKey(flagVal, envVal string) string {
+	if flagVal != "" {
+		return flagVal
+	}
+	return envVal
+}
+
+// printHelp writes the subcommand overview.
+func printHelp(w io.Writer) {
+	fmt.Fprint(w, `Usage: pdbcompat-check <subcommand> [flags]
+
+Subcommands:
+  check    compare live PeeringDB response structure against golden files
+  capture  capture visibility-baseline fixtures (anon + auth walks)
+  redact   redact raw auth bytes against their anon pairs
+  diff     build DIFF.md + diff.json from a captured baseline tree
+
+Run 'pdbcompat-check <subcommand> -h' for that mode's flags.
+`)
+}
+
+// runCheck is the check subcommand entrypoint: the structural drift
+// check comparing live responses against golden files.
+func runCheck(cfg runConfig, logger *slog.Logger) error {
 	client := &http.Client{Timeout: cfg.timeout}
 
 	types := allTypes

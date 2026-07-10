@@ -10,7 +10,7 @@ import (
 // TestRunRedactRequiresInDir asserts -redact without -in fails fast.
 func TestRunRedactRequiresInDir(t *testing.T) {
 	t.Parallel()
-	cfg := runConfig{redact: true, outDir: t.TempDir()}
+	cfg := runConfig{outDir: t.TempDir()}
 	err := runRedact(cfg, discardLogger())
 	if err == nil {
 		t.Fatal("expected error when -in is empty")
@@ -23,7 +23,7 @@ func TestRunRedactRequiresInDir(t *testing.T) {
 // TestRunRedactRequiresOutDir asserts -redact without -out fails fast.
 func TestRunRedactRequiresOutDir(t *testing.T) {
 	t.Parallel()
-	cfg := runConfig{redact: true, inDir: t.TempDir()}
+	cfg := runConfig{inDir: t.TempDir()}
 	err := runRedact(cfg, discardLogger())
 	if err == nil {
 		t.Fatal("expected error when -out is empty")
@@ -38,7 +38,6 @@ func TestRunRedactOutMustEndInAuth(t *testing.T) {
 	t.Parallel()
 	tmp := t.TempDir()
 	cfg := runConfig{
-		redact: true,
 		inDir:  tmp,
 		outDir: filepath.Join(tmp, "wrong"),
 	}
@@ -54,39 +53,13 @@ func TestRunRedactOutMustEndInAuth(t *testing.T) {
 // TestRunDiffRequiresOutDir asserts -diff without -out fails fast.
 func TestRunDiffRequiresOutDir(t *testing.T) {
 	t.Parallel()
-	cfg := runConfig{diff: true}
+	cfg := runConfig{}
 	err := runDiff(cfg, discardLogger())
 	if err == nil {
 		t.Fatal("expected error when -out is empty")
 	}
 	if !strings.Contains(err.Error(), "-out") {
 		t.Errorf("error = %v, want mention of -out", err)
-	}
-}
-
-// TestRunModeMutualExclusion asserts -capture + -redact at once fails.
-func TestRunModeMutualExclusion(t *testing.T) {
-	t.Parallel()
-	cfg := runConfig{
-		capture: true, redact: true,
-		target: "beta", mode: "anon",
-	}
-	err := run(cfg, discardLogger())
-	if err == nil {
-		t.Fatal("expected error for combined -capture + -redact")
-	}
-	if !strings.Contains(err.Error(), "at most one") {
-		t.Errorf("error = %v, want 'at most one'", err)
-	}
-}
-
-// TestRunModeMutualExclusionDiffRedact asserts -diff + -redact fails.
-func TestRunModeMutualExclusionDiffRedact(t *testing.T) {
-	t.Parallel()
-	cfg := runConfig{diff: true, redact: true}
-	err := run(cfg, discardLogger())
-	if err == nil {
-		t.Fatal("expected error for combined -diff + -redact")
 	}
 }
 
@@ -117,7 +90,6 @@ func TestRunRedactHappyPathDerivesAnonDir(t *testing.T) {
 	}
 
 	cfg := runConfig{
-		redact: true,
 		inDir:  rawAuth,
 		outDir: filepath.Join(baseline, "auth"),
 	}
@@ -154,7 +126,7 @@ func TestRunDiffHappyPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg := runConfig{diff: true, outDir: tmp}
+	cfg := runConfig{outDir: tmp}
 	if err := runDiff(cfg, discardLogger()); err != nil {
 		t.Fatalf("runDiff: %v", err)
 	}

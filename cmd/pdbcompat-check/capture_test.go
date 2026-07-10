@@ -12,7 +12,7 @@ func discardLogger() *slog.Logger {
 
 func TestRunCaptureFailFastNoAPIKey(t *testing.T) {
 	t.Parallel()
-	cfg := runConfig{capture: true, target: "beta", mode: "auth"}
+	cfg := runConfig{target: "beta", mode: "auth"}
 	err := runCapture(cfg, discardLogger())
 	if err == nil {
 		t.Fatal("expected error when -mode=auth without API key, got nil")
@@ -22,7 +22,7 @@ func TestRunCaptureFailFastNoAPIKey(t *testing.T) {
 func TestRunCaptureProdAuthDowngradeFails(t *testing.T) {
 	t.Parallel()
 	cfg := runConfig{
-		capture: true, target: "prod", mode: "auth",
+		target: "prod", mode: "auth",
 		apiKey: "something", prodAuth: false,
 	}
 	err := runCapture(cfg, discardLogger())
@@ -33,7 +33,7 @@ func TestRunCaptureProdAuthDowngradeFails(t *testing.T) {
 
 func TestRunCaptureUnknownTarget(t *testing.T) {
 	t.Parallel()
-	cfg := runConfig{capture: true, target: "staging", mode: "anon"}
+	cfg := runConfig{target: "staging", mode: "anon"}
 	err := runCapture(cfg, discardLogger())
 	if err == nil {
 		t.Fatal("expected error for unknown target, got nil")
@@ -42,7 +42,7 @@ func TestRunCaptureUnknownTarget(t *testing.T) {
 
 func TestRunCaptureUnknownMode(t *testing.T) {
 	t.Parallel()
-	cfg := runConfig{capture: true, target: "beta", mode: "both-of-them"}
+	cfg := runConfig{target: "beta", mode: "both-of-them"}
 	err := runCapture(cfg, discardLogger())
 	if err == nil {
 		t.Fatal("expected error for unknown mode, got nil")
