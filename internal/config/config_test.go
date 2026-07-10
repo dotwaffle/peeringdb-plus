@@ -459,6 +459,13 @@ func TestLoad_Validate(t *testing.T) {
 		{name: "drain timeout zero", env: "PDBPLUS_DRAIN_TIMEOUT", val: "0s", wantErr: true, errContains: "greater than 0"},
 		{name: "drain timeout negative", env: "PDBPLUS_DRAIN_TIMEOUT", val: "-5s", wantErr: true, errContains: "greater than 0"},
 		{name: "drain timeout valid", env: "PDBPLUS_DRAIN_TIMEOUT", val: "10s", wantErr: false},
+		// StreamTimeout is the ONLY bound on streaming RPC lifetime
+		// (WriteTimeout is deliberately 0 for gRPC streaming), so a
+		// non-positive value must fail startup rather than run
+		// unbounded streams.
+		{name: "stream timeout zero", env: "PDBPLUS_STREAM_TIMEOUT", val: "0s", wantErr: true, errContains: "greater than 0"},
+		{name: "stream timeout negative", env: "PDBPLUS_STREAM_TIMEOUT", val: "-1s", wantErr: true, errContains: "greater than 0"},
+		{name: "stream timeout valid", env: "PDBPLUS_STREAM_TIMEOUT", val: "90s", wantErr: false},
 	}
 
 	for _, tt := range tests {

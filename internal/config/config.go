@@ -458,6 +458,13 @@ func (c *Config) validate() error {
 	if c.SyncTimeout < 0 {
 		return errors.New("PDBPLUS_SYNC_TIMEOUT must be non-negative (0 = disabled)")
 	}
+	if c.StreamTimeout <= 0 {
+		// StreamEntities only applies the timeout when it is positive, and
+		// WriteTimeout is deliberately 0 (gRPC streaming), so a non-positive
+		// StreamTimeout silently removes the ONLY bound on stream lifetime.
+		// Fail fast rather than run unbounded streams.
+		return errors.New("PDBPLUS_STREAM_TIMEOUT must be greater than 0 (it is the only bound on streaming RPC lifetime)")
+	}
 	return nil
 }
 
