@@ -38,13 +38,22 @@ const (
 // PageContent holds the title and body component for a page render.
 // Defined to avoid >2 non-ctx arguments in renderPage.
 type PageContent struct {
-	Title     string
-	Kind      PageKind // Kind routes the special pages in terminal/JSON modes (zero value = ordinary page).
-	Content   templ.Component
-	Data      any       // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
-	Freshness time.Time // Freshness is the last successful sync time for terminal footer display.
-	Status    int       // HTTP status (0 means 200). Committed by renderPage AFTER headers — WriteHeader first drops Vary/Content-Type.
-	NeedsMap  bool      // NeedsMap emits the Leaflet/markercluster head includes; set only on pages that render a MapContainer.
+	Title       string
+	Kind        PageKind // Kind routes the special pages in terminal/JSON modes (zero value = ordinary page).
+	Description string   // Description feeds the meta description / og:description tags when non-empty.
+	Canonical   string   // Canonical feeds the rel=canonical link / og:url tags when non-empty.
+	Content     templ.Component
+	Data        any       // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
+	Freshness   time.Time // Freshness is the last successful sync time for terminal footer display.
+	Status      int       // HTTP status (0 means 200). Committed by renderPage AFTER headers — WriteHeader first drops Vary/Content-Type.
+	NeedsMap    bool      // NeedsMap emits the Leaflet/markercluster head includes; set only on pages that render a MapContainer.
+}
+
+// canonicalURL builds the rel=canonical value for the current page:
+// scheme + host + path, dropping any query string. The deployment
+// terminates TLS at the edge, so https is asserted unconditionally.
+func canonicalURL(r *http.Request) string {
+	return "https://" + r.Host + r.URL.Path
 }
 
 // renderPage renders a response in the appropriate format based on terminal detection.
@@ -175,6 +184,11 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 
 	default: // ModeHTML
 		setHead("text/html; charset=utf-8")
-		return templates.Layout(templates.LayoutOptions{Title: page.Title, NeedsMap: page.NeedsMap}, page.Content).Render(ctx, w)
+		return templates.Layout(templates.LayoutOptions{
+			Title:       page.Title,
+			Description: page.Description,
+			Canonical:   page.Canonical,
+			NeedsMap:    page.NeedsMap,
+		}, page.Content).Render(ctx, w)
 	}
 }

@@ -3,9 +3,13 @@ package templates
 // LayoutOptions carries per-page head configuration for Layout.
 // NeedsMap gates the Leaflet/markercluster includes: only the pages
 // that render a MapContainer pay the ~200 KB of map assets.
+// Description and Canonical are optional SEO fields: when set they emit
+// the meta description / canonical link and their OpenGraph twins.
 type LayoutOptions struct {
-	Title    string
-	NeedsMap bool
+	Title       string
+	Description string
+	Canonical   string
+	NeedsMap    bool
 }
 
 // mapHead emits the self-hosted Leaflet + markercluster assets and the
@@ -44,6 +48,16 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ opts.Title } - PeeringDB Plus</title>
+			<meta property="og:title" content={ opts.Title + " - PeeringDB Plus" }/>
+			<meta property="og:type" content="website"/>
+			if opts.Description != "" {
+				<meta name="description" content={ opts.Description }/>
+				<meta property="og:description" content={ opts.Description }/>
+			}
+			if opts.Canonical != "" {
+				<link rel="canonical" href={ opts.Canonical }/>
+				<meta property="og:url" content={ opts.Canonical }/>
+			}
 			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 			<link rel="icon" type="image/x-icon" href="/static/favicon.ico"/>
 			<script src="/static/theme-init.js"></script>

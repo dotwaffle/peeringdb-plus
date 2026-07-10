@@ -63,11 +63,13 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 	}
 
 	page := PageContent{
-		Title:     data.Name,
-		Content:   templates.NetworkDetailPage(data),
-		Data:      data,
-		Freshness: h.getFreshness(r.Context()),
-		NeedsMap:  true,
+		Title:       data.Name,
+		Description: fmt.Sprintf("%s (AS%d) — peering details, IX presence, and facilities on PeeringDB Plus.", data.Name, data.ASN),
+		Canonical:   canonicalURL(r),
+		Content:     templates.NetworkDetailPage(data),
+		Data:        data,
+		Freshness:   h.getFreshness(r.Context()),
+		NeedsMap:    true,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render network detail", slog.Int("asn", int(asn)), slog.Any("error", err))
@@ -95,11 +97,13 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 	}
 
 	page := PageContent{
-		Title:     data.Name,
-		Content:   templates.IXDetailPage(data),
-		Data:      data,
-		Freshness: h.getFreshness(r.Context()),
-		NeedsMap:  true,
+		Title:       data.Name,
+		Description: fmt.Sprintf("%s — participants, peering LAN prefixes, and facilities on PeeringDB Plus.", data.Name),
+		Canonical:   canonicalURL(r),
+		Content:     templates.IXDetailPage(data),
+		Data:        data,
+		Freshness:   h.getFreshness(r.Context()),
+		NeedsMap:    true,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render ix detail", slog.Int("id", id), slog.Any("error", err))
@@ -127,11 +131,13 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 	}
 
 	page := PageContent{
-		Title:     data.Name,
-		Content:   templates.FacilityDetailPage(data),
-		Data:      data,
-		Freshness: h.getFreshness(r.Context()),
-		NeedsMap:  true,
+		Title:       data.Name,
+		Description: fmt.Sprintf("%s — networks, IXPs, and carriers present at this facility on PeeringDB Plus.", data.Name),
+		Canonical:   canonicalURL(r),
+		Content:     templates.FacilityDetailPage(data),
+		Data:        data,
+		Freshness:   h.getFreshness(r.Context()),
+		NeedsMap:    true,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render facility detail", slog.Int("id", id), slog.Any("error", err))
@@ -159,10 +165,12 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 	}
 
 	page := PageContent{
-		Title:     data.Name,
-		Content:   templates.OrgDetailPage(data),
-		Data:      data,
-		Freshness: h.getFreshness(r.Context()),
+		Title:       data.Name,
+		Description: fmt.Sprintf("%s — networks, IXPs, and facilities operated by this organization on PeeringDB Plus.", data.Name),
+		Canonical:   canonicalURL(r),
+		Content:     templates.OrgDetailPage(data),
+		Data:        data,
+		Freshness:   h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render org detail", slog.Int("id", id), slog.Any("error", err))
@@ -190,10 +198,12 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 	}
 
 	page := PageContent{
-		Title:     data.Name,
-		Content:   templates.CampusDetailPage(data),
-		Data:      data,
-		Freshness: h.getFreshness(r.Context()),
+		Title:       data.Name,
+		Description: fmt.Sprintf("%s — facilities on this campus on PeeringDB Plus.", data.Name),
+		Canonical:   canonicalURL(r),
+		Content:     templates.CampusDetailPage(data),
+		Data:        data,
+		Freshness:   h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render campus detail", slog.Int("id", id), slog.Any("error", err))
@@ -221,10 +231,12 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 	}
 
 	page := PageContent{
-		Title:     data.Name,
-		Content:   templates.CarrierDetailPage(data),
-		Data:      data,
-		Freshness: h.getFreshness(r.Context()),
+		Title:       data.Name,
+		Description: fmt.Sprintf("%s — facilities served by this carrier on PeeringDB Plus.", data.Name),
+		Canonical:   canonicalURL(r),
+		Content:     templates.CarrierDetailPage(data),
+		Data:        data,
+		Freshness:   h.getFreshness(r.Context()),
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render carrier detail", slog.Int("id", id), slog.Any("error", err))

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -81,6 +82,14 @@ func (h *Handler) Register(mux *http.ServeMux) {
 		http.FileServerFS(StaticFS).ServeHTTP(w, r)
 	})
 
+	// robots.txt: everything is crawlable except the htmx fragment
+	// endpoints, which serve partial HTML that is useless as a search
+	// result and doubles crawl volume against the detail pages.
+	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = io.WriteString(w, "User-agent: *\nAllow: /\nDisallow: /ui/fragment/\n")
+	})
+
 	mux.HandleFunc("GET /ui/{rest...}", h.dispatch)
 }
 
@@ -136,10 +145,12 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := PageContent{
-		Title:     "Home",
-		Kind:      KindHome,
-		Content:   templates.Home(query, groups),
-		Freshness: h.getFreshness(r.Context()),
+		Title:       "Home",
+		Kind:        KindHome,
+		Description: "A fast, read-only mirror of PeeringDB data. Search networks, IXPs, facilities, and more.",
+		Canonical:   canonicalURL(r),
+		Content:     templates.Home(query, groups),
+		Freshness:   h.getFreshness(r.Context()),
 	}
 	if len(groups) > 0 {
 		page.Title = "Search"
@@ -335,7 +346,12 @@ func convertToSearchGroups(results []TypeResult) []templates.SearchGroup {
 func (h *Handler) handleCompareForm(w http.ResponseWriter, r *http.Request) {
 	asn1 := r.URL.Query().Get("asn1")
 	asn2 := r.URL.Query().Get("asn2")
-	page := PageContent{Title: "Compare Networks", Content: templates.CompareFormPage(asn1, asn2)}
+	page := PageContent{
+		Title:       "Compare Networks",
+		Description: "Compare two networks' shared IXPs, facilities, and campuses on PeeringDB Plus.",
+		Canonical:   canonicalURL(r),
+		Content:     templates.CompareFormPage(asn1, asn2),
+	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		h.handleServerError(w, r)
 	}
@@ -398,11 +414,13 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 
 	title := fmt.Sprintf("%s vs %s", data.NetA.Name, data.NetB.Name)
 	page := PageContent{
-		Title:     title,
-		Content:   templates.CompareResultsPage(*data),
-		Data:      data,
-		Freshness: h.getFreshness(r.Context()),
-		NeedsMap:  true,
+		Title:       title,
+		Description: fmt.Sprintf("Shared IXPs, facilities, and campuses between AS%d and AS%d on PeeringDB Plus.", data.NetA.ASN, data.NetB.ASN),
+		Canonical:   canonicalURL(r),
+		Content:     templates.CompareResultsPage(*data),
+		Data:        data,
+		Freshness:   h.getFreshness(r.Context()),
+		NeedsMap:    true,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render compare", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err))
