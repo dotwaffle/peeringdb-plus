@@ -443,15 +443,23 @@ func (c *Client) doWithRetry(ctx context.Context, url string) (*http.Response, e
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 
-		// Auth errors indicate invalid API key -- log and fail immediately.
+		// Auth errors fail immediately. The diagnosis depends on whether a
+		// key is configured: blaming "invalid API key" on an anonymous
+		// client sends the operator down the wrong path when the real
+		// cause is an upstream access-policy change or a proxy misconfig.
 		// Note: WAF-blocked 403 responses never reach here — the transport
 		// short-circuits them with errWAFBlocked.
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB API key may be invalid",
+			diagnosis := "forbidden without credentials — check upstream access policy"
+			if c.apiKey != "" {
+				diagnosis = "API key may be invalid"
+			}
+			c.logger.LogAttrs(ctx, slog.LevelWarn, "PeeringDB rejected request: "+diagnosis,
 				slog.Int("status", resp.StatusCode),
 				slog.String("url", url),
+				slog.Bool("authenticated", c.apiKey != ""),
 			)
-			authErr := fmt.Errorf("fetch %s: HTTP %d (API key may be invalid)", url, resp.StatusCode)
+			authErr := fmt.Errorf("fetch %s: HTTP %d (%s)", url, resp.StatusCode, diagnosis)
 			return nil, authErr
 		}
 

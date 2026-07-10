@@ -243,8 +243,10 @@ func TestTransport_NormalAuthError403_NoRetry(t *testing.T) {
 	if IsWAFBlocked(err) {
 		t.Errorf("non-WAF 403 incorrectly classified as WAF: %v", err)
 	}
-	if !strings.Contains(err.Error(), "API key may be invalid") {
-		t.Errorf("expected API-key error message, got: %v", err)
+	// fastClient carries no API key, so the diagnosis must point at
+	// upstream access policy, not at a key that doesn't exist.
+	if !strings.Contains(err.Error(), "forbidden without credentials") {
+		t.Errorf("expected unauthenticated-403 diagnosis, got: %v", err)
 	}
 	if got := attempts.Load(); got != 1 {
 		t.Errorf("attempts = %d, want 1", got)
@@ -436,7 +438,7 @@ func TestTransport_BodyRestoredAfterWAFSniff(t *testing.T) {
 	if resp != nil {
 		t.Errorf("doWithRetry returned non-nil resp on auth error: %+v", resp)
 	}
-	if !strings.Contains(err.Error(), "API key may be invalid") {
+	if !strings.Contains(err.Error(), "forbidden without credentials") {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
