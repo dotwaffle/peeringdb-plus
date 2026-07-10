@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -324,11 +323,3 @@ func matchesWAF(body []byte) bool {
 func IsWAFBlocked(err error) bool {
 	return errors.Is(err, errWAFBlocked)
 }
-
-// quietContains is a tiny helper for tests to assert WAF logging without
-// having to set up a full slog handler. Production code does not use it.
-func quietContains(haystack, needle string) bool {
-	return strings.Contains(haystack, needle)
-}
-
-var _ = quietContains // keep helper available for tests without unused-symbol lint noise

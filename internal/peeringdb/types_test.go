@@ -6,6 +6,15 @@ import (
 	"time"
 )
 
+// Response mirrors the PeeringDB API envelope. Test-only since the
+// production client streams elements (StreamAll) instead of decoding
+// whole envelopes; the entity-struct decode tests and stream_test.go's
+// legacy-path comparisons still want the envelope shape.
+type Response[T any] struct {
+	Meta json.RawMessage `json:"meta"`
+	Data []T             `json:"data"`
+}
+
 func TestResponseDeserialization(t *testing.T) {
 	t.Parallel()
 

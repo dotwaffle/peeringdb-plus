@@ -754,8 +754,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 
 	// === Phase A — NO TX HELD ===
 	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.
-	fromIncremental, err := w.syncFetchPass(ctx, scratch, effectiveMode)
-	if err != nil {
+	if err := w.syncFetchPass(ctx, scratch, effectiveMode); err != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
@@ -763,7 +762,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	w.foldPeakHeap(ms.HeapInuse) // post-Phase-A is one of the cycle's heap peaks
-	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit, len(fromIncremental)); memErr != nil {
+	if memErr := w.checkMemoryLimit(ctx, ms.HeapAlloc, w.config.SyncMemoryLimit); memErr != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, memErr)
 		return memErr
 	}
@@ -783,7 +782,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	// === Phase B — SINGLE REAL TX === (no delete pass.
 	// Cursor writes are gone — cursor is derived from
 	// MAX(updated) per table on the next cycle.)
-	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch, fromIncremental)
+	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch)
 	if err != nil {
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
@@ -820,7 +819,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 // Go heap cannot approach that value (it would require >9 EiB of RAM),
 // so the comparison is safe. The explicit cap below keeps gosec happy
 // without adding runtime cost.
-func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit int64, batchCount int) error {
+func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit int64) error {
 	if limit <= 0 {
 		return nil
 	}
@@ -837,7 +836,6 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 	w.logger.LogAttrs(ctx, slog.LevelWarn, "sync aborted: memory limit exceeded",
 		slog.Int64("heap_alloc", heapInt64),
 		slog.Int64("limit", limit),
-		slog.Int("batches", batchCount),
 	)
 	return ErrSyncMemoryLimitExceeded
 }
@@ -1131,20 +1129,6 @@ func sumCounts(m map[string]int) int {
 	return total
 }
 
-// syncBatch is a dead marker kept for the TestSync_BatchFreeAfterUpsert
-// structural regression lock. Before the per-chunk refactor, this struct
-// held per-type []T slices that drainAndUpsertType zeroed between chunks
-// to release the backing array. After the refactor, per-chunk typed slices
-// live in processScratchChunk's locals (one generic helper per type)
-// and are reclaimed automatically when the helper returns — the
-// function-scope release is strictly more reliable than the old
-// map-entry clearing hack. The struct stays as an empty placeholder so
-// the `batches[name] = syncBatch{}` literal in drainAndUpsertType
-// continues to satisfy the regression test's string match while
-// compiling to a no-op map write (free, and kept as a grep-visible
-// anchor for the memory-bound documentation trail).
-type syncBatch struct{}
-
 // syncFetchPass runs Phase A against the scratch DB: for each of the 13
 // PeeringDB types, stream the HTTP response body into a /tmp SQLite
 // staging table via StreamAll's callback. Go heap stays bounded to one
@@ -1177,12 +1161,8 @@ type syncBatch struct{}
 // This helper is the fetch-outside-tx pass that
 // splits fetch from upsert. It routes Phase A
 // through an isolated scratch SQLite DB so the Go heap stays bounded.
-func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) (
-	fromIncremental map[string]bool,
-	err error,
-) {
+func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) error {
 	steps := w.syncSteps()
-	fromIncremental = make(map[string]bool, len(steps))
 
 	for _, step := range steps {
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "fetching",
@@ -1200,7 +1180,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 		table, ok := entityTables[step.name]
 		if !ok {
 			stepSpan.End()
-			return nil, fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
+			return fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
 		}
 		cursor, cursorErr := GetMaxUpdated(ctx, w.db, table)
 		if cursorErr != nil {
@@ -1208,25 +1188,22 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 				slog.String("type", step.name),
 				slog.Any("error", cursorErr),
 			)
-			// Fall through with zero cursor → full bare-list path. This
-			// mirrors the prior GetCursor error behaviour and is the
+			// Fall through with zero cursor → full bare-list path — the
 			// correct fail-soft response (full path is always safe).
 		}
 
-		incremental, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, stepSpan)
+		_, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, stepSpan)
 
 		stepSpan.End()
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
 
 		if stepErr != nil {
 			pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
-			return nil, fmt.Errorf("fetch %s: %w", step.name, stepErr)
+			return fmt.Errorf("fetch %s: %w", step.name, stepErr)
 		}
-
-		fromIncremental[step.name] = incremental
 	}
 
-	return fromIncremental, nil
+	return nil
 }
 
 // stageOneTypeToScratch streams a single PeeringDB type into its scratch
@@ -1260,7 +1237,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// Incremental attempt requires a populated cursor. Zero cursor falls
 	// through to the full-sync path below (bare list, status='ok' only).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
-		_, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
+		incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
 		if incErr == nil {
 			return true, nil
 		}
@@ -1283,7 +1260,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 		}
 	}
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
-	if _, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
+	if err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
 		return false, err
 	}
 	// Tombstone-window capture: a bare list contains only status='ok' rows
@@ -1305,7 +1282,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// logged and tolerated so the fallback keeps its purpose: a cycle
 	// that lands fresh 'ok' rows despite a broken ?since= endpoint.
 	if !cursor.IsZero() {
-		if _, err := scratch.stageType(ctx, w.pdbClient, name, cursor); err != nil {
+		if err := scratch.stageType(ctx, w.pdbClient, name, cursor); err != nil {
 			if !fellBack {
 				return false, fmt.Errorf("stage tombstone window %s since %s: %w",
 					name, cursor.Format(time.RFC3339), err)
@@ -1330,20 +1307,16 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 // each scratch staging table in FK parent-first order, chunking the rows
 // into memory-bounded slices (scratchChunkSize rows at a time) so peak
 // Go heap stays under ~10 MB per chunk. Each chunk is decoded to its
-// typed Go struct, upserted into the real ent table, and then
-// IMMEDIATELY freed via `batches[step.name] = syncBatch{}` to release
-// the slice backing array before the next chunk loads. This is the core memory
-// optimization — without it, Phase B peak memory would
-// double during the handover between chunks. DO NOT remove the
-// batch-free line.
+// typed Go struct inside syncIncremental[E] and upserted into the real
+// ent table; the typed slice is local to that helper, so each chunk's
+// backing array is reclaimed when it returns — this scope-based release
+// is the core memory optimization keeping Phase B inside the 512 MB VM.
 //
 // The per-type remoteIDsByType map and
 // the final `SELECT id FROM scratch.{type}` collection step are gone
 // alongside the inference-by-absence delete pass. Sync no longer
 // infers deletions from absence; upstream sends explicit
 // status='deleted' tombstones.
-// fromIncremental is retained only as a defensive parameter — the
-// per-step branching it used to gate is also gone.
 //
 // Atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
@@ -1360,7 +1333,6 @@ func (w *Worker) syncUpsertPass(
 	ctx context.Context,
 	tx *ent.Tx,
 	scratch *scratchDB,
-	_ map[string]bool,
 ) (
 	map[string]int,
 	error,
@@ -1372,14 +1344,11 @@ func (w *Worker) syncUpsertPass(
 	w.resetFKState()
 	steps := w.syncSteps()
 	objectCounts := make(map[string]int, len(steps))
-	// batches carries one decoded chunk at a time; the map entry is
-	// cleared after each chunk upsert for the memory bound.
-	batches := make(map[string]syncBatch, 1)
 
 	for _, step := range steps {
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-upsert-"+step.name)
 
-		count, stepErr := w.drainAndUpsertType(ctx, tx, scratch, step.name, batches)
+		count, stepErr := w.drainAndUpsertType(ctx, tx, scratch, step.name)
 
 		stepSpan.End()
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
@@ -1436,11 +1405,9 @@ func (w *Worker) syncUpsertPass(
 // generic syncIncremental[E] via dispatchScratchChunk, replacing the
 // old 13-arm type-switches in decodeScratchChunk and upsertOneType.
 // The per-chunk typed slice is local to syncIncremental[E] and is
-// reclaimed when that helper returns — the old `batches[name] =
-// syncBatch{}` map-entry clearing is no longer functionally required
-// but is kept as a grep-visible no-op anchor for the
-// TestSync_BatchFreeAfterUpsert regression lock.
-func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *scratchDB, name string, batches map[string]syncBatch) (int, error) {
+// reclaimed when that helper returns, so the memory bound needs no
+// explicit clearing between iterations.
+func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *scratchDB, name string) (int, error) {
 	total := 0
 	afterID := 0
 	for {
@@ -1457,18 +1424,6 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 			return total, upErr
 		}
 		total += count
-
-		// MANDATORY memory optimization anchor: historically cleared the
-		// per-type entry in the batches map to release the chunk backing
-		// array between iterations. Now the typed
-		// chunk slice lives in syncIncremental[E]'s local scope and is
-		// reclaimed automatically on return — scope-based release is
-		// strictly more reliable than map-entry clearing. The literal
-		// write below compiles to a no-op map store and is kept as a
-		// grep-visible anchor for TestSync_BatchFreeAfterUpsert and the
-		// memory-bound documentation trail in ARCHITECTURE.md §2. DO NOT
-		// remove without first updating the regression test.
-		batches[name] = syncBatch{}
 
 		if len(rows) < scratchChunkSize {
 			break

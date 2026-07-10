@@ -21,9 +21,9 @@ import (
 // into typed Go structs (one per row, dozens of fields each) and then
 // passed to the per-type upsertX function. Internally `upsertBatch`
 // builds ALL builders for the chunk up front before sub-batching by
-// ent's batchSize = 100 for the actual INSERT OR REPLACE — so setting
-// scratchChunkSize equal to batchSize minimises the live builder
-// slice's peak memory footprint.
+// upsert.go's batchSize = 500 for the actual INSERT OR REPLACE — with
+// chunk=100 every chunk fits in a single sub-batch and the live
+// builder slice's peak memory footprint stays minimal.
 //
 // Tuning (benchmarked against production-scale fixtures at 364K rows;
 // the sampler has 100ms granularity so transient GC scheduling
@@ -34,9 +34,8 @@ import (
 //	chunk=250  → ~334-422 MiB (still intermittently over)
 //	chunk=100  → comfortably under with per-type runtime.GC() hint
 //
-// 100 aligns with ent's internal batchSize and combined with the
-// per-type runtime.GC() hint in syncUpsertPass gives deterministic
-// peak heap well under the 400 MiB hard gate.
+// 100 combined with the per-type runtime.GC() hint in syncUpsertPass
+// gives deterministic peak heap well under the 400 MiB hard gate.
 const scratchChunkSize = 100
 
 // scratchDB is a sql.DB handle to the per-sync /tmp SQLite file plus the
@@ -196,16 +195,16 @@ func closeScratchDB(ctx context.Context, s *scratchDB, logger *slog.Logger) {
 // stmt for the next row. Peak Go heap is bounded to one handler
 // invocation's buffer.
 //
-// Returns the PeeringDB meta.generated timestamp from the response so
-// the caller can advance the per-type cursor. Errors wrap the
-// objectType for operator diagnostics.
-func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, objectType string, since time.Time) (time.Time, error) {
+// Errors wrap the objectType for operator diagnostics. (The response
+// meta.generated timestamp is no longer returned — cursors derive from
+// MAX(updated) per entity table, see cursor.go.)
+func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, objectType string, since time.Time) error {
 	// #nosec G201 — objectType is validated against the closed-set scratchTypes list
 	// at schema creation time; SQL injection is not possible.
 	insertSQL := fmt.Sprintf("INSERT OR REPLACE INTO %q (id, data) VALUES (?, ?)", objectType)
 	stmt, err := s.db.PrepareContext(ctx, insertSQL)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("prepare scratch insert %s: %w", objectType, err)
+		return fmt.Errorf("prepare scratch insert %s: %w", objectType, err)
 	}
 	defer func() { _ = stmt.Close() }()
 
@@ -229,11 +228,10 @@ func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, 
 	if !since.IsZero() {
 		opts = append(opts, peeringdb.WithSince(since))
 	}
-	meta, err := pdbClient.StreamAll(ctx, objectType, handler, opts...)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("stream %s to scratch: %w", objectType, err)
+	if _, err := pdbClient.StreamAll(ctx, objectType, handler, opts...); err != nil {
+		return fmt.Errorf("stream %s to scratch: %w", objectType, err)
 	}
-	return meta.Generated, nil
+	return nil
 }
 
 // scratchRow is a single (id, data) tuple drained from a scratch table

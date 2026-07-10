@@ -119,12 +119,8 @@ func TestScratchDB_StageAndDrain(t *testing.T) {
 	}
 	defer closeScratchDB(ctx, s, slog.Default())
 
-	generated, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{})
-	if err != nil {
+	if err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
 		t.Fatalf("stageType: %v", err)
-	}
-	if generated.Unix() != 1234567890 {
-		t.Errorf("generated: got %d, want 1234567890", generated.Unix())
 	}
 
 	// Drain all rows in a single chunk (chunkSize >> count).
@@ -196,7 +192,7 @@ func TestScratchDB_DrainChunkPagination(t *testing.T) {
 	}
 	defer closeScratchDB(ctx, s, slog.Default())
 
-	if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
+	if err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
 		t.Fatalf("stageType: %v", err)
 	}
 

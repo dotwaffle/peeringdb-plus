@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/dotwaffle/peeringdb-plus/ent"
 )
 
 // Status represents the result of a sync operation.
@@ -20,7 +18,7 @@ type Status struct {
 	ErrorMessage string         // empty on success
 }
 
-// InitStatusTable creates the sync_status and sync_cursors tables if they don't exist.
+// InitStatusTable creates the sync_status table if it doesn't exist.
 // These are not ent-managed entities; they store operational metadata via raw SQL.
 //
 // A `mode TEXT NOT NULL DEFAULT 'incremental'` column is added
@@ -66,98 +64,6 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 		}
 	}
 
-	// DEPRECATED v1.18.10: the sync_cursors table is no
-	// longer written to — cursors are now derived from MAX(updated) per
-	// table by internal/sync/cursor.go GetMaxUpdated. The CREATE TABLE
-	// statement is preserved so an emergency rollback to a binary that
-	// reads sync_cursors continues to function (it will see whatever
-	// rows the prior run last wrote, which are still valid high-water-
-	// mark timestamps). Slated for removal in v1.19.
-	_, err = db.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS sync_cursors (
-			type TEXT PRIMARY KEY,
-			last_sync_at DATETIME NOT NULL,
-			last_status TEXT NOT NULL DEFAULT 'success'
-		)
-	`)
-	if err != nil {
-		return fmt.Errorf("create sync_cursors table: %w", err)
-	}
-
-	return nil
-}
-
-// DEPRECATED v1.18.10: cursor is now derived from
-// MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
-// Slated for removal in v1.19. Do not call from new code. The
-// sync_cursors table CREATE TABLE in InitStatusTable is preserved for
-// rollback safety; existing rows are ignored by the production sync
-// path.
-//
-// GetCursor returns the last sync timestamp for a type. Returns zero
-// time only if no cursor row exists for the type.
-//
-// v1.18.3: dropped the prior `AND last_status = 'success'` filter. The
-// cursor is a high-water-mark timestamp; failure observability lives in
-// the separate sync_status table. Coupling cursor reads to last_status
-// caused subtle "all cursors zero after a failed cycle" surprises that
-// could trigger expensive re-fetches (and was load-bearing in the
-// v1.18.2 bootstrap regression). The last_status column is preserved
-// for stored data compatibility and any future dashboard queries.
-func GetCursor(ctx context.Context, db *sql.DB, objType string) (time.Time, error) {
-	var lastSyncAt time.Time
-	err := db.QueryRowContext(ctx,
-		`SELECT last_sync_at FROM sync_cursors WHERE type = ?`,
-		objType,
-	).Scan(&lastSyncAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		return time.Time{}, nil
-	}
-	if err != nil {
-		return time.Time{}, fmt.Errorf("get cursor for %s: %w", objType, err)
-	}
-	return lastSyncAt, nil
-}
-
-// DEPRECATED v1.18.10: cursor is now derived from
-// MAX(updated) per table via internal/sync/cursor.go GetMaxUpdated.
-// Slated for removal in v1.19. Do not call from new code. The
-// sync_cursors table CREATE TABLE in InitStatusTable is preserved for
-// rollback safety; existing rows are ignored by the production sync
-// path.
-//
-// UpsertCursor updates or inserts the sync cursor for a type.
-//
-// Called WITHIN the main sync transaction (via *ent.Tx)
-// so cursor writes commit atomically with their corresponding ent upserts.
-// This closes the prior gap where cursor writes were 13 separate post-commit
-// *sql.DB Exec calls — each one a LiteFS-replicated commit — and removes the
-// failure window where ent upserts were durable but the cursor advance was
-// not (resulting in re-fetching already-applied rows on the next cycle).
-//
-// Atomicity: sync_status (the outcome record) remains a separate
-// raw-SQL Exec because it must reflect the OUTCOME of the tx
-// (success/failure/error message) — that's correct. Cursors describe DATA
-// STATE and belong inside the data tx.
-//
-// Failure-mode shift: a cursor-write failure now rolls back the entire
-// upsert tx (including any FK-backfill HTTP work that already happened
-// inside it). This is the CORRECT semantic — cursor IS data state and a
-// divergence between upserts-committed and cursor-not-advanced is the very
-// bug being fixed. The OTel span attribute
-// pdbplus.sync.cursor_write_caused_rollback is set true on the sync root
-// span when a rollback was caused by cursor write failure.
-// SyncWithRetry handles transient failures by re-running the cycle.
-func UpsertCursor(ctx context.Context, tx *ent.Tx, objType string, lastSyncAt time.Time, status string) error {
-	_, err := tx.ExecContext(ctx,
-		`INSERT INTO sync_cursors (type, last_sync_at, last_status)
-		 VALUES (?, ?, ?)
-		 ON CONFLICT(type) DO UPDATE SET last_sync_at = excluded.last_sync_at, last_status = excluded.last_status`,
-		objType, lastSyncAt, status,
-	)
-	if err != nil {
-		return fmt.Errorf("upsert cursor for %s: %w", objType, err)
-	}
 	return nil
 }
 
