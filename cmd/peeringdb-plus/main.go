@@ -553,38 +553,17 @@ func main() {
 	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector, handlerOpts))
 	logger.Info("gRPC reflection enabled")
 
-	// gRPC health check tied to sync readiness.
-	healthChecker := grpchealth.NewStaticChecker(serviceNames...)
-	mux.Handle(grpchealth.NewHandler(healthChecker, handlerOpts))
+	// gRPC health check tied to sync readiness. syncHealthChecker
+	// evaluates the worker's live sync state on every Check RPC — the
+	// same source /readyz's middleware gate reads — so health flips to
+	// SERVING the instant the first sync lands (primary) or replicated
+	// sync history is observed (replica heartbeat), with no polling
+	// goroutine, and tracks any future state transition symmetrically.
+	// This replaced a StaticChecker fed by a one-shot 1s ticker, which
+	// burned a goroutine until first sync and could never return to
+	// NOT_SERVING once flipped.
+	mux.Handle(grpchealth.NewHandler(newSyncHealthChecker(syncWorker, serviceNames), handlerOpts))
 	logger.Info("gRPC health check enabled")
-
-	// Update gRPC health status when first sync completes.
-	// StaticChecker defaults to SERVING; set to NOT_SERVING until sync done.
-	if !syncWorker.HasCompletedSync() {
-		healthChecker.SetStatus("", grpchealth.StatusNotServing)
-		for _, name := range serviceNames {
-			healthChecker.SetStatus(name, grpchealth.StatusNotServing)
-		}
-		go func() {
-			ticker := time.NewTicker(1 * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					if syncWorker.HasCompletedSync() {
-						healthChecker.SetStatus("", grpchealth.StatusServing)
-						for _, name := range serviceNames {
-							healthChecker.SetStatus(name, grpchealth.StatusServing)
-						}
-						logger.Info("gRPC health status set to SERVING")
-						return
-					}
-				}
-			}
-		}()
-	}
 
 	// GET /: content negotiation for terminal, browser, and API clients.
 	// Terminal clients (curl, wget, HTTPie) receive help text.
