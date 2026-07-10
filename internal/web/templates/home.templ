@@ -29,24 +29,15 @@ templ Home(query string, groups []SearchGroup) {
 			<p class="text-neutral-500 dark:text-neutral-400 text-sm">Drop-in compatible with PeeringDB API for existing integrations.</p>
 		</a>
 	</div>
-	<script>
-	function handleSearchSubmit(event) {
-		var input = event.target.querySelector('input[name="q"]');
-		var q = input ? input.value.trim() : '';
-		if (/^\d+$/.test(q)) {
-			event.preventDefault();
-			window.location.href = '/ui/asn/' + q;
-			return false;
-		}
-		return true;
-	}
-	</script>
 }
 
 // SearchForm renders the search input with htmx attributes and results container.
 // query is pre-filled on direct navigation; groups are pre-rendered for bookmarked URLs.
 templ SearchForm(query string, groups []SearchGroup) {
-	<form id="search-form" action="/ui/" method="get" onsubmit="return handleSearchSubmit(event)">
+	// The numeric-ASN redirect on submit is a delegated listener in
+	// /static/ui.js, so it also works on pages that embed SearchForm
+	// without the homepage script (e.g. the 404 page).
+	<form id="search-form" action="/ui/" method="get">
 		<div class="relative">
 			<label for="search-input" class="sr-only">Search PeeringDB</label>
 			<input

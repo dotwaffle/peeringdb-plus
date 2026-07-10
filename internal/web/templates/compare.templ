@@ -47,14 +47,6 @@ templ CompareFormPage(asn1 string, asn2 string) {
 				</button>
 			</div>
 		</form>
-		<script>
-		document.getElementById('compare-form').addEventListener('submit', function(e) {
-			e.preventDefault();
-			var a1 = document.getElementById('compare-asn1').value;
-			var a2 = document.getElementById('compare-asn2').value;
-			if (a1 && a2) { window.location.href = '/ui/compare/' + a1 + '/' + a2; }
-		});
-		</script>
 	</div>
 }
 

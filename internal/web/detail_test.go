@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -710,14 +711,24 @@ func TestLayout_MapDarkModeHook(t *testing.T) {
 
 	body := rec.Body.String()
 	checks := []string{
-		"__pdbMaps",
 		"/static/leaflet.css",
 		"/static/leaflet.js",
+		"/static/map-init.js",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
 			t.Errorf("layout missing %q", want)
 		}
+	}
+
+	// The dark-mode tile-layer hook (window.__pdbMaps) moved into the
+	// external map bootstrap when script-src dropped 'unsafe-inline'.
+	js, err := fs.ReadFile(StaticFS, "map-init.js")
+	if err != nil {
+		t.Fatalf("embedded map-init.js missing: %v", err)
+	}
+	if !strings.Contains(string(js), "__pdbMaps") {
+		t.Error("map-init.js missing __pdbMaps dark-mode hook")
 	}
 }
 
@@ -809,7 +820,8 @@ func TestIXDetail_FacilityMapMarkers(t *testing.T) {
 			"/ui/ix/20",
 			[]string{
 				`id="map-ix-20"`,
-				"initMultiPinMap",
+				`data-map="multi"`,
+				"data-markers=",
 				`"Map showing facility locations for this exchange"`,
 			},
 			nil,
@@ -857,7 +869,8 @@ func TestNetworkDetail_FacilityMapMarkers(t *testing.T) {
 			"/ui/asn/13335",
 			[]string{
 				`id="map-net-10"`,
-				"initMultiPinMap",
+				`data-map="multi"`,
+				"data-markers=",
 				`"Map showing facility locations for this network"`,
 			},
 			nil,

@@ -14,7 +14,7 @@ templ Nav() {
 					<a href="/ui/about" class="text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">gRPC</a>
 					<a href="/api/" class="text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">PeeringDB API</a>
 				</div>
-				<button id="dark-mode-toggle" class="text-neutral-500 dark:text-neutral-300 hover:text-emerald-400 transition-colors" aria-label="Toggle dark mode">
+				<button class="dark-mode-toggle text-neutral-500 dark:text-neutral-300 hover:text-emerald-400 transition-colors" aria-label="Toggle dark mode">
 					<!-- Sun icon (visible in dark mode) -->
 					<svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -25,21 +25,21 @@ templ Nav() {
 					</svg>
 				</button>
 			</div>
-			<button class="md:hidden text-neutral-500 dark:text-neutral-300 hover:text-emerald-400" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle navigation menu" onclick="var m=document.getElementById('mobile-menu');m.classList.toggle('hidden');this.setAttribute('aria-expanded',m.classList.contains('hidden')?'false':'true')">
+			<button class="md:hidden text-neutral-500 dark:text-neutral-300 hover:text-emerald-400" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle navigation menu">
 				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
 				</svg>
 			</button>
 		</div>
 		<div id="mobile-menu" class="hidden md:hidden pb-4 space-y-2 px-4 bg-white dark:bg-neutral-800">
-			<a href="/ui/" onclick="document.getElementById('mobile-menu').classList.add('hidden');document.querySelector('[aria-controls=mobile-menu]').setAttribute('aria-expanded','false')" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">Search</a>
-			<a href="/ui/compare" onclick="document.getElementById('mobile-menu').classList.add('hidden');document.querySelector('[aria-controls=mobile-menu]').setAttribute('aria-expanded','false')" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">Compare</a>
-			<a href="/ui/about" onclick="document.getElementById('mobile-menu').classList.add('hidden');document.querySelector('[aria-controls=mobile-menu]').setAttribute('aria-expanded','false')" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">About</a>
-			<a href="/graphql" onclick="document.getElementById('mobile-menu').classList.add('hidden');document.querySelector('[aria-controls=mobile-menu]').setAttribute('aria-expanded','false')" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">GraphQL</a>
-			<a href="/rest/v1/" onclick="document.getElementById('mobile-menu').classList.add('hidden');document.querySelector('[aria-controls=mobile-menu]').setAttribute('aria-expanded','false')" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">REST API</a>
-			<a href="/ui/about" onclick="document.getElementById('mobile-menu').classList.add('hidden');document.querySelector('[aria-controls=mobile-menu]').setAttribute('aria-expanded','false')" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">gRPC</a>
-			<a href="/api/" onclick="document.getElementById('mobile-menu').classList.add('hidden');document.querySelector('[aria-controls=mobile-menu]').setAttribute('aria-expanded','false')" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">PeeringDB API</a>
-			<button id="dark-mode-toggle" class="text-neutral-500 dark:text-neutral-300 hover:text-emerald-400 transition-colors mt-2" aria-label="Toggle dark mode">
+			<a href="/ui/" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">Search</a>
+			<a href="/ui/compare" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">Compare</a>
+			<a href="/ui/about" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">About</a>
+			<a href="/graphql" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">GraphQL</a>
+			<a href="/rest/v1/" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">REST API</a>
+			<a href="/ui/about" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">gRPC</a>
+			<a href="/api/" class="block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1">PeeringDB API</a>
+			<button class="dark-mode-toggle text-neutral-500 dark:text-neutral-300 hover:text-emerald-400 transition-colors mt-2" aria-label="Toggle dark mode">
 				<!-- Sun icon (visible in dark mode) -->
 				<svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>

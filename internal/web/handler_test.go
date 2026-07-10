@@ -182,19 +182,29 @@ func TestLayout_DarkModeInit(t *testing.T) {
 	inner := templ.Raw("<p>test</p>")
 	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
-	// The @custom-variant dark declaration moved from the layout's
-	// text/tailwindcss block into tailwind.input.css when the static
-	// build replaced the in-browser JIT; the class-toggle mechanism the
-	// layout still owns is what's asserted here.
+	// The theme bootstrap moved from an inline head <script> to
+	// /static/theme-init.js when script-src dropped 'unsafe-inline':
+	// the layout must load it synchronously in head (before the
+	// stylesheet paints), and the script itself must still carry the
+	// localStorage/prefers-color-scheme logic.
 	checks := []string{
-		"localStorage.getItem('darkMode')",
-		"prefers-color-scheme",
+		"/static/theme-init.js",
 		"dark:bg-neutral-900",
 		"/static/tailwind.css",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
 			t.Errorf("layout missing dark mode init element %q", want)
+		}
+	}
+
+	js, err := fs.ReadFile(StaticFS, "theme-init.js")
+	if err != nil {
+		t.Fatalf("embedded theme-init.js missing: %v", err)
+	}
+	for _, want := range []string{"localStorage.getItem('darkMode')", "prefers-color-scheme"} {
+		if !strings.Contains(string(js), want) {
+			t.Errorf("theme-init.js missing %q", want)
 		}
 	}
 }
@@ -1093,16 +1103,27 @@ func TestLayout_KeyboardNavScript(t *testing.T) {
 	inner := templ.Raw("<p>test</p>")
 	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
 
+	// The behaviour scripts moved to /static/ui.js so the CSP could
+	// drop 'unsafe-inline' from script-src: the layout must reference
+	// it, and the script must still carry the keyboard-nav logic.
+	if !strings.Contains(body, "/static/ui.js") {
+		t.Error("layout missing /static/ui.js include")
+	}
+
+	js, err := fs.ReadFile(StaticFS, "ui.js")
+	if err != nil {
+		t.Fatalf("embedded ui.js missing: %v", err)
+	}
 	checks := []string{
 		"ArrowDown",
 		"ArrowUp",
 		"aria-selected",
 		"htmx:afterSwap",
-		`role="option"`,
+		`[role="option"]`,
 	}
 	for _, want := range checks {
-		if !strings.Contains(body, want) {
-			t.Errorf("layout missing keyboard nav element %q", want)
+		if !strings.Contains(string(js), want) {
+			t.Errorf("ui.js missing keyboard nav element %q", want)
 		}
 	}
 }
@@ -1456,7 +1477,7 @@ func TestKeyboardNav_Integration(t *testing.T) {
 		want string
 		desc string
 	}{
-		{"ArrowDown", "keyboard nav script"},
+		{"/static/ui.js", "behaviour script include (keyboard nav lives there)"},
 		{`role="option"`, "ARIA option role on results"},
 		{`role="listbox"`, "ARIA listbox role on container"},
 		{"Cloudflare", "search result content"},

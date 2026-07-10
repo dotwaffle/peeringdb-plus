@@ -12,6 +12,9 @@
  */
 @import "tailwindcss" source(none);
 @source "./templates";
+/* ui.js adds Tailwind classes from JavaScript (selection rings, the
+ * htmx error/retry styling); scan it so those survive the build. */
+@source "./static/ui.js";
 @custom-variant dark (&:where(.dark, .dark *));
 @theme {
 	--color-accent: #10b981;
