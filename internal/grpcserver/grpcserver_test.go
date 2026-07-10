@@ -1950,18 +1950,22 @@ func TestStreamNetworksTotalCount(t *testing.T) {
 				t.Fatalf("stream error: %v", streamErr)
 			}
 
-			// Check response header for total count.
-			got := stream.ResponseHeader().Get("Grpc-Total-Count")
-			if got == "" {
-				got = stream.ResponseHeader().Get("grpc-total-count")
-			}
+			// Check response header for total count. Get is
+			// case-insensitive (textproto canonicalisation).
+			got := stream.ResponseHeader().Get("pdbplus-total-count")
 			if got != tt.wantCount {
-				t.Errorf("grpc-total-count = %q, want %q", got, tt.wantCount)
+				t.Errorf("pdbplus-total-count = %q, want %q", got, tt.wantCount)
+			}
+
+			// Deprecated grpc-total-count alias dual-emits during the
+			// migration window and must carry the same value.
+			if legacy := stream.ResponseHeader().Get("grpc-total-count"); legacy != tt.wantCount {
+				t.Errorf("grpc-total-count (deprecated alias) = %q, want %q", legacy, tt.wantCount)
 			}
 
 			// Verify parseable as integer.
 			if _, err := strconv.Atoi(got); err != nil && got != "" {
-				t.Errorf("grpc-total-count %q is not a valid integer: %v", got, err)
+				t.Errorf("pdbplus-total-count %q is not a valid integer: %v", got, err)
 			}
 		})
 	}
@@ -2070,15 +2074,14 @@ func TestStreamNetworksSinceId(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count. Delta streams
-			// must omit the header entirely — wantCount is "" for every case
-			// in this test, asserting absence.
-			got := stream.ResponseHeader().Get("Grpc-Total-Count")
-			if got == "" {
-				got = stream.ResponseHeader().Get("grpc-total-count")
+			// Check response headers for total count. Delta streams
+			// must omit BOTH header names entirely — wantCount is "" for
+			// every case in this test, asserting absence.
+			if got := stream.ResponseHeader().Get("pdbplus-total-count"); got != tt.wantCount {
+				t.Errorf("pdbplus-total-count = %q, want absent (delta stream)", got)
 			}
-			if got != tt.wantCount {
-				t.Errorf("grpc-total-count = %q, want absent (delta stream)", got)
+			if got := stream.ResponseHeader().Get("grpc-total-count"); got != tt.wantCount {
+				t.Errorf("grpc-total-count (deprecated alias) = %q, want absent (delta stream)", got)
 			}
 		})
 	}
@@ -2160,15 +2163,14 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
 
-			// Check response header for total count. Delta streams
-			// must omit the header entirely — wantCount is "" for every case
-			// in this test, asserting absence.
-			got := stream.ResponseHeader().Get("Grpc-Total-Count")
-			if got == "" {
-				got = stream.ResponseHeader().Get("grpc-total-count")
+			// Check response headers for total count. Delta streams
+			// must omit BOTH header names entirely — wantCount is "" for
+			// every case in this test, asserting absence.
+			if got := stream.ResponseHeader().Get("pdbplus-total-count"); got != tt.wantCount {
+				t.Errorf("pdbplus-total-count = %q, want absent (delta stream)", got)
 			}
-			if got != tt.wantCount {
-				t.Errorf("grpc-total-count = %q, want absent (delta stream)", got)
+			if got := stream.ResponseHeader().Get("grpc-total-count"); got != tt.wantCount {
+				t.Errorf("grpc-total-count (deprecated alias) = %q, want absent (delta stream)", got)
 			}
 		})
 	}
@@ -2181,7 +2183,7 @@ var countStmtRE = regexp.MustCompile(`(?i)select\s+count\(`)
 
 // TestStream_SkipCountOnDelta is the load-bearing assertion that on a
 // StreamNetworks RPC with SinceId set, StreamEntities must NOT issue a
-// SELECT COUNT(*) query and must NOT write the grpc-total-count response
+// SELECT COUNT(*) query and must NOT write the total-count response
 // header. Verified via ent's dialect.Debug() driver wrapper capturing every
 // Exec/Query SQL string and a post-stream scan for any COUNT(...) shape.
 func TestStream_SkipCountOnDelta(t *testing.T) {
@@ -2256,10 +2258,10 @@ func TestStream_SkipCountOnDelta(t *testing.T) {
 		}
 	}
 
-	// Assertion 2: the grpc-total-count header is absent in both
-	// canonical and lowercase forms.
-	if h := stream.ResponseHeader().Get("Grpc-Total-Count"); h != "" {
-		t.Errorf("Grpc-Total-Count = %q, want absent on delta stream", h)
+	// Assertion 2: the total-count header is absent under both the
+	// current name and the deprecated alias.
+	if h := stream.ResponseHeader().Get("pdbplus-total-count"); h != "" {
+		t.Errorf("pdbplus-total-count = %q, want absent on delta stream", h)
 	}
 	if h := stream.ResponseHeader().Get("grpc-total-count"); h != "" {
 		t.Errorf("grpc-total-count = %q, want absent on delta stream", h)
