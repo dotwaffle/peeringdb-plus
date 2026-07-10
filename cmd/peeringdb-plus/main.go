@@ -915,6 +915,14 @@ func patchOpenAPIErrorResponses(spec []byte) ([]byte, error) {
 // embedding endpoint (2026-06-10 audit). Non-JSON bodies pass through
 // unchanged.
 //
+// Single exemption: the exact path /rest/v1/openapi.json. The spec is a
+// static document patched once at startup — it describes the
+// `ixf_ixp_member_list_url` SCHEMA but can never contain the `_visible`
+// companion as a data key, so the buffer+parse+walk over its ~1 MB body
+// is pure overhead on every fetch. This is an exact-path skip of a
+// provably-static document, NOT the entity path-scoping that caused the
+// 2026-06-10 leak.
+//
 // Ordering: this middleware MUST be wrapped INSIDE restErrorMiddleware
 // so that problem+json error bodies pass through without being mis-parsed
 // as data payloads.
@@ -922,7 +930,9 @@ func patchOpenAPIErrorResponses(spec []byte) ([]byte, error) {
 // Required for privacy-redaction correctness.
 func restFieldRedactMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/rest/v1/") {
+		// openapi.json exemption: static spec, can never carry the
+		// _visible companion — see the doc comment above.
+		if !strings.HasPrefix(r.URL.Path, "/rest/v1/") || r.URL.Path == "/rest/v1/openapi.json" {
 			next.ServeHTTP(w, r)
 			return
 		}
