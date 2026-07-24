@@ -38,11 +38,19 @@ type PrivacySync struct {
 	OverrideActive bool
 }
 
-// AboutPageData bundles the two payloads consumed by the terminal About
+// RuntimeInfo carries optional public process metadata for the About page.
+// Region is empty outside platforms that supply a deployment-region value.
+type RuntimeInfo struct {
+	Version string
+	Region  string
+}
+
+// AboutPageData bundles the payloads consumed by the terminal About
 // renderer. The dispatch table (internal/web/termrender/dispatch.go)
 // registers a single concrete type per page; this struct is that type
 // for /ui/about.
 type AboutPageData struct {
 	Freshness DataFreshness
 	Privacy   PrivacySync
+	Runtime   RuntimeInfo
 }

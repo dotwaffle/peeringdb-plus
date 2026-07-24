@@ -38,24 +38,28 @@ type Handler struct {
 	comparer   *CompareService
 	authMode   string       // "authenticated" | "anonymous"
 	publicTier privctx.Tier // captured from config.Config.PublicTier at startup
+	version    string
+	region     string
 }
 
 // NewHandlerInput configures a web Handler. Client is required; DB may be
 // nil for tests that do not exercise the sync-status table. AuthMode and
-// PublicTier feed the /ui/about Privacy & Sync section. When AuthMode is
-// empty, the renderer falls back to "anonymous"; when PublicTier is the
-// zero value (TierPublic), no override flag is shown.
+// PublicTier feed the /ui/about Privacy & Sync section. Version and Region
+// feed its optional Application section. When AuthMode is empty, the
+// renderer falls back to "anonymous"; when PublicTier is the zero value
+// (TierPublic), no override flag is shown.
 type NewHandlerInput struct {
 	Client     *ent.Client
 	DB         *sql.DB
 	AuthMode   string
 	PublicTier privctx.Tier
+	Version    string
+	Region     string
 }
 
 // NewHandler creates a web UI handler with integrated search and compare
-// services. AuthMode and PublicTier are captured at construction and
-// surface on /ui/about. The input uses named fields so callers cannot
-// transpose them.
+// services. Diagnostic values are captured at construction and surface on
+// /ui/about. The input uses named fields so callers cannot transpose them.
 func NewHandler(in NewHandlerInput) *Handler {
 	return &Handler{
 		client:     in.Client,
@@ -64,6 +68,8 @@ func NewHandler(in NewHandlerInput) *Handler {
 		comparer:   NewCompareService(in.Client),
 		authMode:   in.AuthMode,
 		publicTier: in.PublicTier,
+		version:    in.Version,
+		region:     in.Region,
 	}
 }
 

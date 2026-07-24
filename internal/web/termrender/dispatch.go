@@ -48,6 +48,6 @@ func init() {
 	// freshness and the Privacy & Sync payload reach the
 	// terminal renderer in a single registered type.
 	Register(func(d templates.AboutPageData, w io.Writer, r *Renderer) error {
-		return r.RenderAboutPage(w, d.Freshness, d.Privacy)
+		return r.RenderAboutPage(w, d.Freshness, d.Privacy, d.Runtime)
 	})
 }

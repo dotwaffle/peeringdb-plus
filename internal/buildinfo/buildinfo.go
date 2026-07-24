@@ -4,9 +4,9 @@
 // Resolution order:
 //
 //  1. injected — set via ldflags `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=<value>`
-//     at Docker build time (computed from `git describe --tags --always --dirty`).
+//     at Docker build time (computed from `git describe --tags --always`).
 //     This is the production path: tagged releases emit `v1.17`, post-tag
-//     dev builds emit `v1.17-3-gabc1234`, dirty trees emit a `-dirty` suffix.
+//     dev builds emit `v1.17-3-gabc1234`.
 //  2. Main.Version from runtime/debug.ReadBuildInfo — populated for
 //     `go install` of a tagged module path (the module-proxy path).
 //  3. vcs.revision (first 7 chars) from build settings — `go build` from

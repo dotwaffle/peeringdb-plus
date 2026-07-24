@@ -10,6 +10,15 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+### Added
+
+- Show the application version and optional serving region on the About page
+  without requiring a Fly.io runtime.
+
+### Fixed
+
+- Correct the REST pagination and About-page documentation examples.
+
 ## [1.24.1] — 2026-07-24
 
 ### Fixed
