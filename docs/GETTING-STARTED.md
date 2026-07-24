@@ -204,6 +204,28 @@ grpcurl -plaintext -d '{"id":1}' localhost:8080 peeringdb.v1.NetworkService/GetN
 `buf curl` and `grpcui` work too —
 reflection is enabled and gRPC health checks are wired to sync readiness.
 
+### MCP and Agent Skill
+
+The MCP endpoint uses stateless Streamable HTTP:
+
+```bash
+# Fetch the origin-neutral skill document.
+curl -fsS http://localhost:8080/skills/peeringdb-plus/SKILL.md
+
+# Download the installable skill archive.
+curl -fLO http://localhost:8080/skills/peeringdb-plus.zip
+```
+
+The ZIP is generated per request.
+Its `agents/openai.yaml` points back to the same origin's `/mcp` endpoint,
+so a self-hosted copy does not contact another deployment.
+Set `PDBPLUS_PUBLIC_URL` only when a reverse proxy does not preserve the
+requested hostname.
+
+An MCP client can connect directly to `http://localhost:8080/mcp`.
+The server offers read-only search, detail, network comparison,
+IP lookup, and sync-freshness tools plus resources and prompts.
+
 ### Web UI
 
 Open `http://localhost:8080/ui/` in a browser —

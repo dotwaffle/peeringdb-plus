@@ -71,6 +71,12 @@ type Config struct {
 	// Configured via PDBPLUS_CORS_ORIGINS. Default is "*".
 	CORSOrigins string
 
+	// PublicURL optionally overrides the externally visible origin used in
+	// generated agent metadata. When empty, handlers derive the origin from
+	// the incoming request's Host and protocol headers.
+	// Configured via PDBPLUS_PUBLIC_URL. Default is empty.
+	PublicURL string
+
 	// DrainTimeout is the graceful shutdown drain timeout.
 	// Configured via PDBPLUS_DRAIN_TIMEOUT. Default is 10 seconds.
 	DrainTimeout time.Duration
@@ -250,6 +256,7 @@ func Load() (*Config, error) {
 		SyncToken:        envOrDefault("PDBPLUS_SYNC_TOKEN", ""),
 		ListenAddr:       listenAddr,
 		CORSOrigins:      envOrDefault("PDBPLUS_CORS_ORIGINS", "*"),
+		PublicURL:        envOrDefault("PDBPLUS_PUBLIC_URL", ""),
 		PeeringDBAPIKey:  envOrDefault("PDBPLUS_PEERINGDB_API_KEY", ""),
 	}
 

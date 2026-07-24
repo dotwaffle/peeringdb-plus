@@ -18,7 +18,10 @@
 // surrounding shape, not the version literal, so test runs stay stable.
 package buildinfo
 
-import "runtime/debug"
+import (
+	"runtime/debug"
+	"time"
+)
 
 // injected is set via -ldflags at Docker build time. Empty by default so
 // non-Docker builds (go test, go run, local go build) fall through to
@@ -45,4 +48,29 @@ func Version() string {
 		}
 	}
 	return "unknown"
+}
+
+// SourceTime returns the UTC source timestamp recorded by the Go toolchain.
+// It returns the zero time when build information or vcs.time is unavailable
+// or malformed.
+func SourceTime() time.Time {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return time.Time{}
+	}
+	return sourceTime(info)
+}
+
+func sourceTime(info *debug.BuildInfo) time.Time {
+	for _, setting := range info.Settings {
+		if setting.Key != "vcs.time" {
+			continue
+		}
+		value, err := time.Parse(time.RFC3339, setting.Value)
+		if err != nil {
+			return time.Time{}
+		}
+		return value.UTC()
+	}
+	return time.Time{}
 }

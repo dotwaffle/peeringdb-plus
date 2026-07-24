@@ -10,7 +10,7 @@ PeeringDB Plus incrementally syncs PeeringDB objects on a regular schedule
 (escalating to a periodic full re-fetch as a safety net),
 stores the result in SQLite with edge replication via
 [LiteFS](https://fly.io/docs/litefs/) on [Fly.io](https://fly.io), and serves
-the same dataset through five coexisting API surfaces.
+the same dataset through six coexisting API surfaces.
 
 **Live instance:** <https://peeringdb-plus.fly.dev>
 
@@ -25,8 +25,8 @@ PeeringDB Plus offers:
 - **Low-latency reads** from the nearest Fly.io region (LiteFS replicates
   SQLite transactions to every replica).
 - **Multiple wire formats from a single dataset** — drop-in PeeringDB API
-  compatibility, OpenAPI REST, GraphQL, ConnectRPC/gRPC, and a Web UI all read
-  from the same `ent.Client`.
+  compatibility, OpenAPI REST, GraphQL, ConnectRPC/gRPC, MCP, and a Web UI all
+  read from the same `ent.Client`.
 - **Mandatory observability** — OpenTelemetry traces, metrics, and structured
   logs are first-class, not an afterthought.
 - **No CGO, no Java, no orchestrator** — a single static Go binary plus an
@@ -34,7 +34,7 @@ PeeringDB Plus offers:
 
 ## API surfaces
 
-All five surfaces are mounted on the same HTTP server
+All six surfaces are mounted on the same HTTP server
 and read from the same SQLite database.
 
 | Surface | Path | Description |
@@ -44,6 +44,7 @@ and read from the same SQLite database.
 | REST | `/rest/v1/` | OpenAPI-compliant (entrest); spec at [`/rest/v1/openapi.json`](https://peeringdb-plus.fly.dev/rest/v1/openapi.json) |
 | PeeringDB Compat | `/api/` | Drop-in replacement for `api.peeringdb.com` — same paths, same envelope |
 | ConnectRPC / gRPC | `/peeringdb.v1.*/` | Get / List / Stream RPCs for all 13 entity types; reflection + health checks enabled |
+| MCP | `/mcp` | Read-only tools, resources, and prompts for network research agents |
 
 `GET /` returns a JSON service-discovery document;
 browsers are redirected to the Web UI, terminal clients receive plain help text.
@@ -85,6 +86,7 @@ mount a volume to persist data across container restarts.
 curl -s http://localhost:8080/healthz                    # liveness
 curl -sI http://localhost:8080/readyz                    # readiness (200 once first sync completes)
 curl -s http://localhost:8080/api/net/1 | head -c 500    # PeeringDB-compatible API
+curl -sO http://localhost:8080/skills/peeringdb-plus.zip # Origin-aware Agent Skill
 open http://localhost:8080/ui/                           # Web UI
 open http://localhost:8080/graphql                       # GraphQL playground
 ```
@@ -142,6 +144,23 @@ curl -X POST http://localhost:8080/graphql \
   -d '{"query":"{ networks(first: 3) { edges { node { id name asn } } } }"}'
 ```
 
+### MCP and Agent Skill
+
+The stateless Streamable HTTP MCP endpoint is available at `/mcp`.
+It provides bounded directory search, detail, comparison, IP lookup, and sync
+freshness tools plus reusable resources and prompts.
+
+Download the skill through the hostname agents should connect back to:
+
+```bash
+curl -fLO http://localhost:8080/skills/peeringdb-plus.zip
+curl -fsS http://localhost:8080/skills/peeringdb-plus/SKILL.md
+```
+
+The ZIP's `agents/openai.yaml` is generated per request and points to the same
+origin's `/mcp` endpoint. Set `PDBPLUS_PUBLIC_URL` only when a reverse proxy
+does not preserve the requested `Host`.
+
 ## Configuration
 
 PeeringDB Plus is configured exclusively via environment variables,
@@ -158,6 +177,7 @@ Operationally-relevant defaults:
 | `PDBPLUS_SYNC_INTERVAL` | `1h` (15m if API key set) | Time between sync cycles |
 | `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MiB` | pdbcompat list pre-flight 413 budget |
 | `PDBPLUS_PUBLIC_TIER` | `public` | Anonymous-caller tier; set `users` only for private deployments |
+| `PDBPLUS_PUBLIC_URL` | _(unset)_ | Optional public-origin override for generated Agent Skill metadata |
 
 The full catalogue (sync, observability, LiteFS, Fly.io, CSP, security headers,
 and OAuth-gated visibility) lives in
@@ -170,7 +190,7 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 |---|---|
 | [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) | First-30-minutes walkthrough: prerequisites, build, first run, verification |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Component diagram, data flow, code-generation pipeline, middleware chain, privacy layer, sampling matrix |
-| [`docs/API.md`](docs/API.md) | All five API surfaces, filter semantics, ordering, cross-entity traversal, divergences |
+| [`docs/API.md`](docs/API.md) | All six API surfaces, filter semantics, ordering, cross-entity traversal, divergences |
 | [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) | Full environment-variable catalogue with validation rules |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local dev workflow, code generation, conventions, sibling-file pattern |
 | [`docs/TESTING.md`](docs/TESTING.md) | Test layout, fixtures, parity harness, live tests against `beta.peeringdb.com` |
@@ -180,7 +200,7 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 ## Technology
 
 - **Language:** Go 1.26.5
-- **ORM / codegen:** [entgo](https://entgo.io/) drives all five API surfaces
+- **ORM / codegen:** [entgo](https://entgo.io/) underpins all six API surfaces
   from a single set of schemas in `ent/schema/` (entgql + entrest + entproto)
 - **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)
   (pure Go, no CGO) plus [LiteFS](https://fly.io/docs/litefs/) for edge

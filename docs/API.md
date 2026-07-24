@@ -1,7 +1,7 @@
 # API Reference
 
 PeeringDB Plus exposes the mirrored PeeringDB dataset through
-**five coexisting API surfaces** served from the same process on the same port,
+**six coexisting API surfaces** served from the same process on the same port,
 plus a small set of infrastructure endpoints for health, on-demand sync, and
 service discovery.
 This document is the comprehensive reference;
@@ -28,7 +28,7 @@ they expose the same public data that PeeringDB itself publishes.
 
 | Endpoint | Authentication |
 |----------|----------------|
-| All `GET` endpoints (Web UI, GraphQL, REST, `/api/`, ConnectRPC) | None |
+| Read endpoints (Web UI, GraphQL, REST, `/api/`, ConnectRPC, MCP) | None |
 | `POST /sync` | `X-Sync-Token` header must match `PDBPLUS_SYNC_TOKEN` (constant-time compare) |
 | Upstream fetch from `api.peeringdb.com` | Optional — set `PDBPLUS_PEERINGDB_API_KEY` to use an authenticated client with higher rate limits |
 
@@ -75,6 +75,9 @@ or return `503 not primary` when running outside Fly.io.
 | `POST` | `/grpc.reflection.v1.ServerReflection/*` | ConnectRPC | gRPC reflection (v1) |
 | `POST` | `/grpc.reflection.v1alpha.ServerReflection/*` | ConnectRPC | gRPC reflection (v1alpha) |
 | `POST` | `/grpc.health.v1.Health/*` | ConnectRPC | gRPC health check |
+| `POST` | `/mcp` | MCP | Stateless Streamable HTTP requests |
+| `GET` / `HEAD` | `/skills/peeringdb-plus/SKILL.md` | Agent Skill | Raw, origin-neutral skill instructions |
+| `GET` / `HEAD` | `/skills/peeringdb-plus.zip` | Agent Skill | Archive with origin-aware MCP dependency metadata |
 
 The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`,
 `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`,
@@ -572,6 +575,54 @@ curl -X POST https://peeringdb-plus.fly.dev/peeringdb.v1.NetworkService/GetNetwo
   -d '{"id": 20}'
 ```
 
+## 6. MCP (`/mcp`)
+
+`POST /mcp` serves the
+[Model Context Protocol](https://modelcontextprotocol.io/)
+over stateless Streamable HTTP.
+Responses use JSON rather than server-sent events,
+so requests can be handled by any healthy replica without session affinity.
+All tools are read-only and query the same local ent client as the other
+surfaces.
+
+| Tool | Purpose |
+|------|---------|
+| `search_peeringdb` | Grouped search across all entity types, or cursor-paginated typed search |
+| `get_network` | Network detail by ASN, including bounded IX and facility relations |
+| `get_exchange` | Exchange detail and bounded participant, facility, and prefix relations |
+| `get_facility` | Facility detail and bounded network, exchange, and carrier relations |
+| `get_organization` | Organization detail and bounded child-entity relations |
+| `get_campus` | Campus detail and bounded facilities |
+| `get_carrier` | Carrier detail and bounded facilities |
+| `compare_networks` | Compare two ASNs across exchanges, facilities, and campuses |
+| `lookup_ip` | Find exact peering-address records and containing exchange prefixes |
+| `get_sync_status` | Return the latest mirror synchronization status and freshness |
+
+Related collections default to 20 rows and are capped at 100 rows.
+Opaque cursors are bound to the entity, relation, and successful-sync
+watermark.
+A cursor is rejected after the mirror synchronizes,
+preventing rows from being skipped or repeated across snapshots.
+Free-text queries are capped at 4 KiB.
+
+The server also exposes:
+
+- `peeringdb-plus://service` and `peeringdb-plus://guide` resources.
+- `research_network` and `compare_networks` prompts.
+- `GET /skills/peeringdb-plus/SKILL.md` for the origin-neutral raw skill.
+- `GET /skills/peeringdb-plus.zip` for an installable skill archive.
+
+The archive is generated on demand.
+Its `agents/openai.yaml` points to the request's own origin plus `/mcp`,
+or to the operator's `PDBPLUS_PUBLIC_URL` override.
+This keeps self-hosted deployments local and avoids embedding a production
+hostname in the binary.
+
+Browser clients use `PDBPLUS_CORS_ORIGINS`.
+Requests with an `Origin` header are independently checked at `/mcp`
+to mitigate DNS rebinding;
+non-browser MCP clients do not send `Origin` and are unaffected.
+
 ## Field-level privacy
 
 PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker
@@ -582,7 +633,7 @@ for the IX-F member list URL:
 fails closed to redacted).
 Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public` deployment) receive
 the value only when `_visible = Public`; for `Users` or `Private` the value is
-omitted across all five surfaces while the `_visible` companion field is
+omitted across all six surfaces while the `_visible` companion field is
 **still emitted** (upstream parity).
 
 The single source of truth is `internal/privfield.Redact(ctx, visible, value)`.
@@ -717,11 +768,13 @@ rate limiting policy on the peeringdb-plus.fly.dev deployment -->
 All surfaces pass through the shared `middleware.CORS` configured by
 `PDBPLUS_CORS_ORIGINS` (default `*`).
 The middleware allows the full set of headers required by Connect / gRPC /
-gRPC-Web in addition to standard application headers; see
+gRPC-Web and MCP Streamable HTTP in addition to standard application headers;
+see
 `internal/middleware/cors.go`.
-The REST handler additionally wraps its subtree in its own CORS middleware so
-that preflight requests for `/rest/v1/*` are handled even
-if another middleware short-circuits.
+The MCP handler independently rejects malformed or disallowed browser
+`Origin` values as a DNS-rebinding defense.
+The REST subtree relies on this same outer middleware;
+it is not wrapped a second time.
 
 ## Known Divergences
 

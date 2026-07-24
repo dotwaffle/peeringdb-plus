@@ -12,6 +12,7 @@
 testdata/
 docs/
 *.md
+!internal/agentdocs/peeringdb-plus/SKILL.md
 LICENSE
 
 # Deploy/CI/operator tooling (not consumed by the image build)

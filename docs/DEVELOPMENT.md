@@ -35,7 +35,7 @@ After a code change, rebuild and restart the binary manually:
 go build -o peeringdb-plus ./cmd/peeringdb-plus && ./peeringdb-plus
 ```
 
-The server serves all five API surfaces on a single port (`:8080` by default).
+The server serves all six API surfaces on a single port (`:8080` by default).
 
 ## Project layout
 

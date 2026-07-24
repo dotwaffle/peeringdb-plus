@@ -27,6 +27,7 @@ import (
 	_ "github.com/dotwaffle/peeringdb-plus/ent/runtime" // register ent schema runtime config (field defaults/validators, privacy policy)
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/graph"
+	"github.com/dotwaffle/peeringdb-plus/internal/agentdocs"
 	"github.com/dotwaffle/peeringdb-plus/internal/buildinfo"
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
@@ -34,6 +35,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/grpcserver"
 	"github.com/dotwaffle/peeringdb-plus/internal/health"
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
+	"github.com/dotwaffle/peeringdb-plus/internal/mcpserver"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
@@ -78,7 +80,7 @@ func init() {
 // body can be unit-tested without build-time ldflags injection.
 func discoveryBody(version string) string {
 	return fmt.Sprintf(
-		`{"name":"peeringdb-plus","version":%q,"graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`,
+		`{"name":"peeringdb-plus","version":%q,"graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","mcp":"/mcp","skill":"/skills/peeringdb-plus/SKILL.md","skill_archive":"/skills/peeringdb-plus.zip","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`,
 		version,
 	)
 }
@@ -487,6 +489,35 @@ func main() {
 	})
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
+
+	// Serve an origin-neutral installable agent skill. The archive is built per
+	// request so agents receive an MCP URL for the hostname they actually used
+	// (or the explicit operator override), rather than a deployment-specific
+	// hostname baked into the binary.
+	skillHandler, err := agentdocs.NewHandler(agentdocs.Options{
+		PublicURL:  cfg.PublicURL,
+		SourceTime: buildinfo.SourceTime(),
+	})
+	if err != nil {
+		logger.Error("failed to create agent skill handler", slog.Any("error", err))
+		os.Exit(1)
+	}
+	skillHandler.Register(mux)
+	logger.Info("Agent skill mounted", slog.String("path", agentdocs.SkillPath))
+
+	// MCP reuses the protocol-neutral catalog services that back the web UI.
+	// Stateless JSON responses suit horizontally scaled Fly deployments and
+	// avoid session affinity. Tool output is bounded and cursor freshness is
+	// tied to the latest successful mirror sync.
+	mux.Handle("/mcp", mcpserver.New(mcpserver.Input{
+		Client:         entClient,
+		DB:             db,
+		Version:        buildinfo.Version(),
+		Region:         strings.TrimSpace(os.Getenv("FLY_REGION")),
+		AllowedOrigins: cfg.CORSOrigins,
+		Logger:         logger,
+	}))
+	logger.Info("MCP server mounted", slog.String("path", "/mcp"))
 
 	// Create OTel interceptor for ConnectRPC services.
 	otelInterceptor, err := otelconnect.NewInterceptor(

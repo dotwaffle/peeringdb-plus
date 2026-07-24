@@ -124,6 +124,9 @@ func (NetworkIxLan) Indexes() []ent.Index {
 		index.Fields("net_side_id"),
 		index.Fields("status"),
 		index.Fields("updated"),
+		// Exact address lookup for the MCP lookup_ip tool.
+		index.Fields("ipaddr4"),
+		index.Fields("ipaddr6"),
 		// Composite index covering the default list ordering. Every list and
 		// stream query filters on status and orders by updated, created, id;
 		// with status leading, SQLite satisfies status-IN plus the three-key

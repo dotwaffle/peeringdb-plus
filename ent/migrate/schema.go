@@ -531,6 +531,11 @@ var (
 				Columns: []*schema.Column{IxPrefixesColumns[5]},
 			},
 			{
+				Name:    "ixprefix_status_protocol",
+				Unique:  false,
+				Columns: []*schema.Column{IxPrefixesColumns[6], IxPrefixesColumns[3]},
+			},
+			{
 				Name:    "ixprefix_status_updated_created_id",
 				Unique:  false,
 				Columns: []*schema.Column{IxPrefixesColumns[6], IxPrefixesColumns[5], IxPrefixesColumns[4], IxPrefixesColumns[0]},
@@ -761,6 +766,16 @@ var (
 				Name:    "networkixlan_updated",
 				Unique:  false,
 				Columns: []*schema.Column{NetworkIxLansColumns[14]},
+			},
+			{
+				Name:    "networkixlan_ipaddr4",
+				Unique:  false,
+				Columns: []*schema.Column{NetworkIxLansColumns[5]},
+			},
+			{
+				Name:    "networkixlan_ipaddr6",
+				Unique:  false,
+				Columns: []*schema.Column{NetworkIxLansColumns[6]},
 			},
 			{
 				Name:    "networkixlan_status_updated_created_id",

@@ -102,7 +102,7 @@ recorded here so they read as decisions rather than oversights:
 - **The process tree runs as root.**
   The LiteFS FUSE mount genuinely requires root,
   and the application process — which parses untrusted internet input
-  on five API surfaces — currently inherits it
+  on six API surfaces — currently inherits it
   (LiteFS `exec:`s the app without dropping privileges).
   Accepted for now because the container boundary
   (Fly microVM per machine) is the primary isolation layer.

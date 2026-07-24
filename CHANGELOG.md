@@ -14,6 +14,18 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 - Show the application version and optional serving region on the About page
   without requiring a Fly.io runtime.
+- Add a read-only Streamable HTTP MCP server with catalog search,
+  entity detail, network comparison, IP lookup, sync freshness,
+  resources, and guided prompts.
+- Host an origin-neutral agent skill as both Markdown and an installable ZIP.
+  The ZIP is generated per request so its MCP dependency follows the requested
+  hostname or `PDBPLUS_PUBLIC_URL`.
+
+### Changed
+
+- Extract web catalog queries and result types into a protocol-neutral package
+  shared by the UI and MCP server.
+- Add the MCP Go SDK at v1.4.1, including its default DNS-rebinding protection.
 
 ### Fixed
 

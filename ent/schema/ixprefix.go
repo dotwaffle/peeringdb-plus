@@ -75,6 +75,8 @@ func (IxPrefix) Indexes() []ent.Index {
 		index.Fields("prefix"),
 		index.Fields("status"),
 		index.Fields("updated"),
+		// Protocol-bounded prefix scans for the MCP lookup_ip tool.
+		index.Fields("status", "protocol"),
 		// Composite index covering the default list ordering. Every list and
 		// stream query filters on status and orders by updated, created, id;
 		// with status leading, SQLite satisfies status-IN plus the three-key

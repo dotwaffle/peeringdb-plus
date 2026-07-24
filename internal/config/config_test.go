@@ -163,6 +163,34 @@ func TestLoad_PeeringDBAPIKey(t *testing.T) {
 	}
 }
 
+func TestLoad_PublicURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		envVal string
+		want   string
+	}{
+		{name: "unset derives from request"},
+		{name: "explicit public URL", envVal: "https://mirror.example.com", want: "https://mirror.example.com"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_PUBLIC_URL", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if cfg.PublicURL != tt.want {
+				t.Errorf("PublicURL = %q, want %q", cfg.PublicURL, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoad_StreamTimeout(t *testing.T) {
 	tests := []struct {
 		name    string

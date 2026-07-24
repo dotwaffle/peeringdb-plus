@@ -22,10 +22,22 @@ func CORS(in CORSInput) func(http.Handler) http.Handler {
 	for i := range origins {
 		origins[i] = strings.TrimSpace(origins[i])
 	}
-	// Merge application headers with Connect/gRPC/gRPC-Web protocol headers.
-	allowedHeaders := append([]string{"Content-Type", "Authorization"}, connectcors.AllowedHeaders()...)
-	allowedMethods := append([]string{"GET", "OPTIONS"}, connectcors.AllowedMethods()...)
-	exposedHeaders := connectcors.ExposedHeaders()
+	// Merge application headers with Connect/gRPC/gRPC-Web and MCP Streamable
+	// HTTP protocol headers. Last-Event-ID is used when an MCP client resumes
+	// an event stream; the current MCP server is stateless but allowing it keeps
+	// the transport interoperable if that policy changes later.
+	allowedHeaders := append(
+		[]string{
+			"Content-Type",
+			"Authorization",
+			"MCP-Protocol-Version",
+			"MCP-Session-Id",
+			"Last-Event-ID",
+		},
+		connectcors.AllowedHeaders()...,
+	)
+	allowedMethods := append([]string{"GET", "DELETE", "OPTIONS"}, connectcors.AllowedMethods()...)
+	exposedHeaders := append([]string{"MCP-Session-Id"}, connectcors.ExposedHeaders()...)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   origins,
