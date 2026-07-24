@@ -35,6 +35,15 @@ func TestDiscoveryBody(t *testing.T) {
 	if m["name"] != "peeringdb-plus" {
 		t.Errorf("name = %v, want peeringdb-plus", m["name"])
 	}
+	for key, want := range map[string]string{
+		"mcp":           "/mcp",
+		"skill":         "/skills/peeringdb-plus/SKILL.md",
+		"skill_archive": "/skills/peeringdb-plus.zip",
+	} {
+		if got := m[key]; got != want {
+			t.Errorf("%s = %v, want %q", key, got, want)
+		}
+	}
 	// The version must interpolate dynamically — distinct inputs yield distinct
 	// bodies — so the old static "0.1.0" banner can't silently creep back.
 	if strings.Contains(discoveryBody("vAAA"), "vBBB") || !strings.Contains(discoveryBody("vBBB"), "vBBB") {

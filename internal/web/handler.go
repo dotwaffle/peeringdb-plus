@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/catalog"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -33,6 +34,7 @@ func parseASN(s string) (uint32, bool) {
 // Handler serves web UI pages.
 type Handler struct {
 	client     *ent.Client
+	catalog    *catalog.Service
 	db         *sql.DB
 	searcher   *SearchService
 	comparer   *CompareService
@@ -63,6 +65,7 @@ type NewHandlerInput struct {
 func NewHandler(in NewHandlerInput) *Handler {
 	return &Handler{
 		client:     in.Client,
+		catalog:    catalog.NewService(in.Client),
 		db:         in.DB,
 		searcher:   NewSearchService(in.Client),
 		comparer:   NewCompareService(in.Client),

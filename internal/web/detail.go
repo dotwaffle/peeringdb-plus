@@ -51,7 +51,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 		return
 	}
 
-	data, err := h.queryNetwork(r.Context(), int(asn))
+	data, err := h.catalog.Network(r.Context(), int(asn))
 	if err != nil {
 		if ent.IsNotFound(err) {
 			h.handleNotFound(w, r)
@@ -85,7 +85,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		return
 	}
 
-	data, err := h.queryIX(r.Context(), id)
+	data, err := h.catalog.IX(r.Context(), id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			h.handleNotFound(w, r)
@@ -119,7 +119,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	data, err := h.queryFacility(r.Context(), id)
+	data, err := h.catalog.Facility(r.Context(), id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			h.handleNotFound(w, r)
@@ -153,7 +153,7 @@ func (h *Handler) handleOrgDetail(w http.ResponseWriter, r *http.Request, idStr 
 		return
 	}
 
-	data, err := h.queryOrg(r.Context(), id)
+	data, err := h.catalog.Organization(r.Context(), id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			h.handleNotFound(w, r)
@@ -186,7 +186,7 @@ func (h *Handler) handleCampusDetail(w http.ResponseWriter, r *http.Request, idS
 		return
 	}
 
-	data, err := h.queryCampus(r.Context(), id)
+	data, err := h.catalog.Campus(r.Context(), id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			h.handleNotFound(w, r)
@@ -219,7 +219,7 @@ func (h *Handler) handleCarrierDetail(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
-	data, err := h.queryCarrier(r.Context(), id)
+	data, err := h.catalog.Carrier(r.Context(), id)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			h.handleNotFound(w, r)

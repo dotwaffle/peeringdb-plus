@@ -746,6 +746,15 @@ func ({{.ModelName}}) Indexes() []ent.Index {
 		{{- range .Indexes}}
 		index.Fields("{{.}}"),
 		{{- end}}
+		{{- if eq .APIPath "netixlan"}}
+		// Exact address lookup for the MCP lookup_ip tool.
+		index.Fields("ipaddr4"),
+		index.Fields("ipaddr6"),
+		{{- end}}
+		{{- if eq .APIPath "ixpfx"}}
+		// Protocol-bounded prefix scans for the MCP lookup_ip tool.
+		index.Fields("status", "protocol"),
+		{{- end}}
 		// Composite index covering the default list ordering. Every list and
 		// stream query filters on status and orders by updated, created, id;
 		// with status leading, SQLite satisfies status-IN plus the three-key

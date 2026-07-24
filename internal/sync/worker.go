@@ -649,7 +649,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	// as bare goroutines (StartScheduler, the on-demand `go in.SyncFn`).
 	// middleware.Recovery only guards HTTP request goroutines, so without
 	// this defer a panic from one bad upstream record (e.g. a nil-deref
-	// in upsert) would crash the whole process and take down all five API
+	// in upsert) would crash the whole process and take down all six API
 	// surfaces on this edge node. Recover converts the panic into a failed
 	// cycle so the scheduler proceeds to the next tick instead.
 	defer w.recoverSyncPanic(ctx, recoverSyncPanicInput{

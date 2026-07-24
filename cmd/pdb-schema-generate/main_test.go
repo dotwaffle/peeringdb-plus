@@ -326,6 +326,48 @@ func TestGenerateEntSchemaCompiles(t *testing.T) {
 	}
 }
 
+func TestGenerateEntSchemaMCPIndexes(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{ObjectTypes: map[string]ObjectType{
+		"netixlan": {
+			ModelName: "NetworkIXLan",
+			APIPath:   "netixlan",
+			Fields: map[string]FieldDef{
+				"ipaddr4": {Type: "string"},
+				"ipaddr6": {Type: "string"},
+			},
+		},
+		"ixpfx": {
+			ModelName: "IXPrefix",
+			APIPath:   "ixpfx",
+			Fields: map[string]FieldDef{
+				"prefix":   {Type: "string"},
+				"protocol": {Type: "string"},
+			},
+		},
+	}}
+
+	tests := []struct {
+		apiPath string
+		want    []string
+	}{
+		{apiPath: "netixlan", want: []string{`index.Fields("ipaddr4")`, `index.Fields("ipaddr6")`}},
+		{apiPath: "ixpfx", want: []string{`index.Fields("status", "protocol")`}},
+	}
+	for _, test := range tests {
+		code, err := generateEntSchema(test.apiPath, schema.ObjectTypes[test.apiPath], schema)
+		if err != nil {
+			t.Fatalf("generate %s: %v", test.apiPath, err)
+		}
+		for _, part := range test.want {
+			if !strings.Contains(string(code), part) {
+				t.Errorf("%s schema missing %q", test.apiPath, part)
+			}
+		}
+	}
+}
+
 func TestGenerateFieldCode(t *testing.T) {
 	t.Parallel()
 

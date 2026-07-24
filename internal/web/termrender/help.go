@@ -39,6 +39,16 @@ func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	buf.WriteString("  $ curl peeringdb-plus.fly.dev/ui/compare/13335/15169\n")
 	buf.WriteString("\n")
 
+	// Agent access section. Keep paths relative so custom-domain and
+	// self-hosted deployments advertise their own endpoint rather than a
+	// hard-coded public origin.
+	buf.WriteString(StyleHeading.Render("Agent Access:"))
+	buf.WriteString("\n")
+	fmt.Fprintf(&buf, "  %-42s %s\n", StyleLabel.Render("/mcp"), "Model Context Protocol endpoint")
+	fmt.Fprintf(&buf, "  %-42s %s\n", StyleLabel.Render("/skills/peeringdb-plus/SKILL.md"), "Raw Agent Skill")
+	fmt.Fprintf(&buf, "  %-42s %s\n", StyleLabel.Render("/skills/peeringdb-plus.zip"), "Installable Agent Skill archive")
+	buf.WriteString("\n")
+
 	// Format options section.
 	buf.WriteString(StyleHeading.Render("Format Options:"))
 	buf.WriteString("\n")

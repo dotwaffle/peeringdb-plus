@@ -196,6 +196,8 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 			{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI-compliant endpoints with auto-generated docs"},
 			{Title: "ConnectRPC / gRPC", Desc: "Get and List RPCs for all 13 PeeringDB types with typed filtering, reflection, and health checking. Supports Connect, gRPC, and gRPC-Web protocols."},
 			{Href: "/api/", Title: "PeeringDB Compatible", Desc: "Drop-in replacement for PeeringDB API integrations"},
+			{Href: "/mcp", Title: "Model Context Protocol", Desc: "Read-only tools, resources, and prompts for network research agents"},
+			{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Installable skill archive configured for the hostname serving this response"},
 		}).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

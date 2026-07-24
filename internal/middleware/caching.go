@@ -116,6 +116,15 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 				return
 			}
 
+			// Agent skill handlers derive their own content ETags. In
+			// particular, the downloadable archive varies by request origin,
+			// so the sync-time-keyed application ETag cannot safely short
+			// circuit it. Leave the entire /skills/ namespace to its handler.
+			if strings.HasPrefix(r.URL.Path, "/skills/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Embedded static assets change only on deploy, never on
 			// sync, so the sync-time-keyed ETag is the wrong key: it
 			// would invalidate every stylesheet and script each sync

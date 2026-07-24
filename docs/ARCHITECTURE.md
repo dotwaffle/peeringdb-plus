@@ -7,8 +7,8 @@ read-only mirror of [PeeringDB](https://www.peeringdb.com) data,
 implemented in Go.
 A single binary combines an in-process sync worker
 that periodically re-fetches all PeeringDB objects with an HTTP server
-that exposes the mirrored data through five coexisting API surfaces
-(Web UI, GraphQL, REST, a PeeringDB-compatible API, and ConnectRPC/gRPC).
+that exposes the mirrored data through six coexisting API surfaces
+(Web UI, GraphQL, REST, a PeeringDB-compatible API, ConnectRPC/gRPC, and MCP).
 Data is stored in SQLite,
 replicated to edge nodes by [LiteFS](https://fly.io/docs/litefs/),
 and served with low latency from the nearest Fly.io region.
@@ -35,6 +35,7 @@ graph TD
     REST["REST (entrest)<br/>/rest/v1/*"]
     COMPAT["PeeringDB Compat<br/>/api/*"]
     RPC["ConnectRPC / gRPC<br/>/peeringdb.v1.*"]
+    MCP["MCP<br/>/mcp"]
     OTEL["OpenTelemetry<br/>(traces, metrics, logs)"]
 
     PDB -->|"HTTP GET (hourly)"| W
@@ -45,11 +46,13 @@ graph TD
     MUX --> REST
     MUX --> COMPAT
     MUX --> RPC
+    MUX --> MCP
     WEB --> DB
     GQL --> DB
     REST --> DB
     COMPAT --> DB
     RPC --> DB
+    MCP --> DB
     W -.->|"spans / metrics"| OTEL
     MUX -.->|"spans / metrics / logs"| OTEL
 ```
@@ -74,7 +77,7 @@ A typical read request flows as follows:
    (`Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag`)
    before dispatching to the mux (`cmd/peeringdb-plus/main.go` —
    `buildMiddlewareChain`).
-4. The request is dispatched to one of the five API surfaces based on URL path.
+4. The request is dispatched to one of the six API surfaces based on URL path.
 5. The handler reads from the local SQLite file via the ent client.
    Because SQLite is a local file
    (mounted through LiteFS FUSE), reads never leave the instance.
@@ -333,7 +336,7 @@ The wrap order is regression-locked by `TestMiddlewareChain_Order` in
 
 ## API surfaces
 
-All five surfaces are mounted on the same mux in `cmd/peeringdb-plus/main.go`
+All six surfaces are mounted on the same mux in `cmd/peeringdb-plus/main.go`
 and read from the same ent client:
 
 - **Web UI — `/ui/*`** (`internal/web/`) — templ-rendered HTML + htmx
@@ -383,6 +386,13 @@ and read from the same ent client:
   The health check is held in `NOT_SERVING` until the first sync completes,
   then flips to `SERVING` for the root service
   and every registered service name.
+
+- **MCP — `/mcp`** (`internal/mcpserver/`) —
+  stateless Streamable HTTP with read-only tools, resources, and prompts.
+  It reuses the protocol-neutral services in `internal/catalog/`.
+  The installable skill is served by `internal/agentdocs/`;
+  its ZIP is generated per request so self-hosted deployments advertise
+  their own origin.
 
 ## Ordering
 
@@ -451,17 +461,17 @@ The pieces:
    the incoming request, reads `PDBPLUS_PUBLIC_TIER` from config, and stamps a
    `privctx.Tier` value on the request context.
    The middleware sits between Logging and Readiness in the chain,
-   so every one of the five API surfaces inherits the tier via `r.Context()`.
+   so every one of the six API surfaces inherits the tier via `r.Context()`.
 2. **Row-level — ent Privacy policy**
    (`entgo.io/ent/privacy`, feature `privacy` enabled in `ent/entc.go`).
    The POC entity (`ent/schema/poc.go`,
    with `Policy()` in sibling file `ent/schema/poc_policy.go`) has a `Policy()`
    method whose query rule rejects rows with `visible != "Public"` unless the
    context carries a Users-tier marker.
-   The policy is evaluated on every ent query; the five read surfaces
-   (`/ui/`, `/graphql`, `/rest/v1/`, `/api/`, `/peeringdb.v1.*`)
+   The policy is evaluated on every ent query; the six read surfaces
+   (`/ui/`, `/graphql`, `/rest/v1/`, `/api/`, `/peeringdb.v1.*`, `/mcp`)
    all flow through the same `ent.Client`, so there is exactly one filter,
-   not five.
+   not six.
    POC is the only entity where a whole row can be hidden.
 3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
    `Redact(ctx, visible, value) (out string, omit bool)` is the single source of
@@ -470,7 +480,8 @@ The pieces:
    unstamped contexts fail-closed to `TierPublic`.
    The current gated field is `ixlan.ixf_ixp_member_list_url`
    (gated by sibling `ixf_ixp_member_list_url_visible`).
-   Each of the five surfaces hosts the call at a different layer:
+   Five serializers currently expose the gated field and host the call at
+   different layers:
    - **pdbcompat** — `internal/pdbcompat/serializer.go` (json `,omitempty`
      handles wire absence).
    - **ConnectRPC** — `internal/grpcserver/ixlan.go` (nil
@@ -483,6 +494,7 @@ The pieces:
      so problem+json error bodies pass through untouched.
    - **Web UI** — no current render path; future templates call
      `privfield.Redact` in the data preparation step.
+   - **MCP** — the current catalog tool DTOs do not expose this IX LAN field.
 
    The `_visible` companion field is itself emitted to anonymous callers
    (matches upstream PeeringDB behaviour); only the gated value field is redacted.
@@ -531,7 +543,7 @@ sequenceDiagram
     Surface-->>Client: JSON (Public rows only — Users absent, not redacted)
 ```
 
-All five read surfaces share this flow.
+All six read surfaces share this flow.
 Custom per-surface logic is not needed for row-level filtering:
 the middleware stamps the tier once,
 and ent's policy enforcement fires on every generated query.

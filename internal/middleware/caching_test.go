@@ -623,3 +623,36 @@ func TestCaching_StaticAssets(t *testing.T) {
 		t.Error("inner handler not called for static asset with If-None-Match: *")
 	}
 }
+
+func TestCaching_SkillHandlersOwnCaching(t *testing.T) {
+	t.Parallel()
+
+	state := middleware.NewCachingState(time.Hour)
+	state.UpdateETag(time.Date(2026, 7, 24, 12, 0, 0, 0, time.UTC))
+
+	var called atomic.Bool
+	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called.Store(true)
+		w.Header().Set("Cache-Control", "public, max-age=600")
+		w.Header().Set("ETag", `"skill-etag"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/skills/peeringdb-plus.zip", nil)
+	req.Header.Set("If-None-Match", "*")
+	rec := httptest.NewRecorder()
+	mw.ServeHTTP(rec, req)
+
+	if !called.Load() {
+		t.Fatal("skill handler was short-circuited by application cache")
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "public, max-age=600" {
+		t.Errorf("Cache-Control = %q, want handler value", got)
+	}
+	if got := rec.Header().Get("ETag"); got != `"skill-etag"` {
+		t.Errorf("ETag = %q, want handler value", got)
+	}
+}

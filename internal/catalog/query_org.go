@@ -1,4 +1,4 @@
-package web
+package catalog
 
 import (
 	"context"
@@ -11,56 +11,55 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// queryOrg fetches an organization by ID and all related data for the detail page.
-// Returns the fully populated OrgDetail or an error (including ent.IsNotFound).
-func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, error) {
-	org, err := h.client.Organization.Query().
+// Organization fetches an organization by ID and its related catalog data.
+// It returns errors compatible with ent.IsNotFound.
+func (s *Service) Organization(ctx context.Context, id int) (OrgDetail, error) {
+	org, err := s.client.Organization.Query().
 		Where(organization.ID(id), organization.StatusIn("ok", "pending")).
 		Only(ctx)
 	if err != nil {
-		return templates.OrgDetail{}, fmt.Errorf("query org %d: %w", id, err)
+		return OrgDetail{}, fmt.Errorf("query org %d: %w", id, err)
 	}
 
 	// Count non-pre-computed child entity counts.
-	ixCount, err := h.client.InternetExchange.Query().
+	ixCount, err := s.client.InternetExchange.Query().
 		Where(internetexchange.HasOrganizationWith(organization.ID(id)), internetexchange.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org IXPs", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
-	campusCount, err := h.client.Campus.Query().
+	campusCount, err := s.client.Campus.Query().
 		Where(campus.HasOrganizationWith(organization.ID(id)), campus.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org campuses", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
-	carrierCount, err := h.client.Carrier.Query().
+	carrierCount, err := s.client.Carrier.Query().
 		Where(carrier.HasOrganizationWith(organization.ID(id)), carrier.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org carriers", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
-	netCount, err := h.client.Network.Query().
+	netCount, err := s.client.Network.Query().
 		Where(network.HasOrganizationWith(organization.ID(id)), network.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org networks", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
-	facCount, err := h.client.Facility.Query().
+	facCount, err := s.client.Facility.Query().
 		Where(facility.HasOrganizationWith(organization.ID(id)), facility.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count org facilities", slog.Int("org_id", id), slog.Any("error", err))
 	}
 
-	data := templates.OrgDetail{
+	data := OrgDetail{
 		ID:           org.ID,
 		Name:         org.Name,
 		NameLong:     org.NameLong,
@@ -82,14 +81,14 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 	}
 
 	// Eager-load org networks.
-	orgNetItems, err := h.client.Network.Query().
+	orgNetItems, err := s.client.Network.Query().
 		Where(network.HasOrganizationWith(organization.ID(id)), network.StatusIn("ok", "pending")).
 		Order(network.ByAsn()).
 		All(ctx)
 	if err == nil {
-		netRows := make([]templates.OrgNetworkRow, len(orgNetItems))
+		netRows := make([]OrgNetworkRow, len(orgNetItems))
 		for i, n := range orgNetItems {
-			netRows[i] = templates.OrgNetworkRow{
+			netRows[i] = OrgNetworkRow{
 				NetName: n.Name,
 				ASN:     n.Asn,
 			}
@@ -100,14 +99,14 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 	}
 
 	// Eager-load org IXPs.
-	orgIXItems, err := h.client.InternetExchange.Query().
+	orgIXItems, err := s.client.InternetExchange.Query().
 		Where(internetexchange.HasOrganizationWith(organization.ID(id)), internetexchange.StatusIn("ok", "pending")).
 		Order(internetexchange.ByName()).
 		All(ctx)
 	if err == nil {
-		ixRows := make([]templates.OrgIXRow, len(orgIXItems))
+		ixRows := make([]OrgIXRow, len(orgIXItems))
 		for i, ix := range orgIXItems {
-			ixRows[i] = templates.OrgIXRow{
+			ixRows[i] = OrgIXRow{
 				IXName: ix.Name,
 				IXID:   ix.ID,
 			}
@@ -118,14 +117,14 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 	}
 
 	// Eager-load org facilities.
-	orgFacItems, err := h.client.Facility.Query().
+	orgFacItems, err := s.client.Facility.Query().
 		Where(facility.HasOrganizationWith(organization.ID(id)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
 		All(ctx)
 	if err == nil {
-		facRows := make([]templates.OrgFacilityRow, len(orgFacItems))
+		facRows := make([]OrgFacilityRow, len(orgFacItems))
 		for i, f := range orgFacItems {
-			facRows[i] = templates.OrgFacilityRow{
+			facRows[i] = OrgFacilityRow{
 				FacName: f.Name,
 				FacID:   f.ID,
 				City:    f.City,
@@ -138,14 +137,14 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 	}
 
 	// Eager-load org campuses.
-	orgCampusItems, err := h.client.Campus.Query().
+	orgCampusItems, err := s.client.Campus.Query().
 		Where(campus.HasOrganizationWith(organization.ID(id)), campus.StatusIn("ok", "pending")).
 		Order(campus.ByName()).
 		All(ctx)
 	if err == nil {
-		campusRows := make([]templates.OrgCampusRow, len(orgCampusItems))
+		campusRows := make([]OrgCampusRow, len(orgCampusItems))
 		for i, c := range orgCampusItems {
-			campusRows[i] = templates.OrgCampusRow{
+			campusRows[i] = OrgCampusRow{
 				CampusName: c.Name,
 				CampusID:   c.ID,
 			}
@@ -156,14 +155,14 @@ func (h *Handler) queryOrg(ctx context.Context, id int) (templates.OrgDetail, er
 	}
 
 	// Eager-load org carriers.
-	orgCarrierItems, err := h.client.Carrier.Query().
+	orgCarrierItems, err := s.client.Carrier.Query().
 		Where(carrier.HasOrganizationWith(organization.ID(id)), carrier.StatusIn("ok", "pending")).
 		Order(carrier.ByName()).
 		All(ctx)
 	if err == nil {
-		carrierRows := make([]templates.OrgCarrierRow, len(orgCarrierItems))
+		carrierRows := make([]OrgCarrierRow, len(orgCarrierItems))
 		for i, c := range orgCarrierItems {
-			carrierRows[i] = templates.OrgCarrierRow{
+			carrierRows[i] = OrgCarrierRow{
 				CarrierName: c.Name,
 				CarrierID:   c.ID,
 			}

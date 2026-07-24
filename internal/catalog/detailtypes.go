@@ -1,4 +1,5 @@
-package templates
+// Package catalog provides protocol-neutral PeeringDB catalog queries and data.
+package catalog
 
 // NetworkDetail holds display data for a network detail page.
 type NetworkDetail struct {

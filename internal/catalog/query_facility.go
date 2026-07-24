@@ -1,4 +1,4 @@
-package web
+package catalog
 
 import (
 	"context"
@@ -12,22 +12,21 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
-	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// queryFacility fetches a facility by ID and all related data for the detail page.
-// Returns the fully populated FacilityDetail or an error (including ent.IsNotFound).
-func (h *Handler) queryFacility(ctx context.Context, id int) (templates.FacilityDetail, error) {
-	fac, err := h.client.Facility.Query().
+// Facility fetches a facility by ID and its related catalog data.
+// It returns errors compatible with ent.IsNotFound.
+func (s *Service) Facility(ctx context.Context, id int) (FacilityDetail, error) {
+	fac, err := s.client.Facility.Query().
 		Where(facility.ID(id), facility.StatusIn("ok", "pending")).
 		WithOrganization().
 		WithCampus().
 		Only(ctx)
 	if err != nil {
-		return templates.FacilityDetail{}, fmt.Errorf("query facility %d: %w", id, err)
+		return FacilityDetail{}, fmt.Errorf("query facility %d: %w", id, err)
 	}
 
-	data := templates.FacilityDetail{
+	data := FacilityDetail{
 		ID:           fac.ID,
 		Name:         fac.Name,
 		NameLong:     fac.NameLong,
@@ -66,19 +65,19 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 
 	// Eager-load facility networks. The association row's own `name` is the
 	// facility name, so resolve the network name from the Network edge.
-	facNetItems, err := h.client.NetworkFacility.Query().
+	facNetItems, err := s.client.NetworkFacility.Query().
 		Where(networkfacility.HasFacilityWith(facility.ID(id)), networkfacility.StatusIn("ok", "pending")).
 		WithNetwork().
 		Order(networkfacility.ByNetworkField(network.FieldName)).
 		All(ctx)
 	if err == nil {
-		netRows := make([]templates.FacNetworkRow, len(facNetItems))
+		netRows := make([]FacNetworkRow, len(facNetItems))
 		for i, nf := range facNetItems {
 			netName := ""
 			if nf.Edges.Network != nil {
 				netName = nf.Edges.Network.Name
 			}
-			netRows[i] = templates.FacNetworkRow{
+			netRows[i] = FacNetworkRow{
 				NetName: netName,
 				ASN:     nf.LocalAsn,
 				City:    nf.City,
@@ -92,18 +91,18 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 
 	// Eager-load facility IXPs. The association row's own `name` is the facility
 	// name, so resolve the exchange name from the InternetExchange edge.
-	facIXItems, err := h.client.IxFacility.Query().
+	facIXItems, err := s.client.IxFacility.Query().
 		Where(ixfacility.HasFacilityWith(facility.ID(id)), ixfacility.StatusIn("ok", "pending")).
 		WithInternetExchange().
 		Order(ixfacility.ByInternetExchangeField(internetexchange.FieldName)).
 		All(ctx)
 	if err == nil {
-		var ixRows []templates.FacIXRow
+		var ixRows []FacIXRow
 		for _, ixf := range facIXItems {
 			if ixf.IxID == nil || ixf.Edges.InternetExchange == nil {
 				continue
 			}
-			ixRows = append(ixRows, templates.FacIXRow{
+			ixRows = append(ixRows, FacIXRow{
 				IXName: ixf.Edges.InternetExchange.Name,
 				IXID:   *ixf.IxID,
 			})
@@ -115,18 +114,18 @@ func (h *Handler) queryFacility(ctx context.Context, id int) (templates.Facility
 
 	// Eager-load facility carriers. The association row's own `name` is the
 	// facility name, so resolve the carrier name from the Carrier edge.
-	facCarrierItems, err := h.client.CarrierFacility.Query().
+	facCarrierItems, err := s.client.CarrierFacility.Query().
 		Where(carrierfacility.HasFacilityWith(facility.ID(id)), carrierfacility.StatusIn("ok", "pending")).
 		WithCarrier().
 		Order(carrierfacility.ByCarrierField(carrier.FieldName)).
 		All(ctx)
 	if err == nil {
-		var carrierRows []templates.FacCarrierRow
+		var carrierRows []FacCarrierRow
 		for _, cf := range facCarrierItems {
 			if cf.CarrierID == nil || cf.Edges.Carrier == nil {
 				continue
 			}
-			carrierRows = append(carrierRows, templates.FacCarrierRow{
+			carrierRows = append(carrierRows, FacCarrierRow{
 				CarrierName: cf.Edges.Carrier.Name,
 				CarrierID:   *cf.CarrierID,
 			})

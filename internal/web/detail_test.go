@@ -276,9 +276,9 @@ func TestQueryFacility_RelatedEntityNames(t *testing.T) {
 	seedAllTestData(t, client)
 	h := NewHandler(NewHandlerInput{Client: client})
 
-	data, err := h.queryFacility(t.Context(), 30)
+	data, err := h.catalog.Facility(t.Context(), 30)
 	if err != nil {
-		t.Fatalf("queryFacility: %v", err)
+		t.Fatalf("catalog facility: %v", err)
 	}
 
 	if len(data.Carriers) != 1 {

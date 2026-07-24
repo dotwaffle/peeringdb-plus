@@ -161,3 +161,48 @@ func TestCORSConnectProtocolHeaders(t *testing.T) {
 		t.Errorf("Access-Control-Expose-Headers = %q, want it to include Grpc-Status", exposeHeaders)
 	}
 }
+
+func TestCORSMCPProtocolHeaders(t *testing.T) {
+	t.Parallel()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("MCP-Session-Id", "session")
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := middleware.CORS(middleware.CORSInput{AllowedOrigins: "http://app.example.com"})(inner)
+
+	req := httptest.NewRequest("OPTIONS", "/mcp", nil)
+	req.Header.Set("Origin", "http://app.example.com")
+	req.Header.Set("Access-Control-Request-Method", "POST")
+	req.Header.Set(
+		"Access-Control-Request-Headers",
+		"content-type, last-event-id, mcp-protocol-version, mcp-session-id",
+	)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Errorf("preflight status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+	allowHeaders := strings.ToLower(rec.Header().Get("Access-Control-Allow-Headers"))
+	for _, header := range []string{
+		"mcp-protocol-version",
+		"mcp-session-id",
+		"last-event-id",
+	} {
+		if !strings.Contains(allowHeaders, header) {
+			t.Errorf("Access-Control-Allow-Headers = %q, want %s", allowHeaders, header)
+		}
+	}
+
+	req2 := httptest.NewRequest("POST", "/mcp", nil)
+	req2.Header.Set("Origin", "http://app.example.com")
+	rec2 := httptest.NewRecorder()
+	handler.ServeHTTP(rec2, req2)
+
+	exposeHeaders := strings.ToLower(rec2.Header().Get("Access-Control-Expose-Headers"))
+	if !strings.Contains(exposeHeaders, "mcp-session-id") {
+		t.Errorf("Access-Control-Expose-Headers = %q, want mcp-session-id", exposeHeaders)
+	}
+}
