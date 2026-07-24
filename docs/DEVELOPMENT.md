@@ -73,8 +73,8 @@ Code-change-relevant directories:
 | Command | Description |
 |---|---|
 | `mise run build` | Build all packages with `-trimpath` |
-| `mise run test` | Run all tests through gotestsum with the race detector |
-| `mise run coverage` | Run race tests and write `coverage.out` |
+| `mise run test` | Run all tests through gotestsum with compact failure-focused output and the race detector |
+| `mise run coverage` | Run race tests, write `coverage.out`, and report the 10 slowest tests |
 | `mise run generate` | Run the full codegen pipeline in order |
 | `mise run lint` | Run actionlint and golangci-lint |
 | `mise run vulncheck` | Check the Go vulnerability database |

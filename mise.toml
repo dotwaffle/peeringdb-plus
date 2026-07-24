@@ -35,13 +35,21 @@ run = "go build -trimpath ./..."
 [tasks.test]
 description = "Run the complete Go race suite"
 env = { CGO_ENABLED = "1" }
-run = "gotestsum -- -race ./..."
+run = "gotestsum --format pkgname-and-test-fails --format-hide-empty-pkg --hide-summary=skipped -- -race ./..."
 
 [tasks.coverage]
 description = "Run the Go race suite with cross-package coverage"
 env = { CGO_ENABLED = "1" }
 run = """
-gotestsum -- \
+timing_file="${TMPDIR:-/tmp}/peeringdb-plus-gotestsum-timing-$$.json"
+trap 'rm -f "$timing_file"' EXIT
+gotestsum \
+  --format pkgname-and-test-fails \
+  --format-hide-empty-pkg \
+  --hide-summary=skipped \
+  --jsonfile-timing-events="$timing_file" \
+  --post-run-command "gotestsum tool slowest --num 10 --jsonfile $timing_file" \
+  -- \
   -race \
   -coverprofile=coverage.out \
   -coverpkg=./cmd/...,./deploy/...,./graph/...,./internal/...,./schema/... \

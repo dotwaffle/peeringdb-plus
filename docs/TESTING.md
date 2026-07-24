@@ -475,7 +475,9 @@ gotestsum -- \
   ./...
 ```
 
-Run this through `mise run coverage`.
+Run this through `mise run coverage`;
+gotestsum prints compact package-level progress, failure details,
+and the 10 slowest tests.
 The `k1LoW/octocov-action` CI step posts the resulting summary as a PR comment.
 
 ## CI Integration

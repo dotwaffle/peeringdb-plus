@@ -76,8 +76,6 @@ jobs:
         run: mise run build
 
       - name: Run tests with race detector
-        env:
-          GOTESTSUM_FORMAT: github-actions
         run: mise run coverage
 
       - name: Post coverage comment
