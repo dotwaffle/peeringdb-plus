@@ -1,6 +1,6 @@
 module github.com/dotwaffle/peeringdb-plus
 
-go 1.26.4
+go 1.26.5
 
 require (
 	charm.land/lipgloss/v2 v2.0.5
@@ -13,15 +13,15 @@ require (
 	entgo.io/ent v0.14.6
 	github.com/99designs/gqlgen v0.17.94
 	github.com/KimMachineGun/automemlimit v0.7.5
-	github.com/XSAM/otelsql v0.42.0
+	github.com/XSAM/otelsql v0.43.0
 	github.com/a-h/templ v0.3.1020
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/go-playground/form/v4 v4.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/klauspost/compress v1.19.0
+	github.com/klauspost/compress v1.19.1
 	github.com/lrstanley/entrest v1.0.3
-	github.com/ogen-go/ogen v1.22.0
+	github.com/ogen-go/ogen v1.23.0
 	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
 	github.com/rs/cors v1.11.1
 	github.com/vektah/gqlparser/v2 v2.5.36
@@ -41,7 +41,7 @@ require (
 	golang.org/x/time v0.15.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.53.0
+	modernc.org/sqlite v1.54.0
 )
 
 require (

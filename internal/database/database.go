@@ -75,7 +75,7 @@ func Open(dbPath string, traceSQL bool) (*ent.Client, *sql.DB, error) {
 			// on every request trace and eliminate the orphan single-span
 			// traces that pool-lifecycle and boot-time (schema migration) DB
 			// operations emit outside any request context. The query spans
-			// (sql.conn.query, carrying db.statement) are retained.
+			// (sql.conn.query, carrying db.query.text) are retained.
 			otelsql.WithSpanOptions(otelsql.SpanOptions{
 				OmitRows:             true,
 				OmitConnResetSession: true,

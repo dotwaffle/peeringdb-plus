@@ -34,7 +34,7 @@ import (
 )
 
 // cliVersion is the pinned Tailwind CSS standalone CLI release.
-const cliVersion = "v4.3.2"
+const cliVersion = "v4.3.3"
 
 // cliSHA256 maps GOOS/GOARCH to the release asset name and its sha256
 // from the release's sha256sums.txt. Platforms not listed here (e.g.
@@ -44,10 +44,10 @@ var cliSHA256 = map[string]struct {
 	asset  string
 	sha256 string
 }{
-	"linux/amd64":  {"tailwindcss-linux-x64", "5036c4fb4328e0bcdbb6065c70d8ac9452e0d4c947113a788a8f94fd390425c1"},
-	"linux/arm64":  {"tailwindcss-linux-arm64", "394ddccc2402cfa3abd97dfba56f3587781a3d6e6ce66e65ceada14beb7664b8"},
-	"darwin/amd64": {"tailwindcss-macos-x64", "cef8f110471e889c3c4409055cf8aff33076f58a081867b0dfc6534b290bfbb0"},
-	"darwin/arm64": {"tailwindcss-macos-arm64", "b800b0659dc64b9f03ede5660244d9415d777d5739ae2889280877ca37be742a"},
+	"linux/amd64":  {"tailwindcss-linux-x64", "dc61b3ac6b8c9ca874c0cc4c57b2409791a64c5540404ca5f5367360babc313a"},
+	"linux/arm64":  {"tailwindcss-linux-arm64", "55fd0b241214eff3de1e8ee4f22796662f2d2e7a49bcfca7477cfd0bac398195"},
+	"darwin/amd64": {"tailwindcss-macos-x64", "7922e0953f2110c05976e3bf58f14e643d90427575e766b7d433f5f80cbee7e1"},
+	"darwin/arm64": {"tailwindcss-macos-arm64", "cdf646702987a743464dff4d9c60fd4480d1c1e73dd819a9a67f1078815dce9d"},
 }
 
 func main() {
