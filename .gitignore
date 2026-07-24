@@ -34,6 +34,8 @@ Thumbs.db
 # Environment
 .env
 .env.local
+mise.local.toml
+mise.local.lock
 
 # MCP config
 .mcp.json

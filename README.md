@@ -179,7 +179,7 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 
 ## Technology
 
-- **Language:** Go 1.26.4+
+- **Language:** Go 1.26.5
 - **ORM / codegen:** [entgo](https://entgo.io/) drives all five API surfaces
   from a single set of schemas in `ent/schema/` (entgql + entrest + entproto)
 - **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)
@@ -200,14 +200,14 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 ## Development
 
 ```bash
-go build ./...                    # Build all packages
-go test -race ./...               # Run tests with race detector
-go generate ./...                 # Full codegen pipeline (ent + buf + templ)
-golangci-lint run                 # Lint
-govulncheck ./...                 # Vulnerability scan
+mise install --locked             # Install the pinned toolchain
+mise run generate                 # Full codegen pipeline
+mise run check                    # Generate, tidy, build, test, lint, scan
 ```
 
-CI runs the full pipeline plus a generated-code-drift check on every PR.
+Mise supplies Go, code generators, Tailwind, gotestsum, linters, and security
+tools from the committed cross-platform lockfile.
+CI runs the same tools plus generated-code and module-tidiness checks on every PR.
 See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the conventions,
 including the sibling-file pattern
 that protects hand-edited schema methods from being overwritten by

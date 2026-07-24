@@ -7,12 +7,12 @@ For environment variables and runtime configuration, see
 
 ## Prerequisites
 
-- **Go 1.26+** (declared in `go.mod` as `go 1.26.4`).
+- **mise 2026.7.12+**.
 - Git and a local clone of this repository.
 
-No external install is required for code generation.
-`buf`, `templ`, and `gqlgen` are declared as Go tool dependencies in `go.mod`
-and are invoked via `go tool <name>`.
+Run `mise trust` once after cloning, then `mise install --locked`.
+Mise installs Go 1.26.5 and all contributor tools from the committed
+cross-platform lockfile.
 
 Pure-Go SQLite is provided by `modernc.org/sqlite` —
 **no CGO is required** for normal builds.
@@ -23,7 +23,9 @@ CGO is only enabled in CI to run the race detector.
 ```bash
 git clone https://github.com/dotwaffle/peeringdb-plus
 cd peeringdb-plus
-go build ./...
+mise trust
+mise install --locked
+mise run build
 ```
 
 There is no live-reload tooling.
@@ -70,13 +72,30 @@ Code-change-relevant directories:
 
 | Command | Description |
 |---|---|
-| `go build ./...` | Build all packages; verifies compilation |
-| `go test -race ./...` | Run all tests with the race detector (CI sets `CGO_ENABLED=1`) |
-| `go generate ./...` | Run the full codegen pipeline in order |
-| `gofmt -s -w .` | Format all Go files (also enforced by `golangci-lint`) |
-| `go vet ./...` | Standard vet |
-| `golangci-lint run` | Lint with project config (`.golangci.yml`) |
-| `govulncheck ./...` | Vulnerability check against the Go vulnerability database |
+| `mise run build` | Build all packages with `-trimpath` |
+| `mise run test` | Run all tests through gotestsum with the race detector |
+| `mise run coverage` | Run race tests and write `coverage.out` |
+| `mise run generate` | Run the full codegen pipeline in order |
+| `mise run lint` | Run actionlint and golangci-lint |
+| `mise run vulncheck` | Check the Go vulnerability database |
+| `mise run check` | Run the canonical local validation sweep |
+
+## Toolchain updates
+
+`mise.toml` is the version policy;
+`mise.lock` records release URLs and checksums for Linux and macOS
+on amd64 and arm64.
+After changing a tool pin, refresh and verify the lock:
+
+```bash
+mise lock --platform linux-x64,linux-arm64,macos-x64,macos-arm64
+mise install --locked
+mise run check
+```
+
+Keep runtime Go modules in `go.mod`.
+Generator-only binaries belong in mise so their dependency graphs
+do not inflate application module metadata or vulnerability reports.
 
 ## Code generation pipeline
 
@@ -92,11 +111,11 @@ The `go:generate` directives live in three files:
    2. `go run -mod=mod entc.go` — runs ent + entgql + entrest + entproto.
    3. `cd .. && go run ./cmd/pdb-compat-allowlist` — emits
       `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
-   4. `cd .. && go tool buf generate` — emits protobuf Go types and ConnectRPC
+   4. `cd .. && buf generate` — emits protobuf Go types and ConnectRPC
       handler interfaces from the proto sources.
-2. `graph/generate.go` — runs `go tool gqlgen generate` to produce the GraphQL
+2. `graph/generate.go` — runs `gqlgen generate` to produce the GraphQL
    resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
-3. `internal/web/templates/generate.go` — runs `go tool templ generate` to
+3. `internal/web/templates/generate.go` — runs `templ generate` to
    regenerate `*_templ.go` from `.templ` sources.
 
 `schema/generate.go` carries no `go:generate` directive;
@@ -196,7 +215,7 @@ internal/pdbcompat/allowlist_gen.go
 - `proto/peeringdb/v1/common.proto` — **hand-written**.
   Manual types like `SocialMedia` that don't map cleanly to an ent field.
 
-`buf generate` (invoked via `go tool buf generate` by `ent/generate.go`) reads
+`buf generate` (invoked by `ent/generate.go`) reads
 `buf.gen.yaml` and produces:
 
 - `gen/peeringdb/v1/*.pb.go` (protobuf Go types via `protoc-gen-go`).
@@ -218,42 +237,37 @@ The typical inner loop depends on what you changed.
 **Pure Go code (no schema, no proto, no templ):**
 
 ```bash
-go vet ./...
-go test -race ./...
-golangci-lint run
+mise run test
+mise run lint
 ```
 
 **Edited `ent/schema/*.go`:**
 
 ```bash
-go generate ./ent   # regenerates ent/, graph/, gen/, proto/peeringdb/v1/v1.proto, allowlist_gen.go
-go vet ./...
-go test -race ./...
+mise run generate
+mise run test
+mise run lint
 ```
 
 **Edited `proto/peeringdb/v1/services.proto` or `common.proto`:**
 
 ```bash
-go tool buf generate
-go vet ./...
-go test -race ./...
+mise run generate
+mise run test
+mise run lint
 ```
 
 **Edited a `.templ` file:**
 
 ```bash
-go generate ./internal/web/templates
-# or: go tool templ generate
-go test -race ./internal/web/...
+mise run generate
+mise exec -- go test -race ./internal/web/...
 ```
 
 **Edited anything that might ripple:**
 
 ```bash
-go generate ./...
-go vet ./...
-go test -race ./...
-golangci-lint run
+mise run check
 ```
 
 Always commit `*_templ.go` alongside `.templ` changes,
@@ -342,7 +356,7 @@ whole new service.
 
 1. Edit `proto/peeringdb/v1/services.proto` — add the `rpc` line inside the
    service block and any new request/response messages.
-2. Run `go tool buf generate` (or `go generate ./ent`).
+2. Run `buf generate` (or `go generate ./ent`).
 3. Implement the method on the corresponding struct in
    `internal/grpcserver/<entity>.go`.
    The handler interface it must satisfy is regenerated in
@@ -371,7 +385,7 @@ that internally dispatches by path
 
 1. Add a `.templ` file to `internal/web/templates/` for the new page.
    Follow the pattern of `detail_net.templ`, `compare.templ`, etc.
-2. Run `go generate ./internal/web/templates` (or `go tool templ generate`).
+2. Run `go generate ./internal/web/templates` (or `templ generate`).
 3. Add a handler method to `internal/web/` (e.g. `handleNewPage` in
    `internal/web/handler.go` or a new `page_newthing.go`).
 4. Add a `case` arm to the `switch` in `Handler.dispatch` routing the new URL
@@ -639,7 +653,8 @@ To add a new parity test:
 
 - **`gofmt -s`** is mandatory and enforced by `golangci-lint` (`gofmt`
   formatter is part of the default linter set).
-- **`go vet ./...`** is mandatory.
+- **`govet`** is enabled by golangci-lint's standard set;
+  a separate `go vet ./...` pass is not required.
 - **`golangci-lint run`** uses `.golangci.yml`:
   - Default linter set: `standard`.
   - Additionally enabled: `contextcheck`, `exhaustive`, `gocritic`, `gosec`,
@@ -665,11 +680,8 @@ match existing patterns in `git log --oneline` if in doubt.
 1. Run the full local check before pushing:
 
    ```bash
-   go generate ./...
-   go vet ./...
-   go test -race ./...
-   golangci-lint run
-   govulncheck ./...
+   mise install --locked
+   mise run check
    ```
 
 2. Commit any regenerated files
@@ -678,10 +690,10 @@ match existing patterns in `git log --oneline` if in doubt.
    that produced them.
    CI will fail on generated-code drift otherwise.
 3. Open a PR against `main`.
-   CI runs two jobs: `ci` — a single cached Go job that runs, in order,
-   the generated-code drift check, `go build`,
-   race tests with a coverage comment, `golangci-lint`,
-   and advisory `govulncheck` — and `docker-build`,
+   CI runs two jobs: `ci` — a single cached mise/Go job that runs, in order,
+   the generated-code drift check, build,
+   gotestsum race tests with a coverage comment, lint,
+   and advisory vulnerability scan — and `docker-build`,
    which builds both `Dockerfile` and `Dockerfile.prod`.
 4. Coverage excludes `ent/` and `gen/` (generated code).
    Aim to keep coverage on new hand-written code.
@@ -703,13 +715,11 @@ match existing patterns in `git log --oneline` if in doubt.
   Check `internal/litefs/primary.go` —
   `.primary` file **absent** = this node is primary (inverted semantics).
   For local dev without LiteFS, `PDBPLUS_IS_PRIMARY=true` is the default.
-- **Generated code drift in CI:** run `go generate ./...` locally
+- **Generated code drift in CI:** run `mise run generate` locally
   and commit the resulting diff.
-  The drift check stages untracked files
-  (`git add -A -N`)
-  and compares `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
-  and `internal/pdbcompat/allowlist_gen.go` against the working tree,
-  so a stale allowlist fails CI too.
+  The drift check compares tracked files and separately rejects untracked
+  output under `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
+  and `internal/pdbcompat/allowlist_gen.go`.
 - **Schema hand-edits keep disappearing:** you almost certainly added them to
   the generated `ent/schema/{type}.go` file.
   Move the methods to a sibling file `ent/schema/{type}_{method}.go`.

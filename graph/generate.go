@@ -1,3 +1,3 @@
 package graph
 
-//go:generate go tool gqlgen generate
+//go:generate gqlgen generate

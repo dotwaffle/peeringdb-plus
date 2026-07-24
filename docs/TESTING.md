@@ -5,7 +5,7 @@ no third-party test framework is required.
 Tests follow the Go convention of living next to the code they exercise
 as `*_test.go` files in the same package
 (or a `_test` sibling package for black-box tests).
-The project targets Go 1.26+
+The project targets Go 1.26.5
 and all tests must pass with the race detector enabled.
 
 ## Test Layout
@@ -87,7 +87,7 @@ CI enables CGO **only** to run the race detector:
 
 ```bash
 # CI step (see .github/workflows/ci.yml)
-CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="..." ./...
+mise run coverage
 ```
 
 On machines without a C toolchain, you can run tests without the race detector:
@@ -461,18 +461,22 @@ coverage:
     - '**/*_templ.go'
 ```
 
-In addition, the CI test step builds its `-coverpkg` list by excluding `ent/`
-and `gen/` at `go list` time so
-that generated packages are not counted in either the numerator
-or the denominator:
+The coverage task names the hand-written package trees explicitly.
+This avoids a shell-built `go list | grep | tr | sed` package list,
+keeps generated `ent/` and `gen/` packages out of instrumentation,
+and leaves file-level exclusions such as `graph/generated.go`
+to `.octocov.yml`:
 
 ```bash
-# .github/workflows/ci.yml (the race-test step of the `ci` job)
-COVERPKG=$(go list ./... | grep -vE '/ent(/|$)|/gen(/|$)' | tr '\n' ',' | sed 's/,$//')
-CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...
+gotestsum -- \
+  -race \
+  -coverprofile=coverage.out \
+  -coverpkg=./cmd/...,./deploy/...,./graph/...,./internal/...,./schema/... \
+  ./...
 ```
 
-The `k1LoW/octocov-action` CI step posts the coverage summary as a PR comment.
+Run this through `mise run coverage`.
+The `k1LoW/octocov-action` CI step posts the resulting summary as a PR comment.
 
 ## CI Integration
 
@@ -483,11 +487,12 @@ each reusing the prior compile; `docker-build` runs in parallel:
 
 | Job | Step (in order) | Command |
 |-----|------|---------|
-| `ci` | Generated code drift check | `go generate ./...` then `git add -A -N` and `git diff --exit-code -- ent/ gen/ graph/ internal/web/templates/ internal/pdbcompat/allowlist_gen.go` |
-| `ci` | Compile check | `go build ./...` |
-| `ci` | Tests with race detector + coverage | `CGO_ENABLED=1 go test -race -coverprofile=coverage.out -coverpkg="${COVERPKG}" ./...` |
-| `ci` | Lint | `golangci-lint run` |
-| `ci` | Vulnerability scan (advisory, `continue-on-error`) | `govulncheck ./...` |
+| `ci` | Install tools | `mise install --locked` via `jdx/mise-action` |
+| `ci` | Generated code drift check | `mise run generate`, then scoped tracked/untracked checks |
+| `ci` | Compile check | `mise run build` |
+| `ci` | Tests with race detector + coverage | `mise run coverage` |
+| `ci` | Lint | `mise run lint` |
+| `ci` | Vulnerability scan (advisory, `continue-on-error`) | `mise run vulncheck` |
 | `docker-build` | Dev and prod image builds | `docker build` using `./Dockerfile` and `./Dockerfile.prod` |
 
 Any test failure, race detection, coverage file write failure,

@@ -10,6 +10,62 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.24.0] — 2026-07-24
+
+Toolchain consolidation and dependency refresh.
+There are no API or runtime behavior changes from PeeringDB 2.81.0:
+its intervening changes affect upstream writes, IX-F cleanup,
+and RIR deletion verification rather than the mirror's read contract.
+
+### Added
+
+- Add a cross-platform mise manifest and lockfile covering Go, code generators,
+  Tailwind, gotestsum, lint, and vulnerability tooling.
+- Add mise tasks for generation, build, race tests, coverage, lint,
+  vulnerability scanning, and the canonical local validation sweep.
+
+### Changed
+
+- Move CI and local development to the same locked tool versions.
+  CI now installs tools through mise, runs race coverage through gotestsum,
+  validates its workflow with actionlint, and retains the existing cached
+  sequential Go job plus parallel Docker builds.
+- Replace the dynamically assembled coverage package list with explicit
+  hand-written package trees; `.octocov.yml` remains the file-level exclusion
+  authority for generated GraphQL and templ output.
+- Update Go to 1.26.5, `otelsql` to 0.43.0, `compress` to 1.19.1,
+  `ogen` to 1.23.0, modernc SQLite to 1.54.0, and Tailwind to 4.3.3.
+  SQLite 1.54.0 includes the upstream WAL corruption fix in SQLite 3.53.3.
+
+### Removed
+
+- Remove the `go.mod` tool block and Buf's codegen-only transitive module graph.
+- Remove the custom Tailwind downloader; mise now downloads and verifies the
+  same standalone GitHub release assets without requiring Node.js.
+
+## [1.23.0] — 2026-07-10
+
+Full-repository review remediation across sync reliability, API correctness,
+web usability, operations, tooling, and internal structure.
+
+### Fixed
+
+- Harden sync watchdogs, FK pre-processing, heap telemetry, upstream
+  authentication diagnostics, and tombstone filtering.
+- Correct HTTP recovery, conditional requests, REST redaction scope,
+  gRPC health evaluation, stream timeout validation, and reserved metadata.
+- Improve web accessibility, static asset delivery, CSP enforcement,
+  relation pagination, error handling, and light/dark presentation.
+- Extend pdbcompat response budgeting and lock registries and filter tables
+  against generated schema or SQL drift.
+
+### Changed
+
+- Make Docker builds more cacheable and runtime images smaller.
+- Harden schema, compatibility, load-test, LiteFS, and observability tooling.
+- Consolidate repeated API, sync, GraphQL, and command wiring behind typed
+  registries and shared helpers.
+
 ## [1.22.0] — 2026-06-30
 
 Upstream parity refresh to PeeringDB 2.80.1, plus a maintenance sweep. The new

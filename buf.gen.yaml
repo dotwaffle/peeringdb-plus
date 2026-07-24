@@ -6,11 +6,11 @@ managed:
     - file_option: go_package_prefix
       value: github.com/dotwaffle/peeringdb-plus/gen
 plugins:
-  - local: [go, tool, protoc-gen-go]
+  - local: protoc-gen-go
     out: gen
     opt:
       - paths=source_relative
-  - local: [go, tool, protoc-gen-connect-go]
+  - local: protoc-gen-connect-go
     out: gen
     opt:
       - paths=source_relative

@@ -95,12 +95,8 @@ but matching it keeps history bisectable and readable.
 Before opening a pull request, run the full local gate:
 
 ```bash
-gofmt -s -w .
-go vet ./...
-go test -race ./...
-golangci-lint run
-govulncheck ./...
-go build ./...
+mise install --locked
+mise run check
 ```
 
 If you touched any of the following, regenerate code and commit the result:
@@ -128,7 +124,7 @@ The `ci` job is a single cached Go job whose steps run in order;
 
 | Job | What it runs |
 |---|---|
-| **`ci`** | In order: generated-code drift check → `go build ./...` → `go test -race -coverprofile=coverage.out ./...` (with coverage comment) → `golangci-lint` → advisory `govulncheck ./...` |
+| **`ci`** | In order: locked mise install → generated-code drift check → build → gotestsum race tests with coverage → lint → advisory vulnerability scan |
 | **`docker-build`** | Builds both `Dockerfile` (dev) and `Dockerfile.prod` (prod) images |
 
 `govulncheck` runs with `continue-on-error`:
@@ -141,14 +137,14 @@ and are reused.
 
 ### Generated Code Drift Check
 
-The `ci` job's first real step runs `go generate ./...`
+The `ci` job's first real step runs `mise run generate`
 and then `git diff --exit-code` across `ent/`, `gen/`, `graph/`,
 and `internal/web/templates/` —
 ahead of `go build` so a forgotten regeneration fails in seconds.
 If any generated file differs from what's committed, the build fails with:
 
 > Generated code is out of date.
-> Run 'go generate ./...' and commit the changes.
+> Run 'mise run generate' and commit the changes.
 
 Always commit generated output alongside the source changes that produced it
 (schemas, `.proto`, `.templ`).
