@@ -1989,14 +1989,22 @@ func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 		close(done)
 	}()
 
-	// Wait for the initial sync to complete.
-	time.Sleep(2 * time.Second)
+	// Wait for the initial sync to complete. A fixed sleep makes this test
+	// sensitive to contention from the parallel race-enabled suite.
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for !w.HasCompletedSync() {
+		select {
+		case <-ticker.C:
+		case <-done:
+			t.Fatal("scheduler stopped before completing the initial sync")
+		case <-ctx.Done():
+			<-done
+			t.Fatal("initial sync did not complete before the deadline")
+		}
+	}
 	cancel()
 	<-done
-
-	if !w.HasCompletedSync() {
-		t.Error("expected HasCompletedSync=true after initial sync on empty DB")
-	}
 
 	// API calls should have been made (sync was triggered).
 	if calls := f.callCount.Load(); calls == 0 {
