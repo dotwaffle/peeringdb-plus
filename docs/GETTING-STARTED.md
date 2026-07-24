@@ -176,7 +176,7 @@ See [API.md](API.md) for documented divergences.
 curl -s http://localhost:8080/rest/v1/openapi.json | head -c 200
 
 # List a few networks via the entrest surface
-curl -s 'http://localhost:8080/rest/v1/networks?limit=3'
+curl -s 'http://localhost:8080/rest/v1/networks?per_page=3'
 ```
 
 ### GraphQL
