@@ -1,4 +1,4 @@
-package web
+package catalog
 
 import (
 	"context"
@@ -10,21 +10,20 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
-	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// queryIX fetches an internet exchange by ID and all related data for the detail page.
-// Returns the fully populated IXDetail or an error (including ent.IsNotFound).
-func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, error) {
-	ix, err := h.client.InternetExchange.Query().
+// IX fetches an internet exchange by ID and its related catalog data.
+// It returns errors compatible with ent.IsNotFound.
+func (s *Service) IX(ctx context.Context, id int) (IXDetail, error) {
+	ix, err := s.client.InternetExchange.Query().
 		Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
 		WithOrganization().
 		Only(ctx)
 	if err != nil {
-		return templates.IXDetail{}, fmt.Errorf("query ix %d: %w", id, err)
+		return IXDetail{}, fmt.Errorf("query ix %d: %w", id, err)
 	}
 
-	data := templates.IXDetail{
+	data := IXDetail{
 		ID:              ix.ID,
 		Name:            ix.Name,
 		NameLong:        ix.NameLong,
@@ -44,7 +43,7 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 	}
 
 	// Count prefixes via IxLan traversal: InternetExchange -> IxLan -> IxPrefix.
-	prefixCount, err := h.client.IxPrefix.Query().
+	prefixCount, err := s.client.IxPrefix.Query().
 		Where(
 			ixprefix.HasIxLanWith(ixlan.HasInternetExchangeWith(internetexchange.ID(id)), ixlan.StatusIn("ok", "pending")),
 			ixprefix.StatusIn("ok", "pending"),
@@ -59,7 +58,7 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 	}
 
 	// Compute aggregate bandwidth and eager-load participant rows.
-	ixParticipants, err := h.client.IxLan.Query().
+	ixParticipants, err := s.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id)), ixlan.StatusIn("ok", "pending")).
 		QueryNetworkIxLans().
 		Where(networkixlan.StatusIn("ok", "pending")).
@@ -68,14 +67,14 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 		All(ctx)
 	if err == nil {
 		var totalBW int
-		rows := make([]templates.IXParticipantRow, len(ixParticipants))
+		rows := make([]IXParticipantRow, len(ixParticipants))
 		for i, nix := range ixParticipants {
 			totalBW += nix.Speed
 			netName := ""
 			if net := nix.Edges.Network; net != nil {
 				netName = net.Name
 			}
-			row := templates.IXParticipantRow{
+			row := IXParticipantRow{
 				NetName:  netName,
 				ASN:      nix.Asn,
 				Speed:    nix.Speed,
@@ -96,18 +95,18 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 	}
 
 	// Eager-load IX facilities with facility coordinates for map rendering.
-	ixFacItems, err := h.client.IxFacility.Query().
+	ixFacItems, err := s.client.IxFacility.Query().
 		Where(ixfacility.HasInternetExchangeWith(internetexchange.ID(id)), ixfacility.StatusIn("ok", "pending")).
 		WithFacility(). // Eager-load facility entity for lat/lng
 		Order(ixfacility.ByName()).
 		All(ctx)
 	if err == nil {
-		var facRows []templates.IXFacilityRow
+		var facRows []IXFacilityRow
 		for _, ixf := range ixFacItems {
 			if ixf.FacID == nil {
 				continue
 			}
-			row := templates.IXFacilityRow{
+			row := IXFacilityRow{
 				FacName: ixf.Name,
 				FacID:   *ixf.FacID,
 				City:    ixf.City,
@@ -129,16 +128,16 @@ func (h *Handler) queryIX(ctx context.Context, id int) (templates.IXDetail, erro
 	}
 
 	// Eager-load IX prefixes.
-	ixPrefixItems, err := h.client.IxLan.Query().
+	ixPrefixItems, err := s.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id)), ixlan.StatusIn("ok", "pending")).
 		QueryIxPrefixes().
 		Where(ixprefix.StatusIn("ok", "pending")).
 		Order(ixprefix.ByPrefix()).
 		All(ctx)
 	if err == nil {
-		prefixRows := make([]templates.IXPrefixRow, len(ixPrefixItems))
+		prefixRows := make([]IXPrefixRow, len(ixPrefixItems))
 		for i, p := range ixPrefixItems {
-			prefixRows[i] = templates.IXPrefixRow{
+			prefixRows[i] = IXPrefixRow{
 				Prefix:   p.Prefix,
 				Protocol: p.Protocol,
 				InDFZ:    p.InDfz,

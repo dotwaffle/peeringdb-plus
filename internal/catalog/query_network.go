@@ -1,4 +1,4 @@
-package web
+package catalog
 
 import (
 	"cmp"
@@ -12,28 +12,27 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
-	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// queryNetwork fetches a network by ASN and all related data for the detail page.
-// Returns the fully populated NetworkDetail or an error (including ent.IsNotFound).
-func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkDetail, error) {
-	net, err := h.client.Network.Query().
+// Network fetches a network by ASN and its related catalog data.
+// It returns errors compatible with ent.IsNotFound.
+func (s *Service) Network(ctx context.Context, asn int) (NetworkDetail, error) {
+	net, err := s.client.Network.Query().
 		Where(network.Asn(asn), network.StatusIn("ok", "pending")).
 		WithOrganization().
 		First(ctx)
 	if err != nil {
-		return templates.NetworkDetail{}, fmt.Errorf("query network ASN %d: %w", asn, err)
+		return NetworkDetail{}, fmt.Errorf("query network ASN %d: %w", asn, err)
 	}
 
-	pocCount, err := h.client.Poc.Query().
+	pocCount, err := s.client.Poc.Query().
 		Where(poc.HasNetworkWith(network.ID(net.ID)), poc.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count network contacts", slog.Int("network_id", net.ID), slog.Any("error", err))
 	}
 
-	data := templates.NetworkDetail{
+	data := NetworkDetail{
 		ID:            net.ID,
 		ASN:           net.Asn,
 		Name:          net.Name,
@@ -71,7 +70,7 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 	}
 
 	// Compute aggregate bandwidth across all IX presences for the section header.
-	ixlans, err := h.client.NetworkIxLan.Query().
+	ixlans, err := s.client.NetworkIxLan.Query().
 		Where(networkixlan.HasNetworkWith(network.ID(net.ID)), networkixlan.StatusIn("ok", "pending")).
 		All(ctx)
 	if err == nil {
@@ -86,9 +85,9 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 		slices.SortFunc(ixlans, func(a, b *ent.NetworkIxLan) int {
 			return cmp.Compare(a.Name, b.Name)
 		})
-		ixRows := make([]templates.NetworkIXLanRow, len(ixlans))
+		ixRows := make([]NetworkIXLanRow, len(ixlans))
 		for i, nix := range ixlans {
-			row := templates.NetworkIXLanRow{
+			row := NetworkIXLanRow{
 				IXName:   nix.Name,
 				IXID:     nix.IxID,
 				Speed:    nix.Speed,
@@ -106,15 +105,15 @@ func (h *Handler) queryNetwork(ctx context.Context, asn int) (templates.NetworkD
 	}
 
 	// Build facility presence rows for terminal and JSON rendering.
-	facItems, facErr := h.client.NetworkFacility.Query().
+	facItems, facErr := s.client.NetworkFacility.Query().
 		Where(networkfacility.HasNetworkWith(network.ID(net.ID)), networkfacility.StatusIn("ok", "pending")).
 		WithFacility(). // Eager-load facility entity for lat/lng
 		Order(networkfacility.ByName()).
 		All(ctx)
 	if facErr == nil {
-		facRows := make([]templates.NetworkFacRow, len(facItems))
+		facRows := make([]NetworkFacRow, len(facItems))
 		for i, nf := range facItems {
-			row := templates.NetworkFacRow{
+			row := NetworkFacRow{
 				FacName:  nf.Name,
 				LocalASN: nf.LocalAsn,
 				City:     nf.City,

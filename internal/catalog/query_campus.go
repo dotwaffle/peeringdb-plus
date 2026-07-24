@@ -1,4 +1,4 @@
-package web
+package catalog
 
 import (
 	"context"
@@ -7,28 +7,27 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/facility"
-	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// queryCampus fetches a campus by ID and all related data for the detail page.
-// Returns the fully populated CampusDetail or an error (including ent.IsNotFound).
-func (h *Handler) queryCampus(ctx context.Context, id int) (templates.CampusDetail, error) {
-	c, err := h.client.Campus.Query().
+// Campus fetches a campus by ID and its related catalog data.
+// It returns errors compatible with ent.IsNotFound.
+func (s *Service) Campus(ctx context.Context, id int) (CampusDetail, error) {
+	c, err := s.client.Campus.Query().
 		Where(campus.ID(id), campus.StatusIn("ok", "pending")).
 		WithOrganization().
 		Only(ctx)
 	if err != nil {
-		return templates.CampusDetail{}, fmt.Errorf("query campus %d: %w", id, err)
+		return CampusDetail{}, fmt.Errorf("query campus %d: %w", id, err)
 	}
 
-	facCount, err := h.client.Facility.Query().
+	facCount, err := s.client.Facility.Query().
 		Where(facility.HasCampusWith(campus.ID(id)), facility.StatusIn("ok", "pending")).
 		Count(ctx)
 	if err != nil {
 		slog.Error("count campus facilities", slog.Int("campus_id", id), slog.Any("error", err))
 	}
 
-	data := templates.CampusDetail{
+	data := CampusDetail{
 		ID:       c.ID,
 		Name:     c.Name,
 		Website:  c.Website,
@@ -52,14 +51,14 @@ func (h *Handler) queryCampus(ctx context.Context, id int) (templates.CampusDeta
 	}
 
 	// Eager-load campus facilities.
-	campusFacItems, err := h.client.Facility.Query().
+	campusFacItems, err := s.client.Facility.Query().
 		Where(facility.HasCampusWith(campus.ID(id)), facility.StatusIn("ok", "pending")).
 		Order(facility.ByName()).
 		All(ctx)
 	if err == nil {
-		facRows := make([]templates.CampusFacilityRow, len(campusFacItems))
+		facRows := make([]CampusFacilityRow, len(campusFacItems))
 		for i, f := range campusFacItems {
-			facRows[i] = templates.CampusFacilityRow{
+			facRows[i] = CampusFacilityRow{
 				FacName: f.Name,
 				FacID:   f.ID,
 				City:    f.City,

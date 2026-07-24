@@ -1,4 +1,4 @@
-package templates
+package catalog
 
 // CompareData holds the full comparison result for template rendering.
 type CompareData struct {

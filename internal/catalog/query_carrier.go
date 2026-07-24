@@ -1,4 +1,4 @@
-package web
+package catalog
 
 import (
 	"context"
@@ -7,21 +7,20 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
-	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
 
-// queryCarrier fetches a carrier by ID and all related data for the detail page.
-// Returns the fully populated CarrierDetail or an error (including ent.IsNotFound).
-func (h *Handler) queryCarrier(ctx context.Context, id int) (templates.CarrierDetail, error) {
-	cr, err := h.client.Carrier.Query().
+// Carrier fetches a carrier by ID and its related catalog data.
+// It returns errors compatible with ent.IsNotFound.
+func (s *Service) Carrier(ctx context.Context, id int) (CarrierDetail, error) {
+	cr, err := s.client.Carrier.Query().
 		Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
 		WithOrganization().
 		Only(ctx)
 	if err != nil {
-		return templates.CarrierDetail{}, fmt.Errorf("query carrier %d: %w", id, err)
+		return CarrierDetail{}, fmt.Errorf("query carrier %d: %w", id, err)
 	}
 
-	data := templates.CarrierDetail{
+	data := CarrierDetail{
 		ID:       cr.ID,
 		Name:     cr.Name,
 		NameLong: cr.NameLong,
@@ -37,17 +36,17 @@ func (h *Handler) queryCarrier(ctx context.Context, id int) (templates.CarrierDe
 	}
 
 	// Eager-load carrier facilities.
-	carrierFacItems, err := h.client.CarrierFacility.Query().
+	carrierFacItems, err := s.client.CarrierFacility.Query().
 		Where(carrierfacility.HasCarrierWith(carrier.ID(id)), carrierfacility.StatusIn("ok", "pending")).
 		Order(carrierfacility.ByName()).
 		All(ctx)
 	if err == nil {
-		var facRows []templates.CarrierFacilityRow
+		var facRows []CarrierFacilityRow
 		for _, cf := range carrierFacItems {
 			if cf.FacID == nil {
 				continue
 			}
-			facRows = append(facRows, templates.CarrierFacilityRow{
+			facRows = append(facRows, CarrierFacilityRow{
 				FacName: cf.Name,
 				FacID:   *cf.FacID,
 			})
