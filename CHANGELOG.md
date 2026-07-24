@@ -10,6 +10,8 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.25.0] — 2026-07-24
+
 ### Added
 
 - Show the application version and optional serving region on the About page
