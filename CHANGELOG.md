@@ -10,6 +10,13 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.24.1] — 2026-07-24
+
+### Fixed
+
+- Correct production version stamping so the intentionally filtered Docker
+  build context does not make every release report a false `-dirty` suffix.
+
 ## [1.24.0] — 2026-07-24
 
 Toolchain consolidation and dependency refresh.

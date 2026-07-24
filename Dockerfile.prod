@@ -1,6 +1,8 @@
 # Build stage
 FROM cgr.dev/chainguard/go AS build
 
+ARG VERSION
+
 WORKDIR /app
 
 # Module download in its own layer, keyed on go.mod/go.sum only, and
@@ -8,16 +10,17 @@ WORKDIR /app
 # builder-local and are NOT exported by the CI `type=gha` cache, so
 # modules baked into a real layer are what make CI rebuilds skip the
 # download. The go-build cache mount below still helps local iterative
-# builds (fly deploy --local-only).
+# container builds.
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 # Compute version from git: tagged release → `v1.17`, post-tag dev →
-# `v1.17-3-gabc1234`, dirty tree → trailing `-dirty`. Falls back to short
-# sha (`git rev-parse --short`) if no tags reachable, "unknown" if .git
-# is missing entirely (defensive — .git IS in the build context: the
-# .dockerignore deliberately does NOT exclude it, for exactly this step).
+# `v1.17-3-gabc1234`. An explicit VERSION build argument takes precedence.
+# The intentionally filtered Docker context omits tracked files, so asking
+# git for a dirty suffix here would mark every image dirty. Falls back to
+# "unknown" if .git is missing entirely (defensive — .git IS in the build
+# context because .dockerignore deliberately retains it for this step).
 #
 # Injected into internal/buildinfo via `-ldflags -X` so both the OTel
 # resource (service.version) and the PeeringDB User-Agent emit the
@@ -27,7 +30,7 @@ COPY . .
 # distinguishable from a merely slow one during cold (post-dep-bump) compiles.
 RUN \
     --mount=type=cache,target=/root/.cache/go-build \
-    VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo unknown) && \
+    VERSION=${VERSION:-$(git describe --tags --always 2>/dev/null || echo unknown)} && \
     echo "Building peeringdb-plus version=$VERSION" && \
     CGO_ENABLED=0 GOOS=linux go build \
         -v \
