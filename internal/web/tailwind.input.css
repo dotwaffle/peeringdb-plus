@@ -1,8 +1,8 @@
 /* Source for the committed static/tailwind.css.
  *
- * Compiled by `go generate ./...` via cmd/tailwind-build (the pinned
- * Tailwind standalone CLI — no Node.js anywhere). source(none) turns
- * off Tailwind's automatic source detection so the scan is hermetic:
+ * Compiled by `go generate ./...` with the mise-managed Tailwind standalone
+ * CLI — no Node.js anywhere. source(none) turns off Tailwind's automatic
+ * source detection so the scan is hermetic:
  * only the templates tree below feeds the utility scan, making the
  * output deterministic for the CI drift gate.
  *

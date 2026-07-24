@@ -1,3 +1,3 @@
 package templates
 
-//go:generate go tool templ generate
+//go:generate templ generate

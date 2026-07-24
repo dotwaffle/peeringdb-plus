@@ -58,10 +58,10 @@ GitHub Actions workflow `.github/workflows/ci.yml` runs on every pull request
 and on pushes to `main`.
 It comprises two jobs:
 
-1. **`ci`** — a single Go job that warms one manually-managed module/build
-   cache, then runs these steps in order, each reusing the prior compile:
+1. **`ci`** — a single mise/Go job that installs the committed lockfile,
+   warms one module/build cache, then runs these steps in order:
    1. **Generated-code drift check** —
-      `go generate ./...` then
+      `mise run generate` then
       `git diff --exit-code` scoped to
       `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
       and `internal/pdbcompat/allowlist_gen.go`
@@ -70,12 +70,12 @@ It comprises two jobs:
       ahead of the expensive build and test steps.
       A `go mod tidy` gate follows it,
       failing the job when go.mod/go.sum are untidy.
-   2. **Build** — `go build ./...` to confirm compilation and warm the cache.
-   3. **Test** — `CGO_ENABLED=1 go test -race -coverprofile=coverage.out` with
+   2. **Build** — `mise run build` to confirm compilation and warm the cache.
+   3. **Test** — `mise run coverage` uses gotestsum and the race detector, with
       coverage excluding `ent/` and `gen/`; posts a coverage comment via
       `k1LoW/octocov-action`.
-   4. **Lint** — `golangci-lint run`.
-   5. **Govulncheck** — installs and runs `govulncheck ./...`.
+   4. **Lint** — `mise run lint` checks the workflow and Go sources.
+   5. **Govulncheck** — `mise run vulncheck`.
       Advisory (`continue-on-error`):
       a flagged vulnerability surfaces as a workflow warning
       but does **not** block the merge.

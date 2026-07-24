@@ -8,4 +8,4 @@ package ent
 //go:generate sh -c "cd ../schema && go run ../cmd/pdb-schema-generate/main.go peeringdb.json ../ent/schema"
 //go:generate go run -mod=mod entc.go
 //go:generate sh -c "cd .. && go run ./cmd/pdb-compat-allowlist"
-//go:generate sh -c "cd .. && go tool buf generate"
+//go:generate sh -c "cd .. && buf generate"

@@ -1,0 +1,79 @@
+min_version = "2026.7.12"
+
+[settings]
+lockfile = true
+
+[tool_alias]
+govulncheck = "go:golang.org/x/vuln/cmd/govulncheck"
+gqlgen = "go:github.com/99designs/gqlgen"
+protoc-gen-connect-go = "go:connectrpc.com/connect/cmd/protoc-gen-connect-go"
+protoc-gen-go = "go:google.golang.org/protobuf/cmd/protoc-gen-go"
+tailwindcss = "github:tailwindlabs/tailwindcss"
+templ = "go:github.com/a-h/templ/cmd/templ"
+
+[tools]
+actionlint = "1.7.12"
+buf = "1.72.0"
+go = "1.26.5"
+golangci-lint = "2.12.2"
+gotestsum = "1.13.0"
+govulncheck = "1.6.0"
+gqlgen = "0.17.94"
+protoc-gen-connect-go = "1.20.0"
+protoc-gen-go = "1.36.11"
+tailwindcss = { version = "4.3.3", bin = "tailwindcss" }
+templ = "0.3.1020"
+
+[tasks.generate]
+description = "Regenerate checked-in source artifacts"
+run = "go generate ./..."
+
+[tasks.build]
+description = "Compile all Go packages"
+run = "go build -trimpath ./..."
+
+[tasks.test]
+description = "Run the complete Go race suite"
+env = { CGO_ENABLED = "1" }
+run = "gotestsum --format pkgname-and-test-fails --format-hide-empty-pkg --hide-summary=skipped -- -race ./..."
+
+[tasks.coverage]
+description = "Run the Go race suite with cross-package coverage"
+env = { CGO_ENABLED = "1" }
+run = """
+timing_file="${TMPDIR:-/tmp}/peeringdb-plus-gotestsum-timing-$$.json"
+trap 'rm -f "$timing_file"' EXIT
+gotestsum \
+  --format pkgname-and-test-fails \
+  --format-hide-empty-pkg \
+  --hide-summary=skipped \
+  --jsonfile-timing-events="$timing_file" \
+  --post-run-command "gotestsum tool slowest --num 10 --jsonfile $timing_file" \
+  -- \
+  -race \
+  -coverprofile=coverage.out \
+  -coverpkg=./cmd/...,./deploy/...,./graph/...,./internal/...,./schema/... \
+  ./...
+"""
+
+[tasks.lint]
+description = "Run workflow and Go static analysis"
+run = """
+actionlint
+golangci-lint run
+"""
+
+[tasks.vulncheck]
+description = "Check Go dependencies for known vulnerabilities"
+run = "govulncheck ./..."
+
+[tasks.check]
+description = "Run the canonical validation sweep"
+run = """
+mise run generate
+go mod tidy
+mise run build
+mise run test
+mise run lint
+mise run vulncheck
+"""

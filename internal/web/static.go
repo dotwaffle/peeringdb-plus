@@ -6,11 +6,10 @@ import (
 )
 
 // Compile the static Tailwind stylesheet from the templates tree.
-// cmd/tailwind-build fetches the pinned Tailwind standalone CLI
-// (sha256-verified, cached under the user cache dir) — no Node.js
-// install anywhere. The output is committed; the CI drift gate re-runs
-// this and fails on any difference.
-//go:generate go run github.com/dotwaffle/peeringdb-plus/cmd/tailwind-build -in tailwind.input.css -out static/tailwind.css
+// Mise installs the pinned standalone CLI directly from its GitHub release,
+// so no Node.js toolchain is required. The output is committed; the CI drift
+// gate re-runs this and fails on any difference.
+//go:generate tailwindcss -i tailwind.input.css -o static/tailwind.css --minify
 
 //go:embed static
 var staticFiles embed.FS

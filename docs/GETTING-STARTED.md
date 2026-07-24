@@ -15,16 +15,16 @@ For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 | Requirement | Version | Why |
 |-------------|---------|-----|
-| Go toolchain | `1.26.4` or newer | Declared in `go.mod`. The project uses Go 1.22+ `net/http` method routing and Go 1.26 toolchain features. |
+| mise | `2026.7.12` or newer | Installs the exact project toolchain from `mise.lock` and runs contributor tasks. |
 | Git | any recent | Cloning the repo. |
 | Docker (optional) | any recent | Only if you want to run the container image instead of a local binary. |
-| `grpcurl` or `buf` CLI (optional) | any recent | Only needed to poke the ConnectRPC/gRPC endpoints manually. |
+| `grpcurl` (optional) | any recent | Only needed to poke the ConnectRPC/gRPC endpoints manually. |
 | A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
-Everything else — `buf`, `templ`, `gqlgen` —
-is a Go tool dependency declared in `go.mod`.
-You do not need to install them separately;
-`go generate` and `go build` will fetch them on demand.
+Mise installs Go 1.26.5 and every contributor tool,
+including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum,
+golangci-lint, and govulncheck.
+The committed lockfile records exact tool versions and release checksums.
 
 No CGO is required.
 The project uses `modernc.org/sqlite`
@@ -35,29 +35,30 @@ The project uses `modernc.org/sqlite`
 ```bash
 git clone https://github.com/dotwaffle/peeringdb-plus.git
 cd peeringdb-plus
-go build -o peeringdb-plus ./cmd/peeringdb-plus
+mise trust
+mise install --locked
+mise run build
 ```
 
-The build produces a single static binary at `./peeringdb-plus`.
-A bare `go build ./...` also works and is what CI runs.
+Build a runnable binary explicitly with
+`go build -o peeringdb-plus ./cmd/peeringdb-plus`.
 
 If you intend to make changes,
 run the full verification suite
 once to confirm your toolchain is set up correctly:
 
 ```bash
-go test -race ./...
-go vet ./...
+mise run check
 ```
 
 If you change ent schemas, proto files, or templ templates,
 regenerate the derived files first:
 
 ```bash
-go generate ./...
+mise run generate
 ```
 
-`go generate` converges in a single pass:
+The generation task converges in a single pass:
 `ent/generate.go` runs `cmd/pdb-schema-generate` first
 (so the schemas exist before entc reads them),
 then entc (entgql/entrest/entproto), `cmd/pdb-compat-allowlist`,
@@ -259,8 +260,8 @@ for the Fly.io fleet.
 
 ## Common setup issues
 
-- **`go: go.mod requires go >= 1.26`** — Upgrade your Go toolchain.
-  The project pins `go 1.26.4` in `go.mod`.
+- **`go: go.mod requires go >= 1.26`** — Run `mise install --locked`.
+  The project pins Go 1.26.5 in both `go.mod` and `mise.toml`.
 - **`/readyz` stays 503 forever** — Check the server log for the sync worker.
   The most common causes are: no outbound network to `api.peeringdb.com`,
   a corporate proxy rewriting TLS, or rate-limiting on the PeeringDB side.

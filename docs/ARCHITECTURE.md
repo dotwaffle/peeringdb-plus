@@ -254,14 +254,14 @@ the schema producer is sequenced ahead of its consumer (entc) within
       `internal/pdbcompat/allowlist_gen.go` from `schema.PrepareQueryAllows`
       declared in `ent/schema/pdb_allowlists.go` (the cross-entity traversal
       allowlist).
-   4. `go tool buf generate` at the repo root reads `buf.gen.yaml`
+   4. `buf generate` at the repo root reads `buf.gen.yaml`
       and invokes `protoc-gen-go` + `protoc-gen-connect-go` to emit Go types
       and ConnectRPC service interfaces under `gen/peeringdb/v1/`.
 
-2. **`graph/generate.go`** runs `go tool gqlgen generate` to produce the GraphQL
+2. **`graph/generate.go`** runs `gqlgen generate` to produce the GraphQL
    resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
 
-3. **`internal/web/templates/generate.go`** runs `go tool templ generate` to
+3. **`internal/web/templates/generate.go`** runs `templ generate` to
    produce the type-safe `*_templ.go` files from `.templ` sources.
 
 `schema/generate.go` carries no `go:generate` directive —
@@ -270,9 +270,8 @@ it documents the extraction pipeline
 `schema/peeringdb.json`), which is a manual step driven by
 `PEERINGDB_REPO_PATH`, not part of `go generate ./...`.
 
-`buf`, `templ`, and `gqlgen` are declared as Go tool dependencies
-(`go tool buf`, `go tool templ`, `go tool gqlgen`)
-and do not require external installation.
+Mise installs `buf`, `templ`, `gqlgen`, and their companion generators
+from the committed manifest and lockfile.
 
 ## Middleware chain
 
