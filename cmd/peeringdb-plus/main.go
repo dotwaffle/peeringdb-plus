@@ -482,6 +482,8 @@ func main() {
 		DB:         db,
 		AuthMode:   authMode,
 		PublicTier: cfg.PublicTier,
+		Version:    buildinfo.Version(),
+		Region:     strings.TrimSpace(os.Getenv("FLY_REGION")),
 	})
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))

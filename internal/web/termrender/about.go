@@ -12,7 +12,12 @@ import (
 // API endpoints. The Privacy & Sync section is placed between Data Age and
 // API Endpoints so operators see the auth posture adjacent to the
 // freshness signal.
-func (r *Renderer) RenderAboutPage(w io.Writer, data templates.DataFreshness, privacy templates.PrivacySync) error {
+func (r *Renderer) RenderAboutPage(
+	w io.Writer,
+	data templates.DataFreshness,
+	privacy templates.PrivacySync,
+	runtimeInfo templates.RuntimeInfo,
+) error {
 	var buf strings.Builder
 	buf.Grow(700)
 
@@ -45,6 +50,18 @@ func (r *Renderer) RenderAboutPage(w io.Writer, data templates.DataFreshness, pr
 	if privacy.PublicTierExplanation != "" {
 		buf.WriteString(StyleMuted.Render(privacy.PublicTierExplanation))
 		buf.WriteString("\n")
+	}
+
+	if runtimeInfo.Version != "" || runtimeInfo.Region != "" {
+		buf.WriteString("\n")
+		buf.WriteString(StyleHeading.Render("Application"))
+		buf.WriteString("\n")
+		if runtimeInfo.Version != "" {
+			writeKV(&buf, "Version", styledVal(runtimeInfo.Version), labelWidth)
+		}
+		if runtimeInfo.Region != "" {
+			writeKV(&buf, "Serving Region", styledVal(runtimeInfo.Region), labelWidth)
+		}
 	}
 
 	buf.WriteString("\n")

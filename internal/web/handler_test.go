@@ -994,6 +994,68 @@ func TestHandleAbout_PrivacySync(t *testing.T) {
 	}
 }
 
+func TestHandleAbout_RuntimeInfo(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		version     string
+		region      string
+		want        []string
+		doesNotWant string
+	}{
+		{
+			name:    "version and region",
+			version: "v9.9.9-test",
+			region:  "lhr",
+			want: []string{
+				"Application",
+				"v9.9.9-test",
+				"lhr",
+			},
+		},
+		{
+			name:        "portable runtime omits region",
+			version:     "devel",
+			want:        []string{"Application", "devel"},
+			doesNotWant: "Serving region:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			client := testutil.SetupClient(t)
+			h := NewHandler(NewHandlerInput{
+				Client:  client,
+				Version: tt.version,
+				Region:  tt.region,
+			})
+			mux := http.NewServeMux()
+			h.Register(mux)
+
+			req := httptest.NewRequest(http.MethodGet, "/ui/about", nil)
+			req.Header.Set("User-Agent", "Mozilla/5.0")
+			req.Header.Set("Accept", "text/html")
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
+			}
+			body := rec.Body.String()
+			for _, want := range tt.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("HTML body missing %q", want)
+				}
+			}
+			if tt.doesNotWant != "" && strings.Contains(body, tt.doesNotWant) {
+				t.Errorf("HTML body unexpectedly contains %q", tt.doesNotWant)
+			}
+		})
+	}
+}
+
 // --- Dark mode and CSS animation tests ---
 
 func TestLayout_CSSAnimations(t *testing.T) {

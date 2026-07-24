@@ -29,7 +29,7 @@ func TestRenderAboutPage_WithFreshness(t *testing.T) {
 
 	r := NewRenderer(ModeRich, false)
 	var buf bytes.Buffer
-	if err := r.RenderAboutPage(&buf, data, neutralPrivacySync); err != nil {
+	if err := r.RenderAboutPage(&buf, data, neutralPrivacySync, templates.RuntimeInfo{}); err != nil {
 		t.Fatalf("RenderAboutPage() error: %v", err)
 	}
 	out := buf.String()
@@ -64,7 +64,7 @@ func TestRenderAboutPage_NoFreshness(t *testing.T) {
 
 	r := NewRenderer(ModeRich, false)
 	var buf bytes.Buffer
-	if err := r.RenderAboutPage(&buf, data, neutralPrivacySync); err != nil {
+	if err := r.RenderAboutPage(&buf, data, neutralPrivacySync, templates.RuntimeInfo{}); err != nil {
 		t.Fatalf("RenderAboutPage() error: %v", err)
 	}
 	out := buf.String()
@@ -95,7 +95,7 @@ func TestRenderAboutPage_PlainMode(t *testing.T) {
 
 	r := NewRenderer(ModePlain, false)
 	var buf bytes.Buffer
-	if err := r.RenderAboutPage(&buf, data, neutralPrivacySync); err != nil {
+	if err := r.RenderAboutPage(&buf, data, neutralPrivacySync, templates.RuntimeInfo{}); err != nil {
 		t.Fatalf("RenderAboutPage() error: %v", err)
 	}
 	out := buf.String()
@@ -187,7 +187,7 @@ func TestRenderAboutPage_PrivacySync(t *testing.T) {
 			t.Parallel()
 			r := NewRenderer(ModeRich, false)
 			var buf bytes.Buffer
-			if err := r.RenderAboutPage(&buf, data, tc.privacy); err != nil {
+			if err := r.RenderAboutPage(&buf, data, tc.privacy, templates.RuntimeInfo{}); err != nil {
 				t.Fatalf("RenderAboutPage: %v", err)
 			}
 			stripped := ansiRE.ReplaceAllString(buf.String(), "")
@@ -214,6 +214,64 @@ func TestRenderAboutPage_PrivacySync(t *testing.T) {
 				if strings.Contains(stripped, "! users") {
 					t.Errorf("unexpected override indicator '! users' when OverrideActive=false; got:\n%s", stripped)
 				}
+			}
+		})
+	}
+}
+
+func TestRenderAboutPage_RuntimeInfo(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		runtime     templates.RuntimeInfo
+		want        []string
+		doesNotWant string
+	}{
+		{
+			name: "version and region",
+			runtime: templates.RuntimeInfo{
+				Version: "v9.9.9-test",
+				Region:  "syd",
+			},
+			want: []string{
+				"Application",
+				"v9.9.9-test",
+				"syd",
+			},
+		},
+		{
+			name: "portable runtime omits region",
+			runtime: templates.RuntimeInfo{
+				Version: "devel",
+			},
+			want:        []string{"Application", "devel"},
+			doesNotWant: "Serving Region",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			r := NewRenderer(ModePlain, false)
+			var buf bytes.Buffer
+			if err := r.RenderAboutPage(
+				&buf,
+				templates.DataFreshness{},
+				neutralPrivacySync,
+				tt.runtime,
+			); err != nil {
+				t.Fatalf("RenderAboutPage: %v", err)
+			}
+
+			out := buf.String()
+			for _, want := range tt.want {
+				if !strings.Contains(out, want) {
+					t.Errorf("output missing %q", want)
+				}
+			}
+			if tt.doesNotWant != "" && strings.Contains(out, tt.doesNotWant) {
+				t.Errorf("output unexpectedly contains %q", tt.doesNotWant)
 			}
 		})
 	}

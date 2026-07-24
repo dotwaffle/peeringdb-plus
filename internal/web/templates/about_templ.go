@@ -24,7 +24,7 @@ func formatAge(d time.Duration) string {
 
 // AboutPage renders the about page with project information, data freshness,
 // and the Privacy & Sync section.
-func AboutPage(freshness DataFreshness, privacy PrivacySync) templ.Component {
+func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo RuntimeInfo) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -135,7 +135,59 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</p></div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">API Surfaces</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</p></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if runtimeInfo.Version != "" || runtimeInfo.Region != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Application</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if runtimeInfo.Version != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-36\">Version:</dt><dd class=\"font-mono\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var7 string
+				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(runtimeInfo.Version)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 63, Col: 50}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</dd></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			if runtimeInfo.Region != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-36\">Serving region:</dt><dd class=\"font-mono\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var8 string
+				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(runtimeInfo.Region)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 69, Col: 49}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</dd></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</dl></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">API Surfaces</h2><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -148,7 +200,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">Links</h2><ul class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><li><a href=\"https://github.com/dotwaffle/peeringdb-plus\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></li><li><a href=\"https://www.peeringdb.com\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">PeeringDB Official</a></li></ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">Links</h2><ul class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><li><a href=\"https://github.com/dotwaffle/peeringdb-plus\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></li><li><a href=\"https://www.peeringdb.com\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">PeeringDB Official</a></li></ul></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

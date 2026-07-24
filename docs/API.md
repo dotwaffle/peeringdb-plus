@@ -57,7 +57,7 @@ or return `503 not primary` when running outside Fly.io.
 | `GET` | `/ui/campus/{id}` | Web UI | Campus detail |
 | `GET` | `/ui/carrier/{id}` | Web UI | Carrier detail |
 | `GET` | `/ui/search` | Web UI | Search results (supports `?q=`) |
-| `GET` | `/ui/about` | Web UI | Build info and sync freshness |
+| `GET` | `/ui/about` | Web UI | Application version, optional serving region, privacy mode, and sync freshness |
 | `GET` | `/ui/compare` | Web UI | ASN comparison form |
 | `GET` | `/ui/compare/{asn1}/{asn2}` | Web UI | ASN comparison results |
 | `GET` | `/ui/completions/bash` | Web UI | Bash completion script |
@@ -148,7 +148,7 @@ For machine-readable output, use one of the structured API surfaces
 | `GET /ui/org/{id}` | Organization detail |
 | `GET /ui/campus/{id}` | Campus detail |
 | `GET /ui/carrier/{id}` | Carrier detail |
-| `GET /ui/about` | Build info, sync freshness, environment summary. Opted out of response caching in `middleware.NewCachingState` because it renders relative time (e.g. "5 minutes ago") |
+| `GET /ui/about` | Application version, optional serving region, privacy mode, and sync freshness. The region row is omitted outside environments that provide one. Opted out of response caching in `middleware.NewCachingState` because it renders relative time (e.g. "5 minutes ago") |
 | `GET /ui/compare` | ASN comparison form. `?asn1=` and `?asn2=` pre-fill the form |
 | `GET /ui/compare/{asn1}` | Pre-fills the form with `asn1`, awaits `asn2` |
 | `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union with shared-flag highlighting. Any other `view` value falls back to the shared view. |
