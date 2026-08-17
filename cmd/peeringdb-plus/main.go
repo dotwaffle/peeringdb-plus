@@ -80,7 +80,7 @@ func init() {
 // body can be unit-tested without build-time ldflags injection.
 func discoveryBody(version string) string {
 	return fmt.Sprintf(
-		`{"name":"peeringdb-plus","version":%q,"graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","mcp":"/mcp","skill":"/skills/peeringdb-plus/SKILL.md","skill_archive":"/skills/peeringdb-plus.zip","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`,
+		`{"name":"peeringdb-plus","version":%q,"graphql":"/graphql","rest":"/rest/v1/","api":"/api/","connectrpc":"/peeringdb.v1.","mcp":"/mcp","mcp_server_card":"/.well-known/mcp/server-card.json","skill":"/skills/peeringdb-plus/SKILL.md","skill_well_known":"/.well-known/agent-skills/peeringdb-plus/SKILL.md","skill_index":"/.well-known/agent-skills/index.json","skill_archive":"/skills/peeringdb-plus.zip","llms":"/llms.txt","ui":"/ui/","healthz":"/healthz","readyz":"/readyz"}`,
 		version,
 	)
 }
@@ -496,6 +496,7 @@ func main() {
 	// hostname baked into the binary.
 	skillHandler, err := agentdocs.NewHandler(agentdocs.Options{
 		PublicURL:  cfg.PublicURL,
+		Version:    buildinfo.Version(),
 		SourceTime: buildinfo.SourceTime(),
 	})
 	if err != nil {
@@ -592,7 +593,13 @@ func main() {
 	// in Dockerfile.prod — Go's debug.ReadBuildInfo records only the commit,
 	// never the tag, so it must be injected). Built once per process.
 	discoveryJSON := discoveryBody(buildinfo.Version())
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+	rootHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Link", agentdocs.DiscoveryLinkHeader)
+		if r.Method == http.MethodHead {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Add("Vary", "User-Agent, Accept")
+			return
+		}
 		mode := termrender.Detect(termrender.DetectInput{
 			Query:     r.URL.Query(),
 			Accept:    r.Header.Get("Accept"),
@@ -634,7 +641,9 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprint(w, discoveryJSON)
 		}
-	})
+	}
+	mux.HandleFunc("GET /{$}", rootHandler)
+	mux.HandleFunc("HEAD /{$}", rootHandler)
 
 	// Build middleware stack (outermost first):
 	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux

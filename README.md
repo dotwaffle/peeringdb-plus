@@ -46,7 +46,8 @@ and read from the same SQLite database.
 | ConnectRPC / gRPC | `/peeringdb.v1.*/` | Get / List / Stream RPCs for all 13 entity types; reflection + health checks enabled |
 | MCP | `/mcp` | Read-only tools, resources, and prompts for network research agents |
 
-`GET /` returns a JSON service-discovery document;
+`GET /` returns a JSON service-discovery document and advertises agent
+documents with HTTP `Link` headers;
 browsers are redirected to the Web UI, terminal clients receive plain help text.
 
 See [`docs/API.md`](docs/API.md) for the full surface catalogue,
@@ -146,9 +147,19 @@ curl -X POST http://localhost:8080/graphql \
 
 ### MCP and Agent Skill
 
-The stateless Streamable HTTP MCP endpoint is available at `/mcp`.
+The Streamable HTTP MCP endpoint is available at `/mcp`.
+It supports MCP 2026-07-28 sessionless discovery and older clients that use
+the `initialize` handshake.
 It provides bounded directory search, detail, comparison, IP lookup, and sync
 freshness tools plus reusable resources and prompts.
+
+Discover the agent interfaces:
+
+```bash
+curl -fsS http://localhost:8080/llms.txt
+curl -fsS http://localhost:8080/.well-known/mcp/server-card.json
+curl -fsS http://localhost:8080/.well-known/agent-skills/index.json
+```
 
 Download the skill through the hostname agents should connect back to:
 
@@ -157,9 +168,9 @@ curl -fLO http://localhost:8080/skills/peeringdb-plus.zip
 curl -fsS http://localhost:8080/skills/peeringdb-plus/SKILL.md
 ```
 
-The ZIP's `agents/openai.yaml` is generated per request and points to the same
-origin's `/mcp` endpoint. Set `PDBPLUS_PUBLIC_URL` only when a reverse proxy
-does not preserve the requested `Host`.
+The generated server card, skill index, `llms.txt`, and ZIP metadata use the
+request origin. Set `PDBPLUS_PUBLIC_URL` only when a reverse proxy does not
+preserve the requested `Host`.
 
 ## Configuration
 

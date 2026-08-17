@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -102,6 +103,9 @@ func TestHandlerServesRawSkill(t *testing.T) {
 		t.Error("GET body differs from embedded SKILL.md")
 	}
 	assertDocumentHeaders(t, get, "text/markdown; charset=utf-8", `inline; filename="SKILL.md"`)
+	if got := get.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Errorf("Access-Control-Allow-Origin = %q, want *", got)
+	}
 
 	sum := sha256.Sum256(skillDocument)
 	wantETag := fmt.Sprintf(`"%x"`, sum)
@@ -140,6 +144,93 @@ func TestHandlerServesRawSkill(t *testing.T) {
 	mux.ServeHTTP(notModified, modifiedRequest)
 	if notModified.Code != http.StatusNotModified {
 		t.Errorf("If-Modified-Since status = %d, want %d", notModified.Code, http.StatusNotModified)
+	}
+}
+
+func TestHandlerServesAgentDiscoveryDocuments(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestHandler(t, Options{
+		PublicURL:  "https://public.example",
+		Version:    "v-test",
+		SourceTime: testSourceTime,
+	})
+	mux := http.NewServeMux()
+	handler.Register(mux)
+
+	wellKnownSkill := serveRequest(mux, http.MethodGet, "http://internal"+WellKnownSkillPath)
+	if wellKnownSkill.Code != http.StatusOK {
+		t.Fatalf("well-known skill status = %d, want %d", wellKnownSkill.Code, http.StatusOK)
+	}
+	if !bytes.Equal(wellKnownSkill.Body.Bytes(), skillDocument) {
+		t.Error("well-known skill differs from embedded SKILL.md")
+	}
+
+	indexResponse := serveRequest(mux, http.MethodGet, "http://internal"+SkillIndexPath)
+	if indexResponse.Code != http.StatusOK {
+		t.Fatalf("skill index status = %d, want %d", indexResponse.Code, http.StatusOK)
+	}
+	assertDocumentHeaders(t, indexResponse, "application/json; charset=utf-8", `inline; filename="index.json"`)
+	var index struct {
+		Schema string       `json:"$schema"`
+		Skills []skillEntry `json:"skills"`
+	}
+	if err := json.Unmarshal(indexResponse.Body.Bytes(), &index); err != nil {
+		t.Fatalf("decode skill index: %v", err)
+	}
+	if index.Schema != "https://schemas.agentskills.io/discovery/0.2.0/schema.json" {
+		t.Errorf("skill index schema = %q", index.Schema)
+	}
+	if len(index.Skills) != 1 {
+		t.Fatalf("skill count = %d, want 1", len(index.Skills))
+	}
+	entry := index.Skills[0]
+	if entry.URL != "https://public.example"+WellKnownSkillPath {
+		t.Errorf("skill URL = %q", entry.URL)
+	}
+	wantDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(wellKnownSkill.Body.Bytes()))
+	if entry.Digest != wantDigest {
+		t.Errorf("skill digest = %q, want %q", entry.Digest, wantDigest)
+	}
+
+	cardResponse := serveRequest(mux, http.MethodGet, "http://internal"+MCPServerCardPath)
+	if cardResponse.Code != http.StatusOK {
+		t.Fatalf("server card status = %d, want %d", cardResponse.Code, http.StatusOK)
+	}
+	var card mcpServerCard
+	if err := json.Unmarshal(cardResponse.Body.Bytes(), &card); err != nil {
+		t.Fatalf("decode server card: %v", err)
+	}
+	if card.Version != "v-test" {
+		t.Errorf("server card version = %q, want v-test", card.Version)
+	}
+	if card.Endpoint != "https://public.example/mcp" {
+		t.Errorf("server card endpoint = %q", card.Endpoint)
+	}
+	if card.ProtocolVersion != "2026-07-28" {
+		t.Errorf("protocol version = %q, want 2026-07-28", card.ProtocolVersion)
+	}
+	if !card.Capabilities.Tools || !card.Capabilities.Prompts || !card.Capabilities.Resources || card.Capabilities.Logging {
+		t.Errorf("unexpected capabilities: %+v", card.Capabilities)
+	}
+	if len(card.Tools) != 10 || len(card.Prompts) != 2 {
+		t.Errorf("server card features = %d tools, %d prompts; want 10 and 2", len(card.Tools), len(card.Prompts))
+	}
+
+	llmsResponse := serveRequest(mux, http.MethodGet, "http://internal"+LLMSTextPath)
+	if llmsResponse.Code != http.StatusOK {
+		t.Fatalf("llms.txt status = %d, want %d", llmsResponse.Code, http.StatusOK)
+	}
+	assertDocumentHeaders(t, llmsResponse, "text/markdown; charset=utf-8", `inline; filename="llms.txt"`)
+	for _, want := range []string{
+		"# PeeringDB Plus",
+		"https://public.example" + MCPServerCardPath,
+		"https://public.example" + WellKnownSkillPath,
+		"https://public.example/rest/v1/openapi.json",
+	} {
+		if !strings.Contains(llmsResponse.Body.String(), want) {
+			t.Errorf("llms.txt does not contain %q", want)
+		}
 	}
 }
 
@@ -407,7 +498,14 @@ func TestHandlerRoutesRejectOtherMethods(t *testing.T) {
 	mux := http.NewServeMux()
 	handler.Register(mux)
 
-	for _, path := range []string{SkillPath, ArchivePath} {
+	for _, path := range []string{
+		SkillPath,
+		WellKnownSkillPath,
+		ArchivePath,
+		SkillIndexPath,
+		MCPServerCardPath,
+		LLMSTextPath,
+	} {
 		request := httptest.NewRequest(http.MethodPost, "http://example.com"+path, nil)
 		recorder := httptest.NewRecorder()
 		mux.ServeHTTP(recorder, request)
