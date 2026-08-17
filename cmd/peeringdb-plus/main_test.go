@@ -36,9 +36,13 @@ func TestDiscoveryBody(t *testing.T) {
 		t.Errorf("name = %v, want peeringdb-plus", m["name"])
 	}
 	for key, want := range map[string]string{
-		"mcp":           "/mcp",
-		"skill":         "/skills/peeringdb-plus/SKILL.md",
-		"skill_archive": "/skills/peeringdb-plus.zip",
+		"mcp":              "/mcp",
+		"mcp_server_card":  "/.well-known/mcp/server-card.json",
+		"skill":            "/skills/peeringdb-plus/SKILL.md",
+		"skill_well_known": "/.well-known/agent-skills/peeringdb-plus/SKILL.md",
+		"skill_index":      "/.well-known/agent-skills/index.json",
+		"skill_archive":    "/skills/peeringdb-plus.zip",
+		"llms":             "/llms.txt",
 	} {
 		if got := m[key]; got != want {
 			t.Errorf("%s = %v, want %q", key, got, want)

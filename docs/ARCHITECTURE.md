@@ -388,11 +388,13 @@ and read from the same ent client:
   and every registered service name.
 
 - **MCP — `/mcp`** (`internal/mcpserver/`) —
-  stateless Streamable HTTP with read-only tools, resources, and prompts.
+  MCP 2026-07-28 sessionless requests and legacy handshakes over Streamable
+  HTTP, with read-only tools, resources, and prompts.
   It reuses the protocol-neutral services in `internal/catalog/`.
-  The installable skill is served by `internal/agentdocs/`;
-  its ZIP is generated per request so self-hosted deployments advertise
-  their own origin.
+  `internal/agentdocs/` serves the installable skill, well-known discovery
+  files, MCP server card, and `llms.txt`.
+  Origin-specific files are generated per request so self-hosted deployments
+  advertise their own origin.
 
 ## Ordering
 

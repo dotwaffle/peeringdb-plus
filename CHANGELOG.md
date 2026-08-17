@@ -10,6 +10,18 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+### Added
+
+- Add an MCP server card, Agent Skills discovery index, standard skill alias,
+  `llms.txt`, and root `Link` headers for agent discovery.
+
+### Changed
+
+- Support MCP 2026-07-28 sessionless discovery while retaining legacy
+  handshake compatibility.
+- Add tool output schemas, stronger input constraints, explicit read-only
+  capabilities, request cancellation, and current MCP CORS headers.
+
 ## [1.25.0] — 2026-07-24
 
 ### Added

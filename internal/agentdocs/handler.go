@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -21,10 +22,22 @@ const (
 	SkillPath = "/skills/peeringdb-plus/SKILL.md"
 	// ArchivePath is the installable skill archive endpoint.
 	ArchivePath = "/skills/peeringdb-plus.zip"
+	// WellKnownSkillPath is the standard Agent Skills document endpoint.
+	WellKnownSkillPath = "/.well-known/agent-skills/peeringdb-plus/SKILL.md"
+	// SkillIndexPath is the Agent Skills discovery index endpoint.
+	SkillIndexPath = "/.well-known/agent-skills/index.json"
+	// MCPServerCardPath is the MCP server discovery card endpoint.
+	MCPServerCardPath = "/.well-known/mcp/server-card.json"
+	// LLMSTextPath is the curated site index for language models.
+	LLMSTextPath = "/llms.txt"
+
+	// DiscoveryLinkHeader advertises the agent-facing discovery documents.
+	DiscoveryLinkHeader = `</llms.txt>; rel="describedby"; type="text/markdown"; title="Site index for LLMs", </.well-known/mcp/server-card.json>; rel="mcp"; type="application/json"; title="MCP server card", </.well-known/agent-skills/index.json>; rel="agent-skills"; type="application/json"; title="Agent Skills index"`
 
 	skillArchivePath  = "peeringdb-plus/SKILL.md"
 	openAIArchivePath = "peeringdb-plus/agents/openai.yaml"
 	mcpPath           = "/mcp"
+	skillDescription  = "Query the PeeringDB Plus read-only mirror for PeeringDB research, interconnection discovery, network footprint analysis, IP ownership, comparisons, and sync freshness."
 )
 
 var zipEpoch = time.Date(1980, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -38,6 +51,8 @@ type Options struct {
 	// must be an absolute HTTP(S) origin with no credentials, path, query, or
 	// fragment.
 	PublicURL string
+	// Version is the application version advertised in the MCP server card.
+	Version string
 	// SourceTime sets archive entry modification times. Zero values and dates
 	// before the ZIP epoch use the ZIP epoch.
 	SourceTime time.Time
@@ -46,6 +61,7 @@ type Options struct {
 // Handler serves the raw skill document and its installable archive.
 type Handler struct {
 	publicURL  *url.URL
+	version    string
 	sourceTime time.Time
 }
 
@@ -62,16 +78,25 @@ func NewHandler(options Options) (*Handler, error) {
 
 	return &Handler{
 		publicURL:  publicURL,
+		version:    options.Version,
 		sourceTime: normalizeSourceTime(options.SourceTime),
 	}, nil
 }
 
-// Register mounts the skill document routes on mux.
+// Register mounts the agent document and discovery routes on mux.
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+SkillPath, h.serveSkill)
 	mux.HandleFunc("HEAD "+SkillPath, h.serveSkill)
+	mux.HandleFunc("GET "+WellKnownSkillPath, h.serveSkill)
+	mux.HandleFunc("HEAD "+WellKnownSkillPath, h.serveSkill)
 	mux.HandleFunc("GET "+ArchivePath, h.serveArchive)
 	mux.HandleFunc("HEAD "+ArchivePath, h.serveArchive)
+	mux.HandleFunc("GET "+SkillIndexPath, h.serveSkillIndex)
+	mux.HandleFunc("HEAD "+SkillIndexPath, h.serveSkillIndex)
+	mux.HandleFunc("GET "+MCPServerCardPath, h.serveMCPServerCard)
+	mux.HandleFunc("HEAD "+MCPServerCardPath, h.serveMCPServerCard)
+	mux.HandleFunc("GET "+LLMSTextPath, h.serveLLMSText)
+	mux.HandleFunc("HEAD "+LLMSTextPath, h.serveLLMSText)
 }
 
 func (h *Handler) serveSkill(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +131,169 @@ func (h *Handler) serveArchive(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) serveSkillIndex(w http.ResponseWriter, r *http.Request) {
+	origin, ok := h.requestOrigin(w, r)
+	if !ok {
+		return
+	}
+	sum := sha256.Sum256(skillDocument)
+	content := marshalJSON(struct {
+		Schema string       `json:"$schema"`
+		Skills []skillEntry `json:"skills"`
+	}{
+		Schema: "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+		Skills: []skillEntry{{
+			Name:        "peeringdb-plus",
+			Type:        "skill-md",
+			Description: skillDescription,
+			URL:         origin + WellKnownSkillPath,
+			Digest:      fmt.Sprintf("sha256:%x", sum),
+		}},
+	})
+	h.serveGenerated(w, r, "index.json", content, "application/json; charset=utf-8")
+}
+
+func (h *Handler) serveMCPServerCard(w http.ResponseWriter, r *http.Request) {
+	origin, ok := h.requestOrigin(w, r)
+	if !ok {
+		return
+	}
+	content := marshalJSON(mcpServerCard{
+		Name:                      "peeringdb-plus",
+		Title:                     "PeeringDB Plus",
+		Version:                   h.version,
+		Description:               "Read-only access to a local PeeringDB mirror through catalog search, entity detail, network comparison, IP lookup, and sync freshness tools.",
+		Endpoint:                  origin + mcpPath,
+		Transport:                 "http",
+		ProtocolVersion:           "2026-07-28",
+		SupportedProtocolVersions: []string{"2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"},
+		Authentication:            "none",
+		Capabilities: mcpCapabilities{
+			Tools: true, Prompts: true, Resources: true,
+		},
+		Tools:   mcpTools,
+		Prompts: mcpPrompts,
+		Links: map[string]string{
+			"site":       origin,
+			"skill":      origin + WellKnownSkillPath,
+			"skillIndex": origin + SkillIndexPath,
+			"llms":       origin + LLMSTextPath,
+		},
+	})
+	h.serveGenerated(w, r, "server-card.json", content, "application/json; charset=utf-8")
+}
+
+func (h *Handler) serveLLMSText(w http.ResponseWriter, r *http.Request) {
+	origin, ok := h.requestOrigin(w, r)
+	if !ok {
+		return
+	}
+	h.serveGenerated(w, r, "llms.txt", llmsText(origin), "text/markdown; charset=utf-8")
+}
+
+func (h *Handler) requestOrigin(w http.ResponseWriter, r *http.Request) (string, bool) {
+	origin, err := h.origin(r)
+	if err != nil {
+		http.Error(w, "invalid request host", http.StatusBadRequest)
+		return "", false
+	}
+	return origin, true
+}
+
+func (h *Handler) serveGenerated(w http.ResponseWriter, r *http.Request, name string, content []byte, contentType string) {
+	serveDocument(w, r, serveDocumentInput{
+		name:        name,
+		content:     content,
+		contentType: contentType,
+		disposition: `inline; filename="` + name + `"`,
+		modified:    h.sourceTime,
+	})
+}
+
+type skillEntry struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	Digest      string `json:"digest"`
+}
+
+type mcpServerCard struct {
+	Name                      string            `json:"name"`
+	Title                     string            `json:"title"`
+	Version                   string            `json:"version"`
+	Description               string            `json:"description"`
+	Endpoint                  string            `json:"endpoint"`
+	Transport                 string            `json:"transport"`
+	ProtocolVersion           string            `json:"protocolVersion"`
+	SupportedProtocolVersions []string          `json:"supportedProtocolVersions"`
+	Authentication            string            `json:"authentication"`
+	Capabilities              mcpCapabilities   `json:"capabilities"`
+	Tools                     []mcpFeature      `json:"tools"`
+	Prompts                   []mcpFeature      `json:"prompts"`
+	Links                     map[string]string `json:"links"`
+}
+
+type mcpCapabilities struct {
+	Tools     bool `json:"tools"`
+	Prompts   bool `json:"prompts"`
+	Resources bool `json:"resources"`
+	Logging   bool `json:"logging"`
+}
+
+type mcpFeature struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+var mcpTools = []mcpFeature{
+	{Name: "search_peeringdb", Description: "Search PeeringDB entities, with grouped previews or typed cursor pagination."},
+	{Name: "get_network", Description: "Get a network by ASN with bounded exchange and facility relations."},
+	{Name: "get_exchange", Description: "Get an exchange by ID with bounded participant, facility, and prefix relations."},
+	{Name: "get_facility", Description: "Get a facility by ID with bounded network, exchange, and carrier relations."},
+	{Name: "get_organization", Description: "Get an organization by ID with bounded child-entity relations."},
+	{Name: "get_campus", Description: "Get a campus by ID with bounded facilities."},
+	{Name: "get_carrier", Description: "Get a carrier by ID with bounded facilities."},
+	{Name: "compare_networks", Description: "Compare two ASNs across exchanges, facilities, and campuses."},
+	{Name: "lookup_ip", Description: "Find an exact peering address and its containing exchange prefix."},
+	{Name: "get_sync_status", Description: "Get mirror freshness and the latest synchronization result."},
+}
+
+var mcpPrompts = []mcpFeature{
+	{Name: "research_network", Description: "Guide an investigation of one network and its interconnection footprint."},
+	{Name: "compare_networks", Description: "Guide a comparison of two network footprints."},
+}
+
+func marshalJSON(value any) []byte {
+	content, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		panic(fmt.Sprintf("marshal agent discovery document: %v", err))
+	}
+	return append(content, '\n')
+}
+
+func llmsText(origin string) []byte {
+	return fmt.Appendf(nil, `# PeeringDB Plus
+
+> A read-only local mirror of the PeeringDB interconnection directory with REST, GraphQL, ConnectRPC, MCP, and web interfaces.
+
+Use the MCP endpoint for typed network research. Check sync freshness when current data matters.
+
+## Agent interfaces
+
+- [MCP server card](%s%s): Endpoint, protocol versions, capabilities, tools, and prompts.
+- [Agent Skill](%s%s): Instructions for PeeringDB research with this service.
+- [Agent Skills index](%s%s): Machine-readable skill metadata and integrity digest.
+
+## APIs
+
+- [Service discovery](%s/): Paths for all public interfaces.
+- [OpenAPI specification](%s/rest/v1/openapi.json): REST schema and endpoints.
+- [GraphQL endpoint](%s/graphql): GraphQL API and schema explorer.
+- [PeeringDB-compatible API](%s/api/): Read-compatible PeeringDB API.
+`, origin, MCPServerCardPath, origin, WellKnownSkillPath, origin, SkillIndexPath, origin, origin, origin, origin)
+}
+
 type serveDocumentInput struct {
 	name        string
 	content     []byte
@@ -118,6 +306,7 @@ func serveDocument(w http.ResponseWriter, r *http.Request, input serveDocumentIn
 	sum := sha256.Sum256(input.content)
 	header := w.Header()
 	header.Set("Cache-Control", "public, max-age=600")
+	header.Set("Access-Control-Allow-Origin", "*")
 	header.Set("Content-Disposition", input.disposition)
 	header.Set("Content-Type", input.contentType)
 	header.Set("ETag", `"`+fmt.Sprintf("%x", sum)+`"`)

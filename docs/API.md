@@ -78,6 +78,10 @@ or return `503 not primary` when running outside Fly.io.
 | `POST` | `/mcp` | MCP | Stateless Streamable HTTP requests |
 | `GET` / `HEAD` | `/skills/peeringdb-plus/SKILL.md` | Agent Skill | Raw, origin-neutral skill instructions |
 | `GET` / `HEAD` | `/skills/peeringdb-plus.zip` | Agent Skill | Archive with origin-aware MCP dependency metadata |
+| `GET` / `HEAD` | `/.well-known/mcp/server-card.json` | Agent discovery | MCP endpoint, versions, capabilities, tools, and prompts |
+| `GET` / `HEAD` | `/.well-known/agent-skills/index.json` | Agent discovery | Agent Skills v0.2.0 index with a SHA-256 digest |
+| `GET` / `HEAD` | `/.well-known/agent-skills/peeringdb-plus/SKILL.md` | Agent Skill | Standard well-known alias for the raw skill |
+| `GET` / `HEAD` | `/llms.txt` | Agent discovery | Curated Markdown index of agent and API interfaces |
 
 The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`,
 `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`,
@@ -582,8 +586,14 @@ curl -X POST https://peeringdb-plus.fly.dev/peeringdb.v1.NetworkService/GetNetwo
 over stateless Streamable HTTP.
 Responses use JSON rather than server-sent events,
 so requests can be handled by any healthy replica without session affinity.
+MCP 2026-07-28 requests use `server/discover` and include the protocol version
+with every request.
+Older clients can continue to use the handshake-based revisions through
+2024-11-05.
 All tools are read-only and query the same local ent client as the other
 surfaces.
+Each tool declares input and output schemas, read-only and idempotent hints,
+and closed-corpus behavior.
 
 | Tool | Purpose |
 |------|---------|
@@ -611,9 +621,14 @@ The server also exposes:
 - `research_network` and `compare_networks` prompts.
 - `GET /skills/peeringdb-plus/SKILL.md` for the origin-neutral raw skill.
 - `GET /skills/peeringdb-plus.zip` for an installable skill archive.
+- `GET /.well-known/mcp/server-card.json` for MCP discovery metadata.
+- `GET /.well-known/agent-skills/index.json` for the Agent Skills index.
+- `GET /.well-known/agent-skills/peeringdb-plus/SKILL.md` for the standard
+  skill location.
+- `GET /llms.txt` for a curated Markdown index.
 
-The archive is generated on demand.
-Its `agents/openai.yaml` points to the request's own origin plus `/mcp`,
+The archive and origin-specific discovery files are generated on demand.
+Their URLs point to the request's own origin,
 or to the operator's `PDBPLUS_PUBLIC_URL` override.
 This keeps self-hosted deployments local and avoids embedding a production
 hostname in the binary.
@@ -676,12 +691,21 @@ Service discovery JSON body:
   "rest": "/rest/v1/",
   "api": "/api/",
   "connectrpc": "/peeringdb.v1.",
+  "mcp": "/mcp",
+  "mcp_server_card": "/.well-known/mcp/server-card.json",
+  "skill": "/skills/peeringdb-plus/SKILL.md",
+  "skill_well_known": "/.well-known/agent-skills/peeringdb-plus/SKILL.md",
+  "skill_index": "/.well-known/agent-skills/index.json",
+  "skill_archive": "/skills/peeringdb-plus.zip",
+  "llms": "/llms.txt",
   "ui": "/ui/",
   "healthz": "/healthz",
   "readyz": "/readyz"
 }
 ```
 
+`GET /` and `HEAD /` include `Link` headers for `llms.txt`, the MCP server
+card, and the Agent Skills index.
 The root bypasses the readiness middleware so service discovery still works
 while the first sync is in progress.
 

@@ -206,19 +206,23 @@ reflection is enabled and gRPC health checks are wired to sync readiness.
 
 ### MCP and Agent Skill
 
-The MCP endpoint uses stateless Streamable HTTP:
+The MCP endpoint supports MCP 2026-07-28 sessionless requests and legacy
+handshake clients:
 
 ```bash
+# Inspect the curated agent index and MCP server card.
+curl -fsS http://localhost:8080/llms.txt
+curl -fsS http://localhost:8080/.well-known/mcp/server-card.json
+
 # Fetch the origin-neutral skill document.
-curl -fsS http://localhost:8080/skills/peeringdb-plus/SKILL.md
+curl -fsS http://localhost:8080/.well-known/agent-skills/peeringdb-plus/SKILL.md
 
 # Download the installable skill archive.
 curl -fLO http://localhost:8080/skills/peeringdb-plus.zip
 ```
 
-The ZIP is generated per request.
-Its `agents/openai.yaml` points back to the same origin's `/mcp` endpoint,
-so a self-hosted copy does not contact another deployment.
+The discovery documents and ZIP metadata use the request origin.
+Therefore, a self-hosted copy does not contact another deployment.
 Set `PDBPLUS_PUBLIC_URL` only when a reverse proxy does not preserve the
 requested hostname.
 

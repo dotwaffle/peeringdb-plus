@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -55,6 +56,11 @@ func New(input Input) http.Handler {
 		&mcp.ServerOptions{
 			Instructions: "Read-only access to the locally mirrored PeeringDB catalog. Check sync freshness when it matters.",
 			Logger:       input.Logger,
+			Capabilities: &mcp.ServerCapabilities{
+				Tools:     &mcp.ToolCapabilities{},
+				Resources: &mcp.ResourceCapabilities{},
+				Prompts:   &mcp.PromptCapabilities{},
+			},
 		},
 	)
 
@@ -72,23 +78,13 @@ func New(input Input) http.Handler {
 	stream := mcp.NewStreamableHTTPHandler(
 		func(*http.Request) *mcp.Server { return server },
 		&mcp.StreamableHTTPOptions{
-			Stateless:             true,
-			JSONResponse:          true,
-			Logger:                input.Logger,
-			CrossOriginProtection: sdkCrossOriginProtection(),
+			Stateless:                    true,
+			JSONResponse:                 true,
+			Logger:                       input.Logger,
+			PropagateRequestCancellation: true,
 		},
 	)
 	return originGuard(input.AllowedOrigins, stream)
-}
-
-func sdkCrossOriginProtection() *http.CrossOriginProtection {
-	protection := http.NewCrossOriginProtection()
-	// This handler is mounted only at /mcp and is already wrapped by
-	// originGuard, which understands the application's exact and wildcard
-	// PDBPLUS_CORS_ORIGINS policy. Bypass the SDK's same-origin-only default so
-	// configured browser clients are not rejected a second time.
-	protection.AddInsecureBypassPattern("/mcp")
-	return protection
 }
 
 type toolServices struct {
@@ -150,10 +146,18 @@ type entityOutput struct {
 	Freshness string                  `json:"freshness,omitempty"`
 }
 
+type searchOutput map[string]any
+
+type comparisonOutput map[string]any
+
+type lookupIPOutput map[string]any
+
+type syncStatusOutput map[string]any
+
 func addTools(server *mcp.Server, services toolServices) {
-	addReadTool[searchInput](server, "search_peeringdb",
+	addReadTool(server, "search_peeringdb",
 		"Search PeeringDB entities. Omit type for grouped previews; set type for cursor pagination.",
-		func(ctx context.Context, input searchInput) (any, error) {
+		func(ctx context.Context, input searchInput) (searchOutput, error) {
 			if len(input.Query) > maxQueryLength {
 				return nil, fmt.Errorf("query exceeds %d characters", maxQueryLength)
 			}
@@ -168,7 +172,7 @@ func addTools(server *mcp.Server, services toolServices) {
 						results[i].HasMore = true
 					}
 				}
-				return map[string]any{"groups": results}, nil
+				return searchOutput{"groups": results}, nil
 			}
 
 			watermark, err := freshness(ctx, services.db)
@@ -192,32 +196,40 @@ func addTools(server *mcp.Server, services toolServices) {
 					Version: 1, Scope: "search:" + input.Type, Offset: offset + len(result.Hits), Watermark: watermark,
 				})
 			}
-			return map[string]any{
+			return searchOutput{
 				"type": result.TypeSlug, "type_name": result.TypeName, "items": result.Hits,
 				"total": result.Total, "next_cursor": next, "freshness": watermark,
 			}, nil
-		})
+		},
+		stringLength("query", 2, maxQueryLength),
+		enum("type", "net", "ix", "fac", "org", "campus", "carrier"),
+		integerRange("page_size", 1, maxPageSize),
+	)
 
-	addReadTool[networkInput](server, "get_network",
+	addReadTool(server, "get_network",
 		"Get a network by ASN with bounded ix_presences and facilities relations.",
-		func(ctx context.Context, input networkInput) (any, error) {
+		func(ctx context.Context, input networkInput) (entityOutput, error) {
 			entity, err := services.catalog.Network(ctx, input.ASN)
 			if err != nil {
-				return nil, err
+				return entityOutput{}, err
 			}
 			relations := map[string]any{"ix_presences": entity.IXPresences, "facilities": entity.FacPresences}
 			entity.IXPresences = nil
 			entity.FacPresences = nil
 			return pageEntity(ctx, services.db, "network", input.ASN, entity, input.Relation, input.Cursor, input.PageSize,
 				relations)
-		})
+		},
+		integerRange("asn", 1, 4294967295),
+		enum("relation", "ix_presences", "facilities"),
+		integerRange("page_size", 1, maxPageSize),
+	)
 
-	addReadTool[entityInput](server, "get_exchange",
+	addReadTool(server, "get_exchange",
 		"Get an exchange by ID with bounded participants, facilities, and prefixes relations.",
-		func(ctx context.Context, input entityInput) (any, error) {
+		func(ctx context.Context, input entityInput) (entityOutput, error) {
 			entity, err := services.catalog.IX(ctx, input.ID)
 			if err != nil {
-				return nil, err
+				return entityOutput{}, err
 			}
 			relations := map[string]any{"participants": entity.Participants, "facilities": entity.Facilities, "prefixes": entity.Prefixes}
 			entity.Participants = nil
@@ -225,14 +237,14 @@ func addTools(server *mcp.Server, services toolServices) {
 			entity.Prefixes = nil
 			return pageEntity(ctx, services.db, "exchange", input.ID, entity, input.Relation, input.Cursor, input.PageSize,
 				relations)
-		})
+		}, entityInputSchema("participants", "facilities", "prefixes")...)
 
-	addReadTool[entityInput](server, "get_facility",
+	addReadTool(server, "get_facility",
 		"Get a facility by ID with bounded networks, exchanges, and carriers relations.",
-		func(ctx context.Context, input entityInput) (any, error) {
+		func(ctx context.Context, input entityInput) (entityOutput, error) {
 			entity, err := services.catalog.Facility(ctx, input.ID)
 			if err != nil {
-				return nil, err
+				return entityOutput{}, err
 			}
 			relations := map[string]any{"networks": entity.Networks, "exchanges": entity.IXPs, "carriers": entity.Carriers}
 			entity.Networks = nil
@@ -240,14 +252,14 @@ func addTools(server *mcp.Server, services toolServices) {
 			entity.Carriers = nil
 			return pageEntity(ctx, services.db, "facility", input.ID, entity, input.Relation, input.Cursor, input.PageSize,
 				relations)
-		})
+		}, entityInputSchema("networks", "exchanges", "carriers")...)
 
-	addReadTool[entityInput](server, "get_organization",
+	addReadTool(server, "get_organization",
 		"Get an organization by ID with bounded networks, exchanges, facilities, campuses, and carriers relations.",
-		func(ctx context.Context, input entityInput) (any, error) {
+		func(ctx context.Context, input entityInput) (entityOutput, error) {
 			entity, err := services.catalog.Organization(ctx, input.ID)
 			if err != nil {
-				return nil, err
+				return entityOutput{}, err
 			}
 			relations := map[string]any{
 				"networks": entity.Networks, "exchanges": entity.IXPs, "facilities": entity.Facs,
@@ -260,76 +272,92 @@ func addTools(server *mcp.Server, services toolServices) {
 			entity.Carriers = nil
 			return pageEntity(ctx, services.db, "organization", input.ID, entity, input.Relation, input.Cursor, input.PageSize,
 				relations)
-		})
+		}, entityInputSchema("networks", "exchanges", "facilities", "campuses", "carriers")...)
 
-	addReadTool[entityInput](server, "get_campus",
+	addReadTool(server, "get_campus",
 		"Get a campus by ID with a bounded facilities relation.",
-		func(ctx context.Context, input entityInput) (any, error) {
+		func(ctx context.Context, input entityInput) (entityOutput, error) {
 			entity, err := services.catalog.Campus(ctx, input.ID)
 			if err != nil {
-				return nil, err
+				return entityOutput{}, err
 			}
 			relations := map[string]any{"facilities": entity.Facilities}
 			entity.Facilities = nil
 			return pageEntity(ctx, services.db, "campus", input.ID, entity, input.Relation, input.Cursor, input.PageSize,
 				relations)
-		})
+		}, entityInputSchema("facilities")...)
 
-	addReadTool[entityInput](server, "get_carrier",
+	addReadTool(server, "get_carrier",
 		"Get a carrier by ID with a bounded facilities relation.",
-		func(ctx context.Context, input entityInput) (any, error) {
+		func(ctx context.Context, input entityInput) (entityOutput, error) {
 			entity, err := services.catalog.Carrier(ctx, input.ID)
 			if err != nil {
-				return nil, err
+				return entityOutput{}, err
 			}
 			relations := map[string]any{"facilities": entity.Facilities}
 			entity.Facilities = nil
 			return pageEntity(ctx, services.db, "carrier", input.ID, entity, input.Relation, input.Cursor, input.PageSize,
 				relations)
-		})
+		}, entityInputSchema("facilities")...)
 
-	addReadTool[compareInput](server, "compare_networks",
+	addReadTool(server, "compare_networks",
 		"Compare two ASNs across shared exchanges, facilities, and campuses.",
-		func(ctx context.Context, input compareInput) (any, error) {
+		func(ctx context.Context, input compareInput) (comparisonOutput, error) {
 			result, err := services.compare.Compare(ctx, catalog.CompareInput{ASN1: input.ASN1, ASN2: input.ASN2, ViewMode: "full"})
 			if err != nil {
 				return nil, err
 			}
 			return boundedComparison(result), nil
-		})
+		}, integerRange("asn1", 1, 4294967295), integerRange("asn2", 1, 4294967295))
 
-	addReadTool[lookupIPInput](server, "lookup_ip",
+	addReadTool(server, "lookup_ip",
 		"Find an exact network peering address and the containing exchange prefix.",
-		func(ctx context.Context, input lookupIPInput) (any, error) {
+		func(ctx context.Context, input lookupIPInput) (lookupIPOutput, error) {
 			return services.lookupIP(ctx, input.IP)
-		})
+		}, stringLength("ip", 2, 64))
 
-	addReadTool[emptyInput](server, "get_sync_status",
+	addReadTool(server, "get_sync_status",
 		"Get mirror freshness and the latest synchronization result.",
-		func(ctx context.Context, _ emptyInput) (any, error) {
+		func(ctx context.Context, _ emptyInput) (syncStatusOutput, error) {
 			status, err := pdbsync.GetLastStatus(ctx, services.db)
 			if err != nil {
 				return nil, err
 			}
 			if status == nil {
-				return map[string]any{"status": "never_synced"}, nil
+				return syncStatusOutput{"status": "never_synced"}, nil
 			}
-			return map[string]any{
+			return syncStatusOutput{
 				"status": status.Status, "last_sync_at": status.LastSyncAt.UTC().Format(time.RFC3339),
 				"duration_ms": status.Duration.Milliseconds(), "object_counts": status.ObjectCounts,
 			}, nil
 		})
 }
 
-func addReadTool[In any](server *mcp.Server, name, description string, handler func(context.Context, In) (any, error)) {
+type inputSchemaOption func(*jsonschema.Schema)
+
+func addReadTool[In, Out any](
+	server *mcp.Server,
+	name string,
+	description string,
+	handler func(context.Context, In) (Out, error),
+	options ...inputSchemaOption,
+) {
 	no := false
-	mcp.AddTool[In, any](server, &mcp.Tool{
+	inputSchema, err := jsonschema.For[In](&jsonschema.ForOptions{})
+	if err != nil {
+		panic(fmt.Sprintf("infer input schema for %s: %v", name, err))
+	}
+	for _, option := range options {
+		option(inputSchema)
+	}
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        name,
 		Description: description,
+		InputSchema: inputSchema,
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true, IdempotentHint: true, DestructiveHint: &no, OpenWorldHint: &no,
 		},
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, input In) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, input In) (*mcp.CallToolResult, Out, error) {
 		ctx, span := tracer.Start(ctx, "mcp.tool/"+name)
 		span.SetAttributes(attribute.String("mcp.tool.name", name))
 		defer span.End()
@@ -339,6 +367,50 @@ func addReadTool[In any](server *mcp.Server, name, description string, handler f
 		}
 		return &mcp.CallToolResult{}, output, err
 	})
+}
+
+func entityInputSchema(relations ...string) []inputSchemaOption {
+	return []inputSchemaOption{
+		integerRange("id", 1, 0),
+		enum("relation", relations...),
+		integerRange("page_size", 1, maxPageSize),
+	}
+}
+
+func enum(property string, values ...string) inputSchemaOption {
+	return func(schema *jsonschema.Schema) {
+		items := make([]any, len(values))
+		for i, value := range values {
+			items[i] = value
+		}
+		propertySchema(schema, property).Enum = items
+	}
+}
+
+func integerRange(property string, minimum, maximum int) inputSchemaOption {
+	return func(schema *jsonschema.Schema) {
+		field := propertySchema(schema, property)
+		field.Minimum = new(float64(minimum))
+		if maximum > 0 {
+			field.Maximum = new(float64(maximum))
+		}
+	}
+}
+
+func stringLength(property string, minimum, maximum int) inputSchemaOption {
+	return func(schema *jsonschema.Schema) {
+		field := propertySchema(schema, property)
+		field.MinLength = new(minimum)
+		field.MaxLength = new(maximum)
+	}
+}
+
+func propertySchema(schema *jsonschema.Schema, property string) *jsonschema.Schema {
+	field := schema.Properties[property]
+	if field == nil {
+		panic(fmt.Sprintf("input schema property %q is missing", property))
+	}
+	return field
 }
 
 func pageEntity(
@@ -401,8 +473,8 @@ func slicePage(items any, offset, size int) (any, bool, int, error) {
 	return value.Slice(offset, end).Interface(), end < value.Len(), end - offset, nil
 }
 
-func boundedComparison(result *catalog.CompareData) map[string]any {
-	return map[string]any{
+func boundedComparison(result *catalog.CompareData) comparisonOutput {
+	return comparisonOutput{
 		"network_a": result.NetA,
 		"network_b": result.NetB,
 		"shared_exchanges": map[string]any{
@@ -464,7 +536,7 @@ func cursorOffset(value, scope string, parent int, watermark string) (int, error
 	return cursor.Offset, nil
 }
 
-func (services toolServices) lookupIP(ctx context.Context, raw string) (any, error) {
+func (services toolServices) lookupIP(ctx context.Context, raw string) (lookupIPOutput, error) {
 	address, err := netip.ParseAddr(strings.TrimSpace(raw))
 	if err != nil {
 		return nil, fmt.Errorf("invalid IP address: %w", err)
@@ -497,7 +569,7 @@ func (services toolServices) lookupIP(ctx context.Context, raw string) (any, err
 			containing = append(containing, candidate)
 		}
 	}
-	return map[string]any{"ip": canonical, "network_presences": exact, "exchange_prefixes": containing}, nil
+	return lookupIPOutput{"ip": canonical, "network_presences": exact, "exchange_prefixes": containing}, nil
 }
 
 func addResources(server *mcp.Server, input Input) {
