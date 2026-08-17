@@ -176,7 +176,7 @@ func TestCORSMCPProtocolHeaders(t *testing.T) {
 	req.Header.Set("Access-Control-Request-Method", "POST")
 	req.Header.Set(
 		"Access-Control-Request-Headers",
-		"content-type, last-event-id, mcp-protocol-version, mcp-session-id",
+		"content-type, last-event-id, mcp-method, mcp-name, mcp-protocol-version, mcp-session-id",
 	)
 	rec := httptest.NewRecorder()
 
@@ -187,6 +187,8 @@ func TestCORSMCPProtocolHeaders(t *testing.T) {
 	}
 	allowHeaders := strings.ToLower(rec.Header().Get("Access-Control-Allow-Headers"))
 	for _, header := range []string{
+		"mcp-method",
+		"mcp-name",
 		"mcp-protocol-version",
 		"mcp-session-id",
 		"last-event-id",

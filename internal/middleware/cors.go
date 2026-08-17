@@ -32,6 +32,8 @@ func CORS(in CORSInput) func(http.Handler) http.Handler {
 			"Authorization",
 			"MCP-Protocol-Version",
 			"MCP-Session-Id",
+			"Mcp-Method",
+			"Mcp-Name",
 			"Last-Event-ID",
 		},
 		connectcors.AllowedHeaders()...,
