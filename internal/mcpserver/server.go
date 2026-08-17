@@ -72,23 +72,13 @@ func New(input Input) http.Handler {
 	stream := mcp.NewStreamableHTTPHandler(
 		func(*http.Request) *mcp.Server { return server },
 		&mcp.StreamableHTTPOptions{
-			Stateless:             true,
-			JSONResponse:          true,
-			Logger:                input.Logger,
-			CrossOriginProtection: sdkCrossOriginProtection(),
+			Stateless:                    true,
+			JSONResponse:                 true,
+			Logger:                       input.Logger,
+			PropagateRequestCancellation: true,
 		},
 	)
 	return originGuard(input.AllowedOrigins, stream)
-}
-
-func sdkCrossOriginProtection() *http.CrossOriginProtection {
-	protection := http.NewCrossOriginProtection()
-	// This handler is mounted only at /mcp and is already wrapped by
-	// originGuard, which understands the application's exact and wildcard
-	// PDBPLUS_CORS_ORIGINS policy. Bypass the SDK's same-origin-only default so
-	// configured browser clients are not rejected a second time.
-	protection.AddInsecureBypassPattern("/mcp")
-	return protection
 }
 
 type toolServices struct {
