@@ -65,7 +65,7 @@ func connectHandlerOpts(interceptor connect.Interceptor) connect.HandlerOption {
 
 func init() {
 	// Best-effort memory limit configuration from cgroup/system.
-	_, _ = memlimit.SetGoMemLimitWithOpts(
+	_, _ = memlimit.Set(
 		memlimit.WithProvider(
 			memlimit.ApplyFallback(
 				memlimit.FromCgroup,
