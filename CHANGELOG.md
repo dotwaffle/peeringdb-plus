@@ -21,6 +21,14 @@ Git history (tags `v1.0.0` through `v1.15.0`).
   handshake compatibility.
 - Add tool output schemas, stronger input constraints, explicit read-only
   capabilities, request cancellation, and current MCP CORS headers.
+- Move the toolchain to Go 1.26.7 and golangci-lint 2.13.2.
+- Bump direct Go modules: `github.com/KimMachineGun/automemlimit`
+  0.7.5→1.0.0 (new `memlimit.Set` entry point, same cgroup-then-system
+  provider chain), the OpenTelemetry API/SDK 1.45.0→1.46.0 with contrib
+  0.70.0→0.71.0 and `sdk/log` 0.21.0→0.22.0, `modernc.org/sqlite`
+  1.56.0→1.57.0, and `github.com/stretchr/testify` 1.12.0→1.12.1.
+  `github.com/lrstanley/entrest` stays at 1.0.4 because 1.1.0 requires
+  Go 1.27. `govulncheck` reports no vulnerabilities.
 
 ## [1.25.0] — 2026-07-24
 
