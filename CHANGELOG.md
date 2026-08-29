@@ -10,6 +10,8 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.26.0] — 2026-08-29
+
 ### Added
 
 - Add an MCP server card, Agent Skills discovery index, standard skill alias,
