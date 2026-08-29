@@ -210,7 +210,7 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 
 ## Technology
 
-- **Language:** Go 1.26.5
+- **Language:** Go 1.26.7
 - **ORM / codegen:** [entgo](https://entgo.io/) underpins all six API surfaces
   from a single set of schemas in `ent/schema/` (entgql + entrest + entproto)
 - **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)

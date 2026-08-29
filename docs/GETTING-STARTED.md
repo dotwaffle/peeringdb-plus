@@ -21,7 +21,7 @@ For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 | `grpcurl` (optional) | any recent | Only needed to poke the ConnectRPC/gRPC endpoints manually. |
 | A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
-Mise installs Go 1.26.5 and every contributor tool,
+Mise installs Go 1.26.7 and every contributor tool,
 including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum,
 golangci-lint, and govulncheck.
 The committed lockfile records exact tool versions and release checksums.
@@ -287,7 +287,7 @@ for the Fly.io fleet.
 ## Common setup issues
 
 - **`go: go.mod requires go >= 1.26`** — Run `mise install --locked`.
-  The project pins Go 1.26.5 in both `go.mod` and `mise.toml`.
+  `go.mod` pins Go 1.26.7; `mise.toml` tracks the 1.26 line and `mise.lock` holds the exact patch.
 - **`/readyz` stays 503 forever** — Check the server log for the sync worker.
   The most common causes are: no outbound network to `api.peeringdb.com`,
   a corporate proxy rewriting TLS, or rate-limiting on the PeeringDB side.
