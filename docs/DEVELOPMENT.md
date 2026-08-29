@@ -11,7 +11,7 @@ For environment variables and runtime configuration, see
 - Git and a local clone of this repository.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
-Mise installs Go 1.26.5 and all contributor tools from the committed
+Mise installs Go 1.26.7 and all contributor tools from the committed
 cross-platform lockfile.
 
 Pure-Go SQLite is provided by `modernc.org/sqlite` —
