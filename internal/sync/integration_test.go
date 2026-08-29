@@ -75,7 +75,7 @@ func newFixtureServer(t *testing.T) *fixtureServer {
 	fs.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Extract object type from URL path /api/{type}
 		path := strings.TrimPrefix(r.URL.Path, "/api/")
-		objType := strings.Split(path, "?")[0]
+		objType, _, _ := strings.Cut(path, "?")
 
 		// Only return data on first page (skip=0). Return empty on subsequent
 		// pages to terminate pagination.

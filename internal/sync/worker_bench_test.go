@@ -437,7 +437,7 @@ func generateSyntheticFixture(objectType string, count int, r *rand.Rand) []byte
 func newBenchFixtureServer(fs *syntheticFixtures) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/api/")
-		objType := strings.Split(path, "?")[0]
+		objType, _, _ := strings.Cut(path, "?")
 
 		skip := r.URL.Query().Get("skip")
 		if skip != "" && skip != "0" {

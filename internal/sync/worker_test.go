@@ -2354,7 +2354,7 @@ func newParityFixtureServer(t *testing.T) *parityFixtureServer {
 
 	fs.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/api/")
-		objType := strings.Split(path, "?")[0]
+		objType, _, _ := strings.Cut(path, "?")
 
 		// Terminate pagination: empty data for any skip>0.
 		if skip := r.URL.Query().Get("skip"); skip != "" && skip != "0" {
@@ -2744,7 +2744,7 @@ func TestSync_RollbackAtomicity(t *testing.T) {
 	// fixture contents.
 	injectingServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		objType := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")[0]
+		objType, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
 		switch objType {
 		case peeringdb.TypeOrg:
 			_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":1,"name":"FixtureOrg","country":"DE","created":"2024-01-01T00:00:00Z","updated":"2024-01-01T00:00:00Z","status":"ok"}]}`))
