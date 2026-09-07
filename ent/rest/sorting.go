@@ -8,20 +8,20 @@ import (
 	"strings"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/ent/campus"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/facility"
-	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
-	"github.com/dotwaffle/peeringdb-plus/ent/network"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	__ent "github.com/dotwaffle/peeringdb-plus/ent"
+	__campus "github.com/dotwaffle/peeringdb-plus/ent/campus"
+	__carrier "github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	__carrierfacility "github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	__facility "github.com/dotwaffle/peeringdb-plus/ent/facility"
+	__internetexchange "github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	__ixfacility "github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	__ixlan "github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	__ixprefix "github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	__network "github.com/dotwaffle/peeringdb-plus/ent/network"
+	__networkfacility "github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
+	__networkixlan "github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	__organization "github.com/dotwaffle/peeringdb-plus/ent/organization"
+	__poc "github.com/dotwaffle/peeringdb-plus/ent/poc"
 )
 
 type Sorted struct {
@@ -67,9 +67,9 @@ func withOrderTerm(_order orderDirection) sql.OrderTermOption {
 
 func withFieldSelector(_field string, _order orderDirection) func(*sql.Selector) {
 	if _order == orderAsc {
-		return ent.Asc(_field)
+		return __ent.Asc(_field)
 	}
-	return ent.Desc(_field)
+	return __ent.Desc(_field)
 }
 
 type SortConfig struct {
@@ -275,24 +275,24 @@ func isSpecializedSort(_parts []string) (isCount, isSum bool) {
 
 // applySortingCampus applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingCampus(_query *ent.CampusQuery, _field string, _order orderDirection) *ent.CampusQuery {
+func applySortingCampus(_query *__ent.CampusQuery, _field string, _order orderDirection) *__ent.CampusQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		isCount, isSum := isSpecializedSort(_parts)
 
 		switch _parts[0] {
-		case campus.EdgeFacilities:
+		case __campus.EdgeFacilities:
 			switch {
 			case isCount:
-				return _query.Order(campus.ByFacilitiesCount(_dir))
+				return _query.Order(__campus.ByFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(campus.ByFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__campus.ByFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(campus.ByFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__campus.ByFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case campus.EdgeOrganization:
-			return _query.Order(campus.ByOrganizationField(_parts[1], _dir))
+		case __campus.EdgeOrganization:
+			return _query.Order(__campus.ByOrganizationField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -304,8 +304,8 @@ func applySortingCampus(_query *ent.CampusQuery, _field string, _order orderDire
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(campus.FieldCreated, _order),
-			withFieldSelector(campus.FieldID, _order),
+			withFieldSelector(__campus.FieldCreated, _order),
+			withFieldSelector(__campus.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -313,24 +313,24 @@ func applySortingCampus(_query *ent.CampusQuery, _field string, _order orderDire
 
 // applySortingCarrier applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingCarrier(_query *ent.CarrierQuery, _field string, _order orderDirection) *ent.CarrierQuery {
+func applySortingCarrier(_query *__ent.CarrierQuery, _field string, _order orderDirection) *__ent.CarrierQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		isCount, isSum := isSpecializedSort(_parts)
 
 		switch _parts[0] {
-		case carrier.EdgeCarrierFacilities:
+		case __carrier.EdgeCarrierFacilities:
 			switch {
 			case isCount:
-				return _query.Order(carrier.ByCarrierFacilitiesCount(_dir))
+				return _query.Order(__carrier.ByCarrierFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(carrier.ByCarrierFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__carrier.ByCarrierFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(carrier.ByCarrierFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__carrier.ByCarrierFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case carrier.EdgeOrganization:
-			return _query.Order(carrier.ByOrganizationField(_parts[1], _dir))
+		case __carrier.EdgeOrganization:
+			return _query.Order(__carrier.ByOrganizationField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -342,8 +342,8 @@ func applySortingCarrier(_query *ent.CarrierQuery, _field string, _order orderDi
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(carrier.FieldCreated, _order),
-			withFieldSelector(carrier.FieldID, _order),
+			withFieldSelector(__carrier.FieldCreated, _order),
+			withFieldSelector(__carrier.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -351,15 +351,15 @@ func applySortingCarrier(_query *ent.CarrierQuery, _field string, _order orderDi
 
 // applySortingCarrierFacility applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingCarrierFacility(_query *ent.CarrierFacilityQuery, _field string, _order orderDirection) *ent.CarrierFacilityQuery {
+func applySortingCarrierFacility(_query *__ent.CarrierFacilityQuery, _field string, _order orderDirection) *__ent.CarrierFacilityQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		switch _parts[0] {
-		case carrierfacility.EdgeCarrier:
-			return _query.Order(carrierfacility.ByCarrierField(_parts[1], _dir))
-		case carrierfacility.EdgeFacility:
-			return _query.Order(carrierfacility.ByFacilityField(_parts[1], _dir))
+		case __carrierfacility.EdgeCarrier:
+			return _query.Order(__carrierfacility.ByCarrierField(_parts[1], _dir))
+		case __carrierfacility.EdgeFacility:
+			return _query.Order(__carrierfacility.ByFacilityField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -371,8 +371,8 @@ func applySortingCarrierFacility(_query *ent.CarrierFacilityQuery, _field string
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(carrierfacility.FieldCreated, _order),
-			withFieldSelector(carrierfacility.FieldID, _order),
+			withFieldSelector(__carrierfacility.FieldCreated, _order),
+			withFieldSelector(__carrierfacility.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -380,44 +380,44 @@ func applySortingCarrierFacility(_query *ent.CarrierFacilityQuery, _field string
 
 // applySortingFacility applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingFacility(_query *ent.FacilityQuery, _field string, _order orderDirection) *ent.FacilityQuery {
+func applySortingFacility(_query *__ent.FacilityQuery, _field string, _order orderDirection) *__ent.FacilityQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		isCount, isSum := isSpecializedSort(_parts)
 
 		switch _parts[0] {
-		case facility.EdgeCampus:
-			return _query.Order(facility.ByCampusField(_parts[1], _dir))
-		case facility.EdgeCarrierFacilities:
+		case __facility.EdgeCampus:
+			return _query.Order(__facility.ByCampusField(_parts[1], _dir))
+		case __facility.EdgeCarrierFacilities:
 			switch {
 			case isCount:
-				return _query.Order(facility.ByCarrierFacilitiesCount(_dir))
+				return _query.Order(__facility.ByCarrierFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(facility.ByCarrierFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__facility.ByCarrierFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(facility.ByCarrierFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__facility.ByCarrierFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case facility.EdgeIxFacilities:
+		case __facility.EdgeIxFacilities:
 			switch {
 			case isCount:
-				return _query.Order(facility.ByIxFacilitiesCount(_dir))
+				return _query.Order(__facility.ByIxFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(facility.ByIxFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__facility.ByIxFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(facility.ByIxFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__facility.ByIxFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case facility.EdgeNetworkFacilities:
+		case __facility.EdgeNetworkFacilities:
 			switch {
 			case isCount:
-				return _query.Order(facility.ByNetworkFacilitiesCount(_dir))
+				return _query.Order(__facility.ByNetworkFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(facility.ByNetworkFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__facility.ByNetworkFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(facility.ByNetworkFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__facility.ByNetworkFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case facility.EdgeOrganization:
-			return _query.Order(facility.ByOrganizationField(_parts[1], _dir))
+		case __facility.EdgeOrganization:
+			return _query.Order(__facility.ByOrganizationField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -429,8 +429,8 @@ func applySortingFacility(_query *ent.FacilityQuery, _field string, _order order
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(facility.FieldCreated, _order),
-			withFieldSelector(facility.FieldID, _order),
+			withFieldSelector(__facility.FieldCreated, _order),
+			withFieldSelector(__facility.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -438,33 +438,33 @@ func applySortingFacility(_query *ent.FacilityQuery, _field string, _order order
 
 // applySortingInternetExchange applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingInternetExchange(_query *ent.InternetExchangeQuery, _field string, _order orderDirection) *ent.InternetExchangeQuery {
+func applySortingInternetExchange(_query *__ent.InternetExchangeQuery, _field string, _order orderDirection) *__ent.InternetExchangeQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		isCount, isSum := isSpecializedSort(_parts)
 
 		switch _parts[0] {
-		case internetexchange.EdgeIxFacilities:
+		case __internetexchange.EdgeIxFacilities:
 			switch {
 			case isCount:
-				return _query.Order(internetexchange.ByIxFacilitiesCount(_dir))
+				return _query.Order(__internetexchange.ByIxFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(internetexchange.ByIxFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__internetexchange.ByIxFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(internetexchange.ByIxFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__internetexchange.ByIxFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case internetexchange.EdgeIxLans:
+		case __internetexchange.EdgeIxLans:
 			switch {
 			case isCount:
-				return _query.Order(internetexchange.ByIxLansCount(_dir))
+				return _query.Order(__internetexchange.ByIxLansCount(_dir))
 			case isSum:
-				return _query.Order(internetexchange.ByIxLans(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__internetexchange.ByIxLans(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(internetexchange.ByIxLans(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__internetexchange.ByIxLans(sql.OrderByField(_parts[1], _dir)))
 			}
-		case internetexchange.EdgeOrganization:
-			return _query.Order(internetexchange.ByOrganizationField(_parts[1], _dir))
+		case __internetexchange.EdgeOrganization:
+			return _query.Order(__internetexchange.ByOrganizationField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -476,8 +476,8 @@ func applySortingInternetExchange(_query *ent.InternetExchangeQuery, _field stri
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(internetexchange.FieldCreated, _order),
-			withFieldSelector(internetexchange.FieldID, _order),
+			withFieldSelector(__internetexchange.FieldCreated, _order),
+			withFieldSelector(__internetexchange.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -485,15 +485,15 @@ func applySortingInternetExchange(_query *ent.InternetExchangeQuery, _field stri
 
 // applySortingIxFacility applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingIxFacility(_query *ent.IxFacilityQuery, _field string, _order orderDirection) *ent.IxFacilityQuery {
+func applySortingIxFacility(_query *__ent.IxFacilityQuery, _field string, _order orderDirection) *__ent.IxFacilityQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		switch _parts[0] {
-		case ixfacility.EdgeFacility:
-			return _query.Order(ixfacility.ByFacilityField(_parts[1], _dir))
-		case ixfacility.EdgeInternetExchange:
-			return _query.Order(ixfacility.ByInternetExchangeField(_parts[1], _dir))
+		case __ixfacility.EdgeFacility:
+			return _query.Order(__ixfacility.ByFacilityField(_parts[1], _dir))
+		case __ixfacility.EdgeInternetExchange:
+			return _query.Order(__ixfacility.ByInternetExchangeField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -505,8 +505,8 @@ func applySortingIxFacility(_query *ent.IxFacilityQuery, _field string, _order o
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(ixfacility.FieldCreated, _order),
-			withFieldSelector(ixfacility.FieldID, _order),
+			withFieldSelector(__ixfacility.FieldCreated, _order),
+			withFieldSelector(__ixfacility.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -514,32 +514,32 @@ func applySortingIxFacility(_query *ent.IxFacilityQuery, _field string, _order o
 
 // applySortingIxLan applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingIxLan(_query *ent.IxLanQuery, _field string, _order orderDirection) *ent.IxLanQuery {
+func applySortingIxLan(_query *__ent.IxLanQuery, _field string, _order orderDirection) *__ent.IxLanQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		isCount, isSum := isSpecializedSort(_parts)
 
 		switch _parts[0] {
-		case ixlan.EdgeInternetExchange:
-			return _query.Order(ixlan.ByInternetExchangeField(_parts[1], _dir))
-		case ixlan.EdgeIxPrefixes:
+		case __ixlan.EdgeInternetExchange:
+			return _query.Order(__ixlan.ByInternetExchangeField(_parts[1], _dir))
+		case __ixlan.EdgeIxPrefixes:
 			switch {
 			case isCount:
-				return _query.Order(ixlan.ByIxPrefixesCount(_dir))
+				return _query.Order(__ixlan.ByIxPrefixesCount(_dir))
 			case isSum:
-				return _query.Order(ixlan.ByIxPrefixes(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__ixlan.ByIxPrefixes(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(ixlan.ByIxPrefixes(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__ixlan.ByIxPrefixes(sql.OrderByField(_parts[1], _dir)))
 			}
-		case ixlan.EdgeNetworkIxLans:
+		case __ixlan.EdgeNetworkIxLans:
 			switch {
 			case isCount:
-				return _query.Order(ixlan.ByNetworkIxLansCount(_dir))
+				return _query.Order(__ixlan.ByNetworkIxLansCount(_dir))
 			case isSum:
-				return _query.Order(ixlan.ByNetworkIxLans(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__ixlan.ByNetworkIxLans(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(ixlan.ByNetworkIxLans(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__ixlan.ByNetworkIxLans(sql.OrderByField(_parts[1], _dir)))
 			}
 		}
 	}
@@ -552,8 +552,8 @@ func applySortingIxLan(_query *ent.IxLanQuery, _field string, _order orderDirect
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(ixlan.FieldCreated, _order),
-			withFieldSelector(ixlan.FieldID, _order),
+			withFieldSelector(__ixlan.FieldCreated, _order),
+			withFieldSelector(__ixlan.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -561,13 +561,13 @@ func applySortingIxLan(_query *ent.IxLanQuery, _field string, _order orderDirect
 
 // applySortingIxPrefix applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingIxPrefix(_query *ent.IxPrefixQuery, _field string, _order orderDirection) *ent.IxPrefixQuery {
+func applySortingIxPrefix(_query *__ent.IxPrefixQuery, _field string, _order orderDirection) *__ent.IxPrefixQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		switch _parts[0] {
-		case ixprefix.EdgeIxLan:
-			return _query.Order(ixprefix.ByIxLanField(_parts[1], _dir))
+		case __ixprefix.EdgeIxLan:
+			return _query.Order(__ixprefix.ByIxLanField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -579,8 +579,8 @@ func applySortingIxPrefix(_query *ent.IxPrefixQuery, _field string, _order order
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(ixprefix.FieldCreated, _order),
-			withFieldSelector(ixprefix.FieldID, _order),
+			withFieldSelector(__ixprefix.FieldCreated, _order),
+			withFieldSelector(__ixprefix.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -588,41 +588,41 @@ func applySortingIxPrefix(_query *ent.IxPrefixQuery, _field string, _order order
 
 // applySortingNetwork applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingNetwork(_query *ent.NetworkQuery, _field string, _order orderDirection) *ent.NetworkQuery {
+func applySortingNetwork(_query *__ent.NetworkQuery, _field string, _order orderDirection) *__ent.NetworkQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		isCount, isSum := isSpecializedSort(_parts)
 
 		switch _parts[0] {
-		case network.EdgeNetworkFacilities:
+		case __network.EdgeNetworkFacilities:
 			switch {
 			case isCount:
-				return _query.Order(network.ByNetworkFacilitiesCount(_dir))
+				return _query.Order(__network.ByNetworkFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(network.ByNetworkFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__network.ByNetworkFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(network.ByNetworkFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__network.ByNetworkFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case network.EdgeNetworkIxLans:
+		case __network.EdgeNetworkIxLans:
 			switch {
 			case isCount:
-				return _query.Order(network.ByNetworkIxLansCount(_dir))
+				return _query.Order(__network.ByNetworkIxLansCount(_dir))
 			case isSum:
-				return _query.Order(network.ByNetworkIxLans(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__network.ByNetworkIxLans(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(network.ByNetworkIxLans(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__network.ByNetworkIxLans(sql.OrderByField(_parts[1], _dir)))
 			}
-		case network.EdgeOrganization:
-			return _query.Order(network.ByOrganizationField(_parts[1], _dir))
-		case network.EdgePocs:
+		case __network.EdgeOrganization:
+			return _query.Order(__network.ByOrganizationField(_parts[1], _dir))
+		case __network.EdgePocs:
 			switch {
 			case isCount:
-				return _query.Order(network.ByPocsCount(_dir))
+				return _query.Order(__network.ByPocsCount(_dir))
 			case isSum:
-				return _query.Order(network.ByPocs(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__network.ByPocs(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(network.ByPocs(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__network.ByPocs(sql.OrderByField(_parts[1], _dir)))
 			}
 		}
 	}
@@ -635,8 +635,8 @@ func applySortingNetwork(_query *ent.NetworkQuery, _field string, _order orderDi
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(network.FieldCreated, _order),
-			withFieldSelector(network.FieldID, _order),
+			withFieldSelector(__network.FieldCreated, _order),
+			withFieldSelector(__network.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -644,15 +644,15 @@ func applySortingNetwork(_query *ent.NetworkQuery, _field string, _order orderDi
 
 // applySortingNetworkFacility applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingNetworkFacility(_query *ent.NetworkFacilityQuery, _field string, _order orderDirection) *ent.NetworkFacilityQuery {
+func applySortingNetworkFacility(_query *__ent.NetworkFacilityQuery, _field string, _order orderDirection) *__ent.NetworkFacilityQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		switch _parts[0] {
-		case networkfacility.EdgeFacility:
-			return _query.Order(networkfacility.ByFacilityField(_parts[1], _dir))
-		case networkfacility.EdgeNetwork:
-			return _query.Order(networkfacility.ByNetworkField(_parts[1], _dir))
+		case __networkfacility.EdgeFacility:
+			return _query.Order(__networkfacility.ByFacilityField(_parts[1], _dir))
+		case __networkfacility.EdgeNetwork:
+			return _query.Order(__networkfacility.ByNetworkField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -664,8 +664,8 @@ func applySortingNetworkFacility(_query *ent.NetworkFacilityQuery, _field string
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(networkfacility.FieldCreated, _order),
-			withFieldSelector(networkfacility.FieldID, _order),
+			withFieldSelector(__networkfacility.FieldCreated, _order),
+			withFieldSelector(__networkfacility.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -673,15 +673,15 @@ func applySortingNetworkFacility(_query *ent.NetworkFacilityQuery, _field string
 
 // applySortingNetworkIxLan applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingNetworkIxLan(_query *ent.NetworkIxLanQuery, _field string, _order orderDirection) *ent.NetworkIxLanQuery {
+func applySortingNetworkIxLan(_query *__ent.NetworkIxLanQuery, _field string, _order orderDirection) *__ent.NetworkIxLanQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		switch _parts[0] {
-		case networkixlan.EdgeIxLan:
-			return _query.Order(networkixlan.ByIxLanField(_parts[1], _dir))
-		case networkixlan.EdgeNetwork:
-			return _query.Order(networkixlan.ByNetworkField(_parts[1], _dir))
+		case __networkixlan.EdgeIxLan:
+			return _query.Order(__networkixlan.ByIxLanField(_parts[1], _dir))
+		case __networkixlan.EdgeNetwork:
+			return _query.Order(__networkixlan.ByNetworkField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -693,8 +693,8 @@ func applySortingNetworkIxLan(_query *ent.NetworkIxLanQuery, _field string, _ord
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(networkixlan.FieldCreated, _order),
-			withFieldSelector(networkixlan.FieldID, _order),
+			withFieldSelector(__networkixlan.FieldCreated, _order),
+			withFieldSelector(__networkixlan.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -702,57 +702,57 @@ func applySortingNetworkIxLan(_query *ent.NetworkIxLanQuery, _field string, _ord
 
 // applySortingOrganization applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingOrganization(_query *ent.OrganizationQuery, _field string, _order orderDirection) *ent.OrganizationQuery {
+func applySortingOrganization(_query *__ent.OrganizationQuery, _field string, _order orderDirection) *__ent.OrganizationQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		isCount, isSum := isSpecializedSort(_parts)
 
 		switch _parts[0] {
-		case organization.EdgeCampuses:
+		case __organization.EdgeCampuses:
 			switch {
 			case isCount:
-				return _query.Order(organization.ByCampusesCount(_dir))
+				return _query.Order(__organization.ByCampusesCount(_dir))
 			case isSum:
-				return _query.Order(organization.ByCampuses(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__organization.ByCampuses(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(organization.ByCampuses(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__organization.ByCampuses(sql.OrderByField(_parts[1], _dir)))
 			}
-		case organization.EdgeCarriers:
+		case __organization.EdgeCarriers:
 			switch {
 			case isCount:
-				return _query.Order(organization.ByCarriersCount(_dir))
+				return _query.Order(__organization.ByCarriersCount(_dir))
 			case isSum:
-				return _query.Order(organization.ByCarriers(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__organization.ByCarriers(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(organization.ByCarriers(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__organization.ByCarriers(sql.OrderByField(_parts[1], _dir)))
 			}
-		case organization.EdgeFacilities:
+		case __organization.EdgeFacilities:
 			switch {
 			case isCount:
-				return _query.Order(organization.ByFacilitiesCount(_dir))
+				return _query.Order(__organization.ByFacilitiesCount(_dir))
 			case isSum:
-				return _query.Order(organization.ByFacilities(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__organization.ByFacilities(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(organization.ByFacilities(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__organization.ByFacilities(sql.OrderByField(_parts[1], _dir)))
 			}
-		case organization.EdgeInternetExchanges:
+		case __organization.EdgeInternetExchanges:
 			switch {
 			case isCount:
-				return _query.Order(organization.ByInternetExchangesCount(_dir))
+				return _query.Order(__organization.ByInternetExchangesCount(_dir))
 			case isSum:
-				return _query.Order(organization.ByInternetExchanges(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__organization.ByInternetExchanges(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(organization.ByInternetExchanges(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__organization.ByInternetExchanges(sql.OrderByField(_parts[1], _dir)))
 			}
-		case organization.EdgeNetworks:
+		case __organization.EdgeNetworks:
 			switch {
 			case isCount:
-				return _query.Order(organization.ByNetworksCount(_dir))
+				return _query.Order(__organization.ByNetworksCount(_dir))
 			case isSum:
-				return _query.Order(organization.ByNetworks(sql.OrderBySum(_parts[1], _dir)))
+				return _query.Order(__organization.ByNetworks(sql.OrderBySum(_parts[1], _dir)))
 			default:
-				return _query.Order(organization.ByNetworks(sql.OrderByField(_parts[1], _dir)))
+				return _query.Order(__organization.ByNetworks(sql.OrderByField(_parts[1], _dir)))
 			}
 		}
 	}
@@ -765,8 +765,8 @@ func applySortingOrganization(_query *ent.OrganizationQuery, _field string, _ord
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(organization.FieldCreated, _order),
-			withFieldSelector(organization.FieldID, _order),
+			withFieldSelector(__organization.FieldCreated, _order),
+			withFieldSelector(__organization.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))
@@ -774,13 +774,13 @@ func applySortingOrganization(_query *ent.OrganizationQuery, _field string, _ord
 
 // applySortingPoc applies sorting to the query based on the provided sort and
 // order fields. Note that all inputs provided MUST ALREADY BE VALIDATED.
-func applySortingPoc(_query *ent.PocQuery, _field string, _order orderDirection) *ent.PocQuery {
+func applySortingPoc(_query *__ent.PocQuery, _field string, _order orderDirection) *__ent.PocQuery {
 	if _parts := strings.Split(_field, "."); len(_parts) > 1 {
 		_dir := withOrderTerm(_order)
 
 		switch _parts[0] {
-		case poc.EdgeNetwork:
-			return _query.Order(poc.ByNetworkField(_parts[1], _dir))
+		case __poc.EdgeNetwork:
+			return _query.Order(__poc.ByNetworkField(_parts[1], _dir))
 		}
 	}
 	if _field == "random" {
@@ -792,8 +792,8 @@ func applySortingPoc(_query *ent.PocQuery, _field string, _order orderDirection)
 	if _field == "updated" {
 		return _query.Order(
 			withFieldSelector(_field, _order),
-			withFieldSelector(poc.FieldCreated, _order),
-			withFieldSelector(poc.FieldID, _order),
+			withFieldSelector(__poc.FieldCreated, _order),
+			withFieldSelector(__poc.FieldID, _order),
 		)
 	}
 	return _query.Order(withFieldSelector(_field, _order))

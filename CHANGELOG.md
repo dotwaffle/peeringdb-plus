@@ -10,6 +10,22 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+### Changed
+
+- Update Go to 1.27.1 and gqlgen to 0.17.95.
+- Update entrest to 1.2.0, gqlparser to 2.5.37, otelsql to 0.44.0,
+  compress to 1.20.0, and SQLite to 1.58.0 with libc 1.75.6.
+- Use the new REST JSON encoder. Empty list fields emit arrays instead of
+  `null`, and pretty responses use tabs. The PeeringDB-compatible API keeps
+  its existing serializers.
+- Migrate the web UI to htmx 4, including history navigation and fragment
+  error handling.
+
+### Fixed
+
+- Replace CARTO maps, which now require an API key, with OpenStreetMap tiles.
+  Operators can configure a different tile URL and attribution.
+
 ## [1.26.0] — 2026-08-29
 
 ### Added

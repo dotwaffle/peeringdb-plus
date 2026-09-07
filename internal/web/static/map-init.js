@@ -15,26 +15,22 @@ L.CircleMarker.include({
 });
 
 (function () {
-	var LIGHT_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-	var DARK_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-	var ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+	var urlMeta = document.querySelector('meta[name="pdbplus-map-tile-url"]');
+	var attributionMeta = document.querySelector('meta[name="pdbplus-map-tile-attribution"]');
+	var TILE_URL = urlMeta ? urlMeta.content : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+	var ATTRIBUTION = attributionMeta ? attributionMeta.content : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-	// newBaseMap creates the map + theme-aware tile layer and registers
-	// the layer in window.__pdbMaps for the dark-mode toggle in ui.js.
+	// newBaseMap creates the map and its configured tile layer.
 	function newBaseMap(el) {
-		var isDark = document.documentElement.classList.contains('dark');
 		var map = L.map(el, { scrollWheelZoom: false });
-		var tileLayer = L.tileLayer(isDark ? DARK_URL : LIGHT_URL, {
+		L.tileLayer(TILE_URL, {
 			attribution: ATTRIBUTION,
-			subdomains: 'abcd',
 			maxZoom: 19
 		}).addTo(map);
 
 		map.on('click', function () { map.scrollWheelZoom.enable(); });
 		map.on('mouseout', function () { map.scrollWheelZoom.disable(); });
 
-		window.__pdbMaps = window.__pdbMaps || [];
-		window.__pdbMaps.push({ tileLayer: tileLayer, lightURL: LIGHT_URL, darkURL: DARK_URL });
 		return map;
 	}
 

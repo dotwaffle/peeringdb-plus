@@ -8,9 +8,7 @@
 // error/retry styling, etc.) are kept in the compiled stylesheet by the
 // `@source` entry for this file in internal/web/tailwind.input.css.
 
-// Dark mode toggle. Both nav toggles (desktop + mobile) share the
-// .dark-mode-toggle class. Live-swaps map tile layers registered in
-// window.__pdbMaps by map-init.js.
+// Dark mode toggle. Both nav toggles share the .dark-mode-toggle class.
 (function () {
 	document.addEventListener('click', function (e) {
 		var btn = e.target.closest('.dark-mode-toggle');
@@ -23,11 +21,6 @@
 		} else {
 			html.classList.add('dark');
 			localStorage.setItem('darkMode', 'dark');
-		}
-		if (window.__pdbMaps) {
-			window.__pdbMaps.forEach(function (m) {
-				m.tileLayer.setUrl(html.classList.contains('dark') ? m.darkURL : m.lightURL);
-			});
 		}
 		setTimeout(function () { html.classList.remove('theme-transition'); }, 200);
 	});
@@ -173,8 +166,8 @@
 		}
 	});
 
-	document.addEventListener('htmx:afterSwap', function (e) {
-		if (e.detail.target && e.detail.target.id === 'search-results') {
+	document.addEventListener('htmx:after:swap', function (e) {
+		if (e.detail.ctx.target && e.detail.ctx.target.id === 'search-results') {
 			var options = getOptions();
 			setActive(options, -1);
 		}
@@ -185,28 +178,33 @@
 // On failed fetch inside a <details> element, replaces "Loading..." with
 // an error message and retry button.
 (function () {
-	document.addEventListener('htmx:afterRequest', function (evt) {
-		if (!evt.detail.successful && evt.detail.elt && evt.detail.elt.closest('details')) {
-			var el = evt.detail.elt;
-			var url = el.getAttribute('hx-get');
-			el.textContent = '';
-			var wrapper = document.createElement('div');
-			wrapper.className = 'px-4 py-3 text-center';
-			var msg = document.createElement('span');
-			msg.className = 'text-red-400 text-sm';
-			msg.textContent = 'Failed to load.';
-			var btn = document.createElement('button');
-			btn.className = 'text-emerald-400 hover:text-emerald-300 text-sm underline ml-2';
-			btn.textContent = 'Retry';
-			btn.setAttribute('hx-get', url);
-			btn.setAttribute('hx-target', 'closest div');
-			btn.setAttribute('hx-swap', 'innerHTML');
-			wrapper.appendChild(msg);
-			wrapper.appendChild(btn);
-			el.appendChild(wrapper);
-			htmx.process(el);
-		}
-	});
+	function showSectionLoadError(evt) {
+		var ctx = evt.detail && evt.detail.ctx;
+		var source = ctx && ctx.sourceElement;
+		var el = ctx && ctx.target;
+		if (!source || !source.hasAttribute('hx-get') || !el || !el.closest('details')) return;
+
+		var url = source.getAttribute('hx-get');
+		el.textContent = '';
+		var wrapper = document.createElement('div');
+		wrapper.className = 'px-4 py-3 text-center';
+		var msg = document.createElement('span');
+		msg.className = 'text-red-400 text-sm';
+		msg.textContent = 'Failed to load.';
+		var btn = document.createElement('button');
+		btn.className = 'text-emerald-400 hover:text-emerald-300 text-sm underline ml-2';
+		btn.textContent = 'Retry';
+		btn.setAttribute('hx-get', url);
+		btn.setAttribute('hx-target', 'closest [data-section-loader]');
+		btn.setAttribute('hx-swap', 'innerHTML');
+		wrapper.appendChild(msg);
+		wrapper.appendChild(btn);
+		el.appendChild(wrapper);
+		htmx.process(el);
+	}
+
+	document.addEventListener('htmx:response:error', showSectionLoadError);
+	document.addEventListener('htmx:error', showSectionLoadError);
 })();
 
 // Client-side table sorting for sortable tables.
@@ -267,8 +265,8 @@
 		if (th) sortTable(th);
 	});
 
-	document.addEventListener('htmx:afterSwap', function (e) {
-		applyDefaultSort(e.detail.target);
+	document.addEventListener('htmx:after:swap', function (e) {
+		applyDefaultSort(e.detail.ctx.target);
 	});
 
 	document.addEventListener('DOMContentLoaded', function () {
@@ -395,8 +393,8 @@
 		backdrop.addEventListener('click', close);
 
 		// Reset selection after htmx swaps in new results.
-		document.addEventListener('htmx:afterSwap', function (e) {
-			if (e.detail.target && e.detail.target.id === 'spotlight-results') {
+		document.addEventListener('htmx:after:swap', function (e) {
+			if (e.detail.ctx.target && e.detail.ctx.target.id === 'spotlight-results') {
 				var options = getOptions();
 				setActive(options, -1);
 			}

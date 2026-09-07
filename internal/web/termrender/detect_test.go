@@ -119,6 +119,24 @@ func TestDetect(t *testing.T) {
 			want: ModeHTMX,
 		},
 		{
+			name: "partial HX request with browser UA returns ModeHTMX",
+			input: DetectInput{
+				HXRequest:     true,
+				HXRequestType: "partial",
+				UserAgent:     "Mozilla/5.0",
+			},
+			want: ModeHTMX,
+		},
+		{
+			name: "full HX request with browser UA returns ModeHTML",
+			input: DetectInput{
+				HXRequest:     true,
+				HXRequestType: "full",
+				UserAgent:     "Mozilla/5.0",
+			},
+			want: ModeHTML,
+		},
+		{
 			name: "terminal UA beats HX-Request",
 			input: DetectInput{
 				HXRequest: true,

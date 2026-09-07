@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
@@ -186,6 +187,57 @@ func TestLoad_PublicURL(t *testing.T) {
 			}
 			if cfg.PublicURL != tt.want {
 				t.Errorf("PublicURL = %q, want %q", cfg.PublicURL, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadMapTiles(t *testing.T) {
+	tests := []struct {
+		name        string
+		url         string
+		attribution string
+		want        maptiles.Config
+		wantErr     string
+	}{
+		{name: "defaults", want: maptiles.Default()},
+		{
+			name:        "custom provider",
+			url:         "https://tiles.example.com/{z}/{x}/{y}.png",
+			attribution: "Example Maps",
+			want: maptiles.Config{
+				URL:         "https://tiles.example.com/{z}/{x}/{y}.png",
+				Attribution: "Example Maps",
+			},
+		},
+		{
+			name:    "custom provider without attribution",
+			url:     "https://tiles.example.com/{z}/{x}/{y}.png",
+			wantErr: "PDBPLUS_MAP_TILE_ATTRIBUTION",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+			t.Setenv("PDBPLUS_MAP_TILE_URL", tt.url)
+			t.Setenv("PDBPLUS_MAP_TILE_ATTRIBUTION", tt.attribution)
+
+			cfg, err := Load()
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("Load() succeeded, want error containing %q", tt.wantErr)
+				}
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("Load() error = %q, want substring %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Load() error: %v", err)
+			}
+			if cfg.MapTiles != tt.want {
+				t.Errorf("MapTiles = %#v, want %#v", cfg.MapTiles, tt.want)
 			}
 		})
 	}

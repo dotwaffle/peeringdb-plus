@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
@@ -76,6 +77,10 @@ type Config struct {
 	// the incoming request's Host and protocol headers.
 	// Configured via PDBPLUS_PUBLIC_URL. Default is empty.
 	PublicURL string
+
+	// MapTiles configures the browser basemap URL and visible attribution.
+	// The default uses OpenStreetMap Standard raster tiles.
+	MapTiles maptiles.Config
 
 	// DrainTimeout is the graceful shutdown drain timeout.
 	// Configured via PDBPLUS_DRAIN_TIMEOUT. Default is 10 seconds.
@@ -250,6 +255,14 @@ func Load() (*Config, error) {
 		listenAddr = ":" + port
 	}
 
+	mapTileConfig, err := maptiles.New(
+		os.Getenv("PDBPLUS_MAP_TILE_URL"),
+		os.Getenv("PDBPLUS_MAP_TILE_ATTRIBUTION"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("parsing map tile configuration: %w", err)
+	}
+
 	cfg := &Config{
 		DBPath:           envOrDefault("PDBPLUS_DB_PATH", "./peeringdb-plus.db"),
 		PeeringDBBaseURL: envOrDefault("PDBPLUS_PEERINGDB_URL", "https://api.peeringdb.com"),
@@ -257,6 +270,7 @@ func Load() (*Config, error) {
 		ListenAddr:       listenAddr,
 		CORSOrigins:      envOrDefault("PDBPLUS_CORS_ORIGINS", "*"),
 		PublicURL:        envOrDefault("PDBPLUS_PUBLIC_URL", ""),
+		MapTiles:         mapTileConfig,
 		PeeringDBAPIKey:  envOrDefault("PDBPLUS_PEERINGDB_API_KEY", ""),
 	}
 

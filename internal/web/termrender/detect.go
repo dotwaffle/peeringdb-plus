@@ -52,10 +52,11 @@ func (m RenderMode) String() string {
 // DetectInput holds parameters for detecting the render mode.
 // Defined to bundle >2 function arguments.
 type DetectInput struct {
-	Query     url.Values
-	Accept    string
-	UserAgent string
-	HXRequest bool
+	Query         url.Values
+	Accept        string
+	UserAgent     string
+	HXRequest     bool
+	HXRequestType string
 }
 
 // terminalPrefixes are User-Agent prefixes that identify terminal/CLI clients.
@@ -103,8 +104,8 @@ func Detect(input DetectInput) RenderMode {
 		return ModeRich
 	}
 
-	// 4. HX-Request header (htmx fragment).
-	if input.HXRequest {
+	// 4. HX-Request header (htmx fragment unless htmx requests a full page).
+	if input.HXRequest && !strings.EqualFold(input.HXRequestType, "full") {
 		return ModeHTMX
 	}
 

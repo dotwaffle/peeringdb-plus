@@ -1,6 +1,6 @@
 module github.com/dotwaffle/peeringdb-plus
 
-go 1.26.7
+go 1.27.1
 
 require (
 	charm.land/lipgloss/v2 v2.0.6
@@ -11,23 +11,23 @@ require (
 	connectrpc.com/otelconnect v0.9.0
 	entgo.io/contrib v0.7.1-0.20260306055004-3625dcc2e035
 	entgo.io/ent v0.14.6
-	github.com/99designs/gqlgen v0.17.94
+	github.com/99designs/gqlgen v0.17.95
 	github.com/KimMachineGun/automemlimit v1.0.0
-	github.com/XSAM/otelsql v0.43.0
+	github.com/XSAM/otelsql v0.44.0
 	github.com/a-h/templ v0.3.1020
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/go-playground/form/v4 v4.3.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/jsonschema-go v0.4.3
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/klauspost/compress v1.19.2
-	github.com/lrstanley/entrest v1.0.4
+	github.com/klauspost/compress v1.20.0
+	github.com/lrstanley/entrest v1.2.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/ogen-go/ogen v1.24.0
 	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.12.1
-	github.com/vektah/gqlparser/v2 v2.5.36
+	github.com/vektah/gqlparser/v2 v2.5.37
 	go.opentelemetry.io/contrib/bridges/otelslog v0.20.1
 	go.opentelemetry.io/contrib/exporters/autoexport v0.71.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0
@@ -44,7 +44,7 @@ require (
 	golang.org/x/time v0.15.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.57.0
+	modernc.org/sqlite v1.58.0
 )
 
 require (
@@ -128,7 +128,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/exp v0.0.0-20260727155853-b88d891fe743 // indirect
+	golang.org/x/exp v0.0.0-20260820142414-ca536658362e // indirect
 	golang.org/x/mod v0.40.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
@@ -137,7 +137,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260825221802-da73d73af1c5 // indirect
 	google.golang.org/grpc v1.83.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	modernc.org/libc v1.74.4 // indirect
+	modernc.org/libc v1.75.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.11.0 // indirect
+	modernc.org/memory v1.12.1 // indirect
 )

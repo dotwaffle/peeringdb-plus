@@ -6,11 +6,11 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"net/http"
 	"net/url"
 	"slices"
@@ -18,21 +18,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/ent/campus"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/facility"
-	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
-	"github.com/dotwaffle/peeringdb-plus/ent/network"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/poc"
-	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
+	__ent "github.com/dotwaffle/peeringdb-plus/ent"
+	__campus "github.com/dotwaffle/peeringdb-plus/ent/campus"
+	__carrier "github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	__carrierfacility "github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	__facility "github.com/dotwaffle/peeringdb-plus/ent/facility"
+	__internetexchange "github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	__ixfacility "github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	__ixlan "github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	__ixprefix "github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	__network "github.com/dotwaffle/peeringdb-plus/ent/network"
+	__networkfacility "github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
+	__networkixlan "github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	__organization "github.com/dotwaffle/peeringdb-plus/ent/organization"
+	__poc "github.com/dotwaffle/peeringdb-plus/ent/poc"
+	__privacy "github.com/dotwaffle/peeringdb-plus/ent/privacy"
 	"github.com/go-playground/form/v4"
 )
 
@@ -57,11 +57,11 @@ const (
 
 // ErrorResponse is the response structure for errors.
 type ErrorResponse struct {
-	Error     string `json:"error"`                // The underlying error, which may be masked when debugging is disabled.
-	Type      string `json:"type"`                 // A summary of the error code based off the HTTP status code or application error code.
-	Code      int    `json:"code"`                 // The HTTP status code or other internal application error code.
-	RequestID string `json:"request_id,omitempty"` // The unique request ID for this error.
-	Timestamp string `json:"timestamp,omitempty"`  // The timestamp of the error, in RFC3339 format.
+	Error     string `json:"error"`               // The underlying error, which may be masked when debugging is disabled.
+	Type      string `json:"type"`                // A summary of the error code based off the HTTP status code or application error code.
+	Code      int    `json:"code"`                // The HTTP status code or other internal application error code.
+	RequestID string `json:"request_id,omitzero"` // The unique request ID for this error.
+	Timestamp string `json:"timestamp,omitzero"`  // The timestamp of the error, in RFC3339 format.
 }
 
 type ErrBadRequest struct {
@@ -115,6 +115,13 @@ func IsInvalidID(err error) bool {
 	return errors.As(err, &_target)
 }
 
+// IsRequestEntityTooLarge returns true if the error indicates the request body
+// exceeded the configured size limit.
+func IsRequestEntityTooLarge(err error) bool {
+	_, ok := errors.AsType[*http.MaxBytesError](err)
+	return ok
+}
+
 // JSON marshals 'v' to JSON, and setting the Content-Type as application/json.
 // Note that this does NOT auto-escape HTML. If 'v' cannot be marshalled to JSON,
 // this will panic.
@@ -124,13 +131,13 @@ func IsInvalidID(err error) bool {
 func JSON(w http.ResponseWriter, r *http.Request, _status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(_status)
-	_enc := json.NewEncoder(w)
 
+	var opts []json.Options
 	if _pretty, _ := strconv.ParseBool(r.FormValue("pretty")); _pretty {
-		_enc.SetIndent("", "    ")
+		opts = append(opts, jsontext.Multiline(true))
 	}
 
-	if err := _enc.Encode(v); err != nil && err != io.EOF {
+	if err := json.MarshalWrite(w, v, opts...); err != nil {
 		panic(fmt.Sprintf("failed to marshal response: %v", err))
 	}
 }
@@ -138,19 +145,59 @@ func JSON(w http.ResponseWriter, r *http.Request, _status int, v any) {
 // M is an alias for map[string]any, which makes it easier to respond with generic JSON data structures.
 type M map[string]any
 
+// DefaultMaxRequestBodyBytes is the default maximum request body size (8 MiB).
+const DefaultMaxRequestBodyBytes int64 = 8 << 20
+
+// GetMaxRequestBodyBytes returns the configured request body size limit. Zero uses
+// [DefaultMaxRequestBodyBytes]. Negative values disable the limit.
+func (c *ServerConfig) GetMaxRequestBodyBytes() int64 {
+	if c == nil || c.MaxRequestBodyBytes == 0 {
+		return DefaultMaxRequestBodyBytes
+	}
+	if c.MaxRequestBodyBytes < 0 {
+		return 0
+	}
+	return c.MaxRequestBodyBytes
+}
+
+// UseMaxBodyBytes is middleware that limits the size of every request body to n bytes.
+// When the limit is exceeded the client receives HTTP 413 Request Entity Too Large.
+func UseMaxBodyBytes(n int64) func(_next http.Handler) http.Handler {
+	return func(_next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if n <= 0 {
+				_next.ServeHTTP(w, r)
+				return
+			}
+			if r.ContentLength > n {
+				writeRequestEntityTooLarge(w, r, &http.MaxBytesError{Limit: n})
+				return
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, n)
+			_next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func writeRequestEntityTooLarge(w http.ResponseWriter, r *http.Request, err error) {
+	JSON(w, r, http.StatusRequestEntityTooLarge, ErrorResponse{
+		Error:     err.Error(),
+		Type:      http.StatusText(http.StatusRequestEntityTooLarge),
+		Code:      http.StatusRequestEntityTooLarge,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
 var (
 	// DefaultDecoder is the default decoder used by Bind. You can either override
 	// this, or provide your own. Make sure it is set before Bind is called.
 	DefaultDecoder = form.NewDecoder()
-
-	// DefaultDecodeMaxMemory is the maximum amount of memory in bytes that will be
-	// used for decoding multipart/form-data requests.
-	DefaultDecodeMaxMemory int64 = 8 << 20
 )
 
 // Bind decodes the request body to the given struct. At this time the only supported
 // content-types are application/json, application/x-www-form-urlencoded, as well as
-// GET parameters.
+// GET parameters. Request body size is enforced by [UseMaxBodyBytes] middleware,
+// which [Server.Handler] installs by default.
 func Bind(r *http.Request, v any) error {
 	err := r.ParseForm()
 	if err != nil {
@@ -163,11 +210,10 @@ func Bind(r *http.Request, v any) error {
 	case http.MethodPost, http.MethodPut, http.MethodPatch:
 		switch {
 		case strings.HasPrefix(r.Header.Get("Content-Type"), "application/json"):
-			_dec := json.NewDecoder(r.Body)
 			defer r.Body.Close()
-			err = _dec.Decode(v)
+			err = json.UnmarshalRead(r.Body, v)
 		case strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data"):
-			err = r.ParseMultipartForm(DefaultDecodeMaxMemory)
+			err = r.ParseMultipartForm(DefaultMaxRequestBodyBytes)
 			if err == nil {
 				err = DefaultDecoder.Decode(v, r.MultipartForm.Value)
 			}
@@ -179,6 +225,9 @@ func Bind(r *http.Request, v any) error {
 	}
 
 	if err != nil {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			return err
+		}
 		return &ErrBadRequest{Err: fmt.Errorf("error decoding %s request into required format (%T): %w", r.Method, v, err)}
 	}
 	return nil
@@ -187,10 +236,10 @@ func Bind(r *http.Request, v any) error {
 // Req simplifies making an HTTP handler that returns a single result, and an error.
 // The result, if not nil, must be JSON-marshalable. If result is nil, [http.StatusNoContent]
 // will be returned.
-func Req[Resp any](s *Server, _op Operation, _fn func(*http.Request) (*Resp, error)) http.HandlerFunc {
+func (s *Server) Req[Resp any](_op Operation, _fn func(*http.Request) (*Resp, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_results, err := _fn(r)
-		handleResponse(s, w, r, _op, _results, err)
+		s.handleResponse(w, r, _op, _results, err)
 	}
 }
 
@@ -236,49 +285,49 @@ func resolveID[T any](r *http.Request) (_id T, err error) {
 
 // ReqID is similar to Req, but also processes an "id" path parameter and provides it to the
 // handler function.
-func ReqID[Resp, I any](s *Server, _op Operation, _fn func(*http.Request, I) (*Resp, error)) http.HandlerFunc {
+func (s *Server) ReqID[Resp, I any](_op Operation, _fn func(*http.Request, I) (*Resp, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_id, err := resolveID[I](r)
 		if err != nil {
-			handleResponse[Resp](s, w, r, _op, nil, err)
+			s.handleResponse[Resp](w, r, _op, nil, err)
 			return
 		}
 		_results, err := _fn(r, _id)
-		handleResponse(s, w, r, _op, _results, err)
+		s.handleResponse(w, r, _op, _results, err)
 	}
 }
 
 // ReqParam is similar to Req, but also processes a request body/query params and provides it
 // to the handler function.
-func ReqParam[Params, Resp any](s *Server, _op Operation, _fn func(*http.Request, *Params) (*Resp, error)) http.HandlerFunc {
+func (s *Server) ReqParam[Params, Resp any](_op Operation, _fn func(*http.Request, *Params) (*Resp, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_params := new(Params)
 		if err := Bind(r, _params); err != nil {
-			handleResponse[Resp](s, w, r, _op, nil, err)
+			s.handleResponse[Resp](w, r, _op, nil, err)
 			return
 		}
 		_results, err := _fn(r, _params)
-		handleResponse(s, w, r, _op, _results, err)
+		s.handleResponse(w, r, _op, _results, err)
 	}
 }
 
 // ReqIDParam is similar to ReqParam, but also processes an "id" path parameter and request
 // body/query params, and provides it to the handler function.
-func ReqIDParam[Params, Resp, I any](s *Server, _op Operation, _fn func(*http.Request, I, *Params) (*Resp, error)) http.HandlerFunc {
+func (s *Server) ReqIDParam[Params, Resp, I any](_op Operation, _fn func(*http.Request, I, *Params) (*Resp, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_id, err := resolveID[I](r)
 		if err != nil {
-			handleResponse[Resp](s, w, r, _op, nil, err)
+			s.handleResponse[Resp](w, r, _op, nil, err)
 			return
 		}
 		_params := new(Params)
 		err = Bind(r, _params)
 		if err != nil {
-			handleResponse[Resp](s, w, r, _op, nil, err)
+			s.handleResponse[Resp](w, r, _op, nil, err)
 			return
 		}
 		_results, err := _fn(r, _id, _params)
-		handleResponse(s, w, r, _op, _results, err)
+		s.handleResponse(w, r, _op, _results, err)
 	}
 }
 
@@ -369,8 +418,8 @@ var scalarTemplate = template.Must(template.New("docs").Parse(`<!DOCTYPE html>
       });
     </script>
     <script
-      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.64.1"
-      integrity="sha256-GOfsX2zSHJFEtew/ipnnBDEhIqYxbTshjYN+/2ngd+4="
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.66.1"
+      integrity="sha256-Z71HW2QGJUt3Gv+J7Dak3Yzs7sFBE23RyNblDr5X8Sg="
       crossorigin="anonymous"
     ></script>
   </body>
@@ -383,7 +432,7 @@ func (s *Server) Docs(w http.ResponseWriter, r *http.Request) {
 		"DisableSpecInjectServer": s.config.DisableSpecInjectServer,
 	})
 	if err != nil {
-		handleResponse[struct{}](s, w, r, "", nil, err)
+		s.handleResponse[struct{}](w, r, "", nil, err)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")
@@ -438,17 +487,21 @@ type ServerConfig struct {
 	// default implementation will use the X-Request-Id header, otherwise an empty
 	// string will be returned. If using go-chi, middleware.GetReqID will be used.
 	GetReqID func(r *http.Request) string
+
+	// MaxRequestBodyBytes limits the size of request bodies in bytes. Zero uses
+	// [DefaultMaxRequestBodyBytes] (8 MiB). Negative values disable the limit.
+	MaxRequestBodyBytes int64
 }
 
 type Server struct {
-	db     *ent.Client
+	db     *__ent.Client
 	config *ServerConfig
 }
 
 // NewServer returns a new auto-generated server implementation for your ent schema.
 // [Server.Handler] returns a ready-to-use http.Handler that mounts all of the
 // necessary endpoints.
-func NewServer(_db *ent.Client, _config *ServerConfig) (*Server, error) {
+func NewServer(_db *__ent.Client, _config *ServerConfig) (*Server, error) {
 	s := &Server{
 		db:     _db,
 		config: _config,
@@ -495,13 +548,15 @@ func (s *Server) DefaultErrorHandler(w http.ResponseWriter, r *http.Request, _op
 		_resp.Code = http.StatusBadRequest
 	case IsInvalidID(err):
 		_resp.Code = http.StatusBadRequest
-	case errors.Is(err, privacy.Deny):
+	case IsRequestEntityTooLarge(err):
+		_resp.Code = http.StatusRequestEntityTooLarge
+	case errors.Is(err, __privacy.Deny):
 		_resp.Code = http.StatusForbidden
-	case ent.IsNotFound(err):
+	case __ent.IsNotFound(err):
 		_resp.Code = http.StatusNotFound
-	case ent.IsConstraintError(err), ent.IsNotSingular(err):
+	case __ent.IsConstraintError(err), __ent.IsNotSingular(err):
 		_resp.Code = http.StatusConflict
-	case ent.IsValidationError(err):
+	case __ent.IsValidationError(err):
 		_resp.Code = http.StatusBadRequest
 	case errors.As(err, &numErr):
 		_resp.Code = http.StatusBadRequest
@@ -524,7 +579,7 @@ func (s *Server) DefaultErrorHandler(w http.ResponseWriter, r *http.Request, _op
 	JSON(w, r, _resp.Code, _resp)
 }
 
-func handleResponse[Resp any](s *Server, w http.ResponseWriter, r *http.Request, _op Operation, _resp *Resp, err error) {
+func (s *Server) handleResponse[Resp any](w http.ResponseWriter, r *http.Request, _op Operation, _resp *Resp, err error) {
 	if s.config.EnableLinks {
 		_links := Links{}
 		if !s.config.DisableSpecHandler {
@@ -584,10 +639,10 @@ func handleResponse[Resp any](s *Server, w http.ResponseWriter, r *http.Request,
 // by other middleware, or ent privacy layers. Note that the server will do this
 // by default, so you don't need to do this manually, unless it's a context that's
 // not being passed to the server and is being consumed elsewhere.
-func UseEntContext(_db *ent.Client) func(_next http.Handler) http.Handler {
+func UseEntContext(_db *__ent.Client) func(_next http.Handler) http.Handler {
 	return func(_next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_next.ServeHTTP(w, r.WithContext(ent.NewContext(r.Context(), _db)))
+			_next.ServeHTTP(w, r.WithContext(__ent.NewContext(r.Context(), _db)))
 		})
 	}
 }
@@ -595,66 +650,66 @@ func UseEntContext(_db *ent.Client) func(_next http.Handler) http.Handler {
 // Handler returns a ready-to-use http.Handler that mounts all of the necessary endpoints.
 func (s *Server) Handler() http.Handler {
 	_mux := http.NewServeMux()
-	_mux.HandleFunc("GET /campuses", ReqParam(s, OperationList, s.ListCampus))
-	_mux.HandleFunc("GET /campuses/{id}", ReqID(s, OperationRead, s.GetCampus))
-	_mux.HandleFunc("GET /campuses/{id}/facilities", ReqIDParam(s, OperationList, s.ListCampusFacilities))
-	_mux.HandleFunc("GET /campuses/{id}/organization", ReqID(s, OperationRead, s.GetCampusOrganization))
-	_mux.HandleFunc("GET /carriers", ReqParam(s, OperationList, s.ListCarriers))
-	_mux.HandleFunc("GET /carriers/{id}", ReqID(s, OperationRead, s.GetCarrier))
-	_mux.HandleFunc("GET /carriers/{id}/carrier-facilities", ReqIDParam(s, OperationList, s.ListCarrierCarrierFacilities))
-	_mux.HandleFunc("GET /carriers/{id}/organization", ReqID(s, OperationRead, s.GetCarrierOrganization))
-	_mux.HandleFunc("GET /carrier-facilities", ReqParam(s, OperationList, s.ListCarrierFacilities))
-	_mux.HandleFunc("GET /carrier-facilities/{id}", ReqID(s, OperationRead, s.GetCarrierFacility))
-	_mux.HandleFunc("GET /carrier-facilities/{id}/carrier", ReqID(s, OperationRead, s.GetCarrierFacilityCarrier))
-	_mux.HandleFunc("GET /carrier-facilities/{id}/facility", ReqID(s, OperationRead, s.GetCarrierFacilityFacility))
-	_mux.HandleFunc("GET /facilities", ReqParam(s, OperationList, s.ListFacilities))
-	_mux.HandleFunc("GET /facilities/{id}", ReqID(s, OperationRead, s.GetFacility))
-	_mux.HandleFunc("GET /facilities/{id}/campus", ReqID(s, OperationRead, s.GetFacilityCampus))
-	_mux.HandleFunc("GET /facilities/{id}/carrier-facilities", ReqIDParam(s, OperationList, s.ListFacilityCarrierFacilities))
-	_mux.HandleFunc("GET /facilities/{id}/ix-facilities", ReqIDParam(s, OperationList, s.ListFacilityIxFacilities))
-	_mux.HandleFunc("GET /facilities/{id}/network-facilities", ReqIDParam(s, OperationList, s.ListFacilityNetworkFacilities))
-	_mux.HandleFunc("GET /facilities/{id}/organization", ReqID(s, OperationRead, s.GetFacilityOrganization))
-	_mux.HandleFunc("GET /internet-exchanges", ReqParam(s, OperationList, s.ListInternetExchanges))
-	_mux.HandleFunc("GET /internet-exchanges/{id}", ReqID(s, OperationRead, s.GetInternetExchange))
-	_mux.HandleFunc("GET /internet-exchanges/{id}/ix-facilities", ReqIDParam(s, OperationList, s.ListInternetExchangeIxFacilities))
-	_mux.HandleFunc("GET /internet-exchanges/{id}/ix-lans", ReqIDParam(s, OperationList, s.ListInternetExchangeIxLans))
-	_mux.HandleFunc("GET /internet-exchanges/{id}/organization", ReqID(s, OperationRead, s.GetInternetExchangeOrganization))
-	_mux.HandleFunc("GET /ix-facilities", ReqParam(s, OperationList, s.ListIxFacilities))
-	_mux.HandleFunc("GET /ix-facilities/{id}", ReqID(s, OperationRead, s.GetIxFacility))
-	_mux.HandleFunc("GET /ix-facilities/{id}/facility", ReqID(s, OperationRead, s.GetIxFacilityFacility))
-	_mux.HandleFunc("GET /ix-facilities/{id}/internet-exchange", ReqID(s, OperationRead, s.GetIxFacilityInternetExchange))
-	_mux.HandleFunc("GET /ix-lans", ReqParam(s, OperationList, s.ListIxLans))
-	_mux.HandleFunc("GET /ix-lans/{id}", ReqID(s, OperationRead, s.GetIxLan))
-	_mux.HandleFunc("GET /ix-lans/{id}/internet-exchange", ReqID(s, OperationRead, s.GetIxLanInternetExchange))
-	_mux.HandleFunc("GET /ix-lans/{id}/ix-prefixes", ReqIDParam(s, OperationList, s.ListIxLanIxPrefixes))
-	_mux.HandleFunc("GET /ix-lans/{id}/network-ix-lans", ReqIDParam(s, OperationList, s.ListIxLanNetworkIxLans))
-	_mux.HandleFunc("GET /ix-prefixes", ReqParam(s, OperationList, s.ListIxPrefixes))
-	_mux.HandleFunc("GET /ix-prefixes/{id}", ReqID(s, OperationRead, s.GetIxPrefix))
-	_mux.HandleFunc("GET /ix-prefixes/{id}/ix-lan", ReqID(s, OperationRead, s.GetIxPrefixIxLan))
-	_mux.HandleFunc("GET /networks", ReqParam(s, OperationList, s.ListNetworks))
-	_mux.HandleFunc("GET /networks/{id}", ReqID(s, OperationRead, s.GetNetwork))
-	_mux.HandleFunc("GET /networks/{id}/network-facilities", ReqIDParam(s, OperationList, s.ListNetworkNetworkFacilities))
-	_mux.HandleFunc("GET /networks/{id}/network-ix-lans", ReqIDParam(s, OperationList, s.ListNetworkNetworkIxLans))
-	_mux.HandleFunc("GET /networks/{id}/organization", ReqID(s, OperationRead, s.GetNetworkOrganization))
-	_mux.HandleFunc("GET /networks/{id}/pocs", ReqIDParam(s, OperationList, s.ListNetworkPocs))
-	_mux.HandleFunc("GET /network-facilities", ReqParam(s, OperationList, s.ListNetworkFacilities))
-	_mux.HandleFunc("GET /network-facilities/{id}", ReqID(s, OperationRead, s.GetNetworkFacility))
-	_mux.HandleFunc("GET /network-facilities/{id}/facility", ReqID(s, OperationRead, s.GetNetworkFacilityFacility))
-	_mux.HandleFunc("GET /network-facilities/{id}/network", ReqID(s, OperationRead, s.GetNetworkFacilityNetwork))
-	_mux.HandleFunc("GET /network-ix-lans", ReqParam(s, OperationList, s.ListNetworkIxLans))
-	_mux.HandleFunc("GET /network-ix-lans/{id}", ReqID(s, OperationRead, s.GetNetworkIxLan))
-	_mux.HandleFunc("GET /network-ix-lans/{id}/ix-lan", ReqID(s, OperationRead, s.GetNetworkIxLanIxLan))
-	_mux.HandleFunc("GET /network-ix-lans/{id}/network", ReqID(s, OperationRead, s.GetNetworkIxLanNetwork))
-	_mux.HandleFunc("GET /organizations", ReqParam(s, OperationList, s.ListOrganizations))
-	_mux.HandleFunc("GET /organizations/{id}", ReqID(s, OperationRead, s.GetOrganization))
-	_mux.HandleFunc("GET /organizations/{id}/campuses", ReqIDParam(s, OperationList, s.ListOrganizationCampuses))
-	_mux.HandleFunc("GET /organizations/{id}/carriers", ReqIDParam(s, OperationList, s.ListOrganizationCarriers))
-	_mux.HandleFunc("GET /organizations/{id}/facilities", ReqIDParam(s, OperationList, s.ListOrganizationFacilities))
-	_mux.HandleFunc("GET /organizations/{id}/internet-exchanges", ReqIDParam(s, OperationList, s.ListOrganizationInternetExchanges))
-	_mux.HandleFunc("GET /organizations/{id}/networks", ReqIDParam(s, OperationList, s.ListOrganizationNetworks))
-	_mux.HandleFunc("GET /pocs", ReqParam(s, OperationList, s.ListPocs))
-	_mux.HandleFunc("GET /pocs/{id}", ReqID(s, OperationRead, s.GetPoc))
-	_mux.HandleFunc("GET /pocs/{id}/network", ReqID(s, OperationRead, s.GetPocNetwork))
+	_mux.HandleFunc("GET /campuses", s.ReqParam(OperationList, s.ListCampus))
+	_mux.HandleFunc("GET /campuses/{id}", s.ReqID(OperationRead, s.GetCampus))
+	_mux.HandleFunc("GET /campuses/{id}/facilities", s.ReqIDParam(OperationList, s.ListCampusFacilities))
+	_mux.HandleFunc("GET /campuses/{id}/organization", s.ReqID(OperationRead, s.GetCampusOrganization))
+	_mux.HandleFunc("GET /carriers", s.ReqParam(OperationList, s.ListCarriers))
+	_mux.HandleFunc("GET /carriers/{id}", s.ReqID(OperationRead, s.GetCarrier))
+	_mux.HandleFunc("GET /carriers/{id}/carrier-facilities", s.ReqIDParam(OperationList, s.ListCarrierCarrierFacilities))
+	_mux.HandleFunc("GET /carriers/{id}/organization", s.ReqID(OperationRead, s.GetCarrierOrganization))
+	_mux.HandleFunc("GET /carrier-facilities", s.ReqParam(OperationList, s.ListCarrierFacilities))
+	_mux.HandleFunc("GET /carrier-facilities/{id}", s.ReqID(OperationRead, s.GetCarrierFacility))
+	_mux.HandleFunc("GET /carrier-facilities/{id}/carrier", s.ReqID(OperationRead, s.GetCarrierFacilityCarrier))
+	_mux.HandleFunc("GET /carrier-facilities/{id}/facility", s.ReqID(OperationRead, s.GetCarrierFacilityFacility))
+	_mux.HandleFunc("GET /facilities", s.ReqParam(OperationList, s.ListFacilities))
+	_mux.HandleFunc("GET /facilities/{id}", s.ReqID(OperationRead, s.GetFacility))
+	_mux.HandleFunc("GET /facilities/{id}/campus", s.ReqID(OperationRead, s.GetFacilityCampus))
+	_mux.HandleFunc("GET /facilities/{id}/carrier-facilities", s.ReqIDParam(OperationList, s.ListFacilityCarrierFacilities))
+	_mux.HandleFunc("GET /facilities/{id}/ix-facilities", s.ReqIDParam(OperationList, s.ListFacilityIxFacilities))
+	_mux.HandleFunc("GET /facilities/{id}/network-facilities", s.ReqIDParam(OperationList, s.ListFacilityNetworkFacilities))
+	_mux.HandleFunc("GET /facilities/{id}/organization", s.ReqID(OperationRead, s.GetFacilityOrganization))
+	_mux.HandleFunc("GET /internet-exchanges", s.ReqParam(OperationList, s.ListInternetExchanges))
+	_mux.HandleFunc("GET /internet-exchanges/{id}", s.ReqID(OperationRead, s.GetInternetExchange))
+	_mux.HandleFunc("GET /internet-exchanges/{id}/ix-facilities", s.ReqIDParam(OperationList, s.ListInternetExchangeIxFacilities))
+	_mux.HandleFunc("GET /internet-exchanges/{id}/ix-lans", s.ReqIDParam(OperationList, s.ListInternetExchangeIxLans))
+	_mux.HandleFunc("GET /internet-exchanges/{id}/organization", s.ReqID(OperationRead, s.GetInternetExchangeOrganization))
+	_mux.HandleFunc("GET /ix-facilities", s.ReqParam(OperationList, s.ListIxFacilities))
+	_mux.HandleFunc("GET /ix-facilities/{id}", s.ReqID(OperationRead, s.GetIxFacility))
+	_mux.HandleFunc("GET /ix-facilities/{id}/facility", s.ReqID(OperationRead, s.GetIxFacilityFacility))
+	_mux.HandleFunc("GET /ix-facilities/{id}/internet-exchange", s.ReqID(OperationRead, s.GetIxFacilityInternetExchange))
+	_mux.HandleFunc("GET /ix-lans", s.ReqParam(OperationList, s.ListIxLans))
+	_mux.HandleFunc("GET /ix-lans/{id}", s.ReqID(OperationRead, s.GetIxLan))
+	_mux.HandleFunc("GET /ix-lans/{id}/internet-exchange", s.ReqID(OperationRead, s.GetIxLanInternetExchange))
+	_mux.HandleFunc("GET /ix-lans/{id}/ix-prefixes", s.ReqIDParam(OperationList, s.ListIxLanIxPrefixes))
+	_mux.HandleFunc("GET /ix-lans/{id}/network-ix-lans", s.ReqIDParam(OperationList, s.ListIxLanNetworkIxLans))
+	_mux.HandleFunc("GET /ix-prefixes", s.ReqParam(OperationList, s.ListIxPrefixes))
+	_mux.HandleFunc("GET /ix-prefixes/{id}", s.ReqID(OperationRead, s.GetIxPrefix))
+	_mux.HandleFunc("GET /ix-prefixes/{id}/ix-lan", s.ReqID(OperationRead, s.GetIxPrefixIxLan))
+	_mux.HandleFunc("GET /networks", s.ReqParam(OperationList, s.ListNetworks))
+	_mux.HandleFunc("GET /networks/{id}", s.ReqID(OperationRead, s.GetNetwork))
+	_mux.HandleFunc("GET /networks/{id}/network-facilities", s.ReqIDParam(OperationList, s.ListNetworkNetworkFacilities))
+	_mux.HandleFunc("GET /networks/{id}/network-ix-lans", s.ReqIDParam(OperationList, s.ListNetworkNetworkIxLans))
+	_mux.HandleFunc("GET /networks/{id}/organization", s.ReqID(OperationRead, s.GetNetworkOrganization))
+	_mux.HandleFunc("GET /networks/{id}/pocs", s.ReqIDParam(OperationList, s.ListNetworkPocs))
+	_mux.HandleFunc("GET /network-facilities", s.ReqParam(OperationList, s.ListNetworkFacilities))
+	_mux.HandleFunc("GET /network-facilities/{id}", s.ReqID(OperationRead, s.GetNetworkFacility))
+	_mux.HandleFunc("GET /network-facilities/{id}/facility", s.ReqID(OperationRead, s.GetNetworkFacilityFacility))
+	_mux.HandleFunc("GET /network-facilities/{id}/network", s.ReqID(OperationRead, s.GetNetworkFacilityNetwork))
+	_mux.HandleFunc("GET /network-ix-lans", s.ReqParam(OperationList, s.ListNetworkIxLans))
+	_mux.HandleFunc("GET /network-ix-lans/{id}", s.ReqID(OperationRead, s.GetNetworkIxLan))
+	_mux.HandleFunc("GET /network-ix-lans/{id}/ix-lan", s.ReqID(OperationRead, s.GetNetworkIxLanIxLan))
+	_mux.HandleFunc("GET /network-ix-lans/{id}/network", s.ReqID(OperationRead, s.GetNetworkIxLanNetwork))
+	_mux.HandleFunc("GET /organizations", s.ReqParam(OperationList, s.ListOrganizations))
+	_mux.HandleFunc("GET /organizations/{id}", s.ReqID(OperationRead, s.GetOrganization))
+	_mux.HandleFunc("GET /organizations/{id}/campuses", s.ReqIDParam(OperationList, s.ListOrganizationCampuses))
+	_mux.HandleFunc("GET /organizations/{id}/carriers", s.ReqIDParam(OperationList, s.ListOrganizationCarriers))
+	_mux.HandleFunc("GET /organizations/{id}/facilities", s.ReqIDParam(OperationList, s.ListOrganizationFacilities))
+	_mux.HandleFunc("GET /organizations/{id}/internet-exchanges", s.ReqIDParam(OperationList, s.ListOrganizationInternetExchanges))
+	_mux.HandleFunc("GET /organizations/{id}/networks", s.ReqIDParam(OperationList, s.ListOrganizationNetworks))
+	_mux.HandleFunc("GET /pocs", s.ReqParam(OperationList, s.ListPocs))
+	_mux.HandleFunc("GET /pocs/{id}", s.ReqID(OperationRead, s.GetPoc))
+	_mux.HandleFunc("GET /pocs/{id}/network", s.ReqID(OperationRead, s.GetPocNetwork))
 
 	if !s.config.DisableSpecHandler {
 		_mux.HandleFunc("GET /openapi.json", s.Spec)
@@ -672,310 +727,310 @@ func (s *Server) Handler() http.Handler {
 			return
 		}
 		if r.Method != http.MethodGet {
-			handleResponse[struct{}](s, w, r, "", nil, ErrMethodNotAllowed)
+			s.handleResponse[struct{}](w, r, "", nil, ErrMethodNotAllowed)
 			return
 		}
-		handleResponse[struct{}](s, w, r, "", nil, ErrEndpointNotFound)
+		s.handleResponse[struct{}](w, r, "", nil, ErrEndpointNotFound)
 	})
-	return http.StripPrefix(s.config.BasePath, UseEntContext(s.db)(_mux))
+	return http.StripPrefix(s.config.BasePath, UseMaxBodyBytes(s.config.GetMaxRequestBodyBytes())(UseEntContext(s.db)(_mux)))
 }
 
 // ListCampus maps to "GET /campuses".
-func (s *Server) ListCampus(r *http.Request, p *ListCampusParams) (*PagedResponse[ent.Campus], error) {
+func (s *Server) ListCampus(r *http.Request, p *ListCampusParams) (*PagedResponse[__ent.Campus], error) {
 	return p.Exec(r.Context(), s.db.Campus.Query())
 }
 
 // GetCampus maps to "GET /campuses/{id}".
-func (s *Server) GetCampus(r *http.Request, campusID int) (*ent.Campus, error) {
-	return EagerLoadCampus(s.db.Campus.Query().Where(campus.ID(campusID))).Only(r.Context())
+func (s *Server) GetCampus(r *http.Request, campusID int) (*__ent.Campus, error) {
+	return EagerLoadCampus(s.db.Campus.Query().Where(__campus.ID(campusID))).Only(r.Context())
 }
 
 // ListCampusFacilities maps to "GET /campuses/{id}/facilities".
-func (s *Server) ListCampusFacilities(r *http.Request, campusID int, p *ListFacilityParams) (*PagedResponse[ent.Facility], error) {
-	return p.Exec(r.Context(), s.db.Campus.Query().Where(campus.ID(campusID)).QueryFacilities())
+func (s *Server) ListCampusFacilities(r *http.Request, campusID int, p *ListFacilityParams) (*PagedResponse[__ent.Facility], error) {
+	return p.Exec(r.Context(), s.db.Campus.Query().Where(__campus.ID(campusID)).QueryFacilities())
 }
 
 // GetCampusOrganization maps to "GET /campuses/{id}/organization".
-func (s *Server) GetCampusOrganization(r *http.Request, campusID int) (*ent.Organization, error) {
-	return EagerLoadOrganization(s.db.Campus.Query().Where(campus.ID(campusID)).QueryOrganization()).Only(r.Context())
+func (s *Server) GetCampusOrganization(r *http.Request, campusID int) (*__ent.Organization, error) {
+	return EagerLoadOrganization(s.db.Campus.Query().Where(__campus.ID(campusID)).QueryOrganization()).Only(r.Context())
 }
 
 // ListCarriers maps to "GET /carriers".
-func (s *Server) ListCarriers(r *http.Request, p *ListCarrierParams) (*PagedResponse[ent.Carrier], error) {
+func (s *Server) ListCarriers(r *http.Request, p *ListCarrierParams) (*PagedResponse[__ent.Carrier], error) {
 	return p.Exec(r.Context(), s.db.Carrier.Query())
 }
 
 // GetCarrier maps to "GET /carriers/{id}".
-func (s *Server) GetCarrier(r *http.Request, carrierID int) (*ent.Carrier, error) {
-	return EagerLoadCarrier(s.db.Carrier.Query().Where(carrier.ID(carrierID))).Only(r.Context())
+func (s *Server) GetCarrier(r *http.Request, carrierID int) (*__ent.Carrier, error) {
+	return EagerLoadCarrier(s.db.Carrier.Query().Where(__carrier.ID(carrierID))).Only(r.Context())
 }
 
 // ListCarrierCarrierFacilities maps to "GET /carriers/{id}/carrier-facilities".
-func (s *Server) ListCarrierCarrierFacilities(r *http.Request, carrierID int, p *ListCarrierFacilityParams) (*PagedResponse[ent.CarrierFacility], error) {
-	return p.Exec(r.Context(), s.db.Carrier.Query().Where(carrier.ID(carrierID)).QueryCarrierFacilities())
+func (s *Server) ListCarrierCarrierFacilities(r *http.Request, carrierID int, p *ListCarrierFacilityParams) (*PagedResponse[__ent.CarrierFacility], error) {
+	return p.Exec(r.Context(), s.db.Carrier.Query().Where(__carrier.ID(carrierID)).QueryCarrierFacilities())
 }
 
 // GetCarrierOrganization maps to "GET /carriers/{id}/organization".
-func (s *Server) GetCarrierOrganization(r *http.Request, carrierID int) (*ent.Organization, error) {
-	return EagerLoadOrganization(s.db.Carrier.Query().Where(carrier.ID(carrierID)).QueryOrganization()).Only(r.Context())
+func (s *Server) GetCarrierOrganization(r *http.Request, carrierID int) (*__ent.Organization, error) {
+	return EagerLoadOrganization(s.db.Carrier.Query().Where(__carrier.ID(carrierID)).QueryOrganization()).Only(r.Context())
 }
 
 // ListCarrierFacilities maps to "GET /carrier-facilities".
-func (s *Server) ListCarrierFacilities(r *http.Request, p *ListCarrierFacilityParams) (*PagedResponse[ent.CarrierFacility], error) {
+func (s *Server) ListCarrierFacilities(r *http.Request, p *ListCarrierFacilityParams) (*PagedResponse[__ent.CarrierFacility], error) {
 	return p.Exec(r.Context(), s.db.CarrierFacility.Query())
 }
 
 // GetCarrierFacility maps to "GET /carrier-facilities/{id}".
-func (s *Server) GetCarrierFacility(r *http.Request, carrierfacilityID int) (*ent.CarrierFacility, error) {
-	return EagerLoadCarrierFacility(s.db.CarrierFacility.Query().Where(carrierfacility.ID(carrierfacilityID))).Only(r.Context())
+func (s *Server) GetCarrierFacility(r *http.Request, carrierfacilityID int) (*__ent.CarrierFacility, error) {
+	return EagerLoadCarrierFacility(s.db.CarrierFacility.Query().Where(__carrierfacility.ID(carrierfacilityID))).Only(r.Context())
 }
 
 // GetCarrierFacilityCarrier maps to "GET /carrier-facilities/{id}/carrier".
-func (s *Server) GetCarrierFacilityCarrier(r *http.Request, carrierfacilityID int) (*ent.Carrier, error) {
-	return EagerLoadCarrier(s.db.CarrierFacility.Query().Where(carrierfacility.ID(carrierfacilityID)).QueryCarrier()).Only(r.Context())
+func (s *Server) GetCarrierFacilityCarrier(r *http.Request, carrierfacilityID int) (*__ent.Carrier, error) {
+	return EagerLoadCarrier(s.db.CarrierFacility.Query().Where(__carrierfacility.ID(carrierfacilityID)).QueryCarrier()).Only(r.Context())
 }
 
 // GetCarrierFacilityFacility maps to "GET /carrier-facilities/{id}/facility".
-func (s *Server) GetCarrierFacilityFacility(r *http.Request, carrierfacilityID int) (*ent.Facility, error) {
-	return EagerLoadFacility(s.db.CarrierFacility.Query().Where(carrierfacility.ID(carrierfacilityID)).QueryFacility()).Only(r.Context())
+func (s *Server) GetCarrierFacilityFacility(r *http.Request, carrierfacilityID int) (*__ent.Facility, error) {
+	return EagerLoadFacility(s.db.CarrierFacility.Query().Where(__carrierfacility.ID(carrierfacilityID)).QueryFacility()).Only(r.Context())
 }
 
 // ListFacilities maps to "GET /facilities".
-func (s *Server) ListFacilities(r *http.Request, p *ListFacilityParams) (*PagedResponse[ent.Facility], error) {
+func (s *Server) ListFacilities(r *http.Request, p *ListFacilityParams) (*PagedResponse[__ent.Facility], error) {
 	return p.Exec(r.Context(), s.db.Facility.Query())
 }
 
 // GetFacility maps to "GET /facilities/{id}".
-func (s *Server) GetFacility(r *http.Request, facilityID int) (*ent.Facility, error) {
-	return EagerLoadFacility(s.db.Facility.Query().Where(facility.ID(facilityID))).Only(r.Context())
+func (s *Server) GetFacility(r *http.Request, facilityID int) (*__ent.Facility, error) {
+	return EagerLoadFacility(s.db.Facility.Query().Where(__facility.ID(facilityID))).Only(r.Context())
 }
 
 // GetFacilityCampus maps to "GET /facilities/{id}/campus".
-func (s *Server) GetFacilityCampus(r *http.Request, facilityID int) (*ent.Campus, error) {
-	return EagerLoadCampus(s.db.Facility.Query().Where(facility.ID(facilityID)).QueryCampus()).Only(r.Context())
+func (s *Server) GetFacilityCampus(r *http.Request, facilityID int) (*__ent.Campus, error) {
+	return EagerLoadCampus(s.db.Facility.Query().Where(__facility.ID(facilityID)).QueryCampus()).Only(r.Context())
 }
 
 // ListFacilityCarrierFacilities maps to "GET /facilities/{id}/carrier-facilities".
-func (s *Server) ListFacilityCarrierFacilities(r *http.Request, facilityID int, p *ListCarrierFacilityParams) (*PagedResponse[ent.CarrierFacility], error) {
-	return p.Exec(r.Context(), s.db.Facility.Query().Where(facility.ID(facilityID)).QueryCarrierFacilities())
+func (s *Server) ListFacilityCarrierFacilities(r *http.Request, facilityID int, p *ListCarrierFacilityParams) (*PagedResponse[__ent.CarrierFacility], error) {
+	return p.Exec(r.Context(), s.db.Facility.Query().Where(__facility.ID(facilityID)).QueryCarrierFacilities())
 }
 
 // ListFacilityIxFacilities maps to "GET /facilities/{id}/ix-facilities".
-func (s *Server) ListFacilityIxFacilities(r *http.Request, facilityID int, p *ListIxFacilityParams) (*PagedResponse[ent.IxFacility], error) {
-	return p.Exec(r.Context(), s.db.Facility.Query().Where(facility.ID(facilityID)).QueryIxFacilities())
+func (s *Server) ListFacilityIxFacilities(r *http.Request, facilityID int, p *ListIxFacilityParams) (*PagedResponse[__ent.IxFacility], error) {
+	return p.Exec(r.Context(), s.db.Facility.Query().Where(__facility.ID(facilityID)).QueryIxFacilities())
 }
 
 // ListFacilityNetworkFacilities maps to "GET /facilities/{id}/network-facilities".
-func (s *Server) ListFacilityNetworkFacilities(r *http.Request, facilityID int, p *ListNetworkFacilityParams) (*PagedResponse[ent.NetworkFacility], error) {
-	return p.Exec(r.Context(), s.db.Facility.Query().Where(facility.ID(facilityID)).QueryNetworkFacilities())
+func (s *Server) ListFacilityNetworkFacilities(r *http.Request, facilityID int, p *ListNetworkFacilityParams) (*PagedResponse[__ent.NetworkFacility], error) {
+	return p.Exec(r.Context(), s.db.Facility.Query().Where(__facility.ID(facilityID)).QueryNetworkFacilities())
 }
 
 // GetFacilityOrganization maps to "GET /facilities/{id}/organization".
-func (s *Server) GetFacilityOrganization(r *http.Request, facilityID int) (*ent.Organization, error) {
-	return EagerLoadOrganization(s.db.Facility.Query().Where(facility.ID(facilityID)).QueryOrganization()).Only(r.Context())
+func (s *Server) GetFacilityOrganization(r *http.Request, facilityID int) (*__ent.Organization, error) {
+	return EagerLoadOrganization(s.db.Facility.Query().Where(__facility.ID(facilityID)).QueryOrganization()).Only(r.Context())
 }
 
 // ListInternetExchanges maps to "GET /internet-exchanges".
-func (s *Server) ListInternetExchanges(r *http.Request, p *ListInternetExchangeParams) (*PagedResponse[ent.InternetExchange], error) {
+func (s *Server) ListInternetExchanges(r *http.Request, p *ListInternetExchangeParams) (*PagedResponse[__ent.InternetExchange], error) {
 	return p.Exec(r.Context(), s.db.InternetExchange.Query())
 }
 
 // GetInternetExchange maps to "GET /internet-exchanges/{id}".
-func (s *Server) GetInternetExchange(r *http.Request, internetexchangeID int) (*ent.InternetExchange, error) {
-	return EagerLoadInternetExchange(s.db.InternetExchange.Query().Where(internetexchange.ID(internetexchangeID))).Only(r.Context())
+func (s *Server) GetInternetExchange(r *http.Request, internetexchangeID int) (*__ent.InternetExchange, error) {
+	return EagerLoadInternetExchange(s.db.InternetExchange.Query().Where(__internetexchange.ID(internetexchangeID))).Only(r.Context())
 }
 
 // ListInternetExchangeIxFacilities maps to "GET /internet-exchanges/{id}/ix-facilities".
-func (s *Server) ListInternetExchangeIxFacilities(r *http.Request, internetexchangeID int, p *ListIxFacilityParams) (*PagedResponse[ent.IxFacility], error) {
-	return p.Exec(r.Context(), s.db.InternetExchange.Query().Where(internetexchange.ID(internetexchangeID)).QueryIxFacilities())
+func (s *Server) ListInternetExchangeIxFacilities(r *http.Request, internetexchangeID int, p *ListIxFacilityParams) (*PagedResponse[__ent.IxFacility], error) {
+	return p.Exec(r.Context(), s.db.InternetExchange.Query().Where(__internetexchange.ID(internetexchangeID)).QueryIxFacilities())
 }
 
 // ListInternetExchangeIxLans maps to "GET /internet-exchanges/{id}/ix-lans".
-func (s *Server) ListInternetExchangeIxLans(r *http.Request, internetexchangeID int, p *ListIxLanParams) (*PagedResponse[ent.IxLan], error) {
-	return p.Exec(r.Context(), s.db.InternetExchange.Query().Where(internetexchange.ID(internetexchangeID)).QueryIxLans())
+func (s *Server) ListInternetExchangeIxLans(r *http.Request, internetexchangeID int, p *ListIxLanParams) (*PagedResponse[__ent.IxLan], error) {
+	return p.Exec(r.Context(), s.db.InternetExchange.Query().Where(__internetexchange.ID(internetexchangeID)).QueryIxLans())
 }
 
 // GetInternetExchangeOrganization maps to "GET /internet-exchanges/{id}/organization".
-func (s *Server) GetInternetExchangeOrganization(r *http.Request, internetexchangeID int) (*ent.Organization, error) {
-	return EagerLoadOrganization(s.db.InternetExchange.Query().Where(internetexchange.ID(internetexchangeID)).QueryOrganization()).Only(r.Context())
+func (s *Server) GetInternetExchangeOrganization(r *http.Request, internetexchangeID int) (*__ent.Organization, error) {
+	return EagerLoadOrganization(s.db.InternetExchange.Query().Where(__internetexchange.ID(internetexchangeID)).QueryOrganization()).Only(r.Context())
 }
 
 // ListIxFacilities maps to "GET /ix-facilities".
-func (s *Server) ListIxFacilities(r *http.Request, p *ListIxFacilityParams) (*PagedResponse[ent.IxFacility], error) {
+func (s *Server) ListIxFacilities(r *http.Request, p *ListIxFacilityParams) (*PagedResponse[__ent.IxFacility], error) {
 	return p.Exec(r.Context(), s.db.IxFacility.Query())
 }
 
 // GetIxFacility maps to "GET /ix-facilities/{id}".
-func (s *Server) GetIxFacility(r *http.Request, ixfacilityID int) (*ent.IxFacility, error) {
-	return EagerLoadIxFacility(s.db.IxFacility.Query().Where(ixfacility.ID(ixfacilityID))).Only(r.Context())
+func (s *Server) GetIxFacility(r *http.Request, ixfacilityID int) (*__ent.IxFacility, error) {
+	return EagerLoadIxFacility(s.db.IxFacility.Query().Where(__ixfacility.ID(ixfacilityID))).Only(r.Context())
 }
 
 // GetIxFacilityFacility maps to "GET /ix-facilities/{id}/facility".
-func (s *Server) GetIxFacilityFacility(r *http.Request, ixfacilityID int) (*ent.Facility, error) {
-	return EagerLoadFacility(s.db.IxFacility.Query().Where(ixfacility.ID(ixfacilityID)).QueryFacility()).Only(r.Context())
+func (s *Server) GetIxFacilityFacility(r *http.Request, ixfacilityID int) (*__ent.Facility, error) {
+	return EagerLoadFacility(s.db.IxFacility.Query().Where(__ixfacility.ID(ixfacilityID)).QueryFacility()).Only(r.Context())
 }
 
 // GetIxFacilityInternetExchange maps to "GET /ix-facilities/{id}/internet-exchange".
-func (s *Server) GetIxFacilityInternetExchange(r *http.Request, ixfacilityID int) (*ent.InternetExchange, error) {
-	return EagerLoadInternetExchange(s.db.IxFacility.Query().Where(ixfacility.ID(ixfacilityID)).QueryInternetExchange()).Only(r.Context())
+func (s *Server) GetIxFacilityInternetExchange(r *http.Request, ixfacilityID int) (*__ent.InternetExchange, error) {
+	return EagerLoadInternetExchange(s.db.IxFacility.Query().Where(__ixfacility.ID(ixfacilityID)).QueryInternetExchange()).Only(r.Context())
 }
 
 // ListIxLans maps to "GET /ix-lans".
-func (s *Server) ListIxLans(r *http.Request, p *ListIxLanParams) (*PagedResponse[ent.IxLan], error) {
+func (s *Server) ListIxLans(r *http.Request, p *ListIxLanParams) (*PagedResponse[__ent.IxLan], error) {
 	return p.Exec(r.Context(), s.db.IxLan.Query())
 }
 
 // GetIxLan maps to "GET /ix-lans/{id}".
-func (s *Server) GetIxLan(r *http.Request, ixlanID int) (*ent.IxLan, error) {
-	return EagerLoadIxLan(s.db.IxLan.Query().Where(ixlan.ID(ixlanID))).Only(r.Context())
+func (s *Server) GetIxLan(r *http.Request, ixlanID int) (*__ent.IxLan, error) {
+	return EagerLoadIxLan(s.db.IxLan.Query().Where(__ixlan.ID(ixlanID))).Only(r.Context())
 }
 
 // GetIxLanInternetExchange maps to "GET /ix-lans/{id}/internet-exchange".
-func (s *Server) GetIxLanInternetExchange(r *http.Request, ixlanID int) (*ent.InternetExchange, error) {
-	return EagerLoadInternetExchange(s.db.IxLan.Query().Where(ixlan.ID(ixlanID)).QueryInternetExchange()).Only(r.Context())
+func (s *Server) GetIxLanInternetExchange(r *http.Request, ixlanID int) (*__ent.InternetExchange, error) {
+	return EagerLoadInternetExchange(s.db.IxLan.Query().Where(__ixlan.ID(ixlanID)).QueryInternetExchange()).Only(r.Context())
 }
 
 // ListIxLanIxPrefixes maps to "GET /ix-lans/{id}/ix-prefixes".
-func (s *Server) ListIxLanIxPrefixes(r *http.Request, ixlanID int, p *ListIxPrefixParams) (*PagedResponse[ent.IxPrefix], error) {
-	return p.Exec(r.Context(), s.db.IxLan.Query().Where(ixlan.ID(ixlanID)).QueryIxPrefixes())
+func (s *Server) ListIxLanIxPrefixes(r *http.Request, ixlanID int, p *ListIxPrefixParams) (*PagedResponse[__ent.IxPrefix], error) {
+	return p.Exec(r.Context(), s.db.IxLan.Query().Where(__ixlan.ID(ixlanID)).QueryIxPrefixes())
 }
 
 // ListIxLanNetworkIxLans maps to "GET /ix-lans/{id}/network-ix-lans".
-func (s *Server) ListIxLanNetworkIxLans(r *http.Request, ixlanID int, p *ListNetworkIxLanParams) (*PagedResponse[ent.NetworkIxLan], error) {
-	return p.Exec(r.Context(), s.db.IxLan.Query().Where(ixlan.ID(ixlanID)).QueryNetworkIxLans())
+func (s *Server) ListIxLanNetworkIxLans(r *http.Request, ixlanID int, p *ListNetworkIxLanParams) (*PagedResponse[__ent.NetworkIxLan], error) {
+	return p.Exec(r.Context(), s.db.IxLan.Query().Where(__ixlan.ID(ixlanID)).QueryNetworkIxLans())
 }
 
 // ListIxPrefixes maps to "GET /ix-prefixes".
-func (s *Server) ListIxPrefixes(r *http.Request, p *ListIxPrefixParams) (*PagedResponse[ent.IxPrefix], error) {
+func (s *Server) ListIxPrefixes(r *http.Request, p *ListIxPrefixParams) (*PagedResponse[__ent.IxPrefix], error) {
 	return p.Exec(r.Context(), s.db.IxPrefix.Query())
 }
 
 // GetIxPrefix maps to "GET /ix-prefixes/{id}".
-func (s *Server) GetIxPrefix(r *http.Request, ixprefixID int) (*ent.IxPrefix, error) {
-	return EagerLoadIxPrefix(s.db.IxPrefix.Query().Where(ixprefix.ID(ixprefixID))).Only(r.Context())
+func (s *Server) GetIxPrefix(r *http.Request, ixprefixID int) (*__ent.IxPrefix, error) {
+	return EagerLoadIxPrefix(s.db.IxPrefix.Query().Where(__ixprefix.ID(ixprefixID))).Only(r.Context())
 }
 
 // GetIxPrefixIxLan maps to "GET /ix-prefixes/{id}/ix-lan".
-func (s *Server) GetIxPrefixIxLan(r *http.Request, ixprefixID int) (*ent.IxLan, error) {
-	return EagerLoadIxLan(s.db.IxPrefix.Query().Where(ixprefix.ID(ixprefixID)).QueryIxLan()).Only(r.Context())
+func (s *Server) GetIxPrefixIxLan(r *http.Request, ixprefixID int) (*__ent.IxLan, error) {
+	return EagerLoadIxLan(s.db.IxPrefix.Query().Where(__ixprefix.ID(ixprefixID)).QueryIxLan()).Only(r.Context())
 }
 
 // ListNetworks maps to "GET /networks".
-func (s *Server) ListNetworks(r *http.Request, p *ListNetworkParams) (*PagedResponse[ent.Network], error) {
+func (s *Server) ListNetworks(r *http.Request, p *ListNetworkParams) (*PagedResponse[__ent.Network], error) {
 	return p.Exec(r.Context(), s.db.Network.Query())
 }
 
 // GetNetwork maps to "GET /networks/{id}".
-func (s *Server) GetNetwork(r *http.Request, networkID int) (*ent.Network, error) {
-	return EagerLoadNetwork(s.db.Network.Query().Where(network.ID(networkID))).Only(r.Context())
+func (s *Server) GetNetwork(r *http.Request, networkID int) (*__ent.Network, error) {
+	return EagerLoadNetwork(s.db.Network.Query().Where(__network.ID(networkID))).Only(r.Context())
 }
 
 // ListNetworkNetworkFacilities maps to "GET /networks/{id}/network-facilities".
-func (s *Server) ListNetworkNetworkFacilities(r *http.Request, networkID int, p *ListNetworkFacilityParams) (*PagedResponse[ent.NetworkFacility], error) {
-	return p.Exec(r.Context(), s.db.Network.Query().Where(network.ID(networkID)).QueryNetworkFacilities())
+func (s *Server) ListNetworkNetworkFacilities(r *http.Request, networkID int, p *ListNetworkFacilityParams) (*PagedResponse[__ent.NetworkFacility], error) {
+	return p.Exec(r.Context(), s.db.Network.Query().Where(__network.ID(networkID)).QueryNetworkFacilities())
 }
 
 // ListNetworkNetworkIxLans maps to "GET /networks/{id}/network-ix-lans".
-func (s *Server) ListNetworkNetworkIxLans(r *http.Request, networkID int, p *ListNetworkIxLanParams) (*PagedResponse[ent.NetworkIxLan], error) {
-	return p.Exec(r.Context(), s.db.Network.Query().Where(network.ID(networkID)).QueryNetworkIxLans())
+func (s *Server) ListNetworkNetworkIxLans(r *http.Request, networkID int, p *ListNetworkIxLanParams) (*PagedResponse[__ent.NetworkIxLan], error) {
+	return p.Exec(r.Context(), s.db.Network.Query().Where(__network.ID(networkID)).QueryNetworkIxLans())
 }
 
 // GetNetworkOrganization maps to "GET /networks/{id}/organization".
-func (s *Server) GetNetworkOrganization(r *http.Request, networkID int) (*ent.Organization, error) {
-	return EagerLoadOrganization(s.db.Network.Query().Where(network.ID(networkID)).QueryOrganization()).Only(r.Context())
+func (s *Server) GetNetworkOrganization(r *http.Request, networkID int) (*__ent.Organization, error) {
+	return EagerLoadOrganization(s.db.Network.Query().Where(__network.ID(networkID)).QueryOrganization()).Only(r.Context())
 }
 
 // ListNetworkPocs maps to "GET /networks/{id}/pocs".
-func (s *Server) ListNetworkPocs(r *http.Request, networkID int, p *ListPocParams) (*PagedResponse[ent.Poc], error) {
-	return p.Exec(r.Context(), s.db.Network.Query().Where(network.ID(networkID)).QueryPocs())
+func (s *Server) ListNetworkPocs(r *http.Request, networkID int, p *ListPocParams) (*PagedResponse[__ent.Poc], error) {
+	return p.Exec(r.Context(), s.db.Network.Query().Where(__network.ID(networkID)).QueryPocs())
 }
 
 // ListNetworkFacilities maps to "GET /network-facilities".
-func (s *Server) ListNetworkFacilities(r *http.Request, p *ListNetworkFacilityParams) (*PagedResponse[ent.NetworkFacility], error) {
+func (s *Server) ListNetworkFacilities(r *http.Request, p *ListNetworkFacilityParams) (*PagedResponse[__ent.NetworkFacility], error) {
 	return p.Exec(r.Context(), s.db.NetworkFacility.Query())
 }
 
 // GetNetworkFacility maps to "GET /network-facilities/{id}".
-func (s *Server) GetNetworkFacility(r *http.Request, networkfacilityID int) (*ent.NetworkFacility, error) {
-	return EagerLoadNetworkFacility(s.db.NetworkFacility.Query().Where(networkfacility.ID(networkfacilityID))).Only(r.Context())
+func (s *Server) GetNetworkFacility(r *http.Request, networkfacilityID int) (*__ent.NetworkFacility, error) {
+	return EagerLoadNetworkFacility(s.db.NetworkFacility.Query().Where(__networkfacility.ID(networkfacilityID))).Only(r.Context())
 }
 
 // GetNetworkFacilityFacility maps to "GET /network-facilities/{id}/facility".
-func (s *Server) GetNetworkFacilityFacility(r *http.Request, networkfacilityID int) (*ent.Facility, error) {
-	return EagerLoadFacility(s.db.NetworkFacility.Query().Where(networkfacility.ID(networkfacilityID)).QueryFacility()).Only(r.Context())
+func (s *Server) GetNetworkFacilityFacility(r *http.Request, networkfacilityID int) (*__ent.Facility, error) {
+	return EagerLoadFacility(s.db.NetworkFacility.Query().Where(__networkfacility.ID(networkfacilityID)).QueryFacility()).Only(r.Context())
 }
 
 // GetNetworkFacilityNetwork maps to "GET /network-facilities/{id}/network".
-func (s *Server) GetNetworkFacilityNetwork(r *http.Request, networkfacilityID int) (*ent.Network, error) {
-	return EagerLoadNetwork(s.db.NetworkFacility.Query().Where(networkfacility.ID(networkfacilityID)).QueryNetwork()).Only(r.Context())
+func (s *Server) GetNetworkFacilityNetwork(r *http.Request, networkfacilityID int) (*__ent.Network, error) {
+	return EagerLoadNetwork(s.db.NetworkFacility.Query().Where(__networkfacility.ID(networkfacilityID)).QueryNetwork()).Only(r.Context())
 }
 
 // ListNetworkIxLans maps to "GET /network-ix-lans".
-func (s *Server) ListNetworkIxLans(r *http.Request, p *ListNetworkIxLanParams) (*PagedResponse[ent.NetworkIxLan], error) {
+func (s *Server) ListNetworkIxLans(r *http.Request, p *ListNetworkIxLanParams) (*PagedResponse[__ent.NetworkIxLan], error) {
 	return p.Exec(r.Context(), s.db.NetworkIxLan.Query())
 }
 
 // GetNetworkIxLan maps to "GET /network-ix-lans/{id}".
-func (s *Server) GetNetworkIxLan(r *http.Request, networkixlanID int) (*ent.NetworkIxLan, error) {
-	return EagerLoadNetworkIxLan(s.db.NetworkIxLan.Query().Where(networkixlan.ID(networkixlanID))).Only(r.Context())
+func (s *Server) GetNetworkIxLan(r *http.Request, networkixlanID int) (*__ent.NetworkIxLan, error) {
+	return EagerLoadNetworkIxLan(s.db.NetworkIxLan.Query().Where(__networkixlan.ID(networkixlanID))).Only(r.Context())
 }
 
 // GetNetworkIxLanIxLan maps to "GET /network-ix-lans/{id}/ix-lan".
-func (s *Server) GetNetworkIxLanIxLan(r *http.Request, networkixlanID int) (*ent.IxLan, error) {
-	return EagerLoadIxLan(s.db.NetworkIxLan.Query().Where(networkixlan.ID(networkixlanID)).QueryIxLan()).Only(r.Context())
+func (s *Server) GetNetworkIxLanIxLan(r *http.Request, networkixlanID int) (*__ent.IxLan, error) {
+	return EagerLoadIxLan(s.db.NetworkIxLan.Query().Where(__networkixlan.ID(networkixlanID)).QueryIxLan()).Only(r.Context())
 }
 
 // GetNetworkIxLanNetwork maps to "GET /network-ix-lans/{id}/network".
-func (s *Server) GetNetworkIxLanNetwork(r *http.Request, networkixlanID int) (*ent.Network, error) {
-	return EagerLoadNetwork(s.db.NetworkIxLan.Query().Where(networkixlan.ID(networkixlanID)).QueryNetwork()).Only(r.Context())
+func (s *Server) GetNetworkIxLanNetwork(r *http.Request, networkixlanID int) (*__ent.Network, error) {
+	return EagerLoadNetwork(s.db.NetworkIxLan.Query().Where(__networkixlan.ID(networkixlanID)).QueryNetwork()).Only(r.Context())
 }
 
 // ListOrganizations maps to "GET /organizations".
-func (s *Server) ListOrganizations(r *http.Request, p *ListOrganizationParams) (*PagedResponse[ent.Organization], error) {
+func (s *Server) ListOrganizations(r *http.Request, p *ListOrganizationParams) (*PagedResponse[__ent.Organization], error) {
 	return p.Exec(r.Context(), s.db.Organization.Query())
 }
 
 // GetOrganization maps to "GET /organizations/{id}".
-func (s *Server) GetOrganization(r *http.Request, organizationID int) (*ent.Organization, error) {
-	return EagerLoadOrganization(s.db.Organization.Query().Where(organization.ID(organizationID))).Only(r.Context())
+func (s *Server) GetOrganization(r *http.Request, organizationID int) (*__ent.Organization, error) {
+	return EagerLoadOrganization(s.db.Organization.Query().Where(__organization.ID(organizationID))).Only(r.Context())
 }
 
 // ListOrganizationCampuses maps to "GET /organizations/{id}/campuses".
-func (s *Server) ListOrganizationCampuses(r *http.Request, organizationID int, p *ListCampusParams) (*PagedResponse[ent.Campus], error) {
-	return p.Exec(r.Context(), s.db.Organization.Query().Where(organization.ID(organizationID)).QueryCampuses())
+func (s *Server) ListOrganizationCampuses(r *http.Request, organizationID int, p *ListCampusParams) (*PagedResponse[__ent.Campus], error) {
+	return p.Exec(r.Context(), s.db.Organization.Query().Where(__organization.ID(organizationID)).QueryCampuses())
 }
 
 // ListOrganizationCarriers maps to "GET /organizations/{id}/carriers".
-func (s *Server) ListOrganizationCarriers(r *http.Request, organizationID int, p *ListCarrierParams) (*PagedResponse[ent.Carrier], error) {
-	return p.Exec(r.Context(), s.db.Organization.Query().Where(organization.ID(organizationID)).QueryCarriers())
+func (s *Server) ListOrganizationCarriers(r *http.Request, organizationID int, p *ListCarrierParams) (*PagedResponse[__ent.Carrier], error) {
+	return p.Exec(r.Context(), s.db.Organization.Query().Where(__organization.ID(organizationID)).QueryCarriers())
 }
 
 // ListOrganizationFacilities maps to "GET /organizations/{id}/facilities".
-func (s *Server) ListOrganizationFacilities(r *http.Request, organizationID int, p *ListFacilityParams) (*PagedResponse[ent.Facility], error) {
-	return p.Exec(r.Context(), s.db.Organization.Query().Where(organization.ID(organizationID)).QueryFacilities())
+func (s *Server) ListOrganizationFacilities(r *http.Request, organizationID int, p *ListFacilityParams) (*PagedResponse[__ent.Facility], error) {
+	return p.Exec(r.Context(), s.db.Organization.Query().Where(__organization.ID(organizationID)).QueryFacilities())
 }
 
 // ListOrganizationInternetExchanges maps to "GET /organizations/{id}/internet-exchanges".
-func (s *Server) ListOrganizationInternetExchanges(r *http.Request, organizationID int, p *ListInternetExchangeParams) (*PagedResponse[ent.InternetExchange], error) {
-	return p.Exec(r.Context(), s.db.Organization.Query().Where(organization.ID(organizationID)).QueryInternetExchanges())
+func (s *Server) ListOrganizationInternetExchanges(r *http.Request, organizationID int, p *ListInternetExchangeParams) (*PagedResponse[__ent.InternetExchange], error) {
+	return p.Exec(r.Context(), s.db.Organization.Query().Where(__organization.ID(organizationID)).QueryInternetExchanges())
 }
 
 // ListOrganizationNetworks maps to "GET /organizations/{id}/networks".
-func (s *Server) ListOrganizationNetworks(r *http.Request, organizationID int, p *ListNetworkParams) (*PagedResponse[ent.Network], error) {
-	return p.Exec(r.Context(), s.db.Organization.Query().Where(organization.ID(organizationID)).QueryNetworks())
+func (s *Server) ListOrganizationNetworks(r *http.Request, organizationID int, p *ListNetworkParams) (*PagedResponse[__ent.Network], error) {
+	return p.Exec(r.Context(), s.db.Organization.Query().Where(__organization.ID(organizationID)).QueryNetworks())
 }
 
 // ListPocs maps to "GET /pocs".
-func (s *Server) ListPocs(r *http.Request, p *ListPocParams) (*PagedResponse[ent.Poc], error) {
+func (s *Server) ListPocs(r *http.Request, p *ListPocParams) (*PagedResponse[__ent.Poc], error) {
 	return p.Exec(r.Context(), s.db.Poc.Query())
 }
 
 // GetPoc maps to "GET /pocs/{id}".
-func (s *Server) GetPoc(r *http.Request, pocID int) (*ent.Poc, error) {
-	return EagerLoadPoc(s.db.Poc.Query().Where(poc.ID(pocID))).Only(r.Context())
+func (s *Server) GetPoc(r *http.Request, pocID int) (*__ent.Poc, error) {
+	return EagerLoadPoc(s.db.Poc.Query().Where(__poc.ID(pocID))).Only(r.Context())
 }
 
 // GetPocNetwork maps to "GET /pocs/{id}/network".
-func (s *Server) GetPocNetwork(r *http.Request, pocID int) (*ent.Network, error) {
-	return EagerLoadNetwork(s.db.Poc.Query().Where(poc.ID(pocID)).QueryNetwork()).Only(r.Context())
+func (s *Server) GetPocNetwork(r *http.Request, pocID int) (*__ent.Network, error) {
+	return EagerLoadNetwork(s.db.Poc.Query().Where(__poc.ID(pocID)).QueryNetwork()).Only(r.Context())
 }

@@ -8,6 +8,8 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "github.com/dotwaffle/peeringdb-plus/internal/maptiles"
+
 // LayoutOptions carries per-page head configuration for Layout.
 // NeedsMap gates the Leaflet/markercluster includes: only the pages
 // that render a MapContainer pay the ~200 KB of map assets.
@@ -18,6 +20,7 @@ type LayoutOptions struct {
 	Description string
 	Canonical   string
 	NeedsMap    bool
+	MapTiles    maptiles.Config
 }
 
 // mapHead emits the self-hosted Leaflet + markercluster assets and the
@@ -80,7 +83,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(opts.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 50, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 53, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -93,7 +96,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(opts.Title + " - PeeringDB Plus")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 51, Col: 71}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 54, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
@@ -111,7 +114,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(opts.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 54, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 57, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -124,7 +127,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(opts.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 55, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 58, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
@@ -143,7 +146,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 			var templ_7745c5c3_Var7 templ.SafeURL
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(opts.Canonical)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 58, Col: 47}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 61, Col: 47}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -156,7 +159,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(opts.Canonical)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 59, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 62, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -167,17 +170,47 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/static/favicon.svg\"><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><script src=\"/static/theme-init.js\"></script><link rel=\"stylesheet\" href=\"/static/tailwind.css\"><link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css\"><script src=\"/static/htmx.min.js\"></script><script src=\"/static/ui.js\" defer></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/static/favicon.svg\"><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><script src=\"/static/theme-init.js\"></script><link rel=\"stylesheet\" href=\"/static/tailwind.css\"><link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css\"><meta name=\"htmx-config\" content='{\"history\":\"reload\",\"noSwap\":[204,304,\"4xx\",\"5xx\"]}'><script src=\"/static/htmx.min.js\"></script><script src=\"/static/ui.js\" defer></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if opts.NeedsMap {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<meta name=\"pdbplus-map-tile-url\" content=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(opts.MapTiles.URL)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 73, Col: 65}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"><meta name=\"pdbplus-map-tile-attribution\" content=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var10 string
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(opts.MapTiles.Attribution)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `layout.templ`, Line: 74, Col: 81}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 			templ_7745c5c3_Err = mapHead().Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<style>\n\t\t\t\thtml.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {\n\t\t\t\t\ttransition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;\n\t\t\t\t}\n\t\t\t\t@keyframes fadeIn {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(4px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.animate-fade-in { animation: fadeIn 200ms ease-out; }\n\t\t\t\t.htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }\n\t\t\t\t.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }\n\t\t\t\t#spotlight-overlay { opacity: 0; transition: opacity 150ms ease-out; }\n\t\t\t#spotlight-overlay.open { opacity: 1; }\n\t\t\t#global-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; }\n\t\t\t\t.htmx-request #global-indicator, .htmx-request#global-indicator { opacity: 1; transition-delay: 0ms; }\n\t\t\t\tth[data-sortable] { cursor: pointer; user-select: none; position: relative; padding-right: 1.25rem; }\n\t\t\t\tth[data-sortable]::after { content: ''; position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #525252; margin-top: 2px; }\n\t\t\t\tth[data-sort-active=\"asc\"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #10b981; border-bottom: none; margin-top: 0; }\n\t\t\t\tth[data-sort-active=\"desc\"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #10b981; border-top: none; margin-top: 0; }\n\t\t\t</style></head><body class=\"bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col\" hx-indicator=\"#global-indicator\"><div id=\"global-indicator\" class=\"htmx-indicator bg-emerald-500\"><div class=\"h-full w-full bg-emerald-400 animate-pulse\"></div></div><a href=\"#main-content\" class=\"sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-3 focus:py-1.5 focus:rounded\">Skip to content</a>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<style>\n\t\t\t\thtml.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {\n\t\t\t\t\ttransition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;\n\t\t\t\t}\n\t\t\t\t@keyframes fadeIn {\n\t\t\t\t\tfrom { opacity: 0; transform: translateY(4px); }\n\t\t\t\t\tto { opacity: 1; transform: translateY(0); }\n\t\t\t\t}\n\t\t\t\t.animate-fade-in { animation: fadeIn 200ms ease-out; }\n\t\t\t\t.htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }\n\t\t\t\t.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }\n\t\t\t\t#spotlight-overlay { opacity: 0; transition: opacity 150ms ease-out; }\n\t\t\t#spotlight-overlay.open { opacity: 1; }\n\t\t\t#global-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; }\n\t\t\t\t.htmx-request #global-indicator, .htmx-request#global-indicator { opacity: 1; transition-delay: 0ms; }\n\t\t\t\tth[data-sortable] { cursor: pointer; user-select: none; position: relative; padding-right: 1.25rem; }\n\t\t\t\tth[data-sortable]::after { content: ''; position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #525252; margin-top: 2px; }\n\t\t\t\tth[data-sort-active=\"asc\"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #10b981; border-bottom: none; margin-top: 0; }\n\t\t\t\tth[data-sort-active=\"desc\"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #10b981; border-top: none; margin-top: 0; }\n\t\t\t</style></head><body class=\"bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col\" hx-indicator:inherited=\"#global-indicator\"><div id=\"global-indicator\" class=\"htmx-indicator bg-emerald-500\"><div class=\"h-full w-full bg-emerald-400 animate-pulse\"></div></div><a href=\"#main-content\" class=\"sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-3 focus:py-1.5 focus:rounded\">Skip to content</a>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -185,7 +218,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<main id=\"main-content\" class=\"flex-1 container mx-auto px-4 py-8\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<main id=\"main-content\" class=\"flex-1 container mx-auto px-4 py-8\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -193,7 +226,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -201,7 +234,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<!-- Spotlight search overlay --><div id=\"spotlight-overlay\" class=\"hidden fixed inset-0 z-50\" aria-modal=\"true\" role=\"dialog\" aria-label=\"Quick search\"><div id=\"spotlight-backdrop\" class=\"absolute inset-0 bg-black/50 backdrop-blur-sm\"></div><div class=\"relative max-w-2xl mx-auto mt-[15vh] px-4\"><div class=\"bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><form id=\"spotlight-form\"><div class=\"relative\"><svg class=\"absolute left-4 top-3.5 h-5 w-5 text-neutral-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"></path></svg> <input id=\"spotlight-input\" type=\"search\" name=\"q\" placeholder=\"Search networks, IXPs, facilities...\" class=\"w-full bg-transparent pl-12 pr-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none font-mono text-lg\" hx-get=\"/ui/search\" hx-trigger=\"input changed delay:300ms\" hx-target=\"#spotlight-results\" hx-sync=\"this:replace\" hx-push-url=\"false\" hx-vals='{\"spotlight\":\"1\"}' autocomplete=\"off\"> <kbd class=\"absolute right-4 top-3.5 hidden sm:inline-flex items-center px-1.5 py-0.5 text-xs font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600\">esc</kbd></div></form><div id=\"spotlight-results\" class=\"max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0\"></div></div></div></div></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<!-- Spotlight search overlay --><div id=\"spotlight-overlay\" class=\"hidden fixed inset-0 z-50\" aria-modal=\"true\" role=\"dialog\" aria-label=\"Quick search\"><div id=\"spotlight-backdrop\" class=\"absolute inset-0 bg-black/50 backdrop-blur-sm\"></div><div class=\"relative max-w-2xl mx-auto mt-[15vh] px-4\"><div class=\"bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><form id=\"spotlight-form\"><div class=\"relative\"><svg class=\"absolute left-4 top-3.5 h-5 w-5 text-neutral-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"></path></svg> <input id=\"spotlight-input\" type=\"search\" name=\"q\" placeholder=\"Search networks, IXPs, facilities...\" class=\"w-full bg-transparent pl-12 pr-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none font-mono text-lg\" hx-get=\"/ui/search\" hx-trigger=\"input changed delay:300ms\" hx-target=\"#spotlight-results\" hx-sync=\"this:replace\" hx-push-url=\"false\" hx-vals='{\"spotlight\":\"1\"}' autocomplete=\"off\"> <kbd class=\"absolute right-4 top-3.5 hidden sm:inline-flex items-center px-1.5 py-0.5 text-xs font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600\">esc</kbd></div></form><div id=\"spotlight-results\" class=\"max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0\"></div></div></div></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

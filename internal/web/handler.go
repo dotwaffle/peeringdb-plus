@@ -15,6 +15,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/catalog"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
+	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
@@ -42,6 +43,7 @@ type Handler struct {
 	publicTier privctx.Tier // captured from config.Config.PublicTier at startup
 	version    string
 	region     string
+	mapTiles   maptiles.Config
 }
 
 // NewHandlerInput configures a web Handler. Client is required; DB may be
@@ -57,12 +59,16 @@ type NewHandlerInput struct {
 	PublicTier privctx.Tier
 	Version    string
 	Region     string
+	MapTiles   maptiles.Config
 }
 
 // NewHandler creates a web UI handler with integrated search and compare
 // services. Diagnostic values are captured at construction and surface on
 // /ui/about. The input uses named fields so callers cannot transpose them.
 func NewHandler(in NewHandlerInput) *Handler {
+	if in.MapTiles.URL == "" {
+		in.MapTiles = maptiles.Default()
+	}
 	return &Handler{
 		client:     in.Client,
 		catalog:    catalog.NewService(in.Client),
@@ -73,6 +79,7 @@ func NewHandler(in NewHandlerInput) *Handler {
 		publicTier: in.PublicTier,
 		version:    in.Version,
 		region:     in.Region,
+		mapTiles:   in.MapTiles,
 	}
 }
 
@@ -435,6 +442,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 		Data:        data,
 		Freshness:   h.getFreshness(r.Context()),
 		NeedsMap:    true,
+		MapTiles:    h.mapTiles,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render compare", slog.Int("asn1", int(asn1)), slog.Int("asn2", int(asn2)), slog.Any("error", err))

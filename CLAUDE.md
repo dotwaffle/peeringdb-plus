@@ -8,7 +8,7 @@ A high-performance, globally distributed, read-only mirror of PeeringDB data. It
 
 ### Constraints
 
-- **Language**: Go 1.26.7
+- **Language**: Go 1.27.1
 - **ORM**: entgo (non-negotiable — ecosystem drives GraphQL/gRPC/REST generation)
 - **Storage**: SQLite + LiteFS (enables edge distribution without a central database)
 - **Platform**: Fly.io (LiteFS dependency, global edge deployment)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
@@ -697,7 +698,7 @@ func TestFacilityDetail_MapRendered(t *testing.T) {
 	}
 }
 
-func TestLayout_MapDarkModeHook(t *testing.T) {
+func TestLayoutMapConfiguration(t *testing.T) {
 	t.Parallel()
 	mux := setupAllTestMux(t)
 
@@ -714,6 +715,9 @@ func TestLayout_MapDarkModeHook(t *testing.T) {
 		"/static/leaflet.css",
 		"/static/leaflet.js",
 		"/static/map-init.js",
+		`name="pdbplus-map-tile-url" content="` + maptiles.DefaultURL + `"`,
+		`name="pdbplus-map-tile-attribution"`,
+		"OpenStreetMap",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
@@ -721,14 +725,12 @@ func TestLayout_MapDarkModeHook(t *testing.T) {
 		}
 	}
 
-	// The dark-mode tile-layer hook (window.__pdbMaps) moved into the
-	// external map bootstrap when script-src dropped 'unsafe-inline'.
 	js, err := fs.ReadFile(StaticFS, "map-init.js")
 	if err != nil {
 		t.Fatalf("embedded map-init.js missing: %v", err)
 	}
-	if !strings.Contains(string(js), "__pdbMaps") {
-		t.Error("map-init.js missing __pdbMaps dark-mode hook")
+	if strings.Contains(string(js), "basemaps.cartocdn.com") {
+		t.Error("map-init.js still references the key-gated CARTO tile service")
 	}
 }
 

@@ -10,21 +10,21 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/ent/campus"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
-	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/facility"
-	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
-	"github.com/dotwaffle/peeringdb-plus/ent/network"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
-	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
-	"github.com/dotwaffle/peeringdb-plus/ent/organization"
-	"github.com/dotwaffle/peeringdb-plus/ent/poc"
-	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
+	__ent "github.com/dotwaffle/peeringdb-plus/ent"
+	__campus "github.com/dotwaffle/peeringdb-plus/ent/campus"
+	__carrier "github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	__carrierfacility "github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	__facility "github.com/dotwaffle/peeringdb-plus/ent/facility"
+	__internetexchange "github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	__ixfacility "github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	__ixlan "github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	__ixprefix "github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	__network "github.com/dotwaffle/peeringdb-plus/ent/network"
+	__networkfacility "github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
+	__networkixlan "github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	__organization "github.com/dotwaffle/peeringdb-plus/ent/organization"
+	__poc "github.com/dotwaffle/peeringdb-plus/ent/poc"
+	__predicate "github.com/dotwaffle/peeringdb-plus/ent/predicate"
 )
 
 type PageConfig struct {
@@ -271,7 +271,7 @@ var (
 
 type Filtered[P ~func(*sql.Selector)] struct {
 	// FilterOperation controls how multiple predicates are applied together.
-	FilterOperation *FilterOperation `json:"filter_op,omitempty" form:"filter_op,omitempty"`
+	FilterOperation *FilterOperation `json:"filter_op,omitzero" form:"filter_op,omitempty"`
 }
 
 // ApplyFilterOperation applies the requested filter operation (if provided) to the
@@ -290,441 +290,441 @@ func (f *Filtered[P]) ApplyFilterOperation(_predicates ...P) (P, error) {
 // ListCampusParams defines parameters for listing Campus via a GET request.
 type ListCampusParams struct {
 	Sorted
-	Paginated[*ent.CampusQuery, ent.Campus]
-	Filtered[predicate.Campus]
+	Paginated[*__ent.CampusQuery, __ent.Campus]
+	Filtered[__predicate.Campus]
 
 	// Filters field "org_id" to be equal to the provided value.
-	CampusOrgIDEQ *int `form:"orgID.eq,omitempty" json:"campus_org_ideq,omitempty"`
+	CampusOrgIDEQ *int `form:"orgID.eq,omitempty" json:"campus_org_ideq,omitzero"`
 	// Filters field "org_id" to be not equal to the provided value.
-	CampusOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"campus_org_idneq,omitempty"`
+	CampusOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"campus_org_idneq,omitzero"`
 	// Filters field "org_id" to be within the provided values.
-	CampusOrgIDIn []int `form:"orgID.in,omitempty" json:"campus_org_id_in,omitempty"`
+	CampusOrgIDIn []int `form:"orgID.in,omitempty" json:"campus_org_id_in,omitzero"`
 	// Filters field "org_id" to be not within the provided values.
-	CampusOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"campus_org_id_not_in,omitempty"`
+	CampusOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"campus_org_id_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value.
-	CampusAkaEQ *string `form:"aka.eq,omitempty" json:"campus_aka_eq,omitempty"`
+	CampusAkaEQ *string `form:"aka.eq,omitempty" json:"campus_aka_eq,omitzero"`
 	// Filters field "aka" to be not equal to the provided value.
-	CampusAkaNEQ *string `form:"aka.neq,omitempty" json:"campus_aka_neq,omitempty"`
+	CampusAkaNEQ *string `form:"aka.neq,omitempty" json:"campus_aka_neq,omitzero"`
 	// Filters field "aka" to be null/nil.
-	CampusAkaIsNil *bool `form:"aka.null,omitempty" json:"campus_aka_is_nil,omitempty"`
+	CampusAkaIsNil *bool `form:"aka.null,omitempty" json:"campus_aka_is_nil,omitzero"`
 	// Filters field "aka" to be within the provided values.
-	CampusAkaIn []string `form:"aka.in,omitempty" json:"campus_aka_in,omitempty"`
+	CampusAkaIn []string `form:"aka.in,omitempty" json:"campus_aka_in,omitzero"`
 	// Filters field "aka" to be not within the provided values.
-	CampusAkaNotIn []string `form:"aka.notIn,omitempty" json:"campus_aka_not_in,omitempty"`
+	CampusAkaNotIn []string `form:"aka.notIn,omitempty" json:"campus_aka_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value, case-insensitive.
-	CampusAkaEqualFold *string `form:"aka.ieq,omitempty" json:"campus_aka_equal_fold,omitempty"`
+	CampusAkaEqualFold *string `form:"aka.ieq,omitempty" json:"campus_aka_equal_fold,omitzero"`
 	// Filters field "aka" to contain the provided value.
-	CampusAkaContains *string `form:"aka.has,omitempty" json:"campus_aka_contains,omitempty"`
+	CampusAkaContains *string `form:"aka.has,omitempty" json:"campus_aka_contains,omitzero"`
 	// Filters field "aka" to contain the provided value, case-insensitive.
-	CampusAkaContainsFold *string `form:"aka.ihas,omitempty" json:"campus_aka_contains_fold,omitempty"`
+	CampusAkaContainsFold *string `form:"aka.ihas,omitempty" json:"campus_aka_contains_fold,omitzero"`
 	// Filters field "aka" to start with the provided value.
-	CampusAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"campus_aka_has_prefix,omitempty"`
+	CampusAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"campus_aka_has_prefix,omitzero"`
 	// Filters field "aka" to end with the provided value.
-	CampusAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"campus_aka_has_suffix,omitempty"`
+	CampusAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"campus_aka_has_suffix,omitzero"`
 	// Filters field "city" to be equal to the provided value.
-	CampusCityEQ *string `form:"city.eq,omitempty" json:"campus_city_eq,omitempty"`
+	CampusCityEQ *string `form:"city.eq,omitempty" json:"campus_city_eq,omitzero"`
 	// Filters field "city" to be not equal to the provided value.
-	CampusCityNEQ *string `form:"city.neq,omitempty" json:"campus_city_neq,omitempty"`
+	CampusCityNEQ *string `form:"city.neq,omitempty" json:"campus_city_neq,omitzero"`
 	// Filters field "city" to be null/nil.
-	CampusCityIsNil *bool `form:"city.null,omitempty" json:"campus_city_is_nil,omitempty"`
+	CampusCityIsNil *bool `form:"city.null,omitempty" json:"campus_city_is_nil,omitzero"`
 	// Filters field "city" to be within the provided values.
-	CampusCityIn []string `form:"city.in,omitempty" json:"campus_city_in,omitempty"`
+	CampusCityIn []string `form:"city.in,omitempty" json:"campus_city_in,omitzero"`
 	// Filters field "city" to be not within the provided values.
-	CampusCityNotIn []string `form:"city.notIn,omitempty" json:"campus_city_not_in,omitempty"`
+	CampusCityNotIn []string `form:"city.notIn,omitempty" json:"campus_city_not_in,omitzero"`
 	// Filters field "city" to be equal to the provided value, case-insensitive.
-	CampusCityEqualFold *string `form:"city.ieq,omitempty" json:"campus_city_equal_fold,omitempty"`
+	CampusCityEqualFold *string `form:"city.ieq,omitempty" json:"campus_city_equal_fold,omitzero"`
 	// Filters field "city" to contain the provided value.
-	CampusCityContains *string `form:"city.has,omitempty" json:"campus_city_contains,omitempty"`
+	CampusCityContains *string `form:"city.has,omitempty" json:"campus_city_contains,omitzero"`
 	// Filters field "city" to contain the provided value, case-insensitive.
-	CampusCityContainsFold *string `form:"city.ihas,omitempty" json:"campus_city_contains_fold,omitempty"`
+	CampusCityContainsFold *string `form:"city.ihas,omitempty" json:"campus_city_contains_fold,omitzero"`
 	// Filters field "city" to start with the provided value.
-	CampusCityHasPrefix *string `form:"city.prefix,omitempty" json:"campus_city_has_prefix,omitempty"`
+	CampusCityHasPrefix *string `form:"city.prefix,omitempty" json:"campus_city_has_prefix,omitzero"`
 	// Filters field "city" to end with the provided value.
-	CampusCityHasSuffix *string `form:"city.suffix,omitempty" json:"campus_city_has_suffix,omitempty"`
+	CampusCityHasSuffix *string `form:"city.suffix,omitempty" json:"campus_city_has_suffix,omitzero"`
 	// Filters field "country" to be equal to the provided value.
-	CampusCountryEQ *string `form:"country.eq,omitempty" json:"campus_country_eq,omitempty"`
+	CampusCountryEQ *string `form:"country.eq,omitempty" json:"campus_country_eq,omitzero"`
 	// Filters field "country" to be not equal to the provided value.
-	CampusCountryNEQ *string `form:"country.neq,omitempty" json:"campus_country_neq,omitempty"`
+	CampusCountryNEQ *string `form:"country.neq,omitempty" json:"campus_country_neq,omitzero"`
 	// Filters field "country" to be null/nil.
-	CampusCountryIsNil *bool `form:"country.null,omitempty" json:"campus_country_is_nil,omitempty"`
+	CampusCountryIsNil *bool `form:"country.null,omitempty" json:"campus_country_is_nil,omitzero"`
 	// Filters field "country" to be within the provided values.
-	CampusCountryIn []string `form:"country.in,omitempty" json:"campus_country_in,omitempty"`
+	CampusCountryIn []string `form:"country.in,omitempty" json:"campus_country_in,omitzero"`
 	// Filters field "country" to be not within the provided values.
-	CampusCountryNotIn []string `form:"country.notIn,omitempty" json:"campus_country_not_in,omitempty"`
+	CampusCountryNotIn []string `form:"country.notIn,omitempty" json:"campus_country_not_in,omitzero"`
 	// Filters field "country" to be equal to the provided value, case-insensitive.
-	CampusCountryEqualFold *string `form:"country.ieq,omitempty" json:"campus_country_equal_fold,omitempty"`
+	CampusCountryEqualFold *string `form:"country.ieq,omitempty" json:"campus_country_equal_fold,omitzero"`
 	// Filters field "country" to contain the provided value.
-	CampusCountryContains *string `form:"country.has,omitempty" json:"campus_country_contains,omitempty"`
+	CampusCountryContains *string `form:"country.has,omitempty" json:"campus_country_contains,omitzero"`
 	// Filters field "country" to contain the provided value, case-insensitive.
-	CampusCountryContainsFold *string `form:"country.ihas,omitempty" json:"campus_country_contains_fold,omitempty"`
+	CampusCountryContainsFold *string `form:"country.ihas,omitempty" json:"campus_country_contains_fold,omitzero"`
 	// Filters field "country" to start with the provided value.
-	CampusCountryHasPrefix *string `form:"country.prefix,omitempty" json:"campus_country_has_prefix,omitempty"`
+	CampusCountryHasPrefix *string `form:"country.prefix,omitempty" json:"campus_country_has_prefix,omitzero"`
 	// Filters field "country" to end with the provided value.
-	CampusCountryHasSuffix *string `form:"country.suffix,omitempty" json:"campus_country_has_suffix,omitempty"`
+	CampusCountryHasSuffix *string `form:"country.suffix,omitempty" json:"campus_country_has_suffix,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	CampusNameEQ *string `form:"name.eq,omitempty" json:"campus_name_eq,omitempty"`
+	CampusNameEQ *string `form:"name.eq,omitempty" json:"campus_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	CampusNameNEQ *string `form:"name.neq,omitempty" json:"campus_name_neq,omitempty"`
+	CampusNameNEQ *string `form:"name.neq,omitempty" json:"campus_name_neq,omitzero"`
 	// Filters field "name" to be within the provided values.
-	CampusNameIn []string `form:"name.in,omitempty" json:"campus_name_in,omitempty"`
+	CampusNameIn []string `form:"name.in,omitempty" json:"campus_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	CampusNameNotIn []string `form:"name.notIn,omitempty" json:"campus_name_not_in,omitempty"`
+	CampusNameNotIn []string `form:"name.notIn,omitempty" json:"campus_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	CampusNameEqualFold *string `form:"name.ieq,omitempty" json:"campus_name_equal_fold,omitempty"`
+	CampusNameEqualFold *string `form:"name.ieq,omitempty" json:"campus_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	CampusNameContains *string `form:"name.has,omitempty" json:"campus_name_contains,omitempty"`
+	CampusNameContains *string `form:"name.has,omitempty" json:"campus_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	CampusNameContainsFold *string `form:"name.ihas,omitempty" json:"campus_name_contains_fold,omitempty"`
+	CampusNameContainsFold *string `form:"name.ihas,omitempty" json:"campus_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	CampusNameHasPrefix *string `form:"name.prefix,omitempty" json:"campus_name_has_prefix,omitempty"`
+	CampusNameHasPrefix *string `form:"name.prefix,omitempty" json:"campus_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	CampusNameHasSuffix *string `form:"name.suffix,omitempty" json:"campus_name_has_suffix,omitempty"`
+	CampusNameHasSuffix *string `form:"name.suffix,omitempty" json:"campus_name_has_suffix,omitzero"`
 	// Filters field "name_long" to be equal to the provided value.
-	CampusNameLongEQ *string `form:"nameLong.eq,omitempty" json:"campus_name_long_eq,omitempty"`
+	CampusNameLongEQ *string `form:"nameLong.eq,omitempty" json:"campus_name_long_eq,omitzero"`
 	// Filters field "name_long" to be not equal to the provided value.
-	CampusNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"campus_name_long_neq,omitempty"`
+	CampusNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"campus_name_long_neq,omitzero"`
 	// Filters field "name_long" to be null/nil.
-	CampusNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"campus_name_long_is_nil,omitempty"`
+	CampusNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"campus_name_long_is_nil,omitzero"`
 	// Filters field "name_long" to be within the provided values.
-	CampusNameLongIn []string `form:"nameLong.in,omitempty" json:"campus_name_long_in,omitempty"`
+	CampusNameLongIn []string `form:"nameLong.in,omitempty" json:"campus_name_long_in,omitzero"`
 	// Filters field "name_long" to be not within the provided values.
-	CampusNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"campus_name_long_not_in,omitempty"`
+	CampusNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"campus_name_long_not_in,omitzero"`
 	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	CampusNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"campus_name_long_equal_fold,omitempty"`
+	CampusNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"campus_name_long_equal_fold,omitzero"`
 	// Filters field "name_long" to contain the provided value.
-	CampusNameLongContains *string `form:"nameLong.has,omitempty" json:"campus_name_long_contains,omitempty"`
+	CampusNameLongContains *string `form:"nameLong.has,omitempty" json:"campus_name_long_contains,omitzero"`
 	// Filters field "name_long" to contain the provided value, case-insensitive.
-	CampusNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"campus_name_long_contains_fold,omitempty"`
+	CampusNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"campus_name_long_contains_fold,omitzero"`
 	// Filters field "name_long" to start with the provided value.
-	CampusNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"campus_name_long_has_prefix,omitempty"`
+	CampusNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"campus_name_long_has_prefix,omitzero"`
 	// Filters field "name_long" to end with the provided value.
-	CampusNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"campus_name_long_has_suffix,omitempty"`
+	CampusNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"campus_name_long_has_suffix,omitzero"`
 	// Filters field "state" to be equal to the provided value.
-	CampusStateEQ *string `form:"state.eq,omitempty" json:"campus_state_eq,omitempty"`
+	CampusStateEQ *string `form:"state.eq,omitempty" json:"campus_state_eq,omitzero"`
 	// Filters field "state" to be not equal to the provided value.
-	CampusStateNEQ *string `form:"state.neq,omitempty" json:"campus_state_neq,omitempty"`
+	CampusStateNEQ *string `form:"state.neq,omitempty" json:"campus_state_neq,omitzero"`
 	// Filters field "state" to be null/nil.
-	CampusStateIsNil *bool `form:"state.null,omitempty" json:"campus_state_is_nil,omitempty"`
+	CampusStateIsNil *bool `form:"state.null,omitempty" json:"campus_state_is_nil,omitzero"`
 	// Filters field "state" to be within the provided values.
-	CampusStateIn []string `form:"state.in,omitempty" json:"campus_state_in,omitempty"`
+	CampusStateIn []string `form:"state.in,omitempty" json:"campus_state_in,omitzero"`
 	// Filters field "state" to be not within the provided values.
-	CampusStateNotIn []string `form:"state.notIn,omitempty" json:"campus_state_not_in,omitempty"`
+	CampusStateNotIn []string `form:"state.notIn,omitempty" json:"campus_state_not_in,omitzero"`
 	// Filters field "state" to be equal to the provided value, case-insensitive.
-	CampusStateEqualFold *string `form:"state.ieq,omitempty" json:"campus_state_equal_fold,omitempty"`
+	CampusStateEqualFold *string `form:"state.ieq,omitempty" json:"campus_state_equal_fold,omitzero"`
 	// Filters field "state" to contain the provided value.
-	CampusStateContains *string `form:"state.has,omitempty" json:"campus_state_contains,omitempty"`
+	CampusStateContains *string `form:"state.has,omitempty" json:"campus_state_contains,omitzero"`
 	// Filters field "state" to contain the provided value, case-insensitive.
-	CampusStateContainsFold *string `form:"state.ihas,omitempty" json:"campus_state_contains_fold,omitempty"`
+	CampusStateContainsFold *string `form:"state.ihas,omitempty" json:"campus_state_contains_fold,omitzero"`
 	// Filters field "state" to start with the provided value.
-	CampusStateHasPrefix *string `form:"state.prefix,omitempty" json:"campus_state_has_prefix,omitempty"`
+	CampusStateHasPrefix *string `form:"state.prefix,omitempty" json:"campus_state_has_prefix,omitzero"`
 	// Filters field "state" to end with the provided value.
-	CampusStateHasSuffix *string `form:"state.suffix,omitempty" json:"campus_state_has_suffix,omitempty"`
+	CampusStateHasSuffix *string `form:"state.suffix,omitempty" json:"campus_state_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	CampusCreatedGT *time.Time `form:"created.gt,omitempty" json:"campus_created_gt,omitempty"`
+	CampusCreatedGT *time.Time `form:"created.gt,omitempty" json:"campus_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	CampusCreatedGTE *time.Time `form:"created.gte,omitempty" json:"campus_created_gte,omitempty"`
+	CampusCreatedGTE *time.Time `form:"created.gte,omitempty" json:"campus_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	CampusCreatedLT *time.Time `form:"created.lt,omitempty" json:"campus_created_lt,omitempty"`
+	CampusCreatedLT *time.Time `form:"created.lt,omitempty" json:"campus_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	CampusCreatedLTE *time.Time `form:"created.lte,omitempty" json:"campus_created_lte,omitempty"`
+	CampusCreatedLTE *time.Time `form:"created.lte,omitempty" json:"campus_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	CampusUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"campus_updated_gt,omitempty"`
+	CampusUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"campus_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	CampusUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"campus_updated_gte,omitempty"`
+	CampusUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"campus_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	CampusUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"campus_updated_lt,omitempty"`
+	CampusUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"campus_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	CampusUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"campus_updated_lte,omitempty"`
+	CampusUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"campus_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	CampusStatusEQ *string `form:"status.eq,omitempty" json:"campus_status_eq,omitempty"`
+	CampusStatusEQ *string `form:"status.eq,omitempty" json:"campus_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	CampusStatusNEQ *string `form:"status.neq,omitempty" json:"campus_status_neq,omitempty"`
+	CampusStatusNEQ *string `form:"status.neq,omitempty" json:"campus_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	CampusStatusIn []string `form:"status.in,omitempty" json:"campus_status_in,omitempty"`
+	CampusStatusIn []string `form:"status.in,omitempty" json:"campus_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	CampusStatusNotIn []string `form:"status.notIn,omitempty" json:"campus_status_not_in,omitempty"`
+	CampusStatusNotIn []string `form:"status.notIn,omitempty" json:"campus_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	CampusStatusEqualFold *string `form:"status.ieq,omitempty" json:"campus_status_equal_fold,omitempty"`
+	CampusStatusEqualFold *string `form:"status.ieq,omitempty" json:"campus_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	CampusStatusContains *string `form:"status.has,omitempty" json:"campus_status_contains,omitempty"`
+	CampusStatusContains *string `form:"status.has,omitempty" json:"campus_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	CampusStatusContainsFold *string `form:"status.ihas,omitempty" json:"campus_status_contains_fold,omitempty"`
+	CampusStatusContainsFold *string `form:"status.ihas,omitempty" json:"campus_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	CampusStatusHasPrefix *string `form:"status.prefix,omitempty" json:"campus_status_has_prefix,omitempty"`
+	CampusStatusHasPrefix *string `form:"status.prefix,omitempty" json:"campus_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	CampusStatusHasSuffix *string `form:"status.suffix,omitempty" json:"campus_status_has_suffix,omitempty"`
+	CampusStatusHasSuffix *string `form:"status.suffix,omitempty" json:"campus_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in Campus.
-func (l *ListCampusParams) FilterPredicates() (predicate.Campus, error) {
-	var _predicates []predicate.Campus
+func (l *ListCampusParams) FilterPredicates() (__predicate.Campus, error) {
+	var _predicates []__predicate.Campus
 
 	if l.CampusOrgIDEQ != nil {
-		_predicates = append(_predicates, campus.OrgIDEQ(*l.CampusOrgIDEQ))
+		_predicates = append(_predicates, __campus.OrgIDEQ(*l.CampusOrgIDEQ))
 	}
 	if l.CampusOrgIDNEQ != nil {
-		_predicates = append(_predicates, campus.OrgIDNEQ(*l.CampusOrgIDNEQ))
+		_predicates = append(_predicates, __campus.OrgIDNEQ(*l.CampusOrgIDNEQ))
 	}
 	if l.CampusOrgIDIn != nil {
-		_predicates = append(_predicates, campus.OrgIDIn(l.CampusOrgIDIn...))
+		_predicates = append(_predicates, __campus.OrgIDIn(l.CampusOrgIDIn...))
 	}
 	if l.CampusOrgIDNotIn != nil {
-		_predicates = append(_predicates, campus.OrgIDNotIn(l.CampusOrgIDNotIn...))
+		_predicates = append(_predicates, __campus.OrgIDNotIn(l.CampusOrgIDNotIn...))
 	}
 	if l.CampusAkaEQ != nil {
-		_predicates = append(_predicates, campus.AkaEQ(*l.CampusAkaEQ))
+		_predicates = append(_predicates, __campus.AkaEQ(*l.CampusAkaEQ))
 	}
 	if l.CampusAkaNEQ != nil {
-		_predicates = append(_predicates, campus.AkaNEQ(*l.CampusAkaNEQ))
+		_predicates = append(_predicates, __campus.AkaNEQ(*l.CampusAkaNEQ))
 	}
 	if l.CampusAkaIsNil != nil {
 		if *l.CampusAkaIsNil {
-			_predicates = append(_predicates, campus.AkaIsNil())
+			_predicates = append(_predicates, __campus.AkaIsNil())
 		} else {
-			_predicates = append(_predicates, campus.Not(campus.AkaIsNil()))
+			_predicates = append(_predicates, __campus.Not(__campus.AkaIsNil()))
 		}
 	}
 	if l.CampusAkaIn != nil {
-		_predicates = append(_predicates, campus.AkaIn(l.CampusAkaIn...))
+		_predicates = append(_predicates, __campus.AkaIn(l.CampusAkaIn...))
 	}
 	if l.CampusAkaNotIn != nil {
-		_predicates = append(_predicates, campus.AkaNotIn(l.CampusAkaNotIn...))
+		_predicates = append(_predicates, __campus.AkaNotIn(l.CampusAkaNotIn...))
 	}
 	if l.CampusAkaEqualFold != nil {
-		_predicates = append(_predicates, campus.AkaEqualFold(*l.CampusAkaEqualFold))
+		_predicates = append(_predicates, __campus.AkaEqualFold(*l.CampusAkaEqualFold))
 	}
 	if l.CampusAkaContains != nil {
-		_predicates = append(_predicates, campus.AkaContains(*l.CampusAkaContains))
+		_predicates = append(_predicates, __campus.AkaContains(*l.CampusAkaContains))
 	}
 	if l.CampusAkaContainsFold != nil {
-		_predicates = append(_predicates, campus.AkaContainsFold(*l.CampusAkaContainsFold))
+		_predicates = append(_predicates, __campus.AkaContainsFold(*l.CampusAkaContainsFold))
 	}
 	if l.CampusAkaHasPrefix != nil {
-		_predicates = append(_predicates, campus.AkaHasPrefix(*l.CampusAkaHasPrefix))
+		_predicates = append(_predicates, __campus.AkaHasPrefix(*l.CampusAkaHasPrefix))
 	}
 	if l.CampusAkaHasSuffix != nil {
-		_predicates = append(_predicates, campus.AkaHasSuffix(*l.CampusAkaHasSuffix))
+		_predicates = append(_predicates, __campus.AkaHasSuffix(*l.CampusAkaHasSuffix))
 	}
 	if l.CampusCityEQ != nil {
-		_predicates = append(_predicates, campus.CityEQ(*l.CampusCityEQ))
+		_predicates = append(_predicates, __campus.CityEQ(*l.CampusCityEQ))
 	}
 	if l.CampusCityNEQ != nil {
-		_predicates = append(_predicates, campus.CityNEQ(*l.CampusCityNEQ))
+		_predicates = append(_predicates, __campus.CityNEQ(*l.CampusCityNEQ))
 	}
 	if l.CampusCityIsNil != nil {
 		if *l.CampusCityIsNil {
-			_predicates = append(_predicates, campus.CityIsNil())
+			_predicates = append(_predicates, __campus.CityIsNil())
 		} else {
-			_predicates = append(_predicates, campus.Not(campus.CityIsNil()))
+			_predicates = append(_predicates, __campus.Not(__campus.CityIsNil()))
 		}
 	}
 	if l.CampusCityIn != nil {
-		_predicates = append(_predicates, campus.CityIn(l.CampusCityIn...))
+		_predicates = append(_predicates, __campus.CityIn(l.CampusCityIn...))
 	}
 	if l.CampusCityNotIn != nil {
-		_predicates = append(_predicates, campus.CityNotIn(l.CampusCityNotIn...))
+		_predicates = append(_predicates, __campus.CityNotIn(l.CampusCityNotIn...))
 	}
 	if l.CampusCityEqualFold != nil {
-		_predicates = append(_predicates, campus.CityEqualFold(*l.CampusCityEqualFold))
+		_predicates = append(_predicates, __campus.CityEqualFold(*l.CampusCityEqualFold))
 	}
 	if l.CampusCityContains != nil {
-		_predicates = append(_predicates, campus.CityContains(*l.CampusCityContains))
+		_predicates = append(_predicates, __campus.CityContains(*l.CampusCityContains))
 	}
 	if l.CampusCityContainsFold != nil {
-		_predicates = append(_predicates, campus.CityContainsFold(*l.CampusCityContainsFold))
+		_predicates = append(_predicates, __campus.CityContainsFold(*l.CampusCityContainsFold))
 	}
 	if l.CampusCityHasPrefix != nil {
-		_predicates = append(_predicates, campus.CityHasPrefix(*l.CampusCityHasPrefix))
+		_predicates = append(_predicates, __campus.CityHasPrefix(*l.CampusCityHasPrefix))
 	}
 	if l.CampusCityHasSuffix != nil {
-		_predicates = append(_predicates, campus.CityHasSuffix(*l.CampusCityHasSuffix))
+		_predicates = append(_predicates, __campus.CityHasSuffix(*l.CampusCityHasSuffix))
 	}
 	if l.CampusCountryEQ != nil {
-		_predicates = append(_predicates, campus.CountryEQ(*l.CampusCountryEQ))
+		_predicates = append(_predicates, __campus.CountryEQ(*l.CampusCountryEQ))
 	}
 	if l.CampusCountryNEQ != nil {
-		_predicates = append(_predicates, campus.CountryNEQ(*l.CampusCountryNEQ))
+		_predicates = append(_predicates, __campus.CountryNEQ(*l.CampusCountryNEQ))
 	}
 	if l.CampusCountryIsNil != nil {
 		if *l.CampusCountryIsNil {
-			_predicates = append(_predicates, campus.CountryIsNil())
+			_predicates = append(_predicates, __campus.CountryIsNil())
 		} else {
-			_predicates = append(_predicates, campus.Not(campus.CountryIsNil()))
+			_predicates = append(_predicates, __campus.Not(__campus.CountryIsNil()))
 		}
 	}
 	if l.CampusCountryIn != nil {
-		_predicates = append(_predicates, campus.CountryIn(l.CampusCountryIn...))
+		_predicates = append(_predicates, __campus.CountryIn(l.CampusCountryIn...))
 	}
 	if l.CampusCountryNotIn != nil {
-		_predicates = append(_predicates, campus.CountryNotIn(l.CampusCountryNotIn...))
+		_predicates = append(_predicates, __campus.CountryNotIn(l.CampusCountryNotIn...))
 	}
 	if l.CampusCountryEqualFold != nil {
-		_predicates = append(_predicates, campus.CountryEqualFold(*l.CampusCountryEqualFold))
+		_predicates = append(_predicates, __campus.CountryEqualFold(*l.CampusCountryEqualFold))
 	}
 	if l.CampusCountryContains != nil {
-		_predicates = append(_predicates, campus.CountryContains(*l.CampusCountryContains))
+		_predicates = append(_predicates, __campus.CountryContains(*l.CampusCountryContains))
 	}
 	if l.CampusCountryContainsFold != nil {
-		_predicates = append(_predicates, campus.CountryContainsFold(*l.CampusCountryContainsFold))
+		_predicates = append(_predicates, __campus.CountryContainsFold(*l.CampusCountryContainsFold))
 	}
 	if l.CampusCountryHasPrefix != nil {
-		_predicates = append(_predicates, campus.CountryHasPrefix(*l.CampusCountryHasPrefix))
+		_predicates = append(_predicates, __campus.CountryHasPrefix(*l.CampusCountryHasPrefix))
 	}
 	if l.CampusCountryHasSuffix != nil {
-		_predicates = append(_predicates, campus.CountryHasSuffix(*l.CampusCountryHasSuffix))
+		_predicates = append(_predicates, __campus.CountryHasSuffix(*l.CampusCountryHasSuffix))
 	}
 	if l.CampusNameEQ != nil {
-		_predicates = append(_predicates, campus.NameEQ(*l.CampusNameEQ))
+		_predicates = append(_predicates, __campus.NameEQ(*l.CampusNameEQ))
 	}
 	if l.CampusNameNEQ != nil {
-		_predicates = append(_predicates, campus.NameNEQ(*l.CampusNameNEQ))
+		_predicates = append(_predicates, __campus.NameNEQ(*l.CampusNameNEQ))
 	}
 	if l.CampusNameIn != nil {
-		_predicates = append(_predicates, campus.NameIn(l.CampusNameIn...))
+		_predicates = append(_predicates, __campus.NameIn(l.CampusNameIn...))
 	}
 	if l.CampusNameNotIn != nil {
-		_predicates = append(_predicates, campus.NameNotIn(l.CampusNameNotIn...))
+		_predicates = append(_predicates, __campus.NameNotIn(l.CampusNameNotIn...))
 	}
 	if l.CampusNameEqualFold != nil {
-		_predicates = append(_predicates, campus.NameEqualFold(*l.CampusNameEqualFold))
+		_predicates = append(_predicates, __campus.NameEqualFold(*l.CampusNameEqualFold))
 	}
 	if l.CampusNameContains != nil {
-		_predicates = append(_predicates, campus.NameContains(*l.CampusNameContains))
+		_predicates = append(_predicates, __campus.NameContains(*l.CampusNameContains))
 	}
 	if l.CampusNameContainsFold != nil {
-		_predicates = append(_predicates, campus.NameContainsFold(*l.CampusNameContainsFold))
+		_predicates = append(_predicates, __campus.NameContainsFold(*l.CampusNameContainsFold))
 	}
 	if l.CampusNameHasPrefix != nil {
-		_predicates = append(_predicates, campus.NameHasPrefix(*l.CampusNameHasPrefix))
+		_predicates = append(_predicates, __campus.NameHasPrefix(*l.CampusNameHasPrefix))
 	}
 	if l.CampusNameHasSuffix != nil {
-		_predicates = append(_predicates, campus.NameHasSuffix(*l.CampusNameHasSuffix))
+		_predicates = append(_predicates, __campus.NameHasSuffix(*l.CampusNameHasSuffix))
 	}
 	if l.CampusNameLongEQ != nil {
-		_predicates = append(_predicates, campus.NameLongEQ(*l.CampusNameLongEQ))
+		_predicates = append(_predicates, __campus.NameLongEQ(*l.CampusNameLongEQ))
 	}
 	if l.CampusNameLongNEQ != nil {
-		_predicates = append(_predicates, campus.NameLongNEQ(*l.CampusNameLongNEQ))
+		_predicates = append(_predicates, __campus.NameLongNEQ(*l.CampusNameLongNEQ))
 	}
 	if l.CampusNameLongIsNil != nil {
 		if *l.CampusNameLongIsNil {
-			_predicates = append(_predicates, campus.NameLongIsNil())
+			_predicates = append(_predicates, __campus.NameLongIsNil())
 		} else {
-			_predicates = append(_predicates, campus.Not(campus.NameLongIsNil()))
+			_predicates = append(_predicates, __campus.Not(__campus.NameLongIsNil()))
 		}
 	}
 	if l.CampusNameLongIn != nil {
-		_predicates = append(_predicates, campus.NameLongIn(l.CampusNameLongIn...))
+		_predicates = append(_predicates, __campus.NameLongIn(l.CampusNameLongIn...))
 	}
 	if l.CampusNameLongNotIn != nil {
-		_predicates = append(_predicates, campus.NameLongNotIn(l.CampusNameLongNotIn...))
+		_predicates = append(_predicates, __campus.NameLongNotIn(l.CampusNameLongNotIn...))
 	}
 	if l.CampusNameLongEqualFold != nil {
-		_predicates = append(_predicates, campus.NameLongEqualFold(*l.CampusNameLongEqualFold))
+		_predicates = append(_predicates, __campus.NameLongEqualFold(*l.CampusNameLongEqualFold))
 	}
 	if l.CampusNameLongContains != nil {
-		_predicates = append(_predicates, campus.NameLongContains(*l.CampusNameLongContains))
+		_predicates = append(_predicates, __campus.NameLongContains(*l.CampusNameLongContains))
 	}
 	if l.CampusNameLongContainsFold != nil {
-		_predicates = append(_predicates, campus.NameLongContainsFold(*l.CampusNameLongContainsFold))
+		_predicates = append(_predicates, __campus.NameLongContainsFold(*l.CampusNameLongContainsFold))
 	}
 	if l.CampusNameLongHasPrefix != nil {
-		_predicates = append(_predicates, campus.NameLongHasPrefix(*l.CampusNameLongHasPrefix))
+		_predicates = append(_predicates, __campus.NameLongHasPrefix(*l.CampusNameLongHasPrefix))
 	}
 	if l.CampusNameLongHasSuffix != nil {
-		_predicates = append(_predicates, campus.NameLongHasSuffix(*l.CampusNameLongHasSuffix))
+		_predicates = append(_predicates, __campus.NameLongHasSuffix(*l.CampusNameLongHasSuffix))
 	}
 	if l.CampusStateEQ != nil {
-		_predicates = append(_predicates, campus.StateEQ(*l.CampusStateEQ))
+		_predicates = append(_predicates, __campus.StateEQ(*l.CampusStateEQ))
 	}
 	if l.CampusStateNEQ != nil {
-		_predicates = append(_predicates, campus.StateNEQ(*l.CampusStateNEQ))
+		_predicates = append(_predicates, __campus.StateNEQ(*l.CampusStateNEQ))
 	}
 	if l.CampusStateIsNil != nil {
 		if *l.CampusStateIsNil {
-			_predicates = append(_predicates, campus.StateIsNil())
+			_predicates = append(_predicates, __campus.StateIsNil())
 		} else {
-			_predicates = append(_predicates, campus.Not(campus.StateIsNil()))
+			_predicates = append(_predicates, __campus.Not(__campus.StateIsNil()))
 		}
 	}
 	if l.CampusStateIn != nil {
-		_predicates = append(_predicates, campus.StateIn(l.CampusStateIn...))
+		_predicates = append(_predicates, __campus.StateIn(l.CampusStateIn...))
 	}
 	if l.CampusStateNotIn != nil {
-		_predicates = append(_predicates, campus.StateNotIn(l.CampusStateNotIn...))
+		_predicates = append(_predicates, __campus.StateNotIn(l.CampusStateNotIn...))
 	}
 	if l.CampusStateEqualFold != nil {
-		_predicates = append(_predicates, campus.StateEqualFold(*l.CampusStateEqualFold))
+		_predicates = append(_predicates, __campus.StateEqualFold(*l.CampusStateEqualFold))
 	}
 	if l.CampusStateContains != nil {
-		_predicates = append(_predicates, campus.StateContains(*l.CampusStateContains))
+		_predicates = append(_predicates, __campus.StateContains(*l.CampusStateContains))
 	}
 	if l.CampusStateContainsFold != nil {
-		_predicates = append(_predicates, campus.StateContainsFold(*l.CampusStateContainsFold))
+		_predicates = append(_predicates, __campus.StateContainsFold(*l.CampusStateContainsFold))
 	}
 	if l.CampusStateHasPrefix != nil {
-		_predicates = append(_predicates, campus.StateHasPrefix(*l.CampusStateHasPrefix))
+		_predicates = append(_predicates, __campus.StateHasPrefix(*l.CampusStateHasPrefix))
 	}
 	if l.CampusStateHasSuffix != nil {
-		_predicates = append(_predicates, campus.StateHasSuffix(*l.CampusStateHasSuffix))
+		_predicates = append(_predicates, __campus.StateHasSuffix(*l.CampusStateHasSuffix))
 	}
 	if l.CampusCreatedGT != nil {
-		_predicates = append(_predicates, campus.CreatedGT(*l.CampusCreatedGT))
+		_predicates = append(_predicates, __campus.CreatedGT(*l.CampusCreatedGT))
 	}
 	if l.CampusCreatedGTE != nil {
-		_predicates = append(_predicates, campus.CreatedGTE(*l.CampusCreatedGTE))
+		_predicates = append(_predicates, __campus.CreatedGTE(*l.CampusCreatedGTE))
 	}
 	if l.CampusCreatedLT != nil {
-		_predicates = append(_predicates, campus.CreatedLT(*l.CampusCreatedLT))
+		_predicates = append(_predicates, __campus.CreatedLT(*l.CampusCreatedLT))
 	}
 	if l.CampusCreatedLTE != nil {
-		_predicates = append(_predicates, campus.CreatedLTE(*l.CampusCreatedLTE))
+		_predicates = append(_predicates, __campus.CreatedLTE(*l.CampusCreatedLTE))
 	}
 	if l.CampusUpdatedGT != nil {
-		_predicates = append(_predicates, campus.UpdatedGT(*l.CampusUpdatedGT))
+		_predicates = append(_predicates, __campus.UpdatedGT(*l.CampusUpdatedGT))
 	}
 	if l.CampusUpdatedGTE != nil {
-		_predicates = append(_predicates, campus.UpdatedGTE(*l.CampusUpdatedGTE))
+		_predicates = append(_predicates, __campus.UpdatedGTE(*l.CampusUpdatedGTE))
 	}
 	if l.CampusUpdatedLT != nil {
-		_predicates = append(_predicates, campus.UpdatedLT(*l.CampusUpdatedLT))
+		_predicates = append(_predicates, __campus.UpdatedLT(*l.CampusUpdatedLT))
 	}
 	if l.CampusUpdatedLTE != nil {
-		_predicates = append(_predicates, campus.UpdatedLTE(*l.CampusUpdatedLTE))
+		_predicates = append(_predicates, __campus.UpdatedLTE(*l.CampusUpdatedLTE))
 	}
 	if l.CampusStatusEQ != nil {
-		_predicates = append(_predicates, campus.StatusEQ(*l.CampusStatusEQ))
+		_predicates = append(_predicates, __campus.StatusEQ(*l.CampusStatusEQ))
 	}
 	if l.CampusStatusNEQ != nil {
-		_predicates = append(_predicates, campus.StatusNEQ(*l.CampusStatusNEQ))
+		_predicates = append(_predicates, __campus.StatusNEQ(*l.CampusStatusNEQ))
 	}
 	if l.CampusStatusIn != nil {
-		_predicates = append(_predicates, campus.StatusIn(l.CampusStatusIn...))
+		_predicates = append(_predicates, __campus.StatusIn(l.CampusStatusIn...))
 	}
 	if l.CampusStatusNotIn != nil {
-		_predicates = append(_predicates, campus.StatusNotIn(l.CampusStatusNotIn...))
+		_predicates = append(_predicates, __campus.StatusNotIn(l.CampusStatusNotIn...))
 	}
 	if l.CampusStatusEqualFold != nil {
-		_predicates = append(_predicates, campus.StatusEqualFold(*l.CampusStatusEqualFold))
+		_predicates = append(_predicates, __campus.StatusEqualFold(*l.CampusStatusEqualFold))
 	}
 	if l.CampusStatusContains != nil {
-		_predicates = append(_predicates, campus.StatusContains(*l.CampusStatusContains))
+		_predicates = append(_predicates, __campus.StatusContains(*l.CampusStatusContains))
 	}
 	if l.CampusStatusContainsFold != nil {
-		_predicates = append(_predicates, campus.StatusContainsFold(*l.CampusStatusContainsFold))
+		_predicates = append(_predicates, __campus.StatusContainsFold(*l.CampusStatusContainsFold))
 	}
 	if l.CampusStatusHasPrefix != nil {
-		_predicates = append(_predicates, campus.StatusHasPrefix(*l.CampusStatusHasPrefix))
+		_predicates = append(_predicates, __campus.StatusHasPrefix(*l.CampusStatusHasPrefix))
 	}
 	if l.CampusStatusHasSuffix != nil {
-		_predicates = append(_predicates, campus.StatusHasSuffix(*l.CampusStatusHasSuffix))
+		_predicates = append(_predicates, __campus.StatusHasSuffix(*l.CampusStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListCampusParams) ApplySorting(_query *ent.CampusQuery) error {
+func (l *ListCampusParams) ApplySorting(_query *__ent.CampusQuery) error {
 	if err := l.Sorted.Validate(CampusSortConfig); err != nil {
 		return err
 	}
@@ -737,7 +737,7 @@ func (l *ListCampusParams) ApplySorting(_query *ent.CampusQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListCampusParams) Exec(ctx context.Context, _query *ent.CampusQuery) (_results *PagedResponse[ent.Campus], err error) {
+func (l *ListCampusParams) Exec(ctx context.Context, _query *__ent.CampusQuery) (_results *PagedResponse[__ent.Campus], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -753,279 +753,279 @@ func (l *ListCampusParams) Exec(ctx context.Context, _query *ent.CampusQuery) (_
 // ListCarrierParams defines parameters for listing Carriers via a GET request.
 type ListCarrierParams struct {
 	Sorted
-	Paginated[*ent.CarrierQuery, ent.Carrier]
-	Filtered[predicate.Carrier]
+	Paginated[*__ent.CarrierQuery, __ent.Carrier]
+	Filtered[__predicate.Carrier]
 
 	// Filters field "org_id" to be equal to the provided value.
-	CarrierOrgIDEQ *int `form:"orgID.eq,omitempty" json:"carrier_org_ideq,omitempty"`
+	CarrierOrgIDEQ *int `form:"orgID.eq,omitempty" json:"carrier_org_ideq,omitzero"`
 	// Filters field "org_id" to be not equal to the provided value.
-	CarrierOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"carrier_org_idneq,omitempty"`
+	CarrierOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"carrier_org_idneq,omitzero"`
 	// Filters field "org_id" to be within the provided values.
-	CarrierOrgIDIn []int `form:"orgID.in,omitempty" json:"carrier_org_id_in,omitempty"`
+	CarrierOrgIDIn []int `form:"orgID.in,omitempty" json:"carrier_org_id_in,omitzero"`
 	// Filters field "org_id" to be not within the provided values.
-	CarrierOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"carrier_org_id_not_in,omitempty"`
+	CarrierOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"carrier_org_id_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value.
-	CarrierAkaEQ *string `form:"aka.eq,omitempty" json:"carrier_aka_eq,omitempty"`
+	CarrierAkaEQ *string `form:"aka.eq,omitempty" json:"carrier_aka_eq,omitzero"`
 	// Filters field "aka" to be not equal to the provided value.
-	CarrierAkaNEQ *string `form:"aka.neq,omitempty" json:"carrier_aka_neq,omitempty"`
+	CarrierAkaNEQ *string `form:"aka.neq,omitempty" json:"carrier_aka_neq,omitzero"`
 	// Filters field "aka" to be null/nil.
-	CarrierAkaIsNil *bool `form:"aka.null,omitempty" json:"carrier_aka_is_nil,omitempty"`
+	CarrierAkaIsNil *bool `form:"aka.null,omitempty" json:"carrier_aka_is_nil,omitzero"`
 	// Filters field "aka" to be within the provided values.
-	CarrierAkaIn []string `form:"aka.in,omitempty" json:"carrier_aka_in,omitempty"`
+	CarrierAkaIn []string `form:"aka.in,omitempty" json:"carrier_aka_in,omitzero"`
 	// Filters field "aka" to be not within the provided values.
-	CarrierAkaNotIn []string `form:"aka.notIn,omitempty" json:"carrier_aka_not_in,omitempty"`
+	CarrierAkaNotIn []string `form:"aka.notIn,omitempty" json:"carrier_aka_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value, case-insensitive.
-	CarrierAkaEqualFold *string `form:"aka.ieq,omitempty" json:"carrier_aka_equal_fold,omitempty"`
+	CarrierAkaEqualFold *string `form:"aka.ieq,omitempty" json:"carrier_aka_equal_fold,omitzero"`
 	// Filters field "aka" to contain the provided value.
-	CarrierAkaContains *string `form:"aka.has,omitempty" json:"carrier_aka_contains,omitempty"`
+	CarrierAkaContains *string `form:"aka.has,omitempty" json:"carrier_aka_contains,omitzero"`
 	// Filters field "aka" to contain the provided value, case-insensitive.
-	CarrierAkaContainsFold *string `form:"aka.ihas,omitempty" json:"carrier_aka_contains_fold,omitempty"`
+	CarrierAkaContainsFold *string `form:"aka.ihas,omitempty" json:"carrier_aka_contains_fold,omitzero"`
 	// Filters field "aka" to start with the provided value.
-	CarrierAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"carrier_aka_has_prefix,omitempty"`
+	CarrierAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"carrier_aka_has_prefix,omitzero"`
 	// Filters field "aka" to end with the provided value.
-	CarrierAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"carrier_aka_has_suffix,omitempty"`
+	CarrierAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"carrier_aka_has_suffix,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	CarrierNameEQ *string `form:"name.eq,omitempty" json:"carrier_name_eq,omitempty"`
+	CarrierNameEQ *string `form:"name.eq,omitempty" json:"carrier_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	CarrierNameNEQ *string `form:"name.neq,omitempty" json:"carrier_name_neq,omitempty"`
+	CarrierNameNEQ *string `form:"name.neq,omitempty" json:"carrier_name_neq,omitzero"`
 	// Filters field "name" to be within the provided values.
-	CarrierNameIn []string `form:"name.in,omitempty" json:"carrier_name_in,omitempty"`
+	CarrierNameIn []string `form:"name.in,omitempty" json:"carrier_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	CarrierNameNotIn []string `form:"name.notIn,omitempty" json:"carrier_name_not_in,omitempty"`
+	CarrierNameNotIn []string `form:"name.notIn,omitempty" json:"carrier_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	CarrierNameEqualFold *string `form:"name.ieq,omitempty" json:"carrier_name_equal_fold,omitempty"`
+	CarrierNameEqualFold *string `form:"name.ieq,omitempty" json:"carrier_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	CarrierNameContains *string `form:"name.has,omitempty" json:"carrier_name_contains,omitempty"`
+	CarrierNameContains *string `form:"name.has,omitempty" json:"carrier_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	CarrierNameContainsFold *string `form:"name.ihas,omitempty" json:"carrier_name_contains_fold,omitempty"`
+	CarrierNameContainsFold *string `form:"name.ihas,omitempty" json:"carrier_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	CarrierNameHasPrefix *string `form:"name.prefix,omitempty" json:"carrier_name_has_prefix,omitempty"`
+	CarrierNameHasPrefix *string `form:"name.prefix,omitempty" json:"carrier_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	CarrierNameHasSuffix *string `form:"name.suffix,omitempty" json:"carrier_name_has_suffix,omitempty"`
+	CarrierNameHasSuffix *string `form:"name.suffix,omitempty" json:"carrier_name_has_suffix,omitzero"`
 	// Filters field "name_long" to be equal to the provided value.
-	CarrierNameLongEQ *string `form:"nameLong.eq,omitempty" json:"carrier_name_long_eq,omitempty"`
+	CarrierNameLongEQ *string `form:"nameLong.eq,omitempty" json:"carrier_name_long_eq,omitzero"`
 	// Filters field "name_long" to be not equal to the provided value.
-	CarrierNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"carrier_name_long_neq,omitempty"`
+	CarrierNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"carrier_name_long_neq,omitzero"`
 	// Filters field "name_long" to be null/nil.
-	CarrierNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"carrier_name_long_is_nil,omitempty"`
+	CarrierNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"carrier_name_long_is_nil,omitzero"`
 	// Filters field "name_long" to be within the provided values.
-	CarrierNameLongIn []string `form:"nameLong.in,omitempty" json:"carrier_name_long_in,omitempty"`
+	CarrierNameLongIn []string `form:"nameLong.in,omitempty" json:"carrier_name_long_in,omitzero"`
 	// Filters field "name_long" to be not within the provided values.
-	CarrierNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"carrier_name_long_not_in,omitempty"`
+	CarrierNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"carrier_name_long_not_in,omitzero"`
 	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	CarrierNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"carrier_name_long_equal_fold,omitempty"`
+	CarrierNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"carrier_name_long_equal_fold,omitzero"`
 	// Filters field "name_long" to contain the provided value.
-	CarrierNameLongContains *string `form:"nameLong.has,omitempty" json:"carrier_name_long_contains,omitempty"`
+	CarrierNameLongContains *string `form:"nameLong.has,omitempty" json:"carrier_name_long_contains,omitzero"`
 	// Filters field "name_long" to contain the provided value, case-insensitive.
-	CarrierNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"carrier_name_long_contains_fold,omitempty"`
+	CarrierNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"carrier_name_long_contains_fold,omitzero"`
 	// Filters field "name_long" to start with the provided value.
-	CarrierNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"carrier_name_long_has_prefix,omitempty"`
+	CarrierNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"carrier_name_long_has_prefix,omitzero"`
 	// Filters field "name_long" to end with the provided value.
-	CarrierNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"carrier_name_long_has_suffix,omitempty"`
+	CarrierNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"carrier_name_long_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	CarrierCreatedGT *time.Time `form:"created.gt,omitempty" json:"carrier_created_gt,omitempty"`
+	CarrierCreatedGT *time.Time `form:"created.gt,omitempty" json:"carrier_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	CarrierCreatedGTE *time.Time `form:"created.gte,omitempty" json:"carrier_created_gte,omitempty"`
+	CarrierCreatedGTE *time.Time `form:"created.gte,omitempty" json:"carrier_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	CarrierCreatedLT *time.Time `form:"created.lt,omitempty" json:"carrier_created_lt,omitempty"`
+	CarrierCreatedLT *time.Time `form:"created.lt,omitempty" json:"carrier_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	CarrierCreatedLTE *time.Time `form:"created.lte,omitempty" json:"carrier_created_lte,omitempty"`
+	CarrierCreatedLTE *time.Time `form:"created.lte,omitempty" json:"carrier_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	CarrierUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"carrier_updated_gt,omitempty"`
+	CarrierUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"carrier_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	CarrierUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"carrier_updated_gte,omitempty"`
+	CarrierUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"carrier_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	CarrierUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"carrier_updated_lt,omitempty"`
+	CarrierUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"carrier_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	CarrierUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"carrier_updated_lte,omitempty"`
+	CarrierUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"carrier_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	CarrierStatusEQ *string `form:"status.eq,omitempty" json:"carrier_status_eq,omitempty"`
+	CarrierStatusEQ *string `form:"status.eq,omitempty" json:"carrier_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	CarrierStatusNEQ *string `form:"status.neq,omitempty" json:"carrier_status_neq,omitempty"`
+	CarrierStatusNEQ *string `form:"status.neq,omitempty" json:"carrier_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	CarrierStatusIn []string `form:"status.in,omitempty" json:"carrier_status_in,omitempty"`
+	CarrierStatusIn []string `form:"status.in,omitempty" json:"carrier_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	CarrierStatusNotIn []string `form:"status.notIn,omitempty" json:"carrier_status_not_in,omitempty"`
+	CarrierStatusNotIn []string `form:"status.notIn,omitempty" json:"carrier_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	CarrierStatusEqualFold *string `form:"status.ieq,omitempty" json:"carrier_status_equal_fold,omitempty"`
+	CarrierStatusEqualFold *string `form:"status.ieq,omitempty" json:"carrier_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	CarrierStatusContains *string `form:"status.has,omitempty" json:"carrier_status_contains,omitempty"`
+	CarrierStatusContains *string `form:"status.has,omitempty" json:"carrier_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	CarrierStatusContainsFold *string `form:"status.ihas,omitempty" json:"carrier_status_contains_fold,omitempty"`
+	CarrierStatusContainsFold *string `form:"status.ihas,omitempty" json:"carrier_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	CarrierStatusHasPrefix *string `form:"status.prefix,omitempty" json:"carrier_status_has_prefix,omitempty"`
+	CarrierStatusHasPrefix *string `form:"status.prefix,omitempty" json:"carrier_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	CarrierStatusHasSuffix *string `form:"status.suffix,omitempty" json:"carrier_status_has_suffix,omitempty"`
+	CarrierStatusHasSuffix *string `form:"status.suffix,omitempty" json:"carrier_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in Carrier.
-func (l *ListCarrierParams) FilterPredicates() (predicate.Carrier, error) {
-	var _predicates []predicate.Carrier
+func (l *ListCarrierParams) FilterPredicates() (__predicate.Carrier, error) {
+	var _predicates []__predicate.Carrier
 
 	if l.CarrierOrgIDEQ != nil {
-		_predicates = append(_predicates, carrier.OrgIDEQ(*l.CarrierOrgIDEQ))
+		_predicates = append(_predicates, __carrier.OrgIDEQ(*l.CarrierOrgIDEQ))
 	}
 	if l.CarrierOrgIDNEQ != nil {
-		_predicates = append(_predicates, carrier.OrgIDNEQ(*l.CarrierOrgIDNEQ))
+		_predicates = append(_predicates, __carrier.OrgIDNEQ(*l.CarrierOrgIDNEQ))
 	}
 	if l.CarrierOrgIDIn != nil {
-		_predicates = append(_predicates, carrier.OrgIDIn(l.CarrierOrgIDIn...))
+		_predicates = append(_predicates, __carrier.OrgIDIn(l.CarrierOrgIDIn...))
 	}
 	if l.CarrierOrgIDNotIn != nil {
-		_predicates = append(_predicates, carrier.OrgIDNotIn(l.CarrierOrgIDNotIn...))
+		_predicates = append(_predicates, __carrier.OrgIDNotIn(l.CarrierOrgIDNotIn...))
 	}
 	if l.CarrierAkaEQ != nil {
-		_predicates = append(_predicates, carrier.AkaEQ(*l.CarrierAkaEQ))
+		_predicates = append(_predicates, __carrier.AkaEQ(*l.CarrierAkaEQ))
 	}
 	if l.CarrierAkaNEQ != nil {
-		_predicates = append(_predicates, carrier.AkaNEQ(*l.CarrierAkaNEQ))
+		_predicates = append(_predicates, __carrier.AkaNEQ(*l.CarrierAkaNEQ))
 	}
 	if l.CarrierAkaIsNil != nil {
 		if *l.CarrierAkaIsNil {
-			_predicates = append(_predicates, carrier.AkaIsNil())
+			_predicates = append(_predicates, __carrier.AkaIsNil())
 		} else {
-			_predicates = append(_predicates, carrier.Not(carrier.AkaIsNil()))
+			_predicates = append(_predicates, __carrier.Not(__carrier.AkaIsNil()))
 		}
 	}
 	if l.CarrierAkaIn != nil {
-		_predicates = append(_predicates, carrier.AkaIn(l.CarrierAkaIn...))
+		_predicates = append(_predicates, __carrier.AkaIn(l.CarrierAkaIn...))
 	}
 	if l.CarrierAkaNotIn != nil {
-		_predicates = append(_predicates, carrier.AkaNotIn(l.CarrierAkaNotIn...))
+		_predicates = append(_predicates, __carrier.AkaNotIn(l.CarrierAkaNotIn...))
 	}
 	if l.CarrierAkaEqualFold != nil {
-		_predicates = append(_predicates, carrier.AkaEqualFold(*l.CarrierAkaEqualFold))
+		_predicates = append(_predicates, __carrier.AkaEqualFold(*l.CarrierAkaEqualFold))
 	}
 	if l.CarrierAkaContains != nil {
-		_predicates = append(_predicates, carrier.AkaContains(*l.CarrierAkaContains))
+		_predicates = append(_predicates, __carrier.AkaContains(*l.CarrierAkaContains))
 	}
 	if l.CarrierAkaContainsFold != nil {
-		_predicates = append(_predicates, carrier.AkaContainsFold(*l.CarrierAkaContainsFold))
+		_predicates = append(_predicates, __carrier.AkaContainsFold(*l.CarrierAkaContainsFold))
 	}
 	if l.CarrierAkaHasPrefix != nil {
-		_predicates = append(_predicates, carrier.AkaHasPrefix(*l.CarrierAkaHasPrefix))
+		_predicates = append(_predicates, __carrier.AkaHasPrefix(*l.CarrierAkaHasPrefix))
 	}
 	if l.CarrierAkaHasSuffix != nil {
-		_predicates = append(_predicates, carrier.AkaHasSuffix(*l.CarrierAkaHasSuffix))
+		_predicates = append(_predicates, __carrier.AkaHasSuffix(*l.CarrierAkaHasSuffix))
 	}
 	if l.CarrierNameEQ != nil {
-		_predicates = append(_predicates, carrier.NameEQ(*l.CarrierNameEQ))
+		_predicates = append(_predicates, __carrier.NameEQ(*l.CarrierNameEQ))
 	}
 	if l.CarrierNameNEQ != nil {
-		_predicates = append(_predicates, carrier.NameNEQ(*l.CarrierNameNEQ))
+		_predicates = append(_predicates, __carrier.NameNEQ(*l.CarrierNameNEQ))
 	}
 	if l.CarrierNameIn != nil {
-		_predicates = append(_predicates, carrier.NameIn(l.CarrierNameIn...))
+		_predicates = append(_predicates, __carrier.NameIn(l.CarrierNameIn...))
 	}
 	if l.CarrierNameNotIn != nil {
-		_predicates = append(_predicates, carrier.NameNotIn(l.CarrierNameNotIn...))
+		_predicates = append(_predicates, __carrier.NameNotIn(l.CarrierNameNotIn...))
 	}
 	if l.CarrierNameEqualFold != nil {
-		_predicates = append(_predicates, carrier.NameEqualFold(*l.CarrierNameEqualFold))
+		_predicates = append(_predicates, __carrier.NameEqualFold(*l.CarrierNameEqualFold))
 	}
 	if l.CarrierNameContains != nil {
-		_predicates = append(_predicates, carrier.NameContains(*l.CarrierNameContains))
+		_predicates = append(_predicates, __carrier.NameContains(*l.CarrierNameContains))
 	}
 	if l.CarrierNameContainsFold != nil {
-		_predicates = append(_predicates, carrier.NameContainsFold(*l.CarrierNameContainsFold))
+		_predicates = append(_predicates, __carrier.NameContainsFold(*l.CarrierNameContainsFold))
 	}
 	if l.CarrierNameHasPrefix != nil {
-		_predicates = append(_predicates, carrier.NameHasPrefix(*l.CarrierNameHasPrefix))
+		_predicates = append(_predicates, __carrier.NameHasPrefix(*l.CarrierNameHasPrefix))
 	}
 	if l.CarrierNameHasSuffix != nil {
-		_predicates = append(_predicates, carrier.NameHasSuffix(*l.CarrierNameHasSuffix))
+		_predicates = append(_predicates, __carrier.NameHasSuffix(*l.CarrierNameHasSuffix))
 	}
 	if l.CarrierNameLongEQ != nil {
-		_predicates = append(_predicates, carrier.NameLongEQ(*l.CarrierNameLongEQ))
+		_predicates = append(_predicates, __carrier.NameLongEQ(*l.CarrierNameLongEQ))
 	}
 	if l.CarrierNameLongNEQ != nil {
-		_predicates = append(_predicates, carrier.NameLongNEQ(*l.CarrierNameLongNEQ))
+		_predicates = append(_predicates, __carrier.NameLongNEQ(*l.CarrierNameLongNEQ))
 	}
 	if l.CarrierNameLongIsNil != nil {
 		if *l.CarrierNameLongIsNil {
-			_predicates = append(_predicates, carrier.NameLongIsNil())
+			_predicates = append(_predicates, __carrier.NameLongIsNil())
 		} else {
-			_predicates = append(_predicates, carrier.Not(carrier.NameLongIsNil()))
+			_predicates = append(_predicates, __carrier.Not(__carrier.NameLongIsNil()))
 		}
 	}
 	if l.CarrierNameLongIn != nil {
-		_predicates = append(_predicates, carrier.NameLongIn(l.CarrierNameLongIn...))
+		_predicates = append(_predicates, __carrier.NameLongIn(l.CarrierNameLongIn...))
 	}
 	if l.CarrierNameLongNotIn != nil {
-		_predicates = append(_predicates, carrier.NameLongNotIn(l.CarrierNameLongNotIn...))
+		_predicates = append(_predicates, __carrier.NameLongNotIn(l.CarrierNameLongNotIn...))
 	}
 	if l.CarrierNameLongEqualFold != nil {
-		_predicates = append(_predicates, carrier.NameLongEqualFold(*l.CarrierNameLongEqualFold))
+		_predicates = append(_predicates, __carrier.NameLongEqualFold(*l.CarrierNameLongEqualFold))
 	}
 	if l.CarrierNameLongContains != nil {
-		_predicates = append(_predicates, carrier.NameLongContains(*l.CarrierNameLongContains))
+		_predicates = append(_predicates, __carrier.NameLongContains(*l.CarrierNameLongContains))
 	}
 	if l.CarrierNameLongContainsFold != nil {
-		_predicates = append(_predicates, carrier.NameLongContainsFold(*l.CarrierNameLongContainsFold))
+		_predicates = append(_predicates, __carrier.NameLongContainsFold(*l.CarrierNameLongContainsFold))
 	}
 	if l.CarrierNameLongHasPrefix != nil {
-		_predicates = append(_predicates, carrier.NameLongHasPrefix(*l.CarrierNameLongHasPrefix))
+		_predicates = append(_predicates, __carrier.NameLongHasPrefix(*l.CarrierNameLongHasPrefix))
 	}
 	if l.CarrierNameLongHasSuffix != nil {
-		_predicates = append(_predicates, carrier.NameLongHasSuffix(*l.CarrierNameLongHasSuffix))
+		_predicates = append(_predicates, __carrier.NameLongHasSuffix(*l.CarrierNameLongHasSuffix))
 	}
 	if l.CarrierCreatedGT != nil {
-		_predicates = append(_predicates, carrier.CreatedGT(*l.CarrierCreatedGT))
+		_predicates = append(_predicates, __carrier.CreatedGT(*l.CarrierCreatedGT))
 	}
 	if l.CarrierCreatedGTE != nil {
-		_predicates = append(_predicates, carrier.CreatedGTE(*l.CarrierCreatedGTE))
+		_predicates = append(_predicates, __carrier.CreatedGTE(*l.CarrierCreatedGTE))
 	}
 	if l.CarrierCreatedLT != nil {
-		_predicates = append(_predicates, carrier.CreatedLT(*l.CarrierCreatedLT))
+		_predicates = append(_predicates, __carrier.CreatedLT(*l.CarrierCreatedLT))
 	}
 	if l.CarrierCreatedLTE != nil {
-		_predicates = append(_predicates, carrier.CreatedLTE(*l.CarrierCreatedLTE))
+		_predicates = append(_predicates, __carrier.CreatedLTE(*l.CarrierCreatedLTE))
 	}
 	if l.CarrierUpdatedGT != nil {
-		_predicates = append(_predicates, carrier.UpdatedGT(*l.CarrierUpdatedGT))
+		_predicates = append(_predicates, __carrier.UpdatedGT(*l.CarrierUpdatedGT))
 	}
 	if l.CarrierUpdatedGTE != nil {
-		_predicates = append(_predicates, carrier.UpdatedGTE(*l.CarrierUpdatedGTE))
+		_predicates = append(_predicates, __carrier.UpdatedGTE(*l.CarrierUpdatedGTE))
 	}
 	if l.CarrierUpdatedLT != nil {
-		_predicates = append(_predicates, carrier.UpdatedLT(*l.CarrierUpdatedLT))
+		_predicates = append(_predicates, __carrier.UpdatedLT(*l.CarrierUpdatedLT))
 	}
 	if l.CarrierUpdatedLTE != nil {
-		_predicates = append(_predicates, carrier.UpdatedLTE(*l.CarrierUpdatedLTE))
+		_predicates = append(_predicates, __carrier.UpdatedLTE(*l.CarrierUpdatedLTE))
 	}
 	if l.CarrierStatusEQ != nil {
-		_predicates = append(_predicates, carrier.StatusEQ(*l.CarrierStatusEQ))
+		_predicates = append(_predicates, __carrier.StatusEQ(*l.CarrierStatusEQ))
 	}
 	if l.CarrierStatusNEQ != nil {
-		_predicates = append(_predicates, carrier.StatusNEQ(*l.CarrierStatusNEQ))
+		_predicates = append(_predicates, __carrier.StatusNEQ(*l.CarrierStatusNEQ))
 	}
 	if l.CarrierStatusIn != nil {
-		_predicates = append(_predicates, carrier.StatusIn(l.CarrierStatusIn...))
+		_predicates = append(_predicates, __carrier.StatusIn(l.CarrierStatusIn...))
 	}
 	if l.CarrierStatusNotIn != nil {
-		_predicates = append(_predicates, carrier.StatusNotIn(l.CarrierStatusNotIn...))
+		_predicates = append(_predicates, __carrier.StatusNotIn(l.CarrierStatusNotIn...))
 	}
 	if l.CarrierStatusEqualFold != nil {
-		_predicates = append(_predicates, carrier.StatusEqualFold(*l.CarrierStatusEqualFold))
+		_predicates = append(_predicates, __carrier.StatusEqualFold(*l.CarrierStatusEqualFold))
 	}
 	if l.CarrierStatusContains != nil {
-		_predicates = append(_predicates, carrier.StatusContains(*l.CarrierStatusContains))
+		_predicates = append(_predicates, __carrier.StatusContains(*l.CarrierStatusContains))
 	}
 	if l.CarrierStatusContainsFold != nil {
-		_predicates = append(_predicates, carrier.StatusContainsFold(*l.CarrierStatusContainsFold))
+		_predicates = append(_predicates, __carrier.StatusContainsFold(*l.CarrierStatusContainsFold))
 	}
 	if l.CarrierStatusHasPrefix != nil {
-		_predicates = append(_predicates, carrier.StatusHasPrefix(*l.CarrierStatusHasPrefix))
+		_predicates = append(_predicates, __carrier.StatusHasPrefix(*l.CarrierStatusHasPrefix))
 	}
 	if l.CarrierStatusHasSuffix != nil {
-		_predicates = append(_predicates, carrier.StatusHasSuffix(*l.CarrierStatusHasSuffix))
+		_predicates = append(_predicates, __carrier.StatusHasSuffix(*l.CarrierStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListCarrierParams) ApplySorting(_query *ent.CarrierQuery) error {
+func (l *ListCarrierParams) ApplySorting(_query *__ent.CarrierQuery) error {
 	if err := l.Sorted.Validate(CarrierSortConfig); err != nil {
 		return err
 	}
@@ -1038,7 +1038,7 @@ func (l *ListCarrierParams) ApplySorting(_query *ent.CarrierQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListCarrierParams) Exec(ctx context.Context, _query *ent.CarrierQuery) (_results *PagedResponse[ent.Carrier], err error) {
+func (l *ListCarrierParams) Exec(ctx context.Context, _query *__ent.CarrierQuery) (_results *PagedResponse[__ent.Carrier], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -1054,200 +1054,200 @@ func (l *ListCarrierParams) Exec(ctx context.Context, _query *ent.CarrierQuery) 
 // ListCarrierFacilityParams defines parameters for listing CarrierFacilities via a GET request.
 type ListCarrierFacilityParams struct {
 	Sorted
-	Paginated[*ent.CarrierFacilityQuery, ent.CarrierFacility]
-	Filtered[predicate.CarrierFacility]
+	Paginated[*__ent.CarrierFacilityQuery, __ent.CarrierFacility]
+	Filtered[__predicate.CarrierFacility]
 
 	// Filters field "carrier_id" to be equal to the provided value.
-	CarrierFacilityCarrierIDEQ *int `form:"carrierID.eq,omitempty" json:"carrier_facility_carrier_ideq,omitempty"`
+	CarrierFacilityCarrierIDEQ *int `form:"carrierID.eq,omitempty" json:"carrier_facility_carrier_ideq,omitzero"`
 	// Filters field "carrier_id" to be not equal to the provided value.
-	CarrierFacilityCarrierIDNEQ *int `form:"carrierID.neq,omitempty" json:"carrier_facility_carrier_idneq,omitempty"`
+	CarrierFacilityCarrierIDNEQ *int `form:"carrierID.neq,omitempty" json:"carrier_facility_carrier_idneq,omitzero"`
 	// Filters field "carrier_id" to be within the provided values.
-	CarrierFacilityCarrierIDIn []int `form:"carrierID.in,omitempty" json:"carrier_facility_carrier_id_in,omitempty"`
+	CarrierFacilityCarrierIDIn []int `form:"carrierID.in,omitempty" json:"carrier_facility_carrier_id_in,omitzero"`
 	// Filters field "carrier_id" to be not within the provided values.
-	CarrierFacilityCarrierIDNotIn []int `form:"carrierID.notIn,omitempty" json:"carrier_facility_carrier_id_not_in,omitempty"`
+	CarrierFacilityCarrierIDNotIn []int `form:"carrierID.notIn,omitempty" json:"carrier_facility_carrier_id_not_in,omitzero"`
 	// Filters field "fac_id" to be equal to the provided value.
-	CarrierFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"carrier_facility_fac_ideq,omitempty"`
+	CarrierFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"carrier_facility_fac_ideq,omitzero"`
 	// Filters field "fac_id" to be not equal to the provided value.
-	CarrierFacilityFacIDNEQ *int `form:"facID.neq,omitempty" json:"carrier_facility_fac_idneq,omitempty"`
+	CarrierFacilityFacIDNEQ *int `form:"facID.neq,omitempty" json:"carrier_facility_fac_idneq,omitzero"`
 	// Filters field "fac_id" to be within the provided values.
-	CarrierFacilityFacIDIn []int `form:"facID.in,omitempty" json:"carrier_facility_fac_id_in,omitempty"`
+	CarrierFacilityFacIDIn []int `form:"facID.in,omitempty" json:"carrier_facility_fac_id_in,omitzero"`
 	// Filters field "fac_id" to be not within the provided values.
-	CarrierFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"carrier_facility_fac_id_not_in,omitempty"`
+	CarrierFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"carrier_facility_fac_id_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	CarrierFacilityNameEQ *string `form:"name.eq,omitempty" json:"carrier_facility_name_eq,omitempty"`
+	CarrierFacilityNameEQ *string `form:"name.eq,omitempty" json:"carrier_facility_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	CarrierFacilityNameNEQ *string `form:"name.neq,omitempty" json:"carrier_facility_name_neq,omitempty"`
+	CarrierFacilityNameNEQ *string `form:"name.neq,omitempty" json:"carrier_facility_name_neq,omitzero"`
 	// Filters field "name" to be null/nil.
-	CarrierFacilityNameIsNil *bool `form:"name.null,omitempty" json:"carrier_facility_name_is_nil,omitempty"`
+	CarrierFacilityNameIsNil *bool `form:"name.null,omitempty" json:"carrier_facility_name_is_nil,omitzero"`
 	// Filters field "name" to be within the provided values.
-	CarrierFacilityNameIn []string `form:"name.in,omitempty" json:"carrier_facility_name_in,omitempty"`
+	CarrierFacilityNameIn []string `form:"name.in,omitempty" json:"carrier_facility_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	CarrierFacilityNameNotIn []string `form:"name.notIn,omitempty" json:"carrier_facility_name_not_in,omitempty"`
+	CarrierFacilityNameNotIn []string `form:"name.notIn,omitempty" json:"carrier_facility_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	CarrierFacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"carrier_facility_name_equal_fold,omitempty"`
+	CarrierFacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"carrier_facility_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	CarrierFacilityNameContains *string `form:"name.has,omitempty" json:"carrier_facility_name_contains,omitempty"`
+	CarrierFacilityNameContains *string `form:"name.has,omitempty" json:"carrier_facility_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	CarrierFacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"carrier_facility_name_contains_fold,omitempty"`
+	CarrierFacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"carrier_facility_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	CarrierFacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"carrier_facility_name_has_prefix,omitempty"`
+	CarrierFacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"carrier_facility_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	CarrierFacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"carrier_facility_name_has_suffix,omitempty"`
+	CarrierFacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"carrier_facility_name_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	CarrierFacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"carrier_facility_created_gt,omitempty"`
+	CarrierFacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"carrier_facility_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	CarrierFacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"carrier_facility_created_gte,omitempty"`
+	CarrierFacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"carrier_facility_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	CarrierFacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"carrier_facility_created_lt,omitempty"`
+	CarrierFacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"carrier_facility_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	CarrierFacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"carrier_facility_created_lte,omitempty"`
+	CarrierFacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"carrier_facility_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	CarrierFacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"carrier_facility_updated_gt,omitempty"`
+	CarrierFacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"carrier_facility_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	CarrierFacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"carrier_facility_updated_gte,omitempty"`
+	CarrierFacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"carrier_facility_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	CarrierFacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"carrier_facility_updated_lt,omitempty"`
+	CarrierFacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"carrier_facility_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	CarrierFacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"carrier_facility_updated_lte,omitempty"`
+	CarrierFacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"carrier_facility_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	CarrierFacilityStatusEQ *string `form:"status.eq,omitempty" json:"carrier_facility_status_eq,omitempty"`
+	CarrierFacilityStatusEQ *string `form:"status.eq,omitempty" json:"carrier_facility_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	CarrierFacilityStatusNEQ *string `form:"status.neq,omitempty" json:"carrier_facility_status_neq,omitempty"`
+	CarrierFacilityStatusNEQ *string `form:"status.neq,omitempty" json:"carrier_facility_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	CarrierFacilityStatusIn []string `form:"status.in,omitempty" json:"carrier_facility_status_in,omitempty"`
+	CarrierFacilityStatusIn []string `form:"status.in,omitempty" json:"carrier_facility_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	CarrierFacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"carrier_facility_status_not_in,omitempty"`
+	CarrierFacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"carrier_facility_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	CarrierFacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"carrier_facility_status_equal_fold,omitempty"`
+	CarrierFacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"carrier_facility_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	CarrierFacilityStatusContains *string `form:"status.has,omitempty" json:"carrier_facility_status_contains,omitempty"`
+	CarrierFacilityStatusContains *string `form:"status.has,omitempty" json:"carrier_facility_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	CarrierFacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"carrier_facility_status_contains_fold,omitempty"`
+	CarrierFacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"carrier_facility_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	CarrierFacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"carrier_facility_status_has_prefix,omitempty"`
+	CarrierFacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"carrier_facility_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	CarrierFacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"carrier_facility_status_has_suffix,omitempty"`
+	CarrierFacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"carrier_facility_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in CarrierFacility.
-func (l *ListCarrierFacilityParams) FilterPredicates() (predicate.CarrierFacility, error) {
-	var _predicates []predicate.CarrierFacility
+func (l *ListCarrierFacilityParams) FilterPredicates() (__predicate.CarrierFacility, error) {
+	var _predicates []__predicate.CarrierFacility
 
 	if l.CarrierFacilityCarrierIDEQ != nil {
-		_predicates = append(_predicates, carrierfacility.CarrierIDEQ(*l.CarrierFacilityCarrierIDEQ))
+		_predicates = append(_predicates, __carrierfacility.CarrierIDEQ(*l.CarrierFacilityCarrierIDEQ))
 	}
 	if l.CarrierFacilityCarrierIDNEQ != nil {
-		_predicates = append(_predicates, carrierfacility.CarrierIDNEQ(*l.CarrierFacilityCarrierIDNEQ))
+		_predicates = append(_predicates, __carrierfacility.CarrierIDNEQ(*l.CarrierFacilityCarrierIDNEQ))
 	}
 	if l.CarrierFacilityCarrierIDIn != nil {
-		_predicates = append(_predicates, carrierfacility.CarrierIDIn(l.CarrierFacilityCarrierIDIn...))
+		_predicates = append(_predicates, __carrierfacility.CarrierIDIn(l.CarrierFacilityCarrierIDIn...))
 	}
 	if l.CarrierFacilityCarrierIDNotIn != nil {
-		_predicates = append(_predicates, carrierfacility.CarrierIDNotIn(l.CarrierFacilityCarrierIDNotIn...))
+		_predicates = append(_predicates, __carrierfacility.CarrierIDNotIn(l.CarrierFacilityCarrierIDNotIn...))
 	}
 	if l.CarrierFacilityFacIDEQ != nil {
-		_predicates = append(_predicates, carrierfacility.FacIDEQ(*l.CarrierFacilityFacIDEQ))
+		_predicates = append(_predicates, __carrierfacility.FacIDEQ(*l.CarrierFacilityFacIDEQ))
 	}
 	if l.CarrierFacilityFacIDNEQ != nil {
-		_predicates = append(_predicates, carrierfacility.FacIDNEQ(*l.CarrierFacilityFacIDNEQ))
+		_predicates = append(_predicates, __carrierfacility.FacIDNEQ(*l.CarrierFacilityFacIDNEQ))
 	}
 	if l.CarrierFacilityFacIDIn != nil {
-		_predicates = append(_predicates, carrierfacility.FacIDIn(l.CarrierFacilityFacIDIn...))
+		_predicates = append(_predicates, __carrierfacility.FacIDIn(l.CarrierFacilityFacIDIn...))
 	}
 	if l.CarrierFacilityFacIDNotIn != nil {
-		_predicates = append(_predicates, carrierfacility.FacIDNotIn(l.CarrierFacilityFacIDNotIn...))
+		_predicates = append(_predicates, __carrierfacility.FacIDNotIn(l.CarrierFacilityFacIDNotIn...))
 	}
 	if l.CarrierFacilityNameEQ != nil {
-		_predicates = append(_predicates, carrierfacility.NameEQ(*l.CarrierFacilityNameEQ))
+		_predicates = append(_predicates, __carrierfacility.NameEQ(*l.CarrierFacilityNameEQ))
 	}
 	if l.CarrierFacilityNameNEQ != nil {
-		_predicates = append(_predicates, carrierfacility.NameNEQ(*l.CarrierFacilityNameNEQ))
+		_predicates = append(_predicates, __carrierfacility.NameNEQ(*l.CarrierFacilityNameNEQ))
 	}
 	if l.CarrierFacilityNameIsNil != nil {
 		if *l.CarrierFacilityNameIsNil {
-			_predicates = append(_predicates, carrierfacility.NameIsNil())
+			_predicates = append(_predicates, __carrierfacility.NameIsNil())
 		} else {
-			_predicates = append(_predicates, carrierfacility.Not(carrierfacility.NameIsNil()))
+			_predicates = append(_predicates, __carrierfacility.Not(__carrierfacility.NameIsNil()))
 		}
 	}
 	if l.CarrierFacilityNameIn != nil {
-		_predicates = append(_predicates, carrierfacility.NameIn(l.CarrierFacilityNameIn...))
+		_predicates = append(_predicates, __carrierfacility.NameIn(l.CarrierFacilityNameIn...))
 	}
 	if l.CarrierFacilityNameNotIn != nil {
-		_predicates = append(_predicates, carrierfacility.NameNotIn(l.CarrierFacilityNameNotIn...))
+		_predicates = append(_predicates, __carrierfacility.NameNotIn(l.CarrierFacilityNameNotIn...))
 	}
 	if l.CarrierFacilityNameEqualFold != nil {
-		_predicates = append(_predicates, carrierfacility.NameEqualFold(*l.CarrierFacilityNameEqualFold))
+		_predicates = append(_predicates, __carrierfacility.NameEqualFold(*l.CarrierFacilityNameEqualFold))
 	}
 	if l.CarrierFacilityNameContains != nil {
-		_predicates = append(_predicates, carrierfacility.NameContains(*l.CarrierFacilityNameContains))
+		_predicates = append(_predicates, __carrierfacility.NameContains(*l.CarrierFacilityNameContains))
 	}
 	if l.CarrierFacilityNameContainsFold != nil {
-		_predicates = append(_predicates, carrierfacility.NameContainsFold(*l.CarrierFacilityNameContainsFold))
+		_predicates = append(_predicates, __carrierfacility.NameContainsFold(*l.CarrierFacilityNameContainsFold))
 	}
 	if l.CarrierFacilityNameHasPrefix != nil {
-		_predicates = append(_predicates, carrierfacility.NameHasPrefix(*l.CarrierFacilityNameHasPrefix))
+		_predicates = append(_predicates, __carrierfacility.NameHasPrefix(*l.CarrierFacilityNameHasPrefix))
 	}
 	if l.CarrierFacilityNameHasSuffix != nil {
-		_predicates = append(_predicates, carrierfacility.NameHasSuffix(*l.CarrierFacilityNameHasSuffix))
+		_predicates = append(_predicates, __carrierfacility.NameHasSuffix(*l.CarrierFacilityNameHasSuffix))
 	}
 	if l.CarrierFacilityCreatedGT != nil {
-		_predicates = append(_predicates, carrierfacility.CreatedGT(*l.CarrierFacilityCreatedGT))
+		_predicates = append(_predicates, __carrierfacility.CreatedGT(*l.CarrierFacilityCreatedGT))
 	}
 	if l.CarrierFacilityCreatedGTE != nil {
-		_predicates = append(_predicates, carrierfacility.CreatedGTE(*l.CarrierFacilityCreatedGTE))
+		_predicates = append(_predicates, __carrierfacility.CreatedGTE(*l.CarrierFacilityCreatedGTE))
 	}
 	if l.CarrierFacilityCreatedLT != nil {
-		_predicates = append(_predicates, carrierfacility.CreatedLT(*l.CarrierFacilityCreatedLT))
+		_predicates = append(_predicates, __carrierfacility.CreatedLT(*l.CarrierFacilityCreatedLT))
 	}
 	if l.CarrierFacilityCreatedLTE != nil {
-		_predicates = append(_predicates, carrierfacility.CreatedLTE(*l.CarrierFacilityCreatedLTE))
+		_predicates = append(_predicates, __carrierfacility.CreatedLTE(*l.CarrierFacilityCreatedLTE))
 	}
 	if l.CarrierFacilityUpdatedGT != nil {
-		_predicates = append(_predicates, carrierfacility.UpdatedGT(*l.CarrierFacilityUpdatedGT))
+		_predicates = append(_predicates, __carrierfacility.UpdatedGT(*l.CarrierFacilityUpdatedGT))
 	}
 	if l.CarrierFacilityUpdatedGTE != nil {
-		_predicates = append(_predicates, carrierfacility.UpdatedGTE(*l.CarrierFacilityUpdatedGTE))
+		_predicates = append(_predicates, __carrierfacility.UpdatedGTE(*l.CarrierFacilityUpdatedGTE))
 	}
 	if l.CarrierFacilityUpdatedLT != nil {
-		_predicates = append(_predicates, carrierfacility.UpdatedLT(*l.CarrierFacilityUpdatedLT))
+		_predicates = append(_predicates, __carrierfacility.UpdatedLT(*l.CarrierFacilityUpdatedLT))
 	}
 	if l.CarrierFacilityUpdatedLTE != nil {
-		_predicates = append(_predicates, carrierfacility.UpdatedLTE(*l.CarrierFacilityUpdatedLTE))
+		_predicates = append(_predicates, __carrierfacility.UpdatedLTE(*l.CarrierFacilityUpdatedLTE))
 	}
 	if l.CarrierFacilityStatusEQ != nil {
-		_predicates = append(_predicates, carrierfacility.StatusEQ(*l.CarrierFacilityStatusEQ))
+		_predicates = append(_predicates, __carrierfacility.StatusEQ(*l.CarrierFacilityStatusEQ))
 	}
 	if l.CarrierFacilityStatusNEQ != nil {
-		_predicates = append(_predicates, carrierfacility.StatusNEQ(*l.CarrierFacilityStatusNEQ))
+		_predicates = append(_predicates, __carrierfacility.StatusNEQ(*l.CarrierFacilityStatusNEQ))
 	}
 	if l.CarrierFacilityStatusIn != nil {
-		_predicates = append(_predicates, carrierfacility.StatusIn(l.CarrierFacilityStatusIn...))
+		_predicates = append(_predicates, __carrierfacility.StatusIn(l.CarrierFacilityStatusIn...))
 	}
 	if l.CarrierFacilityStatusNotIn != nil {
-		_predicates = append(_predicates, carrierfacility.StatusNotIn(l.CarrierFacilityStatusNotIn...))
+		_predicates = append(_predicates, __carrierfacility.StatusNotIn(l.CarrierFacilityStatusNotIn...))
 	}
 	if l.CarrierFacilityStatusEqualFold != nil {
-		_predicates = append(_predicates, carrierfacility.StatusEqualFold(*l.CarrierFacilityStatusEqualFold))
+		_predicates = append(_predicates, __carrierfacility.StatusEqualFold(*l.CarrierFacilityStatusEqualFold))
 	}
 	if l.CarrierFacilityStatusContains != nil {
-		_predicates = append(_predicates, carrierfacility.StatusContains(*l.CarrierFacilityStatusContains))
+		_predicates = append(_predicates, __carrierfacility.StatusContains(*l.CarrierFacilityStatusContains))
 	}
 	if l.CarrierFacilityStatusContainsFold != nil {
-		_predicates = append(_predicates, carrierfacility.StatusContainsFold(*l.CarrierFacilityStatusContainsFold))
+		_predicates = append(_predicates, __carrierfacility.StatusContainsFold(*l.CarrierFacilityStatusContainsFold))
 	}
 	if l.CarrierFacilityStatusHasPrefix != nil {
-		_predicates = append(_predicates, carrierfacility.StatusHasPrefix(*l.CarrierFacilityStatusHasPrefix))
+		_predicates = append(_predicates, __carrierfacility.StatusHasPrefix(*l.CarrierFacilityStatusHasPrefix))
 	}
 	if l.CarrierFacilityStatusHasSuffix != nil {
-		_predicates = append(_predicates, carrierfacility.StatusHasSuffix(*l.CarrierFacilityStatusHasSuffix))
+		_predicates = append(_predicates, __carrierfacility.StatusHasSuffix(*l.CarrierFacilityStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListCarrierFacilityParams) ApplySorting(_query *ent.CarrierFacilityQuery) error {
+func (l *ListCarrierFacilityParams) ApplySorting(_query *__ent.CarrierFacilityQuery) error {
 	if err := l.Sorted.Validate(CarrierFacilitySortConfig); err != nil {
 		return err
 	}
@@ -1260,7 +1260,7 @@ func (l *ListCarrierFacilityParams) ApplySorting(_query *ent.CarrierFacilityQuer
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListCarrierFacilityParams) Exec(ctx context.Context, _query *ent.CarrierFacilityQuery) (_results *PagedResponse[ent.CarrierFacility], err error) {
+func (l *ListCarrierFacilityParams) Exec(ctx context.Context, _query *__ent.CarrierFacilityQuery) (_results *PagedResponse[__ent.CarrierFacility], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -1276,461 +1276,461 @@ func (l *ListCarrierFacilityParams) Exec(ctx context.Context, _query *ent.Carrie
 // ListFacilityParams defines parameters for listing Facilities via a GET request.
 type ListFacilityParams struct {
 	Sorted
-	Paginated[*ent.FacilityQuery, ent.Facility]
-	Filtered[predicate.Facility]
+	Paginated[*__ent.FacilityQuery, __ent.Facility]
+	Filtered[__predicate.Facility]
 
 	// Filters field "campus_id" to be equal to the provided value.
-	FacilityCampusIDEQ *int `form:"campusID.eq,omitempty" json:"facility_campus_ideq,omitempty"`
+	FacilityCampusIDEQ *int `form:"campusID.eq,omitempty" json:"facility_campus_ideq,omitzero"`
 	// Filters field "campus_id" to be not equal to the provided value.
-	FacilityCampusIDNEQ *int `form:"campusID.neq,omitempty" json:"facility_campus_idneq,omitempty"`
+	FacilityCampusIDNEQ *int `form:"campusID.neq,omitempty" json:"facility_campus_idneq,omitzero"`
 	// Filters field "campus_id" to be within the provided values.
-	FacilityCampusIDIn []int `form:"campusID.in,omitempty" json:"facility_campus_id_in,omitempty"`
+	FacilityCampusIDIn []int `form:"campusID.in,omitempty" json:"facility_campus_id_in,omitzero"`
 	// Filters field "campus_id" to be not within the provided values.
-	FacilityCampusIDNotIn []int `form:"campusID.notIn,omitempty" json:"facility_campus_id_not_in,omitempty"`
+	FacilityCampusIDNotIn []int `form:"campusID.notIn,omitempty" json:"facility_campus_id_not_in,omitzero"`
 	// Filters field "org_id" to be equal to the provided value.
-	FacilityOrgIDEQ *int `form:"orgID.eq,omitempty" json:"facility_org_ideq,omitempty"`
+	FacilityOrgIDEQ *int `form:"orgID.eq,omitempty" json:"facility_org_ideq,omitzero"`
 	// Filters field "org_id" to be not equal to the provided value.
-	FacilityOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"facility_org_idneq,omitempty"`
+	FacilityOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"facility_org_idneq,omitzero"`
 	// Filters field "org_id" to be within the provided values.
-	FacilityOrgIDIn []int `form:"orgID.in,omitempty" json:"facility_org_id_in,omitempty"`
+	FacilityOrgIDIn []int `form:"orgID.in,omitempty" json:"facility_org_id_in,omitzero"`
 	// Filters field "org_id" to be not within the provided values.
-	FacilityOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"facility_org_id_not_in,omitempty"`
+	FacilityOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"facility_org_id_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value.
-	FacilityAkaEQ *string `form:"aka.eq,omitempty" json:"facility_aka_eq,omitempty"`
+	FacilityAkaEQ *string `form:"aka.eq,omitempty" json:"facility_aka_eq,omitzero"`
 	// Filters field "aka" to be not equal to the provided value.
-	FacilityAkaNEQ *string `form:"aka.neq,omitempty" json:"facility_aka_neq,omitempty"`
+	FacilityAkaNEQ *string `form:"aka.neq,omitempty" json:"facility_aka_neq,omitzero"`
 	// Filters field "aka" to be null/nil.
-	FacilityAkaIsNil *bool `form:"aka.null,omitempty" json:"facility_aka_is_nil,omitempty"`
+	FacilityAkaIsNil *bool `form:"aka.null,omitempty" json:"facility_aka_is_nil,omitzero"`
 	// Filters field "aka" to be within the provided values.
-	FacilityAkaIn []string `form:"aka.in,omitempty" json:"facility_aka_in,omitempty"`
+	FacilityAkaIn []string `form:"aka.in,omitempty" json:"facility_aka_in,omitzero"`
 	// Filters field "aka" to be not within the provided values.
-	FacilityAkaNotIn []string `form:"aka.notIn,omitempty" json:"facility_aka_not_in,omitempty"`
+	FacilityAkaNotIn []string `form:"aka.notIn,omitempty" json:"facility_aka_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value, case-insensitive.
-	FacilityAkaEqualFold *string `form:"aka.ieq,omitempty" json:"facility_aka_equal_fold,omitempty"`
+	FacilityAkaEqualFold *string `form:"aka.ieq,omitempty" json:"facility_aka_equal_fold,omitzero"`
 	// Filters field "aka" to contain the provided value.
-	FacilityAkaContains *string `form:"aka.has,omitempty" json:"facility_aka_contains,omitempty"`
+	FacilityAkaContains *string `form:"aka.has,omitempty" json:"facility_aka_contains,omitzero"`
 	// Filters field "aka" to contain the provided value, case-insensitive.
-	FacilityAkaContainsFold *string `form:"aka.ihas,omitempty" json:"facility_aka_contains_fold,omitempty"`
+	FacilityAkaContainsFold *string `form:"aka.ihas,omitempty" json:"facility_aka_contains_fold,omitzero"`
 	// Filters field "aka" to start with the provided value.
-	FacilityAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"facility_aka_has_prefix,omitempty"`
+	FacilityAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"facility_aka_has_prefix,omitzero"`
 	// Filters field "aka" to end with the provided value.
-	FacilityAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"facility_aka_has_suffix,omitempty"`
+	FacilityAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"facility_aka_has_suffix,omitzero"`
 	// Filters field "city" to be equal to the provided value.
-	FacilityCityEQ *string `form:"city.eq,omitempty" json:"facility_city_eq,omitempty"`
+	FacilityCityEQ *string `form:"city.eq,omitempty" json:"facility_city_eq,omitzero"`
 	// Filters field "city" to be not equal to the provided value.
-	FacilityCityNEQ *string `form:"city.neq,omitempty" json:"facility_city_neq,omitempty"`
+	FacilityCityNEQ *string `form:"city.neq,omitempty" json:"facility_city_neq,omitzero"`
 	// Filters field "city" to be null/nil.
-	FacilityCityIsNil *bool `form:"city.null,omitempty" json:"facility_city_is_nil,omitempty"`
+	FacilityCityIsNil *bool `form:"city.null,omitempty" json:"facility_city_is_nil,omitzero"`
 	// Filters field "city" to be within the provided values.
-	FacilityCityIn []string `form:"city.in,omitempty" json:"facility_city_in,omitempty"`
+	FacilityCityIn []string `form:"city.in,omitempty" json:"facility_city_in,omitzero"`
 	// Filters field "city" to be not within the provided values.
-	FacilityCityNotIn []string `form:"city.notIn,omitempty" json:"facility_city_not_in,omitempty"`
+	FacilityCityNotIn []string `form:"city.notIn,omitempty" json:"facility_city_not_in,omitzero"`
 	// Filters field "city" to be equal to the provided value, case-insensitive.
-	FacilityCityEqualFold *string `form:"city.ieq,omitempty" json:"facility_city_equal_fold,omitempty"`
+	FacilityCityEqualFold *string `form:"city.ieq,omitempty" json:"facility_city_equal_fold,omitzero"`
 	// Filters field "city" to contain the provided value.
-	FacilityCityContains *string `form:"city.has,omitempty" json:"facility_city_contains,omitempty"`
+	FacilityCityContains *string `form:"city.has,omitempty" json:"facility_city_contains,omitzero"`
 	// Filters field "city" to contain the provided value, case-insensitive.
-	FacilityCityContainsFold *string `form:"city.ihas,omitempty" json:"facility_city_contains_fold,omitempty"`
+	FacilityCityContainsFold *string `form:"city.ihas,omitempty" json:"facility_city_contains_fold,omitzero"`
 	// Filters field "city" to start with the provided value.
-	FacilityCityHasPrefix *string `form:"city.prefix,omitempty" json:"facility_city_has_prefix,omitempty"`
+	FacilityCityHasPrefix *string `form:"city.prefix,omitempty" json:"facility_city_has_prefix,omitzero"`
 	// Filters field "city" to end with the provided value.
-	FacilityCityHasSuffix *string `form:"city.suffix,omitempty" json:"facility_city_has_suffix,omitempty"`
+	FacilityCityHasSuffix *string `form:"city.suffix,omitempty" json:"facility_city_has_suffix,omitzero"`
 	// Filters field "country" to be equal to the provided value.
-	FacilityCountryEQ *string `form:"country.eq,omitempty" json:"facility_country_eq,omitempty"`
+	FacilityCountryEQ *string `form:"country.eq,omitempty" json:"facility_country_eq,omitzero"`
 	// Filters field "country" to be not equal to the provided value.
-	FacilityCountryNEQ *string `form:"country.neq,omitempty" json:"facility_country_neq,omitempty"`
+	FacilityCountryNEQ *string `form:"country.neq,omitempty" json:"facility_country_neq,omitzero"`
 	// Filters field "country" to be null/nil.
-	FacilityCountryIsNil *bool `form:"country.null,omitempty" json:"facility_country_is_nil,omitempty"`
+	FacilityCountryIsNil *bool `form:"country.null,omitempty" json:"facility_country_is_nil,omitzero"`
 	// Filters field "country" to be within the provided values.
-	FacilityCountryIn []string `form:"country.in,omitempty" json:"facility_country_in,omitempty"`
+	FacilityCountryIn []string `form:"country.in,omitempty" json:"facility_country_in,omitzero"`
 	// Filters field "country" to be not within the provided values.
-	FacilityCountryNotIn []string `form:"country.notIn,omitempty" json:"facility_country_not_in,omitempty"`
+	FacilityCountryNotIn []string `form:"country.notIn,omitempty" json:"facility_country_not_in,omitzero"`
 	// Filters field "country" to be equal to the provided value, case-insensitive.
-	FacilityCountryEqualFold *string `form:"country.ieq,omitempty" json:"facility_country_equal_fold,omitempty"`
+	FacilityCountryEqualFold *string `form:"country.ieq,omitempty" json:"facility_country_equal_fold,omitzero"`
 	// Filters field "country" to contain the provided value.
-	FacilityCountryContains *string `form:"country.has,omitempty" json:"facility_country_contains,omitempty"`
+	FacilityCountryContains *string `form:"country.has,omitempty" json:"facility_country_contains,omitzero"`
 	// Filters field "country" to contain the provided value, case-insensitive.
-	FacilityCountryContainsFold *string `form:"country.ihas,omitempty" json:"facility_country_contains_fold,omitempty"`
+	FacilityCountryContainsFold *string `form:"country.ihas,omitempty" json:"facility_country_contains_fold,omitzero"`
 	// Filters field "country" to start with the provided value.
-	FacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"facility_country_has_prefix,omitempty"`
+	FacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"facility_country_has_prefix,omitzero"`
 	// Filters field "country" to end with the provided value.
-	FacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"facility_country_has_suffix,omitempty"`
+	FacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"facility_country_has_suffix,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	FacilityNameEQ *string `form:"name.eq,omitempty" json:"facility_name_eq,omitempty"`
+	FacilityNameEQ *string `form:"name.eq,omitempty" json:"facility_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	FacilityNameNEQ *string `form:"name.neq,omitempty" json:"facility_name_neq,omitempty"`
+	FacilityNameNEQ *string `form:"name.neq,omitempty" json:"facility_name_neq,omitzero"`
 	// Filters field "name" to be within the provided values.
-	FacilityNameIn []string `form:"name.in,omitempty" json:"facility_name_in,omitempty"`
+	FacilityNameIn []string `form:"name.in,omitempty" json:"facility_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	FacilityNameNotIn []string `form:"name.notIn,omitempty" json:"facility_name_not_in,omitempty"`
+	FacilityNameNotIn []string `form:"name.notIn,omitempty" json:"facility_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	FacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"facility_name_equal_fold,omitempty"`
+	FacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"facility_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	FacilityNameContains *string `form:"name.has,omitempty" json:"facility_name_contains,omitempty"`
+	FacilityNameContains *string `form:"name.has,omitempty" json:"facility_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	FacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"facility_name_contains_fold,omitempty"`
+	FacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"facility_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	FacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"facility_name_has_prefix,omitempty"`
+	FacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"facility_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	FacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"facility_name_has_suffix,omitempty"`
+	FacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"facility_name_has_suffix,omitzero"`
 	// Filters field "name_long" to be equal to the provided value.
-	FacilityNameLongEQ *string `form:"nameLong.eq,omitempty" json:"facility_name_long_eq,omitempty"`
+	FacilityNameLongEQ *string `form:"nameLong.eq,omitempty" json:"facility_name_long_eq,omitzero"`
 	// Filters field "name_long" to be not equal to the provided value.
-	FacilityNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"facility_name_long_neq,omitempty"`
+	FacilityNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"facility_name_long_neq,omitzero"`
 	// Filters field "name_long" to be null/nil.
-	FacilityNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"facility_name_long_is_nil,omitempty"`
+	FacilityNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"facility_name_long_is_nil,omitzero"`
 	// Filters field "name_long" to be within the provided values.
-	FacilityNameLongIn []string `form:"nameLong.in,omitempty" json:"facility_name_long_in,omitempty"`
+	FacilityNameLongIn []string `form:"nameLong.in,omitempty" json:"facility_name_long_in,omitzero"`
 	// Filters field "name_long" to be not within the provided values.
-	FacilityNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"facility_name_long_not_in,omitempty"`
+	FacilityNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"facility_name_long_not_in,omitzero"`
 	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	FacilityNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"facility_name_long_equal_fold,omitempty"`
+	FacilityNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"facility_name_long_equal_fold,omitzero"`
 	// Filters field "name_long" to contain the provided value.
-	FacilityNameLongContains *string `form:"nameLong.has,omitempty" json:"facility_name_long_contains,omitempty"`
+	FacilityNameLongContains *string `form:"nameLong.has,omitempty" json:"facility_name_long_contains,omitzero"`
 	// Filters field "name_long" to contain the provided value, case-insensitive.
-	FacilityNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"facility_name_long_contains_fold,omitempty"`
+	FacilityNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"facility_name_long_contains_fold,omitzero"`
 	// Filters field "name_long" to start with the provided value.
-	FacilityNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"facility_name_long_has_prefix,omitempty"`
+	FacilityNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"facility_name_long_has_prefix,omitzero"`
 	// Filters field "name_long" to end with the provided value.
-	FacilityNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"facility_name_long_has_suffix,omitempty"`
+	FacilityNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"facility_name_long_has_suffix,omitzero"`
 	// Filters field "state" to be equal to the provided value.
-	FacilityStateEQ *string `form:"state.eq,omitempty" json:"facility_state_eq,omitempty"`
+	FacilityStateEQ *string `form:"state.eq,omitempty" json:"facility_state_eq,omitzero"`
 	// Filters field "state" to be not equal to the provided value.
-	FacilityStateNEQ *string `form:"state.neq,omitempty" json:"facility_state_neq,omitempty"`
+	FacilityStateNEQ *string `form:"state.neq,omitempty" json:"facility_state_neq,omitzero"`
 	// Filters field "state" to be null/nil.
-	FacilityStateIsNil *bool `form:"state.null,omitempty" json:"facility_state_is_nil,omitempty"`
+	FacilityStateIsNil *bool `form:"state.null,omitempty" json:"facility_state_is_nil,omitzero"`
 	// Filters field "state" to be within the provided values.
-	FacilityStateIn []string `form:"state.in,omitempty" json:"facility_state_in,omitempty"`
+	FacilityStateIn []string `form:"state.in,omitempty" json:"facility_state_in,omitzero"`
 	// Filters field "state" to be not within the provided values.
-	FacilityStateNotIn []string `form:"state.notIn,omitempty" json:"facility_state_not_in,omitempty"`
+	FacilityStateNotIn []string `form:"state.notIn,omitempty" json:"facility_state_not_in,omitzero"`
 	// Filters field "state" to be equal to the provided value, case-insensitive.
-	FacilityStateEqualFold *string `form:"state.ieq,omitempty" json:"facility_state_equal_fold,omitempty"`
+	FacilityStateEqualFold *string `form:"state.ieq,omitempty" json:"facility_state_equal_fold,omitzero"`
 	// Filters field "state" to contain the provided value.
-	FacilityStateContains *string `form:"state.has,omitempty" json:"facility_state_contains,omitempty"`
+	FacilityStateContains *string `form:"state.has,omitempty" json:"facility_state_contains,omitzero"`
 	// Filters field "state" to contain the provided value, case-insensitive.
-	FacilityStateContainsFold *string `form:"state.ihas,omitempty" json:"facility_state_contains_fold,omitempty"`
+	FacilityStateContainsFold *string `form:"state.ihas,omitempty" json:"facility_state_contains_fold,omitzero"`
 	// Filters field "state" to start with the provided value.
-	FacilityStateHasPrefix *string `form:"state.prefix,omitempty" json:"facility_state_has_prefix,omitempty"`
+	FacilityStateHasPrefix *string `form:"state.prefix,omitempty" json:"facility_state_has_prefix,omitzero"`
 	// Filters field "state" to end with the provided value.
-	FacilityStateHasSuffix *string `form:"state.suffix,omitempty" json:"facility_state_has_suffix,omitempty"`
+	FacilityStateHasSuffix *string `form:"state.suffix,omitempty" json:"facility_state_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	FacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"facility_created_gt,omitempty"`
+	FacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"facility_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	FacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"facility_created_gte,omitempty"`
+	FacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"facility_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	FacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"facility_created_lt,omitempty"`
+	FacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"facility_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	FacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"facility_created_lte,omitempty"`
+	FacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"facility_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	FacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"facility_updated_gt,omitempty"`
+	FacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"facility_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	FacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"facility_updated_gte,omitempty"`
+	FacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"facility_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	FacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"facility_updated_lt,omitempty"`
+	FacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"facility_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	FacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"facility_updated_lte,omitempty"`
+	FacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"facility_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	FacilityStatusEQ *string `form:"status.eq,omitempty" json:"facility_status_eq,omitempty"`
+	FacilityStatusEQ *string `form:"status.eq,omitempty" json:"facility_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	FacilityStatusNEQ *string `form:"status.neq,omitempty" json:"facility_status_neq,omitempty"`
+	FacilityStatusNEQ *string `form:"status.neq,omitempty" json:"facility_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	FacilityStatusIn []string `form:"status.in,omitempty" json:"facility_status_in,omitempty"`
+	FacilityStatusIn []string `form:"status.in,omitempty" json:"facility_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	FacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"facility_status_not_in,omitempty"`
+	FacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"facility_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	FacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"facility_status_equal_fold,omitempty"`
+	FacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"facility_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	FacilityStatusContains *string `form:"status.has,omitempty" json:"facility_status_contains,omitempty"`
+	FacilityStatusContains *string `form:"status.has,omitempty" json:"facility_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	FacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"facility_status_contains_fold,omitempty"`
+	FacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"facility_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	FacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"facility_status_has_prefix,omitempty"`
+	FacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"facility_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	FacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"facility_status_has_suffix,omitempty"`
+	FacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"facility_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in Facility.
-func (l *ListFacilityParams) FilterPredicates() (predicate.Facility, error) {
-	var _predicates []predicate.Facility
+func (l *ListFacilityParams) FilterPredicates() (__predicate.Facility, error) {
+	var _predicates []__predicate.Facility
 
 	if l.FacilityCampusIDEQ != nil {
-		_predicates = append(_predicates, facility.CampusIDEQ(*l.FacilityCampusIDEQ))
+		_predicates = append(_predicates, __facility.CampusIDEQ(*l.FacilityCampusIDEQ))
 	}
 	if l.FacilityCampusIDNEQ != nil {
-		_predicates = append(_predicates, facility.CampusIDNEQ(*l.FacilityCampusIDNEQ))
+		_predicates = append(_predicates, __facility.CampusIDNEQ(*l.FacilityCampusIDNEQ))
 	}
 	if l.FacilityCampusIDIn != nil {
-		_predicates = append(_predicates, facility.CampusIDIn(l.FacilityCampusIDIn...))
+		_predicates = append(_predicates, __facility.CampusIDIn(l.FacilityCampusIDIn...))
 	}
 	if l.FacilityCampusIDNotIn != nil {
-		_predicates = append(_predicates, facility.CampusIDNotIn(l.FacilityCampusIDNotIn...))
+		_predicates = append(_predicates, __facility.CampusIDNotIn(l.FacilityCampusIDNotIn...))
 	}
 	if l.FacilityOrgIDEQ != nil {
-		_predicates = append(_predicates, facility.OrgIDEQ(*l.FacilityOrgIDEQ))
+		_predicates = append(_predicates, __facility.OrgIDEQ(*l.FacilityOrgIDEQ))
 	}
 	if l.FacilityOrgIDNEQ != nil {
-		_predicates = append(_predicates, facility.OrgIDNEQ(*l.FacilityOrgIDNEQ))
+		_predicates = append(_predicates, __facility.OrgIDNEQ(*l.FacilityOrgIDNEQ))
 	}
 	if l.FacilityOrgIDIn != nil {
-		_predicates = append(_predicates, facility.OrgIDIn(l.FacilityOrgIDIn...))
+		_predicates = append(_predicates, __facility.OrgIDIn(l.FacilityOrgIDIn...))
 	}
 	if l.FacilityOrgIDNotIn != nil {
-		_predicates = append(_predicates, facility.OrgIDNotIn(l.FacilityOrgIDNotIn...))
+		_predicates = append(_predicates, __facility.OrgIDNotIn(l.FacilityOrgIDNotIn...))
 	}
 	if l.FacilityAkaEQ != nil {
-		_predicates = append(_predicates, facility.AkaEQ(*l.FacilityAkaEQ))
+		_predicates = append(_predicates, __facility.AkaEQ(*l.FacilityAkaEQ))
 	}
 	if l.FacilityAkaNEQ != nil {
-		_predicates = append(_predicates, facility.AkaNEQ(*l.FacilityAkaNEQ))
+		_predicates = append(_predicates, __facility.AkaNEQ(*l.FacilityAkaNEQ))
 	}
 	if l.FacilityAkaIsNil != nil {
 		if *l.FacilityAkaIsNil {
-			_predicates = append(_predicates, facility.AkaIsNil())
+			_predicates = append(_predicates, __facility.AkaIsNil())
 		} else {
-			_predicates = append(_predicates, facility.Not(facility.AkaIsNil()))
+			_predicates = append(_predicates, __facility.Not(__facility.AkaIsNil()))
 		}
 	}
 	if l.FacilityAkaIn != nil {
-		_predicates = append(_predicates, facility.AkaIn(l.FacilityAkaIn...))
+		_predicates = append(_predicates, __facility.AkaIn(l.FacilityAkaIn...))
 	}
 	if l.FacilityAkaNotIn != nil {
-		_predicates = append(_predicates, facility.AkaNotIn(l.FacilityAkaNotIn...))
+		_predicates = append(_predicates, __facility.AkaNotIn(l.FacilityAkaNotIn...))
 	}
 	if l.FacilityAkaEqualFold != nil {
-		_predicates = append(_predicates, facility.AkaEqualFold(*l.FacilityAkaEqualFold))
+		_predicates = append(_predicates, __facility.AkaEqualFold(*l.FacilityAkaEqualFold))
 	}
 	if l.FacilityAkaContains != nil {
-		_predicates = append(_predicates, facility.AkaContains(*l.FacilityAkaContains))
+		_predicates = append(_predicates, __facility.AkaContains(*l.FacilityAkaContains))
 	}
 	if l.FacilityAkaContainsFold != nil {
-		_predicates = append(_predicates, facility.AkaContainsFold(*l.FacilityAkaContainsFold))
+		_predicates = append(_predicates, __facility.AkaContainsFold(*l.FacilityAkaContainsFold))
 	}
 	if l.FacilityAkaHasPrefix != nil {
-		_predicates = append(_predicates, facility.AkaHasPrefix(*l.FacilityAkaHasPrefix))
+		_predicates = append(_predicates, __facility.AkaHasPrefix(*l.FacilityAkaHasPrefix))
 	}
 	if l.FacilityAkaHasSuffix != nil {
-		_predicates = append(_predicates, facility.AkaHasSuffix(*l.FacilityAkaHasSuffix))
+		_predicates = append(_predicates, __facility.AkaHasSuffix(*l.FacilityAkaHasSuffix))
 	}
 	if l.FacilityCityEQ != nil {
-		_predicates = append(_predicates, facility.CityEQ(*l.FacilityCityEQ))
+		_predicates = append(_predicates, __facility.CityEQ(*l.FacilityCityEQ))
 	}
 	if l.FacilityCityNEQ != nil {
-		_predicates = append(_predicates, facility.CityNEQ(*l.FacilityCityNEQ))
+		_predicates = append(_predicates, __facility.CityNEQ(*l.FacilityCityNEQ))
 	}
 	if l.FacilityCityIsNil != nil {
 		if *l.FacilityCityIsNil {
-			_predicates = append(_predicates, facility.CityIsNil())
+			_predicates = append(_predicates, __facility.CityIsNil())
 		} else {
-			_predicates = append(_predicates, facility.Not(facility.CityIsNil()))
+			_predicates = append(_predicates, __facility.Not(__facility.CityIsNil()))
 		}
 	}
 	if l.FacilityCityIn != nil {
-		_predicates = append(_predicates, facility.CityIn(l.FacilityCityIn...))
+		_predicates = append(_predicates, __facility.CityIn(l.FacilityCityIn...))
 	}
 	if l.FacilityCityNotIn != nil {
-		_predicates = append(_predicates, facility.CityNotIn(l.FacilityCityNotIn...))
+		_predicates = append(_predicates, __facility.CityNotIn(l.FacilityCityNotIn...))
 	}
 	if l.FacilityCityEqualFold != nil {
-		_predicates = append(_predicates, facility.CityEqualFold(*l.FacilityCityEqualFold))
+		_predicates = append(_predicates, __facility.CityEqualFold(*l.FacilityCityEqualFold))
 	}
 	if l.FacilityCityContains != nil {
-		_predicates = append(_predicates, facility.CityContains(*l.FacilityCityContains))
+		_predicates = append(_predicates, __facility.CityContains(*l.FacilityCityContains))
 	}
 	if l.FacilityCityContainsFold != nil {
-		_predicates = append(_predicates, facility.CityContainsFold(*l.FacilityCityContainsFold))
+		_predicates = append(_predicates, __facility.CityContainsFold(*l.FacilityCityContainsFold))
 	}
 	if l.FacilityCityHasPrefix != nil {
-		_predicates = append(_predicates, facility.CityHasPrefix(*l.FacilityCityHasPrefix))
+		_predicates = append(_predicates, __facility.CityHasPrefix(*l.FacilityCityHasPrefix))
 	}
 	if l.FacilityCityHasSuffix != nil {
-		_predicates = append(_predicates, facility.CityHasSuffix(*l.FacilityCityHasSuffix))
+		_predicates = append(_predicates, __facility.CityHasSuffix(*l.FacilityCityHasSuffix))
 	}
 	if l.FacilityCountryEQ != nil {
-		_predicates = append(_predicates, facility.CountryEQ(*l.FacilityCountryEQ))
+		_predicates = append(_predicates, __facility.CountryEQ(*l.FacilityCountryEQ))
 	}
 	if l.FacilityCountryNEQ != nil {
-		_predicates = append(_predicates, facility.CountryNEQ(*l.FacilityCountryNEQ))
+		_predicates = append(_predicates, __facility.CountryNEQ(*l.FacilityCountryNEQ))
 	}
 	if l.FacilityCountryIsNil != nil {
 		if *l.FacilityCountryIsNil {
-			_predicates = append(_predicates, facility.CountryIsNil())
+			_predicates = append(_predicates, __facility.CountryIsNil())
 		} else {
-			_predicates = append(_predicates, facility.Not(facility.CountryIsNil()))
+			_predicates = append(_predicates, __facility.Not(__facility.CountryIsNil()))
 		}
 	}
 	if l.FacilityCountryIn != nil {
-		_predicates = append(_predicates, facility.CountryIn(l.FacilityCountryIn...))
+		_predicates = append(_predicates, __facility.CountryIn(l.FacilityCountryIn...))
 	}
 	if l.FacilityCountryNotIn != nil {
-		_predicates = append(_predicates, facility.CountryNotIn(l.FacilityCountryNotIn...))
+		_predicates = append(_predicates, __facility.CountryNotIn(l.FacilityCountryNotIn...))
 	}
 	if l.FacilityCountryEqualFold != nil {
-		_predicates = append(_predicates, facility.CountryEqualFold(*l.FacilityCountryEqualFold))
+		_predicates = append(_predicates, __facility.CountryEqualFold(*l.FacilityCountryEqualFold))
 	}
 	if l.FacilityCountryContains != nil {
-		_predicates = append(_predicates, facility.CountryContains(*l.FacilityCountryContains))
+		_predicates = append(_predicates, __facility.CountryContains(*l.FacilityCountryContains))
 	}
 	if l.FacilityCountryContainsFold != nil {
-		_predicates = append(_predicates, facility.CountryContainsFold(*l.FacilityCountryContainsFold))
+		_predicates = append(_predicates, __facility.CountryContainsFold(*l.FacilityCountryContainsFold))
 	}
 	if l.FacilityCountryHasPrefix != nil {
-		_predicates = append(_predicates, facility.CountryHasPrefix(*l.FacilityCountryHasPrefix))
+		_predicates = append(_predicates, __facility.CountryHasPrefix(*l.FacilityCountryHasPrefix))
 	}
 	if l.FacilityCountryHasSuffix != nil {
-		_predicates = append(_predicates, facility.CountryHasSuffix(*l.FacilityCountryHasSuffix))
+		_predicates = append(_predicates, __facility.CountryHasSuffix(*l.FacilityCountryHasSuffix))
 	}
 	if l.FacilityNameEQ != nil {
-		_predicates = append(_predicates, facility.NameEQ(*l.FacilityNameEQ))
+		_predicates = append(_predicates, __facility.NameEQ(*l.FacilityNameEQ))
 	}
 	if l.FacilityNameNEQ != nil {
-		_predicates = append(_predicates, facility.NameNEQ(*l.FacilityNameNEQ))
+		_predicates = append(_predicates, __facility.NameNEQ(*l.FacilityNameNEQ))
 	}
 	if l.FacilityNameIn != nil {
-		_predicates = append(_predicates, facility.NameIn(l.FacilityNameIn...))
+		_predicates = append(_predicates, __facility.NameIn(l.FacilityNameIn...))
 	}
 	if l.FacilityNameNotIn != nil {
-		_predicates = append(_predicates, facility.NameNotIn(l.FacilityNameNotIn...))
+		_predicates = append(_predicates, __facility.NameNotIn(l.FacilityNameNotIn...))
 	}
 	if l.FacilityNameEqualFold != nil {
-		_predicates = append(_predicates, facility.NameEqualFold(*l.FacilityNameEqualFold))
+		_predicates = append(_predicates, __facility.NameEqualFold(*l.FacilityNameEqualFold))
 	}
 	if l.FacilityNameContains != nil {
-		_predicates = append(_predicates, facility.NameContains(*l.FacilityNameContains))
+		_predicates = append(_predicates, __facility.NameContains(*l.FacilityNameContains))
 	}
 	if l.FacilityNameContainsFold != nil {
-		_predicates = append(_predicates, facility.NameContainsFold(*l.FacilityNameContainsFold))
+		_predicates = append(_predicates, __facility.NameContainsFold(*l.FacilityNameContainsFold))
 	}
 	if l.FacilityNameHasPrefix != nil {
-		_predicates = append(_predicates, facility.NameHasPrefix(*l.FacilityNameHasPrefix))
+		_predicates = append(_predicates, __facility.NameHasPrefix(*l.FacilityNameHasPrefix))
 	}
 	if l.FacilityNameHasSuffix != nil {
-		_predicates = append(_predicates, facility.NameHasSuffix(*l.FacilityNameHasSuffix))
+		_predicates = append(_predicates, __facility.NameHasSuffix(*l.FacilityNameHasSuffix))
 	}
 	if l.FacilityNameLongEQ != nil {
-		_predicates = append(_predicates, facility.NameLongEQ(*l.FacilityNameLongEQ))
+		_predicates = append(_predicates, __facility.NameLongEQ(*l.FacilityNameLongEQ))
 	}
 	if l.FacilityNameLongNEQ != nil {
-		_predicates = append(_predicates, facility.NameLongNEQ(*l.FacilityNameLongNEQ))
+		_predicates = append(_predicates, __facility.NameLongNEQ(*l.FacilityNameLongNEQ))
 	}
 	if l.FacilityNameLongIsNil != nil {
 		if *l.FacilityNameLongIsNil {
-			_predicates = append(_predicates, facility.NameLongIsNil())
+			_predicates = append(_predicates, __facility.NameLongIsNil())
 		} else {
-			_predicates = append(_predicates, facility.Not(facility.NameLongIsNil()))
+			_predicates = append(_predicates, __facility.Not(__facility.NameLongIsNil()))
 		}
 	}
 	if l.FacilityNameLongIn != nil {
-		_predicates = append(_predicates, facility.NameLongIn(l.FacilityNameLongIn...))
+		_predicates = append(_predicates, __facility.NameLongIn(l.FacilityNameLongIn...))
 	}
 	if l.FacilityNameLongNotIn != nil {
-		_predicates = append(_predicates, facility.NameLongNotIn(l.FacilityNameLongNotIn...))
+		_predicates = append(_predicates, __facility.NameLongNotIn(l.FacilityNameLongNotIn...))
 	}
 	if l.FacilityNameLongEqualFold != nil {
-		_predicates = append(_predicates, facility.NameLongEqualFold(*l.FacilityNameLongEqualFold))
+		_predicates = append(_predicates, __facility.NameLongEqualFold(*l.FacilityNameLongEqualFold))
 	}
 	if l.FacilityNameLongContains != nil {
-		_predicates = append(_predicates, facility.NameLongContains(*l.FacilityNameLongContains))
+		_predicates = append(_predicates, __facility.NameLongContains(*l.FacilityNameLongContains))
 	}
 	if l.FacilityNameLongContainsFold != nil {
-		_predicates = append(_predicates, facility.NameLongContainsFold(*l.FacilityNameLongContainsFold))
+		_predicates = append(_predicates, __facility.NameLongContainsFold(*l.FacilityNameLongContainsFold))
 	}
 	if l.FacilityNameLongHasPrefix != nil {
-		_predicates = append(_predicates, facility.NameLongHasPrefix(*l.FacilityNameLongHasPrefix))
+		_predicates = append(_predicates, __facility.NameLongHasPrefix(*l.FacilityNameLongHasPrefix))
 	}
 	if l.FacilityNameLongHasSuffix != nil {
-		_predicates = append(_predicates, facility.NameLongHasSuffix(*l.FacilityNameLongHasSuffix))
+		_predicates = append(_predicates, __facility.NameLongHasSuffix(*l.FacilityNameLongHasSuffix))
 	}
 	if l.FacilityStateEQ != nil {
-		_predicates = append(_predicates, facility.StateEQ(*l.FacilityStateEQ))
+		_predicates = append(_predicates, __facility.StateEQ(*l.FacilityStateEQ))
 	}
 	if l.FacilityStateNEQ != nil {
-		_predicates = append(_predicates, facility.StateNEQ(*l.FacilityStateNEQ))
+		_predicates = append(_predicates, __facility.StateNEQ(*l.FacilityStateNEQ))
 	}
 	if l.FacilityStateIsNil != nil {
 		if *l.FacilityStateIsNil {
-			_predicates = append(_predicates, facility.StateIsNil())
+			_predicates = append(_predicates, __facility.StateIsNil())
 		} else {
-			_predicates = append(_predicates, facility.Not(facility.StateIsNil()))
+			_predicates = append(_predicates, __facility.Not(__facility.StateIsNil()))
 		}
 	}
 	if l.FacilityStateIn != nil {
-		_predicates = append(_predicates, facility.StateIn(l.FacilityStateIn...))
+		_predicates = append(_predicates, __facility.StateIn(l.FacilityStateIn...))
 	}
 	if l.FacilityStateNotIn != nil {
-		_predicates = append(_predicates, facility.StateNotIn(l.FacilityStateNotIn...))
+		_predicates = append(_predicates, __facility.StateNotIn(l.FacilityStateNotIn...))
 	}
 	if l.FacilityStateEqualFold != nil {
-		_predicates = append(_predicates, facility.StateEqualFold(*l.FacilityStateEqualFold))
+		_predicates = append(_predicates, __facility.StateEqualFold(*l.FacilityStateEqualFold))
 	}
 	if l.FacilityStateContains != nil {
-		_predicates = append(_predicates, facility.StateContains(*l.FacilityStateContains))
+		_predicates = append(_predicates, __facility.StateContains(*l.FacilityStateContains))
 	}
 	if l.FacilityStateContainsFold != nil {
-		_predicates = append(_predicates, facility.StateContainsFold(*l.FacilityStateContainsFold))
+		_predicates = append(_predicates, __facility.StateContainsFold(*l.FacilityStateContainsFold))
 	}
 	if l.FacilityStateHasPrefix != nil {
-		_predicates = append(_predicates, facility.StateHasPrefix(*l.FacilityStateHasPrefix))
+		_predicates = append(_predicates, __facility.StateHasPrefix(*l.FacilityStateHasPrefix))
 	}
 	if l.FacilityStateHasSuffix != nil {
-		_predicates = append(_predicates, facility.StateHasSuffix(*l.FacilityStateHasSuffix))
+		_predicates = append(_predicates, __facility.StateHasSuffix(*l.FacilityStateHasSuffix))
 	}
 	if l.FacilityCreatedGT != nil {
-		_predicates = append(_predicates, facility.CreatedGT(*l.FacilityCreatedGT))
+		_predicates = append(_predicates, __facility.CreatedGT(*l.FacilityCreatedGT))
 	}
 	if l.FacilityCreatedGTE != nil {
-		_predicates = append(_predicates, facility.CreatedGTE(*l.FacilityCreatedGTE))
+		_predicates = append(_predicates, __facility.CreatedGTE(*l.FacilityCreatedGTE))
 	}
 	if l.FacilityCreatedLT != nil {
-		_predicates = append(_predicates, facility.CreatedLT(*l.FacilityCreatedLT))
+		_predicates = append(_predicates, __facility.CreatedLT(*l.FacilityCreatedLT))
 	}
 	if l.FacilityCreatedLTE != nil {
-		_predicates = append(_predicates, facility.CreatedLTE(*l.FacilityCreatedLTE))
+		_predicates = append(_predicates, __facility.CreatedLTE(*l.FacilityCreatedLTE))
 	}
 	if l.FacilityUpdatedGT != nil {
-		_predicates = append(_predicates, facility.UpdatedGT(*l.FacilityUpdatedGT))
+		_predicates = append(_predicates, __facility.UpdatedGT(*l.FacilityUpdatedGT))
 	}
 	if l.FacilityUpdatedGTE != nil {
-		_predicates = append(_predicates, facility.UpdatedGTE(*l.FacilityUpdatedGTE))
+		_predicates = append(_predicates, __facility.UpdatedGTE(*l.FacilityUpdatedGTE))
 	}
 	if l.FacilityUpdatedLT != nil {
-		_predicates = append(_predicates, facility.UpdatedLT(*l.FacilityUpdatedLT))
+		_predicates = append(_predicates, __facility.UpdatedLT(*l.FacilityUpdatedLT))
 	}
 	if l.FacilityUpdatedLTE != nil {
-		_predicates = append(_predicates, facility.UpdatedLTE(*l.FacilityUpdatedLTE))
+		_predicates = append(_predicates, __facility.UpdatedLTE(*l.FacilityUpdatedLTE))
 	}
 	if l.FacilityStatusEQ != nil {
-		_predicates = append(_predicates, facility.StatusEQ(*l.FacilityStatusEQ))
+		_predicates = append(_predicates, __facility.StatusEQ(*l.FacilityStatusEQ))
 	}
 	if l.FacilityStatusNEQ != nil {
-		_predicates = append(_predicates, facility.StatusNEQ(*l.FacilityStatusNEQ))
+		_predicates = append(_predicates, __facility.StatusNEQ(*l.FacilityStatusNEQ))
 	}
 	if l.FacilityStatusIn != nil {
-		_predicates = append(_predicates, facility.StatusIn(l.FacilityStatusIn...))
+		_predicates = append(_predicates, __facility.StatusIn(l.FacilityStatusIn...))
 	}
 	if l.FacilityStatusNotIn != nil {
-		_predicates = append(_predicates, facility.StatusNotIn(l.FacilityStatusNotIn...))
+		_predicates = append(_predicates, __facility.StatusNotIn(l.FacilityStatusNotIn...))
 	}
 	if l.FacilityStatusEqualFold != nil {
-		_predicates = append(_predicates, facility.StatusEqualFold(*l.FacilityStatusEqualFold))
+		_predicates = append(_predicates, __facility.StatusEqualFold(*l.FacilityStatusEqualFold))
 	}
 	if l.FacilityStatusContains != nil {
-		_predicates = append(_predicates, facility.StatusContains(*l.FacilityStatusContains))
+		_predicates = append(_predicates, __facility.StatusContains(*l.FacilityStatusContains))
 	}
 	if l.FacilityStatusContainsFold != nil {
-		_predicates = append(_predicates, facility.StatusContainsFold(*l.FacilityStatusContainsFold))
+		_predicates = append(_predicates, __facility.StatusContainsFold(*l.FacilityStatusContainsFold))
 	}
 	if l.FacilityStatusHasPrefix != nil {
-		_predicates = append(_predicates, facility.StatusHasPrefix(*l.FacilityStatusHasPrefix))
+		_predicates = append(_predicates, __facility.StatusHasPrefix(*l.FacilityStatusHasPrefix))
 	}
 	if l.FacilityStatusHasSuffix != nil {
-		_predicates = append(_predicates, facility.StatusHasSuffix(*l.FacilityStatusHasSuffix))
+		_predicates = append(_predicates, __facility.StatusHasSuffix(*l.FacilityStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListFacilityParams) ApplySorting(_query *ent.FacilityQuery) error {
+func (l *ListFacilityParams) ApplySorting(_query *__ent.FacilityQuery) error {
 	if err := l.Sorted.Validate(FacilitySortConfig); err != nil {
 		return err
 	}
@@ -1743,7 +1743,7 @@ func (l *ListFacilityParams) ApplySorting(_query *ent.FacilityQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListFacilityParams) Exec(ctx context.Context, _query *ent.FacilityQuery) (_results *PagedResponse[ent.Facility], err error) {
+func (l *ListFacilityParams) Exec(ctx context.Context, _query *__ent.FacilityQuery) (_results *PagedResponse[__ent.Facility], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -1759,387 +1759,387 @@ func (l *ListFacilityParams) Exec(ctx context.Context, _query *ent.FacilityQuery
 // ListInternetExchangeParams defines parameters for listing InternetExchanges via a GET request.
 type ListInternetExchangeParams struct {
 	Sorted
-	Paginated[*ent.InternetExchangeQuery, ent.InternetExchange]
-	Filtered[predicate.InternetExchange]
+	Paginated[*__ent.InternetExchangeQuery, __ent.InternetExchange]
+	Filtered[__predicate.InternetExchange]
 
 	// Filters field "org_id" to be equal to the provided value.
-	InternetExchangeOrgIDEQ *int `form:"orgID.eq,omitempty" json:"internet_exchange_org_ideq,omitempty"`
+	InternetExchangeOrgIDEQ *int `form:"orgID.eq,omitempty" json:"internet_exchange_org_ideq,omitzero"`
 	// Filters field "org_id" to be not equal to the provided value.
-	InternetExchangeOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"internet_exchange_org_idneq,omitempty"`
+	InternetExchangeOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"internet_exchange_org_idneq,omitzero"`
 	// Filters field "org_id" to be within the provided values.
-	InternetExchangeOrgIDIn []int `form:"orgID.in,omitempty" json:"internet_exchange_org_id_in,omitempty"`
+	InternetExchangeOrgIDIn []int `form:"orgID.in,omitempty" json:"internet_exchange_org_id_in,omitzero"`
 	// Filters field "org_id" to be not within the provided values.
-	InternetExchangeOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"internet_exchange_org_id_not_in,omitempty"`
+	InternetExchangeOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"internet_exchange_org_id_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value.
-	InternetExchangeAkaEQ *string `form:"aka.eq,omitempty" json:"internet_exchange_aka_eq,omitempty"`
+	InternetExchangeAkaEQ *string `form:"aka.eq,omitempty" json:"internet_exchange_aka_eq,omitzero"`
 	// Filters field "aka" to be not equal to the provided value.
-	InternetExchangeAkaNEQ *string `form:"aka.neq,omitempty" json:"internet_exchange_aka_neq,omitempty"`
+	InternetExchangeAkaNEQ *string `form:"aka.neq,omitempty" json:"internet_exchange_aka_neq,omitzero"`
 	// Filters field "aka" to be null/nil.
-	InternetExchangeAkaIsNil *bool `form:"aka.null,omitempty" json:"internet_exchange_aka_is_nil,omitempty"`
+	InternetExchangeAkaIsNil *bool `form:"aka.null,omitempty" json:"internet_exchange_aka_is_nil,omitzero"`
 	// Filters field "aka" to be within the provided values.
-	InternetExchangeAkaIn []string `form:"aka.in,omitempty" json:"internet_exchange_aka_in,omitempty"`
+	InternetExchangeAkaIn []string `form:"aka.in,omitempty" json:"internet_exchange_aka_in,omitzero"`
 	// Filters field "aka" to be not within the provided values.
-	InternetExchangeAkaNotIn []string `form:"aka.notIn,omitempty" json:"internet_exchange_aka_not_in,omitempty"`
+	InternetExchangeAkaNotIn []string `form:"aka.notIn,omitempty" json:"internet_exchange_aka_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value, case-insensitive.
-	InternetExchangeAkaEqualFold *string `form:"aka.ieq,omitempty" json:"internet_exchange_aka_equal_fold,omitempty"`
+	InternetExchangeAkaEqualFold *string `form:"aka.ieq,omitempty" json:"internet_exchange_aka_equal_fold,omitzero"`
 	// Filters field "aka" to contain the provided value.
-	InternetExchangeAkaContains *string `form:"aka.has,omitempty" json:"internet_exchange_aka_contains,omitempty"`
+	InternetExchangeAkaContains *string `form:"aka.has,omitempty" json:"internet_exchange_aka_contains,omitzero"`
 	// Filters field "aka" to contain the provided value, case-insensitive.
-	InternetExchangeAkaContainsFold *string `form:"aka.ihas,omitempty" json:"internet_exchange_aka_contains_fold,omitempty"`
+	InternetExchangeAkaContainsFold *string `form:"aka.ihas,omitempty" json:"internet_exchange_aka_contains_fold,omitzero"`
 	// Filters field "aka" to start with the provided value.
-	InternetExchangeAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"internet_exchange_aka_has_prefix,omitempty"`
+	InternetExchangeAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"internet_exchange_aka_has_prefix,omitzero"`
 	// Filters field "aka" to end with the provided value.
-	InternetExchangeAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"internet_exchange_aka_has_suffix,omitempty"`
+	InternetExchangeAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"internet_exchange_aka_has_suffix,omitzero"`
 	// Filters field "city" to be equal to the provided value.
-	InternetExchangeCityEQ *string `form:"city.eq,omitempty" json:"internet_exchange_city_eq,omitempty"`
+	InternetExchangeCityEQ *string `form:"city.eq,omitempty" json:"internet_exchange_city_eq,omitzero"`
 	// Filters field "city" to be not equal to the provided value.
-	InternetExchangeCityNEQ *string `form:"city.neq,omitempty" json:"internet_exchange_city_neq,omitempty"`
+	InternetExchangeCityNEQ *string `form:"city.neq,omitempty" json:"internet_exchange_city_neq,omitzero"`
 	// Filters field "city" to be null/nil.
-	InternetExchangeCityIsNil *bool `form:"city.null,omitempty" json:"internet_exchange_city_is_nil,omitempty"`
+	InternetExchangeCityIsNil *bool `form:"city.null,omitempty" json:"internet_exchange_city_is_nil,omitzero"`
 	// Filters field "city" to be within the provided values.
-	InternetExchangeCityIn []string `form:"city.in,omitempty" json:"internet_exchange_city_in,omitempty"`
+	InternetExchangeCityIn []string `form:"city.in,omitempty" json:"internet_exchange_city_in,omitzero"`
 	// Filters field "city" to be not within the provided values.
-	InternetExchangeCityNotIn []string `form:"city.notIn,omitempty" json:"internet_exchange_city_not_in,omitempty"`
+	InternetExchangeCityNotIn []string `form:"city.notIn,omitempty" json:"internet_exchange_city_not_in,omitzero"`
 	// Filters field "city" to be equal to the provided value, case-insensitive.
-	InternetExchangeCityEqualFold *string `form:"city.ieq,omitempty" json:"internet_exchange_city_equal_fold,omitempty"`
+	InternetExchangeCityEqualFold *string `form:"city.ieq,omitempty" json:"internet_exchange_city_equal_fold,omitzero"`
 	// Filters field "city" to contain the provided value.
-	InternetExchangeCityContains *string `form:"city.has,omitempty" json:"internet_exchange_city_contains,omitempty"`
+	InternetExchangeCityContains *string `form:"city.has,omitempty" json:"internet_exchange_city_contains,omitzero"`
 	// Filters field "city" to contain the provided value, case-insensitive.
-	InternetExchangeCityContainsFold *string `form:"city.ihas,omitempty" json:"internet_exchange_city_contains_fold,omitempty"`
+	InternetExchangeCityContainsFold *string `form:"city.ihas,omitempty" json:"internet_exchange_city_contains_fold,omitzero"`
 	// Filters field "city" to start with the provided value.
-	InternetExchangeCityHasPrefix *string `form:"city.prefix,omitempty" json:"internet_exchange_city_has_prefix,omitempty"`
+	InternetExchangeCityHasPrefix *string `form:"city.prefix,omitempty" json:"internet_exchange_city_has_prefix,omitzero"`
 	// Filters field "city" to end with the provided value.
-	InternetExchangeCityHasSuffix *string `form:"city.suffix,omitempty" json:"internet_exchange_city_has_suffix,omitempty"`
+	InternetExchangeCityHasSuffix *string `form:"city.suffix,omitempty" json:"internet_exchange_city_has_suffix,omitzero"`
 	// Filters field "country" to be equal to the provided value.
-	InternetExchangeCountryEQ *string `form:"country.eq,omitempty" json:"internet_exchange_country_eq,omitempty"`
+	InternetExchangeCountryEQ *string `form:"country.eq,omitempty" json:"internet_exchange_country_eq,omitzero"`
 	// Filters field "country" to be not equal to the provided value.
-	InternetExchangeCountryNEQ *string `form:"country.neq,omitempty" json:"internet_exchange_country_neq,omitempty"`
+	InternetExchangeCountryNEQ *string `form:"country.neq,omitempty" json:"internet_exchange_country_neq,omitzero"`
 	// Filters field "country" to be null/nil.
-	InternetExchangeCountryIsNil *bool `form:"country.null,omitempty" json:"internet_exchange_country_is_nil,omitempty"`
+	InternetExchangeCountryIsNil *bool `form:"country.null,omitempty" json:"internet_exchange_country_is_nil,omitzero"`
 	// Filters field "country" to be within the provided values.
-	InternetExchangeCountryIn []string `form:"country.in,omitempty" json:"internet_exchange_country_in,omitempty"`
+	InternetExchangeCountryIn []string `form:"country.in,omitempty" json:"internet_exchange_country_in,omitzero"`
 	// Filters field "country" to be not within the provided values.
-	InternetExchangeCountryNotIn []string `form:"country.notIn,omitempty" json:"internet_exchange_country_not_in,omitempty"`
+	InternetExchangeCountryNotIn []string `form:"country.notIn,omitempty" json:"internet_exchange_country_not_in,omitzero"`
 	// Filters field "country" to be equal to the provided value, case-insensitive.
-	InternetExchangeCountryEqualFold *string `form:"country.ieq,omitempty" json:"internet_exchange_country_equal_fold,omitempty"`
+	InternetExchangeCountryEqualFold *string `form:"country.ieq,omitempty" json:"internet_exchange_country_equal_fold,omitzero"`
 	// Filters field "country" to contain the provided value.
-	InternetExchangeCountryContains *string `form:"country.has,omitempty" json:"internet_exchange_country_contains,omitempty"`
+	InternetExchangeCountryContains *string `form:"country.has,omitempty" json:"internet_exchange_country_contains,omitzero"`
 	// Filters field "country" to contain the provided value, case-insensitive.
-	InternetExchangeCountryContainsFold *string `form:"country.ihas,omitempty" json:"internet_exchange_country_contains_fold,omitempty"`
+	InternetExchangeCountryContainsFold *string `form:"country.ihas,omitempty" json:"internet_exchange_country_contains_fold,omitzero"`
 	// Filters field "country" to start with the provided value.
-	InternetExchangeCountryHasPrefix *string `form:"country.prefix,omitempty" json:"internet_exchange_country_has_prefix,omitempty"`
+	InternetExchangeCountryHasPrefix *string `form:"country.prefix,omitempty" json:"internet_exchange_country_has_prefix,omitzero"`
 	// Filters field "country" to end with the provided value.
-	InternetExchangeCountryHasSuffix *string `form:"country.suffix,omitempty" json:"internet_exchange_country_has_suffix,omitempty"`
+	InternetExchangeCountryHasSuffix *string `form:"country.suffix,omitempty" json:"internet_exchange_country_has_suffix,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	InternetExchangeNameEQ *string `form:"name.eq,omitempty" json:"internet_exchange_name_eq,omitempty"`
+	InternetExchangeNameEQ *string `form:"name.eq,omitempty" json:"internet_exchange_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	InternetExchangeNameNEQ *string `form:"name.neq,omitempty" json:"internet_exchange_name_neq,omitempty"`
+	InternetExchangeNameNEQ *string `form:"name.neq,omitempty" json:"internet_exchange_name_neq,omitzero"`
 	// Filters field "name" to be within the provided values.
-	InternetExchangeNameIn []string `form:"name.in,omitempty" json:"internet_exchange_name_in,omitempty"`
+	InternetExchangeNameIn []string `form:"name.in,omitempty" json:"internet_exchange_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	InternetExchangeNameNotIn []string `form:"name.notIn,omitempty" json:"internet_exchange_name_not_in,omitempty"`
+	InternetExchangeNameNotIn []string `form:"name.notIn,omitempty" json:"internet_exchange_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	InternetExchangeNameEqualFold *string `form:"name.ieq,omitempty" json:"internet_exchange_name_equal_fold,omitempty"`
+	InternetExchangeNameEqualFold *string `form:"name.ieq,omitempty" json:"internet_exchange_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	InternetExchangeNameContains *string `form:"name.has,omitempty" json:"internet_exchange_name_contains,omitempty"`
+	InternetExchangeNameContains *string `form:"name.has,omitempty" json:"internet_exchange_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	InternetExchangeNameContainsFold *string `form:"name.ihas,omitempty" json:"internet_exchange_name_contains_fold,omitempty"`
+	InternetExchangeNameContainsFold *string `form:"name.ihas,omitempty" json:"internet_exchange_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	InternetExchangeNameHasPrefix *string `form:"name.prefix,omitempty" json:"internet_exchange_name_has_prefix,omitempty"`
+	InternetExchangeNameHasPrefix *string `form:"name.prefix,omitempty" json:"internet_exchange_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	InternetExchangeNameHasSuffix *string `form:"name.suffix,omitempty" json:"internet_exchange_name_has_suffix,omitempty"`
+	InternetExchangeNameHasSuffix *string `form:"name.suffix,omitempty" json:"internet_exchange_name_has_suffix,omitzero"`
 	// Filters field "name_long" to be equal to the provided value.
-	InternetExchangeNameLongEQ *string `form:"nameLong.eq,omitempty" json:"internet_exchange_name_long_eq,omitempty"`
+	InternetExchangeNameLongEQ *string `form:"nameLong.eq,omitempty" json:"internet_exchange_name_long_eq,omitzero"`
 	// Filters field "name_long" to be not equal to the provided value.
-	InternetExchangeNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"internet_exchange_name_long_neq,omitempty"`
+	InternetExchangeNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"internet_exchange_name_long_neq,omitzero"`
 	// Filters field "name_long" to be null/nil.
-	InternetExchangeNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"internet_exchange_name_long_is_nil,omitempty"`
+	InternetExchangeNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"internet_exchange_name_long_is_nil,omitzero"`
 	// Filters field "name_long" to be within the provided values.
-	InternetExchangeNameLongIn []string `form:"nameLong.in,omitempty" json:"internet_exchange_name_long_in,omitempty"`
+	InternetExchangeNameLongIn []string `form:"nameLong.in,omitempty" json:"internet_exchange_name_long_in,omitzero"`
 	// Filters field "name_long" to be not within the provided values.
-	InternetExchangeNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"internet_exchange_name_long_not_in,omitempty"`
+	InternetExchangeNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"internet_exchange_name_long_not_in,omitzero"`
 	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	InternetExchangeNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"internet_exchange_name_long_equal_fold,omitempty"`
+	InternetExchangeNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"internet_exchange_name_long_equal_fold,omitzero"`
 	// Filters field "name_long" to contain the provided value.
-	InternetExchangeNameLongContains *string `form:"nameLong.has,omitempty" json:"internet_exchange_name_long_contains,omitempty"`
+	InternetExchangeNameLongContains *string `form:"nameLong.has,omitempty" json:"internet_exchange_name_long_contains,omitzero"`
 	// Filters field "name_long" to contain the provided value, case-insensitive.
-	InternetExchangeNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"internet_exchange_name_long_contains_fold,omitempty"`
+	InternetExchangeNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"internet_exchange_name_long_contains_fold,omitzero"`
 	// Filters field "name_long" to start with the provided value.
-	InternetExchangeNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"internet_exchange_name_long_has_prefix,omitempty"`
+	InternetExchangeNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"internet_exchange_name_long_has_prefix,omitzero"`
 	// Filters field "name_long" to end with the provided value.
-	InternetExchangeNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"internet_exchange_name_long_has_suffix,omitempty"`
+	InternetExchangeNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"internet_exchange_name_long_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	InternetExchangeCreatedGT *time.Time `form:"created.gt,omitempty" json:"internet_exchange_created_gt,omitempty"`
+	InternetExchangeCreatedGT *time.Time `form:"created.gt,omitempty" json:"internet_exchange_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	InternetExchangeCreatedGTE *time.Time `form:"created.gte,omitempty" json:"internet_exchange_created_gte,omitempty"`
+	InternetExchangeCreatedGTE *time.Time `form:"created.gte,omitempty" json:"internet_exchange_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	InternetExchangeCreatedLT *time.Time `form:"created.lt,omitempty" json:"internet_exchange_created_lt,omitempty"`
+	InternetExchangeCreatedLT *time.Time `form:"created.lt,omitempty" json:"internet_exchange_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	InternetExchangeCreatedLTE *time.Time `form:"created.lte,omitempty" json:"internet_exchange_created_lte,omitempty"`
+	InternetExchangeCreatedLTE *time.Time `form:"created.lte,omitempty" json:"internet_exchange_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	InternetExchangeUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"internet_exchange_updated_gt,omitempty"`
+	InternetExchangeUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"internet_exchange_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	InternetExchangeUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"internet_exchange_updated_gte,omitempty"`
+	InternetExchangeUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"internet_exchange_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	InternetExchangeUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"internet_exchange_updated_lt,omitempty"`
+	InternetExchangeUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"internet_exchange_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	InternetExchangeUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"internet_exchange_updated_lte,omitempty"`
+	InternetExchangeUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"internet_exchange_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	InternetExchangeStatusEQ *string `form:"status.eq,omitempty" json:"internet_exchange_status_eq,omitempty"`
+	InternetExchangeStatusEQ *string `form:"status.eq,omitempty" json:"internet_exchange_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	InternetExchangeStatusNEQ *string `form:"status.neq,omitempty" json:"internet_exchange_status_neq,omitempty"`
+	InternetExchangeStatusNEQ *string `form:"status.neq,omitempty" json:"internet_exchange_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	InternetExchangeStatusIn []string `form:"status.in,omitempty" json:"internet_exchange_status_in,omitempty"`
+	InternetExchangeStatusIn []string `form:"status.in,omitempty" json:"internet_exchange_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	InternetExchangeStatusNotIn []string `form:"status.notIn,omitempty" json:"internet_exchange_status_not_in,omitempty"`
+	InternetExchangeStatusNotIn []string `form:"status.notIn,omitempty" json:"internet_exchange_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	InternetExchangeStatusEqualFold *string `form:"status.ieq,omitempty" json:"internet_exchange_status_equal_fold,omitempty"`
+	InternetExchangeStatusEqualFold *string `form:"status.ieq,omitempty" json:"internet_exchange_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	InternetExchangeStatusContains *string `form:"status.has,omitempty" json:"internet_exchange_status_contains,omitempty"`
+	InternetExchangeStatusContains *string `form:"status.has,omitempty" json:"internet_exchange_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	InternetExchangeStatusContainsFold *string `form:"status.ihas,omitempty" json:"internet_exchange_status_contains_fold,omitempty"`
+	InternetExchangeStatusContainsFold *string `form:"status.ihas,omitempty" json:"internet_exchange_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	InternetExchangeStatusHasPrefix *string `form:"status.prefix,omitempty" json:"internet_exchange_status_has_prefix,omitempty"`
+	InternetExchangeStatusHasPrefix *string `form:"status.prefix,omitempty" json:"internet_exchange_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	InternetExchangeStatusHasSuffix *string `form:"status.suffix,omitempty" json:"internet_exchange_status_has_suffix,omitempty"`
+	InternetExchangeStatusHasSuffix *string `form:"status.suffix,omitempty" json:"internet_exchange_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in InternetExchange.
-func (l *ListInternetExchangeParams) FilterPredicates() (predicate.InternetExchange, error) {
-	var _predicates []predicate.InternetExchange
+func (l *ListInternetExchangeParams) FilterPredicates() (__predicate.InternetExchange, error) {
+	var _predicates []__predicate.InternetExchange
 
 	if l.InternetExchangeOrgIDEQ != nil {
-		_predicates = append(_predicates, internetexchange.OrgIDEQ(*l.InternetExchangeOrgIDEQ))
+		_predicates = append(_predicates, __internetexchange.OrgIDEQ(*l.InternetExchangeOrgIDEQ))
 	}
 	if l.InternetExchangeOrgIDNEQ != nil {
-		_predicates = append(_predicates, internetexchange.OrgIDNEQ(*l.InternetExchangeOrgIDNEQ))
+		_predicates = append(_predicates, __internetexchange.OrgIDNEQ(*l.InternetExchangeOrgIDNEQ))
 	}
 	if l.InternetExchangeOrgIDIn != nil {
-		_predicates = append(_predicates, internetexchange.OrgIDIn(l.InternetExchangeOrgIDIn...))
+		_predicates = append(_predicates, __internetexchange.OrgIDIn(l.InternetExchangeOrgIDIn...))
 	}
 	if l.InternetExchangeOrgIDNotIn != nil {
-		_predicates = append(_predicates, internetexchange.OrgIDNotIn(l.InternetExchangeOrgIDNotIn...))
+		_predicates = append(_predicates, __internetexchange.OrgIDNotIn(l.InternetExchangeOrgIDNotIn...))
 	}
 	if l.InternetExchangeAkaEQ != nil {
-		_predicates = append(_predicates, internetexchange.AkaEQ(*l.InternetExchangeAkaEQ))
+		_predicates = append(_predicates, __internetexchange.AkaEQ(*l.InternetExchangeAkaEQ))
 	}
 	if l.InternetExchangeAkaNEQ != nil {
-		_predicates = append(_predicates, internetexchange.AkaNEQ(*l.InternetExchangeAkaNEQ))
+		_predicates = append(_predicates, __internetexchange.AkaNEQ(*l.InternetExchangeAkaNEQ))
 	}
 	if l.InternetExchangeAkaIsNil != nil {
 		if *l.InternetExchangeAkaIsNil {
-			_predicates = append(_predicates, internetexchange.AkaIsNil())
+			_predicates = append(_predicates, __internetexchange.AkaIsNil())
 		} else {
-			_predicates = append(_predicates, internetexchange.Not(internetexchange.AkaIsNil()))
+			_predicates = append(_predicates, __internetexchange.Not(__internetexchange.AkaIsNil()))
 		}
 	}
 	if l.InternetExchangeAkaIn != nil {
-		_predicates = append(_predicates, internetexchange.AkaIn(l.InternetExchangeAkaIn...))
+		_predicates = append(_predicates, __internetexchange.AkaIn(l.InternetExchangeAkaIn...))
 	}
 	if l.InternetExchangeAkaNotIn != nil {
-		_predicates = append(_predicates, internetexchange.AkaNotIn(l.InternetExchangeAkaNotIn...))
+		_predicates = append(_predicates, __internetexchange.AkaNotIn(l.InternetExchangeAkaNotIn...))
 	}
 	if l.InternetExchangeAkaEqualFold != nil {
-		_predicates = append(_predicates, internetexchange.AkaEqualFold(*l.InternetExchangeAkaEqualFold))
+		_predicates = append(_predicates, __internetexchange.AkaEqualFold(*l.InternetExchangeAkaEqualFold))
 	}
 	if l.InternetExchangeAkaContains != nil {
-		_predicates = append(_predicates, internetexchange.AkaContains(*l.InternetExchangeAkaContains))
+		_predicates = append(_predicates, __internetexchange.AkaContains(*l.InternetExchangeAkaContains))
 	}
 	if l.InternetExchangeAkaContainsFold != nil {
-		_predicates = append(_predicates, internetexchange.AkaContainsFold(*l.InternetExchangeAkaContainsFold))
+		_predicates = append(_predicates, __internetexchange.AkaContainsFold(*l.InternetExchangeAkaContainsFold))
 	}
 	if l.InternetExchangeAkaHasPrefix != nil {
-		_predicates = append(_predicates, internetexchange.AkaHasPrefix(*l.InternetExchangeAkaHasPrefix))
+		_predicates = append(_predicates, __internetexchange.AkaHasPrefix(*l.InternetExchangeAkaHasPrefix))
 	}
 	if l.InternetExchangeAkaHasSuffix != nil {
-		_predicates = append(_predicates, internetexchange.AkaHasSuffix(*l.InternetExchangeAkaHasSuffix))
+		_predicates = append(_predicates, __internetexchange.AkaHasSuffix(*l.InternetExchangeAkaHasSuffix))
 	}
 	if l.InternetExchangeCityEQ != nil {
-		_predicates = append(_predicates, internetexchange.CityEQ(*l.InternetExchangeCityEQ))
+		_predicates = append(_predicates, __internetexchange.CityEQ(*l.InternetExchangeCityEQ))
 	}
 	if l.InternetExchangeCityNEQ != nil {
-		_predicates = append(_predicates, internetexchange.CityNEQ(*l.InternetExchangeCityNEQ))
+		_predicates = append(_predicates, __internetexchange.CityNEQ(*l.InternetExchangeCityNEQ))
 	}
 	if l.InternetExchangeCityIsNil != nil {
 		if *l.InternetExchangeCityIsNil {
-			_predicates = append(_predicates, internetexchange.CityIsNil())
+			_predicates = append(_predicates, __internetexchange.CityIsNil())
 		} else {
-			_predicates = append(_predicates, internetexchange.Not(internetexchange.CityIsNil()))
+			_predicates = append(_predicates, __internetexchange.Not(__internetexchange.CityIsNil()))
 		}
 	}
 	if l.InternetExchangeCityIn != nil {
-		_predicates = append(_predicates, internetexchange.CityIn(l.InternetExchangeCityIn...))
+		_predicates = append(_predicates, __internetexchange.CityIn(l.InternetExchangeCityIn...))
 	}
 	if l.InternetExchangeCityNotIn != nil {
-		_predicates = append(_predicates, internetexchange.CityNotIn(l.InternetExchangeCityNotIn...))
+		_predicates = append(_predicates, __internetexchange.CityNotIn(l.InternetExchangeCityNotIn...))
 	}
 	if l.InternetExchangeCityEqualFold != nil {
-		_predicates = append(_predicates, internetexchange.CityEqualFold(*l.InternetExchangeCityEqualFold))
+		_predicates = append(_predicates, __internetexchange.CityEqualFold(*l.InternetExchangeCityEqualFold))
 	}
 	if l.InternetExchangeCityContains != nil {
-		_predicates = append(_predicates, internetexchange.CityContains(*l.InternetExchangeCityContains))
+		_predicates = append(_predicates, __internetexchange.CityContains(*l.InternetExchangeCityContains))
 	}
 	if l.InternetExchangeCityContainsFold != nil {
-		_predicates = append(_predicates, internetexchange.CityContainsFold(*l.InternetExchangeCityContainsFold))
+		_predicates = append(_predicates, __internetexchange.CityContainsFold(*l.InternetExchangeCityContainsFold))
 	}
 	if l.InternetExchangeCityHasPrefix != nil {
-		_predicates = append(_predicates, internetexchange.CityHasPrefix(*l.InternetExchangeCityHasPrefix))
+		_predicates = append(_predicates, __internetexchange.CityHasPrefix(*l.InternetExchangeCityHasPrefix))
 	}
 	if l.InternetExchangeCityHasSuffix != nil {
-		_predicates = append(_predicates, internetexchange.CityHasSuffix(*l.InternetExchangeCityHasSuffix))
+		_predicates = append(_predicates, __internetexchange.CityHasSuffix(*l.InternetExchangeCityHasSuffix))
 	}
 	if l.InternetExchangeCountryEQ != nil {
-		_predicates = append(_predicates, internetexchange.CountryEQ(*l.InternetExchangeCountryEQ))
+		_predicates = append(_predicates, __internetexchange.CountryEQ(*l.InternetExchangeCountryEQ))
 	}
 	if l.InternetExchangeCountryNEQ != nil {
-		_predicates = append(_predicates, internetexchange.CountryNEQ(*l.InternetExchangeCountryNEQ))
+		_predicates = append(_predicates, __internetexchange.CountryNEQ(*l.InternetExchangeCountryNEQ))
 	}
 	if l.InternetExchangeCountryIsNil != nil {
 		if *l.InternetExchangeCountryIsNil {
-			_predicates = append(_predicates, internetexchange.CountryIsNil())
+			_predicates = append(_predicates, __internetexchange.CountryIsNil())
 		} else {
-			_predicates = append(_predicates, internetexchange.Not(internetexchange.CountryIsNil()))
+			_predicates = append(_predicates, __internetexchange.Not(__internetexchange.CountryIsNil()))
 		}
 	}
 	if l.InternetExchangeCountryIn != nil {
-		_predicates = append(_predicates, internetexchange.CountryIn(l.InternetExchangeCountryIn...))
+		_predicates = append(_predicates, __internetexchange.CountryIn(l.InternetExchangeCountryIn...))
 	}
 	if l.InternetExchangeCountryNotIn != nil {
-		_predicates = append(_predicates, internetexchange.CountryNotIn(l.InternetExchangeCountryNotIn...))
+		_predicates = append(_predicates, __internetexchange.CountryNotIn(l.InternetExchangeCountryNotIn...))
 	}
 	if l.InternetExchangeCountryEqualFold != nil {
-		_predicates = append(_predicates, internetexchange.CountryEqualFold(*l.InternetExchangeCountryEqualFold))
+		_predicates = append(_predicates, __internetexchange.CountryEqualFold(*l.InternetExchangeCountryEqualFold))
 	}
 	if l.InternetExchangeCountryContains != nil {
-		_predicates = append(_predicates, internetexchange.CountryContains(*l.InternetExchangeCountryContains))
+		_predicates = append(_predicates, __internetexchange.CountryContains(*l.InternetExchangeCountryContains))
 	}
 	if l.InternetExchangeCountryContainsFold != nil {
-		_predicates = append(_predicates, internetexchange.CountryContainsFold(*l.InternetExchangeCountryContainsFold))
+		_predicates = append(_predicates, __internetexchange.CountryContainsFold(*l.InternetExchangeCountryContainsFold))
 	}
 	if l.InternetExchangeCountryHasPrefix != nil {
-		_predicates = append(_predicates, internetexchange.CountryHasPrefix(*l.InternetExchangeCountryHasPrefix))
+		_predicates = append(_predicates, __internetexchange.CountryHasPrefix(*l.InternetExchangeCountryHasPrefix))
 	}
 	if l.InternetExchangeCountryHasSuffix != nil {
-		_predicates = append(_predicates, internetexchange.CountryHasSuffix(*l.InternetExchangeCountryHasSuffix))
+		_predicates = append(_predicates, __internetexchange.CountryHasSuffix(*l.InternetExchangeCountryHasSuffix))
 	}
 	if l.InternetExchangeNameEQ != nil {
-		_predicates = append(_predicates, internetexchange.NameEQ(*l.InternetExchangeNameEQ))
+		_predicates = append(_predicates, __internetexchange.NameEQ(*l.InternetExchangeNameEQ))
 	}
 	if l.InternetExchangeNameNEQ != nil {
-		_predicates = append(_predicates, internetexchange.NameNEQ(*l.InternetExchangeNameNEQ))
+		_predicates = append(_predicates, __internetexchange.NameNEQ(*l.InternetExchangeNameNEQ))
 	}
 	if l.InternetExchangeNameIn != nil {
-		_predicates = append(_predicates, internetexchange.NameIn(l.InternetExchangeNameIn...))
+		_predicates = append(_predicates, __internetexchange.NameIn(l.InternetExchangeNameIn...))
 	}
 	if l.InternetExchangeNameNotIn != nil {
-		_predicates = append(_predicates, internetexchange.NameNotIn(l.InternetExchangeNameNotIn...))
+		_predicates = append(_predicates, __internetexchange.NameNotIn(l.InternetExchangeNameNotIn...))
 	}
 	if l.InternetExchangeNameEqualFold != nil {
-		_predicates = append(_predicates, internetexchange.NameEqualFold(*l.InternetExchangeNameEqualFold))
+		_predicates = append(_predicates, __internetexchange.NameEqualFold(*l.InternetExchangeNameEqualFold))
 	}
 	if l.InternetExchangeNameContains != nil {
-		_predicates = append(_predicates, internetexchange.NameContains(*l.InternetExchangeNameContains))
+		_predicates = append(_predicates, __internetexchange.NameContains(*l.InternetExchangeNameContains))
 	}
 	if l.InternetExchangeNameContainsFold != nil {
-		_predicates = append(_predicates, internetexchange.NameContainsFold(*l.InternetExchangeNameContainsFold))
+		_predicates = append(_predicates, __internetexchange.NameContainsFold(*l.InternetExchangeNameContainsFold))
 	}
 	if l.InternetExchangeNameHasPrefix != nil {
-		_predicates = append(_predicates, internetexchange.NameHasPrefix(*l.InternetExchangeNameHasPrefix))
+		_predicates = append(_predicates, __internetexchange.NameHasPrefix(*l.InternetExchangeNameHasPrefix))
 	}
 	if l.InternetExchangeNameHasSuffix != nil {
-		_predicates = append(_predicates, internetexchange.NameHasSuffix(*l.InternetExchangeNameHasSuffix))
+		_predicates = append(_predicates, __internetexchange.NameHasSuffix(*l.InternetExchangeNameHasSuffix))
 	}
 	if l.InternetExchangeNameLongEQ != nil {
-		_predicates = append(_predicates, internetexchange.NameLongEQ(*l.InternetExchangeNameLongEQ))
+		_predicates = append(_predicates, __internetexchange.NameLongEQ(*l.InternetExchangeNameLongEQ))
 	}
 	if l.InternetExchangeNameLongNEQ != nil {
-		_predicates = append(_predicates, internetexchange.NameLongNEQ(*l.InternetExchangeNameLongNEQ))
+		_predicates = append(_predicates, __internetexchange.NameLongNEQ(*l.InternetExchangeNameLongNEQ))
 	}
 	if l.InternetExchangeNameLongIsNil != nil {
 		if *l.InternetExchangeNameLongIsNil {
-			_predicates = append(_predicates, internetexchange.NameLongIsNil())
+			_predicates = append(_predicates, __internetexchange.NameLongIsNil())
 		} else {
-			_predicates = append(_predicates, internetexchange.Not(internetexchange.NameLongIsNil()))
+			_predicates = append(_predicates, __internetexchange.Not(__internetexchange.NameLongIsNil()))
 		}
 	}
 	if l.InternetExchangeNameLongIn != nil {
-		_predicates = append(_predicates, internetexchange.NameLongIn(l.InternetExchangeNameLongIn...))
+		_predicates = append(_predicates, __internetexchange.NameLongIn(l.InternetExchangeNameLongIn...))
 	}
 	if l.InternetExchangeNameLongNotIn != nil {
-		_predicates = append(_predicates, internetexchange.NameLongNotIn(l.InternetExchangeNameLongNotIn...))
+		_predicates = append(_predicates, __internetexchange.NameLongNotIn(l.InternetExchangeNameLongNotIn...))
 	}
 	if l.InternetExchangeNameLongEqualFold != nil {
-		_predicates = append(_predicates, internetexchange.NameLongEqualFold(*l.InternetExchangeNameLongEqualFold))
+		_predicates = append(_predicates, __internetexchange.NameLongEqualFold(*l.InternetExchangeNameLongEqualFold))
 	}
 	if l.InternetExchangeNameLongContains != nil {
-		_predicates = append(_predicates, internetexchange.NameLongContains(*l.InternetExchangeNameLongContains))
+		_predicates = append(_predicates, __internetexchange.NameLongContains(*l.InternetExchangeNameLongContains))
 	}
 	if l.InternetExchangeNameLongContainsFold != nil {
-		_predicates = append(_predicates, internetexchange.NameLongContainsFold(*l.InternetExchangeNameLongContainsFold))
+		_predicates = append(_predicates, __internetexchange.NameLongContainsFold(*l.InternetExchangeNameLongContainsFold))
 	}
 	if l.InternetExchangeNameLongHasPrefix != nil {
-		_predicates = append(_predicates, internetexchange.NameLongHasPrefix(*l.InternetExchangeNameLongHasPrefix))
+		_predicates = append(_predicates, __internetexchange.NameLongHasPrefix(*l.InternetExchangeNameLongHasPrefix))
 	}
 	if l.InternetExchangeNameLongHasSuffix != nil {
-		_predicates = append(_predicates, internetexchange.NameLongHasSuffix(*l.InternetExchangeNameLongHasSuffix))
+		_predicates = append(_predicates, __internetexchange.NameLongHasSuffix(*l.InternetExchangeNameLongHasSuffix))
 	}
 	if l.InternetExchangeCreatedGT != nil {
-		_predicates = append(_predicates, internetexchange.CreatedGT(*l.InternetExchangeCreatedGT))
+		_predicates = append(_predicates, __internetexchange.CreatedGT(*l.InternetExchangeCreatedGT))
 	}
 	if l.InternetExchangeCreatedGTE != nil {
-		_predicates = append(_predicates, internetexchange.CreatedGTE(*l.InternetExchangeCreatedGTE))
+		_predicates = append(_predicates, __internetexchange.CreatedGTE(*l.InternetExchangeCreatedGTE))
 	}
 	if l.InternetExchangeCreatedLT != nil {
-		_predicates = append(_predicates, internetexchange.CreatedLT(*l.InternetExchangeCreatedLT))
+		_predicates = append(_predicates, __internetexchange.CreatedLT(*l.InternetExchangeCreatedLT))
 	}
 	if l.InternetExchangeCreatedLTE != nil {
-		_predicates = append(_predicates, internetexchange.CreatedLTE(*l.InternetExchangeCreatedLTE))
+		_predicates = append(_predicates, __internetexchange.CreatedLTE(*l.InternetExchangeCreatedLTE))
 	}
 	if l.InternetExchangeUpdatedGT != nil {
-		_predicates = append(_predicates, internetexchange.UpdatedGT(*l.InternetExchangeUpdatedGT))
+		_predicates = append(_predicates, __internetexchange.UpdatedGT(*l.InternetExchangeUpdatedGT))
 	}
 	if l.InternetExchangeUpdatedGTE != nil {
-		_predicates = append(_predicates, internetexchange.UpdatedGTE(*l.InternetExchangeUpdatedGTE))
+		_predicates = append(_predicates, __internetexchange.UpdatedGTE(*l.InternetExchangeUpdatedGTE))
 	}
 	if l.InternetExchangeUpdatedLT != nil {
-		_predicates = append(_predicates, internetexchange.UpdatedLT(*l.InternetExchangeUpdatedLT))
+		_predicates = append(_predicates, __internetexchange.UpdatedLT(*l.InternetExchangeUpdatedLT))
 	}
 	if l.InternetExchangeUpdatedLTE != nil {
-		_predicates = append(_predicates, internetexchange.UpdatedLTE(*l.InternetExchangeUpdatedLTE))
+		_predicates = append(_predicates, __internetexchange.UpdatedLTE(*l.InternetExchangeUpdatedLTE))
 	}
 	if l.InternetExchangeStatusEQ != nil {
-		_predicates = append(_predicates, internetexchange.StatusEQ(*l.InternetExchangeStatusEQ))
+		_predicates = append(_predicates, __internetexchange.StatusEQ(*l.InternetExchangeStatusEQ))
 	}
 	if l.InternetExchangeStatusNEQ != nil {
-		_predicates = append(_predicates, internetexchange.StatusNEQ(*l.InternetExchangeStatusNEQ))
+		_predicates = append(_predicates, __internetexchange.StatusNEQ(*l.InternetExchangeStatusNEQ))
 	}
 	if l.InternetExchangeStatusIn != nil {
-		_predicates = append(_predicates, internetexchange.StatusIn(l.InternetExchangeStatusIn...))
+		_predicates = append(_predicates, __internetexchange.StatusIn(l.InternetExchangeStatusIn...))
 	}
 	if l.InternetExchangeStatusNotIn != nil {
-		_predicates = append(_predicates, internetexchange.StatusNotIn(l.InternetExchangeStatusNotIn...))
+		_predicates = append(_predicates, __internetexchange.StatusNotIn(l.InternetExchangeStatusNotIn...))
 	}
 	if l.InternetExchangeStatusEqualFold != nil {
-		_predicates = append(_predicates, internetexchange.StatusEqualFold(*l.InternetExchangeStatusEqualFold))
+		_predicates = append(_predicates, __internetexchange.StatusEqualFold(*l.InternetExchangeStatusEqualFold))
 	}
 	if l.InternetExchangeStatusContains != nil {
-		_predicates = append(_predicates, internetexchange.StatusContains(*l.InternetExchangeStatusContains))
+		_predicates = append(_predicates, __internetexchange.StatusContains(*l.InternetExchangeStatusContains))
 	}
 	if l.InternetExchangeStatusContainsFold != nil {
-		_predicates = append(_predicates, internetexchange.StatusContainsFold(*l.InternetExchangeStatusContainsFold))
+		_predicates = append(_predicates, __internetexchange.StatusContainsFold(*l.InternetExchangeStatusContainsFold))
 	}
 	if l.InternetExchangeStatusHasPrefix != nil {
-		_predicates = append(_predicates, internetexchange.StatusHasPrefix(*l.InternetExchangeStatusHasPrefix))
+		_predicates = append(_predicates, __internetexchange.StatusHasPrefix(*l.InternetExchangeStatusHasPrefix))
 	}
 	if l.InternetExchangeStatusHasSuffix != nil {
-		_predicates = append(_predicates, internetexchange.StatusHasSuffix(*l.InternetExchangeStatusHasSuffix))
+		_predicates = append(_predicates, __internetexchange.StatusHasSuffix(*l.InternetExchangeStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListInternetExchangeParams) ApplySorting(_query *ent.InternetExchangeQuery) error {
+func (l *ListInternetExchangeParams) ApplySorting(_query *__ent.InternetExchangeQuery) error {
 	if err := l.Sorted.Validate(InternetExchangeSortConfig); err != nil {
 		return err
 	}
@@ -2152,7 +2152,7 @@ func (l *ListInternetExchangeParams) ApplySorting(_query *ent.InternetExchangeQu
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListInternetExchangeParams) Exec(ctx context.Context, _query *ent.InternetExchangeQuery) (_results *PagedResponse[ent.InternetExchange], err error) {
+func (l *ListInternetExchangeParams) Exec(ctx context.Context, _query *__ent.InternetExchangeQuery) (_results *PagedResponse[__ent.InternetExchange], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -2168,308 +2168,308 @@ func (l *ListInternetExchangeParams) Exec(ctx context.Context, _query *ent.Inter
 // ListIxFacilityParams defines parameters for listing IxFacilities via a GET request.
 type ListIxFacilityParams struct {
 	Sorted
-	Paginated[*ent.IxFacilityQuery, ent.IxFacility]
-	Filtered[predicate.IxFacility]
+	Paginated[*__ent.IxFacilityQuery, __ent.IxFacility]
+	Filtered[__predicate.IxFacility]
 
 	// Filters field "fac_id" to be equal to the provided value.
-	IxFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"ix_facility_fac_ideq,omitempty"`
+	IxFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"ix_facility_fac_ideq,omitzero"`
 	// Filters field "fac_id" to be not equal to the provided value.
-	IxFacilityFacIDNEQ *int `form:"facID.neq,omitempty" json:"ix_facility_fac_idneq,omitempty"`
+	IxFacilityFacIDNEQ *int `form:"facID.neq,omitempty" json:"ix_facility_fac_idneq,omitzero"`
 	// Filters field "fac_id" to be within the provided values.
-	IxFacilityFacIDIn []int `form:"facID.in,omitempty" json:"ix_facility_fac_id_in,omitempty"`
+	IxFacilityFacIDIn []int `form:"facID.in,omitempty" json:"ix_facility_fac_id_in,omitzero"`
 	// Filters field "fac_id" to be not within the provided values.
-	IxFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"ix_facility_fac_id_not_in,omitempty"`
+	IxFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"ix_facility_fac_id_not_in,omitzero"`
 	// Filters field "ix_id" to be equal to the provided value.
-	IxFacilityIxIDEQ *int `form:"ixID.eq,omitempty" json:"ix_facility_ix_ideq,omitempty"`
+	IxFacilityIxIDEQ *int `form:"ixID.eq,omitempty" json:"ix_facility_ix_ideq,omitzero"`
 	// Filters field "ix_id" to be not equal to the provided value.
-	IxFacilityIxIDNEQ *int `form:"ixID.neq,omitempty" json:"ix_facility_ix_idneq,omitempty"`
+	IxFacilityIxIDNEQ *int `form:"ixID.neq,omitempty" json:"ix_facility_ix_idneq,omitzero"`
 	// Filters field "ix_id" to be within the provided values.
-	IxFacilityIxIDIn []int `form:"ixID.in,omitempty" json:"ix_facility_ix_id_in,omitempty"`
+	IxFacilityIxIDIn []int `form:"ixID.in,omitempty" json:"ix_facility_ix_id_in,omitzero"`
 	// Filters field "ix_id" to be not within the provided values.
-	IxFacilityIxIDNotIn []int `form:"ixID.notIn,omitempty" json:"ix_facility_ix_id_not_in,omitempty"`
+	IxFacilityIxIDNotIn []int `form:"ixID.notIn,omitempty" json:"ix_facility_ix_id_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	IxFacilityNameEQ *string `form:"name.eq,omitempty" json:"ix_facility_name_eq,omitempty"`
+	IxFacilityNameEQ *string `form:"name.eq,omitempty" json:"ix_facility_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	IxFacilityNameNEQ *string `form:"name.neq,omitempty" json:"ix_facility_name_neq,omitempty"`
+	IxFacilityNameNEQ *string `form:"name.neq,omitempty" json:"ix_facility_name_neq,omitzero"`
 	// Filters field "name" to be null/nil.
-	IxFacilityNameIsNil *bool `form:"name.null,omitempty" json:"ix_facility_name_is_nil,omitempty"`
+	IxFacilityNameIsNil *bool `form:"name.null,omitempty" json:"ix_facility_name_is_nil,omitzero"`
 	// Filters field "name" to be within the provided values.
-	IxFacilityNameIn []string `form:"name.in,omitempty" json:"ix_facility_name_in,omitempty"`
+	IxFacilityNameIn []string `form:"name.in,omitempty" json:"ix_facility_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	IxFacilityNameNotIn []string `form:"name.notIn,omitempty" json:"ix_facility_name_not_in,omitempty"`
+	IxFacilityNameNotIn []string `form:"name.notIn,omitempty" json:"ix_facility_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	IxFacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"ix_facility_name_equal_fold,omitempty"`
+	IxFacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"ix_facility_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	IxFacilityNameContains *string `form:"name.has,omitempty" json:"ix_facility_name_contains,omitempty"`
+	IxFacilityNameContains *string `form:"name.has,omitempty" json:"ix_facility_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	IxFacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"ix_facility_name_contains_fold,omitempty"`
+	IxFacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"ix_facility_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	IxFacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"ix_facility_name_has_prefix,omitempty"`
+	IxFacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"ix_facility_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	IxFacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"ix_facility_name_has_suffix,omitempty"`
+	IxFacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"ix_facility_name_has_suffix,omitzero"`
 	// Filters field "city" to be equal to the provided value.
-	IxFacilityCityEQ *string `form:"city.eq,omitempty" json:"ix_facility_city_eq,omitempty"`
+	IxFacilityCityEQ *string `form:"city.eq,omitempty" json:"ix_facility_city_eq,omitzero"`
 	// Filters field "city" to be not equal to the provided value.
-	IxFacilityCityNEQ *string `form:"city.neq,omitempty" json:"ix_facility_city_neq,omitempty"`
+	IxFacilityCityNEQ *string `form:"city.neq,omitempty" json:"ix_facility_city_neq,omitzero"`
 	// Filters field "city" to be null/nil.
-	IxFacilityCityIsNil *bool `form:"city.null,omitempty" json:"ix_facility_city_is_nil,omitempty"`
+	IxFacilityCityIsNil *bool `form:"city.null,omitempty" json:"ix_facility_city_is_nil,omitzero"`
 	// Filters field "city" to be within the provided values.
-	IxFacilityCityIn []string `form:"city.in,omitempty" json:"ix_facility_city_in,omitempty"`
+	IxFacilityCityIn []string `form:"city.in,omitempty" json:"ix_facility_city_in,omitzero"`
 	// Filters field "city" to be not within the provided values.
-	IxFacilityCityNotIn []string `form:"city.notIn,omitempty" json:"ix_facility_city_not_in,omitempty"`
+	IxFacilityCityNotIn []string `form:"city.notIn,omitempty" json:"ix_facility_city_not_in,omitzero"`
 	// Filters field "city" to be equal to the provided value, case-insensitive.
-	IxFacilityCityEqualFold *string `form:"city.ieq,omitempty" json:"ix_facility_city_equal_fold,omitempty"`
+	IxFacilityCityEqualFold *string `form:"city.ieq,omitempty" json:"ix_facility_city_equal_fold,omitzero"`
 	// Filters field "city" to contain the provided value.
-	IxFacilityCityContains *string `form:"city.has,omitempty" json:"ix_facility_city_contains,omitempty"`
+	IxFacilityCityContains *string `form:"city.has,omitempty" json:"ix_facility_city_contains,omitzero"`
 	// Filters field "city" to contain the provided value, case-insensitive.
-	IxFacilityCityContainsFold *string `form:"city.ihas,omitempty" json:"ix_facility_city_contains_fold,omitempty"`
+	IxFacilityCityContainsFold *string `form:"city.ihas,omitempty" json:"ix_facility_city_contains_fold,omitzero"`
 	// Filters field "city" to start with the provided value.
-	IxFacilityCityHasPrefix *string `form:"city.prefix,omitempty" json:"ix_facility_city_has_prefix,omitempty"`
+	IxFacilityCityHasPrefix *string `form:"city.prefix,omitempty" json:"ix_facility_city_has_prefix,omitzero"`
 	// Filters field "city" to end with the provided value.
-	IxFacilityCityHasSuffix *string `form:"city.suffix,omitempty" json:"ix_facility_city_has_suffix,omitempty"`
+	IxFacilityCityHasSuffix *string `form:"city.suffix,omitempty" json:"ix_facility_city_has_suffix,omitzero"`
 	// Filters field "country" to be equal to the provided value.
-	IxFacilityCountryEQ *string `form:"country.eq,omitempty" json:"ix_facility_country_eq,omitempty"`
+	IxFacilityCountryEQ *string `form:"country.eq,omitempty" json:"ix_facility_country_eq,omitzero"`
 	// Filters field "country" to be not equal to the provided value.
-	IxFacilityCountryNEQ *string `form:"country.neq,omitempty" json:"ix_facility_country_neq,omitempty"`
+	IxFacilityCountryNEQ *string `form:"country.neq,omitempty" json:"ix_facility_country_neq,omitzero"`
 	// Filters field "country" to be null/nil.
-	IxFacilityCountryIsNil *bool `form:"country.null,omitempty" json:"ix_facility_country_is_nil,omitempty"`
+	IxFacilityCountryIsNil *bool `form:"country.null,omitempty" json:"ix_facility_country_is_nil,omitzero"`
 	// Filters field "country" to be within the provided values.
-	IxFacilityCountryIn []string `form:"country.in,omitempty" json:"ix_facility_country_in,omitempty"`
+	IxFacilityCountryIn []string `form:"country.in,omitempty" json:"ix_facility_country_in,omitzero"`
 	// Filters field "country" to be not within the provided values.
-	IxFacilityCountryNotIn []string `form:"country.notIn,omitempty" json:"ix_facility_country_not_in,omitempty"`
+	IxFacilityCountryNotIn []string `form:"country.notIn,omitempty" json:"ix_facility_country_not_in,omitzero"`
 	// Filters field "country" to be equal to the provided value, case-insensitive.
-	IxFacilityCountryEqualFold *string `form:"country.ieq,omitempty" json:"ix_facility_country_equal_fold,omitempty"`
+	IxFacilityCountryEqualFold *string `form:"country.ieq,omitempty" json:"ix_facility_country_equal_fold,omitzero"`
 	// Filters field "country" to contain the provided value.
-	IxFacilityCountryContains *string `form:"country.has,omitempty" json:"ix_facility_country_contains,omitempty"`
+	IxFacilityCountryContains *string `form:"country.has,omitempty" json:"ix_facility_country_contains,omitzero"`
 	// Filters field "country" to contain the provided value, case-insensitive.
-	IxFacilityCountryContainsFold *string `form:"country.ihas,omitempty" json:"ix_facility_country_contains_fold,omitempty"`
+	IxFacilityCountryContainsFold *string `form:"country.ihas,omitempty" json:"ix_facility_country_contains_fold,omitzero"`
 	// Filters field "country" to start with the provided value.
-	IxFacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"ix_facility_country_has_prefix,omitempty"`
+	IxFacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"ix_facility_country_has_prefix,omitzero"`
 	// Filters field "country" to end with the provided value.
-	IxFacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"ix_facility_country_has_suffix,omitempty"`
+	IxFacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"ix_facility_country_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	IxFacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_facility_created_gt,omitempty"`
+	IxFacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_facility_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	IxFacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"ix_facility_created_gte,omitempty"`
+	IxFacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"ix_facility_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	IxFacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"ix_facility_created_lt,omitempty"`
+	IxFacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"ix_facility_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	IxFacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"ix_facility_created_lte,omitempty"`
+	IxFacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"ix_facility_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	IxFacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"ix_facility_updated_gt,omitempty"`
+	IxFacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"ix_facility_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	IxFacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"ix_facility_updated_gte,omitempty"`
+	IxFacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"ix_facility_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	IxFacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"ix_facility_updated_lt,omitempty"`
+	IxFacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"ix_facility_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	IxFacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"ix_facility_updated_lte,omitempty"`
+	IxFacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"ix_facility_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	IxFacilityStatusEQ *string `form:"status.eq,omitempty" json:"ix_facility_status_eq,omitempty"`
+	IxFacilityStatusEQ *string `form:"status.eq,omitempty" json:"ix_facility_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	IxFacilityStatusNEQ *string `form:"status.neq,omitempty" json:"ix_facility_status_neq,omitempty"`
+	IxFacilityStatusNEQ *string `form:"status.neq,omitempty" json:"ix_facility_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	IxFacilityStatusIn []string `form:"status.in,omitempty" json:"ix_facility_status_in,omitempty"`
+	IxFacilityStatusIn []string `form:"status.in,omitempty" json:"ix_facility_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	IxFacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"ix_facility_status_not_in,omitempty"`
+	IxFacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"ix_facility_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	IxFacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"ix_facility_status_equal_fold,omitempty"`
+	IxFacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"ix_facility_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	IxFacilityStatusContains *string `form:"status.has,omitempty" json:"ix_facility_status_contains,omitempty"`
+	IxFacilityStatusContains *string `form:"status.has,omitempty" json:"ix_facility_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	IxFacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"ix_facility_status_contains_fold,omitempty"`
+	IxFacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"ix_facility_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	IxFacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"ix_facility_status_has_prefix,omitempty"`
+	IxFacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"ix_facility_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	IxFacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"ix_facility_status_has_suffix,omitempty"`
+	IxFacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"ix_facility_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in IxFacility.
-func (l *ListIxFacilityParams) FilterPredicates() (predicate.IxFacility, error) {
-	var _predicates []predicate.IxFacility
+func (l *ListIxFacilityParams) FilterPredicates() (__predicate.IxFacility, error) {
+	var _predicates []__predicate.IxFacility
 
 	if l.IxFacilityFacIDEQ != nil {
-		_predicates = append(_predicates, ixfacility.FacIDEQ(*l.IxFacilityFacIDEQ))
+		_predicates = append(_predicates, __ixfacility.FacIDEQ(*l.IxFacilityFacIDEQ))
 	}
 	if l.IxFacilityFacIDNEQ != nil {
-		_predicates = append(_predicates, ixfacility.FacIDNEQ(*l.IxFacilityFacIDNEQ))
+		_predicates = append(_predicates, __ixfacility.FacIDNEQ(*l.IxFacilityFacIDNEQ))
 	}
 	if l.IxFacilityFacIDIn != nil {
-		_predicates = append(_predicates, ixfacility.FacIDIn(l.IxFacilityFacIDIn...))
+		_predicates = append(_predicates, __ixfacility.FacIDIn(l.IxFacilityFacIDIn...))
 	}
 	if l.IxFacilityFacIDNotIn != nil {
-		_predicates = append(_predicates, ixfacility.FacIDNotIn(l.IxFacilityFacIDNotIn...))
+		_predicates = append(_predicates, __ixfacility.FacIDNotIn(l.IxFacilityFacIDNotIn...))
 	}
 	if l.IxFacilityIxIDEQ != nil {
-		_predicates = append(_predicates, ixfacility.IxIDEQ(*l.IxFacilityIxIDEQ))
+		_predicates = append(_predicates, __ixfacility.IxIDEQ(*l.IxFacilityIxIDEQ))
 	}
 	if l.IxFacilityIxIDNEQ != nil {
-		_predicates = append(_predicates, ixfacility.IxIDNEQ(*l.IxFacilityIxIDNEQ))
+		_predicates = append(_predicates, __ixfacility.IxIDNEQ(*l.IxFacilityIxIDNEQ))
 	}
 	if l.IxFacilityIxIDIn != nil {
-		_predicates = append(_predicates, ixfacility.IxIDIn(l.IxFacilityIxIDIn...))
+		_predicates = append(_predicates, __ixfacility.IxIDIn(l.IxFacilityIxIDIn...))
 	}
 	if l.IxFacilityIxIDNotIn != nil {
-		_predicates = append(_predicates, ixfacility.IxIDNotIn(l.IxFacilityIxIDNotIn...))
+		_predicates = append(_predicates, __ixfacility.IxIDNotIn(l.IxFacilityIxIDNotIn...))
 	}
 	if l.IxFacilityNameEQ != nil {
-		_predicates = append(_predicates, ixfacility.NameEQ(*l.IxFacilityNameEQ))
+		_predicates = append(_predicates, __ixfacility.NameEQ(*l.IxFacilityNameEQ))
 	}
 	if l.IxFacilityNameNEQ != nil {
-		_predicates = append(_predicates, ixfacility.NameNEQ(*l.IxFacilityNameNEQ))
+		_predicates = append(_predicates, __ixfacility.NameNEQ(*l.IxFacilityNameNEQ))
 	}
 	if l.IxFacilityNameIsNil != nil {
 		if *l.IxFacilityNameIsNil {
-			_predicates = append(_predicates, ixfacility.NameIsNil())
+			_predicates = append(_predicates, __ixfacility.NameIsNil())
 		} else {
-			_predicates = append(_predicates, ixfacility.Not(ixfacility.NameIsNil()))
+			_predicates = append(_predicates, __ixfacility.Not(__ixfacility.NameIsNil()))
 		}
 	}
 	if l.IxFacilityNameIn != nil {
-		_predicates = append(_predicates, ixfacility.NameIn(l.IxFacilityNameIn...))
+		_predicates = append(_predicates, __ixfacility.NameIn(l.IxFacilityNameIn...))
 	}
 	if l.IxFacilityNameNotIn != nil {
-		_predicates = append(_predicates, ixfacility.NameNotIn(l.IxFacilityNameNotIn...))
+		_predicates = append(_predicates, __ixfacility.NameNotIn(l.IxFacilityNameNotIn...))
 	}
 	if l.IxFacilityNameEqualFold != nil {
-		_predicates = append(_predicates, ixfacility.NameEqualFold(*l.IxFacilityNameEqualFold))
+		_predicates = append(_predicates, __ixfacility.NameEqualFold(*l.IxFacilityNameEqualFold))
 	}
 	if l.IxFacilityNameContains != nil {
-		_predicates = append(_predicates, ixfacility.NameContains(*l.IxFacilityNameContains))
+		_predicates = append(_predicates, __ixfacility.NameContains(*l.IxFacilityNameContains))
 	}
 	if l.IxFacilityNameContainsFold != nil {
-		_predicates = append(_predicates, ixfacility.NameContainsFold(*l.IxFacilityNameContainsFold))
+		_predicates = append(_predicates, __ixfacility.NameContainsFold(*l.IxFacilityNameContainsFold))
 	}
 	if l.IxFacilityNameHasPrefix != nil {
-		_predicates = append(_predicates, ixfacility.NameHasPrefix(*l.IxFacilityNameHasPrefix))
+		_predicates = append(_predicates, __ixfacility.NameHasPrefix(*l.IxFacilityNameHasPrefix))
 	}
 	if l.IxFacilityNameHasSuffix != nil {
-		_predicates = append(_predicates, ixfacility.NameHasSuffix(*l.IxFacilityNameHasSuffix))
+		_predicates = append(_predicates, __ixfacility.NameHasSuffix(*l.IxFacilityNameHasSuffix))
 	}
 	if l.IxFacilityCityEQ != nil {
-		_predicates = append(_predicates, ixfacility.CityEQ(*l.IxFacilityCityEQ))
+		_predicates = append(_predicates, __ixfacility.CityEQ(*l.IxFacilityCityEQ))
 	}
 	if l.IxFacilityCityNEQ != nil {
-		_predicates = append(_predicates, ixfacility.CityNEQ(*l.IxFacilityCityNEQ))
+		_predicates = append(_predicates, __ixfacility.CityNEQ(*l.IxFacilityCityNEQ))
 	}
 	if l.IxFacilityCityIsNil != nil {
 		if *l.IxFacilityCityIsNil {
-			_predicates = append(_predicates, ixfacility.CityIsNil())
+			_predicates = append(_predicates, __ixfacility.CityIsNil())
 		} else {
-			_predicates = append(_predicates, ixfacility.Not(ixfacility.CityIsNil()))
+			_predicates = append(_predicates, __ixfacility.Not(__ixfacility.CityIsNil()))
 		}
 	}
 	if l.IxFacilityCityIn != nil {
-		_predicates = append(_predicates, ixfacility.CityIn(l.IxFacilityCityIn...))
+		_predicates = append(_predicates, __ixfacility.CityIn(l.IxFacilityCityIn...))
 	}
 	if l.IxFacilityCityNotIn != nil {
-		_predicates = append(_predicates, ixfacility.CityNotIn(l.IxFacilityCityNotIn...))
+		_predicates = append(_predicates, __ixfacility.CityNotIn(l.IxFacilityCityNotIn...))
 	}
 	if l.IxFacilityCityEqualFold != nil {
-		_predicates = append(_predicates, ixfacility.CityEqualFold(*l.IxFacilityCityEqualFold))
+		_predicates = append(_predicates, __ixfacility.CityEqualFold(*l.IxFacilityCityEqualFold))
 	}
 	if l.IxFacilityCityContains != nil {
-		_predicates = append(_predicates, ixfacility.CityContains(*l.IxFacilityCityContains))
+		_predicates = append(_predicates, __ixfacility.CityContains(*l.IxFacilityCityContains))
 	}
 	if l.IxFacilityCityContainsFold != nil {
-		_predicates = append(_predicates, ixfacility.CityContainsFold(*l.IxFacilityCityContainsFold))
+		_predicates = append(_predicates, __ixfacility.CityContainsFold(*l.IxFacilityCityContainsFold))
 	}
 	if l.IxFacilityCityHasPrefix != nil {
-		_predicates = append(_predicates, ixfacility.CityHasPrefix(*l.IxFacilityCityHasPrefix))
+		_predicates = append(_predicates, __ixfacility.CityHasPrefix(*l.IxFacilityCityHasPrefix))
 	}
 	if l.IxFacilityCityHasSuffix != nil {
-		_predicates = append(_predicates, ixfacility.CityHasSuffix(*l.IxFacilityCityHasSuffix))
+		_predicates = append(_predicates, __ixfacility.CityHasSuffix(*l.IxFacilityCityHasSuffix))
 	}
 	if l.IxFacilityCountryEQ != nil {
-		_predicates = append(_predicates, ixfacility.CountryEQ(*l.IxFacilityCountryEQ))
+		_predicates = append(_predicates, __ixfacility.CountryEQ(*l.IxFacilityCountryEQ))
 	}
 	if l.IxFacilityCountryNEQ != nil {
-		_predicates = append(_predicates, ixfacility.CountryNEQ(*l.IxFacilityCountryNEQ))
+		_predicates = append(_predicates, __ixfacility.CountryNEQ(*l.IxFacilityCountryNEQ))
 	}
 	if l.IxFacilityCountryIsNil != nil {
 		if *l.IxFacilityCountryIsNil {
-			_predicates = append(_predicates, ixfacility.CountryIsNil())
+			_predicates = append(_predicates, __ixfacility.CountryIsNil())
 		} else {
-			_predicates = append(_predicates, ixfacility.Not(ixfacility.CountryIsNil()))
+			_predicates = append(_predicates, __ixfacility.Not(__ixfacility.CountryIsNil()))
 		}
 	}
 	if l.IxFacilityCountryIn != nil {
-		_predicates = append(_predicates, ixfacility.CountryIn(l.IxFacilityCountryIn...))
+		_predicates = append(_predicates, __ixfacility.CountryIn(l.IxFacilityCountryIn...))
 	}
 	if l.IxFacilityCountryNotIn != nil {
-		_predicates = append(_predicates, ixfacility.CountryNotIn(l.IxFacilityCountryNotIn...))
+		_predicates = append(_predicates, __ixfacility.CountryNotIn(l.IxFacilityCountryNotIn...))
 	}
 	if l.IxFacilityCountryEqualFold != nil {
-		_predicates = append(_predicates, ixfacility.CountryEqualFold(*l.IxFacilityCountryEqualFold))
+		_predicates = append(_predicates, __ixfacility.CountryEqualFold(*l.IxFacilityCountryEqualFold))
 	}
 	if l.IxFacilityCountryContains != nil {
-		_predicates = append(_predicates, ixfacility.CountryContains(*l.IxFacilityCountryContains))
+		_predicates = append(_predicates, __ixfacility.CountryContains(*l.IxFacilityCountryContains))
 	}
 	if l.IxFacilityCountryContainsFold != nil {
-		_predicates = append(_predicates, ixfacility.CountryContainsFold(*l.IxFacilityCountryContainsFold))
+		_predicates = append(_predicates, __ixfacility.CountryContainsFold(*l.IxFacilityCountryContainsFold))
 	}
 	if l.IxFacilityCountryHasPrefix != nil {
-		_predicates = append(_predicates, ixfacility.CountryHasPrefix(*l.IxFacilityCountryHasPrefix))
+		_predicates = append(_predicates, __ixfacility.CountryHasPrefix(*l.IxFacilityCountryHasPrefix))
 	}
 	if l.IxFacilityCountryHasSuffix != nil {
-		_predicates = append(_predicates, ixfacility.CountryHasSuffix(*l.IxFacilityCountryHasSuffix))
+		_predicates = append(_predicates, __ixfacility.CountryHasSuffix(*l.IxFacilityCountryHasSuffix))
 	}
 	if l.IxFacilityCreatedGT != nil {
-		_predicates = append(_predicates, ixfacility.CreatedGT(*l.IxFacilityCreatedGT))
+		_predicates = append(_predicates, __ixfacility.CreatedGT(*l.IxFacilityCreatedGT))
 	}
 	if l.IxFacilityCreatedGTE != nil {
-		_predicates = append(_predicates, ixfacility.CreatedGTE(*l.IxFacilityCreatedGTE))
+		_predicates = append(_predicates, __ixfacility.CreatedGTE(*l.IxFacilityCreatedGTE))
 	}
 	if l.IxFacilityCreatedLT != nil {
-		_predicates = append(_predicates, ixfacility.CreatedLT(*l.IxFacilityCreatedLT))
+		_predicates = append(_predicates, __ixfacility.CreatedLT(*l.IxFacilityCreatedLT))
 	}
 	if l.IxFacilityCreatedLTE != nil {
-		_predicates = append(_predicates, ixfacility.CreatedLTE(*l.IxFacilityCreatedLTE))
+		_predicates = append(_predicates, __ixfacility.CreatedLTE(*l.IxFacilityCreatedLTE))
 	}
 	if l.IxFacilityUpdatedGT != nil {
-		_predicates = append(_predicates, ixfacility.UpdatedGT(*l.IxFacilityUpdatedGT))
+		_predicates = append(_predicates, __ixfacility.UpdatedGT(*l.IxFacilityUpdatedGT))
 	}
 	if l.IxFacilityUpdatedGTE != nil {
-		_predicates = append(_predicates, ixfacility.UpdatedGTE(*l.IxFacilityUpdatedGTE))
+		_predicates = append(_predicates, __ixfacility.UpdatedGTE(*l.IxFacilityUpdatedGTE))
 	}
 	if l.IxFacilityUpdatedLT != nil {
-		_predicates = append(_predicates, ixfacility.UpdatedLT(*l.IxFacilityUpdatedLT))
+		_predicates = append(_predicates, __ixfacility.UpdatedLT(*l.IxFacilityUpdatedLT))
 	}
 	if l.IxFacilityUpdatedLTE != nil {
-		_predicates = append(_predicates, ixfacility.UpdatedLTE(*l.IxFacilityUpdatedLTE))
+		_predicates = append(_predicates, __ixfacility.UpdatedLTE(*l.IxFacilityUpdatedLTE))
 	}
 	if l.IxFacilityStatusEQ != nil {
-		_predicates = append(_predicates, ixfacility.StatusEQ(*l.IxFacilityStatusEQ))
+		_predicates = append(_predicates, __ixfacility.StatusEQ(*l.IxFacilityStatusEQ))
 	}
 	if l.IxFacilityStatusNEQ != nil {
-		_predicates = append(_predicates, ixfacility.StatusNEQ(*l.IxFacilityStatusNEQ))
+		_predicates = append(_predicates, __ixfacility.StatusNEQ(*l.IxFacilityStatusNEQ))
 	}
 	if l.IxFacilityStatusIn != nil {
-		_predicates = append(_predicates, ixfacility.StatusIn(l.IxFacilityStatusIn...))
+		_predicates = append(_predicates, __ixfacility.StatusIn(l.IxFacilityStatusIn...))
 	}
 	if l.IxFacilityStatusNotIn != nil {
-		_predicates = append(_predicates, ixfacility.StatusNotIn(l.IxFacilityStatusNotIn...))
+		_predicates = append(_predicates, __ixfacility.StatusNotIn(l.IxFacilityStatusNotIn...))
 	}
 	if l.IxFacilityStatusEqualFold != nil {
-		_predicates = append(_predicates, ixfacility.StatusEqualFold(*l.IxFacilityStatusEqualFold))
+		_predicates = append(_predicates, __ixfacility.StatusEqualFold(*l.IxFacilityStatusEqualFold))
 	}
 	if l.IxFacilityStatusContains != nil {
-		_predicates = append(_predicates, ixfacility.StatusContains(*l.IxFacilityStatusContains))
+		_predicates = append(_predicates, __ixfacility.StatusContains(*l.IxFacilityStatusContains))
 	}
 	if l.IxFacilityStatusContainsFold != nil {
-		_predicates = append(_predicates, ixfacility.StatusContainsFold(*l.IxFacilityStatusContainsFold))
+		_predicates = append(_predicates, __ixfacility.StatusContainsFold(*l.IxFacilityStatusContainsFold))
 	}
 	if l.IxFacilityStatusHasPrefix != nil {
-		_predicates = append(_predicates, ixfacility.StatusHasPrefix(*l.IxFacilityStatusHasPrefix))
+		_predicates = append(_predicates, __ixfacility.StatusHasPrefix(*l.IxFacilityStatusHasPrefix))
 	}
 	if l.IxFacilityStatusHasSuffix != nil {
-		_predicates = append(_predicates, ixfacility.StatusHasSuffix(*l.IxFacilityStatusHasSuffix))
+		_predicates = append(_predicates, __ixfacility.StatusHasSuffix(*l.IxFacilityStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListIxFacilityParams) ApplySorting(_query *ent.IxFacilityQuery) error {
+func (l *ListIxFacilityParams) ApplySorting(_query *__ent.IxFacilityQuery) error {
 	if err := l.Sorted.Validate(IxFacilitySortConfig); err != nil {
 		return err
 	}
@@ -2482,7 +2482,7 @@ func (l *ListIxFacilityParams) ApplySorting(_query *ent.IxFacilityQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListIxFacilityParams) Exec(ctx context.Context, _query *ent.IxFacilityQuery) (_results *PagedResponse[ent.IxFacility], err error) {
+func (l *ListIxFacilityParams) Exec(ctx context.Context, _query *__ent.IxFacilityQuery) (_results *PagedResponse[__ent.IxFacility], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -2498,180 +2498,180 @@ func (l *ListIxFacilityParams) Exec(ctx context.Context, _query *ent.IxFacilityQ
 // ListIxLanParams defines parameters for listing IxLans via a GET request.
 type ListIxLanParams struct {
 	Sorted
-	Paginated[*ent.IxLanQuery, ent.IxLan]
-	Filtered[predicate.IxLan]
+	Paginated[*__ent.IxLanQuery, __ent.IxLan]
+	Filtered[__predicate.IxLan]
 
 	// Filters field "ix_id" to be equal to the provided value.
-	IxLanIxIDEQ *int `form:"ixID.eq,omitempty" json:"ix_lan_ix_ideq,omitempty"`
+	IxLanIxIDEQ *int `form:"ixID.eq,omitempty" json:"ix_lan_ix_ideq,omitzero"`
 	// Filters field "ix_id" to be not equal to the provided value.
-	IxLanIxIDNEQ *int `form:"ixID.neq,omitempty" json:"ix_lan_ix_idneq,omitempty"`
+	IxLanIxIDNEQ *int `form:"ixID.neq,omitempty" json:"ix_lan_ix_idneq,omitzero"`
 	// Filters field "ix_id" to be within the provided values.
-	IxLanIxIDIn []int `form:"ixID.in,omitempty" json:"ix_lan_ix_id_in,omitempty"`
+	IxLanIxIDIn []int `form:"ixID.in,omitempty" json:"ix_lan_ix_id_in,omitzero"`
 	// Filters field "ix_id" to be not within the provided values.
-	IxLanIxIDNotIn []int `form:"ixID.notIn,omitempty" json:"ix_lan_ix_id_not_in,omitempty"`
+	IxLanIxIDNotIn []int `form:"ixID.notIn,omitempty" json:"ix_lan_ix_id_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	IxLanNameEQ *string `form:"name.eq,omitempty" json:"ix_lan_name_eq,omitempty"`
+	IxLanNameEQ *string `form:"name.eq,omitempty" json:"ix_lan_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	IxLanNameNEQ *string `form:"name.neq,omitempty" json:"ix_lan_name_neq,omitempty"`
+	IxLanNameNEQ *string `form:"name.neq,omitempty" json:"ix_lan_name_neq,omitzero"`
 	// Filters field "name" to be null/nil.
-	IxLanNameIsNil *bool `form:"name.null,omitempty" json:"ix_lan_name_is_nil,omitempty"`
+	IxLanNameIsNil *bool `form:"name.null,omitempty" json:"ix_lan_name_is_nil,omitzero"`
 	// Filters field "name" to be within the provided values.
-	IxLanNameIn []string `form:"name.in,omitempty" json:"ix_lan_name_in,omitempty"`
+	IxLanNameIn []string `form:"name.in,omitempty" json:"ix_lan_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	IxLanNameNotIn []string `form:"name.notIn,omitempty" json:"ix_lan_name_not_in,omitempty"`
+	IxLanNameNotIn []string `form:"name.notIn,omitempty" json:"ix_lan_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	IxLanNameEqualFold *string `form:"name.ieq,omitempty" json:"ix_lan_name_equal_fold,omitempty"`
+	IxLanNameEqualFold *string `form:"name.ieq,omitempty" json:"ix_lan_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	IxLanNameContains *string `form:"name.has,omitempty" json:"ix_lan_name_contains,omitempty"`
+	IxLanNameContains *string `form:"name.has,omitempty" json:"ix_lan_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	IxLanNameContainsFold *string `form:"name.ihas,omitempty" json:"ix_lan_name_contains_fold,omitempty"`
+	IxLanNameContainsFold *string `form:"name.ihas,omitempty" json:"ix_lan_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	IxLanNameHasPrefix *string `form:"name.prefix,omitempty" json:"ix_lan_name_has_prefix,omitempty"`
+	IxLanNameHasPrefix *string `form:"name.prefix,omitempty" json:"ix_lan_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	IxLanNameHasSuffix *string `form:"name.suffix,omitempty" json:"ix_lan_name_has_suffix,omitempty"`
+	IxLanNameHasSuffix *string `form:"name.suffix,omitempty" json:"ix_lan_name_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	IxLanCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_lan_created_gt,omitempty"`
+	IxLanCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_lan_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	IxLanCreatedGTE *time.Time `form:"created.gte,omitempty" json:"ix_lan_created_gte,omitempty"`
+	IxLanCreatedGTE *time.Time `form:"created.gte,omitempty" json:"ix_lan_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	IxLanCreatedLT *time.Time `form:"created.lt,omitempty" json:"ix_lan_created_lt,omitempty"`
+	IxLanCreatedLT *time.Time `form:"created.lt,omitempty" json:"ix_lan_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	IxLanCreatedLTE *time.Time `form:"created.lte,omitempty" json:"ix_lan_created_lte,omitempty"`
+	IxLanCreatedLTE *time.Time `form:"created.lte,omitempty" json:"ix_lan_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	IxLanUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"ix_lan_updated_gt,omitempty"`
+	IxLanUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"ix_lan_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	IxLanUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"ix_lan_updated_gte,omitempty"`
+	IxLanUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"ix_lan_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	IxLanUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"ix_lan_updated_lt,omitempty"`
+	IxLanUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"ix_lan_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	IxLanUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"ix_lan_updated_lte,omitempty"`
+	IxLanUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"ix_lan_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	IxLanStatusEQ *string `form:"status.eq,omitempty" json:"ix_lan_status_eq,omitempty"`
+	IxLanStatusEQ *string `form:"status.eq,omitempty" json:"ix_lan_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	IxLanStatusNEQ *string `form:"status.neq,omitempty" json:"ix_lan_status_neq,omitempty"`
+	IxLanStatusNEQ *string `form:"status.neq,omitempty" json:"ix_lan_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	IxLanStatusIn []string `form:"status.in,omitempty" json:"ix_lan_status_in,omitempty"`
+	IxLanStatusIn []string `form:"status.in,omitempty" json:"ix_lan_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	IxLanStatusNotIn []string `form:"status.notIn,omitempty" json:"ix_lan_status_not_in,omitempty"`
+	IxLanStatusNotIn []string `form:"status.notIn,omitempty" json:"ix_lan_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	IxLanStatusEqualFold *string `form:"status.ieq,omitempty" json:"ix_lan_status_equal_fold,omitempty"`
+	IxLanStatusEqualFold *string `form:"status.ieq,omitempty" json:"ix_lan_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	IxLanStatusContains *string `form:"status.has,omitempty" json:"ix_lan_status_contains,omitempty"`
+	IxLanStatusContains *string `form:"status.has,omitempty" json:"ix_lan_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	IxLanStatusContainsFold *string `form:"status.ihas,omitempty" json:"ix_lan_status_contains_fold,omitempty"`
+	IxLanStatusContainsFold *string `form:"status.ihas,omitempty" json:"ix_lan_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	IxLanStatusHasPrefix *string `form:"status.prefix,omitempty" json:"ix_lan_status_has_prefix,omitempty"`
+	IxLanStatusHasPrefix *string `form:"status.prefix,omitempty" json:"ix_lan_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	IxLanStatusHasSuffix *string `form:"status.suffix,omitempty" json:"ix_lan_status_has_suffix,omitempty"`
+	IxLanStatusHasSuffix *string `form:"status.suffix,omitempty" json:"ix_lan_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in IxLan.
-func (l *ListIxLanParams) FilterPredicates() (predicate.IxLan, error) {
-	var _predicates []predicate.IxLan
+func (l *ListIxLanParams) FilterPredicates() (__predicate.IxLan, error) {
+	var _predicates []__predicate.IxLan
 
 	if l.IxLanIxIDEQ != nil {
-		_predicates = append(_predicates, ixlan.IxIDEQ(*l.IxLanIxIDEQ))
+		_predicates = append(_predicates, __ixlan.IxIDEQ(*l.IxLanIxIDEQ))
 	}
 	if l.IxLanIxIDNEQ != nil {
-		_predicates = append(_predicates, ixlan.IxIDNEQ(*l.IxLanIxIDNEQ))
+		_predicates = append(_predicates, __ixlan.IxIDNEQ(*l.IxLanIxIDNEQ))
 	}
 	if l.IxLanIxIDIn != nil {
-		_predicates = append(_predicates, ixlan.IxIDIn(l.IxLanIxIDIn...))
+		_predicates = append(_predicates, __ixlan.IxIDIn(l.IxLanIxIDIn...))
 	}
 	if l.IxLanIxIDNotIn != nil {
-		_predicates = append(_predicates, ixlan.IxIDNotIn(l.IxLanIxIDNotIn...))
+		_predicates = append(_predicates, __ixlan.IxIDNotIn(l.IxLanIxIDNotIn...))
 	}
 	if l.IxLanNameEQ != nil {
-		_predicates = append(_predicates, ixlan.NameEQ(*l.IxLanNameEQ))
+		_predicates = append(_predicates, __ixlan.NameEQ(*l.IxLanNameEQ))
 	}
 	if l.IxLanNameNEQ != nil {
-		_predicates = append(_predicates, ixlan.NameNEQ(*l.IxLanNameNEQ))
+		_predicates = append(_predicates, __ixlan.NameNEQ(*l.IxLanNameNEQ))
 	}
 	if l.IxLanNameIsNil != nil {
 		if *l.IxLanNameIsNil {
-			_predicates = append(_predicates, ixlan.NameIsNil())
+			_predicates = append(_predicates, __ixlan.NameIsNil())
 		} else {
-			_predicates = append(_predicates, ixlan.Not(ixlan.NameIsNil()))
+			_predicates = append(_predicates, __ixlan.Not(__ixlan.NameIsNil()))
 		}
 	}
 	if l.IxLanNameIn != nil {
-		_predicates = append(_predicates, ixlan.NameIn(l.IxLanNameIn...))
+		_predicates = append(_predicates, __ixlan.NameIn(l.IxLanNameIn...))
 	}
 	if l.IxLanNameNotIn != nil {
-		_predicates = append(_predicates, ixlan.NameNotIn(l.IxLanNameNotIn...))
+		_predicates = append(_predicates, __ixlan.NameNotIn(l.IxLanNameNotIn...))
 	}
 	if l.IxLanNameEqualFold != nil {
-		_predicates = append(_predicates, ixlan.NameEqualFold(*l.IxLanNameEqualFold))
+		_predicates = append(_predicates, __ixlan.NameEqualFold(*l.IxLanNameEqualFold))
 	}
 	if l.IxLanNameContains != nil {
-		_predicates = append(_predicates, ixlan.NameContains(*l.IxLanNameContains))
+		_predicates = append(_predicates, __ixlan.NameContains(*l.IxLanNameContains))
 	}
 	if l.IxLanNameContainsFold != nil {
-		_predicates = append(_predicates, ixlan.NameContainsFold(*l.IxLanNameContainsFold))
+		_predicates = append(_predicates, __ixlan.NameContainsFold(*l.IxLanNameContainsFold))
 	}
 	if l.IxLanNameHasPrefix != nil {
-		_predicates = append(_predicates, ixlan.NameHasPrefix(*l.IxLanNameHasPrefix))
+		_predicates = append(_predicates, __ixlan.NameHasPrefix(*l.IxLanNameHasPrefix))
 	}
 	if l.IxLanNameHasSuffix != nil {
-		_predicates = append(_predicates, ixlan.NameHasSuffix(*l.IxLanNameHasSuffix))
+		_predicates = append(_predicates, __ixlan.NameHasSuffix(*l.IxLanNameHasSuffix))
 	}
 	if l.IxLanCreatedGT != nil {
-		_predicates = append(_predicates, ixlan.CreatedGT(*l.IxLanCreatedGT))
+		_predicates = append(_predicates, __ixlan.CreatedGT(*l.IxLanCreatedGT))
 	}
 	if l.IxLanCreatedGTE != nil {
-		_predicates = append(_predicates, ixlan.CreatedGTE(*l.IxLanCreatedGTE))
+		_predicates = append(_predicates, __ixlan.CreatedGTE(*l.IxLanCreatedGTE))
 	}
 	if l.IxLanCreatedLT != nil {
-		_predicates = append(_predicates, ixlan.CreatedLT(*l.IxLanCreatedLT))
+		_predicates = append(_predicates, __ixlan.CreatedLT(*l.IxLanCreatedLT))
 	}
 	if l.IxLanCreatedLTE != nil {
-		_predicates = append(_predicates, ixlan.CreatedLTE(*l.IxLanCreatedLTE))
+		_predicates = append(_predicates, __ixlan.CreatedLTE(*l.IxLanCreatedLTE))
 	}
 	if l.IxLanUpdatedGT != nil {
-		_predicates = append(_predicates, ixlan.UpdatedGT(*l.IxLanUpdatedGT))
+		_predicates = append(_predicates, __ixlan.UpdatedGT(*l.IxLanUpdatedGT))
 	}
 	if l.IxLanUpdatedGTE != nil {
-		_predicates = append(_predicates, ixlan.UpdatedGTE(*l.IxLanUpdatedGTE))
+		_predicates = append(_predicates, __ixlan.UpdatedGTE(*l.IxLanUpdatedGTE))
 	}
 	if l.IxLanUpdatedLT != nil {
-		_predicates = append(_predicates, ixlan.UpdatedLT(*l.IxLanUpdatedLT))
+		_predicates = append(_predicates, __ixlan.UpdatedLT(*l.IxLanUpdatedLT))
 	}
 	if l.IxLanUpdatedLTE != nil {
-		_predicates = append(_predicates, ixlan.UpdatedLTE(*l.IxLanUpdatedLTE))
+		_predicates = append(_predicates, __ixlan.UpdatedLTE(*l.IxLanUpdatedLTE))
 	}
 	if l.IxLanStatusEQ != nil {
-		_predicates = append(_predicates, ixlan.StatusEQ(*l.IxLanStatusEQ))
+		_predicates = append(_predicates, __ixlan.StatusEQ(*l.IxLanStatusEQ))
 	}
 	if l.IxLanStatusNEQ != nil {
-		_predicates = append(_predicates, ixlan.StatusNEQ(*l.IxLanStatusNEQ))
+		_predicates = append(_predicates, __ixlan.StatusNEQ(*l.IxLanStatusNEQ))
 	}
 	if l.IxLanStatusIn != nil {
-		_predicates = append(_predicates, ixlan.StatusIn(l.IxLanStatusIn...))
+		_predicates = append(_predicates, __ixlan.StatusIn(l.IxLanStatusIn...))
 	}
 	if l.IxLanStatusNotIn != nil {
-		_predicates = append(_predicates, ixlan.StatusNotIn(l.IxLanStatusNotIn...))
+		_predicates = append(_predicates, __ixlan.StatusNotIn(l.IxLanStatusNotIn...))
 	}
 	if l.IxLanStatusEqualFold != nil {
-		_predicates = append(_predicates, ixlan.StatusEqualFold(*l.IxLanStatusEqualFold))
+		_predicates = append(_predicates, __ixlan.StatusEqualFold(*l.IxLanStatusEqualFold))
 	}
 	if l.IxLanStatusContains != nil {
-		_predicates = append(_predicates, ixlan.StatusContains(*l.IxLanStatusContains))
+		_predicates = append(_predicates, __ixlan.StatusContains(*l.IxLanStatusContains))
 	}
 	if l.IxLanStatusContainsFold != nil {
-		_predicates = append(_predicates, ixlan.StatusContainsFold(*l.IxLanStatusContainsFold))
+		_predicates = append(_predicates, __ixlan.StatusContainsFold(*l.IxLanStatusContainsFold))
 	}
 	if l.IxLanStatusHasPrefix != nil {
-		_predicates = append(_predicates, ixlan.StatusHasPrefix(*l.IxLanStatusHasPrefix))
+		_predicates = append(_predicates, __ixlan.StatusHasPrefix(*l.IxLanStatusHasPrefix))
 	}
 	if l.IxLanStatusHasSuffix != nil {
-		_predicates = append(_predicates, ixlan.StatusHasSuffix(*l.IxLanStatusHasSuffix))
+		_predicates = append(_predicates, __ixlan.StatusHasSuffix(*l.IxLanStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListIxLanParams) ApplySorting(_query *ent.IxLanQuery) error {
+func (l *ListIxLanParams) ApplySorting(_query *__ent.IxLanQuery) error {
 	if err := l.Sorted.Validate(IxLanSortConfig); err != nil {
 		return err
 	}
@@ -2684,7 +2684,7 @@ func (l *ListIxLanParams) ApplySorting(_query *ent.IxLanQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListIxLanParams) Exec(ctx context.Context, _query *ent.IxLanQuery) (_results *PagedResponse[ent.IxLan], err error) {
+func (l *ListIxLanParams) Exec(ctx context.Context, _query *__ent.IxLanQuery) (_results *PagedResponse[__ent.IxLan], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -2700,126 +2700,126 @@ func (l *ListIxLanParams) Exec(ctx context.Context, _query *ent.IxLanQuery) (_re
 // ListIxPrefixParams defines parameters for listing IxPrefixes via a GET request.
 type ListIxPrefixParams struct {
 	Sorted
-	Paginated[*ent.IxPrefixQuery, ent.IxPrefix]
-	Filtered[predicate.IxPrefix]
+	Paginated[*__ent.IxPrefixQuery, __ent.IxPrefix]
+	Filtered[__predicate.IxPrefix]
 
 	// Filters field "ixlan_id" to be equal to the provided value.
-	IxPrefixIxlanIDEQ *int `form:"ixlanID.eq,omitempty" json:"ix_prefix_ixlan_ideq,omitempty"`
+	IxPrefixIxlanIDEQ *int `form:"ixlanID.eq,omitempty" json:"ix_prefix_ixlan_ideq,omitzero"`
 	// Filters field "ixlan_id" to be not equal to the provided value.
-	IxPrefixIxlanIDNEQ *int `form:"ixlanID.neq,omitempty" json:"ix_prefix_ixlan_idneq,omitempty"`
+	IxPrefixIxlanIDNEQ *int `form:"ixlanID.neq,omitempty" json:"ix_prefix_ixlan_idneq,omitzero"`
 	// Filters field "ixlan_id" to be within the provided values.
-	IxPrefixIxlanIDIn []int `form:"ixlanID.in,omitempty" json:"ix_prefix_ixlan_id_in,omitempty"`
+	IxPrefixIxlanIDIn []int `form:"ixlanID.in,omitempty" json:"ix_prefix_ixlan_id_in,omitzero"`
 	// Filters field "ixlan_id" to be not within the provided values.
-	IxPrefixIxlanIDNotIn []int `form:"ixlanID.notIn,omitempty" json:"ix_prefix_ixlan_id_not_in,omitempty"`
+	IxPrefixIxlanIDNotIn []int `form:"ixlanID.notIn,omitempty" json:"ix_prefix_ixlan_id_not_in,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	IxPrefixCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_prefix_created_gt,omitempty"`
+	IxPrefixCreatedGT *time.Time `form:"created.gt,omitempty" json:"ix_prefix_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	IxPrefixCreatedGTE *time.Time `form:"created.gte,omitempty" json:"ix_prefix_created_gte,omitempty"`
+	IxPrefixCreatedGTE *time.Time `form:"created.gte,omitempty" json:"ix_prefix_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	IxPrefixCreatedLT *time.Time `form:"created.lt,omitempty" json:"ix_prefix_created_lt,omitempty"`
+	IxPrefixCreatedLT *time.Time `form:"created.lt,omitempty" json:"ix_prefix_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	IxPrefixCreatedLTE *time.Time `form:"created.lte,omitempty" json:"ix_prefix_created_lte,omitempty"`
+	IxPrefixCreatedLTE *time.Time `form:"created.lte,omitempty" json:"ix_prefix_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	IxPrefixUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"ix_prefix_updated_gt,omitempty"`
+	IxPrefixUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"ix_prefix_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	IxPrefixUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"ix_prefix_updated_gte,omitempty"`
+	IxPrefixUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"ix_prefix_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	IxPrefixUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"ix_prefix_updated_lt,omitempty"`
+	IxPrefixUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"ix_prefix_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	IxPrefixUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"ix_prefix_updated_lte,omitempty"`
+	IxPrefixUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"ix_prefix_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	IxPrefixStatusEQ *string `form:"status.eq,omitempty" json:"ix_prefix_status_eq,omitempty"`
+	IxPrefixStatusEQ *string `form:"status.eq,omitempty" json:"ix_prefix_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	IxPrefixStatusNEQ *string `form:"status.neq,omitempty" json:"ix_prefix_status_neq,omitempty"`
+	IxPrefixStatusNEQ *string `form:"status.neq,omitempty" json:"ix_prefix_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	IxPrefixStatusIn []string `form:"status.in,omitempty" json:"ix_prefix_status_in,omitempty"`
+	IxPrefixStatusIn []string `form:"status.in,omitempty" json:"ix_prefix_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	IxPrefixStatusNotIn []string `form:"status.notIn,omitempty" json:"ix_prefix_status_not_in,omitempty"`
+	IxPrefixStatusNotIn []string `form:"status.notIn,omitempty" json:"ix_prefix_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	IxPrefixStatusEqualFold *string `form:"status.ieq,omitempty" json:"ix_prefix_status_equal_fold,omitempty"`
+	IxPrefixStatusEqualFold *string `form:"status.ieq,omitempty" json:"ix_prefix_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	IxPrefixStatusContains *string `form:"status.has,omitempty" json:"ix_prefix_status_contains,omitempty"`
+	IxPrefixStatusContains *string `form:"status.has,omitempty" json:"ix_prefix_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	IxPrefixStatusContainsFold *string `form:"status.ihas,omitempty" json:"ix_prefix_status_contains_fold,omitempty"`
+	IxPrefixStatusContainsFold *string `form:"status.ihas,omitempty" json:"ix_prefix_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	IxPrefixStatusHasPrefix *string `form:"status.prefix,omitempty" json:"ix_prefix_status_has_prefix,omitempty"`
+	IxPrefixStatusHasPrefix *string `form:"status.prefix,omitempty" json:"ix_prefix_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	IxPrefixStatusHasSuffix *string `form:"status.suffix,omitempty" json:"ix_prefix_status_has_suffix,omitempty"`
+	IxPrefixStatusHasSuffix *string `form:"status.suffix,omitempty" json:"ix_prefix_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in IxPrefix.
-func (l *ListIxPrefixParams) FilterPredicates() (predicate.IxPrefix, error) {
-	var _predicates []predicate.IxPrefix
+func (l *ListIxPrefixParams) FilterPredicates() (__predicate.IxPrefix, error) {
+	var _predicates []__predicate.IxPrefix
 
 	if l.IxPrefixIxlanIDEQ != nil {
-		_predicates = append(_predicates, ixprefix.IxlanIDEQ(*l.IxPrefixIxlanIDEQ))
+		_predicates = append(_predicates, __ixprefix.IxlanIDEQ(*l.IxPrefixIxlanIDEQ))
 	}
 	if l.IxPrefixIxlanIDNEQ != nil {
-		_predicates = append(_predicates, ixprefix.IxlanIDNEQ(*l.IxPrefixIxlanIDNEQ))
+		_predicates = append(_predicates, __ixprefix.IxlanIDNEQ(*l.IxPrefixIxlanIDNEQ))
 	}
 	if l.IxPrefixIxlanIDIn != nil {
-		_predicates = append(_predicates, ixprefix.IxlanIDIn(l.IxPrefixIxlanIDIn...))
+		_predicates = append(_predicates, __ixprefix.IxlanIDIn(l.IxPrefixIxlanIDIn...))
 	}
 	if l.IxPrefixIxlanIDNotIn != nil {
-		_predicates = append(_predicates, ixprefix.IxlanIDNotIn(l.IxPrefixIxlanIDNotIn...))
+		_predicates = append(_predicates, __ixprefix.IxlanIDNotIn(l.IxPrefixIxlanIDNotIn...))
 	}
 	if l.IxPrefixCreatedGT != nil {
-		_predicates = append(_predicates, ixprefix.CreatedGT(*l.IxPrefixCreatedGT))
+		_predicates = append(_predicates, __ixprefix.CreatedGT(*l.IxPrefixCreatedGT))
 	}
 	if l.IxPrefixCreatedGTE != nil {
-		_predicates = append(_predicates, ixprefix.CreatedGTE(*l.IxPrefixCreatedGTE))
+		_predicates = append(_predicates, __ixprefix.CreatedGTE(*l.IxPrefixCreatedGTE))
 	}
 	if l.IxPrefixCreatedLT != nil {
-		_predicates = append(_predicates, ixprefix.CreatedLT(*l.IxPrefixCreatedLT))
+		_predicates = append(_predicates, __ixprefix.CreatedLT(*l.IxPrefixCreatedLT))
 	}
 	if l.IxPrefixCreatedLTE != nil {
-		_predicates = append(_predicates, ixprefix.CreatedLTE(*l.IxPrefixCreatedLTE))
+		_predicates = append(_predicates, __ixprefix.CreatedLTE(*l.IxPrefixCreatedLTE))
 	}
 	if l.IxPrefixUpdatedGT != nil {
-		_predicates = append(_predicates, ixprefix.UpdatedGT(*l.IxPrefixUpdatedGT))
+		_predicates = append(_predicates, __ixprefix.UpdatedGT(*l.IxPrefixUpdatedGT))
 	}
 	if l.IxPrefixUpdatedGTE != nil {
-		_predicates = append(_predicates, ixprefix.UpdatedGTE(*l.IxPrefixUpdatedGTE))
+		_predicates = append(_predicates, __ixprefix.UpdatedGTE(*l.IxPrefixUpdatedGTE))
 	}
 	if l.IxPrefixUpdatedLT != nil {
-		_predicates = append(_predicates, ixprefix.UpdatedLT(*l.IxPrefixUpdatedLT))
+		_predicates = append(_predicates, __ixprefix.UpdatedLT(*l.IxPrefixUpdatedLT))
 	}
 	if l.IxPrefixUpdatedLTE != nil {
-		_predicates = append(_predicates, ixprefix.UpdatedLTE(*l.IxPrefixUpdatedLTE))
+		_predicates = append(_predicates, __ixprefix.UpdatedLTE(*l.IxPrefixUpdatedLTE))
 	}
 	if l.IxPrefixStatusEQ != nil {
-		_predicates = append(_predicates, ixprefix.StatusEQ(*l.IxPrefixStatusEQ))
+		_predicates = append(_predicates, __ixprefix.StatusEQ(*l.IxPrefixStatusEQ))
 	}
 	if l.IxPrefixStatusNEQ != nil {
-		_predicates = append(_predicates, ixprefix.StatusNEQ(*l.IxPrefixStatusNEQ))
+		_predicates = append(_predicates, __ixprefix.StatusNEQ(*l.IxPrefixStatusNEQ))
 	}
 	if l.IxPrefixStatusIn != nil {
-		_predicates = append(_predicates, ixprefix.StatusIn(l.IxPrefixStatusIn...))
+		_predicates = append(_predicates, __ixprefix.StatusIn(l.IxPrefixStatusIn...))
 	}
 	if l.IxPrefixStatusNotIn != nil {
-		_predicates = append(_predicates, ixprefix.StatusNotIn(l.IxPrefixStatusNotIn...))
+		_predicates = append(_predicates, __ixprefix.StatusNotIn(l.IxPrefixStatusNotIn...))
 	}
 	if l.IxPrefixStatusEqualFold != nil {
-		_predicates = append(_predicates, ixprefix.StatusEqualFold(*l.IxPrefixStatusEqualFold))
+		_predicates = append(_predicates, __ixprefix.StatusEqualFold(*l.IxPrefixStatusEqualFold))
 	}
 	if l.IxPrefixStatusContains != nil {
-		_predicates = append(_predicates, ixprefix.StatusContains(*l.IxPrefixStatusContains))
+		_predicates = append(_predicates, __ixprefix.StatusContains(*l.IxPrefixStatusContains))
 	}
 	if l.IxPrefixStatusContainsFold != nil {
-		_predicates = append(_predicates, ixprefix.StatusContainsFold(*l.IxPrefixStatusContainsFold))
+		_predicates = append(_predicates, __ixprefix.StatusContainsFold(*l.IxPrefixStatusContainsFold))
 	}
 	if l.IxPrefixStatusHasPrefix != nil {
-		_predicates = append(_predicates, ixprefix.StatusHasPrefix(*l.IxPrefixStatusHasPrefix))
+		_predicates = append(_predicates, __ixprefix.StatusHasPrefix(*l.IxPrefixStatusHasPrefix))
 	}
 	if l.IxPrefixStatusHasSuffix != nil {
-		_predicates = append(_predicates, ixprefix.StatusHasSuffix(*l.IxPrefixStatusHasSuffix))
+		_predicates = append(_predicates, __ixprefix.StatusHasSuffix(*l.IxPrefixStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListIxPrefixParams) ApplySorting(_query *ent.IxPrefixQuery) error {
+func (l *ListIxPrefixParams) ApplySorting(_query *__ent.IxPrefixQuery) error {
 	if err := l.Sorted.Validate(IxPrefixSortConfig); err != nil {
 		return err
 	}
@@ -2832,7 +2832,7 @@ func (l *ListIxPrefixParams) ApplySorting(_query *ent.IxPrefixQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListIxPrefixParams) Exec(ctx context.Context, _query *ent.IxPrefixQuery) (_results *PagedResponse[ent.IxPrefix], err error) {
+func (l *ListIxPrefixParams) Exec(ctx context.Context, _query *__ent.IxPrefixQuery) (_results *PagedResponse[__ent.IxPrefix], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -2848,319 +2848,319 @@ func (l *ListIxPrefixParams) Exec(ctx context.Context, _query *ent.IxPrefixQuery
 // ListNetworkParams defines parameters for listing Networks via a GET request.
 type ListNetworkParams struct {
 	Sorted
-	Paginated[*ent.NetworkQuery, ent.Network]
-	Filtered[predicate.Network]
+	Paginated[*__ent.NetworkQuery, __ent.Network]
+	Filtered[__predicate.Network]
 
 	// Filters field "org_id" to be equal to the provided value.
-	NetworkOrgIDEQ *int `form:"orgID.eq,omitempty" json:"network_org_ideq,omitempty"`
+	NetworkOrgIDEQ *int `form:"orgID.eq,omitempty" json:"network_org_ideq,omitzero"`
 	// Filters field "org_id" to be not equal to the provided value.
-	NetworkOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"network_org_idneq,omitempty"`
+	NetworkOrgIDNEQ *int `form:"orgID.neq,omitempty" json:"network_org_idneq,omitzero"`
 	// Filters field "org_id" to be within the provided values.
-	NetworkOrgIDIn []int `form:"orgID.in,omitempty" json:"network_org_id_in,omitempty"`
+	NetworkOrgIDIn []int `form:"orgID.in,omitempty" json:"network_org_id_in,omitzero"`
 	// Filters field "org_id" to be not within the provided values.
-	NetworkOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"network_org_id_not_in,omitempty"`
+	NetworkOrgIDNotIn []int `form:"orgID.notIn,omitempty" json:"network_org_id_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value.
-	NetworkAkaEQ *string `form:"aka.eq,omitempty" json:"network_aka_eq,omitempty"`
+	NetworkAkaEQ *string `form:"aka.eq,omitempty" json:"network_aka_eq,omitzero"`
 	// Filters field "aka" to be not equal to the provided value.
-	NetworkAkaNEQ *string `form:"aka.neq,omitempty" json:"network_aka_neq,omitempty"`
+	NetworkAkaNEQ *string `form:"aka.neq,omitempty" json:"network_aka_neq,omitzero"`
 	// Filters field "aka" to be null/nil.
-	NetworkAkaIsNil *bool `form:"aka.null,omitempty" json:"network_aka_is_nil,omitempty"`
+	NetworkAkaIsNil *bool `form:"aka.null,omitempty" json:"network_aka_is_nil,omitzero"`
 	// Filters field "aka" to be within the provided values.
-	NetworkAkaIn []string `form:"aka.in,omitempty" json:"network_aka_in,omitempty"`
+	NetworkAkaIn []string `form:"aka.in,omitempty" json:"network_aka_in,omitzero"`
 	// Filters field "aka" to be not within the provided values.
-	NetworkAkaNotIn []string `form:"aka.notIn,omitempty" json:"network_aka_not_in,omitempty"`
+	NetworkAkaNotIn []string `form:"aka.notIn,omitempty" json:"network_aka_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value, case-insensitive.
-	NetworkAkaEqualFold *string `form:"aka.ieq,omitempty" json:"network_aka_equal_fold,omitempty"`
+	NetworkAkaEqualFold *string `form:"aka.ieq,omitempty" json:"network_aka_equal_fold,omitzero"`
 	// Filters field "aka" to contain the provided value.
-	NetworkAkaContains *string `form:"aka.has,omitempty" json:"network_aka_contains,omitempty"`
+	NetworkAkaContains *string `form:"aka.has,omitempty" json:"network_aka_contains,omitzero"`
 	// Filters field "aka" to contain the provided value, case-insensitive.
-	NetworkAkaContainsFold *string `form:"aka.ihas,omitempty" json:"network_aka_contains_fold,omitempty"`
+	NetworkAkaContainsFold *string `form:"aka.ihas,omitempty" json:"network_aka_contains_fold,omitzero"`
 	// Filters field "aka" to start with the provided value.
-	NetworkAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"network_aka_has_prefix,omitempty"`
+	NetworkAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"network_aka_has_prefix,omitzero"`
 	// Filters field "aka" to end with the provided value.
-	NetworkAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"network_aka_has_suffix,omitempty"`
+	NetworkAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"network_aka_has_suffix,omitzero"`
 	// Filters field "asn" to be equal to the provided value.
-	NetworkAsnEQ *int `form:"asn.eq,omitempty" json:"network_asn_eq,omitempty"`
+	NetworkAsnEQ *int `form:"asn.eq,omitempty" json:"network_asn_eq,omitzero"`
 	// Filters field "asn" to be not equal to the provided value.
-	NetworkAsnNEQ *int `form:"asn.neq,omitempty" json:"network_asn_neq,omitempty"`
+	NetworkAsnNEQ *int `form:"asn.neq,omitempty" json:"network_asn_neq,omitzero"`
 	// Filters field "asn" to be greater than the provided value.
-	NetworkAsnGT *int `form:"asn.gt,omitempty" json:"network_asn_gt,omitempty"`
+	NetworkAsnGT *int `form:"asn.gt,omitempty" json:"network_asn_gt,omitzero"`
 	// Filters field "asn" to be greater than or equal to the provided value.
-	NetworkAsnGTE *int `form:"asn.gte,omitempty" json:"network_asn_gte,omitempty"`
+	NetworkAsnGTE *int `form:"asn.gte,omitempty" json:"network_asn_gte,omitzero"`
 	// Filters field "asn" to be less than the provided value.
-	NetworkAsnLT *int `form:"asn.lt,omitempty" json:"network_asn_lt,omitempty"`
+	NetworkAsnLT *int `form:"asn.lt,omitempty" json:"network_asn_lt,omitzero"`
 	// Filters field "asn" to be less than or equal to the provided value.
-	NetworkAsnLTE *int `form:"asn.lte,omitempty" json:"network_asn_lte,omitempty"`
+	NetworkAsnLTE *int `form:"asn.lte,omitempty" json:"network_asn_lte,omitzero"`
 	// Filters field "asn" to be within the provided values.
-	NetworkAsnIn []int `form:"asn.in,omitempty" json:"network_asn_in,omitempty"`
+	NetworkAsnIn []int `form:"asn.in,omitempty" json:"network_asn_in,omitzero"`
 	// Filters field "asn" to be not within the provided values.
-	NetworkAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_asn_not_in,omitempty"`
+	NetworkAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_asn_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	NetworkNameEQ *string `form:"name.eq,omitempty" json:"network_name_eq,omitempty"`
+	NetworkNameEQ *string `form:"name.eq,omitempty" json:"network_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	NetworkNameNEQ *string `form:"name.neq,omitempty" json:"network_name_neq,omitempty"`
+	NetworkNameNEQ *string `form:"name.neq,omitempty" json:"network_name_neq,omitzero"`
 	// Filters field "name" to be within the provided values.
-	NetworkNameIn []string `form:"name.in,omitempty" json:"network_name_in,omitempty"`
+	NetworkNameIn []string `form:"name.in,omitempty" json:"network_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	NetworkNameNotIn []string `form:"name.notIn,omitempty" json:"network_name_not_in,omitempty"`
+	NetworkNameNotIn []string `form:"name.notIn,omitempty" json:"network_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	NetworkNameEqualFold *string `form:"name.ieq,omitempty" json:"network_name_equal_fold,omitempty"`
+	NetworkNameEqualFold *string `form:"name.ieq,omitempty" json:"network_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	NetworkNameContains *string `form:"name.has,omitempty" json:"network_name_contains,omitempty"`
+	NetworkNameContains *string `form:"name.has,omitempty" json:"network_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	NetworkNameContainsFold *string `form:"name.ihas,omitempty" json:"network_name_contains_fold,omitempty"`
+	NetworkNameContainsFold *string `form:"name.ihas,omitempty" json:"network_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	NetworkNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_name_has_prefix,omitempty"`
+	NetworkNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	NetworkNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_name_has_suffix,omitempty"`
+	NetworkNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_name_has_suffix,omitzero"`
 	// Filters field "name_long" to be equal to the provided value.
-	NetworkNameLongEQ *string `form:"nameLong.eq,omitempty" json:"network_name_long_eq,omitempty"`
+	NetworkNameLongEQ *string `form:"nameLong.eq,omitempty" json:"network_name_long_eq,omitzero"`
 	// Filters field "name_long" to be not equal to the provided value.
-	NetworkNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"network_name_long_neq,omitempty"`
+	NetworkNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"network_name_long_neq,omitzero"`
 	// Filters field "name_long" to be null/nil.
-	NetworkNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"network_name_long_is_nil,omitempty"`
+	NetworkNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"network_name_long_is_nil,omitzero"`
 	// Filters field "name_long" to be within the provided values.
-	NetworkNameLongIn []string `form:"nameLong.in,omitempty" json:"network_name_long_in,omitempty"`
+	NetworkNameLongIn []string `form:"nameLong.in,omitempty" json:"network_name_long_in,omitzero"`
 	// Filters field "name_long" to be not within the provided values.
-	NetworkNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"network_name_long_not_in,omitempty"`
+	NetworkNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"network_name_long_not_in,omitzero"`
 	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	NetworkNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"network_name_long_equal_fold,omitempty"`
+	NetworkNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"network_name_long_equal_fold,omitzero"`
 	// Filters field "name_long" to contain the provided value.
-	NetworkNameLongContains *string `form:"nameLong.has,omitempty" json:"network_name_long_contains,omitempty"`
+	NetworkNameLongContains *string `form:"nameLong.has,omitempty" json:"network_name_long_contains,omitzero"`
 	// Filters field "name_long" to contain the provided value, case-insensitive.
-	NetworkNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"network_name_long_contains_fold,omitempty"`
+	NetworkNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"network_name_long_contains_fold,omitzero"`
 	// Filters field "name_long" to start with the provided value.
-	NetworkNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"network_name_long_has_prefix,omitempty"`
+	NetworkNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"network_name_long_has_prefix,omitzero"`
 	// Filters field "name_long" to end with the provided value.
-	NetworkNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"network_name_long_has_suffix,omitempty"`
+	NetworkNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"network_name_long_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	NetworkCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_created_gt,omitempty"`
+	NetworkCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	NetworkCreatedGTE *time.Time `form:"created.gte,omitempty" json:"network_created_gte,omitempty"`
+	NetworkCreatedGTE *time.Time `form:"created.gte,omitempty" json:"network_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	NetworkCreatedLT *time.Time `form:"created.lt,omitempty" json:"network_created_lt,omitempty"`
+	NetworkCreatedLT *time.Time `form:"created.lt,omitempty" json:"network_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	NetworkCreatedLTE *time.Time `form:"created.lte,omitempty" json:"network_created_lte,omitempty"`
+	NetworkCreatedLTE *time.Time `form:"created.lte,omitempty" json:"network_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	NetworkUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"network_updated_gt,omitempty"`
+	NetworkUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"network_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	NetworkUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"network_updated_gte,omitempty"`
+	NetworkUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"network_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	NetworkUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"network_updated_lt,omitempty"`
+	NetworkUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"network_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	NetworkUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"network_updated_lte,omitempty"`
+	NetworkUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"network_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	NetworkStatusEQ *string `form:"status.eq,omitempty" json:"network_status_eq,omitempty"`
+	NetworkStatusEQ *string `form:"status.eq,omitempty" json:"network_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	NetworkStatusNEQ *string `form:"status.neq,omitempty" json:"network_status_neq,omitempty"`
+	NetworkStatusNEQ *string `form:"status.neq,omitempty" json:"network_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	NetworkStatusIn []string `form:"status.in,omitempty" json:"network_status_in,omitempty"`
+	NetworkStatusIn []string `form:"status.in,omitempty" json:"network_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	NetworkStatusNotIn []string `form:"status.notIn,omitempty" json:"network_status_not_in,omitempty"`
+	NetworkStatusNotIn []string `form:"status.notIn,omitempty" json:"network_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	NetworkStatusEqualFold *string `form:"status.ieq,omitempty" json:"network_status_equal_fold,omitempty"`
+	NetworkStatusEqualFold *string `form:"status.ieq,omitempty" json:"network_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	NetworkStatusContains *string `form:"status.has,omitempty" json:"network_status_contains,omitempty"`
+	NetworkStatusContains *string `form:"status.has,omitempty" json:"network_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	NetworkStatusContainsFold *string `form:"status.ihas,omitempty" json:"network_status_contains_fold,omitempty"`
+	NetworkStatusContainsFold *string `form:"status.ihas,omitempty" json:"network_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	NetworkStatusHasPrefix *string `form:"status.prefix,omitempty" json:"network_status_has_prefix,omitempty"`
+	NetworkStatusHasPrefix *string `form:"status.prefix,omitempty" json:"network_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	NetworkStatusHasSuffix *string `form:"status.suffix,omitempty" json:"network_status_has_suffix,omitempty"`
+	NetworkStatusHasSuffix *string `form:"status.suffix,omitempty" json:"network_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in Network.
-func (l *ListNetworkParams) FilterPredicates() (predicate.Network, error) {
-	var _predicates []predicate.Network
+func (l *ListNetworkParams) FilterPredicates() (__predicate.Network, error) {
+	var _predicates []__predicate.Network
 
 	if l.NetworkOrgIDEQ != nil {
-		_predicates = append(_predicates, network.OrgIDEQ(*l.NetworkOrgIDEQ))
+		_predicates = append(_predicates, __network.OrgIDEQ(*l.NetworkOrgIDEQ))
 	}
 	if l.NetworkOrgIDNEQ != nil {
-		_predicates = append(_predicates, network.OrgIDNEQ(*l.NetworkOrgIDNEQ))
+		_predicates = append(_predicates, __network.OrgIDNEQ(*l.NetworkOrgIDNEQ))
 	}
 	if l.NetworkOrgIDIn != nil {
-		_predicates = append(_predicates, network.OrgIDIn(l.NetworkOrgIDIn...))
+		_predicates = append(_predicates, __network.OrgIDIn(l.NetworkOrgIDIn...))
 	}
 	if l.NetworkOrgIDNotIn != nil {
-		_predicates = append(_predicates, network.OrgIDNotIn(l.NetworkOrgIDNotIn...))
+		_predicates = append(_predicates, __network.OrgIDNotIn(l.NetworkOrgIDNotIn...))
 	}
 	if l.NetworkAkaEQ != nil {
-		_predicates = append(_predicates, network.AkaEQ(*l.NetworkAkaEQ))
+		_predicates = append(_predicates, __network.AkaEQ(*l.NetworkAkaEQ))
 	}
 	if l.NetworkAkaNEQ != nil {
-		_predicates = append(_predicates, network.AkaNEQ(*l.NetworkAkaNEQ))
+		_predicates = append(_predicates, __network.AkaNEQ(*l.NetworkAkaNEQ))
 	}
 	if l.NetworkAkaIsNil != nil {
 		if *l.NetworkAkaIsNil {
-			_predicates = append(_predicates, network.AkaIsNil())
+			_predicates = append(_predicates, __network.AkaIsNil())
 		} else {
-			_predicates = append(_predicates, network.Not(network.AkaIsNil()))
+			_predicates = append(_predicates, __network.Not(__network.AkaIsNil()))
 		}
 	}
 	if l.NetworkAkaIn != nil {
-		_predicates = append(_predicates, network.AkaIn(l.NetworkAkaIn...))
+		_predicates = append(_predicates, __network.AkaIn(l.NetworkAkaIn...))
 	}
 	if l.NetworkAkaNotIn != nil {
-		_predicates = append(_predicates, network.AkaNotIn(l.NetworkAkaNotIn...))
+		_predicates = append(_predicates, __network.AkaNotIn(l.NetworkAkaNotIn...))
 	}
 	if l.NetworkAkaEqualFold != nil {
-		_predicates = append(_predicates, network.AkaEqualFold(*l.NetworkAkaEqualFold))
+		_predicates = append(_predicates, __network.AkaEqualFold(*l.NetworkAkaEqualFold))
 	}
 	if l.NetworkAkaContains != nil {
-		_predicates = append(_predicates, network.AkaContains(*l.NetworkAkaContains))
+		_predicates = append(_predicates, __network.AkaContains(*l.NetworkAkaContains))
 	}
 	if l.NetworkAkaContainsFold != nil {
-		_predicates = append(_predicates, network.AkaContainsFold(*l.NetworkAkaContainsFold))
+		_predicates = append(_predicates, __network.AkaContainsFold(*l.NetworkAkaContainsFold))
 	}
 	if l.NetworkAkaHasPrefix != nil {
-		_predicates = append(_predicates, network.AkaHasPrefix(*l.NetworkAkaHasPrefix))
+		_predicates = append(_predicates, __network.AkaHasPrefix(*l.NetworkAkaHasPrefix))
 	}
 	if l.NetworkAkaHasSuffix != nil {
-		_predicates = append(_predicates, network.AkaHasSuffix(*l.NetworkAkaHasSuffix))
+		_predicates = append(_predicates, __network.AkaHasSuffix(*l.NetworkAkaHasSuffix))
 	}
 	if l.NetworkAsnEQ != nil {
-		_predicates = append(_predicates, network.AsnEQ(*l.NetworkAsnEQ))
+		_predicates = append(_predicates, __network.AsnEQ(*l.NetworkAsnEQ))
 	}
 	if l.NetworkAsnNEQ != nil {
-		_predicates = append(_predicates, network.AsnNEQ(*l.NetworkAsnNEQ))
+		_predicates = append(_predicates, __network.AsnNEQ(*l.NetworkAsnNEQ))
 	}
 	if l.NetworkAsnGT != nil {
-		_predicates = append(_predicates, network.AsnGT(*l.NetworkAsnGT))
+		_predicates = append(_predicates, __network.AsnGT(*l.NetworkAsnGT))
 	}
 	if l.NetworkAsnGTE != nil {
-		_predicates = append(_predicates, network.AsnGTE(*l.NetworkAsnGTE))
+		_predicates = append(_predicates, __network.AsnGTE(*l.NetworkAsnGTE))
 	}
 	if l.NetworkAsnLT != nil {
-		_predicates = append(_predicates, network.AsnLT(*l.NetworkAsnLT))
+		_predicates = append(_predicates, __network.AsnLT(*l.NetworkAsnLT))
 	}
 	if l.NetworkAsnLTE != nil {
-		_predicates = append(_predicates, network.AsnLTE(*l.NetworkAsnLTE))
+		_predicates = append(_predicates, __network.AsnLTE(*l.NetworkAsnLTE))
 	}
 	if l.NetworkAsnIn != nil {
-		_predicates = append(_predicates, network.AsnIn(l.NetworkAsnIn...))
+		_predicates = append(_predicates, __network.AsnIn(l.NetworkAsnIn...))
 	}
 	if l.NetworkAsnNotIn != nil {
-		_predicates = append(_predicates, network.AsnNotIn(l.NetworkAsnNotIn...))
+		_predicates = append(_predicates, __network.AsnNotIn(l.NetworkAsnNotIn...))
 	}
 	if l.NetworkNameEQ != nil {
-		_predicates = append(_predicates, network.NameEQ(*l.NetworkNameEQ))
+		_predicates = append(_predicates, __network.NameEQ(*l.NetworkNameEQ))
 	}
 	if l.NetworkNameNEQ != nil {
-		_predicates = append(_predicates, network.NameNEQ(*l.NetworkNameNEQ))
+		_predicates = append(_predicates, __network.NameNEQ(*l.NetworkNameNEQ))
 	}
 	if l.NetworkNameIn != nil {
-		_predicates = append(_predicates, network.NameIn(l.NetworkNameIn...))
+		_predicates = append(_predicates, __network.NameIn(l.NetworkNameIn...))
 	}
 	if l.NetworkNameNotIn != nil {
-		_predicates = append(_predicates, network.NameNotIn(l.NetworkNameNotIn...))
+		_predicates = append(_predicates, __network.NameNotIn(l.NetworkNameNotIn...))
 	}
 	if l.NetworkNameEqualFold != nil {
-		_predicates = append(_predicates, network.NameEqualFold(*l.NetworkNameEqualFold))
+		_predicates = append(_predicates, __network.NameEqualFold(*l.NetworkNameEqualFold))
 	}
 	if l.NetworkNameContains != nil {
-		_predicates = append(_predicates, network.NameContains(*l.NetworkNameContains))
+		_predicates = append(_predicates, __network.NameContains(*l.NetworkNameContains))
 	}
 	if l.NetworkNameContainsFold != nil {
-		_predicates = append(_predicates, network.NameContainsFold(*l.NetworkNameContainsFold))
+		_predicates = append(_predicates, __network.NameContainsFold(*l.NetworkNameContainsFold))
 	}
 	if l.NetworkNameHasPrefix != nil {
-		_predicates = append(_predicates, network.NameHasPrefix(*l.NetworkNameHasPrefix))
+		_predicates = append(_predicates, __network.NameHasPrefix(*l.NetworkNameHasPrefix))
 	}
 	if l.NetworkNameHasSuffix != nil {
-		_predicates = append(_predicates, network.NameHasSuffix(*l.NetworkNameHasSuffix))
+		_predicates = append(_predicates, __network.NameHasSuffix(*l.NetworkNameHasSuffix))
 	}
 	if l.NetworkNameLongEQ != nil {
-		_predicates = append(_predicates, network.NameLongEQ(*l.NetworkNameLongEQ))
+		_predicates = append(_predicates, __network.NameLongEQ(*l.NetworkNameLongEQ))
 	}
 	if l.NetworkNameLongNEQ != nil {
-		_predicates = append(_predicates, network.NameLongNEQ(*l.NetworkNameLongNEQ))
+		_predicates = append(_predicates, __network.NameLongNEQ(*l.NetworkNameLongNEQ))
 	}
 	if l.NetworkNameLongIsNil != nil {
 		if *l.NetworkNameLongIsNil {
-			_predicates = append(_predicates, network.NameLongIsNil())
+			_predicates = append(_predicates, __network.NameLongIsNil())
 		} else {
-			_predicates = append(_predicates, network.Not(network.NameLongIsNil()))
+			_predicates = append(_predicates, __network.Not(__network.NameLongIsNil()))
 		}
 	}
 	if l.NetworkNameLongIn != nil {
-		_predicates = append(_predicates, network.NameLongIn(l.NetworkNameLongIn...))
+		_predicates = append(_predicates, __network.NameLongIn(l.NetworkNameLongIn...))
 	}
 	if l.NetworkNameLongNotIn != nil {
-		_predicates = append(_predicates, network.NameLongNotIn(l.NetworkNameLongNotIn...))
+		_predicates = append(_predicates, __network.NameLongNotIn(l.NetworkNameLongNotIn...))
 	}
 	if l.NetworkNameLongEqualFold != nil {
-		_predicates = append(_predicates, network.NameLongEqualFold(*l.NetworkNameLongEqualFold))
+		_predicates = append(_predicates, __network.NameLongEqualFold(*l.NetworkNameLongEqualFold))
 	}
 	if l.NetworkNameLongContains != nil {
-		_predicates = append(_predicates, network.NameLongContains(*l.NetworkNameLongContains))
+		_predicates = append(_predicates, __network.NameLongContains(*l.NetworkNameLongContains))
 	}
 	if l.NetworkNameLongContainsFold != nil {
-		_predicates = append(_predicates, network.NameLongContainsFold(*l.NetworkNameLongContainsFold))
+		_predicates = append(_predicates, __network.NameLongContainsFold(*l.NetworkNameLongContainsFold))
 	}
 	if l.NetworkNameLongHasPrefix != nil {
-		_predicates = append(_predicates, network.NameLongHasPrefix(*l.NetworkNameLongHasPrefix))
+		_predicates = append(_predicates, __network.NameLongHasPrefix(*l.NetworkNameLongHasPrefix))
 	}
 	if l.NetworkNameLongHasSuffix != nil {
-		_predicates = append(_predicates, network.NameLongHasSuffix(*l.NetworkNameLongHasSuffix))
+		_predicates = append(_predicates, __network.NameLongHasSuffix(*l.NetworkNameLongHasSuffix))
 	}
 	if l.NetworkCreatedGT != nil {
-		_predicates = append(_predicates, network.CreatedGT(*l.NetworkCreatedGT))
+		_predicates = append(_predicates, __network.CreatedGT(*l.NetworkCreatedGT))
 	}
 	if l.NetworkCreatedGTE != nil {
-		_predicates = append(_predicates, network.CreatedGTE(*l.NetworkCreatedGTE))
+		_predicates = append(_predicates, __network.CreatedGTE(*l.NetworkCreatedGTE))
 	}
 	if l.NetworkCreatedLT != nil {
-		_predicates = append(_predicates, network.CreatedLT(*l.NetworkCreatedLT))
+		_predicates = append(_predicates, __network.CreatedLT(*l.NetworkCreatedLT))
 	}
 	if l.NetworkCreatedLTE != nil {
-		_predicates = append(_predicates, network.CreatedLTE(*l.NetworkCreatedLTE))
+		_predicates = append(_predicates, __network.CreatedLTE(*l.NetworkCreatedLTE))
 	}
 	if l.NetworkUpdatedGT != nil {
-		_predicates = append(_predicates, network.UpdatedGT(*l.NetworkUpdatedGT))
+		_predicates = append(_predicates, __network.UpdatedGT(*l.NetworkUpdatedGT))
 	}
 	if l.NetworkUpdatedGTE != nil {
-		_predicates = append(_predicates, network.UpdatedGTE(*l.NetworkUpdatedGTE))
+		_predicates = append(_predicates, __network.UpdatedGTE(*l.NetworkUpdatedGTE))
 	}
 	if l.NetworkUpdatedLT != nil {
-		_predicates = append(_predicates, network.UpdatedLT(*l.NetworkUpdatedLT))
+		_predicates = append(_predicates, __network.UpdatedLT(*l.NetworkUpdatedLT))
 	}
 	if l.NetworkUpdatedLTE != nil {
-		_predicates = append(_predicates, network.UpdatedLTE(*l.NetworkUpdatedLTE))
+		_predicates = append(_predicates, __network.UpdatedLTE(*l.NetworkUpdatedLTE))
 	}
 	if l.NetworkStatusEQ != nil {
-		_predicates = append(_predicates, network.StatusEQ(*l.NetworkStatusEQ))
+		_predicates = append(_predicates, __network.StatusEQ(*l.NetworkStatusEQ))
 	}
 	if l.NetworkStatusNEQ != nil {
-		_predicates = append(_predicates, network.StatusNEQ(*l.NetworkStatusNEQ))
+		_predicates = append(_predicates, __network.StatusNEQ(*l.NetworkStatusNEQ))
 	}
 	if l.NetworkStatusIn != nil {
-		_predicates = append(_predicates, network.StatusIn(l.NetworkStatusIn...))
+		_predicates = append(_predicates, __network.StatusIn(l.NetworkStatusIn...))
 	}
 	if l.NetworkStatusNotIn != nil {
-		_predicates = append(_predicates, network.StatusNotIn(l.NetworkStatusNotIn...))
+		_predicates = append(_predicates, __network.StatusNotIn(l.NetworkStatusNotIn...))
 	}
 	if l.NetworkStatusEqualFold != nil {
-		_predicates = append(_predicates, network.StatusEqualFold(*l.NetworkStatusEqualFold))
+		_predicates = append(_predicates, __network.StatusEqualFold(*l.NetworkStatusEqualFold))
 	}
 	if l.NetworkStatusContains != nil {
-		_predicates = append(_predicates, network.StatusContains(*l.NetworkStatusContains))
+		_predicates = append(_predicates, __network.StatusContains(*l.NetworkStatusContains))
 	}
 	if l.NetworkStatusContainsFold != nil {
-		_predicates = append(_predicates, network.StatusContainsFold(*l.NetworkStatusContainsFold))
+		_predicates = append(_predicates, __network.StatusContainsFold(*l.NetworkStatusContainsFold))
 	}
 	if l.NetworkStatusHasPrefix != nil {
-		_predicates = append(_predicates, network.StatusHasPrefix(*l.NetworkStatusHasPrefix))
+		_predicates = append(_predicates, __network.StatusHasPrefix(*l.NetworkStatusHasPrefix))
 	}
 	if l.NetworkStatusHasSuffix != nil {
-		_predicates = append(_predicates, network.StatusHasSuffix(*l.NetworkStatusHasSuffix))
+		_predicates = append(_predicates, __network.StatusHasSuffix(*l.NetworkStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListNetworkParams) ApplySorting(_query *ent.NetworkQuery) error {
+func (l *ListNetworkParams) ApplySorting(_query *__ent.NetworkQuery) error {
 	if err := l.Sorted.Validate(NetworkSortConfig); err != nil {
 		return err
 	}
@@ -3173,7 +3173,7 @@ func (l *ListNetworkParams) ApplySorting(_query *ent.NetworkQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListNetworkParams) Exec(ctx context.Context, _query *ent.NetworkQuery) (_results *PagedResponse[ent.Network], err error) {
+func (l *ListNetworkParams) Exec(ctx context.Context, _query *__ent.NetworkQuery) (_results *PagedResponse[__ent.Network], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -3189,308 +3189,308 @@ func (l *ListNetworkParams) Exec(ctx context.Context, _query *ent.NetworkQuery) 
 // ListNetworkFacilityParams defines parameters for listing NetworkFacilities via a GET request.
 type ListNetworkFacilityParams struct {
 	Sorted
-	Paginated[*ent.NetworkFacilityQuery, ent.NetworkFacility]
-	Filtered[predicate.NetworkFacility]
+	Paginated[*__ent.NetworkFacilityQuery, __ent.NetworkFacility]
+	Filtered[__predicate.NetworkFacility]
 
 	// Filters field "fac_id" to be equal to the provided value.
-	NetworkFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"network_facility_fac_ideq,omitempty"`
+	NetworkFacilityFacIDEQ *int `form:"facID.eq,omitempty" json:"network_facility_fac_ideq,omitzero"`
 	// Filters field "fac_id" to be not equal to the provided value.
-	NetworkFacilityFacIDNEQ *int `form:"facID.neq,omitempty" json:"network_facility_fac_idneq,omitempty"`
+	NetworkFacilityFacIDNEQ *int `form:"facID.neq,omitempty" json:"network_facility_fac_idneq,omitzero"`
 	// Filters field "fac_id" to be within the provided values.
-	NetworkFacilityFacIDIn []int `form:"facID.in,omitempty" json:"network_facility_fac_id_in,omitempty"`
+	NetworkFacilityFacIDIn []int `form:"facID.in,omitempty" json:"network_facility_fac_id_in,omitzero"`
 	// Filters field "fac_id" to be not within the provided values.
-	NetworkFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"network_facility_fac_id_not_in,omitempty"`
+	NetworkFacilityFacIDNotIn []int `form:"facID.notIn,omitempty" json:"network_facility_fac_id_not_in,omitzero"`
 	// Filters field "net_id" to be equal to the provided value.
-	NetworkFacilityNetIDEQ *int `form:"netID.eq,omitempty" json:"network_facility_net_ideq,omitempty"`
+	NetworkFacilityNetIDEQ *int `form:"netID.eq,omitempty" json:"network_facility_net_ideq,omitzero"`
 	// Filters field "net_id" to be not equal to the provided value.
-	NetworkFacilityNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_facility_net_idneq,omitempty"`
+	NetworkFacilityNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_facility_net_idneq,omitzero"`
 	// Filters field "net_id" to be within the provided values.
-	NetworkFacilityNetIDIn []int `form:"netID.in,omitempty" json:"network_facility_net_id_in,omitempty"`
+	NetworkFacilityNetIDIn []int `form:"netID.in,omitempty" json:"network_facility_net_id_in,omitzero"`
 	// Filters field "net_id" to be not within the provided values.
-	NetworkFacilityNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_facility_net_id_not_in,omitempty"`
+	NetworkFacilityNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_facility_net_id_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	NetworkFacilityNameEQ *string `form:"name.eq,omitempty" json:"network_facility_name_eq,omitempty"`
+	NetworkFacilityNameEQ *string `form:"name.eq,omitempty" json:"network_facility_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	NetworkFacilityNameNEQ *string `form:"name.neq,omitempty" json:"network_facility_name_neq,omitempty"`
+	NetworkFacilityNameNEQ *string `form:"name.neq,omitempty" json:"network_facility_name_neq,omitzero"`
 	// Filters field "name" to be null/nil.
-	NetworkFacilityNameIsNil *bool `form:"name.null,omitempty" json:"network_facility_name_is_nil,omitempty"`
+	NetworkFacilityNameIsNil *bool `form:"name.null,omitempty" json:"network_facility_name_is_nil,omitzero"`
 	// Filters field "name" to be within the provided values.
-	NetworkFacilityNameIn []string `form:"name.in,omitempty" json:"network_facility_name_in,omitempty"`
+	NetworkFacilityNameIn []string `form:"name.in,omitempty" json:"network_facility_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	NetworkFacilityNameNotIn []string `form:"name.notIn,omitempty" json:"network_facility_name_not_in,omitempty"`
+	NetworkFacilityNameNotIn []string `form:"name.notIn,omitempty" json:"network_facility_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	NetworkFacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"network_facility_name_equal_fold,omitempty"`
+	NetworkFacilityNameEqualFold *string `form:"name.ieq,omitempty" json:"network_facility_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	NetworkFacilityNameContains *string `form:"name.has,omitempty" json:"network_facility_name_contains,omitempty"`
+	NetworkFacilityNameContains *string `form:"name.has,omitempty" json:"network_facility_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	NetworkFacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"network_facility_name_contains_fold,omitempty"`
+	NetworkFacilityNameContainsFold *string `form:"name.ihas,omitempty" json:"network_facility_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	NetworkFacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_facility_name_has_prefix,omitempty"`
+	NetworkFacilityNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_facility_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	NetworkFacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_facility_name_has_suffix,omitempty"`
+	NetworkFacilityNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_facility_name_has_suffix,omitzero"`
 	// Filters field "city" to be equal to the provided value.
-	NetworkFacilityCityEQ *string `form:"city.eq,omitempty" json:"network_facility_city_eq,omitempty"`
+	NetworkFacilityCityEQ *string `form:"city.eq,omitempty" json:"network_facility_city_eq,omitzero"`
 	// Filters field "city" to be not equal to the provided value.
-	NetworkFacilityCityNEQ *string `form:"city.neq,omitempty" json:"network_facility_city_neq,omitempty"`
+	NetworkFacilityCityNEQ *string `form:"city.neq,omitempty" json:"network_facility_city_neq,omitzero"`
 	// Filters field "city" to be null/nil.
-	NetworkFacilityCityIsNil *bool `form:"city.null,omitempty" json:"network_facility_city_is_nil,omitempty"`
+	NetworkFacilityCityIsNil *bool `form:"city.null,omitempty" json:"network_facility_city_is_nil,omitzero"`
 	// Filters field "city" to be within the provided values.
-	NetworkFacilityCityIn []string `form:"city.in,omitempty" json:"network_facility_city_in,omitempty"`
+	NetworkFacilityCityIn []string `form:"city.in,omitempty" json:"network_facility_city_in,omitzero"`
 	// Filters field "city" to be not within the provided values.
-	NetworkFacilityCityNotIn []string `form:"city.notIn,omitempty" json:"network_facility_city_not_in,omitempty"`
+	NetworkFacilityCityNotIn []string `form:"city.notIn,omitempty" json:"network_facility_city_not_in,omitzero"`
 	// Filters field "city" to be equal to the provided value, case-insensitive.
-	NetworkFacilityCityEqualFold *string `form:"city.ieq,omitempty" json:"network_facility_city_equal_fold,omitempty"`
+	NetworkFacilityCityEqualFold *string `form:"city.ieq,omitempty" json:"network_facility_city_equal_fold,omitzero"`
 	// Filters field "city" to contain the provided value.
-	NetworkFacilityCityContains *string `form:"city.has,omitempty" json:"network_facility_city_contains,omitempty"`
+	NetworkFacilityCityContains *string `form:"city.has,omitempty" json:"network_facility_city_contains,omitzero"`
 	// Filters field "city" to contain the provided value, case-insensitive.
-	NetworkFacilityCityContainsFold *string `form:"city.ihas,omitempty" json:"network_facility_city_contains_fold,omitempty"`
+	NetworkFacilityCityContainsFold *string `form:"city.ihas,omitempty" json:"network_facility_city_contains_fold,omitzero"`
 	// Filters field "city" to start with the provided value.
-	NetworkFacilityCityHasPrefix *string `form:"city.prefix,omitempty" json:"network_facility_city_has_prefix,omitempty"`
+	NetworkFacilityCityHasPrefix *string `form:"city.prefix,omitempty" json:"network_facility_city_has_prefix,omitzero"`
 	// Filters field "city" to end with the provided value.
-	NetworkFacilityCityHasSuffix *string `form:"city.suffix,omitempty" json:"network_facility_city_has_suffix,omitempty"`
+	NetworkFacilityCityHasSuffix *string `form:"city.suffix,omitempty" json:"network_facility_city_has_suffix,omitzero"`
 	// Filters field "country" to be equal to the provided value.
-	NetworkFacilityCountryEQ *string `form:"country.eq,omitempty" json:"network_facility_country_eq,omitempty"`
+	NetworkFacilityCountryEQ *string `form:"country.eq,omitempty" json:"network_facility_country_eq,omitzero"`
 	// Filters field "country" to be not equal to the provided value.
-	NetworkFacilityCountryNEQ *string `form:"country.neq,omitempty" json:"network_facility_country_neq,omitempty"`
+	NetworkFacilityCountryNEQ *string `form:"country.neq,omitempty" json:"network_facility_country_neq,omitzero"`
 	// Filters field "country" to be null/nil.
-	NetworkFacilityCountryIsNil *bool `form:"country.null,omitempty" json:"network_facility_country_is_nil,omitempty"`
+	NetworkFacilityCountryIsNil *bool `form:"country.null,omitempty" json:"network_facility_country_is_nil,omitzero"`
 	// Filters field "country" to be within the provided values.
-	NetworkFacilityCountryIn []string `form:"country.in,omitempty" json:"network_facility_country_in,omitempty"`
+	NetworkFacilityCountryIn []string `form:"country.in,omitempty" json:"network_facility_country_in,omitzero"`
 	// Filters field "country" to be not within the provided values.
-	NetworkFacilityCountryNotIn []string `form:"country.notIn,omitempty" json:"network_facility_country_not_in,omitempty"`
+	NetworkFacilityCountryNotIn []string `form:"country.notIn,omitempty" json:"network_facility_country_not_in,omitzero"`
 	// Filters field "country" to be equal to the provided value, case-insensitive.
-	NetworkFacilityCountryEqualFold *string `form:"country.ieq,omitempty" json:"network_facility_country_equal_fold,omitempty"`
+	NetworkFacilityCountryEqualFold *string `form:"country.ieq,omitempty" json:"network_facility_country_equal_fold,omitzero"`
 	// Filters field "country" to contain the provided value.
-	NetworkFacilityCountryContains *string `form:"country.has,omitempty" json:"network_facility_country_contains,omitempty"`
+	NetworkFacilityCountryContains *string `form:"country.has,omitempty" json:"network_facility_country_contains,omitzero"`
 	// Filters field "country" to contain the provided value, case-insensitive.
-	NetworkFacilityCountryContainsFold *string `form:"country.ihas,omitempty" json:"network_facility_country_contains_fold,omitempty"`
+	NetworkFacilityCountryContainsFold *string `form:"country.ihas,omitempty" json:"network_facility_country_contains_fold,omitzero"`
 	// Filters field "country" to start with the provided value.
-	NetworkFacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"network_facility_country_has_prefix,omitempty"`
+	NetworkFacilityCountryHasPrefix *string `form:"country.prefix,omitempty" json:"network_facility_country_has_prefix,omitzero"`
 	// Filters field "country" to end with the provided value.
-	NetworkFacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"network_facility_country_has_suffix,omitempty"`
+	NetworkFacilityCountryHasSuffix *string `form:"country.suffix,omitempty" json:"network_facility_country_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	NetworkFacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_facility_created_gt,omitempty"`
+	NetworkFacilityCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_facility_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	NetworkFacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"network_facility_created_gte,omitempty"`
+	NetworkFacilityCreatedGTE *time.Time `form:"created.gte,omitempty" json:"network_facility_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	NetworkFacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"network_facility_created_lt,omitempty"`
+	NetworkFacilityCreatedLT *time.Time `form:"created.lt,omitempty" json:"network_facility_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	NetworkFacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"network_facility_created_lte,omitempty"`
+	NetworkFacilityCreatedLTE *time.Time `form:"created.lte,omitempty" json:"network_facility_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	NetworkFacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"network_facility_updated_gt,omitempty"`
+	NetworkFacilityUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"network_facility_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	NetworkFacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"network_facility_updated_gte,omitempty"`
+	NetworkFacilityUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"network_facility_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	NetworkFacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"network_facility_updated_lt,omitempty"`
+	NetworkFacilityUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"network_facility_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	NetworkFacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"network_facility_updated_lte,omitempty"`
+	NetworkFacilityUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"network_facility_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	NetworkFacilityStatusEQ *string `form:"status.eq,omitempty" json:"network_facility_status_eq,omitempty"`
+	NetworkFacilityStatusEQ *string `form:"status.eq,omitempty" json:"network_facility_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	NetworkFacilityStatusNEQ *string `form:"status.neq,omitempty" json:"network_facility_status_neq,omitempty"`
+	NetworkFacilityStatusNEQ *string `form:"status.neq,omitempty" json:"network_facility_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	NetworkFacilityStatusIn []string `form:"status.in,omitempty" json:"network_facility_status_in,omitempty"`
+	NetworkFacilityStatusIn []string `form:"status.in,omitempty" json:"network_facility_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	NetworkFacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"network_facility_status_not_in,omitempty"`
+	NetworkFacilityStatusNotIn []string `form:"status.notIn,omitempty" json:"network_facility_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	NetworkFacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"network_facility_status_equal_fold,omitempty"`
+	NetworkFacilityStatusEqualFold *string `form:"status.ieq,omitempty" json:"network_facility_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	NetworkFacilityStatusContains *string `form:"status.has,omitempty" json:"network_facility_status_contains,omitempty"`
+	NetworkFacilityStatusContains *string `form:"status.has,omitempty" json:"network_facility_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	NetworkFacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"network_facility_status_contains_fold,omitempty"`
+	NetworkFacilityStatusContainsFold *string `form:"status.ihas,omitempty" json:"network_facility_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	NetworkFacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"network_facility_status_has_prefix,omitempty"`
+	NetworkFacilityStatusHasPrefix *string `form:"status.prefix,omitempty" json:"network_facility_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	NetworkFacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"network_facility_status_has_suffix,omitempty"`
+	NetworkFacilityStatusHasSuffix *string `form:"status.suffix,omitempty" json:"network_facility_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in NetworkFacility.
-func (l *ListNetworkFacilityParams) FilterPredicates() (predicate.NetworkFacility, error) {
-	var _predicates []predicate.NetworkFacility
+func (l *ListNetworkFacilityParams) FilterPredicates() (__predicate.NetworkFacility, error) {
+	var _predicates []__predicate.NetworkFacility
 
 	if l.NetworkFacilityFacIDEQ != nil {
-		_predicates = append(_predicates, networkfacility.FacIDEQ(*l.NetworkFacilityFacIDEQ))
+		_predicates = append(_predicates, __networkfacility.FacIDEQ(*l.NetworkFacilityFacIDEQ))
 	}
 	if l.NetworkFacilityFacIDNEQ != nil {
-		_predicates = append(_predicates, networkfacility.FacIDNEQ(*l.NetworkFacilityFacIDNEQ))
+		_predicates = append(_predicates, __networkfacility.FacIDNEQ(*l.NetworkFacilityFacIDNEQ))
 	}
 	if l.NetworkFacilityFacIDIn != nil {
-		_predicates = append(_predicates, networkfacility.FacIDIn(l.NetworkFacilityFacIDIn...))
+		_predicates = append(_predicates, __networkfacility.FacIDIn(l.NetworkFacilityFacIDIn...))
 	}
 	if l.NetworkFacilityFacIDNotIn != nil {
-		_predicates = append(_predicates, networkfacility.FacIDNotIn(l.NetworkFacilityFacIDNotIn...))
+		_predicates = append(_predicates, __networkfacility.FacIDNotIn(l.NetworkFacilityFacIDNotIn...))
 	}
 	if l.NetworkFacilityNetIDEQ != nil {
-		_predicates = append(_predicates, networkfacility.NetIDEQ(*l.NetworkFacilityNetIDEQ))
+		_predicates = append(_predicates, __networkfacility.NetIDEQ(*l.NetworkFacilityNetIDEQ))
 	}
 	if l.NetworkFacilityNetIDNEQ != nil {
-		_predicates = append(_predicates, networkfacility.NetIDNEQ(*l.NetworkFacilityNetIDNEQ))
+		_predicates = append(_predicates, __networkfacility.NetIDNEQ(*l.NetworkFacilityNetIDNEQ))
 	}
 	if l.NetworkFacilityNetIDIn != nil {
-		_predicates = append(_predicates, networkfacility.NetIDIn(l.NetworkFacilityNetIDIn...))
+		_predicates = append(_predicates, __networkfacility.NetIDIn(l.NetworkFacilityNetIDIn...))
 	}
 	if l.NetworkFacilityNetIDNotIn != nil {
-		_predicates = append(_predicates, networkfacility.NetIDNotIn(l.NetworkFacilityNetIDNotIn...))
+		_predicates = append(_predicates, __networkfacility.NetIDNotIn(l.NetworkFacilityNetIDNotIn...))
 	}
 	if l.NetworkFacilityNameEQ != nil {
-		_predicates = append(_predicates, networkfacility.NameEQ(*l.NetworkFacilityNameEQ))
+		_predicates = append(_predicates, __networkfacility.NameEQ(*l.NetworkFacilityNameEQ))
 	}
 	if l.NetworkFacilityNameNEQ != nil {
-		_predicates = append(_predicates, networkfacility.NameNEQ(*l.NetworkFacilityNameNEQ))
+		_predicates = append(_predicates, __networkfacility.NameNEQ(*l.NetworkFacilityNameNEQ))
 	}
 	if l.NetworkFacilityNameIsNil != nil {
 		if *l.NetworkFacilityNameIsNil {
-			_predicates = append(_predicates, networkfacility.NameIsNil())
+			_predicates = append(_predicates, __networkfacility.NameIsNil())
 		} else {
-			_predicates = append(_predicates, networkfacility.Not(networkfacility.NameIsNil()))
+			_predicates = append(_predicates, __networkfacility.Not(__networkfacility.NameIsNil()))
 		}
 	}
 	if l.NetworkFacilityNameIn != nil {
-		_predicates = append(_predicates, networkfacility.NameIn(l.NetworkFacilityNameIn...))
+		_predicates = append(_predicates, __networkfacility.NameIn(l.NetworkFacilityNameIn...))
 	}
 	if l.NetworkFacilityNameNotIn != nil {
-		_predicates = append(_predicates, networkfacility.NameNotIn(l.NetworkFacilityNameNotIn...))
+		_predicates = append(_predicates, __networkfacility.NameNotIn(l.NetworkFacilityNameNotIn...))
 	}
 	if l.NetworkFacilityNameEqualFold != nil {
-		_predicates = append(_predicates, networkfacility.NameEqualFold(*l.NetworkFacilityNameEqualFold))
+		_predicates = append(_predicates, __networkfacility.NameEqualFold(*l.NetworkFacilityNameEqualFold))
 	}
 	if l.NetworkFacilityNameContains != nil {
-		_predicates = append(_predicates, networkfacility.NameContains(*l.NetworkFacilityNameContains))
+		_predicates = append(_predicates, __networkfacility.NameContains(*l.NetworkFacilityNameContains))
 	}
 	if l.NetworkFacilityNameContainsFold != nil {
-		_predicates = append(_predicates, networkfacility.NameContainsFold(*l.NetworkFacilityNameContainsFold))
+		_predicates = append(_predicates, __networkfacility.NameContainsFold(*l.NetworkFacilityNameContainsFold))
 	}
 	if l.NetworkFacilityNameHasPrefix != nil {
-		_predicates = append(_predicates, networkfacility.NameHasPrefix(*l.NetworkFacilityNameHasPrefix))
+		_predicates = append(_predicates, __networkfacility.NameHasPrefix(*l.NetworkFacilityNameHasPrefix))
 	}
 	if l.NetworkFacilityNameHasSuffix != nil {
-		_predicates = append(_predicates, networkfacility.NameHasSuffix(*l.NetworkFacilityNameHasSuffix))
+		_predicates = append(_predicates, __networkfacility.NameHasSuffix(*l.NetworkFacilityNameHasSuffix))
 	}
 	if l.NetworkFacilityCityEQ != nil {
-		_predicates = append(_predicates, networkfacility.CityEQ(*l.NetworkFacilityCityEQ))
+		_predicates = append(_predicates, __networkfacility.CityEQ(*l.NetworkFacilityCityEQ))
 	}
 	if l.NetworkFacilityCityNEQ != nil {
-		_predicates = append(_predicates, networkfacility.CityNEQ(*l.NetworkFacilityCityNEQ))
+		_predicates = append(_predicates, __networkfacility.CityNEQ(*l.NetworkFacilityCityNEQ))
 	}
 	if l.NetworkFacilityCityIsNil != nil {
 		if *l.NetworkFacilityCityIsNil {
-			_predicates = append(_predicates, networkfacility.CityIsNil())
+			_predicates = append(_predicates, __networkfacility.CityIsNil())
 		} else {
-			_predicates = append(_predicates, networkfacility.Not(networkfacility.CityIsNil()))
+			_predicates = append(_predicates, __networkfacility.Not(__networkfacility.CityIsNil()))
 		}
 	}
 	if l.NetworkFacilityCityIn != nil {
-		_predicates = append(_predicates, networkfacility.CityIn(l.NetworkFacilityCityIn...))
+		_predicates = append(_predicates, __networkfacility.CityIn(l.NetworkFacilityCityIn...))
 	}
 	if l.NetworkFacilityCityNotIn != nil {
-		_predicates = append(_predicates, networkfacility.CityNotIn(l.NetworkFacilityCityNotIn...))
+		_predicates = append(_predicates, __networkfacility.CityNotIn(l.NetworkFacilityCityNotIn...))
 	}
 	if l.NetworkFacilityCityEqualFold != nil {
-		_predicates = append(_predicates, networkfacility.CityEqualFold(*l.NetworkFacilityCityEqualFold))
+		_predicates = append(_predicates, __networkfacility.CityEqualFold(*l.NetworkFacilityCityEqualFold))
 	}
 	if l.NetworkFacilityCityContains != nil {
-		_predicates = append(_predicates, networkfacility.CityContains(*l.NetworkFacilityCityContains))
+		_predicates = append(_predicates, __networkfacility.CityContains(*l.NetworkFacilityCityContains))
 	}
 	if l.NetworkFacilityCityContainsFold != nil {
-		_predicates = append(_predicates, networkfacility.CityContainsFold(*l.NetworkFacilityCityContainsFold))
+		_predicates = append(_predicates, __networkfacility.CityContainsFold(*l.NetworkFacilityCityContainsFold))
 	}
 	if l.NetworkFacilityCityHasPrefix != nil {
-		_predicates = append(_predicates, networkfacility.CityHasPrefix(*l.NetworkFacilityCityHasPrefix))
+		_predicates = append(_predicates, __networkfacility.CityHasPrefix(*l.NetworkFacilityCityHasPrefix))
 	}
 	if l.NetworkFacilityCityHasSuffix != nil {
-		_predicates = append(_predicates, networkfacility.CityHasSuffix(*l.NetworkFacilityCityHasSuffix))
+		_predicates = append(_predicates, __networkfacility.CityHasSuffix(*l.NetworkFacilityCityHasSuffix))
 	}
 	if l.NetworkFacilityCountryEQ != nil {
-		_predicates = append(_predicates, networkfacility.CountryEQ(*l.NetworkFacilityCountryEQ))
+		_predicates = append(_predicates, __networkfacility.CountryEQ(*l.NetworkFacilityCountryEQ))
 	}
 	if l.NetworkFacilityCountryNEQ != nil {
-		_predicates = append(_predicates, networkfacility.CountryNEQ(*l.NetworkFacilityCountryNEQ))
+		_predicates = append(_predicates, __networkfacility.CountryNEQ(*l.NetworkFacilityCountryNEQ))
 	}
 	if l.NetworkFacilityCountryIsNil != nil {
 		if *l.NetworkFacilityCountryIsNil {
-			_predicates = append(_predicates, networkfacility.CountryIsNil())
+			_predicates = append(_predicates, __networkfacility.CountryIsNil())
 		} else {
-			_predicates = append(_predicates, networkfacility.Not(networkfacility.CountryIsNil()))
+			_predicates = append(_predicates, __networkfacility.Not(__networkfacility.CountryIsNil()))
 		}
 	}
 	if l.NetworkFacilityCountryIn != nil {
-		_predicates = append(_predicates, networkfacility.CountryIn(l.NetworkFacilityCountryIn...))
+		_predicates = append(_predicates, __networkfacility.CountryIn(l.NetworkFacilityCountryIn...))
 	}
 	if l.NetworkFacilityCountryNotIn != nil {
-		_predicates = append(_predicates, networkfacility.CountryNotIn(l.NetworkFacilityCountryNotIn...))
+		_predicates = append(_predicates, __networkfacility.CountryNotIn(l.NetworkFacilityCountryNotIn...))
 	}
 	if l.NetworkFacilityCountryEqualFold != nil {
-		_predicates = append(_predicates, networkfacility.CountryEqualFold(*l.NetworkFacilityCountryEqualFold))
+		_predicates = append(_predicates, __networkfacility.CountryEqualFold(*l.NetworkFacilityCountryEqualFold))
 	}
 	if l.NetworkFacilityCountryContains != nil {
-		_predicates = append(_predicates, networkfacility.CountryContains(*l.NetworkFacilityCountryContains))
+		_predicates = append(_predicates, __networkfacility.CountryContains(*l.NetworkFacilityCountryContains))
 	}
 	if l.NetworkFacilityCountryContainsFold != nil {
-		_predicates = append(_predicates, networkfacility.CountryContainsFold(*l.NetworkFacilityCountryContainsFold))
+		_predicates = append(_predicates, __networkfacility.CountryContainsFold(*l.NetworkFacilityCountryContainsFold))
 	}
 	if l.NetworkFacilityCountryHasPrefix != nil {
-		_predicates = append(_predicates, networkfacility.CountryHasPrefix(*l.NetworkFacilityCountryHasPrefix))
+		_predicates = append(_predicates, __networkfacility.CountryHasPrefix(*l.NetworkFacilityCountryHasPrefix))
 	}
 	if l.NetworkFacilityCountryHasSuffix != nil {
-		_predicates = append(_predicates, networkfacility.CountryHasSuffix(*l.NetworkFacilityCountryHasSuffix))
+		_predicates = append(_predicates, __networkfacility.CountryHasSuffix(*l.NetworkFacilityCountryHasSuffix))
 	}
 	if l.NetworkFacilityCreatedGT != nil {
-		_predicates = append(_predicates, networkfacility.CreatedGT(*l.NetworkFacilityCreatedGT))
+		_predicates = append(_predicates, __networkfacility.CreatedGT(*l.NetworkFacilityCreatedGT))
 	}
 	if l.NetworkFacilityCreatedGTE != nil {
-		_predicates = append(_predicates, networkfacility.CreatedGTE(*l.NetworkFacilityCreatedGTE))
+		_predicates = append(_predicates, __networkfacility.CreatedGTE(*l.NetworkFacilityCreatedGTE))
 	}
 	if l.NetworkFacilityCreatedLT != nil {
-		_predicates = append(_predicates, networkfacility.CreatedLT(*l.NetworkFacilityCreatedLT))
+		_predicates = append(_predicates, __networkfacility.CreatedLT(*l.NetworkFacilityCreatedLT))
 	}
 	if l.NetworkFacilityCreatedLTE != nil {
-		_predicates = append(_predicates, networkfacility.CreatedLTE(*l.NetworkFacilityCreatedLTE))
+		_predicates = append(_predicates, __networkfacility.CreatedLTE(*l.NetworkFacilityCreatedLTE))
 	}
 	if l.NetworkFacilityUpdatedGT != nil {
-		_predicates = append(_predicates, networkfacility.UpdatedGT(*l.NetworkFacilityUpdatedGT))
+		_predicates = append(_predicates, __networkfacility.UpdatedGT(*l.NetworkFacilityUpdatedGT))
 	}
 	if l.NetworkFacilityUpdatedGTE != nil {
-		_predicates = append(_predicates, networkfacility.UpdatedGTE(*l.NetworkFacilityUpdatedGTE))
+		_predicates = append(_predicates, __networkfacility.UpdatedGTE(*l.NetworkFacilityUpdatedGTE))
 	}
 	if l.NetworkFacilityUpdatedLT != nil {
-		_predicates = append(_predicates, networkfacility.UpdatedLT(*l.NetworkFacilityUpdatedLT))
+		_predicates = append(_predicates, __networkfacility.UpdatedLT(*l.NetworkFacilityUpdatedLT))
 	}
 	if l.NetworkFacilityUpdatedLTE != nil {
-		_predicates = append(_predicates, networkfacility.UpdatedLTE(*l.NetworkFacilityUpdatedLTE))
+		_predicates = append(_predicates, __networkfacility.UpdatedLTE(*l.NetworkFacilityUpdatedLTE))
 	}
 	if l.NetworkFacilityStatusEQ != nil {
-		_predicates = append(_predicates, networkfacility.StatusEQ(*l.NetworkFacilityStatusEQ))
+		_predicates = append(_predicates, __networkfacility.StatusEQ(*l.NetworkFacilityStatusEQ))
 	}
 	if l.NetworkFacilityStatusNEQ != nil {
-		_predicates = append(_predicates, networkfacility.StatusNEQ(*l.NetworkFacilityStatusNEQ))
+		_predicates = append(_predicates, __networkfacility.StatusNEQ(*l.NetworkFacilityStatusNEQ))
 	}
 	if l.NetworkFacilityStatusIn != nil {
-		_predicates = append(_predicates, networkfacility.StatusIn(l.NetworkFacilityStatusIn...))
+		_predicates = append(_predicates, __networkfacility.StatusIn(l.NetworkFacilityStatusIn...))
 	}
 	if l.NetworkFacilityStatusNotIn != nil {
-		_predicates = append(_predicates, networkfacility.StatusNotIn(l.NetworkFacilityStatusNotIn...))
+		_predicates = append(_predicates, __networkfacility.StatusNotIn(l.NetworkFacilityStatusNotIn...))
 	}
 	if l.NetworkFacilityStatusEqualFold != nil {
-		_predicates = append(_predicates, networkfacility.StatusEqualFold(*l.NetworkFacilityStatusEqualFold))
+		_predicates = append(_predicates, __networkfacility.StatusEqualFold(*l.NetworkFacilityStatusEqualFold))
 	}
 	if l.NetworkFacilityStatusContains != nil {
-		_predicates = append(_predicates, networkfacility.StatusContains(*l.NetworkFacilityStatusContains))
+		_predicates = append(_predicates, __networkfacility.StatusContains(*l.NetworkFacilityStatusContains))
 	}
 	if l.NetworkFacilityStatusContainsFold != nil {
-		_predicates = append(_predicates, networkfacility.StatusContainsFold(*l.NetworkFacilityStatusContainsFold))
+		_predicates = append(_predicates, __networkfacility.StatusContainsFold(*l.NetworkFacilityStatusContainsFold))
 	}
 	if l.NetworkFacilityStatusHasPrefix != nil {
-		_predicates = append(_predicates, networkfacility.StatusHasPrefix(*l.NetworkFacilityStatusHasPrefix))
+		_predicates = append(_predicates, __networkfacility.StatusHasPrefix(*l.NetworkFacilityStatusHasPrefix))
 	}
 	if l.NetworkFacilityStatusHasSuffix != nil {
-		_predicates = append(_predicates, networkfacility.StatusHasSuffix(*l.NetworkFacilityStatusHasSuffix))
+		_predicates = append(_predicates, __networkfacility.StatusHasSuffix(*l.NetworkFacilityStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListNetworkFacilityParams) ApplySorting(_query *ent.NetworkFacilityQuery) error {
+func (l *ListNetworkFacilityParams) ApplySorting(_query *__ent.NetworkFacilityQuery) error {
 	if err := l.Sorted.Validate(NetworkFacilitySortConfig); err != nil {
 		return err
 	}
@@ -3503,7 +3503,7 @@ func (l *ListNetworkFacilityParams) ApplySorting(_query *ent.NetworkFacilityQuer
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListNetworkFacilityParams) Exec(ctx context.Context, _query *ent.NetworkFacilityQuery) (_results *PagedResponse[ent.NetworkFacility], err error) {
+func (l *ListNetworkFacilityParams) Exec(ctx context.Context, _query *__ent.NetworkFacilityQuery) (_results *PagedResponse[__ent.NetworkFacility], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -3519,320 +3519,320 @@ func (l *ListNetworkFacilityParams) Exec(ctx context.Context, _query *ent.Networ
 // ListNetworkIxLanParams defines parameters for listing NetworkIxLans via a GET request.
 type ListNetworkIxLanParams struct {
 	Sorted
-	Paginated[*ent.NetworkIxLanQuery, ent.NetworkIxLan]
-	Filtered[predicate.NetworkIxLan]
+	Paginated[*__ent.NetworkIxLanQuery, __ent.NetworkIxLan]
+	Filtered[__predicate.NetworkIxLan]
 
 	// Filters field "ix_side_id" to be equal to the provided value.
-	NetworkIxLanIxSideIDEQ *int `form:"ixSideID.eq,omitempty" json:"network_ix_lan_ix_side_ideq,omitempty"`
+	NetworkIxLanIxSideIDEQ *int `form:"ixSideID.eq,omitempty" json:"network_ix_lan_ix_side_ideq,omitzero"`
 	// Filters field "ix_side_id" to be not equal to the provided value.
-	NetworkIxLanIxSideIDNEQ *int `form:"ixSideID.neq,omitempty" json:"network_ix_lan_ix_side_idneq,omitempty"`
+	NetworkIxLanIxSideIDNEQ *int `form:"ixSideID.neq,omitempty" json:"network_ix_lan_ix_side_idneq,omitzero"`
 	// Filters field "ix_side_id" to be greater than the provided value.
-	NetworkIxLanIxSideIDGT *int `form:"ixSideID.gt,omitempty" json:"network_ix_lan_ix_side_idgt,omitempty"`
+	NetworkIxLanIxSideIDGT *int `form:"ixSideID.gt,omitempty" json:"network_ix_lan_ix_side_idgt,omitzero"`
 	// Filters field "ix_side_id" to be greater than or equal to the provided value.
-	NetworkIxLanIxSideIDGTE *int `form:"ixSideID.gte,omitempty" json:"network_ix_lan_ix_side_idgte,omitempty"`
+	NetworkIxLanIxSideIDGTE *int `form:"ixSideID.gte,omitempty" json:"network_ix_lan_ix_side_idgte,omitzero"`
 	// Filters field "ix_side_id" to be less than the provided value.
-	NetworkIxLanIxSideIDLT *int `form:"ixSideID.lt,omitempty" json:"network_ix_lan_ix_side_idlt,omitempty"`
+	NetworkIxLanIxSideIDLT *int `form:"ixSideID.lt,omitempty" json:"network_ix_lan_ix_side_idlt,omitzero"`
 	// Filters field "ix_side_id" to be less than or equal to the provided value.
-	NetworkIxLanIxSideIDLTE *int `form:"ixSideID.lte,omitempty" json:"network_ix_lan_ix_side_idlte,omitempty"`
+	NetworkIxLanIxSideIDLTE *int `form:"ixSideID.lte,omitempty" json:"network_ix_lan_ix_side_idlte,omitzero"`
 	// Filters field "ix_side_id" to be within the provided values.
-	NetworkIxLanIxSideIDIn []int `form:"ixSideID.in,omitempty" json:"network_ix_lan_ix_side_id_in,omitempty"`
+	NetworkIxLanIxSideIDIn []int `form:"ixSideID.in,omitempty" json:"network_ix_lan_ix_side_id_in,omitzero"`
 	// Filters field "ix_side_id" to be not within the provided values.
-	NetworkIxLanIxSideIDNotIn []int `form:"ixSideID.notIn,omitempty" json:"network_ix_lan_ix_side_id_not_in,omitempty"`
+	NetworkIxLanIxSideIDNotIn []int `form:"ixSideID.notIn,omitempty" json:"network_ix_lan_ix_side_id_not_in,omitzero"`
 	// Filters field "ixlan_id" to be equal to the provided value.
-	NetworkIxLanIxlanIDEQ *int `form:"ixlanID.eq,omitempty" json:"network_ix_lan_ixlan_ideq,omitempty"`
+	NetworkIxLanIxlanIDEQ *int `form:"ixlanID.eq,omitempty" json:"network_ix_lan_ixlan_ideq,omitzero"`
 	// Filters field "ixlan_id" to be not equal to the provided value.
-	NetworkIxLanIxlanIDNEQ *int `form:"ixlanID.neq,omitempty" json:"network_ix_lan_ixlan_idneq,omitempty"`
+	NetworkIxLanIxlanIDNEQ *int `form:"ixlanID.neq,omitempty" json:"network_ix_lan_ixlan_idneq,omitzero"`
 	// Filters field "ixlan_id" to be within the provided values.
-	NetworkIxLanIxlanIDIn []int `form:"ixlanID.in,omitempty" json:"network_ix_lan_ixlan_id_in,omitempty"`
+	NetworkIxLanIxlanIDIn []int `form:"ixlanID.in,omitempty" json:"network_ix_lan_ixlan_id_in,omitzero"`
 	// Filters field "ixlan_id" to be not within the provided values.
-	NetworkIxLanIxlanIDNotIn []int `form:"ixlanID.notIn,omitempty" json:"network_ix_lan_ixlan_id_not_in,omitempty"`
+	NetworkIxLanIxlanIDNotIn []int `form:"ixlanID.notIn,omitempty" json:"network_ix_lan_ixlan_id_not_in,omitzero"`
 	// Filters field "net_id" to be equal to the provided value.
-	NetworkIxLanNetIDEQ *int `form:"netID.eq,omitempty" json:"network_ix_lan_net_ideq,omitempty"`
+	NetworkIxLanNetIDEQ *int `form:"netID.eq,omitempty" json:"network_ix_lan_net_ideq,omitzero"`
 	// Filters field "net_id" to be not equal to the provided value.
-	NetworkIxLanNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_ix_lan_net_idneq,omitempty"`
+	NetworkIxLanNetIDNEQ *int `form:"netID.neq,omitempty" json:"network_ix_lan_net_idneq,omitzero"`
 	// Filters field "net_id" to be within the provided values.
-	NetworkIxLanNetIDIn []int `form:"netID.in,omitempty" json:"network_ix_lan_net_id_in,omitempty"`
+	NetworkIxLanNetIDIn []int `form:"netID.in,omitempty" json:"network_ix_lan_net_id_in,omitzero"`
 	// Filters field "net_id" to be not within the provided values.
-	NetworkIxLanNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_ix_lan_net_id_not_in,omitempty"`
+	NetworkIxLanNetIDNotIn []int `form:"netID.notIn,omitempty" json:"network_ix_lan_net_id_not_in,omitzero"`
 	// Filters field "net_side_id" to be equal to the provided value.
-	NetworkIxLanNetSideIDEQ *int `form:"netSideID.eq,omitempty" json:"network_ix_lan_net_side_ideq,omitempty"`
+	NetworkIxLanNetSideIDEQ *int `form:"netSideID.eq,omitempty" json:"network_ix_lan_net_side_ideq,omitzero"`
 	// Filters field "net_side_id" to be not equal to the provided value.
-	NetworkIxLanNetSideIDNEQ *int `form:"netSideID.neq,omitempty" json:"network_ix_lan_net_side_idneq,omitempty"`
+	NetworkIxLanNetSideIDNEQ *int `form:"netSideID.neq,omitempty" json:"network_ix_lan_net_side_idneq,omitzero"`
 	// Filters field "net_side_id" to be greater than the provided value.
-	NetworkIxLanNetSideIDGT *int `form:"netSideID.gt,omitempty" json:"network_ix_lan_net_side_idgt,omitempty"`
+	NetworkIxLanNetSideIDGT *int `form:"netSideID.gt,omitempty" json:"network_ix_lan_net_side_idgt,omitzero"`
 	// Filters field "net_side_id" to be greater than or equal to the provided value.
-	NetworkIxLanNetSideIDGTE *int `form:"netSideID.gte,omitempty" json:"network_ix_lan_net_side_idgte,omitempty"`
+	NetworkIxLanNetSideIDGTE *int `form:"netSideID.gte,omitempty" json:"network_ix_lan_net_side_idgte,omitzero"`
 	// Filters field "net_side_id" to be less than the provided value.
-	NetworkIxLanNetSideIDLT *int `form:"netSideID.lt,omitempty" json:"network_ix_lan_net_side_idlt,omitempty"`
+	NetworkIxLanNetSideIDLT *int `form:"netSideID.lt,omitempty" json:"network_ix_lan_net_side_idlt,omitzero"`
 	// Filters field "net_side_id" to be less than or equal to the provided value.
-	NetworkIxLanNetSideIDLTE *int `form:"netSideID.lte,omitempty" json:"network_ix_lan_net_side_idlte,omitempty"`
+	NetworkIxLanNetSideIDLTE *int `form:"netSideID.lte,omitempty" json:"network_ix_lan_net_side_idlte,omitzero"`
 	// Filters field "net_side_id" to be within the provided values.
-	NetworkIxLanNetSideIDIn []int `form:"netSideID.in,omitempty" json:"network_ix_lan_net_side_id_in,omitempty"`
+	NetworkIxLanNetSideIDIn []int `form:"netSideID.in,omitempty" json:"network_ix_lan_net_side_id_in,omitzero"`
 	// Filters field "net_side_id" to be not within the provided values.
-	NetworkIxLanNetSideIDNotIn []int `form:"netSideID.notIn,omitempty" json:"network_ix_lan_net_side_id_not_in,omitempty"`
+	NetworkIxLanNetSideIDNotIn []int `form:"netSideID.notIn,omitempty" json:"network_ix_lan_net_side_id_not_in,omitzero"`
 	// Filters field "asn" to be equal to the provided value.
-	NetworkIxLanAsnEQ *int `form:"asn.eq,omitempty" json:"network_ix_lan_asn_eq,omitempty"`
+	NetworkIxLanAsnEQ *int `form:"asn.eq,omitempty" json:"network_ix_lan_asn_eq,omitzero"`
 	// Filters field "asn" to be not equal to the provided value.
-	NetworkIxLanAsnNEQ *int `form:"asn.neq,omitempty" json:"network_ix_lan_asn_neq,omitempty"`
+	NetworkIxLanAsnNEQ *int `form:"asn.neq,omitempty" json:"network_ix_lan_asn_neq,omitzero"`
 	// Filters field "asn" to be greater than the provided value.
-	NetworkIxLanAsnGT *int `form:"asn.gt,omitempty" json:"network_ix_lan_asn_gt,omitempty"`
+	NetworkIxLanAsnGT *int `form:"asn.gt,omitempty" json:"network_ix_lan_asn_gt,omitzero"`
 	// Filters field "asn" to be greater than or equal to the provided value.
-	NetworkIxLanAsnGTE *int `form:"asn.gte,omitempty" json:"network_ix_lan_asn_gte,omitempty"`
+	NetworkIxLanAsnGTE *int `form:"asn.gte,omitempty" json:"network_ix_lan_asn_gte,omitzero"`
 	// Filters field "asn" to be less than the provided value.
-	NetworkIxLanAsnLT *int `form:"asn.lt,omitempty" json:"network_ix_lan_asn_lt,omitempty"`
+	NetworkIxLanAsnLT *int `form:"asn.lt,omitempty" json:"network_ix_lan_asn_lt,omitzero"`
 	// Filters field "asn" to be less than or equal to the provided value.
-	NetworkIxLanAsnLTE *int `form:"asn.lte,omitempty" json:"network_ix_lan_asn_lte,omitempty"`
+	NetworkIxLanAsnLTE *int `form:"asn.lte,omitempty" json:"network_ix_lan_asn_lte,omitzero"`
 	// Filters field "asn" to be within the provided values.
-	NetworkIxLanAsnIn []int `form:"asn.in,omitempty" json:"network_ix_lan_asn_in,omitempty"`
+	NetworkIxLanAsnIn []int `form:"asn.in,omitempty" json:"network_ix_lan_asn_in,omitzero"`
 	// Filters field "asn" to be not within the provided values.
-	NetworkIxLanAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_ix_lan_asn_not_in,omitempty"`
+	NetworkIxLanAsnNotIn []int `form:"asn.notIn,omitempty" json:"network_ix_lan_asn_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	NetworkIxLanNameEQ *string `form:"name.eq,omitempty" json:"network_ix_lan_name_eq,omitempty"`
+	NetworkIxLanNameEQ *string `form:"name.eq,omitempty" json:"network_ix_lan_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	NetworkIxLanNameNEQ *string `form:"name.neq,omitempty" json:"network_ix_lan_name_neq,omitempty"`
+	NetworkIxLanNameNEQ *string `form:"name.neq,omitempty" json:"network_ix_lan_name_neq,omitzero"`
 	// Filters field "name" to be null/nil.
-	NetworkIxLanNameIsNil *bool `form:"name.null,omitempty" json:"network_ix_lan_name_is_nil,omitempty"`
+	NetworkIxLanNameIsNil *bool `form:"name.null,omitempty" json:"network_ix_lan_name_is_nil,omitzero"`
 	// Filters field "name" to be within the provided values.
-	NetworkIxLanNameIn []string `form:"name.in,omitempty" json:"network_ix_lan_name_in,omitempty"`
+	NetworkIxLanNameIn []string `form:"name.in,omitempty" json:"network_ix_lan_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	NetworkIxLanNameNotIn []string `form:"name.notIn,omitempty" json:"network_ix_lan_name_not_in,omitempty"`
+	NetworkIxLanNameNotIn []string `form:"name.notIn,omitempty" json:"network_ix_lan_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	NetworkIxLanNameEqualFold *string `form:"name.ieq,omitempty" json:"network_ix_lan_name_equal_fold,omitempty"`
+	NetworkIxLanNameEqualFold *string `form:"name.ieq,omitempty" json:"network_ix_lan_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	NetworkIxLanNameContains *string `form:"name.has,omitempty" json:"network_ix_lan_name_contains,omitempty"`
+	NetworkIxLanNameContains *string `form:"name.has,omitempty" json:"network_ix_lan_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	NetworkIxLanNameContainsFold *string `form:"name.ihas,omitempty" json:"network_ix_lan_name_contains_fold,omitempty"`
+	NetworkIxLanNameContainsFold *string `form:"name.ihas,omitempty" json:"network_ix_lan_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	NetworkIxLanNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_ix_lan_name_has_prefix,omitempty"`
+	NetworkIxLanNameHasPrefix *string `form:"name.prefix,omitempty" json:"network_ix_lan_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	NetworkIxLanNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_ix_lan_name_has_suffix,omitempty"`
+	NetworkIxLanNameHasSuffix *string `form:"name.suffix,omitempty" json:"network_ix_lan_name_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	NetworkIxLanCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_ix_lan_created_gt,omitempty"`
+	NetworkIxLanCreatedGT *time.Time `form:"created.gt,omitempty" json:"network_ix_lan_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	NetworkIxLanCreatedGTE *time.Time `form:"created.gte,omitempty" json:"network_ix_lan_created_gte,omitempty"`
+	NetworkIxLanCreatedGTE *time.Time `form:"created.gte,omitempty" json:"network_ix_lan_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	NetworkIxLanCreatedLT *time.Time `form:"created.lt,omitempty" json:"network_ix_lan_created_lt,omitempty"`
+	NetworkIxLanCreatedLT *time.Time `form:"created.lt,omitempty" json:"network_ix_lan_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	NetworkIxLanCreatedLTE *time.Time `form:"created.lte,omitempty" json:"network_ix_lan_created_lte,omitempty"`
+	NetworkIxLanCreatedLTE *time.Time `form:"created.lte,omitempty" json:"network_ix_lan_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	NetworkIxLanUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"network_ix_lan_updated_gt,omitempty"`
+	NetworkIxLanUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"network_ix_lan_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	NetworkIxLanUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"network_ix_lan_updated_gte,omitempty"`
+	NetworkIxLanUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"network_ix_lan_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	NetworkIxLanUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"network_ix_lan_updated_lt,omitempty"`
+	NetworkIxLanUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"network_ix_lan_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	NetworkIxLanUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"network_ix_lan_updated_lte,omitempty"`
+	NetworkIxLanUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"network_ix_lan_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	NetworkIxLanStatusEQ *string `form:"status.eq,omitempty" json:"network_ix_lan_status_eq,omitempty"`
+	NetworkIxLanStatusEQ *string `form:"status.eq,omitempty" json:"network_ix_lan_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	NetworkIxLanStatusNEQ *string `form:"status.neq,omitempty" json:"network_ix_lan_status_neq,omitempty"`
+	NetworkIxLanStatusNEQ *string `form:"status.neq,omitempty" json:"network_ix_lan_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	NetworkIxLanStatusIn []string `form:"status.in,omitempty" json:"network_ix_lan_status_in,omitempty"`
+	NetworkIxLanStatusIn []string `form:"status.in,omitempty" json:"network_ix_lan_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	NetworkIxLanStatusNotIn []string `form:"status.notIn,omitempty" json:"network_ix_lan_status_not_in,omitempty"`
+	NetworkIxLanStatusNotIn []string `form:"status.notIn,omitempty" json:"network_ix_lan_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	NetworkIxLanStatusEqualFold *string `form:"status.ieq,omitempty" json:"network_ix_lan_status_equal_fold,omitempty"`
+	NetworkIxLanStatusEqualFold *string `form:"status.ieq,omitempty" json:"network_ix_lan_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	NetworkIxLanStatusContains *string `form:"status.has,omitempty" json:"network_ix_lan_status_contains,omitempty"`
+	NetworkIxLanStatusContains *string `form:"status.has,omitempty" json:"network_ix_lan_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	NetworkIxLanStatusContainsFold *string `form:"status.ihas,omitempty" json:"network_ix_lan_status_contains_fold,omitempty"`
+	NetworkIxLanStatusContainsFold *string `form:"status.ihas,omitempty" json:"network_ix_lan_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	NetworkIxLanStatusHasPrefix *string `form:"status.prefix,omitempty" json:"network_ix_lan_status_has_prefix,omitempty"`
+	NetworkIxLanStatusHasPrefix *string `form:"status.prefix,omitempty" json:"network_ix_lan_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	NetworkIxLanStatusHasSuffix *string `form:"status.suffix,omitempty" json:"network_ix_lan_status_has_suffix,omitempty"`
+	NetworkIxLanStatusHasSuffix *string `form:"status.suffix,omitempty" json:"network_ix_lan_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in NetworkIxLan.
-func (l *ListNetworkIxLanParams) FilterPredicates() (predicate.NetworkIxLan, error) {
-	var _predicates []predicate.NetworkIxLan
+func (l *ListNetworkIxLanParams) FilterPredicates() (__predicate.NetworkIxLan, error) {
+	var _predicates []__predicate.NetworkIxLan
 
 	if l.NetworkIxLanIxSideIDEQ != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDEQ(*l.NetworkIxLanIxSideIDEQ))
+		_predicates = append(_predicates, __networkixlan.IxSideIDEQ(*l.NetworkIxLanIxSideIDEQ))
 	}
 	if l.NetworkIxLanIxSideIDNEQ != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDNEQ(*l.NetworkIxLanIxSideIDNEQ))
+		_predicates = append(_predicates, __networkixlan.IxSideIDNEQ(*l.NetworkIxLanIxSideIDNEQ))
 	}
 	if l.NetworkIxLanIxSideIDGT != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDGT(*l.NetworkIxLanIxSideIDGT))
+		_predicates = append(_predicates, __networkixlan.IxSideIDGT(*l.NetworkIxLanIxSideIDGT))
 	}
 	if l.NetworkIxLanIxSideIDGTE != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDGTE(*l.NetworkIxLanIxSideIDGTE))
+		_predicates = append(_predicates, __networkixlan.IxSideIDGTE(*l.NetworkIxLanIxSideIDGTE))
 	}
 	if l.NetworkIxLanIxSideIDLT != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDLT(*l.NetworkIxLanIxSideIDLT))
+		_predicates = append(_predicates, __networkixlan.IxSideIDLT(*l.NetworkIxLanIxSideIDLT))
 	}
 	if l.NetworkIxLanIxSideIDLTE != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDLTE(*l.NetworkIxLanIxSideIDLTE))
+		_predicates = append(_predicates, __networkixlan.IxSideIDLTE(*l.NetworkIxLanIxSideIDLTE))
 	}
 	if l.NetworkIxLanIxSideIDIn != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDIn(l.NetworkIxLanIxSideIDIn...))
+		_predicates = append(_predicates, __networkixlan.IxSideIDIn(l.NetworkIxLanIxSideIDIn...))
 	}
 	if l.NetworkIxLanIxSideIDNotIn != nil {
-		_predicates = append(_predicates, networkixlan.IxSideIDNotIn(l.NetworkIxLanIxSideIDNotIn...))
+		_predicates = append(_predicates, __networkixlan.IxSideIDNotIn(l.NetworkIxLanIxSideIDNotIn...))
 	}
 	if l.NetworkIxLanIxlanIDEQ != nil {
-		_predicates = append(_predicates, networkixlan.IxlanIDEQ(*l.NetworkIxLanIxlanIDEQ))
+		_predicates = append(_predicates, __networkixlan.IxlanIDEQ(*l.NetworkIxLanIxlanIDEQ))
 	}
 	if l.NetworkIxLanIxlanIDNEQ != nil {
-		_predicates = append(_predicates, networkixlan.IxlanIDNEQ(*l.NetworkIxLanIxlanIDNEQ))
+		_predicates = append(_predicates, __networkixlan.IxlanIDNEQ(*l.NetworkIxLanIxlanIDNEQ))
 	}
 	if l.NetworkIxLanIxlanIDIn != nil {
-		_predicates = append(_predicates, networkixlan.IxlanIDIn(l.NetworkIxLanIxlanIDIn...))
+		_predicates = append(_predicates, __networkixlan.IxlanIDIn(l.NetworkIxLanIxlanIDIn...))
 	}
 	if l.NetworkIxLanIxlanIDNotIn != nil {
-		_predicates = append(_predicates, networkixlan.IxlanIDNotIn(l.NetworkIxLanIxlanIDNotIn...))
+		_predicates = append(_predicates, __networkixlan.IxlanIDNotIn(l.NetworkIxLanIxlanIDNotIn...))
 	}
 	if l.NetworkIxLanNetIDEQ != nil {
-		_predicates = append(_predicates, networkixlan.NetIDEQ(*l.NetworkIxLanNetIDEQ))
+		_predicates = append(_predicates, __networkixlan.NetIDEQ(*l.NetworkIxLanNetIDEQ))
 	}
 	if l.NetworkIxLanNetIDNEQ != nil {
-		_predicates = append(_predicates, networkixlan.NetIDNEQ(*l.NetworkIxLanNetIDNEQ))
+		_predicates = append(_predicates, __networkixlan.NetIDNEQ(*l.NetworkIxLanNetIDNEQ))
 	}
 	if l.NetworkIxLanNetIDIn != nil {
-		_predicates = append(_predicates, networkixlan.NetIDIn(l.NetworkIxLanNetIDIn...))
+		_predicates = append(_predicates, __networkixlan.NetIDIn(l.NetworkIxLanNetIDIn...))
 	}
 	if l.NetworkIxLanNetIDNotIn != nil {
-		_predicates = append(_predicates, networkixlan.NetIDNotIn(l.NetworkIxLanNetIDNotIn...))
+		_predicates = append(_predicates, __networkixlan.NetIDNotIn(l.NetworkIxLanNetIDNotIn...))
 	}
 	if l.NetworkIxLanNetSideIDEQ != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDEQ(*l.NetworkIxLanNetSideIDEQ))
+		_predicates = append(_predicates, __networkixlan.NetSideIDEQ(*l.NetworkIxLanNetSideIDEQ))
 	}
 	if l.NetworkIxLanNetSideIDNEQ != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDNEQ(*l.NetworkIxLanNetSideIDNEQ))
+		_predicates = append(_predicates, __networkixlan.NetSideIDNEQ(*l.NetworkIxLanNetSideIDNEQ))
 	}
 	if l.NetworkIxLanNetSideIDGT != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDGT(*l.NetworkIxLanNetSideIDGT))
+		_predicates = append(_predicates, __networkixlan.NetSideIDGT(*l.NetworkIxLanNetSideIDGT))
 	}
 	if l.NetworkIxLanNetSideIDGTE != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDGTE(*l.NetworkIxLanNetSideIDGTE))
+		_predicates = append(_predicates, __networkixlan.NetSideIDGTE(*l.NetworkIxLanNetSideIDGTE))
 	}
 	if l.NetworkIxLanNetSideIDLT != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDLT(*l.NetworkIxLanNetSideIDLT))
+		_predicates = append(_predicates, __networkixlan.NetSideIDLT(*l.NetworkIxLanNetSideIDLT))
 	}
 	if l.NetworkIxLanNetSideIDLTE != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDLTE(*l.NetworkIxLanNetSideIDLTE))
+		_predicates = append(_predicates, __networkixlan.NetSideIDLTE(*l.NetworkIxLanNetSideIDLTE))
 	}
 	if l.NetworkIxLanNetSideIDIn != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDIn(l.NetworkIxLanNetSideIDIn...))
+		_predicates = append(_predicates, __networkixlan.NetSideIDIn(l.NetworkIxLanNetSideIDIn...))
 	}
 	if l.NetworkIxLanNetSideIDNotIn != nil {
-		_predicates = append(_predicates, networkixlan.NetSideIDNotIn(l.NetworkIxLanNetSideIDNotIn...))
+		_predicates = append(_predicates, __networkixlan.NetSideIDNotIn(l.NetworkIxLanNetSideIDNotIn...))
 	}
 	if l.NetworkIxLanAsnEQ != nil {
-		_predicates = append(_predicates, networkixlan.AsnEQ(*l.NetworkIxLanAsnEQ))
+		_predicates = append(_predicates, __networkixlan.AsnEQ(*l.NetworkIxLanAsnEQ))
 	}
 	if l.NetworkIxLanAsnNEQ != nil {
-		_predicates = append(_predicates, networkixlan.AsnNEQ(*l.NetworkIxLanAsnNEQ))
+		_predicates = append(_predicates, __networkixlan.AsnNEQ(*l.NetworkIxLanAsnNEQ))
 	}
 	if l.NetworkIxLanAsnGT != nil {
-		_predicates = append(_predicates, networkixlan.AsnGT(*l.NetworkIxLanAsnGT))
+		_predicates = append(_predicates, __networkixlan.AsnGT(*l.NetworkIxLanAsnGT))
 	}
 	if l.NetworkIxLanAsnGTE != nil {
-		_predicates = append(_predicates, networkixlan.AsnGTE(*l.NetworkIxLanAsnGTE))
+		_predicates = append(_predicates, __networkixlan.AsnGTE(*l.NetworkIxLanAsnGTE))
 	}
 	if l.NetworkIxLanAsnLT != nil {
-		_predicates = append(_predicates, networkixlan.AsnLT(*l.NetworkIxLanAsnLT))
+		_predicates = append(_predicates, __networkixlan.AsnLT(*l.NetworkIxLanAsnLT))
 	}
 	if l.NetworkIxLanAsnLTE != nil {
-		_predicates = append(_predicates, networkixlan.AsnLTE(*l.NetworkIxLanAsnLTE))
+		_predicates = append(_predicates, __networkixlan.AsnLTE(*l.NetworkIxLanAsnLTE))
 	}
 	if l.NetworkIxLanAsnIn != nil {
-		_predicates = append(_predicates, networkixlan.AsnIn(l.NetworkIxLanAsnIn...))
+		_predicates = append(_predicates, __networkixlan.AsnIn(l.NetworkIxLanAsnIn...))
 	}
 	if l.NetworkIxLanAsnNotIn != nil {
-		_predicates = append(_predicates, networkixlan.AsnNotIn(l.NetworkIxLanAsnNotIn...))
+		_predicates = append(_predicates, __networkixlan.AsnNotIn(l.NetworkIxLanAsnNotIn...))
 	}
 	if l.NetworkIxLanNameEQ != nil {
-		_predicates = append(_predicates, networkixlan.NameEQ(*l.NetworkIxLanNameEQ))
+		_predicates = append(_predicates, __networkixlan.NameEQ(*l.NetworkIxLanNameEQ))
 	}
 	if l.NetworkIxLanNameNEQ != nil {
-		_predicates = append(_predicates, networkixlan.NameNEQ(*l.NetworkIxLanNameNEQ))
+		_predicates = append(_predicates, __networkixlan.NameNEQ(*l.NetworkIxLanNameNEQ))
 	}
 	if l.NetworkIxLanNameIsNil != nil {
 		if *l.NetworkIxLanNameIsNil {
-			_predicates = append(_predicates, networkixlan.NameIsNil())
+			_predicates = append(_predicates, __networkixlan.NameIsNil())
 		} else {
-			_predicates = append(_predicates, networkixlan.Not(networkixlan.NameIsNil()))
+			_predicates = append(_predicates, __networkixlan.Not(__networkixlan.NameIsNil()))
 		}
 	}
 	if l.NetworkIxLanNameIn != nil {
-		_predicates = append(_predicates, networkixlan.NameIn(l.NetworkIxLanNameIn...))
+		_predicates = append(_predicates, __networkixlan.NameIn(l.NetworkIxLanNameIn...))
 	}
 	if l.NetworkIxLanNameNotIn != nil {
-		_predicates = append(_predicates, networkixlan.NameNotIn(l.NetworkIxLanNameNotIn...))
+		_predicates = append(_predicates, __networkixlan.NameNotIn(l.NetworkIxLanNameNotIn...))
 	}
 	if l.NetworkIxLanNameEqualFold != nil {
-		_predicates = append(_predicates, networkixlan.NameEqualFold(*l.NetworkIxLanNameEqualFold))
+		_predicates = append(_predicates, __networkixlan.NameEqualFold(*l.NetworkIxLanNameEqualFold))
 	}
 	if l.NetworkIxLanNameContains != nil {
-		_predicates = append(_predicates, networkixlan.NameContains(*l.NetworkIxLanNameContains))
+		_predicates = append(_predicates, __networkixlan.NameContains(*l.NetworkIxLanNameContains))
 	}
 	if l.NetworkIxLanNameContainsFold != nil {
-		_predicates = append(_predicates, networkixlan.NameContainsFold(*l.NetworkIxLanNameContainsFold))
+		_predicates = append(_predicates, __networkixlan.NameContainsFold(*l.NetworkIxLanNameContainsFold))
 	}
 	if l.NetworkIxLanNameHasPrefix != nil {
-		_predicates = append(_predicates, networkixlan.NameHasPrefix(*l.NetworkIxLanNameHasPrefix))
+		_predicates = append(_predicates, __networkixlan.NameHasPrefix(*l.NetworkIxLanNameHasPrefix))
 	}
 	if l.NetworkIxLanNameHasSuffix != nil {
-		_predicates = append(_predicates, networkixlan.NameHasSuffix(*l.NetworkIxLanNameHasSuffix))
+		_predicates = append(_predicates, __networkixlan.NameHasSuffix(*l.NetworkIxLanNameHasSuffix))
 	}
 	if l.NetworkIxLanCreatedGT != nil {
-		_predicates = append(_predicates, networkixlan.CreatedGT(*l.NetworkIxLanCreatedGT))
+		_predicates = append(_predicates, __networkixlan.CreatedGT(*l.NetworkIxLanCreatedGT))
 	}
 	if l.NetworkIxLanCreatedGTE != nil {
-		_predicates = append(_predicates, networkixlan.CreatedGTE(*l.NetworkIxLanCreatedGTE))
+		_predicates = append(_predicates, __networkixlan.CreatedGTE(*l.NetworkIxLanCreatedGTE))
 	}
 	if l.NetworkIxLanCreatedLT != nil {
-		_predicates = append(_predicates, networkixlan.CreatedLT(*l.NetworkIxLanCreatedLT))
+		_predicates = append(_predicates, __networkixlan.CreatedLT(*l.NetworkIxLanCreatedLT))
 	}
 	if l.NetworkIxLanCreatedLTE != nil {
-		_predicates = append(_predicates, networkixlan.CreatedLTE(*l.NetworkIxLanCreatedLTE))
+		_predicates = append(_predicates, __networkixlan.CreatedLTE(*l.NetworkIxLanCreatedLTE))
 	}
 	if l.NetworkIxLanUpdatedGT != nil {
-		_predicates = append(_predicates, networkixlan.UpdatedGT(*l.NetworkIxLanUpdatedGT))
+		_predicates = append(_predicates, __networkixlan.UpdatedGT(*l.NetworkIxLanUpdatedGT))
 	}
 	if l.NetworkIxLanUpdatedGTE != nil {
-		_predicates = append(_predicates, networkixlan.UpdatedGTE(*l.NetworkIxLanUpdatedGTE))
+		_predicates = append(_predicates, __networkixlan.UpdatedGTE(*l.NetworkIxLanUpdatedGTE))
 	}
 	if l.NetworkIxLanUpdatedLT != nil {
-		_predicates = append(_predicates, networkixlan.UpdatedLT(*l.NetworkIxLanUpdatedLT))
+		_predicates = append(_predicates, __networkixlan.UpdatedLT(*l.NetworkIxLanUpdatedLT))
 	}
 	if l.NetworkIxLanUpdatedLTE != nil {
-		_predicates = append(_predicates, networkixlan.UpdatedLTE(*l.NetworkIxLanUpdatedLTE))
+		_predicates = append(_predicates, __networkixlan.UpdatedLTE(*l.NetworkIxLanUpdatedLTE))
 	}
 	if l.NetworkIxLanStatusEQ != nil {
-		_predicates = append(_predicates, networkixlan.StatusEQ(*l.NetworkIxLanStatusEQ))
+		_predicates = append(_predicates, __networkixlan.StatusEQ(*l.NetworkIxLanStatusEQ))
 	}
 	if l.NetworkIxLanStatusNEQ != nil {
-		_predicates = append(_predicates, networkixlan.StatusNEQ(*l.NetworkIxLanStatusNEQ))
+		_predicates = append(_predicates, __networkixlan.StatusNEQ(*l.NetworkIxLanStatusNEQ))
 	}
 	if l.NetworkIxLanStatusIn != nil {
-		_predicates = append(_predicates, networkixlan.StatusIn(l.NetworkIxLanStatusIn...))
+		_predicates = append(_predicates, __networkixlan.StatusIn(l.NetworkIxLanStatusIn...))
 	}
 	if l.NetworkIxLanStatusNotIn != nil {
-		_predicates = append(_predicates, networkixlan.StatusNotIn(l.NetworkIxLanStatusNotIn...))
+		_predicates = append(_predicates, __networkixlan.StatusNotIn(l.NetworkIxLanStatusNotIn...))
 	}
 	if l.NetworkIxLanStatusEqualFold != nil {
-		_predicates = append(_predicates, networkixlan.StatusEqualFold(*l.NetworkIxLanStatusEqualFold))
+		_predicates = append(_predicates, __networkixlan.StatusEqualFold(*l.NetworkIxLanStatusEqualFold))
 	}
 	if l.NetworkIxLanStatusContains != nil {
-		_predicates = append(_predicates, networkixlan.StatusContains(*l.NetworkIxLanStatusContains))
+		_predicates = append(_predicates, __networkixlan.StatusContains(*l.NetworkIxLanStatusContains))
 	}
 	if l.NetworkIxLanStatusContainsFold != nil {
-		_predicates = append(_predicates, networkixlan.StatusContainsFold(*l.NetworkIxLanStatusContainsFold))
+		_predicates = append(_predicates, __networkixlan.StatusContainsFold(*l.NetworkIxLanStatusContainsFold))
 	}
 	if l.NetworkIxLanStatusHasPrefix != nil {
-		_predicates = append(_predicates, networkixlan.StatusHasPrefix(*l.NetworkIxLanStatusHasPrefix))
+		_predicates = append(_predicates, __networkixlan.StatusHasPrefix(*l.NetworkIxLanStatusHasPrefix))
 	}
 	if l.NetworkIxLanStatusHasSuffix != nil {
-		_predicates = append(_predicates, networkixlan.StatusHasSuffix(*l.NetworkIxLanStatusHasSuffix))
+		_predicates = append(_predicates, __networkixlan.StatusHasSuffix(*l.NetworkIxLanStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListNetworkIxLanParams) ApplySorting(_query *ent.NetworkIxLanQuery) error {
+func (l *ListNetworkIxLanParams) ApplySorting(_query *__ent.NetworkIxLanQuery) error {
 	if err := l.Sorted.Validate(NetworkIxLanSortConfig); err != nil {
 		return err
 	}
@@ -3845,7 +3845,7 @@ func (l *ListNetworkIxLanParams) ApplySorting(_query *ent.NetworkIxLanQuery) err
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListNetworkIxLanParams) Exec(ctx context.Context, _query *ent.NetworkIxLanQuery) (_results *PagedResponse[ent.NetworkIxLan], err error) {
+func (l *ListNetworkIxLanParams) Exec(ctx context.Context, _query *__ent.NetworkIxLanQuery) (_results *PagedResponse[__ent.NetworkIxLan], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -3861,421 +3861,421 @@ func (l *ListNetworkIxLanParams) Exec(ctx context.Context, _query *ent.NetworkIx
 // ListOrganizationParams defines parameters for listing Organizations via a GET request.
 type ListOrganizationParams struct {
 	Sorted
-	Paginated[*ent.OrganizationQuery, ent.Organization]
-	Filtered[predicate.Organization]
+	Paginated[*__ent.OrganizationQuery, __ent.Organization]
+	Filtered[__predicate.Organization]
 
 	// Filters field "aka" to be equal to the provided value.
-	OrganizationAkaEQ *string `form:"aka.eq,omitempty" json:"organization_aka_eq,omitempty"`
+	OrganizationAkaEQ *string `form:"aka.eq,omitempty" json:"organization_aka_eq,omitzero"`
 	// Filters field "aka" to be not equal to the provided value.
-	OrganizationAkaNEQ *string `form:"aka.neq,omitempty" json:"organization_aka_neq,omitempty"`
+	OrganizationAkaNEQ *string `form:"aka.neq,omitempty" json:"organization_aka_neq,omitzero"`
 	// Filters field "aka" to be null/nil.
-	OrganizationAkaIsNil *bool `form:"aka.null,omitempty" json:"organization_aka_is_nil,omitempty"`
+	OrganizationAkaIsNil *bool `form:"aka.null,omitempty" json:"organization_aka_is_nil,omitzero"`
 	// Filters field "aka" to be within the provided values.
-	OrganizationAkaIn []string `form:"aka.in,omitempty" json:"organization_aka_in,omitempty"`
+	OrganizationAkaIn []string `form:"aka.in,omitempty" json:"organization_aka_in,omitzero"`
 	// Filters field "aka" to be not within the provided values.
-	OrganizationAkaNotIn []string `form:"aka.notIn,omitempty" json:"organization_aka_not_in,omitempty"`
+	OrganizationAkaNotIn []string `form:"aka.notIn,omitempty" json:"organization_aka_not_in,omitzero"`
 	// Filters field "aka" to be equal to the provided value, case-insensitive.
-	OrganizationAkaEqualFold *string `form:"aka.ieq,omitempty" json:"organization_aka_equal_fold,omitempty"`
+	OrganizationAkaEqualFold *string `form:"aka.ieq,omitempty" json:"organization_aka_equal_fold,omitzero"`
 	// Filters field "aka" to contain the provided value.
-	OrganizationAkaContains *string `form:"aka.has,omitempty" json:"organization_aka_contains,omitempty"`
+	OrganizationAkaContains *string `form:"aka.has,omitempty" json:"organization_aka_contains,omitzero"`
 	// Filters field "aka" to contain the provided value, case-insensitive.
-	OrganizationAkaContainsFold *string `form:"aka.ihas,omitempty" json:"organization_aka_contains_fold,omitempty"`
+	OrganizationAkaContainsFold *string `form:"aka.ihas,omitempty" json:"organization_aka_contains_fold,omitzero"`
 	// Filters field "aka" to start with the provided value.
-	OrganizationAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"organization_aka_has_prefix,omitempty"`
+	OrganizationAkaHasPrefix *string `form:"aka.prefix,omitempty" json:"organization_aka_has_prefix,omitzero"`
 	// Filters field "aka" to end with the provided value.
-	OrganizationAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"organization_aka_has_suffix,omitempty"`
+	OrganizationAkaHasSuffix *string `form:"aka.suffix,omitempty" json:"organization_aka_has_suffix,omitzero"`
 	// Filters field "city" to be equal to the provided value.
-	OrganizationCityEQ *string `form:"city.eq,omitempty" json:"organization_city_eq,omitempty"`
+	OrganizationCityEQ *string `form:"city.eq,omitempty" json:"organization_city_eq,omitzero"`
 	// Filters field "city" to be not equal to the provided value.
-	OrganizationCityNEQ *string `form:"city.neq,omitempty" json:"organization_city_neq,omitempty"`
+	OrganizationCityNEQ *string `form:"city.neq,omitempty" json:"organization_city_neq,omitzero"`
 	// Filters field "city" to be null/nil.
-	OrganizationCityIsNil *bool `form:"city.null,omitempty" json:"organization_city_is_nil,omitempty"`
+	OrganizationCityIsNil *bool `form:"city.null,omitempty" json:"organization_city_is_nil,omitzero"`
 	// Filters field "city" to be within the provided values.
-	OrganizationCityIn []string `form:"city.in,omitempty" json:"organization_city_in,omitempty"`
+	OrganizationCityIn []string `form:"city.in,omitempty" json:"organization_city_in,omitzero"`
 	// Filters field "city" to be not within the provided values.
-	OrganizationCityNotIn []string `form:"city.notIn,omitempty" json:"organization_city_not_in,omitempty"`
+	OrganizationCityNotIn []string `form:"city.notIn,omitempty" json:"organization_city_not_in,omitzero"`
 	// Filters field "city" to be equal to the provided value, case-insensitive.
-	OrganizationCityEqualFold *string `form:"city.ieq,omitempty" json:"organization_city_equal_fold,omitempty"`
+	OrganizationCityEqualFold *string `form:"city.ieq,omitempty" json:"organization_city_equal_fold,omitzero"`
 	// Filters field "city" to contain the provided value.
-	OrganizationCityContains *string `form:"city.has,omitempty" json:"organization_city_contains,omitempty"`
+	OrganizationCityContains *string `form:"city.has,omitempty" json:"organization_city_contains,omitzero"`
 	// Filters field "city" to contain the provided value, case-insensitive.
-	OrganizationCityContainsFold *string `form:"city.ihas,omitempty" json:"organization_city_contains_fold,omitempty"`
+	OrganizationCityContainsFold *string `form:"city.ihas,omitempty" json:"organization_city_contains_fold,omitzero"`
 	// Filters field "city" to start with the provided value.
-	OrganizationCityHasPrefix *string `form:"city.prefix,omitempty" json:"organization_city_has_prefix,omitempty"`
+	OrganizationCityHasPrefix *string `form:"city.prefix,omitempty" json:"organization_city_has_prefix,omitzero"`
 	// Filters field "city" to end with the provided value.
-	OrganizationCityHasSuffix *string `form:"city.suffix,omitempty" json:"organization_city_has_suffix,omitempty"`
+	OrganizationCityHasSuffix *string `form:"city.suffix,omitempty" json:"organization_city_has_suffix,omitzero"`
 	// Filters field "country" to be equal to the provided value.
-	OrganizationCountryEQ *string `form:"country.eq,omitempty" json:"organization_country_eq,omitempty"`
+	OrganizationCountryEQ *string `form:"country.eq,omitempty" json:"organization_country_eq,omitzero"`
 	// Filters field "country" to be not equal to the provided value.
-	OrganizationCountryNEQ *string `form:"country.neq,omitempty" json:"organization_country_neq,omitempty"`
+	OrganizationCountryNEQ *string `form:"country.neq,omitempty" json:"organization_country_neq,omitzero"`
 	// Filters field "country" to be null/nil.
-	OrganizationCountryIsNil *bool `form:"country.null,omitempty" json:"organization_country_is_nil,omitempty"`
+	OrganizationCountryIsNil *bool `form:"country.null,omitempty" json:"organization_country_is_nil,omitzero"`
 	// Filters field "country" to be within the provided values.
-	OrganizationCountryIn []string `form:"country.in,omitempty" json:"organization_country_in,omitempty"`
+	OrganizationCountryIn []string `form:"country.in,omitempty" json:"organization_country_in,omitzero"`
 	// Filters field "country" to be not within the provided values.
-	OrganizationCountryNotIn []string `form:"country.notIn,omitempty" json:"organization_country_not_in,omitempty"`
+	OrganizationCountryNotIn []string `form:"country.notIn,omitempty" json:"organization_country_not_in,omitzero"`
 	// Filters field "country" to be equal to the provided value, case-insensitive.
-	OrganizationCountryEqualFold *string `form:"country.ieq,omitempty" json:"organization_country_equal_fold,omitempty"`
+	OrganizationCountryEqualFold *string `form:"country.ieq,omitempty" json:"organization_country_equal_fold,omitzero"`
 	// Filters field "country" to contain the provided value.
-	OrganizationCountryContains *string `form:"country.has,omitempty" json:"organization_country_contains,omitempty"`
+	OrganizationCountryContains *string `form:"country.has,omitempty" json:"organization_country_contains,omitzero"`
 	// Filters field "country" to contain the provided value, case-insensitive.
-	OrganizationCountryContainsFold *string `form:"country.ihas,omitempty" json:"organization_country_contains_fold,omitempty"`
+	OrganizationCountryContainsFold *string `form:"country.ihas,omitempty" json:"organization_country_contains_fold,omitzero"`
 	// Filters field "country" to start with the provided value.
-	OrganizationCountryHasPrefix *string `form:"country.prefix,omitempty" json:"organization_country_has_prefix,omitempty"`
+	OrganizationCountryHasPrefix *string `form:"country.prefix,omitempty" json:"organization_country_has_prefix,omitzero"`
 	// Filters field "country" to end with the provided value.
-	OrganizationCountryHasSuffix *string `form:"country.suffix,omitempty" json:"organization_country_has_suffix,omitempty"`
+	OrganizationCountryHasSuffix *string `form:"country.suffix,omitempty" json:"organization_country_has_suffix,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	OrganizationNameEQ *string `form:"name.eq,omitempty" json:"organization_name_eq,omitempty"`
+	OrganizationNameEQ *string `form:"name.eq,omitempty" json:"organization_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	OrganizationNameNEQ *string `form:"name.neq,omitempty" json:"organization_name_neq,omitempty"`
+	OrganizationNameNEQ *string `form:"name.neq,omitempty" json:"organization_name_neq,omitzero"`
 	// Filters field "name" to be within the provided values.
-	OrganizationNameIn []string `form:"name.in,omitempty" json:"organization_name_in,omitempty"`
+	OrganizationNameIn []string `form:"name.in,omitempty" json:"organization_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	OrganizationNameNotIn []string `form:"name.notIn,omitempty" json:"organization_name_not_in,omitempty"`
+	OrganizationNameNotIn []string `form:"name.notIn,omitempty" json:"organization_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	OrganizationNameEqualFold *string `form:"name.ieq,omitempty" json:"organization_name_equal_fold,omitempty"`
+	OrganizationNameEqualFold *string `form:"name.ieq,omitempty" json:"organization_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	OrganizationNameContains *string `form:"name.has,omitempty" json:"organization_name_contains,omitempty"`
+	OrganizationNameContains *string `form:"name.has,omitempty" json:"organization_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	OrganizationNameContainsFold *string `form:"name.ihas,omitempty" json:"organization_name_contains_fold,omitempty"`
+	OrganizationNameContainsFold *string `form:"name.ihas,omitempty" json:"organization_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	OrganizationNameHasPrefix *string `form:"name.prefix,omitempty" json:"organization_name_has_prefix,omitempty"`
+	OrganizationNameHasPrefix *string `form:"name.prefix,omitempty" json:"organization_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	OrganizationNameHasSuffix *string `form:"name.suffix,omitempty" json:"organization_name_has_suffix,omitempty"`
+	OrganizationNameHasSuffix *string `form:"name.suffix,omitempty" json:"organization_name_has_suffix,omitzero"`
 	// Filters field "name_long" to be equal to the provided value.
-	OrganizationNameLongEQ *string `form:"nameLong.eq,omitempty" json:"organization_name_long_eq,omitempty"`
+	OrganizationNameLongEQ *string `form:"nameLong.eq,omitempty" json:"organization_name_long_eq,omitzero"`
 	// Filters field "name_long" to be not equal to the provided value.
-	OrganizationNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"organization_name_long_neq,omitempty"`
+	OrganizationNameLongNEQ *string `form:"nameLong.neq,omitempty" json:"organization_name_long_neq,omitzero"`
 	// Filters field "name_long" to be null/nil.
-	OrganizationNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"organization_name_long_is_nil,omitempty"`
+	OrganizationNameLongIsNil *bool `form:"nameLong.null,omitempty" json:"organization_name_long_is_nil,omitzero"`
 	// Filters field "name_long" to be within the provided values.
-	OrganizationNameLongIn []string `form:"nameLong.in,omitempty" json:"organization_name_long_in,omitempty"`
+	OrganizationNameLongIn []string `form:"nameLong.in,omitempty" json:"organization_name_long_in,omitzero"`
 	// Filters field "name_long" to be not within the provided values.
-	OrganizationNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"organization_name_long_not_in,omitempty"`
+	OrganizationNameLongNotIn []string `form:"nameLong.notIn,omitempty" json:"organization_name_long_not_in,omitzero"`
 	// Filters field "name_long" to be equal to the provided value, case-insensitive.
-	OrganizationNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"organization_name_long_equal_fold,omitempty"`
+	OrganizationNameLongEqualFold *string `form:"nameLong.ieq,omitempty" json:"organization_name_long_equal_fold,omitzero"`
 	// Filters field "name_long" to contain the provided value.
-	OrganizationNameLongContains *string `form:"nameLong.has,omitempty" json:"organization_name_long_contains,omitempty"`
+	OrganizationNameLongContains *string `form:"nameLong.has,omitempty" json:"organization_name_long_contains,omitzero"`
 	// Filters field "name_long" to contain the provided value, case-insensitive.
-	OrganizationNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"organization_name_long_contains_fold,omitempty"`
+	OrganizationNameLongContainsFold *string `form:"nameLong.ihas,omitempty" json:"organization_name_long_contains_fold,omitzero"`
 	// Filters field "name_long" to start with the provided value.
-	OrganizationNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"organization_name_long_has_prefix,omitempty"`
+	OrganizationNameLongHasPrefix *string `form:"nameLong.prefix,omitempty" json:"organization_name_long_has_prefix,omitzero"`
 	// Filters field "name_long" to end with the provided value.
-	OrganizationNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"organization_name_long_has_suffix,omitempty"`
+	OrganizationNameLongHasSuffix *string `form:"nameLong.suffix,omitempty" json:"organization_name_long_has_suffix,omitzero"`
 	// Filters field "state" to be equal to the provided value.
-	OrganizationStateEQ *string `form:"state.eq,omitempty" json:"organization_state_eq,omitempty"`
+	OrganizationStateEQ *string `form:"state.eq,omitempty" json:"organization_state_eq,omitzero"`
 	// Filters field "state" to be not equal to the provided value.
-	OrganizationStateNEQ *string `form:"state.neq,omitempty" json:"organization_state_neq,omitempty"`
+	OrganizationStateNEQ *string `form:"state.neq,omitempty" json:"organization_state_neq,omitzero"`
 	// Filters field "state" to be null/nil.
-	OrganizationStateIsNil *bool `form:"state.null,omitempty" json:"organization_state_is_nil,omitempty"`
+	OrganizationStateIsNil *bool `form:"state.null,omitempty" json:"organization_state_is_nil,omitzero"`
 	// Filters field "state" to be within the provided values.
-	OrganizationStateIn []string `form:"state.in,omitempty" json:"organization_state_in,omitempty"`
+	OrganizationStateIn []string `form:"state.in,omitempty" json:"organization_state_in,omitzero"`
 	// Filters field "state" to be not within the provided values.
-	OrganizationStateNotIn []string `form:"state.notIn,omitempty" json:"organization_state_not_in,omitempty"`
+	OrganizationStateNotIn []string `form:"state.notIn,omitempty" json:"organization_state_not_in,omitzero"`
 	// Filters field "state" to be equal to the provided value, case-insensitive.
-	OrganizationStateEqualFold *string `form:"state.ieq,omitempty" json:"organization_state_equal_fold,omitempty"`
+	OrganizationStateEqualFold *string `form:"state.ieq,omitempty" json:"organization_state_equal_fold,omitzero"`
 	// Filters field "state" to contain the provided value.
-	OrganizationStateContains *string `form:"state.has,omitempty" json:"organization_state_contains,omitempty"`
+	OrganizationStateContains *string `form:"state.has,omitempty" json:"organization_state_contains,omitzero"`
 	// Filters field "state" to contain the provided value, case-insensitive.
-	OrganizationStateContainsFold *string `form:"state.ihas,omitempty" json:"organization_state_contains_fold,omitempty"`
+	OrganizationStateContainsFold *string `form:"state.ihas,omitempty" json:"organization_state_contains_fold,omitzero"`
 	// Filters field "state" to start with the provided value.
-	OrganizationStateHasPrefix *string `form:"state.prefix,omitempty" json:"organization_state_has_prefix,omitempty"`
+	OrganizationStateHasPrefix *string `form:"state.prefix,omitempty" json:"organization_state_has_prefix,omitzero"`
 	// Filters field "state" to end with the provided value.
-	OrganizationStateHasSuffix *string `form:"state.suffix,omitempty" json:"organization_state_has_suffix,omitempty"`
+	OrganizationStateHasSuffix *string `form:"state.suffix,omitempty" json:"organization_state_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	OrganizationCreatedGT *time.Time `form:"created.gt,omitempty" json:"organization_created_gt,omitempty"`
+	OrganizationCreatedGT *time.Time `form:"created.gt,omitempty" json:"organization_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	OrganizationCreatedGTE *time.Time `form:"created.gte,omitempty" json:"organization_created_gte,omitempty"`
+	OrganizationCreatedGTE *time.Time `form:"created.gte,omitempty" json:"organization_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	OrganizationCreatedLT *time.Time `form:"created.lt,omitempty" json:"organization_created_lt,omitempty"`
+	OrganizationCreatedLT *time.Time `form:"created.lt,omitempty" json:"organization_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	OrganizationCreatedLTE *time.Time `form:"created.lte,omitempty" json:"organization_created_lte,omitempty"`
+	OrganizationCreatedLTE *time.Time `form:"created.lte,omitempty" json:"organization_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	OrganizationUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"organization_updated_gt,omitempty"`
+	OrganizationUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"organization_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	OrganizationUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"organization_updated_gte,omitempty"`
+	OrganizationUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"organization_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	OrganizationUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"organization_updated_lt,omitempty"`
+	OrganizationUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"organization_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	OrganizationUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"organization_updated_lte,omitempty"`
+	OrganizationUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"organization_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	OrganizationStatusEQ *string `form:"status.eq,omitempty" json:"organization_status_eq,omitempty"`
+	OrganizationStatusEQ *string `form:"status.eq,omitempty" json:"organization_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	OrganizationStatusNEQ *string `form:"status.neq,omitempty" json:"organization_status_neq,omitempty"`
+	OrganizationStatusNEQ *string `form:"status.neq,omitempty" json:"organization_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	OrganizationStatusIn []string `form:"status.in,omitempty" json:"organization_status_in,omitempty"`
+	OrganizationStatusIn []string `form:"status.in,omitempty" json:"organization_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	OrganizationStatusNotIn []string `form:"status.notIn,omitempty" json:"organization_status_not_in,omitempty"`
+	OrganizationStatusNotIn []string `form:"status.notIn,omitempty" json:"organization_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	OrganizationStatusEqualFold *string `form:"status.ieq,omitempty" json:"organization_status_equal_fold,omitempty"`
+	OrganizationStatusEqualFold *string `form:"status.ieq,omitempty" json:"organization_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	OrganizationStatusContains *string `form:"status.has,omitempty" json:"organization_status_contains,omitempty"`
+	OrganizationStatusContains *string `form:"status.has,omitempty" json:"organization_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	OrganizationStatusContainsFold *string `form:"status.ihas,omitempty" json:"organization_status_contains_fold,omitempty"`
+	OrganizationStatusContainsFold *string `form:"status.ihas,omitempty" json:"organization_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	OrganizationStatusHasPrefix *string `form:"status.prefix,omitempty" json:"organization_status_has_prefix,omitempty"`
+	OrganizationStatusHasPrefix *string `form:"status.prefix,omitempty" json:"organization_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	OrganizationStatusHasSuffix *string `form:"status.suffix,omitempty" json:"organization_status_has_suffix,omitempty"`
+	OrganizationStatusHasSuffix *string `form:"status.suffix,omitempty" json:"organization_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in Organization.
-func (l *ListOrganizationParams) FilterPredicates() (predicate.Organization, error) {
-	var _predicates []predicate.Organization
+func (l *ListOrganizationParams) FilterPredicates() (__predicate.Organization, error) {
+	var _predicates []__predicate.Organization
 
 	if l.OrganizationAkaEQ != nil {
-		_predicates = append(_predicates, organization.AkaEQ(*l.OrganizationAkaEQ))
+		_predicates = append(_predicates, __organization.AkaEQ(*l.OrganizationAkaEQ))
 	}
 	if l.OrganizationAkaNEQ != nil {
-		_predicates = append(_predicates, organization.AkaNEQ(*l.OrganizationAkaNEQ))
+		_predicates = append(_predicates, __organization.AkaNEQ(*l.OrganizationAkaNEQ))
 	}
 	if l.OrganizationAkaIsNil != nil {
 		if *l.OrganizationAkaIsNil {
-			_predicates = append(_predicates, organization.AkaIsNil())
+			_predicates = append(_predicates, __organization.AkaIsNil())
 		} else {
-			_predicates = append(_predicates, organization.Not(organization.AkaIsNil()))
+			_predicates = append(_predicates, __organization.Not(__organization.AkaIsNil()))
 		}
 	}
 	if l.OrganizationAkaIn != nil {
-		_predicates = append(_predicates, organization.AkaIn(l.OrganizationAkaIn...))
+		_predicates = append(_predicates, __organization.AkaIn(l.OrganizationAkaIn...))
 	}
 	if l.OrganizationAkaNotIn != nil {
-		_predicates = append(_predicates, organization.AkaNotIn(l.OrganizationAkaNotIn...))
+		_predicates = append(_predicates, __organization.AkaNotIn(l.OrganizationAkaNotIn...))
 	}
 	if l.OrganizationAkaEqualFold != nil {
-		_predicates = append(_predicates, organization.AkaEqualFold(*l.OrganizationAkaEqualFold))
+		_predicates = append(_predicates, __organization.AkaEqualFold(*l.OrganizationAkaEqualFold))
 	}
 	if l.OrganizationAkaContains != nil {
-		_predicates = append(_predicates, organization.AkaContains(*l.OrganizationAkaContains))
+		_predicates = append(_predicates, __organization.AkaContains(*l.OrganizationAkaContains))
 	}
 	if l.OrganizationAkaContainsFold != nil {
-		_predicates = append(_predicates, organization.AkaContainsFold(*l.OrganizationAkaContainsFold))
+		_predicates = append(_predicates, __organization.AkaContainsFold(*l.OrganizationAkaContainsFold))
 	}
 	if l.OrganizationAkaHasPrefix != nil {
-		_predicates = append(_predicates, organization.AkaHasPrefix(*l.OrganizationAkaHasPrefix))
+		_predicates = append(_predicates, __organization.AkaHasPrefix(*l.OrganizationAkaHasPrefix))
 	}
 	if l.OrganizationAkaHasSuffix != nil {
-		_predicates = append(_predicates, organization.AkaHasSuffix(*l.OrganizationAkaHasSuffix))
+		_predicates = append(_predicates, __organization.AkaHasSuffix(*l.OrganizationAkaHasSuffix))
 	}
 	if l.OrganizationCityEQ != nil {
-		_predicates = append(_predicates, organization.CityEQ(*l.OrganizationCityEQ))
+		_predicates = append(_predicates, __organization.CityEQ(*l.OrganizationCityEQ))
 	}
 	if l.OrganizationCityNEQ != nil {
-		_predicates = append(_predicates, organization.CityNEQ(*l.OrganizationCityNEQ))
+		_predicates = append(_predicates, __organization.CityNEQ(*l.OrganizationCityNEQ))
 	}
 	if l.OrganizationCityIsNil != nil {
 		if *l.OrganizationCityIsNil {
-			_predicates = append(_predicates, organization.CityIsNil())
+			_predicates = append(_predicates, __organization.CityIsNil())
 		} else {
-			_predicates = append(_predicates, organization.Not(organization.CityIsNil()))
+			_predicates = append(_predicates, __organization.Not(__organization.CityIsNil()))
 		}
 	}
 	if l.OrganizationCityIn != nil {
-		_predicates = append(_predicates, organization.CityIn(l.OrganizationCityIn...))
+		_predicates = append(_predicates, __organization.CityIn(l.OrganizationCityIn...))
 	}
 	if l.OrganizationCityNotIn != nil {
-		_predicates = append(_predicates, organization.CityNotIn(l.OrganizationCityNotIn...))
+		_predicates = append(_predicates, __organization.CityNotIn(l.OrganizationCityNotIn...))
 	}
 	if l.OrganizationCityEqualFold != nil {
-		_predicates = append(_predicates, organization.CityEqualFold(*l.OrganizationCityEqualFold))
+		_predicates = append(_predicates, __organization.CityEqualFold(*l.OrganizationCityEqualFold))
 	}
 	if l.OrganizationCityContains != nil {
-		_predicates = append(_predicates, organization.CityContains(*l.OrganizationCityContains))
+		_predicates = append(_predicates, __organization.CityContains(*l.OrganizationCityContains))
 	}
 	if l.OrganizationCityContainsFold != nil {
-		_predicates = append(_predicates, organization.CityContainsFold(*l.OrganizationCityContainsFold))
+		_predicates = append(_predicates, __organization.CityContainsFold(*l.OrganizationCityContainsFold))
 	}
 	if l.OrganizationCityHasPrefix != nil {
-		_predicates = append(_predicates, organization.CityHasPrefix(*l.OrganizationCityHasPrefix))
+		_predicates = append(_predicates, __organization.CityHasPrefix(*l.OrganizationCityHasPrefix))
 	}
 	if l.OrganizationCityHasSuffix != nil {
-		_predicates = append(_predicates, organization.CityHasSuffix(*l.OrganizationCityHasSuffix))
+		_predicates = append(_predicates, __organization.CityHasSuffix(*l.OrganizationCityHasSuffix))
 	}
 	if l.OrganizationCountryEQ != nil {
-		_predicates = append(_predicates, organization.CountryEQ(*l.OrganizationCountryEQ))
+		_predicates = append(_predicates, __organization.CountryEQ(*l.OrganizationCountryEQ))
 	}
 	if l.OrganizationCountryNEQ != nil {
-		_predicates = append(_predicates, organization.CountryNEQ(*l.OrganizationCountryNEQ))
+		_predicates = append(_predicates, __organization.CountryNEQ(*l.OrganizationCountryNEQ))
 	}
 	if l.OrganizationCountryIsNil != nil {
 		if *l.OrganizationCountryIsNil {
-			_predicates = append(_predicates, organization.CountryIsNil())
+			_predicates = append(_predicates, __organization.CountryIsNil())
 		} else {
-			_predicates = append(_predicates, organization.Not(organization.CountryIsNil()))
+			_predicates = append(_predicates, __organization.Not(__organization.CountryIsNil()))
 		}
 	}
 	if l.OrganizationCountryIn != nil {
-		_predicates = append(_predicates, organization.CountryIn(l.OrganizationCountryIn...))
+		_predicates = append(_predicates, __organization.CountryIn(l.OrganizationCountryIn...))
 	}
 	if l.OrganizationCountryNotIn != nil {
-		_predicates = append(_predicates, organization.CountryNotIn(l.OrganizationCountryNotIn...))
+		_predicates = append(_predicates, __organization.CountryNotIn(l.OrganizationCountryNotIn...))
 	}
 	if l.OrganizationCountryEqualFold != nil {
-		_predicates = append(_predicates, organization.CountryEqualFold(*l.OrganizationCountryEqualFold))
+		_predicates = append(_predicates, __organization.CountryEqualFold(*l.OrganizationCountryEqualFold))
 	}
 	if l.OrganizationCountryContains != nil {
-		_predicates = append(_predicates, organization.CountryContains(*l.OrganizationCountryContains))
+		_predicates = append(_predicates, __organization.CountryContains(*l.OrganizationCountryContains))
 	}
 	if l.OrganizationCountryContainsFold != nil {
-		_predicates = append(_predicates, organization.CountryContainsFold(*l.OrganizationCountryContainsFold))
+		_predicates = append(_predicates, __organization.CountryContainsFold(*l.OrganizationCountryContainsFold))
 	}
 	if l.OrganizationCountryHasPrefix != nil {
-		_predicates = append(_predicates, organization.CountryHasPrefix(*l.OrganizationCountryHasPrefix))
+		_predicates = append(_predicates, __organization.CountryHasPrefix(*l.OrganizationCountryHasPrefix))
 	}
 	if l.OrganizationCountryHasSuffix != nil {
-		_predicates = append(_predicates, organization.CountryHasSuffix(*l.OrganizationCountryHasSuffix))
+		_predicates = append(_predicates, __organization.CountryHasSuffix(*l.OrganizationCountryHasSuffix))
 	}
 	if l.OrganizationNameEQ != nil {
-		_predicates = append(_predicates, organization.NameEQ(*l.OrganizationNameEQ))
+		_predicates = append(_predicates, __organization.NameEQ(*l.OrganizationNameEQ))
 	}
 	if l.OrganizationNameNEQ != nil {
-		_predicates = append(_predicates, organization.NameNEQ(*l.OrganizationNameNEQ))
+		_predicates = append(_predicates, __organization.NameNEQ(*l.OrganizationNameNEQ))
 	}
 	if l.OrganizationNameIn != nil {
-		_predicates = append(_predicates, organization.NameIn(l.OrganizationNameIn...))
+		_predicates = append(_predicates, __organization.NameIn(l.OrganizationNameIn...))
 	}
 	if l.OrganizationNameNotIn != nil {
-		_predicates = append(_predicates, organization.NameNotIn(l.OrganizationNameNotIn...))
+		_predicates = append(_predicates, __organization.NameNotIn(l.OrganizationNameNotIn...))
 	}
 	if l.OrganizationNameEqualFold != nil {
-		_predicates = append(_predicates, organization.NameEqualFold(*l.OrganizationNameEqualFold))
+		_predicates = append(_predicates, __organization.NameEqualFold(*l.OrganizationNameEqualFold))
 	}
 	if l.OrganizationNameContains != nil {
-		_predicates = append(_predicates, organization.NameContains(*l.OrganizationNameContains))
+		_predicates = append(_predicates, __organization.NameContains(*l.OrganizationNameContains))
 	}
 	if l.OrganizationNameContainsFold != nil {
-		_predicates = append(_predicates, organization.NameContainsFold(*l.OrganizationNameContainsFold))
+		_predicates = append(_predicates, __organization.NameContainsFold(*l.OrganizationNameContainsFold))
 	}
 	if l.OrganizationNameHasPrefix != nil {
-		_predicates = append(_predicates, organization.NameHasPrefix(*l.OrganizationNameHasPrefix))
+		_predicates = append(_predicates, __organization.NameHasPrefix(*l.OrganizationNameHasPrefix))
 	}
 	if l.OrganizationNameHasSuffix != nil {
-		_predicates = append(_predicates, organization.NameHasSuffix(*l.OrganizationNameHasSuffix))
+		_predicates = append(_predicates, __organization.NameHasSuffix(*l.OrganizationNameHasSuffix))
 	}
 	if l.OrganizationNameLongEQ != nil {
-		_predicates = append(_predicates, organization.NameLongEQ(*l.OrganizationNameLongEQ))
+		_predicates = append(_predicates, __organization.NameLongEQ(*l.OrganizationNameLongEQ))
 	}
 	if l.OrganizationNameLongNEQ != nil {
-		_predicates = append(_predicates, organization.NameLongNEQ(*l.OrganizationNameLongNEQ))
+		_predicates = append(_predicates, __organization.NameLongNEQ(*l.OrganizationNameLongNEQ))
 	}
 	if l.OrganizationNameLongIsNil != nil {
 		if *l.OrganizationNameLongIsNil {
-			_predicates = append(_predicates, organization.NameLongIsNil())
+			_predicates = append(_predicates, __organization.NameLongIsNil())
 		} else {
-			_predicates = append(_predicates, organization.Not(organization.NameLongIsNil()))
+			_predicates = append(_predicates, __organization.Not(__organization.NameLongIsNil()))
 		}
 	}
 	if l.OrganizationNameLongIn != nil {
-		_predicates = append(_predicates, organization.NameLongIn(l.OrganizationNameLongIn...))
+		_predicates = append(_predicates, __organization.NameLongIn(l.OrganizationNameLongIn...))
 	}
 	if l.OrganizationNameLongNotIn != nil {
-		_predicates = append(_predicates, organization.NameLongNotIn(l.OrganizationNameLongNotIn...))
+		_predicates = append(_predicates, __organization.NameLongNotIn(l.OrganizationNameLongNotIn...))
 	}
 	if l.OrganizationNameLongEqualFold != nil {
-		_predicates = append(_predicates, organization.NameLongEqualFold(*l.OrganizationNameLongEqualFold))
+		_predicates = append(_predicates, __organization.NameLongEqualFold(*l.OrganizationNameLongEqualFold))
 	}
 	if l.OrganizationNameLongContains != nil {
-		_predicates = append(_predicates, organization.NameLongContains(*l.OrganizationNameLongContains))
+		_predicates = append(_predicates, __organization.NameLongContains(*l.OrganizationNameLongContains))
 	}
 	if l.OrganizationNameLongContainsFold != nil {
-		_predicates = append(_predicates, organization.NameLongContainsFold(*l.OrganizationNameLongContainsFold))
+		_predicates = append(_predicates, __organization.NameLongContainsFold(*l.OrganizationNameLongContainsFold))
 	}
 	if l.OrganizationNameLongHasPrefix != nil {
-		_predicates = append(_predicates, organization.NameLongHasPrefix(*l.OrganizationNameLongHasPrefix))
+		_predicates = append(_predicates, __organization.NameLongHasPrefix(*l.OrganizationNameLongHasPrefix))
 	}
 	if l.OrganizationNameLongHasSuffix != nil {
-		_predicates = append(_predicates, organization.NameLongHasSuffix(*l.OrganizationNameLongHasSuffix))
+		_predicates = append(_predicates, __organization.NameLongHasSuffix(*l.OrganizationNameLongHasSuffix))
 	}
 	if l.OrganizationStateEQ != nil {
-		_predicates = append(_predicates, organization.StateEQ(*l.OrganizationStateEQ))
+		_predicates = append(_predicates, __organization.StateEQ(*l.OrganizationStateEQ))
 	}
 	if l.OrganizationStateNEQ != nil {
-		_predicates = append(_predicates, organization.StateNEQ(*l.OrganizationStateNEQ))
+		_predicates = append(_predicates, __organization.StateNEQ(*l.OrganizationStateNEQ))
 	}
 	if l.OrganizationStateIsNil != nil {
 		if *l.OrganizationStateIsNil {
-			_predicates = append(_predicates, organization.StateIsNil())
+			_predicates = append(_predicates, __organization.StateIsNil())
 		} else {
-			_predicates = append(_predicates, organization.Not(organization.StateIsNil()))
+			_predicates = append(_predicates, __organization.Not(__organization.StateIsNil()))
 		}
 	}
 	if l.OrganizationStateIn != nil {
-		_predicates = append(_predicates, organization.StateIn(l.OrganizationStateIn...))
+		_predicates = append(_predicates, __organization.StateIn(l.OrganizationStateIn...))
 	}
 	if l.OrganizationStateNotIn != nil {
-		_predicates = append(_predicates, organization.StateNotIn(l.OrganizationStateNotIn...))
+		_predicates = append(_predicates, __organization.StateNotIn(l.OrganizationStateNotIn...))
 	}
 	if l.OrganizationStateEqualFold != nil {
-		_predicates = append(_predicates, organization.StateEqualFold(*l.OrganizationStateEqualFold))
+		_predicates = append(_predicates, __organization.StateEqualFold(*l.OrganizationStateEqualFold))
 	}
 	if l.OrganizationStateContains != nil {
-		_predicates = append(_predicates, organization.StateContains(*l.OrganizationStateContains))
+		_predicates = append(_predicates, __organization.StateContains(*l.OrganizationStateContains))
 	}
 	if l.OrganizationStateContainsFold != nil {
-		_predicates = append(_predicates, organization.StateContainsFold(*l.OrganizationStateContainsFold))
+		_predicates = append(_predicates, __organization.StateContainsFold(*l.OrganizationStateContainsFold))
 	}
 	if l.OrganizationStateHasPrefix != nil {
-		_predicates = append(_predicates, organization.StateHasPrefix(*l.OrganizationStateHasPrefix))
+		_predicates = append(_predicates, __organization.StateHasPrefix(*l.OrganizationStateHasPrefix))
 	}
 	if l.OrganizationStateHasSuffix != nil {
-		_predicates = append(_predicates, organization.StateHasSuffix(*l.OrganizationStateHasSuffix))
+		_predicates = append(_predicates, __organization.StateHasSuffix(*l.OrganizationStateHasSuffix))
 	}
 	if l.OrganizationCreatedGT != nil {
-		_predicates = append(_predicates, organization.CreatedGT(*l.OrganizationCreatedGT))
+		_predicates = append(_predicates, __organization.CreatedGT(*l.OrganizationCreatedGT))
 	}
 	if l.OrganizationCreatedGTE != nil {
-		_predicates = append(_predicates, organization.CreatedGTE(*l.OrganizationCreatedGTE))
+		_predicates = append(_predicates, __organization.CreatedGTE(*l.OrganizationCreatedGTE))
 	}
 	if l.OrganizationCreatedLT != nil {
-		_predicates = append(_predicates, organization.CreatedLT(*l.OrganizationCreatedLT))
+		_predicates = append(_predicates, __organization.CreatedLT(*l.OrganizationCreatedLT))
 	}
 	if l.OrganizationCreatedLTE != nil {
-		_predicates = append(_predicates, organization.CreatedLTE(*l.OrganizationCreatedLTE))
+		_predicates = append(_predicates, __organization.CreatedLTE(*l.OrganizationCreatedLTE))
 	}
 	if l.OrganizationUpdatedGT != nil {
-		_predicates = append(_predicates, organization.UpdatedGT(*l.OrganizationUpdatedGT))
+		_predicates = append(_predicates, __organization.UpdatedGT(*l.OrganizationUpdatedGT))
 	}
 	if l.OrganizationUpdatedGTE != nil {
-		_predicates = append(_predicates, organization.UpdatedGTE(*l.OrganizationUpdatedGTE))
+		_predicates = append(_predicates, __organization.UpdatedGTE(*l.OrganizationUpdatedGTE))
 	}
 	if l.OrganizationUpdatedLT != nil {
-		_predicates = append(_predicates, organization.UpdatedLT(*l.OrganizationUpdatedLT))
+		_predicates = append(_predicates, __organization.UpdatedLT(*l.OrganizationUpdatedLT))
 	}
 	if l.OrganizationUpdatedLTE != nil {
-		_predicates = append(_predicates, organization.UpdatedLTE(*l.OrganizationUpdatedLTE))
+		_predicates = append(_predicates, __organization.UpdatedLTE(*l.OrganizationUpdatedLTE))
 	}
 	if l.OrganizationStatusEQ != nil {
-		_predicates = append(_predicates, organization.StatusEQ(*l.OrganizationStatusEQ))
+		_predicates = append(_predicates, __organization.StatusEQ(*l.OrganizationStatusEQ))
 	}
 	if l.OrganizationStatusNEQ != nil {
-		_predicates = append(_predicates, organization.StatusNEQ(*l.OrganizationStatusNEQ))
+		_predicates = append(_predicates, __organization.StatusNEQ(*l.OrganizationStatusNEQ))
 	}
 	if l.OrganizationStatusIn != nil {
-		_predicates = append(_predicates, organization.StatusIn(l.OrganizationStatusIn...))
+		_predicates = append(_predicates, __organization.StatusIn(l.OrganizationStatusIn...))
 	}
 	if l.OrganizationStatusNotIn != nil {
-		_predicates = append(_predicates, organization.StatusNotIn(l.OrganizationStatusNotIn...))
+		_predicates = append(_predicates, __organization.StatusNotIn(l.OrganizationStatusNotIn...))
 	}
 	if l.OrganizationStatusEqualFold != nil {
-		_predicates = append(_predicates, organization.StatusEqualFold(*l.OrganizationStatusEqualFold))
+		_predicates = append(_predicates, __organization.StatusEqualFold(*l.OrganizationStatusEqualFold))
 	}
 	if l.OrganizationStatusContains != nil {
-		_predicates = append(_predicates, organization.StatusContains(*l.OrganizationStatusContains))
+		_predicates = append(_predicates, __organization.StatusContains(*l.OrganizationStatusContains))
 	}
 	if l.OrganizationStatusContainsFold != nil {
-		_predicates = append(_predicates, organization.StatusContainsFold(*l.OrganizationStatusContainsFold))
+		_predicates = append(_predicates, __organization.StatusContainsFold(*l.OrganizationStatusContainsFold))
 	}
 	if l.OrganizationStatusHasPrefix != nil {
-		_predicates = append(_predicates, organization.StatusHasPrefix(*l.OrganizationStatusHasPrefix))
+		_predicates = append(_predicates, __organization.StatusHasPrefix(*l.OrganizationStatusHasPrefix))
 	}
 	if l.OrganizationStatusHasSuffix != nil {
-		_predicates = append(_predicates, organization.StatusHasSuffix(*l.OrganizationStatusHasSuffix))
+		_predicates = append(_predicates, __organization.StatusHasSuffix(*l.OrganizationStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListOrganizationParams) ApplySorting(_query *ent.OrganizationQuery) error {
+func (l *ListOrganizationParams) ApplySorting(_query *__ent.OrganizationQuery) error {
 	if err := l.Sorted.Validate(OrganizationSortConfig); err != nil {
 		return err
 	}
@@ -4288,7 +4288,7 @@ func (l *ListOrganizationParams) ApplySorting(_query *ent.OrganizationQuery) err
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListOrganizationParams) Exec(ctx context.Context, _query *ent.OrganizationQuery) (_results *PagedResponse[ent.Organization], err error) {
+func (l *ListOrganizationParams) Exec(ctx context.Context, _query *__ent.OrganizationQuery) (_results *PagedResponse[__ent.Organization], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
@@ -4304,333 +4304,333 @@ func (l *ListOrganizationParams) Exec(ctx context.Context, _query *ent.Organizat
 // ListPocParams defines parameters for listing Pocs via a GET request.
 type ListPocParams struct {
 	Sorted
-	Paginated[*ent.PocQuery, ent.Poc]
-	Filtered[predicate.Poc]
+	Paginated[*__ent.PocQuery, __ent.Poc]
+	Filtered[__predicate.Poc]
 
 	// Filters field "net_id" to be equal to the provided value.
-	PocNetIDEQ *int `form:"netID.eq,omitempty" json:"poc_net_ideq,omitempty"`
+	PocNetIDEQ *int `form:"netID.eq,omitempty" json:"poc_net_ideq,omitzero"`
 	// Filters field "net_id" to be not equal to the provided value.
-	PocNetIDNEQ *int `form:"netID.neq,omitempty" json:"poc_net_idneq,omitempty"`
+	PocNetIDNEQ *int `form:"netID.neq,omitempty" json:"poc_net_idneq,omitzero"`
 	// Filters field "net_id" to be within the provided values.
-	PocNetIDIn []int `form:"netID.in,omitempty" json:"poc_net_id_in,omitempty"`
+	PocNetIDIn []int `form:"netID.in,omitempty" json:"poc_net_id_in,omitzero"`
 	// Filters field "net_id" to be not within the provided values.
-	PocNetIDNotIn []int `form:"netID.notIn,omitempty" json:"poc_net_id_not_in,omitempty"`
+	PocNetIDNotIn []int `form:"netID.notIn,omitempty" json:"poc_net_id_not_in,omitzero"`
 	// Filters field "email" to be equal to the provided value.
-	PocEmailEQ *string `form:"email.eq,omitempty" json:"poc_email_eq,omitempty"`
+	PocEmailEQ *string `form:"email.eq,omitempty" json:"poc_email_eq,omitzero"`
 	// Filters field "email" to be not equal to the provided value.
-	PocEmailNEQ *string `form:"email.neq,omitempty" json:"poc_email_neq,omitempty"`
+	PocEmailNEQ *string `form:"email.neq,omitempty" json:"poc_email_neq,omitzero"`
 	// Filters field "email" to be null/nil.
-	PocEmailIsNil *bool `form:"email.null,omitempty" json:"poc_email_is_nil,omitempty"`
+	PocEmailIsNil *bool `form:"email.null,omitempty" json:"poc_email_is_nil,omitzero"`
 	// Filters field "email" to be within the provided values.
-	PocEmailIn []string `form:"email.in,omitempty" json:"poc_email_in,omitempty"`
+	PocEmailIn []string `form:"email.in,omitempty" json:"poc_email_in,omitzero"`
 	// Filters field "email" to be not within the provided values.
-	PocEmailNotIn []string `form:"email.notIn,omitempty" json:"poc_email_not_in,omitempty"`
+	PocEmailNotIn []string `form:"email.notIn,omitempty" json:"poc_email_not_in,omitzero"`
 	// Filters field "email" to be equal to the provided value, case-insensitive.
-	PocEmailEqualFold *string `form:"email.ieq,omitempty" json:"poc_email_equal_fold,omitempty"`
+	PocEmailEqualFold *string `form:"email.ieq,omitempty" json:"poc_email_equal_fold,omitzero"`
 	// Filters field "email" to contain the provided value.
-	PocEmailContains *string `form:"email.has,omitempty" json:"poc_email_contains,omitempty"`
+	PocEmailContains *string `form:"email.has,omitempty" json:"poc_email_contains,omitzero"`
 	// Filters field "email" to contain the provided value, case-insensitive.
-	PocEmailContainsFold *string `form:"email.ihas,omitempty" json:"poc_email_contains_fold,omitempty"`
+	PocEmailContainsFold *string `form:"email.ihas,omitempty" json:"poc_email_contains_fold,omitzero"`
 	// Filters field "email" to start with the provided value.
-	PocEmailHasPrefix *string `form:"email.prefix,omitempty" json:"poc_email_has_prefix,omitempty"`
+	PocEmailHasPrefix *string `form:"email.prefix,omitempty" json:"poc_email_has_prefix,omitzero"`
 	// Filters field "email" to end with the provided value.
-	PocEmailHasSuffix *string `form:"email.suffix,omitempty" json:"poc_email_has_suffix,omitempty"`
+	PocEmailHasSuffix *string `form:"email.suffix,omitempty" json:"poc_email_has_suffix,omitzero"`
 	// Filters field "name" to be equal to the provided value.
-	PocNameEQ *string `form:"name.eq,omitempty" json:"poc_name_eq,omitempty"`
+	PocNameEQ *string `form:"name.eq,omitempty" json:"poc_name_eq,omitzero"`
 	// Filters field "name" to be not equal to the provided value.
-	PocNameNEQ *string `form:"name.neq,omitempty" json:"poc_name_neq,omitempty"`
+	PocNameNEQ *string `form:"name.neq,omitempty" json:"poc_name_neq,omitzero"`
 	// Filters field "name" to be null/nil.
-	PocNameIsNil *bool `form:"name.null,omitempty" json:"poc_name_is_nil,omitempty"`
+	PocNameIsNil *bool `form:"name.null,omitempty" json:"poc_name_is_nil,omitzero"`
 	// Filters field "name" to be within the provided values.
-	PocNameIn []string `form:"name.in,omitempty" json:"poc_name_in,omitempty"`
+	PocNameIn []string `form:"name.in,omitempty" json:"poc_name_in,omitzero"`
 	// Filters field "name" to be not within the provided values.
-	PocNameNotIn []string `form:"name.notIn,omitempty" json:"poc_name_not_in,omitempty"`
+	PocNameNotIn []string `form:"name.notIn,omitempty" json:"poc_name_not_in,omitzero"`
 	// Filters field "name" to be equal to the provided value, case-insensitive.
-	PocNameEqualFold *string `form:"name.ieq,omitempty" json:"poc_name_equal_fold,omitempty"`
+	PocNameEqualFold *string `form:"name.ieq,omitempty" json:"poc_name_equal_fold,omitzero"`
 	// Filters field "name" to contain the provided value.
-	PocNameContains *string `form:"name.has,omitempty" json:"poc_name_contains,omitempty"`
+	PocNameContains *string `form:"name.has,omitempty" json:"poc_name_contains,omitzero"`
 	// Filters field "name" to contain the provided value, case-insensitive.
-	PocNameContainsFold *string `form:"name.ihas,omitempty" json:"poc_name_contains_fold,omitempty"`
+	PocNameContainsFold *string `form:"name.ihas,omitempty" json:"poc_name_contains_fold,omitzero"`
 	// Filters field "name" to start with the provided value.
-	PocNameHasPrefix *string `form:"name.prefix,omitempty" json:"poc_name_has_prefix,omitempty"`
+	PocNameHasPrefix *string `form:"name.prefix,omitempty" json:"poc_name_has_prefix,omitzero"`
 	// Filters field "name" to end with the provided value.
-	PocNameHasSuffix *string `form:"name.suffix,omitempty" json:"poc_name_has_suffix,omitempty"`
+	PocNameHasSuffix *string `form:"name.suffix,omitempty" json:"poc_name_has_suffix,omitzero"`
 	// Filters field "role" to be equal to the provided value.
-	PocRoleEQ *string `form:"role.eq,omitempty" json:"poc_role_eq,omitempty"`
+	PocRoleEQ *string `form:"role.eq,omitempty" json:"poc_role_eq,omitzero"`
 	// Filters field "role" to be not equal to the provided value.
-	PocRoleNEQ *string `form:"role.neq,omitempty" json:"poc_role_neq,omitempty"`
+	PocRoleNEQ *string `form:"role.neq,omitempty" json:"poc_role_neq,omitzero"`
 	// Filters field "role" to be within the provided values.
-	PocRoleIn []string `form:"role.in,omitempty" json:"poc_role_in,omitempty"`
+	PocRoleIn []string `form:"role.in,omitempty" json:"poc_role_in,omitzero"`
 	// Filters field "role" to be not within the provided values.
-	PocRoleNotIn []string `form:"role.notIn,omitempty" json:"poc_role_not_in,omitempty"`
+	PocRoleNotIn []string `form:"role.notIn,omitempty" json:"poc_role_not_in,omitzero"`
 	// Filters field "role" to be equal to the provided value, case-insensitive.
-	PocRoleEqualFold *string `form:"role.ieq,omitempty" json:"poc_role_equal_fold,omitempty"`
+	PocRoleEqualFold *string `form:"role.ieq,omitempty" json:"poc_role_equal_fold,omitzero"`
 	// Filters field "role" to contain the provided value.
-	PocRoleContains *string `form:"role.has,omitempty" json:"poc_role_contains,omitempty"`
+	PocRoleContains *string `form:"role.has,omitempty" json:"poc_role_contains,omitzero"`
 	// Filters field "role" to contain the provided value, case-insensitive.
-	PocRoleContainsFold *string `form:"role.ihas,omitempty" json:"poc_role_contains_fold,omitempty"`
+	PocRoleContainsFold *string `form:"role.ihas,omitempty" json:"poc_role_contains_fold,omitzero"`
 	// Filters field "role" to start with the provided value.
-	PocRoleHasPrefix *string `form:"role.prefix,omitempty" json:"poc_role_has_prefix,omitempty"`
+	PocRoleHasPrefix *string `form:"role.prefix,omitempty" json:"poc_role_has_prefix,omitzero"`
 	// Filters field "role" to end with the provided value.
-	PocRoleHasSuffix *string `form:"role.suffix,omitempty" json:"poc_role_has_suffix,omitempty"`
+	PocRoleHasSuffix *string `form:"role.suffix,omitempty" json:"poc_role_has_suffix,omitzero"`
 	// Filters field "visible" to be equal to the provided value.
-	PocVisibleEQ *string `form:"visible.eq,omitempty" json:"poc_visible_eq,omitempty"`
+	PocVisibleEQ *string `form:"visible.eq,omitempty" json:"poc_visible_eq,omitzero"`
 	// Filters field "visible" to be not equal to the provided value.
-	PocVisibleNEQ *string `form:"visible.neq,omitempty" json:"poc_visible_neq,omitempty"`
+	PocVisibleNEQ *string `form:"visible.neq,omitempty" json:"poc_visible_neq,omitzero"`
 	// Filters field "visible" to be null/nil.
-	PocVisibleIsNil *bool `form:"visible.null,omitempty" json:"poc_visible_is_nil,omitempty"`
+	PocVisibleIsNil *bool `form:"visible.null,omitempty" json:"poc_visible_is_nil,omitzero"`
 	// Filters field "visible" to be within the provided values.
-	PocVisibleIn []string `form:"visible.in,omitempty" json:"poc_visible_in,omitempty"`
+	PocVisibleIn []string `form:"visible.in,omitempty" json:"poc_visible_in,omitzero"`
 	// Filters field "visible" to be not within the provided values.
-	PocVisibleNotIn []string `form:"visible.notIn,omitempty" json:"poc_visible_not_in,omitempty"`
+	PocVisibleNotIn []string `form:"visible.notIn,omitempty" json:"poc_visible_not_in,omitzero"`
 	// Filters field "visible" to be equal to the provided value, case-insensitive.
-	PocVisibleEqualFold *string `form:"visible.ieq,omitempty" json:"poc_visible_equal_fold,omitempty"`
+	PocVisibleEqualFold *string `form:"visible.ieq,omitempty" json:"poc_visible_equal_fold,omitzero"`
 	// Filters field "visible" to contain the provided value.
-	PocVisibleContains *string `form:"visible.has,omitempty" json:"poc_visible_contains,omitempty"`
+	PocVisibleContains *string `form:"visible.has,omitempty" json:"poc_visible_contains,omitzero"`
 	// Filters field "visible" to contain the provided value, case-insensitive.
-	PocVisibleContainsFold *string `form:"visible.ihas,omitempty" json:"poc_visible_contains_fold,omitempty"`
+	PocVisibleContainsFold *string `form:"visible.ihas,omitempty" json:"poc_visible_contains_fold,omitzero"`
 	// Filters field "visible" to start with the provided value.
-	PocVisibleHasPrefix *string `form:"visible.prefix,omitempty" json:"poc_visible_has_prefix,omitempty"`
+	PocVisibleHasPrefix *string `form:"visible.prefix,omitempty" json:"poc_visible_has_prefix,omitzero"`
 	// Filters field "visible" to end with the provided value.
-	PocVisibleHasSuffix *string `form:"visible.suffix,omitempty" json:"poc_visible_has_suffix,omitempty"`
+	PocVisibleHasSuffix *string `form:"visible.suffix,omitempty" json:"poc_visible_has_suffix,omitzero"`
 	// Filters field "created" to be greater than the provided value.
-	PocCreatedGT *time.Time `form:"created.gt,omitempty" json:"poc_created_gt,omitempty"`
+	PocCreatedGT *time.Time `form:"created.gt,omitempty" json:"poc_created_gt,omitzero"`
 	// Filters field "created" to be greater than or equal to the provided value.
-	PocCreatedGTE *time.Time `form:"created.gte,omitempty" json:"poc_created_gte,omitempty"`
+	PocCreatedGTE *time.Time `form:"created.gte,omitempty" json:"poc_created_gte,omitzero"`
 	// Filters field "created" to be less than the provided value.
-	PocCreatedLT *time.Time `form:"created.lt,omitempty" json:"poc_created_lt,omitempty"`
+	PocCreatedLT *time.Time `form:"created.lt,omitempty" json:"poc_created_lt,omitzero"`
 	// Filters field "created" to be less than or equal to the provided value.
-	PocCreatedLTE *time.Time `form:"created.lte,omitempty" json:"poc_created_lte,omitempty"`
+	PocCreatedLTE *time.Time `form:"created.lte,omitempty" json:"poc_created_lte,omitzero"`
 	// Filters field "updated" to be greater than the provided value.
-	PocUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"poc_updated_gt,omitempty"`
+	PocUpdatedGT *time.Time `form:"updated.gt,omitempty" json:"poc_updated_gt,omitzero"`
 	// Filters field "updated" to be greater than or equal to the provided value.
-	PocUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"poc_updated_gte,omitempty"`
+	PocUpdatedGTE *time.Time `form:"updated.gte,omitempty" json:"poc_updated_gte,omitzero"`
 	// Filters field "updated" to be less than the provided value.
-	PocUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"poc_updated_lt,omitempty"`
+	PocUpdatedLT *time.Time `form:"updated.lt,omitempty" json:"poc_updated_lt,omitzero"`
 	// Filters field "updated" to be less than or equal to the provided value.
-	PocUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"poc_updated_lte,omitempty"`
+	PocUpdatedLTE *time.Time `form:"updated.lte,omitempty" json:"poc_updated_lte,omitzero"`
 	// Filters field "status" to be equal to the provided value.
-	PocStatusEQ *string `form:"status.eq,omitempty" json:"poc_status_eq,omitempty"`
+	PocStatusEQ *string `form:"status.eq,omitempty" json:"poc_status_eq,omitzero"`
 	// Filters field "status" to be not equal to the provided value.
-	PocStatusNEQ *string `form:"status.neq,omitempty" json:"poc_status_neq,omitempty"`
+	PocStatusNEQ *string `form:"status.neq,omitempty" json:"poc_status_neq,omitzero"`
 	// Filters field "status" to be within the provided values.
-	PocStatusIn []string `form:"status.in,omitempty" json:"poc_status_in,omitempty"`
+	PocStatusIn []string `form:"status.in,omitempty" json:"poc_status_in,omitzero"`
 	// Filters field "status" to be not within the provided values.
-	PocStatusNotIn []string `form:"status.notIn,omitempty" json:"poc_status_not_in,omitempty"`
+	PocStatusNotIn []string `form:"status.notIn,omitempty" json:"poc_status_not_in,omitzero"`
 	// Filters field "status" to be equal to the provided value, case-insensitive.
-	PocStatusEqualFold *string `form:"status.ieq,omitempty" json:"poc_status_equal_fold,omitempty"`
+	PocStatusEqualFold *string `form:"status.ieq,omitempty" json:"poc_status_equal_fold,omitzero"`
 	// Filters field "status" to contain the provided value.
-	PocStatusContains *string `form:"status.has,omitempty" json:"poc_status_contains,omitempty"`
+	PocStatusContains *string `form:"status.has,omitempty" json:"poc_status_contains,omitzero"`
 	// Filters field "status" to contain the provided value, case-insensitive.
-	PocStatusContainsFold *string `form:"status.ihas,omitempty" json:"poc_status_contains_fold,omitempty"`
+	PocStatusContainsFold *string `form:"status.ihas,omitempty" json:"poc_status_contains_fold,omitzero"`
 	// Filters field "status" to start with the provided value.
-	PocStatusHasPrefix *string `form:"status.prefix,omitempty" json:"poc_status_has_prefix,omitempty"`
+	PocStatusHasPrefix *string `form:"status.prefix,omitempty" json:"poc_status_has_prefix,omitzero"`
 	// Filters field "status" to end with the provided value.
-	PocStatusHasSuffix *string `form:"status.suffix,omitempty" json:"poc_status_has_suffix,omitempty"`
+	PocStatusHasSuffix *string `form:"status.suffix,omitempty" json:"poc_status_has_suffix,omitzero"`
 }
 
 // FilterPredicates returns the predicates for filter-related parameters in Poc.
-func (l *ListPocParams) FilterPredicates() (predicate.Poc, error) {
-	var _predicates []predicate.Poc
+func (l *ListPocParams) FilterPredicates() (__predicate.Poc, error) {
+	var _predicates []__predicate.Poc
 
 	if l.PocNetIDEQ != nil {
-		_predicates = append(_predicates, poc.NetIDEQ(*l.PocNetIDEQ))
+		_predicates = append(_predicates, __poc.NetIDEQ(*l.PocNetIDEQ))
 	}
 	if l.PocNetIDNEQ != nil {
-		_predicates = append(_predicates, poc.NetIDNEQ(*l.PocNetIDNEQ))
+		_predicates = append(_predicates, __poc.NetIDNEQ(*l.PocNetIDNEQ))
 	}
 	if l.PocNetIDIn != nil {
-		_predicates = append(_predicates, poc.NetIDIn(l.PocNetIDIn...))
+		_predicates = append(_predicates, __poc.NetIDIn(l.PocNetIDIn...))
 	}
 	if l.PocNetIDNotIn != nil {
-		_predicates = append(_predicates, poc.NetIDNotIn(l.PocNetIDNotIn...))
+		_predicates = append(_predicates, __poc.NetIDNotIn(l.PocNetIDNotIn...))
 	}
 	if l.PocEmailEQ != nil {
-		_predicates = append(_predicates, poc.EmailEQ(*l.PocEmailEQ))
+		_predicates = append(_predicates, __poc.EmailEQ(*l.PocEmailEQ))
 	}
 	if l.PocEmailNEQ != nil {
-		_predicates = append(_predicates, poc.EmailNEQ(*l.PocEmailNEQ))
+		_predicates = append(_predicates, __poc.EmailNEQ(*l.PocEmailNEQ))
 	}
 	if l.PocEmailIsNil != nil {
 		if *l.PocEmailIsNil {
-			_predicates = append(_predicates, poc.EmailIsNil())
+			_predicates = append(_predicates, __poc.EmailIsNil())
 		} else {
-			_predicates = append(_predicates, poc.Not(poc.EmailIsNil()))
+			_predicates = append(_predicates, __poc.Not(__poc.EmailIsNil()))
 		}
 	}
 	if l.PocEmailIn != nil {
-		_predicates = append(_predicates, poc.EmailIn(l.PocEmailIn...))
+		_predicates = append(_predicates, __poc.EmailIn(l.PocEmailIn...))
 	}
 	if l.PocEmailNotIn != nil {
-		_predicates = append(_predicates, poc.EmailNotIn(l.PocEmailNotIn...))
+		_predicates = append(_predicates, __poc.EmailNotIn(l.PocEmailNotIn...))
 	}
 	if l.PocEmailEqualFold != nil {
-		_predicates = append(_predicates, poc.EmailEqualFold(*l.PocEmailEqualFold))
+		_predicates = append(_predicates, __poc.EmailEqualFold(*l.PocEmailEqualFold))
 	}
 	if l.PocEmailContains != nil {
-		_predicates = append(_predicates, poc.EmailContains(*l.PocEmailContains))
+		_predicates = append(_predicates, __poc.EmailContains(*l.PocEmailContains))
 	}
 	if l.PocEmailContainsFold != nil {
-		_predicates = append(_predicates, poc.EmailContainsFold(*l.PocEmailContainsFold))
+		_predicates = append(_predicates, __poc.EmailContainsFold(*l.PocEmailContainsFold))
 	}
 	if l.PocEmailHasPrefix != nil {
-		_predicates = append(_predicates, poc.EmailHasPrefix(*l.PocEmailHasPrefix))
+		_predicates = append(_predicates, __poc.EmailHasPrefix(*l.PocEmailHasPrefix))
 	}
 	if l.PocEmailHasSuffix != nil {
-		_predicates = append(_predicates, poc.EmailHasSuffix(*l.PocEmailHasSuffix))
+		_predicates = append(_predicates, __poc.EmailHasSuffix(*l.PocEmailHasSuffix))
 	}
 	if l.PocNameEQ != nil {
-		_predicates = append(_predicates, poc.NameEQ(*l.PocNameEQ))
+		_predicates = append(_predicates, __poc.NameEQ(*l.PocNameEQ))
 	}
 	if l.PocNameNEQ != nil {
-		_predicates = append(_predicates, poc.NameNEQ(*l.PocNameNEQ))
+		_predicates = append(_predicates, __poc.NameNEQ(*l.PocNameNEQ))
 	}
 	if l.PocNameIsNil != nil {
 		if *l.PocNameIsNil {
-			_predicates = append(_predicates, poc.NameIsNil())
+			_predicates = append(_predicates, __poc.NameIsNil())
 		} else {
-			_predicates = append(_predicates, poc.Not(poc.NameIsNil()))
+			_predicates = append(_predicates, __poc.Not(__poc.NameIsNil()))
 		}
 	}
 	if l.PocNameIn != nil {
-		_predicates = append(_predicates, poc.NameIn(l.PocNameIn...))
+		_predicates = append(_predicates, __poc.NameIn(l.PocNameIn...))
 	}
 	if l.PocNameNotIn != nil {
-		_predicates = append(_predicates, poc.NameNotIn(l.PocNameNotIn...))
+		_predicates = append(_predicates, __poc.NameNotIn(l.PocNameNotIn...))
 	}
 	if l.PocNameEqualFold != nil {
-		_predicates = append(_predicates, poc.NameEqualFold(*l.PocNameEqualFold))
+		_predicates = append(_predicates, __poc.NameEqualFold(*l.PocNameEqualFold))
 	}
 	if l.PocNameContains != nil {
-		_predicates = append(_predicates, poc.NameContains(*l.PocNameContains))
+		_predicates = append(_predicates, __poc.NameContains(*l.PocNameContains))
 	}
 	if l.PocNameContainsFold != nil {
-		_predicates = append(_predicates, poc.NameContainsFold(*l.PocNameContainsFold))
+		_predicates = append(_predicates, __poc.NameContainsFold(*l.PocNameContainsFold))
 	}
 	if l.PocNameHasPrefix != nil {
-		_predicates = append(_predicates, poc.NameHasPrefix(*l.PocNameHasPrefix))
+		_predicates = append(_predicates, __poc.NameHasPrefix(*l.PocNameHasPrefix))
 	}
 	if l.PocNameHasSuffix != nil {
-		_predicates = append(_predicates, poc.NameHasSuffix(*l.PocNameHasSuffix))
+		_predicates = append(_predicates, __poc.NameHasSuffix(*l.PocNameHasSuffix))
 	}
 	if l.PocRoleEQ != nil {
-		_predicates = append(_predicates, poc.RoleEQ(*l.PocRoleEQ))
+		_predicates = append(_predicates, __poc.RoleEQ(*l.PocRoleEQ))
 	}
 	if l.PocRoleNEQ != nil {
-		_predicates = append(_predicates, poc.RoleNEQ(*l.PocRoleNEQ))
+		_predicates = append(_predicates, __poc.RoleNEQ(*l.PocRoleNEQ))
 	}
 	if l.PocRoleIn != nil {
-		_predicates = append(_predicates, poc.RoleIn(l.PocRoleIn...))
+		_predicates = append(_predicates, __poc.RoleIn(l.PocRoleIn...))
 	}
 	if l.PocRoleNotIn != nil {
-		_predicates = append(_predicates, poc.RoleNotIn(l.PocRoleNotIn...))
+		_predicates = append(_predicates, __poc.RoleNotIn(l.PocRoleNotIn...))
 	}
 	if l.PocRoleEqualFold != nil {
-		_predicates = append(_predicates, poc.RoleEqualFold(*l.PocRoleEqualFold))
+		_predicates = append(_predicates, __poc.RoleEqualFold(*l.PocRoleEqualFold))
 	}
 	if l.PocRoleContains != nil {
-		_predicates = append(_predicates, poc.RoleContains(*l.PocRoleContains))
+		_predicates = append(_predicates, __poc.RoleContains(*l.PocRoleContains))
 	}
 	if l.PocRoleContainsFold != nil {
-		_predicates = append(_predicates, poc.RoleContainsFold(*l.PocRoleContainsFold))
+		_predicates = append(_predicates, __poc.RoleContainsFold(*l.PocRoleContainsFold))
 	}
 	if l.PocRoleHasPrefix != nil {
-		_predicates = append(_predicates, poc.RoleHasPrefix(*l.PocRoleHasPrefix))
+		_predicates = append(_predicates, __poc.RoleHasPrefix(*l.PocRoleHasPrefix))
 	}
 	if l.PocRoleHasSuffix != nil {
-		_predicates = append(_predicates, poc.RoleHasSuffix(*l.PocRoleHasSuffix))
+		_predicates = append(_predicates, __poc.RoleHasSuffix(*l.PocRoleHasSuffix))
 	}
 	if l.PocVisibleEQ != nil {
-		_predicates = append(_predicates, poc.VisibleEQ(*l.PocVisibleEQ))
+		_predicates = append(_predicates, __poc.VisibleEQ(*l.PocVisibleEQ))
 	}
 	if l.PocVisibleNEQ != nil {
-		_predicates = append(_predicates, poc.VisibleNEQ(*l.PocVisibleNEQ))
+		_predicates = append(_predicates, __poc.VisibleNEQ(*l.PocVisibleNEQ))
 	}
 	if l.PocVisibleIsNil != nil {
 		if *l.PocVisibleIsNil {
-			_predicates = append(_predicates, poc.VisibleIsNil())
+			_predicates = append(_predicates, __poc.VisibleIsNil())
 		} else {
-			_predicates = append(_predicates, poc.Not(poc.VisibleIsNil()))
+			_predicates = append(_predicates, __poc.Not(__poc.VisibleIsNil()))
 		}
 	}
 	if l.PocVisibleIn != nil {
-		_predicates = append(_predicates, poc.VisibleIn(l.PocVisibleIn...))
+		_predicates = append(_predicates, __poc.VisibleIn(l.PocVisibleIn...))
 	}
 	if l.PocVisibleNotIn != nil {
-		_predicates = append(_predicates, poc.VisibleNotIn(l.PocVisibleNotIn...))
+		_predicates = append(_predicates, __poc.VisibleNotIn(l.PocVisibleNotIn...))
 	}
 	if l.PocVisibleEqualFold != nil {
-		_predicates = append(_predicates, poc.VisibleEqualFold(*l.PocVisibleEqualFold))
+		_predicates = append(_predicates, __poc.VisibleEqualFold(*l.PocVisibleEqualFold))
 	}
 	if l.PocVisibleContains != nil {
-		_predicates = append(_predicates, poc.VisibleContains(*l.PocVisibleContains))
+		_predicates = append(_predicates, __poc.VisibleContains(*l.PocVisibleContains))
 	}
 	if l.PocVisibleContainsFold != nil {
-		_predicates = append(_predicates, poc.VisibleContainsFold(*l.PocVisibleContainsFold))
+		_predicates = append(_predicates, __poc.VisibleContainsFold(*l.PocVisibleContainsFold))
 	}
 	if l.PocVisibleHasPrefix != nil {
-		_predicates = append(_predicates, poc.VisibleHasPrefix(*l.PocVisibleHasPrefix))
+		_predicates = append(_predicates, __poc.VisibleHasPrefix(*l.PocVisibleHasPrefix))
 	}
 	if l.PocVisibleHasSuffix != nil {
-		_predicates = append(_predicates, poc.VisibleHasSuffix(*l.PocVisibleHasSuffix))
+		_predicates = append(_predicates, __poc.VisibleHasSuffix(*l.PocVisibleHasSuffix))
 	}
 	if l.PocCreatedGT != nil {
-		_predicates = append(_predicates, poc.CreatedGT(*l.PocCreatedGT))
+		_predicates = append(_predicates, __poc.CreatedGT(*l.PocCreatedGT))
 	}
 	if l.PocCreatedGTE != nil {
-		_predicates = append(_predicates, poc.CreatedGTE(*l.PocCreatedGTE))
+		_predicates = append(_predicates, __poc.CreatedGTE(*l.PocCreatedGTE))
 	}
 	if l.PocCreatedLT != nil {
-		_predicates = append(_predicates, poc.CreatedLT(*l.PocCreatedLT))
+		_predicates = append(_predicates, __poc.CreatedLT(*l.PocCreatedLT))
 	}
 	if l.PocCreatedLTE != nil {
-		_predicates = append(_predicates, poc.CreatedLTE(*l.PocCreatedLTE))
+		_predicates = append(_predicates, __poc.CreatedLTE(*l.PocCreatedLTE))
 	}
 	if l.PocUpdatedGT != nil {
-		_predicates = append(_predicates, poc.UpdatedGT(*l.PocUpdatedGT))
+		_predicates = append(_predicates, __poc.UpdatedGT(*l.PocUpdatedGT))
 	}
 	if l.PocUpdatedGTE != nil {
-		_predicates = append(_predicates, poc.UpdatedGTE(*l.PocUpdatedGTE))
+		_predicates = append(_predicates, __poc.UpdatedGTE(*l.PocUpdatedGTE))
 	}
 	if l.PocUpdatedLT != nil {
-		_predicates = append(_predicates, poc.UpdatedLT(*l.PocUpdatedLT))
+		_predicates = append(_predicates, __poc.UpdatedLT(*l.PocUpdatedLT))
 	}
 	if l.PocUpdatedLTE != nil {
-		_predicates = append(_predicates, poc.UpdatedLTE(*l.PocUpdatedLTE))
+		_predicates = append(_predicates, __poc.UpdatedLTE(*l.PocUpdatedLTE))
 	}
 	if l.PocStatusEQ != nil {
-		_predicates = append(_predicates, poc.StatusEQ(*l.PocStatusEQ))
+		_predicates = append(_predicates, __poc.StatusEQ(*l.PocStatusEQ))
 	}
 	if l.PocStatusNEQ != nil {
-		_predicates = append(_predicates, poc.StatusNEQ(*l.PocStatusNEQ))
+		_predicates = append(_predicates, __poc.StatusNEQ(*l.PocStatusNEQ))
 	}
 	if l.PocStatusIn != nil {
-		_predicates = append(_predicates, poc.StatusIn(l.PocStatusIn...))
+		_predicates = append(_predicates, __poc.StatusIn(l.PocStatusIn...))
 	}
 	if l.PocStatusNotIn != nil {
-		_predicates = append(_predicates, poc.StatusNotIn(l.PocStatusNotIn...))
+		_predicates = append(_predicates, __poc.StatusNotIn(l.PocStatusNotIn...))
 	}
 	if l.PocStatusEqualFold != nil {
-		_predicates = append(_predicates, poc.StatusEqualFold(*l.PocStatusEqualFold))
+		_predicates = append(_predicates, __poc.StatusEqualFold(*l.PocStatusEqualFold))
 	}
 	if l.PocStatusContains != nil {
-		_predicates = append(_predicates, poc.StatusContains(*l.PocStatusContains))
+		_predicates = append(_predicates, __poc.StatusContains(*l.PocStatusContains))
 	}
 	if l.PocStatusContainsFold != nil {
-		_predicates = append(_predicates, poc.StatusContainsFold(*l.PocStatusContainsFold))
+		_predicates = append(_predicates, __poc.StatusContainsFold(*l.PocStatusContainsFold))
 	}
 	if l.PocStatusHasPrefix != nil {
-		_predicates = append(_predicates, poc.StatusHasPrefix(*l.PocStatusHasPrefix))
+		_predicates = append(_predicates, __poc.StatusHasPrefix(*l.PocStatusHasPrefix))
 	}
 	if l.PocStatusHasSuffix != nil {
-		_predicates = append(_predicates, poc.StatusHasSuffix(*l.PocStatusHasSuffix))
+		_predicates = append(_predicates, __poc.StatusHasSuffix(*l.PocStatusHasSuffix))
 	}
 
 	return l.ApplyFilterOperation(_predicates...)
 }
 
 // ApplySorting applies sorting to the query based on the provided sort and order fields.
-func (l *ListPocParams) ApplySorting(_query *ent.PocQuery) error {
+func (l *ListPocParams) ApplySorting(_query *__ent.PocQuery) error {
 	if err := l.Sorted.Validate(PocSortConfig); err != nil {
 		return err
 	}
@@ -4643,7 +4643,7 @@ func (l *ListPocParams) ApplySorting(_query *ent.PocQuery) error {
 
 // Exec wraps all logic (filtering, sorting, pagination, eager loading) and
 // executes all necessary queries, returning the results.
-func (l *ListPocParams) Exec(ctx context.Context, _query *ent.PocQuery) (_results *PagedResponse[ent.Poc], err error) {
+func (l *ListPocParams) Exec(ctx context.Context, _query *__ent.PocQuery) (_results *PagedResponse[__ent.Poc], err error) {
 	_predicates, err := l.FilterPredicates()
 	if err != nil {
 		return nil, err
