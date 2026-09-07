@@ -217,8 +217,9 @@ templ CollapsibleSection(title string, count int, bandwidth string, loadURL stri
 		</summary>
 		if count > 0 {
 			<div
+				data-section-loader
 				hx-get={ loadURL }
-				hx-trigger="toggle once from:closest details"
+				hx-trigger="toggle once from:'closest details'"
 				hx-swap="innerHTML"
 			>
 				<div class="px-4 py-6 text-center text-neutral-400 dark:text-neutral-500">

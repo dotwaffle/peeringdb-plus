@@ -53,6 +53,8 @@ func TestClassifyError(t *testing.T) {
 	// ValidationError has an unexported err field; wrap in fmt.Errorf to
 	// produce a usable error value without accessing private fields.
 	validationErr := fmt.Errorf("field: %w", &ent.ValidationError{Name: "field"})
+	// Ent classifies constraint errors by pointer, despite its value-receiver Error method.
+	var constraintErr error = &ent.ConstraintError{}
 
 	tests := []struct {
 		name string
@@ -62,9 +64,9 @@ func TestClassifyError(t *testing.T) {
 		{"nil", nil, "INTERNAL_ERROR"},
 		{"not found", &ent.NotFoundError{}, "NOT_FOUND"},
 		{"validation wrapped", validationErr, "VALIDATION_ERROR"},
-		{"constraint", &ent.ConstraintError{}, "CONSTRAINT_ERROR"},
+		{"constraint", constraintErr, "CONSTRAINT_ERROR"},
 		{"wrapped not found", fmt.Errorf("query: %w", &ent.NotFoundError{}), "NOT_FOUND"},
-		{"wrapped constraint", fmt.Errorf("update: %w", &ent.ConstraintError{}), "CONSTRAINT_ERROR"},
+		{"wrapped constraint", fmt.Errorf("update: %w", constraintErr), "CONSTRAINT_ERROR"},
 		{"unknown", fmt.Errorf("random error"), "INTERNAL_ERROR"},
 	}
 	for _, tt := range tests {

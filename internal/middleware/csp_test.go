@@ -12,7 +12,7 @@ import (
 func TestCSP(t *testing.T) {
 	t.Parallel()
 
-	uiPolicy := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net"
+	uiPolicy := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net"
 	graphQLPolicy := "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'"
 
 	cspMW := middleware.CSP(middleware.CSPInput{
@@ -113,7 +113,7 @@ func TestCSP(t *testing.T) {
 func TestCSPUIDirectives(t *testing.T) {
 	t.Parallel()
 
-	uiPolicy := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net"
+	uiPolicy := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net"
 
 	cspMW := middleware.CSP(middleware.CSPInput{
 		UIPolicy:      uiPolicy,
@@ -132,7 +132,7 @@ func TestCSPUIDirectives(t *testing.T) {
 
 	// Verify specific directives from the plan.
 	wantContains := []string{
-		"img-src 'self' data: https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net",
+		"img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net",
 		"font-src 'self' https://cdn.jsdelivr.net",
 		"script-src 'self';",
 	}
@@ -147,7 +147,7 @@ func TestCSPUIDirectives(t *testing.T) {
 func TestCSP_EnforcingModeHeaders(t *testing.T) {
 	t.Parallel()
 
-	uiPolicy := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net"
+	uiPolicy := "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net"
 	graphQLPolicy := "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'"
 
 	const (

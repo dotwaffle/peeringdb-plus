@@ -70,6 +70,7 @@ func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, as
 		Data:        data,
 		Freshness:   h.getFreshness(r.Context()),
 		NeedsMap:    true,
+		MapTiles:    h.mapTiles,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render network detail", slog.Int("asn", int(asn)), slog.Any("error", err))
@@ -104,6 +105,7 @@ func (h *Handler) handleIXDetail(w http.ResponseWriter, r *http.Request, idStr s
 		Data:        data,
 		Freshness:   h.getFreshness(r.Context()),
 		NeedsMap:    true,
+		MapTiles:    h.mapTiles,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render ix detail", slog.Int("id", id), slog.Any("error", err))
@@ -138,6 +140,7 @@ func (h *Handler) handleFacilityDetail(w http.ResponseWriter, r *http.Request, i
 		Data:        data,
 		Freshness:   h.getFreshness(r.Context()),
 		NeedsMap:    true,
+		MapTiles:    h.mapTiles,
 	}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		slog.Error("render facility detail", slog.Int("id", id), slog.Any("error", err))

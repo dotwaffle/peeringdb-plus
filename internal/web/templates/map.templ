@@ -90,8 +90,7 @@ type jsMarker struct {
 
 // MapContainer renders a map container div carrying data attributes that
 // /static/map-init.js reads to initialize a single-marker Leaflet map
-// (CARTO tiles, theme-aware via window.__pdbMaps). Exactly one marker is
-// expected. A future extension will handle multiple markers with fitBounds.
+// with the operator-configured tile service. Exactly one marker is expected.
 templ MapContainer(id string, markers []MapMarker, zoom int) {
 	if len(markers) > 0 {
 		<div

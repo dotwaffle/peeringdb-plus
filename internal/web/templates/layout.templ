@@ -1,5 +1,7 @@
 package templates
 
+import "github.com/dotwaffle/peeringdb-plus/internal/maptiles"
+
 // LayoutOptions carries per-page head configuration for Layout.
 // NeedsMap gates the Leaflet/markercluster includes: only the pages
 // that render a MapContainer pay the ~200 KB of map assets.
@@ -10,6 +12,7 @@ type LayoutOptions struct {
 	Description string
 	Canonical   string
 	NeedsMap    bool
+	MapTiles    maptiles.Config
 }
 
 // mapHead emits the self-hosted Leaflet + markercluster assets and the
@@ -63,9 +66,12 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 			<script src="/static/theme-init.js"></script>
 			<link rel="stylesheet" href="/static/tailwind.css"/>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css"/>
+			<meta name="htmx-config" content='{"history":"reload","noSwap":[204,304,"4xx","5xx"]}'/>
 			<script src="/static/htmx.min.js"></script>
 			<script src="/static/ui.js" defer></script>
 			if opts.NeedsMap {
+				<meta name="pdbplus-map-tile-url" content={ opts.MapTiles.URL }/>
+				<meta name="pdbplus-map-tile-attribution" content={ opts.MapTiles.Attribution }/>
 				@mapHead()
 			}
 			<style>
@@ -89,7 +95,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 				th[data-sort-active="desc"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #10b981; border-top: none; margin-top: 0; }
 			</style>
 		</head>
-		<body class="bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col" hx-indicator="#global-indicator">
+		<body class="bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 min-h-screen flex flex-col" hx-indicator:inherited="#global-indicator">
 			<div id="global-indicator" class="htmx-indicator bg-emerald-500">
 				<div class="h-full w-full bg-emerald-400 animate-pulse"></div>
 			</div>

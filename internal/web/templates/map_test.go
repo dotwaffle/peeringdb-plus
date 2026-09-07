@@ -1,9 +1,43 @@
 package templates
 
 import (
+	"html"
 	"strings"
 	"testing"
+
+	"github.com/a-h/templ"
+	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 )
+
+func TestLayoutEmitsEscapedMapConfiguration(t *testing.T) {
+	t.Parallel()
+
+	mapConfig := maptiles.Config{
+		URL:         "https://tiles.example.com/{z}/{x}/{y}.png?key=public&style=light",
+		Attribution: `<a href="https://tiles.example.com/copyright">Example & Maps</a>`,
+	}
+	var body strings.Builder
+	err := Layout(LayoutOptions{
+		Title:    "Map test",
+		NeedsMap: true,
+		MapTiles: mapConfig,
+	}, templ.Raw("")).Render(t.Context(), &body)
+	if err != nil {
+		t.Fatalf("render layout: %v", err)
+	}
+
+	for _, want := range []string{
+		`name="pdbplus-map-tile-url" content="` + html.EscapeString(mapConfig.URL) + `"`,
+		`name="pdbplus-map-tile-attribution" content="` + html.EscapeString(mapConfig.Attribution) + `"`,
+	} {
+		if !strings.Contains(body.String(), want) {
+			t.Errorf("layout missing %q", want)
+		}
+	}
+	if strings.Contains(body.String(), mapConfig.Attribution) {
+		t.Error("layout emitted unescaped map attribution")
+	}
+}
 
 func TestBuildMultiPinPopupHTML(t *testing.T) {
 	t.Parallel()

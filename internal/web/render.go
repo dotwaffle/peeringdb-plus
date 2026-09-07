@@ -9,6 +9,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
+	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/termrender"
 )
@@ -43,10 +44,11 @@ type PageContent struct {
 	Description string   // Description feeds the meta description / og:description tags when non-empty.
 	Canonical   string   // Canonical feeds the rel=canonical link / og:url tags when non-empty.
 	Content     templ.Component
-	Data        any       // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
-	Freshness   time.Time // Freshness is the last successful sync time for terminal footer display.
-	Status      int       // HTTP status (0 means 200). Committed by renderPage AFTER headers — WriteHeader first drops Vary/Content-Type.
-	NeedsMap    bool      // NeedsMap emits the Leaflet/markercluster head includes; set only on pages that render a MapContainer.
+	Data        any             // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
+	Freshness   time.Time       // Freshness is the last successful sync time for terminal footer display.
+	Status      int             // HTTP status (0 means 200). Committed by renderPage AFTER headers — WriteHeader first drops Vary/Content-Type.
+	NeedsMap    bool            // NeedsMap emits the Leaflet/markercluster head includes; set only on pages that render a MapContainer.
+	MapTiles    maptiles.Config // MapTiles supplies the browser tile URL and visible attribution.
 }
 
 // canonicalURL builds the rel=canonical value for the current page:
@@ -60,24 +62,25 @@ func canonicalURL(r *http.Request) string {
 // Priority: query params > Accept header > User-Agent > HX-Request > default (HTML).
 // Terminal clients (curl, wget, HTTPie) receive text/plain or application/json.
 // Browser and htmx requests receive text/html as before.
-// Every response sets Vary: HX-Request, User-Agent, Accept to prevent caching conflicts.
+// Every response varies on htmx, user-agent, and accept headers to prevent caching conflicts.
 //
 // Note on signature: ctx is excluded from arg count. w and r are the
 // standard http.Handler pair. title and content are grouped into PageContent
 // because >2 args require an input struct.
 func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, page PageContent) error {
 	mode := termrender.Detect(termrender.DetectInput{
-		Query:     r.URL.Query(),
-		Accept:    r.Header.Get("Accept"),
-		UserAgent: r.Header.Get("User-Agent"),
-		HXRequest: r.Header.Get("HX-Request") == "true",
+		Query:         r.URL.Query(),
+		Accept:        r.Header.Get("Accept"),
+		UserAgent:     r.Header.Get("User-Agent"),
+		HXRequest:     r.Header.Get("HX-Request") == "true",
+		HXRequestType: r.Header.Get("HX-Request-Type"),
 	})
 	noColor := termrender.HasNoColor(termrender.DetectInput{Query: r.URL.Query()})
 
 	// Add (not Set): the outer Compression middleware (gzhttp) already
 	// added Vary: Accept-Encoding before dispatch; Set would clobber it
 	// and let shared caches replay a gzipped variant to identity clients.
-	w.Header().Add("Vary", "HX-Request, User-Agent, Accept")
+	w.Header().Add("Vary", "HX-Request, HX-Request-Type, User-Agent, Accept")
 
 	// setHead sets the negotiated Content-Type and THEN commits the
 	// response status. Order matters: net/http drops header mutations
@@ -189,6 +192,7 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 			Description: page.Description,
 			Canonical:   page.Canonical,
 			NeedsMap:    page.NeedsMap,
+			MapTiles:    page.MapTiles,
 		}, page.Content).Render(ctx, w)
 	}
 }

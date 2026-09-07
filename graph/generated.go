@@ -42537,10 +42537,6 @@ func (ec *executionContext) marshalNCampus2ᚖgithubᚗcomᚋdotwaffleᚋpeering
 	return ec._Campus(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNCampusConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusConnection(ctx context.Context, sel ast.SelectionSet, v ent.CampusConnection) graphql.Marshaler {
-	return ec._CampusConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNCampusConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCampusConnection(ctx context.Context, sel ast.SelectionSet, v *ent.CampusConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -42598,10 +42594,6 @@ func (ec *executionContext) marshalNCarrier2ᚖgithubᚗcomᚋdotwaffleᚋpeerin
 	return ec._Carrier(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNCarrierConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierConnection(ctx context.Context, sel ast.SelectionSet, v ent.CarrierConnection) graphql.Marshaler {
-	return ec._CarrierConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNCarrierConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierConnection(ctx context.Context, sel ast.SelectionSet, v *ent.CarrierConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -42636,10 +42628,6 @@ func (ec *executionContext) marshalNCarrierFacility2ᚖgithubᚗcomᚋdotwaffle�
 		return graphql.Null
 	}
 	return ec._CarrierFacility(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNCarrierFacilityConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityConnection(ctx context.Context, sel ast.SelectionSet, v ent.CarrierFacilityConnection) graphql.Marshaler {
-	return ec._CarrierFacilityConnection(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNCarrierFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐCarrierFacilityConnection(ctx context.Context, sel ast.SelectionSet, v *ent.CarrierFacilityConnection) graphql.Marshaler {
@@ -42712,10 +42700,6 @@ func (ec *executionContext) marshalNFacility2ᚖgithubᚗcomᚋdotwaffleᚋpeeri
 		return graphql.Null
 	}
 	return ec._Facility(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNFacilityConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityConnection(ctx context.Context, sel ast.SelectionSet, v ent.FacilityConnection) graphql.Marshaler {
-	return ec._FacilityConnection(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐFacilityConnection(ctx context.Context, sel ast.SelectionSet, v *ent.FacilityConnection) graphql.Marshaler {
@@ -42852,10 +42836,6 @@ func (ec *executionContext) marshalNInternetExchange2ᚖgithubᚗcomᚋdotwaffle
 	return ec._InternetExchange(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNInternetExchangeConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeConnection(ctx context.Context, sel ast.SelectionSet, v ent.InternetExchangeConnection) graphql.Marshaler {
-	return ec._InternetExchangeConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNInternetExchangeConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐInternetExchangeConnection(ctx context.Context, sel ast.SelectionSet, v *ent.InternetExchangeConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -42913,10 +42893,6 @@ func (ec *executionContext) marshalNIxFacility2ᚖgithubᚗcomᚋdotwaffleᚋpee
 	return ec._IxFacility(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNIxFacilityConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityConnection(ctx context.Context, sel ast.SelectionSet, v ent.IxFacilityConnection) graphql.Marshaler {
-	return ec._IxFacilityConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNIxFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxFacilityConnection(ctx context.Context, sel ast.SelectionSet, v *ent.IxFacilityConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -42956,10 +42932,6 @@ func (ec *executionContext) marshalNIxLan2ᚖgithubᚗcomᚋdotwaffleᚋpeeringd
 		return graphql.Null
 	}
 	return ec._IxLan(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNIxLanConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanConnection(ctx context.Context, sel ast.SelectionSet, v ent.IxLanConnection) graphql.Marshaler {
-	return ec._IxLanConnection(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNIxLanConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxLanConnection(ctx context.Context, sel ast.SelectionSet, v *ent.IxLanConnection) graphql.Marshaler {
@@ -43003,10 +42975,6 @@ func (ec *executionContext) marshalNIxPrefix2ᚖgithubᚗcomᚋdotwaffleᚋpeeri
 	return ec._IxPrefix(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNIxPrefixConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixConnection(ctx context.Context, sel ast.SelectionSet, v ent.IxPrefixConnection) graphql.Marshaler {
-	return ec._IxPrefixConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNIxPrefixConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐIxPrefixConnection(ctx context.Context, sel ast.SelectionSet, v *ent.IxPrefixConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -43048,10 +43016,6 @@ func (ec *executionContext) marshalNNetwork2ᚖgithubᚗcomᚋdotwaffleᚋpeerin
 	return ec._Network(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNNetworkConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkConnection(ctx context.Context, sel ast.SelectionSet, v ent.NetworkConnection) graphql.Marshaler {
-	return ec._NetworkConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNNetworkConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkConnection(ctx context.Context, sel ast.SelectionSet, v *ent.NetworkConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -43086,10 +43050,6 @@ func (ec *executionContext) marshalNNetworkFacility2ᚖgithubᚗcomᚋdotwaffle�
 		return graphql.Null
 	}
 	return ec._NetworkFacility(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNNetworkFacilityConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityConnection(ctx context.Context, sel ast.SelectionSet, v ent.NetworkFacilityConnection) graphql.Marshaler {
-	return ec._NetworkFacilityConnection(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNNetworkFacilityConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkFacilityConnection(ctx context.Context, sel ast.SelectionSet, v *ent.NetworkFacilityConnection) graphql.Marshaler {
@@ -43131,10 +43091,6 @@ func (ec *executionContext) marshalNNetworkIxLan2ᚖgithubᚗcomᚋdotwaffleᚋp
 		return graphql.Null
 	}
 	return ec._NetworkIxLan(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNNetworkIxLanConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanConnection(ctx context.Context, sel ast.SelectionSet, v ent.NetworkIxLanConnection) graphql.Marshaler {
-	return ec._NetworkIxLanConnection(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNNetworkIxLanConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐNetworkIxLanConnection(ctx context.Context, sel ast.SelectionSet, v *ent.NetworkIxLanConnection) graphql.Marshaler {
@@ -43219,10 +43175,6 @@ func (ec *executionContext) marshalNOrganization2ᚖgithubᚗcomᚋdotwaffleᚋp
 	return ec._Organization(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNOrganizationConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationConnection(ctx context.Context, sel ast.SelectionSet, v ent.OrganizationConnection) graphql.Marshaler {
-	return ec._OrganizationConnection(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNOrganizationConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐOrganizationConnection(ctx context.Context, sel ast.SelectionSet, v *ent.OrganizationConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -43282,10 +43234,6 @@ func (ec *executionContext) marshalNPoc2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdb�
 		return graphql.Null
 	}
 	return ec._Poc(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNPocConnection2githubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocConnection(ctx context.Context, sel ast.SelectionSet, v ent.PocConnection) graphql.Marshaler {
-	return ec._PocConnection(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNPocConnection2ᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocConnection(ctx context.Context, sel ast.SelectionSet, v *ent.PocConnection) graphql.Marshaler {

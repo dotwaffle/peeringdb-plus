@@ -3,19 +3,19 @@
 package rest
 
 import (
-	"github.com/dotwaffle/peeringdb-plus/ent"
+	__ent "github.com/dotwaffle/peeringdb-plus/ent"
 )
 
 // EagerLoadCampus eager-loads the edges of a Campus entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadCampus(_query *ent.CampusQuery) *ent.CampusQuery {
+func EagerLoadCampus(_query *__ent.CampusQuery) *__ent.CampusQuery {
 	return _query.WithFacilities(
-		func(e *ent.FacilityQuery) {
+		func(e *__ent.FacilityQuery) {
 			applySortingFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithOrganization(
-		func(e *ent.OrganizationQuery) {
+		func(e *__ent.OrganizationQuery) {
 			applySortingOrganization(e, "updated", "desc")
 		},
 	)
@@ -23,14 +23,14 @@ func EagerLoadCampus(_query *ent.CampusQuery) *ent.CampusQuery {
 
 // EagerLoadCarrier eager-loads the edges of a Carrier entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadCarrier(_query *ent.CarrierQuery) *ent.CarrierQuery {
+func EagerLoadCarrier(_query *__ent.CarrierQuery) *__ent.CarrierQuery {
 	return _query.WithCarrierFacilities(
-		func(e *ent.CarrierFacilityQuery) {
+		func(e *__ent.CarrierFacilityQuery) {
 			applySortingCarrierFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithOrganization(
-		func(e *ent.OrganizationQuery) {
+		func(e *__ent.OrganizationQuery) {
 			applySortingOrganization(e, "updated", "desc")
 		},
 	)
@@ -38,13 +38,13 @@ func EagerLoadCarrier(_query *ent.CarrierQuery) *ent.CarrierQuery {
 
 // EagerLoadCarrierFacility eager-loads the edges of a CarrierFacility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadCarrierFacility(_query *ent.CarrierFacilityQuery) *ent.CarrierFacilityQuery {
+func EagerLoadCarrierFacility(_query *__ent.CarrierFacilityQuery) *__ent.CarrierFacilityQuery {
 	return _query.WithCarrier(
-		func(e *ent.CarrierQuery) {
+		func(e *__ent.CarrierQuery) {
 			applySortingCarrier(e, "updated", "desc")
 		},
 	).WithFacility(
-		func(e *ent.FacilityQuery) {
+		func(e *__ent.FacilityQuery) {
 			applySortingFacility(e, "updated", "desc")
 		},
 	)
@@ -52,28 +52,28 @@ func EagerLoadCarrierFacility(_query *ent.CarrierFacilityQuery) *ent.CarrierFaci
 
 // EagerLoadFacility eager-loads the edges of a Facility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadFacility(_query *ent.FacilityQuery) *ent.FacilityQuery {
+func EagerLoadFacility(_query *__ent.FacilityQuery) *__ent.FacilityQuery {
 	return _query.WithCampus(
-		func(e *ent.CampusQuery) {
+		func(e *__ent.CampusQuery) {
 			applySortingCampus(e, "updated", "desc")
 		},
 	).WithCarrierFacilities(
-		func(e *ent.CarrierFacilityQuery) {
+		func(e *__ent.CarrierFacilityQuery) {
 			applySortingCarrierFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithIxFacilities(
-		func(e *ent.IxFacilityQuery) {
+		func(e *__ent.IxFacilityQuery) {
 			applySortingIxFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithNetworkFacilities(
-		func(e *ent.NetworkFacilityQuery) {
+		func(e *__ent.NetworkFacilityQuery) {
 			applySortingNetworkFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithOrganization(
-		func(e *ent.OrganizationQuery) {
+		func(e *__ent.OrganizationQuery) {
 			applySortingOrganization(e, "updated", "desc")
 		},
 	)
@@ -81,19 +81,19 @@ func EagerLoadFacility(_query *ent.FacilityQuery) *ent.FacilityQuery {
 
 // EagerLoadInternetExchange eager-loads the edges of a InternetExchange entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadInternetExchange(_query *ent.InternetExchangeQuery) *ent.InternetExchangeQuery {
+func EagerLoadInternetExchange(_query *__ent.InternetExchangeQuery) *__ent.InternetExchangeQuery {
 	return _query.WithIxFacilities(
-		func(e *ent.IxFacilityQuery) {
+		func(e *__ent.IxFacilityQuery) {
 			applySortingIxFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithIxLans(
-		func(e *ent.IxLanQuery) {
+		func(e *__ent.IxLanQuery) {
 			applySortingIxLan(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithOrganization(
-		func(e *ent.OrganizationQuery) {
+		func(e *__ent.OrganizationQuery) {
 			applySortingOrganization(e, "updated", "desc")
 		},
 	)
@@ -101,13 +101,13 @@ func EagerLoadInternetExchange(_query *ent.InternetExchangeQuery) *ent.InternetE
 
 // EagerLoadIxFacility eager-loads the edges of a IxFacility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadIxFacility(_query *ent.IxFacilityQuery) *ent.IxFacilityQuery {
+func EagerLoadIxFacility(_query *__ent.IxFacilityQuery) *__ent.IxFacilityQuery {
 	return _query.WithFacility(
-		func(e *ent.FacilityQuery) {
+		func(e *__ent.FacilityQuery) {
 			applySortingFacility(e, "updated", "desc")
 		},
 	).WithInternetExchange(
-		func(e *ent.InternetExchangeQuery) {
+		func(e *__ent.InternetExchangeQuery) {
 			applySortingInternetExchange(e, "updated", "desc")
 		},
 	)
@@ -115,18 +115,18 @@ func EagerLoadIxFacility(_query *ent.IxFacilityQuery) *ent.IxFacilityQuery {
 
 // EagerLoadIxLan eager-loads the edges of a IxLan entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadIxLan(_query *ent.IxLanQuery) *ent.IxLanQuery {
+func EagerLoadIxLan(_query *__ent.IxLanQuery) *__ent.IxLanQuery {
 	return _query.WithInternetExchange(
-		func(e *ent.InternetExchangeQuery) {
+		func(e *__ent.InternetExchangeQuery) {
 			applySortingInternetExchange(e, "updated", "desc")
 		},
 	).WithIxPrefixes(
-		func(e *ent.IxPrefixQuery) {
+		func(e *__ent.IxPrefixQuery) {
 			applySortingIxPrefix(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithNetworkIxLans(
-		func(e *ent.NetworkIxLanQuery) {
+		func(e *__ent.NetworkIxLanQuery) {
 			applySortingNetworkIxLan(e, "updated", "desc")
 			e.Limit(1000)
 		},
@@ -135,9 +135,9 @@ func EagerLoadIxLan(_query *ent.IxLanQuery) *ent.IxLanQuery {
 
 // EagerLoadIxPrefix eager-loads the edges of a IxPrefix entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadIxPrefix(_query *ent.IxPrefixQuery) *ent.IxPrefixQuery {
+func EagerLoadIxPrefix(_query *__ent.IxPrefixQuery) *__ent.IxPrefixQuery {
 	return _query.WithIxLan(
-		func(e *ent.IxLanQuery) {
+		func(e *__ent.IxLanQuery) {
 			applySortingIxLan(e, "updated", "desc")
 		},
 	)
@@ -145,23 +145,23 @@ func EagerLoadIxPrefix(_query *ent.IxPrefixQuery) *ent.IxPrefixQuery {
 
 // EagerLoadNetwork eager-loads the edges of a Network entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadNetwork(_query *ent.NetworkQuery) *ent.NetworkQuery {
+func EagerLoadNetwork(_query *__ent.NetworkQuery) *__ent.NetworkQuery {
 	return _query.WithNetworkFacilities(
-		func(e *ent.NetworkFacilityQuery) {
+		func(e *__ent.NetworkFacilityQuery) {
 			applySortingNetworkFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithNetworkIxLans(
-		func(e *ent.NetworkIxLanQuery) {
+		func(e *__ent.NetworkIxLanQuery) {
 			applySortingNetworkIxLan(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithOrganization(
-		func(e *ent.OrganizationQuery) {
+		func(e *__ent.OrganizationQuery) {
 			applySortingOrganization(e, "updated", "desc")
 		},
 	).WithPocs(
-		func(e *ent.PocQuery) {
+		func(e *__ent.PocQuery) {
 			applySortingPoc(e, "updated", "desc")
 			e.Limit(1000)
 		},
@@ -170,13 +170,13 @@ func EagerLoadNetwork(_query *ent.NetworkQuery) *ent.NetworkQuery {
 
 // EagerLoadNetworkFacility eager-loads the edges of a NetworkFacility entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadNetworkFacility(_query *ent.NetworkFacilityQuery) *ent.NetworkFacilityQuery {
+func EagerLoadNetworkFacility(_query *__ent.NetworkFacilityQuery) *__ent.NetworkFacilityQuery {
 	return _query.WithFacility(
-		func(e *ent.FacilityQuery) {
+		func(e *__ent.FacilityQuery) {
 			applySortingFacility(e, "updated", "desc")
 		},
 	).WithNetwork(
-		func(e *ent.NetworkQuery) {
+		func(e *__ent.NetworkQuery) {
 			applySortingNetwork(e, "updated", "desc")
 		},
 	)
@@ -184,13 +184,13 @@ func EagerLoadNetworkFacility(_query *ent.NetworkFacilityQuery) *ent.NetworkFaci
 
 // EagerLoadNetworkIxLan eager-loads the edges of a NetworkIxLan entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadNetworkIxLan(_query *ent.NetworkIxLanQuery) *ent.NetworkIxLanQuery {
+func EagerLoadNetworkIxLan(_query *__ent.NetworkIxLanQuery) *__ent.NetworkIxLanQuery {
 	return _query.WithIxLan(
-		func(e *ent.IxLanQuery) {
+		func(e *__ent.IxLanQuery) {
 			applySortingIxLan(e, "updated", "desc")
 		},
 	).WithNetwork(
-		func(e *ent.NetworkQuery) {
+		func(e *__ent.NetworkQuery) {
 			applySortingNetwork(e, "updated", "desc")
 		},
 	)
@@ -198,29 +198,29 @@ func EagerLoadNetworkIxLan(_query *ent.NetworkIxLanQuery) *ent.NetworkIxLanQuery
 
 // EagerLoadOrganization eager-loads the edges of a Organization entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadOrganization(_query *ent.OrganizationQuery) *ent.OrganizationQuery {
+func EagerLoadOrganization(_query *__ent.OrganizationQuery) *__ent.OrganizationQuery {
 	return _query.WithCampuses(
-		func(e *ent.CampusQuery) {
+		func(e *__ent.CampusQuery) {
 			applySortingCampus(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithCarriers(
-		func(e *ent.CarrierQuery) {
+		func(e *__ent.CarrierQuery) {
 			applySortingCarrier(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithFacilities(
-		func(e *ent.FacilityQuery) {
+		func(e *__ent.FacilityQuery) {
 			applySortingFacility(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithInternetExchanges(
-		func(e *ent.InternetExchangeQuery) {
+		func(e *__ent.InternetExchangeQuery) {
 			applySortingInternetExchange(e, "updated", "desc")
 			e.Limit(1000)
 		},
 	).WithNetworks(
-		func(e *ent.NetworkQuery) {
+		func(e *__ent.NetworkQuery) {
 			applySortingNetwork(e, "updated", "desc")
 			e.Limit(1000)
 		},
@@ -229,9 +229,9 @@ func EagerLoadOrganization(_query *ent.OrganizationQuery) *ent.OrganizationQuery
 
 // EagerLoadPoc eager-loads the edges of a Poc entity, if any edges
 // were requested to be eager-loaded, based off associated annotations.
-func EagerLoadPoc(_query *ent.PocQuery) *ent.PocQuery {
+func EagerLoadPoc(_query *__ent.PocQuery) *__ent.PocQuery {
 	return _query.WithNetwork(
-		func(e *ent.NetworkQuery) {
+		func(e *__ent.NetworkQuery) {
 			applySortingNetwork(e, "updated", "desc")
 		},
 	)

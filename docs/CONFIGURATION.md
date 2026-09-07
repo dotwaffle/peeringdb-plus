@@ -28,9 +28,29 @@ or the `autoexport` SDK package and are documented in their own sections below.
 | `PDBPLUS_PUBLIC_URL` | No | (empty) | URL | Optional external origin used in generated agent discovery documents and Agent Skill metadata. When empty, the server card, skill index, `llms.txt`, and skill archive use the request `Host` and protocol (`r.TLS`, then `X-Forwarded-Proto`). Set this only when a reverse proxy rewrites `Host`. The value must be an `http` or `https` origin with no userinfo, path, query, or fragment. |
 | `PDBPLUS_CORS_ORIGINS` | No | `*` | string | Comma-separated list of allowed CORS origins. |
 | `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only` — enforcement is opt-in per deploy until explicitly enabled per deployment. |
+| `PDBPLUS_MAP_TILE_URL` | No | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | URL template | Browser basemap tile URL. The value must be an absolute HTTP or HTTPS URL, or a root-relative URL. It must contain the `{z}`, `{x}`, and `{y}` placeholders. A custom URL also requires `PDBPLUS_MAP_TILE_ATTRIBUTION`. |
+| `PDBPLUS_MAP_TILE_ATTRIBUTION` | With a custom tile URL | `© OpenStreetMap contributors` | HTML string | Visible attribution for the configured map tile service. The browser receives this value and Leaflet shows it on each map. |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown drain timeout. Must be greater than 0. |
 | `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive an RFC 9457 413 problem-detail up-front before any row data is materialised. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). A bare number is rejected. Literal `0` disables the check (local development only — the guardrail is the reason the `limit=0` unlimited semantic is safe to expose in production). Default sized against the 256 MB replica cap minus an 80 MB Go runtime baseline and 48 MB slack for other in-flight requests + GC overhead (sized from measured runtime+request overhead). Must be non-negative. |
 | `PDBPLUS_STREAM_TIMEOUT` | No | `60s` | duration | Maximum duration for a single streaming RPC. Must be greater than 0 — it is the only bound on stream lifetime (`WriteTimeout` is deliberately unset for gRPC streaming); startup fails otherwise. |
+
+#### Map tiles
+
+The default uses the OpenStreetMap Standard tile service without an API key.
+This service supports normal, interactive browser use on a best-effort basis.
+It does not provide an SLA or guaranteed capacity for third-party applications.
+
+Follow the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
+Keep the attribution visible and allow the browser to cache tiles.
+Do not add bulk download, prefetch, or offline features against the default service.
+
+Set both map variables to use a commercial or self-hosted tile service.
+The application adds the validated tile origin to the UI Content Security Policy.
+A root-relative URL uses the existing same-origin policy.
+
+The browser can read the tile URL and its query string.
+Treat any API key in this URL as a public browser credential.
+Apply provider-supported domain and usage restrictions to that key.
 
 ### Sync Worker
 

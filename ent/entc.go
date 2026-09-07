@@ -3,8 +3,10 @@
 package main
 
 import (
+	"encoding/json/jsontext"
 	"fmt"
 	"log"
+	"os"
 	_ "unsafe" // Required for go:linkname.
 
 	"entgo.io/contrib/entgql"
@@ -124,6 +126,23 @@ func main() {
 	if err := entc.Generate("./schema", &gen.Config{}, opts...); err != nil {
 		log.Fatalf("running ent codegen: %v", err)
 	}
+	if err := formatOpenAPISpec("./rest/openapi.json"); err != nil {
+		log.Fatalf("formatting OpenAPI spec: %v", err)
+	}
+}
+
+// formatOpenAPISpec sorts all object keys, including nested schema properties
+// whose custom JSON marshaler bypasses entrest's deterministic map ordering.
+func formatOpenAPISpec(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	value := jsontext.Value(data)
+	if err := value.Format(jsontext.ReorderRawObjects(true), jsontext.Multiline(true)); err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(value, '\n'), 0o640)
 }
 
 // entrestSortingOverride is a minimal replica of entc.TemplateDir that registers

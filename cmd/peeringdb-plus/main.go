@@ -486,6 +486,7 @@ func main() {
 		PublicTier: cfg.PublicTier,
 		Version:    buildinfo.Version(),
 		Region:     strings.TrimSpace(os.Getenv("FLY_REGION")),
+		MapTiles:   cfg.MapTiles,
 	})
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
@@ -667,9 +668,9 @@ func main() {
 			// self-hosted, so no inline scripts or CDN script hosts remain.
 			// style-src keeps 'unsafe-inline' (layout <style> blocks,
 			// Leaflet's inline style attributes) plus jsdelivr for the
-			// flag-icons stylesheet; img-src includes jsdelivr because
-			// that stylesheet resolves its flag SVGs relative to itself.
-			UIPolicy:      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net",
+			// flag-icons stylesheet. img-src includes the validated map tile
+			// origin and jsdelivr, where the stylesheet loads its flag SVGs.
+			UIPolicy:      uiCSPPolicy(cfg.MapTiles.CSPSource()),
 			GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
 			EnforcingMode: cfg.CSPEnforce,
 		},

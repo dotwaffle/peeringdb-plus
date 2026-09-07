@@ -30,11 +30,33 @@ func TestRenderPage_PreservesOuterVary(t *testing.T) {
 	}
 
 	vary := strings.Join(rec.Header().Values("Vary"), ", ")
-	for _, want := range []string{"Accept-Encoding", "User-Agent", "Accept", "HX-Request"} {
+	for _, want := range []string{"Accept-Encoding", "User-Agent", "Accept", "HX-Request", "HX-Request-Type"} {
 		if strings.Contains(vary, want) {
 			continue
 		}
 		t.Errorf("Vary %q missing %q", vary, want)
+	}
+}
+
+func TestRenderPage_HtmxFullRequest(t *testing.T) {
+	t.Parallel()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("HX-Request", "true")
+	req.Header.Set("HX-Request-Type", "full")
+
+	page := PageContent{Title: "Home", Content: templates.NotFoundPage()}
+	if err := renderPage(req.Context(), rec, req, page); err != nil {
+		t.Fatalf("renderPage: %v", err)
+	}
+
+	if body := rec.Body.String(); !strings.Contains(strings.ToLower(body), "<!doctype html>") {
+		t.Error("full htmx request did not render the page layout")
+	}
+	if vary := strings.Join(rec.Header().Values("Vary"), ", "); !strings.Contains(vary, "HX-Request-Type") {
+		t.Errorf("Vary %q missing HX-Request-Type", vary)
 	}
 }
 

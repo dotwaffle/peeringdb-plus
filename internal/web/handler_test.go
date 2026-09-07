@@ -86,8 +86,8 @@ func TestHomeHandler_HtmxFragment(t *testing.T) {
 		t.Error("htmx fragment should not contain DOCTYPE")
 	}
 
-	if rec.Header().Get("Vary") != "HX-Request, User-Agent, Accept" {
-		t.Errorf("expected Vary: HX-Request, User-Agent, Accept, got %q", rec.Header().Get("Vary"))
+	if rec.Header().Get("Vary") != "HX-Request, HX-Request-Type, User-Agent, Accept" {
+		t.Errorf("unexpected Vary header: %q", rec.Header().Get("Vary"))
 	}
 }
 
@@ -113,8 +113,8 @@ func TestHomeHandler_VaryHeader(t *testing.T) {
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, req)
 
-			if got := rec.Header().Get("Vary"); got != "HX-Request, User-Agent, Accept" {
-				t.Errorf("Vary header = %q, want %q", got, "HX-Request")
+			if got := rec.Header().Get("Vary"); got != "HX-Request, HX-Request-Type, User-Agent, Accept" {
+				t.Errorf("unexpected Vary header: %q", got)
 			}
 		})
 	}
@@ -135,6 +135,9 @@ func TestStaticAssets_HtmxJS(t *testing.T) {
 	body := rec.Body.String()
 	if !strings.Contains(body, "htmx") {
 		t.Error("response body does not contain 'htmx'")
+	}
+	if !strings.Contains(body, `this.version="4.0.0"`) {
+		t.Error("response body does not contain htmx 4.0.0")
 	}
 }
 
@@ -592,8 +595,8 @@ func TestSearchEndpoint_VaryHeader(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if got := rec.Header().Get("Vary"); got != "HX-Request, User-Agent, Accept" {
-		t.Errorf("Vary header = %q, want %q", got, "HX-Request")
+	if got := rec.Header().Get("Vary"); got != "HX-Request, HX-Request-Type, User-Agent, Accept" {
+		t.Errorf("unexpected Vary header: %q", got)
 	}
 }
 
@@ -1075,6 +1078,18 @@ func TestLayout_CSSAnimations(t *testing.T) {
 	}
 }
 
+func TestLayout_Htmx4Config(t *testing.T) {
+	t.Parallel()
+	inner := templ.Raw("<p>test</p>")
+	body := renderComponent(t, templates.Layout(templates.LayoutOptions{Title: "Test"}, inner))
+
+	for _, want := range []string{"htmx-config", "history", "reload", "noSwap", "hx-indicator:inherited"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("layout missing htmx 4 configuration %q", want)
+		}
+	}
+}
+
 func TestFooter_DarkMode(t *testing.T) {
 	t.Parallel()
 	body := renderComponent(t, templates.Footer())
@@ -1136,6 +1151,20 @@ func TestSearchForm_ResultsContainer(t *testing.T) {
 			t.Errorf("search form missing %q", want)
 		}
 	}
+	if strings.Contains(body, "hx-params") {
+		t.Error("search form contains removed hx-params attribute")
+	}
+}
+
+func TestCollapsibleSection_Htmx4Attributes(t *testing.T) {
+	t.Parallel()
+	body := renderComponent(t, templates.CollapsibleSection("Networks", 1, "", "/ui/net/1/facilities"))
+
+	for _, want := range []string{"data-section-loader", "from:", "closest details"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("collapsible section missing htmx 4 attribute %q", want)
+		}
+	}
 }
 
 func TestSearchResults_FadeIn(t *testing.T) {
@@ -1185,12 +1214,22 @@ func TestLayout_KeyboardNavScript(t *testing.T) {
 		"ArrowDown",
 		"ArrowUp",
 		"tabindex",
-		"htmx:afterSwap",
+		"htmx:after:swap",
+		"htmx:response:error",
+		"htmx:error",
+		"detail.ctx.target",
+		"ctx.sourceElement",
+		"closest [data-section-loader]",
 		"[data-result]",
 	}
 	for _, want := range checks {
 		if !strings.Contains(string(js), want) {
 			t.Errorf("ui.js missing keyboard nav element %q", want)
+		}
+	}
+	for _, old := range []string{"htmx:afterSwap", "htmx:afterRequest"} {
+		if strings.Contains(string(js), old) {
+			t.Errorf("ui.js contains htmx 2 event %q", old)
 		}
 	}
 }

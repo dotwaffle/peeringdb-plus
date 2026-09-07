@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -317,6 +318,90 @@ func TestREST_ReadByID(t *testing.T) {
 	if name != "Alpha Net" {
 		t.Fatalf("name = %v, want Alpha Net", name)
 	}
+}
+
+// TestRESTJSONSerialization verifies the JSON shapes emitted by entrest.
+func TestRESTJSONSerialization(t *testing.T) {
+	t.Parallel()
+	ts := restTestServer(t)
+
+	tests := []struct {
+		name string
+		body func(t *testing.T) []byte
+		want func(t *testing.T, body []byte)
+	}{
+		{
+			name: "empty entity arrays and nullable fields",
+			body: func(t *testing.T) []byte {
+				t.Helper()
+				return getRESTBody(t, ts.URL+"/networks/1")
+			},
+			want: func(t *testing.T, body []byte) {
+				t.Helper()
+				var got map[string]any
+				if err := json.Unmarshal(body, &got); err != nil {
+					t.Fatalf("decode response: %v", err)
+				}
+
+				for _, field := range []string{"info_types", "ixp_update_exclude", "social_media"} {
+					value, ok := got[field].([]any)
+					if !ok || len(value) != 0 {
+						t.Errorf("%s = %#v, want empty array", field, got[field])
+					}
+				}
+				for _, field := range []string{"info_prefixes4", "logo", "rir_status"} {
+					value, ok := got[field]
+					if !ok || value != nil {
+						t.Errorf("%s = %#v, want null", field, value)
+					}
+				}
+			},
+		},
+		{
+			name: "empty page content",
+			body: func(t *testing.T) []byte {
+				t.Helper()
+				return getRESTBody(t, ts.URL+"/networks?name.eq=NonExistent")
+			},
+			want: func(t *testing.T, body []byte) {
+				t.Helper()
+				var got struct {
+					Content []any `json:"content"`
+				}
+				if err := json.Unmarshal(body, &got); err != nil {
+					t.Fatalf("decode response: %v", err)
+				}
+				if got.Content == nil || len(got.Content) != 0 {
+					t.Fatalf("content = %#v, want empty array", got.Content)
+				}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tc.want(t, tc.body(t))
+		})
+	}
+}
+
+func getRESTBody(t *testing.T, url string) []byte {
+	t.Helper()
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET %s status = %d, want 200", url, resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	return body
 }
 
 // TestREST_OpenAPISpec verifies GET /openapi.json returns a valid OpenAPI
