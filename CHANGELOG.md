@@ -10,6 +10,8 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.27.0] — 2026-09-07
+
 ### Changed
 
 - Update Go to 1.27.1 and gqlgen to 0.17.95.
