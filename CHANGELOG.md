@@ -27,6 +27,8 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 - Replace CARTO maps, which now require an API key, with OpenStreetMap tiles.
   Operators can configure a different tile URL and attribution.
+- Pin the CI mise installer to 2026.9.1 to avoid a missing release archive.
+  Skip cache cleanup when tool setup has not created the cache directory.
 
 ## [1.26.0] — 2026-08-29
 
