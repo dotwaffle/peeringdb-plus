@@ -546,6 +546,26 @@ func TestGenerateFieldCode(t *testing.T) {
 				`socialMediaSchema()`,
 			},
 		},
+		{
+			// An opaque object document: a plain map, an explicit OpenAPI
+			// schema (entrest cannot infer one for a map), and no ent
+			// Default, because the serializers turn nil into {}.
+			name: "meta",
+			field: FieldDef{
+				Type:     "json_object",
+				Default:  map[string]any{},
+				HelpText: "Metadata",
+			},
+			wantSub: []string{
+				`field.JSON("meta", map[string]any{})`,
+				`Optional()`,
+				`Annotations(entrest.WithSchema(jsonObjectSchema()))`,
+				`Comment("Metadata")`,
+			},
+			notWantSub: []string{
+				`Default(`,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -724,7 +744,7 @@ func slicesEqual(a, b []string) bool {
 func TestGenerateTypesFile(t *testing.T) {
 	t.Parallel()
 
-	code, err := generateTypesFile()
+	code, err := generateTypesFile(false)
 	if err != nil {
 		t.Fatalf("generateTypesFile: %v", err)
 	}
@@ -753,10 +773,55 @@ func TestGenerateTypesFile(t *testing.T) {
 		}
 	}
 
+	// The object schema helper is emitted only when a field needs it: an
+	// unused function in ent/schema would fail the lint gate.
+	if strings.Contains(src, "jsonObjectSchema") {
+		t.Error("types.go without json_object fields should not contain jsonObjectSchema")
+	}
+
 	// Verify it parses.
 	fset := token.NewFileSet()
 	if _, err := parser.ParseFile(fset, "types.go", code, parser.AllErrors); err != nil {
 		t.Fatalf("types.go does not parse: %v", err)
+	}
+}
+
+func TestGenerateTypesFileWithObjectSchema(t *testing.T) {
+	t.Parallel()
+
+	code, err := generateTypesFile(true)
+	if err != nil {
+		t.Fatalf("generateTypesFile: %v", err)
+	}
+	src := string(code)
+	for _, want := range []string{
+		"socialMediaSchema()",
+		"func jsonObjectSchema() *ogen.Schema",
+		`SetType("object")`,
+		"AdditionalProperties",
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("types.go missing %q\n\n%s", want, src)
+		}
+	}
+	fset := token.NewFileSet()
+	if _, err := parser.ParseFile(fset, "types.go", code, parser.AllErrors); err != nil {
+		t.Fatalf("types.go does not parse: %v", err)
+	}
+}
+
+func TestHasFieldType(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{ObjectTypes: map[string]ObjectType{
+		"org": {Fields: map[string]FieldDef{"name": {Type: "string"}}},
+		"net": {Fields: map[string]FieldDef{"meta": {Type: "json_object"}}},
+	}}
+	if !hasFieldType(schema, "json_object") {
+		t.Error("hasFieldType(json_object) = false, want true")
+	}
+	if hasFieldType(schema, "json_array") {
+		t.Error("hasFieldType(json_array) = true, want false")
 	}
 }
 

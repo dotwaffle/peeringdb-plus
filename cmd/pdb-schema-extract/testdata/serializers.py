@@ -4,7 +4,8 @@
 #   - Meta.fields as the authoritative output set,
 #   - Meta.related_fields (nested object + reverse <x>_set) exclusion,
 #   - a PrimaryKeyRelatedField FK id (queryset + source= remap),
-#   - a SerializerMethodField typed from its get_<name> return annotation.
+#   - a SerializerMethodField typed from its get_<name> return annotation,
+#   - a many=True nested serializer over a default=dict JSONField.
 from rest_framework import serializers
 
 from peeringdb_server.models import Network, Organization
@@ -27,6 +28,7 @@ class NetworkSerializer(ModelSerializer):
         source="org",
     )
     ix_count = serializers.SerializerMethodField()
+    social_media = SocialMediaSerializer(required=False, many=True)
 
     def get_ix_count(self, inst) -> int:
         return 0
@@ -44,6 +46,8 @@ class NetworkSerializer(ModelSerializer):
             "info_prefixes4",
             "allow_ixp_update",
             "ixp_update_exclude",
+            "meta",
+            "social_media",
             "ix_count",
             "poc_set",
             "created",

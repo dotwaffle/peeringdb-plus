@@ -188,7 +188,7 @@ func main() {
 	}
 
 	// Generate shared types file.
-	typesCode, err := generateTypesFile()
+	typesCode, err := generateTypesFile(hasFieldType(schema, "json_object"))
 	if err != nil {
 		log.Fatalf("generate types.go: %v", err)
 	}
@@ -260,7 +260,7 @@ func generateEntSchema(apiPath string, ot ObjectType, schema *Schema) ([]byte, e
 			FKTarget: fd.References,
 		}
 		data.Fields = append(data.Fields, ef)
-		if fd.Type == "json_array" {
+		if fd.Type == "json_array" || fd.Type == "json_object" {
 			data.HasJSON = true
 			if name == "social_media" {
 				data.HasSocialMedia = true
@@ -425,6 +425,16 @@ func generateFieldCode(name string, fd FieldDef) string {
 			fmt.Fprintf(&b, "field.JSON(%q, []string{})", name)
 		}
 		b.WriteString(".\n\t\t\tOptional()")
+
+	case "json_object":
+		// An opaque document: upstream can add keys to its registry at
+		// any time, so the Go type is a plain map, not a struct. There is no ent
+		// Default: rows that exist before the column is added read back
+		// as NULL anyway. The /api, REST, gRPC and MCP serializers render
+		// nil as {}. GraphQL's nullable Map returns null (docs/API.md
+		// § GraphQL).
+		fmt.Fprintf(&b, "field.JSON(%q, map[string]any{})", name)
+		b.WriteString(".\n\t\t\tOptional()")
 	}
 
 	// Add field-level annotations.
@@ -441,6 +451,7 @@ const (
 	fkFilterAnnotation          = "Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn))"
 	equalArrayFilterAnnotation  = "Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray))"
 	socialMediaSchemaAnnotation = "Annotations(entrest.WithSchema(socialMediaSchema()))"
+	jsonObjectSchemaAnnotation  = "Annotations(entrest.WithSchema(jsonObjectSchema()))"
 )
 
 // filterableIntFields is the set of non-FK integer field names that receive
@@ -466,6 +477,11 @@ func fieldAnnotations(name string, fd FieldDef) string {
 	}
 	if name == "social_media" {
 		return ".\n\t\t\t" + socialMediaSchemaAnnotation
+	}
+	// entrest cannot infer an OpenAPI type for a map field, and codegen
+	// fails without an explicit schema.
+	if fd.Type == "json_object" {
+		return ".\n\t\t\t" + jsonObjectSchemaAnnotation
 	}
 	// "name" fields get GraphQL order-by support and REST filter annotations
 	// whether or not they carry a UNIQUE constraint. Historically this branch
@@ -639,8 +655,35 @@ func ExpectedIndexesFor(apiPath string, ot ObjectType) []string {
 	return generateIndexes(apiPath, ot)
 }
 
-// generateTypesFile produces the shared types.go file.
-func generateTypesFile() ([]byte, error) {
+// hasFieldType reports whether any object type declares a field of the
+// given schema type.
+func hasFieldType(schema *Schema, fieldType string) bool {
+	for _, ot := range schema.ObjectTypes {
+		for _, fd := range ot.Fields {
+			if fd.Type == fieldType {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// jsonObjectSchemaSrc is the OpenAPI schema helper for json_object fields.
+// generateTypesFile emits it only when a field uses it, because an unused
+// function in ent/schema fails the lint gate.
+const jsonObjectSchemaSrc = `
+// jsonObjectSchema returns the OpenAPI schema for an opaque JSON object
+// field. The key set is open, so any property is allowed.
+func jsonObjectSchema() *ogen.Schema {
+	s := ogen.NewSchema().SetType("object")
+	s.AdditionalProperties = &ogen.AdditionalProperties{Bool: new(true)}
+	return s
+}
+`
+
+// generateTypesFile produces the shared types.go file. withObjectSchema
+// adds the jsonObjectSchema helper that json_object fields reference.
+func generateTypesFile(withObjectSchema bool) ([]byte, error) {
 	src := `// Package schema defines the entgo schema types for PeeringDB objects.
 package schema
 
@@ -663,6 +706,9 @@ func socialMediaSchema() *ogen.Schema {
 	)
 }
 `
+	if withObjectSchema {
+		src += jsonObjectSchemaSrc
+	}
 	return format.Source([]byte(src))
 }
 

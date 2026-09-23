@@ -206,6 +206,12 @@ func TestParseModelFields(t *testing.T) {
 			wantType: "json_array",
 		},
 		{
+			// A default=dict JSONField is an object document, not a list.
+			model:    "NetworkBase",
+			field:    "meta",
+			wantType: "json_object",
+		},
+		{
 			model:    "AddressModel",
 			field:    "latitude",
 			wantType: "float",
@@ -276,6 +282,10 @@ func TestBuildObjectTypesMembership(t *testing.T) {
 		"info_prefixes4":     "integer",
 		"allow_ixp_update":   "boolean",
 		"ixp_update_exclude": "json_array",
+		"meta":               "json_object",
+		// default=dict on the model, but the many=True nested serializer
+		// renders a list.
+		"social_media": "json_array",
 	}
 	for name, wantType := range wantNet {
 		fd, ok := net.Fields[name]
@@ -313,6 +323,10 @@ func TestBuildObjectTypesMembership(t *testing.T) {
 	if gotJSON, _ := json.Marshal(net.Fields["ixp_update_exclude"].Default); string(gotJSON) != "[]" {
 		t.Errorf("net.Fields[ixp_update_exclude].default = %s, want []", gotJSON)
 	}
+	// JSONField default=dict resolves to an empty object.
+	if gotJSON, _ := json.Marshal(net.Fields["meta"].Default); string(gotJSON) != "{}" {
+		t.Errorf("net.Fields[meta].default = %s, want {}", gotJSON)
+	}
 
 	// Inherited scalar fields appear only when the serializer lists them:
 	// Organization inherits city/latitude from AddressModel but OrganizationSerializer
@@ -328,6 +342,20 @@ func TestBuildObjectTypesMembership(t *testing.T) {
 		if _, ok := org.Fields[name]; ok {
 			t.Errorf("org.Fields should not contain %q (not in Meta.fields)", name)
 		}
+	}
+}
+
+// TestSerFieldToDefJSONObject covers a JSON field declared on the
+// serializer itself: DRF's JSONField maps to json_array by name, so the
+// dict default of the model field it overlays must retype it.
+func TestSerFieldToDefJSONObject(t *testing.T) {
+	t.Parallel()
+	modelFields := map[string]FieldDef{
+		"meta": {Type: "json_object", Default: map[string]any{}},
+	}
+	got := serFieldToDef("meta", serField{drfType: "JSONField"}, modelFields)
+	if got.Type != "json_object" {
+		t.Errorf("type = %q, want json_object", got.Type)
 	}
 }
 
@@ -473,6 +501,8 @@ func TestParsePythonDefault(t *testing.T) {
 		{`0`, float64(0)},
 		{`42`, float64(42)},
 		{`[]`, []any{}},
+		{`list`, []any{}},
+		{`dict`, map[string]any{}},
 	}
 
 	for _, tt := range tests {

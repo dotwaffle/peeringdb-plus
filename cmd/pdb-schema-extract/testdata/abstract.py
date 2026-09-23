@@ -4,7 +4,7 @@
 # (HandleRefModel, AddressModel) and per-entity abstract *Base classes that the
 # concrete server models in models.py subclass. Kept deliberately small — just
 # enough to exercise inheritance resolution, the ASNField custom constructor,
-# and multi-line field definitions.
+# multi-line field definitions, and a default=dict JSONField.
 from django.db import models
 
 
@@ -45,6 +45,7 @@ class NetworkBase(HandleRefModel):
     )
     irr_as_set = models.CharField(max_length=255, blank=True, default="")
     info_prefixes4 = models.PositiveIntegerField(null=True, blank=True)
+    meta = models.JSONField(_("Metadata"), default=dict, blank=True)
 
     class Meta:
         abstract = True
