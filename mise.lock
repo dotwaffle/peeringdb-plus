@@ -29,31 +29,31 @@ url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/3849248
 provenance = "github-attestations"
 
 [[tools.buf]]
-version = "1.72.0"
+version = "1.73.0"
 backend = "aqua:bufbuild/buf"
 
 [tools.buf."platforms.linux-arm64"]
-checksum = "sha256:7641bd7e06a37a54cbb8c789f53465899def96196ab5c08057432f781a15d517"
-url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Linux-aarch64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772526"
+checksum = "sha256:e928fa64061ddb5144d93df30fe48f3451231b0e77ea5ade684cb7b53037cc66"
+url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Linux-aarch64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280183"
 provenance = "minisign"
 
 [tools.buf."platforms.linux-x64"]
-checksum = "sha256:a9c6186cf6fcf062b247345e1b7b12c26f580c1b2a4bbf4d3fe080abf85ceee8"
-url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772583"
+checksum = "sha256:f8092c1be08d5606a8d22b4ae0e4079dd690154cebb4894dc5e24a5046093aff"
+url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280270"
 provenance = "minisign"
 
 [tools.buf."platforms.macos-arm64"]
-checksum = "sha256:be040ae0ca381103dfda68a36738695c4db3e48de8e91412acdc3d991f39b91e"
-url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772487"
+checksum = "sha256:7eb1b167b729815b470e88d85cc1dbcb5d16bfbe73af248c9ed20cfbc4de060b"
+url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280123"
 provenance = "minisign"
 
 [tools.buf."platforms.macos-x64"]
-checksum = "sha256:8b87e66786b46b20e7f7e328c9e15f64f636041acfdbf93374873d9014a62d30"
-url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Darwin-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772489"
+checksum = "sha256:12ededc2a5b55eee89be6f35b5f290938eb4c710109d47746d29fb5fc6c4d66c"
+url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Darwin-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280115"
 provenance = "minisign"
 
 [[tools.go]]
@@ -129,7 +129,7 @@ url = "https://github.com/gotestyourself/gotestsum/releases/download/v1.13.0/got
 url_api = "https://api.github.com/repos/gotestyourself/gotestsum/releases/assets/291996829"
 
 [[tools.govulncheck]]
-version = "1.7.0"
+version = "1.8.0"
 backend = "go:golang.org/x/vuln/cmd/govulncheck"
 
 [[tools.gqlgen]]
