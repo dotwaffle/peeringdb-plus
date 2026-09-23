@@ -1294,8 +1294,9 @@ Responses use JSON rather than server-sent events,
 so requests can be handled by any healthy replica without session affinity.
 MCP 2026-07-28 requests use `server/discover` and include the protocol version
 with every request.
-Older clients can continue to use the handshake-based revisions through
-2024-11-05.
+Clients on an older revision use the `initialize` handshake.
+The server also supports the revisions 2025-11-25, 2025-06-18, 2025-03-26
+and 2024-11-05.
 All tools are read-only and query the same local ent client as the other
 surfaces.
 Each tool declares input and output schemas, read-only and idempotent hints,
@@ -1311,7 +1312,7 @@ and closed-corpus behavior.
 | `get_campus` | Campus detail and bounded facilities |
 | `get_carrier` | Carrier detail and bounded facilities |
 | `compare_networks` | Compare two ASNs across exchanges, facilities, and campuses |
-| `lookup_ip` | Find exact peering-address records and containing exchange prefixes |
+| `lookup_ip` | Find exact peering-address records and the exchange prefixes that contain the address. Each record includes `meta` (`{}` when the row has no document) |
 | `get_sync_status` | Return the latest mirror synchronization status and freshness |
 
 Related collections default to 20 rows and are capped at 100 rows.
@@ -1340,9 +1341,17 @@ This keeps self-hosted deployments local and avoids embedding a production
 hostname in the binary.
 
 Browser clients use `PDBPLUS_CORS_ORIGINS`.
-Requests with an `Origin` header are independently checked at `/mcp`
-to mitigate DNS rebinding;
-non-browser MCP clients do not send `Origin` and are unaffected.
+The `/mcp` handler also checks the `Origin` header against
+`PDBPLUS_CORS_ORIGINS`.
+It rejects a malformed origin, or an origin that is not in the list,
+with `403`.
+With the default `*`, it accepts every well-formed origin,
+so this check gives no DNS-rebinding defense.
+To get that defense, set `PDBPLUS_CORS_ORIGINS` to the exact browser origins.
+Separately, the MCP SDK rejects a request that arrives on a loopback address
+with a `Host` header that is not a loopback name.
+Clients that are not browsers send no `Origin`,
+so the origin check does not apply to them.
 
 ## Field-level privacy
 
@@ -1543,8 +1552,9 @@ The middleware allows the full set of headers required by Connect / gRPC /
 gRPC-Web and MCP Streamable HTTP in addition to standard application headers;
 see
 `internal/middleware/cors.go`.
-The MCP handler independently rejects malformed or disallowed browser
-`Origin` values as a DNS-rebinding defense.
+The MCP handler also checks browser `Origin` values against
+`PDBPLUS_CORS_ORIGINS`.
+With the default `*`, it rejects only malformed values (see § 6. MCP).
 The REST subtree relies on this same outer middleware;
 it is not wrapped a second time.
 
