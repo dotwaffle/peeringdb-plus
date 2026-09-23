@@ -13,6 +13,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -265,6 +266,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if len(relSegs) == 0 && reservedParams[field] {
 			continue
 		}
+		relSegs, field = routeIXKey(tc.Name, relSegs, field)
 		// Hard cap: >2 relation segments is silently rejected.
 		if len(relSegs) > 2 {
 			appendUnknown(ctx, key)
@@ -309,6 +311,36 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		predicates = append(predicates, p)
 	}
 	return predicates, false, nil
+}
+
+// routeIXKey rewrites the exchange keys of netixlan and ixpfx onto the
+// path that reaches the exchange here. Upstream handles ix, ix_id and
+// ix__<field> for these types in prepare_query (2.83.0
+// serializers.py:3161-3169 and :4157-4163). related_to_ix then keeps the
+// rows whose ixlan belongs to a matching exchange (models.py:6172-6186
+// and :5167-5177). Neither type has an ix edge in the ent schema:
+//
+//   - netixlan stores ix_id, so ix and ix__id filter that column.
+//   - ixpfx reaches the exchange through its ixlan, so ix, ix_id and
+//     ix__id filter ixlan.ix_id.
+//   - Any other ix__<field> walks ixlan -> ix.
+//
+// Every other key is returned unchanged.
+func routeIXKey(typ string, relSegs []string, field string) ([]string, string) {
+	if typ != peeringdb.TypeNetIXLan && typ != peeringdb.TypeIXPfx {
+		return relSegs, field
+	}
+	namesIX := len(relSegs) == 0 && (field == "ix" || field == "ix_id") ||
+		len(relSegs) == 1 && relSegs[0] == "ix" && field == "id"
+	switch {
+	case namesIX && typ == peeringdb.TypeNetIXLan:
+		return nil, "ix_id"
+	case namesIX:
+		return []string{"ixlan"}, "ix_id"
+	case len(relSegs) == 1 && relSegs[0] == "ix":
+		return []string{"ixlan", "ix"}, field
+	}
+	return relSegs, field
 }
 
 // buildLocalPredicate extracts the original local-field behaviour into a

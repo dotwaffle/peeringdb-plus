@@ -111,6 +111,94 @@ func TestParity_Traversal(t *testing.T) {
 		}
 	})
 
+	t.Run("netixlan_ix_keys_filter_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:3161-3169 (prepare_query
+		// routes ix, ix_id and ix__<field> to related_to_ix) and
+		// models.py:6172-6186 (related_to_ix keeps the rows whose ixlan
+		// belongs to a matching exchange). pdb_api_test.py:5066 tests
+		// ix_id and ix_id__in; docs/api/object_metadata.md:170 uses
+		// ?ix= in the headline meta query.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "IXOrg", t0)
+		mustNet(ctx, t, c, 100, "PeerNet", 64500, 1, t0)
+		mustIX(ctx, t, c, 20, "TargetIX", 1, t0)
+		mustIX(ctx, t, c, 21, "OtherIX", 1, t0)
+		mustIxLan(ctx, t, c, 200, "TargetLan", 20, t0)
+		mustIxLan(ctx, t, c, 210, "OtherLan", 21, t0)
+		for id, lan := range map[int]int{500: 200, 501: 210} {
+			if _, err := c.NetworkIxLan.Create().
+				SetID(id).SetNetID(100).SetIxlanID(lan).SetIxID(lan / 10).
+				SetAsn(64500).SetSpeed(1000).
+				SetMeta(map[string]any{"planned_status_change": map[string]any{
+					"status": "deleted", "date": "2026-05-01",
+				}}).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed netixlan id=%d: %v", id, err)
+			}
+		}
+
+		srv := newTestServer(t, c)
+		for _, q := range []string{
+			"ix=20",
+			"ix_id=20",
+			"ix__id=20",
+			"ix__in=20,99",
+			"ix__name=TargetIX",
+			"ix__name__contains=target",
+			"ix=20&meta__planned_status_change__status=deleted" +
+				"&meta__planned_status_change__date__lt=2026-06-01",
+		} {
+			status, body := httpGet(t, srv, "/api/netixlan?"+q)
+			if status != http.StatusOK {
+				t.Fatalf("?%s: status = %d; body=%s", q, status, string(body))
+			}
+			if got := extractIDs(t, body); !slices.Equal(got, []int{500}) {
+				t.Errorf("?%s: got %v, want [500]", q, got)
+			}
+		}
+	})
+
+	t.Run("ixpfx_ix_keys_filter_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:4157-4163 (prepare_query
+		// routes ix, ix_id and ix__<field> to related_to_ix) and
+		// models.py:5167-5177 (related_to_ix filters on ixlan__<field>).
+		// pdb_api_test.py:4374 tests ix_id and ix_id__in.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "IXOrg", t0)
+		mustIX(ctx, t, c, 20, "TargetIX", 1, t0)
+		mustIX(ctx, t, c, 21, "OtherIX", 1, t0)
+		mustIxLan(ctx, t, c, 200, "TargetLan", 20, t0)
+		mustIxLan(ctx, t, c, 210, "OtherLan", 21, t0)
+		mustIxPfx(ctx, t, c, 1000, "10.0.0.0/24", 200, t0)
+		mustIxPfx(ctx, t, c, 1001, "10.0.1.0/24", 200, t0)
+		mustIxPfx(ctx, t, c, 2000, "10.1.0.0/24", 210, t0)
+
+		srv := newTestServer(t, c)
+		for _, q := range []string{
+			"ix=20",
+			"ix_id=20",
+			"ix__id=20",
+			"ix_id__in=20,99",
+			"ix__name=TargetIX",
+			"ix__name__startswith=target",
+		} {
+			status, body := httpGet(t, srv, "/api/ixpfx?"+q)
+			if status != http.StatusOK {
+				t.Fatalf("?%s: status = %d; body=%s", q, status, string(body))
+			}
+			got := slices.Clone(extractIDs(t, body))
+			slices.Sort(got)
+			if want := []int{1000, 1001}; !slices.Equal(got, want) {
+				t.Errorf("?%s: got %v, want %v", q, got, want)
+			}
+		}
+	})
+
 	t.Run("path_b_1hop_org_city", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 serializers.py:970-996 (queryable_relations

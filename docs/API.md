@@ -1114,6 +1114,7 @@ The 2-hop rows come from the Path A allowlist:
 | `?org__name=X` (net, fac, ix, carrier, campus) | 1 | A | 2.83.0 `serializers.py:970-996` (`queryable_relations()` adds `org__<field>` from the `org` FK) |
 | `?net__asn=X` (netfac, netixlan, poc) | 1 | A | (same allowlist block) |
 | `?ix__name=X` (ixfac, ixlan) | 1 | A | (same allowlist block) |
+| `?ix=N`, `?ix_id=N`, `?ix__<field>=X` (netixlan, ixpfx) | 1 upstream | Routed by `routeIXKey`: netixlan filters its `ix_id` column, ixpfx filters `ixlan.ix_id`, and other `ix__<field>` keys walk `ixlan` → `ix` | 2.83.0 `serializers.py:3161-3169` (netixlan) and `:4157-4163` (ixpfx) route these keys to `related_to_ix` (`models.py:6172-6186`, `:5167-5177`) |
 | `?fac__name=X` (netfac, ixfac, carrierfac) | 1 | A | (same allowlist block) |
 | `?ixlan__ix__fac_count__gt=0` (fac) | 2 | A (allowlisted, but silently ignored: `fac` has no `ixlan` edge) | Not an upstream `fac` filter, so upstream ignores it too (2.83.0 `rest.py:525-528`, `serializers.py:970-996`). 2.83.0 `pdb_api_test.py:2393` uses this path only in an ORM query for the `netixlan` `hide_ix_no_fac` count (`rest.py:1295`) |
 | `?<fk>__<field>=X` for any non-excluded edge | 1 | B | 2.83.0 `serializers.py:970` (`queryable_relations()`) |

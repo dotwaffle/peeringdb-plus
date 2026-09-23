@@ -170,8 +170,10 @@ var PrepareQueryAllows = map[string]schemaannot.PrepareQueryAllowAnnotation{
 
 	// Path A allowlist mirrored from upstream
 	// peeringdb_server/serializers.py:4154 IXLanPrefixSerializer.prepare_query.
-	// get_relation_filters seed ["ix_id", "ix", "whereis"]; we expose the
-	// 2-hop ixlan__ix__{name,id} paths implied by the eager-load chain
+	// get_relation_filters seed ["ix_id", "ix", "whereis"]. ixpfx has no ix
+	// edge, so routeIXKey (internal/pdbcompat/filter.go) routes the ix keys
+	// through ixlan before this list is read. We also expose the 2-hop
+	// ixlan__ix__{name,id} paths implied by the eager-load chain
 	// select_related("ixlan", "ixlan__ix", "ixlan__ix__org") at line 4155.
 	// DROP: whereis — not a relation filter (IP-in-prefix search via
 	// Model.whereis_ip, lines 4165-4166); out of scope for this traversal
@@ -216,14 +218,14 @@ var PrepareQueryAllows = map[string]schemaannot.PrepareQueryAllowAnnotation{
 	// Path A allowlist mirrored from upstream
 	// peeringdb_server/serializers.py:3152 NetworkIXLanSerializer.prepare_query.
 	// get_relation_filters seed ["ix_id", "ix", "name"]; upstream rewrites
-	// "name" to "ix__name" at lines 3166-3167. net__* filters derive from the
-	// eager-load chain select_related("network", "network__org").
+	// "name" to "ix__name" at lines 3166-3167. netixlan has no ix edge, so
+	// routeIXKey (internal/pdbcompat/filter.go) routes the ix keys before
+	// this list is read. net__* filters derive from the eager-load chain
+	// select_related("network", "network__org").
 	"netixlan": {
 		Fields: []string{
 			"net__name",
 			"net__asn",
-			"ix__name",
-			"ix__id",
 			"ixlan__name",
 		},
 	},

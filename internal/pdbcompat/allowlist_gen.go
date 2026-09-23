@@ -109,8 +109,6 @@ var Allowlists = map[string]AllowlistEntry{
 	},
 	"netixlan": {
 		Direct: []string{
-			"ix__id",
-			"ix__name",
 			"ixlan__name",
 			"net__asn",
 			"net__name",
