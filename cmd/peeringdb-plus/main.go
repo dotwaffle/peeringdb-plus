@@ -1,6 +1,18 @@
-// Package main is the entry point for the peeringdb-plus application.
-// It wires together config, database, OTel, PeeringDB client, and sync worker,
-// then serves HTTP endpoints for health checks and on-demand sync triggers.
+// Command peeringdb-plus runs the PeeringDB Plus server.
+//
+// The primary instance syncs PeeringDB into SQLite on a schedule. With
+// LiteFS, the LiteFS primary is the primary instance. Without LiteFS,
+// PDBPLUS_IS_PRIMARY selects it and defaults to true.
+//
+// Every instance serves the web UI (/ui/), the PeeringDB-compatible API
+// (/api/), REST (/rest/v1/), GraphQL (/graphql), ConnectRPC, MCP (/mcp),
+// the agent discovery documents, and health checks (/healthz, /readyz).
+// POST /sync starts a sync when its X-Sync-Token header matches
+// PDBPLUS_SYNC_TOKEN. When PDBPLUS_SYNC_TOKEN is not set, POST /sync
+// rejects every request.
+//
+// The command takes no command-line arguments. Configure it with PDBPLUS_*
+// and OTEL_* environment variables, as docs/CONFIGURATION.md describes.
 package main
 
 import (
