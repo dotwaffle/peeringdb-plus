@@ -186,14 +186,15 @@ Operationally-relevant defaults:
 | `PDBPLUS_PEERINGDB_API_KEY` | _(unset)_ | Optional — raises rate limit and shortens default sync interval |
 | `PDBPLUS_SYNC_MODE` | `incremental` | `incremental` (delta) or `full` (re-fetch); `full` is the operator escape-hatch |
 | `PDBPLUS_SYNC_INTERVAL` | `1h` (15m if API key set) | Time between sync cycles |
-| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MiB` | pdbcompat list pre-flight 413 budget |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MB` | Memory budget for `/api` responses. A list whose estimated size is larger gets HTTP 413. The same budget also limits the total estimate of all `/api` responses in progress. A request that would go over that total gets HTTP 503. The value needs a unit suffix: `KB`, `MB`, `GB`, or `TB` (base 1024). |
 | `PDBPLUS_PUBLIC_TIER` | `public` | Anonymous-caller tier; set `users` only for private deployments |
 | `PDBPLUS_PUBLIC_URL` | _(unset)_ | Optional public-origin override for generated Agent Skill metadata |
 
-The full catalogue (sync, observability, LiteFS, Fly.io, CSP, security headers,
-and OAuth-gated visibility) lives in
+The full list (sync, observability, LiteFS, Fly.io, CSP, map tiles,
+and privacy tiers) is in
 [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
-Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
+The server also reads the standard `OTEL_*` environment variables
+through OpenTelemetry autoexport.
 
 ## Documentation
 
@@ -202,7 +203,7 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 | [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) | First-30-minutes walkthrough: prerequisites, build, first run, verification |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Component diagram, data flow, code-generation pipeline, middleware chain, privacy layer, sampling matrix |
 | [`docs/API.md`](docs/API.md) | All six API surfaces, filter semantics, ordering, cross-entity traversal, divergences |
-| [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) | Full environment-variable catalogue with validation rules |
+| [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) | Full environment-variable list with validation rules |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local dev workflow, code generation, conventions, sibling-file pattern |
 | [`docs/TESTING.md`](docs/TESTING.md) | Test layout, fixtures, parity harness, live tests against `beta.peeringdb.com` |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Fly.io rollout, asymmetric fleet topology, LiteFS operations |
