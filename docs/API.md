@@ -68,6 +68,7 @@ or return `503 not primary` when running outside Fly.io.
 | `GET` | `/rest/v1/openapi.json` | REST | OpenAPI 3 specification |
 | `GET` | `/rest/v1/{collection}` | REST | List resources (entrest-generated) |
 | `GET` | `/rest/v1/{collection}/{id}` | REST | Get single resource (entrest-generated) |
+| `GET` | `/rest/v1/{collection}/{id}/{edge}` | REST | Related resources of one resource (entrest-generated) |
 | `GET` | `/api/` | PDB Compat | Index of available object types (upstream `{"data":[{type:absolute-url}],"meta":{}}` shape) |
 | `GET` | `/api/{type}` | PDB Compat | List endpoint with PeeringDB-compatible filters |
 | `GET` | `/api/{type}/{id}` | PDB Compat | Single object (wrapped in `data: []`) |
@@ -328,11 +329,29 @@ directly from the ent schemas with read-only operations only (`OperationRead` +
 | Path | Description |
 |------|-------------|
 | `GET /rest/v1/openapi.json` | OpenAPI 3 specification for the full REST surface. Regenerated as part of `go generate ./...` |
-| `GET /rest/v1/{collection}` | List resources with filtering and pagination per the OpenAPI spec |
-| `GET /rest/v1/{collection}/{id}` | Get a single resource |
+| `GET /rest/v1/{collection}` | List resources |
+| `GET /rest/v1/{collection}/{id}` | Get one resource |
+| `GET /rest/v1/{collection}/{id}/{edge}` | List or get the related resources, for example `/rest/v1/networks/{id}/network-ix-lans` |
 
-The collection paths and filter parameters are defined by entrest annotations in
-`ent/schema/`; consult the OpenAPI spec for the canonical list.
+A list takes `page` (default 1) and `per_page` (default 10, maximum 100).
+A `per_page` value above 100 returns `400`.
+`sort` names the field (default `updated`),
+and `order` is `asc` or `desc` (default `desc`).
+The default sort adds `created` and `id` as tiebreakers.
+A filter has the form `<field>.<op>=<value>`,
+for example `asn.eq=13335`, `name.ihas=cloud` or `status.eq=ok`.
+For an operator that takes a list, repeat the key:
+`status.in=ok&status.in=pending`.
+The response is `{"page", "total_count", "last_page", "is_last_page", "content"}`.
+Each item includes an `edges` object with its related rows.
+For each edge that holds a list, the server loads at most 1000 rows
+for the full response, newest `updated` first.
+In a list response, all items share this limit,
+so an item can show only part of its related rows.
+To get every related row, use the edge route, which pages like a list.
+The collection paths and the filters come from entrest annotations
+in `ent/schema/`.
+The OpenAPI spec lists every filter.
 
 `meta` on `networks` and `network-ix-lans` is the PeeringDB metadata
 document, an open JSON object (added upstream in 2.83.0).
@@ -344,9 +363,12 @@ A row without a stored document returns `{}`, the same as upstream.
 Non-2xx responses are rewritten to
 [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) by
 `RESTError` in `internal/middleware/rest_error.go`.
-The response `Content-Type` is `application/problem+json`
-and the body includes at minimum `status`, `title`, `detail`,
-and `instance` fields.
+The response `Content-Type` is `application/problem+json`.
+The body always has `type` (`about:blank`), `title`, `status` and `instance`.
+For a `4xx` response, `detail` gives the entrest error message,
+for example `bad request: per_page 0 is out of bounds, must be >= 1`.
+A `5xx` response has no `detail`,
+so database error text does not reach the client.
 
 ## 4. PeeringDB Compatibility API (`/api/`)
 
