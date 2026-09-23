@@ -51,8 +51,10 @@ import (
 //     named by the mirror's traversal key (`org?net__status=`) and
 //     the field-level FILTER_EXCLUDE entries resolve, where upstream
 //     ignores them.
-//   - DIVERGENCE: upstream's reverse `<related_name>__<field>` keys
-//     (`ix?ixlan_set__status=`) are silent-ignored.
+//   - DIVERGENCE: upstream's reverse `<related_name>` keys
+//     (`ix?ixlan_set__status=`, `org?ix_set__in=`) are silent-ignored.
+//     The net_set and fac_set keys are ignored on both sides: upstream
+//     renames them to network_set and facility_set.
 //
 // upstream: 2.83.0 peeringdb_server/serializers.py:970-996
 // (queryable_relations) and :614-656 (get_relation_filters)
@@ -573,19 +575,61 @@ func TestParity_Traversal(t *testing.T) {
 	t.Run("DIVERGENCE_reverse_set_keys_silent_ignore", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream names a reverse relation by its
-		// related_name, for example ixlan_set on ix and net_set on org
-		// (2.83.0 models.py:3308, :5322). queryable_relations adds
-		// <related_name>__<field> for each of them (serializers.py:970-996),
-		// so upstream filters on the related rows. The mirror knows no
-		// _set names and ignores these keys.
+		// related_name, for example ixlan_set on ix and ix_set on org
+		// (2.83.0 models.py:3308, :2621-2622). The reverse relation
+		// reports the ForeignKey type (Django reverse_related.py:127-128),
+		// so field_names holds the bare related_name and
+		// queryable_relations adds <related_name>__<field>
+		// (serializers.py:970-996). Upstream then:
+		//   - filters <related_name>__<field> on the related rows with an
+		//     exact match (rest.py:670-683);
+		//   - filters <related_name>__in, __lt, __lte, __gt and __gte on
+		//     the related row ids (rest.py:633-669), with distinct()
+		//     (:715-716);
+		//   - returns 400 for a bare <related_name>: rest.py:676-677
+		//     builds <related_name>_id, which Django cannot resolve
+		//     (FieldError, :702-703).
+		// The mirror knows no _set names and ignores these keys.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		srv := newTestServer(t, seedRelationKeys(t))
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			// Upstream: [20].
 			{path: "/api/ix?ixlan_set__status=pending", want: []int{20, 21}},
+			// Upstream: [1]. Org 1 owns IX 20 (RelIXA).
+			{path: "/api/org?ix_set__name=RelIXA", want: []int{1, 3}},
 			// Upstream: [1].
+			{path: "/api/org?ix_set__in=20", want: []int{1, 3}},
+			// Upstream: 400.
+			{path: "/api/org?ix_set=20", want: []int{1, 3}},
+		})
+	})
+
+	t.Run("reverse_net_fac_set_keys_ignored_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:428-438 (queryable_field_xl
+		// renames a key that starts with net_ or fac_ to network_ or
+		// facility_), rest.py:629 (the filter loop runs it on every key)
+		// and :633, :670 (a key that is not in field_names is skipped).
+		// The related names net_set (models.py:5322), fac_set on org
+		// and campus (:2219, :2223) and net_side_set on fac (:6093)
+		// therefore become network_set, facility_set and
+		// network_side_set, which name no relation. Neither the
+		// Organization nor the Campus prepare_query seeds them
+		// (serializers.py:4970-4992, :4854-4866). Upstream ignores the
+		// keys, and so does the mirror.
+		c := seedRelationKeys(t)
+		ctx := t.Context()
+		mustCampus(ctx, t, c, 50, "RelCampusA", 1, t0)
+		mustCampus(ctx, t, c, 51, "RelCampusB", 3, t0)
+		c.Facility.UpdateOneID(400).SetCampusID(50).ExecX(ctx)
+
+		srv := newTestServer(t, c)
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			{path: "/api/org?net_set__status=deleted", want: []int{1, 3}},
+			{path: "/api/org?fac_set__name=RelFacA", want: []int{1, 3}},
+			{path: "/api/campus?fac_set__name=RelFacA", want: []int{50, 51}},
+			{path: "/api/fac?net_side_set__speed=1000", want: []int{400, 401}},
 		})
 	})
 
