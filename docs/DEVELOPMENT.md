@@ -9,14 +9,19 @@ For environment variables and runtime configuration, see
 
 - **mise 2026.7.12+**.
 - Git and a local clone of this repository.
+- A C compiler, for example gcc or clang.
+  The race detector needs cgo.
+  `mise run test` and `mise run coverage` set `CGO_ENABLED=1`
+  and run the race detector.
+  `mise run check` runs `mise run test`.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
 Mise installs Go 1.27.1 and all contributor tools from the committed
 cross-platform lockfile.
 
-Pure-Go SQLite is provided by `modernc.org/sqlite` —
-**no CGO is required** for normal builds.
-CGO is only enabled in CI to run the race detector.
+The SQLite driver (`modernc.org/sqlite`) is pure Go.
+The server binary does not need cgo,
+and the Docker images build with `CGO_ENABLED=0`.
 
 ## Local setup
 
@@ -273,7 +278,7 @@ mise run lint
 
 ```bash
 mise run generate
-mise exec -- go test -race ./internal/web/...
+CGO_ENABLED=1 mise exec -- go test -race ./internal/web/...
 ```
 
 **Edited anything that might ripple:**

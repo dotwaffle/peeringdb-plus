@@ -37,11 +37,14 @@ tests exercise the handlers and services that consume the generated code.
 
 ## Running Tests
 
-Run the full suite with the race detector (this is what CI runs):
+Run the full suite with the race detector:
 
 ```bash
-go test -race ./...
+mise run test
 ```
+
+CI runs `mise run coverage`.
+That task runs the same suite and also writes a coverage profile.
 
 Run a single package:
 
@@ -78,19 +81,14 @@ Run fuzz tests (stops on first panic; run explicitly per package):
 go test -run=^$ -fuzz=FuzzFilterParser -fuzztime=30s ./internal/pdbcompat/
 ```
 
-### CGO and the race detector
+### Cgo and the race detector
 
-The race detector requires CGO.
-Local development and production builds use `CGO_ENABLED=0`
-because `modernc.org/sqlite` is pure Go and needs no CGO.
-CI enables CGO **only** to run the race detector:
+The race detector needs cgo and a C compiler.
+`modernc.org/sqlite` is pure Go, so the server binary does not need cgo.
+The Docker images build with `CGO_ENABLED=0`.
+The `test` and `coverage` mise tasks set `CGO_ENABLED=1`.
 
-```bash
-# CI step (see .github/workflows/ci.yml)
-mise run coverage
-```
-
-On machines without a C toolchain, you can run tests without the race detector:
+If your machine has no C compiler, run the tests without the race detector:
 
 ```bash
 go test ./...
