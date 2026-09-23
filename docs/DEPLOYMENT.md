@@ -224,12 +224,12 @@ Standard `OTEL_*` environment variables apply via the
 `internal/otel/provider.go`.
 See [Monitoring](#monitoring) below.
 
-The default sync mode is `incremental`
-(flipped from `full` on 2026-04-26 once upstream deletion tombstones were
-confirmed — see [CONFIGURATION.md](CONFIGURATION.md#sync-worker) for the full
-rationale).
-Set `PDBPLUS_SYNC_MODE=full` only as an operator escape-hatch
-(first-sync hydration, recovery from a corrupt incremental state).
+The default sync mode is `incremental`.
+A primary with no successful sync recorded runs a full sync at startup,
+and `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`) forces a periodic full cycle.
+For one full sync, send `POST /sync?mode=full`
+(see [Force a full sync](#5-force-a-full-sync)).
+Set `PDBPLUS_SYNC_MODE=full` only when every cycle must fetch all data.
 
 ## LiteFS
 
@@ -744,3 +744,33 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 - First checks: `PDBPLUS_SYNC_TOKEN` present in runtime env and deploy secrets.
 - Immediate action: set token and redeploy;
   confirm with an authenticated `/sync` probe.
+
+### 5) Force a full sync
+
+1. Send the request.
+   A replica answers with a `fly-replay` header,
+   and Fly Proxy then sends the request to the primary.
+
+   ```bash
+   curl -X POST -H "X-Sync-Token: $PDBPLUS_SYNC_TOKEN" \
+     'https://peeringdb-plus.fly.dev/sync?mode=full'
+   ```
+
+2. Make sure that the response is `202`.
+   A `409` means that a cycle is running.
+   Wait until it ends, then send the request again.
+   A `401` means that the token is wrong or not set.
+
+The primary traces this cycle.
+To send the request without a trace, add `&trace=0` to the URL.
+
+### 6) Primary lost its database
+
+- A primary with no successful sync recorded runs a full sync at startup.
+  You do not need to start it.
+- Until that sync completes, `/readyz` on the primary returns 503.
+- A replica whose application started before the first successful sync
+  checks `sync_status` once per `PDBPLUS_SYNC_INTERVAL`.
+  Its data routes return 503 until that check,
+  even when `/readyz` returns 200.
+  To make it ready at once, restart it: `fly machine restart <id>`.
