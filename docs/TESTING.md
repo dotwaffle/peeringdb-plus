@@ -274,7 +274,8 @@ When adding a new entity type to `internal/pdbcompat/registry_funcs.go`,
 extend `internal/pdbcompat/budget_test.go`
 and the streaming integration tests with under-budget
 and over-budget assertions mirroring the existing pattern.
-See `CLAUDE.md § Response memory envelope` for the full maintainer checklist.
+See [DEVELOPMENT.md § Adding a new pdbcompat entity](DEVELOPMENT.md#adding-a-new-pdbcompat-entity-response-memory-budget)
+for the full checklist.
 
 ## Parity Tests
 
