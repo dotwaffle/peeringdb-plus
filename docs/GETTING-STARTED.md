@@ -7,7 +7,7 @@ understanding what happens on first launch,
 and verifying the service is healthy across its API surfaces.
 
 For a quick-reference command list, see the [README](../README.md).
-For the full environment variable catalogue,
+For the full list of environment variables,
 see [CONFIGURATION.md](CONFIGURATION.md).
 For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -19,6 +19,7 @@ For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 | Git | any recent | Cloning the repo. |
 | Docker (optional) | any recent | Only if you want to run the container image instead of a local binary. |
 | `grpcurl` (optional) | any recent | Only needed to poke the ConnectRPC/gRPC endpoints manually. |
+| C compiler (gcc or clang) | any recent | Only for the race-detector tests in `mise run test` and `mise run check`. The server build does not use cgo. |
 | A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
 Mise installs Go 1.27.1 and every contributor tool,
@@ -26,9 +27,11 @@ including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum,
 golangci-lint, and govulncheck.
 The committed lockfile records exact tool versions and release checksums.
 
-No CGO is required.
-The project uses `modernc.org/sqlite`
-(pure Go) and builds with `CGO_ENABLED=0` by default.
+The server does not need cgo.
+It uses `modernc.org/sqlite`, a pure-Go SQLite driver.
+The Docker images build with `CGO_ENABLED=0`.
+The race-detector tests (`mise run test` and `mise run check`)
+set `CGO_ENABLED=1` and need a C compiler.
 
 ## 1. Clone and build
 
@@ -37,11 +40,12 @@ git clone https://github.com/dotwaffle/peeringdb-plus.git
 cd peeringdb-plus
 mise trust
 mise install --locked
-mise run build
+mise exec -- go build -o peeringdb-plus ./cmd/peeringdb-plus
 ```
 
-Build a runnable binary explicitly with
-`go build -o peeringdb-plus ./cmd/peeringdb-plus`.
+The last command writes the `peeringdb-plus` binary
+that step 2 runs.
+`mise run build` compiles all packages, but it does not write a binary.
 
 If you intend to make changes,
 run the full verification suite
@@ -51,20 +55,20 @@ once to confirm your toolchain is set up correctly:
 mise run check
 ```
 
-If you change ent schemas, proto files, or templ templates,
-regenerate the derived files first:
+If you change `schema/peeringdb.json`, an `ent/schema/` sibling file,
+a `.proto` file, `graph/custom.graphql` or `graph/gqlgen.yml`,
+a `.templ` template, or `internal/web/tailwind.input.css`,
+run the code generators:
 
 ```bash
 mise run generate
 ```
 
-The generation task converges in a single pass:
-`ent/generate.go` runs `cmd/pdb-schema-generate` first
-(so the schemas exist before entc reads them),
-then entc (entgql/entrest/entproto), `cmd/pdb-compat-allowlist`,
-and `buf generate`; `graph/generate.go` runs `gqlgen generate`;
-and `internal/web/templates/generate.go` runs `templ generate`.
-CI runs the same command and fails on any drift.
+One pass updates all generated files,
+including `internal/web/static/tailwind.css`.
+CI runs the same command
+and fails if the result differs from the commit.
+See [DEVELOPMENT.md § Code generation pipeline](DEVELOPMENT.md#code-generation-pipeline).
 
 ## 2. First run
 
