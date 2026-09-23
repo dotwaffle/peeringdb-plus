@@ -524,3 +524,37 @@ func TestSerializer_DeprecatedConstants(t *testing.T) {
 		t.Error("ixlan dot1q_support = true, want false")
 	}
 }
+
+// TestSerializer_NetInfoTypesList locks info_types as a JSON list. The
+// upstream column is non-null, and the serializer renders [] for an empty
+// value (2.83.0 serializers.py:3947-3960). A row without a stored value
+// renders [], not null.
+func TestSerializer_NetInfoTypesList(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	for _, tc := range []struct {
+		name string
+		in   []string
+		want string
+	}{
+		{"nil", nil, `[]`},
+		{"empty", []string{}, `[]`},
+		{"values", []string{"Content", "NSP"}, `["Content","NSP"]`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			b, err := json.Marshal(networkFromEnt(&ent.Network{InfoTypes: tc.in, Created: now, Updated: now}))
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			var m map[string]json.RawMessage
+			if err := json.Unmarshal(b, &m); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			if got := string(m["info_types"]); got != tc.want {
+				t.Errorf("info_types = %s, want %s", got, tc.want)
+			}
+		})
+	}
+}

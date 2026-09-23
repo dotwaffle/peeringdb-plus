@@ -36,7 +36,10 @@ func socialMediaFromSchema(sm []schematypes.SocialMedia) []peeringdb.SocialMedia
 
 // stringsOrEmpty returns an empty, non-nil slice when s is nil so JSON
 // serialization emits [] rather than null. Upstream PeeringDB always emits a
-// list for ixp_update_exclude (the model default is an empty list).
+// list for ixp_update_exclude (the model default is an empty list) and for
+// info_types (a non-null column, 2.83.0 serializers.py:3947-3960). Do not
+// use it for fac available_voltage_services: that column is nullable
+// upstream, and null is its correct value.
 func stringsOrEmpty(s []string) []string {
 	if s == nil {
 		return []string{}
@@ -108,7 +111,7 @@ func networkFromEnt(n *ent.Network) peeringdb.Network {
 		RouteServer:             n.RouteServer,
 		IRRASSet:                n.IrrAsSet,
 		InfoType:                n.InfoType,
-		InfoTypes:               n.InfoTypes,
+		InfoTypes:               stringsOrEmpty(n.InfoTypes),
 		InfoPrefixes4:           n.InfoPrefixes4,
 		InfoPrefixes6:           n.InfoPrefixes6,
 		InfoTraffic:             n.InfoTraffic,

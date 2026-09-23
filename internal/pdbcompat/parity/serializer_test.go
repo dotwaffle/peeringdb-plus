@@ -295,6 +295,38 @@ func TestParity_Serializer(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("net_info_types_is_a_list", func(t *testing.T) {
+		t.Parallel()
+		// upstream: serializers.py:3947-3960 at 2.83.0 renders info_types
+		// as a list, [] when empty. The column is non-null with blank=True
+		// (django-peeringdb abstract.py:471-477). The beta anon capture has
+		// no null info_types.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "Types Org", t0)
+		mustNet(ctx, t, c, 1, "Types Net", 64501, 1, t0) // no info_types stored
+		srv := newTestServer(t, c)
+
+		for _, path := range []string{"/api/net", "/api/net/1?depth=0", "/api/net/1?depth=2", "/api/org/1?depth=2"} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d; body=%s", path, status, body)
+			}
+			row := decodeDataArray(t, body)[0]
+			if path == "/api/org/1?depth=2" {
+				set, _ := row["net_set"].([]any)
+				if len(set) != 1 {
+					t.Fatalf("org net_set has %d rows, want 1", len(set))
+				}
+				row = set[0].(map[string]any)
+			}
+			got, ok := row["info_types"].([]any)
+			if !ok || len(got) != 0 {
+				t.Errorf("GET %s: info_types = %#v, want []", path, row["info_types"])
+			}
+		}
+	})
 }
 
 // newTierTestServer is newTestServer with the privacy tier stamped on
