@@ -90,9 +90,15 @@ Code-change-relevant directories:
 
 ## Toolchain updates
 
-`mise.toml` is the version policy;
+`mise.toml` is the version policy.
+For the binary tools
+(actionlint, buf, go, golangci-lint, gotestsum, tailwindcss),
 `mise.lock` records release URLs and checksums for Linux and macOS
 on amd64 and arm64.
+The `go:` tools
+(gqlgen, govulncheck, protoc-gen-go, protoc-gen-connect-go, templ)
+have a version only in the lock.
+mise builds them from source.
 After changing a tool pin, refresh and verify the lock:
 
 ```bash
@@ -104,6 +110,19 @@ mise run check
 Keep runtime Go modules in `go.mod`.
 Generator-only binaries belong in mise so their dependency graphs
 do not inflate application module metadata or vulnerability reports.
+
+These generator pins must match a module version in `go.mod`,
+because the generated code compiles against that module:
+
+| mise tool | `go.mod` module |
+|---|---|
+| `gqlgen` | `github.com/99designs/gqlgen` |
+| `templ` | `github.com/a-h/templ` |
+| `protoc-gen-go` | `google.golang.org/protobuf` |
+| `protoc-gen-connect-go` | `connectrpc.com/connect` |
+
+Change both versions in the same commit.
+Then run `mise run generate` and commit the regenerated files.
 
 ## Code generation pipeline
 
