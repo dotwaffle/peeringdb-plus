@@ -1,20 +1,13 @@
-// Package parity holds regression tests that lock v1.16 pdbcompat
-// semantics against future drift.
+// Package parity holds regression tests that lock pdbcompat behavior to
+// upstream PeeringDB.
 //
-// Each *_test.go file in this directory covers one behavioural
-// category, keyed to upstream peeringdb/peeringdb test citations
-// (pdb_api_test.py, or tests/test_meta_registry.py for the meta
-// filters) or to documented `synthesised` markers where no upstream
-// test exercises the behaviour.
+// Each test cites its upstream source: a test in pdb_api_test.py or
+// tests/test_meta_registry.py, or a line of upstream code such as rest.py,
+// serializers.py, or models.py. A test with no upstream counterpart carries
+// a `synthesised` marker. A DIVERGENCE_ sub-test locks an intentional
+// difference that docs/API.md § Known Divergences records.
 //
-// Each test seeds its own clean rows inline (via the ent client) and
-// cites the upstream source line in a comment; the assertions encode
-// the expected served response by hand. The earlier ported-fixture
-// pipeline (internal/testutil/parity + cmd/pdb-fixture-port) was
-// removed once it became clear the ports carried unseedable Python
-// source artefacts and were consumed by no behavioural test.
-//
-// Parity tests run via the standard CI tier (`go test -race ./...`) —
-// no separate workflow. Any non-test file added to this package is a
-// bug; parity is test-only scope.
+// Each test seeds its own rows through the ent client and states the
+// expected response by hand. The package holds test files only. CI runs it
+// with the rest of the suite under the race detector (`go test -race ./...`).
 package parity
