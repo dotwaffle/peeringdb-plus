@@ -28,7 +28,7 @@ Their own sections below describe them.
 | `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values are case-sensitive lowercase only: `public` (default — anonymous callers see only rows with `visible="Public"`) or `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too, but never `visible="Private"` rows; the application logs `slog.Warn("public tier override active", …)` at startup). Any other value (including case variants like `Users` / `PUBLIC` and whitespace-padded forms) is rejected at startup — the strict switch is a fail-safe-closed choice so a typo cannot silently default to either tier. See [Privacy & Tiers](#privacy--tiers). |
 | `PDBPLUS_PUBLIC_URL` | No | (empty) | URL | Optional external origin used in generated agent discovery documents and Agent Skill metadata. When empty, the server card, skill index, `llms.txt`, and skill archive use the request `Host` and protocol (`r.TLS`, then `X-Forwarded-Proto`). Set this only when a reverse proxy rewrites `Host`. The value must be an `http` or `https` origin with no userinfo, path, query, or fragment. |
 | `PDBPLUS_CORS_ORIGINS` | No | `*` | string | Comma-separated list of allowed CORS origins. An entry can contain one `*` wildcard, for example `https://*.example.net`. The `/mcp` endpoint uses the same list. It rejects a request with `403` when the `Origin` header does not match an entry. It does not check requests that have no `Origin` header. |
-| `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only` — enforcement is opt-in per deploy until explicitly enabled per deployment. |
+| `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` sends `Content-Security-Policy-Report-Only`. |
 | `PDBPLUS_MAP_TILE_URL` | No | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | URL template | Browser basemap tile URL. The value must be an absolute HTTP or HTTPS URL, or a root-relative URL. It must contain the `{z}`, `{x}`, and `{y}` placeholders. A custom URL also requires `PDBPLUS_MAP_TILE_ATTRIBUTION`. |
 | `PDBPLUS_MAP_TILE_ATTRIBUTION` | With a custom tile URL | `© OpenStreetMap contributors` | HTML string | Visible attribution for the configured map tile service. The browser receives this value and Leaflet shows it on each map. |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown timeout. The HTTP server drain uses this timeout, and the final telemetry flush then uses it again. Keep two times this value below `kill_timeout` in `fly.toml` (30s). Must be greater than 0. |
@@ -404,24 +404,34 @@ Environment values are supplied by:
 
 ## Upstream sync threat model and mitigations
 
-This section documents the expected risk envelope for upstream fetches
-and operator controls that reduce blast radius.
+This section lists the risks of upstream fetches,
+the signal for each risk, and the variable that controls it.
 
-- **Rate-limit amplification (HTTP 429):** unauthenticated traffic can trigger
-  long `Retry-After` windows from upstream.
-  - Mitigations: configure `PDBPLUS_PEERINGDB_API_KEY`, keep
-    `PDBPLUS_PEERINGDB_RPS` conservative, and monitor sync status/error rate.
-- **Credential leakage (API key):** compromised keys can exhaust quota or expose
-  your identity to upstream abuse handling.
-  - Mitigations: inject via secrets manager, rotate on suspicion, avoid logging
-    key material, scope access to deploy pipeline only.
-- **Unset sync token (fail-closed):** an empty `PDBPLUS_SYNC_TOKEN` does NOT
-  leave `/sync` open — the handler rejects every request with 401, so on-demand
-  sync is disabled (the scheduled sync worker is unaffected).
-  The operational risk is availability, not exposure:
-  operators cannot trigger a recovery sync until a token is set.
-  - Mitigations: set `PDBPLUS_SYNC_TOKEN` in all persistent environments where
-    on-demand sync is wanted; the startup log notes the disabled state.
-
-Operationally, start with defaults and tighten one variable at a time
-while watching `pdbplus_sync_*` and HTTP error metrics.
+- **Rate-limit amplification (HTTP 429):** anonymous traffic can get long
+  `Retry-After` windows from upstream.
+  - Signal: `pdbplus.peeringdb.retries{cause="429"}` and the WARN log
+    `PeeringDB rate-limited, aborting (retry-after exceeds cap)`.
+  - Action: set `PDBPLUS_PEERINGDB_API_KEY`.
+    Without a key, lower `PDBPLUS_PEERINGDB_RPS`.
+    With a key, the client uses 1 request per second and ignores this
+    variable.
+- **Credential leakage (API key):** a leaked key can use your upstream quota,
+  and upstream abuse handling then sees your identity.
+  - Signal: 429 responses while a key is set,
+    or the WARN log `PeeringDB rejected request: API key may be invalid`
+    after upstream revokes the key.
+  - Action: keep the key only in a Fly secret.
+    The application does not log the key.
+    The startup logs show only whether a key is set.
+    To rotate the key, run `fly secrets set PDBPLUS_PEERINGDB_API_KEY=<key>`.
+    This command restarts the machines.
+- **Unset sync token (fail-closed):** an empty `PDBPLUS_SYNC_TOKEN` does not
+  leave `/sync` open.
+  The handler rejects every request with 401, so on-demand sync is disabled.
+  The scheduled sync worker is unaffected.
+  The risk is availability:
+  operators cannot start a recovery sync until a token is set.
+  - Signal: the startup WARN log that starts with
+    `PDBPLUS_SYNC_TOKEN not set`.
+  - Action: set `PDBPLUS_SYNC_TOKEN` in every persistent environment
+    where on-demand sync is wanted.
