@@ -509,8 +509,8 @@ Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB`
 Defaults sit under the Fly 512 MB VM cap with margin
 so the order under pressure is: log → app crash → Fly OOM-kill.
 Zero disables the warn for that metric (attrs still fire).
-A sustained breach of `PDBPLUS_HEAP_WARN_MIB` is the operational signal to
-re-evaluate the incremental-sync defaults.
+A sustained breach of `PDBPLUS_HEAP_WARN_MIB` needs investigation
+(see **Memory escalation** below).
 
 **Dashboard.**
 The `Sync Memory` row in `deploy/grafana/dashboards/pdbplus-overview.json`
@@ -526,10 +526,11 @@ contains four panels:
   `pdbplus_response_heap_delta_bytes` for each endpoint
 
 **Memory escalation.**
-If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync
-cycles, treat it as the operational signal to re-evaluate the sync strategy —
-revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance
-prerequisite work.
+If the peak heap stays above `PDBPLUS_HEAP_WARN_MIB` for several sync cycles,
+find the cause before the primary reaches its 512 MB limit.
+Look at `pdbplus_sync_peak_heap_bytes` for each cycle
+and at the sync mode of those cycles (`sync_status.mode`).
+Full cycles use more memory than incremental cycles.
 Observed baseline (2026-04-17): primary peak 83.8 MiB,
 replicas 58-59 MiB. <!-- VERIFY:
 post-incremental-flip (2026-04-26) memory baseline has not
