@@ -7,11 +7,12 @@ and configuration is treated as immutable after `config.Load()` returns.
 
 The authoritative loader is `internal/config/config.go`
 (function `Load`, struct `Config`).
-Values not parsed there — most notably the OpenTelemetry exporter selection,
-the `PDBPLUS_LOG_LEVEL` filter, and the LiteFS/Fly.io attribution variables —
-are consumed directly by `internal/otel/provider.go`, `internal/otel/logger.go`,
-`internal/litefs/primary.go`,
-or the `autoexport` SDK package and are documented in their own sections below.
+Other variables are read directly by `internal/otel/provider.go`,
+`internal/otel/logger.go`, `internal/litefs/primary.go`, `cmd/peeringdb-plus`,
+or the `autoexport` SDK package.
+These include the OpenTelemetry exporter selection, the `PDBPLUS_LOG_LEVEL`
+filter, and the LiteFS and Fly.io variables.
+Their own sections below describe them.
 
 ## Environment Variables
 
@@ -110,9 +111,9 @@ logged.
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
-| `PDBPLUS_OTEL_SAMPLE_RATE` | No | `1.0` | float | Trace sampling ratio for the known app surfaces (`/api/`, `/rest/v1/`, `/peeringdb.v1.`, `/graphql`). Unknown-path / scanner-bait / health-probe ratios are hardcoded — see `docs/ARCHITECTURE.md` § Sampling Matrix. Must be in the inclusive range `[0.0, 1.0]`. Values outside this range are rejected at startup. |
+| `PDBPLUS_OTEL_SAMPLE_RATE` | No | `1.0` | float | Trace sampling ratio for the known app surfaces (`/api/`, `/rest/v1/`, `/peeringdb.v1.`, `/graphql`). Unknown-path, scanner-bait, and health-probe ratios are hardcoded (see `docs/ARCHITECTURE.md` § Sampling Matrix). This variable does not change `/mcp`, which uses the 1% default for unknown paths, or `/ui/`, which uses 50%. Must be in the inclusive range `[0.0, 1.0]`. Values outside this range are rejected at startup. |
 | `PDBPLUS_OTEL_SQL` | No | `true` | bool | Emit a per-query OpenTelemetry DB span (via XSAM/otelsql) for every SQL statement on the shared `*sql.DB` — ent's queries and the raw `sync_status` statements alike. On by default; set `PDBPLUS_OTEL_SQL=false` to disable. DB spans are children of the active request/sync span, so volume is bounded by the existing sampler: API-read spans inherit `PDBPLUS_OTEL_SAMPLE_RATE`; scheduled sync cycles are not traced at all (so emit no DB spans — this was the historical high-volume concern), while a manually-triggered `POST /sync` is traced by default (pass `?trace=0` to opt out). |
-| `PDBPLUS_LOG_LEVEL` | No | `INFO` | enum | Minimum severity for log records shipped via the OTel logging pipeline (and from there to Loki). Accepted values (case-insensitive, parsed via `slog.Level.UnmarshalText`): `DEBUG`, `INFO`, `WARN`, `ERROR`. The stdout (Fly log) handler is independently gated at INFO and is not affected by this variable. Default `INFO` was chosen so DEBUG records remain local for opt-in debugging without polluting production Loki ingestion volume to keep production Loki ingestion volumes bounded. Invalid values fall back to `INFO` with no error (logging-level config is operator-friendly; fail-fast is normally preferred, but a malformed log level should not take production down). Consumed by `internal/otel/logger.go` `otelLevelFromEnv()` — not parsed by `internal/config`. |
+| `PDBPLUS_LOG_LEVEL` | No | `INFO` | enum | Minimum severity of the log records that go to the OTel log pipeline (and from there to Loki). Values are not case-sensitive: `DEBUG`, `INFO`, `WARN`, `ERROR` (parsed by `slog.Level.UnmarshalText`). The stdout handler (Fly logs) always drops records below `INFO`. At the default, the application drops DEBUG records. With `DEBUG`, DEBUG records go to the OTel pipeline only. An invalid value selects `INFO` and does not stop startup. `internal/otel/logger.go` reads this variable, not `internal/config`. |
 | `PDBPLUS_HEAP_WARN_MIB` | No | `400` | integer (MiB) | Peak Go heap (MiB) threshold checked at end of every sync cycle. The compared value is the cycle's true `HeapInuse` high-water mark, sampled after the Phase A fetch and after each type's Phase B upsert *before* its per-type GC reclaims the spike. It is not the post-GC end-of-cycle floor. When that per-cycle peak exceeds this value, the worker emits `slog.Warn("heap threshold crossed", …)` with typed attrs (`peak_heap_bytes`, `heap_warn_bytes`, `heap_over`, etc.). The OTel span attribute `pdbplus.sync.peak_heap_bytes` (Prometheus gauge `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless. `0` disables the warn. Investigate a sustained breach across multiple cycles before the primary reaches its 512 MB limit. Default sits comfortably under the 512 MB Fly VM cap so the failure order is `log → app crash → Fly OOM-kill`. Observed baseline (2026-04-17): primary peak ~84 MiB, replicas 58–59 MiB, about 4.5× headroom. **Bare integer only**, with no unit suffix (the variable name encodes the unit). `400MB` is rejected. Negative values are rejected at startup. |
 | `PDBPLUS_RSS_WARN_MIB` | No | `384` | integer (MiB) | Peak OS RSS (MiB) threshold derived from `/proc/self/status` `VmHWM` (Linux only). Same warn semantics as `PDBPLUS_HEAP_WARN_MIB`, but note the lifetime difference: `VmHWM` is a **process-lifetime** high-water mark that includes API-serving load and only resets on restart, whereas the heap peak is per-cycle. The OTel span attr `pdbplus.sync.peak_rss_bytes` (Prometheus gauge `pdbplus_sync_peak_rss_bytes`) is omitted on non-Linux platforms (RSS not available). `0` disables the warn. Bare integer only — no unit suffix. |
 
@@ -125,10 +126,12 @@ logged.
 ### Fly.io Resource Attribution (read-only)
 
 These variables are injected by the Fly.io runtime and Fly Consul.
-They are read at startup by `internal/otel/provider.go`
-and by the `/sync` write-forwarding handler in `cmd/peeringdb-plus/main.go`,
-but are never loaded via `internal/config`.
-The application never sets them itself.
+`internal/otel/provider.go` reads the resource variables at startup.
+`cmd/peeringdb-plus/main.go` reads `FLY_REGION` at startup
+for the Web UI and the MCP server.
+The `POST /sync` handler (`cmd/peeringdb-plus/sync_handler.go`)
+reads `FLY_REGION` and `PRIMARY_REGION` on each request.
+`internal/config` never loads them, and the application never sets them.
 
 The OTel resource attributes emitted by `buildResourceFiltered` use OTel semconv
 keys (not custom `fly.*` keys) for everything except `fly.app_name`, because
@@ -138,8 +141,8 @@ attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom
 
 | Env var | Resource attr (semconv) | On metrics? | On traces/logs? | Consumer |
 |---------|-------------------------|-------------|-----------------|----------|
-| `FLY_REGION` | `cloud.region` (`semconv.CloudRegion`) | yes | yes | OTel resource; `POST /sync` handler — when set on a replica, returns `fly-replay: region=${PRIMARY_REGION}` HTTP 307 to forward writes to the primary region. |
-| `FLY_PROCESS_GROUP` | `service.namespace` (`semconv.ServiceNamespace`) | yes | yes | OTel resource. 2-cardinality: `primary` / `replica`. Drives the dashboard's `process_group` template variable. |
+| `FLY_REGION` | `cloud.region` (`semconv.CloudRegion`) | yes | yes | OTel resource. Region shown on `/ui/about` and in the MCP `peeringdb-plus://service` resource. `POST /sync` handler: on a replica, returns HTTP 307 with `fly-replay: region=${PRIMARY_REGION}`. |
+| `FLY_PROCESS_GROUP` | `service.namespace` (`semconv.ServiceNamespace`) | yes | yes | OTel resource. 2-cardinality: `primary` / `replica`. The dashboard `process_group` variable takes its values from `pdbplus_sync_peak_heap_bytes`, which only the primary sends, so it lists only `primary`. Select `All` to include replicas. |
 | `FLY_MACHINE_ID` | `service.instance.id` (`semconv.ServiceInstanceID`) | **no** (per-VM cardinality stripped) | yes | OTel resource (traces and logs only). Deliberately omitted from the metric resource via the `includeInstanceID` gate to keep cardinality low. |
 | `FLY_APP_NAME` | `fly.app_name` (custom key) | dropped by Grafana Cloud allowlist | yes (human grep) | OTel resource; `litefs.yml` substitution. |
 | (constant) | `cloud.provider="fly_io"` (`semconv.CloudProviderKey`) | yes | yes | Always-on, 1-cardinality. |
@@ -163,8 +166,8 @@ Commonly used variables:
 
 | Variable | Purpose |
 |----------|---------|
-| `OTEL_SERVICE_NAME` | Overrides the service name. The application passes `peeringdb-plus` as a default in `SetupInput.ServiceName`; the SDK merges `OTEL_SERVICE_NAME` over `resource.Default()` if set. |
-| `OTEL_RESOURCE_ATTRIBUTES` | Additional resource attributes (merged with `resource.Default()`). |
+| `OTEL_SERVICE_NAME` | Has no effect. The application always sets `service.name=peeringdb-plus`, and that value replaces the value from the environment. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Adds resource attributes. When the application sets one of these keys, its value replaces the environment value: `service.name`, `service.version`, `service.namespace`, `service.instance.id`, `cloud.provider`, `cloud.platform`, `cloud.region`, `fly.app_name`. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Base OTLP endpoint (affects traces, metrics, and logs unless overridden per-signal). |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`, `http/protobuf`, or `http/json`. |
 | `OTEL_EXPORTER_OTLP_HEADERS` | Comma-separated list of headers for OTLP requests (e.g., auth tokens). |
