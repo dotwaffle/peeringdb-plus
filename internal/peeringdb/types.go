@@ -197,6 +197,25 @@ type Poc struct {
 	Status  string    `json:"status"`
 }
 
+// BlankDeletedContact returns p with Name, Phone, Email and URL set to ""
+// when p.Status is "deleted", and returns p unchanged otherwise.
+//
+// Upstream PeeringDB applies this rule when it serializes a contact and
+// status is among the rendered fields (2.83.0 serializers.py:2941-2954,
+// issue #569). A tombstone thus shows the deletion but not the contact
+// details. Role, visible, net_id and the timestamps stay as they are. The
+// mirror applies the same rule when it stores a contact (internal/sync)
+// and when it serves one on /api/ (internal/pdbcompat). On /api/ it also
+// applies the rule when ?fields= leaves out status, which is stricter
+// than upstream.
+func (p Poc) BlankDeletedContact() Poc {
+	if p.Status != "deleted" {
+		return p
+	}
+	p.Name, p.Phone, p.Email, p.URL = "", "", "", ""
+	return p
+}
+
 // IxLan represents a PeeringDB IX LAN (ixlan).
 type IxLan struct {
 	ID                         int       `json:"id"`

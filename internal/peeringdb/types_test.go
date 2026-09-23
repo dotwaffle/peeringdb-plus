@@ -384,3 +384,37 @@ func countSubstr(s, sub string) int {
 	}
 	return n
 }
+
+// TestPoc_BlankDeletedContact locks the upstream tombstone rule: a
+// deleted contact loses name, phone, email and url, and keeps every other
+// field. A contact with any other status is returned unchanged.
+// upstream: 2.83.0 serializers.py:2941-2954 (#569)
+func TestPoc_BlankDeletedContact(t *testing.T) {
+	t.Parallel()
+
+	ts := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	full := Poc{
+		ID: 7, NetID: 42, Role: "NOC", Visible: "Users",
+		Name: "Jane Doe", Phone: "+1 555 0100", Email: "jane@example.invalid", URL: "https://example.invalid/jane",
+		Created: ts, Updated: ts,
+	}
+
+	for _, status := range []string{"ok", "pending", ""} {
+		p := full
+		p.Status = status
+		if got := p.BlankDeletedContact(); got != p {
+			t.Errorf("status %q: got %+v, want the input unchanged", status, got)
+		}
+	}
+
+	deleted := full
+	deleted.Status = "deleted"
+	want := deleted
+	want.Name, want.Phone, want.Email, want.URL = "", "", "", ""
+	if got := deleted.BlankDeletedContact(); got != want {
+		t.Errorf("status deleted: got %+v, want %+v", got, want)
+	}
+	if deleted.Name != full.Name {
+		t.Errorf("BlankDeletedContact changed its receiver: Name = %q", deleted.Name)
+	}
+}

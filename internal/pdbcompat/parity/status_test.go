@@ -749,6 +749,119 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
+	t.Run("deleted_poc_blanks_contact_fields", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:2941-2954 (#569)
+		// upstream: 2.83.0 pdb_api_test.py:3120-3127
+		// Upstream blanks name, phone, email and url when it renders a
+		// deleted contact with its status, whatever the database holds. The
+		// tombstone here holds contact data, as the rows that the removed
+		// inference-by-absence sync code (v1.16.0 to v1.18.1) marked
+		// deleted do. A live contact keeps its data.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seedNet(t, c, 1, 64501, "ok", t0)
+		for _, p := range []struct {
+			id     int
+			status string
+		}{{10, "deleted"}, {11, "ok"}} {
+			if _, err := c.Poc.Create().
+				SetID(p.id).SetNetID(1).SetRole("NOC").SetVisible("Public").
+				SetName("Jane Doe").SetPhone("+1 555 0100").
+				SetEmail("jane@example.invalid").SetURL("https://example.invalid/jane").
+				SetStatus(p.status).SetCreated(t0).SetUpdated(t0.Add(time.Hour)).
+				Save(ctx); err != nil {
+				t.Fatalf("seed poc id=%d: %v", p.id, err)
+			}
+		}
+
+		srv := newTestServer(t, c)
+		path := fmt.Sprintf("/api/poc?since=%d", t0.Unix())
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusOK {
+			t.Fatalf("GET %s: status = %d; body=%s", path, status, string(body))
+		}
+		byID := make(map[int]map[string]any)
+		for _, row := range decodeDataArray(t, body) {
+			if id, ok := row["id"].(float64); ok {
+				byID[int(id)] = row
+			}
+		}
+		if len(byID) != 2 {
+			t.Fatalf("GET %s: got %d rows, want 2 (ids 10 and 11); body=%s", path, len(byID), string(body))
+		}
+
+		tomb := byID[10]
+		for _, key := range []string{"name", "phone", "email", "url"} {
+			if got := tomb[key]; got != "" {
+				t.Errorf("deleted poc %s = %v, want \"\"", key, got)
+			}
+		}
+		for key, want := range map[string]any{
+			"role": "NOC", "visible": "Public", "net_id": float64(1), "status": "deleted",
+		} {
+			if got := tomb[key]; got != want {
+				t.Errorf("deleted poc %s = %v, want %v", key, got, want)
+			}
+		}
+
+		live := byID[11]
+		for key, want := range map[string]string{
+			"name": "Jane Doe", "phone": "+1 555 0100",
+			"email": "jane@example.invalid", "url": "https://example.invalid/jane",
+		} {
+			if got := live[key]; got != want {
+				t.Errorf("live poc %s = %v, want %q", key, got, want)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_deleted_poc_blanked_without_status_field", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream blanks the contact fields of a deleted
+		// contact only when status is among the rendered fields. The
+		// serializer removes the fields that ?fields= does not name, and
+		// to_representation blanks only when the rendered status is
+		// "deleted". A soft delete keeps the stored values, so upstream
+		// returns them for ?fields=id,name,email. The mirror blanks the
+		// fields before it applies ?fields=, so it returns "".
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 serializers.py:942-950 (?fields= filter)
+		// + serializers.py:2941-2954 (status check)
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seedNet(t, c, 1, 64501, "ok", t0)
+		if _, err := c.Poc.Create().
+			SetID(10).SetNetID(1).SetRole("NOC").SetVisible("Public").
+			SetName("Jane Doe").SetPhone("+1 555 0100").
+			SetEmail("jane@example.invalid").SetURL("https://example.invalid/jane").
+			SetStatus("deleted").SetCreated(t0).SetUpdated(t0.Add(time.Hour)).
+			Save(ctx); err != nil {
+			t.Fatalf("seed poc tombstone: %v", err)
+		}
+
+		srv := newTestServer(t, c)
+		path := fmt.Sprintf("/api/poc?since=%d&fields=id,name,email", t0.Unix())
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusOK {
+			t.Fatalf("GET %s: status = %d; body=%s", path, status, string(body))
+		}
+		rows := decodeDataArray(t, body)
+		if len(rows) != 1 || rows[0]["id"] != float64(10) {
+			t.Fatalf("GET %s: got %v, want one row with id 10", path, rows)
+		}
+		if _, ok := rows[0]["status"]; ok {
+			t.Fatalf("GET %s: row has status, want it projected away: %v", path, rows[0])
+		}
+		// Upstream returns "Jane Doe" and "jane@example.invalid" here.
+		for _, key := range []string{"name", "email"} {
+			if got := rows[0][key]; got != "" {
+				t.Errorf("GET %s: %s = %v, want \"\" (divergence canary)", path, key, got)
+			}
+		}
+	})
+
 	t.Run("DIVERGENCE_poc_tombstone_outlives_upstream_retention", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream hard deletes a soft-deleted poc when its
@@ -765,10 +878,14 @@ func TestParity_Status(t *testing.T) {
 		ctx := t.Context()
 		deletedAt := time.Now().UTC().Add(-90 * 24 * time.Hour).Truncate(time.Second)
 		seedNet(t, c, 1, 64501, "ok", t0)
-		// Upstream blanks name, phone, email and url on soft delete
-		// (docs/api/obj_poc.md:12-13); the ent defaults are "".
+		// The tombstone holds contact data, like the rows that the
+		// removed inference-by-absence sync code marked deleted. The
+		// retained tombstone must still show it blanked
+		// (serializers.py:2941-2954).
 		if _, err := c.Poc.Create().
 			SetID(10).SetNetID(1).SetRole("NOC").SetVisible("Public").
+			SetName("Jane Doe").SetPhone("+1 555 0100").
+			SetEmail("jane@example.invalid").SetURL("https://example.invalid/jane").
 			SetStatus("deleted").SetCreated(t0).SetUpdated(deletedAt).
 			Save(ctx); err != nil {
 			t.Fatalf("seed poc tombstone: %v", err)
@@ -781,8 +898,14 @@ func TestParity_Status(t *testing.T) {
 			t.Fatalf("GET %s: status = %d; body=%s", path, status, string(body))
 		}
 		// Upstream returns [] here: the tombstone is 90 days old.
-		if ids := extractIDs(t, body); !equalIntSlice(ids, []int{10}) {
-			t.Errorf("GET %s: got %v, want [10] (retained tombstone; divergence canary)", path, ids)
+		rows := decodeDataArray(t, body)
+		if len(rows) != 1 || rows[0]["id"] != float64(10) {
+			t.Fatalf("GET %s: got %v, want one row with id 10 (retained tombstone; divergence canary)", path, rows)
+		}
+		for _, key := range []string{"name", "phone", "email", "url"} {
+			if got := rows[0][key]; got != "" {
+				t.Errorf("retained tombstone %s = %v, want \"\"", key, got)
+			}
 		}
 	})
 

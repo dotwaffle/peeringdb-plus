@@ -265,7 +265,11 @@ func internetExchangesFromEnt(ixes []*ent.InternetExchange) []peeringdb.Internet
 	return out
 }
 
-// pocFromEnt maps an ent Poc to a peeringdb Poc.
+// pocFromEnt maps an ent Poc to a peeringdb Poc. A deleted contact is
+// served with name, phone, email and url blanked, as upstream does
+// (peeringdb.Poc.BlankDeletedContact). Every /api/ path that renders a
+// poc calls this function, so the rule holds even for a stored tombstone
+// that still carries contact data.
 func pocFromEnt(p *ent.Poc) peeringdb.Poc {
 	return peeringdb.Poc{
 		ID:      p.ID,
@@ -279,7 +283,7 @@ func pocFromEnt(p *ent.Poc) peeringdb.Poc {
 		Created: p.Created,
 		Updated: p.Updated,
 		Status:  p.Status,
-	}
+	}.BlankDeletedContact()
 }
 
 // pocsFromEnt maps a slice of ent Pocs to peeringdb Pocs.
