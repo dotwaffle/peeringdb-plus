@@ -61,7 +61,7 @@ func (s *Service) IX(ctx context.Context, id int) (IXDetail, error) {
 	ixParticipants, err := s.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(id)), ixlan.StatusIn("ok", "pending")).
 		QueryNetworkIxLans().
-		Where(networkixlan.StatusIn("ok", "pending")).
+		Where(networkixlan.StatusIn("ok", "not-operational", "pending")).
 		WithNetwork().
 		Order(networkixlan.ByAsn()).
 		All(ctx)
@@ -79,6 +79,7 @@ func (s *Service) IX(ctx context.Context, id int) (IXDetail, error) {
 				ASN:      nix.Asn,
 				Speed:    nix.Speed,
 				IsRSPeer: nix.IsRsPeer,
+				Markers:  ConnectionMarkersFor(nix),
 			}
 			if nix.Ipaddr4 != nil {
 				row.IPAddr4 = *nix.Ipaddr4

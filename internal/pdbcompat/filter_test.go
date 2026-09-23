@@ -3,8 +3,10 @@ package pdbcompat
 import (
 	"context"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseFieldOp(t *testing.T) {
@@ -584,6 +586,7 @@ func TestFieldTypeString(t *testing.T) {
 		{FieldBool, "bool"},
 		{FieldTime, "time"},
 		{FieldFloat, "float"},
+		{FieldMultiChoice, "multichoice"},
 		{FieldType(99), "unknown(99)"},
 	}
 	for _, tt := range tests {
@@ -682,6 +685,26 @@ func TestParseTimeErrors(t *testing.T) {
 	}
 }
 
+// TestParseTime_ReturnsUTC checks that every parsed time is in UTC. The
+// SQLite driver binds a time as text in its own zone, and the stored
+// timestamps are UTC text, so a time in another zone compares wrongly.
+// The epoch cases fail only when the process zone is not UTC.
+func TestParseTime_ReturnsUTC(t *testing.T) {
+	t.Parallel()
+	want := time.Date(2026, 4, 1, 10, 0, 0, 0, time.UTC)
+	epoch := strconv.FormatInt(want.Unix(), 10)
+	got, err := parseEpoch(epoch)
+	if err != nil || got.Location() != time.UTC || !got.Equal(want) {
+		t.Errorf("parseEpoch(%s) = %v, %v; want %v in UTC", epoch, got, err, want)
+	}
+	for _, in := range []string{epoch, "2026-04-01T10:00:00Z", "2026-04-01T11:00:00+01:00", "2026-04-01T05:00:00-05:00", "2026-04-01 10:00:00"} {
+		got, _, err := parseTimeValue(in)
+		if err != nil || got.Location() != time.UTC || !got.Equal(want) {
+			t.Errorf("parseTimeValue(%q) = %v, %v; want %v in UTC", in, got, err, want)
+		}
+	}
+}
+
 // TestParseFiltersErrorPaths tests error propagation through ParseFilters.
 func TestParseFiltersErrorPaths(t *testing.T) {
 	t.Parallel()
@@ -768,8 +791,8 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 // codegen emits the literal allowlist entries from serializers.py but
 // the Path A resolver falls through to silent-ignore when LookupEdge
 // can't find a matching forward edge. That's the upstream-documented
-// behaviour (rest.py:658-662: unknown filter fields are silently
-// dropped). This test guards the regression where an entity's ENTIRE
+// behaviour (2.83.0 rest.py:633, :670: a key that names no field
+// matches neither branch and is dropped). This test guards the regression where an entity's ENTIRE
 // allowlist becomes unresolvable — i.e. an entity loses all its Path A
 // plumbing due to a schema rename or annotation drop.
 //

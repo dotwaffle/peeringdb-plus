@@ -61,6 +61,7 @@ var injectedNetwork = templates.NetworkDetail{
 			Speed:   10000,
 			IPAddr4: "192.0.2.1" + belPayload,
 			IPAddr6: "2001:db8::1" + rawESCPayload,
+			Markers: templates.ConnectionMarkers{PlannedStatus: "deleted", PlannedDate: "2026-12-31" + oscTitlePayload},
 		},
 	},
 	FacPresences: []templates.NetworkFacRow{
@@ -213,7 +214,7 @@ var (
 		Website: injected("https://ix/"), OrgName: injected("IXOrg"), City: injected("IXCity"),
 		Country: injected("ZZ"), RegionContinent: injected("Europe"), Media: injected("Ethernet"),
 		Notes: injected("IXNotes"), Status: "ok",
-		Participants: []templates.IXParticipantRow{{NetName: injected("IXPart"), ASN: 64500, IPAddr4: injected("192.0.2.1"), IPAddr6: injected("2001:db8::1")}},
+		Participants: []templates.IXParticipantRow{{NetName: injected("IXPart"), ASN: 64500, IPAddr4: injected("192.0.2.1"), IPAddr6: injected("2001:db8::1"), Markers: templates.ConnectionMarkers{PlannedDate: injected("2026-12-31")}}},
 		Facilities:   []templates.IXFacilityRow{{FacName: injected("IXFac"), FacID: 2, City: injected("FacCity"), Country: injected("ZZ")}},
 		Prefixes:     []templates.IXPrefixRow{{Prefix: injected("10.0.0.0/24"), Protocol: "IPv4"}},
 	}
@@ -242,7 +243,8 @@ var (
 		NetA: templates.CompareNetwork{ASN: 64500, Name: injected("NetA"), ID: 1},
 		NetB: templates.CompareNetwork{ASN: 64501, Name: injected("NetB"), ID: 2},
 		SharedIXPs: []templates.CompareIXP{{IXID: 9, IXName: injected("CmpIX"), Shared: true,
-			NetA: &templates.CompareIXPresence{Speed: 10000, IPAddr4: injected("192.0.2.1"), IPAddr6: injected("2001:db8::1")},
+			NetA: &templates.CompareIXPresence{Speed: 10000, IPAddr4: injected("192.0.2.1"), IPAddr6: injected("2001:db8::1"),
+				Markers: templates.ConnectionMarkers{PlannedStatus: "ok", PlannedDate: injected("2026-12-31")}},
 			NetB: &templates.CompareIXPresence{Speed: 10000}}},
 		SharedFacilities: []templates.CompareFacility{{FacID: 5, FacName: injected("CmpFac"), City: injected("C"), Country: injected("ZZ"), Shared: true,
 			NetA: &templates.CompareFacPresence{LocalASN: 64500}}},

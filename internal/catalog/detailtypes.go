@@ -299,6 +299,9 @@ type NetworkIXLanRow struct {
 	IPAddr6 string
 	// IsRSPeer indicates route server peering.
 	IsRSPeer bool
+	// Markers holds the upstream markers of the connection. Omitted from
+	// JSON when no marker is set.
+	Markers ConnectionMarkers `json:",omitzero"`
 }
 
 // NetworkFacRow holds display data for a network's facility presence row.
@@ -347,6 +350,9 @@ type IXParticipantRow struct {
 	IPAddr6 string
 	// IsRSPeer indicates route server peering.
 	IsRSPeer bool
+	// Markers holds the upstream markers of the connection. Omitted from
+	// JSON when no marker is set.
+	Markers ConnectionMarkers `json:",omitzero"`
 }
 
 // IXFacilityRow holds display data for an IXP facility row.

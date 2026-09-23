@@ -110,7 +110,7 @@ func TestParity_In(t *testing.T) {
 
 	t.Run("string_in_is_case_insensitive_and_folded", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:576 (`v = unidecode.unidecode(v)` applies
+		// upstream: 2.83.0 rest.py:597 (`v = unidecode.unidecode(v)` applies
 		// to ALL filter values, including __in) + MySQL's
 		// case-insensitive utf8mb4 collation. ?name=decix matching
 		// "DECIX" while ?name__in=decix missed it was an internal

@@ -28,10 +28,7 @@ func TestConnectHandlerOpts_ReadMaxBytes(t *testing.T) {
 		"file:connect_readmaxbytes?mode=memory&cache=shared&_pragma=foreign_keys(1)")
 	t.Cleanup(func() { _ = client.Close() })
 
-	otelInterceptor, err := otelconnect.NewInterceptor(
-		otelconnect.WithoutServerPeerAttributes(),
-		otelconnect.WithoutTraceEvents(),
-	)
+	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
 	if err != nil {
 		t.Fatalf("create otel interceptor: %v", err)
 	}

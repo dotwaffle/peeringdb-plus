@@ -1,7 +1,6 @@
 package pdbcompat
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"testing"
@@ -434,6 +433,12 @@ func TestSerializerSocialMediaConversion(t *testing.T) {
 // ixf_ixp_member_list_url lives in the per-surface serializers; this
 // test locks the pdbcompat surface.
 //
+// The omit flag of privfield.Redact decides if the key is present. A
+// caller that has the permission gets the key also when the stored value
+// is empty, as upstream does: its applicator deletes the key only when
+// the permission is missing (2.83.0 permissions.py:344-353). The one
+// exception is an empty Users value (see ixfMemberListURLOut).
+//
 // The full 5-surface E2E lives in cmd/peeringdb-plus/field_privacy_e2e_test.go
 // (TestE2E_FieldLevel_IxlanURL_*); this test is the fast per-package gate.
 func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
@@ -442,58 +447,114 @@ func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
 	const url = "https://example.test/ix/100/members.json"
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	usersGated := &ent.IxLan{
-		ID:                         100,
-		IxfIxpMemberListURLVisible: "Users",
-		IxfIxpMemberListURL:        url,
-		Created:                    now,
-		Updated:                    now,
-	}
-	publicRow := &ent.IxLan{
-		ID:                         101,
-		IxfIxpMemberListURLVisible: "Public",
-		IxfIxpMemberListURL:        url,
-		Created:                    now,
-		Updated:                    now,
-	}
-
 	anon := context.Background() // un-stamped → TierPublic (fail-closed)
 	users := privctx.WithTier(context.Background(), privctx.TierUsers)
 
-	// Users-gated row at TierPublic → URL redacted (empty).
-	if got := ixLanFromEnt(anon, usersGated); got.IXFIXPMemberListURL != "" {
-		t.Errorf("anon tier, _visible=Users: URL = %q, want empty", got.IXFIXPMemberListURL)
+	tests := []struct {
+		name    string
+		ctx     context.Context
+		visible string
+		stored  string
+		wantKey bool
+	}{
+		{"public anon url", anon, "Public", url, true},
+		{"public anon empty", anon, "Public", "", true},
+		{"public users empty", users, "Public", "", true},
+		{"users anon url", anon, "Users", url, false},
+		{"users anon empty", anon, "Users", "", false},
+		{"users users url", users, "Users", url, true},
+		// An anonymous sync stores "" for every Users row, so an empty
+		// Users value does not mean "no URL": the key stays out.
+		{"users users empty", users, "Users", "", false},
+		{"private users url", users, "Private", url, false},
+		{"private anon empty", anon, "Private", "", false},
+		{"unknown visible fails closed", users, "", url, false},
 	}
-	// Verify the _visible companion is STILL emitted (upstream parity).
-	if got := ixLanFromEnt(anon, usersGated); got.IXFIXPMemberListURLVisible != "Users" {
-		t.Errorf("anon tier, _visible=Users: visible companion = %q, want %q", got.IXFIXPMemberListURLVisible, "Users")
-	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			row := &ent.IxLan{
+				ID:                         100,
+				IxfIxpMemberListURLVisible: tc.visible,
+				IxfIxpMemberListURL:        tc.stored,
+				Created:                    now,
+				Updated:                    now,
+			}
+			out := ixLanFromEnt(tc.ctx, row)
+			if out.IXFIXPMemberListURLVisible != tc.visible {
+				t.Errorf("_visible = %q, want %q", out.IXFIXPMemberListURLVisible, tc.visible)
+			}
 
-	// Users-gated row at TierUsers → URL admitted.
-	if got := ixLanFromEnt(users, usersGated); got.IXFIXPMemberListURL != url {
-		t.Errorf("users tier, _visible=Users: URL = %q, want %q", got.IXFIXPMemberListURL, url)
+			b, err := json.Marshal(out)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			var m map[string]any
+			if err := json.Unmarshal(b, &m); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			if _, ok := m["ixf_ixp_member_list_url_visible"]; !ok {
+				t.Errorf("_visible key missing, want it on every row; body=%s", b)
+			}
+			got, present := m["ixf_ixp_member_list_url"]
+			if present != tc.wantKey {
+				t.Fatalf("url key present = %v, want %v; body=%s", present, tc.wantKey, b)
+			}
+			if tc.wantKey && got != tc.stored {
+				t.Errorf("url = %#v, want %q", got, tc.stored)
+			}
+		})
 	}
+}
 
-	// Public row at either tier → always admitted.
-	for _, ctx := range []context.Context{anon, users} {
-		if got := ixLanFromEnt(ctx, publicRow); got.IXFIXPMemberListURL != url {
-			t.Errorf("any tier, _visible=Public: URL = %q, want %q", got.IXFIXPMemberListURL, url)
-		}
-	}
+// TestSerializer_DeprecatedConstants locks the two deprecated fields that
+// upstream renders as constants whatever the stored value is: ix media is
+// "Ethernet" (2.83.0 serializers.py:4497-4500) and ixlan dot1q_support is
+// false (serializers.py:4304-4307).
+func TestSerializer_DeprecatedConstants(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	// JSON wire shape: with the value blanked, the json:"...,omitempty" tag
-	// MUST cause the key to be absent. This is the wire-level
-	// correctness the whole redaction approach hinges on.
-	out := ixLanFromEnt(anon, usersGated)
-	b, err := json.Marshal(out)
-	if err != nil {
-		t.Fatalf("marshal: %v", err)
+	ix := internetExchangeFromEnt(&ent.InternetExchange{Media: "Fiber", Created: now, Updated: now})
+	if ix.Media != "Ethernet" {
+		t.Errorf("ix media = %q, want %q", ix.Media, "Ethernet")
 	}
-	if bytes.Contains(b, []byte(`"ixf_ixp_member_list_url"`)) {
-		t.Errorf("anon tier JSON MUST omit key, got body=%s", b)
+	lan := ixLanFromEnt(context.Background(), &ent.IxLan{Dot1qSupport: true, Created: now, Updated: now})
+	if lan.Dot1QSupport {
+		t.Error("ixlan dot1q_support = true, want false")
 	}
-	// Companion visible key MUST still be present.
-	if !bytes.Contains(b, []byte(`"ixf_ixp_member_list_url_visible"`)) {
-		t.Errorf("anon tier JSON MUST still emit _visible key, got body=%s", b)
+}
+
+// TestSerializer_NetInfoTypesList locks info_types as a JSON list. The
+// upstream column is non-null, and the serializer renders [] for an empty
+// value (2.83.0 serializers.py:3947-3960). A row without a stored value
+// renders [], not null.
+func TestSerializer_NetInfoTypesList(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	for _, tc := range []struct {
+		name string
+		in   []string
+		want string
+	}{
+		{"nil", nil, `[]`},
+		{"empty", []string{}, `[]`},
+		{"values", []string{"Content", "NSP"}, `["Content","NSP"]`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			b, err := json.Marshal(networkFromEnt(&ent.Network{InfoTypes: tc.in, Created: now, Updated: now}))
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			var m map[string]json.RawMessage
+			if err := json.Unmarshal(b, &m); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			if got := string(m["info_types"]); got != tc.want {
+				t.Errorf("info_types = %s, want %s", got, tc.want)
+			}
+		})
 	}
 }

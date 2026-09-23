@@ -28,6 +28,10 @@ const (
 	FieldTime
 	// FieldFloat indicates a float64-typed field.
 	FieldFloat
+	// FieldMultiChoice indicates a multi-value choice field, stored as a
+	// JSON array of strings. The filters compare the string that
+	// upstream stores (see multichoice_filter.go).
+	FieldMultiChoice
 )
 
 // String returns the human-readable name of the field type. It is used in
@@ -47,6 +51,8 @@ func (ft FieldType) String() string {
 		return "time"
 	case FieldFloat:
 		return "float"
+	case FieldMultiChoice:
+		return "multichoice"
 	default:
 		return fmt.Sprintf("unknown(%d)", int(ft))
 	}
@@ -99,6 +105,44 @@ type TypeConfig struct {
 	// diacritic-insensitive matching. Nil is safe —
 	// map reads on nil return the zero value (false).
 	FoldedFields map[string]bool
+
+	// ForeignKeys maps the upstream name of each forward foreign key of
+	// the type (the Django field name, for example "org" or "network")
+	// to the local FK column in Fields. Upstream filters a key that
+	// names the FK (?org=1, ?network__in=1,2, ?facility_id=2) on the FK
+	// column (2.83.0 rest.py:608-631, :670-677). A relation key that
+	// starts with the upstream name (?network__asn=) walks the edge
+	// that owns the column. Nil when the type has no forward FK.
+	ForeignKeys map[string]string
+
+	// UpstreamIgnored lists the Fields keys that upstream never filters
+	// as a key without relation segments. Such a key is ignored for any
+	// operator, as upstream ignores it. Two causes exist:
+	//   - queryable_field_xl renames the key to a name that matches no
+	//     field (2.83.0 serializers.py:428-438): carrier fac_count
+	//     becomes facility_count, netixlan net_side_id becomes
+	//     network_side.
+	//   - The key is a serializer field or a model property, not a
+	//     model field, and no prepare_query handles it (rest.py:525-528,
+	//     :633, :670): for example campus city and carrier org_name.
+	// The columns stay in Fields, so they stay valid traversal targets
+	// where upstream filters them (carrierfac?carrier__fac_count=).
+	UpstreamIgnored map[string]bool
+
+	// NonModelFields lists the Fields keys that are not fields of the
+	// upstream model: serializer fields and model properties. The
+	// upstream filter loop filters only model fields and
+	// queryable_relations (2.83.0 rest.py:525-528, :633, :670), so each
+	// of these keys is a prepare_query key or in UpstreamIgnored. No
+	// relation key filters one of these fields on the related row, and
+	// the mirror ignores such a key. queryable_relations offers only
+	// model fields (serializers.py:970-996), so upstream ignores a
+	// traversal key such as fac?campus__city=. In a relation key of a
+	// prepare_query, the Django filter raises FieldError, and upstream
+	// returns 400 (rest.py:488-500). UpstreamIgnored is not the same
+	// set: it also holds model fields that queryable_field_xl renames
+	// (carrier fac_count).
+	NonModelFields map[string]bool
 }
 
 // reservedParams lists query parameter names that are not filter fields.
@@ -113,6 +157,12 @@ var reservedParams = map[string]bool{
 
 // Registry maps PeeringDB type name strings to their TypeConfig.
 // List and Get functions are nil until serializers are wired up.
+//
+// Every type declares "status" as an ordinary filter field. Upstream
+// (2.83.0) turns ?status=X into status__iexact (rest.py:683) and applies
+// it before the list status matrix (rest.py:695, :745-748), so the two
+// filters AND together. wireEntity appends applyStatusMatrix last, so a
+// caller filter can narrow the admitted statuses but never widen them.
 var Registry = map[string]TypeConfig{
 	peeringdb.TypeOrg: {
 		Name: peeringdb.TypeOrg,
@@ -136,6 +186,7 @@ var Registry = map[string]TypeConfig{
 			"longitude": FieldFloat,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
@@ -153,7 +204,7 @@ var Registry = map[string]TypeConfig{
 			"looking_glass":                FieldString,
 			"route_server":                 FieldString,
 			"irr_as_set":                   FieldString,
-			"info_type":                    FieldString,
+			"info_types":                   FieldMultiChoice,
 			"info_prefixes4":               FieldInt,
 			"info_prefixes6":               FieldInt,
 			"info_traffic":                 FieldString,
@@ -181,9 +232,11 @@ var Registry = map[string]TypeConfig{
 			"poc_updated":                  FieldTime,
 			"created":                      FieldTime,
 			"updated":                      FieldTime,
+			"status":                       FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "irr_as_set"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
 	},
 	peeringdb.TypeFac: {
 		Name: peeringdb.TypeFac,
@@ -212,6 +265,7 @@ var Registry = map[string]TypeConfig{
 			"net_count":                   FieldInt,
 			"ix_count":                    FieldInt,
 			"carrier_count":               FieldInt,
+			"available_voltage_services":  FieldMultiChoice,
 			"address1":                    FieldString,
 			"address2":                    FieldString,
 			"city":                        FieldString,
@@ -224,9 +278,13 @@ var Registry = map[string]TypeConfig{
 			"longitude":                   FieldFloat,
 			"created":                     FieldTime,
 			"updated":                     FieldTime,
+			"status":                      FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
+		ForeignKeys:  map[string]string{"org": "org_id", "campus": "campus_id"},
+		// org_name is a serializer field (serializers.py:1947).
+		NonModelFields: map[string]bool{"org_name": true},
 	},
 	peeringdb.TypeIX: {
 		Name: peeringdb.TypeIX,
@@ -264,9 +322,11 @@ var Registry = map[string]TypeConfig{
 			"logo":                      FieldString,
 			"created":                   FieldTime,
 			"updated":                   FieldTime,
+			"status":                    FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true, "city": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
 	},
 	peeringdb.TypePoc: {
 		Name: peeringdb.TypePoc,
@@ -281,8 +341,10 @@ var Registry = map[string]TypeConfig{
 			"url":     FieldString,
 			"created": FieldTime,
 			"updated": FieldTime,
+			"status":  FieldString,
 		},
 		SearchFields: []string{"name", "email"},
+		ForeignKeys:  map[string]string{"network": "net_id"},
 	},
 	peeringdb.TypeIXLan: {
 		Name: peeringdb.TypeIXLan,
@@ -299,8 +361,10 @@ var Registry = map[string]TypeConfig{
 			"ixf_ixp_import_enabled":          FieldBool,
 			"created":                         FieldTime,
 			"updated":                         FieldTime,
+			"status":                          FieldString,
 		},
 		SearchFields: []string{"name", "descr"},
+		ForeignKeys:  map[string]string{"ix": "ix_id"},
 	},
 	peeringdb.TypeIXPfx: {
 		Name: peeringdb.TypeIXPfx,
@@ -312,8 +376,11 @@ var Registry = map[string]TypeConfig{
 			"in_dfz":   FieldBool,
 			"created":  FieldTime,
 			"updated":  FieldTime,
+			"status":   FieldString,
 		},
 		SearchFields: []string{"prefix"},
+		// The ix keys are prepare_query keys, see relationSeeds.
+		ForeignKeys: map[string]string{"ixlan": "ixlan_id"},
 	},
 	peeringdb.TypeNetIXLan: {
 		Name: peeringdb.TypeNetIXLan,
@@ -335,8 +402,21 @@ var Registry = map[string]TypeConfig{
 			"ix_side_id":  FieldInt,
 			"created":     FieldTime,
 			"updated":     FieldTime,
+			"status":      FieldString,
 		},
 		SearchFields: []string{"name"},
+		// The ix keys are prepare_query keys, see relationSeeds. Upstream
+		// cannot reach net_side: queryable_field_xl renames it to
+		// network_side, which names no field (serializers.py:428-432).
+		ForeignKeys: map[string]string{
+			"network": "net_id",
+			"ixlan":   "ixlan_id",
+			"ix_side": "ix_side_id",
+		},
+		// models.py:6088, serializers.py:428-432.
+		UpstreamIgnored: map[string]bool{"net_side_id": true},
+		// name and ix_id are properties (models.py:6113-6115, :6131-6133).
+		NonModelFields: map[string]bool{"name": true, "ix_id": true},
 	},
 	peeringdb.TypeNetFac: {
 		Name: peeringdb.TypeNetFac,
@@ -350,8 +430,20 @@ var Registry = map[string]TypeConfig{
 			"local_asn": FieldInt,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name"},
+		ForeignKeys:  map[string]string{"network": "net_id", "facility": "fac_id"},
+		// local_asn is a property (models.py:6046-6051).
+		UpstreamIgnored: map[string]bool{"local_asn": true},
+		// name, city and country are serializer fields
+		// (serializers.py:3372-3380), and local_asn is a property.
+		NonModelFields: map[string]bool{
+			"name":      true,
+			"city":      true,
+			"country":   true,
+			"local_asn": true,
+		},
 	},
 	peeringdb.TypeIXFac: {
 		Name: peeringdb.TypeIXFac,
@@ -364,8 +456,12 @@ var Registry = map[string]TypeConfig{
 			"country": FieldString,
 			"created": FieldTime,
 			"updated": FieldTime,
+			"status":  FieldString,
 		},
 		SearchFields: []string{"name"},
+		ForeignKeys:  map[string]string{"ix": "ix_id", "facility": "fac_id"},
+		// Serializer fields (serializers.py:2792-2800).
+		NonModelFields: map[string]bool{"name": true, "city": true, "country": true},
 	},
 	peeringdb.TypeCarrier: {
 		Name: peeringdb.TypeCarrier,
@@ -382,9 +478,15 @@ var Registry = map[string]TypeConfig{
 			"logo":      FieldString,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
+		// fac_count: models.py:6536, renamed by serializers.py:434-438.
+		// org_name: serializer field only (serializers.py:2667).
+		UpstreamIgnored: map[string]bool{"fac_count": true, "org_name": true},
+		NonModelFields:  map[string]bool{"org_name": true},
 	},
 	peeringdb.TypeCarrierFac: {
 		Name: peeringdb.TypeCarrierFac,
@@ -395,8 +497,14 @@ var Registry = map[string]TypeConfig{
 			"name":       FieldString,
 			"created":    FieldTime,
 			"updated":    FieldTime,
+			"status":     FieldString,
 		},
 		SearchFields: []string{"name"},
+		ForeignKeys:  map[string]string{"carrier": "carrier_id", "facility": "fac_id"},
+		// name: serializer field only (serializers.py:2601). The
+		// serializer has no prepare_query.
+		UpstreamIgnored: map[string]bool{"name": true},
+		NonModelFields:  map[string]bool{"name": true},
 	},
 	peeringdb.TypeCampus: {
 		Name: peeringdb.TypeCampus,
@@ -416,8 +524,26 @@ var Registry = map[string]TypeConfig{
 			"logo":      FieldString,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name"},
 		FoldedFields: map[string]bool{"name": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
+		// org_name is a serializer field (serializers.py:4792). city,
+		// country, state and zipcode are properties (models.py:2113-2147).
+		UpstreamIgnored: map[string]bool{
+			"org_name": true,
+			"city":     true,
+			"country":  true,
+			"state":    true,
+			"zipcode":  true,
+		},
+		NonModelFields: map[string]bool{
+			"org_name": true,
+			"city":     true,
+			"country":  true,
+			"state":    true,
+			"zipcode":  true,
+		},
 	},
 }

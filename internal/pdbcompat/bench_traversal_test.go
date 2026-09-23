@@ -82,8 +82,9 @@ func BenchmarkTraversal_1Hop_Direct(b *testing.B) {
 	}
 }
 
-// BenchmarkTraversal_2Hop_UpstreamParity covers the upstream
-// pdb_api_test.py:2340 canonical 2-hop case. Gate: <50ms/op.
+// BenchmarkTraversal_2Hop_UpstreamParity covers the 2-hop key
+// fac?ixlan__ix__fac_count__gt=0, which the mirror and upstream both
+// ignore. Gate: <50ms/op.
 //
 // fac has no direct `ixlan` edge, so the filter is silently ignored
 // and the handler returns all live facilities. The bench
@@ -107,6 +108,26 @@ func BenchmarkTraversal_2Hop_WithLimitAndSkip(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		dispatchBench(b, h, "/api/fac?ixlan__ix__fac_count__gt=0&limit=250&skip=500")
+	}
+}
+
+// BenchmarkTraversal_RelationFilter_ThreeTables covers the relation
+// filters whose path reaches three tables: net?ix__name= walks netixlan
+// -> ixlan -> ix, and ix?net__asn= walks ixlan -> netixlan -> net
+// (relationSeeds, docs/API.md § Relation filters). These are the
+// deepest SQL paths that a filter key can emit.
+func BenchmarkTraversal_RelationFilter_ThreeTables(b *testing.B) {
+	h, client := setupBenchHandlerTB(b)
+	testdata.Seed(b, client, testdata.Default10k())
+	for _, url := range []string{
+		"/api/net?ix__name=BenchIX-000042",
+		"/api/ix?net__asn=64042",
+	} {
+		b.Run(url, func(b *testing.B) {
+			for b.Loop() {
+				dispatchBench(b, h, url)
+			}
+		})
 	}
 }
 

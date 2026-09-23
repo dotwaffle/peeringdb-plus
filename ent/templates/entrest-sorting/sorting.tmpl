@@ -1,10 +1,12 @@
 {{/*
   PROJECT-LOCAL OVERRIDE of entrest sorting template.
   Base source: github.com/lrstanley/entrest@v1.2.0/templates/sorting.tmpl
-  Change: applySorting<Type> emits compound (_field, FieldCreated, FieldID) tie-break
-          when _field matches the entity's declared DefaultField.
+  Changes: applySorting<Type> emits compound (_field, FieldCreated, FieldID) tie-break
+           when _field matches the entity's declared DefaultField.
+           <Type>SortConfig.Fields comes from restSortableFields (ent/entc.go), which
+           drops the sorts over an edge to a type with a privacy policy (pocs.count).
   Upgrade path: when bumping entrest, diff the new upstream sorting.tmpl against this file,
-                re-apply the compound-tie-break injection, re-run `go generate ./ent`.
+                re-apply both changes, re-run `go generate ./ent`.
 */}}
 {{- /*
   Copyright (c) Liam Stanley <liam@liam.sh>. All rights reserved. Use of
@@ -87,7 +89,7 @@ var (
         // {{ $t.Name|zsingular }}SortConfig defines the default sort configuration for {{ $t.Name|zsingular }}.
         {{ $t.Name|zsingular }}SortConfig = &SortConfig{
             Fields: []string{
-                {{- range getSortableFields $t nil }}
+                {{- range restSortableFields $t }}
                 "{{ . }}",
                 {{- end }}
             },

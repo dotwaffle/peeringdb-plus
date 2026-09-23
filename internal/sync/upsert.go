@@ -57,9 +57,9 @@ import (
 // mutated locally without bumping `updated` (orphan-filter FK nulls)
 // and backfilling newly added _fold columns. We deliberately use
 // strict `>` rather than `>=`: `>=` would defeat the optimization
-// entirely, since PeeringDB's ?since=N is inclusive and every refetch
-// produces excluded.updated >= existing.updated. The bounded same-
-// second-drift risk is the trade.
+// entirely, since upstream re-sends the rows of the cursor's own second
+// (see GetMaxUpdated) and every refetch produces excluded.updated >=
+// existing.updated. The bounded same-second-drift risk is the trade.
 //
 // Implementation note: ent's UpdateWhere predicate is emitted with a
 // table qualifier active on the Builder. Calling b.Ident("foo")
@@ -571,6 +571,7 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 				SetAkaFold(unifold.Fold(n.Aka)).
 				SetNameLongFold(unifold.Fold(n.NameLong))
 			b.SetNillableLogo(n.Logo)
+			b.SetMeta(n.Meta)
 			return b
 		},
 		func(ctx context.Context, batch []*ent.NetworkCreate) error {
@@ -586,11 +587,15 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 	)
 }
 
-// upsertPocs bulk upserts points of contact.
+// upsertPocs bulk upserts points of contact. A deleted contact is stored
+// with name, phone, email and url blanked (peeringdb.Poc.BlankDeletedContact),
+// whatever upstream sends, so no stored tombstone holds contact data and
+// no read path depends on a render-time rule to hide it.
 func upsertPocs(ctx context.Context, tx *ent.Tx, items []peeringdb.Poc) ([]int, error) {
 	return upsertBatch(ctx, items,
 		func(p peeringdb.Poc) int { return p.ID },
 		func(p peeringdb.Poc) *ent.PocCreate {
+			p = p.BlankDeletedContact()
 			return tx.Poc.Create().
 				SetID(p.ID).
 				SetNillableNetID(&p.NetID).
@@ -692,6 +697,18 @@ func decodeAndUpsertSingle[E any](
 	return idFn(v), nil
 }
 
+// netixlanOperational returns the operational flag to store for ni.
+// PeeringDB 2.83.0 derives operational from status on every save
+// (models.py:6512) and keeps the field only for a deprecation window.
+// When upstream sends the key, store it as sent. When it omits the key,
+// derive the flag the same way upstream does.
+func netixlanOperational(ni peeringdb.NetworkIxLan) bool {
+	if ni.Operational != nil {
+		return *ni.Operational
+	}
+	return ni.Status == "ok"
+}
+
 // upsertNetworkIxLans bulk upserts network-IXLan associations.
 func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.NetworkIxLan) ([]int, error) {
 	return upsertBatch(ctx, items,
@@ -710,9 +727,10 @@ func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.Netw
 				SetNillableIpaddr6(ni.IPAddr6).
 				SetIsRsPeer(ni.IsRSPeer).
 				SetBfdSupport(ni.BFDSupport).
-				SetOperational(ni.Operational).
+				SetOperational(netixlanOperational(ni)).
 				SetNillableNetSideID(ni.NetSideID).
 				SetNillableIxSideID(ni.IXSideID).
+				SetMeta(ni.Meta).
 				SetCreated(ni.Created).
 				SetUpdated(ni.Updated).
 				SetStatus(ni.Status)

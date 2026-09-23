@@ -173,7 +173,9 @@ anonymous API callers still see `Public`-only thanks to the
    is visible — this is expected).
 4. **Operational implication.**
    `Users`-tier rows are now present in the local SQLite database.
-   They are filtered out of anonymous HTTP responses by the ent privacy policy
+   If the key belongs to a member of an organization,
+   that organization's `Private` contacts are also present.
+   The ent privacy policy removes both from anonymous HTTP responses
    on every read path (see [ARCHITECTURE.md](./ARCHITECTURE.md#privacy-layer)).
    No response format or schema change is visible to anonymous callers;
    the mirror's anonymous API shape continues to match upstream's.
@@ -182,8 +184,10 @@ anonymous API callers still see `Public`-only thanks to the
 
 Deployments that are not reachable from the public internet
 (internal tools, CI sidecars, pre-production mirrors)
-can elevate anonymous callers to Users-tier
-so the privacy filter becomes a no-op:
+can elevate anonymous callers to Users-tier,
+so they also see `Users` rows.
+`Private` rows stay hidden in every tier,
+because upstream shows them only to members of the owning organization:
 
 ```bash
 fly secrets set PDBPLUS_PUBLIC_TIER=users --app peeringdb-plus
@@ -570,6 +574,74 @@ fly deploy
 ```
 
 <!-- VERIFY: exact initial-setup sequence for a fresh Fly app including Consul attach ordering is not captured in the repository and must be confirmed against current Fly.io documentation -->
+
+## After an upstream PeeringDB release
+
+An upstream release can change stored data in a way that incremental sync
+does not pick up completely.
+The daily full reconcile repairs this within `PDBPLUS_FULL_SYNC_INTERVAL`
+(see [Daily full reconcile](ARCHITECTURE.md#daily-full-reconcile)).
+A manual full sync makes the window shorter.
+If the interval is `0`, the manual full sync is mandatory.
+
+To find out if upstream has deployed a release, look at the data on the
+mirror.
+Do not send test requests to upstream PeeringDB.
+
+### PeeringDB 2.83.0
+
+Upstream migration 0160 changes each netixlan with `status='ok'` and
+`operational=false` to `status='not-operational'`.
+All of these rows get one `updated` value,
+so the paged `?since=` fetch can skip some of them.
+On 2026-09-23 the mirror had 627 such rows.
+
+The checks below use a SQLite shell on a machine of the fleet:
+
+```bash
+fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
+```
+
+1. Make sure that the mirror runs a release with the 2.83.0 parity changes
+   (see `CHANGELOG.md`).
+   Older releases hide `not-operational` connections on `/api` and in the
+   Web UI.
+2. Wait until upstream has deployed 2.83.0.
+   After the deploy, the next incremental sync stores `not-operational` rows:
+
+   ```sql
+   SELECT status, COUNT(*) FROM network_ix_lans GROUP BY status;
+   ```
+
+3. Start one full sync.
+   The request returns `202`, and the sync runs on the primary.
+   A `409` response means that a sync cycle is already running.
+   Wait until it ends, then send the request again:
+
+   ```bash
+   curl -X POST -H "X-Sync-Token: $PDBPLUS_SYNC_TOKEN" \
+     'https://peeringdb-plus.fly.dev/sync?mode=full'
+   ```
+
+   The full sync also stores each `meta` document that upstream set
+   before the mirror had the column.
+4. Wait until the newest full sync has `status` `success`.
+   Scheduled incremental cycles continue to run and add newer rows,
+   so select the full cycles only:
+
+   ```sql
+   SELECT id, mode, status, completed_at FROM sync_status
+     WHERE mode = 'full' ORDER BY id DESC LIMIT 1;
+   ```
+
+5. Make sure that no skipped row is left.
+   The result must be `0`,
+   because upstream now sets `operational` to `status == 'ok'` on every save
+   (2.83.0 `models.py:6512`):
+
+   ```sql
+   SELECT COUNT(*) FROM network_ix_lans WHERE status = 'ok' AND operational = 0;
+   ```
 
 ## Operational failure modes quick-runbook
 

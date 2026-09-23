@@ -40,8 +40,7 @@ func ListEntities[E any, P any](ctx context.Context, params ListParams[E, P]) ([
 	// Fetch one extra to detect whether there is a next page.
 	results, err := params.Query(ctx, predicates, pageSize+1, offset)
 	if err != nil {
-		return nil, "", connect.NewError(connect.CodeInternal,
-			fmt.Errorf("list %s: %w", params.EntityName, err))
+		return nil, "", queryError(ctx, "list "+params.EntityName, err)
 	}
 
 	var nextPageToken string
@@ -131,8 +130,7 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 	if params.SinceID == nil && params.UpdatedSince == nil {
 		total, err := params.Count(ctx, predicates)
 		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("count %s: %w", params.EntityName, err))
+			return queryError(ctx, "count "+params.EntityName, err)
 		}
 		stream.ResponseHeader().Set("pdbplus-total-count", strconv.Itoa(total))
 		// Deprecated alias — see the header-contract comment above.
@@ -146,14 +144,16 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 	// above; they do NOT seed the keyset cursor.
 	var cursor streamCursor
 	for {
-		if err := ctx.Err(); err != nil {
-			return err
+		// Checked between batches, so the stream ends with the same code
+		// as a query that the context interrupts.
+		if ctxErr := contextError(ctx, ctx.Err()); ctxErr != nil {
+			return ctxErr
 		}
 
 		batch, err := params.QueryBatch(ctx, predicates, cursor, streamBatchSize)
 		if err != nil {
-			return connect.NewError(connect.CodeInternal,
-				fmt.Errorf("stream %s batch after cursor %+v: %w", params.EntityName, cursor, err))
+			return queryError(ctx,
+				fmt.Sprintf("stream %s batch after cursor %+v", params.EntityName, cursor), err)
 		}
 		if len(batch) == 0 {
 			return nil

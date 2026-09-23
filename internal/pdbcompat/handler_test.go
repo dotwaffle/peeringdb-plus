@@ -180,8 +180,8 @@ func TestListEndpoint_InBoolAndTime(t *testing.T) {
 			SetAsn(s.asn).
 			SetInfoUnicast(s.unicast).
 			SetStatus("ok").
-			SetCreated(time.Unix(s.created, 0)).
-			SetUpdated(time.Unix(s.created, 0)).
+			SetCreated(time.Unix(s.created, 0).UTC()).
+			SetUpdated(time.Unix(s.created, 0).UTC()).
 			Save(ctx)
 		if err != nil {
 			t.Fatalf("create network %s: %v", s.name, err)
@@ -712,14 +712,9 @@ func TestExactFilter(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
 
-	// ?status= is no longer in the Fields map for any of
-	// the 13 types, so ParseFilters silently drops it. The status matrix
-	// (applyStatusMatrix) applies unconditionally: list without ?since
-	// returns only status=ok rows regardless of what ?status= was passed.
-	// All 3 seed networks are now status=ok, so this returns 3 items.
-	// Dedicated status × since matrix coverage lives in
-	// status_matrix_test.go. This test now asserts the intended exact-
-	// filter behaviour on a still-filterable field (asn).
+	// Exact match on an int field (asn). The ?status= filter and its
+	// AND with the status × since matrix are covered in
+	// status_matrix_test.go and parity/status_test.go.
 	req := httptest.NewRequest(http.MethodGet, "/api/net?asn=13335", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -758,10 +753,12 @@ func TestResponseHeaders(t *testing.T) {
 }
 
 // TestResultsSortedByDefaultOrder asserts the default-ordering
-// contract: pdbcompat list endpoints return rows in (-updated, -created, -id)
-// order per upstream django-handleref Meta.ordering. setupTestHandler seeds
-// three Network rows with distinct (created, updated) stamps: past, now,
-// future — so the expected id sequence is [3, 2, 1].
+// contract: a pdbcompat list without ?since returns rows in id order,
+// ascending (upstream 2.83.0 rest.py:747-748 adds no ORDER BY, so MySQL
+// serves primary-key order). setupTestHandler seeds ids 1, 2 and 3.
+// The parity tests in parity/ordering_test.go seed updated values in
+// the reverse order of the ids, so they also prove that updated is not
+// a sort key.
 func TestResultsSortedByDefaultOrder(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
@@ -784,12 +781,43 @@ func TestResultsSortedByDefaultOrder(t *testing.T) {
 		ids[i] = int(item["id"].(float64))
 	}
 
-	// setupTestHandler creates 3 networks with updated = past < now < future
-	// and ids 1, 2, 3 (sequential). Under (-updated, -created, -id) we
-	// expect the newest-updated row first: [3, 2, 1].
-	want := []int{3, 2, 1}
+	want := []int{1, 2, 3}
 	if !slices.Equal(ids, want) {
 		t.Errorf("default-order results: got %v, want %v", ids, want)
+	}
+}
+
+// TestServeList_UniqueQueryEmptyExits checks that the unique-query 404
+// fires on each exit that serves an empty list: the empty-__in
+// short-circuit, the budget COUNT(*) of 0, and an empty List result.
+// HEAD gets the same status as GET. The parity suite
+// (parity/status_test.go) holds the upstream citations.
+func TestServeList_UniqueQueryEmptyExits(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	for _, budget := range []int64{0, 1 << 30} {
+		mux := http.NewServeMux()
+		NewHandler(client, budget).Register(mux)
+		for _, tc := range []struct {
+			method string
+			path   string
+			want   int
+		}{
+			{http.MethodGet, "/api/net?id=1&asn__in=", http.StatusNotFound},
+			{http.MethodGet, "/api/net?id=1", http.StatusNotFound},
+			{http.MethodGet, "/api/net?asn=1", http.StatusNotFound},
+			{http.MethodHead, "/api/net?id=1", http.StatusNotFound},
+			{http.MethodGet, "/api/fac?asn=1", http.StatusOK},
+			{http.MethodGet, "/api/net?name__in=", http.StatusOK},
+		} {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != tc.want {
+				t.Errorf("budget=%d %s %s: status = %d, want %d; body=%s",
+					budget, tc.method, tc.path, rec.Code, tc.want, rec.Body.String())
+			}
+		}
 	}
 }
 

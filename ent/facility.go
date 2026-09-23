@@ -68,7 +68,7 @@ type Facility struct {
 	Property *string `json:"property"`
 	// Region/continent
 	RegionContinent *string `json:"region_continent"`
-	// Rencode
+	// Obsolete. Read-only in PeeringDB
 	Rencode string `json:"rencode"`
 	// Sales email
 	SalesEmail string `json:"sales_email"`

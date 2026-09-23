@@ -215,9 +215,12 @@ and missing **any one** of them is a privacy leak:
 If you add a new `<field>_visible` companion field to a schema:
 
 - Add the ent schema fields
-  (`field.String` for the `_visible` column,
-  plus the value field with `,omitempty` json tag).
+  (`field.String` for the `_visible` column).
 - Call `privfield.Redact` at **all five** surfaces above.
+- On `/api`, the permission decides the key, not the value.
+  Do not rely on `,omitempty` on a plain `string` value field.
+  Follow the pdbcompat step in
+  [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#adding-a-new-field-level-privacy-gated-field).
 - Update `internal/testutil/seed.Full` to seed both a gated row
   (e.g. `_visible=Users`) and a `Public` row.
 - Extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with matching

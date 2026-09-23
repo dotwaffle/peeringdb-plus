@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -38,11 +39,13 @@ type NetworkIxLan struct {
 	Ipaddr6 *string `json:"ipaddr6"`
 	// Route server peer
 	IsRsPeer bool `json:"is_rs_peer"`
+	// Optional attributes using registered metadata keys
+	Meta map[string]interface{} `json:"meta"`
 	// Notes
 	Notes string `json:"notes"`
-	// Operational status
+	// Whether this connection is operational. PeeringDB derives it from status (true only for `ok`) and marks it deprecated
 	Operational bool `json:"operational"`
-	// Port speed in Mbps
+	// Capacity of this connection in Mbit/sec
 	Speed int `json:"speed"`
 	// Internet exchange ID (computed)
 	IxID int `json:"ix_id"`
@@ -52,7 +55,7 @@ type NetworkIxLan struct {
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
 	Updated time.Time `json:"updated"`
-	// Record status
+	// Connection state: `ok` and `not-operational` are published, `pending` awaits approval, and `deleted` is removed
 	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NetworkIxLanQuery when eager-loading is set.
@@ -100,6 +103,8 @@ func (*NetworkIxLan) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case networkixlan.FieldMeta:
+			values[i] = new([]byte)
 		case networkixlan.FieldBfdSupport, networkixlan.FieldIsRsPeer, networkixlan.FieldOperational:
 			values[i] = new(sql.NullBool)
 		case networkixlan.FieldID, networkixlan.FieldIxSideID, networkixlan.FieldIxlanID, networkixlan.FieldNetID, networkixlan.FieldNetSideID, networkixlan.FieldAsn, networkixlan.FieldSpeed, networkixlan.FieldIxID:
@@ -188,6 +193,14 @@ func (_m *NetworkIxLan) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_rs_peer", values[i])
 			} else if value.Valid {
 				_m.IsRsPeer = value.Bool
+			}
+		case networkixlan.FieldMeta:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field meta", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Meta); err != nil {
+					return fmt.Errorf("unmarshal field meta: %w", err)
+				}
 			}
 		case networkixlan.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -321,6 +334,9 @@ func (_m *NetworkIxLan) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_rs_peer=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsRsPeer))
+	builder.WriteString(", ")
+	builder.WriteString("meta=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Meta))
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)

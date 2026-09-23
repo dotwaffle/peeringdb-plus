@@ -49,6 +49,12 @@ import (
 // GraphQL queries rarely exceed 10 KB; 1 MB is generous.
 const maxRequestBodySize = 1 << 20
 
+// graphQLCSPPolicy is the browser policy for the GraphiQL playground on
+// /graphql. The GraphiQL stylesheet embeds its fonts as data: URIs, so
+// font-src allows data:. Without it, fonts fall back to default-src 'self'
+// and an enforcing policy blocks them.
+const graphQLCSPPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; font-src 'self' data:"
+
 // connectHandlerOpts builds the handler options shared by all 13 ConnectRPC
 // service registrations: OTel tracing plus an inbound message-size cap.
 // WithReadMaxBytes bounds each received message (raw AND decompressed) at the
@@ -61,6 +67,21 @@ func connectHandlerOpts(interceptor connect.Interceptor) connect.HandlerOption {
 		connect.WithInterceptors(interceptor),
 		connect.WithReadMaxBytes(maxRequestBodySize),
 	)
+}
+
+// connectOTelOpts returns the options for the otelconnect interceptor that
+// wraps every ConnectRPC handler. The interceptor records spans only.
+// WithoutMetrics stops the per-procedure rpc.server.* instruments at the
+// source: they are high-cardinality and duplicate the otelhttp duration
+// histogram, which already covers each ConnectRPC service route.
+// WithoutTraceEvents removes per-message span events, which otherwise grow
+// with each row that a Stream RPC sends.
+func connectOTelOpts() []otelconnect.Option {
+	return []otelconnect.Option{
+		otelconnect.WithoutServerPeerAttributes(),
+		otelconnect.WithoutTraceEvents(),
+		otelconnect.WithoutMetrics(),
+	}
 }
 
 func init() {
@@ -522,10 +543,7 @@ func main() {
 	logger.Info("MCP server mounted", slog.String("path", "/mcp"))
 
 	// Create OTel interceptor for ConnectRPC services.
-	otelInterceptor, err := otelconnect.NewInterceptor(
-		otelconnect.WithoutServerPeerAttributes(),
-		otelconnect.WithoutTraceEvents(), // Suppress per-message events (critical for streaming RPCs).
-	)
+	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
 	if err != nil {
 		logger.Error("failed to create otel interceptor", slog.Any("error", err))
 		os.Exit(1)
@@ -671,7 +689,7 @@ func main() {
 			// flag-icons stylesheet. img-src includes the validated map tile
 			// origin and jsdelivr, where the stylesheet loads its flag SVGs.
 			UIPolicy:      uiCSPPolicy(cfg.MapTiles.CSPSource()),
-			GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
+			GraphQLPolicy: graphQLCSPPolicy,
 			EnforcingMode: cfg.CSPEnforce,
 		},
 		CachingState: cachingState,

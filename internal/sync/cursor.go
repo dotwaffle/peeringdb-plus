@@ -8,10 +8,10 @@
 //
 // New design: derive each per-type cursor from MAX(updated) on the
 // corresponding entity table. The `updated` column is indexed on all 13
-// tables (`index.Fields("updated")`), and PeeringDB's ?since=N is inclusive
-// (`updated >= since`), so re-fetching the boundary row each cycle is
-// idempotent — the existing OnConflict UPDATE is a no-op via the
-// skip-on-unchanged predicate.
+// tables (`index.Fields("updated")`). Upstream usually re-sends the
+// boundary row (see GetMaxUpdated), and re-fetching it is idempotent: the
+// existing OnConflict UPDATE is a no-op via the skip-on-unchanged
+// predicate.
 
 package sync
 
@@ -30,9 +30,13 @@ import (
 // persisted in a sync_cursors table. This works because:
 //   - The `updated` column is indexed on all 13 entity tables
 //     (`index.Fields("updated")` in every ent/schema/<type>.go).
-//   - PeeringDB's `?since=N` is inclusive (`updated >= since` per
-//     internal/pdbcompat/filter.go applySince), so re-fetching the boundary
-//     row each cycle is idempotent (the skip-on-unchanged predicate
+//   - Upstream's `?since=N` filter is strict (`updated > N`, django-handleref
+//     2.0.1 manager.py:53-55), but it only looks inclusive: N is whole
+//     seconds, the wire value of `updated` is truncated to the second
+//     (2.83.0 serializers.py:1920-1924), and upstream stores sub-second
+//     values. So rows whose stored `updated` falls inside the cursor's own
+//     second, usually including the boundary row, come back each cycle.
+//     Re-fetching them is idempotent (the skip-on-unchanged predicate
 //     turns the OnConflict UPDATE into a no-op).
 //   - Empty table → NULL → zero time → caller falls through to the full
 //     bare-list path (existing stageOneTypeToScratch behaviour preserved).

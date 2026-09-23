@@ -19,7 +19,7 @@ golangci-lint = "2"
 gotestsum = "1"
 govulncheck = "1"
 gqlgen = "0.17.95"
-protoc-gen-connect-go = "1.20.0"
+protoc-gen-connect-go = "1.21.0"
 protoc-gen-go = "1.36.12"
 tailwindcss = { version = "4.3.3", bin = "tailwindcss" }
 templ = "0.3.1020"

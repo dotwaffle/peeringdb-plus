@@ -2,13 +2,16 @@ package pdbcompat
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
@@ -226,7 +229,7 @@ func TestDepth(t *testing.T) {
 		orgID := int(items[0]["id"].(float64))
 
 		// Explicit ?depth=0 must return the bare row (matches upstream
-		// rest.py:852 short-circuit).
+		// 2.83.0 serializers.py:1068-1069 short-circuit).
 		detReq := httptest.NewRequest(http.MethodGet, "/api/org/"+itoa(orgID)+"?depth=0", nil)
 		detRec := httptest.NewRecorder()
 		mux.ServeHTTP(detRec, detReq)
@@ -257,9 +260,9 @@ func TestDepth(t *testing.T) {
 
 	// default_detail_uses_depth_two locks the upstream-parity behaviour for
 	// a bare detail URL with NO `?depth=` query param: upstream's
-	// `peeringdb_server/serializers.py:default_depth(is_list=False)` (line
-	// 823) returns 2 for single-object GETs, causing
-	// `prefetch_related` (rest.py:750) to fire and embed every per-type
+	// `peeringdb_server/serializers.py:default_depth(is_list=False)` (2.83.0
+	// lines 1032-1039) returns 2 for single-object GETs, causing
+	// `prefetch_related` (rest.py:774-777) to fire and embed every per-type
 	// `_set` collection plus the parent FK objects (`org` for net/fac/ix/
 	// carrier/campus). This is the canonical generalisation of commit
 	// 0d39654 — the IX `fac_set` fix at `?depth=2` — extended to fire on
@@ -492,7 +495,7 @@ func TestDepth(t *testing.T) {
 
 	// two_ix locks the upstream-parity InternetExchange depth=2 shape:
 	// upstream PeeringDB's InternetExchangeSerializer
-	// (peeringdb_server/serializers.py:3514) emits `fac_set` as a list of
+	// (2.83.0 peeringdb_server/serializers.py:4365-4370) emits `fac_set` as a list of
 	// expanded Facility objects via nested(FacilitySerializer,
 	// through="ixfac_set", getter="facility"). It does NOT emit `ixfac_set`
 	// (that surface only appears on the facility-side serializer). Regression
@@ -1104,7 +1107,7 @@ func TestDepth_LeafSecondLevelParity(t *testing.T) {
 }
 
 // TestDepth_IxLanNetSetParity locks the IXLan reverse-relation surface to
-// upstream. Upstream IXLanSerializer (serializers.py:3407) exposes ONE
+// upstream. Upstream IXLanSerializer (2.83.0 serializers.py:4252-4257) exposes ONE
 // reverse collection: net_set = nested(NetworkSerializer, through="netixlan_set",
 // getter="network") — a list of flat Network objects reached through the
 // netixlan join (one per active join row, no dedup). There is NO netixlan_set
@@ -1163,13 +1166,110 @@ func TestDepth_IxLanNetSetParity(t *testing.T) {
 	}
 }
 
+// TestDepth_FacilityLinkSetOrder locks the order of the three
+// facility-link sets: net.netfac_set, ix.fac_set and
+// carrier.carrierfac_set sort by facility id, not by link id, at depth=1
+// (ID lists) and depth=2 (objects). Upstream's nested prefetch has no
+// ORDER BY (2.83.0 serializers.py:1140-1148), and MySQL reads each set
+// through the unique (<parent>, facility) index (models.py:3284, :5998,
+// :6603). Live /api/net/20?depth=2 returned netfac ids
+// [19931,15549,19929,15547,15548] for fac ids [7,64,440,466,1727].
+//
+// The seeded link ids run opposite to their facility ids, so id order
+// and facility order disagree.
+func TestDepth_FacilityLinkSetOrder(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 9, 23, 0, 0, 0, 0, time.UTC)
+
+	client.Organization.Create().SetID(1).SetName("Order Org").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.Network.Create().SetID(1).SetName("Order Net").SetAsn(65001).SetOrgID(1).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.InternetExchange.Create().SetID(1).SetName("Order IX").SetOrgID(1).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.Carrier.Create().SetID(1).SetName("Order Carrier").SetOrgID(1).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	facIDs := []int{7, 64, 440}     // facility order
+	linkIDs := []int{300, 200, 100} // link id of each facility, descending
+	for i, facID := range facIDs {
+		client.Facility.Create().SetID(facID).SetName(fmt.Sprintf("Fac %d", facID)).SetOrgID(1).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.NetworkFacility.Create().SetID(linkIDs[i]).SetNetID(1).SetFacID(facID).SetLocalAsn(65001).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.IxFacility.Create().SetID(linkIDs[i]).SetIxID(1).SetFacID(facID).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.CarrierFacility.Create().SetID(linkIDs[i]).SetCarrierID(1).SetFacID(facID).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	}
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	// setIDs fetches path and returns the ids of the named set, from an
+	// ID list or from expanded objects.
+	setIDs := func(t *testing.T, path, set string) []int {
+		t.Helper()
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s: %d: %s", path, rec.Code, rec.Body.String())
+		}
+		var env struct {
+			Data []map[string]any `json:"data"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil || len(env.Data) != 1 {
+			t.Fatalf("GET %s: decode (%v), %d rows", path, err, len(env.Data))
+		}
+		raw, ok := env.Data[0][set].([]any)
+		if !ok {
+			t.Fatalf("GET %s: %s missing or not a list", path, set)
+		}
+		ids := make([]int, 0, len(raw))
+		for _, e := range raw {
+			switch v := e.(type) {
+			case float64:
+				ids = append(ids, int(v))
+			case map[string]any:
+				ids = append(ids, int(v["id"].(float64)))
+			default:
+				t.Fatalf("GET %s: %s element %T", path, set, e)
+			}
+		}
+		return ids
+	}
+
+	tests := []struct {
+		path, set string
+		want      []int
+	}{
+		{"/api/net/1?depth=1", "netfac_set", linkIDs},
+		{"/api/net/1?depth=2", "netfac_set", linkIDs},
+		{"/api/ix/1?depth=1", "fac_set", facIDs},
+		{"/api/ix/1?depth=2", "fac_set", facIDs},
+		{"/api/carrier/1?depth=1", "carrierfac_set", linkIDs},
+		{"/api/carrier/1?depth=2", "carrierfac_set", linkIDs},
+	}
+	for _, tc := range tests {
+		t.Run(tc.path, func(t *testing.T) {
+			t.Parallel()
+			if got := setIDs(t, tc.path, tc.set); !slices.Equal(got, tc.want) {
+				t.Errorf("%s = %v, want %v (facility order)", tc.set, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestDepth_BackRefStripParity locks which parent-FK each nested reverse-set
 // element keeps vs drops at depth=2, matching upstream's per-serializer
 // `exclude=` lists (peeringdb_server/serializers.py, verified against live
 // www.peeringdb.com payloads 2026-06-08):
-//   - CampusSerializer.fac_set (serializers.py:3917) excludes ["org_id","org"],
+//   - CampusSerializer.fac_set (2.83.0 serializers.py:4784-4788) excludes ["org_id","org"],
 //     so a facility nested under a campus KEEPS campus_id and DROPS org_id.
-//   - CarrierSerializer.carrierfac_set (serializers.py:2196) excludes ["fac"],
+//   - CarrierSerializer.carrierfac_set (2.83.0 serializers.py:2658-2662) excludes ["fac"],
 //     so a carrierfac nested under a carrier KEEPS carrier_id.
 func TestDepth_BackRefStripParity(t *testing.T) {
 	t.Parallel()
@@ -1235,7 +1335,7 @@ func TestDepth_BackRefStripParity(t *testing.T) {
 }
 
 // TestDepth_DepthOne locks the real ?depth=1 level, distinct from both depth=0
-// (bare row) and depth=2 (fully expanded). Upstream (serializers.py:817-823 +
+// (bare row) and depth=2 (fully expanded). Upstream (2.83.0 serializers.py:1032-1039 +
 // the recursive prefetch_related budget) renders depth=1 as: forward FK objects
 // FLAT (no sets of their own) and reverse _set fields as bare ID lists. The
 // mirror previously honoured only ?depth=0/2 and silently coerced depth=1 to 2.
@@ -1371,8 +1471,8 @@ func TestDepth_DepthOne(t *testing.T) {
 }
 
 // TestDepth_FacCampusNullParity locks upstream's FacilitySerializer.campus
-// behaviour: campus is a related field (serializers.py:1728, related_fields
-// 1816, list_exclude 1818) — absent on the bare/list row but present at detail
+// behaviour: campus is a related field (2.83.0 serializers.py:1963, related_fields
+// 2087, list_exclude 2089) — absent on the bare/list row but present at detail
 // depth, emitting `campus: null` for a campus-less facility rather than omitting
 // the key. Verified against live www.peeringdb.com payloads (up_fac_d1 carries
 // campus; a carrierfac's campus-less fac carries campus:null).
@@ -1451,10 +1551,12 @@ func TestDepth_FacCampusNullParity(t *testing.T) {
 }
 
 // TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
-// — Query().Where(<type>.ID(id), <type>.StatusIn("ok","pending")), inlined at
-// all 26 depth.go getter sites — resolves identically across all 13 types: an
-// ok or pending row is fetchable (200) while a deleted row is a tombstone
-// (404). TestStatusMatrix proves this only for net; this covers the breadth.
+// — Query().Where(<type>.ID(id), <type>.StatusIn(...)), inlined at all 27
+// depth.go getter sites — resolves identically across all 13 types: a live
+// or pending row is fetchable (200) while a deleted row is a tombstone
+// (404). Upstream PK lookups admit the live statuses plus pending (2.83.0
+// rest.py:750), so a not-operational netixlan is fetchable too.
+// TestStatusMatrix proves this only for net; this covers the breadth.
 // Seeders are shared with TestStatusMatrix_AllEntities (statusseed_test.go).
 func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 	t.Parallel()
@@ -1463,25 +1565,76 @@ func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 			t.Parallel()
 			c := testutil.SetupClient(t)
 			seedStatusParentsFor(t, c, e.tag)
-			seedStatusRow(t, c, e.tag, 901, "ok")
-			seedStatusRow(t, c, e.tag, 902, "deleted")
-			seedStatusRow(t, c, e.tag, 903, "pending")
+			liveIDs := seedStatusMatrixRows(t, c, e.tag, e.live)
 
 			srv := httptest.NewServer(newMuxForOrdering(c))
 			t.Cleanup(srv.Close)
 
-			cases := []struct {
-				id   int
-				want int
-			}{
-				{901, http.StatusOK},       // ok        -> 200
-				{902, http.StatusNotFound}, // deleted   -> 404 (tombstone hidden at PK)
-				{903, http.StatusOK},       // pending   -> 200 (PK lookup admits pending)
+			type pkCase struct{ id, want int }
+			cases := []pkCase{
+				{902, http.StatusNotFound}, // deleted -> 404 (tombstone hidden at PK)
+				{903, http.StatusOK},       // pending -> 200 (PK lookup admits pending)
+			}
+			for _, id := range liveIDs {
+				cases = append(cases, pkCase{id, http.StatusOK}) // live -> 200
 			}
 			for _, tc := range cases {
-				if code := fetchStatusCode(t, srv.URL+"/api/"+e.tag+"/"+itoa(tc.id)); code != tc.want {
-					t.Errorf("GET /api/%s/%d: got %d, want %d", e.tag, tc.id, code, tc.want)
+				// depth=0 and the default depth take separate queries.
+				for _, q := range []string{"?depth=0", ""} {
+					if code := fetchStatusCode(t, srv.URL+"/api/"+e.tag+"/"+itoa(tc.id)+q); code != tc.want {
+						t.Errorf("GET /api/%s/%d%s: got %d, want %d", e.tag, tc.id, q, code, tc.want)
+					}
 				}
+			}
+		})
+	}
+}
+
+// TestDepth_NotOperationalNetIXLanInSets locks the netixlan live set in the
+// depth expansions: a not-operational netixlan is live (2.83.0
+// models.py:109-122), so upstream's nested prefetch keeps it
+// (serializers.py:1138-1150). It must appear in net.netixlan_set and, via
+// its network, in ixlan.net_set at depth 1 (ID lists) and depth 2 (objects).
+func TestDepth_NotOperationalNetIXLanInSets(t *testing.T) {
+	t.Parallel()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 9, 23, 0, 0, 0, 0, time.UTC)
+
+	org := c.Organization.Create().SetName("NotOp Org").SetStatus("ok").
+		SetCreated(now).SetUpdated(now).SaveX(ctx)
+	netA := c.Network.Create().SetName("NotOp Net A").SetAsn(65101).SetOrganization(org).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	netB := c.Network.Create().SetName("NotOp Net B").SetAsn(65102).SetOrganization(org).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	ix := c.InternetExchange.Create().SetName("NotOp IX").SetOrganization(org).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	lan := c.IxLan.Create().SetInternetExchange(ix).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	nixlOK := c.NetworkIxLan.Create().SetNetwork(netA).SetIxLan(lan).SetAsn(65101).SetSpeed(1000).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	nixlNotOpA := c.NetworkIxLan.Create().SetNetwork(netA).SetIxLan(lan).SetAsn(65101).SetSpeed(1000).
+		SetOperational(false).SetStatus("not-operational").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	// netB reaches the ixlan only through a not-operational row.
+	c.NetworkIxLan.Create().SetNetwork(netB).SetIxLan(lan).SetAsn(65102).SetSpeed(1000).
+		SetOperational(false).SetStatus("not-operational").SetCreated(now).SetUpdated(now).SaveX(ctx)
+
+	mux := newMuxForOrdering(c)
+	cases := []struct {
+		path, key string
+		want      []int
+	}{
+		{fmt.Sprintf("/api/net/%d?depth=1", netA.ID), "netixlan_set", []int{nixlOK.ID, nixlNotOpA.ID}},
+		{fmt.Sprintf("/api/net/%d?depth=2", netA.ID), "netixlan_set", []int{nixlOK.ID, nixlNotOpA.ID}},
+		// net_set keeps one network per netixlan join row (duplicates).
+		{fmt.Sprintf("/api/ixlan/%d?depth=1", lan.ID), "net_set", []int{netA.ID, netA.ID, netB.ID}},
+		{fmt.Sprintf("/api/ixlan/%d?depth=2", lan.ID), "net_set", []int{netA.ID, netA.ID, netB.ID}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.path+"/"+tc.key, func(t *testing.T) {
+			t.Parallel()
+			if got := depthSetIDs(t, mux, tc.path, tc.key); !slices.Equal(got, tc.want) {
+				t.Errorf("%s %s = %v, want %v", tc.path, tc.key, got, tc.want)
 			}
 		})
 	}
@@ -1502,16 +1655,22 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 		name string
 		in   any
 	}{
-		{"ixlan redacted url omits key", peeringdb.IxLan{
+		{"ixlan redacted url omits key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN", RSASN: &asn,
 			IXFIXPMemberListURLVisible: "Users",
-			IXFIXPMemberListURL:        "", // redacted -> key absent
+			IXFIXPMemberListURL:        nil, // redacted -> key absent
 			Created:                    now, Updated: now, Status: "ok",
 		}},
-		{"ixlan public url keeps key", peeringdb.IxLan{
+		{"ixlan public url keeps key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN",
 			IXFIXPMemberListURLVisible: "Public",
-			IXFIXPMemberListURL:        "https://example.com/members",
+			IXFIXPMemberListURL:        new("https://example.com/members"),
+			Created:                    now, Updated: now, Status: "ok",
+		}},
+		{"ixlan admitted empty url keeps key", ixLanResponse{
+			ID: 1, IXID: 2, Name: "LAN",
+			IXFIXPMemberListURLVisible: "Public",
+			IXFIXPMemberListURL:        new(""),
 			Created:                    now, Updated: now, Status: "ok",
 		}},
 		{"organization with nil and set pointers", peeringdb.Organization{
@@ -1521,6 +1680,14 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 		}},
 		{"network zero values stay present", peeringdb.Network{
 			ID: 4, OrgID: 3, Name: "Net", ASN: 65001,
+			Created: now, Updated: now, Status: "ok",
+		}},
+		{"netixlan meta document", peeringdb.NetworkIxLan{
+			ID: 5, NetID: 4, IXID: 2, IXLanID: 1, ASN: 65001,
+			Meta: map[string]any{
+				"planned_status_change": map[string]any{"status": "ok", "date": "2026-11-01"},
+				"rfc8950":               true,
+			},
 			Created: now, Updated: now, Status: "ok",
 		}},
 	}
@@ -1555,9 +1722,11 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 // PeeringDB lists EVERY poc id in a depth=1 `poc_set` ID list regardless of
 // visibility (filtering non-Public POCs only when expanded to objects at
 // depth=2), while this mirror applies the row-level poc.visible privacy
-// policy uniformly — a non-Public POC id never appears in an anonymous
-// poc_set ID list. Stricter than upstream by design; if this test fails the
-// way upstream behaves, that is a privacy leak, not a parity win.
+// policy uniformly: a poc_set ID list never holds the id of a POC that the
+// caller's tier cannot read. Anonymous callers get Public ids only; the
+// Users tier gets Public and Users ids, never Private ones. Stricter than
+// upstream by design; if this test fails the way upstream behaves, that is
+// a privacy leak, not a parity win.
 //
 // upstream: peeringdb_server/serializers.py poc_set nested ID-list rendering
 // (no visibility filter on the ID-list path).
@@ -1580,54 +1749,61 @@ func TestDepth_PocSetPrivacy_DIVERGENCE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create net: %v", err)
 	}
-	pubPoc, err := client.Poc.Create().
-		SetName("Public Contact").SetRole("Abuse").SetVisible("Public").
-		SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
-		Save(ctx)
-	if err != nil {
-		t.Fatalf("create public poc: %v", err)
-	}
-	usersPoc, err := client.Poc.Create().
-		SetName("Users-Only Contact").SetRole("Technical").SetVisible("Users").
-		SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
-		Save(ctx)
-	if err != nil {
-		t.Fatalf("create users poc: %v", err)
+	pocIDs := make(map[string]int, 3)
+	for _, visible := range []string{"Public", "Users", "Private"} {
+		p, err := client.Poc.Create().
+			SetName(visible + " Contact").SetRole("Technical").SetVisible(visible).
+			SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create %s poc: %v", visible, err)
+		}
+		pocIDs[visible] = p.ID
 	}
 
 	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
-	srv := httptest.NewServer(mux)
-	t.Cleanup(srv.Close)
 
-	// Anonymous request (no privacy tier stamped -> fail-closed TierPublic).
-	resp, err := http.Get(srv.URL + "/api/net/" + itoa(net.ID) + "?depth=1") //nolint:noctx // test code, local httptest server
-	if err != nil {
-		t.Fatalf("GET net depth=1: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("GET net depth=1: status %d", resp.StatusCode)
-	}
-	var env struct {
-		Data []struct {
-			PocSet []int `json:"poc_set"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
-		t.Fatalf("decode envelope: %v", err)
-	}
-	if len(env.Data) != 1 {
-		t.Fatalf("got %d data rows, want 1", len(env.Data))
-	}
-	got := env.Data[0].PocSet
-	for _, id := range got {
-		if id == usersPoc.ID {
-			t.Errorf("anonymous depth=1 poc_set leaked non-Public poc id %d (got %v)", usersPoc.ID, got)
+	// pocSet returns the depth=1 poc_set of net. A nil tier leaves the
+	// request context unstamped, which fails closed to TierPublic.
+	pocSet := func(t *testing.T, tier *privctx.Tier) []int {
+		t.Helper()
+		var handler http.Handler = mux
+		if tier != nil {
+			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mux.ServeHTTP(w, r.WithContext(privctx.WithTier(r.Context(), *tier)))
+			})
 		}
+		srv := httptest.NewServer(handler)
+		t.Cleanup(srv.Close)
+		resp, err := http.Get(srv.URL + "/api/net/" + itoa(net.ID) + "?depth=1") //nolint:noctx // test code, local httptest server
+		if err != nil {
+			t.Fatalf("GET net depth=1: %v", err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("GET net depth=1: status %d", resp.StatusCode)
+		}
+		var env struct {
+			Data []struct {
+				PocSet []int `json:"poc_set"`
+			} `json:"data"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
+			t.Fatalf("decode envelope: %v", err)
+		}
+		if len(env.Data) != 1 {
+			t.Fatalf("got %d data rows, want 1", len(env.Data))
+		}
+		return env.Data[0].PocSet
 	}
-	if len(got) != 1 || got[0] != pubPoc.ID {
-		t.Errorf("anonymous depth=1 poc_set = %v, want [%d] (Public poc only)", got, pubPoc.ID)
+
+	if got, want := pocSet(t, nil), []int{pocIDs["Public"]}; !slices.Equal(got, want) {
+		t.Errorf("anonymous depth=1 poc_set = %v, want %v (Public poc only)", got, want)
+	}
+	users := privctx.TierUsers
+	if got, want := pocSet(t, &users), []int{pocIDs["Public"], pocIDs["Users"]}; !slices.Equal(got, want) {
+		t.Errorf("users-tier depth=1 poc_set = %v, want %v (Public and Users pocs, never Private)", got, want)
 	}
 }

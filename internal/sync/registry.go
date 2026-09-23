@@ -431,7 +431,7 @@ var typeRegistry = []typeDescriptor{
 						return false
 					}
 					// Optional side FKs: net_side_id, ix_side_id. Upstream
-					// peeringdb_server/models.py:5630-5642 declares both as
+					// peeringdb_server/models.py:6088-6101 (2.83.0) declares both as
 					// `null=True, on_delete=SET_NULL`. We
 					// mirror that contract by null-on-miss (after backfill
 					// attempt) rather than dropping the entire row.

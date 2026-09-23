@@ -37,7 +37,7 @@ func (PrepareQueryAllowAnnotation) Name() string { return "PrepareQueryAllow" }
 //	func (Network) Annotations() []schema.Annotation {
 //	    return []schema.Annotation{
 //	        schemaannot.WithPrepareQueryAllow(
-//	            "org__name",       // upstream serializers.py:2732
+//	            "org__name",       // upstream 2.83.0 serializers.py:3708
 //	            "ixlan__ix__fac_count",
 //	        ),
 //	        // ...existing annotations...
@@ -51,7 +51,9 @@ func WithPrepareQueryAllow(fields ...string) PrepareQueryAllowAnnotation {
 }
 
 // FilterExcludeFromTraversalAnnotation is the ent-edge-level form of
-// upstream serializers.py:128-157's FILTER_EXCLUDE list.
+// upstream 2.83.0 serializers.py:136-166's FILTER_EXCLUDE list. It hides
+// a whole edge; upstream's field-level entries (<fk>__<field>) have no
+// counterpart.
 // Attached to an edge (e.g. network.social_media), it signals the
 // codegen tool to mark the edge as un-traversable — Path B
 // introspection will skip it regardless of whether it matches the

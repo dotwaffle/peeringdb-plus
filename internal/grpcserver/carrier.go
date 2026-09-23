@@ -82,7 +82,7 @@ func (s *CarrierService) GetCarrier(ctx context.Context, req *pb.GetCarrierReque
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity carrier %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get carrier %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get carrier %d", req.GetId()), err)
 	}
 	return &pb.GetCarrierResponse{Carrier: carrierToProto(c)}, nil
 }

@@ -77,6 +77,7 @@ func writeIXPresence(buf *strings.Builder, label string, presence *templates.Com
 
 	buf.WriteString("    ")
 	buf.WriteString(StyleMuted.Render(label))
+	writeConnectionMarkers(buf, presence.Markers)
 
 	if presence.Speed > 0 {
 		buf.WriteString("  ")

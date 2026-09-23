@@ -311,6 +311,12 @@ func (_c *NetworkCreate) SetNillableLookingGlass(v *string) *NetworkCreate {
 	return _c
 }
 
+// SetMeta sets the "meta" field.
+func (_c *NetworkCreate) SetMeta(v map[string]interface{}) *NetworkCreate {
+	_c.mutation.SetMeta(v)
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *NetworkCreate) SetName(v string) *NetworkCreate {
 	_c.mutation.SetName(v)
@@ -964,6 +970,10 @@ func (_c *NetworkCreate) createSpec() (*Network, *sqlgraph.CreateSpec) {
 		_spec.SetField(network.FieldLookingGlass, field.TypeString, value)
 		_node.LookingGlass = value
 	}
+	if value, ok := _c.mutation.Meta(); ok {
+		_spec.SetField(network.FieldMeta, field.TypeJSON, value)
+		_node.Meta = value
+	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(network.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -1544,6 +1554,24 @@ func (u *NetworkUpsert) UpdateLookingGlass() *NetworkUpsert {
 // ClearLookingGlass clears the value of the "looking_glass" field.
 func (u *NetworkUpsert) ClearLookingGlass() *NetworkUpsert {
 	u.SetNull(network.FieldLookingGlass)
+	return u
+}
+
+// SetMeta sets the "meta" field.
+func (u *NetworkUpsert) SetMeta(v map[string]interface{}) *NetworkUpsert {
+	u.Set(network.FieldMeta, v)
+	return u
+}
+
+// UpdateMeta sets the "meta" field to the value that was provided on create.
+func (u *NetworkUpsert) UpdateMeta() *NetworkUpsert {
+	u.SetExcluded(network.FieldMeta)
+	return u
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (u *NetworkUpsert) ClearMeta() *NetworkUpsert {
+	u.SetNull(network.FieldMeta)
 	return u
 }
 
@@ -2402,6 +2430,27 @@ func (u *NetworkUpsertOne) UpdateLookingGlass() *NetworkUpsertOne {
 func (u *NetworkUpsertOne) ClearLookingGlass() *NetworkUpsertOne {
 	return u.Update(func(s *NetworkUpsert) {
 		s.ClearLookingGlass()
+	})
+}
+
+// SetMeta sets the "meta" field.
+func (u *NetworkUpsertOne) SetMeta(v map[string]interface{}) *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetMeta(v)
+	})
+}
+
+// UpdateMeta sets the "meta" field to the value that was provided on create.
+func (u *NetworkUpsertOne) UpdateMeta() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateMeta()
+	})
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (u *NetworkUpsertOne) ClearMeta() *NetworkUpsertOne {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearMeta()
 	})
 }
 
@@ -3487,6 +3536,27 @@ func (u *NetworkUpsertBulk) UpdateLookingGlass() *NetworkUpsertBulk {
 func (u *NetworkUpsertBulk) ClearLookingGlass() *NetworkUpsertBulk {
 	return u.Update(func(s *NetworkUpsert) {
 		s.ClearLookingGlass()
+	})
+}
+
+// SetMeta sets the "meta" field.
+func (u *NetworkUpsertBulk) SetMeta(v map[string]interface{}) *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.SetMeta(v)
+	})
+}
+
+// UpdateMeta sets the "meta" field to the value that was provided on create.
+func (u *NetworkUpsertBulk) UpdateMeta() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.UpdateMeta()
+	})
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (u *NetworkUpsertBulk) ClearMeta() *NetworkUpsertBulk {
+	return u.Update(func(s *NetworkUpsert) {
+		s.ClearMeta()
 	})
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"go/parser"
 	"go/token"
 	"os"
@@ -368,6 +369,35 @@ func TestGenerateEntSchemaMCPIndexes(t *testing.T) {
 	}
 }
 
+func TestGenerateEntSchemaStatusComment(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{ObjectTypes: map[string]ObjectType{
+		"netixlan": {ModelName: "NetworkIXLan", APIPath: "netixlan"},
+		"net":      {ModelName: "Network", APIPath: "net"},
+	}}
+
+	tests := []struct {
+		apiPath string
+		want    string
+	}{
+		{apiPath: "netixlan", want: fmt.Sprintf("Comment(%q)", statusComments["netixlan"])},
+		{apiPath: "net", want: `Comment("Record status")`},
+	}
+	for _, test := range tests {
+		code, err := generateEntSchema(test.apiPath, schema.ObjectTypes[test.apiPath], schema)
+		if err != nil {
+			t.Fatalf("generate %s: %v", test.apiPath, err)
+		}
+		if !strings.Contains(string(code), test.want) {
+			t.Errorf("%s schema missing %s", test.apiPath, test.want)
+		}
+	}
+	if !strings.Contains(statusComments["netixlan"], "`not-operational`") {
+		t.Errorf("netixlan status comment %q does not name not-operational", statusComments["netixlan"])
+	}
+}
+
 func TestGenerateFieldCode(t *testing.T) {
 	t.Parallel()
 
@@ -544,6 +574,26 @@ func TestGenerateFieldCode(t *testing.T) {
 				`field.JSON("social_media", []schematypes.SocialMedia{})`,
 				`Optional()`,
 				`socialMediaSchema()`,
+			},
+		},
+		{
+			// An opaque object document: a plain map, an explicit OpenAPI
+			// schema (entrest cannot infer one for a map), and no ent
+			// Default, because the serializers turn nil into {}.
+			name: "meta",
+			field: FieldDef{
+				Type:     "json_object",
+				Default:  map[string]any{},
+				HelpText: "Metadata",
+			},
+			wantSub: []string{
+				`field.JSON("meta", map[string]any{})`,
+				`Optional()`,
+				`Annotations(entrest.WithSchema(jsonObjectSchema()))`,
+				`Comment("Metadata")`,
+			},
+			notWantSub: []string{
+				`Default(`,
 			},
 		},
 	}
@@ -724,7 +774,7 @@ func slicesEqual(a, b []string) bool {
 func TestGenerateTypesFile(t *testing.T) {
 	t.Parallel()
 
-	code, err := generateTypesFile()
+	code, err := generateTypesFile(false)
 	if err != nil {
 		t.Fatalf("generateTypesFile: %v", err)
 	}
@@ -753,10 +803,83 @@ func TestGenerateTypesFile(t *testing.T) {
 		}
 	}
 
+	// The object schema helper is emitted only when a field needs it: an
+	// unused function in ent/schema would fail the lint gate.
+	if strings.Contains(src, "jsonObjectSchema") {
+		t.Error("types.go without json_object fields should not contain jsonObjectSchema")
+	}
+
 	// Verify it parses.
 	fset := token.NewFileSet()
 	if _, err := parser.ParseFile(fset, "types.go", code, parser.AllErrors); err != nil {
 		t.Fatalf("types.go does not parse: %v", err)
+	}
+}
+
+func TestGenerateTypesFileWithObjectSchema(t *testing.T) {
+	t.Parallel()
+
+	code, err := generateTypesFile(true)
+	if err != nil {
+		t.Fatalf("generateTypesFile: %v", err)
+	}
+	src := string(code)
+	for _, want := range []string{
+		"socialMediaSchema()",
+		"func jsonObjectSchema() *ogen.Schema",
+		`SetType("object")`,
+		"AdditionalProperties",
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("types.go missing %q\n\n%s", want, src)
+		}
+	}
+	fset := token.NewFileSet()
+	if _, err := parser.ParseFile(fset, "types.go", code, parser.AllErrors); err != nil {
+		t.Fatalf("types.go does not parse: %v", err)
+	}
+}
+
+func TestHasFieldType(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{ObjectTypes: map[string]ObjectType{
+		"org": {Fields: map[string]FieldDef{"name": {Type: "string"}}},
+		"net": {Fields: map[string]FieldDef{"meta": {Type: "json_object"}}},
+	}}
+	if !hasFieldType(schema, "json_object") {
+		t.Error("hasFieldType(json_object) = false, want true")
+	}
+	if hasFieldType(schema, "json_array") {
+		t.Error("hasFieldType(json_array) = true, want false")
+	}
+}
+
+// TestGenerateEdgeCodeRowGatedTarget checks that an edge to the row-gated
+// poc type gets no GraphQL where-input predicates, and that other edges
+// keep them. A hasPocsWith predicate runs without the poc privacy policy
+// and would let a caller probe the contact data of hidden pocs.
+func TestGenerateEdgeCodeRowGatedTarget(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{
+		ObjectTypes: map[string]ObjectType{
+			"net":    {ModelName: "Network", APIPath: "net"},
+			"poc":    {ModelName: "Poc", APIPath: "poc"},
+			"netfac": {ModelName: "NetworkFacility", APIPath: "netfac"},
+		},
+	}
+	net := schema.ObjectTypes["net"]
+	const skip = "entgql.Skip(entgql.SkipWhereInput)"
+
+	pocs := generateEdgeCode("pocs", Relationship{Target: "poc", Type: "one_to_many", Field: "net_id"}, net, schema)
+	if !strings.Contains(pocs, skip) || !strings.Contains(pocs, "entrest.WithEagerLoad(true)") {
+		t.Errorf("pocs edge must keep eager load and skip the where-input, got:\n%s", pocs)
+	}
+
+	netfacs := generateEdgeCode("network_facilities", Relationship{Target: "netfac", Type: "one_to_many", Field: "net_id"}, net, schema)
+	if strings.Contains(netfacs, skip) {
+		t.Errorf("network_facilities edge must keep its where-input, got:\n%s", netfacs)
 	}
 }
 

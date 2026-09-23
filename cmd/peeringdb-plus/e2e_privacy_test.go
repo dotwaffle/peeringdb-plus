@@ -14,12 +14,13 @@
 // The audit in internal/sync/bypass_audit_test.go exempts *_test.go, so
 // the test-only bypass is legitimate (see its godoc).
 //
-// Two top-level tests:
+// Three top-level tests:
 //
-//   - TestE2E_AnonymousCannotSeeUsersPoc   (TierPublic: row HIDDEN on all 5 surfaces)
-//   - TestE2E_PublicTierUsersAdmitsRow     (TierUsers:  row VISIBLE on all 5 surfaces)
+//   - TestE2E_AnonymousCannotSeeUsersPoc     (TierPublic: row HIDDEN on all 5 surfaces)
+//   - TestE2E_PublicTierUsersAdmitsRow       (TierUsers:  row VISIBLE on all 5 surfaces)
+//   - TestE2E_PublicTierUsersHidesPrivatePoc (TierUsers:  visible="Private" row HIDDEN on all 5 surfaces)
 //
-// Across both we cover 5 surfaces × detail + list pattern so a single
+// Across them we cover 5 surfaces × detail + list pattern so a single
 // surface regression doesn't mask others. Every sub-test runs against
 // the same httptest.Server instance per tier to amortize setup cost.
 //
@@ -70,6 +71,18 @@ var e2eDBCounter atomic.Int64
 // fixture. Chosen well above seed.Full's range (<= ~700) to avoid any
 // accidental collision if seed.Full is added in future.
 const e2eUsersPocID = 900001
+
+// e2ePrivatePocID is the fixed ID of the visible="Private" POC seeded by
+// the fixture on the same network. No tier may read it: upstream shows
+// a Private contact only to members of the owning organization.
+const e2ePrivatePocID = 900003
+
+// e2ePrivatePocName and e2ePrivatePocEmail are the contact data of the
+// Private POC. The tests search response bodies for them.
+const (
+	e2ePrivatePocName  = "E2E Private-Only Contact"
+	e2ePrivatePocEmail = "private-only@example.invalid"
+)
 
 // e2eUsersNetworkID is the fixed ID of the owning network. The test must
 // seed the network first because poc.net_id is the FK.
@@ -207,6 +220,17 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 		SetUpdated(now).
 		SetStatus("ok").
 		SaveX(bypass)
+	client.Poc.Create().
+		SetID(e2ePrivatePocID).
+		SetNetworkID(net.ID).
+		SetRole("Policy").
+		SetName(e2ePrivatePocName).
+		SetEmail(e2ePrivatePocEmail).
+		SetVisible("Private").
+		SetCreated(now).
+		SetUpdated(now).
+		SetStatus("ok").
+		SaveX(bypass)
 
 	// Seed two ixlan rows matching the shape that
 	// internal/testutil/seed.Full uses (id=100 gated, id=101 Public).
@@ -277,10 +301,7 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	// ConnectRPC (/peeringdb.v1.PocService/*). We only need the Poc
 	// service for the assertion — any other service on the prod mux
 	// is privacy-irrelevant here and would pull in more setup.
-	otelInterceptor, err := otelconnect.NewInterceptor(
-		otelconnect.WithoutServerPeerAttributes(),
-		otelconnect.WithoutTraceEvents(),
-	)
+	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
 	if err != nil {
 		t.Fatalf("create otel interceptor: %v", err)
 	}
@@ -406,6 +427,54 @@ func decodeGraphQL(t *testing.T, body []byte) gqlResponse {
 	return r
 }
 
+// assertPocEdgeNotFilterable checks that GraphQL rejects a network filter
+// over the pocs edge. Such a predicate runs as a plain SQL neighbor query
+// without the poc privacy policy, so a match on an email prefix of a
+// hidden POC would disclose the email one character at a time. The
+// direct form and the form nested under organizations must both fail
+// validation and return no data.
+func assertPocEdgeNotFilterable(t *testing.T, fix *e2eFixture, emailPrefixes ...string) {
+	t.Helper()
+	for _, prefix := range emailPrefixes {
+		for _, q := range []string{
+			fmt.Sprintf(`{ networks(where: {hasPocsWith: [{emailHasPrefix: %q}]}) { edges { node { id } } } }`, prefix),
+			fmt.Sprintf(`{ organizations(where: {hasNetworksWith: [{hasPocsWith: [{emailHasPrefix: %q}]}]}) { edges { node { id } } } }`, prefix),
+		} {
+			payload, err := json.Marshal(map[string]string{"query": q})
+			if err != nil {
+				t.Fatalf("marshal query: %v", err)
+			}
+			body, _ := mustPostJSON(t, fix.server.URL+"/graphql", string(payload))
+			r := decodeGraphQL(t, body)
+			if len(r.Errors) == 0 || !strings.Contains(r.Errors[0].Message, "hasPocsWith") {
+				t.Fatalf("%s: want a validation error that names hasPocsWith, got errors=%+v data=%s", q, r.Errors, r.Data)
+			}
+			if strings.Contains(string(r.Data), strconv.Itoa(fix.netID)) {
+				t.Fatalf("%s: the network matched on a hidden POC email: %s", q, r.Data)
+			}
+		}
+	}
+}
+
+// assertPocEdgeNotSortable checks that REST rejects a network sort over
+// the pocs edge. sort=pocs.count orders the networks by a plain SQL count
+// of their POCs, which the poc privacy policy does not filter, so the
+// order would show how many hidden POCs each network has. The OpenAPI
+// spec must not offer the sort either.
+func assertPocEdgeNotSortable(t *testing.T, fix *e2eFixture) {
+	t.Helper()
+	for _, order := range []string{"asc", "desc"} {
+		path := "/rest/v1/networks?sort=pocs.count&order=" + order
+		body, status := mustGet(t, fix.server.URL+path)
+		if status != http.StatusBadRequest {
+			t.Fatalf("GET %s: status=%d, want 400; body=%s", path, status, body)
+		}
+	}
+	if strings.Contains(string(rest.OpenAPI), `"pocs.count"`) {
+		t.Fatal("the REST OpenAPI spec offers the pocs.count sort")
+	}
+}
+
 // =============================================================================
 // TierPublic: anonymous caller must NOT see the visible="Users" POC.
 // =============================================================================
@@ -478,6 +547,10 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 				t.Fatalf("Users POC leaked into /rest/v1/pocs list: %+v", row)
 			}
 		}
+	})
+
+	t.Run("rest_poc_edge_sort_rejected", func(t *testing.T) {
+		assertPocEdgeNotSortable(t, fix)
 	})
 
 	// -------------------------------------------------------------------------
@@ -575,6 +648,10 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 				t.Fatalf("Users POC leaked into pocsList: %+v", p)
 			}
 		}
+	})
+
+	t.Run("graphql_poc_edge_filter_rejected", func(t *testing.T) {
+		assertPocEdgeNotFilterable(t, fix, "users-", "private-")
 	})
 
 	// -------------------------------------------------------------------------
@@ -818,5 +895,121 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 		if !strings.Contains(string(body), fix.pocName) {
 			t.Fatalf("Users POC name %q missing from /ui/ contacts fragment under TierUsers — tier-override regression", fix.pocName)
 		}
+	})
+}
+
+// =============================================================================
+// TierUsers: elevated caller must NOT see the visible="Private" POC.
+// =============================================================================
+
+// TestE2E_PublicTierUsersHidesPrivatePoc proves that TierUsers stops at
+// Users visibility. Upstream shows a Private contact only to members of
+// the owning organization, and the mirror has no organization
+// membership, so the Private POC must be absent on all 5 surfaces while
+// the Users POC on the same network stays visible (see
+// TestE2E_PublicTierUsersAdmitsRow). Hidden rows use the surface-native
+// not-found idiom, never 403. Upstream answers the detail GET with 403
+// (pdb_api_test.py:1413-1414). The 404 is a registered divergence, see
+// TestParity_Status/DIVERGENCE_hidden_poc_detail_404.
+// upstream: 2.83.0 permissions.py:336-339, signals.py:343-347
+func TestE2E_PublicTierUsersHidesPrivatePoc(t *testing.T) {
+	t.Parallel()
+	fix := buildE2EFixture(t, privctx.TierUsers)
+	idStr := strconv.Itoa(e2ePrivatePocID)
+
+	// assertNoPrivatePoc fails when body names the Private POC by its id
+	// or its contact data.
+	assertNoPrivatePoc := func(t *testing.T, what string, body []byte) {
+		t.Helper()
+		for _, needle := range []string{`"id":` + idStr, `"id":"` + idStr + `"`, e2ePrivatePocName, e2ePrivatePocEmail} {
+			if strings.Contains(string(body), needle) {
+				t.Fatalf("Private POC leaked into %s under TierUsers (found %q)", what, needle)
+			}
+		}
+	}
+
+	t.Run("pdbcompat_detail_404", func(t *testing.T) {
+		_, status := mustGet(t, fix.server.URL+"/api/poc/"+idStr)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET /api/poc/%d: status=%d, want 404", e2ePrivatePocID, status)
+		}
+	})
+
+	t.Run("pdbcompat_list_absent", func(t *testing.T) {
+		body, status := mustGet(t, fix.server.URL+"/api/poc")
+		if status != http.StatusOK {
+			t.Fatalf("GET /api/poc: status=%d; body=%s", status, body)
+		}
+		if !strings.Contains(string(body), fix.pocName) {
+			t.Fatalf("GET /api/poc: Users POC missing, so the absence check proves nothing; body=%s", body)
+		}
+		assertNoPrivatePoc(t, "/api/poc", body)
+	})
+
+	t.Run("rest_detail_404", func(t *testing.T) {
+		_, status := mustGet(t, fix.server.URL+"/rest/v1/pocs/"+idStr)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET /rest/v1/pocs/%d: status=%d, want 404", e2ePrivatePocID, status)
+		}
+	})
+
+	t.Run("rest_list_absent", func(t *testing.T) {
+		body, status := mustGet(t, fix.server.URL+"/rest/v1/pocs")
+		if status != http.StatusOK {
+			t.Fatalf("GET /rest/v1/pocs: status=%d; body=%s", status, body)
+		}
+		assertNoPrivatePoc(t, "/rest/v1/pocs", body)
+	})
+
+	t.Run("rest_poc_edge_sort_rejected", func(t *testing.T) {
+		assertPocEdgeNotSortable(t, fix)
+	})
+
+	t.Run("grpc_get_CodeNotFound", func(t *testing.T) {
+		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		_, err := cl.GetPoc(t.Context(), &pbv1.GetPocRequest{Id: e2ePrivatePocID})
+		ce, ok := errors.AsType[*connect.Error](err)
+		if !ok || ce.Code() != connect.CodeNotFound {
+			t.Fatalf("GetPoc(%d): err=%v, want connect.CodeNotFound", e2ePrivatePocID, err)
+		}
+	})
+
+	t.Run("grpc_list_absent", func(t *testing.T) {
+		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		resp, err := cl.ListPocs(t.Context(), &pbv1.ListPocsRequest{PageSize: 100})
+		if err != nil {
+			t.Fatalf("ListPocs: %v", err)
+		}
+		for _, p := range resp.GetPocs() {
+			if p.GetId() == e2ePrivatePocID {
+				t.Fatalf("Private POC leaked into ListPocs under TierUsers: %+v", p)
+			}
+		}
+	})
+
+	t.Run("graphql_absent", func(t *testing.T) {
+		q := fmt.Sprintf(`{"query":"{ pocs(where: {id: %d}) { edges { node { id } } } pocsList(limit: 100) { id name email } }"}`, e2ePrivatePocID)
+		body, status := mustPostJSON(t, fix.server.URL+"/graphql", q)
+		if status != http.StatusOK {
+			t.Fatalf("POST /graphql: status=%d; body=%s", status, body)
+		}
+		r := decodeGraphQL(t, body)
+		if len(r.Errors) > 0 {
+			t.Fatalf("graphql: unexpected errors: %+v", r.Errors)
+		}
+		assertNoPrivatePoc(t, "/graphql", r.Data)
+	})
+
+	t.Run("graphql_poc_edge_filter_rejected", func(t *testing.T) {
+		assertPocEdgeNotFilterable(t, fix, "private-")
+	})
+
+	t.Run("ui_contacts_fragment_absent", func(t *testing.T) {
+		url := fmt.Sprintf("%s/ui/fragment/net/%d/contacts", fix.server.URL, fix.netID)
+		body, status := mustGet(t, url)
+		if status != http.StatusOK {
+			t.Fatalf("GET %s: status=%d; body=%s", url, status, body)
+		}
+		assertNoPrivatePoc(t, "the /ui/ contacts fragment", body)
 	})
 }

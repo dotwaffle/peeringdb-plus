@@ -71,7 +71,7 @@ func (s *Service) Network(ctx context.Context, asn int) (NetworkDetail, error) {
 
 	// Compute aggregate bandwidth across all IX presences for the section header.
 	ixlans, err := s.client.NetworkIxLan.Query().
-		Where(networkixlan.HasNetworkWith(network.ID(net.ID)), networkixlan.StatusIn("ok", "pending")).
+		Where(networkixlan.HasNetworkWith(network.ID(net.ID)), networkixlan.StatusIn("ok", "not-operational", "pending")).
 		All(ctx)
 	if err == nil {
 		var totalBW int
@@ -92,6 +92,7 @@ func (s *Service) Network(ctx context.Context, asn int) (NetworkDetail, error) {
 				IXID:     nix.IxID,
 				Speed:    nix.Speed,
 				IsRSPeer: nix.IsRsPeer,
+				Markers:  ConnectionMarkersFor(nix),
 			}
 			if nix.Ipaddr4 != nil {
 				row.IPAddr4 = *nix.Ipaddr4

@@ -974,7 +974,7 @@ type Facility implements Node {
   """
   regionContinent: String
   """
-  Rencode
+  Obsolete. Read-only in PeeringDB
   """
   rencode: String
   """
@@ -1755,7 +1755,7 @@ type InternetExchange implements Node {
   """
   logo: String
   """
-  Exchange media type
+  Obsolete. PeeringDB always reports `Ethernet`, and the value does not describe the media at the exchange
   """
   media: String
   """
@@ -1779,7 +1779,7 @@ type InternetExchange implements Node {
   """
   policyPhone: String
   """
-  Supports IPv6
+  Whether this exchange supports unicast IPv6. PeeringDB derives it from the active IPv6 prefixes of the LAN
   """
   protoIpv6: Boolean!
   """
@@ -1787,7 +1787,7 @@ type InternetExchange implements Node {
   """
   protoMulticast: Boolean!
   """
-  Supports unicast
+  Whether this exchange supports unicast IPv4. PeeringDB derives it from the active IPv4 prefixes of the LAN
   """
   protoUnicast: Boolean!
   """
@@ -2686,7 +2686,7 @@ type IxLan implements Node {
   """
   descr: String
   """
-  802.1Q support
+  Obsolete. PeeringDB always reports `false`, and the value does not describe 802.1Q VLAN tagging support
   """
   dot1qSupport: Boolean!
   """
@@ -2702,7 +2702,7 @@ type IxLan implements Node {
   """
   ixfIxpMemberListURLVisible: String
   """
-  MTU size
+  Maximum transmission unit offered on this LAN, in bytes
   """
   mtu: Int
   """
@@ -3125,6 +3125,10 @@ input IxPrefixWhereInput {
   hasIxLan: Boolean
   hasIxLanWith: [IxLanWhereInput!]
 }
+"""
+The builtin Map type
+"""
+scalar Map
 type Network implements Node {
   """
   PeeringDB network ID
@@ -3207,6 +3211,10 @@ type Network implements Node {
   """
   lookingGlass: String
   """
+  Optional attributes using registered metadata keys
+  """
+  meta: Map
+  """
   Network name (not unique — PeeringDB permits duplicates)
   """
   name: String!
@@ -3239,7 +3247,7 @@ type Network implements Node {
   """
   policyURL: String
   """
-  RIR status
+  Allocation status of this network's ASN according to RIR data. PeeringDB exposes only `ok` or null
   """
   rirStatus: String
   """
@@ -3596,15 +3604,19 @@ type NetworkIxLan implements Node {
   """
   isRsPeer: Boolean!
   """
+  Optional attributes using registered metadata keys
+  """
+  meta: Map
+  """
   Notes
   """
   notes: String
   """
-  Operational status
+  Whether this connection is operational. PeeringDB derives it from status (true only for `ok`) and marks it deprecated
   """
   operational: Boolean!
   """
-  Port speed in Mbps
+  Capacity of this connection in Mbit/sec
   """
   speed: Int!
   """
@@ -3624,7 +3636,7 @@ type NetworkIxLan implements Node {
   """
   updated: Time!
   """
-  Record status
+  Connection state: `ok` and `not-operational` are published, `pending` awaits approval, and `deleted` is removed
   """
   status: String!
   ixLan: IxLan
@@ -4479,11 +4491,6 @@ input NetworkWhereInput {
   """
   hasOrganization: Boolean
   hasOrganizationWith: [OrganizationWhereInput!]
-  """
-  pocs edge predicates
-  """
-  hasPocs: Boolean
-  hasPocsWith: [PocWhereInput!]
 }
 """
 An object with an ID.
@@ -5059,7 +5066,7 @@ type Poc implements Node {
   """
   url: String
   """
-  Visibility level
+  Who may see this contact: `Public` anyone, `Users` authenticated users only, `Private` the owning organization only. `Private` remains only on legacy records
   """
   visible: String
   """

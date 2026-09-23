@@ -24,26 +24,28 @@ type RowSize struct {
 //  3. Double the measured mean, round UP to the nearest 64 bytes.
 //  4. Commit the updated map in the same PR as the bench run.
 //
-// Last calibrated: 2026-06-08 — the Depth2 column was re-measured after the
-// depth-parity work (real ?depth=1, ixlan net_set, and second-level nested-set
-// expansion) grew every expanded-row size. Depth0 is unaffected and retains the
-// 2026-04-19 seed.Full figures.
+// Last calibrated: 2026-09-23, after net and netixlan gained the PeeringDB
+// 2.83.0 meta document ("meta":{} on every net and netixlan object, nested
+// ones included). Raised: netixlan Depth0/Depth2, the poc and netfac Depth2
+// rows (they embed a net object), and ixfac Depth2, which had drifted above
+// its 2026-06-08 figure. No entry was lowered: org Depth2 keeps its
+// 2026-06-08 value, which is above the new measurement.
 //
-// Raw measurements (median bytes/op; Depth2 from the 2026-06-08 run):
+// Raw measurements (median bytes/op, 2026-09-23 run):
 //
 //	entity       Depth0  Depth2
-//	org             317    4203   ← Depth2 expands every *_set (largest row)
-//	net             783    1246
+//	org             317    3498   ← Depth2 expands every *_set (largest row)
+//	net             817    1280
 //	fac             648    1684
 //	ix              625    1318
-//	poc             186    1365
+//	poc             186    1399
 //	ixlan           262    1277
 //	ixpfx           163    1115
-//	netixlan        316    2447
-//	netfac          176    2353
-//	ixfac           173    2202
+//	netixlan        326    2491
+//	netfac          176    2401
+//	ixfac           173    2216
 //	carrier         228     815
-//	carrierfac      139    1740
+//	carrierfac      139    1754
 //	campus          269    1332
 //
 // The Depth2 column feeds the detail-path budget check
@@ -55,17 +57,18 @@ type RowSize struct {
 var typicalRowBytes = map[string]RowSize{
 	// Depth0 calibrated 2026-04-19; Depth2 recalibrated 2026-06-08 after the
 	// depth-parity work, both from seed.Full at benchtime=20x × count=3.
+	// 2026-09-23 raised the entries that had drifted (see above).
 	// Values = ceil(2 × measured_bytes_per_op / 64) * 64.
 	peeringdb.TypeOrg:        {Depth0: 704, Depth2: 8448},  // org (Depth2 expands net/fac/ix/carrier/campus sets → largest row in the table). Depth0 bumped from 640 → 704 — seed.Full mean is 325 bytes vs bench's single-row 317, so 2× rounds up one 64-byte bucket higher.
 	peeringdb.TypeNet:        {Depth0: 1664, Depth2: 2560}, // Depth0/Depth2 bumped one 64-byte bucket each when ixp_update_exclude joined NetworkSerializer (2.80.1 parity).
 	peeringdb.TypeFac:        {Depth0: 1344, Depth2: 3392},
 	peeringdb.TypeIX:         {Depth0: 1280, Depth2: 2688},
-	peeringdb.TypePoc:        {Depth0: 384, Depth2: 2752},
+	peeringdb.TypePoc:        {Depth0: 384, Depth2: 2816},
 	peeringdb.TypeIXLan:      {Depth0: 576, Depth2: 2560},
 	peeringdb.TypeIXPfx:      {Depth0: 384, Depth2: 2240},
-	peeringdb.TypeNetIXLan:   {Depth0: 640, Depth2: 4928},
-	peeringdb.TypeNetFac:     {Depth0: 384, Depth2: 4736},
-	peeringdb.TypeIXFac:      {Depth0: 384, Depth2: 4416},
+	peeringdb.TypeNetIXLan:   {Depth0: 704, Depth2: 4992}, // Depth0 640 → 704 when meta joined NetworkIXLanSerializer (2.83.0 parity).
+	peeringdb.TypeNetFac:     {Depth0: 384, Depth2: 4864},
+	peeringdb.TypeIXFac:      {Depth0: 384, Depth2: 4480},
 	peeringdb.TypeCarrier:    {Depth0: 512, Depth2: 1664},
 	peeringdb.TypeCarrierFac: {Depth0: 320, Depth2: 3520},
 	peeringdb.TypeCampus:     {Depth0: 576, Depth2: 2688},

@@ -2,6 +2,7 @@ package privctx_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -73,5 +74,39 @@ func TestWithTier_ChildCtxInheritsValue(t *testing.T) {
 
 	if got := privctx.TierFrom(child); got != privctx.TierUsers {
 		t.Fatalf("TierFrom(derived child) = %v, want TierUsers", got)
+	}
+}
+
+// TestTier_AdmittedVisibilities locks the tier → visibility mapping that
+// the row gates and the field gate share. No tier admits "Private":
+// upstream shows it only to members of the owning organization.
+// upstream: 2.83.0 permissions.py:336-339, signals.py:343-347
+func TestTier_AdmittedVisibilities(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		tier privctx.Tier
+		want []string
+	}{
+		{name: "public", tier: privctx.TierPublic, want: []string{"Public"}},
+		{name: "users", tier: privctx.TierUsers, want: []string{"Public", "Users"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := tc.tier.AdmittedVisibilities()
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("%v.AdmittedVisibilities() = %v, want %v", tc.tier, got, tc.want)
+			}
+			if slices.Contains(got, "Private") {
+				t.Fatalf("%v admits Private", tc.tier)
+			}
+			// Each call returns a new slice.
+			got[0] = "changed"
+			if again := tc.tier.AdmittedVisibilities(); again[0] != "Public" {
+				t.Fatalf("a change to the returned slice leaked into the next call: %v", again)
+			}
+		})
 	}
 }

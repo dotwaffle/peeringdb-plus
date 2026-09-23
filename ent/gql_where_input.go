@@ -8431,10 +8431,6 @@ type NetworkWhereInput struct {
 	// "organization" edge predicates.
 	HasOrganization     *bool                     `json:"hasOrganization,omitempty"`
 	HasOrganizationWith []*OrganizationWhereInput `json:"hasOrganizationWith,omitempty"`
-
-	// "pocs" edge predicates.
-	HasPocs     *bool            `json:"hasPocs,omitempty"`
-	HasPocsWith []*PocWhereInput `json:"hasPocsWith,omitempty"`
 }
 
 // AddPredicates adds custom predicates to the where input to be used during the filtering phase.
@@ -9840,24 +9836,6 @@ func (i *NetworkWhereInput) P() (predicate.Network, error) {
 			with = append(with, p)
 		}
 		predicates = append(predicates, network.HasOrganizationWith(with...))
-	}
-	if i.HasPocs != nil {
-		p := network.HasPocs()
-		if !*i.HasPocs {
-			p = network.Not(p)
-		}
-		predicates = append(predicates, p)
-	}
-	if len(i.HasPocsWith) > 0 {
-		with := make([]predicate.Poc, 0, len(i.HasPocsWith))
-		for _, w := range i.HasPocsWith {
-			p, err := w.P()
-			if err != nil {
-				return nil, fmt.Errorf("%w: field 'HasPocsWith'", err)
-			}
-			with = append(with, p)
-		}
-		predicates = append(predicates, network.HasPocsWith(with...))
 	}
 	switch len(predicates) {
 	case 0:

@@ -20,12 +20,16 @@ import (
 // ent's codegen still picks this method up via reflection on the Poc
 // schema type — the Go file split is transparent to ent.
 //
-// Query rule: rows with visible != "Public" (or NULL — see the
-// NULL-safety note below) are filtered out for any ctx whose tier is
-// TierPublic. TierUsers callers (env-override PDBPLUS_PUBLIC_TIER=users,
-// or a future OAuth session) see every row. Sync workers bypass the
-// policy via privacy.DecisionContext(ctx, privacy.Allow) set at worker
-// entry (internal/sync/worker.go), so ingest is unaffected.
+// Query rule: a row is admitted when its visible value is in
+// privctx.TierFrom(ctx).AdmittedVisibilities(), or when it is NULL (see
+// the NULL-safety note below). TierPublic sees Public rows. TierUsers
+// (env-override PDBPLUS_PUBLIC_TIER=users, or a future OAuth session)
+// sees Public and Users rows. No tier sees Private rows: upstream shows
+// them only to members of the owning organization (2.83.0
+// permissions.py:336-339, signals.py:343-347), and the mirror has no
+// organization membership. Sync workers bypass the policy via
+// privacy.DecisionContext(ctx, privacy.Allow) set at worker entry
+// (internal/sync/worker.go), so ingest is unaffected.
 //
 // No Mutation rule: sync writes travel the bypass; no other
 // writers exist on this read-only mirror.
@@ -39,11 +43,8 @@ func (Poc) Policy() ent.Policy {
 	return privacy.Policy{
 		Query: privacy.QueryPolicy{
 			privacy.PocQueryRuleFunc(func(ctx context.Context, q *pdbent.PocQuery) error {
-				if privctx.TierFrom(ctx) == privctx.TierUsers {
-					return privacy.Skip
-				}
 				q.Where(poc.Or(
-					poc.VisibleEQ("Public"),
+					poc.VisibleIn(privctx.TierFrom(ctx).AdmittedVisibilities()...),
 					poc.VisibleIsNil(),
 				))
 				return privacy.Skip

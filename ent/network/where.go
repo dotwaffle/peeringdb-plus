@@ -1325,6 +1325,16 @@ func LookingGlassContainsFold(v string) predicate.Network {
 	return predicate.Network(sql.FieldContainsFold(FieldLookingGlass, v))
 }
 
+// MetaIsNil applies the IsNil predicate on the "meta" field.
+func MetaIsNil() predicate.Network {
+	return predicate.Network(sql.FieldIsNull(FieldMeta))
+}
+
+// MetaNotNil applies the NotNil predicate on the "meta" field.
+func MetaNotNil() predicate.Network {
+	return predicate.Network(sql.FieldNotNull(FieldMeta))
+}
+
 // NameEQ applies the EQ predicate on the "name" field.
 func NameEQ(v string) predicate.Network {
 	return predicate.Network(sql.FieldEQ(FieldName, v))

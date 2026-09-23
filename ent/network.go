@@ -65,6 +65,8 @@ type Network struct {
 	Logo *string `json:"logo"`
 	// Looking glass URL
 	LookingGlass string `json:"looking_glass"`
+	// Optional attributes using registered metadata keys
+	Meta map[string]interface{} `json:"meta"`
 	// Network name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
 	// Long name
@@ -81,7 +83,7 @@ type Network struct {
 	PolicyRatio bool `json:"policy_ratio"`
 	// Peering policy URL
 	PolicyURL string `json:"policy_url"`
-	// RIR status
+	// Allocation status of this network's ASN according to RIR data. PeeringDB exposes only `ok` or null
 	RirStatus *string `json:"rir_status"`
 	// RIR status last updated
 	RirStatusUpdated *time.Time `json:"rir_status_updated"`
@@ -179,7 +181,7 @@ func (*Network) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case network.FieldInfoTypes, network.FieldIxpUpdateExclude, network.FieldSocialMedia:
+		case network.FieldInfoTypes, network.FieldIxpUpdateExclude, network.FieldMeta, network.FieldSocialMedia:
 			values[i] = new([]byte)
 		case network.FieldAllowIxpUpdate, network.FieldInfoIpv6, network.FieldInfoMulticast, network.FieldInfoNeverViaRouteServers, network.FieldInfoUnicast, network.FieldPolicyRatio:
 			values[i] = new(sql.NullBool)
@@ -349,6 +351,14 @@ func (_m *Network) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field looking_glass", values[i])
 			} else if value.Valid {
 				_m.LookingGlass = value.String
+			}
+		case network.FieldMeta:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field meta", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Meta); err != nil {
+					return fmt.Errorf("unmarshal field meta: %w", err)
+				}
 			}
 		case network.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -619,6 +629,9 @@ func (_m *Network) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("looking_glass=")
 	builder.WriteString(_m.LookingGlass)
+	builder.WriteString(", ")
+	builder.WriteString("meta=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Meta))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

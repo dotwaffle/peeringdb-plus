@@ -60,6 +60,7 @@ func (r *Renderer) RenderIXDetail(w io.Writer, data templates.IXDetail) error {
 			buf.WriteString(StyleValue.Render(name))
 			buf.WriteString(" ")
 			buf.WriteString(CrossRef(fmt.Sprintf("/ui/asn/%d", row.ASN)))
+			writeConnectionMarkers(&buf, row.Markers)
 
 			if ShouldShowField("ix-participants", "rs", r.Width) && row.IsRSPeer {
 				buf.WriteString("  ")

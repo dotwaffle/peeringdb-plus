@@ -141,13 +141,15 @@ Each sync cycle derives a per-type cursor from
 - **Incremental mode with a non-zero cursor** →
   `scratch.stageType(ctx, pdbClient, name, cursor)`, i.e. a paginated
   `?since=<cursor>` fetch.
-  PeeringDB's `?since=N` is inclusive
-  (`updated >= N`),
-  and the `updated` column is indexed on all 13 entity tables,
-  so re-fetching the boundary row each cycle is an index-backed no-op
+  Upstream's `?since=N` filter is strict (`updated > N`),
+  but `N` is whole seconds while upstream stores sub-second `updated` values,
+  so upstream usually re-sends the boundary row.
+  The `updated` column is indexed on all 13 entity tables,
+  and re-fetching the boundary row each cycle is an index-backed no-op
   (the `OnConflict` UPDATE is skipped on unchanged rows).
 - **Zero cursor (empty table) or full mode** → a bare `?depth=0` list
-  (status `ok` only), the existing full-sync path.
+  (live statuses only: `ok`, plus `not-operational` on netixlan),
+  the existing full-sync path.
 
 The `meta.Generated` value returned by `stageType` is **not** used to advance
 the cursor; the worker discards it (`_, err := scratch.stageType(...)`).
@@ -219,7 +221,7 @@ since the cursor is `MAX(updated)`.
 3. **Incremental responses omit `meta.generated`, which is exactly why it cannot
    be the cursor.**
    The `MAX(updated)` model sidesteps this:
-   `?since=` is inclusive and `updated` is indexed,
+   upstream usually re-sends the boundary row and `updated` is indexed,
    so the boundary row is re-fetched idempotently.
    `PDBPLUS_FULL_SYNC_INTERVAL`
    (default 24h)

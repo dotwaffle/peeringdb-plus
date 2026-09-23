@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
+
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -43,6 +47,57 @@ func fetchStatusCode(t *testing.T, url string) int {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	return resp.StatusCode
+}
+
+// TestApplyStatusMatrix_SQL locks the predicate each matrix cell emits.
+// A single live status must stay an equality: the single-column status
+// index then returns a plain list in id order, so SQLite does not sort
+// (TestPdbcompatListPlan_NoTempBTree). The since cells append to a copy
+// of the live set, never to the caller's slice.
+func TestApplyStatusMatrix_SQL(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		live     []string
+		isCampus bool
+		since    bool
+		wantSQL  string
+		wantArgs []any
+	}{
+		{"one live status, no since", []string{"ok"}, false, false,
+			"SELECT * FROM `t` WHERE `t`.`status` = ?", []any{"ok"}},
+		{"one live status, since", []string{"ok"}, false, true,
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?))", []any{"ok", "deleted"}},
+		{"campus, no since", []string{"ok"}, true, false,
+			"SELECT * FROM `t` WHERE `t`.`status` = ?", []any{"ok"}},
+		{"campus, since", []string{"ok"}, true, true,
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?, ?))", []any{"ok", "deleted", "pending"}},
+		{"two live statuses, no since", []string{"ok", "not-operational"}, false, false,
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?))", []any{"ok", "not-operational"}},
+		{"two live statuses, since", []string{"ok", "not-operational"}, false, true,
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?, ?))", []any{"ok", "not-operational", "deleted"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// Spare capacity exposes an append that writes through to
+			// the caller's backing array.
+			live := make([]string, len(tc.live), len(tc.live)+4)
+			copy(live, tc.live)
+			sel := sql.Dialect(dialect.SQLite).Select("*").From(sql.Table("t"))
+			applyStatusMatrix(live, tc.isCampus, tc.since)(sel)
+			query, args := sel.Query()
+			if query != tc.wantSQL {
+				t.Errorf("SQL = %q, want %q", query, tc.wantSQL)
+			}
+			if !slices.Equal(args, tc.wantArgs) {
+				t.Errorf("args = %v, want %v", args, tc.wantArgs)
+			}
+			if got := live[:cap(live)][len(tc.live)]; got != "" {
+				t.Errorf("applyStatusMatrix wrote %q past the live slice", got)
+			}
+		})
+	}
 }
 
 // TestStatusMatrix covers the status × since matrix and the bare-URL
@@ -197,9 +252,12 @@ func TestStatusMatrix(t *testing.T) {
 	t.Run("status_deleted_no_since_is_empty", func(t *testing.T) {
 		t.Parallel()
 		client := testutil.SetupClient(t)
-		// Seed only a deleted row. With no ?since, the list filters to
-		// status=ok regardless of any ?status= override.
+		// Seed an ok row and a deleted row. ?status=deleted keeps only
+		// the tombstone, and the matrix without ?since admits only
+		// status=ok. The two filters AND, so the result is empty. A
+		// dropped ?status= key would return the ok row instead.
 		seedNet(t, client, 1, 64501, "deleted", t0)
+		seedNet(t, client, 2, 64502, "ok", t0.Add(time.Hour))
 
 		srv := httptest.NewServer(newMuxForOrdering(client))
 		t.Cleanup(srv.Close)
@@ -218,9 +276,9 @@ func TestStatusMatrix(t *testing.T) {
 		t.Parallel()
 		client := testutil.SetupClient(t)
 		ctx := t.Context()
-		// Seed 300 status=ok networks (above the historical 250 cap,
-		// below MaxLimit=1000). Both bare URL and ?limit=0 return all
-		// rows (matches upstream rest.py:495 + :737).
+		// Seed 300 status=ok networks (above the historical 250 cap).
+		// Both bare URL and ?limit=0 return all rows (matches upstream
+		// 2.83.0 rest.py:516 + :760).
 		const seedN = 300
 		for i := 1; i <= seedN; i++ {
 			if _, err := client.Network.Create().
@@ -270,22 +328,28 @@ func TestStatusMatrix(t *testing.T) {
 
 // TestStatusMatrix_AllEntities asserts the status×since matrix is
 // wired into the list closure of EVERY one of the 13 entity types, with the
-// correct isCampus flag. The focused TestStatusMatrix above proves the
-// applyStatusMatrix function body against net + campus; this table-driven
-// test guards against a per-entity wiring omission — dropping the matrix
-// predicate, or flipping isCampus, in exactly one of the 13
-// registry_funcs.go closures — which would silently leak status=deleted
-// tombstones (or pending rows) onto the anonymous /api list surface for
-// that one type while leaving net + campus intact.
+// correct isCampus flag and live status set. The focused TestStatusMatrix
+// above proves the applyStatusMatrix function body against net + campus;
+// this table-driven test guards against a per-entity wiring omission —
+// dropping the matrix predicate, flipping isCampus, or resolving the wrong
+// live set in exactly one of the 13 wireEntity registrations — which would
+// silently leak status=deleted tombstones (or pending rows) onto the
+// anonymous /api list surface for that one type, or hide its live rows.
 //
-// Matrix (per applyStatusMatrix in filter.go):
-//   - no ?since        → status == "ok"            (deleted + pending hidden)
-//   - ?since=N, generic → status IN (ok, deleted)  (pending still hidden)
-//   - ?since=N, campus  → status IN (ok, deleted, pending)
+// Matrix (per applyStatusMatrix in filter.go; live is ok, plus
+// not-operational on netixlan):
+//   - no ?since        → status IN live                    (deleted + pending hidden)
+//   - ?since=N, generic → status IN live + deleted         (pending still hidden)
+//   - ?since=N, campus  → status IN live + deleted + pending
 //
-// Each subtest seeds one ok + one deleted + one pending row of its type
-// (under freshly-seeded FK parents of OTHER types, which never appear on
-// the type's own list endpoint) in an isolated client.
+// A caller ?status= filter ANDs with the matrix on every type, so it can
+// only narrow the admitted set. The subtests also check this per type: a
+// Registry Fields map that drops "status" would make ?status= a no-op.
+//
+// Each subtest seeds one ok + one deleted + one pending row of its type,
+// plus one row per further live status (under freshly-seeded FK parents
+// of OTHER types, which never appear on the type's own list endpoint) in
+// an isolated client.
 func TestStatusMatrix_AllEntities(t *testing.T) {
 	t.Parallel()
 
@@ -296,30 +360,48 @@ func TestStatusMatrix_AllEntities(t *testing.T) {
 			t.Parallel()
 			c := testutil.SetupClient(t)
 			seedStatusParentsFor(t, c, e.tag)
-			seedStatusRow(t, c, e.tag, 901, "ok")
-			seedStatusRow(t, c, e.tag, 902, "deleted")
-			seedStatusRow(t, c, e.tag, 903, "pending")
+			liveIDs := seedStatusMatrixRows(t, c, e.tag, e.live)
 
 			srv := httptest.NewServer(newMuxForOrdering(c))
 			t.Cleanup(srv.Close)
 
-			// No ?since: only the status=ok row. A missing matrix
-			// predicate would also return deleted (+pending) here.
-			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag); code != http.StatusOK || n != 1 {
-				t.Errorf("GET /api/%s (no since): got n=%d code=%d, want n=1 code=200 (only status=ok; deleted+pending must be hidden)",
-					e.tag, n, code)
+			// No ?since: only the live rows. A missing matrix
+			// predicate would also return deleted (+pending) here; a
+			// wrong live set would change the count.
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag); code != http.StatusOK || n != len(liveIDs) {
+				t.Errorf("GET /api/%s (no since): got n=%d code=%d, want n=%d code=200 (only live %v; deleted+pending must be hidden)",
+					e.tag, n, code, len(liveIDs), e.live)
 			}
 
-			// ?since=1: ok+deleted for generic types; +pending for campus.
-			// A flipped isCampus flag would change this count.
-			wantSince := 2
+			// ?since=1: live+deleted for generic types; +pending for
+			// campus. A flipped isCampus flag would change this count.
+			wantSince := len(liveIDs) + 1
 			if e.isCampus {
-				wantSince = 3
+				wantSince++
 			}
 			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?since=1"); code != http.StatusOK || n != wantSince {
 				t.Errorf("GET /api/%s?since=1: got n=%d code=%d, want n=%d code=200 (isCampus=%v: pending %s)",
 					e.tag, n, code, wantSince, e.isCampus,
 					map[bool]string{true: "admitted", false: "hidden"}[e.isCampus])
+			}
+
+			// ?status= narrows inside the matrix: the since window
+			// holds live+deleted, so status=deleted keeps only the
+			// tombstone. Without ?since, status=pending matches no
+			// admitted row, and each live status matches its own row.
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?since=1&status=deleted"); code != http.StatusOK || n != 1 {
+				t.Errorf("GET /api/%s?since=1&status=deleted: got n=%d code=%d, want n=1 code=200 (only the tombstone)",
+					e.tag, n, code)
+			}
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?status=pending"); code != http.StatusOK || n != 0 {
+				t.Errorf("GET /api/%s?status=pending: got n=%d code=%d, want n=0 code=200 (pending is outside the no-since matrix)",
+					e.tag, n, code)
+			}
+			for _, status := range e.live {
+				if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?status="+status); code != http.StatusOK || n != 1 {
+					t.Errorf("GET /api/%s?status=%s: got n=%d code=%d, want n=1 code=200 (one row per live status)",
+						e.tag, status, n, code)
+				}
 			}
 		})
 	}

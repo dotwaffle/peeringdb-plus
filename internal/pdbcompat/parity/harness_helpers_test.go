@@ -9,6 +9,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 // newTestServer wraps the canonical pdbcompat handler in an
@@ -39,6 +40,22 @@ func newTestServerWithBudget(t testing.TB, c *ent.Client, budget int64) *httptes
 	mux := http.NewServeMux()
 	h.Register(mux)
 	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// newTestServerWithTier mirrors newTestServer but stamps tier on each
+// request context, as middleware.PrivacyTier does in production from
+// PDBPLUS_PUBLIC_TIER. newTestServer leaves the context unstamped, which
+// fails closed to privctx.TierPublic.
+func newTestServerWithTier(t testing.TB, c *ent.Client, tier privctx.Tier) *httptest.Server {
+	t.Helper()
+	h := pdbcompat.NewHandler(c, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r.WithContext(privctx.WithTier(r.Context(), tier)))
+	}))
 	t.Cleanup(srv.Close)
 	return srv
 }

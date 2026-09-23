@@ -340,6 +340,7 @@ type ComplexityRoot struct {
 		IxpUpdateExclude         func(childComplexity int) int
 		Logo                     func(childComplexity int) int
 		LookingGlass             func(childComplexity int) int
+		Meta                     func(childComplexity int) int
 		Name                     func(childComplexity int) int
 		NameLong                 func(childComplexity int) int
 		NetfacUpdated            func(childComplexity int) int
@@ -415,6 +416,7 @@ type ComplexityRoot struct {
 		IxLan       func(childComplexity int) int
 		IxSideID    func(childComplexity int) int
 		IxlanID     func(childComplexity int) int
+		Meta        func(childComplexity int) int
 		Name        func(childComplexity int) int
 		NetID       func(childComplexity int) int
 		NetSideID   func(childComplexity int) int
@@ -1992,6 +1994,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Network.LookingGlass(childComplexity), true
+	case "Network.meta":
+		if e.ComplexityRoot.Network.Meta == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Network.Meta(childComplexity), true
 	case "Network.name":
 		if e.ComplexityRoot.Network.Name == nil {
 			break
@@ -2340,6 +2348,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.NetworkIxLan.IxlanID(childComplexity), true
+	case "NetworkIxLan.meta":
+		if e.ComplexityRoot.NetworkIxLan.Meta == nil {
+			break
+		}
+
+		return e.ComplexityRoot.NetworkIxLan.Meta(childComplexity), true
 	case "NetworkIxLan.name":
 		if e.ComplexityRoot.NetworkIxLan.Name == nil {
 			break
@@ -3816,6 +3830,8 @@ func (ec *executionContext) childFields_Network(ctx context.Context, field graph
 		return ec.fieldContext_Network_logo(ctx, field)
 	case "lookingGlass":
 		return ec.fieldContext_Network_lookingGlass(ctx, field)
+	case "meta":
+		return ec.fieldContext_Network_meta(ctx, field)
 	case "name":
 		return ec.fieldContext_Network_name(ctx, field)
 	case "nameLong":
@@ -3968,6 +3984,8 @@ func (ec *executionContext) childFields_NetworkIxLan(ctx context.Context, field 
 		return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
 	case "isRsPeer":
 		return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
+	case "meta":
+		return ec.fieldContext_NetworkIxLan_meta(ctx, field)
 	case "notes":
 		return ec.fieldContext_NetworkIxLan_notes(ctx, field)
 	case "operational":
@@ -11015,6 +11033,29 @@ func (ec *executionContext) fieldContext_Network_lookingGlass(_ context.Context,
 	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _Network_meta(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_meta(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Meta, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v map[string]any) graphql.Marshaler {
+			return ec.marshalOMap2map(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Network_meta(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Map does not have child fields"))
+}
+
 func (ec *executionContext) _Network_name(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12464,6 +12505,29 @@ func (ec *executionContext) _NetworkIxLan_isRsPeer(ctx context.Context, field gr
 }
 func (ec *executionContext) fieldContext_NetworkIxLan_isRsPeer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _NetworkIxLan_meta(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_meta(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Meta, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v map[string]any) graphql.Marshaler {
+			return ec.marshalOMap2map(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_NetworkIxLan_meta(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Map does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_notes(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -30897,7 +30961,7 @@ func (ec *executionContext) unmarshalInputNetworkWhereInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "orgID", "orgIDNEQ", "orgIDIn", "orgIDNotIn", "orgIDIsNil", "orgIDNotNil", "aka", "akaNEQ", "akaIn", "akaNotIn", "akaGT", "akaGTE", "akaLT", "akaLTE", "akaContains", "akaHasPrefix", "akaHasSuffix", "akaIsNil", "akaNotNil", "akaEqualFold", "akaContainsFold", "allowIxpUpdate", "allowIxpUpdateNEQ", "asn", "asnNEQ", "asnIn", "asnNotIn", "asnGT", "asnGTE", "asnLT", "asnLTE", "infoIpv6", "infoIpv6NEQ", "infoMulticast", "infoMulticastNEQ", "infoNeverViaRouteServers", "infoNeverViaRouteServersNEQ", "infoPrefixes4", "infoPrefixes4NEQ", "infoPrefixes4In", "infoPrefixes4NotIn", "infoPrefixes4GT", "infoPrefixes4GTE", "infoPrefixes4LT", "infoPrefixes4LTE", "infoPrefixes4IsNil", "infoPrefixes4NotNil", "infoPrefixes6", "infoPrefixes6NEQ", "infoPrefixes6In", "infoPrefixes6NotIn", "infoPrefixes6GT", "infoPrefixes6GTE", "infoPrefixes6LT", "infoPrefixes6LTE", "infoPrefixes6IsNil", "infoPrefixes6NotNil", "infoRatio", "infoRatioNEQ", "infoRatioIn", "infoRatioNotIn", "infoRatioGT", "infoRatioGTE", "infoRatioLT", "infoRatioLTE", "infoRatioContains", "infoRatioHasPrefix", "infoRatioHasSuffix", "infoRatioIsNil", "infoRatioNotNil", "infoRatioEqualFold", "infoRatioContainsFold", "infoScope", "infoScopeNEQ", "infoScopeIn", "infoScopeNotIn", "infoScopeGT", "infoScopeGTE", "infoScopeLT", "infoScopeLTE", "infoScopeContains", "infoScopeHasPrefix", "infoScopeHasSuffix", "infoScopeIsNil", "infoScopeNotNil", "infoScopeEqualFold", "infoScopeContainsFold", "infoTraffic", "infoTrafficNEQ", "infoTrafficIn", "infoTrafficNotIn", "infoTrafficGT", "infoTrafficGTE", "infoTrafficLT", "infoTrafficLTE", "infoTrafficContains", "infoTrafficHasPrefix", "infoTrafficHasSuffix", "infoTrafficIsNil", "infoTrafficNotNil", "infoTrafficEqualFold", "infoTrafficContainsFold", "infoType", "infoTypeNEQ", "infoTypeIn", "infoTypeNotIn", "infoTypeGT", "infoTypeGTE", "infoTypeLT", "infoTypeLTE", "infoTypeContains", "infoTypeHasPrefix", "infoTypeHasSuffix", "infoTypeIsNil", "infoTypeNotNil", "infoTypeEqualFold", "infoTypeContainsFold", "infoUnicast", "infoUnicastNEQ", "irrAsSet", "irrAsSetNEQ", "irrAsSetIn", "irrAsSetNotIn", "irrAsSetGT", "irrAsSetGTE", "irrAsSetLT", "irrAsSetLTE", "irrAsSetContains", "irrAsSetHasPrefix", "irrAsSetHasSuffix", "irrAsSetIsNil", "irrAsSetNotNil", "irrAsSetEqualFold", "irrAsSetContainsFold", "logo", "logoNEQ", "logoIn", "logoNotIn", "logoGT", "logoGTE", "logoLT", "logoLTE", "logoContains", "logoHasPrefix", "logoHasSuffix", "logoIsNil", "logoNotNil", "logoEqualFold", "logoContainsFold", "lookingGlass", "lookingGlassNEQ", "lookingGlassIn", "lookingGlassNotIn", "lookingGlassGT", "lookingGlassGTE", "lookingGlassLT", "lookingGlassLTE", "lookingGlassContains", "lookingGlassHasPrefix", "lookingGlassHasSuffix", "lookingGlassIsNil", "lookingGlassNotNil", "lookingGlassEqualFold", "lookingGlassContainsFold", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameEqualFold", "nameContainsFold", "nameLong", "nameLongNEQ", "nameLongIn", "nameLongNotIn", "nameLongGT", "nameLongGTE", "nameLongLT", "nameLongLTE", "nameLongContains", "nameLongHasPrefix", "nameLongHasSuffix", "nameLongIsNil", "nameLongNotNil", "nameLongEqualFold", "nameLongContainsFold", "notes", "notesNEQ", "notesIn", "notesNotIn", "notesGT", "notesGTE", "notesLT", "notesLTE", "notesContains", "notesHasPrefix", "notesHasSuffix", "notesIsNil", "notesNotNil", "notesEqualFold", "notesContainsFold", "policyContracts", "policyContractsNEQ", "policyContractsIn", "policyContractsNotIn", "policyContractsGT", "policyContractsGTE", "policyContractsLT", "policyContractsLTE", "policyContractsContains", "policyContractsHasPrefix", "policyContractsHasSuffix", "policyContractsIsNil", "policyContractsNotNil", "policyContractsEqualFold", "policyContractsContainsFold", "policyGeneral", "policyGeneralNEQ", "policyGeneralIn", "policyGeneralNotIn", "policyGeneralGT", "policyGeneralGTE", "policyGeneralLT", "policyGeneralLTE", "policyGeneralContains", "policyGeneralHasPrefix", "policyGeneralHasSuffix", "policyGeneralIsNil", "policyGeneralNotNil", "policyGeneralEqualFold", "policyGeneralContainsFold", "policyLocations", "policyLocationsNEQ", "policyLocationsIn", "policyLocationsNotIn", "policyLocationsGT", "policyLocationsGTE", "policyLocationsLT", "policyLocationsLTE", "policyLocationsContains", "policyLocationsHasPrefix", "policyLocationsHasSuffix", "policyLocationsIsNil", "policyLocationsNotNil", "policyLocationsEqualFold", "policyLocationsContainsFold", "policyRatio", "policyRatioNEQ", "policyURL", "policyURLNEQ", "policyURLIn", "policyURLNotIn", "policyURLGT", "policyURLGTE", "policyURLLT", "policyURLLTE", "policyURLContains", "policyURLHasPrefix", "policyURLHasSuffix", "policyURLIsNil", "policyURLNotNil", "policyURLEqualFold", "policyURLContainsFold", "rirStatus", "rirStatusNEQ", "rirStatusIn", "rirStatusNotIn", "rirStatusGT", "rirStatusGTE", "rirStatusLT", "rirStatusLTE", "rirStatusContains", "rirStatusHasPrefix", "rirStatusHasSuffix", "rirStatusIsNil", "rirStatusNotNil", "rirStatusEqualFold", "rirStatusContainsFold", "rirStatusUpdated", "rirStatusUpdatedNEQ", "rirStatusUpdatedIn", "rirStatusUpdatedNotIn", "rirStatusUpdatedGT", "rirStatusUpdatedGTE", "rirStatusUpdatedLT", "rirStatusUpdatedLTE", "rirStatusUpdatedIsNil", "rirStatusUpdatedNotNil", "routeServer", "routeServerNEQ", "routeServerIn", "routeServerNotIn", "routeServerGT", "routeServerGTE", "routeServerLT", "routeServerLTE", "routeServerContains", "routeServerHasPrefix", "routeServerHasSuffix", "routeServerIsNil", "routeServerNotNil", "routeServerEqualFold", "routeServerContainsFold", "statusDashboard", "statusDashboardNEQ", "statusDashboardIn", "statusDashboardNotIn", "statusDashboardGT", "statusDashboardGTE", "statusDashboardLT", "statusDashboardLTE", "statusDashboardContains", "statusDashboardHasPrefix", "statusDashboardHasSuffix", "statusDashboardIsNil", "statusDashboardNotNil", "statusDashboardEqualFold", "statusDashboardContainsFold", "website", "websiteNEQ", "websiteIn", "websiteNotIn", "websiteGT", "websiteGTE", "websiteLT", "websiteLTE", "websiteContains", "websiteHasPrefix", "websiteHasSuffix", "websiteIsNil", "websiteNotNil", "websiteEqualFold", "websiteContainsFold", "ixCount", "ixCountNEQ", "ixCountIn", "ixCountNotIn", "ixCountGT", "ixCountGTE", "ixCountLT", "ixCountLTE", "ixCountIsNil", "ixCountNotNil", "facCount", "facCountNEQ", "facCountIn", "facCountNotIn", "facCountGT", "facCountGTE", "facCountLT", "facCountLTE", "facCountIsNil", "facCountNotNil", "netixlanUpdated", "netixlanUpdatedNEQ", "netixlanUpdatedIn", "netixlanUpdatedNotIn", "netixlanUpdatedGT", "netixlanUpdatedGTE", "netixlanUpdatedLT", "netixlanUpdatedLTE", "netixlanUpdatedIsNil", "netixlanUpdatedNotNil", "netfacUpdated", "netfacUpdatedNEQ", "netfacUpdatedIn", "netfacUpdatedNotIn", "netfacUpdatedGT", "netfacUpdatedGTE", "netfacUpdatedLT", "netfacUpdatedLTE", "netfacUpdatedIsNil", "netfacUpdatedNotNil", "pocUpdated", "pocUpdatedNEQ", "pocUpdatedIn", "pocUpdatedNotIn", "pocUpdatedGT", "pocUpdatedGTE", "pocUpdatedLT", "pocUpdatedLTE", "pocUpdatedIsNil", "pocUpdatedNotNil", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasNetworkFacilities", "hasNetworkFacilitiesWith", "hasNetworkIxLans", "hasNetworkIxLansWith", "hasOrganization", "hasOrganizationWith", "hasPocs", "hasPocsWith"}
+	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "orgID", "orgIDNEQ", "orgIDIn", "orgIDNotIn", "orgIDIsNil", "orgIDNotNil", "aka", "akaNEQ", "akaIn", "akaNotIn", "akaGT", "akaGTE", "akaLT", "akaLTE", "akaContains", "akaHasPrefix", "akaHasSuffix", "akaIsNil", "akaNotNil", "akaEqualFold", "akaContainsFold", "allowIxpUpdate", "allowIxpUpdateNEQ", "asn", "asnNEQ", "asnIn", "asnNotIn", "asnGT", "asnGTE", "asnLT", "asnLTE", "infoIpv6", "infoIpv6NEQ", "infoMulticast", "infoMulticastNEQ", "infoNeverViaRouteServers", "infoNeverViaRouteServersNEQ", "infoPrefixes4", "infoPrefixes4NEQ", "infoPrefixes4In", "infoPrefixes4NotIn", "infoPrefixes4GT", "infoPrefixes4GTE", "infoPrefixes4LT", "infoPrefixes4LTE", "infoPrefixes4IsNil", "infoPrefixes4NotNil", "infoPrefixes6", "infoPrefixes6NEQ", "infoPrefixes6In", "infoPrefixes6NotIn", "infoPrefixes6GT", "infoPrefixes6GTE", "infoPrefixes6LT", "infoPrefixes6LTE", "infoPrefixes6IsNil", "infoPrefixes6NotNil", "infoRatio", "infoRatioNEQ", "infoRatioIn", "infoRatioNotIn", "infoRatioGT", "infoRatioGTE", "infoRatioLT", "infoRatioLTE", "infoRatioContains", "infoRatioHasPrefix", "infoRatioHasSuffix", "infoRatioIsNil", "infoRatioNotNil", "infoRatioEqualFold", "infoRatioContainsFold", "infoScope", "infoScopeNEQ", "infoScopeIn", "infoScopeNotIn", "infoScopeGT", "infoScopeGTE", "infoScopeLT", "infoScopeLTE", "infoScopeContains", "infoScopeHasPrefix", "infoScopeHasSuffix", "infoScopeIsNil", "infoScopeNotNil", "infoScopeEqualFold", "infoScopeContainsFold", "infoTraffic", "infoTrafficNEQ", "infoTrafficIn", "infoTrafficNotIn", "infoTrafficGT", "infoTrafficGTE", "infoTrafficLT", "infoTrafficLTE", "infoTrafficContains", "infoTrafficHasPrefix", "infoTrafficHasSuffix", "infoTrafficIsNil", "infoTrafficNotNil", "infoTrafficEqualFold", "infoTrafficContainsFold", "infoType", "infoTypeNEQ", "infoTypeIn", "infoTypeNotIn", "infoTypeGT", "infoTypeGTE", "infoTypeLT", "infoTypeLTE", "infoTypeContains", "infoTypeHasPrefix", "infoTypeHasSuffix", "infoTypeIsNil", "infoTypeNotNil", "infoTypeEqualFold", "infoTypeContainsFold", "infoUnicast", "infoUnicastNEQ", "irrAsSet", "irrAsSetNEQ", "irrAsSetIn", "irrAsSetNotIn", "irrAsSetGT", "irrAsSetGTE", "irrAsSetLT", "irrAsSetLTE", "irrAsSetContains", "irrAsSetHasPrefix", "irrAsSetHasSuffix", "irrAsSetIsNil", "irrAsSetNotNil", "irrAsSetEqualFold", "irrAsSetContainsFold", "logo", "logoNEQ", "logoIn", "logoNotIn", "logoGT", "logoGTE", "logoLT", "logoLTE", "logoContains", "logoHasPrefix", "logoHasSuffix", "logoIsNil", "logoNotNil", "logoEqualFold", "logoContainsFold", "lookingGlass", "lookingGlassNEQ", "lookingGlassIn", "lookingGlassNotIn", "lookingGlassGT", "lookingGlassGTE", "lookingGlassLT", "lookingGlassLTE", "lookingGlassContains", "lookingGlassHasPrefix", "lookingGlassHasSuffix", "lookingGlassIsNil", "lookingGlassNotNil", "lookingGlassEqualFold", "lookingGlassContainsFold", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameEqualFold", "nameContainsFold", "nameLong", "nameLongNEQ", "nameLongIn", "nameLongNotIn", "nameLongGT", "nameLongGTE", "nameLongLT", "nameLongLTE", "nameLongContains", "nameLongHasPrefix", "nameLongHasSuffix", "nameLongIsNil", "nameLongNotNil", "nameLongEqualFold", "nameLongContainsFold", "notes", "notesNEQ", "notesIn", "notesNotIn", "notesGT", "notesGTE", "notesLT", "notesLTE", "notesContains", "notesHasPrefix", "notesHasSuffix", "notesIsNil", "notesNotNil", "notesEqualFold", "notesContainsFold", "policyContracts", "policyContractsNEQ", "policyContractsIn", "policyContractsNotIn", "policyContractsGT", "policyContractsGTE", "policyContractsLT", "policyContractsLTE", "policyContractsContains", "policyContractsHasPrefix", "policyContractsHasSuffix", "policyContractsIsNil", "policyContractsNotNil", "policyContractsEqualFold", "policyContractsContainsFold", "policyGeneral", "policyGeneralNEQ", "policyGeneralIn", "policyGeneralNotIn", "policyGeneralGT", "policyGeneralGTE", "policyGeneralLT", "policyGeneralLTE", "policyGeneralContains", "policyGeneralHasPrefix", "policyGeneralHasSuffix", "policyGeneralIsNil", "policyGeneralNotNil", "policyGeneralEqualFold", "policyGeneralContainsFold", "policyLocations", "policyLocationsNEQ", "policyLocationsIn", "policyLocationsNotIn", "policyLocationsGT", "policyLocationsGTE", "policyLocationsLT", "policyLocationsLTE", "policyLocationsContains", "policyLocationsHasPrefix", "policyLocationsHasSuffix", "policyLocationsIsNil", "policyLocationsNotNil", "policyLocationsEqualFold", "policyLocationsContainsFold", "policyRatio", "policyRatioNEQ", "policyURL", "policyURLNEQ", "policyURLIn", "policyURLNotIn", "policyURLGT", "policyURLGTE", "policyURLLT", "policyURLLTE", "policyURLContains", "policyURLHasPrefix", "policyURLHasSuffix", "policyURLIsNil", "policyURLNotNil", "policyURLEqualFold", "policyURLContainsFold", "rirStatus", "rirStatusNEQ", "rirStatusIn", "rirStatusNotIn", "rirStatusGT", "rirStatusGTE", "rirStatusLT", "rirStatusLTE", "rirStatusContains", "rirStatusHasPrefix", "rirStatusHasSuffix", "rirStatusIsNil", "rirStatusNotNil", "rirStatusEqualFold", "rirStatusContainsFold", "rirStatusUpdated", "rirStatusUpdatedNEQ", "rirStatusUpdatedIn", "rirStatusUpdatedNotIn", "rirStatusUpdatedGT", "rirStatusUpdatedGTE", "rirStatusUpdatedLT", "rirStatusUpdatedLTE", "rirStatusUpdatedIsNil", "rirStatusUpdatedNotNil", "routeServer", "routeServerNEQ", "routeServerIn", "routeServerNotIn", "routeServerGT", "routeServerGTE", "routeServerLT", "routeServerLTE", "routeServerContains", "routeServerHasPrefix", "routeServerHasSuffix", "routeServerIsNil", "routeServerNotNil", "routeServerEqualFold", "routeServerContainsFold", "statusDashboard", "statusDashboardNEQ", "statusDashboardIn", "statusDashboardNotIn", "statusDashboardGT", "statusDashboardGTE", "statusDashboardLT", "statusDashboardLTE", "statusDashboardContains", "statusDashboardHasPrefix", "statusDashboardHasSuffix", "statusDashboardIsNil", "statusDashboardNotNil", "statusDashboardEqualFold", "statusDashboardContainsFold", "website", "websiteNEQ", "websiteIn", "websiteNotIn", "websiteGT", "websiteGTE", "websiteLT", "websiteLTE", "websiteContains", "websiteHasPrefix", "websiteHasSuffix", "websiteIsNil", "websiteNotNil", "websiteEqualFold", "websiteContainsFold", "ixCount", "ixCountNEQ", "ixCountIn", "ixCountNotIn", "ixCountGT", "ixCountGTE", "ixCountLT", "ixCountLTE", "ixCountIsNil", "ixCountNotNil", "facCount", "facCountNEQ", "facCountIn", "facCountNotIn", "facCountGT", "facCountGTE", "facCountLT", "facCountLTE", "facCountIsNil", "facCountNotNil", "netixlanUpdated", "netixlanUpdatedNEQ", "netixlanUpdatedIn", "netixlanUpdatedNotIn", "netixlanUpdatedGT", "netixlanUpdatedGTE", "netixlanUpdatedLT", "netixlanUpdatedLTE", "netixlanUpdatedIsNil", "netixlanUpdatedNotNil", "netfacUpdated", "netfacUpdatedNEQ", "netfacUpdatedIn", "netfacUpdatedNotIn", "netfacUpdatedGT", "netfacUpdatedGTE", "netfacUpdatedLT", "netfacUpdatedLTE", "netfacUpdatedIsNil", "netfacUpdatedNotNil", "pocUpdated", "pocUpdatedNEQ", "pocUpdatedIn", "pocUpdatedNotIn", "pocUpdatedGT", "pocUpdatedGTE", "pocUpdatedLT", "pocUpdatedLTE", "pocUpdatedIsNil", "pocUpdatedNotNil", "created", "createdNEQ", "createdIn", "createdNotIn", "createdGT", "createdGTE", "createdLT", "createdLTE", "updated", "updatedNEQ", "updatedIn", "updatedNotIn", "updatedGT", "updatedGTE", "updatedLT", "updatedLTE", "status", "statusNEQ", "statusIn", "statusNotIn", "statusGT", "statusGTE", "statusLT", "statusLTE", "statusContains", "statusHasPrefix", "statusHasSuffix", "statusEqualFold", "statusContainsFold", "hasNetworkFacilities", "hasNetworkFacilitiesWith", "hasNetworkIxLans", "hasNetworkIxLansWith", "hasOrganization", "hasOrganizationWith"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -33949,20 +34013,6 @@ func (ec *executionContext) unmarshalInputNetworkWhereInput(ctx context.Context,
 				return it, err
 			}
 			it.HasOrganizationWith = data
-		case "hasPocs":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hasPocs"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.HasPocs = data
-		case "hasPocsWith":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hasPocsWith"))
-			data, err := ec.unmarshalOPocWhereInput2ᚕᚖgithubᚗcomᚋdotwaffleᚋpeeringdbᚑplusᚋentᚐPocWhereInputᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.HasPocsWith = data
 		}
 	}
 	return it, nil
@@ -39651,6 +39701,11 @@ func (ec *executionContext) _Network(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "meta":
+			out.Values[i] = ec._Network_meta(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "name":
 			out.Values[i] = ec._Network_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -40335,6 +40390,11 @@ func (ec *executionContext) _NetworkIxLan(ctx context.Context, sel ast.Selection
 		case "isRsPeer":
 			out.Values[i] = ec._NetworkIxLan_isRsPeer(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "meta":
+			out.Values[i] = ec._NetworkIxLan_meta(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "notes":

@@ -154,10 +154,7 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	// ConnectRPC PocService. Only the Poc service — the scope here
 	// is POCs; bringing up the other 12 services would pad setup without
 	// adding coverage.
-	otelInterceptor, err := otelconnect.NewInterceptor(
-		otelconnect.WithoutServerPeerAttributes(),
-		otelconnect.WithoutTraceEvents(),
-	)
+	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
 	if err != nil {
 		t.Fatalf("create otel interceptor: %v", err)
 	}

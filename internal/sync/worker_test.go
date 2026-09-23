@@ -311,7 +311,7 @@ func TestSyncPersistsExplicitTombstone(t *testing.T) {
 	}
 
 	// Second sync: upstream returns org 2 with status='deleted'
-	// (mirrors the rest.py:694-727 ?since= response shape). Bump the
+	// (mirrors the 2.83.0 rest.py:719-750 ?since= response shape). Bump the
 	// changed row's `updated` past the prior write so the
 	// skip-on-unchanged predicate admits the status flip.
 	f.responses["org"] = []any{
@@ -1604,9 +1604,8 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 	}
 
 	// (c) Anonymous list path (no ?since): pdbcompat applyStatusMatrix
-	// devolves to status IN ("ok", "pending"); for non-campus entities the
-	// "pending" arm is empty so this is equivalent to status="ok". Assert
-	// the live row alone is returned.
+	// admits only the live statuses, which for org is status="ok".
+	// Assert the live row alone is returned.
 	live, err := w.entClient.Organization.Query().Where(organization.StatusEQ("ok")).All(ctx)
 	if err != nil {
 		t.Fatalf("query live orgs: %v", err)

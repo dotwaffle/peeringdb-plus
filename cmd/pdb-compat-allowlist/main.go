@@ -426,7 +426,9 @@ var Allowlists = map[string]AllowlistEntry{
 {{- end }}
 }
 
-// FilterExcludes mirrors upstream serializers.py:128-157 FILTER_EXCLUDE.
+// FilterExcludes holds the edges hidden from traversal: the edge-level
+// counterpart of upstream 2.83.0 serializers.py:136-166 FILTER_EXCLUDE.
+// Upstream's field-level entries (<fk>__<field>) have no counterpart.
 // Outer key: entity Go name (e.g. "Network"). Inner key: edge name
 // (e.g. "pocs"). Value is always true; the map is used as a set.
 var FilterExcludes = map[string]map[string]bool{

@@ -8,7 +8,7 @@
 // upper-case variants).
 //
 // Scope: reproduces upstream PeeringDB's `unidecode.unidecode(v)` behaviour
-// (rest.py:576) closely enough for filter-value matching in the pdbcompat
+// (2.83.0 rest.py:597) closely enough for filter-value matching in the pdbcompat
 // layer. It is NOT a full Unicode-to-ASCII transliteration library — CJK,
 // Arabic, Hebrew, and other non-Latin scripts pass through untouched so
 // that foreign-language substring matches still work against the folded

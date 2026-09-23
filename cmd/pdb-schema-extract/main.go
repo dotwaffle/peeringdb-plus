@@ -193,7 +193,7 @@ type SerializerInfo struct {
 // serField is a field declared explicitly in a serializer body (as opposed to
 // one DRF derives from the model). It records just enough to resolve the field
 // onto the wire schema: its DRF type, any source= remap, the related model of a
-// PrimaryKeyRelatedField, and the read_only/write_only/allow_null flags.
+// PrimaryKeyRelatedField, and the read_only/write_only/allow_null/many flags.
 type serField struct {
 	drfType   string
 	source    string
@@ -201,6 +201,7 @@ type serField struct {
 	readOnly  bool
 	writeOnly bool
 	allowNull bool
+	many      bool
 	maxLength int
 	hasDef    bool
 	def       any
@@ -246,6 +247,13 @@ var (
 	//   name = serializers.CharField(max_length=255, required=True)
 	//   asn: serializers.IntegerField = serializers.IntegerField(read_only=True)
 	reSerializerField = regexp.MustCompile(`^\s+(\w+)\s*(?::\s*[^=]+?)?\s*=\s*serializers\.(\w+)\((.*)\)\s*$`)
+
+	// Nested serializer field declared by bare class name, e.g.:
+	//   social_media = SocialMediaSerializer(required=False, many=True)
+	reNestedSerializerField = regexp.MustCompile(`^\s+(\w+)\s*(?::\s*[^=]+?)?\s*=\s*(\w+Serializer)\((.*)\)\s*$`)
+
+	// many=True on a serializer field: the field renders as a list.
+	reMany = regexp.MustCompile(`\bmany\s*=\s*True`)
 
 	// Django model field definition. Tolerates an optional PEP 526 type
 	// annotation, a bare custom field-type constructor (e.g. ASNField,
@@ -466,6 +474,8 @@ func parseSerializers(src string) []SerializerInfo {
 		//   net_id = serializers.PrimaryKeyRelatedField(queryset=Network.objects..., source="network")
 		if m := reSerializerField.FindStringSubmatch(line); m != nil {
 			current.SerFields[m[1]] = parseSerField(m[2], m[3])
+		} else if m := reNestedSerializerField.FindStringSubmatch(line); m != nil {
+			current.SerFields[m[1]] = parseSerField(m[2], m[3])
 		}
 	}
 	if current != nil {
@@ -489,6 +499,7 @@ func parseSerField(drfType, args string) serField {
 	}
 	sf.writeOnly = reWriteOnly.MatchString(args)
 	sf.allowNull = reAllowNull.MatchString(args)
+	sf.many = reMany.MatchString(args)
 	if m := reReadOnly.FindStringSubmatch(args); m != nil {
 		sf.readOnly = m[1] == "True"
 	}
@@ -654,6 +665,17 @@ func parseFieldFromArgs(fieldType, args, source string) FieldDef {
 		fd.ReadOnly = m[1] == "True"
 	}
 
+	return jsonObjectIfDict(fd)
+}
+
+// jsonObjectIfDict retypes a JSON field as json_object when its default is
+// a dict (default=dict or {}): the column holds an object document, not a
+// list. djangoFieldToJSONType sees only the constructor name, so it cannot
+// tell the two shapes apart.
+func jsonObjectIfDict(fd FieldDef) FieldDef {
+	if _, isDict := fd.Default.(map[string]any); isDict && fd.Type == "json_array" {
+		fd.Type = "json_object"
+	}
 	return fd
 }
 
@@ -871,7 +893,14 @@ func serFieldToDef(name string, sf serField, modelFields map[string]FieldDef) Fi
 		if sf.allowNull {
 			fd.Nullable, fd.Required = true, false
 		}
-		return fd
+		if sf.many {
+			// A many=True field renders a list whatever the model default
+			// is: social_media is a default=dict JSONField upstream but is
+			// always serialized as a list of objects.
+			fd.Type = "json_array"
+			return fd
+		}
+		return jsonObjectIfDict(fd)
 	}
 }
 

@@ -117,3 +117,25 @@ func TestNames_FreshCopies(t *testing.T) {
 		t.Error("Names() aliases internal state; want a fresh copy per call")
 	}
 }
+
+// TestLiveStatuses locks the upstream live_statuses() mapping (2.83.0
+// models.py:109-122): netixlan is live as ok or not-operational, every
+// other type only as ok. The result must be a fresh copy, because
+// callers append deleted/pending to it.
+func TestLiveStatuses(t *testing.T) {
+	t.Parallel()
+	for _, ty := range All {
+		want := []string{"ok"}
+		if ty.Name == "netixlan" {
+			want = []string{"ok", "not-operational"}
+		}
+		if got := LiveStatuses(ty.Name); !slices.Equal(got, want) {
+			t.Errorf("LiveStatuses(%q) = %v, want %v", ty.Name, got, want)
+		}
+	}
+	s := LiveStatuses("netixlan")
+	s[0] = "mutated"
+	if got := LiveStatuses("netixlan")[0]; got != "ok" {
+		t.Errorf("LiveStatuses aliases internal state: got %q after mutation, want ok", got)
+	}
+}

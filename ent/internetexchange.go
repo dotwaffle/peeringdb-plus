@@ -43,7 +43,7 @@ type InternetExchange struct {
 	IxfNetCount int `json:"ixf_net_count"`
 	// Logo URL
 	Logo *string `json:"logo"`
-	// Exchange media type
+	// Obsolete. PeeringDB always reports `Ethernet`, and the value does not describe the media at the exchange
 	Media string `json:"media"`
 	// Internet exchange name (not unique — PeeringDB permits duplicates)
 	Name string `json:"name"`
@@ -55,11 +55,11 @@ type InternetExchange struct {
 	PolicyEmail string `json:"policy_email"`
 	// Policy phone
 	PolicyPhone string `json:"policy_phone"`
-	// Supports IPv6
+	// Whether this exchange supports unicast IPv6. PeeringDB derives it from the active IPv6 prefixes of the LAN
 	ProtoIpv6 bool `json:"proto_ipv6"`
 	// Supports multicast
 	ProtoMulticast bool `json:"proto_multicast"`
-	// Supports unicast
+	// Whether this exchange supports unicast IPv4. PeeringDB derives it from the active IPv4 prefixes of the LAN
 	ProtoUnicast bool `json:"proto_unicast"`
 	// Region/continent
 	RegionContinent string `json:"region_continent"`

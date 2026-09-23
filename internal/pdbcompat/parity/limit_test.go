@@ -14,8 +14,8 @@ import (
 // TestParity_Limit locks the v1.16 limit semantics:
 //
 //   - ?limit=0 returns ALL rows unbounded (matches upstream
-//     rest.py:494-497, NOT count-only as some clients incorrectly
-//     assume).
+//     2.83.0 rest.py:515-518 + :757-760, NOT count-only as some
+//     clients incorrectly assume).
 //   - ?limit=0 paired with the response budget returns 413
 //     application/problem+json when the precount × TypicalRowBytes
 //     exceeds the budget.
@@ -23,8 +23,10 @@ import (
 //     guardrail. DIVERGENCE from upstream which accepts depth on
 //     list. See docs/API.md § Known Divergences.
 //
-// upstream: peeringdb_server/rest.py:494-497 (limit=0 = unlimited)
-// upstream: peeringdb_server/rest.py:734-737 (page_size_query_param)
+// upstream: 2.83.0 peeringdb_server/rest.py:515-518, :757-760 (limit=0 =
+// unlimited)
+// upstream: 2.83.0 peeringdb_server/pagination.py:21-40
+// (UnlimitedIfNoPagePagination; page_size_query_param at :23)
 func TestParity_Limit(t *testing.T) {
 	t.Parallel()
 
@@ -32,11 +34,11 @@ func TestParity_Limit(t *testing.T) {
 
 	t.Run("bare_url_and_zero_both_return_all_rows", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:495 (limit defaults to 0) + rest.py:737
+		// upstream: 2.83.0 rest.py:516 (limit defaults to 0) + :760
 		// (limit=0 → qset[skip:], no slice). Both bare URL and explicit
 		// ?limit=0 return ALL rows from the filtered queryset on
 		// upstream — the 250 defaultable page size is opt-in via
-		// ?page=N (UnlimitedIfNoPagePagination at rest.py:418-430,
+		// ?page=N (UnlimitedIfNoPagePagination at pagination.py:21-40
 		// only applies pagination when "page" is in query_params).
 		//
 		// Earlier revisions of this test asserted the bare URL returns
@@ -50,7 +52,7 @@ func TestParity_Limit(t *testing.T) {
 		// when precount × TypicalRowBytes exceeds the budget.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
-		const seedN = 300 // > the historical 250 cap, < MaxLimit=1000
+		const seedN = 300 // > the historical 250-row default page
 		for i := 1; i <= seedN; i++ {
 			if _, err := c.Network.Create().
 				SetID(i).SetName("LimitNet").SetNameFold(unifold.Fold("LimitNet")).
@@ -175,7 +177,7 @@ func TestParity_Limit(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream renders every API error as a
 		// {"meta":{"error":"<detail>"},"data":[]} envelope —
-		// renderers.py:107/113 at the pinned 99e92c72 does
+		// 2.83.0 renderers.py:134-135 does
 		// `meta["error"] = data.pop("detail", res.reason_phrase)`.
 		// pdbcompat deliberately replaces that with RFC 9457
 		// application/problem+json (response.go WriteProblem).
@@ -183,12 +185,15 @@ func TestParity_Limit(t *testing.T) {
 		// adapt; the trade is a standards-based, machine-readable
 		// error shape shared with the other API surfaces.
 		// See docs/API.md § Known Divergences.
-		// upstream: peeringdb_server/renderers.py:107-113
+		// upstream: 2.83.0 peeringdb_server/renderers.py:134-135
 		c := testutil.SetupClient(t)
 		srv := newTestServer(t, c)
 
-		// Both error classes carry the same problem+json envelope:
-		// a 400 from a malformed ?limit= and a 404 from a missing PK.
+		// Every error class carries the same problem+json envelope:
+		// a 400 from a malformed ?limit=, a 404 from a missing PK, and
+		// the 404 of a unique list query with no match (upstream body
+		// {"data": [], "meta": {"error": "Entity not found"}},
+		// rest.py:809-815).
 		for _, tc := range []struct {
 			name       string
 			path       string
@@ -196,6 +201,7 @@ func TestParity_Limit(t *testing.T) {
 		}{
 			{"bad_limit_400", "/api/net?limit=abc", http.StatusBadRequest},
 			{"missing_pk_404", "/api/net/999999", http.StatusNotFound},
+			{"unique_list_miss_404", "/api/net?id=999999", http.StatusNotFound},
 		} {
 			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+tc.path, nil)
 			if err != nil {
@@ -239,7 +245,7 @@ func TestParity_Limit(t *testing.T) {
 
 	t.Run("limit_above_1000_honoured_uncapped", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:734-735 — qset[skip:skip+limit] with NO
+		// upstream: 2.83.0 rest.py:757-758 — qset[skip:skip+limit] with NO
 		// upper cap. An earlier revision clamped explicit limit to
 		// 1000, silently truncating each page for clients paginating
 		// with larger windows (rows past the clamp were permanently
@@ -271,17 +277,35 @@ func TestParity_Limit(t *testing.T) {
 
 	t.Run("non_numeric_limit_and_skip_return_400", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:490-497 raises RestValidationError
+		// upstream: 2.83.0 rest.py:511-518 raises RestValidationError
 		// ("'limit' needs to be a number") for non-numeric limit/skip.
 		// Silently ignoring a typo'd limit turned a bounded page
-		// request into a full-table dump.
+		// request into a full-table dump. A negative skip fails too:
+		// Django rejects the negative slice (:757-760) with ValueError,
+		// which list() turns into a 400 (:824-827).
 		c := testutil.SetupClient(t)
 		srv := newTestServer(t, c)
-		for _, q := range []string{"limit=abc", "skip=abc", "limit=-5", "skip=-1"} {
+		for _, q := range []string{"limit=abc", "skip=abc", "skip=-1"} {
 			status, body := httpGet(t, srv, "/api/net?"+q)
 			if status != http.StatusBadRequest {
 				t.Errorf("?%s: status = %d, want 400; body=%s", q, status, string(body))
 			}
+		}
+	})
+
+	t.Run("DIVERGENCE_negative_limit_returns_400", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream parses a negative limit (2.83.0
+		// rest.py:515-518) and then slices only when limit > 0
+		// (:757-760), so ?limit=-5 returns every row. The mirror
+		// rejects a negative limit with 400, like a non-numeric one.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := testutil.SetupClient(t)
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?limit=-5")
+		if status != http.StatusBadRequest {
+			t.Errorf("?limit=-5: status = %d, want 400 (divergence canary); body=%s", status, string(body))
 		}
 	})
 

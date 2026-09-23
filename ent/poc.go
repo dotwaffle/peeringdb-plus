@@ -31,7 +31,7 @@ type Poc struct {
 	Role string `json:"role"`
 	// URL
 	URL string `json:"url"`
-	// Visibility level
+	// Who may see this contact: `Public` anyone, `Users` authenticated users only, `Private` the owning organization only. `Private` remains only on legacy records
 	Visible string `json:"visible"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

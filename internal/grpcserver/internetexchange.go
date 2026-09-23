@@ -147,7 +147,7 @@ func (s *InternetExchangeService) GetInternetExchange(ctx context.Context, req *
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity internetexchange %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get internetexchange %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get internetexchange %d", req.GetId()), err)
 	}
 	return &pb.GetInternetExchangeResponse{InternetExchange: internetExchangeToProto(ix)}, nil
 }

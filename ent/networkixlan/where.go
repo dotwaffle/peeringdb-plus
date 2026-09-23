@@ -510,6 +510,16 @@ func IsRsPeerNEQ(v bool) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldNEQ(FieldIsRsPeer, v))
 }
 
+// MetaIsNil applies the IsNil predicate on the "meta" field.
+func MetaIsNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldIsNull(FieldMeta))
+}
+
+// MetaNotNil applies the NotNil predicate on the "meta" field.
+func MetaNotNil() predicate.NetworkIxLan {
+	return predicate.NetworkIxLan(sql.FieldNotNull(FieldMeta))
+}
+
 // NotesEQ applies the EQ predicate on the "notes" field.
 func NotesEQ(v string) predicate.NetworkIxLan {
 	return predicate.NetworkIxLan(sql.FieldEQ(FieldNotes, v))

@@ -93,6 +93,74 @@ func TestCompareStructure(t *testing.T) {
 			actual:    map[string]any{"count": float64(999), "active": false},
 			wantCount: 0,
 		},
+		{
+			// PeeringDB 2.83.0 per-row metadata: keys vary per row.
+			name: "per-row meta keys are opaque",
+			reference: map[string]any{
+				"data": []any{map[string]any{"meta": map[string]any{}}},
+			},
+			actual: map[string]any{
+				"data": []any{map[string]any{"meta": map[string]any{
+					"rfc8950": true,
+					"planned_status_change": map[string]any{
+						"status": "deleted", "date": "2026-10-01",
+					},
+				}}},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "nested object meta keys are opaque",
+			reference: map[string]any{
+				"data": []any{map[string]any{
+					"net": map[string]any{"meta": map[string]any{"preferred_ip_mtu": float64(9000)}},
+				}},
+			},
+			actual: map[string]any{
+				"data": []any{map[string]any{
+					"net": map[string]any{"meta": map[string]any{}},
+				}},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "per-row meta type still compared",
+			reference: map[string]any{
+				"data": []any{map[string]any{"meta": map[string]any{}}},
+			},
+			actual: map[string]any{
+				"data": []any{map[string]any{"meta": []any{}}},
+			},
+			wantCount: 1,
+			wantKinds: []string{"type_mismatch"},
+			wantPaths: []string{"data[0].meta"},
+		},
+		{
+			name: "missing per-row meta still reported",
+			reference: map[string]any{
+				"data": []any{map[string]any{"id": float64(1), "meta": map[string]any{}}},
+			},
+			actual: map[string]any{
+				"data": []any{map[string]any{"id": float64(1)}},
+			},
+			wantCount: 1,
+			wantKinds: []string{"missing_field"},
+			wantPaths: []string{"data[0].meta"},
+		},
+		{
+			name: "envelope meta compared in full",
+			reference: map[string]any{
+				"meta": map[string]any{"generated": float64(1)},
+				"data": []any{},
+			},
+			actual: map[string]any{
+				"meta": map[string]any{},
+				"data": []any{},
+			},
+			wantCount: 1,
+			wantKinds: []string{"missing_field"},
+			wantPaths: []string{"meta.generated"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -172,6 +240,12 @@ func TestCompareResponses(t *testing.T) {
 			name:      "matching responses",
 			reference: `{"meta":{},"data":[{"id":1,"name":"test"}]}`,
 			actual:    `{"meta":{},"data":[{"id":2,"name":"other"}]}`,
+			wantCount: 0,
+		},
+		{
+			name:      "per-row meta keys ignored, envelope kept",
+			reference: `{"meta":{},"data":[{"id":1,"meta":{}}]}`,
+			actual:    `{"meta":{},"data":[{"id":2,"meta":{"rfc8950":true}}]}`,
 			wantCount: 0,
 		},
 		{

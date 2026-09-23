@@ -25,7 +25,7 @@ type IxLan struct {
 	ArpSponge *string `json:"arp_sponge"`
 	// Description
 	Descr string `json:"descr"`
-	// 802.1Q support
+	// Obsolete. PeeringDB always reports `false`, and the value does not describe 802.1Q VLAN tagging support
 	Dot1qSupport bool `json:"dot1q_support"`
 	// IXF import enabled
 	IxfIxpImportEnabled bool `json:"ixf_ixp_import_enabled"`
@@ -33,7 +33,7 @@ type IxLan struct {
 	IxfIxpMemberListURL string `json:"ixf_ixp_member_list_url"`
 	// IXF member list URL visibility
 	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible"`
-	// MTU size
+	// Maximum transmission unit offered on this LAN, in bytes
 	Mtu int `json:"mtu"`
 	// LAN name
 	Name string `json:"name"`

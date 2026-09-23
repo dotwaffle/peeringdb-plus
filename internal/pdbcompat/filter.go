@@ -78,24 +78,68 @@ func isKnownOperator(suffix string) bool {
 	return false
 }
 
-// applyStatusMatrix returns the upstream rest.py:694-727 status predicate
-// for list requests. sinceSet=false => status=ok (rest.py:725); sinceSet=true
-// => status IN (ok, deleted), plus pending when isCampus (rest.py:700-712).
-// Always returns a non-nil predicate — every list request needs a status
-// filter.
-func applyStatusMatrix(isCampus, sinceSet bool) func(*sql.Selector) {
+// applyStatusMatrix returns the upstream status predicate for list
+// requests (2.83.0 rest.py:719-750). live is the type's live status set
+// (pdbtypes.LiveStatuses). sinceSet=false admits only the live statuses
+// (rest.py:748). sinceSet=true admits live + deleted, plus pending when
+// isCampus (rest.py:723-735). Always returns a non-nil predicate, because
+// every list request needs a status filter.
+//
+// A single live status emits status = ?. SQLite then reads the
+// single-column status index, which returns the rows in (status, rowid)
+// order, so the default id order needs no sort. A set of two or more
+// statuses emits likelyStatusIn instead of a plain IN.
+func applyStatusMatrix(live []string, isCampus, sinceSet bool) func(*sql.Selector) {
 	if !sinceSet {
-		return sql.FieldEQ("status", "ok")
+		if len(live) == 1 {
+			return sql.FieldEQ("status", live[0])
+		}
+		return likelyStatusIn(live)
 	}
-	allowed := []string{"ok", "deleted"}
+	allowed := append(slices.Clone(live), "deleted")
 	if isCampus {
 		allowed = append(allowed, "pending")
 	}
-	return sql.FieldIn("status", allowed...)
+	return likelyStatusIn(allowed)
 }
 
+// likelyStatusIn returns `likely(status IN (...))`. The status set of
+// the matrix admits almost every row, but without ANALYZE statistics
+// the SQLite planner treats a plain IN on an indexed column as
+// selective. It then reads the rows through a status-leading index, one
+// range per status, and sorts them in a temp B-tree. The likely() hint
+// tells the planner that the IN is not selective, so it reads the rows
+// in the list order instead: the rowid table for id order, and the
+// updated index for the ?since= order. COUNT queries keep the covering
+// status index. Measured on 69,700 netixlan rows: a 250-row page at
+// skip=30000 went from 119 ms to 9 ms, and a 250-row ?since=1 page from
+// 26 ms to 2 ms.
+func likelyStatusIn(statuses []string) func(*sql.Selector) {
+	args := make([]any, len(statuses))
+	for i, v := range statuses {
+		args[i] = v
+	}
+	return func(s *sql.Selector) {
+		s.Where(sql.P(func(b *sql.Builder) {
+			b.WriteString("likely(").Join(sql.In(s.C("status"), args...)).WriteString(")")
+		}))
+	}
+}
+
+// likelyOK is likely(status IN ('ok')). It is the filter of a depth set
+// whose child type has the one live status "ok", of the detailChildSets
+// count for that set, and of a relation-key status pin. Each of these
+// queries selects the rows of one parent through an FK column. Without
+// ANALYZE statistics, SQLite scores status = ? as selective as the FK
+// equality. For pocs and ixlans it then reads every "ok" row through
+// the status index. On a database with 40k pocs, /api/net/<id> at depth
+// 2 took 20 ms instead of 1 ms, and /api/net?ixlan=<id> took 23 ms
+// instead of 0.2 ms. The likely() hint keeps these plans on the FK
+// index.
+var likelyOK = likelyStatusIn([]string{"ok"})
+
 // coerceToCaseInsensitive maps the subset of operators that upstream
-// rest.py:638-641 forces to case-insensitive variants. Non-matching operators
+// (2.83.0 rest.py:657-662) forces to case-insensitive variants. Non-matching operators
 // pass through unchanged (scope: contains + startswith only).
 //
 // The coercion is purely nominal — the existing
@@ -114,7 +158,7 @@ func coerceToCaseInsensitive(op string) string {
 	return op
 }
 
-// coerceLocationFilterOp mirrors upstream rest.py:562-574, which
+// coerceLocationFilterOp mirrors upstream 2.83.0 rest.py:583-595, which
 // special-cases bare location filters before generic handling:
 // `address1`, `city`, and `state` become `<field>__icontains`
 // (substring match — ?city=Frankfurt also matches "Frankfurt am
@@ -200,11 +244,30 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // are silently ignored for the HTTP response AND appended to the ctx-attached
 // accumulator so operators can observe them via slog.DebugContext + OTel.
 //
+// A key without relation segments filters a local column. A key that
+// names a forward FK in upstream spelling (org, network_id, facility)
+// filters the FK column (resolveLocalField). A key that upstream never
+// filters (TypeConfig.UpstreamIgnored) is unknown, and so is a relation
+// key whose field is a FK column (namesFKColumn). A relation key filters
+// status only through a forward edge one hop away
+// (relationStatusFilterable).
+//
 // Traversal resolution order (1-hop and 2-hop, len(relSegs) <= 2):
 //  1. Path A: Allowlists[tc.Name].Direct or .Via exact match
 //  2. Path B: LookupEdge + TargetFields introspection
 //
+// An upstream FK name as the first relation segment (network__asn,
+// facility__name) resolves as the mirror traversal key of the same edge
+// (traversalKeyFor).
+//
 // Keys with len(relSegs) > 2 are silently rejected.
+//
+// The filterable meta keys of the type (netixlan meta__<path> and the
+// upstream meta_* column names, see lookupMetaFilter) resolve first,
+// before the key is split for traversal. The relation keys of an
+// upstream prepare_query (relationSeeds, for example fac?net= and
+// net?ix__name=) resolve next, with their own path and status rules
+// (buildRelationSeedPredicate).
 //
 // The status matrix and the _fold-routing / empty-__in invariants
 // are preserved: traversal predicates wrap around buildPredicate which still
@@ -226,10 +289,74 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if reservedParams[key] {
 			continue
 		}
+		// Meta keys resolve before the key is split, as upstream
+		// rewrites them before its filter loop (2.83.0
+		// serializers.py:3129-3149). They are not traversals: a split
+		// would read meta__planned_status_change__date__lt as a 2-hop
+		// path and ignore it.
+		if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
+			p, emptyResult, ok, err := buildMetaPredicate(col, suffix, value)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			if emptyResult {
+				return nil, true, nil
+			}
+			if !ok {
+				appendUnknown(ctx, key)
+				continue
+			}
+			predicates = append(predicates, p)
+			continue
+		}
+		// The legacy net info_type keys, and info_types with __in or
+		// __startswith, resolve before the key is split, as upstream
+		// rewrites them before its filter loop (2.83.0
+		// serializers.py:3768-3813, rest.py:559-563).
+		if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
+			if patterns == nil {
+				// A pattern matches every network.
+				continue
+			}
+			p, err := multiChoiceLikeAny("info_types", patterns)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			predicates = append(predicates, p)
+			continue
+		}
+		// The relation keys of an upstream prepare_query resolve before
+		// the other keys, as upstream handles them apart from its
+		// model-field filters. They use the first value of a repeated
+		// key, as get_relation_filters does (2.83.0
+		// serializers.py:618-619).
+		if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
+			p, ok, emptyResult, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			if emptyResult {
+				return nil, true, nil
+			}
+			if !ok {
+				appendUnknown(ctx, key)
+				continue
+			}
+			predicates = append(predicates, p)
+			continue
+		}
 		relSegs, field, op := parseFieldOp(key)
 		// Also check if the raw final field is a reserved name
 		// (e.g. "fields" on a top-level single-segment key).
 		if len(relSegs) == 0 && reservedParams[field] {
+			continue
+		}
+		// Upstream ignores a relation key whose field is a FK column
+		// (net__org_id, see namesFKColumn), and status on a reverse or
+		// 2-hop key (see relationStatusFilterable).
+		if len(relSegs) > 0 && (namesFKColumn(field) ||
+			field == "status" && !relationStatusFilterable(tc, relSegs)) {
+			appendUnknown(ctx, key)
 			continue
 		}
 		// Hard cap: >2 relation segments is silently rejected.
@@ -261,7 +388,9 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 			continue
 		}
 
-		// Traversal path (1-hop or 2-hop).
+		// Traversal path (1-hop or 2-hop). An upstream FK name as the
+		// first segment (network__asn) walks the matching mirror edge.
+		relSegs[0] = traversalKeyFor(tc, relSegs[0])
 		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
 		if err != nil {
 			return nil, false, fmt.Errorf("filter %s: %w", key, err)
@@ -285,13 +414,13 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 // ok=false => the field is unknown on tc; caller silently ignores.
 // emptyResult=true => empty __in sentinel; caller short-circuits.
 func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Selector), bool, bool, error) {
-	ft, exists := tc.Fields[field]
+	col, ft, exists := resolveLocalField(tc, field)
 	if !exists {
 		return nil, false, false, nil
 	}
-	folded := tc.FoldedFields[field]
-	op = coerceLocationFilterOp(field, op, value)
-	p, err := buildPredicate(field, op, value, ft, folded)
+	folded := tc.FoldedFields[col]
+	op = coerceLocationFilterOp(col, op, value)
+	p, err := buildPredicate(col, op, value, ft, folded)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, true, false, nil
@@ -399,29 +528,49 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 // row-level visibility signal. A subquery built against one of these tables
 // MUST reproduce the visibility filter that the entity's ent Privacy policy
 // enforces on direct queries (ent/schema/poc_policy.go). Without it a
-// cross-entity filter becomes a boolean oracle: an anonymous (TierPublic)
-// caller could probe hidden rows — e.g. GET /api/net?pocs__email__startswith=
-// would leak Users-tier poc PII that the policy hides on /api/poc.
+// cross-entity filter becomes a boolean oracle: a caller could probe rows
+// that its tier cannot read. For example, GET /api/net?pocs__email__startswith=
+// would leak Users-tier poc PII to TierPublic, or Private poc PII to
+// TierUsers, that the policy hides on /api/poc.
 var tierGatedTables = map[string]string{
-	"pocs": "visible", // poc.visible: rows != "Public" are hidden from TierPublic
+	"pocs": "visible", // poc.visible: admitted per privctx.Tier.AdmittedVisibilities
 }
 
 // applyVisibilityGate ANDs the row-visibility predicate onto a traversal
-// subquery when the target table is privacy-gated and the caller is
-// anonymous. A NULL visible value is treated as the column default
-// ("Public") and therefore visible, mirroring poc_policy.go NULL-safety.
+// subquery when the target table is privacy-gated. The predicate admits
+// the visibility values of the caller's tier
+// (privctx.Tier.AdmittedVisibilities), the same set as the ent policy. A
+// NULL visible value is treated as the column default ("Public") and
+// therefore visible, mirroring poc_policy.go NULL-safety.
 func applyVisibilityGate(sel *sql.Selector, table string, tier privctx.Tier) {
-	if tier == privctx.TierUsers {
-		return
-	}
 	col, gated := tierGatedTables[table]
 	if !gated {
 		return
 	}
+	admitted := tier.AdmittedVisibilities()
+	args := make([]any, len(admitted))
+	for i, v := range admitted {
+		args[i] = v
+	}
 	sel.Where(sql.Or(
-		sql.EQ(sel.C(col), "Public"),
+		sql.In(sel.C(col), args...),
 		sql.IsNull(sel.C(col)),
 	))
+}
+
+// traversalTargetField returns the type of field on the last row of a
+// Path A or Path B traversal key, or ok=false when the key cannot filter
+// it. A field that is not an upstream model field
+// (TypeConfig.NonModelFields) is no target: queryable_relations offers
+// only model fields (2.83.0 serializers.py:970-996), so upstream ignores
+// the key. A model field that UpstreamIgnored hides from the local key
+// stays a target (carrierfac?carrier__fac_count=).
+func traversalTargetField(tc TypeConfig, field string) (FieldType, bool) {
+	if tc.NonModelFields[field] {
+		return 0, false
+	}
+	ft, ok := tc.Fields[field]
+	return ft, ok
 }
 
 func buildSinglHop(entityType, fk, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
@@ -433,7 +582,7 @@ func buildSinglHop(entityType, fk, field, op, value string, tier privctx.Tier) (
 	if !hasTarget {
 		return nil, false, false, nil
 	}
-	ft, hasField := targetTC.Fields[field]
+	ft, hasField := traversalTargetField(targetTC, field)
 	if !hasField {
 		return nil, false, false, nil
 	}
@@ -512,6 +661,8 @@ const parentPKColumn = "id"
 // Hard-capped at 2 hops. Identifiers from two EdgeMetadata lookups;
 // values bind via the innermost buildPredicate. Parent PK is always "id"
 // (see parentPKColumn — schema generator invariant).
+// Both subqueries get the row-visibility gate of their table
+// (applyVisibilityGate).
 func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	edge1, ok := LookupEdge(entityType, fk1)
 	if !ok {
@@ -525,7 +676,7 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 	if !hasLeaf {
 		return nil, false, false, nil
 	}
-	ft, hasField := leafTC.Fields[field]
+	ft, hasField := traversalTargetField(leafTC, field)
 	if !hasField {
 		return nil, false, false, nil
 	}
@@ -576,6 +727,10 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 			midSel = sql.Select(midT.C(fk1Col)).From(midT)
 		}
 		midJoin(midSel)
+		// Gate the middle rows too. A middle hop on pocs
+		// (net?poc__net__<field>=) would otherwise match the networks
+		// that have a contact the tier cannot read.
+		applyVisibilityGate(midSel, midTable, tier)
 
 		// Outer filter: parent's FK column (M2O) or parent's PK (O2M).
 		if ownFK1 {
@@ -589,8 +744,12 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 // buildPredicate maps a field, operator, raw value, and field type to an ent
 // sql.Selector predicate function. folded=true indicates the field has a
 // sibling <field>_fold column — string predicates route to it with a
-// unifold.Fold(value) RHS for diacritic-insensitive matching.
+// unifold.Fold(value) RHS for diacritic-insensitive matching. A
+// multi-value field has its own operators (buildMultiChoicePredicate).
 func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
+	if ft == FieldMultiChoice {
+		return buildMultiChoicePredicate(field, op, value)
+	}
 	op = coerceToCaseInsensitive(op)
 	switch op {
 	case "": // exact match
@@ -646,7 +805,7 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 			return nil, fmt.Errorf("convert %q to time: %w", value, err)
 		}
 		if dateOnly {
-			// upstream rest.py:657-658 turns bare datetime equality
+			// upstream 2.83.0 rest.py:678-679 turns bare datetime equality
 			// into __startswith — ?created=2024-01-01 matches the
 			// whole day, not the instant of midnight.
 			end := t.Add(24 * time.Hour)
@@ -662,6 +821,8 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 			return nil, fmt.Errorf("convert %q to float: %w", value, err)
 		}
 		return sql.FieldEQ(field, v), nil
+	case FieldMultiChoice:
+		return buildMultiChoicePredicate(field, "", value)
 	default:
 		return nil, fmt.Errorf("unsupported field type %s for exact match", ft)
 	}
@@ -723,7 +884,7 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 	var marshalErr error
 	switch ft {
 	case FieldString:
-		// Upstream folds ALL filter values with unidecode (rest.py:576)
+		// Upstream folds ALL filter values with unidecode (2.83.0 rest.py:597)
 		// and matches under MySQL's case-insensitive collation, so
 		// string __in is case- and diacritic-insensitive there. SQLite
 		// resolves a bare IN with the column's BINARY collation, so
@@ -782,6 +943,8 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 			times = append(times, v)
 		}
 		return sql.FieldIn(field, times...), nil
+	case FieldMultiChoice:
+		return buildMultiChoicePredicate(field, "in", value)
 	default:
 		return nil, fmt.Errorf("in operator not supported on field type %s for field %q", ft, field)
 	}
@@ -818,7 +981,7 @@ func buildComparison(field, op, value string, ft FieldType, cmp func(string, any
 			return nil, err
 		}
 		if dateOnly && (op == "gt" || op == "lte") {
-			// upstream rest.py:621-623: a 10-char date in gt/lte gets
+			// upstream 2.83.0 rest.py:642-645: a 10-char date in gt/lte gets
 			// its time forced to end-of-day (23:59:59.999), so
 			// updated__gt=2024-01-01 means "after that whole day"
 			// and updated__lte=2024-01-01 includes the whole day.
@@ -848,6 +1011,10 @@ func convertValue(s string, ft FieldType) (any, error) {
 		return t, err
 	case FieldFloat:
 		return strconv.ParseFloat(s, 64)
+	case FieldMultiChoice:
+		// A comparison converts the value to the stored form, which
+		// needs the choice list (buildMultiChoicePredicate).
+		return nil, fmt.Errorf("unsupported field type %s", ft)
 	default:
 		return nil, fmt.Errorf("unsupported field type %s", ft)
 	}
@@ -869,31 +1036,39 @@ func parseBool(s string) (bool, error) {
 // parseEpoch converts a strict integer Unix-seconds string. ?since= uses
 // this directly: upstream coerces since with int() (rest.py:696), so ISO
 // strings must keep failing there.
+//
+// The time is in UTC. The SQLite driver binds a time.Time as text in the
+// zone of the value, and the stored timestamps are UTC text, so the
+// comparison is only correct when both sides are UTC. time.Unix returns
+// the process zone, which is UTC in production but not on every host.
 func parseEpoch(s string) (time.Time, error) {
 	epoch, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("invalid unix timestamp %q: %w", s, err)
 	}
-	return time.Unix(epoch, 0), nil
+	return time.Unix(epoch, 0).UTC(), nil
 }
 
 // parseTimeValue converts a time-filter value. Accepts Unix epoch seconds
 // plus the ISO 8601 layouts DRF's DateTimeField().to_python accepts
-// upstream (rest.py:625-627): date-only, datetime with 'T' or space
-// separator, and RFC 3339 with offset. dateOnly reports a bare 10-char
-// date, which carries day-window semantics upstream (rest.py:619-658).
+// upstream (2.83.0 rest.py:647-653): date-only, datetime with 'T' or
+// space separator, and RFC 3339 with offset. dateOnly reports a bare
+// 10-char date, which carries day-window semantics upstream
+// (rest.py:640-679).
 // Layouts without an explicit offset are interpreted as UTC, matching
-// the stored timestamps.
+// the stored timestamps. Every result is converted to UTC, for the
+// reason given at parseEpoch: a value with an offset such as +01:00
+// otherwise binds as text in that offset and compares wrongly.
 func parseTimeValue(s string) (t time.Time, dateOnly bool, err error) {
 	if epoch, perr := strconv.ParseInt(s, 10, 64); perr == nil {
-		return time.Unix(epoch, 0), false, nil
+		return time.Unix(epoch, 0).UTC(), false, nil
 	}
 	if t, perr := time.ParseInLocation(time.DateOnly, s, time.UTC); perr == nil {
 		return t, true, nil
 	}
 	for _, layout := range []string{time.RFC3339, "2006-01-02T15:04:05", "2006-01-02 15:04:05"} {
 		if t, perr := time.ParseInLocation(layout, s, time.UTC); perr == nil {
-			return t, false, nil
+			return t.UTC(), false, nil
 		}
 	}
 	return time.Time{}, false, fmt.Errorf("invalid time value %q (want unix epoch seconds or ISO 8601)", s)

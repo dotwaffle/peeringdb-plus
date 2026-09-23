@@ -455,6 +455,18 @@ func (_u *NetworkUpdate) ClearLookingGlass() *NetworkUpdate {
 	return _u
 }
 
+// SetMeta sets the "meta" field.
+func (_u *NetworkUpdate) SetMeta(v map[string]interface{}) *NetworkUpdate {
+	_u.mutation.SetMeta(v)
+	return _u
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (_u *NetworkUpdate) ClearMeta() *NetworkUpdate {
+	_u.mutation.ClearMeta()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *NetworkUpdate) SetName(v string) *NetworkUpdate {
 	_u.mutation.SetName(v)
@@ -1176,6 +1188,12 @@ func (_u *NetworkUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.LookingGlassCleared() {
 		_spec.ClearField(network.FieldLookingGlass, field.TypeString)
+	}
+	if value, ok := _u.mutation.Meta(); ok {
+		_spec.SetField(network.FieldMeta, field.TypeJSON, value)
+	}
+	if _u.mutation.MetaCleared() {
+		_spec.ClearField(network.FieldMeta, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(network.FieldName, field.TypeString, value)
@@ -1904,6 +1922,18 @@ func (_u *NetworkUpdateOne) SetNillableLookingGlass(v *string) *NetworkUpdateOne
 // ClearLookingGlass clears the value of the "looking_glass" field.
 func (_u *NetworkUpdateOne) ClearLookingGlass() *NetworkUpdateOne {
 	_u.mutation.ClearLookingGlass()
+	return _u
+}
+
+// SetMeta sets the "meta" field.
+func (_u *NetworkUpdateOne) SetMeta(v map[string]interface{}) *NetworkUpdateOne {
+	_u.mutation.SetMeta(v)
+	return _u
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (_u *NetworkUpdateOne) ClearMeta() *NetworkUpdateOne {
+	_u.mutation.ClearMeta()
 	return _u
 }
 
@@ -2658,6 +2688,12 @@ func (_u *NetworkUpdateOne) sqlSave(ctx context.Context) (_node *Network, err er
 	}
 	if _u.mutation.LookingGlassCleared() {
 		_spec.ClearField(network.FieldLookingGlass, field.TypeString)
+	}
+	if value, ok := _u.mutation.Meta(); ok {
+		_spec.SetField(network.FieldMeta, field.TypeJSON, value)
+	}
+	if _u.mutation.MetaCleared() {
+		_spec.ClearField(network.FieldMeta, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(network.FieldName, field.TypeString, value)

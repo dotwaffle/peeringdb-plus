@@ -503,7 +503,7 @@
           "nullable": true,
           "read_only": false,
           "deprecated": false,
-          "help_text": "RIR status",
+          "help_text": "Allocation status of this network's ASN according to RIR data. PeeringDB exposes only `ok` or null",
           "default": null
         },
         "rir_status_updated": {
@@ -523,6 +523,15 @@
           "deprecated": false,
           "help_text": "Logo URL",
           "default": null
+        },
+        "meta": {
+          "type": "json_object",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Optional attributes using registered metadata keys",
+          "default": {}
         }
       },
       "computed_fields": [
@@ -649,7 +658,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Rencode",
+          "help_text": "Obsolete. Read-only in PeeringDB",
           "default": ""
         },
         "npanxx": {
@@ -967,7 +976,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Exchange media type",
+          "help_text": "Obsolete. PeeringDB always reports `Ethernet`, and the value does not describe the media at the exchange",
           "default": "Ethernet"
         },
         "notes": {
@@ -985,7 +994,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Supports unicast",
+          "help_text": "Whether this exchange supports unicast IPv4. PeeringDB derives it from the active IPv4 prefixes of the LAN",
           "default": false
         },
         "proto_multicast": {
@@ -1003,7 +1012,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Supports IPv6",
+          "help_text": "Whether this exchange supports unicast IPv6. PeeringDB derives it from the active IPv6 prefixes of the LAN",
           "default": false
         },
         "website": {
@@ -1216,7 +1225,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "MTU size",
+          "help_text": "Maximum transmission unit offered on this LAN, in bytes",
           "default": 1500
         },
         "dot1q_support": {
@@ -1225,7 +1234,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "802.1Q support",
+          "help_text": "Obsolete. PeeringDB always reports `false`, and the value does not describe 802.1Q VLAN tagging support",
           "default": false
         },
         "rs_asn": {
@@ -1431,7 +1440,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Visibility level",
+          "help_text": "Who may see this contact: `Public` anyone, `Users` authenticated users only, `Private` the owning organization only. `Private` remains only on legacy records",
           "default": "Public"
         },
         "name": {
@@ -1581,7 +1590,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Port speed in Mbps",
+          "help_text": "Capacity of this connection in Mbit/sec",
           "default": null
         },
         "asn": {
@@ -1635,7 +1644,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Operational status",
+          "help_text": "Whether this connection is operational. PeeringDB derives it from status (true only for `ok`) and marks it deprecated",
           "default": true
         },
         "net_side_id": {
@@ -1657,6 +1666,15 @@
           "help_text": "IX-side facility FK",
           "default": null,
           "references": "fac"
+        },
+        "meta": {
+          "type": "json_object",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Optional attributes using registered metadata keys",
+          "default": {}
         }
       },
       "computed_fields": [

@@ -12,9 +12,9 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
-// seedOrgWithNetworks creates one org (id 1) plus n "ok" child networks
-// and one "deleted" network that the estimate must NOT bill (depth
-// expansion filters sets to StatusIn ok/pending).
+// seedOrgWithNetworks creates one org (id 1) plus n "ok" child networks,
+// one "deleted" and one "pending" network that the estimate must NOT bill
+// (depth expansion keeps only live children in its sets).
 func seedOrgWithNetworks(t *testing.T, client *ent.Client, n int) {
 	t.Helper()
 	ctx := t.Context()
@@ -42,12 +42,19 @@ func seedOrgWithNetworks(t *testing.T, client *ent.Client, n int) {
 		Save(ctx); err != nil {
 		t.Fatalf("seed deleted network: %v", err)
 	}
+	if _, err := client.Network.Create().
+		SetID(n + 2).SetOrgID(1).SetName("PendingNet").SetNameFold(unifold.Fold("PendingNet")).
+		SetAsn(64500 + n + 2).
+		SetCreated(now).SetUpdated(now).SetStatus("pending").
+		Save(ctx); err != nil {
+		t.Fatalf("seed pending network: %v", err)
+	}
 }
 
 // TestDetailInflightEstimate_CountsChildren verifies the depth>=2 estimate
 // is the flat Depth2 figure plus child COUNT(*) × child Depth0 per
-// embedded set, that tombstoned children are excluded (mirroring the
-// StatusIn filter the depth expansion applies), and that depth<2 requests
+// embedded set, that deleted and pending children are excluded (mirroring
+// the StatusIn filter the depth expansion applies), and that depth<2 requests
 // fall back to the flat TypicalRowBytes figure without any count queries.
 func TestDetailInflightEstimate_CountsChildren(t *testing.T) {
 	t.Parallel()
@@ -58,7 +65,8 @@ func TestDetailInflightEstimate_CountsChildren(t *testing.T) {
 	seedOrgWithNetworks(t, client, nets)
 
 	// depth=2: flat org Depth2 + 7 ok networks × net Depth0. The deleted
-	// network and the empty fac/ix/carrier/campus sets add nothing.
+	// and pending networks and the empty fac/ix/carrier/campus sets add
+	// nothing.
 	want := int64(TypicalRowBytes(peeringdb.TypeOrg, 2)) +
 		int64(nets)*int64(TypicalRowBytes(peeringdb.TypeNet, 0))
 	if got := detailInflightEstimate(ctx, client, peeringdb.TypeOrg, 1, 2); got != want {
@@ -81,8 +89,95 @@ func TestDetailInflightEstimate_CountsChildren(t *testing.T) {
 	}
 }
 
+// TestDetailInflightEstimate_FacPricesFlat verifies that a facility
+// detail bills only its flat Depth2 figure. getFacWithDepth renders the
+// org and campus but no reverse set, so the netfac, ixfac and carrierfac
+// rows at the facility add nothing.
+func TestDetailInflightEstimate_FacPricesFlat(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	org := client.Organization.Create().
+		SetName("Org").SetNameFold(unifold.Fold("Org")).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	fac := client.Facility.Create().
+		SetName("Fac").SetNameFold(unifold.Fold("Fac")).SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	net := client.Network.Create().
+		SetName("Net").SetNameFold(unifold.Fold("Net")).SetAsn(65001).
+		SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	ix := client.InternetExchange.Create().
+		SetName("IX").SetNameFold(unifold.Fold("IX")).SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	carrier := client.Carrier.Create().
+		SetName("Carrier").SetNameFold(unifold.Fold("Carrier")).SetOrgID(org.ID).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetNetwork(net).SetFacility(fac).SetLocalAsn(65001).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.IxFacility.Create().
+		SetInternetExchange(ix).SetFacility(fac).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.CarrierFacility.Create().
+		SetCarrier(carrier).SetFacility(fac).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	want := int64(TypicalRowBytes(peeringdb.TypeFac, 2))
+	if got := detailInflightEstimate(ctx, client, peeringdb.TypeFac, fac.ID, 2); got != want {
+		t.Errorf("fac depth=2 estimate = %d, want %d (flat Depth2)", got, want)
+	}
+}
+
+// TestDetailInflightEstimate_CountsLiveNetixlan verifies that the two
+// sets built from netixlan rows, net.netixlan_set and the through-relation
+// ixlan.net_set, bill the netixlan live statuses (ok and not-operational)
+// and leave pending and deleted rows out, as the depth expansion does.
+func TestDetailInflightEstimate_CountsLiveNetixlan(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	org := client.Organization.Create().
+		SetName("Org").SetNameFold(unifold.Fold("Org")).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	net := client.Network.Create().
+		SetName("Net").SetNameFold(unifold.Fold("Net")).SetAsn(65001).
+		SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	ix := client.InternetExchange.Create().
+		SetName("IX").SetNameFold(unifold.Fold("IX")).SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	lan := client.IxLan.Create().
+		SetInternetExchange(ix).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	for _, status := range []string{"ok", "not-operational", "pending", "deleted"} {
+		client.NetworkIxLan.Create().
+			SetNetwork(net).SetIxLan(lan).SetAsn(65001).SetSpeed(1000).
+			SetCreated(now).SetUpdated(now).SetStatus(status).SaveX(ctx)
+	}
+
+	// net: poc_set and netfac_set are empty, netixlan_set bills 2 rows.
+	wantNet := int64(TypicalRowBytes(peeringdb.TypeNet, 2)) +
+		2*int64(TypicalRowBytes(peeringdb.TypeNetIXLan, 0))
+	if got := detailInflightEstimate(ctx, client, peeringdb.TypeNet, net.ID, 2); got != wantNet {
+		t.Errorf("net depth=2 estimate = %d, want %d (ok + not-operational netixlans)", got, wantNet)
+	}
+
+	// ixlan: ixpfx_set is empty, net_set bills one network per live
+	// netixlan join row.
+	wantLan := int64(TypicalRowBytes(peeringdb.TypeIXLan, 2)) +
+		2*int64(TypicalRowBytes(peeringdb.TypeNet, 0))
+	if got := detailInflightEstimate(ctx, client, peeringdb.TypeIXLan, lan.ID, 2); got != wantLan {
+		t.Errorf("ixlan depth=2 estimate = %d, want %d (ok + not-operational join rows)", got, wantLan)
+	}
+}
+
 // TestDetailChildSets_CoverRegistryParents locks the depth.go ↔
-// detailChildSets alignment at the type level: exactly the 7 parent types
+// detailChildSets alignment at the type level: exactly the 6 parent types
 // whose depth>=2 expansion embeds full child objects carry an entry, and
 // every childType named in the table has a calibrated row size (an
 // unknown name would silently price at defaultRowSize).
@@ -91,7 +186,6 @@ func TestDetailChildSets_CoverRegistryParents(t *testing.T) {
 	wantParents := map[string]int{
 		peeringdb.TypeOrg:     5, // net, fac, ix, carrier, campus
 		peeringdb.TypeNet:     3, // poc, netfac, netixlan
-		peeringdb.TypeFac:     3, // netfac, ixfac, carrierfac
 		peeringdb.TypeIX:      2, // ixlan, fac (via ixfac)
 		peeringdb.TypeIXLan:   2, // ixpfx, net (via netixlan)
 		peeringdb.TypeCarrier: 1, // carrierfac

@@ -2,6 +2,7 @@ package pdbcompat
 
 import (
 	"context"
+	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/schematypes"
@@ -35,12 +36,27 @@ func socialMediaFromSchema(sm []schematypes.SocialMedia) []peeringdb.SocialMedia
 
 // stringsOrEmpty returns an empty, non-nil slice when s is nil so JSON
 // serialization emits [] rather than null. Upstream PeeringDB always emits a
-// list for ixp_update_exclude (the model default is an empty list).
+// list for ixp_update_exclude (the model default is an empty list) and for
+// info_types (a non-null column, 2.83.0 serializers.py:3947-3960). Do not
+// use it for fac available_voltage_services: that column is nullable
+// upstream, and null is its correct value.
 func stringsOrEmpty(s []string) []string {
 	if s == nil {
 		return []string{}
 	}
 	return s
+}
+
+// metaOrEmpty returns an empty, non-nil map when m is nil so JSON
+// serialization emits {} rather than null. Upstream PeeringDB always emits
+// meta as an object (JSONField default=dict, migration 0159). Rows synced
+// before the column existed, or before upstream deployed 2.83.0, have no
+// stored document.
+func metaOrEmpty(m map[string]any) map[string]any {
+	if m == nil {
+		return map[string]any{}
+	}
+	return m
 }
 
 // organizationFromEnt maps an ent Organization to a peeringdb Organization.
@@ -95,7 +111,7 @@ func networkFromEnt(n *ent.Network) peeringdb.Network {
 		RouteServer:             n.RouteServer,
 		IRRASSet:                n.IrrAsSet,
 		InfoType:                n.InfoType,
-		InfoTypes:               n.InfoTypes,
+		InfoTypes:               stringsOrEmpty(n.InfoTypes),
 		InfoPrefixes4:           n.InfoPrefixes4,
 		InfoPrefixes6:           n.InfoPrefixes6,
 		InfoTraffic:             n.InfoTraffic,
@@ -117,6 +133,7 @@ func networkFromEnt(n *ent.Network) peeringdb.Network {
 		RIRStatus:               n.RirStatus,
 		RIRStatusUpdated:        n.RirStatusUpdated,
 		Logo:                    n.Logo,
+		Meta:                    metaOrEmpty(n.Meta),
 		IXCount:                 n.IxCount,
 		FacCount:                n.FacCount,
 		NetIXLanUpdated:         n.NetixlanUpdated,
@@ -191,8 +208,13 @@ func facilitiesFromEnt(facs []*ent.Facility) []peeringdb.Facility {
 	return out
 }
 
+// ixMedia is the media value that upstream renders for every ix. The
+// field is deprecated, and get_media returns this constant whatever the
+// stored value is (2.83.0 serializers.py:4497-4500, #1555).
+const ixMedia = "Ethernet"
+
 // internetExchangeFromEnt maps an ent InternetExchange to a peeringdb
-// InternetExchange.
+// InternetExchange. Media is always ixMedia, as upstream renders it.
 func internetExchangeFromEnt(ix *ent.InternetExchange) peeringdb.InternetExchange {
 	return peeringdb.InternetExchange{
 		ID:                     ix.ID,
@@ -203,7 +225,7 @@ func internetExchangeFromEnt(ix *ent.InternetExchange) peeringdb.InternetExchang
 		City:                   ix.City,
 		Country:                ix.Country,
 		RegionContinent:        ix.RegionContinent,
-		Media:                  ix.Media,
+		Media:                  ixMedia,
 		Notes:                  ix.Notes,
 		ProtoUnicast:           ix.ProtoUnicast,
 		ProtoMulticast:         ix.ProtoMulticast,
@@ -243,7 +265,11 @@ func internetExchangesFromEnt(ixes []*ent.InternetExchange) []peeringdb.Internet
 	return out
 }
 
-// pocFromEnt maps an ent Poc to a peeringdb Poc.
+// pocFromEnt maps an ent Poc to a peeringdb Poc. A deleted contact is
+// served with name, phone, email and url blanked, as upstream does
+// (peeringdb.Poc.BlankDeletedContact). Every /api/ path that renders a
+// poc calls this function, so the rule holds even for a stored tombstone
+// that still carries contact data.
 func pocFromEnt(p *ent.Poc) peeringdb.Poc {
 	return peeringdb.Poc{
 		ID:      p.ID,
@@ -257,7 +283,7 @@ func pocFromEnt(p *ent.Poc) peeringdb.Poc {
 		Created: p.Created,
 		Updated: p.Updated,
 		Status:  p.Status,
-	}
+	}.BlankDeletedContact()
 }
 
 // pocsFromEnt maps a slice of ent Pocs to peeringdb Pocs.
@@ -269,31 +295,48 @@ func pocsFromEnt(pocs []*ent.Poc) []peeringdb.Poc {
 	return out
 }
 
-// ixLanFromEnt maps an ent IxLan to a peeringdb IxLan, applying
-// serializer-layer field-level privacy redaction for the
-// ixf_ixp_member_list_url field via internal/privfield.Redact.
+// ixLanResponse is the /api wire shape of an ixlan. It has the same keys
+// in the same order as peeringdb.IxLan. The one difference is
+// IXFIXPMemberListURL: a pointer, so the key is present or absent
+// independently of the value. peeringdb.IxLan also decodes the upstream
+// input in sync, so it keeps a plain string.
+type ixLanResponse struct {
+	ID                         int       `json:"id"`
+	IXID                       int       `json:"ix_id"`
+	Name                       string    `json:"name"`
+	Descr                      string    `json:"descr"`
+	MTU                        int       `json:"mtu"`
+	Dot1QSupport               bool      `json:"dot1q_support"`
+	RSASN                      *int      `json:"rs_asn"`
+	ARPSponge                  *string   `json:"arp_sponge"`
+	IXFIXPMemberListURLVisible string    `json:"ixf_ixp_member_list_url_visible"`
+	IXFIXPMemberListURL        *string   `json:"ixf_ixp_member_list_url,omitempty"`
+	IXFIXPImportEnabled        bool      `json:"ixf_ixp_import_enabled"`
+	Created                    time.Time `json:"created"`
+	Updated                    time.Time `json:"updated"`
+	Status                     string    `json:"status"`
+}
+
+// ixLanFromEnt maps an ent IxLan to its /api wire shape and applies the
+// field-level privacy of ixf_ixp_member_list_url through
+// internal/privfield.Redact.
 //
 // The caller MUST pass a context that has the privacy tier stamped by
-// middleware.PrivacyTier; unstamped contexts default to TierPublic
-// (fail-closed) per privfield.Redact semantics.
-//
-// The discarded omit return (underscore) is intentional: the peeringdb.IxLan
-// struct declares `json:"ixf_ixp_member_list_url,omitempty"` so assigning
-// the zero string value makes json.Marshal omit the key — matching upstream
-// PeeringDB's "absent key when unauthenticated" behaviour.
-func ixLanFromEnt(ctx context.Context, l *ent.IxLan) peeringdb.IxLan {
-	url, _ := privfield.Redact(ctx, l.IxfIxpMemberListURLVisible, l.IxfIxpMemberListURL)
-	return peeringdb.IxLan{
+// middleware.PrivacyTier. An unstamped context gets TierPublic
+// (fail-closed), as privfield.Redact specifies. ixfMemberListURLOut
+// decides the ixf_ixp_member_list_url key.
+func ixLanFromEnt(ctx context.Context, l *ent.IxLan) ixLanResponse {
+	return ixLanResponse{
 		ID:                         l.ID,
 		IXID:                       derefInt(l.IxID),
 		Name:                       l.Name,
 		Descr:                      l.Descr,
 		MTU:                        l.Mtu,
-		Dot1QSupport:               l.Dot1qSupport,
+		Dot1QSupport:               false, // always false upstream (serializers.py:4304-4307, #903)
 		RSASN:                      l.RsAsn,
 		ARPSponge:                  l.ArpSponge,
 		IXFIXPMemberListURLVisible: l.IxfIxpMemberListURLVisible, // always emitted
-		IXFIXPMemberListURL:        url,
+		IXFIXPMemberListURL:        ixfMemberListURLOut(ctx, l),
 		IXFIXPImportEnabled:        l.IxfIxpImportEnabled,
 		Created:                    l.Created,
 		Updated:                    l.Updated,
@@ -301,11 +344,31 @@ func ixLanFromEnt(ctx context.Context, l *ent.IxLan) peeringdb.IxLan {
 	}
 }
 
-// ixLansFromEnt maps a slice of ent IxLans to peeringdb IxLans, threading
-// ctx so each row's ixf_ixp_member_list_url is redacted per the caller's
-// tier (see ixLanFromEnt godoc).
-func ixLansFromEnt(ctx context.Context, lans []*ent.IxLan) []peeringdb.IxLan {
-	out := make([]peeringdb.IxLan, len(lans))
+// ixfMemberListURLOut returns the ixf_ixp_member_list_url value for the
+// caller on ctx, or nil to omit the key.
+//
+// Upstream deletes the key only when the caller does not have the
+// permission for the visibility (2.83.0 permissions.py:344-353). A caller
+// that has the permission gets the stored value, also when it is empty.
+// Thus the omit flag of privfield.Redact decides the key, not the value.
+//
+// One exception applies: a Users row with an empty value. An anonymous
+// sync does not receive the value of a Users row, and it stores "" for
+// it. For such a row, "" does not mean that the URL is empty, so the key
+// stays out.
+func ixfMemberListURLOut(ctx context.Context, l *ent.IxLan) *string {
+	url, omit := privfield.Redact(ctx, l.IxfIxpMemberListURLVisible, l.IxfIxpMemberListURL)
+	if omit || (url == "" && l.IxfIxpMemberListURLVisible != "Public") {
+		return nil
+	}
+	return new(url)
+}
+
+// ixLansFromEnt maps a slice of ent IxLans to their /api wire shape. It
+// passes ctx to ixLanFromEnt, so the tier of the caller decides the
+// ixf_ixp_member_list_url key of each row.
+func ixLansFromEnt(ctx context.Context, lans []*ent.IxLan) []ixLanResponse {
+	out := make([]ixLanResponse, len(lans))
 	for i, l := range lans {
 		out[i] = ixLanFromEnt(ctx, l)
 	}
@@ -354,9 +417,10 @@ func networkIxLanFromEnt(n *ent.NetworkIxLan) peeringdb.NetworkIxLan {
 		IPAddr6:     n.Ipaddr6,
 		IsRSPeer:    n.IsRsPeer,
 		BFDSupport:  n.BfdSupport,
-		Operational: n.Operational,
+		Operational: new(n.Operational),
 		NetSideID:   n.NetSideID,
 		IXSideID:    n.IxSideID,
+		Meta:        metaOrEmpty(n.Meta),
 		Created:     n.Created,
 		Updated:     n.Updated,
 		Status:      n.Status,

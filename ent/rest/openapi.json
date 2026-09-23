@@ -7521,7 +7521,7 @@
 					},
 					"rencode": {
 						"default": "",
-						"description": "Rencode",
+						"description": "Obsolete. Read-only in PeeringDB",
 						"type": "string"
 					},
 					"sales_email": {
@@ -7792,7 +7792,7 @@
 					},
 					"media": {
 						"default": "Ethernet",
-						"description": "Exchange media type",
+						"description": "Obsolete. PeeringDB always reports `Ethernet`, and the value does not describe the media at the exchange",
 						"type": "string"
 					},
 					"name": {
@@ -7831,7 +7831,7 @@
 					},
 					"proto_ipv6": {
 						"default": false,
-						"description": "Supports IPv6",
+						"description": "Whether this exchange supports unicast IPv6. PeeringDB derives it from the active IPv6 prefixes of the LAN",
 						"type": "boolean"
 					},
 					"proto_multicast": {
@@ -7841,7 +7841,7 @@
 					},
 					"proto_unicast": {
 						"default": false,
-						"description": "Supports unicast",
+						"description": "Whether this exchange supports unicast IPv4. PeeringDB derives it from the active IPv4 prefixes of the LAN",
 						"type": "boolean"
 					},
 					"region_continent": {
@@ -8170,7 +8170,7 @@
 					},
 					"dot1q_support": {
 						"default": false,
-						"description": "802.1Q support",
+						"description": "Obsolete. PeeringDB always reports `false`, and the value does not describe 802.1Q VLAN tagging support",
 						"type": "boolean"
 					},
 					"id": {
@@ -8199,7 +8199,7 @@
 					},
 					"mtu": {
 						"default": 1500,
-						"description": "MTU size",
+						"description": "Maximum transmission unit offered on this LAN, in bytes",
 						"type": "integer"
 					},
 					"name": {
@@ -8555,6 +8555,11 @@
 						"description": "Looking glass URL",
 						"type": "string"
 					},
+					"meta": {
+						"additionalProperties": true,
+						"description": "Optional attributes using registered metadata keys",
+						"type": "object"
+					},
 					"name": {
 						"description": "Network name (not unique — PeeringDB permits duplicates)",
 						"type": "string"
@@ -8618,7 +8623,7 @@
 						"type": "string"
 					},
 					"rir_status": {
-						"description": "RIR status",
+						"description": "Allocation status of this network's ASN according to RIR data. PeeringDB exposes only `ok` or null",
 						"nullable": true,
 						"type": "string"
 					},
@@ -8899,6 +8904,11 @@
 						"nullable": true,
 						"type": "integer"
 					},
+					"meta": {
+						"additionalProperties": true,
+						"description": "Optional attributes using registered metadata keys",
+						"type": "object"
+					},
 					"name": {
 						"default": "",
 						"description": "Name (computed)",
@@ -8921,16 +8931,16 @@
 					},
 					"operational": {
 						"default": true,
-						"description": "Operational status",
+						"description": "Whether this connection is operational. PeeringDB derives it from status (true only for `ok`) and marks it deprecated",
 						"type": "boolean"
 					},
 					"speed": {
-						"description": "Port speed in Mbps",
+						"description": "Capacity of this connection in Mbit/sec",
 						"type": "integer"
 					},
 					"status": {
 						"default": "ok",
-						"description": "Record status",
+						"description": "Connection state: `ok` and `not-operational` are published, `pending` awaits approval, and `deleted` is removed",
 						"type": "string"
 					},
 					"updated": {
@@ -9086,7 +9096,6 @@
 					"network_facilities.count",
 					"network_ix_lans.count",
 					"organization.updated",
-					"pocs.count",
 					"random",
 					"updated"
 				],
@@ -9452,7 +9461,7 @@
 					},
 					"visible": {
 						"default": "Public",
-						"description": "Visibility level",
+						"description": "Who may see this contact: `Public` anyone, `Users` authenticated users only, `Private` the owning organization only. `Private` remains only on legacy records",
 						"type": "string"
 					}
 				},

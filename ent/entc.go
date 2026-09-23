@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
+	"strings"
+	"text/template"
 	_ "unsafe" // Required for go:linkname.
 
 	"entgo.io/contrib/entgql"
@@ -15,6 +18,7 @@ import (
 	"entgo.io/ent/entc/gen"
 	"github.com/go-openapi/inflect"
 	"github.com/lrstanley/entrest"
+	"github.com/ogen-go/ogen"
 )
 
 // entGenRules provides access to ent's unexported inflect ruleset so we can
@@ -74,6 +78,7 @@ func main() {
 			entrest.OperationRead,
 			entrest.OperationList,
 		},
+		PostGenerateHook: dropPolicyEdgeSorts,
 	})
 	if err != nil {
 		log.Fatalf("creating entrest extension: %v", err)
@@ -145,14 +150,58 @@ func formatOpenAPISpec(path string) error {
 	return os.WriteFile(path, append(value, '\n'), 0o640)
 }
 
+// restSortableFields returns the REST sort fields of t: entrest's
+// sortable fields without the sorts over an edge to a type that has a
+// privacy policy. Such a sort (<edge>.count, <edge>.<field>.sum, or
+// <edge>.<field> on a unique edge) orders by a subquery over the edge's
+// rows, and the target's ent privacy policy does not filter that
+// subquery. For example, ?sort=pocs.count would order networks by a
+// count that includes the pocs that the caller's tier cannot read. The
+// sorting template and dropPolicyEdgeSorts both use this list, so the
+// served sort validation and the OpenAPI enum agree.
+func restSortableFields(t *gen.Type) []string {
+	sortable := entrest.GetSortableFields(t, nil)
+	for _, e := range t.Edges {
+		if e.Type.NumPolicy() == 0 {
+			continue
+		}
+		prefix := e.Name + "."
+		sortable = slices.DeleteFunc(sortable, func(f string) bool {
+			return strings.HasPrefix(f, prefix)
+		})
+	}
+	return sortable
+}
+
+// dropPolicyEdgeSorts is the entrest PostGenerateHook that removes the
+// sorts which restSortableFields leaves out from the <Type>SortableFields
+// enums of the OpenAPI spec.
+func dropPolicyEdgeSorts(g *gen.Graph, spec *ogen.Spec) error {
+	for _, t := range g.Nodes {
+		name := entrest.Singularize(t.Name) + "SortableFields"
+		schema, ok := spec.Components.Schemas[name]
+		if !ok {
+			continue
+		}
+		keep := restSortableFields(t)
+		schema.Enum = slices.DeleteFunc(schema.Enum, func(v jsontext.Value) bool {
+			f, err := jsontext.AppendUnquote(nil, v)
+			return err == nil && !slices.Contains(keep, string(f))
+		})
+	}
+	return nil
+}
+
 // entrestSortingOverride is a minimal replica of entc.TemplateDir that registers
 // entrest's funcmap on the template before parsing. This is required because
 // our project-local override of entrest's sorting.tmpl uses entrest-provided
-// template funcs (getAnnotation, getSortableFields) which aren't in ent's
-// default funcmap.
+// template funcs (getAnnotation) which aren't in ent's default funcmap, and
+// the project func restSortableFields.
 func entrestSortingOverride(path string) entc.Option {
 	return func(cfg *gen.Config) error {
-		t := gen.NewTemplate("entrest-override").Funcs(entrest.FuncMaps())
+		t := gen.NewTemplate("entrest-override").
+			Funcs(entrest.FuncMaps()).
+			Funcs(template.FuncMap{"restSortableFields": restSortableFields})
 		if _, err := t.ParseDir(path); err != nil {
 			return fmt.Errorf("parsing entrest sorting override from %q: %w", path, err)
 		}

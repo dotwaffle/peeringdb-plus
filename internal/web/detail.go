@@ -23,6 +23,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	"github.com/dotwaffle/peeringdb-plus/internal/catalog"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -338,7 +339,7 @@ func (h *Handler) handleFragment(w http.ResponseWriter, r *http.Request, path st
 func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	off := fragmentOffset(r)
 	items, err := h.client.NetworkIxLan.Query().
-		Where(networkixlan.HasNetworkWith(network.ID(netID)), networkixlan.StatusIn("ok", "pending")).
+		Where(networkixlan.HasNetworkWith(network.ID(netID)), networkixlan.StatusIn("ok", "not-operational", "pending")).
 		Order(networkixlan.ByName()).
 		Offset(off).
 		Limit(fragmentPageSize + 1).
@@ -359,6 +360,7 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 			IXID:     nix.IxID,
 			Speed:    nix.Speed,
 			IsRSPeer: nix.IsRsPeer,
+			Markers:  catalog.ConnectionMarkersFor(nix),
 		}
 		if nix.Ipaddr4 != nil {
 			row.IPAddr4 = *nix.Ipaddr4
@@ -464,7 +466,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID)), ixlan.StatusIn("ok", "pending")).
 		QueryNetworkIxLans().
-		Where(networkixlan.StatusIn("ok", "pending")).
+		Where(networkixlan.StatusIn("ok", "not-operational", "pending")).
 		WithNetwork().
 		Order(networkixlan.ByAsn()).
 		Offset(off).
@@ -490,6 +492,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 			ASN:      nix.Asn,
 			Speed:    nix.Speed,
 			IsRSPeer: nix.IsRsPeer,
+			Markers:  catalog.ConnectionMarkersFor(nix),
 		}
 		if nix.Ipaddr4 != nil {
 			row.IPAddr4 = *nix.Ipaddr4

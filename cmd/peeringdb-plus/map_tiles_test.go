@@ -31,3 +31,13 @@ func TestUICSPPolicy(t *testing.T) {
 		})
 	}
 }
+
+// TestGraphQLCSPPolicy_AllowsDataFonts checks that the /graphql policy lets
+// GraphiQL load the fonts that its stylesheet embeds as data: URIs.
+func TestGraphQLCSPPolicy_AllowsDataFonts(t *testing.T) {
+	t.Parallel()
+	const want = "font-src 'self' data:"
+	if !strings.Contains(graphQLCSPPolicy, want) {
+		t.Errorf("graphQLCSPPolicy = %q, want substring %q", graphQLCSPPolicy, want)
+	}
+}

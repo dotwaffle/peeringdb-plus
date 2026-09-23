@@ -112,7 +112,9 @@ type Config struct {
 	// PublicTier is the resolved visibility tier for anonymous HTTP callers.
 	// Configured via PDBPLUS_PUBLIC_TIER. Default TierPublic admits only
 	// visible="Public" rows. Setting PDBPLUS_PUBLIC_TIER=users elevates
-	// anonymous callers to TierUsers for private-instance deployments.
+	// anonymous callers to TierUsers for private-instance deployments,
+	// which admits visible="Public" and visible="Users" rows but never
+	// visible="Private" ones.
 	// Parsed case-sensitive lowercase only; any other value is a
 	// fail-fast startup error.
 	PublicTier privctx.Tier

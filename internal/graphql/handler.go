@@ -124,16 +124,16 @@ var playgroundTmpl = template.Must(template.New("playground").Parse(`<!DOCTYPE h
     ></script>
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/graphiql@3.7.0/graphiql.min.css"
-      integrity="sha256-Dbkv2LUWis+0H4Z+IzxLBxM2ka1J133lSjqqtSu49o8="
+      href="https://cdn.jsdelivr.net/npm/graphiql@4.1.2/graphiql.min.css"
+      integrity="sha256-MEh+B2NdMSpj9kexQNN3QKc8UzMrCXW/Sx/phcpuyIU="
       crossorigin="anonymous"
     />
   </head>
   <body>
     <div id="graphiql">Loading...</div>
     <script
-      src="https://cdn.jsdelivr.net/npm/graphiql@3.7.0/graphiql.min.js"
-      integrity="sha256-qsScAZytFdTAEOM8REpljROHu8DvdvxXBK7xhoq5XD0="
+      src="https://cdn.jsdelivr.net/npm/graphiql@4.1.2/graphiql.min.js"
+      integrity="sha256-hnImuor1znlJkD/FOTL3jayfS/xsyNoP04abi8bFJWs="
       crossorigin="anonymous"
     ></script>
     <script>

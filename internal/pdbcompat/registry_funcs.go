@@ -21,6 +21,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -115,7 +116,7 @@ func init() {
 		name:   peeringdb.TypeCampus,
 		plural: "campuses",
 		// Campus is the only type that admits status=pending on
-		// list+since (rest.py:721).
+		// list+since (2.83.0 rest.py:725-735).
 		isCampus: true,
 		query:    func(c *ent.Client) *ent.CampusQuery { return c.Campus.Query() },
 		convert:  func(_ context.Context, cp *ent.Campus) any { return campusFromEnt(cp) },
@@ -166,7 +167,7 @@ type listQuery[Q any, P, O ~func(*sql.Selector), E any] interface {
 type entityWiring[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any] struct {
 	name     string
 	plural   string // noun for "list <plural>" / "count <plural>" error wrapping
-	isCampus bool   // campus-only status-matrix branch (rest.py:721)
+	isCampus bool   // campus-only status-matrix branch (2.83.0 rest.py:725-735)
 	query    func(*ent.Client) Q
 	convert  func(context.Context, E) any
 	get      GetFunc
@@ -178,14 +179,17 @@ type entityWiring[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any] str
 // never disagree — predicate divergence (which would break the 413
 // guarantee) is unrepresentable by construction.
 func wireEntity[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any](w entityWiring[Q, P, O, E]) {
+	// The live status set is fixed per type (netixlan: ok and
+	// not-operational; all others: ok), so resolve it once at wiring.
+	live := pdbtypes.LiveStatuses(w.name)
 	predicates := func(opts QueryOptions) []P {
 		preds := castPredicates[P](opts.Filters)
 		if s := applySince(opts); s != nil {
 			preds = append(preds, P(s))
 		}
-		// upstream rest.py:694-727 status matrix — appended LAST so no
-		// client-supplied filter can widen the visible status set.
-		preds = append(preds, P(applyStatusMatrix(w.isCampus, opts.Since != nil)))
+		// upstream 2.83.0 rest.py:719-750 status matrix — appended LAST
+		// so no client-supplied filter can widen the visible status set.
+		preds = append(preds, P(applyStatusMatrix(live, w.isCampus, opts.Since != nil)))
 		return preds
 	}
 	list := func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, error) {
@@ -240,28 +244,43 @@ func castPredicates[T ~func(*sql.Selector)](filters []func(*sql.Selector)) []T {
 	return out
 }
 
-// applySince adds an updated > since filter if Since is set in opts.
-// Strictly-greater mirrors upstream django-handleref's since() filter
-// (Q(created__gt) | Q(updated__gt)); updated__gt alone subsumes
-// created__gt because created <= updated on every row. GTE would
-// re-serve every boundary row to a client polling with
-// since=<max updated seen>.
+// applySince adds an updated >= since filter if Since is set in opts.
+//
+// Upstream filters with django-handleref since(): created__gt or
+// updated__gt against datetime.fromtimestamp(since), which is
+// since.000000 (2.83.0 rest.py:736-744). updated__gt alone covers
+// created__gt because created <= updated on every row. Upstream stores
+// updated with microseconds but serializes it truncated to the second
+// (serializers.py:1920-1924), and the mirror stores only that second.
+// A row shown as updated=N almost always has a non-zero fraction
+// upstream, so upstream returns it for since=N. The boundary is
+// therefore inclusive on the stored second. With a strict > filter, a
+// client that polls with since=<max updated seen> never gets a row
+// that the mirror syncs later with the same second. The cost is that
+// the client gets the boundary rows again, which is idempotent.
 func applySince(opts QueryOptions) func(*sql.Selector) {
 	if opts.Since == nil {
 		return nil
 	}
-	return sql.FieldGT("updated", *opts.Since)
+	return sql.FieldGTE("updated", *opts.Since)
 }
 
-// listOrder returns the ordering for a list query. Plain lists keep the
-// stable newest-first triple; ?since= lists are ordered updated-ascending
-// (id-ascending tiebreak) to mirror upstream's incremental-update
-// ordering, so pollers can resume from the last row's updated value.
+// listOrder returns the ORDER BY for a list query.
+//
+// A plain list is ordered by id ascending. Upstream adds no ORDER BY to
+// a plain list (2.83.0 rest.py:747-748), and none of the 13 models
+// declares Meta.ordering (migrations/0001_initial.py has no "ordering"
+// option), so MySQL serves the rows in primary-key order. SQLite reads
+// the rowid table in this order and does not sort.
+//
+// A ?since= list is ordered by updated ascending, as upstream orders it
+// (rest.py:738-745). The id tiebreak keeps the order of rows with the
+// same updated value stable across pages.
 func listOrder[T ~func(*sql.Selector)](opts QueryOptions) []T {
 	if opts.Since != nil {
 		return []T{T(ent.Asc("updated")), T(ent.Asc("id"))}
 	}
-	return []T{T(ent.Desc("updated")), T(ent.Desc("created")), T(ent.Desc("id"))}
+	return []T{T(ent.Asc("id"))}
 }
 
 // servedRowCount computes the post-Offset/Limit row count the handler

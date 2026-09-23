@@ -4,8 +4,11 @@
 package grpcserver
 
 import (
+	"context"
+	"log/slog"
 	"time"
 
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -73,4 +76,25 @@ func timestampPtrVal(t *time.Time) *timestamppb.Timestamp {
 		return nil
 	}
 	return timestamppb.New(*t)
+}
+
+// metaStruct converts a stored meta document to a protobuf Struct. A nil
+// or empty document becomes an empty Struct, so the field is present on
+// every message, as upstream serializes an unset meta as {}. A document
+// that structpb cannot represent is logged and omitted (nil) so that one
+// bad row does not fail the whole RPC.
+func metaStruct(ctx context.Context, entity string, id int, doc map[string]any) *structpb.Struct {
+	if len(doc) == 0 {
+		return &structpb.Struct{}
+	}
+	s, err := structpb.NewStruct(doc)
+	if err != nil {
+		slog.WarnContext(ctx, "grpcserver: omitting unconvertible meta document",
+			slog.String("entity", entity),
+			slog.Int("id", id),
+			slog.Any("error", err),
+		)
+		return nil
+	}
+	return s
 }

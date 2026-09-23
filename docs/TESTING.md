@@ -25,7 +25,7 @@ Key test locations:
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
 | Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
-| Parity tests | `internal/pdbcompat/parity/` | 6 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
+| Parity tests | `internal/pdbcompat/parity/` | 9 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
 | Benchmarks | `internal/pdbcompat/projection_bench_test.go`, `internal/pdbcompat/parity/bench_test.go` | `BenchmarkApplyFieldProjection`, `BenchmarkParity_*` |
 | Live gated tests | `*_live_test.go` | Require `-peeringdb-live` flag |
@@ -228,6 +228,10 @@ PeeringDB API.
 (and the lower-level `CompareStructure`)
 compares field names, value types, null/array/object shapes, and nesting depth —
 not actual values.
+The per-object `meta` document on net and netixlan (PeeringDB 2.83.0) is opaque:
+the comparer checks only its JSON type, not its keys,
+because its keys differ per row.
+The top-level envelope `meta` is compared in full.
 `internal/conformance/compare_test.go` exercises the comparer itself;
 `live_test.go` compares a live fetch against the golden files in
 `internal/pdbcompat/testdata/golden/`.
@@ -253,7 +257,7 @@ See `CLAUDE.md § Response memory envelope` for the full maintainer checklist.
 
 `internal/pdbcompat/parity/` locks the v1.16 pdbcompat semantics against future
 regression.
-The package is split into 6 category-specific test files plus shared
+The package is split into 9 category-specific test files plus shared
 infrastructure:
 
 | File | Entry test | Covers |
@@ -264,6 +268,9 @@ infrastructure:
 | `unicode_test.go` | `TestParity_Unicode` | Unicode (fold-column routing) |
 | `in_test.go` | `TestParity_In` | `__in` filters (large `__in` sets, empty-`__in` short-circuit) |
 | `traversal_test.go` | `TestParity_Traversal` | Traversal (1-hop and 2-hop traversal) |
+| `meta_test.go` | `TestParity_Meta` | netixlan `meta__*` filters (typed keys, absent key never matches, net keys ignored) |
+| `serializer_test.go` | `TestParity_Serializer` | Serializer values and keys (IX-F URL key for permitted callers, `ix.media`/`ixlan.dot1q_support` constants, `info_types` as a list) |
+| `multichoice_test.go` | `TestParity_MultiChoice` | Multi-value choice filters (net `info_types` and legacy `info_type`, fac `available_voltage_services`) |
 | `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring + response decoding; no seeders) |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
 
@@ -288,6 +295,8 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
 - **Citation comments**: every sub-test carries one of:
   - `// upstream: pdb_api_test.py:<line>` —
     when the assertion mirrors an upstream test case.
+    A case from another upstream test file names that file,
+    for example `// upstream: tests/test_meta_registry.py:<line>`.
   - `// synthesised: <context>` —
     when the semantic is v1.16-new and has no upstream counterpart
     (tombstones, folding, traversal, budgets).
@@ -330,8 +339,8 @@ They exist to detect order-of-magnitude regressions during local development.
 which feeds arbitrary `(key, value)` pairs to `ParseFilters` to assert
 that the filter parser never panics on untrusted input.
 Errors are acceptable; panics are failures.
-The seed corpus covers all five `FieldType` values
-(string, int, bool, time, float)
+The seed corpus covers all six `FieldType` values
+(string, int, bool, time, float, multichoice)
 and known edge cases (empty key, unsupported operator, type conversion error).
 
 Run it with:

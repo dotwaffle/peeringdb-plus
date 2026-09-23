@@ -12,24 +12,25 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
-// TestDefaultOrdering_Pdbcompat asserts that pdbcompat list endpoints return
-// rows in compound (-updated, -created, -id) order — matching upstream
-// django-handleref Meta.ordering = ("-updated", "-created") with `id DESC`
-// as the tertiary tiebreak.
+// TestDefaultOrdering_Pdbcompat asserts that pdbcompat list endpoints
+// without ?since return rows in id order, ascending. Upstream adds no
+// ORDER BY to a plain list (2.83.0 rest.py:747-748) and no model
+// declares Meta.ordering, so MySQL serves primary-key order.
 //
-// All 13 list closures in registry_funcs.go use
-// .Order(ent.Desc("updated"), ent.Desc("created"),
-// ent.Desc("id")) to produce this ordering.
+// Each seed sets the created and updated stamps of the three rows so
+// that id ASC, timestamp DESC and timestamp ASC each give a different
+// order. An order that used either timestamp as a sort key, in either
+// direction, would fail.
 func TestDefaultOrdering_Pdbcompat(t *testing.T) {
 	t.Parallel()
 
 	// Base timestamp: spread seeds by 1h so SQLite time precision is
-	// never the tiebreaker between the (-updated, -created) ranks.
+	// never a factor.
 	t0 := time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
 
 	cases := []struct {
 		name string
-		seed func(t *testing.T, ctx *orderingTestCtx) []int // returns expected id order (desc)
+		seed func(t *testing.T, ctx *orderingTestCtx) []int // returns expected id order (asc)
 		path string                                         // e.g. "/api/net"
 	}{
 		{"Network", seedThreeNetworks, "/api/net"},
@@ -54,102 +55,6 @@ func TestDefaultOrdering_Pdbcompat(t *testing.T) {
 			}
 		})
 	}
-
-	// Tie-break tests live under a Network subtree because Network has
-	// the most flexible field set (no FK beyond Organization) and the
-	// assertions are entity-agnostic (same SQL ORDER BY applies to all
-	// 13 types).
-
-	t.Run("TieBreakCreated", func(t *testing.T) {
-		t.Parallel()
-		client := testutil.SetupClient(t)
-		ctx := t.Context()
-
-		org, err := client.Organization.Create().
-			SetID(1).SetName("Tiebreak Org").
-			SetCreated(t0).SetUpdated(t0).
-			Save(ctx)
-		if err != nil {
-			t.Fatalf("create org: %v", err)
-		}
-
-		// Same updated timestamp, different created. DESC by created
-		// expected => row with later created wins.
-		sameUpdated := t0.Add(2 * time.Hour)
-
-		n1, err := client.Network.Create().
-			SetID(10).SetName("SameUpdated-OlderCreated").SetAsn(64510).
-			SetOrgID(org.ID).SetOrganization(org).
-			SetCreated(t0).SetUpdated(sameUpdated).
-			Save(ctx)
-		if err != nil {
-			t.Fatalf("create net1: %v", err)
-		}
-		n2, err := client.Network.Create().
-			SetID(11).SetName("SameUpdated-NewerCreated").SetAsn(64511).
-			SetOrgID(org.ID).SetOrganization(org).
-			SetCreated(t0.Add(1 * time.Hour)).SetUpdated(sameUpdated).
-			Save(ctx)
-		if err != nil {
-			t.Fatalf("create net2: %v", err)
-		}
-
-		mux := newMuxForOrdering(client)
-		srv := httptest.NewServer(mux)
-		t.Cleanup(srv.Close)
-
-		got := fetchIDOrder(t, srv.URL+"/api/net")
-		want := []int{n2.ID, n1.ID}
-		if !intSliceEqual(got, want) {
-			t.Fatalf("tie-break by created DESC failed: got %v, want %v (n1.created=%s n2.created=%s)",
-				got, want, n1.Created, n2.Created)
-		}
-	})
-
-	t.Run("TieBreakID", func(t *testing.T) {
-		t.Parallel()
-		client := testutil.SetupClient(t)
-		ctx := t.Context()
-
-		org, err := client.Organization.Create().
-			SetID(1).SetName("Tiebreak Org").
-			SetCreated(t0).SetUpdated(t0).
-			Save(ctx)
-		if err != nil {
-			t.Fatalf("create org: %v", err)
-		}
-
-		// Same updated AND same created, different id. DESC by id
-		// expected => higher id wins.
-		sameTs := t0.Add(3 * time.Hour)
-
-		nLow, err := client.Network.Create().
-			SetID(10).SetName("LowerID").SetAsn(64510).
-			SetOrgID(org.ID).SetOrganization(org).
-			SetCreated(sameTs).SetUpdated(sameTs).
-			Save(ctx)
-		if err != nil {
-			t.Fatalf("create nLow: %v", err)
-		}
-		nHigh, err := client.Network.Create().
-			SetID(99).SetName("HigherID").SetAsn(64599).
-			SetOrgID(org.ID).SetOrganization(org).
-			SetCreated(sameTs).SetUpdated(sameTs).
-			Save(ctx)
-		if err != nil {
-			t.Fatalf("create nHigh: %v", err)
-		}
-
-		mux := newMuxForOrdering(client)
-		srv := httptest.NewServer(mux)
-		t.Cleanup(srv.Close)
-
-		got := fetchIDOrder(t, srv.URL+"/api/net")
-		want := []int{nHigh.ID, nLow.ID}
-		if !intSliceEqual(got, want) {
-			t.Fatalf("tie-break by id DESC failed: got %v, want %v", got, want)
-		}
-	})
 }
 
 // orderingTestCtx carries shared seed state so the three representative
@@ -160,9 +65,9 @@ type orderingTestCtx struct {
 	t0     time.Time
 }
 
-// seedThreeNetworks seeds 3 networks with distinct updated timestamps
-// (t0, t0+1h, t0+2h) and identical created = t0. Returns the id slice
-// in the expected (-updated) DESC order: newest first.
+// seedThreeNetworks seeds 3 networks whose updated and created stamps
+// neither rise nor fall with the id. Returns the id slice in the
+// expected ascending order.
 func seedThreeNetworks(t *testing.T, o *orderingTestCtx) []int {
 	t.Helper()
 	ctx := t.Context()
@@ -175,16 +80,16 @@ func seedThreeNetworks(t *testing.T, o *orderingTestCtx) []int {
 		t.Fatalf("seed org: %v", err)
 	}
 
-	// Insert id 20 at t0+2h (newest), id 10 at t0+1h, id 5 at t0 (oldest).
-	// Expected DESC-by-updated: 20, 10, 5.
+	// id ASC = [5 10 20], timestamp DESC = [10 5 20], timestamp ASC =
+	// [20 5 10].
 	type row struct {
 		id      int
 		updated time.Time
 	}
 	rows := []row{
-		{id: 5, updated: o.t0},
-		{id: 10, updated: o.t0.Add(1 * time.Hour)},
-		{id: 20, updated: o.t0.Add(2 * time.Hour)},
+		{id: 5, updated: o.t0.Add(1 * time.Hour)},
+		{id: 10, updated: o.t0.Add(2 * time.Hour)},
+		{id: 20, updated: o.t0},
 	}
 
 	for i, r := range rows {
@@ -193,19 +98,19 @@ func seedThreeNetworks(t *testing.T, o *orderingTestCtx) []int {
 			SetName(fmt.Sprintf("Net-%d", r.id)).
 			SetAsn(64500 + r.id).
 			SetOrgID(org.ID).SetOrganization(org).
-			SetCreated(o.t0).SetUpdated(r.updated).
+			SetCreated(r.updated).SetUpdated(r.updated).
 			Save(ctx)
 		if err != nil {
 			t.Fatalf("seed network row %d: %v", i, err)
 		}
 	}
 
-	// Expected DESC order: 20 (newest updated), 10, 5.
-	return []int{20, 10, 5}
+	return []int{5, 10, 20}
 }
 
-// seedThreeFacilities seeds 3 facilities with distinct updated
-// timestamps and identical created. Returns the expected id order.
+// seedThreeFacilities seeds 3 facilities whose updated and created
+// stamps neither rise nor fall with the id. Returns the expected id
+// order.
 func seedThreeFacilities(t *testing.T, o *orderingTestCtx) []int {
 	t.Helper()
 	ctx := t.Context()
@@ -223,9 +128,9 @@ func seedThreeFacilities(t *testing.T, o *orderingTestCtx) []int {
 		updated time.Time
 	}
 	rows := []row{
-		{id: 30, updated: o.t0},
-		{id: 40, updated: o.t0.Add(1 * time.Hour)},
-		{id: 50, updated: o.t0.Add(2 * time.Hour)},
+		{id: 30, updated: o.t0.Add(1 * time.Hour)},
+		{id: 40, updated: o.t0.Add(2 * time.Hour)},
+		{id: 50, updated: o.t0},
 	}
 
 	for i, r := range rows {
@@ -234,18 +139,18 @@ func seedThreeFacilities(t *testing.T, o *orderingTestCtx) []int {
 			SetName(fmt.Sprintf("Fac-%d", r.id)).
 			SetOrgID(org.ID).SetOrganization(org).
 			SetCity("Frankfurt").SetCountry("DE").
-			SetCreated(o.t0).SetUpdated(r.updated).
+			SetCreated(r.updated).SetUpdated(r.updated).
 			Save(ctx)
 		if err != nil {
 			t.Fatalf("seed facility row %d: %v", i, err)
 		}
 	}
 
-	return []int{50, 40, 30}
+	return []int{30, 40, 50}
 }
 
-// seedThreeIXes seeds 3 InternetExchange rows with distinct updated
-// timestamps and identical created.
+// seedThreeIXes seeds 3 InternetExchange rows whose updated and
+// created stamps neither rise nor fall with the id.
 func seedThreeIXes(t *testing.T, o *orderingTestCtx) []int {
 	t.Helper()
 	ctx := t.Context()
@@ -263,9 +168,9 @@ func seedThreeIXes(t *testing.T, o *orderingTestCtx) []int {
 		updated time.Time
 	}
 	rows := []row{
-		{id: 100, updated: o.t0},
-		{id: 200, updated: o.t0.Add(1 * time.Hour)},
-		{id: 300, updated: o.t0.Add(2 * time.Hour)},
+		{id: 100, updated: o.t0.Add(1 * time.Hour)},
+		{id: 200, updated: o.t0.Add(2 * time.Hour)},
+		{id: 300, updated: o.t0},
 	}
 
 	for i, r := range rows {
@@ -275,14 +180,14 @@ func seedThreeIXes(t *testing.T, o *orderingTestCtx) []int {
 			SetOrgID(org.ID).SetOrganization(org).
 			SetCity("Frankfurt").SetCountry("DE").
 			SetRegionContinent("Europe").SetMedia("Ethernet").
-			SetCreated(o.t0).SetUpdated(r.updated).
+			SetCreated(r.updated).SetUpdated(r.updated).
 			Save(ctx)
 		if err != nil {
 			t.Fatalf("seed ix row %d: %v", i, err)
 		}
 	}
 
-	return []int{300, 200, 100}
+	return []int{100, 200, 300}
 }
 
 // newMuxForOrdering registers a pdbcompat handler on a fresh mux for use

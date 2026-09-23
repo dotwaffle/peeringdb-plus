@@ -360,7 +360,7 @@
       "ix_id": 2,
       "arp_sponge": "00:00:5e:00:01:01",
       "descr": "",
-      "dot1q_support": true,
+      "dot1q_support": false,
       "ixf_ixp_import_enabled": false,
       "ixf_ixp_member_list_url": "",
       "ixf_ixp_member_list_url_visible": "Private",
@@ -436,6 +436,10 @@
       "ixp_update_exclude": null,
       "logo": null,
       "looking_glass": "https://lg.example.org",
+      "meta": {
+        "preferred_ip_mtu": 9000,
+        "rtbh_community": "65001:666"
+      },
       "name": "Example Network",
       "name_long": "Example Network Services",
       "notes": "Primary example network",
@@ -488,6 +492,7 @@
       "ixp_update_exclude": null,
       "logo": "https://cdn.example.com/logos/cloudnet-net.png",
       "looking_glass": "",
+      "meta": {},
       "name": "Cloudnet Network",
       "name_long": "",
       "notes": "",
@@ -556,6 +561,13 @@
       "ipaddr4": "198.51.100.1",
       "ipaddr6": "2001:db8::1",
       "is_rs_peer": true,
+      "meta": {
+        "planned_status_change": {
+          "date": "2026-12-31",
+          "status": "deleted"
+        },
+        "rfc8950": true
+      },
       "notes": "",
       "operational": true,
       "speed": 100000,

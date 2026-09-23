@@ -53,9 +53,8 @@ import (
 // category-split parity suite locks for correctness, so a bench-shape
 // mismatch would show up here without needing the full 10k seed.
 //
-// Upstream citation: pdb_api_test.py:3203 (ixpfx scoped via ixlan →
-// ix is the canonical Path A 2-hop site; pdb_api_test.py:5081 is its
-// sibling org-scoped 1-hop form).
+// ixpfx scoped via ixlan → ix is the canonical Path A 2-hop shape of the
+// mirror. Upstream has no API test for it.
 func BenchmarkParity_TwoHopTraversal(b *testing.B) {
 	b.ReportAllocs()
 
@@ -158,9 +157,8 @@ func BenchmarkParity_LimitZeroStreaming(b *testing.B) {
 	ctx := b.Context()
 	t0 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	// 5000 rows. > DefaultLimit (250) by 20x and > MaxLimit (1000) by
-	// 5x so the ?limit=0 code path is the only one that could return
-	// them all.
+	// 5000 rows: 20x the old 250-row default page and 5x the old
+	// 1000-row clamp, so the run measures a large unlimited response.
 	const seedN = 5000
 	for i := 1; i <= seedN; i++ {
 		if _, err := c.Network.Create().

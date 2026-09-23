@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -43,17 +44,19 @@ func restTestServer(t *testing.T) *httptest.Server {
 		SetStatus("ok").
 		SaveX(ctx)
 
-	// Seed Networks (3 for filter/sort tests).
+	// Seed Networks (3 for filter/sort tests). Only Beta Net carries a
+	// meta document; the others leave the column NULL.
 	for _, n := range []struct {
 		id   int
 		name string
 		asn  int
+		meta map[string]any
 	}{
-		{1, "Alpha Net", 100},
-		{2, "Beta Net", 200},
-		{3, "Gamma Net", 300},
+		{1, "Alpha Net", 100, nil},
+		{2, "Beta Net", 200, map[string]any{"preferred_ip_mtu": float64(9000)}},
+		{3, "Gamma Net", 300, nil},
 	} {
-		client.Network.Create().
+		create := client.Network.Create().
 			SetID(n.id).
 			SetName(n.name).
 			SetAsn(n.asn).
@@ -66,8 +69,11 @@ func restTestServer(t *testing.T) *httptest.Server {
 			SetCreated(now).
 			SetUpdated(now).
 			SetStatus("ok").
-			SetOrganization(org).
-			SaveX(ctx)
+			SetOrganization(org)
+		if n.meta != nil {
+			create.SetMeta(n.meta)
+		}
+		create.SaveX(ctx)
 	}
 
 	// Seed Facility.
@@ -151,6 +157,10 @@ func restTestServer(t *testing.T) *httptest.Server {
 		SetIsRsPeer(false).
 		SetBfdSupport(false).
 		SetOperational(true).
+		SetMeta(map[string]any{
+			"planned_status_change": map[string]any{"status": "deleted", "date": "2026-12-01"},
+			"rfc8950":               true,
+		}).
 		SetCreated(now).
 		SetUpdated(now).
 		SetStatus("ok").
@@ -354,6 +364,72 @@ func TestRESTJSONSerialization(t *testing.T) {
 					if !ok || value != nil {
 						t.Errorf("%s = %#v, want null", field, value)
 					}
+				}
+			},
+		},
+		{
+			// meta is an open JSON object. A NULL column renders as {},
+			// the same as upstream's default, because entrest marshals
+			// with encoding/json/v2, which writes a nil map as {}.
+			name: "meta documents",
+			body: func(t *testing.T) []byte {
+				t.Helper()
+				return getRESTBody(t, ts.URL+"/networks?sort=id&order=asc")
+			},
+			want: func(t *testing.T, body []byte) {
+				t.Helper()
+				var got struct {
+					Content []struct {
+						ID    int            `json:"id"`
+						Meta  map[string]any `json:"meta"`
+						Edges struct {
+							NetworkIxLans []struct {
+								Meta map[string]any `json:"meta"`
+							} `json:"network_ix_lans"`
+						} `json:"edges"`
+					} `json:"content"`
+				}
+				if err := json.Unmarshal(body, &got); err != nil {
+					t.Fatalf("decode response: %v", err)
+				}
+				if len(got.Content) != 3 {
+					t.Fatalf("got %d networks, want 3", len(got.Content))
+				}
+				alpha, beta := got.Content[0], got.Content[1]
+				if alpha.Meta == nil || len(alpha.Meta) != 0 {
+					t.Errorf("network 1 meta = %#v, want {}", alpha.Meta)
+				}
+				if beta.Meta["preferred_ip_mtu"] != float64(9000) {
+					t.Errorf("network 2 meta = %#v, want preferred_ip_mtu 9000", beta.Meta)
+				}
+				if len(alpha.Edges.NetworkIxLans) != 1 {
+					t.Fatalf("network 1 has %d netixlan edges, want 1", len(alpha.Edges.NetworkIxLans))
+				}
+				if alpha.Edges.NetworkIxLans[0].Meta["rfc8950"] != true {
+					t.Errorf("netixlan edge meta = %#v, want rfc8950 true", alpha.Edges.NetworkIxLans[0].Meta)
+				}
+			},
+		},
+		{
+			name: "netixlan meta document",
+			body: func(t *testing.T) []byte {
+				t.Helper()
+				return getRESTBody(t, ts.URL+"/network-ix-lans/1")
+			},
+			want: func(t *testing.T, body []byte) {
+				t.Helper()
+				var got struct {
+					Meta struct {
+						PlannedStatusChange map[string]any `json:"planned_status_change"`
+						RFC8950             bool           `json:"rfc8950"`
+					} `json:"meta"`
+				}
+				if err := json.Unmarshal(body, &got); err != nil {
+					t.Fatalf("decode response: %v", err)
+				}
+				want := map[string]any{"status": "deleted", "date": "2026-12-01"}
+				if !reflect.DeepEqual(got.Meta.PlannedStatusChange, want) || !got.Meta.RFC8950 {
+					t.Errorf("meta = %+v, want planned_status_change %v and rfc8950 true", got.Meta, want)
 				}
 			},
 		},

@@ -142,6 +142,12 @@ func (_c *NetworkIxLanCreate) SetNillableIsRsPeer(v *bool) *NetworkIxLanCreate {
 	return _c
 }
 
+// SetMeta sets the "meta" field.
+func (_c *NetworkIxLanCreate) SetMeta(v map[string]interface{}) *NetworkIxLanCreate {
+	_c.mutation.SetMeta(v)
+	return _c
+}
+
 // SetNotes sets the "notes" field.
 func (_c *NetworkIxLanCreate) SetNotes(v string) *NetworkIxLanCreate {
 	_c.mutation.SetNotes(v)
@@ -432,6 +438,10 @@ func (_c *NetworkIxLanCreate) createSpec() (*NetworkIxLan, *sqlgraph.CreateSpec)
 		_spec.SetField(networkixlan.FieldIsRsPeer, field.TypeBool, value)
 		_node.IsRsPeer = value
 	}
+	if value, ok := _c.mutation.Meta(); ok {
+		_spec.SetField(networkixlan.FieldMeta, field.TypeJSON, value)
+		_node.Meta = value
+	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
 		_node.Notes = value
@@ -709,6 +719,24 @@ func (u *NetworkIxLanUpsert) SetIsRsPeer(v bool) *NetworkIxLanUpsert {
 // UpdateIsRsPeer sets the "is_rs_peer" field to the value that was provided on create.
 func (u *NetworkIxLanUpsert) UpdateIsRsPeer() *NetworkIxLanUpsert {
 	u.SetExcluded(networkixlan.FieldIsRsPeer)
+	return u
+}
+
+// SetMeta sets the "meta" field.
+func (u *NetworkIxLanUpsert) SetMeta(v map[string]interface{}) *NetworkIxLanUpsert {
+	u.Set(networkixlan.FieldMeta, v)
+	return u
+}
+
+// UpdateMeta sets the "meta" field to the value that was provided on create.
+func (u *NetworkIxLanUpsert) UpdateMeta() *NetworkIxLanUpsert {
+	u.SetExcluded(networkixlan.FieldMeta)
+	return u
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (u *NetworkIxLanUpsert) ClearMeta() *NetworkIxLanUpsert {
+	u.SetNull(networkixlan.FieldMeta)
 	return u
 }
 
@@ -1063,6 +1091,27 @@ func (u *NetworkIxLanUpsertOne) SetIsRsPeer(v bool) *NetworkIxLanUpsertOne {
 func (u *NetworkIxLanUpsertOne) UpdateIsRsPeer() *NetworkIxLanUpsertOne {
 	return u.Update(func(s *NetworkIxLanUpsert) {
 		s.UpdateIsRsPeer()
+	})
+}
+
+// SetMeta sets the "meta" field.
+func (u *NetworkIxLanUpsertOne) SetMeta(v map[string]interface{}) *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.SetMeta(v)
+	})
+}
+
+// UpdateMeta sets the "meta" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertOne) UpdateMeta() *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.UpdateMeta()
+	})
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (u *NetworkIxLanUpsertOne) ClearMeta() *NetworkIxLanUpsertOne {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.ClearMeta()
 	})
 }
 
@@ -1602,6 +1651,27 @@ func (u *NetworkIxLanUpsertBulk) SetIsRsPeer(v bool) *NetworkIxLanUpsertBulk {
 func (u *NetworkIxLanUpsertBulk) UpdateIsRsPeer() *NetworkIxLanUpsertBulk {
 	return u.Update(func(s *NetworkIxLanUpsert) {
 		s.UpdateIsRsPeer()
+	})
+}
+
+// SetMeta sets the "meta" field.
+func (u *NetworkIxLanUpsertBulk) SetMeta(v map[string]interface{}) *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.SetMeta(v)
+	})
+}
+
+// UpdateMeta sets the "meta" field to the value that was provided on create.
+func (u *NetworkIxLanUpsertBulk) UpdateMeta() *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.UpdateMeta()
+	})
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (u *NetworkIxLanUpsertBulk) ClearMeta() *NetworkIxLanUpsertBulk {
+	return u.Update(func(s *NetworkIxLanUpsert) {
+		s.ClearMeta()
 	})
 }
 

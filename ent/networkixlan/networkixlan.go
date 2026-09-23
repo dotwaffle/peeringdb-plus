@@ -30,6 +30,8 @@ const (
 	FieldIpaddr6 = "ipaddr6"
 	// FieldIsRsPeer holds the string denoting the is_rs_peer field in the database.
 	FieldIsRsPeer = "is_rs_peer"
+	// FieldMeta holds the string denoting the meta field in the database.
+	FieldMeta = "meta"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
 	// FieldOperational holds the string denoting the operational field in the database.
@@ -80,6 +82,7 @@ var Columns = []string{
 	FieldIpaddr4,
 	FieldIpaddr6,
 	FieldIsRsPeer,
+	FieldMeta,
 	FieldNotes,
 	FieldOperational,
 	FieldSpeed,
