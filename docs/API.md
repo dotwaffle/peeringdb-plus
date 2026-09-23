@@ -1001,13 +1001,13 @@ set `PDBPLUS_LOG_LEVEL=DEBUG` or query the span attribute in Grafana/Tempo.
 
 ### Response memory budget
 
-Every list response is gated by a pre-flight 413 budget check
-before any SQL is executed.
-`serveList` in `internal/pdbcompat/handler.go` runs a `SELECT COUNT(*)` against
-the filtered query, multiplies by the per-entity typical row size, and refuses
-up-front if the projected response exceeds `PDBPLUS_RESPONSE_MEMORY_LIMIT`
-(default `128MiB`).
-`0` disables the check (local-dev escape hatch only).
+Before the server runs a list query, it counts the matching rows
+with `SELECT COUNT(*)` (`serveList` in `internal/pdbcompat/handler.go`).
+It multiplies the count by a typical row size for the type.
+If the result is larger than `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MiB`),
+the server returns `413` and does not run the list query.
+`0` turns the check off.
+Use `0` only for local development.
 
 A budget-exceeded request returns:
 
@@ -1017,16 +1017,23 @@ A budget-exceeded request returns:
 - Body extension fields `max_rows` (the largest result set that *would* fit)
   and `budget_bytes` (the configured ceiling)
 
-Operators receiving a 413 should narrow their filters or page smaller —
-the budget is request-shape,
-so retrying the identical request returns the same 413.
-Separately, a process-wide in-flight byte pool admission-controls concurrent
-near-budget responses: when simultaneous large dumps would overflow it, the
-request is rejected with `503 Service Unavailable` and `Retry-After: 1` — that
-one *is* transient, and a retry can succeed.
-The budget is enforced only on the pdbcompat list path; entrest, GraphQL,
-ConnectRPC, and Web UI have their own memory stories
-(see `docs/ARCHITECTURE.md § Response Memory Envelope`).
+The estimate depends on the request and the stored rows,
+not on the server load,
+so a retry of the same request gets the same `413`.
+A client that gets `413` must add filters,
+or read the list in pages with `limit` and `skip`.
+
+The server also limits the total estimated size of the responses in progress
+to `PDBPLUS_RESPONSE_MEMORY_LIMIT`.
+If a new response does not fit, the server returns `503 Service Unavailable`
+with `Retry-After: 1`.
+A retry can succeed.
+Detail requests go through both checks.
+For the second check, a detail request at depth 2 or more also counts
+the rows in its `_set` lists.
+The budget applies only to `/api/`.
+For the other surfaces, see
+[ARCHITECTURE.md § Response Memory Envelope](ARCHITECTURE.md#response-memory-envelope).
 
 ### Examples
 
@@ -1090,7 +1097,7 @@ Typical status codes:
 |--------|-------|
 | `400` | An operator that the field type does not support (for example `asn__contains`), a value that does not parse for the field type, a malformed `__in` value, a `since` or an ID that is not an integer, or a `limit` or `skip` that is not a non-negative integer |
 | `404` | Unknown `{type}`, missing `{id}`, detail GET on a tombstoned row, or an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn` |
-| `413` | Pre-flight response memory budget exceeded — see "Response memory budget" above |
+| `413` | The estimated response is larger than the response memory budget (see § Response memory budget) |
 | `500` | Database error (details redacted from response body, full error logged) |
 | `503` | The in-flight response pool is full (transient, `Retry-After: 1`), or the first sync has not completed (see § Before the first sync) |
 
