@@ -1286,10 +1286,9 @@ closure, which runs inside the drain window (`PDBPLUS_DRAIN_TIMEOUT`, default
 
 ## Response Memory Envelope
 
-Since v1.16, pdbcompat list and detail responses are gated by a per-request
-memory budget
-so the 256 MB Fly replicas never OOM under `limit=0`, depth=2,
-or 2-hop traversal responses.
+pdbcompat list and detail responses are gated by a per-request memory budget,
+so the 256 MB Fly replicas do not run out of memory under `limit=0` lists,
+depth-2 detail requests, or 2-hop traversal filters.
 The ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes`
 heuristic that returns RFC 9457 `application/problem+json` 413 BEFORE any row
 data is fetched, and bytes are streamed through the response writer once the
@@ -1330,17 +1329,18 @@ after the v1.20.5 depth-parity work grew every expanded row;
 2026-09-23 raised the rows that had drifted,
 mostly because of the PeeringDB 2.83.0 `meta` document).
 At the 128 MiB default budget,
-the `max_rows` column shows the row count at which the pre-flight check trips.
+the D=0 `max_rows` column shows the largest list
+that passes the pre-flight check.
 A detail request at `?depth=1` bills the Depth=2 estimate
-(a safe over-estimate — its ID-list sets are smaller than the depth=2 full
-objects).
+(a safe over-estimate, because its ID-list sets are smaller than the depth=2
+full objects).
 Unknown entities fall back to `defaultRowSize = 4096` (fail-closed).
 
 | Entity | Depth=0 bytes/row | Max rows @ 128 MiB (D=0) | Depth=2 bytes/row | Max rows @ 128 MiB (D=2) |
 |---|---:|---:|---:|---:|
-| org | 704 | 190,650 | 8,448 | 15,886 |
+| org | 704 | 190,650 | 8,448 | 15,887 |
 | net | 1,664 | 80,659 | 2,560 | 52,428 |
-| fac | 1,344 | 99,864 | 3,392 | 39,569 |
+| fac | 1,344 | 99,864 | 3,392 | 39,568 |
 | ix | 1,280 | 104,857 | 2,688 | 49,932 |
 | poc | 384 | 349,525 | 2,816 | 47,662 |
 | ixlan | 576 | 233,016 | 2,560 | 52,428 |
@@ -1349,27 +1349,30 @@ Unknown entities fall back to `defaultRowSize = 4096` (fail-closed).
 | netfac | 384 | 349,525 | 4,864 | 27,594 |
 | ixfac | 384 | 349,525 | 4,480 | 29,959 |
 | carrier | 512 | 262,144 | 1,664 | 80,659 |
-| carrierfac | 320 | 419,430 | 3,520 | 38,129 |
+| carrierfac | 320 | 419,430 | 3,520 | 38,130 |
 | campus | 576 | 233,016 | 2,688 | 49,932 |
 
-`org` at depth=2 is the envelope's worst case
-(Depth2 row expands every `net_set` / `fac_set` / `ix_set` / `carrier_set` /
-`campus_set` at ~8.4 KiB/row) and still admits ~15.9k rows under the default
-budget — comfortably above the ~35 live organisations that currently carry
-populated child sets in production.
-The leaf join entities (netixlan, netfac, ixfac) grew most in v1.20.5 now
-that each embeds its FK objects' own ID-list sets.
+Lists ignore `?depth=` and always bill the Depth=0 figure.
+A detail request bills one row:
+the Depth=2 figure at `?depth=1` or higher, which is the flat 413 check.
+At depth 2 or higher, the in-flight pool charge also counts the child rows
+(see Global admission below).
+The D=2 `max_rows` column is thus not a trip point for any request.
+`org` has the largest Depth=2 row (about 8.4 KiB),
+because it expands every `net_set`, `fac_set`, `ix_set`, `carrier_set` and
+`campus_set`.
+The leaf join entities (netixlan, netfac, ixfac) also have large Depth=2 rows,
+because each one embeds the ID-list sets of its FK objects.
 Full table lives in `internal/pdbcompat/rowsize.go`.
 
 ### Request lifecycle
 
 1. Client sends `GET /api/<type>?<filters>&limit=0` (or any other
    combination that could produce a large response).
-2. Handler parses filters, `?since`, and pagination (unchanged from v1.6
-   baseline).
-3. **Pre-flight count:** handler runs `tc.CountFunc(ctx, client, opts)` —
+2. The handler parses filters, `?since`, `limit` and `skip`.
+3. **Pre-flight count:** the handler runs `tc.Count(ctx, client, opts)`,
    a filtered `SELECT COUNT(*)` using the same predicate chain
-   as the upcoming `tc.ListFunc` call.
+   as the upcoming `tc.List` call.
    Both closures are produced by the generic `wireEntity` helper from a
    single shared predicate builder, so the budget check and the served
    response can never disagree on filter semantics.
@@ -1380,7 +1383,7 @@ Full table lives in `internal/pdbcompat/rowsize.go`.
      human-readable `detail` string.
      NO row data is fetched; no `Retry-After` header
      (413 is request-shape, not transient).
-5. `tc.ListFunc` materialises the result slice.
+5. `tc.List` loads the result rows.
 6. `StreamListResponse` emits the envelope token-by-token with
    `http.Flusher.Flush()` every 100 rows, bounding intermediate
    allocations.
@@ -1424,19 +1427,20 @@ cannot stack with other large responses.
   per-request attribution would need per-goroutine heap accounting the Go
   runtime does not provide.
 - **Prometheus histogram** `pdbplus_response_heap_delta_bytes{endpoint,entity}`
-  — buckets 512 B, 1 KiB, 4 KiB, 16 KiB, 64 KiB, 256 KiB, 1 MiB, 4 MiB, 16 MiB,
-  64 MiB, 256 MiB, 512 MiB (near-zero through 512 MiB, with the 128 MiB default
-  budget sitting at the 9th bucket boundary).
+  with buckets 512 B, 1 KiB, 4 KiB, 16 KiB, 64 KiB, 256 KiB, 1 MiB, 4 MiB,
+  16 MiB, 64 MiB, 256 MiB and 512 MiB.
+  The 128 MiB default budget falls between the 64 MiB and 256 MiB boundaries.
+  `endpoint` is the raw request path (`r.URL.Path`),
+  so each detail ID adds a new label value.
   Bound at package init in `internal/otel/metrics.go`.
-  Bytes is the canonical Prom unit
-  (per the 2026-04-26 audit unit canonicalisation);
+  Bytes is the canonical Prom unit.
   Grafana formats KiB / MiB at render time via the "bytes" field unit.
-- **Grafana** — panel id 36 "Response Heap Delta —
-  p50/p95/p99 by endpoint" at the bottom of the sustained-heap watch row in
+- **Grafana**: panel id 36 (response heap delta, p50/p95/p99 by endpoint)
+  at the bottom of the sustained-heap watch row in
   `deploy/grafana/dashboards/pdbplus-overview.json`.
-  Companion to the v1.15 sync-cycle peak heap/RSS panels;
-  two visual tiers now read "per-cycle peaks" (top)
-  and "per-request deltas" (bottom).
+  It is the companion to the sync-cycle peak heap/RSS panels.
+  The top tier shows per-cycle peaks,
+  and the bottom tier shows per-request deltas.
 
 ### Out of scope
 
@@ -1445,16 +1449,18 @@ Other surfaces have their own memory stories:
 
 - **grpcserver** already streams via batched keyset pagination
   (500-row chunks) through `StreamEntities`; no slice materialisation.
-- **entrest** uses ent-generated handlers that do not buffer unbounded
-  results; REST `/rest/v1/*` paths page via the entrest cursor model.
-- **GraphQL** has depth (15) and complexity limits from v1.12; since the
-  2026-06-10 audit the complexity costing is fan-out-aware
-  (`graph/complexity.go` weights connection fields by requested page size
-  and unpaginated edge lists by average per-parent cardinality), so the
-  budget bounds rows materialized rather than fields mentioned.
-- **Web UI** renders on the server with bounded htmx fragments; the
-  terminal renderer buffers per-response but is already gated by the
-  `/ui/` middleware body cap.
+- **entrest** pages with `page` and `per_page`
+  (at most 100 top-level rows per page).
+  Each eager-loaded edge list is limited to 1000 rows per page.
+  `RESTFieldRedact` buffers one page at a time.
+- **GraphQL** has a depth limit (15) and a complexity limit.
+  The complexity cost counts fan-out:
+  `graph/complexity.go` weights connection fields by the requested page size
+  and unpaginated edge lists by the average cardinality per parent.
+  So the limit bounds the rows that a query loads, not the fields it names.
+- **Web UI** renders on the server with bounded htmx fragments.
+  The terminal renderer buffers each response.
+  No response-size limit applies to it.
 
 If streaming/budget is ever extended to any of these surfaces,
 start from the pdbcompat shape documented above rather than redesigning from
