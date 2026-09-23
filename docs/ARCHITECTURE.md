@@ -274,12 +274,12 @@ A large `snapshot_lag`, or an old `snapshot_generated`, shows a stale cache.
 - **`litefs.IsPrimaryWithFallback`** (`internal/litefs/primary.go`) —
   Primary detection with inverted-lease-file semantics and env var fallback
   for local dev.
-- **`grpcserver.ListEntities[E, P]`** (`internal/grpcserver/generic.go:27`) —
+- **`grpcserver.ListEntities[E, P]`** (`internal/grpcserver/generic.go`):
   Generic paginated list helper parameterized over ent entity
   and proto message types;
   used by all 13 ConnectRPC services to avoid per-type duplication.
-  The companion `StreamEntities[E, P]` (`internal/grpcserver/generic.go:94`)
-  handles compound-keyset cursor streaming.
+  The companion `StreamEntities[E, P]` (same file)
+  streams rows in keyset batches.
 - **`middleware.CachingState`** (`internal/middleware/caching.go`):
   an ETag keyed on the last successful sync completion time,
   held behind an atomic pointer.
@@ -581,14 +581,19 @@ and read from the same ent client:
 - **ConnectRPC / gRPC — `/peeringdb.v1.*`**
   (`internal/grpcserver/`, `gen/peeringdb/v1/`)
   — All 13 entity types expose `Get`, `List`, and `Stream` RPCs.
-  Handlers are registered in a loop in `cmd/peeringdb-plus/main.go` wrapped with
-  `otelconnect.NewInterceptor`.
+  `cmd/peeringdb-plus/main.go` registers each service with one
+  `registerService` call and the otelconnect interceptor
+  (`connectOTelOpts`: spans only, no `rpc.server.*` metrics).
   Server reflection (`grpcreflect.NewHandlerV1`/`V1Alpha`)
-  and a health check (`grpchealth.NewStaticChecker`) are served on the same mux,
+  and a health check are on the same mux,
   so both `grpcurl` and gRPC health clients work against the running server.
-  The health check is held in `NOT_SERVING` until the first sync completes,
-  then flips to `SERVING` for the root service
-  and every registered service name.
+  The health checker (`newSyncHealthChecker`,
+  `cmd/peeringdb-plus/grpc_health.go`) reads the sync worker state
+  on each `Check` call.
+  It returns `NOT_SERVING` until the first sync completes on the primary,
+  or until a replica sees replicated sync history.
+  After that it returns `SERVING`.
+  An unknown service name returns `NOT_FOUND`.
 
 - **MCP — `/mcp`** (`internal/mcpserver/`) —
   MCP 2026-07-28 sessionless requests and legacy handshakes over Streamable
@@ -604,12 +609,17 @@ and read from the same ent client:
 pdbcompat `/api/<type>` lists use the upstream PeeringDB order.
 A list without `?since` is ordered by `id`, ascending,
 because upstream adds no `ORDER BY` and MySQL returns primary-key order.
-A `?since` list is ordered by `updated`, ascending, with `id` as the tiebreak.
+netixlan is the exception:
+its upstream order depends on the MySQL query plan
+(see [API.md § Known Divergences](./API.md#known-divergences)).
+A `?since` list is ordered by `updated`, ascending, as upstream orders it.
+The mirror adds `id`, ascending, as the tiebreak.
 `listOrder` in `internal/pdbcompat/registry_funcs.go` sets both orders.
 See [API.md § List order](./API.md#list-order).
 
 entrest `/rest/v1/<type>` and the ConnectRPC `List*`/`Stream*` RPCs
 return rows in compound `(-updated, -created, -id)` order by default.
+This order is a choice of the mirror and does not copy upstream.
 The trailing `id DESC` makes the order deterministic across replicas.
 `cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go` verifies that
 these two surfaces return the same order,
@@ -630,23 +640,26 @@ and that pdbcompat returns `id` order on the same data.
   (entrest only):
   entrest's eager-load template calls `applySorting<Type>` on auto-eagerloaded
   relations, so `/rest/v1/<type>` responses also carry nested `edges.<relation>`
-  arrays in compound order — matching upstream PeeringDB's Django serializer
-  behaviour for nested relations.
+  arrays in compound order.
   Covered by `TestEntrestNestedSetOrder`.
-- **ConnectRPC streaming** uses a compound `(last_updated, last_id)` keyset
-  cursor (base64-encoded as `RFC3339Nano:id`) for stable pagination under
-  concurrent mutation.
-  The `page_token` proto field is opaque `string`;
-  no proto regeneration or client-facing change was required.
+- **ConnectRPC streaming** reads rows in batches of 500 with a keyset
+  on `(updated, created, id)` (`internal/grpcserver/pagination.go`).
+  The keyset stays in memory for the life of one stream
+  and never goes on the wire.
+  `List*` RPCs page with `page_token`, a base64-encoded row offset.
   Covered by `TestCursorResume_CompoundKeyset` in `internal/grpcserver/`.
 - **GraphQL** uses the Relay Connection spec with its own opaque cursors
   and is unaffected by this contract.
   **Web UI** ordering is handler-local
   and not part of the list-endpoint guarantee.
-- **Performance:** every one of the 13 entity tables carries an `updated` index
-  declared via `index.Fields("updated")` in `ent/schema/<entity>.go`, so
-  `ORDER BY updated DESC, id DESC` hits an index scan rather than a full-table
-  sort.
+- **Performance:** every one of the 13 entity tables carries a composite
+  `(status, updated, created, id)` index and an `updated` index
+  (`ent/schema/<entity>.go`).
+  The composite index serves the `(-updated, -created, -id)` order
+  only when the request filters on one status
+  (`TestDefaultOrdering_IndexBacked`).
+  entrest and ConnectRPC add no default status filter,
+  so SQLite sorts their default lists in a temp B-tree.
   The pdbcompat orders need no index of their own:
   the `status` index or the rowid table returns the rows in `id` order,
   and the `updated` index returns a `?since` window in `updated` order.
