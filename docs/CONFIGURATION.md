@@ -21,8 +21,8 @@ or the `autoexport` SDK package and are documented in their own sections below.
 |----------|----------|---------|------|-------------|
 | `PDBPLUS_LISTEN_ADDR` | No | `:8080` | string | HTTP listen address. Must contain `:`. Overridden by `PDBPLUS_PORT` when that is set. |
 | `PDBPLUS_PORT` | No | (unset) | string | Convenience override. When non-empty, the listener is forced to `:${PDBPLUS_PORT}`, ignoring `PDBPLUS_LISTEN_ADDR`. |
-| `PDBPLUS_DB_PATH` | No | `./peeringdb-plus.db` | path | SQLite database file path. Empty string is rejected at startup. In production (Fly.io) this is set to `/litefs/peeringdb-plus.db` via `fly.toml`. |
-| `PDBPLUS_PEERINGDB_URL` | No | `https://api.peeringdb.com` | URL | PeeringDB API base URL. Must use `https://`, or `http://` against loopback (`localhost`, `127.0.0.1`, `::1`) or RFC 1918 private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Other `http://` hosts and any non-http(s) scheme are rejected at startup. |
+| `PDBPLUS_DB_PATH` | No | `./peeringdb-plus.db` | path | SQLite database file path. An empty value selects the default. In production, `fly.toml` sets `/litefs/peeringdb-plus.db`. |
+| `PDBPLUS_PEERINGDB_URL` | No | `https://api.peeringdb.com` | URL | PeeringDB API base URL. Must use `https://`, or `http://` against loopback (`localhost`, `127.0.0.1`, `::1`) or RFC 1918 private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Other `http://` hosts and any non-http(s) scheme are rejected at startup. An empty value selects the default. |
 | `PDBPLUS_PEERINGDB_API_KEY` | No | (empty) | secret | **Recommended.** Optional PeeringDB API key. Empty value means unauthenticated requests. Also read directly by the `pdbcompat-check` CLI and the live conformance / client tests. See [Privacy & Tiers](#privacy--tiers) for the operational implication. |
 | `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values are case-sensitive lowercase only: `public` (default — anonymous callers see only rows with `visible="Public"`) or `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too, but never `visible="Private"` rows; the application logs `slog.Warn("public tier override active", …)` at startup). Any other value (including case variants like `Users` / `PUBLIC` and whitespace-padded forms) is rejected at startup — the strict switch is a fail-safe-closed choice so a typo cannot silently default to either tier. See [Privacy & Tiers](#privacy--tiers). |
 | `PDBPLUS_PUBLIC_URL` | No | (empty) | URL | Optional external origin used in generated agent discovery documents and Agent Skill metadata. When empty, the server card, skill index, `llms.txt`, and skill archive use the request `Host` and protocol (`r.TLS`, then `X-Forwarded-Proto`). Set this only when a reverse proxy rewrites `Host`. The value must be an `http` or `https` origin with no userinfo, path, query, or fragment. |
@@ -31,7 +31,7 @@ or the `autoexport` SDK package and are documented in their own sections below.
 | `PDBPLUS_MAP_TILE_URL` | No | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | URL template | Browser basemap tile URL. The value must be an absolute HTTP or HTTPS URL, or a root-relative URL. It must contain the `{z}`, `{x}`, and `{y}` placeholders. A custom URL also requires `PDBPLUS_MAP_TILE_ATTRIBUTION`. |
 | `PDBPLUS_MAP_TILE_ATTRIBUTION` | With a custom tile URL | `© OpenStreetMap contributors` | HTML string | Visible attribution for the configured map tile service. The browser receives this value and Leaflet shows it on each map. |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown drain timeout. Must be greater than 0. |
-| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive an RFC 9457 413 problem-detail up-front before any row data is materialised. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). A bare number is rejected. Literal `0` disables the check (local development only — the guardrail is the reason the `limit=0` unlimited semantic is safe to expose in production). Default sized against the 256 MB replica cap minus an 80 MB Go runtime baseline and 48 MB slack for other in-flight requests + GC overhead (sized from measured runtime+request overhead). Must be non-negative. |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive an RFC 9457 413 problem-detail up-front before any row data is materialised. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). The unit is not case-sensitive (`128mb` is valid). A bare number is rejected. Literal `0` disables the check (local development only — the guardrail is the reason the `limit=0` unlimited semantic is safe to expose in production). Default sized against the 256 MB replica cap minus an 80 MB Go runtime baseline and 48 MB slack for other in-flight requests + GC overhead (sized from measured runtime+request overhead). Must be non-negative. |
 | `PDBPLUS_STREAM_TIMEOUT` | No | `60s` | duration | Maximum duration for a single streaming RPC. Must be greater than 0 — it is the only bound on stream lifetime (`WriteTimeout` is deliberately unset for gRPC streaming); startup fails otherwise. |
 
 #### Map tiles
@@ -59,8 +59,8 @@ Apply provider-supported domain and usage restrictions to that key.
 | `PDBPLUS_SYNC_TOKEN` | No | (empty) | secret | Shared secret for the `POST /sync` on-demand trigger. When empty, the endpoint rejects every request — on-demand sync is effectively disabled. Compared in constant time against the `X-Sync-Token` request header. |
 | `PDBPLUS_SYNC_INTERVAL` | No | `1h` (unauthenticated) / `15m` (when `PDBPLUS_PEERINGDB_API_KEY` is set) | duration | Duration between automatic sync runs. Default is auth-conditional: `15m` when an API key is configured, `1h` otherwise. Explicit value overrides both defaults. Must be greater than 0. See [Sync cadence](#sync-cadence) for the rationale. |
 | `PDBPLUS_SYNC_MODE` | No | `incremental` | enum | Sync strategy. Accepted values: `full` (complete re-fetch), `incremental` (only objects modified since last sync, using `?since=<unix-ts>`). Default flipped from `full` to `incremental` on 2026-04-26 after empirical confirmation that upstream PeeringDB emits `status="deleted"` tombstones on `?since=` responses (which was the prerequisite for trusting incremental sync to capture deletions). `full` remains a supported operator override for first-sync, recovery, and as an escape-hatch. Any other value is rejected at startup. |
-| `PDBPLUS_SYNC_STALE_THRESHOLD` | No | `24h` | duration | Maximum age of sync data before `/readyz` reports the service as degraded. |
-| `PDBPLUS_SYNC_MEMORY_LIMIT` | No | `400MB` | byte size | Peak Go heap ceiling checked after the sync worker's Phase A fetch pass. If `runtime.ReadMemStats` reports `HeapAlloc` above this value, the sync aborts with a WARN log and returns `sync.ErrSyncMemoryLimitExceeded`; the next scheduled cycle retries normally. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). A bare number is rejected. Literal `0` disables the guardrail (local development only). Must be non-negative. |
+| `PDBPLUS_SYNC_STALE_THRESHOLD` | No | `24h` | duration | Maximum age of the newest successful sync. When the sync is older, `/readyz` returns 503. Must be greater than 0. |
+| `PDBPLUS_SYNC_MEMORY_LIMIT` | No | `400MB` | byte size | Peak Go heap ceiling checked after the sync worker's Phase A fetch pass. If `runtime.ReadMemStats` reports `HeapAlloc` above this value, the sync aborts with a WARN log and returns `sync.ErrSyncMemoryLimitExceeded`. The next scheduled cycle tries again. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). The unit is not case-sensitive (`400mb` is valid). A bare number is rejected. Literal `0` disables the guardrail (local development only). Must be non-negative. |
 | `PDBPLUS_PEERINGDB_RPS` | No | `2.0` | float (req/sec) | Sustained requests-per-second cap to the upstream PeeringDB API. Burst is hardcoded at 1 in the client. Authenticated requests (`PDBPLUS_PEERINGDB_API_KEY` set) override this to 60 req/min — the upstream auth quota is fixed and cannot be exceeded by operator preference. Values ≤ 0 are rejected at startup. The transport (`internal/peeringdb/transport.go`) records per-request wait time on the `pdbplus.peeringdb.rate_limit_wait_ms` histogram for dashboard observability. |
 | `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` | No | `20` | non-negative integer | Maximum **underlying HTTP requests** issued by FK-backfill per sync cycle. Current semantic: the previous cap counted rows, which became a weak circuit breaker once batching collapsed N rows into 1 request via `?id__in=`. This now bounds the actual upstream surface — at 1 req/sec authenticated, 20 requests ≈ 20s of upstream pressure per cycle. With internal `FetchByIDsBatchSize=100`, each request can carry up to 100 IDs, so 20 requests cover up to 2,000 missing-parent rows per cycle. When `fkCheckParent` finds a missing parent (cache miss + DB miss), the worker attempts one batched fetch via `?since=1&id__in=<csv>` to recover rows before declaring children orphaned (the `since=1` path returns the live rows and the `deleted` rows per upstream 2.83.0 `rest.py:719-750`). A per-cycle dedup cache prevents repeat fetches for the same `(type, id)` pair; recursive grandparent backfill is enabled so a missing parent's own missing parents are chained-in before the parent upserts. When the cap is reached, additional missing parents fall through to drop-on-miss with the `pdbplus.sync.fk_backfill{result="ratelimited"}` counter incremented. Set to `0` to disable backfill entirely (operator escape-hatch). |
 | `PDBPLUS_FK_BACKFILL_TIMEOUT` | No | `5m` | Go duration | Per-cycle wall-clock budget for FK-backfill HTTP activity. Backfill calls happen inside the sync transaction; without a deadline a cascade of slow / rate-limited backfills could hold the tx open for tens of minutes, stalling LiteFS replication. After the deadline, `fkBackfillParent` short-circuits to drop-on-miss with the `pdbplus.sync.fk_backfill{result="deadline_exceeded"}` counter incremented; the rest of the sync (bulk fetches + upserts) commits cleanly and the next cycle picks up where we left off. Set to `0` (or any negative duration) to disable the deadline (only the cap applies). |
@@ -92,8 +92,9 @@ the shared anonymous ceiling.
 Override precedence is explicit-wins:
 setting `PDBPLUS_SYNC_INTERVAL=5m` forces 5-minute syncs regardless of
 whether an API key is configured.
-An unset `PDBPLUS_SYNC_INTERVAL` selects the auth-conditional default;
-an empty string (`PDBPLUS_SYNC_INTERVAL=`) is treated as unset.
+An unset or empty `PDBPLUS_SYNC_INTERVAL` selects the auth-conditional default.
+With an empty value (`PDBPLUS_SYNC_INTERVAL=`),
+the startup log still shows `explicit_override=true`.
 On startup the effective interval, authentication state,
 and whether the operator supplied an explicit override are announced in a single
 structured log line (`sync interval configured`) — the API key itself is never
@@ -119,7 +120,7 @@ logged.
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
-| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) `/litefs/` directory present but no `.primary` file → primary; (3) otherwise parse this variable (default `true` when unset; unparseable values fail startup — a typo must not be coerced into a cluster role). Consumed by `internal/litefs/primary.go` — not parsed by `internal/config`. |
+| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary; (4) otherwise parse this variable (default `true` when unset). An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role. Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`. |
 
 ### Fly.io Resource Attribution (read-only)
 
@@ -268,29 +269,37 @@ Two deployment-adjacent files exist in the repository:
 
 ## Required vs Optional Settings
 
-Every variable is **optional** from the perspective of the loader —
-all have defaults encoded in `internal/config/config.go`.
-There are no variables whose absence aborts startup.
+All variables are optional,
+except `PDBPLUS_MAP_TILE_ATTRIBUTION` when `PDBPLUS_MAP_TILE_URL` is not the
+default.
+`internal/config/config.go` holds the defaults.
 
-Validation errors (which do abort startup) are produced for:
+These validation errors stop startup:
 
 | Variable | Validation rule | Error message |
 |----------|-----------------|---------------|
-| `PDBPLUS_DB_PATH` | Non-empty | `PDBPLUS_DB_PATH must not be empty` |
 | `PDBPLUS_SYNC_INTERVAL` | `> 0` after duration parse | `PDBPLUS_SYNC_INTERVAL must be greater than 0` |
 | `PDBPLUS_OTEL_SAMPLE_RATE` | `0.0 ≤ value ≤ 1.0` | `PDBPLUS_OTEL_SAMPLE_RATE must be between 0.0 and 1.0` |
 | `PDBPLUS_LISTEN_ADDR` | Contains `:` | `PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')` |
-| `PDBPLUS_PEERINGDB_URL` | Non-empty; `https://` always allowed; `http://` only to loopback or RFC 1918; scheme must be set; host must be set | Multiple messages, one per rejection class (empty, missing scheme, unsupported scheme, empty host, non-local `http://`). |
+| `PDBPLUS_PEERINGDB_URL` | `https://` always allowed; `http://` only to loopback or RFC 1918; scheme must be set; host must be set. An empty value selects the default. | Multiple messages, one per rejection class (invalid URL, missing scheme, unsupported scheme, empty host, non-local `http://`). |
 | `PDBPLUS_DRAIN_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_DRAIN_TIMEOUT must be greater than 0` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `> 0` after duration parse | `PDBPLUS_SYNC_STALE_THRESHOLD must be greater than 0` |
+| `PDBPLUS_STREAM_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_STREAM_TIMEOUT must be greater than 0 (it is the only bound on streaming RPC lifetime)` |
+| `PDBPLUS_SYNC_TIMEOUT` | `≥ 0` after duration parse | `PDBPLUS_SYNC_TIMEOUT must be non-negative (0 = disabled)` |
 | `PDBPLUS_PUBLIC_TIER` | Case-sensitive lowercase `public` or `users` only; any other value (including `Users`, `PUBLIC`, whitespace-padded forms) rejected | `invalid value %q for PDBPLUS_PUBLIC_TIER: must be 'public' or 'users'` |
-| `PDBPLUS_SYNC_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_SYNC_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
-| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `PDBPLUS_RESPONSE_MEMORY_LIMIT must be non-negative (0 = disabled)`, plus several parse-level messages. |
-| `PDBPLUS_HEAP_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `400MB` rejected | `PDBPLUS_HEAP_WARN_MIB must be non-negative (0 = disabled)`, plus parse-level messages. |
-| `PDBPLUS_RSS_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `384MB` rejected | `PDBPLUS_RSS_WARN_MIB must be non-negative (0 = disabled)`, plus parse-level messages. |
+| `PDBPLUS_SYNC_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `invalid byte size "<v>" for PDBPLUS_SYNC_MEMORY_LIMIT: must be non-negative`, plus messages for a missing unit, an unknown unit, and overflow. |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `≥ 0`; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected (except literal `0`) | `invalid byte size "<v>" for PDBPLUS_RESPONSE_MEMORY_LIMIT: must be non-negative`, plus messages for a missing unit, an unknown unit, and overflow. |
+| `PDBPLUS_HEAP_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `400MB` rejected | `invalid MiB value "<v>" for PDBPLUS_HEAP_WARN_MIB: must be non-negative`, plus messages for a non-integer value and overflow. |
+| `PDBPLUS_RSS_WARN_MIB` | `≥ 0`; bare non-negative integer only (no unit suffix); `384MB` rejected | `invalid MiB value "<v>" for PDBPLUS_RSS_WARN_MIB: must be non-negative`, plus messages for a non-integer value and overflow. |
 | `PDBPLUS_SYNC_MODE` | Must be `full` or `incremental` | `invalid sync mode %q for PDBPLUS_SYNC_MODE: must be 'full' or 'incremental'` |
 | `PDBPLUS_PEERINGDB_RPS` | `> 0` after float parse | `PDBPLUS_PEERINGDB_RPS must be greater than 0` |
-| `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` | `≥ 0` (bare non-negative integer; `0` disables backfill) | `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE must be non-negative (0 = disabled)` |
+| `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` | `≥ 0` (bare non-negative integer; `0` disables backfill) | `invalid value "<v>" for PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE: must be non-negative` |
+| `PDBPLUS_MAP_TILE_URL` | Root-relative, or `http://` or `https://` with a host; no user information or fragment; contains `{z}`, `{x}`, and `{y}` | `PDBPLUS_MAP_TILE_URL must contain {z}` and similar messages |
+| `PDBPLUS_MAP_TILE_ATTRIBUTION` | Required when the tile URL is not the default | `PDBPLUS_MAP_TILE_ATTRIBUTION is required when PDBPLUS_MAP_TILE_URL is customized` |
+| `PDBPLUS_PUBLIC_URL` | `http` or `https` origin; no user information, path, query, or fragment | `failed to create agent skill handler` with `validate public URL: ...` |
+| `PDBPLUS_INCLUDE_DELETED` | Must be unset or empty | `PDBPLUS_INCLUDE_DELETED was removed in v1.16; ...` |
+| `PDBPLUS_IS_PRIMARY` | Empty, or a value that `strconv.ParseBool` accepts | `PDBPLUS_IS_PRIMARY="<v>" is not a boolean (use true/false/1/0)` |
+| Any duration, bool, float, or integer variable | Must parse | `invalid duration "<v>" for <VAR>`, and the same form for `bool`, `float`, and `integer` |
 
 `PDBPLUS_LOG_LEVEL` is **not** in this table by design —
 invalid values fall back to `INFO` rather than aborting startup,
@@ -310,13 +319,17 @@ Bool-typed variables accept the values recognised by
 Most validation is fail-fast at startup.
 The following values have runtime fallbacks rather than startup validation:
 
-- **`PDBPLUS_IS_PRIMARY`** —
-  Parsed lazily inside `litefs.IsPrimaryWithFallback()` on every call
-  (startup sync gating, each `POST /sync` request, and every scheduler tick).
-  An unparseable value is silently treated as `true` (primary) for safety.
-  The variable is consulted only when neither `/litefs/.primary`
-  nor the `/litefs/` directory is present,
-  so on Fly.io it is effectively ignored.
+- **`PDBPLUS_IS_PRIMARY`**:
+  the role check uses this variable only when `/litefs/` does not exist,
+  so on Fly.io the variable does not select the role.
+  At each start, also on Fly.io, `litefs.ValidateEnvFallback` stops the
+  process when `strconv.ParseBool` cannot parse the value,
+  so a typo cannot select a cluster role.
+  `litefs.IsPrimaryWithFallback()` reads the variable at each role check:
+  at startup, on each `POST /sync`, at each scheduler wakeup,
+  and once per second while a sync cycle runs (scheduled or on-demand).
+  If a check cannot parse the value, the node acts as a replica.
+  The startup check makes this branch unreachable in practice.
 - **`PDBPLUS_LOG_LEVEL`** —
   Parsed once at logger construction by `internal/otel/logger.go`
   `otelLevelFromEnv()`.
