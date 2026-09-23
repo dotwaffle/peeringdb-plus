@@ -27,7 +27,7 @@ Key test locations:
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
 | Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
-| Parity tests | `internal/pdbcompat/parity/` | 9 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
+| Parity tests | `internal/pdbcompat/parity/` | 9 category files, `harness_helpers_test.go`, `harness_test.go`, `bench_test.go`, and `doc.go`. Each sub-test seeds clean rows inline through the ent client. |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
 | Benchmarks | `bench_test.go`, `bench_*_test.go`, and `*_bench_test.go` files in `internal/pdbcompat`, `internal/pdbcompat/parity`, `internal/grpcserver`, `internal/sync`, and `internal/web`. Also `internal/web/termrender/network_test.go`. | For example `BenchmarkApplyFieldProjection`, `BenchmarkRowSize`, `BenchmarkParity_*` |
 | Live gated tests | `internal/conformance/live_test.go`, `internal/peeringdb/client_live_test.go` | Require the `-peeringdb-live` flag |
@@ -279,16 +279,17 @@ for the full checklist.
 
 ## Parity Tests
 
-`internal/pdbcompat/parity/` locks the v1.16 pdbcompat semantics against future
-regression.
+`internal/pdbcompat/parity/` locks the `/api/` behavior
+that matches upstream PeeringDB.
+A test fails when that behavior changes.
 The package is split into 9 category-specific test files plus shared
 infrastructure:
 
 | File | Entry test | Covers |
 |------|------------|--------|
-| `ordering_test.go` | `TestParity_Ordering` | Ordering (sort key resolution, null handling) |
+| `ordering_test.go` | `TestParity_Ordering` | Default list order (`id` ascending), `?limit=`/`?skip=` pages, and the tie-break for rows with the same `updated` value in a `?since=` list |
 | `status_test.go` | `TestParity_Status` | Status (status × since matrix, tombstone visibility) |
-| `limit_test.go` | `TestParity_Limit` | Limit (limit=0 streaming, max-cap, depth pairing) |
+| `limit_test.go` | `TestParity_Limit` | `?limit=0` streaming and its 413 budget check, no upper cap on `?limit=`, `?depth=` on lists, bad `?limit=`/`?skip=` values |
 | `unicode_test.go` | `TestParity_Unicode` | Unicode (fold-column routing) |
 | `in_test.go` | `TestParity_In` | `__in` filters (large `__in` sets, empty-`__in` short-circuit) |
 | `traversal_test.go` | `TestParity_Traversal` | Traversal (1-hop and 2-hop traversal) |
@@ -296,7 +297,9 @@ infrastructure:
 | `serializer_test.go` | `TestParity_Serializer` | Serializer values and keys (IX-F URL key for permitted callers, `ix.media`/`ixlan.dot1q_support` constants, `info_types` as a list) |
 | `multichoice_test.go` | `TestParity_MultiChoice` | Multi-value choice filters (net `info_types` and legacy `info_type`, fac `available_voltage_services`) |
 | `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring + response decoding; no seeders) |
+| `harness_test.go` | `TestHarness_*` | Self-tests for the helpers |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
+| `doc.go` | (package doc) | Package documentation |
 
 ### Seeding
 
@@ -321,11 +324,12 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
     when the assertion mirrors an upstream test case.
     A case from another upstream test file names that file,
     for example `// upstream: tests/test_meta_registry.py:<line>`.
-  - `// synthesised: <context>` —
-    when the semantic is v1.16-new and has no upstream counterpart
-    (tombstones, folding, traversal, budgets).
+  - `// synthesised: <context>` marks a behavior that no upstream test covers
+    (for example tombstones, folding, traversal, or budgets).
 - **Divergence prefix**: sub-tests whose names begin with `DIVERGENCE_` mark
   intentional non-parity outcomes.
+  A divergence test that is its own top-level function ends its name
+  with `_DIVERGENCE` (for example `TestParity_Unicode_FoldWindow_DIVERGENCE`).
   Each such test must have a matching row in `docs/API.md § Known Divergences`
   cross-referencing it.
 - **TB widening**: parity helpers accept `testing.TB`
@@ -471,13 +475,16 @@ ensuring goroutines started by handlers or workers do not leak between tests.
 - Fuzz tests: `FuzzFoo`.
 - Live tests: gate them with the package-level `-peeringdb-live` flag
   and call `t.Skip` when the flag is not set.
-- Parity tests: a `TestParity_<Category>` entry function per category
+- Parity tests: one `TestParity_<Category>` entry function for each category
   (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`,
-  `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`),
-  each with descriptive snake_case `t.Run` sub-tests
-  (e.g. `default_list_order_updated_desc`);
-  intentional non-parity sub-tests carry a `DIVERGENCE` marker in the name
-  (e.g. `depth_on_list_silently_dropped_DIVERGENCE`).
+  `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`,
+  `TestParity_Meta`, `TestParity_Serializer`, `TestParity_MultiChoice`).
+  Give each `t.Run` sub-test a descriptive snake_case name
+  (e.g. `list_no_since_status_ok_only`).
+  Start the name of an intentional non-parity sub-test with `DIVERGENCE_`
+  (e.g. `DIVERGENCE_negative_limit_returns_400`).
+  A divergence test that is its own top-level function ends its name
+  with `_DIVERGENCE` (e.g. `TestParity_Unicode_FoldWindow_DIVERGENCE`).
 
 ## Coverage
 
