@@ -591,12 +591,13 @@ fly deploy
 ## Deploy command summary
 
 ```bash
-# Deploy the current working tree
+# Deploy the current working tree with Fly's remote builder.
+# After a long pause the remote builder starts cold. `go build -v` in
+# Dockerfile.prod prints each package, so a slow build shows progress.
+# If a transient api.machines.dev error occurs, run `fly deploy` again.
 fly deploy
 
-# Prefer building on the local Docker daemon: Fly's remote builder is a
-# machine that cold-starts (or gets recreated) on demand, which has caused
-# multi-minute hangs and flaky deploys from this repo
+# Build on the local Docker daemon instead
 fly deploy --local-only
 
 # Deploy with a specific Dockerfile (defaults to Dockerfile.prod per fly.toml)
