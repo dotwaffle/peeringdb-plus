@@ -421,6 +421,56 @@ Incremental sync cannot repair such a row,
 because it does not rewrite a row whose `updated` value it already has.
 If the interval is `0`, run one full sync (`POST /sync?mode=full`).
 
+#### Metadata filters
+
+`/api/netixlan` filters on the metadata keys that upstream marks as filterable
+(`meta_registry.py:277-313`, `docs/api/object_metadata.md:165-182`):
+
+| Filter key | Upstream column name | Type |
+|------------|----------------------|------|
+| `meta__planned_status_change__status` | `meta_planned_status_change_status` | text |
+| `meta__planned_status_change__date` | `meta_planned_status_change_date` | date |
+| `meta__rfc8950` | `meta_rfc8950` | boolean |
+
+- Each key takes the usual operator suffixes,
+  for example `?meta__planned_status_change__date__lt=2026-10-15`.
+- The upstream column name is also a filter key, the same as upstream.
+- Text: exact match, `__contains` and `__startswith` ignore case.
+  `__in`, `__lt`, `__lte`, `__gt` and `__gte` also work.
+- Date: the document stores the date as `YYYY-MM-DD`.
+  Exact match is a prefix match, the same as upstream,
+  so `2026-10` matches every day in October 2026.
+  `__lt`, `__lte`, `__gt` and `__gte` compare dates.
+  `__in` matches whole dates.
+  Upstream returns an error for `__in` on a date (see § Known Divergences).
+  `__contains` and `__startswith` return `400`.
+- Boolean: `true` (in any case) or `1` selects `true`.
+  Any other value selects `false`, the same as upstream.
+  `__in` parses each value like the other boolean filters.
+  Other operators return `400`.
+- A row without the key never matches, for any operator.
+  So `?meta__rfc8950=false` returns only the rows that declare `false`,
+  not the rows that never set the key.
+- On these keys, upstream knows only the operators
+  `__lt`, `__lte`, `__gt`, `__gte`, `__contains`, `__startswith` and `__in`.
+  pdbcompat ignores a key with any other suffix, as upstream does,
+  for example `meta__rfc8950__foo` or `meta__rfc8950__iexact`.
+  The `__iexact`, `__icontains` and `__istartswith` names
+  that the ordinary filters accept do not apply to these keys.
+- `net` has no filterable metadata keys.
+  Upstream ignores `?meta__rtbh_community=` and `?meta__preferred_ip_mtu=`
+  and returns the full list. The mirror does the same.
+
+Upstream rewrites these keys onto typed, indexed columns
+before it applies the filters (`serializers.py:3129-3149`).
+pdbcompat resolves them before it splits a key for traversal,
+so the 2-hop cap does not apply to them.
+The mirror has no such columns.
+It reads the key from the stored document with SQLite `json_extract`
+(`json_type` for the boolean).
+A filter on a metadata key alone therefore scans the netixlan table.
+The budget count and the served list use the same predicates.
+
 ### Response memory budget
 
 Every list response is gated by a pre-flight 413 budget check
@@ -929,6 +979,7 @@ see `internal/pdbcompat/depth_test.go`.
 |---------|-------------------|-------------------------|-----------|-------|
 | `?depth=` on list endpoints; `?depth=3`/`4` on detail | Lists accept `?depth=` capped at `API_DEPTH_ROW_LIMIT=250` (`rest.py:472` default, enforced `rest.py:755-758`); detail expands a third sub-level at depth 3–4. | List `?depth=` is silently dropped (`slog.DebugContext` paper trail; `opts.Depth` never threaded into list closures). On detail, depths `0`/`1`/`2` match upstream exactly; `3`/`4` are accepted and clamped, rendering the depth-2 shape — the third sub-level is not reproduced. | The 256 MB replica response budget cannot absorb depth-expanded list rows; depth>2 sub-nesting is data almost no client reads three levels deep. Locked by `TestParity_Limit/depth_on_list_silently_dropped_DIVERGENCE` and `TestDepth_DepthOne/depth_clamped_to_0_4`. | v1.16 (list) · v1.20.5 (detail 3–4) |
 | `?depth=1` (and the nested `net.poc_set` at depth=2) `poc_set` ID lists | Upstream lists every POC id in the ID list regardless of visibility, filtering non-`Public` POCs only when they are expanded to objects at depth=2. | The row-level `poc.visible` privacy policy applies uniformly, so non-`Public` POC ids never appear in an anonymous `poc_set` ID list (nor as objects). The mirror is **stricter** than upstream here. | Leaking the ids/existence of non-`Public` contacts to anonymous callers would contradict the load-bearing `poc.visible` policy (see § Field-level privacy). Intentional. Locked by `TestDepth_PocSetPrivacy_DIVERGENCE`. | v1.20.5 |
+| `/api/netixlan?meta__planned_status_change__date__in=<dates>` | Fails. Upstream parses the whole comma-separated value as one datetime (2.83.0 `rest.py:649`), which raises, and its error handler then fails on `inst[0]` (`:651`), so the response is `400`. For a single date, the parse succeeds and `v.split(",")` on the datetime (`:666`) raises an unhandled error (`500`). | Returns the rows whose date is in the list. | A list of whole dates has one clear meaning, and failing it has no value for a client. Locked by `TestParity_Meta/DIVERGENCE_date_in_filters`. | v1.28.0 (registered 2026-09-23) |
 | `?status=deleted&since=N` for a row hard-deleted by sync before v1.16 | Returns the tombstone with its deletion timestamp. | Returns empty; tombstone population began at the first post-v1.16 sync, so anything hard-deleted earlier is gone. Rows deleted from v1.16 on are visible via the `?since=N` window. | No retroactive reconstruction is possible — the public API exposes no historical state and we did not persist pre-v1.16 deletions. Locked by `TestParity_Status/list_since_admits_deleted_excludes_pending_noncampus`. | v1.16 |
 | `?a__b__c__d=X` — 3+ `__`-separated relation segments (incl. `fac?ixlan__ix__fac_count__gt=0`) | Upstream walks arbitrary Django ORM relation chains, bounded only by the query planner. | Silently ignored (HTTP 200, unfiltered) with one aggregated `slog.DebugContext` + a `pdbplus.filter.unknown_fields` span attribute. Keys with 1 or 2 segments resolve via the allowlist / ent-edge introspection. | DoS ceiling: 3+-hop joins in SQLite trigger super-linear scans the 256 MB replica envelope cannot absorb; the 2-hop cap trades limitless traversal for a predictable cost. Locked by `TestParity_Traversal/DIVERGENCE_fac_ixlan_ix_fac_count_silent_ignore`. | v1.16 |
 | `?<field>__contains=`/`__startswith=` with a non-ASCII value, in the ≤1 sync interval after a fresh deploy | Folds via `unidecode.unidecode(v)` at query time (`rest.py:585`), so it works immediately. | Folding uses a sync-populated `<field>_fold` shadow column, so a one-time ASCII-only window exists between deploy and the first sync (≤1h default) during which non-ASCII queries return no match. ASCII queries work throughout; the next sync's `OnConflict().UpdateNewValues()` closes the window with no backfill. | Shadow columns give SQLite one indexable comparison path (benchstat within ±1% of the direct path) and stay off the GraphQL/REST/proto wire (`entgql.Skip` / `entrest.WithSkip`). Locked by `TestParity_Unicode_FoldWindow_DIVERGENCE`. | v1.16 |
@@ -1040,6 +1091,11 @@ Examples:
   (upstream `pdb_api_test.py:2340` assertion).
 - `?ixlan__ix__org__name=X` — 3 hops, SILENTLY IGNORED (HTTP 200,
   result set is unfiltered).
+
+The netixlan metadata filter keys, such as
+`meta__planned_status_change__date__lt`, are not relation paths.
+pdbcompat resolves them before the split.
+See § Metadata filters.
 
 Upstream PeeringDB has no hard cap but is bound by Django ORM's query planner.
 We trade limitless traversal

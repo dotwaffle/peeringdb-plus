@@ -619,7 +619,7 @@ Use these to verify compatibility after a PeeringDB upstream change.
 
 `internal/pdbcompat/parity/` locks v1.16 pdbcompat semantics against future
 regression.
-The suite is split across 6 category test files:
+The suite is split across 7 category test files:
 
 | File | Category |
 |---|---|
@@ -629,6 +629,7 @@ The suite is split across 6 category test files:
 | `unicode_test.go` | diacritic folding |
 | `in_test.go` | `?field__in=v1,v2,...` |
 | `traversal_test.go` | cross-entity `__` filters |
+| `meta_test.go` | netixlan `meta__*` filters |
 
 To add a new parity test:
 

@@ -215,6 +215,10 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // Keys with len(relSegs) > 2 are silently rejected.
 //
+// The filterable meta keys of the type (netixlan meta__<path> and the
+// upstream meta_* column names, see lookupMetaFilter) resolve first,
+// before the key is split for traversal.
+//
 // The status matrix and the _fold-routing / empty-__in invariants
 // are preserved: traversal predicates wrap around buildPredicate which still
 // consults FoldedFields on the target TypeConfig, and the empty-__in
@@ -233,6 +237,26 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		value := vals[len(vals)-1]
 		// Skip reserved pagination/control parameters.
 		if reservedParams[key] {
+			continue
+		}
+		// Meta keys resolve before the key is split, as upstream
+		// rewrites them before its filter loop (2.83.0
+		// serializers.py:3129-3149). They are not traversals: a split
+		// would read meta__planned_status_change__date__lt as a 2-hop
+		// path and ignore it.
+		if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
+			p, emptyResult, ok, err := buildMetaPredicate(col, suffix, value)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			if emptyResult {
+				return nil, true, nil
+			}
+			if !ok {
+				appendUnknown(ctx, key)
+				continue
+			}
+			predicates = append(predicates, p)
 			continue
 		}
 		relSegs, field, op := parseFieldOp(key)

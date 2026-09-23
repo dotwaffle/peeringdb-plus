@@ -2,9 +2,10 @@
 // semantics against future drift.
 //
 // Each *_test.go file in this directory covers one behavioural
-// category, keyed to upstream peeringdb/peeringdb pdb_api_test.py
-// citations (or documented `synthesised` markers where no upstream
-// test exercises the behaviour).
+// category, keyed to upstream peeringdb/peeringdb test citations
+// (pdb_api_test.py, or tests/test_meta_registry.py for the meta
+// filters) or to documented `synthesised` markers where no upstream
+// test exercises the behaviour.
 //
 // Each test seeds its own clean rows inline (via the ent client) and
 // cites the upstream source line in a comment; the assertions encode

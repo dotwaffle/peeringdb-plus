@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
 // FuzzFilterParser exercises ParseFilters with arbitrary key/value pairs to
@@ -66,6 +68,15 @@ func FuzzFilterParser(f *testing.F) {
 	f.Add("name__contains", strings.Repeat("x", 70_000))
 	f.Add("name", strings.Repeat("Z\u0301", 5_000)) // zalgo at scale
 
+	// netixlan meta keys (resolved before the traversal split).
+	f.Add("meta__rfc8950", "true")                                  // bool exact
+	f.Add("meta__rfc8950__in", "true,maybe")                        // bool IN, invalid part
+	f.Add("meta__planned_status_change__date__lt", "2026-10-15")    // date comparison
+	f.Add("meta__planned_status_change__date__in", ",,")            // date IN, empty parts
+	f.Add("meta__planned_status_change__status__contains", "'%_\\") // SQL metacharacters
+	f.Add("meta_rfc8950__", "1")                                    // empty operator
+	f.Add("meta__planned_status_change", "x")                       // partial path
+
 	// TypeConfig with entries for all 5 FieldType values.
 	// ParseFilters takes TypeConfig so it can consult FoldedFields. Mark
 	// "name" as folded so the shadow-routing path is
@@ -84,9 +95,14 @@ func FuzzFilterParser(f *testing.F) {
 		},
 	}
 
+	// The netixlan config exercises the meta filter keys, which only
+	// netixlan declares.
+	netixlanTC := Registry[peeringdb.TypeNetIXLan]
+
 	f.Fuzz(func(_ *testing.T, key, value string) {
 		params := url.Values{key: {value}}
 		// Must not panic. Errors and emptyResult=true are both acceptable.
 		_, _, _ = ParseFilters(params, tc)
+		_, _, _ = ParseFilters(params, netixlanTC)
 	})
 }

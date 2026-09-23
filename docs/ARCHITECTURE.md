@@ -670,6 +670,9 @@ the status matrix predicate is appended LAST to every `registry_funcs.go`
 closure, and a traversal target field that happens to be folded uses
 `<field>_fold` with `unifold.Fold(value)` on the RHS.
 A 2-hop cap (`parseFieldOp`) drops 3+-hop keys at request time.
+The netixlan `meta__*` filter keys resolve before that split
+(`internal/pdbcompat/meta_filter.go`), as upstream rewrites them
+before its filter loop.
 
 ## LiteFS primary/replica detection
 
