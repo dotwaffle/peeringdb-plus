@@ -291,7 +291,7 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	//    dangling parent here mirrors the fkFilter drop-on-miss contract:
 	//    the orphan is recorded and the commit succeeds. Recovery comes
 	//    from the next FULL-mode cycle, which re-fetches every row,
-	//    stages the tombstone window, and bypasses the upsert skip gate
+	//    stages the tombstone window, and relaxes the upsert skip gate
 	//    (reconcile-all) — an incremental cycle does NOT retry the
 	//    withheld row, because its MAX(updated) cursor has typically
 	//    advanced past the row's updated by the time the cycle commits.

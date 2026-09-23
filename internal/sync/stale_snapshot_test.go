@@ -240,3 +240,47 @@ func TestSync_ZeroCursorWindowFailureTolerated(t *testing.T) {
 		})
 	}
 }
+
+// TestSync_FullModeRepairsRevertedRow covers an upstream change that
+// moves updated backwards: the IX-F import-log rollback reverts a row
+// through django-reversion, which saves the old version, old updated
+// included. Incremental cycles never see the revert. A full cycle must
+// repair the row, because the stored version is older than the
+// snapshot's newest row and so predates the snapshot.
+func TestSync_FullModeRepairsRevertedRow(t *testing.T) {
+	t.Parallel()
+
+	editedAt := orgOldAt.Add(time.Hour)
+	upstream := []map[string]any{
+		staleTestOrg(1, "Org1", "ok", orgOldAt), // reverted to its old version
+		staleTestOrg(2, "Org2", "ok", snapshotMax),
+	}
+	server := newStaleSnapshotServer(t, cacheBuilt, upstream, upstream, false)
+
+	client, db := testutil.SetupClientWithDB(t)
+	ctx := t.Context()
+	for _, row := range []struct {
+		id      int
+		name    string
+		updated time.Time
+	}{{1, "Org1 Edited", editedAt}, {2, "Org2", snapshotMax}} {
+		if _, err := client.Organization.Create().
+			SetID(row.id).SetName(row.name).
+			SetCreated(orgOldAt).SetUpdated(row.updated).SetStatus("ok").
+			Save(ctx); err != nil {
+			t.Fatalf("seed org %d: %v", row.id, err)
+		}
+	}
+
+	if err := runStaleSnapshotSync(t, client, db, server, config.SyncModeFull); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	org1, err := client.Organization.Get(ctx, 1)
+	if err != nil {
+		t.Fatalf("get org 1: %v", err)
+	}
+	if org1.Name != "Org1" || !org1.Updated.Equal(orgOldAt) {
+		t.Errorf("org 1 = (%q, %v), want the reverted (%q, %v)", org1.Name, org1.Updated, "Org1", orgOldAt)
+	}
+}

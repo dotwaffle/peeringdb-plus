@@ -127,7 +127,7 @@ type WorkerConfig struct {
 	// fkBackfillParent short-circuits to drop-on-miss so the rest of
 	// the sync (bulk fetches + upserts) can commit. Dropped rows are
 	// recovered by the next FULL-mode cycle (which re-fetches every
-	// row, stages the tombstone window, and bypasses the upsert skip
+	// row, stages the tombstone window, and relaxes the upsert skip
 	// gate) — NOT by the next incremental, whose MAX(updated) cursor
 	// typically advances past the dropped rows. Default 5 minutes
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
@@ -736,16 +736,6 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	prevMemLimit := debug.SetMemoryLimit(syncMemLimit)
 	defer debug.SetMemoryLimit(prevMemLimit)
 
-	// Full-mode cycles reconcile completely: the reconcile-all marker
-	// disables the upsert pass's updated-timestamp skip gate so rows the
-	// sync mutated locally without bumping `updated` (orphan-filter FK
-	// nulls) re-converge with upstream, and newly added _fold columns
-	// backfill. This is the documented purpose of the daily forced-full
-	// escalation; without the marker the gate skipped those rows forever.
-	if effectiveMode == config.SyncModeFull {
-		ctx = withReconcileAll(ctx)
-	}
-
 	scratch, err := openScratchDB(ctx)
 	if err != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
@@ -755,9 +745,22 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 
 	// === Phase A — NO TX HELD ===
 	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.
-	if err := w.syncFetchPass(ctx, scratch, effectiveMode); err != nil {
+	snapshotCutoffs, err := w.syncFetchPass(ctx, scratch, effectiveMode)
+	if err != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
+	}
+	// Full-mode cycles reconcile completely: the reconcile-all marker
+	// relaxes the upsert pass's updated-timestamp skip gate from `>` to
+	// `>=` so rows the sync mutated locally without bumping `updated`
+	// (orphan-filter FK nulls) re-converge with upstream, and newly added
+	// _fold columns backfill. This is the documented purpose of the daily
+	// forced-full escalation; without the marker the gate skipped those
+	// rows forever. A stored row that is newer than both its snapshot
+	// version and the snapshot's newest row is still skipped (see
+	// skipUnchangedPredicate).
+	if effectiveMode == config.SyncModeFull {
+		ctx = withReconcileAll(ctx, snapshotCutoffs)
 	}
 	// Memory guardrail: see checkMemoryLimit godoc (defense-in-depth).
 	var ms runtime.MemStats
@@ -1168,8 +1171,12 @@ func sumCounts(m map[string]int) int {
 // This helper is the fetch-outside-tx pass that
 // splits fetch from upsert. It routes Phase A
 // through an isolated scratch SQLite DB so the Go heap stays bounded.
-func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) error {
+//
+// It returns the newest updated of each full snapshot it staged, keyed by
+// entity table, for the full-mode upsert gate (see skipUnchangedPredicate).
+func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) (map[string]time.Time, error) {
 	steps := w.syncSteps()
+	snapshotCutoffs := make(map[string]time.Time, len(steps))
 
 	for _, step := range steps {
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "fetching",
@@ -1187,7 +1194,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 		table, ok := entityTables[step.name]
 		if !ok {
 			stepSpan.End()
-			return fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
+			return nil, fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
 		}
 		cursor, cursorErr := GetMaxUpdated(ctx, w.db, table)
 		if cursorErr != nil {
@@ -1199,25 +1206,29 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 			// correct fail-soft response (full path is always safe).
 		}
 
-		_, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, stepSpan)
+		snapshotMax, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, stepSpan)
 
 		stepSpan.End()
 		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
 
 		if stepErr != nil {
 			pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
-			return fmt.Errorf("fetch %s: %w", step.name, stepErr)
+			return nil, fmt.Errorf("fetch %s: %w", step.name, stepErr)
+		}
+		if !snapshotMax.IsZero() {
+			snapshotCutoffs[table] = snapshotMax
 		}
 	}
 
-	return nil
+	return snapshotCutoffs, nil
 }
 
 // stageOneTypeToScratch streams a single PeeringDB type into its scratch
 // staging table, handling the incremental-with-fallback-to-full
 // semantics. On incremental error the scratch table for this type is
 // truncated (to drop any partial insert) and a full stage is retried.
-// Returns a flag indicating whether the successful run was incremental.
+// Returns the newest updated among the rows of the full snapshot, or zero
+// when the incremental fetch succeeded or the snapshot had no such row.
 //
 // The cursor is derived from MAX(updated) by the caller
 // (syncFetchPass). The previous design returned a per-call cursor
@@ -1241,14 +1252,14 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // is deferred to a proper multi-cycle bootstrap design (v1.19+);
 // FK backfill catches the orphans that matter on
 // demand, including via recursive grandparent backfill (v1.18.3).
-func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (bool, error) {
+func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (time.Time, error) {
 	fellBack := false
 	// Incremental attempt requires a populated cursor. Zero cursor falls
 	// through to the full-sync path below (bare list, then the window).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
 		_, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
 		if incErr == nil {
-			return true, nil
+			return time.Time{}, nil
 		}
 		fellBack = true
 		// Fallback: clear partial incremental state and retry as full.
@@ -1265,13 +1276,13 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 			slog.Any("error", incErr),
 		)
 		if _, delErr := scratch.db.ExecContext(ctx, fmt.Sprintf("DELETE FROM %q", name)); delErr != nil {
-			return false, fmt.Errorf("clear partial incremental scratch %s: %w", name, delErr)
+			return time.Time{}, fmt.Errorf("clear partial incremental scratch %s: %w", name, delErr)
 		}
 	}
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
 	snapshot, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{})
 	if err != nil {
-		return false, err
+		return time.Time{}, err
 	}
 	// Window capture: stage a ?since= fetch on top of the snapshot. The
 	// scratch INSERT OR REPLACE is keyed on id, so window rows (including
@@ -1292,7 +1303,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	since := snapshotWindowStart(cursor, snapshot.maxUpdated)
 	w.recordSnapshotWindow(ctx, stepSpan, name, cursor, snapshot, since)
 	if since.IsZero() {
-		return false, nil
+		return snapshot.maxUpdated, nil
 	}
 	// A window failure fails the type only when committing without the
 	// window could lose data: in explicit full mode over a populated
@@ -1307,7 +1318,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// rows despite a broken ?since= endpoint.
 	if _, err := scratch.stageType(ctx, w.pdbClient, name, since); err != nil {
 		if !fellBack && !cursor.IsZero() {
-			return false, fmt.Errorf("stage tombstone window %s since %s: %w",
+			return time.Time{}, fmt.Errorf("stage tombstone window %s since %s: %w",
 				name, since.Format(time.RFC3339), err)
 		}
 		stepSpan.AddEvent("tombstone_window.discarded",
@@ -1323,7 +1334,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 			slog.Any("error", err),
 		)
 	}
-	return false, nil
+	return snapshot.maxUpdated, nil
 }
 
 // snapshotWindowStart returns the ?since= start of the window fetch that
