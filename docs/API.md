@@ -902,24 +902,33 @@ The status rules follow `make_relation_filter` (`models.py:221-234`):
 #### Supported shapes per entity (1-hop + 2-hop)
 
 All 13 entity types support Path A 1-hop shapes via `?<fk>__<field>=X`.
-The 2-hop rows come from the Path A allowlist:
+Path A and Path B both resolve 1-hop and 2-hop keys:
 
 | Query | Hops | Path | Upstream citation |
 |-------|------|------|-------------------|
 | `?org__name=X` (net, fac, ix, carrier, campus) | 1 | A | 2.83.0 `serializers.py:970-996` (`queryable_relations()` adds `org__<field>` from the `org` FK) |
-| `?net__asn=X` (netfac, netixlan, poc) | 1 | A | (same allowlist block) |
-| `?ix__name=X` (ixfac, ixlan) | 1 | A | (same allowlist block) |
+| `?net__asn=X` (for example netfac, netixlan, poc) | 1 | A | (same allowlist block) |
+| `?ix__name=X` (for example ixfac, ixlan) | 1 | A | (same allowlist block) |
 | `?<rel>=N`, `?<rel>__<field>=X` for the `prepare_query` relation keys, for example `fac?net=N`, `net?ix__name=X` and `netixlan?ix_id=N` | 1 (up to 3 tables) | Relation filter (`relationSeeds`), before Path A and B. See § Relation filters | 2.83.0 `serializers.py:614-656` (`get_relation_filters`) and the `related_to_<x>` methods, which pin one row to status `ok` (`models.py:221-234`) |
-| `?fac__name=X` (netfac, ixfac, carrierfac) | 1 | A | (same allowlist block) |
+| `?fac__name=X` (for example netfac, ixfac, carrierfac) | 1 | A | (same allowlist block) |
 | `?network__<field>=X` (poc, netfac, netixlan) and `?facility__<field>=X` (netfac, ixfac, carrierfac) | 1 | A or B, through the `net` or `fac` edge | 2.83.0 `serializers.py:416-438` (`queryable_field_xl` renames `net` and `fac` to `network` and `facility`) and `:970-996` |
 | `?org=N`, `?network=N`, `?facility_id__in=N,M` and the other upstream FK names | 0 | Local FK column (`TypeConfig.ForeignKeys`) | 2.83.0 `rest.py:608-631` and `:670-677` (a ForeignKey key filters `<fk>_id`) |
-| `?ixlan__ix__fac_count__gt=0` (fac) | 2 | A (allowlisted, but silently ignored: `fac` has no `ixlan` edge) | Not an upstream `fac` filter, so upstream ignores it too (2.83.0 `rest.py:525-528`, `serializers.py:970-996`). 2.83.0 `pdb_api_test.py:2393` uses this path only in an ORM query for the `netixlan` `hide_ix_no_fac` count (`rest.py:1295`) |
+| `?ixlan__ix__id=N`, `?ixlan__ix__name=X` (ixpfx) | 2 | A | Mirror extension. Upstream ignores 2-hop keys (see § Known Divergences) |
+| `?<fk>__<fk>__<field>=X` through any two non-excluded edges, for example `netixlan?net__org__name=X` | 2 | B | Mirror extension (see § Known Divergences) |
 | `?<fk>__<field>=X` for any non-excluded edge | 1 | B | 2.83.0 `serializers.py:970` (`queryable_relations()`) |
 
 1-hop Path B fallthrough means the explicit Path A allowlists are
 **additive, not restrictive**: a key that is not in Path A but is a valid ent FK
 edge still resolves via Path B. The exclusion list (below) is the only way to
 block a Path B key.
+
+An allowlisted key can resolve nothing.
+The server then ignores it.
+For example, the `fac` allowlist has `ixlan__ix__fac_count`,
+but `fac` has no `ixlan` edge, so `fac?ixlan__ix__fac_count__gt=0`
+returns the unfiltered list.
+Upstream also ignores this key, because it is not a `fac` filter
+(2.83.0 `rest.py:525-528`, `serializers.py:970-996`).
 
 #### FILTER_EXCLUDE list
 
@@ -987,19 +996,18 @@ raise the cap together with a fresh benchstat run and a docs update here.
 
 #### Unknown-field diagnostics
 
-When a filter key fails Path A, Path B, and the 2-hop cap check,
-the following observability signals fire:
+When the server ignores one or more filter keys of a list request,
+it records them in two places:
 
-- `slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently
-  ignored", slog.String("endpoint", ...),
-  slog.String("type", ...), slog.Any("unknown_fields", ...))`
-- OTel span attribute `pdbplus.filter.unknown_fields` (CSV of all
-  unknown keys in the request)
+- A DEBUG log record `pdbcompat: unknown filter fields silently ignored`
+  with `endpoint`, `type` and `unknown_fields` (a comma-separated list).
+- The span attribute `pdbplus.filter.unknown_fields`, with the same list.
 
-Both are DEBUG-level; INFO and higher are untouched so
-that naive clients probing field names don't flood structured logs.
-To surface these in production,
-set `PDBPLUS_LOG_LEVEL=DEBUG` or query the span attribute in Grafana/Tempo.
+This applies to every ignored key, not only to traversal keys.
+INFO logs do not include these keys,
+so clients that test field names do not fill the logs.
+To see them, set `PDBPLUS_LOG_LEVEL=DEBUG`
+or query the span attribute in Grafana Tempo.
 
 ### Response memory budget
 
