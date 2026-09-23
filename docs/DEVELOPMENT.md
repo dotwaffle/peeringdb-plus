@@ -702,6 +702,14 @@ Any new entity wired into `/api/` must integrate with this budget:
    `internal/pdbcompat/stream_integration_test.go`) with an under-budget
    smoke test and an over-budget 413 assertion mirroring
    `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+5. **Detail fan-out:**
+   if the depth-2 detail of the type embeds `_set` collections,
+   add them to `detailChildSets` in `internal/pdbcompat/detail_budget.go`.
+   The list must match the eager-loads in `get<Type>WithDepth`
+   in `internal/pdbcompat/depth.go`.
+   Add the type and its set count to `wantParents`
+   in `TestDetailChildSets_CoverRegistryParents`
+   (`internal/pdbcompat/detail_budget_test.go`).
 
 `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the
 **single call site** for `runtime.ReadMemStats`.
