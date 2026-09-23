@@ -653,6 +653,10 @@ statuses of the child (`StatusIn("ok")`,
 the same as the upstream nested prefetch.
 A pending child, in practice a campus, is fetchable by ID
 but is left out of the sets of its parent.
+The sets `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set`
+are ordered by facility id, then by link id.
+The upstream prefetch has no `ORDER BY`,
+and MySQL reads these sets through the unique `(<parent>, facility)` index.
 
 The Web UI fragments, `internal/catalog` (network, IX and compare queries)
 and the MCP `lookup_ip` tool read netixlan with the inline literal

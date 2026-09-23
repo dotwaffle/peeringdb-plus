@@ -1165,6 +1165,103 @@ func TestDepth_IxLanNetSetParity(t *testing.T) {
 	}
 }
 
+// TestDepth_FacilityLinkSetOrder locks the order of the three
+// facility-link sets: net.netfac_set, ix.fac_set and
+// carrier.carrierfac_set sort by facility id, not by link id, at depth=1
+// (ID lists) and depth=2 (objects). Upstream's nested prefetch has no
+// ORDER BY (2.83.0 serializers.py:1140-1148), and MySQL reads each set
+// through the unique (<parent>, facility) index (models.py:3284, :5998,
+// :6603). Live /api/net/20?depth=2 returned netfac ids
+// [19931,15549,19929,15547,15548] for fac ids [7,64,440,466,1727].
+//
+// The seeded link ids run opposite to their facility ids, so id order
+// and facility order disagree.
+func TestDepth_FacilityLinkSetOrder(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 9, 23, 0, 0, 0, 0, time.UTC)
+
+	client.Organization.Create().SetID(1).SetName("Order Org").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.Network.Create().SetID(1).SetName("Order Net").SetAsn(65001).SetOrgID(1).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.InternetExchange.Create().SetID(1).SetName("Order IX").SetOrgID(1).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.Carrier.Create().SetID(1).SetName("Order Carrier").SetOrgID(1).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	facIDs := []int{7, 64, 440}     // facility order
+	linkIDs := []int{300, 200, 100} // link id of each facility, descending
+	for i, facID := range facIDs {
+		client.Facility.Create().SetID(facID).SetName(fmt.Sprintf("Fac %d", facID)).SetOrgID(1).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.NetworkFacility.Create().SetID(linkIDs[i]).SetNetID(1).SetFacID(facID).SetLocalAsn(65001).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.IxFacility.Create().SetID(linkIDs[i]).SetIxID(1).SetFacID(facID).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+		client.CarrierFacility.Create().SetID(linkIDs[i]).SetCarrierID(1).SetFacID(facID).
+			SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	}
+
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	// setIDs fetches path and returns the ids of the named set, from an
+	// ID list or from expanded objects.
+	setIDs := func(t *testing.T, path, set string) []int {
+		t.Helper()
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s: %d: %s", path, rec.Code, rec.Body.String())
+		}
+		var env struct {
+			Data []map[string]any `json:"data"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil || len(env.Data) != 1 {
+			t.Fatalf("GET %s: decode (%v), %d rows", path, err, len(env.Data))
+		}
+		raw, ok := env.Data[0][set].([]any)
+		if !ok {
+			t.Fatalf("GET %s: %s missing or not a list", path, set)
+		}
+		ids := make([]int, 0, len(raw))
+		for _, e := range raw {
+			switch v := e.(type) {
+			case float64:
+				ids = append(ids, int(v))
+			case map[string]any:
+				ids = append(ids, int(v["id"].(float64)))
+			default:
+				t.Fatalf("GET %s: %s element %T", path, set, e)
+			}
+		}
+		return ids
+	}
+
+	tests := []struct {
+		path, set string
+		want      []int
+	}{
+		{"/api/net/1?depth=1", "netfac_set", linkIDs},
+		{"/api/net/1?depth=2", "netfac_set", linkIDs},
+		{"/api/ix/1?depth=1", "fac_set", facIDs},
+		{"/api/ix/1?depth=2", "fac_set", facIDs},
+		{"/api/carrier/1?depth=1", "carrierfac_set", linkIDs},
+		{"/api/carrier/1?depth=2", "carrierfac_set", linkIDs},
+	}
+	for _, tc := range tests {
+		t.Run(tc.path, func(t *testing.T) {
+			t.Parallel()
+			if got := setIDs(t, tc.path, tc.set); !slices.Equal(got, tc.want) {
+				t.Errorf("%s = %v, want %v (facility order)", tc.set, got, tc.want)
+			}
+		})
+	}
+}
+
 // TestDepth_BackRefStripParity locks which parent-FK each nested reverse-set
 // element keeps vs drops at depth=2, matching upstream's per-serializer
 // `exclude=` lists (peeringdb_server/serializers.py, verified against live

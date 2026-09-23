@@ -104,12 +104,15 @@ func sortedIDsOrEmpty(ids []int, err error) ([]int, error) {
 	return ids, nil
 }
 
-// intsOrEmpty normalises an ent Ints() result into a non-nil slice WITHOUT
-// sorting. Upstream renders through-relation ID lists (an ixlan's net_set
-// reached via the netixlan join, an ix's fac_set via the ixfac join) in join
-// order with duplicates preserved — unlike the direct reverse-set ID lists
-// which come back ascending. Empty input yields []int{} so the field
-// serializes as [] rather than null.
+// intsOrEmpty normalises an ent IDs() or Ints() result into a non-nil slice
+// WITHOUT sorting, for the ID lists whose order comes from the query:
+//   - ixlan.net_set keeps the netixlan join order with duplicates.
+//   - The facility-link sets (net.netfac_set, ix.fac_set,
+//     carrier.carrierfac_set) come in facility-id order (see the next
+//     comment block).
+//
+// Empty input yields []int{} so the field serializes as [] rather than
+// null.
 func intsOrEmpty(ids []int, err error) ([]int, error) {
 	if err != nil {
 		return nil, err
@@ -120,6 +123,15 @@ func intsOrEmpty(ids []int, err error) ([]int, error) {
 	return ids, nil
 }
 
+// The facility-link sets net.netfac_set, ix.fac_set and
+// carrier.carrierfac_set are ordered by facility id, then by the link id,
+// at every depth. Upstream's nested prefetch has no ORDER BY
+// (serializers.py:1140-1148 at 2.83.0), and MySQL reads each set through
+// the unique (<parent>, facility) index (models.py:3284, :5998, :6603), so
+// the rows come in facility-id order. Live captures of /api/net/20 and
+// /api/ix/26 at depth=2 confirm this order. The link id breaks ties, which
+// the unique index makes impossible upstream.
+//
 // Status filters in the depth expansions follow upstream PeeringDB 2.83.0:
 //   - A reverse `_set`, as an ID list or as expanded objects, admits only
 //     the live statuses of the child type: "ok", plus "not-operational" on
@@ -188,8 +200,8 @@ func nestedCampusMap(ctx context.Context, c *ent.Campus) (map[string]any, error)
 // object at ?depth=1 (see the depth==1 getter branches).
 
 // nestedNetMap renders a Network as a singular FK at depth=2 (or as a top-level
-// object at depth=1): the network's poc_set/netfac_set/netixlan_set as ascending
-// ID lists and its org as a flat object.
+// object at depth=1): the network's poc_set/netixlan_set as ascending ID lists,
+// netfac_set as an ID list in facility order, and its org as a flat object.
 func nestedNetMap(ctx context.Context, n *ent.Network) (map[string]any, error) {
 	m := toMap(networkFromEnt(n))
 	if org, err := n.QueryOrganization().Only(ctx); err == nil {
@@ -201,7 +213,7 @@ func nestedNetMap(ctx context.Context, n *ent.Network) (map[string]any, error) {
 	if m["poc_set"], err = sortedIDsOrEmpty(n.QueryPocs().Where(poc.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested net %d poc_set: %w", n.ID, err)
 	}
-	if m["netfac_set"], err = sortedIDsOrEmpty(n.QueryNetworkFacilities().Where(networkfacility.StatusIn("ok")).IDs(ctx)); err != nil {
+	if m["netfac_set"], err = intsOrEmpty(n.QueryNetworkFacilities().Where(networkfacility.StatusIn("ok")).Order(networkfacility.ByFacID(), networkfacility.ByID()).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested net %d netfac_set: %w", n.ID, err)
 	}
 	if m["netixlan_set"], err = sortedIDsOrEmpty(n.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "not-operational")).IDs(ctx)); err != nil {
@@ -234,8 +246,8 @@ func nestedFacMap(ctx context.Context, f *ent.Facility) (map[string]any, error) 
 
 // nestedIxMap renders an InternetExchange as a singular FK at depth=2 (or
 // top-level at depth=1): ixlan_set as an ascending ID list, fac_set as the
-// facility IDs reached through the ixfac join (join order, no dedup), and org
-// as a flat object.
+// facility IDs reached through the ixfac join (facility order, no dedup), and
+// org as a flat object.
 func nestedIxMap(ctx context.Context, ix *ent.InternetExchange) (map[string]any, error) {
 	m := toMap(internetExchangeFromEnt(ix))
 	if org, err := ix.QueryOrganization().Only(ctx); err == nil {
@@ -247,7 +259,7 @@ func nestedIxMap(ctx context.Context, ix *ent.InternetExchange) (map[string]any,
 	if m["ixlan_set"], err = sortedIDsOrEmpty(ix.QueryIxLans().Where(ixlan.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ix %d ixlan_set: %w", ix.ID, err)
 	}
-	if m["fac_set"], err = intsOrEmpty(ix.QueryIxFacilities().Where(ixfacility.StatusIn("ok")).Select(ixfacility.FieldFacID).Ints(ctx)); err != nil {
+	if m["fac_set"], err = intsOrEmpty(ix.QueryIxFacilities().Where(ixfacility.StatusIn("ok")).Order(ixfacility.ByFacID(), ixfacility.ByID()).Select(ixfacility.FieldFacID).Ints(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ix %d fac_set: %w", ix.ID, err)
 	}
 	return m, nil
@@ -274,7 +286,7 @@ func nestedIxLanMap(ctx context.Context, l *ent.IxLan) (map[string]any, error) {
 }
 
 // nestedCarrierMap renders a Carrier as a singular FK at depth=2 (or top-level
-// at depth=1): carrierfac_set as an ascending ID list and org flat.
+// at depth=1): carrierfac_set as an ID list in facility order and org flat.
 func nestedCarrierMap(ctx context.Context, c *ent.Carrier) (map[string]any, error) {
 	m := toMap(carrierFromEnt(c))
 	if org, err := c.QueryOrganization().Only(ctx); err == nil {
@@ -283,7 +295,7 @@ func nestedCarrierMap(ctx context.Context, c *ent.Carrier) (map[string]any, erro
 		return nil, fmt.Errorf("nested carrier %d org: %w", c.ID, err)
 	}
 	var err error
-	if m["carrierfac_set"], err = sortedIDsOrEmpty(c.QueryCarrierFacilities().Where(carrierfacility.StatusIn("ok")).IDs(ctx)); err != nil {
+	if m["carrierfac_set"], err = intsOrEmpty(c.QueryCarrierFacilities().Where(carrierfacility.StatusIn("ok")).Order(carrierfacility.ByFacID(), carrierfacility.ByID()).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested carrier %d carrierfac_set: %w", c.ID, err)
 	}
 	return m, nil
@@ -355,7 +367,9 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 			Where(network.ID(id), network.StatusIn("ok", "pending")).
 			WithOrganization().
 			WithPocs(func(q *ent.PocQuery) { q.Where(poc.StatusIn("ok")) }).
-			WithNetworkFacilities(func(q *ent.NetworkFacilityQuery) { q.Where(networkfacility.StatusIn("ok")) }).
+			WithNetworkFacilities(func(q *ent.NetworkFacilityQuery) {
+				q.Where(networkfacility.StatusIn("ok")).Order(networkfacility.ByFacID(), networkfacility.ByID())
+			}).
 			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) { q.Where(networkixlan.StatusIn("ok", "not-operational")) }).
 			Only(ctx)
 		if err != nil {
@@ -451,7 +465,7 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 			WithOrganization().
 			WithIxLans(func(q *ent.IxLanQuery) { q.Where(ixlan.StatusIn("ok")) }).
 			WithIxFacilities(func(q *ent.IxFacilityQuery) {
-				q.Where(ixfacility.StatusIn("ok")).WithFacility()
+				q.Where(ixfacility.StatusIn("ok")).Order(ixfacility.ByFacID(), ixfacility.ByID()).WithFacility()
 			}).
 			Only(ctx)
 		if err != nil {
@@ -551,7 +565,9 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 		c, err := client.Carrier.Query().
 			Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithCarrierFacilities(func(q *ent.CarrierFacilityQuery) { q.Where(carrierfacility.StatusIn("ok")) }).
+			WithCarrierFacilities(func(q *ent.CarrierFacilityQuery) {
+				q.Where(carrierfacility.StatusIn("ok")).Order(carrierfacility.ByFacID(), carrierfacility.ByID())
+			}).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get carrier %d: %w", id, err)

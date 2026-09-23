@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
@@ -234,6 +235,65 @@ func TestParity_Serializer(t *testing.T) {
 		pfx := get("/api/ixpfx/1?depth=2")
 		nestedLan, _ := pfx["ixlan"].(map[string]any)
 		checkLan("ixpfx.ixlan", nestedLan)
+	})
+
+	t.Run("facility_link_sets_sort_by_facility_id", func(t *testing.T) {
+		t.Parallel()
+		// upstream: serializers.py:1140-1148 at 2.83.0 (the nested
+		// prefetch has no ORDER BY) and models.py:3284, :5998, :6603 (the
+		// unique (ix|network|carrier, facility) index that MySQL reads the
+		// set through). Live /api/net/20?depth=2 and /api/ix/26?depth=2
+		// return these sets in facility-id order. The link ids below run
+		// opposite to their facility ids.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "Link Org", t0)
+		mustNet(ctx, t, c, 1, "Link Net", 64501, 1, t0)
+		mustIX(ctx, t, c, 1, "Link IX", 1, t0)
+		c.Carrier.Create().SetID(1).SetName("Link Carrier").SetOrgID(1).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		facIDs := []int{7, 64, 440}
+		linkIDs := []int{300, 200, 100}
+		for i, facID := range facIDs {
+			mustFac(ctx, t, c, facID, fmt.Sprintf("Link Fac %d", facID), 1, t0)
+			c.NetworkFacility.Create().SetID(linkIDs[i]).SetNetID(1).SetFacID(facID).SetLocalAsn(64501).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+			c.IxFacility.Create().SetID(linkIDs[i]).SetIxID(1).SetFacID(facID).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+			c.CarrierFacility.Create().SetID(linkIDs[i]).SetCarrierID(1).SetFacID(facID).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		srv := newTestServer(t, c)
+
+		for _, tc := range []struct {
+			path, set string
+			want      []int
+		}{
+			{"/api/net/1?depth=1", "netfac_set", linkIDs},
+			{"/api/net/1?depth=2", "netfac_set", linkIDs},
+			{"/api/ix/1?depth=1", "fac_set", facIDs},
+			{"/api/ix/1?depth=2", "fac_set", facIDs},
+			{"/api/carrier/1?depth=1", "carrierfac_set", linkIDs},
+			{"/api/carrier/1?depth=2", "carrierfac_set", linkIDs},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d; body=%s", tc.path, status, body)
+			}
+			raw, _ := decodeDataArray(t, body)[0][tc.set].([]any)
+			got := make([]int, 0, len(raw))
+			for _, e := range raw {
+				switch v := e.(type) {
+				case float64:
+					got = append(got, int(v))
+				case map[string]any:
+					got = append(got, int(v["id"].(float64)))
+				}
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("%s %s = %v, want %v", tc.path, tc.set, got, tc.want)
+			}
+		}
 	})
 }
 
