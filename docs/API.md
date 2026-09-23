@@ -399,19 +399,47 @@ Valid `{type}` values are the same 13 constants defined in
 | `limit` | List | Maximum rows in response. **Default unlimited** when absent — matches upstream 2.83.0 `rest.py:516` (`limit` defaults to `0`) + `rest.py:757-760` (no slice when `limit=0`). Bare `/api/<type>` URLs return ALL rows from the filtered queryset; the response is gated only by the response memory budget (see below). Explicit `limit=N`: positive `N` is honored with no upper cap, as upstream (`rest.py:757-758`); `limit=0` is the explicit "unlimited" sentinel. A non-numeric `limit` returns `400`, as upstream (`rest.py:515-518`). A negative `limit` also returns `400`; upstream serves it as unlimited (see § Known Divergences). Constant: `DefaultLimit=0` (`internal/pdbcompat/response.go`). The `?page=N` shape is not supported — clients that want pagination set `?limit=N&skip=M` instead |
 | `skip` | List | Offset for pagination. A non-numeric or negative `skip` returns `400`, as upstream: 2.83.0 `rest.py:511-514` rejects a non-numeric value, and Django rejects a negative slice with `ValueError`, which `list()` turns into a `400` (`rest.py:824-827`) |
 | `depth` | Detail | Edge expansion depth, clamped to `0`–`4` (the range upstream accepts, 2.83.0 `serializers.py:1016-1039` — `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2). `0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default — `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists. The detail default is `2` (`default_depth(is_list=False)`). Non-numeric keeps the default; negatives floor to `0`. `3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced). `_set` fields list only live children (see "Soft-delete tombstones" below). The sets are in ascending id order, with these exceptions: `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are in facility-id order, as upstream sends them (up to v1.27.0, in link-id or join order), and `ixlan.net_set` keeps the order of the netixlan rows. **List endpoints silently drop `?depth=`** — see § Known Divergences |
-| `fields` | Both | Comma-separated projection — only the listed JSON keys are returned after retrieval |
-| `since` | List | Only return rows with `updated` at or after the given second (Unix seconds). Upstream compares its stored `updated`, which has microseconds, with `N.000000` (2.83.0 `rest.py:736-744`), and shows the value truncated to the second (`serializers.py:1920-1924`). A row shown as `updated=N` therefore almost always comes back for `since=N` upstream. The mirror stores only the second, so it includes that second. Up to v1.27.0 the mirror left out rows with `updated` equal to `N`. Invalid input returns `400`. Activates the upstream "since matrix" — see "Soft-delete tombstones" below |
+| `fields` | Both | Comma-separated list of keys to keep. The response always keeps `id`. It also keeps every key that ends in `_set` (on `net`, this includes `irr_as_set`) and every nested object that has an `id`, so a detail response at the default depth still includes its sets. Unknown names are ignored |
+| `since` | List | The value is Unix seconds as an integer. The list holds the rows with `updated` at or after that second, in `updated` order, then `id` order (see § List order). It also admits `deleted` rows, and `pending` rows on `/api/campus` (see § Soft-delete tombstones). `since=0` or a negative value is ignored. A value that is not an integer returns `400`. Upstream stores `updated` with microseconds and compares it with `N.000000` (2.83.0 `rest.py:736-744`). It shows the value truncated to the second (`serializers.py:1920-1924`), so it also returns almost every row shown as `updated=N`. The mirror stores only the second and includes it |
 | `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream 2.83.0 `rest.py:657-662`. Upstream ignores a key with the `__iexact`, `__icontains` or `__istartswith` suffix; the mirror applies them (see § Known Divergences). Typed against the field; invalid types (e.g. `asn__contains`) return `400`. A key that names a forward FK by its upstream model name filters the FK column: `?org=1` is the same filter as `?org_id=1`. `net` and `network` are names for `net_id`, and `fac` and `facility` are names for `fac_id` (`?network__in=1,2`, `?facility_id=2`). The operators compare the FK id, and `__contains` or `__startswith` on a FK name returns `400`, as upstream (2.83.0 `rest.py:608-631`, `:670-677`, `serializers.py:403-441`). If a request gives one FK in two spellings, the mirror applies both filters. Upstream keeps only the last one |
 
-Unknown query parameters that are not in the reserved set
-(`limit`, `skip`, `depth`, `since`, `q`, `fields`)
-are treated as field filters and validated against the type's schema.
-Unknown filter keys (including over-cap traversal keys) are silently ignored —
-they do not cause `400` —
-and a debug-level slog record plus an `pdbplus.filter.unknown_fields` OTel span
-attribute are emitted so operators can observe them.
+The server reads every query parameter outside `limit`, `skip`, `depth`,
+`since`, `q` and `fields` as a filter key.
+A key that names no field, or that has an unknown operator suffix,
+is ignored, and the response is `200` without that filter.
+For example, `/api/net?name__foo=x` returns the unfiltered list.
+Some relation keys are an exception.
+For example, `/api/netfac?name__foo=x` filters on the facility name
+(see § Relation filters).
+A known key with a value that does not parse for the field type returns `400`.
+The server records each ignored key (see § Unknown-field diagnostics).
 See § Cross-entity traversal for the 2-hop cap and § Validation Notes
 for the rationale.
+
+Filter values follow these rules:
+
+- An exact match on a string field ignores case.
+- A bare `address1`, `city` or `state` filter matches a substring,
+  as upstream does (2.83.0 `rest.py:583-595`).
+  For example, `?city=Frankfurt` also matches `Frankfurt am Main`.
+  With an operator suffix or a relation prefix, the key uses the normal
+  match rules.
+- A bare `country` filter with a 2-letter value is an exact match.
+  A longer value matches a substring.
+- If a query repeats a filter key, the last value applies.
+  A relation key of a `prepare_query` uses the first value
+  (see § Relation filters).
+- A time field, for example `created` or `updated`,
+  accepts Unix seconds or ISO 8601:
+  `2024-01-01`, `2024-01-01T12:00:00`, `2024-01-01 12:00:00`,
+  or RFC 3339 with an offset.
+  A value without an offset is UTC.
+- A date without a time applies to the full day.
+  `?updated=2024-01-01` matches every row updated on that day,
+  `__gt` means after that day, and `__lte` includes that day.
+  In an `__in` list, a date means the start of that day
+  (00:00:00 UTC).
+  `since` accepts only Unix seconds.
 
 Some keys name a column that the mirror stores but upstream does not filter.
 pdbcompat ignores these keys the same way, for every operator:
@@ -1048,7 +1076,7 @@ Typical status codes:
 
 | Status | Cause |
 |--------|-------|
-| `400` | Invalid filter operator, malformed `since`, non-integer ID, filter type mismatch, malformed `__in` value |
+| `400` | An operator that the field type does not support (for example `asn__contains`), a value that does not parse for the field type, a malformed `__in` value, a `since` or an ID that is not an integer, or a `limit` or `skip` that is not a non-negative integer |
 | `404` | Unknown `{type}`, missing `{id}`, detail GET on a tombstoned row, or an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn` |
 | `413` | Pre-flight response memory budget exceeded — see "Response memory budget" above |
 | `500` | Database error (details redacted from response body, full error logged) |
