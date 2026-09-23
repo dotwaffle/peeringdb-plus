@@ -110,17 +110,36 @@ func TestRunSyncWithDemotionMonitor_CancelsOnDemotion(t *testing.T) {
 func TestRunSyncWithDemotionMonitor_PrimaryCompletes(t *testing.T) {
 	t.Parallel()
 
+	// IsPrimary closes polled on call wantPolls. The monitor calls
+	// IsPrimary again only after it has acted on the previous answer, so
+	// at that point it has acted on wantPolls-1 "still primary" answers.
+	// A monitor that cancels the cycle of a primary within those polls has
+	// done so before Sync reads ctx.Err(). Eleven calls cover the ten 1ms
+	// polls that the former 10ms sleep allowed at best.
+	const wantPolls = 11
+	var polls atomic.Int32
+	polled := make(chan struct{})
+	isPrimary := func() bool {
+		if polls.Add(1) == wantPolls {
+			close(polled)
+		}
+		return true
+	}
+
 	finished := make(chan struct{})
 	var ctxErr error
 	go func() {
 		defer close(finished)
 		runSyncWithDemotionMonitor(context.Background(), config.SyncModeFull, monitoredSyncInput{
-			IsPrimary:    func() bool { return true },
+			IsPrimary:    isPrimary,
 			Logger:       discardLogger(),
 			PollInterval: time.Millisecond,
 			Sync: func(ctx context.Context, _ config.SyncMode) error {
-				// Let several monitor polls fire while still primary.
-				time.Sleep(10 * time.Millisecond)
+				select {
+				case <-polled:
+				case <-ctx.Done():
+				case <-time.After(5 * time.Second):
+				}
 				ctxErr = ctx.Err()
 				return nil
 			},
@@ -129,10 +148,13 @@ func TestRunSyncWithDemotionMonitor_PrimaryCompletes(t *testing.T) {
 
 	select {
 	case <-finished:
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("runSyncWithDemotionMonitor did not return")
 	}
 	if ctxErr != nil {
 		t.Errorf("sync ctx err = %v, want nil (still primary)", ctxErr)
+	}
+	if n := polls.Load(); n < wantPolls {
+		t.Errorf("monitor polled IsPrimary %d times during sync, want >= %d", n, wantPolls)
 	}
 }
