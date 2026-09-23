@@ -108,6 +108,20 @@ type TypeConfig struct {
 	// starts with the upstream name (?network__asn=) walks the edge
 	// that owns the column. Nil when the type has no forward FK.
 	ForeignKeys map[string]string
+
+	// UpstreamIgnored lists the Fields keys that upstream never filters
+	// as a key without relation segments. Such a key is ignored for any
+	// operator, as upstream ignores it. Two causes exist:
+	//   - queryable_field_xl renames the key to a name that matches no
+	//     field (2.83.0 serializers.py:428-438): carrier fac_count
+	//     becomes facility_count, netixlan net_side_id becomes
+	//     network_side.
+	//   - The key is a serializer field or a model property, not a
+	//     model field, and no prepare_query handles it (rest.py:525-528,
+	//     :633, :670): for example campus city and carrier org_name.
+	// The columns stay in Fields, so they stay valid traversal targets
+	// where upstream filters them (carrierfac?carrier__fac_count=).
+	UpstreamIgnored map[string]bool
 }
 
 // reservedParams lists query parameter names that are not filter fields.
@@ -375,6 +389,8 @@ var Registry = map[string]TypeConfig{
 			"ixlan":   "ixlan_id",
 			"ix_side": "ix_side_id",
 		},
+		// models.py:6088, serializers.py:428-432.
+		UpstreamIgnored: map[string]bool{"net_side_id": true},
 	},
 	peeringdb.TypeNetFac: {
 		Name: peeringdb.TypeNetFac,
@@ -392,6 +408,8 @@ var Registry = map[string]TypeConfig{
 		},
 		SearchFields: []string{"name"},
 		ForeignKeys:  map[string]string{"network": "net_id", "facility": "fac_id"},
+		// local_asn is a property (models.py:6046-6051).
+		UpstreamIgnored: map[string]bool{"local_asn": true},
 	},
 	peeringdb.TypeIXFac: {
 		Name: peeringdb.TypeIXFac,
@@ -429,6 +447,9 @@ var Registry = map[string]TypeConfig{
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true},
 		ForeignKeys:  map[string]string{"org": "org_id"},
+		// fac_count: models.py:6536, renamed by serializers.py:434-438.
+		// org_name: serializer field only (serializers.py:2667).
+		UpstreamIgnored: map[string]bool{"fac_count": true, "org_name": true},
 	},
 	peeringdb.TypeCarrierFac: {
 		Name: peeringdb.TypeCarrierFac,
@@ -443,6 +464,9 @@ var Registry = map[string]TypeConfig{
 		},
 		SearchFields: []string{"name"},
 		ForeignKeys:  map[string]string{"carrier": "carrier_id", "facility": "fac_id"},
+		// name: serializer field only (serializers.py:2601). The
+		// serializer has no prepare_query.
+		UpstreamIgnored: map[string]bool{"name": true},
 	},
 	peeringdb.TypeCampus: {
 		Name: peeringdb.TypeCampus,
@@ -467,5 +491,14 @@ var Registry = map[string]TypeConfig{
 		SearchFields: []string{"name"},
 		FoldedFields: map[string]bool{"name": true},
 		ForeignKeys:  map[string]string{"org": "org_id"},
+		// org_name is a serializer field (serializers.py:4792). city,
+		// country, state and zipcode are properties (models.py:2113-2147).
+		UpstreamIgnored: map[string]bool{
+			"org_name": true,
+			"city":     true,
+			"country":  true,
+			"state":    true,
+			"zipcode":  true,
+		},
 	},
 }

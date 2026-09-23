@@ -66,7 +66,12 @@ func upstreamFieldName(field string) string {
 // (rest.py:670-677). The operator stays unchanged, so <fk>__in and the
 // comparisons compare the FK id, and <fk>__contains is a 400 on the int
 // column, as upstream raises FieldError (rest.py:702-703).
+//
+// A key in tc.UpstreamIgnored is unknown, as upstream ignores it.
 func resolveLocalField(tc TypeConfig, field string) (string, FieldType, bool) {
+	if tc.UpstreamIgnored[field] {
+		return "", 0, false
+	}
 	if ft, ok := tc.Fields[field]; ok {
 		return field, ft, true
 	}
@@ -101,4 +106,17 @@ func traversalKeyFor(tc TypeConfig, seg string) string {
 		}
 	}
 	return seg
+}
+
+// namesFKColumn reports whether the field of a relation key ends in
+// "_id" the way upstream's strip pattern ^.+[^_]_id$ requires
+// (rest.py:608-610). The relation segments before the field supply the
+// ".+" part, so the field needs only a non-underscore before "_id".
+// Upstream strips the suffix from the whole key, so net__org_id becomes
+// net__org, and then network__org after queryable_field_xl. That names
+// a FK of the related type, and queryable_relations leaves FK fields out
+// (serializers.py:991-995), so upstream ignores the key. Every Registry
+// field that ends in "_id" is a FK column.
+func namesFKColumn(field string) bool {
+	return len(field) >= 4 && strings.HasSuffix(field, "_id") && field[len(field)-4] != '_'
 }

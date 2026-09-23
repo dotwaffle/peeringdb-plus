@@ -235,7 +235,9 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // A key without relation segments filters a local column. A key that
 // names a forward FK in upstream spelling (org, network_id, facility)
-// filters the FK column (resolveLocalField).
+// filters the FK column (resolveLocalField). A key that upstream never
+// filters (TypeConfig.UpstreamIgnored) is unknown, and so is a relation
+// key whose field is a FK column (namesFKColumn).
 //
 // Traversal resolution order (1-hop and 2-hop, len(relSegs) <= 2):
 //  1. Path A: Allowlists[tc.Name].Direct or .Via exact match
@@ -297,7 +299,16 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if len(relSegs) == 0 && reservedParams[field] {
 			continue
 		}
-		relSegs, field = routeIXKey(tc.Name, relSegs, field)
+		routedSegs, routedField := routeIXKey(tc.Name, relSegs, field)
+		// A relation key whose field is a FK column (net__org_id) is
+		// ignored upstream, see namesFKColumn. The netixlan and ixpfx
+		// exchange keys are the exception: upstream handles them in
+		// prepare_query, which resolves ix__org_id to the org FK.
+		if len(relSegs) > 0 && namesFKColumn(field) && slices.Equal(routedSegs, relSegs) {
+			appendUnknown(ctx, key)
+			continue
+		}
+		relSegs, field = routedSegs, routedField
 		// Hard cap: >2 relation segments is silently rejected.
 		if len(relSegs) > 2 {
 			appendUnknown(ctx, key)

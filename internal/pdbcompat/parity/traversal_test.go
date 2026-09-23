@@ -49,8 +49,13 @@ import (
 //     (prepare_query keys such as asn_overlap, not_ix and whereis,
 //     relation keys through a join table such as net?ix_id=,
 //     hide_ix_no_fac, name_search) are silent-ignored.
-//   - DIVERGENCE: netixlan net_side__<field> and ix_side__<field>
-//     are silent-ignored. The mirror has no edge to those facilities.
+//   - DIVERGENCE: netixlan ix_side__<field> keys are silent-ignored.
+//     The mirror has no edge to that facility.
+//   - Keys that upstream never filters are ignored on both sides: the
+//     net_ and fac_ names that queryable_field_xl renames (netixlan
+//     net_side*, carrier fac_count*), serializer-only fields (campus
+//     city, carrier org_name) and relation keys whose field is a FK
+//     column (netixlan?net__org_id=).
 //   - DIVERGENCE: 2-hop keys (`ixlan__ix__id=` on ixpfx), reverse keys
 //     named by the mirror's traversal key (`org?net__status=`) and
 //     the field-level FILTER_EXCLUDE entries resolve, where upstream
@@ -454,15 +459,16 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_netixlan_side_facility_keys_silent_ignore", func(t *testing.T) {
+	t.Run("DIVERGENCE_netixlan_ix_side_facility_keys_silent_ignore", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: net_side and ix_side are FKs from netixlan to
-		// Facility upstream (2.83.0 models.py:6088-6101), so
-		// queryable_relations adds net_side__<field> and
-		// ix_side__<field> (serializers.py:970-996) and upstream
-		// filters on the facility. The mirror stores net_side_id and
-		// ix_side_id but has no edge to the facility, so these keys are
-		// silent-ignored. See docs/API.md § Known Divergences.
+		// DIVERGENCE: ix_side is a FK from netixlan to Facility upstream
+		// (2.83.0 models.py:6095-6101), so queryable_relations adds
+		// ix_side__<field> (serializers.py:970-996) and upstream filters
+		// on the facility. The mirror stores ix_side_id but has no edge
+		// to the facility, so these keys are silent-ignored. The
+		// net_side keys are parity: see
+		// net_fac_renamed_keys_ignored_like_upstream.
+		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
@@ -484,11 +490,114 @@ func TestParity_Traversal(t *testing.T) {
 		}
 
 		srv := newTestServer(t, c)
-		// Upstream returns [5000] for each request.
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/netixlan?net_side__name=SideFacA", want: []int{5000, 5001}},
+			// Upstream: [5000].
 			{path: "/api/netixlan?ix_side__name=SideFacA", want: []int{5000, 5001}},
+			// Upstream: []. It builds ix_side__city__icontains, and both
+			// facilities are in TestCity.
 			{path: "/api/netixlan?ix_side__city__contains=nomatch", want: []int{5000, 5001}},
+		})
+	})
+
+	t.Run("net_fac_renamed_keys_ignored_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:428-438 (queryable_field_xl
+		// renames a leading net_ or fac_ to network_ or facility_),
+		// rest.py:608-631 (the filter loop strips _id and runs xl on
+		// every key, also on the part before an operator) and :633,
+		// :670 (a key that matches no field is skipped). The netixlan
+		// FK net_side (models.py:6088) becomes network_side, and the
+		// carrier field fac_count (models.py:6536) becomes
+		// facility_count. Neither name exists, and no prepare_query
+		// seeds the keys (serializers.py:3161, :2712-2738), so upstream
+		// ignores them for every operator, also __contains (200, not
+		// 400). The count keys of fac, net and ix are prepare_query
+		// seeds (serializers.py:2119-2124, :3743-3748, :4538-4543), and
+		// a traversal target keeps the field name (carrierfac?
+		// carrier__fac_count= is a queryable_relations key,
+		// serializers.py:970-996), so those filter on both sides.
+		c := seedIgnoredKeys(t, t0)
+		srv := newTestServer(t, c)
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?net_side_id=200", want: []int{5000, 5001}},
+			{path: "/api/netixlan?net_side_id__in=200", want: []int{5000, 5001}},
+			{path: "/api/netixlan?net_side_id__gt=200", want: []int{5000, 5001}},
+			{path: "/api/netixlan?net_side_id__contains=2", want: []int{5000, 5001}},
+			{path: "/api/netixlan?net_side=200", want: []int{5000, 5001}},
+			{path: "/api/netixlan?net_side__in=200", want: []int{5000, 5001}},
+			{path: "/api/netixlan?net_side__name=IgnFac200", want: []int{5000, 5001}},
+			{path: "/api/netixlan?network_side=200", want: []int{5000, 5001}},
+			{path: "/api/netixlan?network_side_id=200", want: []int{5000, 5001}},
+			{path: "/api/carrier?fac_count=5", want: []int{800, 801}},
+			{path: "/api/carrier?fac_count__gt=1", want: []int{800, 801}},
+			{path: "/api/carrier?fac_count__in=5", want: []int{800, 801}},
+			{path: "/api/carrier?fac_count__lte=1", want: []int{800, 801}},
+			{path: "/api/carrier?fac_count__contains=5", want: []int{800, 801}},
+		})
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?ix_side_id=200", want: []int{5000}},
+			{path: "/api/carrierfac?carrier__fac_count=5", want: []int{901}},
+			{path: "/api/fac?net_count=3", want: []int{200}},
+			{path: "/api/net?fac_count=2", want: []int{100}},
+			{path: "/api/ix?fac_count__gt=0", want: []int{300}},
+		})
+	})
+
+	t.Run("serializer_only_keys_ignored_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:525-528 (field_names holds the model
+		// fields and queryable_relations only) and :633, :670 (any
+		// other key is skipped). These keys name a serializer field or
+		// a model property, and no prepare_query handles them:
+		// carrier org_name (serializers.py:2667; prepare_query seeds
+		// only carrierfac_set__facility_id, :2712-2738), carrierfac
+		// name (:2601; no prepare_query), campus org_name (:4792) and
+		// the campus city, country, state and zipcode properties
+		// (models.py:2113-2147; prepare_query seeds only facility,
+		// serializers.py:4854-4866), and the netfac local_asn property
+		// (models.py:6046-6051). Upstream ignores them, and so does the
+		// mirror. The rest.py:583-595 location rewrite needs the key in
+		// field_names too, so it does not apply to campus.
+		srv := newTestServer(t, seedIgnoredKeys(t, t0))
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/carrier?org_name=IgnOrg1", want: []int{800, 801}},
+			{path: "/api/carrier?org_name__contains=Org1", want: []int{800, 801}},
+			{path: "/api/carrierfac?name=IgnFac200", want: []int{900, 901}},
+			{path: "/api/campus?org_name=IgnOrg1", want: []int{50, 51}},
+			{path: "/api/campus?city=Berlin", want: []int{50, 51}},
+			{path: "/api/campus?country=DE", want: []int{50, 51}},
+			{path: "/api/campus?state=BE", want: []int{50, 51}},
+			{path: "/api/campus?zipcode=10115", want: []int{50, 51}},
+			{path: "/api/netfac?local_asn=64500", want: []int{600, 601}},
+		})
+	})
+
+	t.Run("fk_column_relation_keys_ignored_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:608-610 strips _id from the whole
+		// key when it matches ^.+[^_]_id$, so net__org_id becomes
+		// net__org, and queryable_field_xl then gives network__org
+		// (serializers.py:403-441). queryable_relations adds only the
+		// fields of a related model that are not FKs
+		// (serializers.py:991-995), so the key matches no field and
+		// upstream ignores it (rest.py:633, :670). <fk>__id keeps its
+		// suffix (the character before _id is an underscore) and
+		// filters. The netixlan exchange keys are prepare_query keys:
+		// get_relation_filters turns ix__org_id into ix__org
+		// (serializers.py:643-654), which related_to_ix filters
+		// (models.py:6172-6186).
+		srv := newTestServer(t, seedFKKeys(t, t0))
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?net__org_id=1", want: []int{5000, 5001}},
+			{path: "/api/netixlan?net__org_id__in=1", want: []int{5000, 5001}},
+			{path: "/api/netfac?fac__org_id=1", want: []int{600, 601}},
+			{path: "/api/poc?net__org_id=2", want: []int{800, 801}},
+			{path: "/api/ixpfx?ixlan__ix_id=300", want: []int{4000, 4001}},
+			{path: "/api/fac?campus__org_id=1", want: []int{200, 201}},
+		})
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?net__id=100", want: []int{5000}},
+			{path: "/api/netixlan?ix__org_id=1", want: []int{5000}},
 		})
 	})
 
@@ -1014,5 +1123,59 @@ func seedFKKeys(t *testing.T, t0 time.Time) *ent.Client {
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	mustNet(ctx, t, c, 102, "FKNet102", 64502, 3, t0)
+	return c
+}
+
+// seedIgnoredKeys seeds rows whose filter keys upstream ignores: two
+// netixlans with different net_side facilities, two carriers with
+// different fac_count and org_name values and their carrierfac rows,
+// two campuses with different location values, and two netfac rows with
+// different local_asn values. It also sets the count columns that the
+// fac, net and ix prepare_query seeds filter.
+func seedIgnoredKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "IgnOrg1", t0)
+	mustOrg(ctx, t, c, 2, "IgnOrg2", t0)
+	mustNet(ctx, t, c, 100, "IgnNet100", 64500, 1, t0)
+	mustNet(ctx, t, c, 101, "IgnNet101", 64501, 2, t0)
+	c.Network.UpdateOneID(100).SetFacCount(2).ExecX(ctx)
+	mustIX(ctx, t, c, 300, "IgnIX300", 1, t0)
+	mustIX(ctx, t, c, 301, "IgnIX301", 2, t0)
+	c.InternetExchange.UpdateOneID(300).SetFacCount(2).ExecX(ctx)
+	mustIxLan(ctx, t, c, 3000, "IgnLan", 300, t0)
+	for i, loc := range []struct{ city, country, state, zip string }{
+		{"Berlin", "DE", "BE", "10115"},
+		{"Paris", "FR", "IDF", "75001"},
+	} {
+		org := i + 1
+		fac, campus, carrier := 200+i, 50+i, 800+i
+		mustFac(ctx, t, c, fac, fmt.Sprintf("IgnFac%d", fac), org, t0)
+		orgName := fmt.Sprintf("IgnOrg%d", org)
+		c.Campus.Create().
+			SetID(campus).SetName(fmt.Sprintf("IgnCampus%d", campus)).
+			SetNameFold(unifold.Fold(fmt.Sprintf("IgnCampus%d", campus))).
+			SetOrgID(org).SetOrgName(orgName).
+			SetCity(loc.city).SetCountry(loc.country).SetState(loc.state).SetZipcode(loc.zip).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.NetworkIxLan.Create().
+			SetID(5000 + i).SetNetID(100).SetIxlanID(3000).SetIxID(300).
+			SetNetSideID(fac).SetIxSideID(fac).SetAsn(64500).SetSpeed(1000).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.NetworkFacility.Create().
+			SetID(600 + i).SetNetID(100 + i).SetFacID(fac).SetLocalAsn(64500 + i).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		carrierName := fmt.Sprintf("IgnCarrier%d", carrier)
+		c.Carrier.Create().
+			SetID(carrier).SetName(carrierName).SetNameFold(unifold.Fold(carrierName)).
+			SetOrgID(org).SetOrgName(orgName).SetFacCount(1 + 4*i).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.CarrierFacility.Create().
+			SetID(900 + i).SetCarrierID(carrier).SetFacID(fac).
+			SetName(fmt.Sprintf("IgnFac%d", fac)).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	c.Facility.UpdateOneID(200).SetNetCount(3).ExecX(ctx)
 	return c
 }
