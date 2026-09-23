@@ -246,22 +246,24 @@ type mcpFeature struct {
 	Description string `json:"description"`
 }
 
+// mcpTools and mcpPrompts copy the tool and prompt descriptions that
+// internal/mcpserver registers. Keep the text identical to the server.
 var mcpTools = []mcpFeature{
-	{Name: "search_peeringdb", Description: "Search PeeringDB entities, with grouped previews or typed cursor pagination."},
-	{Name: "get_network", Description: "Get a network by ASN with bounded exchange and facility relations."},
-	{Name: "get_exchange", Description: "Get an exchange by ID with bounded participant, facility, and prefix relations."},
-	{Name: "get_facility", Description: "Get a facility by ID with bounded network, exchange, and carrier relations."},
-	{Name: "get_organization", Description: "Get an organization by ID with bounded child-entity relations."},
-	{Name: "get_campus", Description: "Get a campus by ID with bounded facilities."},
-	{Name: "get_carrier", Description: "Get a carrier by ID with bounded facilities."},
-	{Name: "compare_networks", Description: "Compare two ASNs across exchanges, facilities, and campuses."},
-	{Name: "lookup_ip", Description: "Find an exact peering address and its containing exchange prefix."},
+	{Name: "search_peeringdb", Description: "Search PeeringDB entities. Omit type for grouped previews; set type for cursor pagination."},
+	{Name: "get_network", Description: "Get a network by ASN with bounded ix_presences and facilities relations."},
+	{Name: "get_exchange", Description: "Get an exchange by ID with bounded participants, facilities, and prefixes relations."},
+	{Name: "get_facility", Description: "Get a facility by ID with bounded networks, exchanges, and carriers relations."},
+	{Name: "get_organization", Description: "Get an organization by ID with bounded networks, exchanges, facilities, campuses, and carriers relations."},
+	{Name: "get_campus", Description: "Get a campus by ID with a bounded facilities relation."},
+	{Name: "get_carrier", Description: "Get a carrier by ID with a bounded facilities relation."},
+	{Name: "compare_networks", Description: "Compare two ASNs across shared exchanges, facilities, and campuses."},
+	{Name: "lookup_ip", Description: "Find an exact network peering address and the containing exchange prefix."},
 	{Name: "get_sync_status", Description: "Get mirror freshness and the latest synchronization result."},
 }
 
 var mcpPrompts = []mcpFeature{
-	{Name: "research_network", Description: "Guide an investigation of one network and its interconnection footprint."},
-	{Name: "compare_networks", Description: "Guide a comparison of two network footprints."},
+	{Name: "research_network", Description: "Investigate one network and its interconnection footprint"},
+	{Name: "compare_networks", Description: "Compare two networks' interconnection footprints"},
 }
 
 func marshalJSON(value any) []byte {
