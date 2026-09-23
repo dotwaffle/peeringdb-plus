@@ -588,7 +588,7 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 	// Surface 4: GraphQL (node-by-id via where filter + list)
 	//
 	// The project's root Query does not expose a direct `poc(id:)` field
-	// (see graph/schema.graphql). We query by the `pocs` connection with
+	// (see graph/schema.graphqls). We query by the `pocs` connection with
 	// a where filter on id — this is the canonical way to fetch a POC
 	// by ID in gqlgen/entgql and still exercises the Poc privacy policy
 	// because the resulting query materialises as *ent.PocQuery.

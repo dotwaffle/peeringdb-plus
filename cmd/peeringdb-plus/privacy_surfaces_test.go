@@ -382,7 +382,7 @@ func TestPrivacySurfaces(t *testing.T) {
 	// The `pocs(first: N)` connection takes paginated args and returns
 	// `edges { node { ... } } totalCount`. This is the canonical list
 	// shape in entgql-generated schemas. ID is a String in the generated
-	// schema (see graph/schema.graphql line 5039: `id: ID!`), so the
+	// schema (`id: ID!` on type Poc in graph/schema.graphqls), so the
 	// decoded struct uses `string`.
 	// --------------------------------------------------------------------
 	t.Run("graphql_list_count", func(t *testing.T) {
