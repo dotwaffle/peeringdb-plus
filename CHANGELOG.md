@@ -10,6 +10,15 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Changed
+
+- A sync forces a garbage collection after a type only when it upserted
+  1000 or more rows of that type. Before this release, it forced one
+  after each of the 13 types, at about 20 ms each on the primary,
+  although an hourly incremental sync upserts only tens to hundreds of
+  rows per type. A full sync still forces one after each large type,
+  where it keeps the peak heap low.
+
 ## [1.28.1] - 2026-09-23
 
 ### Fixed

@@ -246,13 +246,14 @@ type Worker struct {
 	// cyclePeakHeapBytes is the running per-cycle maximum of HeapInuse,
 	// folded in by foldPeakHeap at the points where the cycle's heap
 	// actually peaks: after the Phase A fetch and after each type's
-	// Phase B upsert BEFORE its runtime.GC() call. emitMemoryTelemetry
-	// previously sampled HeapInuse once at end-of-cycle — i.e. after all
-	// 13 per-type GC calls had reclaimed the upsert spike — so the
-	// "peak_heap" gauge systematically reported the post-cycle floor and
-	// the documented escalation trigger (sustained peak heap above
-	// PDBPLUS_HEAP_WARN_MIB) could never fire. Reset at the top of each
-	// Sync; single-writer because Worker.running serialises cycles.
+	// Phase B upsert, BEFORE any forced runtime.GC() (gcHintMinRows).
+	// emitMemoryTelemetry previously sampled HeapInuse once at
+	// end-of-cycle, after the per-type GC calls had reclaimed the upsert
+	// spike, so the "peak_heap" gauge systematically reported the
+	// post-cycle floor and the documented escalation trigger (sustained
+	// peak heap above PDBPLUS_HEAP_WARN_MIB) could never fire. Reset at
+	// the top of each Sync; single-writer because Worker.running
+	// serializes cycles.
 	cyclePeakHeapBytes int64
 }
 
@@ -852,9 +853,9 @@ func (w *Worker) checkMemoryLimit(ctx context.Context, heapAlloc uint64, limit i
 
 // foldPeakHeap folds a HeapInuse observation into the per-cycle peak
 // high-water mark. Callers sit where the cycle's heap actually peaks
-// (post-Phase-A, and post-upsert pre-GC for each type); see the
-// cyclePeakHeapBytes field comment for why end-of-cycle sampling alone
-// under-reports.
+// (post-Phase-A, and after each type's upsert, before any forced GC);
+// see the cyclePeakHeapBytes field comment for why end-of-cycle sampling
+// alone under-reports.
 func (w *Worker) foldPeakHeap(heapInuse uint64) {
 	const maxInt64 = uint64(1<<63 - 1)
 	hb := int64(maxInt64)
@@ -1391,6 +1392,29 @@ func (w *Worker) recordSnapshotWindow(ctx context.Context, span trace.Span, name
 	w.logger.LogAttrs(ctx, slog.LevelInfo, "window starts at full snapshot", logAttrs...)
 }
 
+// gcHintMinRows is the smallest per-type upserted row count after which
+// syncUpsertPass forces a GC before the next type starts.
+//
+// Phase B allocates about 6-20 KiB per upserted row (JSON decode, ent
+// builders, driver buffers; measured on the synthetic bench fixtures:
+// poc ~6 KiB, org ~12 KiB, net and fac ~20 KiB). 1000 rows (10 chunks
+// of scratchChunkSize) thus allocate about 6-20 MiB. syncCycle runs
+// Phase B at GCPercent=25, so the runtime starts a collection each time
+// the heap grows by a quarter of the live heap: about 17 MiB at the
+// primary's observed ~84 MiB sync peak (docs/CONFIGURATION.md). A
+// smaller type allocates about one GC cycle or less, the runtime
+// collects it without help, and a forced GC cannot lower the next
+// type's peak by more than that. Forced GCs cost ~20ms each on the
+// primary.
+//
+// Hourly incremental cycles upsert tens to hundreds of rows per type,
+// so they skip the forced GC. A full sync keeps it for the large types
+// (org, net, netfac, netixlan, poc: tens of thousands of rows each),
+// where collection lags the allocation spike (see scratchChunkSize).
+// At the bench's production-scale counts, every type except campus
+// reaches the threshold.
+const gcHintMinRows = 1000
+
 // syncUpsertPass runs Phase B upserts inside the single tx. It drains
 // each scratch staging table in FK parent-first order, chunking the rows
 // into memory-bounded slices (scratchChunkSize rows at a time) so peak
@@ -1449,19 +1473,23 @@ func (w *Worker) syncUpsertPass(
 		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
 		objectCounts[step.name] = count
 
-		// Capture the true peak BEFORE the GC below reclaims the upsert
-		// spike — this is where the cycle's heap high-water mark lives.
+		// Capture the true peak BEFORE a forced GC below reclaims the
+		// upsert spike; this is where the cycle's heap high-water mark
+		// lives.
 		w.samplePeakHeap()
 
-		// Memory hard gate (400 MB): force a GC cycle between types
-		// to deterministically reclaim the chunked decode buffers and
-		// ent query-builder state before the next type's upsert begins.
-		// Without this, sampled peak heap varies run-to-run because GC
-		// scheduling lags the allocation spike on large types like
-		// netixlan (200K rows). A per-type GC hint costs ~20ms per type
-		// (13 × 20ms = 260ms added latency) in exchange for bounded
-		// peak heap on the 512 MB fly.toml VM.
-		runtime.GC()
+		// Memory hard gate (400 MB): after a large type, force a GC
+		// cycle to deterministically reclaim the chunked decode buffers
+		// and ent query-builder state before the next type's upsert
+		// begins. Without this, sampled peak heap varies run-to-run
+		// because GC scheduling lags the allocation spike on large
+		// types like netixlan (200K rows). Each forced GC costs ~20ms,
+		// so a type below gcHintMinRows rows skips it: its garbage is
+		// about one ordinary GC cycle, which the runtime collects on
+		// its own.
+		if count >= gcHintMinRows {
+			runtime.GC()
+		}
 
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "upserted",
 			slog.String("type", step.name),

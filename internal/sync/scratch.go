@@ -30,10 +30,13 @@ import (
 //	chunk=5000 → ~424 MiB (over gate)
 //	chunk=1000 → ~356-422 MiB (on the gate edge, risky)
 //	chunk=250  → ~334-422 MiB (still intermittently over)
-//	chunk=100  → comfortably under with per-type runtime.GC() hint
+//	chunk=100  → comfortably under with a runtime.GC() hint after every type
 //
-// 100 combined with the per-type runtime.GC() hint in syncUpsertPass
-// gives deterministic peak heap well under the 400 MiB hard gate.
+// 100 combined with the runtime.GC() hint in syncUpsertPass gives
+// deterministic peak heap well under the 400 MiB hard gate. The numbers
+// above predate gcHintMinRows: the hint now runs only after a type that
+// upserted at least that many rows, which at the bench's production-scale
+// counts is every type except campus.
 const scratchChunkSize = 100
 
 // scratchDB is a sql.DB handle to the per-sync /tmp SQLite file plus the

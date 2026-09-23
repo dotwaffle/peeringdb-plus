@@ -463,7 +463,8 @@ Every sync cycle, the worker tracks the per-cycle
 `runtime.MemStats.HeapInuse` high-water mark
 (sampled after the Phase A fetch
 and after each type's Phase B upsert,
-*before* the per-type GC reclaims the spike)
+*before* the forced GC that follows a type of 1000 or more rows
+reclaims the spike)
 and reads (on Linux)
 `/proc/self/status` VmHWM, attaches both as OTel span attrs
 (`pdbplus.sync.peak_heap_bytes`, `pdbplus.sync.peak_rss_bytes`)
