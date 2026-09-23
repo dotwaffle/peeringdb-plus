@@ -3,6 +3,7 @@ package parity
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"slices"
 	"testing"
 	"time"
@@ -36,6 +37,15 @@ import (
 //     Previously a documented divergence; fixed in v1.18.0 via
 //     entsql.Annotation{Table: "campuses"} on Campus
 //     (ent/schema/campus_annotations.go).
+//   - DIVERGENCE: filters on upstream model columns that the API does
+//     not serialize (org_flags, geocode_*, fac location_*) are
+//     silent-ignored. The mirror never receives these values.
+//   - DIVERGENCE: the custom keys that upstream handles in Python
+//     (prepare_query keys such as asn_overlap, not_ix and whereis,
+//     relation keys through a join table such as net?ix_id=,
+//     hide_ix_no_fac, name_search) are silent-ignored.
+//   - DIVERGENCE: netixlan net_side__<field> and ix_side__<field>
+//     are silent-ignored. The mirror has no edge to those facilities.
 //
 // upstream: peeringdb_server/serializers.py:754-780 (queryable_relations)
 // upstream: peeringdb_server/rest.py (filter dispatch)
@@ -237,6 +247,151 @@ func TestParity_Traversal(t *testing.T) {
 		}
 	})
 
+	t.Run("DIVERGENCE_unserialized_model_columns_silent_ignore", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream filters on every model column, also on
+		// columns that its serializers never emit. The filter loop takes
+		// its field set from the model (2.83.0 rest.py:525-528), and
+		// queryable_relations adds <fk>__<field> for each FK
+		// (serializers.py:970-996). The mirror stores only serialized
+		// fields, so these keys are silent-ignored and the list is
+		// unfiltered. See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 models.py:1259-1264 (org_flags),
+		// :591-599 (geocode_status, geocode_date on org and fac),
+		// :2207-2217 (fac location_method, location_place_id),
+		// :2612 (ix ixf_import_request_user)
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "ColumnOrgA", t0)
+		mustOrg(ctx, t, c, 2, "ColumnOrgB", t0)
+		mustNet(ctx, t, c, 100, "ColumnNetA", 64500, 1, t0)
+		mustNet(ctx, t, c, 101, "ColumnNetB", 64501, 2, t0)
+		mustFac(ctx, t, c, 200, "ColumnFacA", 1, t0)
+		mustFac(ctx, t, c, 201, "ColumnFacB", 2, t0)
+		mustIX(ctx, t, c, 300, "ColumnIXA", 1, t0)
+		mustIX(ctx, t, c, 301, "ColumnIXB", 2, t0)
+
+		srv := newTestServer(t, c)
+		// Upstream returns [] for each request: no seeded row can carry
+		// the filtered value (org_flags defaults to 0, geocode_status to
+		// false, location_method to "").
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/org?org_flags=1", want: []int{1, 2}},
+			{path: "/api/org?org_flags__gt=0", want: []int{1, 2}},
+			{path: "/api/org?geocode_status=true", want: []int{1, 2}},
+			{path: "/api/net?org__org_flags=1", want: []int{100, 101}},
+			{path: "/api/fac?location_method=google", want: []int{200, 201}},
+			{path: "/api/fac?location_place_id=ChIJ", want: []int{200, 201}},
+			{path: "/api/ix?ixf_import_request_user=1", want: []int{300, 301}},
+		})
+	})
+
+	t.Run("DIVERGENCE_prepare_query_keys_silent_ignore", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream handles these keys in Python before its
+		// model-field filters: prepare_query in each serializer, the
+		// hide_ix_no_fac mixin, and the search index for name_search.
+		// They are not model fields, and the mirror does not implement
+		// them, so they are silent-ignored and the list is unfiltered.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 serializers.py:2092-2210
+		// (FacilitySerializer.prepare_query), :3708-3762 (Network),
+		// :4503-4631 (InternetExchange), :4970-4992 (Organization),
+		// :4154-4168 (IXLanPrefix); rest.py:1267-1297 (hide_ix_no_fac),
+		// :532-553 (name_search)
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "QueryOrgA", t0)
+		mustOrg(ctx, t, c, 2, "QueryOrgB", t0)
+		mustNet(ctx, t, c, 100, "QueryNetA", 64500, 1, t0)
+		mustNet(ctx, t, c, 101, "QueryNetB", 64501, 2, t0)
+		mustFac(ctx, t, c, 200, "QueryFacA", 1, t0)
+		mustFac(ctx, t, c, 201, "QueryFacB", 2, t0)
+		mustIX(ctx, t, c, 300, "QueryIXA", 1, t0)
+		mustIX(ctx, t, c, 301, "QueryIXB", 2, t0)
+		// Net 100 connects to IX 300 through one netixlan, and the LAN
+		// of IX 300 holds two prefixes.
+		mustIxLan(ctx, t, c, 3000, "QueryLanA", 300, t0)
+		mustIxPfx(ctx, t, c, 4000, "10.0.0.0/24", 3000, t0)
+		mustIxPfx(ctx, t, c, 4001, "10.1.0.0/24", 3000, t0)
+		if _, err := c.NetworkIxLan.Create().
+			SetID(5000).SetNetID(100).SetIxlanID(3000).SetIxID(300).
+			SetAsn(64500).SetSpeed(1000).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed netixlan: %v", err)
+		}
+
+		srv := newTestServer(t, c)
+		// No netfac or ixfac rows exist. Upstream returns a narrower
+		// list for each request below (for example [101] for not_ix,
+		// [100] for net?ix_id and [4000] for whereis), or 400 (see
+		// asn_overlap).
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			// prepare_query keys.
+			{path: "/api/fac?asn_overlap=64500,64501", want: []int{200, 201}},
+			{path: "/api/fac?org_present=1", want: []int{200, 201}},
+			{path: "/api/fac?all_net=100,101", want: []int{200, 201}},
+			{path: "/api/net?not_ix=300", want: []int{100, 101}},
+			{path: "/api/ix?ipblock=10.0.0.0/24", want: []int{300, 301}},
+			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4001}},
+			{path: "/api/ix?capacity__gte=1000", want: []int{300, 301}},
+			{path: "/api/org?asn=64500", want: []int{1, 2}},
+			// Upstream returns 400 for a single ASN
+			// (models.py:2867-2868).
+			{path: "/api/ix?asn_overlap=64500", want: []int{300, 301}},
+			// Relation keys through a join table (related_to_*).
+			{path: "/api/net?ix_id=300", want: []int{100, 101}},
+			{path: "/api/net?fac_id=200", want: []int{100, 101}},
+			{path: "/api/fac?net_id=100", want: []int{200, 201}},
+			{path: "/api/ix?net_id=100", want: []int{300, 301}},
+			// hide_ix_no_fac: neither IX has a facility.
+			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
+			// name_search: upstream returns the search-index hits.
+			{path: "/api/net?name_search=QueryNetA", want: []int{100, 101}},
+		})
+	})
+
+	t.Run("DIVERGENCE_netixlan_side_facility_keys_silent_ignore", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: net_side and ix_side are FKs from netixlan to
+		// Facility upstream (2.83.0 models.py:6088-6101), so
+		// queryable_relations adds net_side__<field> and
+		// ix_side__<field> (serializers.py:970-996) and upstream
+		// filters on the facility. The mirror stores net_side_id and
+		// ix_side_id but has no edge to the facility, so these keys are
+		// silent-ignored. See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "SideOrg", t0)
+		mustNet(ctx, t, c, 100, "SideNet", 64500, 1, t0)
+		mustFac(ctx, t, c, 200, "SideFacA", 1, t0)
+		mustFac(ctx, t, c, 201, "SideFacB", 1, t0)
+		mustIX(ctx, t, c, 300, "SideIX", 1, t0)
+		mustIxLan(ctx, t, c, 3000, "SideLan", 300, t0)
+		for id, fac := range map[int]int{5000: 200, 5001: 201} {
+			if _, err := c.NetworkIxLan.Create().
+				SetID(id).SetNetID(100).SetIxlanID(3000).SetIxID(300).
+				SetAsn(64500).SetSpeed(1000).
+				SetNetSideID(fac).SetIxSideID(fac).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed netixlan id=%d: %v", id, err)
+			}
+		}
+
+		srv := newTestServer(t, c)
+		// Upstream returns [5000] for each request.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?net_side__name=SideFacA", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__name=SideFacA", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__city__contains=nomatch", want: []int{5000, 5001}},
+		})
+	})
+
 	t.Run("path_a_1hop_fac_campus_name", func(t *testing.T) {
 		t.Parallel()
 		// This query previously returned HTTP 500 ("no such table:
@@ -355,6 +510,34 @@ func mustIxPfx(ctx context.Context, t *testing.T, c *ent.Client, id int, prefix 
 		SetStatus("ok").SetCreated(t0).SetUpdated(t0).
 		Save(ctx); err != nil {
 		t.Fatalf("seed ixpfx id=%d: %v", id, err)
+	}
+}
+
+// silentIgnoreCase is one request whose filter key pdbcompat ignores,
+// with the full (unfiltered) ID set that the request must return.
+type silentIgnoreCase struct {
+	path string
+	want []int
+}
+
+// assertKeysSilentlyIgnored checks that each request returns HTTP 200
+// and exactly the unfiltered ID set, in any order. It is the canary for
+// the "silently ignored" divergences: if pdbcompat starts to resolve a
+// key, the result narrows and the case fails.
+func assertKeysSilentlyIgnored(t *testing.T, srv *httptest.Server, cases []silentIgnoreCase) {
+	t.Helper()
+	for _, tc := range cases {
+		status, body := httpGet(t, srv, tc.path)
+		if status != http.StatusOK {
+			t.Errorf("%s: status = %d, want 200; body=%s", tc.path, status, string(body))
+			continue
+		}
+		got := slices.Clone(extractIDs(t, body))
+		slices.Sort(got)
+		want := slices.Sorted(slices.Values(tc.want))
+		if !slices.Equal(got, want) {
+			t.Errorf("%s: got %v, want %v (unfiltered; divergence canary)", tc.path, got, want)
+		}
 	}
 }
 

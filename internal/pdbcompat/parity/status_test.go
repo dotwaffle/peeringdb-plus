@@ -556,6 +556,77 @@ func TestParity_Status(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("DIVERGENCE_poc_tombstone_outlives_upstream_retention", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream hard deletes a soft-deleted poc when its
+		// updated value is POC_DELETION_PERIOD (default 30 days) old. It
+		// is the only upstream hard delete. After that, a ?since= window
+		// that covers the deletion no longer returns the tombstone. The
+		// mirror keeps every tombstone, so the window still returns it.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 management/commands/pdb_delete_pocs.py:34-38,58
+		// + mainsite/settings/__init__.py:684 (30 days)
+		// + docs/api/obj_poc.md:14-17
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		deletedAt := time.Now().UTC().Add(-90 * 24 * time.Hour).Truncate(time.Second)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		// Upstream blanks name, phone, email and url on soft delete
+		// (docs/api/obj_poc.md:12-13); the ent defaults are "".
+		if _, err := c.Poc.Create().
+			SetID(10).SetNetID(1).SetRole("NOC").SetVisible("Public").
+			SetStatus("deleted").SetCreated(t0).SetUpdated(deletedAt).
+			Save(ctx); err != nil {
+			t.Fatalf("seed poc tombstone: %v", err)
+		}
+
+		srv := newTestServer(t, c)
+		path := fmt.Sprintf("/api/poc?since=%d", deletedAt.Add(-24*time.Hour).Unix())
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusOK {
+			t.Fatalf("GET %s: status = %d; body=%s", path, status, string(body))
+		}
+		// Upstream returns [] here: the tombstone is 90 days old.
+		if ids := extractIDs(t, body); !equalIntSlice(ids, []int{10}) {
+			t.Errorf("GET %s: got %v, want [10] (retained tombstone; divergence canary)", path, ids)
+		}
+	})
+
+	t.Run("DIVERGENCE_detail_ignores_filters", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream applies the query-parameter filters to a
+		// single-object GET too. retrieve (2.83.0 rest.py:849-855) calls
+		// DRF get_object, which filters get_queryset(): the same filters
+		// as a list (:565-703) plus the live-or-pending PK status set
+		// (:750). A filter that excludes the object returns 404. The
+		// mirror reads only ?depth= and ?fields= on a detail request.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := testutil.SetupClient(t)
+		seedNetIXLanMix(t, c)
+
+		srv := newTestServer(t, c)
+		cases := []struct {
+			path string
+			want []int
+		}{
+			// netixlan 2 is not-operational. Upstream: 404.
+			{"/api/netixlan/2?status=ok", []int{2}},
+			// net 1 is named NetIXLanNet. Upstream: 404.
+			{"/api/net/1?name=nomatch", []int{1}},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d, want 200 (divergence canary); body=%s", tc.path, status, string(body))
+			}
+			if ids := extractIDs(t, body); !equalIntSlice(ids, tc.want) {
+				t.Errorf("GET %s: got %v, want %v", tc.path, ids, tc.want)
+			}
+		}
+	})
 }
 
 // equalIntSlice is a local helper because slices.Equal requires
