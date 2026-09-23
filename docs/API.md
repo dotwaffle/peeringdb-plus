@@ -372,12 +372,16 @@ so database error text does not reach the client.
 
 ## 4. PeeringDB Compatibility API (`/api/`)
 
-Implemented in `internal/pdbcompat/`,
-this surface is a **drop-in replacement for the PeeringDB REST API** —
-URL structure, response envelope, filter operators,
-and the single-object-wrapped-in-array quirk all match the upstream API
-so existing clients can switch to a PeeringDB Plus instance with only a base-URL
-change.
+This surface, in `internal/pdbcompat/`,
+serves the read operations of the PeeringDB REST API.
+It serves only `GET` and `HEAD` requests.
+Other methods get `405`.
+The URL structure, the success envelope, the filter operators
+and the single object in a `data` array match upstream.
+A client that only reads can switch to PeeringDB Plus
+with a change of base URL.
+Error bodies and some filters differ.
+See § Known Divergences.
 
 ### Routes
 
@@ -1037,7 +1041,7 @@ curl "https://peeringdb-plus.fly.dev/api/net/20/?depth=1"
 # and the asn column for numeric queries
 curl "https://peeringdb-plus.fly.dev/api/net?q=AS8075"
 
-# First 50 IXPs in country DE
+# The 50 IXPs in country DE with the lowest IDs
 curl "https://peeringdb-plus.fly.dev/api/ix?country=DE&limit=50"
 
 # Only return id and name
@@ -1049,13 +1053,17 @@ curl "https://peeringdb-plus.fly.dev/api/net?since=1704067200"
 # Diacritic-insensitive substring match against organization names
 curl "https://peeringdb-plus.fly.dev/api/org?name__contains=koln"
 
-# 2-hop traversal: facilities whose parent organization is named "DE-CIX"
-curl "https://peeringdb-plus.fly.dev/api/fac?org__name=DE-CIX"
+# 1-hop traversal: exchanges whose organization name contains "DE-CIX"
+curl "https://peeringdb-plus.fly.dev/api/ix?org__name__contains=DE-CIX"
+
+# 2-hop traversal (mirror extension): prefixes of exchanges whose name
+# contains "DE-CIX"
+curl "https://peeringdb-plus.fly.dev/api/ixpfx?ixlan__ix__name__contains=DE-CIX"
 ```
 
 ### Response envelope
 
-All responses follow the PeeringDB shape:
+Every successful response uses the PeeringDB envelope:
 
 ```json
 {
