@@ -1126,13 +1126,22 @@ which reads standard `OTEL_*` env vars to select exporters (OTLP, stdout, none):
   and the dispatch is in `internal/otel/sampler.go` (`perRouteSampler`);
   see the Sampling Matrix below.
   The known-app-route ratio honours `PDBPLUS_OTEL_SAMPLE_RATE`
-  (default `1.0`);
-  unknown-path traces drop to 1% to defend against opportunistic scanners
-  (incident 2026-05-02).
-  Sync-worker and other non-HTTP spans hit the same 1% deny-by-default floor.
+  (default `1.0`).
+  Unknown-path traces drop to 1% to limit the volume from scanners.
+  The sampler drops every scheduled sync cycle
+  (root span attribute `pdbplus.origin=sync`).
+  It always samples a cycle that `POST /sync` starts,
+  unless the request has `?trace=0`.
+  Other spans without a URL path use the 1% default.
   Spans are created automatically by `otelhttp` middleware for HTTP requests,
   by `otelconnect.NewInterceptor` for ConnectRPC RPCs,
   and by the sync worker for sync cycles.
+  With `PDBPLUS_OTEL_SQL=true` (the default), `otelsql` adds one span
+  for each SQL statement (`internal/database/database.go`).
+  These spans are children of the request or sync span,
+  so the same sampling decision applies.
+  A statement outside a request or sync cycle, such as a startup migration,
+  starts a root span at the 1% default.
   There is no per-mutation tracing:
   the per-Op `otelMutationHook` was removed in v1.18.6
   (it created one span per ent mutation,
@@ -1146,16 +1155,21 @@ which reads standard `OTEL_*` env vars to select exporters (OTLP, stdout, none):
 
 Per-route sampling is configured in `internal/otel/sampler.go`
 (`perRouteSampler`) and wrapped in `sdktrace.ParentBased` so child spans inherit
-the root decision (the cross-service trace continuity invariant):
+the root decision (the in-process trace continuity rule):
 
 | Route prefix | Ratio | Rationale |
 |--------------|-------|-----------|
-| `/.`, `/wp-` | 0.001 | Scanner-bait deny-prefixes (`.env`, `.git/`, `.aws/`, `.kube/`, `.htpasswd`, `.npmrc`, `wp-admin`, `wp-login.php`). Added 2026-05-03 after a 9M-spans/hour scanner spike from 45.148.10.238 (UA `SecurityScanner/1.0`) peaked at 384 KB/s and tripped `live_traces_exceeded` discards in Grafana Cloud Tempo. |
+| `/.`, `/wp-` | 0.001 | Paths that scanners probe (`.env`, `.git/`, `.aws/`, `.kube/`, `.htpasswd`, `.npmrc`, `wp-admin`, `wp-login.php`). Also matches `/.well-known/`. |
 | `/healthz`, `/readyz`, `/grpc.health.v1.Health/` | 0.01 | Fly health probes — 1% sample is enough for liveness debugging without dominating Tempo volume. Before per-route sampling, `/healthz` was ~99% of HTTP trace volume. |
 | `/api/`, `/rest/v1/`, `/peeringdb.v1.`, `/graphql` | `PDBPLUS_OTEL_SAMPLE_RATE` (default 1.0) | Primary API surfaces — full sampling for debugging by default. The env var is the operator's incident-time dampener for known-app-route volume; it no longer drives the unknown-path floor. |
 | `/ui/` | 0.5 | Browser traffic; halved per the telemetry audit. |
 | `/static/`, `/favicon.ico` | 0.01 | Static assets; rare debugging value. |
-| (default — unknown paths, sync worker, internal spans) | 0.01 | Deny-by-default for unknown URL paths (scanner protection, hardcoded). Sync-worker / internal spans without a `url.path` attribute also land here at 1%. To raise this floor, edit `defaultSamplerInput` in `internal/otel/provider.go`. |
+| (default: unknown paths, internal spans) | 0.01 | Deny-by-default for unknown URL paths (scanner protection, hardcoded). Internal spans without a `url.path` attribute also use it. To raise this floor, edit `defaultSamplerInput` in `internal/otel/provider.go`. |
+| Sync cycle root span | 0 (scheduled), 1.0 (`POST /sync`) | Set by `pdbplus.origin` and `pdbplus.force_sample`. The sampler checks them before the route. `POST /sync?trace=0` turns off the forced sample. |
+
+`/mcp`, `/skills/` and `/llms.txt` have no entry, so they use the 1% default.
+The agent-skill files and the MCP server card under `/.well-known/`
+match the `/.` prefix and use 0.1%.
 
 `ParentBased` composition guarantees that once a parent span samples in
 (e.g. an `/api/net` request),
@@ -1190,18 +1204,25 @@ vars.
   before `SetMeterProvider` delegate to the real provider once main
   wires it):
   - `pdbplus.sync.duration` (histogram) — buckets 1/5/10/30/60/120/300 seconds.
-  - `pdbplus.sync.operations` (counter) — labelled by status (success/failed).
+  - `pdbplus.sync.operations` (counter): attributes `status`
+    (`success`, `failed`) and `mode` (`full`, `incremental`).
   - `pdbplus.sync.type.objects` (counter) — per-type object counts.
   - `pdbplus.sync.type.deleted` (counter) — per-type tombstone counts.
   - `pdbplus.sync.type.fetch_errors` / `upsert_errors` / `fallback` / `orphans`
     (counters).
+  - `pdbplus.sync.fk_backfill` (counter): FK backfill attempts by `result`.
+  - `pdbplus.peeringdb.requests` and `pdbplus.peeringdb.retries` (counters)
+    and `pdbplus.peeringdb.rate_limit_wait_ms` (histogram): upstream calls.
   - `pdbplus.role.transitions` (counter) — LiteFS promote/demote events.
-  - Object-count gauges per type (`InitObjectCountGauges`) backed by an atomic
-    cache updated on every successful sync, avoiding live `COUNT(*)` queries.
-  - A freshness gauge (`InitFreshnessGauge`) derived from the `sync_status`
-    table.
-  - Sync-cycle peak heap/RSS gauges (`InitMemoryGauges` —
-    `pdbplus.sync.peak_heap_bytes`, `pdbplus.sync.peak_rss_bytes`).
+  - `pdbplus.data.type.count` (gauge, `InitObjectCountGauges`): object count
+    per type, from an atomic cache that each successful sync updates,
+    so no request runs a live `COUNT(*)`.
+  - `pdbplus.sync.freshness` (gauge, seconds, `InitFreshnessGauge`):
+    time since the last successful sync, read from the `sync_status` table.
+  - `pdbplus.sync.peak_heap` and `pdbplus.sync.peak_rss` (gauges, bytes,
+    `InitMemoryGauges`): sync-cycle peaks.
+    Prometheus names: `pdbplus_sync_peak_heap_bytes`,
+    `pdbplus_sync_peak_rss_bytes`.
   - Per-request response heap-delta histogram
     (`pdbplus.response.heap_delta`, exported to Prometheus as
     `pdbplus_response_heap_delta_bytes`).
@@ -1255,10 +1276,10 @@ vars.
 
 Standard runtime metrics are collected via
 `go.opentelemetry.io/contrib/instrumentation/runtime` (wired through
-`internal/otel/provider.go`) and emit per-instance `go_memory_used_bytes`,
-`go_goroutine_count`, `go_gc_duration_seconds` gauges on every machine (live
-tick), coexisting with the `pdbplus_sync_peak_*` sync-cycle watermarks (primary
-only).
+`internal/otel/provider.go`) and emit per-instance runtime metrics such as
+`go_memory_used_bytes`, `go_memory_gc_goal_bytes` and `go_goroutine_count`
+on every machine (live tick), coexisting with the `pdbplus_sync_peak_*`
+sync-cycle watermarks (primary only).
 All providers are shut down on SIGINT/SIGTERM via the `SetupOutput.Shutdown`
 closure, which runs inside the drain window (`PDBPLUS_DRAIN_TIMEOUT`, default
 `10s`).
