@@ -180,8 +180,8 @@ func TestListEndpoint_InBoolAndTime(t *testing.T) {
 			SetAsn(s.asn).
 			SetInfoUnicast(s.unicast).
 			SetStatus("ok").
-			SetCreated(time.Unix(s.created, 0)).
-			SetUpdated(time.Unix(s.created, 0)).
+			SetCreated(time.Unix(s.created, 0).UTC()).
+			SetUpdated(time.Unix(s.created, 0).UTC()).
 			Save(ctx)
 		if err != nil {
 			t.Fatalf("create network %s: %v", s.name, err)

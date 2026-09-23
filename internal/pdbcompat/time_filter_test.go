@@ -78,6 +78,9 @@ func TestTimeFilterSemantics(t *testing.T) {
 		{"gte date is start of day", "/api/net?updated__gte=2026-04-01", []int{1, 2}},
 		// RFC 3339 instants accepted.
 		{"rfc3339 gt", "/api/net?updated__gt=2026-04-01T10%3A00%3A00Z", []int{2}},
+		// An RFC 3339 offset names the same instant as the UTC row.
+		{"rfc3339 offset equality", "/api/net?updated=2026-04-01T11%3A00%3A00%2B01%3A00", []int{1}},
+		{"rfc3339 offset gte", "/api/net?updated__gte=2026-04-01T11%3A00%3A00%2B01%3A00", []int{1, 2}},
 		// Epoch seconds still accepted.
 		{"epoch equality", fmt.Sprintf("/api/net?updated=%d", day1.Unix()), []int{1}},
 	}

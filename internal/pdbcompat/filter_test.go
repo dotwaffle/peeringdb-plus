@@ -3,8 +3,10 @@ package pdbcompat
 import (
 	"context"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseFieldOp(t *testing.T) {
@@ -680,6 +682,26 @@ func TestParseTimeErrors(t *testing.T) {
 				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
 			}
 		})
+	}
+}
+
+// TestParseTime_ReturnsUTC checks that every parsed time is in UTC. The
+// SQLite driver binds a time as text in its own zone, and the stored
+// timestamps are UTC text, so a time in another zone compares wrongly.
+// The epoch cases fail only when the process zone is not UTC.
+func TestParseTime_ReturnsUTC(t *testing.T) {
+	t.Parallel()
+	want := time.Date(2026, 4, 1, 10, 0, 0, 0, time.UTC)
+	epoch := strconv.FormatInt(want.Unix(), 10)
+	got, err := parseEpoch(epoch)
+	if err != nil || got.Location() != time.UTC || !got.Equal(want) {
+		t.Errorf("parseEpoch(%s) = %v, %v; want %v in UTC", epoch, got, err, want)
+	}
+	for _, in := range []string{epoch, "2026-04-01T10:00:00Z", "2026-04-01T11:00:00+01:00", "2026-04-01T05:00:00-05:00", "2026-04-01 10:00:00"} {
+		got, _, err := parseTimeValue(in)
+		if err != nil || got.Location() != time.UTC || !got.Equal(want) {
+			t.Errorf("parseTimeValue(%q) = %v, %v; want %v in UTC", in, got, err, want)
+		}
 	}
 }
 
