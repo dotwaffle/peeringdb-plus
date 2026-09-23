@@ -444,8 +444,16 @@ whole new service.
    `internal/grpcserver/<entity>.go`.
    The handler interface it must satisfy is regenerated in
    `gen/peeringdb/v1/peeringdbv1connect/`.
+   Return a failed database query through `queryError(ctx, op, err)`
+   from `internal/grpcserver/errors.go`.
+   Do not return `connect.NewError(connect.CodeInternal, err)`,
+   because that sends the database error text to the client.
+   `queryError` also maps a canceled or expired context
+   to `CodeCanceled` or `CodeDeadlineExceeded`.
 4. Add tests in `internal/grpcserver/grpcserver_test.go` (or a new
-   `<entity>_test.go` file) using `testutil.SetupClient(t)` + `seed.Full(t, c)`.
+   `<entity>_test.go` file).
+   Use `testutil.SetupClient(t)` and rows that the test creates inline,
+   as `grpcserver_test.go` does.
 
 **Brand-new service:**
 
@@ -454,8 +462,11 @@ whole new service.
 3. Create `internal/grpcserver/<newentity>.go` with a struct that holds
    `Client *ent.Client` and `StreamTimeout time.Duration`, and implements the
    generated handler interface.
+   Return failed database queries through `queryError`, as for a new RPC.
 4. Register it in `cmd/peeringdb-plus/main.go` — add it to the `serviceNames`
    slice and add a `registerService(...)` call alongside the existing 13.
+5. Add the service to `TestQueryError_GetAllServices`
+   in `internal/grpcserver/errors_test.go`.
 
 All handlers are wrapped with `otelconnect` interceptors automatically via
 `handlerOpts`; no extra wiring needed.
