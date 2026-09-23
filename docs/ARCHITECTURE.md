@@ -81,8 +81,8 @@ A typical read request flows as follows:
    `:8080` with HTTP/1.1 and h2c (cleartext HTTP/2 for gRPC) enabled.
 3. The middleware chain runs
    (`Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag`)
-   before dispatching to the mux (`cmd/peeringdb-plus/main.go` —
-   `buildMiddlewareChain`).
+   before dispatching to the mux (`buildMiddlewareChain` in
+   `cmd/peeringdb-plus/server.go`).
 4. The request is dispatched to one of the six API surfaces based on URL path.
 5. The handler reads from the local SQLite file via the ent client.
    Because SQLite is a local file
@@ -280,13 +280,16 @@ A large `snapshot_lag`, or an old `snapshot_generated`, shows a stale cache.
   used by all 13 ConnectRPC services to avoid per-type duplication.
   The companion `StreamEntities[E, P]` (`internal/grpcserver/generic.go:94`)
   handles compound-keyset cursor streaming.
-- **`middleware.CachingState`** (`internal/middleware/caching.go`) —
-  Atomically swappable ETag keyed on the last successful sync completion time;
-  one SHA-256 per sync, zero per request.
+- **`middleware.CachingState`** (`internal/middleware/caching.go`):
+  an ETag keyed on the last successful sync completion time,
+  held behind an atomic pointer.
+  It costs one SHA-256 for each update and none for each request.
+  Only the primary updates it after a sync
+  (see [Middleware chain](#middleware-chain)).
 - **`pdbotel.SetupOutput`** (`internal/otel/provider.go`) —
   Bundles the OTel shutdown function and `LoggerProvider`
   so the dual slog handler can bridge log records into the OTel pipeline.
-- **`chainConfig` / `buildMiddlewareChain`** (`cmd/peeringdb-plus/main.go`) —
+- **`chainConfig` / `buildMiddlewareChain`** (`cmd/peeringdb-plus/server.go`):
   Single construction point for the HTTP middleware stack;
   the wrap order is regression-locked by `TestMiddlewareChain_Order` in
   `middleware_chain_test.go`.
@@ -450,7 +453,7 @@ and `protoc-gen-connect-go` from `mise.toml` and `mise.lock`.
 ## Middleware chain
 
 The HTTP middleware stack is assembled by `buildMiddlewareChain`
-(`cmd/peeringdb-plus/main.go`).
+(`cmd/peeringdb-plus/server.go`).
 Outermost first:
 
 1. **Recovery** (`internal/middleware/recovery.go`) — Catches panics, logs them,
@@ -461,10 +464,15 @@ Outermost first:
    streaming.
 3. **CORS** (`internal/middleware/cors.go`) —
    Configurable via `PDBPLUS_CORS_ORIGINS` (default `*`).
-4. **OTel HTTP** — `otelhttp.NewMiddleware("peeringdb-plus")` adds a server span
-   per request and exports the standard `http.server.*` metrics.
-5. **Logging** (`internal/middleware/logging.go`) —
-   Structured slog access log with request ID correlation.
+4. **OTel HTTP**: `otelhttp.NewMiddleware("peeringdb-plus")` creates a server
+   span for each request and records the standard `http.server.*` metrics.
+   It treats every request as a public endpoint,
+   so each request starts a new root span.
+   A `traceparent` from the client becomes a span link,
+   so a client cannot set the trace ID or the sampling decision.
+5. **Logging** (`internal/middleware/logging.go`):
+   structured slog access log.
+   Each line has `trace_id` and `span_id` when the span is valid.
 6. **PrivacyTier** (`internal/middleware/privacy_tier.go`) —
    Stamps the resolved `PDBPLUS_PUBLIC_TIER` value onto every inbound request
    context via `privctx.WithTier`.
@@ -477,21 +485,44 @@ Outermost first:
    and `/grpc.health.v1.Health/*` until the first sync completes.
    Browser clients get a styled HTML syncing page;
    terminal clients get plain text; everything else gets JSON.
-8. **SecurityHeaders** (`internal/middleware/security.go`) — HSTS
-   (180-day default),
+8. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers
+   on every response:
+   `Strict-Transport-Security: max-age=31536000; includeSubDomains` (365 days),
    `X-Content-Type-Options: nosniff`,
-   and `X-Frame-Options: DENY` scoped to browser paths.
+   `Referrer-Policy: strict-origin-when-cross-origin`,
+   `Cross-Origin-Opener-Policy: same-origin` and
+   `Cross-Origin-Resource-Policy: same-origin`.
+   It sets `X-Frame-Options: DENY` only on browser paths:
+   `/`, `/ui`, `/graphql`, and the paths below `/ui/` and `/graphql/`.
 9. **CSP** (`internal/middleware/csp.go`) —
    Different policies for `/ui/` and `/graphql`.
    Served as `Report-Only` by default;
    switched to enforcing via `PDBPLUS_CSP_ENFORCE=true`.
-10. **Caching** (`internal/middleware/caching.go`) —
-    ETag-based conditional GETs keyed on the last sync completion time.
-    `/ui/about` is opted out because it renders relative timestamps
-    that would freeze under a sync-time key.
+10. **Caching** (`internal/middleware/caching.go`) handles GET and HEAD only:
+    - `/skills/*`: no change. The skill handlers set their own ETags.
+    - `/static/*`: `Cache-Control: public, max-age=86400`.
+    - `/ui/about`, `/healthz` and `/readyz`: `Cache-Control: no-store`.
+      (`/ui/about` renders relative timestamps
+      that would freeze under a sync-time key.)
+    - All other paths: a weak ETag from the last sync time,
+      and 304 for a matching `If-None-Match`.
+      `Cache-Control` is `public` for the Public tier
+      and `private` for the Users tier,
+      with `max-age` equal to the sync interval plus 120 seconds.
+      A response with status 400 or higher gets `Cache-Control: no-store`
+      and no ETag.
+
+    At process start, `cmd/peeringdb-plus/main.go` reads the last sync time
+    from `sync_status`.
+    If no sync is recorded, the middleware has no ETag,
+    and it adds no caching headers on the paths of the last list item.
+    The primary updates the ETag after each sync.
+    A replica keeps the ETag that it read at process start.
+    A replica that started before the first sync has no ETag
+    until it restarts.
 11. **Gzip / Compression** (`internal/middleware/compression.go`) —
     Response compression.
-12. **RouteTag** (`cmd/peeringdb-plus/main.go` `routeTagMiddleware`) —
+12. **RouteTag** (`cmd/peeringdb-plus/route_tag.go` `routeTagMiddleware`):
     Innermost wrap; injects `http.route` into the otelhttp labeler
     AFTER mux dispatch so `r.Pattern` is populated.
     Empty `r.Pattern` (404 traffic) is skipped to avoid `http.route=""`
