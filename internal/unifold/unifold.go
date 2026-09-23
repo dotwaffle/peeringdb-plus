@@ -1,13 +1,13 @@
-// Package unifold folds Unicode strings into a normalised ASCII-lowercase
+// Package unifold folds Unicode strings into a normalized ASCII-lowercase
 // form suitable for diacritic-insensitive equality and substring matching.
 //
-// The pipeline is: hand-mapped ligature substitution → NFKD normalisation
+// The pipeline is: hand-mapped ligature substitution → NFKD normalization
 // (golang.org/x/text/unicode/norm) → drop combining marks (unicode.Mn) →
 // ToLower. The hand map covers non-decomposable diacritics that NFKD alone
 // leaves intact (ß, æ, œ, ø, ł, þ, đ, ð, dotless ı, and their
 // upper-case variants).
 //
-// Scope: reproduces upstream PeeringDB's `unidecode.unidecode(v)` behaviour
+// Scope: reproduces upstream PeeringDB's `unidecode.unidecode(v)` behavior
 // (2.83.0 rest.py:597) closely enough for filter-value matching in the pdbcompat
 // layer. It is NOT a full Unicode-to-ASCII transliteration library — CJK,
 // Arabic, Hebrew, and other non-Latin scripts pass through untouched so
@@ -27,7 +27,7 @@ import (
 // leaves unchanged. Both upper- and lower-case variants are mapped so the
 // substitution is order-independent with respect to ToLower.
 //
-// Sourced from upstream `unidecode` behaviour for these specific code
+// Sourced from upstream `unidecode` behavior for these specific code
 // points; keep the list tight — expanding beyond these pairs is a
 // deliberate decision, not a casual addition. (œ/Œ, ð/Ð, and dotless ı
 // were added after the 2026-06-10 audit found unidecode folds them
@@ -52,7 +52,7 @@ var foldMap = map[rune]string{
 	'ı': "i", // U+0131 LATIN SMALL LETTER DOTLESS I (unidecode: "i"; no NFKD decomposition)
 }
 
-// Fold normalises s for case-insensitive, diacritic-insensitive matching.
+// Fold normalizes s for case-insensitive, diacritic-insensitive matching.
 //
 // Fold is total: any UTF-8 input — including invalid UTF-8 bytes, null
 // bytes, control characters, combining marks, ZWJ sequences, RTL text,
