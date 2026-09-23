@@ -55,8 +55,9 @@ Small fixes, doc tweaks, and clear bug fixes can go straight to a PR.
 - `main` is the default branch and the target for all pull requests.
 - Fork the repo (or branch directly if you have write access)
   and work on a feature branch.
-  The repository does not enforce a branch-name convention —
-  descriptive names like `fix/sync-scheduler` or `feat/graphql-cache` are fine.
+  The repository does not enforce a branch-name convention.
+  Descriptive names such as `fix/sync-scheduler`
+  or `deps/2026-08-29-sweep` are fine.
 - PRs land on `main` as GitHub merge commits
   (`Merge pull request #N from <branch>`),
   preserving the individual feature-branch commits.
@@ -198,6 +199,6 @@ The worked example is `ixlan.ixf_ixp_member_list_url_visible`.
 
 ## Getting Help
 
-If you're unsure about an approach,
-file an issue describing what you want to do and tag it as a question.
-It's better to align on direction up front than to rework a PR.
+If you are not sure about an approach,
+open an issue with a title that starts with `Question:` and describe your plan.
+It is better to agree on the approach first than to rework a PR.
