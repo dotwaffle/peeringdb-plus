@@ -133,12 +133,15 @@ type TypeConfig struct {
 	// upstream model: serializer fields and model properties. The
 	// upstream filter loop filters only model fields and
 	// queryable_relations (2.83.0 rest.py:525-528, :633, :670), so each
-	// of these keys is a prepare_query key or in UpstreamIgnored. A
-	// relation key of a prepare_query cannot filter one of these fields
-	// on the related row: the Django filter raises FieldError, and
-	// upstream returns 400 (rest.py:488-500). The mirror ignores the key.
-	// UpstreamIgnored is not the same set: it also holds model fields
-	// that queryable_field_xl renames (carrier fac_count).
+	// of these keys is a prepare_query key or in UpstreamIgnored. No
+	// relation key filters one of these fields on the related row, and
+	// the mirror ignores such a key. queryable_relations offers only
+	// model fields (serializers.py:970-996), so upstream ignores a
+	// traversal key such as fac?campus__city=. In a relation key of a
+	// prepare_query, the Django filter raises FieldError, and upstream
+	// returns 400 (rest.py:488-500). UpstreamIgnored is not the same
+	// set: it also holds model fields that queryable_field_xl renames
+	// (carrier fac_count).
 	NonModelFields map[string]bool
 }
 

@@ -580,6 +580,29 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
+	t.Run("non_model_traversal_targets_ignored_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:970-996. queryable_relations
+		// adds <fk>__<field> only for the model fields of the related
+		// model. fac org_name and carrier org_name are serializer fields
+		// (serializers.py:1947, :2667), and campus city is a property
+		// (models.py:2113-2120), so no filter key names them, and
+		// upstream ignores the keys (rest.py:525-528, :670). A model
+		// field that queryable_field_xl hides from the local key stays a
+		// target: carrierfac?carrier__fac_count= filters.
+		srv := newTestServer(t, seedIgnoredKeys(t, t0))
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/netfac?fac__org_name=IgnOrg1", want: []int{600, 601}},
+			{path: "/api/netfac?facility__org_name=IgnOrg1", want: []int{600, 601}},
+			{path: "/api/fac?campus__city=Berlin", want: []int{200, 201}},
+			{path: "/api/carrierfac?carrier__org_name=IgnOrg1", want: []int{900, 901}},
+			{path: "/api/org?campus__city__contains=Ber", want: []int{1, 2}},
+		})
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/carrierfac?carrier__fac_count=5", want: []int{901}},
+		})
+	})
+
 	t.Run("fk_column_relation_keys_ignored_like_upstream", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 rest.py:608-610 strips _id from the whole

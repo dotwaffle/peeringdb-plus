@@ -546,6 +546,21 @@ func applyVisibilityGate(sel *sql.Selector, table string, tier privctx.Tier) {
 	))
 }
 
+// traversalTargetField returns the type of field on the last row of a
+// Path A or Path B traversal key, or ok=false when the key cannot filter
+// it. A field that is not an upstream model field
+// (TypeConfig.NonModelFields) is no target: queryable_relations offers
+// only model fields (2.83.0 serializers.py:970-996), so upstream ignores
+// the key. A model field that UpstreamIgnored hides from the local key
+// stays a target (carrierfac?carrier__fac_count=).
+func traversalTargetField(tc TypeConfig, field string) (FieldType, bool) {
+	if tc.NonModelFields[field] {
+		return 0, false
+	}
+	ft, ok := tc.Fields[field]
+	return ft, ok
+}
+
 func buildSinglHop(entityType, fk, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	edge, ok := LookupEdge(entityType, fk)
 	if !ok {
@@ -555,7 +570,7 @@ func buildSinglHop(entityType, fk, field, op, value string, tier privctx.Tier) (
 	if !hasTarget {
 		return nil, false, false, nil
 	}
-	ft, hasField := targetTC.Fields[field]
+	ft, hasField := traversalTargetField(targetTC, field)
 	if !hasField {
 		return nil, false, false, nil
 	}
@@ -647,7 +662,7 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 	if !hasLeaf {
 		return nil, false, false, nil
 	}
-	ft, hasField := leafTC.Fields[field]
+	ft, hasField := traversalTargetField(leafTC, field)
 	if !hasField {
 		return nil, false, false, nil
 	}

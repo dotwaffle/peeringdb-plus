@@ -139,6 +139,8 @@ Each `_fold` column is declared with `entgql.Skip(SkipAll)` + `entrest.WithSkip(
 
 See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent-edge introspection), 2-hop cap, `parseFieldOp` 3-tuple, and unknown-field diagnostics.
 
+**Non-model targets.** `TypeConfig.NonModelFields` (serializer fields / properties upstream, e.g. fac `org_name`, campus `city`) are never a traversal target (`traversalTargetField`) nor a relation-seed tail: upstream `queryable_relations` offers model fields only. Do NOT key this on `UpstreamIgnored`: it also holds renamed MODEL fields (carrier `fac_count`) that stay valid targets (`carrierfac?carrier__fac_count=`).
+
 **Codegen invariants.** Static map emission, NOT runtime `client.Schema.Tables` walk. `cmd/pdb-compat-allowlist` reads `schema.PrepareQueryAllows` from `ent/schema/pdb_allowlists.go` → emits `internal/pdbcompat/allowlist_gen.go`. Every entry carries `// Source: serializers.py:<line>` (audit-required). Path B introspection: `internal/pdbcompat/introspect.go` (`LookupEdge` / `ResolveEdges` / `TargetFields`).
 
 **Adding filters:** for 1-hop / 2-hop, add the key to the relevant entry's `Fields` slice in `ent/schema/pdb_allowlists.go` with a `// Source:` comment, then `go generate ./...`. Codegen routes 3-segment keys into `AllowlistEntry.Via` automatically. For excluded edges, attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition. For a 14th entity, add the mapping in `cmd/pdb-compat-allowlist/main.go` `pdbTypeMap` (`TestPdbTypeFor_AllThirteen` will fail until extended).
