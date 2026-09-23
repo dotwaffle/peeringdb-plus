@@ -27,7 +27,7 @@ that cold-sync from the primary on boot.
 - `Dockerfile.prod` — LiteFS-aware production image.
   Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite`
   (CLI for incident response —
-  see [Incident-response debug shell](#sync-memory-watch)) installed,
+  see [Incident-response debug shell](#incident-response-debug-shell)) installed,
   copies the LiteFS 0.5 binary from `flyio/litefs:0.5`,
   copies `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point,
   and sets `ENTRYPOINT ["litefs", "mount"]`.
@@ -161,12 +161,15 @@ anonymous API callers still see `Public`-only thanks to the
    ```
 
 3. **Confirm rollout.**
-   Tail the logs for the classification line emitted at startup.
-   With the key set, it reports `auth=authenticated`:
+   Look for the startup classification line.
+   With the key set, it contains `"auth":"authenticated"`:
 
    ```bash
-   fly logs --app peeringdb-plus | grep -m1 'sync mode'
+   fly logs --app peeringdb-plus --no-tail | grep '"msg":"sync mode"'
    ```
+
+   The "Sync mode" row on the `/ui/about` page also shows the
+   authentication mode.
 
    `fly secrets list --app peeringdb-plus` should also show
    `PDBPLUS_PEERINGDB_API_KEY` in the output (value is masked, only the digest
@@ -360,11 +363,11 @@ not derivable from the repository --> Real win is operational simplicity
 
 ## Regional rollout
 
-The primary region is `lhr`; every additional region hosts read-only replicas.
-To add a region:
+The primary region is `lhr`.
+Every other region has `replica` machines only.
+To add a region, create replica machines in it:
 
 ```bash
-fly regions add <region>
 fly scale count <n> --process-group replica --region <region>
 ```
 
@@ -409,6 +412,27 @@ and are applied via `mimirtool rules sync`
 <!-- VERIFY: production Grafana / Mimir tenant target
 for `mimirtool rules sync` is operator-specific
 and not encoded in the repository -->
+
+The specific OTLP collector, metrics backend,
+and dashboard host used in production are deployment-specific
+and must be configured via Fly secrets
+(`fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`).
+<!-- VERIFY: production OTLP endpoint / collector target (Honeycomb, Grafana Cloud, self-hosted, etc.) is not encoded in the repository -->
+<!-- VERIFY: Grafana dashboard host URL is not encoded in the repository -->
+
+Fly.io's built-in machine metrics
+(CPU, memory, network, disk)
+are available through the Fly dashboard without additional configuration.
+
+Runtime health:
+
+- `GET /healthz` — liveness probe; always 200 while the process is alive.
+- `GET /readyz` — readiness probe, used by `fly.toml`'s HTTP service check.
+  It turns unready during graceful shutdown drain
+  (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`),
+  **during LiteFS cold-sync hydration on replica boot**,
+  and when the latest successful sync exceeds `PDBPLUS_SYNC_STALE_THRESHOLD`,
+  so Fly Proxy routes around the machine until the database is live and fresh.
 
 ### Sync memory watch
 
@@ -463,40 +487,17 @@ replicas 58-59 MiB. <!-- VERIFY:
 post-incremental-flip (2026-04-26) memory baseline has not
 yet been captured into the repository -->
 
-**Incident-response debug shell.**
-The prod image ships with the `sqlite3` binary
-(added 2026-04-18; declared in `Dockerfile.prod` via
-`apk add --no-cache fuse3 sqlite`).
-Run interactive queries via:
+### Incident-response debug shell
 
-```text
-fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
+The production image contains the `sqlite3` CLI.
+To open a SQLite shell on the primary, run:
+
+```bash
+fly ssh console -a peeringdb-plus --process-group primary --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 ```
 
-on the LHR primary.
-Replicas present the same FUSE path read-only
-(LiteFS rejects writes away from the leader).
-
-The specific OTLP collector, metrics backend,
-and dashboard host used in production are deployment-specific
-and must be configured via Fly secrets
-(`fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`).
-<!-- VERIFY: production OTLP endpoint / collector target (Honeycomb, Grafana Cloud, self-hosted, etc.) is not encoded in the repository -->
-<!-- VERIFY: Grafana dashboard host URL is not encoded in the repository -->
-
-Fly.io's built-in machine metrics
-(CPU, memory, network, disk)
-are available through the Fly dashboard without additional configuration.
-
-Runtime health:
-
-- `GET /healthz` — liveness probe; always 200 while the process is alive.
-- `GET /readyz` — readiness probe, used by `fly.toml`'s HTTP service check.
-  It turns unready during graceful shutdown drain
-  (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`),
-  **during LiteFS cold-sync hydration on replica boot**,
-  and when the latest successful sync exceeds `PDBPLUS_SYNC_STALE_THRESHOLD`,
-  so Fly Proxy routes around the machine until the database is live and fresh.
+On a replica, the same path is read-only.
+LiteFS rejects writes on machines that do not hold the lease.
 
 ## Capacity probing
 
@@ -525,23 +526,28 @@ See `cmd/loadtest/README.md` for full flag documentation and example output.
 
 ## Rollback
 
-Fly.io tracks every deployed image as a release.
-To roll back:
+Fly.io keeps the image of each release.
+To deploy an earlier image again, do these steps:
 
-```bash
-fly releases                            # list recent releases
-fly releases rollback <version>         # revert to a specific release
-```
+1. List the releases with their image references:
 
-Alternatively, redeploy the previous Git commit explicitly:
+   ```bash
+   fly releases --app peeringdb-plus --image
+   ```
+
+2. Deploy the image of the release that you want:
+
+   ```bash
+   fly deploy --app peeringdb-plus --image <image-ref>
+   ```
+
+This procedure does not build a new image.
+To build from an earlier commit, check out that commit and run `fly deploy`:
 
 ```bash
 git checkout <previous-sha>
 fly deploy
 ```
-
-Because deploys are manual and built from the local working tree,
-`fly releases rollback` is the fastest path to revert without a rebuild.
 
 ## Deploy command summary
 
@@ -599,7 +605,7 @@ On 2026-09-23 the mirror had 627 such rows.
 The checks below use a SQLite shell on a machine of the fleet:
 
 ```bash
-fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
+fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 ```
 
 1. Make sure that the mirror runs a release with the 2.83.0 parity changes
