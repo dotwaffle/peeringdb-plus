@@ -348,38 +348,48 @@ field is silently stripped before entc ever sees it (see "Sibling-file
 convention" above).
 Add the field at its source instead:
 
-1. Pick the path that matches the field's origin:
-   - **Upstream-derived field**
-     (mirrors a PeeringDB API field):
-     add a field object to the entity's `fields` map in `schema/peeringdb.json`,
-     copying the shape of an existing entry
-     (`type`, `required`, `nullable`, `help_text`, `default`, …).
+1. Pick the source that matches the origin of the field:
+   - For a field that PeeringDB serves,
+     add an entry to the `fields` map of the type in `schema/peeringdb.json`.
+     Copy the shape of an existing entry,
+     for example `type`, `required`, `nullable`, `help_text`, and `default`.
      The generator turns it into the ent field definition.
-   - **peeringdb-plus-local field** (server-side only, like the `_fold`
-     shadow columns): declare it in a sibling-file `Mixin()` that the
-     generator never touches, following the `ent/schema/{type}_fold.go` +
-     `ent/schema/fold_mixin.go` pattern.
-2. If the field should appear in ConnectRPC filters, also update the
-   corresponding `proto/peeringdb/v1/services.proto` `List*Request` message
-   (add an `optional string new_field = N;`).
-3. Regenerate:
-
-   ```bash
-   go generate ./...
-   ```
-
-   This rewrites `ent/schema/{type}.go` from `schema/peeringdb.json` first,
-   then updates `ent/`, `graph/`, `proto/peeringdb/v1/v1.proto`, the REST
-   OpenAPI spec, and `internal/pdbcompat/allowlist_gen.go` in a single pass.
-4. Extend the ConnectRPC filter table in `internal/grpcserver/<entity>.go`
-   so the new field is honoured at query time.
-   See the `networkListFilters` slice in `internal/grpcserver/network.go`
-   for the pattern.
-5. Update `internal/sync/upsert.go` mapping if the field is populated from the
-   PeeringDB upstream response.
-6. Add a test case to `internal/grpcserver/`
-   and `internal/testutil/seed/seed.go` if the field is used by seed data.
-7. Commit all regenerated files together.
+   - For a field that only this server uses (for example a `_fold` column),
+     declare it in a sibling-file `Mixin()`.
+     Use `ent/schema/{type}_fold.go` and `ent/schema/fold_mixin.go`
+     as the pattern.
+     Give it ``StructTag(`json:"-"`)`` so that it stays off `/rest/v1/`
+     (see [Adding a new searchable text field on a folded entity](#adding-a-new-searchable-text-field-on-a-folded-entity)).
+2. Run `mise run generate`.
+   This updates `ent/`, `graph/`, the REST OpenAPI spec,
+   and `internal/pdbcompat/allowlist_gen.go`.
+   It does not change `proto/peeringdb/v1/v1.proto`.
+3. Add the field to the struct of the type in `internal/peeringdb/types.go`.
+   Sync decodes the upstream response into this struct.
+4. Set the field in the `upsert*` function of the type
+   in `internal/sync/upsert.go` (for example `upsertNetworks`).
+5. Set the field in the `/api/` serializer
+   in `internal/pdbcompat/serializer.go`.
+   Add it to the `Fields` map of the type in `internal/pdbcompat/registry.go`
+   so that `/api/` can filter on it.
+6. To send the field on ConnectRPC, add it to the message in `v1.proto` by hand
+   (see [proto / buf workflow](#proto--buf-workflow)).
+   Then set it in the converter in `internal/grpcserver/{type}.go`.
+7. To filter on the field in ConnectRPC,
+   add an `optional` field of the matching scalar type
+   to both the `List*Request` and the `Stream*Request` message of the type
+   in `services.proto`,
+   for example `ListNetworksRequest` and `StreamNetworksRequest`.
+   Then add an entry to both filter tables of the type
+   in `internal/grpcserver/{type}.go`,
+   for example `networkListFilters` and `networkStreamFilters`.
+   `TestAllFilterFieldsExercised` fails if one table does not have the field.
+8. Run `mise run generate` again after proto edits.
+9. Regenerate the golden files
+   (step 4 of [Schema hygiene drop procedure](#schema-hygiene-drop-procedure)).
+10. Add test cases in `internal/grpcserver/`.
+    If seed data uses the field, update `internal/testutil/seed/seed.go`.
+11. Commit the source edits and all generated files together.
 
 ## Schema hygiene drop procedure
 
