@@ -1370,10 +1370,11 @@ context — unstamped contexts fail-closed to `TierPublic`.
 | Surface | Mechanism |
 |---------|-----------|
 | `/api/` (pdbcompat) | `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`. When `Redact` returns `omit=true`, or for an empty non-Public value (see above), the URL is a nil `*string`, and the JSON struct tag `,omitempty` removes the key |
-| `/rest/v1/ix-lans*` (entrest) | `RESTFieldRedact` in `internal/middleware/rest_redact.go` buffers the JSON response and deletes the key in-place when `Redact` returns `omit=true`. Wraps INSIDE `middleware.RESTError` so error bodies pass through |
+| `/rest/v1/*` (entrest) | `RESTFieldRedact` (`internal/middleware/rest_redact.go`) reads every JSON response under `/rest/v1/` except `openapi.json`. When `Redact` returns `omit=true`, it deletes the key from each object that has the `_visible` companion, including ixlan objects under `edges`. It runs inside `middleware.RESTError`, so error bodies pass through unchanged |
 | `/peeringdb.v1.IxLanService/*` (ConnectRPC) | `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)` returns `nil *wrapperspb.StringValue` — wire absence under proto3 optional |
 | `/graphql` | `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns Go `nil` → GraphQL `null` |
 | `/ui/` | No render path renders the URL today; future templates must call `privfield.Redact` in the data-prep step |
+| `/mcp` | No tool returns the URL |
 
 Operators who run a private deployment can flip `PDBPLUS_PUBLIC_TIER=users` to
 make anonymous callers behave as authenticated users — the startup logger emits
@@ -1382,6 +1383,17 @@ The Users tier gets what upstream gives an authenticated user who is not a
 member of the owning organization:
 `Public` and `Users` values and `poc` rows, but not `Private` ones.
 The mirror has no organization membership, so no tier sees `Private` data.
+
+### Contact visibility
+
+Each `poc` row has `visible`: `Public`, `Users` or `Private`.
+With the default `PDBPLUS_PUBLIC_TIER=public`,
+a caller sees only `Public` contacts on every surface.
+A row with no value counts as `Public`.
+With `PDBPLUS_PUBLIC_TIER=users`, callers also see `Users` contacts.
+No caller sees `Private` contacts.
+Filters through a relation apply the same rule,
+for example `/api/net?poc__email__contains=`.
 
 The GraphQL `NetworkWhereInput` has no `hasPocs` or `hasPocsWith` predicate.
 Such a predicate tests the `poc` rows in an SQL subquery,
