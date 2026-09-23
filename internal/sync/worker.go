@@ -787,6 +787,12 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
+	// Data repair for poc tombstones that still hold contact data (see
+	// scrubDeletedPocContacts). Same tx, so LiteFS replicates the result.
+	if _, err := scrubDeletedPocContacts(ctx, tx, w.logger); err != nil {
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
+		return err
+	}
 	if commitErr := commitWithSpan(ctx, tx); commitErr != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", commitErr)
 		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
@@ -1829,6 +1835,7 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 // On primary nodes it executes sync cycles; on replicas it waits for promotion.
 // Role changes are detected dynamically at each scheduler wakeup via
 // w.config.IsPrimary(). The scheduler stops when ctx is cancelled.
+// On a primary, it first runs scrubPocContactsAtStartup.
 //
 // Scheduling anchor: the next sync is scheduled at lastCompletion + interval,
 // not at processStart + N*interval. This matters across restarts — a rolling
@@ -1863,6 +1870,12 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 	}
 
 	wasPrimary := w.config.IsPrimary()
+
+	// Repair legacy poc tombstones now. The first cycle can be up to one
+	// interval away (see scrubPocContactsAtStartup).
+	if wasPrimary {
+		w.scrubPocContactsAtStartup(ctx)
+	}
 
 	// Fresh-DB fast path: a primary with no prior successful sync must run
 	// a full sync before entering the wait loop. Forced to SyncModeFull

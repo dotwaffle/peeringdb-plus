@@ -636,6 +636,34 @@ GraphQL, REST and ConnectRPC serve deleted pocs with the stored values,
 so they need no rule of their own.
 pdbcompat also applies the rule when it renders a contact.
 
+Sync versions v1.16.0 to v1.18.1 inferred deletes from absence.
+That code set `status='deleted'` and kept the contact data,
+and sync never rewrites those rows again.
+To repair them, the primary runs `scrubDeletedPocContacts`
+(`internal/sync/poc_scrub.go`).
+The function sets the four fields to `""` on each deleted `poc` that still has
+a value in one of them.
+It runs at two points:
+
+- When the scheduler starts, in a short transaction of its own
+  (`scrubPocContactsAtStartup`).
+  A sync cycle commits only after a successful fetch pass,
+  and the first cycle can be up to one interval after a restart.
+  Without this run, GraphQL, REST and ConnectRPC would serve the stored values
+  until then, and `/api/` filters such as `?email__startswith=` would match them.
+  The run holds the sync `running` latch, so it does not overlap a cycle.
+  A failed run logs a WARN, and the next cycle retries the repair.
+- In each sync transaction, after the upsert pass.
+
+It does not change `updated`, so the incremental cursor does not move.
+The `status` index limits the read to the deleted pocs.
+When no row matches, the UPDATE writes no page and LiteFS has nothing to ship.
+The first run after an upgrade logs
+`WARN "scrubbed contact fields of deleted pocs"` with the row `count`.
+Later runs log the same message at DEBUG with `count=0`.
+The `sync-scrub-poc-contacts` span carries the count in the
+`pdbplus.sync.poc_contacts_scrubbed` attribute.
+
 Full-mode fetches capture the tombstone window.
 A bare `/api/<type>` list contains only live rows
 (`status='ok'`, plus `not-operational` on netixlan; upstream filters bare lists),

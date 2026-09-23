@@ -426,6 +426,11 @@ The mirror also applies it when `?fields=` leaves out `status`
 Up to v1.27.0, pdbcompat served the stored values.
 The tombstones that sync v1.16.0 to v1.18.1 marked deleted still held the
 contact data, so a `?since=` window that covered them returned it.
+Sync now stores each deleted `poc` with these fields blank.
+The primary blanks them on the older stored tombstones when it starts,
+and again in each sync cycle.
+GraphQL, REST and ConnectRPC, which serve deleted pocs with the stored values,
+thus do not serve them either.
 
 A `not-operational` netixlan is a published connection that its network
 declares not operational.
