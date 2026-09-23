@@ -7,6 +7,9 @@
 > and will block your IP if you exceed it. This tool is for the
 > **mirror** at `https://peeringdb-plus.fly.dev` (default) or your
 > own local deployment via `--base http://localhost:8080`.
+> The tool refuses to start when `--base` or `--target` names
+> peeringdb.com or a subdomain of it. beta.peeringdb.com is the only
+> exception.
 >
 > **Do NOT run this tool from CI.** The package compiles as a normal
 > `cmd/` binary, but the binary is never invoked by CI / Dockerfiles
