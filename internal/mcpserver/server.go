@@ -551,6 +551,14 @@ func (services toolServices) lookupIP(ctx context.Context, raw string) (lookupIP
 	if err != nil {
 		return nil, fmt.Errorf("query peering addresses: %w", err)
 	}
+	// A row that holds no meta document reads back with a nil map, which
+	// marshals as null. Return {} instead, as /api and ConnectRPC do and
+	// as upstream sends for a row without keys.
+	for _, row := range exact {
+		if row.Meta == nil {
+			row.Meta = map[string]any{}
+		}
+	}
 
 	protocol := "IPv6"
 	if address.Is4() {

@@ -1578,6 +1578,14 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 			ID: 4, OrgID: 3, Name: "Net", ASN: 65001,
 			Created: now, Updated: now, Status: "ok",
 		}},
+		{"netixlan meta document", peeringdb.NetworkIxLan{
+			ID: 5, NetID: 4, IXID: 2, IXLanID: 1, ASN: 65001,
+			Meta: map[string]any{
+				"planned_status_change": map[string]any{"status": "ok", "date": "2026-11-01"},
+				"rfc8950":               true,
+			},
+			Created: now, Updated: now, Status: "ok",
+		}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

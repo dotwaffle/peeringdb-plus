@@ -391,6 +391,36 @@ Up to v1.27.0, pdbcompat dropped the key and returned the whole matrix set.
 That was a divergence, not parity:
 upstream never overrides a caller's `?status=`.
 
+### Metadata document (`meta`)
+
+Every `net` and `netixlan` object carries `meta`,
+the PeeringDB metadata document that upstream added in 2.83.0
+(migration 0159; `serializers.py:3117` and `:3684`).
+The key follows `logo` on `net` and `ix_side_id` on `netixlan`.
+
+- `meta` is an open JSON object.
+  Upstream registers its keys in server code and can add keys
+  without a new release of its client model library
+  (`docs/api/object_metadata.md:22-23`).
+  The mirror stores the document as is, so a new key needs no change here.
+  At 2.83.0 the keys are `preferred_ip_mtu` and `rtbh_community` on `net`,
+  and `planned_status_change` (`status`, `date`) and `rfc8950` on `netixlan`.
+- Sync stores the document that upstream sends,
+  and pdbcompat serves it unchanged.
+  Key order inside the document can differ from upstream.
+- A row without a stored document returns `{}`, the same as upstream.
+- `meta` appears in every shape: lists, detail responses, depth `_set` objects,
+  and nested `net` objects.
+- Upstream applies no read restriction to `meta`,
+  so the mirror applies no privacy filter to it.
+
+A document that upstream set before the mirror stored `meta` arrives with the
+next full sync.
+With the default `PDBPLUS_FULL_SYNC_INTERVAL` of `24h`, this is within a day.
+Incremental sync cannot repair such a row,
+because it does not rewrite a row whose `updated` value it already has.
+If the interval is `0`, run one full sync (`POST /sync?mode=full`).
+
 ### Response memory budget
 
 Every list response is gated by a pre-flight 413 budget check

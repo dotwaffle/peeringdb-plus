@@ -55,48 +55,49 @@ type Organization struct {
 
 // Network represents a PeeringDB network (net).
 type Network struct {
-	ID                      int           `json:"id"`
-	OrgID                   int           `json:"org_id"`
-	Name                    string        `json:"name"`
-	Aka                     string        `json:"aka"`
-	NameLong                string        `json:"name_long"`
-	Website                 string        `json:"website"`
-	SocialMedia             []SocialMedia `json:"social_media"`
-	ASN                     int           `json:"asn"`
-	LookingGlass            string        `json:"looking_glass"`
-	RouteServer             string        `json:"route_server"`
-	IRRASSet                string        `json:"irr_as_set"`
-	InfoType                string        `json:"info_type"`
-	InfoTypes               []string      `json:"info_types"`
-	InfoPrefixes4           *int          `json:"info_prefixes4"`
-	InfoPrefixes6           *int          `json:"info_prefixes6"`
-	InfoTraffic             string        `json:"info_traffic"`
-	InfoRatio               string        `json:"info_ratio"`
-	InfoScope               string        `json:"info_scope"`
-	InfoUnicast             bool          `json:"info_unicast"`
-	InfoMulticast           bool          `json:"info_multicast"`
-	InfoIPv6                bool          `json:"info_ipv6"`
-	InfoNeverViaRouteServer bool          `json:"info_never_via_route_servers"`
-	Notes                   string        `json:"notes"`
-	PolicyURL               string        `json:"policy_url"`
-	PolicyGeneral           string        `json:"policy_general"`
-	PolicyLocations         string        `json:"policy_locations"`
-	PolicyRatio             bool          `json:"policy_ratio"`
-	PolicyContracts         string        `json:"policy_contracts"`
-	AllowIXPUpdate          bool          `json:"allow_ixp_update"`
-	IxpUpdateExclude        []string      `json:"ixp_update_exclude"`
-	StatusDashboard         *string       `json:"status_dashboard"`
-	RIRStatus               *string       `json:"rir_status"`
-	RIRStatusUpdated        *time.Time    `json:"rir_status_updated"`
-	Logo                    *string       `json:"logo"`
-	IXCount                 int           `json:"ix_count"`
-	FacCount                int           `json:"fac_count"`
-	NetIXLanUpdated         *time.Time    `json:"netixlan_updated"`
-	NetFacUpdated           *time.Time    `json:"netfac_updated"`
-	PocUpdated              *time.Time    `json:"poc_updated"`
-	Created                 time.Time     `json:"created"`
-	Updated                 time.Time     `json:"updated"`
-	Status                  string        `json:"status"`
+	ID                      int            `json:"id"`
+	OrgID                   int            `json:"org_id"`
+	Name                    string         `json:"name"`
+	Aka                     string         `json:"aka"`
+	NameLong                string         `json:"name_long"`
+	Website                 string         `json:"website"`
+	SocialMedia             []SocialMedia  `json:"social_media"`
+	ASN                     int            `json:"asn"`
+	LookingGlass            string         `json:"looking_glass"`
+	RouteServer             string         `json:"route_server"`
+	IRRASSet                string         `json:"irr_as_set"`
+	InfoType                string         `json:"info_type"`
+	InfoTypes               []string       `json:"info_types"`
+	InfoPrefixes4           *int           `json:"info_prefixes4"`
+	InfoPrefixes6           *int           `json:"info_prefixes6"`
+	InfoTraffic             string         `json:"info_traffic"`
+	InfoRatio               string         `json:"info_ratio"`
+	InfoScope               string         `json:"info_scope"`
+	InfoUnicast             bool           `json:"info_unicast"`
+	InfoMulticast           bool           `json:"info_multicast"`
+	InfoIPv6                bool           `json:"info_ipv6"`
+	InfoNeverViaRouteServer bool           `json:"info_never_via_route_servers"`
+	Notes                   string         `json:"notes"`
+	PolicyURL               string         `json:"policy_url"`
+	PolicyGeneral           string         `json:"policy_general"`
+	PolicyLocations         string         `json:"policy_locations"`
+	PolicyRatio             bool           `json:"policy_ratio"`
+	PolicyContracts         string         `json:"policy_contracts"`
+	AllowIXPUpdate          bool           `json:"allow_ixp_update"`
+	IxpUpdateExclude        []string       `json:"ixp_update_exclude"`
+	StatusDashboard         *string        `json:"status_dashboard"`
+	RIRStatus               *string        `json:"rir_status"`
+	RIRStatusUpdated        *time.Time     `json:"rir_status_updated"`
+	Logo                    *string        `json:"logo"`
+	Meta                    map[string]any `json:"meta"` // 2.83.0 metadata document; nil when upstream omits it
+	IXCount                 int            `json:"ix_count"`
+	FacCount                int            `json:"fac_count"`
+	NetIXLanUpdated         *time.Time     `json:"netixlan_updated"`
+	NetFacUpdated           *time.Time     `json:"netfac_updated"`
+	PocUpdated              *time.Time     `json:"poc_updated"`
+	Created                 time.Time      `json:"created"`
+	Updated                 time.Time      `json:"updated"`
+	Status                  string         `json:"status"`
 }
 
 // Facility represents a PeeringDB facility (fac).
@@ -231,24 +232,25 @@ type IxPrefix struct {
 
 // NetworkIxLan represents a PeeringDB network-IX LAN association (netixlan).
 type NetworkIxLan struct {
-	ID          int       `json:"id"`
-	NetID       int       `json:"net_id"`
-	IXID        int       `json:"ix_id"`
-	IXLanID     int       `json:"ixlan_id"`
-	Name        string    `json:"name"`
-	Notes       string    `json:"notes"`
-	Speed       int       `json:"speed"`
-	ASN         int       `json:"asn"`
-	IPAddr4     *string   `json:"ipaddr4"`
-	IPAddr6     *string   `json:"ipaddr6"`
-	IsRSPeer    bool      `json:"is_rs_peer"`
-	BFDSupport  bool      `json:"bfd_support"`
-	Operational bool      `json:"operational"`
-	NetSideID   *int      `json:"net_side_id"`
-	IXSideID    *int      `json:"ix_side_id"`
-	Created     time.Time `json:"created"`
-	Updated     time.Time `json:"updated"`
-	Status      string    `json:"status"`
+	ID          int            `json:"id"`
+	NetID       int            `json:"net_id"`
+	IXID        int            `json:"ix_id"`
+	IXLanID     int            `json:"ixlan_id"`
+	Name        string         `json:"name"`
+	Notes       string         `json:"notes"`
+	Speed       int            `json:"speed"`
+	ASN         int            `json:"asn"`
+	IPAddr4     *string        `json:"ipaddr4"`
+	IPAddr6     *string        `json:"ipaddr6"`
+	IsRSPeer    bool           `json:"is_rs_peer"`
+	BFDSupport  bool           `json:"bfd_support"`
+	Operational bool           `json:"operational"`
+	NetSideID   *int           `json:"net_side_id"`
+	IXSideID    *int           `json:"ix_side_id"`
+	Meta        map[string]any `json:"meta"` // 2.83.0 metadata document; nil when upstream omits it
+	Created     time.Time      `json:"created"`
+	Updated     time.Time      `json:"updated"`
+	Status      string         `json:"status"`
 }
 
 // NetworkFacility represents a PeeringDB network-facility association (netfac).

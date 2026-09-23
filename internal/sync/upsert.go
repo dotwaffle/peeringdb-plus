@@ -571,6 +571,7 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 				SetAkaFold(unifold.Fold(n.Aka)).
 				SetNameLongFold(unifold.Fold(n.NameLong))
 			b.SetNillableLogo(n.Logo)
+			b.SetMeta(n.Meta)
 			return b
 		},
 		func(ctx context.Context, batch []*ent.NetworkCreate) error {
@@ -713,6 +714,7 @@ func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.Netw
 				SetOperational(ni.Operational).
 				SetNillableNetSideID(ni.NetSideID).
 				SetNillableIxSideID(ni.IXSideID).
+				SetMeta(ni.Meta).
 				SetCreated(ni.Created).
 				SetUpdated(ni.Updated).
 				SetStatus(ni.Status)

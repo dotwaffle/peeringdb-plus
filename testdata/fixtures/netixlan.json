@@ -17,6 +17,10 @@
       "operational": true,
       "net_side_id": null,
       "ix_side_id": null,
+      "meta": {
+        "planned_status_change": {"status": "deleted", "date": "2026-12-31"},
+        "rfc8950": true
+      },
       "created": "2024-02-15T10:00:00Z",
       "updated": "2024-08-20T10:00:00Z",
       "status": "ok"

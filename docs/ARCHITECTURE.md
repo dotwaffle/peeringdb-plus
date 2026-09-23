@@ -917,7 +917,9 @@ never OOM-kill.
 Values are the DOUBLED figure from `BenchmarkRowSize_*`, rounded up to 64 bytes
 (Depth0 calibrated 2026-04-19 with the later `org` bump;
 Depth2 recalibrated 2026-06-08
-after the v1.20.5 depth-parity work grew every expanded row).
+after the v1.20.5 depth-parity work grew every expanded row;
+2026-09-23 raised the rows that had drifted,
+mostly because of the PeeringDB 2.83.0 `meta` document).
 At the 128 MiB default budget,
 the `max_rows` column shows the row count at which the pre-flight check trips.
 A detail request at `?depth=1` bills the Depth=2 estimate
@@ -931,12 +933,12 @@ Unknown entities fall back to `defaultRowSize = 4096` (fail-closed).
 | net | 1,664 | 80,659 | 2,560 | 52,428 |
 | fac | 1,344 | 99,864 | 3,392 | 39,569 |
 | ix | 1,280 | 104,857 | 2,688 | 49,932 |
-| poc | 384 | 349,525 | 2,752 | 48,770 |
+| poc | 384 | 349,525 | 2,816 | 47,662 |
 | ixlan | 576 | 233,016 | 2,560 | 52,428 |
 | ixpfx | 384 | 349,525 | 2,240 | 59,918 |
-| netixlan | 640 | 209,715 | 4,928 | 27,235 |
-| netfac | 384 | 349,525 | 4,736 | 28,339 |
-| ixfac | 384 | 349,525 | 4,416 | 30,393 |
+| netixlan | 704 | 190,650 | 4,992 | 26,886 |
+| netfac | 384 | 349,525 | 4,864 | 27,594 |
+| ixfac | 384 | 349,525 | 4,480 | 29,959 |
 | carrier | 512 | 262,144 | 1,664 | 80,659 |
 | carrierfac | 320 | 419,430 | 3,520 | 38,129 |
 | campus | 576 | 233,016 | 2,688 | 49,932 |

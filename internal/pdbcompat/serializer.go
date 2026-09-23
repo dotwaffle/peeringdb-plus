@@ -43,6 +43,18 @@ func stringsOrEmpty(s []string) []string {
 	return s
 }
 
+// metaOrEmpty returns an empty, non-nil map when m is nil so JSON
+// serialization emits {} rather than null. Upstream PeeringDB always emits
+// meta as an object (JSONField default=dict, migration 0159). Rows synced
+// before the column existed, or before upstream deployed 2.83.0, have no
+// stored document.
+func metaOrEmpty(m map[string]any) map[string]any {
+	if m == nil {
+		return map[string]any{}
+	}
+	return m
+}
+
 // organizationFromEnt maps an ent Organization to a peeringdb Organization.
 func organizationFromEnt(o *ent.Organization) peeringdb.Organization {
 	return peeringdb.Organization{
@@ -117,6 +129,7 @@ func networkFromEnt(n *ent.Network) peeringdb.Network {
 		RIRStatus:               n.RirStatus,
 		RIRStatusUpdated:        n.RirStatusUpdated,
 		Logo:                    n.Logo,
+		Meta:                    metaOrEmpty(n.Meta),
 		IXCount:                 n.IxCount,
 		FacCount:                n.FacCount,
 		NetIXLanUpdated:         n.NetixlanUpdated,
@@ -357,6 +370,7 @@ func networkIxLanFromEnt(n *ent.NetworkIxLan) peeringdb.NetworkIxLan {
 		Operational: n.Operational,
 		NetSideID:   n.NetSideID,
 		IXSideID:    n.IxSideID,
+		Meta:        metaOrEmpty(n.Meta),
 		Created:     n.Created,
 		Updated:     n.Updated,
 		Status:      n.Status,
