@@ -598,9 +598,12 @@ To add a new searchable text field on one of these entities
 
    Do NOT edit `ent/schema/network.go` directly —
    `pdb-schema-generate` will strip your changes.
-2. **Regenerate**: `go generate ./...`.
-   The mixin emits the `_fold` column with the required
-   `entgql.Skip(SkipAll) + entrest.WithSkip(true)` annotations automatically.
+2. **Regenerate**: `mise run generate`.
+   The mixin adds the `_fold` column with three guards.
+   `entgql.Skip(entgql.SkipAll)` keeps it out of GraphQL.
+   ``StructTag(`json:"-"`)`` keeps it out of `/rest/v1/` bodies.
+   `entrest.WithSkip(true)` keeps it out of the REST spec and filters.
+   Any other server-only field needs all three.
 3. **Sync upsert** — extend `internal/sync/upsert.go` `upsertNetworks` builder
    chain with `.SetTaglineFold(unifold.Fold(n.Tagline))`.
    Place the new setter in the trailing `_fold` block per the existing
