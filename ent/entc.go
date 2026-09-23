@@ -73,6 +73,12 @@ func main() {
 	}
 
 	restExt, err := entrest.NewExtension(&entrest.Config{
+		// Without a Spec, entrest titles the document "EntGo Rest API",
+		// version 1.0.0. /rest/v1/docs and generated clients show this info.
+		Spec: ogen.NewSpec().SetInfo(ogen.NewInfo().
+			SetTitle("PeeringDB Plus REST API").
+			SetDescription("Read-only REST API for the PeeringDB Plus mirror of PeeringDB.").
+			SetVersion("1")),
 		Handler: entrest.HandlerStdlib,
 		DefaultOperations: []entrest.Operation{
 			entrest.OperationRead,

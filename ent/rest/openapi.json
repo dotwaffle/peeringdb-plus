@@ -9537,8 +9537,9 @@
 		}
 	},
 	"info": {
-		"title": "EntGo Rest API",
-		"version": "1.0.0"
+		"description": "Read-only REST API for the PeeringDB Plus mirror of PeeringDB.",
+		"title": "PeeringDB Plus REST API",
+		"version": "1"
 	},
 	"openapi": "3.0.3",
 	"paths": {
