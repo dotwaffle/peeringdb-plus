@@ -345,8 +345,60 @@ sidestepping the variable-binding limit.
 An empty `__in` (`?asn__in=`) short-circuits the request to an empty `data: []`
 envelope without running SQL
 (a `404` if the request is a lookup by `id` or `asn`, see § Lookup by `id` or `asn`).
+The `net` keys `info_type__in` and `info_types__in` are an exception:
+an empty value returns all networks, as upstream
+(see § Multi-value choice filters).
 Malformed `__in` values for typed fields
 (e.g. non-integer in `asn__in=`) return `400`.
+
+### Multi-value choice filters
+
+Two fields hold a list of choices:
+`info_types` on `net` and `available_voltage_services` on `fac`.
+Upstream stores such a field as one string:
+the choices in the order of the upstream choice list, joined with commas
+(django-peeringdb `fields.py:61-71`, `const.py:114-125` and `:203-208`).
+For example, a network with the types `Content` and `NSP` stores `NSP,Content`.
+The API returns the list in no fixed order.
+The filters compare the stored string,
+and the mirror builds the same string from the list that it stores.
+
+| Key | Match |
+|-----|-------|
+| `info_types=NSP,Content`, `available_voltage_services=No Power,48 VDC` | The stored string, without case. The value must use the choice-list order: `info_types=Content,NSP` matches nothing |
+| `<field>__contains=`, `<field>__startswith=` | A substring or a prefix of the stored string |
+| `<field>__in=` (except `net` `info_types__in`) | Each item is converted to the stored form: the choices that occur in the item, in choice-list order. A row matches when its stored string is equal to one of the items. An item that holds no choice matches the rows without a value |
+| `<field>__lt=`, `__lte=`, `__gt=`, `__gte=` | The value is converted to the stored form, and the two strings are compared |
+
+`net` also accepts the legacy `info_type` keys.
+Upstream `NetworkSerializer.finalize_query_params` rewrites these keys,
+and two `info_types` keys, onto `info_types`
+(2.83.0 `serializers.py:3765-3813`):
+
+| Key | Match |
+|-----|-------|
+| `info_type=X` | The stored string starts with `X`, contains `,X,`, or ends with `,X`. `info_type=NS` matches a network whose first type is `NSP` |
+| `info_type__contains=X` | The same as `info_types__contains=X` |
+| `info_type__in=`, `info_types__in=` | An item is a substring of the stored string. Spaces at the ends of an item are removed. An empty item matches every network |
+| `info_type__startswith=X`, `info_types__startswith=X` | The stored string starts with `X` or contains `,X` |
+
+An `__in` list costs one `LIKE` test per item on each network,
+as the `OR` of `icontains` terms that upstream runs.
+`BenchmarkMultiChoice_InfoTypesIn`
+(`internal/pdbcompat/multichoice_bench_test.go`, `go test -tags=bench`)
+measures the cost per item.
+
+Upstream ignores every other `info_type` key,
+because `info_type` is a model property (`models.py:5812-5816`).
+This includes relation keys such as `netixlan?net__info_type=`.
+A relation key on a multi-value field,
+for example `netixlan?net__info_types=`, uses the rules of the first table.
+A `prepare_query` relation key without an operator,
+for example `ix?fac__available_voltage_services=`,
+converts the value to the stored form first (`models.py:221-234`).
+The comparison operators compare lower case text in byte order.
+Upstream compares under the MySQL collation,
+which can put punctuation in a different order.
 
 ### List order
 

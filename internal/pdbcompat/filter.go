@@ -297,6 +297,22 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 			predicates = append(predicates, p)
 			continue
 		}
+		// The legacy net info_type keys, and info_types with __in or
+		// __startswith, resolve before the key is split, as upstream
+		// rewrites them before its filter loop (2.83.0
+		// serializers.py:3768-3813, rest.py:559-563).
+		if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
+			if patterns == nil {
+				// A pattern matches every network.
+				continue
+			}
+			p, err := multiChoiceLikeAny("info_types", patterns)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			predicates = append(predicates, p)
+			continue
+		}
 		// The relation keys of an upstream prepare_query resolve before
 		// the other keys, as upstream handles them apart from its
 		// model-field filters. They use the first value of a repeated
@@ -695,8 +711,12 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 // buildPredicate maps a field, operator, raw value, and field type to an ent
 // sql.Selector predicate function. folded=true indicates the field has a
 // sibling <field>_fold column — string predicates route to it with a
-// unifold.Fold(value) RHS for diacritic-insensitive matching.
+// unifold.Fold(value) RHS for diacritic-insensitive matching. A
+// multi-value field has its own operators (buildMultiChoicePredicate).
 func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
+	if ft == FieldMultiChoice {
+		return buildMultiChoicePredicate(field, op, value)
+	}
 	op = coerceToCaseInsensitive(op)
 	switch op {
 	case "": // exact match
@@ -768,6 +788,8 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 			return nil, fmt.Errorf("convert %q to float: %w", value, err)
 		}
 		return sql.FieldEQ(field, v), nil
+	case FieldMultiChoice:
+		return buildMultiChoicePredicate(field, "", value)
 	default:
 		return nil, fmt.Errorf("unsupported field type %s for exact match", ft)
 	}
@@ -888,6 +910,8 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 			times = append(times, v)
 		}
 		return sql.FieldIn(field, times...), nil
+	case FieldMultiChoice:
+		return buildMultiChoicePredicate(field, "in", value)
 	default:
 		return nil, fmt.Errorf("in operator not supported on field type %s for field %q", ft, field)
 	}
@@ -954,6 +978,10 @@ func convertValue(s string, ft FieldType) (any, error) {
 		return t, err
 	case FieldFloat:
 		return strconv.ParseFloat(s, 64)
+	case FieldMultiChoice:
+		// A comparison converts the value to the stored form, which
+		// needs the choice list (buildMultiChoicePredicate).
+		return nil, fmt.Errorf("unsupported field type %s", ft)
 	default:
 		return nil, fmt.Errorf("unsupported field type %s", ft)
 	}

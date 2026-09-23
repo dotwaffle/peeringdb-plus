@@ -25,7 +25,7 @@ import (
 //
 // Fuzz exec counts are recorded out of band, never gated by CI wall-clock.
 func FuzzFilterParser(f *testing.F) {
-	// Seed corpus covering all 5 field types and key edge cases.
+	// Seed corpus covering all 6 field types and key edge cases.
 	f.Add("name", "Cloudflare")         // string exact
 	f.Add("asn__gt", "1000")            // int comparison
 	f.Add("name__contains", "cloud")    // string contains
@@ -33,6 +33,7 @@ func FuzzFilterParser(f *testing.F) {
 	f.Add("info_unicast", "true")       // bool exact
 	f.Add("created__gte", "1700000000") // time comparison
 	f.Add("latitude", "37.7749")        // float exact
+	f.Add("info_types", "NSP,Content")  // multi-value exact
 	f.Add("name__regex", ".*")          // unsupported operator
 	f.Add("asn", "not-a-number")        // type conversion error
 	f.Add("", "")                       // empty key
@@ -77,7 +78,14 @@ func FuzzFilterParser(f *testing.F) {
 	f.Add("meta_rfc8950__", "1")                                    // empty operator
 	f.Add("meta__planned_status_change", "x")                       // partial path
 
-	// TypeConfig with entries for all 5 FieldType values.
+	// Multi-value fields and the net info_type keys (resolved before the
+	// traversal split).
+	f.Add("info_type", "'%_\\")                 // SQL metacharacters
+	f.Add("info_types__in", ",,")               // empty items
+	f.Add("info_types__lt", "Content and junk") // converted comparison value
+	f.Add("info_type__in", "NSP, Content")      // spaces around items
+
+	// TypeConfig with entries for all 6 FieldType values.
 	// ParseFilters takes TypeConfig so it can consult FoldedFields. Mark
 	// "name" as folded so the shadow-routing path is
 	// exercised in addition to the non-shadow path.
@@ -89,6 +97,7 @@ func FuzzFilterParser(f *testing.F) {
 			"info_unicast": FieldBool,
 			"created":      FieldTime,
 			"latitude":     FieldFloat,
+			"info_types":   FieldMultiChoice,
 		},
 		FoldedFields: map[string]bool{
 			"name": true,
@@ -96,13 +105,15 @@ func FuzzFilterParser(f *testing.F) {
 	}
 
 	// The netixlan config exercises the meta filter keys, which only
-	// netixlan declares.
+	// netixlan declares. The net config exercises the info_type keys.
 	netixlanTC := Registry[peeringdb.TypeNetIXLan]
+	netTC := Registry[peeringdb.TypeNet]
 
 	f.Fuzz(func(_ *testing.T, key, value string) {
 		params := url.Values{key: {value}}
 		// Must not panic. Errors and emptyResult=true are both acceptable.
 		_, _, _ = ParseFilters(params, tc)
 		_, _, _ = ParseFilters(params, netixlanTC)
+		_, _, _ = ParseFilters(params, netTC)
 	})
 }

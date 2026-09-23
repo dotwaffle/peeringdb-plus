@@ -39,6 +39,12 @@ var registryFieldExclusions = map[string]string{
 	// callers probe private values by equality/substring match even
 	// though the serializer redacts the value itself (privfield.Redact).
 	"ixlan.ixf_ixp_member_list_url": "auth-gated; filterable would leak via probing",
+	// The legacy info_type is a model property upstream (2.83.0
+	// models.py:5812-5816). NetworkSerializer.finalize_query_params
+	// rewrites the top-level info_type keys onto info_types
+	// (legacyInfoTypePatterns), and upstream ignores every other
+	// info_type key, including relation keys.
+	"net.info_type": "upstream property; top-level keys filter info_types",
 }
 
 // scalarFieldType maps a struct field's Go type to the FieldType the

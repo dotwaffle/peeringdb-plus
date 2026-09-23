@@ -640,7 +640,7 @@ Use these to verify compatibility after a PeeringDB upstream change.
 
 `internal/pdbcompat/parity/` locks v1.16 pdbcompat semantics against future
 regression.
-The suite is split across 8 category test files:
+The suite is split across 9 category test files:
 
 | File | Category |
 |---|---|
@@ -652,6 +652,7 @@ The suite is split across 8 category test files:
 | `traversal_test.go` | cross-entity `__` filters |
 | `meta_test.go` | netixlan `meta__*` filters |
 | `serializer_test.go` | serializer values and keys |
+| `multichoice_test.go` | multi-value choice filters (`info_types`, `info_type`, `available_voltage_services`) |
 
 To add a new parity test:
 

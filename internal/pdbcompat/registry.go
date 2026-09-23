@@ -28,6 +28,10 @@ const (
 	FieldTime
 	// FieldFloat indicates a float64-typed field.
 	FieldFloat
+	// FieldMultiChoice indicates a multi-value choice field, stored as a
+	// JSON array of strings. The filters compare the string that
+	// upstream stores (see multichoice_filter.go).
+	FieldMultiChoice
 )
 
 // String returns the human-readable name of the field type. It is used in
@@ -47,6 +51,8 @@ func (ft FieldType) String() string {
 		return "time"
 	case FieldFloat:
 		return "float"
+	case FieldMultiChoice:
+		return "multichoice"
 	default:
 		return fmt.Sprintf("unknown(%d)", int(ft))
 	}
@@ -195,7 +201,7 @@ var Registry = map[string]TypeConfig{
 			"looking_glass":                FieldString,
 			"route_server":                 FieldString,
 			"irr_as_set":                   FieldString,
-			"info_type":                    FieldString,
+			"info_types":                   FieldMultiChoice,
 			"info_prefixes4":               FieldInt,
 			"info_prefixes6":               FieldInt,
 			"info_traffic":                 FieldString,
@@ -228,8 +234,6 @@ var Registry = map[string]TypeConfig{
 		SearchFields: []string{"name", "aka", "name_long", "irr_as_set"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true},
 		ForeignKeys:  map[string]string{"org": "org_id"},
-		// info_type is a property (models.py:5812-5816).
-		NonModelFields: map[string]bool{"info_type": true},
 	},
 	peeringdb.TypeFac: {
 		Name: peeringdb.TypeFac,
@@ -258,6 +262,7 @@ var Registry = map[string]TypeConfig{
 			"net_count":                   FieldInt,
 			"ix_count":                    FieldInt,
 			"carrier_count":               FieldInt,
+			"available_voltage_services":  FieldMultiChoice,
 			"address1":                    FieldString,
 			"address2":                    FieldString,
 			"city":                        FieldString,

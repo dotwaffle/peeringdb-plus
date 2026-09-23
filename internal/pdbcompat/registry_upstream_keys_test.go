@@ -15,7 +15,6 @@ var upstreamQueryKeys = map[string]string{
 	"net.fac_count":  "prepare_query seed, facility_count (serializers.py:3729, :3743-3748)",
 	"ix.net_count":   "prepare_query seed, network_count (serializers.py:4516, :4531-4536)",
 	"ix.fac_count":   "prepare_query seed, facility_count (serializers.py:4517, :4538-4543)",
-	"net.info_type":  "finalize_query_params (serializers.py:3765-3813)",
 	"netixlan.name":  "prepare_query seed (serializers.py:3161)",
 	"netixlan.ix_id": "prepare_query seed (serializers.py:3161)",
 	"netfac.name":    "prepare_query seed (serializers.py:3417)",

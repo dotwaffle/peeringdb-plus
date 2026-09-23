@@ -258,7 +258,8 @@ func parseRelationTail(tail []string) (field, op string, ok bool) {
 // of a row reached through a forward FK compares the FK column instead,
 // unless that row is the pinned row. A field that is not a model field
 // upstream (TypeConfig.NonModelFields) is unknown: the upstream filter
-// raises FieldError.
+// raises FieldError. A multi-value field without an operator compares
+// the value in its stored form (opCanonicalExact).
 func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	field, op, ok := sd.parseTail(tail)
 	if !ok {
@@ -287,6 +288,9 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 	if col == "id" && n > 0 && edges[n-1].OwnFK && sd.pinAt < n {
 		col, ft, folded = edges[n-1].ParentFKColumn, FieldInt, false
 		n--
+	}
+	if ft == FieldMultiChoice && op == "" {
+		op = opCanonicalExact
 	}
 	var leaf func(*sql.Selector)
 	if col != "status" || op != "" || sd.pinAt != n {

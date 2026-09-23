@@ -794,6 +794,14 @@ A 2-hop cap (`parseFieldOp`) drops 3+-hop keys at request time.
 The netixlan `meta__*` filter keys resolve before that split
 (`internal/pdbcompat/meta_filter.go`), as upstream rewrites them
 before its filter loop.
+The legacy net `info_type` keys also resolve before the split
+(`internal/pdbcompat/multichoice_filter.go`).
+A multi-value choice field (`FieldMultiChoice`: net `info_types`,
+fac `available_voltage_services`) stores a JSON array.
+Its filters rebuild the string that upstream stores,
+the values in choice-list order joined with commas, with a correlated
+`json_each` subquery, and compare that string
+(`docs/API.md § Multi-value choice filters`).
 
 ## LiteFS primary/replica detection
 

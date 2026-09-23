@@ -584,6 +584,7 @@ func TestFieldTypeString(t *testing.T) {
 		{FieldBool, "bool"},
 		{FieldTime, "time"},
 		{FieldFloat, "float"},
+		{FieldMultiChoice, "multichoice"},
 		{FieldType(99), "unknown(99)"},
 	}
 	for _, tt := range tests {
