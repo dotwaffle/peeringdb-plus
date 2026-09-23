@@ -71,17 +71,14 @@ warmup and post-deploy validation, not concurrent stress.
 ./loadtest sync --mode=incremental --since=1714219200
 ```
 
-Issues 39 GETs — the 13-step FK-ordered type sequence (`org, campus,
+Issues 39 GETs. It sends the 13 types in FK order (`org, campus,
 fac, carrier, carrierfac, ix, ixlan, ixpfx, ixfac, net, poc, netfac,
-netixlan`) replayed across 3 depth bands (`depth=0/1/2`), in type ×
-ascending-depth order — mirroring the live worker at
-`internal/sync/worker.go syncSteps()`. The URL shape depends on the
-mode: full mode issues a bare `/api/<short>?depth=N`, incremental mode
-issues `/api/<short>?limit=250&skip=0&depth=N&since=M`. The
-`internal/sync.StepOrder()` export is the single source of truth;
-the loadtest's parity test (`TestSync_OrderingMatchesWorker`) fails
-the build if a future syncSteps() reorder happens without updating
-the loadtest.
+netixlan`) at `depth=0`, then again at `depth=1`, then at `depth=2`.
+The URL shape depends on the mode: full mode issues a bare
+`/api/<short>?depth=N`, incremental mode issues
+`/api/<short>?limit=250&skip=0&depth=N&since=M`. The order comes from
+`pdbtypes.Names()`. `TestSync_OrderingMatchesWorker` fails when that
+order differs from `internal/sync.StepOrder()`.
 
 | flag       | default          | description                                                                                                                               |
 | ---------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
