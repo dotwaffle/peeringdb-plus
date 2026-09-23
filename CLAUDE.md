@@ -2,7 +2,7 @@
 
 **PeeringDB Plus**
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data. It syncs PeeringDB objects incrementally by default (full re-fetch is an operator escape-hatch) on a regular schedule (default 1h, 15m when authenticated, or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and presents the data through modern API surfaces: GraphQL, gRPC, and OpenAPI-compliant REST. Built in Go using entgo as the ORM.
+A high-performance, globally distributed, read-only mirror of PeeringDB data. It syncs PeeringDB objects incrementally by default (a full re-fetch runs once per `PDBPLUS_FULL_SYNC_INTERVAL`, default 24h, or on operator request) on a regular schedule (default 1h, 15m when authenticated, or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and serves the data through six read surfaces: the PeeringDB-compatible `/api`, REST, GraphQL, ConnectRPC, MCP, and a Web UI. Built in Go using entgo as the ORM.
 
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
@@ -16,7 +16,7 @@ A high-performance, globally distributed, read-only mirror of PeeringDB data. It
 - **Data fidelity**: Must handle PeeringDB's actual API responses, not their documented spec
 
 ## Documentation
-- Canonical user/operator/contributor docs live in `docs/` (`ARCHITECTURE.md`, `CONFIGURATION.md`, `GETTING-STARTED.md`, `DEVELOPMENT.md`, `TESTING.md`, `API.md`, `DEPLOYMENT.md`) and `CONTRIBUTING.md` at the root. Read the relevant doc before re-deriving information from code or duplicating content into a response.
+- Canonical user/operator/contributor docs live in `docs/` (`ARCHITECTURE.md`, `CONFIGURATION.md`, `GETTING-STARTED.md`, `DEVELOPMENT.md`, `TESTING.md`, `API.md`, `DEPLOYMENT.md`, `meta-generated-behavior.md`) and `CONTRIBUTING.md` at the root; operator tools: `cmd/loadtest/README.md`, `deploy/grafana/alerts/README.md`. Read the relevant doc before re-deriving information from code or duplicating content into a response.
 - `CLAUDE.md` is Claude's project memory, not user-facing docs. Keep it out of any docs-generation workflow; edit it directly.
 
 ## Technology Stack
@@ -30,7 +30,7 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 ### Code Generation
 - `go generate ./...` runs the full codegen pipeline and converges in a SINGLE pass on a clean tree (the schema producer is sequenced ahead of entc, its consumer):
   1. `ent/generate.go` — runs `cmd/pdb-schema-generate` (peeringdb.json → ent/schema/*.go) FIRST, then entc.go (ent + entgql + entrest + entproto), then `cmd/pdb-compat-allowlist`, then `buf generate` for proto Go types
-  2. `graph/generate.go` — runs `gqlgen generate` for GraphQL resolvers/models. GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` — a `package graph_test` file sorting before `custom.resolvers.go` breaks generation with "exec and model define the same import path (graph vs graph_test)". Name new test files so they sort after it (e.g. `resolver_*_test.go`).
+  2. `graph/generate.go`: runs `gqlgen generate` for GraphQL resolvers/models. GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` (today `complexity.go`); a `package graph_test` file sorting before it breaks generation with "exec and model define the same import path (graph vs graph_test)". Name new test files so they sort after it (e.g. `resolver_*_test.go`).
   3. `internal/web/templates/generate.go` — runs `templ generate` for templ Go files
   - GOTCHA: `scalar Map` lives in `graph/schema.graphqls`, emitted by entgql because `Network.meta` / `NetworkIxLan.meta` use it. `graph/custom.graphql` must not redeclare it ("Cannot redeclare type Map"). entgql cannot see the custom.graphql declaration: its gqlgen schema load fails when run from `ent/`, so it always emits the builtin.
   - `schema/generate.go` carries no `go:generate` directive (package doc for the manual `pdb-schema-extract` step); the schema-regen step now lives first in `ent/generate.go`.
@@ -47,7 +47,7 @@ Two ent fields carry upstream PeeringDB visibility signals:
 - `poc.visible` — row-level (`Public` / `Users` / `Private`). The ent Privacy policy admits `visible IN tier.AdmittedVisibilities() OR NULL`: TierPublic → `Public`; TierUsers → `Public`+`Users`; NO tier sees `Private` (upstream: owning-org members only; mirror has no org membership). Only entity where a whole row can be hidden.
 - `privctx.Tier.AdmittedVisibilities()` is the single tier→visibility mapping; the poc policy, pdbcompat `applyVisibilityGate` (traversal subqueries) and `privfield.Redact` all use it; never hand-code a tier/visibility check.
 - Edge predicates bypass the policy: a `Has<Edge>With` neighbor predicate is plain SQL, so a filter over the `pocs` edge is a boolean oracle on hidden contact data. `cmd/pdb-schema-generate` `rowGatedEdgeTargets` emits `entgql.Skip(entgql.SkipWhereInput)` on every edge to `poc` (no `hasPocs`/`hasPocsWith` anywhere, incl. nested where-inputs). Any new filter path that reaches poc rows MUST apply `AdmittedVisibilities()` or be dropped. Locked by `TestGraphQLAPI_PocEdgeNotFilterable` + e2e `graphql_poc_edge_filter_rejected`.
-- `ixlan.ixf_ixp_member_list_url_visible` — per-field (`Public` / `Users` / `Private`). Gates the sibling `ixf_ixp_member_list_url`; `internal/privfield.Redact` nulls/omits at the serializer layer across all 5 API surfaces. ent's built-in Privacy operates at query/row level only — field-level redaction is a serializer-layer concern.
+- `ixlan.ixf_ixp_member_list_url_visible`: per-field (`Public` / `Users` / `Private`). Gates the sibling `ixf_ixp_member_list_url`; `internal/privfield.Redact` nulls/omits at the serializer layer of each surface that exposes it (all 6 surfaces must be checked). ent's built-in Privacy operates at query/row level only; field-level redaction is a serializer-layer concern.
 
 ### Field-level privacy
 
@@ -56,14 +56,15 @@ Two ent fields carry upstream PeeringDB visibility signals:
 - **pdbcompat** — `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)` → `ixfMemberListURLOut`; the pdbcompat-local `ixLanResponse` carries the URL as `*string` + `,omitempty`, so Redact's `omit` flag (not the value) decides the key: an admitted empty value keeps the key with `""` (upstream `permissions.py:344-353`). Exception: an empty `Users` value omits the key at every tier (an anonymous sync stores `""` for every `Users` row). `peeringdb.IxLan` stays a plain string: it decodes sync input.
 - **ConnectRPC** — `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)`; nil `*wrapperspb.StringValue` → wire omission. Convert closures at `ListIxLans` / `StreamIxLans` capture `ctx` via an adapter so the generic pagination helper's `Convert func(*E) *P` signature stays intact.
 - **GraphQL** — `graph/gqlgen.yml` opts `IxLan.ixfIxpMemberListURL` into a custom resolver; `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns `nil` (GraphQL `null`) when `omit=true`.
-- **entrest** — `internal/middleware` `RESTFieldRedact` buffers ALL `/rest/v1/` responses and recursively deletes the JSON key from every object carrying the `_visible` companion (entrest eager-loads the ixlan edge unconditionally, so the gated field also appears under `edges.ix_lans`/`edges.ix_lan` on internet-exchange, ix-prefix, and network-ix-lan responses — path-scoping to `/rest/v1/ix-lans*` leaked it; fixed 2026-06-10). Wraps INSIDE `middleware.RESTError` so `application/problem+json` error bodies pass through untouched.
+- **entrest**: `internal/middleware` `RESTFieldRedact` buffers ALL `/rest/v1/` responses except `/rest/v1/openapi.json` and walks the JSON recursively; in every object carrying the `_visible` companion it deletes the gated key when `Redact` returns `omit=true` (entrest eager-loads the ixlan edge unconditionally, so the gated field also appears under `edges.ix_lans`/`edges.ix_lan` on internet-exchange, ix-prefix, and network-ix-lan responses; path-scoping to `/rest/v1/ix-lans*` leaked it, fixed 2026-06-10). Wraps INSIDE `middleware.RESTError` so `application/problem+json` error bodies pass through untouched.
 - **Web UI** — no current render path for the URL; when/if one is added, call `privfield.Redact` in the template data preparation step.
+- **MCP**: no current path. Most tools return `internal/catalog` DTOs; `lookup_ip` (`internal/mcpserver/server.go`) returns raw ent `NetworkIxLan`/`IxPrefix` rows via their ent JSON tags, so a gated field added to those entities leaks there even if no DTO carries it. Call `Redact` where the output is built (for `lookup_ip`, map to a DTO first).
 
-**Adding a new gated field:** call `privfield.Redact` at EACH of the 5 surfaces above (missing one = privacy leak); seed both gated + Public rows in `internal/testutil/seed.Full`; extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with `Redacted{Anon,UsersTier}` sub-tests and a fail-closed-bypass assertion.
+**Adding a new gated field:** call `privfield.Redact` at EACH of the 6 surfaces above (missing one = privacy leak); seed both gated + Public rows in `internal/testutil/seed.Full`; extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with tests modeled on `TestE2E_FieldLevel_IxlanURL_RedactedAnon` / `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` and a `fail-closed-bypass-middleware` sub-test. Contributor checklist: `docs/DEVELOPMENT.md § Adding a new field-level-privacy gated field`.
 
 **`_visible` companion emission:** the `_visible` field itself is STILL emitted for anonymous callers (upstream parity).
 
-**NULL handling:** privacy policy treats NULL `*_visible` as the column default (`Public`), never `Users`. New auth-gated fields use `field.String` (not `Enum`); `internal/visbaseline/schema_alignment_test.go` flags upstream re-captures.
+**NULL handling:** only the poc row policy treats NULL `visible` as `Public`. Field-level `*_visible` columns fail closed: `privfield.Redact` redacts NULL/empty/unknown values, and the ixlan `_visible` column defaults to `Private`. New auth-gated fields use `field.String` (not `Enum`); `internal/visbaseline/schema_alignment_test.go` flags upstream re-captures.
 
 **Schema hygiene drop procedure.** `migrate.WithDropColumn(true)` + `migrate.WithDropIndex(true)` are permanently on. To drop an ent field, edit `schema/peeringdb.json`, run `go generate ./...`, remove references across `internal/{peeringdb,pdbcompat,grpcserver,sync}`, regenerate goldens (`go test -update ./internal/pdbcompat ./internal/sync`), deploy. See `docs/DEVELOPMENT.md` for the full step list.
 
@@ -81,9 +82,9 @@ Proto is hand-maintained since v1.6: entproto stays wired in `ent/entc.go` (`ent
 
 Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit signal — the `?since=N` matrix returns the live statuses plus `deleted` (`ok`, plus `not-operational` on netixlan; per 2.83.0 `peeringdb_server/rest.py:719-750`). Inference-by-absence (the prior `markStaleDeleted*` family + `internal/sync/delete.go`) was removed: it mis-classified rows missing from partial responses and dropped children whose upstream-deleted parents we never synced. The dormant tombstone-GC work stays dormant.
 
-**Bootstrap (zero-cursor handling):** v1.18.2's `?since=1` bootstrap was reverted in v1.18.3: the full-historical fetch tripped upstream's `API_THROTTLE_REPEATED_REQUEST` cap. Current behavior: zero cursor → bare `/api/<type>` (live statuses only), then a `?since=<newest updated in the snapshot>` window when the snapshot is non-empty (`snapshotWindowStart`; small, never `?since=1`; failure tolerated). Historical-delete capture for fresh installs is deferred to a multi-cycle bootstrap design (v1.19+); FK backfill catches the orphans that matter on demand.
+**Bootstrap (zero-cursor handling):** v1.18.2's `?since=1` bootstrap was reverted in v1.18.3: the full-historical fetch tripped upstream's `API_THROTTLE_REPEATED_REQUEST` cap. Current behavior: zero cursor → bare `/api/<type>` (live statuses only), then a `?since=<newest updated in the snapshot>` window when the snapshot is non-empty (`snapshotWindowStart`; small, never `?since=1`; failure tolerated). Historical-delete capture for fresh installs is deferred to a future multi-cycle bootstrap design; FK backfill catches the orphans that matter on demand.
 
-**Tombstone window on full-mode fetches (2026-06-10):** a bare list carries only live statuses and committing the snapshot advances the derived `MAX(updated)` cursor past the pre-cycle window, so full-mode staging (daily `PDBPLUS_FULL_SYNC_INTERVAL` escalation, or the per-type incremental-fallback) ALSO fetches a `?since=` window on top of the bare snapshot (`stageOneTypeToScratch`); scratch `INSERT OR REPLACE` makes window rows (incl. tombstones) win. Window-fetch failure fails the type over a populated table in full mode, because committing without it would permanently lose the window's deletes; it is logged and tolerated on an empty table (next cycle's `?since=MAX(updated)` is the same window) and on the incremental-fallback path. Locked by `TestSync_FullModeFetchesTombstoneWindow` / `...FailureFailsCycle` / `TestSync_ZeroCursorWindowFailureTolerated`.
+**Tombstone window on full-mode fetches (2026-06-10):** a bare list carries only live statuses and committing the snapshot advances the derived `MAX(updated)` cursor past the pre-cycle window, so full-mode staging (daily `PDBPLUS_FULL_SYNC_INTERVAL` escalation, or the per-type incremental-fallback) ALSO fetches a `?since=` window on top of the bare snapshot (`stageOneTypeToScratch`); scratch `INSERT OR REPLACE` makes window rows (incl. tombstones) win. Window-fetch failure fails the type over a populated table in explicit full mode, because committing without it would permanently lose the window's deletes. It is logged (WARN + `tombstone_window.discarded` span event) and tolerated on an empty table (next cycle's `?since=MAX(updated)` is the same window) and on the per-type incremental-fallback path, where the window is retried once and a second failure loses those deletes. Locked by `TestSync_FullModeFetchesTombstoneWindow`, `TestSync_FullModeTombstoneWindowFailureFailsCycle` and `TestSync_ZeroCursorWindowFailureTolerated`.
 
 **Stale upstream snapshot (v1.28.1):** upstream serves the bare list from its `pdb_api_cache` files, which can be hours/days stale; `meta.generated` is the cache FILE mtime, later than the cache query cutoff (`updated__lte=<build start>`). So (1) the window starts at `min(cursor, newest updated in the snapshot)` (`snapshotWindowStart`), never at `meta.generated`; the window is paged, so `updated` ties can still be skipped (next full cycle retries); (2) full mode's upsert gate is `excluded.updated >= updated OR updated < <snapshot cutoff>` (not `1=1`): equal rows still reconcile, a stored row newer than the snapshot's newest row is never rolled back, and an older stored row takes the snapshot's version even with an older `updated` (IX-F import-log rollback = django-reversion raw save of the old version). Cutoffs flow `syncFetchPass` → `withReconcileAll(ctx, cutoffs)` keyed by table. Pre-v1.28.1 full cycles also turned upstream deletes back into live rows; no sync repairs those (bare lists are live-only), prod had 352 such netixlans on 2026-09-23 (one-off repair, user decision: no reconcile code; unreturned ids stay live). Before v1.28.1 a full cycle over a stale cache rewrote rows (incl. `updated`) back to their cached versions and the cursor never re-fetched them. Locked by `stale_snapshot_test.go` (incl. `TestSync_FullModeRepairsRevertedRow`) + `TestSync_FullModeReconcilesLocallyDivergedRows/full_keeps_newer_stored_row`.
 
@@ -91,9 +92,9 @@ Tombstones (`status='deleted'`) are sourced **only** from upstream's explicit si
 
 **FK backfill on miss (`internal/sync/fk_backfill.go`):** `fkCheckParent` calls `fkBackfillBatch` when a parent isn't in our DB. Per-chunk pre-pass in `dispatchScratchChunk` collects all missing parent IDs across the chunk and issues ONE batched `/api/<parent>?since=1&id__in=<csv>` request per parent type via `peeringdb.Client.FetchByIDs` (chunked at `peeringdb.FetchByIDsBatchSize=100` IDs/HTTP-request internally). `upsertSingleRaw` (`internal/sync/upsert.go`) lands each fetched parent. The single-row `fkBackfillParent` is preserved as a thin wrapper over `fkBackfillBatch([]int{id})` for the worker.go callers. Recursive grandparent backfill **is** chained: when a backfilled parent has its own required-non-null FK to a missing grandparent, the grandparent is fetched too (BFS by parent type, bounded by FK depth = 3 max, deduped by the same per-cycle cache). Per-cycle bookkeeping: `Worker.fkBackfillTried` (dedup), `Worker.fkBackfillRequestCount` (HTTP requests issued, NOT rows), `Worker.fkBackfillRequestCap` (env `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` default 20; 0 disables backfill entirely), `Worker.fkBackfillDeadline` (env `PDBPLUS_FK_BACKFILL_TIMEOUT` default 5m — backfill HTTP work happens inside the sync tx, so the deadline keeps tx hold time bounded for LiteFS replication). `cycleStart` is still captured once at the top of `Worker.Sync` for memory telemetry + `fkBackfillTried` reset; **do NOT** call `time.Now()` inside per-entity closures.
 
-**NetworkIxLan side FKs:** `net_side_id` and `ix_side_id` are nullable upstream (`null=True, on_delete=SET_NULL`). On miss, `fkFilter` calls `fkBackfillParent` first; if backfill fails or is disabled, the FK is nulled out (mirrors the existing `fac → campus` pattern at line 1234). Action recorded as `null` in the orphan summary.
+**NetworkIxLan side FKs:** `net_side_id` and `ix_side_id` are nullable upstream (`null=True, on_delete=SET_NULL`). On a miss, the netixlan `fkFilter` closure (`internal/sync/registry.go`) calls `nullSideFK` (`worker.go`), which tries `fkBackfillParent` first; if backfill fails or is off, it sets the FK to NULL, like the facility `campus_id` handling in `registry.go` (which nulls without trying backfill). Action recorded as `null` in the orphan summary.
 
-**Rate-limited transport** (`internal/peeringdb/transport.go`): every PeeringDB call goes through a `*rate.Limiter` (env `PDBPLUS_PEERINGDB_RPS` default 2, burst 1 — no concurrency; auth path overrides to 1 req/sec = 60 req/min). On 429, parses `Retry-After` (numeric or HTTP-date), bounded retry (3 attempts) with cap. On 403 with WAF body signature (`AWS WAF`, `Request blocked`), logs WARN with headers and returns error (no retry). Telemetry: `pdbplus.peeringdb.requests{status_class}`, `pdbplus.peeringdb.rate_limit_wait_ms`, `pdbplus.peeringdb.retries{cause}`.
+**Rate-limited transport** (`internal/peeringdb/transport.go`; the limiter is built in `client.go`): every PeeringDB call goes through a `*rate.Limiter` (env `PDBPLUS_PEERINGDB_RPS` default 2, burst 1 = no concurrency; auth path overrides to 1 req/sec = 60 req/min). 500/502/503/504 are retried separately by `doWithRetry` in `client.go` (3 attempts, backoff). On 429, parses `Retry-After` (numeric or HTTP-date), bounded retry (3 attempts) with cap. On 403 with WAF body signature (`AWS WAF`, `Request blocked`), logs WARN with headers and returns error (no retry). Telemetry: `pdbplus.peeringdb.requests{status_class}`, `pdbplus.peeringdb.rate_limit_wait_ms`, `pdbplus.peeringdb.retries{cause}`.
 
 **No per-mutation tracing.** v1.18.6 removed `otelMutationHook` from the schema generator template (it created one OTel span per ent mutation, which inflated sync traces past Tempo's 7.5MB cap during 270k-object catch-up cycles). All `Hooks() []ent.Hook` returns `nil`. Per-cycle/per-type observability remains via `pdbplus.sync.{type.objects,duration}` + `sync-fetch-{type}` / `sync-upsert-{type}` step spans. If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch / per-chunk) — never per-mutation.
 
@@ -126,7 +127,7 @@ Tombstone GC is dormant deferred work (triggers: storage >5% MoM, tombstone rati
 
 Each `_fold` column is declared with `entgql.Skip(SkipAll)` + `entrest.WithSkip(true)` annotations so it never leaks onto the GraphQL / REST / proto wire surfaces — these columns are server-side plumbing only. The 7 entity types without folded fields (`poc`, `ixlan`, `ixpfx`, `netixlan`, `netfac`, `ixfac`, `carrierfac`) leave `TypeConfig.FoldedFields` nil; nil-map reads in `ParseFilters` return `false` without a nil-check.
 
-**Sync-side populate pattern (`internal/sync/upsert.go`):** every upsert in the 6 affected entity functions chains `.Set<Field>Fold(unifold.Fold(x.<Field>))` setters as a trailing grep-able block on the create builder. `OnConflict().UpdateNewValues()` rewrites `_fold` columns on every re-sync — no backfill script needed.
+**Sync-side populate pattern (`internal/sync/upsert.go`):** every upsert in the 6 affected entity functions chains `.Set<Field>Fold(unifold.Fold(x.<Field>))` setters as a trailing grep-able block on the create builder. The upsert (`ResolveWithNewValues` + `UpdateWhere(skipUnchangedPredicate)`) rewrites a row and its `_fold` columns only when upstream `updated` advanced; a full-mode cycle (`withReconcileAll`, daily by default) also rewrites equal-`updated` rows, so a newly added `_fold` column fills then; no backfill script needed.
 
 **pdbcompat filter-side routing pattern (`internal/pdbcompat/filter.go`):** `ParseFilters` reads `tc.FoldedFields[field]` (nil-safe) and threads `folded bool` into `buildPredicate`. When `folded == true`, `buildContains` / `buildStartsWith` route to `<field>_fold` with `unifold.Fold(value)` on the RHS via `sql.FieldContainsFold` / `FieldHasPrefixFold`. `__contains` and `__startswith` are coerced to their case-insensitive variants by `coerceToCaseInsensitive` per 2.83.0 `rest.py:657-662`.
 
@@ -143,9 +144,9 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 
 **Non-model targets.** `TypeConfig.NonModelFields` (serializer fields / properties upstream, e.g. fac `org_name`, campus `city`) are never a traversal target (`traversalTargetField`) nor a relation-seed tail: upstream `queryable_relations` offers model fields only. Do NOT key this on `UpstreamIgnored`: it also holds renamed MODEL fields (carrier `fac_count`) that stay valid targets (`carrierfac?carrier__fac_count=`).
 
-**Codegen invariants.** Static map emission, NOT runtime `client.Schema.Tables` walk. `cmd/pdb-compat-allowlist` reads `schema.PrepareQueryAllows` from `ent/schema/pdb_allowlists.go` → emits `internal/pdbcompat/allowlist_gen.go`. Every entry carries `// Source: serializers.py:<line>` (audit-required). Path B introspection: `internal/pdbcompat/introspect.go` (`LookupEdge` / `ResolveEdges` / `TargetFields`).
+**Codegen invariants.** Static map emission, NOT runtime `client.Schema.Tables` walk. `cmd/pdb-compat-allowlist` reads `schema.PrepareQueryAllows` from `ent/schema/pdb_allowlists.go` → emits `internal/pdbcompat/allowlist_gen.go`. Each entry's block comment cites the upstream `peeringdb_server/serializers.py:<line>` it derives from (usually `<Serializer>.prepare_query`, else `related_fields` / `queryable_relations`); audit-required. There is no `// Source:` tag. Path B introspection: `internal/pdbcompat/introspect.go` (`LookupEdge` / `ResolveEdges` / `TargetFields`).
 
-**Adding filters:** for 1-hop / 2-hop, add the key to the relevant entry's `Fields` slice in `ent/schema/pdb_allowlists.go` with a `// Source:` comment, then `go generate ./...`. Codegen routes 3-segment keys into `AllowlistEntry.Via` automatically. For excluded edges, attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition. For a 14th entity, add the mapping in `cmd/pdb-compat-allowlist/main.go` `pdbTypeMap` (`TestPdbTypeFor_AllThirteen` will fail until extended).
+**Adding filters:** for 1-hop / 2-hop, add the key to the relevant entry's `Fields` slice in `ent/schema/pdb_allowlists.go` with a comment citing the upstream `serializers.py:<line>`, then `go generate ./...`. Codegen routes 3-segment keys into `AllowlistEntry.Via` automatically. For excluded edges, attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition. For a 14th entity, add the mapping in `cmd/pdb-compat-allowlist/main.go` `pdbTypeMap` (`TestPdbTypeFor_AllThirteen` will fail until extended).
 
 **Do NOT:**
 
@@ -155,7 +156,7 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 - Add 3+-hop keys — dropped by codegen AND by the 2-hop cap in `parseFieldOp` at request time. The cap counts key segments: a relation filter (below) has at most 2 segments but its path can reach 3 tables (`net?ix__name=` walks netixlan → ixlan → ix).
 - Introduce runtime ent-client introspection or `sync.Once` lazy-init for the Edges map — map is codegen-time static, which avoids init-order coupling.
 
-**Status-matrix and fold composition.** Traversal predicates compose with the status matrix (`applyStatusMatrix` still appended LAST in all 13 `registry_funcs.go` closures) and with the `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
+**Status-matrix and fold composition.** Traversal predicates compose with the status matrix (`wireEntity` appends `applyStatusMatrix` LAST for all 13 types) and with the `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
 
 **Relation filters (`internal/pdbcompat/relation_filter.go`).** The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__iexact`/`__icontains`/`__istartswith` filter the ixlan name), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B. Most seeds pin ONE row of their path to `status='ok'` (`make_relation_filter`, 2.83.0 `models.py:221-234`; `pinAt`, `noPin` for fac `org_name` and carrier); a bare `status` filter on that row is replaced by the pin. A tail field in `TypeConfig.NonModelFields` (serializer field or property upstream) is ignored. They read `vals[0]` (upstream `v[0]`), not the last value. Do not re-add these keys to `pdb_allowlists.go`: Path A never sees them. Semantics table: `docs/API.md § Relation filters`.
 
@@ -201,7 +202,8 @@ Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
 - Full chain (outermost first): `Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux`
 
 ### ConnectRPC / gRPC
-- Services registered via loop in `cmd/peeringdb-plus/main.go` with otelconnect interceptor.
+- `cmd/peeringdb-plus/main.go` registers each of the 13 services with one `registerService` call; each gets the otelconnect interceptor with `connectOTelOpts` (spans only, no `rpc.server.*` metrics).
+- Never return an ent error inside `connect.CodeInternal`. Use `queryError` (`internal/grpcserver/errors.go`): it sends "internal error", records the cause on the span, and maps context cancel/deadline to `CANCELED`/`DEADLINE_EXCEEDED`.
 - Handler implementations in `internal/grpcserver/` — one file per entity type.
 - `gen/peeringdb/v1/peeringdbv1connect/` contains generated handler interfaces.
 - Proto `optional` fields generate pointer types (`*int64`, `*string`) — check `!= nil` for presence.
@@ -222,7 +224,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE=20` — per-cycle cap on **HTTP requests** issued by FK backfill (renamed v1.18.5 from MAX_PER_CYCLE which counted rows; rows is the wrong unit once `?id__in=` batches collapse N rows into 1 request). At 1 req/sec auth, 20 ≈ 20s of upstream pressure max per cycle. With `FetchByIDsBatchSize=100`, that covers up to 2,000 missing-parent rows. `0` disables backfill (orphans fall back to drop-on-miss)
 - `PDBPLUS_FK_BACKFILL_TIMEOUT=5m` — wall-clock budget for backfill HTTP activity per sync cycle; bounds tx-hold time (backfill happens inside the sync tx). On deadline → drop-on-miss with `result=deadline_exceeded` metric
 - `PDBPLUS_LOG_LEVEL=INFO` — minimum severity for the OTel logging branch (Loki). Stdout handler stays at INFO independently. Set `DEBUG` for opt-in deep debugging; invalid values fall back to INFO without crashing.
-- `PDBPLUS_CSP_ENFORCE=false` — defaults to report-only; flip to `true` after v1.13 user-acceptance verification
+- `PDBPLUS_CSP_ENFORCE=false`: defaults to report-only; set `true` after browser verification of the current CSP
 - `PDBPLUS_PUBLIC_TIER=public` — set `users` only for private deployments (WARN at startup)
 - `PDBPLUS_IS_PRIMARY=true` — fallback primary detection when LiteFS not present
 
@@ -273,7 +275,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 
 ### Sync observability
 
-End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that re-opens the incremental-sync evaluation. Implementation: `internal/sync/worker.go` `emitMemoryTelemetry`, called from `recordSuccess`/`rollbackAndRecord`/`recordFailure` (the three terminal paths of `Worker.Sync`). Span attrs `pdbplus.sync.peak_heap_bytes` + `pdbplus.sync.peak_rss_bytes` are mirrored as Prom gauges `pdbplus_sync_peak_heap_bytes` / `pdbplus_sync_peak_rss_bytes` (bytes is the canonical Prom unit; dashboards format MiB at render). Zero-valued observations are suppressed.
+End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that re-opens the incremental-sync evaluation. Implementation: `internal/sync/worker.go` `emitMemoryTelemetry`, called from `recordSuccess` and `recordFailure`; `rollbackAndRecord` reaches it through `recordFailure`, so each cycle emits once (do not add a third call). Span attrs `pdbplus.sync.peak_heap_bytes` + `pdbplus.sync.peak_rss_bytes` are mirrored as Prom gauges `pdbplus_sync_peak_heap_bytes` / `pdbplus_sync_peak_rss_bytes` (bytes is the canonical Prom unit; dashboards format MiB at render). Zero-valued observations are suppressed.
 
 **Log signal:** when a threshold is breached, worker emits `slog.Warn("heap threshold crossed", peak_heap_bytes, heap_warn_bytes, peak_rss_bytes, rss_warn_bytes, heap_over, rss_over)`. Thresholds gated by `PDBPLUS_HEAP_WARN_MIB` / `PDBPLUS_RSS_WARN_MIB` (defaults sit under the Fly 512 MB VM cap so order under pressure is: log → app crash → Fly OOM-kill).
 
@@ -288,22 +290,25 @@ End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that
 **Prod debugging:** image ships with `sqlite3` — `fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'`. Replicas expose the FUSE path read-only.
 ## Architecture
 
-### API Surfaces (5)
+### API Surfaces (6)
 - **Web UI**: `/ui/` — templ + htmx + Tailwind CSS (search, detail pages, ASN comparison). Content-negotiates: browsers get HTML, plain User-Agents (curl, wget, scripts) get ANSI-styled terminal text via `internal/web/termrender`. To smoke-test with curl, either send `-H 'User-Agent: Mozilla/5.0'` or strip ANSI: `sed 's/\x1b\[[0-9;]*[mGKH]//g'`.
 - **GraphQL**: `/graphql` — gqlgen via entgql, interactive playground
 - **REST**: `/rest/v1/` — entrest, OpenAPI-compliant
 - **PeeringDB Compat**: `/api/` — drop-in replacement for PeeringDB API
-- **ConnectRPC**: `/peeringdb.v1.*/` — Get/List RPCs for all 13 types with typed filtering, reflection, health check
+- **ConnectRPC**: `/peeringdb.v1.*/`: Get, List and Stream RPCs for all 13 types with typed filtering, reflection, health check
+- **MCP**: `/mcp` (`internal/mcpserver`): read-only tools over `internal/catalog` DTOs, plus `lookup_ip` (raw ent rows); `internal/agentdocs` serves the skill, `/.well-known/` files and `llms.txt`
 
 ### Key Packages
 
 Most `cmd/*` and `internal/*` paths are self-describing; only the non-obvious ones are listed here.
 
 Codegen tools (run by `go generate ./...`):
-- `cmd/pdb-schema-extract/` — extract PeeringDB API responses to JSON
 - `cmd/pdb-schema-generate/` — generate ent schemas from PeeringDB JSON
 - `cmd/pdb-compat-allowlist/` — emits `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`
-- `cmd/pdbcompat-check/` — validate PeeringDB API compatibility
+
+Manual tools (not run by `go generate` or CI):
+- `cmd/pdb-schema-extract/`: parses an upstream PeeringDB checkout (`<repo>/src`) and prints the extracted schema as JSON on stdout. Diff it against the hand-curated `schema/peeringdb.json` to find drift; it never writes that file.
+- `cmd/pdbcompat-check/`: subcommands `check` (compares the structure of live upstream responses with local golden files) and `capture` / `redact` / `diff` (build the visibility baseline).
 
 Operator tooling (NOT shipped in prod images, NOT invoked by CI):
 - `cmd/loadtest/` — read-only HTTP traffic generator with 4 modes: `endpoints` (sweep), `sync` (replay 13-step ordered GET sequence), `soak` (sustained QPS-capped mixed load), `ramp` (per-surface inflection-point capacity probe → markdown table to stdout, added v1.18.7). Default `--target=https://peeringdb-plus.fly.dev`; **never** point at upstream `https://www.peeringdb.com` (1 req/hour/IP cap will block). See `cmd/loadtest/README.md` and `docs/DEPLOYMENT.md § Capacity probing`.
@@ -311,7 +316,7 @@ Operator tooling (NOT shipped in prod images, NOT invoked by CI):
 Single-source-of-truth packages:
 - `internal/pdbtypes/` — leaf package (imports nothing) naming the 13 PeeringDB types across three domains (`Name`/`GoName`/`DjangoModel`); consumers derive their lists/maps from `pdbtypes.All`. `LiveStatuses(name)` mirrors upstream `live_statuses()` (feeds the pdbcompat status matrix). Exception: `internal/sync` keeps its own ordered step list — loadtest's ordering parity test cross-checks the two.
 - `internal/pdbcompat/` — PeeringDB-compatible `/api` layer (filter routing, allowlist, status matrix, response budget)
-- `internal/privfield/` `Redact(ctx, visible, value)` — field-level redaction across all 5 surfaces
+- `internal/privfield/` `Redact(ctx, visible, value)`: field-level redaction across all 6 surfaces
 - `internal/privctx/` `TierFrom(ctx)` — privacy tier reader
 - `internal/unifold/` `Fold(s string) string` — diacritic-insensitive folding (mirrors upstream `unidecode`)
 - `internal/visbaseline/` — visibility baseline + schema-alignment regression test

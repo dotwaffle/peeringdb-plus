@@ -207,7 +207,7 @@ func addTools(server *mcp.Server, services toolServices) {
 	)
 
 	addReadTool(server, "get_network",
-		"Get a network by ASN with bounded ix_presences and facilities relations.",
+		"Get a network by ASN with bounded ix_presences and facilities relations. ix_presences include connections that are not operational. Check Markers.NotOperational.",
 		func(ctx context.Context, input networkInput) (entityOutput, error) {
 			entity, err := services.catalog.Network(ctx, input.ASN)
 			if err != nil {
@@ -225,7 +225,7 @@ func addTools(server *mcp.Server, services toolServices) {
 	)
 
 	addReadTool(server, "get_exchange",
-		"Get an exchange by ID with bounded participants, facilities, and prefixes relations.",
+		"Get an exchange by ID with bounded participants, facilities, and prefixes relations. Participants include connections that are not operational. Check Markers.NotOperational.",
 		func(ctx context.Context, input entityInput) (entityOutput, error) {
 			entity, err := services.catalog.IX(ctx, input.ID)
 			if err != nil {
@@ -301,7 +301,7 @@ func addTools(server *mcp.Server, services toolServices) {
 		}, entityInputSchema("facilities")...)
 
 	addReadTool(server, "compare_networks",
-		"Compare two ASNs across shared exchanges, facilities, and campuses.",
+		"Compare two ASNs across shared exchanges, facilities, and campuses. A shared exchange can include a connection that is not operational. Check NetA.Markers.NotOperational and NetB.Markers.NotOperational in each shared_exchanges item.",
 		func(ctx context.Context, input compareInput) (comparisonOutput, error) {
 			result, err := services.compare.Compare(ctx, catalog.CompareInput{ASN1: input.ASN1, ASN2: input.ASN2, ViewMode: "full"})
 			if err != nil {
@@ -311,13 +311,13 @@ func addTools(server *mcp.Server, services toolServices) {
 		}, integerRange("asn1", 1, 4294967295), integerRange("asn2", 1, 4294967295))
 
 	addReadTool(server, "lookup_ip",
-		"Find an exact network peering address and the containing exchange prefix.",
+		"Find IX peering addresses that exactly match an IP address, with the status and meta of each connection, and the exchange prefixes that contain the address. Status is ok, not-operational, or pending.",
 		func(ctx context.Context, input lookupIPInput) (lookupIPOutput, error) {
 			return services.lookupIP(ctx, input.IP)
 		}, stringLength("ip", 2, 64))
 
 	addReadTool(server, "get_sync_status",
-		"Get mirror freshness and the latest synchronization result.",
+		"Get the latest sync attempt: its status (success, failed, or running), end time (start time while running), duration, and rows written per type. Entity tools report data freshness as the time of the last successful sync.",
 		func(ctx context.Context, _ emptyInput) (syncStatusOutput, error) {
 			status, err := pdbsync.GetLastStatus(ctx, services.db)
 			if err != nil {
@@ -581,10 +581,13 @@ func (services toolServices) lookupIP(ctx context.Context, raw string) (lookupIP
 }
 
 func addResources(server *mcp.Server, input Input) {
-	serviceText := fmt.Sprintf(
-		"PeeringDB Plus %s is a read-only local PeeringDB mirror. Region: %s. Use get_sync_status for live freshness.",
-		input.Version, input.Region,
-	)
+	// Region is empty outside Fly.io. Leave the sentence out then, so the
+	// text does not read "Region: .".
+	serviceText := "PeeringDB Plus " + input.Version + " is a read-only PeeringDB mirror."
+	if input.Region != "" {
+		serviceText += " Serving region: " + input.Region + "."
+	}
+	serviceText += " Use get_sync_status to see the latest sync."
 	addTextResource(server, "peeringdb-plus://service", "Service context", serviceText)
 	addTextResource(server, "peeringdb-plus://guide", "Research guide",
 		"Search first, then fetch details by ASN or PeeringDB ID. Related collections are bounded; follow next_cursor with the same relation. Cursors expire after a successful mirror sync.")

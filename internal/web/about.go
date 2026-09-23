@@ -56,7 +56,7 @@ func (h *Handler) handleAbout(w http.ResponseWriter, r *http.Request) {
 
 	page := PageContent{
 		Title:       "About",
-		Description: "About PeeringDB Plus: a globally distributed, read-only PeeringDB mirror with REST, GraphQL, gRPC, and PeeringDB-compatible APIs.",
+		Description: "About PeeringDB Plus: a read-only PeeringDB mirror with PeeringDB-compatible, REST, GraphQL, ConnectRPC, and MCP interfaces.",
 		Canonical:   canonicalURL(r),
 		Content:     templates.AboutPage(freshness, privacy, runtimeInfo),
 		Data: templates.AboutPageData{

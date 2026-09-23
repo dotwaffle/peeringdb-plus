@@ -24,9 +24,11 @@ const (
 // SocialMedia represents a social media link from PeeringDB.
 // Used by Organization, Network, Facility, InternetExchange, Carrier, and Campus.
 type SocialMedia struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Service       string                 `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
-	Identifier    string                 `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The service key as PeeringDB stores it, in lowercase, for example
+	// "website", "linkedin", "x", "facebook", or "instagram".
+	Service       string `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
+	Identifier    string `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

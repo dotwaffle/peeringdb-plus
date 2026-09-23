@@ -47,6 +47,8 @@ func TestRenderAboutPage_WithFreshness(t *testing.T) {
 		"/api/",
 		"/ui/",
 		"/peeringdb.v1.*/",
+		"/mcp",
+		"/skills/peeringdb-plus.zip",
 		"?format=json",
 	}
 

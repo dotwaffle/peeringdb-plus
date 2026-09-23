@@ -8,13 +8,18 @@ import "google/protobuf/timestamp.proto";
 import "peeringdb/v1/v1.proto";
 
 // CampusService provides read access to Campus records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service CampusService {
   rpc GetCampus(GetCampusRequest) returns (GetCampusResponse);
   rpc ListCampuses(ListCampusesRequest) returns (ListCampusesResponse);
 
-  // StreamCampuses streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamCampuses sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamCampuses(StreamCampusesRequest) returns (stream Campus);
 }
 
@@ -27,6 +32,7 @@ message GetCampusResponse {
 }
 
 message ListCampusesRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -75,13 +81,18 @@ message StreamCampusesRequest {
 }
 
 // CarrierService provides read access to Carrier records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service CarrierService {
   rpc GetCarrier(GetCarrierRequest) returns (GetCarrierResponse);
   rpc ListCarriers(ListCarriersRequest) returns (ListCarriersResponse);
 
-  // StreamCarriers streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamCarriers sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamCarriers(StreamCarriersRequest) returns (stream Carrier);
 }
 
@@ -94,6 +105,7 @@ message GetCarrierResponse {
 }
 
 message ListCarriersRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -134,13 +146,18 @@ message StreamCarriersRequest {
 }
 
 // CarrierFacilityService provides read access to CarrierFacility records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service CarrierFacilityService {
   rpc GetCarrierFacility(GetCarrierFacilityRequest) returns (GetCarrierFacilityResponse);
   rpc ListCarrierFacilities(ListCarrierFacilitiesRequest) returns (ListCarrierFacilitiesResponse);
 
-  // StreamCarrierFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamCarrierFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamCarrierFacilities(StreamCarrierFacilitiesRequest) returns (stream CarrierFacility);
 }
 
@@ -153,6 +170,7 @@ message GetCarrierFacilityResponse {
 }
 
 message ListCarrierFacilitiesRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -183,13 +201,18 @@ message StreamCarrierFacilitiesRequest {
 }
 
 // FacilityService provides read access to Facility records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service FacilityService {
   rpc GetFacility(GetFacilityRequest) returns (GetFacilityResponse);
   rpc ListFacilities(ListFacilitiesRequest) returns (ListFacilitiesResponse);
 
-  // StreamFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamFacilities(StreamFacilitiesRequest) returns (stream Facility);
 }
 
@@ -202,6 +225,7 @@ message GetFacilityResponse {
 }
 
 message ListFacilitiesRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -282,13 +306,18 @@ message StreamFacilitiesRequest {
 }
 
 // InternetExchangeService provides read access to InternetExchange records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service InternetExchangeService {
   rpc GetInternetExchange(GetInternetExchangeRequest) returns (GetInternetExchangeResponse);
   rpc ListInternetExchanges(ListInternetExchangesRequest) returns (ListInternetExchangesResponse);
 
-  // StreamInternetExchanges streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamInternetExchanges sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamInternetExchanges(StreamInternetExchangesRequest) returns (stream InternetExchange);
 }
 
@@ -301,6 +330,7 @@ message GetInternetExchangeResponse {
 }
 
 message ListInternetExchangesRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -373,13 +403,18 @@ message StreamInternetExchangesRequest {
 }
 
 // IxFacilityService provides read access to IxFacility records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service IxFacilityService {
   rpc GetIxFacility(GetIxFacilityRequest) returns (GetIxFacilityResponse);
   rpc ListIxFacilities(ListIxFacilitiesRequest) returns (ListIxFacilitiesResponse);
 
-  // StreamIxFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamIxFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamIxFacilities(StreamIxFacilitiesRequest) returns (stream IxFacility);
 }
 
@@ -392,6 +427,7 @@ message GetIxFacilityResponse {
 }
 
 message ListIxFacilitiesRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -426,13 +462,18 @@ message StreamIxFacilitiesRequest {
 }
 
 // IxLanService provides read access to IxLan records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service IxLanService {
   rpc GetIxLan(GetIxLanRequest) returns (GetIxLanResponse);
   rpc ListIxLans(ListIxLansRequest) returns (ListIxLansResponse);
 
-  // StreamIxLans streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamIxLans sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamIxLans(StreamIxLansRequest) returns (stream IxLan);
 }
 
@@ -445,6 +486,7 @@ message GetIxLanResponse {
 }
 
 message ListIxLansRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -487,13 +529,18 @@ message StreamIxLansRequest {
 }
 
 // IxPrefixService provides read access to IxPrefix records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service IxPrefixService {
   rpc GetIxPrefix(GetIxPrefixRequest) returns (GetIxPrefixResponse);
   rpc ListIxPrefixes(ListIxPrefixesRequest) returns (ListIxPrefixesResponse);
 
-  // StreamIxPrefixes streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamIxPrefixes sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamIxPrefixes(StreamIxPrefixesRequest) returns (stream IxPrefix);
 }
 
@@ -506,6 +553,7 @@ message GetIxPrefixResponse {
 }
 
 message ListIxPrefixesRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -540,13 +588,18 @@ message StreamIxPrefixesRequest {
 }
 
 // NetworkService provides read access to Network records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service NetworkService {
   rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
 
-  // StreamNetworks streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamNetworks sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamNetworks(StreamNetworksRequest) returns (stream Network);
 }
 
@@ -559,6 +612,7 @@ message GetNetworkResponse {
 }
 
 message ListNetworksRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -641,13 +695,18 @@ message StreamNetworksRequest {
 }
 
 // NetworkFacilityService provides read access to NetworkFacility records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service NetworkFacilityService {
   rpc GetNetworkFacility(GetNetworkFacilityRequest) returns (GetNetworkFacilityResponse);
   rpc ListNetworkFacilities(ListNetworkFacilitiesRequest) returns (ListNetworkFacilitiesResponse);
 
-  // StreamNetworkFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamNetworkFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamNetworkFacilities(StreamNetworkFacilitiesRequest) returns (stream NetworkFacility);
 }
 
@@ -660,6 +719,7 @@ message GetNetworkFacilityResponse {
 }
 
 message ListNetworkFacilitiesRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -696,13 +756,18 @@ message StreamNetworkFacilitiesRequest {
 }
 
 // NetworkIxLanService provides read access to NetworkIxLan records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service NetworkIxLanService {
   rpc GetNetworkIxLan(GetNetworkIxLanRequest) returns (GetNetworkIxLanResponse);
   rpc ListNetworkIxLans(ListNetworkIxLansRequest) returns (ListNetworkIxLansResponse);
 
-  // StreamNetworkIxLans streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamNetworkIxLans sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamNetworkIxLans(StreamNetworkIxLansRequest) returns (stream NetworkIxLan);
 }
 
@@ -715,6 +780,7 @@ message GetNetworkIxLanResponse {
 }
 
 message ListNetworkIxLansRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -767,13 +833,18 @@ message StreamNetworkIxLansRequest {
 }
 
 // OrganizationService provides read access to Organization records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service OrganizationService {
   rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
   rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
 
-  // StreamOrganizations streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamOrganizations sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamOrganizations(StreamOrganizationsRequest) returns (stream Organization);
 }
 
@@ -786,6 +857,7 @@ message GetOrganizationResponse {
 }
 
 message ListOrganizationsRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 
@@ -838,13 +910,18 @@ message StreamOrganizationsRequest {
 }
 
 // PocService provides read access to Poc (point of contact) records.
+// Get, List, and Stream return rows of every status, including deleted.
+// List and Stream take an optional status filter.
 service PocService {
   rpc GetPoc(GetPocRequest) returns (GetPocResponse);
   rpc ListPocs(ListPocsRequest) returns (ListPocsResponse);
 
-  // StreamPocs streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamPocs sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
+  // A stream without since_id or updated_since sets the
+  // pdbplus-total-count response header to the number of matching rows.
   rpc StreamPocs(StreamPocsRequest) returns (stream Poc);
 }
 
@@ -857,6 +934,7 @@ message GetPocResponse {
 }
 
 message ListPocsRequest {
+  // Rows per page. The default is 100. The server caps the value at 1000.
   int32 page_size = 1;
   string page_token = 2;
 

@@ -1,7 +1,8 @@
-// Command loadtest is an operator tool that exercises every API
-// surface of a peeringdb-plus deployment (default
-// https://peeringdb-plus.fly.dev) for capacity validation, dashboard
-// warmup, and load reproduction.
+// Command loadtest is an operator tool that sends read-only traffic to
+// five interfaces of a peeringdb-plus deployment (default
+// https://peeringdb-plus.fly.dev): /api, /rest/v1, /graphql,
+// ConnectRPC, and /ui. It does not test /mcp. Use it for capacity
+// validation, dashboard warmup, and load reproduction.
 //
 // SAFETY: this binary is compiled by `go build ./...` but is NEVER
 // invoked by CI, Dockerfiles, or deployment scripts — only by
@@ -11,7 +12,7 @@
 //
 // Four modes are supported:
 //
-//	loadtest endpoints [flags]   one-shot inventory sweep across all 5 surfaces
+//	loadtest endpoints [flags]   one-shot inventory sweep across the 5 surfaces
 //	loadtest sync       [flags]  replay the 13-step ordered sync sequence
 //	loadtest soak       [flags]  sustained QPS-capped mixed-surface load
 //	loadtest ramp       [flags]  per-surface inflection-point capacity probe
@@ -35,10 +36,9 @@ import (
 	"time"
 )
 
-// safetyBanner is printed at the top of every --help output AND
-// re-printed in cmd/loadtest/README.md. The exact phrase
-// "NEVER point --base at https://www.peeringdb.com" is greppable and
-// is checked by the plan's verification step.
+// safetyBanner is printed at the top of every --help output and before
+// every run. cmd/loadtest/README.md carries the same warning, and
+// rejectUpstreamBase enforces it.
 const safetyBanner = `WARNING: peeringdb-plus loadtest tool
 
 This tool drives sustained traffic against a peeringdb-plus mirror.
@@ -99,12 +99,10 @@ func run(argv []string, stdout, stderr *os.File) error {
 	cfg := Config{}
 	fs.StringVar(&cfg.Base, "base", "https://peeringdb-plus.fly.dev",
 		"base URL of the peeringdb-plus deployment to load-test (e.g. http://localhost:8080)")
-	// --target is a ramp-mode alias for --base (kept for plan-spec
-	// parity; ramp's planning doc reads "default --target=…"). Both
-	// flags write to cfg.Base — passing both is harmless because flag
-	// parsing assigns them in argv order.
+	// --target is an alias for --base in every mode. Both flags write
+	// to cfg.Base. If both are given, the last one in argv wins.
 	fs.StringVar(&cfg.Base, "target", "https://peeringdb-plus.fly.dev",
-		"alias for --base (ramp mode)")
+		"alias for --base")
 	fs.DurationVar(&cfg.Timeout, "timeout", 30*time.Second, "per-request timeout")
 	fs.BoolVar(&cfg.Verbose, "verbose", false, "emit per-request log lines")
 
@@ -259,6 +257,7 @@ func printHelp(w *os.File) {
 	fmt.Fprintln(w, "      table to stdout when its ramp completes.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Auth: set PDBPLUS_LOADTEST_AUTH_TOKEN to send 'Authorization: Bearer <token>' on every request.")
+	fmt.Fprintln(w, "      Use it only for a proxy that requires a token. peeringdb-plus ignores the header.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Run `loadtest <mode> --help` for mode-specific flag defaults.")
 }

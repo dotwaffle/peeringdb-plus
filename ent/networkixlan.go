@@ -49,7 +49,7 @@ type NetworkIxLan struct {
 	Speed int `json:"speed"`
 	// Internet exchange ID (computed)
 	IxID int `json:"ix_id"`
-	// Name (computed)
+	// Name of the exchange, with the LAN name after a colon when the LAN has a name (computed)
 	Name string `json:"name"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

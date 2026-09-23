@@ -1265,7 +1265,7 @@ func TestTerminalDetection(t *testing.T) {
 			userAgent:   "curl/8.5.0",
 			wantStatus:  200,
 			wantCT:      "text/plain",
-			wantContain: []string{"PeeringDB Plus", "Usage:", "curl peeringdb-plus.fly.dev/ui/asn/"},
+			wantContain: []string{"PeeringDB Plus", "Usage:", "curl https://peeringdb-plus.fly.dev/ui/asn/"},
 			wantVary:    "User-Agent",
 		},
 		{

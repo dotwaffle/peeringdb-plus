@@ -1197,14 +1197,9 @@ type IxLan struct {
 	Created                    *timestamppb.Timestamp  `protobuf:"bytes,11,opt,name=created,proto3" json:"created,omitempty"`
 	Updated                    *timestamppb.Timestamp  `protobuf:"bytes,12,opt,name=updated,proto3" json:"updated,omitempty"`
 	Status                     string                  `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"`
-	// Auth-gated data field. Field-level privacy is
-	// enforced at the serializer layer (internal/privfield) before the
-	// *wrapperspb.StringValue is set — nil on the wire when redacted.
-	// Appended at field number 14 to preserve proto wire compat for
-	// fields 1-13; the proto file is frozen since v1.6 so this edit is
-	// applied by hand (entproto.SkipGenFile + no entproto annotations
-	// on ent schemas means proto/ is not auto-regenerated). Do NOT
-	// renumber.
+	// URL of the IX-F member export of this LAN. Absent when the URL is
+	// empty, or when ixf_ixp_member_list_url_visible does not let the
+	// caller's tier see it.
 	IxfIxpMemberListUrl *wrapperspb.StringValue `protobuf:"bytes,14,opt,name=ixf_ixp_member_list_url,json=ixfIxpMemberListUrl,proto3" json:"ixf_ixp_member_list_url,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
@@ -1949,7 +1944,10 @@ type NetworkIxLan struct {
 	Name        *wrapperspb.StringValue `protobuf:"bytes,15,opt,name=name,proto3" json:"name,omitempty"`
 	Created     *timestamppb.Timestamp  `protobuf:"bytes,16,opt,name=created,proto3" json:"created,omitempty"`
 	Updated     *timestamppb.Timestamp  `protobuf:"bytes,17,opt,name=updated,proto3" json:"updated,omitempty"`
-	Status      string                  `protobuf:"bytes,18,opt,name=status,proto3" json:"status,omitempty"`
+	// ok, not-operational, pending, or deleted. A status filter of ok
+	// leaves out the not-operational rows. An ok row with operational set
+	// to false is also not operational.
+	Status string `protobuf:"bytes,18,opt,name=status,proto3" json:"status,omitempty"`
 	// Opaque metadata document (PeeringDB 2.83.0). Keys can change without
 	// a release. An empty Struct means that no keys are set, the same as
 	// upstream's {}. Absent only when the stored document cannot be

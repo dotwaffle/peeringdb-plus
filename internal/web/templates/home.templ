@@ -12,27 +12,32 @@ templ Home(query string, groups []SearchGroup) {
 		@SearchForm(query, groups)
 	</div>
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-		@apiSurfaceCards([]surfaceCard{
-			{Href: "/graphql", Title: "GraphQL", Desc: "Interactive playground for flexible data queries with filtering and pagination."},
-			{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI-compliant REST endpoints with auto-generated documentation."},
-			{Title: "ConnectRPC / gRPC", Desc: "Get and List RPCs for all 13 types with typed filtering. Supports Connect, gRPC, and gRPC-Web protocols. Use buf curl or grpcurl to explore."},
-			{Href: "/api/", Title: "PeeringDB API", Desc: "Drop-in compatible with PeeringDB API for existing integrations."},
-			{Href: "/mcp", Title: "MCP", Desc: "Read-only directory research tools, resources, and prompts for agents."},
-			{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Download an installable skill configured for this deployment."},
-		})
+		@apiSurfaceCards(apiSurfaces)
 	</div>
 }
 
-// surfaceCard is one API-surface tile on the home and about pages.
-// An empty Href renders a non-clickable card (gRPC has no browsable URL).
+// surfaceCard is one API tile on the home and about pages.
+// An empty Href renders a card that is not a link (ConnectRPC has no page
+// to open in a browser).
 type surfaceCard struct {
 	Href  string
 	Title string
 	Desc  string
 }
 
-// apiSurfaceCards renders the API-surface tiles. Shared by Home and
-// AboutPage so the two card grids never drift in markup.
+// apiSurfaces is the one list of API tiles. Home and AboutPage both render
+// it, so the two pages show the same text.
+var apiSurfaces = []surfaceCard{
+	{Href: "/graphql", Title: "GraphQL", Desc: "GraphiQL playground with schema documentation. Queries support filters and pagination."},
+	{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI REST endpoints, with interactive documentation at /rest/v1/docs."},
+	{Title: "ConnectRPC / gRPC", Desc: "Get, List, and Stream RPCs for all 13 PeeringDB types, with typed filters, reflection, and health checks. Supports the Connect, gRPC, and gRPC-Web protocols. Use buf curl or grpcurl."},
+	{Href: "/api/", Title: "PeeringDB API", Desc: "Read-only PeeringDB-compatible API for existing PeeringDB clients."},
+	{Href: "/mcp", Title: "MCP", Desc: "Model Context Protocol server with read-only tools, resources, and prompts for network research agents."},
+	{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Download an installable skill configured for this deployment."},
+}
+
+// apiSurfaceCards renders the API tiles. Home and AboutPage share it, so
+// the two card grids use the same markup.
 templ apiSurfaceCards(cards []surfaceCard) {
 	for _, c := range cards {
 		if c.Href != "" {

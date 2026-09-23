@@ -5,6 +5,8 @@ option go_package = "github.com/dotwaffle/peeringdb-plus/ent/proto/peeringdb/v1"
 // SocialMedia represents a social media link from PeeringDB.
 // Used by Organization, Network, Facility, InternetExchange, Carrier, and Campus.
 message SocialMedia {
+  // The service key as PeeringDB stores it, in lowercase, for example
+  // "website", "linkedin", "x", "facebook", or "instagram".
   string service = 1;
   string identifier = 2;
 }

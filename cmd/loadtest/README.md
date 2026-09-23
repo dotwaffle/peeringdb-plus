@@ -7,6 +7,9 @@
 > and will block your IP if you exceed it. This tool is for the
 > **mirror** at `https://peeringdb-plus.fly.dev` (default) or your
 > own local deployment via `--base http://localhost:8080`.
+> The tool refuses to start when `--base` or `--target` names
+> peeringdb.com or a subdomain of it. beta.peeringdb.com is the only
+> exception.
 >
 > **Do NOT run this tool from CI.** The package compiles as a normal
 > `cmd/` binary, but the binary is never invoked by CI / Dockerfiles
@@ -18,13 +21,14 @@
 ## What it does
 
 Four modes drive read-only HTTP traffic against a peeringdb-plus
-mirror, exercising every entity type across all five API surfaces
-(pdbcompat `/api`, entrest `/rest/v1`, GraphQL `/graphql`,
-ConnectRPC `/peeringdb.v1.*`, Web UI `/ui`):
+mirror, exercising every entity type across five of the six API
+surfaces (pdbcompat `/api`, entrest `/rest/v1`, GraphQL `/graphql`,
+ConnectRPC `/peeringdb.v1.*`, Web UI `/ui`). The MCP endpoint
+(`/mcp`) is not covered.
 
 | mode        | purpose                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
-| `endpoints` | One-shot inventory sweep (~114 distinct requests). Validates every API surface returns 2xx. |
+| `endpoints` | One-shot inventory sweep (~114 distinct requests). Checks that each endpoint in the registry returns 2xx. |
 | `sync`      | Replays the 13-step FK-ordered type sequence across 3 depth bands (`depth=0/1/2`) → 39 GETs (full or incremental). Mirrors `internal/sync/worker.go syncSteps()`. |
 | `soak`      | Sustained QPS-capped mixed-surface load. Defaults to 30 s × 4 workers × 5 req/s. |
 | `ramp`      | Per-surface concurrency ramp; finds the inflection point where p95/p99 latency or error rate degrades. Sequential per surface (no cross-surface contention). |
@@ -71,17 +75,14 @@ warmup and post-deploy validation, not concurrent stress.
 ./loadtest sync --mode=incremental --since=1714219200
 ```
 
-Issues 39 GETs — the 13-step FK-ordered type sequence (`org, campus,
+Issues 39 GETs. It sends the 13 types in FK order (`org, campus,
 fac, carrier, carrierfac, ix, ixlan, ixpfx, ixfac, net, poc, netfac,
-netixlan`) replayed across 3 depth bands (`depth=0/1/2`), in type ×
-ascending-depth order — mirroring the live worker at
-`internal/sync/worker.go syncSteps()`. The URL shape depends on the
-mode: full mode issues a bare `/api/<short>?depth=N`, incremental mode
-issues `/api/<short>?limit=250&skip=0&depth=N&since=M`. The
-`internal/sync.StepOrder()` export is the single source of truth;
-the loadtest's parity test (`TestSync_OrderingMatchesWorker`) fails
-the build if a future syncSteps() reorder happens without updating
-the loadtest.
+netixlan`) at `depth=0`, then again at `depth=1`, then at `depth=2`.
+The URL shape depends on the mode: full mode issues a bare
+`/api/<short>?depth=N`, incremental mode issues
+`/api/<short>?limit=250&skip=0&depth=N&since=M`. The order comes from
+`pdbtypes.Names()`. `TestSync_OrderingMatchesWorker` fails when that
+order differs from `internal/sync.StepOrder()`.
 
 | flag       | default          | description                                                                                                                               |
 | ---------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -119,16 +120,17 @@ success rates.
 The defaults (4 × 5 req/s) are conservative for `shared-cpu-1x`
 replicas. Reasonable knobs:
 
-- **Smoke / warmup:** `--qps=5 --concurrency=4` (default). Light
-  enough to hit a Fly machine without tripping replica-side
-  middleware rate limits.
+- **Smoke / warmup:** `--qps=5 --concurrency=4` (default). This
+  load is light for one Fly machine.
 - **Stress:** `--qps=20 --concurrency=10`. Approaches the upper end
-  of what a `shared-cpu-2x` primary can sustain across all 5
-  surfaces. Watch the Grafana `Live Heap by Instance` panel during
-  the run.
-- **DO NOT** push `--qps` past ~50 against the deployed Fly app
-  without coordinating — middleware rate limiting and Fly Proxy
-  back-pressure both cut in.
+  of what a `shared-cpu-2x` primary can sustain across the five
+  covered surfaces. Watch the Grafana `Live Heap by Instance` panel
+  during the run.
+- **DO NOT** push `--qps` past about 50 against the deployed Fly app
+  without coordination. peeringdb-plus does not limit the rate of
+  incoming requests, so machine capacity sets the limit. A replica
+  machine has 256 MB of memory. When a machine is at its concurrency
+  soft limit, Fly Proxy sends new requests to other machines first.
 
 ### `ramp` — find inflection point per surface
 
@@ -222,33 +224,35 @@ Set `PDBPLUS_LOADTEST_AUTH_TOKEN` to send `Authorization: Bearer
 PDBPLUS_LOADTEST_AUTH_TOKEN=$(cat ~/.pdbplus-token) ./loadtest soak --duration=1m
 ```
 
-When unset, requests are anonymous (matching what an unauthenticated
-external client sees).
+Use it only when a proxy in front of the mirror requires a token.
+peeringdb-plus ignores the header. Every caller sees the tier that
+`PDBPLUS_PUBLIC_TIER` sets.
 
 ## Output
 
-Every mode prints a tab-separated summary table at the end. Pipe
-through `column -t -s$'\t'` for fixed-width formatting:
+The `endpoints`, `sync`, and `soak` modes print an aligned summary
+table at the end. The `ramp` mode prints its markdown tables instead
+(see [Sample output](#sample-output)).
 
 ```text
 === loadtest soak summary ===
-wall-clock      30.012s
-observed-rps    4.97 req/s
+wall-clock     30.012s
+observed-rps   4.96 req/s
 
-surface     count  ok   err  success%  p50    p95    p99
-pdbcompat   53     53   0    100.0%    8ms    24ms   48ms
-entrest     31     31   0    100.0%    9ms    27ms   52ms
-graphql     16     16   0    100.0%    18ms   62ms   89ms
-connectrpc  29     29   0    100.0%    11ms   36ms   71ms
-webui       20     20   0    100.0%    7ms    19ms   34ms
-TOTAL       149    149  0    100.0%    10ms   34ms   71ms
+SURFACE     COUNT  OK   ERR  SUCCESS%  P50       P95       P99
+pdbcompat   53     53   0    100.0%    8.412ms   24.13ms   48.007ms
+entrest     31     31   0    100.0%    9.205ms   27.34ms   52.118ms
+graphql     16     16   0    100.0%    18.031ms  89.26ms   89.26ms
+connectrpc  29     29   0    100.0%    11.302ms  36.118ms  71.044ms
+webui       20     20   0    100.0%    7.118ms   19.406ms  34.772ms
+TOTAL       149    149  0    100.0%    10.087ms  34.105ms  71.044ms
 ```
 
 Latency percentiles use the **nearest-rank** method on a sorted
 slice of observed latencies. p99 reports the 99th-percentile of the
 observed distribution; a single anomalous outlier in 100 requests
 will surface only at p100, which is intentionally not printed (read
-the `err` column to surface anomalies).
+the `ERR` column to surface anomalies).
 
 ## CI behaviour
 

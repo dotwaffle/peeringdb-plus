@@ -288,14 +288,9 @@ message IxLan {
 
   string status = 13;
 
-  // Auth-gated data field. Field-level privacy is
-  // enforced at the serializer layer (internal/privfield) before the
-  // *wrapperspb.StringValue is set — nil on the wire when redacted.
-  // Appended at field number 14 to preserve proto wire compat for
-  // fields 1-13; the proto file is frozen since v1.6 so this edit is
-  // applied by hand (entproto.SkipGenFile + no entproto annotations
-  // on ent schemas means proto/ is not auto-regenerated). Do NOT
-  // renumber.
+  // URL of the IX-F member export of this LAN. Absent when the URL is
+  // empty, or when ixf_ixp_member_list_url_visible does not let the
+  // caller's tier see it.
   google.protobuf.StringValue ixf_ixp_member_list_url = 14;
 }
 
@@ -464,6 +459,9 @@ message NetworkIxLan {
 
   google.protobuf.Timestamp updated = 17;
 
+  // ok, not-operational, pending, or deleted. A status filter of ok
+  // leaves out the not-operational rows. An ok row with operational set
+  // to false is also not operational.
   string status = 18;
 
   // Opaque metadata document (PeeringDB 2.83.0). Keys can change without

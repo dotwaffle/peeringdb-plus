@@ -41,9 +41,9 @@ type Carrier struct {
 	SocialMedia []schematypes.SocialMedia `json:"social_media"`
 	// Carrier website URL
 	Website string `json:"website"`
-	// Org Name (computed)
+	// Name of the organization this record belongs to (computed)
 	OrgName string `json:"org_name"`
-	// Fac Count (computed)
+	// Number of facilities for this carrier (computed)
 	FacCount int `json:"fac_count"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

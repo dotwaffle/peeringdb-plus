@@ -1,4 +1,6 @@
-// Package agentdocs serves the installable PeeringDB Plus agent skill.
+// Package agentdocs serves the agent discovery documents: the Agent Skill
+// (SKILL.md and a ZIP archive), the skills index, the MCP server card, and
+// llms.txt.
 package agentdocs
 
 import (
@@ -37,7 +39,7 @@ const (
 	skillArchivePath  = "peeringdb-plus/SKILL.md"
 	openAIArchivePath = "peeringdb-plus/agents/openai.yaml"
 	mcpPath           = "/mcp"
-	skillDescription  = "Query the PeeringDB Plus read-only mirror for PeeringDB research, interconnection discovery, network footprint analysis, IP ownership, comparisons, and sync freshness."
+	skillDescription  = "Query the PeeringDB Plus read-only mirror for networks, exchanges, facilities, organizations, campuses, carriers, IX peering addresses, network comparisons, and sync freshness. Use for PeeringDB research, interconnection discovery, network footprint analysis, or mirror health checks."
 )
 
 var zipEpoch = time.Date(1980, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -162,7 +164,7 @@ func (h *Handler) serveMCPServerCard(w http.ResponseWriter, r *http.Request) {
 		Name:                      "peeringdb-plus",
 		Title:                     "PeeringDB Plus",
 		Version:                   h.version,
-		Description:               "Read-only access to a local PeeringDB mirror through catalog search, entity detail, network comparison, IP lookup, and sync freshness tools.",
+		Description:               "Read-only access to a local PeeringDB mirror through catalog search, entity detail, network comparison, IX peering address lookup, and sync freshness tools.",
 		Endpoint:                  origin + mcpPath,
 		Transport:                 "http",
 		ProtocolVersion:           "2026-07-28",
@@ -246,22 +248,24 @@ type mcpFeature struct {
 	Description string `json:"description"`
 }
 
+// mcpTools and mcpPrompts copy the tool and prompt descriptions that
+// internal/mcpserver registers. Keep the text identical to the server.
 var mcpTools = []mcpFeature{
-	{Name: "search_peeringdb", Description: "Search PeeringDB entities, with grouped previews or typed cursor pagination."},
-	{Name: "get_network", Description: "Get a network by ASN with bounded exchange and facility relations."},
-	{Name: "get_exchange", Description: "Get an exchange by ID with bounded participant, facility, and prefix relations."},
-	{Name: "get_facility", Description: "Get a facility by ID with bounded network, exchange, and carrier relations."},
-	{Name: "get_organization", Description: "Get an organization by ID with bounded child-entity relations."},
-	{Name: "get_campus", Description: "Get a campus by ID with bounded facilities."},
-	{Name: "get_carrier", Description: "Get a carrier by ID with bounded facilities."},
-	{Name: "compare_networks", Description: "Compare two ASNs across exchanges, facilities, and campuses."},
-	{Name: "lookup_ip", Description: "Find an exact peering address and its containing exchange prefix."},
-	{Name: "get_sync_status", Description: "Get mirror freshness and the latest synchronization result."},
+	{Name: "search_peeringdb", Description: "Search PeeringDB entities. Omit type for grouped previews; set type for cursor pagination."},
+	{Name: "get_network", Description: "Get a network by ASN with bounded ix_presences and facilities relations. ix_presences include connections that are not operational. Check Markers.NotOperational."},
+	{Name: "get_exchange", Description: "Get an exchange by ID with bounded participants, facilities, and prefixes relations. Participants include connections that are not operational. Check Markers.NotOperational."},
+	{Name: "get_facility", Description: "Get a facility by ID with bounded networks, exchanges, and carriers relations."},
+	{Name: "get_organization", Description: "Get an organization by ID with bounded networks, exchanges, facilities, campuses, and carriers relations."},
+	{Name: "get_campus", Description: "Get a campus by ID with a bounded facilities relation."},
+	{Name: "get_carrier", Description: "Get a carrier by ID with a bounded facilities relation."},
+	{Name: "compare_networks", Description: "Compare two ASNs across shared exchanges, facilities, and campuses. A shared exchange can include a connection that is not operational. Check NetA.Markers.NotOperational and NetB.Markers.NotOperational in each shared_exchanges item."},
+	{Name: "lookup_ip", Description: "Find IX peering addresses that exactly match an IP address, with the status and meta of each connection, and the exchange prefixes that contain the address. Status is ok, not-operational, or pending."},
+	{Name: "get_sync_status", Description: "Get the latest sync attempt: its status (success, failed, or running), end time (start time while running), duration, and rows written per type. Entity tools report data freshness as the time of the last successful sync."},
 }
 
 var mcpPrompts = []mcpFeature{
-	{Name: "research_network", Description: "Guide an investigation of one network and its interconnection footprint."},
-	{Name: "compare_networks", Description: "Guide a comparison of two network footprints."},
+	{Name: "research_network", Description: "Investigate one network and its interconnection footprint"},
+	{Name: "compare_networks", Description: "Compare two networks' interconnection footprints"},
 }
 
 func marshalJSON(value any) []byte {
@@ -291,7 +295,9 @@ Use the MCP endpoint for typed network research. Check sync freshness when curre
 - [OpenAPI specification](%s/rest/v1/openapi.json): REST schema and endpoints.
 - [GraphQL endpoint](%s/graphql): GraphQL API and schema explorer.
 - [PeeringDB-compatible API](%s/api/): Read-compatible PeeringDB API.
-`, origin, MCPServerCardPath, origin, WellKnownSkillPath, origin, SkillIndexPath, origin, origin, origin, origin)
+- [Web UI](%s/ui/): Search, detail, and comparison pages. Terminal clients get text output.
+- ConnectRPC: services under %s/peeringdb.v1.*, with gRPC reflection and health checks.
+`, origin, MCPServerCardPath, origin, WellKnownSkillPath, origin, SkillIndexPath, origin, origin, origin, origin, origin, origin)
 }
 
 type serveDocumentInput struct {

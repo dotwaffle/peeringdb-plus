@@ -29,7 +29,7 @@ type IxLan struct {
 	Dot1qSupport bool `json:"dot1q_support"`
 	// IXF import enabled
 	IxfIxpImportEnabled bool `json:"ixf_ixp_import_enabled"`
-	// IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)
+	// IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.
 	IxfIxpMemberListURL string `json:"ixf_ixp_member_list_url"`
 	// IXF member list URL visibility
 	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible"`

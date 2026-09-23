@@ -45,7 +45,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><h1 class=\"text-3xl font-bold text-emerald-500 font-mono mb-6\">About PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed\">PeeringDB Plus is a fast, read-only mirror of PeeringDB data. It syncs all PeeringDB objects regularly and serves them through modern API surfaces from edge locations worldwide.</p><div class=\"mt-8 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Data Freshness</h2>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><h1 class=\"text-3xl font-bold text-emerald-500 font-mono mb-6\">About PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed\">PeeringDB Plus is a read-only mirror of PeeringDB. It syncs all 13 PeeringDB object types on a schedule and serves them through the APIs below.</p><div class=\"mt-8 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Data Freshness</h2>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -86,7 +86,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Privacy &amp; Sync</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-32\">Sync mode:</dt><dd>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Privacy &amp; Sync</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-44\">PeeringDB access:</dt><dd>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -99,7 +99,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</dd></div><div class=\"flex flex-col sm:flex-row sm:gap-2 sm:items-center\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-32\">Public tier:</dt><dd class=\"flex items-center gap-2\"><span class=\"font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</dd></div><div class=\"flex flex-col sm:flex-row sm:gap-2 sm:items-center\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-44\">Public tier:</dt><dd class=\"flex items-center gap-2\"><span class=\"font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -191,14 +191,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = apiSurfaceCards([]surfaceCard{
-			{Href: "/graphql", Title: "GraphQL Playground", Desc: "Interactive query builder with schema exploration"},
-			{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI-compliant endpoints with auto-generated docs"},
-			{Title: "ConnectRPC / gRPC", Desc: "Get and List RPCs for all 13 PeeringDB types with typed filtering, reflection, and health checking. Supports Connect, gRPC, and gRPC-Web protocols."},
-			{Href: "/api/", Title: "PeeringDB Compatible", Desc: "Drop-in replacement for PeeringDB API integrations"},
-			{Href: "/mcp", Title: "Model Context Protocol", Desc: "Read-only tools, resources, and prompts for network research agents"},
-			{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Installable skill archive configured for the hostname serving this response"},
-		}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = apiSurfaceCards(apiSurfaces).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

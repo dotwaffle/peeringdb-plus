@@ -27,7 +27,7 @@ that cold-sync from the primary on boot.
 - `Dockerfile.prod` — LiteFS-aware production image.
   Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite`
   (CLI for incident response —
-  see [Incident-response debug shell](#sync-memory-watch)) installed,
+  see [Incident-response debug shell](#incident-response-debug-shell)) installed,
   copies the LiteFS 0.5 binary from `flyio/litefs:0.5`,
   copies `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point,
   and sets `ENTRYPOINT ["litefs", "mount"]`.
@@ -49,8 +49,11 @@ that cold-sync from the primary on boot.
   Used by GitHub Actions for the `Docker Build` CI job and as a base
   for local container-based development.
 
-Both images use `cgr.dev/chainguard/go` as the build stage
-and `cgr.dev/chainguard/glibc-dynamic:latest-dev` as the runtime stage.
+Both images use `cgr.dev/chainguard/go` as the build stage.
+`Dockerfile.prod` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
+as the runtime stage and runs as root.
+`Dockerfile` uses `cgr.dev/chainguard/glibc-dynamic`, which has no shell,
+and runs as `nonroot`.
 
 ## Build pipeline
 
@@ -62,10 +65,13 @@ It comprises two jobs:
    warms one module/build cache, then runs these steps in order:
    1. **Generated-code drift check** —
       `mise run generate` then
-      `git diff --exit-code` scoped to
+      `git diff --exit-code` over
       `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
+      `internal/web/static/tailwind.css`,
       and `internal/pdbcompat/allowlist_gen.go`
       (the security-load-bearing `/api` traversal allowlist).
+      The step also fails when generation creates untracked files
+      in these paths.
       Runs first so a forgotten regeneration fails in seconds,
       ahead of the expensive build and test steps.
       A `go mod tidy` gate follows it,
@@ -84,11 +90,8 @@ It comprises two jobs:
    `type=gha` cache.
    Images are built but **not pushed** from CI.
 
-The four formerly-parallel Go jobs
-(lint / test / build / govulncheck)
-were collapsed into the single `ci` job so the module download and compile warm
-once and are reused; `docker-build` stays separate
-because its BuildKit cache is independent of the Go build cache.
+`docker-build` is a separate job
+because its BuildKit `type=gha` cache is separate from the Go build cache.
 
 There is no automated deploy step.
 Deployment to Fly.io is a manual action run from a developer workstation,
@@ -108,8 +111,9 @@ recorded here so they read as decisions rather than oversights:
   (Fly microVM per machine) is the primary isolation layer.
   Revisit if LiteFS grows a privilege-drop option
   or the app moves off FUSE.
-- **The runtime base is `glibc-dynamic:latest-dev`** —
-  the `-dev` variant ships a shell, `apk`, and the `sqlite3` CLI.
+- **The runtime base is `glibc-dynamic:latest-dev`.**
+  The `-dev` variant has a shell and `apk`,
+  and `Dockerfile.prod` installs the `sqlite3` CLI with `apk`.
   This is deliberate incident-response tooling:
   `fly ssh console` + `sqlite3 /litefs/peeringdb-plus.db`
   is the documented production debugging path.
@@ -125,8 +129,7 @@ recorded here so they read as decisions rather than oversights:
 
 Runtime configuration is supplied by environment variables.
 See [CONFIGURATION.md](CONFIGURATION.md) for the full list.
-For a Fly.io deployment the following must be set via `fly secrets set`
-(or `fly secrets import`):
+Set these secrets with `fly secrets set` (or `fly secrets import`):
 
 | Secret | Purpose |
 | --- | --- |
@@ -161,12 +164,15 @@ anonymous API callers still see `Public`-only thanks to the
    ```
 
 3. **Confirm rollout.**
-   Tail the logs for the classification line emitted at startup.
-   With the key set, it reports `auth=authenticated`:
+   Look for the startup classification line.
+   With the key set, it contains `"auth":"authenticated"`:
 
    ```bash
-   fly logs --app peeringdb-plus | grep -m1 'sync mode'
+   fly logs --app peeringdb-plus --no-tail | grep '"msg":"sync mode"'
    ```
+
+   The "Sync mode" row on the `/ui/about` page also shows the
+   authentication mode.
 
    `fly secrets list --app peeringdb-plus` should also show
    `PDBPLUS_PEERINGDB_API_KEY` in the output (value is masked, only the digest
@@ -209,33 +215,29 @@ Non-secret configuration lives in `fly.toml`'s `[env]` block:
 - `PRIMARY_REGION=lhr` — consumed by both `litefs.yml` for lease candidacy
   and the `POST /sync` handler for `fly-replay` forwarding.
 
-Fly.io injects `FLY_REGION`, `FLY_APP_NAME`, `FLY_CONSUL_URL`,
-and `HOSTNAME` automatically.
-Consul must be attached to the app once via `fly consul attach` so
-that `FLY_CONSUL_URL` is populated for LiteFS lease election. <!-- VERIFY:
-fly consul attach must be run once per app to populate FLY_CONSUL_URL;
-this is a manual out-of-band step not captured in fly.toml -->
+Fly.io injects `FLY_REGION`, `FLY_APP_NAME`, and `HOSTNAME` automatically.
+`fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
+Run it once for each app.
+LiteFS uses this URL for lease election.
 
 Standard `OTEL_*` environment variables apply via the
 `go.opentelemetry.io/contrib/exporters/autoexport` package used in
 `internal/otel/provider.go`.
 See [Monitoring](#monitoring) below.
 
-The default sync mode is `incremental`
-(flipped from `full` on 2026-04-26 once upstream deletion tombstones were
-confirmed — see [CONFIGURATION.md](CONFIGURATION.md#sync-worker) for the full
-rationale).
-Set `PDBPLUS_SYNC_MODE=full` only as an operator escape-hatch
-(first-sync hydration, recovery from a corrupt incremental state).
+The default sync mode is `incremental`.
+A primary with no successful sync recorded runs a full sync at startup,
+and `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`) forces a periodic full cycle.
+For one full sync, send `POST /sync?mode=full`
+(see [Force a full sync](#5-force-a-full-sync)).
+Set `PDBPLUS_SYNC_MODE=full` only when every cycle must fetch all data.
 
 ## LiteFS
 
 LiteFS is in maintenance mode —
 stable but no longer actively supported by Fly.io.
 There is no drop-in alternative for edge SQLite replication,
-so the project continues to use it. <!-- VERIFY:
-LiteFS Cloud subscription / hosted-control-plane state
-for this deployment is not encoded in the repository -->
+so the project continues to use it.
 
 - **FUSE mount.** `Dockerfile.prod`'s entrypoint is `litefs mount`, which
   starts the LiteFS FUSE process, mounts the database directory at
@@ -275,7 +277,7 @@ for this deployment is not encoded in the repository -->
   the handler returns HTTP 307 with a `fly-replay: region=${PRIMARY_REGION}`
   header so the Fly edge re-routes the request to the primary region.
 
-### Rolling deploy behaviour
+### Rolling deploy behavior
 
 During a rolling deploy the LiteFS FUSE mount takes a brief moment to come up on
 each new machine, and Fly's proxy may log "not listening" warnings while the
@@ -286,13 +288,10 @@ The `grace_period = "30s"` on the `/readyz` check in `fly.toml` is sized to
 accommodate this.
 
 `fly.toml` sets `strategy = "rolling"` with `max_unavailable = 0.5`,
-which replaces roughly half the fleet at a time. <!-- VERIFY:
-exact production fleet size
-(currently documented as 1 primary + 7 replicas)
-is not encoded in fly.toml —
-counts are managed via `fly scale count` against the live app --> Blue-green
-deploys are not usable here because running two parallel fleets would conflict
-with the LiteFS + Consul primary election.
+which replaces roughly half the fleet at a time.
+Blue-green deploys are not usable here
+because two parallel fleets would conflict in the LiteFS + Consul primary
+election.
 
 ## Asymmetric fleet
 
@@ -307,24 +306,33 @@ with different VM sizing and mount policies
 - **`replica` group** — read-only edge machines, `shared-cpu-1x` / 256 MB,
   **no persistent volume** (ephemeral rootfs).
   On boot, LiteFS cold-syncs the database from the primary via HTTP.
-  `/readyz` returns 503 during this hydration window
-  so Fly Proxy routes around the machine until it is ready. <!-- VERIFY:
-  current replica count and region list
-  (documented as 7 machines: iad, nrt, syd, lax, jnb, sin, gru)
-  is managed via `fly scale count --region <r>`
-  and is not encoded in fly.toml -->
+  LiteFS starts the application only after this cold sync,
+  so the `/readyz` check fails
+  and Fly Proxy routes around the machine until it is ready.
+
+The production fleet has 8 machines:
+1 primary in `lhr` and 7 replicas,
+one in each of `iad`, `nrt`, `syd`, `lax`, `jnb`, `sin`, and `gru`.
+`fly scale count` sets these counts.
+`fly.toml` does not.
+The `PdbPlusFleetMachineCountLow` alert expects this fleet.
 
 **Volume-only-on-primary contract:** `[[mounts]]` in `fly.toml` is scoped to
 `processes = ["primary"]`.
-Only the LHR primary machine has a mount.
-Replica machines are cattle —
-a damaged replica is recovered by `fly machine destroy --force <id>`;
-the replacement machine that Fly schedules has no volume concern,
-cold-syncs from the primary, and becomes live when `/readyz` flips to 200.
+Only the LHR primary machine has a volume.
+Fly.io does not replace a destroyed machine.
+To replace a damaged replica, do these steps:
 
-**Replica cold-sync expectations:** <!-- VERIFY:
-hydration windows below are observed values from the v1.15 rollout,
-not encoded in the repository -->
+1. Find the machine ID and region: `fly machines list --app peeringdb-plus`.
+2. Destroy the machine: `fly machine destroy --force <id>`.
+3. Create a new machine in the same region:
+   `fly scale count <n> --process-group replica --region <region>`.
+   Set `<n>` to the number of replica machines that you want in that region.
+4. Wait until `/readyz` on the new machine returns 200.
+   The machine cold-syncs the database from the primary before it serves
+   traffic.
+
+**Replica cold-sync expectations** (measured during the v1.15 rollout):
 
 | Region | Expected hydration | Notes |
 |--------|--------------------|-------|
@@ -332,17 +340,15 @@ not encoded in the repository -->
 | nrt, sin | 15-30s | Transpacific |
 | syd, gru, jnb | 30-45s | Furthest edges; long-haul to LHR |
 
-Typical hydration window is 5-45 seconds per region. <!-- VERIFY:
-current production database size
-(documented as ~88 MB)
-is observed at runtime and not encoded in the repository -->
+Typical hydration window is 5-45 seconds per region.
 
-If a replica stays on 503 >5 minutes with logs showing successful DB pings,
-the `sync_status` row (replicated from the primary via LiteFS cold-sync) is
-likely stale.
-Remediation: `POST /sync` with the `PDBPLUS_SYNC_TOKEN` to force a fresh primary
-sync; replicas pick up the updated `sync_status` within seconds via LTX
-replication.
+If a replica returns 503 for more than 5 minutes,
+look for `readyz sync marked failed` or `readyz sync stale` in its logs.
+Both conditions come from the `sync_status` rows
+that LiteFS replicates from the primary.
+To clear them, send `POST /sync` with the `PDBPLUS_SYNC_TOKEN`.
+The new cycle on the primary writes a new `sync_status` row,
+and LTX replication copies it to the replicas within seconds.
 
 **Sizing rationale:** Observed replica RSS is 58-59 MB steady-state;
 `shared-cpu-1x` / 256 MB gives ~4× memory headroom and budget
@@ -351,36 +357,46 @@ The primary keeps `shared-cpu-2x` / 512 MB —
 it runs the sync worker whose memory profile was characterized during production
 load testing.
 
-**Cost:** Asymmetric fleet is ~$20.75/mo vs the previous uniform ~$57.20/mo —
-saves ~$36/mo. <!-- VERIFY:
-monthly cost figures depend on Fly.io's current billing tiers
-and observed traffic volume —
-not derivable from the repository --> Real win is operational simplicity
-(no replica-volume orphans, destroy-and-recreate recovery in seconds).
-
 ## Regional rollout
 
-The primary region is `lhr`; every additional region hosts read-only replicas.
-To add a region:
+The primary region is `lhr`.
+Every other region has `replica` machines only.
+To add a region, or to change the number of replica machines in a region,
+run:
 
 ```bash
-fly regions add <region>
-fly scale count <n> --process-group replica --region <region>
+fly scale count <n> --process-group replica --region <region>   # machines in one region (not lhr)
 ```
 
-To scale total fleet size (per process group):
+To resize a process group:
 
 ```bash
-fly scale count <n> --process-group replica           # total replica machines across regions
-fly scale count <n> --process-group replica --region lhr   # regional scale
 fly scale vm shared-cpu-1x --memory 256 --process-group replica   # resize replica group
 fly scale vm shared-cpu-2x --memory 512 --process-group primary   # resize primary group (matches fly.toml defaults)
 ```
+
+Do not put `replica` machines in `lhr`.
+`litefs.yml` makes every machine in `PRIMARY_REGION` a lease candidate,
+whatever its process group.
+A `replica` machine in `lhr` can take the lease while the primary restarts.
+It then runs the sync worker on a machine that has no volume.
+Always give `--region` when you scale the `replica` group.
+Without `--region`, `fly scale count` acts on every region that has a machine
+of the app, and `lhr` is one of these regions.
 
 Only machines in `PRIMARY_REGION=lhr` are eligible to hold the LiteFS write
 lease, so the primary group is sized at exactly 1 — running multiple primary
 candidates wastes the persistent volume on the standby and does not add write
 capacity (LiteFS is single-writer).
+
+The alert `PdbPlusFleetMachineCountLow` counts the pairs of process group and
+region that send metrics.
+It does not count machines.
+It fires below 6 and expects 8.
+When you add or remove a region, change the threshold and the description in
+`deploy/grafana/alerts/pdbplus-alerts.yaml`.
+Then apply the rules again (see `deploy/grafana/alerts/README.md`).
+A second machine in a region that already has one does not change the count.
 
 ## Monitoring
 
@@ -406,9 +422,40 @@ instances.
 Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`
 and are applied via `mimirtool rules sync`
 (see `deploy/grafana/alerts/README.md` for the workflow).
-<!-- VERIFY: production Grafana / Mimir tenant target
-for `mimirtool rules sync` is operator-specific
-and not encoded in the repository -->
+
+The OTLP endpoint, the Grafana host, and the Mimir tenant are deployment
+values.
+They are not in the repository.
+Set the OTLP endpoint and headers as Fly secrets:
+`fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`.
+
+Fly.io's built-in machine metrics
+(CPU, memory, network, disk)
+are available through the Fly dashboard without additional configuration.
+
+Runtime health:
+
+- `GET /healthz` is the liveness probe.
+  It returns 200 while the process runs.
+- `GET /readyz` is the readiness probe.
+  The `fly.toml` HTTP check uses it.
+  It returns 503 in these conditions:
+  - The database ping fails or takes more than 2 seconds
+    (log: `readyz db probe failed`).
+  - The `sync_status` query fails (log: `readyz sync lookup failed`).
+  - No sync has completed.
+  - The newest `sync_status` row has the status `failed`
+    (log: `readyz sync marked failed`).
+    Replicas read the same replicated row,
+    so all machines return 503 until a new sync cycle starts.
+  - The newest successful sync is older than `PDBPLUS_SYNC_STALE_THRESHOLD`,
+    default `24h` (log: `readyz sync stale`).
+
+  While a replica cold-syncs at boot,
+  LiteFS does not start the application yet,
+  so the check fails until the application listens on `:8080`.
+  During graceful shutdown the listener closes,
+  so the check fails and Fly Proxy stops routing to the machine.
 
 ### Sync memory watch
 
@@ -430,21 +477,20 @@ that includes API-serving load and only resets on restart.
 The same values are exported as Prometheus gauges
 (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`)
 for dashboard timeseries.
-Bytes is the canonical Prom unit
-(per the 2026-04-26 audit unit canonicalisation);
-Grafana formats MiB / GiB at render time.
+Bytes is the canonical Prometheus unit.
+Grafana formats MiB and GiB at render time.
 
 Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB`
 (default 384).
 Defaults sit under the Fly 512 MB VM cap with margin
 so the order under pressure is: log → app crash → Fly OOM-kill.
 Zero disables the warn for that metric (attrs still fire).
-A sustained breach of `PDBPLUS_HEAP_WARN_MIB` is the operational signal to
-re-evaluate the incremental-sync defaults.
+A sustained breach of `PDBPLUS_HEAP_WARN_MIB` needs investigation
+(see **Memory escalation** below).
 
 **Dashboard.**
 The `Sync Memory` row in `deploy/grafana/dashboards/pdbplus-overview.json`
-contains three panels:
+contains four panels:
 
 - `Peak Heap` — threshold line at 400 MiB
   (Grafana auto-formats MiB / GiB from the `bytes` field unit)
@@ -452,51 +498,29 @@ contains three panels:
 - `Live Heap by Instance` —
   sourced from the `go_memory_used_bytes` OTel runtime gauge,
   plots all fleet machines (primary + replicas) across the asymmetric fleet
+- `Response Heap Delta`: p50, p95, and p99 of
+  `pdbplus_response_heap_delta_bytes` for each endpoint
 
 **Memory escalation.**
-If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync
-cycles, treat it as the operational signal to re-evaluate the sync strategy —
-revisit `PDBPLUS_SYNC_MODE=incremental` after the deletion-conformance
-prerequisite work.
+If the peak heap stays above `PDBPLUS_HEAP_WARN_MIB` for several sync cycles,
+find the cause before the primary reaches its 512 MB limit.
+Look at `pdbplus_sync_peak_heap_bytes` for each cycle
+and at the sync mode of those cycles (`sync_status.mode`).
+Full cycles use more memory than incremental cycles.
 Observed baseline (2026-04-17): primary peak 83.8 MiB,
-replicas 58-59 MiB. <!-- VERIFY:
-post-incremental-flip (2026-04-26) memory baseline has not
-yet been captured into the repository -->
+replicas 58-59 MiB.
 
-**Incident-response debug shell.**
-The prod image ships with the `sqlite3` binary
-(added 2026-04-18; declared in `Dockerfile.prod` via
-`apk add --no-cache fuse3 sqlite`).
-Run interactive queries via:
+### Incident-response debug shell
 
-```text
-fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
+The production image contains the `sqlite3` CLI.
+To open a SQLite shell on the primary, run:
+
+```bash
+fly ssh console -a peeringdb-plus --process-group primary --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 ```
 
-on the LHR primary.
-Replicas present the same FUSE path read-only
-(LiteFS rejects writes away from the leader).
-
-The specific OTLP collector, metrics backend,
-and dashboard host used in production are deployment-specific
-and must be configured via Fly secrets
-(`fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`).
-<!-- VERIFY: production OTLP endpoint / collector target (Honeycomb, Grafana Cloud, self-hosted, etc.) is not encoded in the repository -->
-<!-- VERIFY: Grafana dashboard host URL is not encoded in the repository -->
-
-Fly.io's built-in machine metrics
-(CPU, memory, network, disk)
-are available through the Fly dashboard without additional configuration.
-
-Runtime health:
-
-- `GET /healthz` — liveness probe; always 200 while the process is alive.
-- `GET /readyz` — readiness probe, used by `fly.toml`'s HTTP service check.
-  It turns unready during graceful shutdown drain
-  (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`),
-  **during LiteFS cold-sync hydration on replica boot**,
-  and when the latest successful sync exceeds `PDBPLUS_SYNC_STALE_THRESHOLD`,
-  so Fly Proxy routes around the machine until the database is live and fresh.
+On a replica, the same path is read-only.
+LiteFS rejects writes on machines that do not hold the lease.
 
 ## Capacity probing
 
@@ -518,40 +542,49 @@ Four subcommands:
   emitting a markdown table per surface to stdout (paste into
   capacity-planning docs / incident reports).
 
-Default `--target` is `https://peeringdb-plus.fly.dev`.
-**Never** point any subcommand at `https://www.peeringdb.com` —
-upstream PeeringDB enforces a 1-req/hour-per-IP cap and will block your IP.
+The default `--base` is `https://peeringdb-plus.fly.dev`
+(`--target` is an alias).
+The tool refuses `peeringdb.com` and its subdomains,
+except `beta.peeringdb.com`.
+Do not point it at upstream PeeringDB.
+Upstream rate limits are strict and can block your IP.
 See `cmd/loadtest/README.md` for full flag documentation and example output.
 
 ## Rollback
 
-Fly.io tracks every deployed image as a release.
-To roll back:
+Fly.io keeps the image of each release.
+To deploy an earlier image again, do these steps:
 
-```bash
-fly releases                            # list recent releases
-fly releases rollback <version>         # revert to a specific release
-```
+1. List the releases with their image references:
 
-Alternatively, redeploy the previous Git commit explicitly:
+   ```bash
+   fly releases --app peeringdb-plus --image
+   ```
+
+2. Deploy the image of the release that you want:
+
+   ```bash
+   fly deploy --app peeringdb-plus --image <image-ref>
+   ```
+
+This procedure does not build a new image.
+To build from an earlier commit, check out that commit and run `fly deploy`:
 
 ```bash
 git checkout <previous-sha>
 fly deploy
 ```
 
-Because deploys are manual and built from the local working tree,
-`fly releases rollback` is the fastest path to revert without a rebuild.
-
 ## Deploy command summary
 
 ```bash
-# Deploy the current working tree
+# Deploy the current working tree with Fly's remote builder.
+# After a long pause the remote builder starts cold. `go build -v` in
+# Dockerfile.prod prints each package, so a slow build shows progress.
+# If a transient api.machines.dev error occurs, run `fly deploy` again.
 fly deploy
 
-# Prefer building on the local Docker daemon: Fly's remote builder is a
-# machine that cold-starts (or gets recreated) on demand, which has caused
-# multi-minute hangs and flaky deploys from this repo
+# Build on the local Docker daemon instead
 fly deploy --local-only
 
 # Deploy with a specific Dockerfile (defaults to Dockerfile.prod per fly.toml)
@@ -568,12 +601,19 @@ Initial setup (one-time, per app):
 ```bash
 fly apps create peeringdb-plus
 fly consul attach                                          # populates FLY_CONSUL_URL
-fly volumes create litefs_data --size 1 --region lhr       # primary group only — replicas have no volume
+fly volumes create litefs_data --size 1 --region lhr       # optional: the first deploy creates the volume from [[mounts]]
 fly secrets set PDBPLUS_PEERINGDB_API_KEY=... PDBPLUS_SYNC_TOKEN=...
 fly deploy
+fly scale count 1 --process-group replica --region <region>   # repeat for each replica region
+fly machines list                                          # find each replica-group machine in lhr
+fly machine destroy --force <id>                           # repeat for each replica-group machine in lhr
 ```
 
-<!-- VERIFY: exact initial-setup sequence for a fresh Fly app including Consul attach ordering is not captured in the repository and must be confirmed against current Fly.io documentation -->
+The first deploy creates the `replica` group machines in `lhr`,
+the `primary_region` of `fly.toml`.
+Create the replicas in their regions first,
+then destroy each `replica` machine in `lhr`
+(see [Regional rollout](#regional-rollout)).
 
 ## After an upstream PeeringDB release
 
@@ -599,11 +639,16 @@ On 2026-09-23 the mirror had 627 such rows.
 The checks below use a SQLite shell on a machine of the fleet:
 
 ```bash
-fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
+fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 ```
 
-1. Make sure that the mirror runs a release with the 2.83.0 parity changes
-   (see `CHANGELOG.md`).
+1. Make sure that the mirror runs v1.28.0 or later.
+   To see the running version, run:
+
+   ```bash
+   curl -s -H 'Accept: application/json' https://peeringdb-plus.fly.dev/ | jq -r .version
+   ```
+
    Older releases hide `not-operational` connections on `/api` and in the
    Web UI.
 2. Wait until upstream has deployed 2.83.0.
@@ -664,12 +709,17 @@ fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
 
 ### 2) Startup object-count seed timeout
 
-- Symptoms: startup warning about timed-out initial object counts,
-  dashboards start at zeros.
-- First checks: DB mount latency, replica hydration status,
-  cold-start IO pressure.
-- Immediate action: allow first successful sync cycle to refresh counts;
-  investigate persistent repeats.
+- Symptom: the WARN log
+  `initial object count seed timed out; continuing with zeroed gauges until first refresh`.
+  The object-count gauges of that machine show 0.
+- On the primary, the next successful sync cycle refreshes the counts.
+- A replica does not run sync cycles,
+  so its gauges stay at 0 until it restarts.
+  The dashboard uses `max by (type)`,
+  so a replica at 0 does not change the totals.
+  To reset the gauges, restart the replica: `fly machine restart <id>`.
+- A seed error that is not a timeout stops the process.
+  Fly restarts the machine.
 
 ### 3) Repeated upstream 429 / long Retry-After
 
@@ -689,5 +739,37 @@ fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
   so a missing token disables on-demand sync entirely
   (scheduled syncs are unaffected).
 - First checks: `PDBPLUS_SYNC_TOKEN` present in runtime env and deploy secrets.
-- Immediate action: set token and redeploy;
-  confirm with an authenticated `/sync` probe.
+- Immediate action: set the token with
+  `fly secrets set PDBPLUS_SYNC_TOKEN=...`.
+  This command restarts the machines.
+  Then send an authenticated `POST /sync`.
+
+### 5) Force a full sync
+
+1. Send the request.
+   A replica answers with a `fly-replay` header,
+   and Fly Proxy then sends the request to the primary.
+
+   ```bash
+   curl -X POST -H "X-Sync-Token: $PDBPLUS_SYNC_TOKEN" \
+     'https://peeringdb-plus.fly.dev/sync?mode=full'
+   ```
+
+2. Make sure that the response is `202`.
+   A `409` means that a cycle is running.
+   Wait until it ends, then send the request again.
+   A `401` means that the token is wrong or not set.
+
+The primary traces this cycle.
+To send the request without a trace, add `&trace=0` to the URL.
+
+### 6) Primary lost its database
+
+- A primary with no successful sync recorded runs a full sync at startup.
+  You do not need to start it.
+- Until that sync completes, `/readyz` on the primary returns 503.
+- A replica whose application started before the first successful sync
+  checks `sync_status` once per `PDBPLUS_SYNC_INTERVAL`.
+  Its data routes return 503 until that check,
+  even when `/readyz` returns 200.
+  To make it ready at once, restart it: `fly machine restart <id>`.

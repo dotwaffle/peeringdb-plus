@@ -55,8 +55,9 @@ Small fixes, doc tweaks, and clear bug fixes can go straight to a PR.
 - `main` is the default branch and the target for all pull requests.
 - Fork the repo (or branch directly if you have write access)
   and work on a feature branch.
-  The repository does not enforce a branch-name convention —
-  descriptive names like `fix/sync-scheduler` or `feat/graphql-cache` are fine.
+  The repository does not enforce a branch-name convention.
+  Descriptive names such as `fix/sync-scheduler`
+  or `deps/2026-08-29-sweep` are fine.
 - PRs land on `main` as GitHub merge commits
   (`Merge pull request #N from <branch>`),
   preserving the individual feature-branch commits.
@@ -99,22 +100,26 @@ mise install --locked
 mise run check
 ```
 
-If you touched any of the following, regenerate code and commit the result:
+If you changed one of these files, regenerate code and commit the result:
 
-- `.proto` files (everything under `proto/peeringdb/v1/`, including `v1.proto`,
-  `services.proto`, and `common.proto`)
-- `.templ` files under `internal/web/templates/`
-- ent schemas under `ent/schema/`
-
-Run the full codegen pipeline:
+- `schema/peeringdb.json`, or a hand-edited sibling file under `ent/schema/`
+- a `.proto` file under `proto/peeringdb/v1/`
+  (`v1.proto`, `services.proto`, or `common.proto`)
+- `graph/custom.graphql` or `graph/gqlgen.yml`
+- a `.templ` file under `internal/web/templates/`,
+  `internal/web/tailwind.input.css`, or `internal/web/static/ui.js`
+- a code generator or its configuration, for example `ent/entc.go`,
+  `buf.gen.yaml`, `cmd/pdb-schema-generate/`, `cmd/pdb-compat-allowlist/`,
+  or a generator version in `mise.toml`
 
 ```bash
-go generate ./...
+mise run generate
 ```
 
-This regenerates `ent/`, `gen/`, `graph/`,
-and `internal/web/templates/*_templ.go`.
-CI will reject PRs where these directories are out of sync (see below).
+This command runs `go generate ./...`.
+It updates `ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`,
+`internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
+CI rejects a PR in which these files are out of date (see below).
 
 ## Required CI Checks
 
@@ -124,24 +129,22 @@ The `ci` job is a single cached Go job whose steps run in order;
 
 | Job | What it runs |
 |---|---|
-| **`ci`** | In order: locked mise install → generated-code drift check → build → gotestsum race tests with coverage → lint → advisory vulnerability scan |
+| **`ci`** | In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests with coverage, coverage comment, lint (actionlint and golangci-lint), advisory vulnerability scan |
 | **`docker-build`** | Builds both `Dockerfile` (dev) and `Dockerfile.prod` (prod) images |
 
 `govulncheck` runs with `continue-on-error`:
 a flagged vulnerability surfaces as a workflow warning
 but does **not** block the merge.
-The four formerly-parallel Go jobs
-(lint / test / build / govulncheck)
-were collapsed into `ci` so the module download and compile warm once
-and are reused.
 
 ### Generated Code Drift Check
 
-The `ci` job's first real step runs `mise run generate`
-and then `git diff --exit-code` across `ent/`, `gen/`, `graph/`,
-and `internal/web/templates/` —
-ahead of `go build` so a forgotten regeneration fails in seconds.
-If any generated file differs from what's committed, the build fails with:
+The first check in the `ci` job runs `mise run generate`.
+It runs before `go build`, so a missed regeneration fails early.
+The check covers `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
+`internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
+It fails if a generated file differs from the commit,
+or if generation creates an untracked file in these paths.
+For a changed file, the error is:
 
 > Generated code is out of date.
 > Run 'mise run generate' and commit the changes.
@@ -163,72 +166,29 @@ Read both before editing schemas or anything privacy-adjacent.
 
 ### Sibling-file convention for ent schemas
 
-The per-entity files in `ent/schema/{type}.go`
-(e.g. `network.go`, `organization.go`, `poc.go`)
-are **regenerated from `schema/peeringdb.json`** by `cmd/pdb-schema-generate` on
-every `go generate ./...` run.
-Anything hand-edited inside those files — `Hooks`, `Policy`, `Annotations`,
-`Edges`, `Mixin` — is silently stripped.
-
-The fix is architectural:
-keep hand-edits in **sibling files** the generator never touches.
-The generator only writes files named after the model type,
-so any sibling with an additional `_suffix` is invisible to it. ent's codegen
-still discovers the methods via reflection on the schema type — the file split
-is transparent to ent.
-
-Existing siblings to model your changes on:
-
-- `ent/schema/poc_policy.go` — `(Poc).Policy()` privacy rule
-- `ent/schema/fold_mixin.go` + `ent/schema/{type}_fold.go` —
-  `(Entity).Mixin()` wiring for the 6 folded entities
-  (`organization`, `network`, `facility`, `internetexchange`, `carrier`,
-  `campus`)
-- `ent/schema/pdb_allowlists.go` —
-  `schema.PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist`
-- `ent/schema/campus_annotations.go` — entity-level annotation overrides
-
-If you add new hand-edited methods
-(Hooks, Policy, Annotations, Edges, Mixin)
-to any generated schema file,
-**move them to a sibling named `{type}_{method}.go`** instead.
-If you don't, your changes will vanish the next time anyone runs
-`go generate ./...` and the CI drift check will not catch it (because the
-regenerated file is what gets committed).
+`cmd/pdb-schema-generate` writes `ent/schema/{type}.go`
+and `ent/schema/types.go` from `schema/peeringdb.json`
+each time `go generate ./...` runs.
+It removes any hand edits in those files.
+Put hand-written schema code in a sibling file,
+for example `{type}_{method}.go`.
+If you commit a hand edit in a generated file, the CI drift check fails.
+For the current sibling files and the methods that a sibling can declare, see
+[DEVELOPMENT.md § Sibling-file convention](docs/DEVELOPMENT.md#sibling-file-convention-load-bearing).
 
 ### Privacy-touching changes (`*_visible` companion fields)
 
-PeeringDB Plus enforces field-level privacy via
-`internal/privfield.Redact(ctx, visible, value)`.
-This is the **single source of truth** —
-every API serializer must call it for each gated field.
-Today there are 5 serializer surfaces,
-and missing **any one** of them is a privacy leak:
+`internal/privfield.Redact(ctx, visible, value)` decides
+if the caller can see a gated field.
+Every API surface that can show a gated field must call it.
+A surface that does not call it leaks the field.
+There are six surfaces:
+`/api/`, ConnectRPC, GraphQL, `/rest/v1/`, the Web UI, and MCP (`/mcp`).
+Today the Web UI and MCP do not show a gated field.
 
-1. `internal/pdbcompat/serializer.go` — `/api` (PeeringDB-compat surface)
-2. `internal/grpcserver/ixlan.go` — ConnectRPC / `/peeringdb.v1.*`
-3. `graph/schema.resolvers.go` — GraphQL `/graphql`
-4. `internal/middleware/rest_redact.go` `RESTFieldRedact` —
-   entrest `/rest/v1/`
-5. Web UI templates — `/ui/` (when/if a render path is added)
-
-If you add a new `<field>_visible` companion field to a schema:
-
-- Add the ent schema fields
-  (`field.String` for the `_visible` column).
-- Call `privfield.Redact` at **all five** surfaces above.
-- On `/api`, the permission decides the key, not the value.
-  Do not rely on `,omitempty` on a plain `string` value field.
-  Follow the pdbcompat step in
-  [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#adding-a-new-field-level-privacy-gated-field).
-- Update `internal/testutil/seed.Full` to seed both a gated row
-  (e.g. `_visible=Users`) and a `Public` row.
-- Extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with matching
-  `Redacted{Anon,UsersTier}` sub-tests plus a `fail-closed-bypass-middleware`
-  assertion on the ConnectRPC handler.
-
-The existing `ixlan.ixf_ixp_member_list_url_visible` field is a complete worked
-example — grep for its uses across the 5 surfaces to see the pattern.
+Before you add a `<field>_visible` companion field, read
+[DEVELOPMENT.md § Adding a new field-level-privacy gated field](docs/DEVELOPMENT.md#adding-a-new-field-level-privacy-gated-field).
+The worked example is `ixlan.ixf_ixp_member_list_url_visible`.
 
 ## Repository Layout Notes
 
@@ -239,6 +199,6 @@ example — grep for its uses across the 5 surfaces to see the pattern.
 
 ## Getting Help
 
-If you're unsure about an approach,
-file an issue describing what you want to do and tag it as a question.
-It's better to align on direction up front than to rework a PR.
+If you are not sure about an approach,
+open an issue with a title that starts with `Question:` and describe your plan.
+It is better to agree on the approach first than to rework a PR.

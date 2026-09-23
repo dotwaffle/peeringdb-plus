@@ -1,12 +1,12 @@
-// Command pdb-compat-allowlist reads the ent schema graph and emits
-// internal/pdbcompat/allowlist_gen.go with:
+// Command pdb-compat-allowlist writes internal/pdbcompat/allowlist_gen.go.
 //
-//   - Path A per-entity prepare_query allowlists,
-//   - FilterExcludes (upstream FILTER_EXCLUDE parity), and
-//   - Path B edge map keyed by PeeringDB type string (codegen-time
-//     static emission replaces a runtime client.Schema.Tables walk —
-//     deterministic, testable, no init-order coupling, freshness-gated
-//     by the existing go-generate drift check).
+// It copies the Path A prepare_query allowlists from
+// schema.PrepareQueryAllows in ent/schema/pdb_allowlists.go. It loads the
+// ent schema graph from ./ent/schema to build FilterExcludes (upstream
+// FILTER_EXCLUDE parity) and the Path B edge map, keyed by PeeringDB type
+// string. The edge map is emitted at codegen time, so the server does not
+// walk client.Schema.Tables at runtime, and the go generate drift check
+// covers the output.
 //
 // Invoked from ent/generate.go after ent codegen so the gen.Graph
 // reflects the latest schema annotations.

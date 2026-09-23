@@ -5,8 +5,8 @@
 // Use Redact at each API surface's response-assembly site, passing the
 // pre-existing <field>_visible companion string stored on the ent row.
 // Every surface MUST call Redact for every field guarded by a _visible
-// companion; there is no centralised enforcement — it's a per-serializer
-// discipline locked by the 5-surface end-to-end test.
+// companion. There is no centralized enforcement. Each serializer calls
+// Redact, and the 5-surface end-to-end test locks this.
 //
 // Design rationale:
 //   - redaction happens at the serializer layer, not via an ent Policy,
@@ -35,7 +35,7 @@ import (
 //   - visible == "Users" && tier Users+  → admit
 //   - visible == "Users" && tier Public  → redact (the gated case)
 //   - visible == "Private"               → redact in all tiers (upstream parity)
-//   - any unrecognised visible value     → redact (fail-closed)
+//   - any unrecognized visible value     → redact (fail-closed)
 //
 // Fail-closed semantics:
 // privctx.TierFrom(ctx) already returns TierPublic for un-stamped

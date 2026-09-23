@@ -22,7 +22,7 @@ func TestRenderHelp_RichMode(t *testing.T) {
 	checks := []string{
 		"PeeringDB Plus",
 		"Usage:",
-		"curl peeringdb-plus.fly.dev/ui/asn/",
+		"curl https://peeringdb-plus.fly.dev/ui/asn/",
 		"?format=json",
 		"?format=short",
 		"?format=whois",
@@ -37,6 +37,7 @@ func TestRenderHelp_RichMode(t *testing.T) {
 		"/skills/peeringdb-plus.zip",
 		"completions/bash",
 		"completions/zsh",
+		"PDB_HOST=",
 		"pdb()",
 		"Data last synced:",
 		"2026-01-15 12:00:00 UTC",
@@ -86,6 +87,13 @@ func TestRenderHelp_PlainMode(t *testing.T) {
 	// Plain mode should NOT contain ANSI escape codes.
 	if strings.Contains(out, "\x1b[") {
 		t.Error("unexpected ANSI escape codes in plain mode output")
+	}
+
+	// Fly.io answers plain http with an empty 301, and curl does not
+	// follow it without -L. Every example must name the https scheme.
+	const host = "peeringdb-plus.fly.dev"
+	if all, https := strings.Count(out, host), strings.Count(out, "https://"+host); all != https {
+		t.Errorf("%d of %d examples omit the https:// scheme", all-https, all)
 	}
 }
 

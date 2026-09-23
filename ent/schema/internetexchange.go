@@ -142,19 +142,19 @@ func (InternetExchange) Fields() []ent.Field {
 		field.Int("net_count").
 			Optional().
 			Default(0).
-			Comment("Net Count (computed)"),
+			Comment("Number of networks at this exchange (computed)"),
 		field.Int("fac_count").
 			Optional().
 			Default(0).
-			Comment("Fac Count (computed)"),
+			Comment("Number of facilities at this exchange (computed)"),
 		field.String("ixf_import_request").
 			Optional().
 			Nillable().
-			Comment("Ixf Import Request (computed)"),
+			Comment("Time of the most recent manual IX-F import request (computed)"),
 		field.String("ixf_import_request_status").
 			Optional().
 			Default("").
-			Comment("Ixf Import Request Status (computed)"),
+			Comment("Status of the manual IX-F import request (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").

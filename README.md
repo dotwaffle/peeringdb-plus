@@ -4,7 +4,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/dotwaffle/peeringdb-plus.svg)](https://pkg.go.dev/github.com/dotwaffle/peeringdb-plus)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
-A high-performance, globally distributed,
+A globally distributed,
 read-only mirror of [PeeringDB](https://www.peeringdb.com) data.
 PeeringDB Plus incrementally syncs PeeringDB objects on a regular schedule
 (escalating to a periodic full re-fetch as a safety net),
@@ -24,13 +24,13 @@ PeeringDB Plus offers:
 
 - **Low-latency reads** from the nearest Fly.io region (LiteFS replicates
   SQLite transactions to every replica).
-- **Multiple wire formats from a single dataset** — drop-in PeeringDB API
+- **Multiple wire formats from a single dataset**: drop-in PeeringDB API
   compatibility, OpenAPI REST, GraphQL, ConnectRPC/gRPC, MCP, and a Web UI all
   read from the same `ent.Client`.
-- **Mandatory observability** — OpenTelemetry traces, metrics, and structured
-  logs are first-class, not an afterthought.
-- **No CGO, no Java, no orchestrator** — a single static Go binary plus an
-  out-of-process LiteFS FUSE mount.
+- **Built-in observability**: the server sends OpenTelemetry traces
+  (sampled per route), metrics, and structured logs.
+- **One Go binary**: the server needs no cgo.
+  LiteFS runs as a separate FUSE process.
 
 ## API surfaces
 
@@ -46,17 +46,21 @@ and read from the same SQLite database.
 | ConnectRPC / gRPC | `/peeringdb.v1.*/` | Get / List / Stream RPCs for all 13 entity types; reflection + health checks enabled |
 | MCP | `/mcp` | Read-only tools, resources, and prompts for network research agents |
 
-`GET /` returns a JSON service-discovery document and advertises agent
-documents with HTTP `Link` headers;
-browsers are redirected to the Web UI, terminal clients receive plain help text.
+`GET /` returns a JSON service-discovery document to API clients.
+It redirects browsers to the Web UI
+and sends ANSI-colored help text to terminal clients such as curl.
+Each response has an HTTP `Link` header that points to the agent documents.
 
-See [`docs/API.md`](docs/API.md) for the full surface catalogue,
-including filter semantics, ordering guarantees, divergences,
-and the response-memory envelope governing pdbcompat list responses.
+See [`docs/API.md`](docs/API.md) for each API,
+with filter semantics, ordering, divergences,
+and the response memory budget for `/api` lists.
 
 ## Quick start
 
 ### Local (Go)
+
+You need Go 1.27.1 or later.
+You can also use mise, as shown in [Development](#development).
 
 ```bash
 git clone https://github.com/dotwaffle/peeringdb-plus.git
@@ -88,9 +92,10 @@ curl -s http://localhost:8080/healthz                    # liveness
 curl -sI http://localhost:8080/readyz                    # readiness (200 once first sync completes)
 curl -s http://localhost:8080/api/net/1 | head -c 500    # PeeringDB-compatible API
 curl -sO http://localhost:8080/skills/peeringdb-plus.zip # Origin-aware Agent Skill
-open http://localhost:8080/ui/                           # Web UI
-open http://localhost:8080/graphql                       # GraphQL playground
 ```
+
+Open `http://localhost:8080/ui/` (Web UI)
+and `http://localhost:8080/graphql` (GraphQL playground) in a browser.
 
 For the full first-30-minutes walkthrough, see
 [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md).
@@ -106,7 +111,8 @@ curl https://peeringdb-plus.fly.dev/api/net
 # Fetch a specific network by PeeringDB numeric ID
 curl https://peeringdb-plus.fly.dev/api/net/42
 
-# Search with query parameters (depth/limit/skip/fields/since/q all supported)
+# Search with query parameters. Lists accept limit, skip, fields, since, and q.
+# depth applies only to single-object requests such as /api/net/42.
 curl 'https://peeringdb-plus.fly.dev/api/net?q=cloudflare&limit=5'
 ```
 
@@ -126,16 +132,22 @@ buf curl --protocol grpc --http2-prior-knowledge \
   http://localhost:8080/peeringdb.v1.NetworkService/GetNetwork \
   -d '{"id": 42}'
 
-# Stream all networks (server-streaming, no manual pagination)
+# Stream the networks that match a filter (server streaming, no pagination)
 buf curl --protocol grpc --http2-prior-knowledge \
   http://localhost:8080/peeringdb.v1.NetworkService/StreamNetworks \
   -d '{"asn": 15169}'
 ```
 
-Streams accept the same filters as `List*` RPCs;
-the `grpc-total-count` response header carries the approximate total.
-Server-side timeout defaults to 60s (`PDBPLUS_STREAM_TIMEOUT`)
-and clients can cancel at any time.
+Streams accept the `List*` filters except `id`,
+and also `since_id` and `updated_since`.
+If you do not set `since_id` or `updated_since`,
+the `pdbplus-total-count` response header gives the number of matching rows.
+The server also sends this value as `grpc-total-count`,
+which is a deprecated name.
+By default, the server stops a stream after 60 seconds
+(`PDBPLUS_STREAM_TIMEOUT`).
+A client can cancel a stream at any time.
+See [`docs/API.md` § Streaming semantics](docs/API.md#streaming-semantics).
 
 ### GraphQL
 
@@ -186,14 +198,15 @@ Operationally-relevant defaults:
 | `PDBPLUS_PEERINGDB_API_KEY` | _(unset)_ | Optional — raises rate limit and shortens default sync interval |
 | `PDBPLUS_SYNC_MODE` | `incremental` | `incremental` (delta) or `full` (re-fetch); `full` is the operator escape-hatch |
 | `PDBPLUS_SYNC_INTERVAL` | `1h` (15m if API key set) | Time between sync cycles |
-| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MiB` | pdbcompat list pre-flight 413 budget |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MB` | Memory budget for `/api` responses. A list whose estimated size is larger gets HTTP 413. The same budget also limits the total estimate of all `/api` responses in progress. A request that would go over that total gets HTTP 503. The value needs a unit suffix: `KB`, `MB`, `GB`, or `TB` (base 1024). |
 | `PDBPLUS_PUBLIC_TIER` | `public` | Anonymous-caller tier; set `users` only for private deployments |
 | `PDBPLUS_PUBLIC_URL` | _(unset)_ | Optional public-origin override for generated Agent Skill metadata |
 
-The full catalogue (sync, observability, LiteFS, Fly.io, CSP, security headers,
-and OAuth-gated visibility) lives in
+The full list (sync, observability, LiteFS, Fly.io, CSP, map tiles,
+and privacy tiers) is in
 [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
-Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
+The server also reads the standard `OTEL_*` environment variables
+through OpenTelemetry autoexport.
 
 ## Documentation
 
@@ -202,19 +215,26 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 | [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) | First-30-minutes walkthrough: prerequisites, build, first run, verification |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Component diagram, data flow, code-generation pipeline, middleware chain, privacy layer, sampling matrix |
 | [`docs/API.md`](docs/API.md) | All six API surfaces, filter semantics, ordering, cross-entity traversal, divergences |
-| [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) | Full environment-variable catalogue with validation rules |
+| [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) | Full environment-variable list with validation rules |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local dev workflow, code generation, conventions, sibling-file pattern |
 | [`docs/TESTING.md`](docs/TESTING.md) | Test layout, fixtures, parity harness, live tests against `beta.peeringdb.com` |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Fly.io rollout, asymmetric fleet topology, LiteFS operations |
+| [`docs/meta-generated-behavior.md`](docs/meta-generated-behavior.md) | How upstream `meta.generated` behaves, and why the sync does not use it as a cursor |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to propose changes, run the verification suite, and submit a PR |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release notes |
 
 ## Technology
 
 - **Language:** Go 1.27.1
-- **ORM / codegen:** [entgo](https://entgo.io/) underpins all six API surfaces
-  from a single set of schemas in `ent/schema/` (entgql + entrest + entproto)
+- **ORM / codegen:** [entgo](https://entgo.io/).
+  `cmd/pdb-schema-generate` generates the ent schemas from
+  `schema/peeringdb.json`.
+  entgql and entrest generate the GraphQL and REST layers.
+  The protobuf definitions in `proto/peeringdb/v1/` are hand-maintained,
+  and `buf generate` makes the Go code from them.
+  All six APIs read data through the same ent client.
 - **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)
-  (pure Go, no CGO) plus [LiteFS](https://fly.io/docs/litefs/) for edge
+  (pure Go, no cgo) plus [LiteFS](https://fly.io/docs/litefs/) for edge
   replication
 - **RPC:** [ConnectRPC](https://connectrpc.com/) — gRPC, gRPC-Web, and the
   Connect protocol on the same handlers
@@ -231,6 +251,7 @@ Standard `OTEL_*` env vars are honoured via OpenTelemetry autoexport.
 ## Development
 
 ```bash
+mise trust                        # Trust the repository mise config
 mise install --locked             # Install the pinned toolchain
 mise run generate                 # Full codegen pipeline
 mise run check                    # Generate, tidy, build, test, lint, scan

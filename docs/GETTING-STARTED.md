@@ -7,7 +7,7 @@ understanding what happens on first launch,
 and verifying the service is healthy across its API surfaces.
 
 For a quick-reference command list, see the [README](../README.md).
-For the full environment variable catalogue,
+For the full list of environment variables,
 see [CONFIGURATION.md](CONFIGURATION.md).
 For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -19,6 +19,7 @@ For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 | Git | any recent | Cloning the repo. |
 | Docker (optional) | any recent | Only if you want to run the container image instead of a local binary. |
 | `grpcurl` (optional) | any recent | Only needed to poke the ConnectRPC/gRPC endpoints manually. |
+| C compiler (gcc or clang) | any recent | Only for the race-detector tests in `mise run test` and `mise run check`. The server build does not use cgo. |
 | A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
 Mise installs Go 1.27.1 and every contributor tool,
@@ -26,9 +27,11 @@ including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum,
 golangci-lint, and govulncheck.
 The committed lockfile records exact tool versions and release checksums.
 
-No CGO is required.
-The project uses `modernc.org/sqlite`
-(pure Go) and builds with `CGO_ENABLED=0` by default.
+The server does not need cgo.
+It uses `modernc.org/sqlite`, a pure-Go SQLite driver.
+The Docker images build with `CGO_ENABLED=0`.
+The race-detector tests (`mise run test` and `mise run check`)
+set `CGO_ENABLED=1` and need a C compiler.
 
 ## 1. Clone and build
 
@@ -37,11 +40,12 @@ git clone https://github.com/dotwaffle/peeringdb-plus.git
 cd peeringdb-plus
 mise trust
 mise install --locked
-mise run build
+mise exec -- go build -o peeringdb-plus ./cmd/peeringdb-plus
 ```
 
-Build a runnable binary explicitly with
-`go build -o peeringdb-plus ./cmd/peeringdb-plus`.
+The last command writes the `peeringdb-plus` binary
+that step 2 runs.
+`mise run build` compiles all packages, but it does not write a binary.
 
 If you intend to make changes,
 run the full verification suite
@@ -51,20 +55,20 @@ once to confirm your toolchain is set up correctly:
 mise run check
 ```
 
-If you change ent schemas, proto files, or templ templates,
-regenerate the derived files first:
+If you change `schema/peeringdb.json`, an `ent/schema/` sibling file,
+a `.proto` file, `graph/custom.graphql` or `graph/gqlgen.yml`,
+a `.templ` template, or `internal/web/tailwind.input.css`,
+run the code generators:
 
 ```bash
 mise run generate
 ```
 
-The generation task converges in a single pass:
-`ent/generate.go` runs `cmd/pdb-schema-generate` first
-(so the schemas exist before entc reads them),
-then entc (entgql/entrest/entproto), `cmd/pdb-compat-allowlist`,
-and `buf generate`; `graph/generate.go` runs `gqlgen generate`;
-and `internal/web/templates/generate.go` runs `templ generate`.
-CI runs the same command and fails on any drift.
+One pass updates all generated files,
+including `internal/web/static/tailwind.css`.
+CI runs the same command
+and fails if the result differs from the commit.
+See [DEVELOPMENT.md § Code generation pipeline](DEVELOPMENT.md#code-generation-pipeline).
 
 ## 2. First run
 
@@ -75,23 +79,22 @@ CI runs the same command and fails on any drift.
 With no configuration, the binary uses the defaults from
 `internal/config/config.go`:
 
-- Listens on `:8080` with h2c (HTTP/2 cleartext — required for ConnectRPC).
+- Listens on `:8080`.
+  The listener accepts HTTP/1.1 and h2c (HTTP/2 without TLS).
+  gRPC clients need h2c.
 - Stores data in `./peeringdb-plus.db` in the current working directory.
 - Syncs from `https://api.peeringdb.com` with a 1-hour interval (15 minutes if
   `PDBPLUS_PEERINGDB_API_KEY` is set — the authenticated rate-limit budget
   comfortably absorbs the 4× frequency).
-- Sync mode defaults to `incremental`
-  (since 2026-04-26 — see [CONFIGURATION.md](CONFIGURATION.md) for the full
-  operator notes).
-  Set `PDBPLUS_SYNC_MODE=full` for first-sync, recovery, or escape-hatch use.
-- Assumes it is the LiteFS primary in local dev.
-  The detection order is: (1) presence of `/litefs/.primary` → replica,
-  (2) `/litefs/` directory exists but no `.primary` file → primary,
-  (3) no `/litefs/` at all → fall back to `PDBPLUS_IS_PRIMARY`
-  (defaults to `true`).
-  Implemented in `internal/litefs/primary.go` `IsPrimaryWithFallback`.
-  The lease semantics are inverted:
-  `.primary` ABSENT means *this node IS the primary*.
+- Uses sync mode `incremental`.
+  On an empty database, the first sync is always a full fetch.
+  A full fetch also runs every `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`).
+  Set `PDBPLUS_SYNC_MODE=full` only for recovery.
+  See [CONFIGURATION.md § Sync Worker](CONFIGURATION.md#sync-worker).
+- Runs as the LiteFS primary.
+  When no `/litefs/` directory exists, `PDBPLUS_IS_PRIMARY` sets the role,
+  and its default is `true`.
+  See [CONFIGURATION.md § LiteFS / Primary Detection](CONFIGURATION.md#litefs--primary-detection).
 
 You will see a `starting server` log line almost immediately.
 The HTTP listener accepts connections right away,
@@ -99,20 +102,22 @@ but **`/readyz` will return 503 until the first sync completes**.
 
 ### What happens on first start
 
-1. The config loader validates every environment variable and aborts with a
-   descriptive error if anything is wrong (fail-fast).
-2. SQLite opens the database file and runs ent-generated schema migrations.
-   Migrations run on the primary only,
-   with `WithDropColumn(true)` and `WithDropIndex(true)` enabled
-   for v1.15+ schema-hygiene drops.
-3. The sync worker is scheduled.
-   On a fresh database it immediately performs a sync pass against
-   `api.peeringdb.com` covering all 13 PeeringDB entity types.
-4. Any rows left in a stale `running` state from a previous crash are
-   transitioned to `failed` so `/ui/about` and `/readyz` don't report
-   phantom in-flight syncs.
-5. Once the first sync completes, `/readyz` flips to 200 and the service is
-   fully usable.
+1. The config loader (`internal/config`) checks the environment variables.
+   If a value is not valid, the process stops with an error message.
+2. On the primary, the process runs the ent schema migrations.
+   These migrations can drop columns and indexes
+   that the schema no longer defines.
+3. On the primary, the process finds `sync_status` rows
+   that a stopped process left in the `running` state,
+   and changes them to `failed`.
+   This stops `/ui/about` and `/readyz` from showing a sync in progress
+   when no sync runs.
+4. The sync scheduler starts in the background.
+   On an empty database, it immediately runs a full sync
+   of all 13 PeeringDB object types from `api.peeringdb.com`.
+5. The HTTP listener starts while the first sync runs.
+   Until the first sync completes, `/readyz` and the data routes return 503.
+6. When the first sync completes, `/readyz` returns 200.
 
 A full sync against the public PeeringDB API typically takes **30–60 seconds**
 on a reasonable connection.
@@ -120,9 +125,9 @@ The peak working set stays under the default 400 MB heap warning
 (`PDBPLUS_HEAP_WARN_MIB`) and the 400 MB sync memory guardrail
 (`PDBPLUS_SYNC_MEMORY_LIMIT`).
 
-If you do not want the hourly background sync while experimenting,
-set `PDBPLUS_SYNC_INTERVAL` to a large duration such as `24h`.
-The first sync still runs immediately on startup.
+To make the background sync less frequent while you experiment,
+set `PDBPLUS_SYNC_INTERVAL` to a long duration such as `24h`.
+On an empty database, the first sync still starts immediately.
 
 ## 3. Verify it's working
 
@@ -232,33 +237,32 @@ IP lookup, and sync-freshness tools plus resources and prompts.
 
 ### Web UI
 
-Open `http://localhost:8080/ui/` in a browser —
-or let the root path redirect you:
+Open `http://localhost:8080/ui/` in a browser.
+A browser that opens `http://localhost:8080/` gets a redirect to `/ui/`:
 
 ```bash
-# Browsers (Accept: text/html) get an HTTP 302 redirect to /ui/
-curl -sI http://localhost:8080/
+# A browser User-Agent with Accept: text/html gets an HTTP 302 redirect to /ui/.
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' \
+  -H 'User-Agent: Mozilla/5.0' -H 'Accept: text/html' http://localhost:8080/
+# 302 http://localhost:8080/ui/
 ```
 
-The UI offers search across all entity types, detail pages,
+The UI searches networks, exchanges, facilities, organizations, campuses,
+and carriers.
+It also has detail pages
 and an ASN-comparison tool at `/ui/compare/{asn1}/{asn2}`.
 
-> **curl gotcha** — `/ui/` does User-Agent / Accept content negotiation via
-> `internal/web/termrender`.
-> Plain CLI clients (curl, wget, HTTPie) get ANSI-styled terminal text,
-> not HTML.
-> If you want to inspect the HTML from the command line,
-> masquerade as a browser:
+> **Terminal output from `/ui/`.**
+> The server sends ANSI-colored text to curl, wget, and HTTPie.
+> Add `?format=plain` to get plain text,
+> or `?nocolor` to remove the color codes.
+> To get HTML, send a browser User-Agent:
 >
 > ```bash
 > curl -sH 'User-Agent: Mozilla/5.0' http://localhost:8080/ui/ | head -c 500
 > ```
 >
-> Or strip ANSI escape sequences from the terminal-mode output:
->
-> ```bash
-> curl -s http://localhost:8080/ui/ | sed 's/\x1b\[[0-9;]*[mGKH]//g' | head
-> ```
+> For all options, see [API.md § The curl gotcha](API.md#the-curl-gotcha).
 
 ## 4. Running in Docker (optional)
 
@@ -288,10 +292,16 @@ for the Fly.io fleet.
 
 - **`go: go.mod requires go >= 1.27.1`** — Run `mise install --locked`.
   `go.mod` pins Go 1.27.1; `mise.toml` tracks the 1.27 line and `mise.lock` holds the exact patch.
-- **`/readyz` stays 503 forever** — Check the server log for the sync worker.
-  The most common causes are: no outbound network to `api.peeringdb.com`,
-  a corporate proxy rewriting TLS, or rate-limiting on the PeeringDB side.
-  Setting `PDBPLUS_PEERINGDB_API_KEY` raises your rate limit if you have one.
+- **`/readyz` stays 503.**
+  Look for `sync failed, retrying` and `sync cycle failed` in the server log.
+  A failed sync tries again after 30 seconds, 2 minutes, and 8 minutes.
+  A rate limit (HTTP 429) or a WAF block stops these retries.
+  When the retries end, the next attempt waits one `PDBPLUS_SYNC_INTERVAL`
+  (default `1h`, or `15m` with an API key).
+  To try again at once, correct the cause and restart the process.
+  Common causes are no outbound access to `api.peeringdb.com`,
+  a proxy that intercepts TLS, and upstream rate limits.
+  With `PDBPLUS_PEERINGDB_API_KEY`, the upstream rate limit is higher.
 - **`PDBPLUS_PEERINGDB_URL uses http:// against a non-local host` on startup** —
   The URL validator only accepts `https://`,
   or `http://` against `localhost`/loopback IPs and RFC 1918 private ranges.
@@ -300,37 +310,44 @@ for the Fly.io fleet.
 - **Port 8080 already in use** — Set `PDBPLUS_PORT=9090` (or any free port)
   before launching, or use `PDBPLUS_LISTEN_ADDR=:9090`. `PDBPLUS_PORT` takes
   precedence over `PDBPLUS_LISTEN_ADDR` when both are set.
-- **`no such table: ...` on first request** —
-  The process crashed before migrations completed.
-  Delete `peeringdb-plus.db` and restart;
-  migrations run on every primary boot and are idempotent.
-- **Sync aborts with `ErrSyncMemoryLimitExceeded`** —
-  Phase A fetch peaked above `PDBPLUS_SYNC_MEMORY_LIMIT` (default `400MB`).
-  Raise the limit or set it to `0` to disable the guardrail entirely.
-  Operator-visible heap / RSS warnings are governed independently by
-  `PDBPLUS_HEAP_WARN_MIB` (default `400`) and `PDBPLUS_RSS_WARN_MIB` (default
-  `384`).
+- **`failed to seed initial object counts` with `no such table` at startup.**
+  The process started as a replica with an empty database.
+  A replica does not create the schema.
+  For a local run, unset `PDBPLUS_IS_PRIMARY` or set it to `true`.
+  Make sure that no `/litefs/.primary` file exists.
+  Then start the process again.
+- **`sync aborted: memory limit exceeded` in the log.**
+  After the fetch phase, the Go heap was above `PDBPLUS_SYNC_MEMORY_LIMIT`
+  (default `400MB`).
+  Increase the limit, or set it to `0` to turn off the check.
+  `PDBPLUS_HEAP_WARN_MIB` (default `400`) and `PDBPLUS_RSS_WARN_MIB`
+  (default `384`) control the heap and RSS warnings.
+  These warnings do not stop a sync.
 - **`/api/...` list returns 413** —
   The pre-flight count multiplied by the per-row byte estimate exceeded
   `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MB`).
   Narrow the filter, lower `limit`, or raise the budget.
   Bare numbers without a unit suffix are rejected; use `KB`/`MB`/`GB`/`TB`.
-- **Curl-ing `/ui/` gets ANSI escape codes** —
-  see the curl gotcha in step 3 above.
-  Pass `User-Agent: Mozilla/5.0` or strip ANSI with `sed`.
+- **Curl-ing `/ui/` gets ANSI escape codes.**
+  See the terminal-output note in step 3.
+  Add `?format=plain`, or send a browser User-Agent.
 
 ## Next steps
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — System overview, component diagram,
+- [ARCHITECTURE.md](ARCHITECTURE.md): system overview, component diagram,
   data flow, and the key abstractions you'll touch when making changes.
-- [CONFIGURATION.md](CONFIGURATION.md) — Full environment variable catalogue,
+- [CONFIGURATION.md](CONFIGURATION.md): the full list of environment variables,
   including OpenTelemetry, LiteFS, and Fly.io-specific knobs not covered here.
-- [API.md](API.md) — Surface-by-surface contract notes, including documented
+- [API.md](API.md): surface-by-surface contract notes, including documented
   divergences from upstream PeeringDB.
-- `cmd/peeringdb-plus/main.go` — The HTTP wiring, middleware chain,
+- `cmd/peeringdb-plus/main.go`: the HTTP wiring, middleware chain,
   and graceful shutdown logic.
   Good entry point for understanding how requests flow through the binary.
-- `ent/schema/` — The hand-edited entgo schemas that drive the entire API
-  surface via code generation.
-- `internal/sync/` — The PeeringDB sync worker, including full vs incremental
+- `schema/peeringdb.json` and `ent/schema/`: the curated PeeringDB schema
+  and the entgo schemas generated from it.
+  Hand-edited methods are in sibling files,
+  for example `ent/schema/poc_policy.go`.
+  Code generation builds the ent client
+  and the GraphQL and REST layers from these schemas.
+- `internal/sync/`: the PeeringDB sync worker, including full vs incremental
   modes and the memory guardrail.

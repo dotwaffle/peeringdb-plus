@@ -6716,7 +6716,7 @@
 					},
 					"org_name": {
 						"default": "",
-						"description": "Org Name (computed)",
+						"description": "Name of the organization this record belongs to (computed)",
 						"type": "string"
 					},
 					"social_media": {
@@ -6865,7 +6865,7 @@
 					},
 					"fac_count": {
 						"default": 0,
-						"description": "Fac Count (computed)",
+						"description": "Number of facilities for this carrier (computed)",
 						"type": "integer"
 					},
 					"id": {
@@ -6898,7 +6898,7 @@
 					},
 					"org_name": {
 						"default": "",
-						"description": "Org Name (computed)",
+						"description": "Name of the organization this record belongs to (computed)",
 						"type": "string"
 					},
 					"social_media": {
@@ -6993,7 +6993,7 @@
 					},
 					"name": {
 						"default": "",
-						"description": "Name (computed)",
+						"description": "Name of the facility this record refers to (computed)",
 						"type": "string"
 					},
 					"status": {
@@ -7416,7 +7416,7 @@
 					},
 					"carrier_count": {
 						"default": 0,
-						"description": "Carrier Count (computed)",
+						"description": "Number of carriers at this facility (computed)",
 						"type": "integer"
 					},
 					"city": {
@@ -7455,7 +7455,7 @@
 					},
 					"ix_count": {
 						"default": 0,
-						"description": "Ix Count (computed)",
+						"description": "Number of exchanges at this facility (computed)",
 						"type": "integer"
 					},
 					"latitude": {
@@ -7486,7 +7486,7 @@
 					},
 					"net_count": {
 						"default": 0,
-						"description": "Net Count (computed)",
+						"description": "Number of networks at this facility (computed)",
 						"type": "integer"
 					},
 					"notes": {
@@ -7506,7 +7506,7 @@
 					},
 					"org_name": {
 						"default": "",
-						"description": "Org Name (computed)",
+						"description": "Name of the organization this record belongs to (computed)",
 						"type": "string"
 					},
 					"property": {
@@ -7757,7 +7757,7 @@
 					},
 					"fac_count": {
 						"default": 0,
-						"description": "Fac Count (computed)",
+						"description": "Number of facilities at this exchange (computed)",
 						"type": "integer"
 					},
 					"id": {
@@ -7765,13 +7765,13 @@
 						"type": "integer"
 					},
 					"ixf_import_request": {
-						"description": "Ixf Import Request (computed)",
+						"description": "Time of the most recent manual IX-F import request (computed)",
 						"nullable": true,
 						"type": "string"
 					},
 					"ixf_import_request_status": {
 						"default": "",
-						"description": "Ixf Import Request Status (computed)",
+						"description": "Status of the manual IX-F import request (computed)",
 						"type": "string"
 					},
 					"ixf_last_import": {
@@ -7806,7 +7806,7 @@
 					},
 					"net_count": {
 						"default": 0,
-						"description": "Net Count (computed)",
+						"description": "Number of networks at this exchange (computed)",
 						"type": "integer"
 					},
 					"notes": {
@@ -8035,12 +8035,12 @@
 				"properties": {
 					"city": {
 						"default": "",
-						"description": "City (computed)",
+						"description": "City of the facility this record refers to (computed)",
 						"type": "string"
 					},
 					"country": {
 						"default": "",
-						"description": "Country (computed)",
+						"description": "Country code of the facility this record refers to (computed)",
 						"type": "string"
 					},
 					"created": {
@@ -8064,7 +8064,7 @@
 					},
 					"name": {
 						"default": "",
-						"description": "Name (computed)",
+						"description": "Name of the facility this record refers to (computed)",
 						"type": "string"
 					},
 					"status": {
@@ -8189,7 +8189,7 @@
 					},
 					"ixf_ixp_member_list_url": {
 						"default": "",
-						"description": "IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)",
+						"description": "IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.",
 						"type": "string"
 					},
 					"ixf_ixp_member_list_url_visible": {
@@ -8464,7 +8464,7 @@
 					},
 					"fac_count": {
 						"default": 0,
-						"description": "Fac Count (computed)",
+						"description": "Number of facilities at this network (computed)",
 						"type": "integer"
 					},
 					"id": {
@@ -8535,7 +8535,7 @@
 					},
 					"ix_count": {
 						"default": 0,
-						"description": "Ix Count (computed)",
+						"description": "Number of exchanges at this network (computed)",
 						"type": "integer"
 					},
 					"ixp_update_exclude": {
@@ -8570,13 +8570,13 @@
 						"type": "string"
 					},
 					"netfac_updated": {
-						"description": "Netfac Updated (computed)",
+						"description": "Time the most recently changed facility presence (`netfac`) of this network was updated (computed)",
 						"format": "date-time",
 						"nullable": true,
 						"type": "string"
 					},
 					"netixlan_updated": {
-						"description": "Netixlan Updated (computed)",
+						"description": "Time the most recently changed exchange connection (`netixlan`) of this network was updated (computed)",
 						"format": "date-time",
 						"nullable": true,
 						"type": "string"
@@ -8592,7 +8592,7 @@
 						"type": "integer"
 					},
 					"poc_updated": {
-						"description": "Poc Updated (computed)",
+						"description": "Time the most recently changed point of contact (`poc`) of this network was updated (computed)",
 						"format": "date-time",
 						"nullable": true,
 						"type": "string"
@@ -8734,12 +8734,12 @@
 				"properties": {
 					"city": {
 						"default": "",
-						"description": "City (computed)",
+						"description": "City of the facility this record refers to (computed)",
 						"type": "string"
 					},
 					"country": {
 						"default": "",
-						"description": "Country (computed)",
+						"description": "Country code of the facility this record refers to (computed)",
 						"type": "string"
 					},
 					"created": {
@@ -8762,7 +8762,7 @@
 					},
 					"name": {
 						"default": "",
-						"description": "Name (computed)",
+						"description": "Name of the facility this record refers to (computed)",
 						"type": "string"
 					},
 					"net_id": {
@@ -8911,7 +8911,7 @@
 					},
 					"name": {
 						"default": "",
-						"description": "Name (computed)",
+						"description": "Name of the exchange, with the LAN name after a colon when the LAN has a name (computed)",
 						"type": "string"
 					},
 					"net_id": {
@@ -9161,7 +9161,7 @@
 						"type": "number"
 					},
 					"name": {
-						"description": "Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)",
+						"description": "Organization name. Not unique: PeeringDB permits duplicate names.",
 						"type": "string"
 					},
 					"name_long": {
@@ -9537,8 +9537,9 @@
 		}
 	},
 	"info": {
-		"title": "EntGo Rest API",
-		"version": "1.0.0"
+		"description": "Read-only REST API for the PeeringDB Plus mirror of PeeringDB.",
+		"title": "PeeringDB Plus REST API",
+		"version": "1"
 	},
 	"openapi": "3.0.3",
 	"paths": {

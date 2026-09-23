@@ -86,7 +86,7 @@ func (Campus) Fields() []ent.Field {
 		field.String("org_name").
 			Optional().
 			Default("").
-			Comment("Org Name (computed)"),
+			Comment("Name of the organization this record belongs to (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").

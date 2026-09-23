@@ -1,12 +1,13 @@
 name: CI
 
-# A single `ci` job runs generation, build, race tests, lint, and
-# govulncheck in order against one Go cache. Mise supplies every tool from
-# the committed manifest and lockfile, so local and CI versions cannot drift.
+# A single `ci` job runs generation, the go.mod tidiness check, build,
+# race tests with coverage, the coverage comment, lint, and govulncheck in
+# order against one Go cache. Mise supplies every tool from the committed
+# manifest and lockfile, so local and CI versions cannot drift.
 #
 # `docker-build` stays a separate parallel job: it uses BuildKit's
 # `type=gha` cache (a different cache system from the Go build cache), so
-# folding it into the Go job would only serialise it onto the critical
+# folding it into the Go job would only serialize it onto the critical
 # path for zero cache benefit.
 
 on:

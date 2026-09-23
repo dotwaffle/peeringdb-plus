@@ -14,7 +14,7 @@
 //
 // Known limitations (acceptable for drift detection): custom DRF field classes
 // that are not serializers.<X> constructors (e.g. LegacyInfoTypeField) are not
-// recognised, and some abstract-base inheritance for org/fac is incompletely
+// recognized, and some abstract-base inheritance for org/fac is incompletely
 // resolved, so those types under-report fields. Cross-check unexpected removals
 // against upstream source before treating them as real.
 //
@@ -713,7 +713,7 @@ func djangoFieldToJSONType(fieldType string) string {
 
 // isFieldConstructor reports whether a bare constructor name denotes a Django
 // model field (as opposed to a manager, manual property, or other class-body
-// assignment). Only recognised field constructors are admitted so the model
+// assignment). Only recognized field constructors are admitted so the model
 // parser does not mistake e.g. `objects = Manager()` for a schema field.
 func isFieldConstructor(name string) bool {
 	switch name {
@@ -1066,7 +1066,7 @@ func atoi(s string) int {
 	return n
 }
 
-// validateAPIInput parameterises validateAgainstAPI so tests can point
+// validateAPIInput parameterizes validateAgainstAPI so tests can point
 // it at an httptest server with zero pacing instead of live
 // beta.peeringdb.com with the 3s courtesy interval.
 type validateAPIInput struct {
