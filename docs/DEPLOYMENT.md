@@ -319,11 +319,18 @@ with different VM sizing and mount policies
 
 **Volume-only-on-primary contract:** `[[mounts]]` in `fly.toml` is scoped to
 `processes = ["primary"]`.
-Only the LHR primary machine has a mount.
-Replica machines are cattle —
-a damaged replica is recovered by `fly machine destroy --force <id>`;
-the replacement machine that Fly schedules has no volume concern,
-cold-syncs from the primary, and becomes live when `/readyz` flips to 200.
+Only the LHR primary machine has a volume.
+Fly.io does not replace a destroyed machine.
+To replace a damaged replica, do these steps:
+
+1. Find the machine ID and region: `fly machines list --app peeringdb-plus`.
+2. Destroy the machine: `fly machine destroy --force <id>`.
+3. Create a new machine in the same region:
+   `fly scale count <n> --process-group replica --region <region>`.
+   Set `<n>` to the number of replica machines that you want in that region.
+4. Wait until `/readyz` on the new machine returns 200.
+   The machine cold-syncs the database from the primary before it serves
+   traffic.
 
 **Replica cold-sync expectations:** <!-- VERIFY:
 hydration windows below are observed values from the v1.15 rollout,
@@ -365,25 +372,42 @@ not derivable from the repository --> Real win is operational simplicity
 
 The primary region is `lhr`.
 Every other region has `replica` machines only.
-To add a region, create replica machines in it:
+To add a region, or to change the number of replica machines in a region,
+run:
 
 ```bash
-fly scale count <n> --process-group replica --region <region>
+fly scale count <n> --process-group replica --region <region>   # machines in one region (not lhr)
 ```
 
-To scale total fleet size (per process group):
+To resize a process group:
 
 ```bash
-fly scale count <n> --process-group replica           # total replica machines across regions
-fly scale count <n> --process-group replica --region lhr   # regional scale
 fly scale vm shared-cpu-1x --memory 256 --process-group replica   # resize replica group
 fly scale vm shared-cpu-2x --memory 512 --process-group primary   # resize primary group (matches fly.toml defaults)
 ```
+
+Do not put `replica` machines in `lhr`.
+`litefs.yml` makes every machine in `PRIMARY_REGION` a lease candidate,
+whatever its process group.
+A `replica` machine in `lhr` can take the lease while the primary restarts.
+It then runs the sync worker on a machine that has no volume.
+Always give `--region` when you scale the `replica` group.
+Without `--region`, `fly scale count` acts on every region that has a machine
+of the app, and `lhr` is one of these regions.
 
 Only machines in `PRIMARY_REGION=lhr` are eligible to hold the LiteFS write
 lease, so the primary group is sized at exactly 1 — running multiple primary
 candidates wastes the persistent volume on the standby and does not add write
 capacity (LiteFS is single-writer).
+
+The alert `PdbPlusFleetMachineCountLow` counts the pairs of process group and
+region that send metrics.
+It does not count machines.
+It fires below 6 and expects 8.
+When you add or remove a region, change the threshold and the description in
+`deploy/grafana/alerts/pdbplus-alerts.yaml`.
+Then apply the rules again (see `deploy/grafana/alerts/README.md`).
+A second machine in a region that already has one does not change the count.
 
 ## Monitoring
 
@@ -574,12 +598,19 @@ Initial setup (one-time, per app):
 ```bash
 fly apps create peeringdb-plus
 fly consul attach                                          # populates FLY_CONSUL_URL
-fly volumes create litefs_data --size 1 --region lhr       # primary group only — replicas have no volume
+fly volumes create litefs_data --size 1 --region lhr       # optional: the first deploy creates the volume from [[mounts]]
 fly secrets set PDBPLUS_PEERINGDB_API_KEY=... PDBPLUS_SYNC_TOKEN=...
 fly deploy
+fly scale count 1 --process-group replica --region <region>   # repeat for each replica region
+fly machines list                                          # find each replica-group machine in lhr
+fly machine destroy --force <id>                           # repeat for each replica-group machine in lhr
 ```
 
-<!-- VERIFY: exact initial-setup sequence for a fresh Fly app including Consul attach ordering is not captured in the repository and must be confirmed against current Fly.io documentation -->
+The first deploy creates the `replica` group machines in `lhr`,
+the `primary_region` of `fly.toml`.
+Create the replicas in their regions first,
+then destroy each `replica` machine in `lhr`
+(see [Regional rollout](#regional-rollout)).
 
 ## After an upstream PeeringDB release
 
