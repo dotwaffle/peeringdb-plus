@@ -129,6 +129,39 @@ func newTestWorker(t *testing.T, f *fixture) (*Worker, *sql.DB) {
 	return w, db
 }
 
+// syncCompletions installs an OnSyncComplete hook on w and returns a
+// channel that receives one value per successful sync. Call it before
+// the scheduler starts. The hook never blocks the worker: a completion
+// that finds the buffer full is dropped.
+func syncCompletions(w *Worker) <-chan struct{} {
+	ch := make(chan struct{}, 64)
+	w.config.OnSyncComplete = func(context.Context, time.Time) {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
+	return ch
+}
+
+// waitSyncCompletions blocks until n successful syncs arrive on
+// completions. It fails the test if the scheduler exits (done closes)
+// or ctx, the scheduler's context, ends first. The deadline in ctx only
+// bounds a broken scheduler: a working one returns at the nth sync.
+func waitSyncCompletions(ctx context.Context, t *testing.T, completions <-chan struct{}, done <-chan struct{}, n int) {
+	t.Helper()
+	for i := range n {
+		select {
+		case <-completions:
+		case <-done:
+			t.Fatalf("scheduler exited after %d of %d successful syncs", i, n)
+		case <-ctx.Done():
+			<-done
+			t.Fatalf("%d of %d successful syncs before the deadline", i, n)
+		}
+	}
+}
+
 func makeOrg(id int, name, status string) map[string]any {
 	return map[string]any{
 		"id": id, "name": name, "aka": "", "name_long": "",
@@ -710,15 +743,17 @@ func TestSyncRollbackOnFailure(t *testing.T) {
 	}
 }
 
-// TestSyncScheduler verifies scheduler starts periodic sync via time.Ticker.
+// TestSyncScheduler verifies that the scheduler syncs periodically: the
+// fresh-DB bootstrap sync, then a sync started by the interval timer.
 func TestSyncScheduler(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond})
+	completions := syncCompletions(w)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -727,8 +762,9 @@ func TestSyncScheduler(t *testing.T) {
 		close(done)
 	}()
 
-	// Wait for at least one sync cycle.
-	time.Sleep(2 * time.Second)
+	// The first sync is the fresh-DB bootstrap; the second comes from
+	// the interval timer.
+	waitSyncCompletions(ctx, t, completions, done, 2)
 	cancel()
 	<-done
 
@@ -1978,8 +2014,9 @@ func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f)
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+	completions := syncCompletions(w)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -1988,22 +2025,15 @@ func TestSchedulerSyncsImmediatelyOnEmptyDB(t *testing.T) {
 		close(done)
 	}()
 
-	// Wait for the initial sync to complete. A fixed sleep makes this test
-	// sensitive to contention from the parallel race-enabled suite.
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
-	for !w.HasCompletedSync() {
-		select {
-		case <-ticker.C:
-		case <-done:
-			t.Fatal("scheduler stopped before completing the initial sync")
-		case <-ctx.Done():
-			<-done
-			t.Fatal("initial sync did not complete before the deadline")
-		}
-	}
+	// Wait for the initial sync. With a 1h interval, no other sync can
+	// start before the deadline.
+	waitSyncCompletions(ctx, t, completions, done, 1)
 	cancel()
 	<-done
+
+	if !w.HasCompletedSync() {
+		t.Error("expected HasCompletedSync to be true after the initial sync")
+	}
 
 	// API calls should have been made (sync was triggered).
 	if calls := f.callCount.Load(); calls == 0 {
@@ -2038,7 +2068,8 @@ func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 	}
 
 	// Start scheduler with 1h interval. Last sync was 2h ago, so it's overdue.
-	schedulerCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	completions := syncCompletions(w)
+	schedulerCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -2047,8 +2078,9 @@ func TestSchedulerSyncsWhenOverdue(t *testing.T) {
 		close(done)
 	}()
 
-	// Wait for the sync to run.
-	time.Sleep(2 * time.Second)
+	// Wait for the overdue sync. With a 1h interval, no other sync can
+	// start before the deadline.
+	waitSyncCompletions(schedulerCtx, t, completions, done, 1)
 	cancel()
 	<-done
 
@@ -2115,10 +2147,25 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 	ps.v.Store(false) // Start as replica.
 
 	w, _ := newTestWorker(t, f)
-	w.config.IsPrimary = ps.IsPrimary
+	// Signal the scheduler's third role check: the entry check, then one
+	// check per heartbeat. The scheduler loop is sequential, so all work
+	// of the first heartbeat is done at the third check. The value is
+	// read before the signal, so a flip after the signal cannot change
+	// that check.
+	var roleChecks atomic.Int32
+	replicaHeartbeat := make(chan struct{})
+	signalReplicaHeartbeat := stdsync.OnceFunc(func() { close(replicaHeartbeat) })
+	w.config.IsPrimary = func() bool {
+		v := ps.IsPrimary()
+		if roleChecks.Add(1) >= 3 {
+			signalReplicaHeartbeat()
+		}
+		return v
+	}
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+	completions := syncCompletions(w)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 
 	done := make(chan struct{})
@@ -2127,12 +2174,26 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 		close(done)
 	}()
 
-	// After 1 tick, flip to primary.
-	time.Sleep(150 * time.Millisecond)
+	// Flip to primary only after the scheduler has started as a replica
+	// and finished one heartbeat. An earlier flip can start it as a
+	// primary, and then the promotion path is not tested.
+	select {
+	case <-replicaHeartbeat:
+	case <-done:
+		t.Fatal("scheduler exited before its first replica heartbeat")
+	case <-ctx.Done():
+		<-done
+		t.Fatal("no replica heartbeat before the deadline")
+	}
+	if calls := f.callCount.Load(); calls != 0 {
+		cancel()
+		<-done
+		t.Fatalf("got %d API calls before promotion, want 0 (a replica must not sync)", calls)
+	}
 	ps.v.Store(true)
 
-	// Wait for sync to be triggered.
-	time.Sleep(500 * time.Millisecond)
+	// Wait for the sync that the promotion triggers.
+	waitSyncCompletions(ctx, t, completions, done, 1)
 	cancel()
 	<-done
 
@@ -2150,7 +2211,12 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	ps := &primarySwitch{}
 	ps.v.Store(true) // Start as primary.
 
-	// Create a slow mock server that delays org responses by 3s.
+	// The org fetch never completes by itself: the handler holds it open
+	// until the client abandons the request. Only a cancelled cycle
+	// context can then end the sync.
+	orgStarted := make(chan struct{})
+	signalOrgStarted := stdsync.OnceFunc(func() { close(orgStarted) })
+	release := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
 		objType := parts[0]
@@ -2164,14 +2230,29 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 		}
 
 		if objType == "org" {
-			// Delay to simulate slow fetch, giving time for demotion.
-			time.Sleep(3 * time.Second)
+			// Send the headers before holding the body open. Otherwise the
+			// transport's ResponseHeaderTimeout ends the fetch by itself,
+			// and the failed sync returns without a demotion.
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			if err := http.NewResponseController(w).Flush(); err != nil {
+				t.Errorf("flush org headers: %v", err)
+			}
+			signalOrgStarted()
+			select {
+			case <-r.Context().Done():
+			case <-release:
+			}
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
 	}))
 	t.Cleanup(srv.Close)
+	// Cleanups run last-in first-out: unblock a held handler before
+	// srv.Close waits for it.
+	t.Cleanup(func() { close(release) })
 
 	client, db := testutil.SetupClientWithDB(t)
 	pdbClient := newFastPDBClient(t, srv.URL)
@@ -2184,28 +2265,32 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	}, slog.Default())
 	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
 
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 
 	// Start runSyncCycle in a goroutine.
 	done := make(chan struct{})
-	start := time.Now()
 	go func() {
 		w.runSyncCycle(ctx, config.SyncModeFull)
 		close(done)
 	}()
 
-	// Flip to replica after 500ms (during the slow org fetch).
-	time.Sleep(500 * time.Millisecond)
+	// Demote while the org fetch is in flight.
+	select {
+	case <-orgStarted:
+	case <-done:
+		t.Fatal("sync cycle ended before the org fetch started")
+	case <-ctx.Done():
+		<-done
+		t.Fatal("org fetch did not start before the deadline")
+	}
 	ps.v.Store(false)
 
-	// runSyncCycle should return within ~2s (demotion monitor polls every 1s).
+	// The org fetch cannot complete, so runSyncCycle returns before ctx
+	// ends only if the demotion monitor cancelled the cycle.
 	<-done
-	elapsed := time.Since(start)
-
-	// Should return much faster than the 3s org delay.
-	if elapsed > 2500*time.Millisecond {
-		t.Errorf("expected early abort on demotion, took %v", elapsed)
+	if err := ctx.Err(); err != nil {
+		t.Errorf("sync cycle ended only with its parent context (%v), not on demotion", err)
 	}
 }
 

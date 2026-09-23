@@ -202,9 +202,40 @@ func TestStartScheduler_ScrubsPocTombstonesAtStartup(t *testing.T) {
 		t.Fatalf("record sync complete: %v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(t.Context(), 300*time.Millisecond)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	w.StartScheduler(ctx, time.Hour)
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(ctx, time.Hour)
+		close(done)
+	}()
+
+	// The startup scrub sends no completion event, so wait until its
+	// transaction commits. A read error means "not yet": the scrub
+	// transaction can lock the shared-cache table. The deadline only
+	// bounds a broken scrub.
+	scrubbed := func() bool {
+		var name string
+		err := db.QueryRowContext(ctx, "SELECT name FROM pocs WHERE id = 10").Scan(&name)
+		return err == nil && name == ""
+	}
+	deadline := time.NewTimer(60 * time.Second)
+	defer deadline.Stop()
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for !scrubbed() {
+		select {
+		case <-tick.C:
+		case <-done:
+			t.Fatal("scheduler exited before the startup poc scrub committed")
+		case <-deadline.C:
+			cancel()
+			<-done
+			t.Fatal("startup poc scrub did not commit before the deadline")
+		}
+	}
+	cancel()
+	<-done
 
 	if calls := f.callCount.Load(); calls != 0 {
 		t.Errorf("got %d upstream calls, want 0 (no sync cycle is due)", calls)
