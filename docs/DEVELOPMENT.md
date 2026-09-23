@@ -84,6 +84,7 @@ Code-change-relevant directories:
 | `mise run coverage` | Run race tests, write `coverage.out`, and report the 10 slowest tests |
 | `mise run generate` | Run the full codegen pipeline in order |
 | `mise run lint` | Run actionlint and golangci-lint |
+| `mise run format` | Format Go sources with `golangci-lint fmt` (`gofmt -s`) |
 | `mise run vulncheck` | Check the Go vulnerability database |
 | `mise run check` | Run the canonical local validation sweep |
 
@@ -724,22 +725,26 @@ Run the full suite with `mise run test`.
 
 ## Code style
 
-- **`gofmt -s`** is mandatory and enforced by `golangci-lint` (`gofmt`
-  formatter is part of the default linter set).
-- **`govet`** is enabled by golangci-lint's standard set;
-  a separate `go vet ./...` pass is not required.
-- **`golangci-lint run`** uses `.golangci.yml`:
-  - Default linter set: `standard`.
-  - Additionally enabled: `contextcheck`, `exhaustive`, `gocritic`, `gosec`,
-    `misspell`, `modernize`, `nolintlint`, `revive`.
-  - Generated code is excluded via `exclusions.generated: strict`.
-  - `_test.go` files and the schema-generation/compat-check binaries
-    (`cmd/pdb-schema-extract`, `cmd/pdb-schema-generate`,
-    `cmd/pdbcompat-check`) are exempt from `gosec` (they shell out and write
-    files by design).
-- See the global Go guidelines (in user/org docs) for wrapping errors,
-  context propagation, table-driven tests, and structured logging
-  conventions.
+- `golangci-lint run` reads `.golangci.yml`:
+  - The linter set is `standard`
+    (errcheck, govet, ineffassign, staticcheck, unused)
+    plus `contextcheck`, `exhaustive`, `gocritic`, `gosec`, `misspell`,
+    `modernize`, `nolintlint`, and `revive`.
+    Because govet is in the set, a separate `go vet ./...` run is not necessary.
+  - The `gofmt` formatter is on with `simplify: true`.
+    `golangci-lint run` reports files that are not formatted.
+    Run `mise run format` to fix them.
+  - The `comments` and `std-error-handling` exclusion presets are on.
+  - Generated code is excluded (`exclusions.generated: strict`).
+  - `gosec` does not run on `_test.go` files
+    or on `cmd/pdb-schema-extract`, `cmd/pdb-schema-generate`,
+    and `cmd/pdbcompat-check`.
+    These tools read and write files and send HTTP requests by design.
+- Prose in `docs/`, `README.md`, and `CONTRIBUTING.md`
+  uses semantic line breaks:
+  start a new line at each sentence and at long clause boundaries.
+  `.rumdl.toml` configures the `rumdl` Markdown linter for this rule.
+  mise and CI do not run `rumdl`, so run it by hand if you have it installed.
 
 ## Branch conventions
 
