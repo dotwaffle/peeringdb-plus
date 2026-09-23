@@ -2,9 +2,11 @@ package pdbcompat
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -1451,10 +1453,12 @@ func TestDepth_FacCampusNullParity(t *testing.T) {
 }
 
 // TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
-// — Query().Where(<type>.ID(id), <type>.StatusIn("ok","pending")), inlined at
-// all 26 depth.go getter sites — resolves identically across all 13 types: an
-// ok or pending row is fetchable (200) while a deleted row is a tombstone
-// (404). TestStatusMatrix proves this only for net; this covers the breadth.
+// — Query().Where(<type>.ID(id), <type>.StatusIn(...)), inlined at all 27
+// depth.go getter sites — resolves identically across all 13 types: a live
+// or pending row is fetchable (200) while a deleted row is a tombstone
+// (404). Upstream PK lookups admit the live statuses plus pending (2.83.0
+// rest.py:750), so a not-operational netixlan is fetchable too.
+// TestStatusMatrix proves this only for net; this covers the breadth.
 // Seeders are shared with TestStatusMatrix_AllEntities (statusseed_test.go).
 func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 	t.Parallel()
@@ -1463,25 +1467,111 @@ func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 			t.Parallel()
 			c := testutil.SetupClient(t)
 			seedStatusParentsFor(t, c, e.tag)
-			seedStatusRow(t, c, e.tag, 901, "ok")
-			seedStatusRow(t, c, e.tag, 902, "deleted")
-			seedStatusRow(t, c, e.tag, 903, "pending")
+			liveIDs := seedStatusMatrixRows(t, c, e.tag, e.live)
 
 			srv := httptest.NewServer(newMuxForOrdering(c))
 			t.Cleanup(srv.Close)
 
-			cases := []struct {
-				id   int
-				want int
-			}{
-				{901, http.StatusOK},       // ok        -> 200
-				{902, http.StatusNotFound}, // deleted   -> 404 (tombstone hidden at PK)
-				{903, http.StatusOK},       // pending   -> 200 (PK lookup admits pending)
+			type pkCase struct{ id, want int }
+			cases := []pkCase{
+				{902, http.StatusNotFound}, // deleted -> 404 (tombstone hidden at PK)
+				{903, http.StatusOK},       // pending -> 200 (PK lookup admits pending)
+			}
+			for _, id := range liveIDs {
+				cases = append(cases, pkCase{id, http.StatusOK}) // live -> 200
 			}
 			for _, tc := range cases {
-				if code := fetchStatusCode(t, srv.URL+"/api/"+e.tag+"/"+itoa(tc.id)); code != tc.want {
-					t.Errorf("GET /api/%s/%d: got %d, want %d", e.tag, tc.id, code, tc.want)
+				// depth=0 and the default depth take separate queries.
+				for _, q := range []string{"?depth=0", ""} {
+					if code := fetchStatusCode(t, srv.URL+"/api/"+e.tag+"/"+itoa(tc.id)+q); code != tc.want {
+						t.Errorf("GET /api/%s/%d%s: got %d, want %d", e.tag, tc.id, q, code, tc.want)
+					}
 				}
+			}
+		})
+	}
+}
+
+// TestDepth_NotOperationalNetIXLanInSets locks the netixlan live set in the
+// depth expansions: a not-operational netixlan is live (2.83.0
+// models.py:109-122), so upstream's nested prefetch keeps it
+// (serializers.py:1138-1150). It must appear in net.netixlan_set and, via
+// its network, in ixlan.net_set at depth 1 (ID lists) and depth 2 (objects).
+func TestDepth_NotOperationalNetIXLanInSets(t *testing.T) {
+	t.Parallel()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 9, 23, 0, 0, 0, 0, time.UTC)
+
+	org := c.Organization.Create().SetName("NotOp Org").SetStatus("ok").
+		SetCreated(now).SetUpdated(now).SaveX(ctx)
+	netA := c.Network.Create().SetName("NotOp Net A").SetAsn(65101).SetOrganization(org).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	netB := c.Network.Create().SetName("NotOp Net B").SetAsn(65102).SetOrganization(org).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	ix := c.InternetExchange.Create().SetName("NotOp IX").SetOrganization(org).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	lan := c.IxLan.Create().SetInternetExchange(ix).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	nixlOK := c.NetworkIxLan.Create().SetNetwork(netA).SetIxLan(lan).SetAsn(65101).SetSpeed(1000).
+		SetStatus("ok").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	nixlNotOpA := c.NetworkIxLan.Create().SetNetwork(netA).SetIxLan(lan).SetAsn(65101).SetSpeed(1000).
+		SetOperational(false).SetStatus("not-operational").SetCreated(now).SetUpdated(now).SaveX(ctx)
+	// netB reaches the ixlan only through a not-operational row.
+	c.NetworkIxLan.Create().SetNetwork(netB).SetIxLan(lan).SetAsn(65102).SetSpeed(1000).
+		SetOperational(false).SetStatus("not-operational").SetCreated(now).SetUpdated(now).SaveX(ctx)
+
+	mux := newMuxForOrdering(c)
+	// setIDs returns the ids in the named _set: bare numbers at depth 1,
+	// the "id" of each object at depth 2.
+	setIDs := func(t *testing.T, path, key string) []int {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s: %d: %s", path, rec.Code, rec.Body.String())
+		}
+		var env struct {
+			Data []map[string]any `json:"data"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil || len(env.Data) != 1 {
+			t.Fatalf("GET %s: decode: %v (rows=%d)", path, err, len(env.Data))
+		}
+		raw, ok := env.Data[0][key].([]any)
+		if !ok {
+			t.Fatalf("GET %s: %s is %T, want array", path, key, env.Data[0][key])
+		}
+		var ids []int
+		for _, el := range raw {
+			switch v := el.(type) {
+			case float64:
+				ids = append(ids, int(v))
+			case map[string]any:
+				ids = append(ids, int(v["id"].(float64)))
+			default:
+				t.Fatalf("GET %s: %s element is %T", path, key, el)
+			}
+		}
+		slices.Sort(ids)
+		return ids
+	}
+
+	cases := []struct {
+		path, key string
+		want      []int
+	}{
+		{fmt.Sprintf("/api/net/%d?depth=1", netA.ID), "netixlan_set", []int{nixlOK.ID, nixlNotOpA.ID}},
+		{fmt.Sprintf("/api/net/%d?depth=2", netA.ID), "netixlan_set", []int{nixlOK.ID, nixlNotOpA.ID}},
+		// net_set keeps one network per netixlan join row (duplicates).
+		{fmt.Sprintf("/api/ixlan/%d?depth=1", lan.ID), "net_set", []int{netA.ID, netA.ID, netB.ID}},
+		{fmt.Sprintf("/api/ixlan/%d?depth=2", lan.ID), "net_set", []int{netA.ID, netA.ID, netB.ID}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.path+"/"+tc.key, func(t *testing.T) {
+			t.Parallel()
+			if got := setIDs(t, tc.path, tc.key); !slices.Equal(got, tc.want) {
+				t.Errorf("%s %s = %v, want %v", tc.path, tc.key, got, tc.want)
 			}
 		})
 	}

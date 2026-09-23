@@ -150,22 +150,48 @@ func seedStatusRow(tb testing.TB, c *ent.Client, tag string, id int, status stri
 
 // statusMatrixEntities lists every PeeringDB list endpoint tag with its
 // isCampus flag (campus admits status=pending under ?since, the others do
-// not). Shared by the status-matrix and depth PK breadth tests.
+// not) and its live status set (upstream live_statuses(), 2.83.0
+// models.py:109-122). The live sets are spelled out here rather than read
+// from pdbtypes.LiveStatuses, so a wrong mapping there fails the tests.
+// Shared by the status-matrix and depth PK breadth tests.
 var statusMatrixEntities = []struct {
 	tag      string
 	isCampus bool
+	live     []string
 }{
-	{peeringdb.TypeOrg, false},
-	{peeringdb.TypeNet, false},
-	{peeringdb.TypeFac, false},
-	{peeringdb.TypeIX, false},
-	{peeringdb.TypePoc, false},
-	{peeringdb.TypeIXLan, false},
-	{peeringdb.TypeIXPfx, false},
-	{peeringdb.TypeNetIXLan, false},
-	{peeringdb.TypeNetFac, false},
-	{peeringdb.TypeIXFac, false},
-	{peeringdb.TypeCarrier, false},
-	{peeringdb.TypeCarrierFac, false},
-	{peeringdb.TypeCampus, true},
+	{peeringdb.TypeOrg, false, []string{"ok"}},
+	{peeringdb.TypeNet, false, []string{"ok"}},
+	{peeringdb.TypeFac, false, []string{"ok"}},
+	{peeringdb.TypeIX, false, []string{"ok"}},
+	{peeringdb.TypePoc, false, []string{"ok"}},
+	{peeringdb.TypeIXLan, false, []string{"ok"}},
+	{peeringdb.TypeIXPfx, false, []string{"ok"}},
+	{peeringdb.TypeNetIXLan, false, []string{"ok", "not-operational"}},
+	{peeringdb.TypeNetFac, false, []string{"ok"}},
+	{peeringdb.TypeIXFac, false, []string{"ok"}},
+	{peeringdb.TypeCarrier, false, []string{"ok"}},
+	{peeringdb.TypeCarrierFac, false, []string{"ok"}},
+	{peeringdb.TypeCampus, true, []string{"ok"}},
+}
+
+// seedStatusMatrixRows seeds one row of tag per status for the breadth
+// tests: 901 ok, 902 deleted, 903 pending, then one row from 904 up for
+// each further live status (netixlan: 904 not-operational). It returns
+// the IDs of the live rows.
+func seedStatusMatrixRows(tb testing.TB, c *ent.Client, tag string, live []string) []int {
+	tb.Helper()
+	seedStatusRow(tb, c, tag, 901, "ok")
+	seedStatusRow(tb, c, tag, 902, "deleted")
+	seedStatusRow(tb, c, tag, 903, "pending")
+	liveIDs := []int{901}
+	next := 904
+	for _, status := range live {
+		if status == "ok" {
+			continue
+		}
+		seedStatusRow(tb, c, tag, next, status)
+		liveIDs = append(liveIDs, next)
+		next++
+	}
+	return liveIDs
 }

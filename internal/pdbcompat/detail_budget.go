@@ -22,8 +22,9 @@ import (
 // detailChildSet describes one reverse `_set` collection that a depth>=2
 // detail response fully embeds: the child entity whose Depth0 row size
 // prices each element, and a COUNT(*) closure mirroring the status filter
-// the depth expansion applies when it loads the set (StatusIn ok/pending,
-// same as the With* eager-loads in depth.go).
+// the depth expansion applies when it loads the set (the same StatusIn
+// literal as the With* eager-loads in depth.go: ok and pending, plus
+// not-operational for netixlan).
 type detailChildSet struct {
 	childType string
 	count     func(ctx context.Context, client *ent.Client, id int) (int, error)
@@ -67,7 +68,7 @@ var detailChildSets = map[string][]detailChildSet{
 			return client.NetworkFacility.Query().Where(networkfacility.NetID(id), networkfacility.StatusIn("ok", "pending")).Count(ctx)
 		}},
 		{peeringdb.TypeNetIXLan, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.NetworkIxLan.Query().Where(networkixlan.NetID(id), networkixlan.StatusIn("ok", "pending")).Count(ctx)
+			return client.NetworkIxLan.Query().Where(networkixlan.NetID(id), networkixlan.StatusIn("ok", "not-operational", "pending")).Count(ctx)
 		}},
 	},
 	peeringdb.TypeFac: {
@@ -96,7 +97,7 @@ var detailChildSets = map[string][]detailChildSet{
 		}},
 		// ixlan.net_set resolves networks through the netixlan join.
 		{peeringdb.TypeNet, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.NetworkIxLan.Query().Where(networkixlan.IxlanID(id), networkixlan.StatusIn("ok", "pending")).Count(ctx)
+			return client.NetworkIxLan.Query().Where(networkixlan.IxlanID(id), networkixlan.StatusIn("ok", "not-operational", "pending")).Count(ctx)
 		}},
 	},
 	peeringdb.TypeCarrier: {

@@ -110,9 +110,9 @@ func ParsePaginationParams(params url.Values) (limit, skip int, err error) {
 // Returns nil if the parameter is absent or empty.
 //
 // since<=0 is also treated as absent: upstream activates the since
-// matrix only `if since > 0` (rest.py:696), so ?since=0 falls through
-// to the plain status='ok' list there. Honouring a zero boundary here
-// would flip the status matrix and serve the entire tombstone corpus.
+// matrix only `if since > 0` (2.83.0 rest.py:719), so ?since=0 falls
+// through to the plain live-status list there. Honouring a zero boundary
+// here would flip the status matrix and serve the entire tombstone corpus.
 func ParseSinceParam(params url.Values) (*time.Time, error) {
 	v := params.Get("since")
 	if v == "" {

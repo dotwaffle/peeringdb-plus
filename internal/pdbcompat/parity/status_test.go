@@ -11,13 +11,19 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
-// TestParity_Status locks the upstream rest.py:694-727 status × since
-// matrix against future regression. Each subtest covers one cell of
-// the matrix:
+// TestParity_Status locks the upstream 2.83.0 rest.py:719-750 status ×
+// since matrix against future regression. Each subtest covers one cell
+// of the matrix:
 //
-//	{no since, since=N} × {list, pk-lookup} × {campus, non-campus}
+//	{no since, since=N} × {list, pk-lookup} × {campus, netixlan, other}
 //
-// The campus row carries the rest.py:712-715 carve-out where
+// The matrix is built from the type's live statuses (models.py:109-122):
+// "ok" on every type, plus "not-operational" on netixlan. A list without
+// since admits the live statuses (rest.py:748), a since list admits live
+// + deleted (:723), and a PK lookup admits live + pending (:750). The
+// netixlan_* subtests lock the second live status.
+//
+// The campus row carries the rest.py:725-735 carve-out where
 // status="pending" is admitted on `since>0` list queries (the IXP
 // onboarding workflow expects pending campuses to surface to syncing
 // clients within the cycle window).
@@ -28,7 +34,7 @@ import (
 // (:745-750). It can only narrow the admitted set. The explicit_status_*
 // subtests lock this.
 //
-// upstream: peeringdb_server/rest.py:694-727 (status × since matrix)
+// upstream: 2.83.0 peeringdb_server/rest.py:719-750 (status × since matrix)
 // upstream: pdb_api_test.py (multiple sites; admission rules are
 // implicit in fixture-mix expectations across the test corpus).
 func TestParity_Status(t *testing.T) {
@@ -67,6 +73,48 @@ func TestParity_Status(t *testing.T) {
 			SetCreated(t0).SetUpdated(updated).
 			Save(ctx); err != nil {
 			t.Fatalf("seed campus id=%d: %v", id, err)
+		}
+	}
+
+	// seedNetIXLan seeds one netixlan under a shared org/net/ix/ixlan
+	// chain, creating the parents on first use. operational is set the
+	// way upstream derives it on save: true only for status "ok"
+	// (2.83.0 models.py:6512).
+	seedNetIXLan := func(t *testing.T, c *ent.Client, id int, status string, updated time.Time) {
+		t.Helper()
+		ctx := t.Context()
+		if n, _ := c.IxLan.Query().Count(ctx); n == 0 {
+			c.Organization.Create().
+				SetID(1).SetName("NetIXLanParent").SetNameFold(unifold.Fold("NetIXLanParent")).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+			c.Network.Create().
+				SetID(1).SetName("NetIXLanNet").SetNameFold(unifold.Fold("NetIXLanNet")).
+				SetAsn(64500).SetOrgID(1).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+			c.InternetExchange.Create().
+				SetID(1).SetName("NetIXLanIX").SetNameFold(unifold.Fold("NetIXLanIX")).
+				SetOrgID(1).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+			c.IxLan.Create().
+				SetID(1).SetIxID(1).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		if _, err := c.NetworkIxLan.Create().
+			SetID(id).SetNetID(1).SetIxlanID(1).SetIxID(1).
+			SetAsn(64500).SetSpeed(10000).SetName("NetIXLanIX").
+			SetOperational(status == "ok").SetStatus(status).
+			SetCreated(t0).SetUpdated(updated).
+			Save(ctx); err != nil {
+			t.Fatalf("seed netixlan id=%d: %v", id, err)
+		}
+	}
+	// seedNetIXLanMix seeds one netixlan per status, with updated
+	// ascending in this order: 1 ok, 2 not-operational, 3 pending,
+	// 4 deleted.
+	seedNetIXLanMix := func(t *testing.T, c *ent.Client) {
+		t.Helper()
+		for i, status := range []string{"ok", "not-operational", "pending", "deleted"} {
+			seedNetIXLan(t, c, i+1, status, t0.Add(time.Duration(i)*time.Hour))
 		}
 	}
 
@@ -359,6 +407,106 @@ func TestParity_Status(t *testing.T) {
 		want := []int{3}
 		if !equalIntSlice(ids, want) {
 			t.Errorf("since+status__in=pending,deleted: got %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("netixlan_not_operational_is_live_on_bare_list", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 models.py:109-122 (live_statuses: netixlan
+		// is live as ok or not-operational) + rest.py:748 (a no-since
+		// list admits the live statuses)
+		c := testutil.SetupClient(t)
+		seedNetIXLanMix(t, c)
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/netixlan")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		// Default order is updated descending.
+		want := []int{2, 1}
+		if ids := extractIDs(t, body); !equalIntSlice(ids, want) {
+			t.Errorf("netixlan bare list: got %v, want %v (ok + not-operational)", ids, want)
+		}
+	})
+
+	t.Run("netixlan_not_operational_in_since_window", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:723 (since admits the live statuses
+		// plus deleted; pending stays hidden on netixlan)
+		c := testutil.SetupClient(t)
+		seedNetIXLanMix(t, c)
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/netixlan?since=1")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		want := []int{1, 2, 4}
+		if ids := extractIDs(t, body); !equalIntSlice(ids, want) {
+			t.Errorf("netixlan since: got %v, want %v (ok + not-operational + deleted)", ids, want)
+		}
+	})
+
+	t.Run("netixlan_not_operational_pk_lookup_returns_200", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:750 (a PK lookup admits the live
+		// statuses plus pending)
+		c := testutil.SetupClient(t)
+		seedNetIXLanMix(t, c)
+
+		srv := newTestServer(t, c)
+		for _, path := range []string{"/api/netixlan/2", "/api/netixlan/2?depth=0"} {
+			if status, body := httpGet(t, srv, path); status != http.StatusOK {
+				t.Errorf("GET %s: got %d, want 200; body=%s", path, status, string(body))
+			}
+		}
+	})
+
+	t.Run("netixlan_operational_false_returns_not_operational", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:5070-5090
+		// (test_guest_005_list_filter_netixlan_operational: a
+		// not-operational netixlan is returned by operational=0)
+		c := testutil.SetupClient(t)
+		seedNetIXLanMix(t, c)
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/netixlan?operational=0")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		want := []int{2}
+		if ids := extractIDs(t, body); !equalIntSlice(ids, want) {
+			t.Errorf("netixlan operational=0: got %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("netixlan_status_filter_selects_live_subset", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 docs/api/obj_netixlan.md:134-137 (status=ok
+		// no longer returns every live connection; use
+		// status__in=ok,not-operational) + rest.py:683 (status__iexact)
+		c := testutil.SetupClient(t)
+		seedNetIXLanMix(t, c)
+
+		srv := newTestServer(t, c)
+		cases := []struct {
+			query string
+			want  []int
+		}{
+			{"?status=ok", []int{1}},
+			{"?status=not-operational", []int{2}},
+			{"?status__in=ok,not-operational", []int{2, 1}},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, "/api/netixlan"+tc.query)
+			if status != http.StatusOK {
+				t.Fatalf("GET /api/netixlan%s: status = %d; body=%s", tc.query, status, string(body))
+			}
+			if ids := extractIDs(t, body); !equalIntSlice(ids, tc.want) {
+				t.Errorf("GET /api/netixlan%s: got %v, want %v", tc.query, ids, tc.want)
+			}
 		}
 	})
 }

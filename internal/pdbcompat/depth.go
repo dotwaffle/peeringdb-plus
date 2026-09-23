@@ -189,7 +189,7 @@ func nestedNetMap(ctx context.Context, n *ent.Network) (map[string]any, error) {
 	if m["netfac_set"], err = sortedIDsOrEmpty(n.QueryNetworkFacilities().Where(networkfacility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested net %d netfac_set: %w", n.ID, err)
 	}
-	if m["netixlan_set"], err = sortedIDsOrEmpty(n.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["netixlan_set"], err = sortedIDsOrEmpty(n.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "not-operational", "pending")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested net %d netixlan_set: %w", n.ID, err)
 	}
 	return m, nil
@@ -252,7 +252,7 @@ func nestedIxLanMap(ctx context.Context, l *ent.IxLan) (map[string]any, error) {
 	if m["ixpfx_set"], err = sortedIDsOrEmpty(l.QueryIxPrefixes().Where(ixprefix.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ixlan %d ixpfx_set: %w", l.ID, err)
 	}
-	if m["net_set"], err = intsOrEmpty(l.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "pending")).Select(networkixlan.FieldNetID).Ints(ctx)); err != nil {
+	if m["net_set"], err = intsOrEmpty(l.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "not-operational", "pending")).Select(networkixlan.FieldNetID).Ints(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ixlan %d net_set: %w", l.ID, err)
 	}
 	return m, nil
@@ -341,7 +341,7 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 			WithOrganization().
 			WithPocs(func(q *ent.PocQuery) { q.Where(poc.StatusIn("ok", "pending")) }).
 			WithNetworkFacilities(func(q *ent.NetworkFacilityQuery) { q.Where(networkfacility.StatusIn("ok", "pending")) }).
-			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) { q.Where(networkixlan.StatusIn("ok", "pending")) }).
+			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) { q.Where(networkixlan.StatusIn("ok", "not-operational", "pending")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get network %d: %w", id, err)
@@ -482,7 +482,7 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 				q.Where(ixprefix.StatusIn("ok", "pending"))
 			}).
 			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) {
-				q.Where(networkixlan.StatusIn("ok", "pending")).
+				q.Where(networkixlan.StatusIn("ok", "not-operational", "pending")).
 					WithNetwork(func(nq *ent.NetworkQuery) {
 						nq.Where(network.StatusIn("ok", "pending"))
 					})
@@ -665,11 +665,14 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 }
 
 // getNetIXLanWithDepth fetches a network IX LAN by ID. At depth >= 2, expands
-// the net and ixlan FK edges to full objects.
+// the net and ixlan FK edges to full objects. The PK lookup admits
+// not-operational as well as ok and pending: upstream PK lookups admit the
+// live statuses plus pending, and netixlan is live as ok or not-operational
+// (2.83.0 rest.py:750, models.py:109-122).
 func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 1 {
 		nixl, err := client.NetworkIxLan.Query().
-			Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "pending")).
+			Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "not-operational", "pending")).
 			WithNetwork().
 			WithIxLan().
 			Only(ctx)
@@ -700,7 +703,7 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 	}
 
 	nixl, err := client.NetworkIxLan.Query().
-		Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "pending")).
+		Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "not-operational", "pending")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get networkixlan %d: %w", id, err)

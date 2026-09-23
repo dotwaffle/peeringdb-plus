@@ -14,7 +14,7 @@ import (
 
 // seedOrgWithNetworks creates one org (id 1) plus n "ok" child networks
 // and one "deleted" network that the estimate must NOT bill (depth
-// expansion filters sets to StatusIn ok/pending).
+// expansion drops tombstones from its sets).
 func seedOrgWithNetworks(t *testing.T, client *ent.Client, n int) {
 	t.Helper()
 	ctx := t.Context()

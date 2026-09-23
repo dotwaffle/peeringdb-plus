@@ -78,16 +78,25 @@ func isKnownOperator(suffix string) bool {
 	return false
 }
 
-// applyStatusMatrix returns the upstream rest.py:694-727 status predicate
-// for list requests. sinceSet=false => status=ok (rest.py:725); sinceSet=true
-// => status IN (ok, deleted), plus pending when isCampus (rest.py:700-712).
-// Always returns a non-nil predicate — every list request needs a status
-// filter.
-func applyStatusMatrix(isCampus, sinceSet bool) func(*sql.Selector) {
+// applyStatusMatrix returns the upstream status predicate for list
+// requests (2.83.0 rest.py:719-750). live is the type's live status set
+// (pdbtypes.LiveStatuses). sinceSet=false admits only the live statuses
+// (rest.py:748). sinceSet=true admits live + deleted, plus pending when
+// isCampus (rest.py:723-735). Always returns a non-nil predicate, because
+// every list request needs a status filter.
+//
+// A single live status emits status = ? instead of IN: SQLite then
+// serves the default ordering straight from the composite (status,
+// updated, created, id) index. An IN list with two values, as on
+// netixlan, needs a temp B-tree sort.
+func applyStatusMatrix(live []string, isCampus, sinceSet bool) func(*sql.Selector) {
 	if !sinceSet {
-		return sql.FieldEQ("status", "ok")
+		if len(live) == 1 {
+			return sql.FieldEQ("status", live[0])
+		}
+		return sql.FieldIn("status", live...)
 	}
-	allowed := []string{"ok", "deleted"}
+	allowed := append(slices.Clone(live), "deleted")
 	if isCampus {
 		allowed = append(allowed, "pending")
 	}

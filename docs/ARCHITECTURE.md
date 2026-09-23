@@ -372,8 +372,9 @@ and read from the same ent client:
   Uses a type registry (`internal/pdbcompat/registry.go`) to dispatch by object
   type.
   The pk-lookup path (`internal/pdbcompat/depth.go`) inlines
-  `StatusIn("ok", "pending")` at every call site so soft-delete tombstones
-  return 404 on direct-ID GETs.
+  `StatusIn("ok", "pending")` at every call site
+  (`StatusIn("ok", "not-operational", "pending")` for netixlan)
+  so soft-delete tombstones return 404 on direct-ID GETs.
 
 - **ConnectRPC / gRPC — `/peeringdb.v1.*`**
   (`internal/grpcserver/`, `gen/peeringdb/v1/`)
@@ -583,8 +584,8 @@ omitted from partial responses and dropped children whose upstream-deleted
 parents had never been synced.)
 
 Full-mode fetches capture the tombstone window.
-A bare `/api/<type>` list contains only `status='ok'` rows
-(upstream filters bare lists),
+A bare `/api/<type>` list contains only live rows
+(`status='ok'`, plus `not-operational` on netixlan; upstream filters bare lists),
 and committing a full snapshot advances the derived `MAX(updated)` cursor past
 the pre-cycle window — so a full-mode cycle (the daily
 `PDBPLUS_FULL_SYNC_INTERVAL` escalation, or the per-type incremental-fallback)
@@ -599,11 +600,17 @@ committing the snapshot without the window would advance the cursor past deletes
 that were never seen.
 
 The pdbcompat list path (`internal/pdbcompat/registry_funcs.go`) appends
-`applyStatusMatrix(isCampus, opts.Since != nil)` to the predicate chain for
-every entity to mirror upstream PeeringDB's `rest.py` status × since matrix; the
-pk-lookup path (`internal/pdbcompat/depth.go`) inlines
-`StatusIn("ok", "pending")` at every call site so direct-ID GETs return 404 for
-tombstones.
+`applyStatusMatrix(live, isCampus, opts.Since != nil)` to the predicate chain
+for every entity to mirror upstream PeeringDB's `rest.py` status × since matrix.
+`live` is the type's live status set from `pdbtypes.LiveStatuses`
+(`ok`, plus `not-operational` on netixlan).
+A single live status is emitted as `status = ?`,
+so the composite `(status, updated, created, id)` index still serves the default
+ordering; the two-value netixlan set is an `IN` list and needs a sort.
+The pk-lookup path (`internal/pdbcompat/depth.go`) inlines
+`StatusIn("ok", "pending")` at every call site
+(`StatusIn("ok", "not-operational", "pending")` for netixlan)
+so direct-ID GETs return 404 for tombstones.
 
 Tombstone GC is dormant work; triggers are storage growth >5% MoM,
 tombstone ratio >10%, or operator request.

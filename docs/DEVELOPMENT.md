@@ -538,8 +538,10 @@ Any new entity wired into `/api/` must integrate with this budget:
    The generic helper derives the List and Count closures from a single
    shared predicate builder — they cannot diverge, which is what upholds
    the 413 guarantee — and preserves the
-   `applyStatusMatrix(isCampus, opts.Since != nil)` last-predicate invariant
+   `applyStatusMatrix(live, isCampus, opts.Since != nil)` last-predicate invariant
    and the `EmptyResult` short-circuit.
+   `live` comes from `pdbtypes.LiveStatuses`; extend it if upstream
+   `live_statuses()` gives the new type a live status other than `ok`.
 3. **Architecture doc** — add a row to the per-entity sizing table in
    `docs/ARCHITECTURE.md § Response Memory Envelope` with the computed
    `max_rows @ 128 MiB`.

@@ -101,3 +101,16 @@ func Valid(name string) bool {
 	_, ok := GoNameOf(name)
 	return ok
 }
+
+// LiveStatuses returns the status values under which a row of the named
+// type is live and publicly visible, mirroring upstream live_statuses()
+// (2.83.0 models.py:109-122). netixlan has two live statuses: "ok" and
+// "not-operational", which replaced the operational=false flag. Every
+// other type has only "ok". "pending" and "deleted" are never live. The
+// slice is a fresh copy.
+func LiveStatuses(name string) []string {
+	if name == "netixlan" {
+		return []string{"ok", "not-operational"}
+	}
+	return []string{"ok"}
+}

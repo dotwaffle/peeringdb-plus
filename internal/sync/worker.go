@@ -1227,7 +1227,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // limits invisible in upstream code. The full-historical fetch returned
 // retry-after values up to 54 minutes, blocking sync indefinitely.
 //
-// Current behaviour: cursor zero → full sync via bare list (status='ok'
+// Current behaviour: cursor zero → full sync via bare list (live statuses
 // only, smaller responses). Historical-delete capture for fresh installs
 // is deferred to a proper multi-cycle bootstrap design (v1.19+);
 // FK backfill catches the orphans that matter on
@@ -1235,7 +1235,7 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (bool, error) {
 	fellBack := false
 	// Incremental attempt requires a populated cursor. Zero cursor falls
-	// through to the full-sync path below (bare list, status='ok' only).
+	// through to the full-sync path below (bare list, live statuses only).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
 		incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
 		if incErr == nil {
@@ -1263,15 +1263,16 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	if err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
 		return false, err
 	}
-	// Tombstone-window capture: a bare list contains only status='ok' rows
-	// (upstream filters bare lists per rest.py), and committing the full
-	// snapshot advances the derived cursor (MAX(updated)) past the
-	// pre-cycle window — without a follow-up ?since= fetch, deletes that
-	// landed upstream since the last cycle would be permanently lost:
-	// served live by all surfaces forever and absent from our own ?since=
-	// exports. Stage the window on top of the snapshot; the scratch
-	// INSERT OR REPLACE is keyed on id, so window rows (including
-	// tombstones) win over their bare-list versions.
+	// Tombstone-window capture: a bare list contains only live rows (ok,
+	// plus not-operational on netixlan; upstream filters bare lists per
+	// rest.py), and committing the full snapshot advances the derived
+	// cursor (MAX(updated)) past the pre-cycle window — without a
+	// follow-up ?since= fetch, deletes that landed upstream since the
+	// last cycle would be permanently lost: served live by all surfaces
+	// forever and absent from our own ?since= exports. Stage the window
+	// on top of the snapshot; the scratch INSERT OR REPLACE is keyed on
+	// id, so window rows (including tombstones) win over their bare-list
+	// versions.
 	//
 	// In explicit full mode a failure here MUST fail the type: committing
 	// the snapshot without the window would advance the cursor past

@@ -1604,9 +1604,8 @@ func TestSync_IncrementalDeletionTombstone(t *testing.T) {
 	}
 
 	// (c) Anonymous list path (no ?since): pdbcompat applyStatusMatrix
-	// devolves to status IN ("ok", "pending"); for non-campus entities the
-	// "pending" arm is empty so this is equivalent to status="ok". Assert
-	// the live row alone is returned.
+	// admits only the live statuses, which for org is status="ok".
+	// Assert the live row alone is returned.
 	live, err := w.entClient.Organization.Query().Where(organization.StatusEQ("ok")).All(ctx)
 	if err != nil {
 		t.Fatalf("query live orgs: %v", err)

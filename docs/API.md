@@ -323,14 +323,29 @@ and § Validation Notes for why MySQL collation is *not* the upstream mechanism.
 
 Sync soft-deletes rows by setting `status='deleted'` rather than physically
 removing them.
-The list path applies the upstream `rest.py:707-738` status matrix
-as the final predicate via `applyStatusMatrix`:
+The list path applies the upstream PeeringDB 2.83.0 `rest.py:719-750`
+status matrix as the final predicate via `applyStatusMatrix`.
+The matrix starts from the live statuses of the type
+(upstream `live_statuses()`, `models.py:109-122`):
+
+- `netixlan`: `ok` and `not-operational`.
+- All other types: `ok`.
 
 | Request shape | Admitted statuses |
 |---------------|-------------------|
-| List, no `?since` | `status='ok'` only |
-| List with `?since=N` | `status IN ('ok', 'deleted')`; `pending` additionally admitted on `/api/campus` |
-| Single-object GET `/api/<type>/<id>` | `status IN ('ok', 'pending')` — tombstones return `404` |
+| List, no `?since` | live statuses only |
+| List with `?since=N` | live statuses and `deleted`; `pending` additionally admitted on `/api/campus` |
+| Single-object GET `/api/<type>/<id>` | live statuses and `pending` — tombstones return `404` |
+
+A `not-operational` netixlan is a published connection that its network
+declares not operational.
+Upstream 2.83.0 moved every row with `status='ok'` and `operational=false`
+to this status, and now derives `operational` as `status == 'ok'`.
+The row is served like an `ok` row: on lists, in `?since` windows,
+on direct GETs, and in the `netixlan_set` and `net_set` depth sets.
+`?operational=false` returns it, and `?status=ok` does not.
+To select every live connection, use `?status__in=ok,not-operational`
+or leave out the status filter.
 
 `?status=<value>` is an ordinary filter on all 13 types.
 Exact match is case-insensitive, and `__in`, `__contains` and `__startswith`

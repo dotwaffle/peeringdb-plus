@@ -21,6 +21,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -115,7 +116,7 @@ func init() {
 		name:   peeringdb.TypeCampus,
 		plural: "campuses",
 		// Campus is the only type that admits status=pending on
-		// list+since (rest.py:721).
+		// list+since (2.83.0 rest.py:725-735).
 		isCampus: true,
 		query:    func(c *ent.Client) *ent.CampusQuery { return c.Campus.Query() },
 		convert:  func(_ context.Context, cp *ent.Campus) any { return campusFromEnt(cp) },
@@ -166,7 +167,7 @@ type listQuery[Q any, P, O ~func(*sql.Selector), E any] interface {
 type entityWiring[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any] struct {
 	name     string
 	plural   string // noun for "list <plural>" / "count <plural>" error wrapping
-	isCampus bool   // campus-only status-matrix branch (rest.py:721)
+	isCampus bool   // campus-only status-matrix branch (2.83.0 rest.py:725-735)
 	query    func(*ent.Client) Q
 	convert  func(context.Context, E) any
 	get      GetFunc
@@ -178,14 +179,17 @@ type entityWiring[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any] str
 // never disagree — predicate divergence (which would break the 413
 // guarantee) is unrepresentable by construction.
 func wireEntity[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any](w entityWiring[Q, P, O, E]) {
+	// The live status set is fixed per type (netixlan: ok and
+	// not-operational; all others: ok), so resolve it once at wiring.
+	live := pdbtypes.LiveStatuses(w.name)
 	predicates := func(opts QueryOptions) []P {
 		preds := castPredicates[P](opts.Filters)
 		if s := applySince(opts); s != nil {
 			preds = append(preds, P(s))
 		}
-		// upstream rest.py:694-727 status matrix — appended LAST so no
-		// client-supplied filter can widen the visible status set.
-		preds = append(preds, P(applyStatusMatrix(w.isCampus, opts.Since != nil)))
+		// upstream 2.83.0 rest.py:719-750 status matrix — appended LAST
+		// so no client-supplied filter can widen the visible status set.
+		preds = append(preds, P(applyStatusMatrix(live, w.isCampus, opts.Since != nil)))
 		return preds
 	}
 	list := func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]any, error) {
