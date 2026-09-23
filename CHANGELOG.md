@@ -5,8 +5,8 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Historical release notes prior to v1.16 are preserved in the project's
-Git history (tags `v1.0.0` through `v1.15.0`).
+Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14
+are in the Git history at their tags.
 
 ## [Unreleased]
 
@@ -1054,7 +1054,28 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
----
-
-Historical release notes (v1.0 through v1.15) are preserved in the
-project's Git history (tags `v1.0.0` through `v1.15.0`).
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.0...HEAD
+[1.28.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.27.0...v1.28.0
+[1.27.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.26.0...v1.27.0
+[1.26.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.25.0...v1.26.0
+[1.25.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.24.1...v1.25.0
+[1.24.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.24.0...v1.24.1
+[1.24.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.23.0...v1.24.0
+[1.23.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.22.0...v1.23.0
+[1.22.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.21.1...v1.22.0
+[1.21.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.21.0...v1.21.1
+[1.21.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.20.6...v1.21.0
+[1.20.6]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.20.5...v1.20.6
+[1.20.5]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.20.4...v1.20.5
+[1.20.4]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.20.3...v1.20.4
+[1.20.3]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.20.2...v1.20.3
+[1.20.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.20.1...v1.20.2
+[1.20.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.20.0...v1.20.1
+[1.20.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.19.5...v1.20.0
+[1.19.5]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.19.4...v1.19.5
+[1.19.4]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.19.3...v1.19.4
+[1.19.3]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.19.2...v1.19.3
+[1.19.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.19.1...v1.19.2
+[1.19.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.19.0...v1.19.1
+[1.19.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.18.14...v1.19.0
+[1.16.0]: https://github.com/dotwaffle/peeringdb-plus/releases/tag/v1.16.0
