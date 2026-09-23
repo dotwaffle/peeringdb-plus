@@ -138,7 +138,7 @@ func (Network) Fields() []ent.Field {
 		field.String("rir_status").
 			Optional().
 			Nillable().
-			Comment("RIR status"),
+			Comment("Allocation status of this network's ASN according to RIR data. PeeringDB exposes only `ok` or null"),
 		field.Time("rir_status_updated").
 			Optional().
 			Nillable().

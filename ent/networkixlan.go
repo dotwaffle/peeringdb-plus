@@ -43,9 +43,9 @@ type NetworkIxLan struct {
 	Meta map[string]interface{} `json:"meta"`
 	// Notes
 	Notes string `json:"notes"`
-	// Operational status
+	// Whether this connection is operational. PeeringDB derives it from status (true only for `ok`) and marks it deprecated
 	Operational bool `json:"operational"`
-	// Port speed in Mbps
+	// Capacity of this connection in Mbit/sec
 	Speed int `json:"speed"`
 	// Internet exchange ID (computed)
 	IxID int `json:"ix_id"`
@@ -55,7 +55,7 @@ type NetworkIxLan struct {
 	Created time.Time `json:"created"`
 	// PeeringDB last update timestamp
 	Updated time.Time `json:"updated"`
-	// Record status
+	// Connection state: `ok` and `not-operational` are published, `pending` awaits approval, and `deleted` is removed
 	Status string `json:"status"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NetworkIxLanQuery when eager-loading is set.

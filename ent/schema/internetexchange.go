@@ -60,7 +60,7 @@ func (InternetExchange) Fields() []ent.Field {
 		field.String("media").
 			Optional().
 			Default("Ethernet").
-			Comment("Exchange media type"),
+			Comment("Obsolete. PeeringDB always reports `Ethernet`, and the value does not describe the media at the exchange"),
 		field.String("name").
 			Annotations(
 				entgql.OrderField("NAME"),
@@ -86,13 +86,13 @@ func (InternetExchange) Fields() []ent.Field {
 			Comment("Policy phone"),
 		field.Bool("proto_ipv6").
 			Default(false).
-			Comment("Supports IPv6"),
+			Comment("Whether this exchange supports unicast IPv6. PeeringDB derives it from the active IPv6 prefixes of the LAN"),
 		field.Bool("proto_multicast").
 			Default(false).
 			Comment("Supports multicast"),
 		field.Bool("proto_unicast").
 			Default(false).
-			Comment("Supports unicast"),
+			Comment("Whether this exchange supports unicast IPv4. PeeringDB derives it from the active IPv4 prefixes of the LAN"),
 		field.String("region_continent").
 			Optional().
 			Default("").

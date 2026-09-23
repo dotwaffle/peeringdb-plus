@@ -53,7 +53,7 @@ func (Poc) Fields() []ent.Field {
 			Optional().
 			Default("Public").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Visibility level"),
+			Comment("Who may see this contact: `Public` anyone, `Users` authenticated users only, `Private` the owning organization only. `Private` remains only on legacy records"),
 
 		// HandleRefModel common fields
 		field.Time("created").

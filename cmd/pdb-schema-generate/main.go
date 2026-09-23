@@ -223,6 +223,18 @@ type entSchemaData struct {
 	HasEdges       bool
 	HasJSON        bool
 	HasSocialMedia bool
+	StatusComment  string
+}
+
+// defaultStatusComment is the comment of the common status field.
+const defaultStatusComment = "Record status"
+
+// statusComments overrides defaultStatusComment by API path. The status
+// field comes from the template, not from peeringdb.json, so its text
+// is curated here.
+var statusComments = map[string]string{
+	// upstream 2.83.0 serializers.py:3059-3066 (NetworkIXLanSerializer.status)
+	"netixlan": "Connection state: `ok` and `not-operational` are published, `pending` awaits approval, and `deleted` is removed",
 }
 
 // entFieldData represents a single entgo field definition.
@@ -241,8 +253,9 @@ type entEdgeData struct {
 // generateEntSchema produces Go source for a single entgo schema.
 func generateEntSchema(apiPath string, ot ObjectType, schema *Schema) ([]byte, error) {
 	data := entSchemaData{
-		ModelName: ot.ModelName,
-		APIPath:   apiPath,
+		ModelName:     ot.ModelName,
+		APIPath:       apiPath,
+		StatusComment: cmp.Or(statusComments[apiPath], defaultStatusComment),
 	}
 
 	// Sort field names for deterministic output.
@@ -769,7 +782,7 @@ func ({{.ModelName}}) Fields() []ent.Field {
 		field.String("status").
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Record status"),
+			Comment({{printf "%q" .StatusComment}}),
 	}
 }
 

@@ -83,7 +83,7 @@ type Network struct {
 	PolicyRatio bool `json:"policy_ratio"`
 	// Peering policy URL
 	PolicyURL string `json:"policy_url"`
-	// RIR status
+	// Allocation status of this network's ASN according to RIR data. PeeringDB exposes only `ok` or null
 	RirStatus *string `json:"rir_status"`
 	// RIR status last updated
 	RirStatusUpdated *time.Time `json:"rir_status_updated"`

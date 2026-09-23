@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"go/parser"
 	"go/token"
 	"os"
@@ -365,6 +366,35 @@ func TestGenerateEntSchemaMCPIndexes(t *testing.T) {
 				t.Errorf("%s schema missing %q", test.apiPath, part)
 			}
 		}
+	}
+}
+
+func TestGenerateEntSchemaStatusComment(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{ObjectTypes: map[string]ObjectType{
+		"netixlan": {ModelName: "NetworkIXLan", APIPath: "netixlan"},
+		"net":      {ModelName: "Network", APIPath: "net"},
+	}}
+
+	tests := []struct {
+		apiPath string
+		want    string
+	}{
+		{apiPath: "netixlan", want: fmt.Sprintf("Comment(%q)", statusComments["netixlan"])},
+		{apiPath: "net", want: `Comment("Record status")`},
+	}
+	for _, test := range tests {
+		code, err := generateEntSchema(test.apiPath, schema.ObjectTypes[test.apiPath], schema)
+		if err != nil {
+			t.Fatalf("generate %s: %v", test.apiPath, err)
+		}
+		if !strings.Contains(string(code), test.want) {
+			t.Errorf("%s schema missing %s", test.apiPath, test.want)
+		}
+	}
+	if !strings.Contains(statusComments["netixlan"], "`not-operational`") {
+		t.Errorf("netixlan status comment %q does not name not-operational", statusComments["netixlan"])
 	}
 }
 

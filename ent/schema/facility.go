@@ -115,7 +115,7 @@ func (Facility) Fields() []ent.Field {
 		field.String("rencode").
 			Optional().
 			Default("").
-			Comment("Rencode"),
+			Comment("Obsolete. Read-only in PeeringDB"),
 		field.String("sales_email").
 			Optional().
 			Default("").

@@ -71,9 +71,9 @@ func (NetworkIxLan) Fields() []ent.Field {
 			Comment("Notes"),
 		field.Bool("operational").
 			Default(true).
-			Comment("Operational status"),
+			Comment("Whether this connection is operational. PeeringDB derives it from status (true only for `ok`) and marks it deprecated"),
 		field.Int("speed").
-			Comment("Port speed in Mbps"),
+			Comment("Capacity of this connection in Mbit/sec"),
 
 		// Computed fields (from serializer)
 		field.Int("ix_id").
@@ -99,7 +99,7 @@ func (NetworkIxLan) Fields() []ent.Field {
 		field.String("status").
 			Default("ok").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Record status"),
+			Comment("Connection state: `ok` and `not-operational` are published, `pending` awaits approval, and `deleted` is removed"),
 	}
 }
 

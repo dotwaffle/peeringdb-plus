@@ -38,7 +38,7 @@ func (IxLan) Fields() []ent.Field {
 			Comment("Description"),
 		field.Bool("dot1q_support").
 			Default(false).
-			Comment("802.1Q support"),
+			Comment("Obsolete. PeeringDB always reports `false`, and the value does not describe 802.1Q VLAN tagging support"),
 		field.Bool("ixf_ixp_import_enabled").
 			Default(false).
 			Comment("IXF import enabled"),
@@ -54,7 +54,7 @@ func (IxLan) Fields() []ent.Field {
 		field.Int("mtu").
 			Optional().
 			Default(1500).
-			Comment("MTU size"),
+			Comment("Maximum transmission unit offered on this LAN, in bytes"),
 		field.String("name").
 			Optional().
 			Default("").
