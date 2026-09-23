@@ -32,7 +32,7 @@ Their own sections below describe them.
 | `PDBPLUS_MAP_TILE_URL` | No | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | URL template | Browser basemap tile URL. The value must be an absolute HTTP or HTTPS URL, or a root-relative URL. It must contain the `{z}`, `{x}`, and `{y}` placeholders. A custom URL also requires `PDBPLUS_MAP_TILE_ATTRIBUTION`. |
 | `PDBPLUS_MAP_TILE_ATTRIBUTION` | With a custom tile URL | `© OpenStreetMap contributors` | HTML string | Visible attribution for the configured map tile service. The browser receives this value and Leaflet shows it on each map. |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown timeout. The HTTP server drain uses this timeout, and the final telemetry flush then uses it again. Keep two times this value below `kill_timeout` in `fly.toml` (30s). Must be greater than 0. |
-| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive an RFC 9457 413 problem-detail up-front before any row data is materialised. The same value also limits the total estimated bytes of all `/api` list and detail responses in progress on one machine. A request that would go over this total gets `503` with `Retry-After: 1`. The WARN log `pdbcompat: concurrent budget pool exhausted` records each rejection. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). The unit is not case-sensitive (`128mb` is valid). A bare number is rejected. Literal `0` disables the check (local development only). The guardrail is the reason the `limit=0` unlimited semantic is safe to expose in production. Default sized against the 256 MB replica cap minus an 80 MB Go runtime baseline and 48 MB slack for other in-flight requests + GC overhead (sized from measured runtime+request overhead). Must be non-negative. |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive an RFC 9457 413 problem-detail up-front before any row data is materialized. The same value also limits the total estimated bytes of all `/api` list and detail responses in progress on one machine. A request that would go over this total gets `503` with `Retry-After: 1`. The WARN log `pdbcompat: concurrent budget pool exhausted` records each rejection. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). The unit is not case-sensitive (`128mb` is valid). A bare number is rejected. Literal `0` disables the check (local development only). The guardrail is the reason the `limit=0` unlimited semantic is safe to expose in production. Default sized against the 256 MB replica cap minus an 80 MB Go runtime baseline and 48 MB slack for other in-flight requests + GC overhead (sized from measured runtime+request overhead). Must be non-negative. |
 | `PDBPLUS_STREAM_TIMEOUT` | No | `60s` | duration | Maximum duration for a single streaming RPC. Must be greater than 0 — it is the only bound on stream lifetime (`WriteTimeout` is deliberately unset for gRPC streaming); startup fails otherwise. |
 
 #### Map tiles
@@ -164,7 +164,7 @@ attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom
 ### Standard OpenTelemetry Variables (autoexport)
 
 All signals are initialized through
-`go.opentelemetry.io/contrib/exporters/autoexport`, which honours the standard
+`go.opentelemetry.io/contrib/exporters/autoexport`, which honors the standard
 `OTEL_*` environment variables.
 The exporter for each signal can be selected independently
 (for example, `OTEL_TRACES_EXPORTER=otlp` with
@@ -190,7 +190,7 @@ Commonly used variables:
 | `OTEL_EXPORTER_PROMETHEUS_HOST` | Prometheus exporter bind host when `OTEL_METRICS_EXPORTER=prometheus`. |
 | `OTEL_EXPORTER_PROMETHEUS_PORT` | Prometheus exporter port when `OTEL_METRICS_EXPORTER=prometheus`. |
 
-The full list of variables honoured by autoexport is documented in the upstream
+The full list of variables honored by autoexport is documented in the upstream
 SDK: see `go.opentelemetry.io/contrib/exporters/autoexport`.
 
 These signal-specific details are enforced by `internal/otel/provider.go`
@@ -217,11 +217,11 @@ with one `http.route` value per service.
 
 PeeringDB tags per-row visibility on some entities
 (most notably `poc.visible` with values `Public`, `Users`, `Private`).
-PeeringDB Plus honours this upstream visibility via an
+PeeringDB Plus honors this upstream visibility via an
 [ent Privacy policy](./ARCHITECTURE.md#privacy-layer) on the read path.
-Two environment variables control the resulting behaviour.
+Two environment variables control the resulting behavior.
 
-### Default behaviour — anonymous callers see Public only
+### Default behavior: anonymous callers see Public only
 
 With `PDBPLUS_PUBLIC_TIER=public`
 (the default),
@@ -326,7 +326,7 @@ and should not take production down
 Duration-typed variables accept any value parseable by
 [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) (e.g., `500ms`,
 `90s`, `2h30m`).
-Bool-typed variables accept the values recognised by
+Bool-typed variables accept the values recognized by
 [`strconv.ParseBool`](https://pkg.go.dev/strconv#ParseBool)
 (`1`/`0`, `t`/`f`, `T`/`F`, `true`/`false`, `TRUE`/`FALSE`, `True`/`False`).
 
@@ -356,7 +356,7 @@ The following values have runtime fallbacks rather than startup validation:
   Read per-request inside the `POST /sync` handler.
   Empty `FLY_REGION` indicates local development;
   an empty `PRIMARY_REGION` produces a `fly-replay: region=` header
-  (behaviour undefined on Fly.io, intentional for local testing).
+  (behavior undefined on Fly.io, intentional for local testing).
 - **OTel `autoexport` variables** —
   Changes take effect only on the next startup.
   The SDK providers are constructed once and shut down on termination.
