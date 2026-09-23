@@ -91,11 +91,14 @@ The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`,
 `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`,
 `netixlan`, `org`, `poc`.
 
-There is no `/metrics` endpoint.
-Prometheus / Grafana metrics are exported via OTLP to the configured collector
-(see `docs/CONFIGURATION.md`'s `OTEL_*` variables);
-no Prometheus scrape endpoint is exposed by the process. <!-- VERIFY:
-OTLP collector endpoint configured for the peeringdb-plus.fly.dev deployment -->
+The application server has no `/metrics` route.
+By default, the process sends metrics through OTLP to the configured collector.
+If you set `OTEL_METRICS_EXPORTER=prometheus`,
+the OpenTelemetry autoexport library starts a separate listener
+that serves `/metrics` on
+`OTEL_EXPORTER_PROMETHEUS_HOST`:`OTEL_EXPORTER_PROMETHEUS_PORT`
+(default `localhost:9464`).
+See [CONFIGURATION.md](CONFIGURATION.md#standard-opentelemetry-variables-autoexport).
 
 ### Before the first sync
 
