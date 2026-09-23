@@ -7,7 +7,8 @@ SocialMedia represents a social media link with service name and identifier.
 """
 type SocialMedia {
   """
-  The social media service name (e.g., "Twitter", "LinkedIn").
+  The service key as PeeringDB stores it, in lowercase, for example "website",
+  "linkedin", "x", "facebook", or "instagram".
   """
   service: String!
   """
