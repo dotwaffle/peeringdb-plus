@@ -93,6 +93,47 @@ Prometheus / Grafana metrics are exported via OTLP to the configured collector
 no Prometheus scrape endpoint is exposed by the process. <!-- VERIFY:
 OTLP collector endpoint configured for the peeringdb-plus.fly.dev deployment -->
 
+## Row status on each surface
+
+The mirror stores rows of every status that upstream sends:
+`ok`, `pending`, `deleted`, and `not-operational` on netixlan.
+
+- `/api/` applies the upstream status matrix.
+  See § Soft-delete tombstones.
+- GraphQL, REST and ConnectRPC apply no status filter.
+  Their lists, streams and single-object lookups also return
+  `deleted` and `pending` rows.
+- To get only live rows from a list, filter on `status`:
+  GraphQL `where: {status: "ok"}`, REST `?status.eq=ok`,
+  or ConnectRPC `"status": "ok"`.
+  On netixlan, use GraphQL `where: {statusIn: ["ok", "not-operational"]}`
+  or REST `?status.in=ok&status.in=not-operational`.
+  The ConnectRPC `status` filter takes one value,
+  so send one request for each status.
+- Single-object lookups take no status filter:
+  GraphQL `node`, REST `/rest/v1/{collection}/{id}` and ConnectRPC `Get{Type}`.
+  Read `status` in the response.
+- GraphQL `networkByAsn` returns only `ok` and `pending` networks.
+- The Web UI and the MCP tools do not show `deleted` rows.
+
+### netixlan `not-operational` status
+
+PeeringDB 2.83.0 adds the netixlan status `not-operational`.
+A connection that was `ok` with `operational=false` now has this status.
+Upstream derives `operational` from the status (`status == 'ok'`),
+and it treats `ok` and `not-operational` as live statuses
+(`models.py:109-122`).
+
+- The Web UI, the ASN comparison and the MCP tools list a
+  `not-operational` connection the same as an `ok` one.
+  Its speed counts toward the aggregate bandwidth of the network or exchange.
+  The Web UI marks it `not operational`; see § IX connection markers.
+- GraphQL, REST and ConnectRPC apply no status filter
+  (see § Row status on each surface).
+  They return the stored `status` and `operational` values unchanged.
+  A `status` filter for `ok` does not return these connections.
+- For `/api/`, see § Soft-delete tombstones.
+
 ## 1. Web UI (`/ui/`)
 
 The Web UI is implemented in `internal/web/` using [templ](https://templ.guide)
@@ -1194,23 +1235,6 @@ Browser clients use `PDBPLUS_CORS_ORIGINS`.
 Requests with an `Origin` header are independently checked at `/mcp`
 to mitigate DNS rebinding;
 non-browser MCP clients do not send `Origin` and are unaffected.
-
-## netixlan `not-operational` status
-
-PeeringDB 2.83.0 adds the netixlan status `not-operational`.
-A connection that was `ok` with `operational=false` now has this status.
-Upstream derives `operational` from the status (`status == 'ok'`),
-and it treats `ok` and `not-operational` as live statuses
-(`models.py:109-122`).
-
-- The Web UI, the ASN comparison and the MCP tools list a
-  `not-operational` connection the same as an `ok` one.
-  Its speed counts toward the aggregate bandwidth of the network or exchange.
-  The Web UI marks it `not operational`; see § IX connection markers.
-- GraphQL, REST and ConnectRPC apply no default status filter.
-  They return the stored `status` and `operational` values unchanged.
-  A `status` filter for `ok` does not return these connections.
-- For `/api/`, see § Soft-delete tombstones.
 
 ## Field-level privacy
 
