@@ -56,6 +56,9 @@ type CompareIXPresence struct {
 	IsRSPeer bool
 	// Operational indicates whether the connection is operational.
 	Operational bool
+	// Markers holds the upstream markers of the connection. Omitted from
+	// JSON when no marker is set.
+	Markers ConnectionMarkers `json:",omitzero"`
 }
 
 // CompareFacility holds comparison data for a single facility.

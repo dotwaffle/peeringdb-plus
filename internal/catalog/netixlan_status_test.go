@@ -13,7 +13,8 @@ import (
 // two not-operational and one deleted netixlan:
 //
 //   - 200: AS65001 at IX 20, ok, 10G
-//   - 201: AS65002 at IX 20, not-operational, 100G
+//   - 201: AS65002 at IX 20, not-operational, 100G, planned removal and
+//     RFC 8950 in meta
 //   - 202: AS65001 at IX 21, not-operational, 1G
 //   - 203: AS65002 at IX 21, deleted, 400G
 func seedNetIXLanStatuses(t *testing.T, c *ent.Client) {
@@ -37,19 +38,25 @@ func seedNetIXLanStatuses(t *testing.T, c *ent.Client) {
 			SetCreated(now).SetUpdated(now).SaveX(ctx)
 	}
 
+	plan := map[string]any{
+		"planned_status_change": map[string]any{"status": "deleted", "date": "2026-12-31"},
+		"rfc8950":               true,
+	}
 	for _, row := range []struct {
 		id, asn, ixID, speed int
 		status               string
+		meta                 map[string]any
 	}{
-		{200, 65001, 20, 10_000, "ok"},
-		{201, 65002, 20, 100_000, "not-operational"},
-		{202, 65001, 21, 1_000, "not-operational"},
-		{203, 65002, 21, 400_000, "deleted"},
+		{200, 65001, 20, 10_000, "ok", map[string]any{}},
+		{201, 65002, 20, 100_000, "not-operational", plan},
+		{202, 65001, 21, 1_000, "not-operational", nil},
+		{203, 65002, 21, 400_000, "deleted", nil},
 	} {
 		c.NetworkIxLan.Create().SetID(row.id).
 			SetNetwork(nets[row.asn]).SetIxLan(lans[row.ixID]).SetIxID(row.ixID).
 			SetAsn(row.asn).SetSpeed(row.speed).
 			SetStatus(row.status).SetOperational(row.status == "ok").
+			SetMeta(row.meta).
 			SetCreated(now).SetUpdated(now).SaveX(ctx)
 	}
 }
@@ -131,4 +138,50 @@ func TestCatalog_ListsNotOperationalConnections(t *testing.T) {
 			t.Errorf("SharedIXPs[0].NetA = %+v, want the 100G not-operational presence", netA)
 		}
 	})
+}
+
+// TestCatalog_ConnectionMarkers locks that the network, IX and compare
+// rows carry the markers of each connection, and that an ok connection
+// without meta keys carries none.
+func TestCatalog_ConnectionMarkers(t *testing.T) {
+	t.Parallel()
+	c := testutil.SetupClient(t)
+	seedNetIXLanStatuses(t, c)
+	ctx := t.Context()
+
+	marked := ConnectionMarkers{
+		NotOperational: true, PlannedStatus: "deleted", PlannedDate: "2026-12-31", RFC8950: true,
+	}
+
+	net, err := NewService(c).Network(ctx, 65002)
+	if err != nil {
+		t.Fatalf("Network: %v", err)
+	}
+	if len(net.IXPresences) != 1 || net.IXPresences[0].Markers != marked {
+		t.Errorf("IXPresences = %+v, want one row with markers %+v", net.IXPresences, marked)
+	}
+
+	ix, err := NewService(c).IX(ctx, 20)
+	if err != nil {
+		t.Fatalf("IX: %v", err)
+	}
+	got := map[int]ConnectionMarkers{}
+	for _, row := range ix.Participants {
+		got[row.ASN] = row.Markers
+	}
+	if got[65001] != (ConnectionMarkers{}) || got[65002] != marked {
+		t.Errorf("participant markers = %+v, want none for AS65001 and %+v for AS65002", got, marked)
+	}
+
+	data, err := NewCompareService(c).Compare(ctx, CompareInput{ASN1: 65001, ASN2: 65002})
+	if err != nil {
+		t.Fatalf("Compare: %v", err)
+	}
+	if len(data.SharedIXPs) != 1 {
+		t.Fatalf("SharedIXPs = %+v, want one", data.SharedIXPs)
+	}
+	shared := data.SharedIXPs[0]
+	if shared.NetA.Markers != (ConnectionMarkers{}) || shared.NetB.Markers != marked {
+		t.Errorf("compare markers = %+v / %+v, want none / %+v", shared.NetA.Markers, shared.NetB.Markers, marked)
+	}
 }

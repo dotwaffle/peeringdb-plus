@@ -165,6 +165,28 @@ For machine-readable output, use one of the structured API surfaces
 
 Unknown `/ui/*` paths render the themed 404 page via `handleNotFound`.
 
+### IX connection markers
+
+The network IX list, the exchange participant list and the ASN comparison
+mark a connection as the upstream PeeringDB 2.83.0 network and exchange views do:
+
+| Marker | Shown when |
+|--------|------------|
+| `not operational` | `status` is `not-operational`, or `status` is `ok` and `operational` is `false` (a row that upstream has not migrated yet) |
+| `planned removal <date>` | `meta.planned_status_change.status` is `deleted` |
+| `planned activation <date>` | `meta.planned_status_change` is set with any other status |
+| `RFC8950` | `meta.rfc8950` is `true` |
+
+HTML shows each marker as a badge with the upstream tooltip.
+In the ASN comparison, the badges are in the speed column of each network.
+Terminal output shows each marker in brackets, for example `[not operational]`,
+at every width.
+WHOIS output lists only exchange names and shows no markers.
+JSON output (`?format=json`) and the MCP relation and comparison rows
+carry the same data as a `Markers` object
+(`NotOperational`, `PlannedStatus`, `PlannedDate`, `RFC8950`).
+The object is left out when no marker is set.
+
 ## 2. GraphQL (`/graphql`)
 
 GraphQL is served by [gqlgen](https://gqlgen.com) wired through
@@ -811,6 +833,7 @@ and it treats `ok` and `not-operational` as live statuses
 - The Web UI, the ASN comparison and the MCP tools list a
   `not-operational` connection the same as an `ok` one.
   Its speed counts toward the aggregate bandwidth of the network or exchange.
+  The Web UI marks it `not operational`; see § IX connection markers.
 - GraphQL, REST and ConnectRPC apply no default status filter.
   They return the stored `status` and `operational` values unchanged.
   A `status` filter for `ok` does not return these connections.

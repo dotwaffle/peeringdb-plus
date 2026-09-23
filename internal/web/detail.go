@@ -23,6 +23,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
+	"github.com/dotwaffle/peeringdb-plus/internal/catalog"
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -359,6 +360,7 @@ func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request
 			IXID:     nix.IxID,
 			Speed:    nix.Speed,
 			IsRSPeer: nix.IsRsPeer,
+			Markers:  catalog.ConnectionMarkersFor(nix),
 		}
 		if nix.Ipaddr4 != nil {
 			row.IPAddr4 = *nix.Ipaddr4
@@ -490,6 +492,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 			ASN:      nix.Asn,
 			Speed:    nix.Speed,
 			IsRSPeer: nix.IsRsPeer,
+			Markers:  catalog.ConnectionMarkersFor(nix),
 		}
 		if nix.Ipaddr4 != nil {
 			row.IPAddr4 = *nix.Ipaddr4

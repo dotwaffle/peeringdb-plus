@@ -92,6 +92,7 @@ func (s *Service) Network(ctx context.Context, asn int) (NetworkDetail, error) {
 				IXID:     nix.IxID,
 				Speed:    nix.Speed,
 				IsRSPeer: nix.IsRsPeer,
+				Markers:  ConnectionMarkersFor(nix),
 			}
 			if nix.Ipaddr4 != nil {
 				row.IPAddr4 = *nix.Ipaddr4

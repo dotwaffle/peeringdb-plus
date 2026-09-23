@@ -17,6 +17,33 @@ const labelWidth = 19
 // rsBadge is the styled [RS] badge for route server peers.
 var rsBadge = lipgloss.NewStyle().Foreground(ColorSuccess).Render("[RS]")
 
+// Styles for the IX connection markers (see writeConnectionMarkers).
+var (
+	notOperationalBadge = lipgloss.NewStyle().Foreground(ColorWarning).Render("[not operational]")
+	plannedChangeStyle  = lipgloss.NewStyle().Foreground(ColorLink)
+	rfc8950Badge        = StyleMuted.Render("[RFC8950]")
+)
+
+// writeConnectionMarkers writes the upstream markers of one IX connection,
+// each preceded by two spaces: [not operational], [planned removal <date>]
+// or [planned activation <date>], and [RFC8950]. It writes nothing for a
+// connection without markers. The markers ignore the width thresholds.
+func writeConnectionMarkers(buf *strings.Builder, m templates.ConnectionMarkers) {
+	if m.NotOperational {
+		buf.WriteString("  ")
+		buf.WriteString(notOperationalBadge)
+	}
+	// The plan date comes from the upstream meta document.
+	if label := sanitizeUpstream(m.PlannedChangeLabel()); label != "" {
+		buf.WriteString("  ")
+		buf.WriteString(plannedChangeStyle.Render("[" + label + "]"))
+	}
+	if m.RFC8950 {
+		buf.WriteString("  ")
+		buf.WriteString(rfc8950Badge)
+	}
+}
+
 // RenderNetworkDetail renders a network entity as whois-style terminal output
 // with colored speed tiers, policy badges, RS indicators, and navigable
 // cross-references.
@@ -87,6 +114,8 @@ func (r *Renderer) RenderNetworkDetail(w io.Writer, data templates.NetworkDetail
 				buf.WriteString(" ")
 				buf.WriteString(CrossRef(fmt.Sprintf("/ui/ix/%d", row.IXID)))
 			}
+
+			writeConnectionMarkers(&buf, row.Markers)
 
 			if ShouldShowField("net-ix", "rs", r.Width) && row.IsRSPeer {
 				buf.WriteString("  ")

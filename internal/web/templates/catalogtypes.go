@@ -9,6 +9,7 @@ type OrgDetail = catalog.OrgDetail
 type CampusDetail = catalog.CampusDetail
 type CarrierDetail = catalog.CarrierDetail
 type NetworkIXLanRow = catalog.NetworkIXLanRow
+type ConnectionMarkers = catalog.ConnectionMarkers
 type NetworkFacRow = catalog.NetworkFacRow
 type ContactRow = catalog.ContactRow
 type IXParticipantRow = catalog.IXParticipantRow

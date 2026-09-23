@@ -488,6 +488,7 @@ func ixPresence(nixl *ent.NetworkIxLan) *CompareIXPresence {
 		Speed:       nixl.Speed,
 		IsRSPeer:    nixl.IsRsPeer,
 		Operational: nixl.Operational,
+		Markers:     ConnectionMarkersFor(nixl),
 	}
 	if nixl.Ipaddr4 != nil {
 		p.IPAddr4 = *nixl.Ipaddr4

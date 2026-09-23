@@ -157,12 +157,18 @@ templ compareIXPsSection(data CompareData) {
 									} else {
 										<span class="text-neutral-500">---</span>
 									}
+									if ix.NetA != nil {
+										@connectionMarkers(ix.NetA.Markers)
+									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ speedSortValue(ix.NetB) }>
 									if ix.NetB != nil && ix.NetB.Speed > 0 {
 										<span class={ speedColorClass(ix.NetB.Speed) }>{ formatSpeed(ix.NetB.Speed) }</span>
 									} else {
 										<span class="text-neutral-500">---</span>
+									}
+									if ix.NetB != nil {
+										@connectionMarkers(ix.NetB.Markers)
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
@@ -227,12 +233,18 @@ templ compareIXPsSection(data CompareData) {
 									} else {
 										<span class="text-neutral-500">---</span>
 									}
+									if ix.NetA != nil {
+										@connectionMarkers(ix.NetA.Markers)
+									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ speedSortValue(ix.NetB) }>
 									if ix.NetB != nil && ix.NetB.Speed > 0 {
 										<span class={ speedColorClass(ix.NetB.Speed) }>{ formatSpeed(ix.NetB.Speed) }</span>
 									} else {
 										<span class="text-neutral-500">---</span>
+									}
+									if ix.NetB != nil {
+										@connectionMarkers(ix.NetB.Markers)
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
