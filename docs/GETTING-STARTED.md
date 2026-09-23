@@ -334,16 +334,20 @@ for the Fly.io fleet.
 
 ## Next steps
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — System overview, component diagram,
+- [ARCHITECTURE.md](ARCHITECTURE.md): system overview, component diagram,
   data flow, and the key abstractions you'll touch when making changes.
-- [CONFIGURATION.md](CONFIGURATION.md) — Full environment variable catalogue,
+- [CONFIGURATION.md](CONFIGURATION.md): the full list of environment variables,
   including OpenTelemetry, LiteFS, and Fly.io-specific knobs not covered here.
-- [API.md](API.md) — Surface-by-surface contract notes, including documented
+- [API.md](API.md): surface-by-surface contract notes, including documented
   divergences from upstream PeeringDB.
-- `cmd/peeringdb-plus/main.go` — The HTTP wiring, middleware chain,
+- `cmd/peeringdb-plus/main.go`: the HTTP wiring, middleware chain,
   and graceful shutdown logic.
   Good entry point for understanding how requests flow through the binary.
-- `ent/schema/` — The hand-edited entgo schemas that drive the entire API
-  surface via code generation.
-- `internal/sync/` — The PeeringDB sync worker, including full vs incremental
+- `schema/peeringdb.json` and `ent/schema/`: the curated PeeringDB schema
+  and the entgo schemas generated from it.
+  Hand-edited methods are in sibling files,
+  for example `ent/schema/poc_policy.go`.
+  Code generation builds the ent client
+  and the GraphQL and REST layers from these schemas.
+- `internal/sync/`: the PeeringDB sync worker, including full vs incremental
   modes and the memory guardrail.
