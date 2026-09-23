@@ -37,7 +37,7 @@ func (r *Renderer) RenderAboutPage(
 	buf.WriteString("\n")
 	buf.WriteString(StyleHeading.Render("Privacy & Sync"))
 	buf.WriteString("\n")
-	writeKV(&buf, "Sync Mode", styledVal(privacy.AuthMode), labelWidth)
+	writeKV(&buf, "PeeringDB Access", styledVal(privacy.AuthMode), labelWidth)
 
 	tierValue := privacy.PublicTier
 	if privacy.OverrideActive {

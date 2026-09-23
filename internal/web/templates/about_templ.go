@@ -86,7 +86,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Privacy &amp; Sync</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-32\">Sync mode:</dt><dd>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Privacy &amp; Sync</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-44\">PeeringDB access:</dt><dd>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -99,7 +99,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</dd></div><div class=\"flex flex-col sm:flex-row sm:gap-2 sm:items-center\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-32\">Public tier:</dt><dd class=\"flex items-center gap-2\"><span class=\"font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</dd></div><div class=\"flex flex-col sm:flex-row sm:gap-2 sm:items-center\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-44\">Public tier:</dt><dd class=\"flex items-center gap-2\"><span class=\"font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
