@@ -1,4 +1,6 @@
-// Package agentdocs serves the installable PeeringDB Plus agent skill.
+// Package agentdocs serves the agent discovery documents: the Agent Skill
+// (SKILL.md and a ZIP archive), the skills index, the MCP server card, and
+// llms.txt.
 package agentdocs
 
 import (

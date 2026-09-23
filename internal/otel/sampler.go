@@ -1,10 +1,3 @@
-// Package otel — sampler.go provides perRouteSampler, a composite
-// sdktrace.Sampler that dispatches sampling decisions based on the HTTP
-// route prefix read from SamplingParameters.Attributes (url.path /
-// http.target). Used to keep /healthz + /readyz at low ratio while
-// /api/* /rest/v1/* /peeringdb.v1.* stay at full ratio. Wrapped in
-// sdktrace.ParentBased at provider.go so child span decisions inherit
-// from the root.
 package otel
 
 import (
@@ -97,6 +90,14 @@ type routeEntry struct {
 	ratio   float64
 }
 
+// perRouteSampler is a composite sdktrace.Sampler. It uses the sampler of
+// the longest route prefix that matches the url.path (or legacy
+// http.target) span attribute, and the default sampler when no prefix
+// matches. The route ratios keep health probes low and let
+// PDBPLUS_OTEL_SAMPLE_RATE set the ratio of the API routes. It drops
+// scheduled sync cycles and samples forced syncs, whatever the route.
+// provider.go wraps it in sdktrace.ParentBased, so child spans inherit the
+// root decision.
 type perRouteSampler struct {
 	defaultSampler sdktrace.Sampler
 	defaultRatio   float64
