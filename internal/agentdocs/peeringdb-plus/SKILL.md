@@ -9,10 +9,8 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 
 ## Start
 
-1. Read `peeringdb-plus://service` for service capabilities and current mirror
-   context.
-2. Read `peeringdb-plus://guide` when choosing filters, fields, or related
-   records.
+1. Read `peeringdb-plus://service` for the server version and serving region.
+2. Read `peeringdb-plus://guide` before you page through related records.
 3. Use `get_sync_status` when freshness affects the answer.
 
 ## Choose a tool
@@ -29,7 +27,8 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 
 ## Work with results
 
-- Request only the fields and detail needed for the task.
+- Set `relation` to fetch one related collection, and set `page_size` to limit
+  the rows.
 - Follow relation cursors when a response indicates more related records.
 - Treat the data as a mirror snapshot and report its freshness when material.
 - Distinguish returned facts from inferences, and preserve source record IDs in
