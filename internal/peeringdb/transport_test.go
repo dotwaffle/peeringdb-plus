@@ -14,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -443,35 +444,68 @@ func TestTransport_BodyRestoredAfterWAFSniff(t *testing.T) {
 	}
 }
 
+// roundTripFunc adapts a function to http.RoundTripper so a test can
+// serve responses from memory instead of a socket.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
 // TestTransport_RoundTripContextCancellation asserts the transport
-// honours context cancellation between attempts (during the rate-limit
-// wait or the Retry-After sleep).
+// honors context cancellation during the Retry-After sleep.
+//
+// The round trip runs in a synctest bubble against an in-memory inner
+// RoundTripper, so no socket I/O keeps the bubble from settling.
+// synctest.Wait returns only when RoundTrip is durably blocked, which
+// is the Retry-After select, so the cancel always lands in that wait.
+// The fake clock makes the check exact: any wait that ignored ctx
+// would advance it.
 func TestTransport_RoundTripContextCancellation(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Retry-After", "30") // within cap → would sleep 30s
-		w.WriteHeader(http.StatusTooManyRequests)
-	}))
-	defer server.Close()
+	synctest.Test(t, func(t *testing.T) {
+		const retryAfter = 30 * time.Second // within cap, so the transport sleeps
+		var attempts atomic.Int32
+		inner := roundTripFunc(func(*http.Request) (*http.Response, error) {
+			attempts.Add(1)
+			return &http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Header:     http.Header{"Retry-After": {"30"}},
+				Body:       http.NoBody,
+			}, nil
+		})
+		tr := newRateLimitedTransport(inner, rate.NewLimiter(rate.Inf, 1), slog.New(slog.DiscardHandler))
 
-	client := fastClient(server.URL, slog.Default())
+		ctx, cancel := context.WithCancel(t.Context())
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://peeringdb.invalid/api/org", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	ctx, cancel := context.WithCancel(t.Context())
-	go func() {
-		time.Sleep(50 * time.Millisecond)
+		start := time.Now()
+		errc := make(chan error, 1)
+		go func() {
+			resp, err := tr.RoundTrip(req)
+			if resp != nil {
+				_ = resp.Body.Close()
+			}
+			errc <- err
+		}()
+		synctest.Wait() // RoundTrip is parked in the Retry-After select.
 		cancel()
-	}()
+		err = <-errc
 
-	start := time.Now()
-	_, err := client.FetchAll(ctx, TypeOrg)
-	elapsed := time.Since(start)
-	if err == nil {
-		t.Fatal("expected context-cancellation error")
-	}
-	if elapsed > 5*time.Second {
-		t.Errorf("elapsed = %v, want <5s (cancellation should interrupt sleep)", elapsed)
-	}
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("RoundTrip error = %v, want context.Canceled", err)
+		}
+		// Time in the bubble advances only while every goroutine is
+		// durably blocked, so a wait that honors ctx returns at once.
+		if elapsed := time.Since(start); elapsed != 0 {
+			t.Errorf("fake clock advanced %v, want 0 (cancellation should interrupt the %v Retry-After sleep)", elapsed, retryAfter)
+		}
+		if got := attempts.Load(); got != 1 {
+			t.Errorf("attempts = %d, want 1 (no request after cancellation)", got)
+		}
+	})
 }
 
 // TestClassifyStatus is a tiny table test for the status-class bucketer.
