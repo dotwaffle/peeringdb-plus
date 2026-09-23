@@ -506,3 +506,21 @@ func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
 		})
 	}
 }
+
+// TestSerializer_DeprecatedConstants locks the two deprecated fields that
+// upstream renders as constants whatever the stored value is: ix media is
+// "Ethernet" (2.83.0 serializers.py:4497-4500) and ixlan dot1q_support is
+// false (serializers.py:4304-4307).
+func TestSerializer_DeprecatedConstants(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	ix := internetExchangeFromEnt(&ent.InternetExchange{Media: "Fiber", Created: now, Updated: now})
+	if ix.Media != "Ethernet" {
+		t.Errorf("ix media = %q, want %q", ix.Media, "Ethernet")
+	}
+	lan := ixLanFromEnt(context.Background(), &ent.IxLan{Dot1qSupport: true, Created: now, Updated: now})
+	if lan.Dot1QSupport {
+		t.Error("ixlan dot1q_support = true, want false")
+	}
+}

@@ -172,6 +172,69 @@ func TestParity_Serializer(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("ix_media_and_ixlan_dot1q_are_constants", func(t *testing.T) {
+		t.Parallel()
+		// upstream: serializers.py:4497-4500 at 2.83.0 (get_media returns
+		// "Ethernet", #1555) and serializers.py:4304-4307 (get_dot1q_support
+		// returns False, #903). Both fields are deprecated, and the stored
+		// value is not rendered.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "Const Org", t0)
+		c.InternetExchange.Create().
+			SetID(1).SetName("Const IX").SetOrgID(1).SetMedia("Fiber").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.IxLan.Create().
+			SetID(1).SetIxID(1).SetDot1qSupport(true).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustIxPfx(ctx, t, c, 1, "192.0.2.0/24", 1, t0)
+		srv := newTestServer(t, c)
+
+		// get fetches path and returns the first data row.
+		get := func(path string) map[string]any {
+			t.Helper()
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d; body=%s", path, status, body)
+			}
+			return decodeDataArray(t, body)[0]
+		}
+		checkIX := func(where string, ix map[string]any) {
+			t.Helper()
+			if ix["media"] != "Ethernet" {
+				t.Errorf("%s: media = %#v, want \"Ethernet\"", where, ix["media"])
+			}
+		}
+		checkLan := func(where string, lan map[string]any) {
+			t.Helper()
+			if lan["dot1q_support"] != false {
+				t.Errorf("%s: dot1q_support = %#v, want false", where, lan["dot1q_support"])
+			}
+		}
+
+		checkIX("ix list", get("/api/ix"))
+		checkIX("ix depth=0", get("/api/ix/1?depth=0"))
+		checkIX("ix depth=1", get("/api/ix/1?depth=1"))
+		ix2 := get("/api/ix/1?depth=2")
+		checkIX("ix depth=2", ix2)
+		set, _ := ix2["ixlan_set"].([]any)
+		if len(set) != 1 {
+			t.Fatalf("ix depth=2 ixlan_set has %d rows, want 1", len(set))
+		}
+		checkLan("ix.ixlan_set", set[0].(map[string]any))
+
+		checkLan("ixlan list", get("/api/ixlan"))
+		checkLan("ixlan depth=0", get("/api/ixlan/1?depth=0"))
+		lan2 := get("/api/ixlan/1?depth=2")
+		checkLan("ixlan depth=2", lan2)
+		nestedIX, _ := lan2["ix"].(map[string]any)
+		checkIX("ixlan.ix", nestedIX)
+
+		pfx := get("/api/ixpfx/1?depth=2")
+		nestedLan, _ := pfx["ixlan"].(map[string]any)
+		checkLan("ixpfx.ixlan", nestedLan)
+	})
 }
 
 // newTierTestServer is newTestServer with the privacy tier stamped on

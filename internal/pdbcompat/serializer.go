@@ -205,8 +205,13 @@ func facilitiesFromEnt(facs []*ent.Facility) []peeringdb.Facility {
 	return out
 }
 
+// ixMedia is the media value that upstream renders for every ix. The
+// field is deprecated, and get_media returns this constant whatever the
+// stored value is (2.83.0 serializers.py:4497-4500, #1555).
+const ixMedia = "Ethernet"
+
 // internetExchangeFromEnt maps an ent InternetExchange to a peeringdb
-// InternetExchange.
+// InternetExchange. Media is always ixMedia, as upstream renders it.
 func internetExchangeFromEnt(ix *ent.InternetExchange) peeringdb.InternetExchange {
 	return peeringdb.InternetExchange{
 		ID:                     ix.ID,
@@ -217,7 +222,7 @@ func internetExchangeFromEnt(ix *ent.InternetExchange) peeringdb.InternetExchang
 		City:                   ix.City,
 		Country:                ix.Country,
 		RegionContinent:        ix.RegionContinent,
-		Media:                  ix.Media,
+		Media:                  ixMedia,
 		Notes:                  ix.Notes,
 		ProtoUnicast:           ix.ProtoUnicast,
 		ProtoMulticast:         ix.ProtoMulticast,
@@ -320,7 +325,7 @@ func ixLanFromEnt(ctx context.Context, l *ent.IxLan) ixLanResponse {
 		Name:                       l.Name,
 		Descr:                      l.Descr,
 		MTU:                        l.Mtu,
-		Dot1QSupport:               l.Dot1qSupport,
+		Dot1QSupport:               false, // always false upstream (serializers.py:4304-4307, #903)
 		RSASN:                      l.RsAsn,
 		ARPSponge:                  l.ArpSponge,
 		IXFIXPMemberListURLVisible: l.IxfIxpMemberListURLVisible, // always emitted
