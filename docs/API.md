@@ -852,6 +852,16 @@ the value only when `_visible = Public`; for `Users` or `Private` the value is
 omitted across all six surfaces while the `_visible` companion field is
 **still emitted** (upstream parity).
 
+On `/api/`, the permission decides the key, not the value.
+A caller that may see the URL gets the key, also when the stored value is empty.
+Upstream does the same: it deletes the key only when the caller
+does not have the permission (2.83.0 `permissions.py:344-353`).
+An empty `Users` value is the exception.
+An anonymous sync does not get the URL of a `Users` row, and it stores `""`.
+Thus `/api/` omits the key for an empty `Users` value at every tier
+(see § Known Divergences).
+Up to v1.27.0, `/api/` omitted the key for every empty value.
+
 The single source of truth is `internal/privfield.Redact(ctx, visible, value)`.
 Every serializer calls it,
 and `internal/middleware.PrivacyTier` stamps the resolved tier on the request
@@ -859,7 +869,7 @@ context — unstamped contexts fail-closed to `TierPublic`.
 
 | Surface | Mechanism |
 |---------|-----------|
-| `/api/` (pdbcompat) | `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`; the JSON struct tag `,omitempty` produces wire absence |
+| `/api/` (pdbcompat) | `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)`. When `Redact` returns `omit=true`, or for an empty non-Public value (see above), the URL is a nil `*string`, and the JSON struct tag `,omitempty` removes the key |
 | `/rest/v1/ix-lans*` (entrest) | `RESTFieldRedact` in `internal/middleware/rest_redact.go` buffers the JSON response and deletes the key in-place when `Redact` returns `omit=true`. Wraps INSIDE `middleware.RESTError` so error bodies pass through |
 | `/peeringdb.v1.IxLanService/*` (ConnectRPC) | `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)` returns `nil *wrapperspb.StringValue` — wire absence under proto3 optional |
 | `/graphql` | `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns Go `nil` → GraphQL `null` |
@@ -1018,6 +1028,7 @@ see `internal/pdbcompat/depth_test.go`.
 |---------|-------------------|-------------------------|-----------|-------|
 | `?depth=` on list endpoints; `?depth=3`/`4` on detail | Lists accept `?depth=` capped at `API_DEPTH_ROW_LIMIT=250` (2.83.0 `rest.py:484` default, enforced `rest.py:766-771`); detail expands a third sub-level at depth 3–4. | List `?depth=` is silently dropped (`slog.DebugContext` paper trail; `opts.Depth` never threaded into list closures). On detail, depths `0`/`1`/`2` match upstream exactly; `3`/`4` are accepted and clamped, rendering the depth-2 shape — the third sub-level is not reproduced. | The 256 MB replica response budget cannot absorb depth-expanded list rows; depth>2 sub-nesting is data almost no client reads three levels deep. Locked by `TestParity_Limit/depth_on_list_silently_dropped_DIVERGENCE` and `TestDepth_DepthOne/depth_clamped_to_0_4`. | v1.16 (list) · v1.20.5 (detail 3–4) |
 | `?depth=1` (and the nested `net.poc_set` at depth=2) `poc_set` ID lists | Upstream lists every POC id in the ID list regardless of visibility, filtering non-`Public` POCs only when they are expanded to objects at depth=2. | The row-level `poc.visible` privacy policy applies uniformly, so non-`Public` POC ids never appear in an anonymous `poc_set` ID list (nor as objects). The mirror is **stricter** than upstream here. | Leaking the ids/existence of non-`Public` contacts to anonymous callers would contradict the load-bearing `poc.visible` policy (see § Field-level privacy). Intentional. Locked by `TestDepth_PocSetPrivacy_DIVERGENCE`. | v1.20.5 |
+| `ixlan.ixf_ixp_member_list_url` with no stored URL, for a caller that may see it | Emits the key with the stored value. The column is nullable (django-peeringdb `abstract.py:819-824`), so the value is `null` or `""`. The key is deleted only when the caller does not have the permission (2.83.0 `permissions.py:344-353`). | Emits `""` for a `Public` row, because sync stores `null` and `""` as `""`. Omits the key for an empty `Users` row at every tier. | An anonymous sync does not get the URL of a `Users` row (the key is absent for it), and it stores `""`. For such a row, `""` does not mean that the URL is empty. A column that keeps `null` apart from `""` needs a sync that keeps an absent key apart from a `null` value. Locked by `TestParity_Serializer/DIVERGENCE_ixf_url_empty_value`. | v1.28.0 |
 | `/api/netixlan?meta__planned_status_change__date__in=<dates>` | Fails. Upstream parses the whole comma-separated value as one datetime (2.83.0 `rest.py:649`), which raises, and its error handler then fails on `inst[0]` (`:651`), so the response is `400`. For a single date, the parse succeeds and `v.split(",")` on the datetime (`:666`) raises an unhandled error (`500`). | Returns the rows whose date is in the list. | A list of whole dates has one clear meaning, and failing it has no value for a client. Locked by `TestParity_Meta/DIVERGENCE_date_in_filters`. | v1.28.0 (registered 2026-09-23) |
 | `?status=deleted&since=N` for a row hard-deleted by sync before v1.16 | Returns the tombstone with its deletion timestamp. | Returns empty; tombstone population began at the first post-v1.16 sync, so anything hard-deleted earlier is gone. Rows deleted from v1.16 on are visible via the `?since=N` window. | No retroactive reconstruction is possible — the public API exposes no historical state and we did not persist pre-v1.16 deletions. Locked by `TestParity_Status/list_since_admits_deleted_excludes_pending_noncampus`. | v1.16 |
 | `?limit=<negative>`, for example `?limit=-1` | Serves the full list. `int('-1')` parses (2.83.0 `rest.py:515-518`), and the `if limit > 0` gate (`rest.py:757-760`) then applies no slice, as for `limit=0`. | Returns `400` (`'limit' needs to be a non-negative number`), the same as a non-numeric `limit`. | A negative page size is a client bug. Serving the full table for it turns a paging loop into repeated full-table dumps. `limit=0` stays the explicit request for every row. Locked by `TestParity_Limit/DIVERGENCE_negative_limit_returns_400`. | v1.21.0 (registered 2026-09-23) |

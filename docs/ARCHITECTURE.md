@@ -521,8 +521,8 @@ The pieces:
    (gated by sibling `ixf_ixp_member_list_url_visible`).
    Five serializers currently expose the gated field and host the call at
    different layers:
-   - **pdbcompat** — `internal/pdbcompat/serializer.go` (json `,omitempty`
-     handles wire absence).
+   - **pdbcompat** — `internal/pdbcompat/serializer.go` (the `omit` flag
+     sets a `*string` to nil, and json `,omitempty` removes the key).
    - **ConnectRPC** — `internal/grpcserver/ixlan.go` (nil
      `*wrapperspb.StringValue` → wire omission).
    - **GraphQL** — `graph/schema.resolvers.go` `IxLan.ixfIxpMemberListURL`

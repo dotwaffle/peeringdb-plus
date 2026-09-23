@@ -25,7 +25,7 @@ Key test locations:
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
 | Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
-| Parity tests | `internal/pdbcompat/parity/` | 7 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
+| Parity tests | `internal/pdbcompat/parity/` | 8 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
 | Benchmarks | `internal/pdbcompat/projection_bench_test.go`, `internal/pdbcompat/parity/bench_test.go` | `BenchmarkApplyFieldProjection`, `BenchmarkParity_*` |
 | Live gated tests | `*_live_test.go` | Require `-peeringdb-live` flag |
@@ -257,7 +257,7 @@ See `CLAUDE.md § Response memory envelope` for the full maintainer checklist.
 
 `internal/pdbcompat/parity/` locks the v1.16 pdbcompat semantics against future
 regression.
-The package is split into 7 category-specific test files plus shared
+The package is split into 8 category-specific test files plus shared
 infrastructure:
 
 | File | Entry test | Covers |
@@ -269,6 +269,7 @@ infrastructure:
 | `in_test.go` | `TestParity_In` | `__in` filters (large `__in` sets, empty-`__in` short-circuit) |
 | `traversal_test.go` | `TestParity_Traversal` | Traversal (1-hop and 2-hop traversal) |
 | `meta_test.go` | `TestParity_Meta` | netixlan `meta__*` filters (typed keys, absent key never matches, net keys ignored) |
+| `serializer_test.go` | `TestParity_Serializer` | Serializer values and keys (IX-F URL key for permitted callers) |
 | `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring + response decoding; no seeders) |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
 

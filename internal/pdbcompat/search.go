@@ -166,10 +166,10 @@ func getFieldMap(t reflect.Type) map[string]fieldAccessor {
 // privfield-redacted (zero) gated field keep its KEY under ?fields=
 // projection while the unprojected response dropped it.
 //
-// The omitempty parity is load-bearing: peeringdb.IxLan declares
-// `ixf_ixp_member_list_url,omitempty` so a redacted value must drop the
-// key exactly as json.Marshal would — emitting an empty string would leak
-// the field's presence to anonymous callers.
+// The omitempty parity is load-bearing: ixLanResponse declares
+// `ixf_ixp_member_list_url,omitempty` on a pointer, so a redacted (nil)
+// value must drop the key exactly as json.Marshal would. A key with a nil
+// value would show anonymous callers that the field exists.
 func structToMap(v any) (map[string]any, bool) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Pointer {

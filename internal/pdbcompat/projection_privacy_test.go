@@ -11,9 +11,10 @@ import (
 )
 
 // TestFieldProjection_RedactedGatedFieldStaysAbsent locks the omitempty
-// contract at the wire level: privfield redaction zeroes the gated
-// ixf_ixp_member_list_url for anonymous callers and relies on the
-// `,omitempty` json tag to drop the KEY. The ?fields= projection path
+// contract at the wire level: privfield redaction sets the gated
+// ixf_ixp_member_list_url pointer to nil for anonymous callers and relies
+// on the `,omitempty` json tag to drop the KEY. An admitted empty value is
+// a non-nil pointer, so its key stays. The ?fields= projection path
 // converts the serializer struct to a map before json.Marshal ever sees
 // the tag, so the converter must honour omitempty itself — the former
 // projection converter did not, and a projected anonymous response
@@ -44,6 +45,18 @@ func TestFieldProjection_RedactedGatedFieldStaysAbsent(t *testing.T) {
 		t.Fatalf("seed public ixlan: %v", err)
 	}
 
+	// id=3: Public with an empty URL. The caller has the permission, so
+	// the key stays with "" (upstream permissions.py:344-353 deletes it
+	// only when the permission is missing).
+	if _, err := client.IxLan.Create().
+		SetID(3).SetName("PublicEmptyLan").
+		SetIxfIxpMemberListURL("").
+		SetIxfIxpMemberListURLVisible("Public").
+		SetCreated(now).SetUpdated(now).SetStatus("ok").
+		Save(ctx); err != nil {
+		t.Fatalf("seed public empty ixlan: %v", err)
+	}
+
 	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
@@ -63,8 +76,8 @@ func TestFieldProjection_RedactedGatedFieldStaysAbsent(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if len(body.Data) != 2 {
-		t.Fatalf("got %d rows, want 2", len(body.Data))
+	if len(body.Data) != 3 {
+		t.Fatalf("got %d rows, want 3", len(body.Data))
 	}
 
 	for _, row := range body.Data {
@@ -80,6 +93,12 @@ func TestFieldProjection_RedactedGatedFieldStaysAbsent(t *testing.T) {
 				t.Errorf("public row: ixf_ixp_member_list_url missing, want present")
 			} else if url != "https://example.test/public/members.json" {
 				t.Errorf("public row: ixf_ixp_member_list_url = %v, want seeded URL", url)
+			}
+		case 3:
+			if !present {
+				t.Errorf("public empty row: ixf_ixp_member_list_url missing, want present with \"\"")
+			} else if url != "" {
+				t.Errorf("public empty row: ixf_ixp_member_list_url = %v, want \"\"", url)
 			}
 		default:
 			t.Errorf("unexpected row id %v", row["id"])

@@ -421,14 +421,27 @@ never hand-roll a tier check.
 **Developer checklist:**
 
 1. **Schema** — add the ent fields.
-   Use `field.String` (not `Enum`) for the `_visible` column;
-   the value field gets `,omitempty` on its JSON struct tag
-   so absence on the wire is automatic.
+   Use `field.String` (not `Enum`) for the `_visible` column.
 2. **Sync mapping** — populate both fields in `internal/sync/upsert.go`.
 3. **Call `privfield.Redact` at all 5 surfaces.**
    Missing any one = privacy leak:
    - **pdbcompat** — `internal/pdbcompat/serializer.go` in the relevant
      `<entity>FromEnt(ctx, e)` function.
+     On `/api`, the permission decides the key, not the value
+     (upstream 2.83.0 `permissions.py:344-353`).
+     Render a pdbcompat-local output struct.
+     Give its value field the type `*string` and the `,omitempty` JSON tag.
+     Set the field to `nil` when `Redact` returns `omit=true`.
+     Also set it to `nil` when the value is empty
+     and `_visible` is not `Public`.
+     An anonymous sync stores `""` for every gated row,
+     so `""` there does not mean that the value is empty.
+     In all other cases, emit the stored value, also when it is `""`.
+     Do not use a plain `string` with `,omitempty`.
+     That drops the key for an empty value that the caller may see.
+     The `peeringdb.<Type>` decode struct keeps its plain `string`,
+     because sync decodes upstream input into it.
+     `ixLanResponse` and `ixfMemberListURLOut` are the worked example.
    - **ConnectRPC** — `internal/grpcserver/<entity>.go` in the proto conversion
      function.
      Wrap the closure passed to the generic pagination helper
@@ -619,7 +632,7 @@ Use these to verify compatibility after a PeeringDB upstream change.
 
 `internal/pdbcompat/parity/` locks v1.16 pdbcompat semantics against future
 regression.
-The suite is split across 7 category test files:
+The suite is split across 8 category test files:
 
 | File | Category |
 |---|---|
@@ -630,6 +643,7 @@ The suite is split across 7 category test files:
 | `in_test.go` | `?field__in=v1,v2,...` |
 | `traversal_test.go` | cross-entity `__` filters |
 | `meta_test.go` | netixlan `meta__*` filters |
+| `serializer_test.go` | serializer values and keys |
 
 To add a new parity test:
 

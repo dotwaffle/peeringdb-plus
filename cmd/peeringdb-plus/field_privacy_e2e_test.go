@@ -33,11 +33,124 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	pbv1 "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
+
+// =============================================================================
+// Admitted empty URL: the /api key follows the omit flag of
+// privfield.Redact, not the value.
+// =============================================================================
+
+// TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey locks the pdbcompat
+// key presence for an ixlan whose stored URL is empty. Upstream deletes
+// the key only when the caller does not have the permission for the
+// visibility (2.83.0 permissions.py:344-353). A caller that has the
+// permission gets the key with the stored value, also when it is empty.
+// The exception is a Users row: an anonymous sync stores "" for every
+// Users row, so an empty Users value keeps the key out at every tier.
+// The test covers the list, the depth=0 detail and the ixlan_set of the
+// parent ix at the default detail depth.
+func TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey(t *testing.T) {
+	t.Parallel()
+
+	const (
+		publicEmptyID  = 102
+		usersEmptyID   = 103
+		privateEmptyID = 104
+	)
+	tiers := []struct {
+		name string
+		tier privctx.Tier
+		want map[int]bool // ixlan id -> url key present
+	}{
+		{"anon", privctx.TierPublic, map[int]bool{publicEmptyID: true, usersEmptyID: false, privateEmptyID: false}},
+		{"users", privctx.TierUsers, map[int]bool{publicEmptyID: true, usersEmptyID: false, privateEmptyID: false}},
+	}
+	for _, tc := range tiers {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fix := buildE2EFixture(t, tc.tier)
+			now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+			for id, visible := range map[int]string{
+				publicEmptyID:  "Public",
+				usersEmptyID:   "Users",
+				privateEmptyID: "Private",
+			} {
+				fix.client.IxLan.Create().
+					SetID(id).
+					SetIxID(e2eIxID).
+					SetIxfIxpMemberListURL("").
+					SetIxfIxpMemberListURLVisible(visible).
+					SetCreated(now).
+					SetUpdated(now).
+					SetStatus("ok").
+					SaveX(t.Context())
+			}
+
+			check := func(t *testing.T, where string, row map[string]any) {
+				t.Helper()
+				idFloat, _ := row["id"].(float64)
+				id := int(idFloat)
+				want, ok := tc.want[id]
+				if !ok {
+					return
+				}
+				assertHasKey(t, row, "ixf_ixp_member_list_url_visible")
+				got, present := row["ixf_ixp_member_list_url"]
+				if present != want {
+					t.Errorf("%s ixlan %d: url key present = %v, want %v", where, id, present, want)
+				}
+				if present && got != "" {
+					t.Errorf("%s ixlan %d: url = %#v, want \"\"", where, id, got)
+				}
+			}
+
+			for id := range tc.want {
+				body, status := mustGet(t, fmt.Sprintf("%s/api/ixlan/%d?depth=0", fix.server.URL, id))
+				if status != http.StatusOK {
+					t.Fatalf("GET /api/ixlan/%d: status=%d; body=%s", id, status, body)
+				}
+				check(t, "detail", extractPdbcompatFirst(t, body))
+			}
+
+			body, status := mustGet(t, fix.server.URL+"/api/ixlan")
+			if status != http.StatusOK {
+				t.Fatalf("GET /api/ixlan: status=%d; body=%s", status, body)
+			}
+			var env struct {
+				Data []map[string]any `json:"data"`
+			}
+			if err := json.Unmarshal(body, &env); err != nil {
+				t.Fatalf("decode /api/ixlan: %v\nbody=%s", err, body)
+			}
+			for _, row := range env.Data {
+				check(t, "list", row)
+			}
+
+			body, status = mustGet(t, fmt.Sprintf("%s/api/ix/%d", fix.server.URL, e2eIxID))
+			if status != http.StatusOK {
+				t.Fatalf("GET /api/ix/%d: status=%d; body=%s", e2eIxID, status, body)
+			}
+			set, _ := extractPdbcompatFirst(t, body)["ixlan_set"].([]any)
+			seen := 0
+			for _, entry := range set {
+				if row, ok := entry.(map[string]any); ok {
+					if _, tracked := tc.want[int(row["id"].(float64))]; tracked {
+						seen++
+					}
+					check(t, "ix.ixlan_set", row)
+				}
+			}
+			if seen != len(tc.want) {
+				t.Errorf("ix.ixlan_set holds %d of the %d seeded ixlans", seen, len(tc.want))
+			}
+		})
+	}
+}
 
 // =============================================================================
 // TierPublic: URL redacted on Users-gated row (id=100), admitted on

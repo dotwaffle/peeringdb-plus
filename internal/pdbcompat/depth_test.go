@@ -1557,16 +1557,22 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 		name string
 		in   any
 	}{
-		{"ixlan redacted url omits key", peeringdb.IxLan{
+		{"ixlan redacted url omits key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN", RSASN: &asn,
 			IXFIXPMemberListURLVisible: "Users",
-			IXFIXPMemberListURL:        "", // redacted -> key absent
+			IXFIXPMemberListURL:        nil, // redacted -> key absent
 			Created:                    now, Updated: now, Status: "ok",
 		}},
-		{"ixlan public url keeps key", peeringdb.IxLan{
+		{"ixlan public url keeps key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN",
 			IXFIXPMemberListURLVisible: "Public",
-			IXFIXPMemberListURL:        "https://example.com/members",
+			IXFIXPMemberListURL:        new("https://example.com/members"),
+			Created:                    now, Updated: now, Status: "ok",
+		}},
+		{"ixlan admitted empty url keeps key", ixLanResponse{
+			ID: 1, IXID: 2, Name: "LAN",
+			IXFIXPMemberListURLVisible: "Public",
+			IXFIXPMemberListURL:        new(""),
 			Created:                    now, Updated: now, Status: "ok",
 		}},
 		{"organization with nil and set pointers", peeringdb.Organization{
