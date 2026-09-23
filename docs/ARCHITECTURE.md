@@ -5,15 +5,19 @@
 PeeringDB Plus is a globally distributed,
 read-only mirror of [PeeringDB](https://www.peeringdb.com) data,
 implemented in Go.
-A single binary combines an in-process sync worker
-that periodically re-fetches all PeeringDB objects with an HTTP server
-that exposes the mirrored data through six coexisting API surfaces
+A single binary runs an HTTP server and an in-process sync worker.
+The HTTP server exposes the mirrored data through six coexisting API surfaces
 (Web UI, GraphQL, REST, a PeeringDB-compatible API, ConnectRPC/gRPC, and MCP).
+By default the worker fetches only the objects that changed upstream
+(`?since=`).
+Once per `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`) it fetches every object.
 Data is stored in SQLite,
 replicated to edge nodes by [LiteFS](https://fly.io/docs/litefs/),
 and served with low latency from the nearest Fly.io region.
-Writes (schema migrations and data sync) happen only on the LiteFS primary;
-all other instances are read-only replicas that can be promoted at any time.
+Writes (schema migrations and data sync) happen only on the LiteFS primary.
+Only a machine in `PRIMARY_REGION` can take the LiteFS lease
+(`lease.candidate` in `litefs.yml`).
+Replicas in other regions stay read-only.
 
 [entgo](https://entgo.io/) code generation drives most of the code.
 `schema/peeringdb.json` is a hand-curated description of the 13 PeeringDB types.
@@ -40,9 +44,9 @@ graph TD
     MCP["MCP<br/>/mcp"]
     OTEL["OpenTelemetry<br/>(traces, metrics, logs)"]
 
-    PDB -->|"HTTP GET (hourly)"| W
+    PDB -->|"HTTP GET every PDBPLUS_SYNC_INTERVAL"| W
     W -->|"upsert (incl. tombstones)"| DB
-    DB -->|"FUSE replication"| REP
+    DB -->|"LiteFS replication (HTTP)"| REP
     MUX --> WEB
     MUX --> GQL
     MUX --> REST
@@ -111,10 +115,73 @@ default `1h` unauthenticated / `15m` authenticated):
    `PRAGMA defer_foreign_keys = ON` is set on the same connection
    (`internal/sync/worker.go`) to keep FK enforcement while allowing
    mid-transaction orphan handling.
-5. The `OnSyncComplete` callback updates cached object-count metrics
-   and the HTTP cache ETag, then the `sync_status` table row is persisted.
-6. LiteFS replicates the SQLite WAL to all replica regions in the background;
-   replicas pick up the new data on their next read without restarting.
+   Phase B can also call upstream to fetch missing parent rows
+   (see [FK backfill](#fk-backfill)).
+5. The worker writes the `sync_status` row.
+   Then the `OnSyncComplete` callback refreshes the object-count cache
+   and the HTTP ETag, with the same completion time.
+6. LiteFS sends each committed transaction to the replicas over HTTP.
+   Replicas read the new data without a restart.
+
+### Incremental cursor
+
+Each cycle reads one cursor per type:
+the newest `updated` value in the local table
+(`GetMaxUpdated`, `internal/sync/cursor.go`).
+No cursor table exists.
+In incremental mode, a type with rows fetches `?since=<cursor>`
+in pages of 250.
+An empty table fetches the bare list, which holds only live rows.
+When that list is not empty, the worker then fetches a `?since=` window
+from the newest `updated` value in the list.
+If an incremental fetch fails, the worker deletes the rows of that type
+from the scratch staging database and fetches the bare list.
+Then it tries the `?since=` window once more
+(see [Soft-delete tombstones](#soft-delete-tombstones)).
+The `pdbplus.sync.type.fallback` counter records this.
+[meta-generated-behavior.md](./meta-generated-behavior.md) explains why the
+cursor does not use the `meta.generated` value of upstream responses.
+
+### Upstream requests
+
+All upstream calls share one rate limiter (`internal/peeringdb/client.go`):
+`PDBPLUS_PEERINGDB_RPS` (default 2) requests per second,
+or 1 request per second with an API key, with a burst of 1.
+The transport (`internal/peeringdb/transport.go`) handles these responses:
+
+- HTTP 429 with a `Retry-After` of 60 seconds or less:
+  the client waits and tries again, at most 3 attempts.
+  A longer or absent `Retry-After` fails the request.
+- HTTP 403 with a WAF body: the client does not try again.
+
+The client tries a 500, 502, 503 or 504 response again with backoff,
+at most 3 attempts.
+See [CONFIGURATION.md § Sync Worker](./CONFIGURATION.md#sync-worker)
+for the settings.
+
+### FK backfill
+
+Phase B can call upstream.
+When a row points to a parent that is not in the database,
+the worker fetches the missing parents with `?since=1&id__in=<ids>`,
+100 IDs per request, and also the missing parents of those parents
+(`internal/sync/fk_backfill.go`).
+These calls run inside the open transaction.
+`PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` (default 20, `0` disables
+backfill) and `PDBPLUS_FK_BACKFILL_TIMEOUT` (default `5m`) limit them.
+The worker drops the child row, or sets a nullable FK to `NULL`,
+in these cases:
+
+- Backfill is off.
+- A limit is reached.
+- The fetch fails.
+- Upstream does not return the parent.
+
+The facility `campus_id` FK is the exception.
+When the campus is missing, the worker sets `campus_id` to `NULL`
+and does not try a backfill (`internal/sync/registry.go`).
+The `pdbplus.sync.type.orphans` counter records each dropped row
+or `NULL` FK.
 
 ### Daily full reconcile
 
@@ -143,14 +210,16 @@ Only a full-mode cycle repairs this data:
   (2.83.0 `rest.py:738-745`, `:757-760`).
   Rows that share one `updated` value can move across a page edge between
   two requests, and the cursor then moves past the rows that were skipped.
-  Upstream migration 0160 gives about 600 netixlans one `updated` value.
+  Upstream migration `0160_netixlan_not_operational_status` gives about
+  600 netixlans one `updated` value.
 - Values that upstream set before the mirror stored the field,
   for example `meta` on `net` and `netixlan`.
 - FK columns that the sync set to `NULL` because the parent was missing,
   and a newly added `_fold` column.
 
 With `PDBPLUS_FULL_SYNC_INTERVAL=0` this data stays stale until an operator
-runs `POST /sync?mode=full`.
+runs `POST /sync?mode=full` with the `X-Sync-Token` header
+(`PDBPLUS_SYNC_TOKEN`).
 
 Upstream serves the bare list from its API cache
 (2.83.0 `api_cache.py`, built by `pdb_api_cache`),
@@ -757,28 +826,31 @@ The `sync-scrub-poc-contacts` span carries the count in the
 
 Full-mode fetches capture the tombstone window.
 A bare `/api/<type>` list contains only live rows
-(`status='ok'`, plus `not-operational` on netixlan; upstream filters bare lists),
-and committing a full snapshot advances the derived `MAX(updated)` cursor past
-the pre-cycle window — so a full-mode cycle (the daily
-`PDBPLUS_FULL_SYNC_INTERVAL` escalation, or the per-type incremental-fallback)
-would otherwise permanently discard any deletes that landed upstream inside that
-window.
+(`status='ok'`, plus `not-operational` on netixlan, because upstream filters
+bare lists).
+A committed full snapshot moves the derived `MAX(updated)` cursor past
+the pre-cycle window.
+So a full-mode fetch (the daily escalation, or the per-type fallback after a
+failed incremental fetch) would otherwise lose the deletes in that window.
 To prevent this, full-mode staging issues a follow-up `?since=` fetch on top
 of the bare snapshot (`internal/sync/worker.go` `stageOneTypeToScratch`).
 The window starts at the earlier of the pre-cycle cursor and the newest
 `updated` value in the snapshot (`snapshotWindowStart`),
 so it also replaces rows that a stale upstream cache lists in an old state
 (see [Daily full reconcile](#daily-full-reconcile)).
-The scratch table's `INSERT OR REPLACE` is keyed on
-id, so window rows — including tombstones — win over their bare-list versions.
-If the window fetch fails over a populated table in full mode,
-the type's fetch fails and the cycle retries:
-committing the snapshot without the window would advance the cursor past deletes
-that were never seen.
-On an empty table the worker logs the failure and commits the snapshot,
+The `INSERT OR REPLACE` of the scratch table is keyed on id,
+so window rows, tombstones included, replace their bare-list versions.
+In a full-mode cycle over a populated table, a failed window fetch fails
+the type, and the cycle retries:
+committing the snapshot without the window would advance the cursor past
+deletes that were never seen.
+On an empty table, the worker logs the failure and commits the snapshot,
 because the next cycle's `?since=MAX(updated)` fetch is the same window.
-On the incremental-fallback path it does the same,
-because the window uses the request shape that just failed.
+On the per-type fallback path, the window uses the request shape that just
+failed, and the worker tries it once.
+If that also fails, it logs a WARN, adds a `tombstone_window.discarded` span
+event, and commits the snapshot without the window.
+The deletes in that window are then lost.
 
 The pdbcompat list path (`internal/pdbcompat/registry_funcs.go`) appends
 `applyStatusMatrix(live, isCampus, opts.Since != nil)` to the predicate chain
@@ -838,9 +910,13 @@ and `entrest.WithSkip(true)` annotations so the shadow never leaks onto GraphQL,
 REST, or proto wire surfaces — they are server-side plumbing only.
 
 The sync upsert path (`internal/sync/upsert.go`) chains
-`.Set<Field>Fold(unifold.Fold(x.<Field>))` setters as a trailing block on each
-affected entity's create builder; `OnConflict().UpdateNewValues()` rewrites
-`_fold` columns on every re-sync.
+`.Set<Field>Fold(unifold.Fold(x.<Field>))` setters as a trailing block on the
+create builder of each affected entity.
+An incremental upsert rewrites a row, and its `_fold` columns,
+only when the upstream `updated` value advanced.
+A full-mode cycle also rewrites rows whose `updated` value did not advance,
+which fills a newly added `_fold` column
+(see [Daily full reconcile](#daily-full-reconcile)).
 
 The pdbcompat filter layer (`internal/pdbcompat/filter.go`) reads
 `tc.FoldedFields[field]` and threads `folded bool` into `buildPredicate`.
