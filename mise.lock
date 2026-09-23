@@ -137,7 +137,7 @@ version = "0.17.95"
 backend = "go:github.com/99designs/gqlgen"
 
 [[tools.protoc-gen-connect-go]]
-version = "1.20.0"
+version = "1.21.0"
 backend = "go:connectrpc.com/connect/cmd/protoc-gen-connect-go"
 
 [[tools.protoc-gen-go]]
