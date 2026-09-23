@@ -2,6 +2,7 @@ package parity
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -20,8 +21,9 @@ import (
 // TestParity_Traversal locks cross-entity traversal semantics:
 //
 //   - Path A 1-hop: `org__name=` filter on net.
-//   - Path A 2-hop: `ixlan__ix__id=` on ixpfx — the canonical pair
-//     where both edges exist in the ent schema.
+//   - netixlan and ixpfx exchange keys (`ix=`, `ix_id=`,
+//     `ix__<field>=`), routed onto the path to the exchange as
+//     upstream's prepare_query does.
 //   - Path B fallback 1-hop via ent edges: `org__city=` on net —
 //     edge exists, target field exists, but is not in the Path A
 //     allowlist. `org__status=` takes the same path.
@@ -45,6 +47,12 @@ import (
 //     hide_ix_no_fac, name_search) are silent-ignored.
 //   - DIVERGENCE: netixlan net_side__<field> and ix_side__<field>
 //     are silent-ignored. The mirror has no edge to those facilities.
+//   - DIVERGENCE: 2-hop keys (`ixlan__ix__id=` on ixpfx), reverse keys
+//     named by the mirror's traversal key (`org?net__status=`) and
+//     the field-level FILTER_EXCLUDE entries resolve, where upstream
+//     ignores them.
+//   - DIVERGENCE: upstream's reverse `<related_name>__<field>` keys
+//     (`ix?ixlan_set__status=`) are silent-ignored.
 //
 // upstream: 2.83.0 peeringdb_server/serializers.py:970-996
 // (queryable_relations) and :614-656 (get_relation_filters)
@@ -82,11 +90,15 @@ func TestParity_Traversal(t *testing.T) {
 		}
 	})
 
-	t.Run("path_a_2hop_ixpfx_via_ixlan_ix_id", func(t *testing.T) {
+	t.Run("DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id", func(t *testing.T) {
 		t.Parallel()
-		// synthesised: a 2-hop Path A walk over two real ent edges
-		// (ixpfx → ixlan → ix). No upstream API test filters ixpfx on
-		// ixlan__ix__id.
+		// DIVERGENCE: a 2-hop Path A walk over two real ent edges
+		// (ixpfx → ixlan → ix). Upstream ignores the key: ixlan__ix is a
+		// FK, so queryable_relations (2.83.0 serializers.py:970-996)
+		// has no ixlan__ix__id, and the ixpfx prepare_query seed has no
+		// ixlan (:4157). Upstream returns every prefix.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "IXOrg", t0)
@@ -107,7 +119,7 @@ func TestParity_Traversal(t *testing.T) {
 		slices.Sort(got)
 		want := []int{1000, 1001}
 		if !slices.Equal(got, want) {
-			t.Errorf("path A 2-hop: got %v, want %v", got, want)
+			t.Errorf("path A 2-hop: got %v, want %v (divergence canary)", got, want)
 		}
 	})
 
@@ -474,6 +486,109 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
+	// seedRelationKeys seeds two live orgs (1 with a deleted net and a
+	// northern latitude), their nets, facs and netfac, and two exchanges
+	// whose ixlans carry prefixes and one netixlan each.
+	seedRelationKeys := func(t *testing.T) *ent.Client {
+		t.Helper()
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		for id, lat := range map[int]float64{1: 52.4, 3: 10.5} {
+			c.Organization.Create().
+				SetID(id).SetName(fmt.Sprintf("RelOrg%d", id)).
+				SetNameFold(unifold.Fold(fmt.Sprintf("RelOrg%d", id))).
+				SetLatitude(lat).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		c.Organization.Create().
+			SetID(2).SetName("RelOrgPending").SetNameFold(unifold.Fold("RelOrgPending")).
+			SetStatus("pending").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustNet(ctx, t, c, 100, "RelNetA", 64500, 1, t0)
+		mustNet(ctx, t, c, 200, "RelNetB", 64501, 2, t0)
+		mustNet(ctx, t, c, 301, "RelNetC", 64503, 3, t0)
+		c.Network.Create().
+			SetID(300).SetName("RelNetGone").SetNameFold(unifold.Fold("RelNetGone")).
+			SetAsn(64502).SetOrgID(1).
+			SetStatus("deleted").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustFac(ctx, t, c, 400, "RelFacA", 1, t0)
+		mustFac(ctx, t, c, 401, "RelFacC", 3, t0)
+		c.NetworkFacility.Create().
+			SetID(600).SetNetID(100).SetFacID(400).SetLocalAsn(64500).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustIX(ctx, t, c, 20, "RelIXA", 1, t0)
+		mustIX(ctx, t, c, 21, "RelIXB", 1, t0)
+		c.IxLan.Create().
+			SetID(200).SetIxID(20).SetDescr("secretdescr").
+			SetStatus("pending").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustIxLan(ctx, t, c, 210, "RelLanB", 21, t0)
+		mustIxPfx(ctx, t, c, 1000, "10.0.0.0/24", 200, t0)
+		mustIxPfx(ctx, t, c, 1001, "10.0.1.0/24", 200, t0)
+		mustIxPfx(ctx, t, c, 2000, "10.1.0.0/24", 210, t0)
+		for id, n := range map[int][2]int{500: {100, 200}, 501: {200, 210}} {
+			c.NetworkIxLan.Create().
+				SetID(id).SetNetID(n[0]).SetIxlanID(n[1]).SetIxID(n[1] / 10).
+				SetAsn(64500).SetSpeed(1000).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		return c
+	}
+
+	t.Run("DIVERGENCE_relation_keys_upstream_ignores_resolve", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream resolves one relation hop, forward
+		// through a FK (queryable_relations, 2.83.0
+		// serializers.py:970-996), plus the keys that a prepare_query
+		// handles. It ignores the keys below, which the mirror
+		// resolves:
+		//   - 2-hop keys. Path B reaches any second edge; Path A lists
+		//     ixpfx ixlan__ix__* and net netfac__fac__name. For a key
+		//     whose first segment a prepare_query handles, upstream
+		//     drops the third segment and filters the relation on the
+		//     value (:614-656): net?netfac__fac__name=X becomes
+		//     netfac.facility = X, a 400 for a non-numeric X.
+		//   - Reverse keys named by the mirror's traversal key, outside
+		//     the prepare_query seeds: org?net__status= becomes
+		//     network__status upstream (serializers.py:403-441), which
+		//     is not a filter key (rest.py:525-528, :670).
+		//   - The field-level FILTER_EXCLUDE entries org__latitude,
+		//     org__longitude and ixlan__descr (serializers.py:136-141).
+		// Upstream returns every live row for each request.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		srv := newTestServer(t, seedRelationKeys(t))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// Upstream: [500 501].
+			{path: "/api/netixlan?net__org__status=pending", want: []int{501}},
+			// Upstream: 400.
+			{path: "/api/net?netfac__fac__name=RelFacA", want: []int{100}},
+			// Upstream: [1 3].
+			{path: "/api/org?net__status=deleted", want: []int{1}},
+			// Upstream: [400 401].
+			{path: "/api/fac?org__latitude__gt=50", want: []int{400}},
+			// Upstream: [1000 1001 2000].
+			{path: "/api/ixpfx?ixlan__descr=secretdescr", want: []int{1000, 1001}},
+		})
+	})
+
+	t.Run("DIVERGENCE_reverse_set_keys_silent_ignore", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream names a reverse relation by its
+		// related_name, for example ixlan_set on ix and net_set on org
+		// (2.83.0 models.py:3308, :5322). queryable_relations adds
+		// <related_name>__<field> for each of them (serializers.py:970-996),
+		// so upstream filters on the related rows. The mirror knows no
+		// _set names and ignores these keys.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		srv := newTestServer(t, seedRelationKeys(t))
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			// Upstream: [20].
+			{path: "/api/ix?ixlan_set__status=pending", want: []int{20, 21}},
+			// Upstream: [1].
+			{path: "/api/org?net_set__status=deleted", want: []int{1, 3}},
+		})
+	})
+
 	t.Run("path_a_1hop_fac_campus_name", func(t *testing.T) {
 		t.Parallel()
 		// This query previously returned HTTP 500 ("no such table:
@@ -618,6 +733,27 @@ func assertKeysSilentlyIgnored(t *testing.T, srv *httptest.Server, cases []silen
 		want := slices.Sorted(slices.Values(tc.want))
 		if !slices.Equal(got, want) {
 			t.Errorf("%s: got %v, want %v (unfiltered; divergence canary)", tc.path, got, want)
+		}
+	}
+}
+
+// assertKeysResolve checks that each request returns HTTP 200 and
+// exactly the filtered ID set, in any order. It is the canary for the
+// divergences where pdbcompat resolves a key that upstream ignores: if
+// pdbcompat stops resolving a key, the result widens and the case fails.
+func assertKeysResolve(t *testing.T, srv *httptest.Server, cases []silentIgnoreCase) {
+	t.Helper()
+	for _, tc := range cases {
+		status, body := httpGet(t, srv, tc.path)
+		if status != http.StatusOK {
+			t.Errorf("%s: status = %d, want 200; body=%s", tc.path, status, string(body))
+			continue
+		}
+		got := slices.Clone(extractIDs(t, body))
+		slices.Sort(got)
+		want := slices.Sorted(slices.Values(tc.want))
+		if !slices.Equal(got, want) {
+			t.Errorf("%s: got %v, want %v (filtered; divergence canary)", tc.path, got, want)
 		}
 	}
 }

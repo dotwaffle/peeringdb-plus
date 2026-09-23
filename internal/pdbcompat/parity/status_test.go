@@ -600,6 +600,40 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
+	t.Run("DIVERGENCE_i_operator_suffixes_filter", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream's operator regex (2.83.0 rest.py:616)
+		// knows only lt, lte, gt, gte, contains, startswith and in. A
+		// key ending in __iexact, __icontains or __istartswith is not a
+		// filter key (:628-630, :670), so upstream ignores it and
+		// returns every live row. The mirror applies these suffixes,
+		// on status as on any other field.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := testutil.SetupClient(t)
+		seedNetIXLanMix(t, c)
+
+		srv := newTestServer(t, c)
+		// Upstream returns the live rows [2 1] for each request.
+		cases := []struct {
+			query string
+			want  []int
+		}{
+			{"status__iexact=OK", []int{1}},
+			{"status__icontains=OPER", []int{2}},
+			{"status__istartswith=NOT", []int{2}},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, "/api/netixlan?"+tc.query)
+			if status != http.StatusOK {
+				t.Fatalf("?%s: status = %d; body=%s", tc.query, status, string(body))
+			}
+			if ids := extractIDs(t, body); !equalIntSlice(ids, tc.want) {
+				t.Errorf("?%s: got %v, want %v (divergence canary)", tc.query, ids, tc.want)
+			}
+		}
+	})
+
 	t.Run("DIVERGENCE_detail_ignores_filters", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream applies the query-parameter filters to a
