@@ -44,14 +44,7 @@ func Home(query string, groups []SearchGroup) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = apiSurfaceCards([]surfaceCard{
-			{Href: "/graphql", Title: "GraphQL", Desc: "Interactive playground for flexible data queries with filtering and pagination."},
-			{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI-compliant REST endpoints with auto-generated documentation."},
-			{Title: "ConnectRPC / gRPC", Desc: "Get and List RPCs for all 13 types with typed filtering. Supports Connect, gRPC, and gRPC-Web protocols. Use buf curl or grpcurl to explore."},
-			{Href: "/api/", Title: "PeeringDB API", Desc: "Drop-in compatible with PeeringDB API for existing integrations."},
-			{Href: "/mcp", Title: "MCP", Desc: "Read-only directory research tools, resources, and prompts for agents."},
-			{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Download an installable skill configured for this deployment."},
-		}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = apiSurfaceCards(apiSurfaces).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -63,16 +56,28 @@ func Home(query string, groups []SearchGroup) templ.Component {
 	})
 }
 
-// surfaceCard is one API-surface tile on the home and about pages.
-// An empty Href renders a non-clickable card (gRPC has no browsable URL).
+// surfaceCard is one API tile on the home and about pages.
+// An empty Href renders a card that is not a link (ConnectRPC has no page
+// to open in a browser).
 type surfaceCard struct {
 	Href  string
 	Title string
 	Desc  string
 }
 
-// apiSurfaceCards renders the API-surface tiles. Shared by Home and
-// AboutPage so the two card grids never drift in markup.
+// apiSurfaces is the one list of API tiles. Home and AboutPage both render
+// it, so the two pages show the same text.
+var apiSurfaces = []surfaceCard{
+	{Href: "/graphql", Title: "GraphQL", Desc: "GraphiQL playground with schema documentation. Queries support filters and pagination."},
+	{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI REST endpoints, with interactive documentation at /rest/v1/docs."},
+	{Title: "ConnectRPC / gRPC", Desc: "Get, List, and Stream RPCs for all 13 PeeringDB types, with typed filters, reflection, and health checks. Supports the Connect, gRPC, and gRPC-Web protocols. Use buf curl or grpcurl."},
+	{Href: "/api/", Title: "PeeringDB API", Desc: "Read-only PeeringDB-compatible API for existing PeeringDB clients."},
+	{Href: "/mcp", Title: "MCP", Desc: "Model Context Protocol server with read-only tools, resources, and prompts for network research agents."},
+	{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Download an installable skill configured for this deployment."},
+}
+
+// apiSurfaceCards renders the API tiles. Home and AboutPage share it, so
+// the two card grids use the same markup.
 func apiSurfaceCards(cards []surfaceCard) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -103,7 +108,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var3 templ.SafeURL
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(c.Href))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 39, Col: 34}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 44, Col: 34}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -116,7 +121,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(c.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 40, Col: 75}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 45, Col: 75}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -129,7 +134,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.Desc)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 41, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 46, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -147,7 +152,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 45, Col: 75}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 50, Col: 75}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -160,7 +165,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(c.Desc)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 46, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 51, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -206,7 +211,7 @@ func SearchForm(query string, groups []SearchGroup) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(query)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 65, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 70, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {
