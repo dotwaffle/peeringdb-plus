@@ -79,23 +79,22 @@ See [DEVELOPMENT.md § Code generation pipeline](DEVELOPMENT.md#code-generation-
 With no configuration, the binary uses the defaults from
 `internal/config/config.go`:
 
-- Listens on `:8080` with h2c (HTTP/2 cleartext — required for ConnectRPC).
+- Listens on `:8080`.
+  The listener accepts HTTP/1.1 and h2c (HTTP/2 without TLS).
+  gRPC clients need h2c.
 - Stores data in `./peeringdb-plus.db` in the current working directory.
 - Syncs from `https://api.peeringdb.com` with a 1-hour interval (15 minutes if
   `PDBPLUS_PEERINGDB_API_KEY` is set — the authenticated rate-limit budget
   comfortably absorbs the 4× frequency).
-- Sync mode defaults to `incremental`
-  (since 2026-04-26 — see [CONFIGURATION.md](CONFIGURATION.md) for the full
-  operator notes).
-  Set `PDBPLUS_SYNC_MODE=full` for first-sync, recovery, or escape-hatch use.
-- Assumes it is the LiteFS primary in local dev.
-  The detection order is: (1) presence of `/litefs/.primary` → replica,
-  (2) `/litefs/` directory exists but no `.primary` file → primary,
-  (3) no `/litefs/` at all → fall back to `PDBPLUS_IS_PRIMARY`
-  (defaults to `true`).
-  Implemented in `internal/litefs/primary.go` `IsPrimaryWithFallback`.
-  The lease semantics are inverted:
-  `.primary` ABSENT means *this node IS the primary*.
+- Uses sync mode `incremental`.
+  On an empty database, the first sync is always a full fetch.
+  A full fetch also runs every `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`).
+  Set `PDBPLUS_SYNC_MODE=full` only for recovery.
+  See [CONFIGURATION.md § Sync Worker](CONFIGURATION.md#sync-worker).
+- Runs as the LiteFS primary.
+  When no `/litefs/` directory exists, `PDBPLUS_IS_PRIMARY` sets the role,
+  and its default is `true`.
+  See [CONFIGURATION.md § LiteFS / Primary Detection](CONFIGURATION.md#litefs--primary-detection).
 
 You will see a `starting server` log line almost immediately.
 The HTTP listener accepts connections right away,
@@ -103,20 +102,22 @@ but **`/readyz` will return 503 until the first sync completes**.
 
 ### What happens on first start
 
-1. The config loader validates every environment variable and aborts with a
-   descriptive error if anything is wrong (fail-fast).
-2. SQLite opens the database file and runs ent-generated schema migrations.
-   Migrations run on the primary only,
-   with `WithDropColumn(true)` and `WithDropIndex(true)` enabled
-   for v1.15+ schema-hygiene drops.
-3. The sync worker is scheduled.
-   On a fresh database it immediately performs a sync pass against
-   `api.peeringdb.com` covering all 13 PeeringDB entity types.
-4. Any rows left in a stale `running` state from a previous crash are
-   transitioned to `failed` so `/ui/about` and `/readyz` don't report
-   phantom in-flight syncs.
-5. Once the first sync completes, `/readyz` flips to 200 and the service is
-   fully usable.
+1. The config loader (`internal/config`) checks the environment variables.
+   If a value is not valid, the process stops with an error message.
+2. On the primary, the process runs the ent schema migrations.
+   These migrations can drop columns and indexes
+   that the schema no longer defines.
+3. On the primary, the process finds `sync_status` rows
+   that a stopped process left in the `running` state,
+   and changes them to `failed`.
+   This stops `/ui/about` and `/readyz` from showing a sync in progress
+   when no sync runs.
+4. The sync scheduler starts in the background.
+   On an empty database, it immediately runs a full sync
+   of all 13 PeeringDB object types from `api.peeringdb.com`.
+5. The HTTP listener starts while the first sync runs.
+   Until the first sync completes, `/readyz` and the data routes return 503.
+6. When the first sync completes, `/readyz` returns 200.
 
 A full sync against the public PeeringDB API typically takes **30–60 seconds**
 on a reasonable connection.
@@ -124,9 +125,9 @@ The peak working set stays under the default 400 MB heap warning
 (`PDBPLUS_HEAP_WARN_MIB`) and the 400 MB sync memory guardrail
 (`PDBPLUS_SYNC_MEMORY_LIMIT`).
 
-If you do not want the hourly background sync while experimenting,
-set `PDBPLUS_SYNC_INTERVAL` to a large duration such as `24h`.
-The first sync still runs immediately on startup.
+To make the background sync less frequent while you experiment,
+set `PDBPLUS_SYNC_INTERVAL` to a long duration such as `24h`.
+On an empty database, the first sync still starts immediately.
 
 ## 3. Verify it's working
 
