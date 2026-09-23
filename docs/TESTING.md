@@ -130,12 +130,23 @@ func TestSyncStatus(t *testing.T) {
 
 ### `internal/testutil/seed`
 
-`seed.Full(tb, client)` in `internal/testutil/seed/seed.go` seeds one entity of
-each of the 13 PeeringDB types (plus a second Network and a campus-assigned
-Facility) with deterministic IDs and a fixed `seed.Timestamp` of
-`2024-01-01T00:00:00Z`.
-It returns a `*seed.Result` whose fields hold typed pointers to every entity
-created:
+`seed.Full(tb, client)` in `internal/testutil/seed/seed.go` creates one row
+of each of the 13 types with fixed IDs
+(org 1, net 10, ix 20, fac 30, campus 40, carrier 50).
+It also creates these rows:
+
+- a second network (ID 11) and a campus facility (ID 31)
+- a second ixlan with a `Public` member-list URL
+  (`seed.IxLanPublicID` = 101).
+  The gated ixlan is `seed.IxLanGatedID` = 100.
+- two POCs with `visible=Users` (IDs 9000 and 9001)
+- a separate tenant in the 8001 ID band
+  (org, campus, ix, ixlan, fac, and networks 8001-8003).
+  Network 8003 has `status=deleted`.
+  Traversal, fold, and status tests use this tenant.
+
+All timestamps are `seed.Timestamp` (`2024-01-01T00:00:00Z`).
+`Full` returns a `*seed.Result` whose fields hold typed pointers to the rows:
 
 ```go
 import "github.com/dotwaffle/peeringdb-plus/internal/testutil/seed"
@@ -148,16 +159,20 @@ func TestNetworkLookup(t *testing.T) {
     // r.Org, r.Network (ID=10, ASN=13335 "Cloudflare"), r.IX (ID=20),
     // r.Facility (ID=30), r.Campus (ID=40), r.Carrier (ID=50),
     // r.IxLan, r.IxPrefix, r.NetworkIxLan, r.NetworkFacility,
-    // r.IxFacility, r.CarrierFacility, r.Poc, r.Network2, r.Facility2
+    // r.IxFacility, r.CarrierFacility, r.Poc, r.Network2, r.Facility2,
+    // r.IxLanPublic, r.UsersPoc, r.UsersPoc2, r.AllPocs, r.AllNetworks
     got, err := client.Network.Get(t.Context(), r.Network.ID)
     if err != nil { t.Fatal(err) }
     if got.Asn != 13335 { t.Errorf("unexpected ASN: %d", got.Asn) }
 }
 ```
 
-Deterministic IDs are important because golden tests, handler tests,
-and grpcserver tests all assume the IDs and names produced by `seed.Full`.
-If you need a different shape, add a new helper rather than mutating `Full`.
+Tests in `cmd/peeringdb-plus`, `graph`, `internal/pdbcompat`,
+and `internal/sync` use the IDs and names that `seed.Full` creates.
+If you need a different shape, add a new helper.
+Do not change `Full`.
+The golden tests (`setupGoldenTestData`), the `internal/grpcserver` tests,
+and the `internal/web` tests seed their own rows.
 Parity tests deliberately do **not** use `seed.Full` —
 each sub-test seeds the clean rows it needs inline via the ent client to avoid
 cross-test contamination (see [Parity Tests](#parity-tests) below).
