@@ -661,6 +661,8 @@ const parentPKColumn = "id"
 // Hard-capped at 2 hops. Identifiers from two EdgeMetadata lookups;
 // values bind via the innermost buildPredicate. Parent PK is always "id"
 // (see parentPKColumn — schema generator invariant).
+// Both subqueries get the row-visibility gate of their table
+// (applyVisibilityGate).
 func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	edge1, ok := LookupEdge(entityType, fk1)
 	if !ok {
@@ -725,6 +727,10 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 			midSel = sql.Select(midT.C(fk1Col)).From(midT)
 		}
 		midJoin(midSel)
+		// Gate the middle rows too. A middle hop on pocs
+		// (net?poc__net__<field>=) would otherwise match the networks
+		// that have a contact the tier cannot read.
+		applyVisibilityGate(midSel, midTable, tier)
 
 		// Outer filter: parent's FK column (M2O) or parent's PK (O2M).
 		if ownFK1 {

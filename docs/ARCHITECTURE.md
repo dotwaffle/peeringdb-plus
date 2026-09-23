@@ -529,8 +529,9 @@ The pieces:
    The schema generator thus marks the `pocs` edge with
    `entgql.Skip(entgql.SkipWhereInput)`,
    so the GraphQL `NetworkWhereInput` has no `hasPocs` or `hasPocsWith`.
-   The pdbcompat `?poc__<field>=` traversal adds the same visibility check
-   to its subquery (`applyVisibilityGate`).
+   The pdbcompat traversal adds the same visibility check
+   to each subquery that reads `pocs` (`applyVisibilityGate`):
+   the leaf of `?poc__<field>=` and the middle hop of `?poc__net__<field>=`.
 3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
    `Redact(ctx, visible, value) (out string, omit bool)` is the single source of
    truth for per-field redaction.

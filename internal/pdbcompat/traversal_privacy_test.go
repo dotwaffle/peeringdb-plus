@@ -118,4 +118,42 @@ func TestTraversal_PocVisibilityGate(t *testing.T) {
 			}
 		})
 	}
+
+	// A 2-hop key with pocs as the middle hop (net -> poc -> net) must
+	// gate the poc rows as well. Otherwise poc__net__id__gt=0 lists every
+	// network that has a contact, including the contacts the tier cannot
+	// read. privateOnly has only a Private poc. r.Network2 has only
+	// hidden pocs for an anonymous caller (Users and Private).
+	privateOnly := client.Network.Create().
+		SetID(9510).SetName("Private Contact Net").SetAsn(64512).
+		SetOrgID(r.Org.ID).
+		SetCreated(r.Network2.Created).SetUpdated(r.Network2.Updated).SetStatus("ok").
+		SaveX(t.Context())
+	client.Poc.Create().
+		SetID(9511).SetNetID(privateOnly.ID).SetRole("NOC").SetVisible("Private").
+		SetName("Private Only NOC").SetEmail("private-only-noc@example.invalid").
+		SetCreated(r.Network2.Created).SetUpdated(r.Network2.Updated).SetStatus("ok").
+		SaveX(t.Context())
+	for name, tc := range map[string]struct {
+		tier   privctx.Tier
+		hidden []int
+	}{
+		"anon":  {privctx.TierPublic, []int{r.Network2.ID, privateOnly.ID}},
+		"users": {privctx.TierUsers, []int{privateOnly.ID}},
+	} {
+		t.Run("two_hop_middle_poc_gated_for_"+name, func(t *testing.T) {
+			got := matchedNetIDs(t, tc.tier, "poc__net__id__gt", "0")
+			if !slices.Contains(got, r.Network.ID) {
+				t.Errorf("poc__net__id__gt=0 = %v, want network %d (Public poc)", got, r.Network.ID)
+			}
+			for _, id := range tc.hidden {
+				if slices.Contains(got, id) {
+					t.Errorf("poc__net__id__gt=0 = %v, matched network %d through a hidden poc", got, id)
+				}
+			}
+			if got := matchedNetIDs(t, tc.tier, "poc__net__asn", "64512"); len(got) != 0 {
+				t.Errorf("poc__net__asn=64512 = %v, want none (only a Private poc)", got)
+			}
+		})
+	}
 }
