@@ -292,10 +292,16 @@ for the Fly.io fleet.
 
 - **`go: go.mod requires go >= 1.27.1`** — Run `mise install --locked`.
   `go.mod` pins Go 1.27.1; `mise.toml` tracks the 1.27 line and `mise.lock` holds the exact patch.
-- **`/readyz` stays 503 forever** — Check the server log for the sync worker.
-  The most common causes are: no outbound network to `api.peeringdb.com`,
-  a corporate proxy rewriting TLS, or rate-limiting on the PeeringDB side.
-  Setting `PDBPLUS_PEERINGDB_API_KEY` raises your rate limit if you have one.
+- **`/readyz` stays 503.**
+  Look for `sync failed, retrying` and `sync cycle failed` in the server log.
+  A failed sync tries again after 30 seconds, 2 minutes, and 8 minutes.
+  A rate limit (HTTP 429) or a WAF block stops these retries.
+  When the retries end, the next attempt waits one `PDBPLUS_SYNC_INTERVAL`
+  (default `1h`, or `15m` with an API key).
+  To try again at once, correct the cause and restart the process.
+  Common causes are no outbound access to `api.peeringdb.com`,
+  a proxy that intercepts TLS, and upstream rate limits.
+  With `PDBPLUS_PEERINGDB_API_KEY`, the upstream rate limit is higher.
 - **`PDBPLUS_PEERINGDB_URL uses http:// against a non-local host` on startup** —
   The URL validator only accepts `https://`,
   or `http://` against `localhost`/loopback IPs and RFC 1918 private ranges.
@@ -304,16 +310,19 @@ for the Fly.io fleet.
 - **Port 8080 already in use** — Set `PDBPLUS_PORT=9090` (or any free port)
   before launching, or use `PDBPLUS_LISTEN_ADDR=:9090`. `PDBPLUS_PORT` takes
   precedence over `PDBPLUS_LISTEN_ADDR` when both are set.
-- **`no such table: ...` on first request** —
-  The process crashed before migrations completed.
-  Delete `peeringdb-plus.db` and restart;
-  migrations run on every primary boot and are idempotent.
-- **Sync aborts with `ErrSyncMemoryLimitExceeded`** —
-  Phase A fetch peaked above `PDBPLUS_SYNC_MEMORY_LIMIT` (default `400MB`).
-  Raise the limit or set it to `0` to disable the guardrail entirely.
-  Operator-visible heap / RSS warnings are governed independently by
-  `PDBPLUS_HEAP_WARN_MIB` (default `400`) and `PDBPLUS_RSS_WARN_MIB` (default
-  `384`).
+- **`failed to seed initial object counts` with `no such table` at startup.**
+  The process started as a replica with an empty database.
+  A replica does not create the schema.
+  For a local run, unset `PDBPLUS_IS_PRIMARY` or set it to `true`.
+  Make sure that no `/litefs/.primary` file exists.
+  Then start the process again.
+- **`sync aborted: memory limit exceeded` in the log.**
+  After the fetch phase, the Go heap was above `PDBPLUS_SYNC_MEMORY_LIMIT`
+  (default `400MB`).
+  Increase the limit, or set it to `0` to turn off the check.
+  `PDBPLUS_HEAP_WARN_MIB` (default `400`) and `PDBPLUS_RSS_WARN_MIB`
+  (default `384`) control the heap and RSS warnings.
+  These warnings do not stop a sync.
 - **`/api/...` list returns 413** —
   The pre-flight count multiplied by the per-row byte estimate exceeded
   `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MB`).
