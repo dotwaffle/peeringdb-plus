@@ -1,7 +1,9 @@
 // Package conformance provides structural comparison of JSON API responses
 // for validating PeeringDB compatibility layer output against the real
 // PeeringDB API. Comparison is structure-only: field names, value types,
-// and nesting depth are checked, but actual values are not.
+// and nesting depth are checked, but actual values are not. The per-object
+// metadata document is opaque: only its JSON type is checked (see
+// opaqueObjectKey).
 package conformance
 
 import (
@@ -10,6 +12,13 @@ import (
 	"fmt"
 	"slices"
 )
+
+// opaqueObjectKey names the per-object metadata document that PeeringDB
+// 2.83.0 added to net and netixlan. Its keys differ per row and upstream
+// can add keys to its registry at any time, so a key-level comparison
+// reports false drift. Below the top level, only the JSON type of this key is compared.
+// The top-level "meta" is the response envelope and is compared in full.
+const opaqueObjectKey = "meta"
 
 // Difference describes a structural mismatch between two JSON responses.
 type Difference struct {
@@ -46,6 +55,10 @@ func compareStructure(prefix string, reference, actual map[string]any) []Differe
 			})
 			continue
 		}
+		if prefix != "" && key == opaqueObjectKey {
+			diffs = append(diffs, compareTypes(path, refVal, actVal)...)
+			continue
+		}
 		diffs = append(diffs, compareValues(path, refVal, actVal)...)
 	}
 
@@ -63,24 +76,29 @@ func compareStructure(prefix string, reference, actual map[string]any) []Differe
 	return diffs
 }
 
-// compareValues compares two values structurally, recursing into objects
-// and comparing first elements of arrays.
-func compareValues(path string, refVal, actVal any) []Difference {
+// compareTypes compares only the JSON types of two values, without
+// recursing into objects or arrays.
+func compareTypes(path string, refVal, actVal any) []Difference {
 	refType := jsonType(refVal)
 	actType := jsonType(actVal)
 
 	// Null is compatible with any type: a field can be null in one
 	// response and populated in another (nullable fields in PeeringDB).
-	if refType == "null" || actType == "null" {
+	if refType == "null" || actType == "null" || refType == actType {
 		return nil
 	}
+	return []Difference{{
+		Path:    path,
+		Kind:    "type_mismatch",
+		Details: fmt.Sprintf("reference type %q, actual type %q", refType, actType),
+	}}
+}
 
-	if refType != actType {
-		return []Difference{{
-			Path:    path,
-			Kind:    "type_mismatch",
-			Details: fmt.Sprintf("reference type %q, actual type %q", refType, actType),
-		}}
+// compareValues compares two values structurally, recursing into objects
+// and comparing first elements of arrays.
+func compareValues(path string, refVal, actVal any) []Difference {
+	if diffs := compareTypes(path, refVal, actVal); diffs != nil {
+		return diffs
 	}
 
 	// Recurse into nested objects.

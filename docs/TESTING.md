@@ -228,6 +228,10 @@ PeeringDB API.
 (and the lower-level `CompareStructure`)
 compares field names, value types, null/array/object shapes, and nesting depth —
 not actual values.
+The per-object `meta` document on net and netixlan (PeeringDB 2.83.0) is opaque:
+the comparer checks only its JSON type, not its keys,
+because its keys differ per row.
+The top-level envelope `meta` is compared in full.
 `internal/conformance/compare_test.go` exercises the comparer itself;
 `live_test.go` compares a live fetch against the golden files in
 `internal/pdbcompat/testdata/golden/`.
