@@ -310,8 +310,9 @@ with different VM sizing and mount policies
 - **`replica` group** — read-only edge machines, `shared-cpu-1x` / 256 MB,
   **no persistent volume** (ephemeral rootfs).
   On boot, LiteFS cold-syncs the database from the primary via HTTP.
-  `/readyz` returns 503 during this hydration window
-  so Fly Proxy routes around the machine until it is ready. <!-- VERIFY:
+  LiteFS starts the application only after this cold sync,
+  so the `/readyz` check fails
+  and Fly Proxy routes around the machine until it is ready. <!-- VERIFY:
   current replica count and region list
   (documented as 7 machines: iad, nrt, syd, lax, jnb, sin, gru)
   is managed via `fly scale count --region <r>`
@@ -347,12 +348,13 @@ current production database size
 (documented as ~88 MB)
 is observed at runtime and not encoded in the repository -->
 
-If a replica stays on 503 >5 minutes with logs showing successful DB pings,
-the `sync_status` row (replicated from the primary via LiteFS cold-sync) is
-likely stale.
-Remediation: `POST /sync` with the `PDBPLUS_SYNC_TOKEN` to force a fresh primary
-sync; replicas pick up the updated `sync_status` within seconds via LTX
-replication.
+If a replica returns 503 for more than 5 minutes,
+look for `readyz sync marked failed` or `readyz sync stale` in its logs.
+Both conditions come from the `sync_status` rows
+that LiteFS replicates from the primary.
+To clear them, send `POST /sync` with the `PDBPLUS_SYNC_TOKEN`.
+The new cycle on the primary writes a new `sync_status` row,
+and LTX replication copies it to the replicas within seconds.
 
 **Sizing rationale:** Observed replica RSS is 58-59 MB steady-state;
 `shared-cpu-1x` / 256 MB gives ~4× memory headroom and budget
@@ -450,13 +452,27 @@ are available through the Fly dashboard without additional configuration.
 
 Runtime health:
 
-- `GET /healthz` — liveness probe; always 200 while the process is alive.
-- `GET /readyz` — readiness probe, used by `fly.toml`'s HTTP service check.
-  It turns unready during graceful shutdown drain
-  (`PDBPLUS_DRAIN_TIMEOUT`, default `10s`),
-  **during LiteFS cold-sync hydration on replica boot**,
-  and when the latest successful sync exceeds `PDBPLUS_SYNC_STALE_THRESHOLD`,
-  so Fly Proxy routes around the machine until the database is live and fresh.
+- `GET /healthz` is the liveness probe.
+  It returns 200 while the process runs.
+- `GET /readyz` is the readiness probe.
+  The `fly.toml` HTTP check uses it.
+  It returns 503 in these conditions:
+  - The database ping fails or takes more than 2 seconds
+    (log: `readyz db probe failed`).
+  - The `sync_status` query fails (log: `readyz sync lookup failed`).
+  - No sync has completed.
+  - The newest `sync_status` row has the status `failed`
+    (log: `readyz sync marked failed`).
+    Replicas read the same replicated row,
+    so all machines return 503 until a new sync cycle starts.
+  - The newest successful sync is older than `PDBPLUS_SYNC_STALE_THRESHOLD`,
+    default `24h` (log: `readyz sync stale`).
+
+  While a replica cold-syncs at boot,
+  LiteFS does not start the application yet,
+  so the check fails until the application listens on `:8080`.
+  During graceful shutdown the listener closes,
+  so the check fails and Fly Proxy stops routing to the machine.
 
 ### Sync memory watch
 

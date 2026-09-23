@@ -83,10 +83,11 @@ kill_timeout = 30
   #   type = "requests"
   #   soft_limit = 10
 
-  # /readyz (not /healthz): the readiness probe fail-closes during replica
-  # cold-sync hydration and on stale sync data, so Fly Proxy routes around
-  # a machine that cannot serve fresh data yet. /healthz always returns 200
-  # and would keep hydrating replicas in rotation.
+  # /readyz (not /healthz): the readiness probe returns 503 when the sync
+  # data is stale or the newest sync failed, so Fly Proxy routes around a
+  # machine that cannot serve fresh data. /healthz always returns 200.
+  # During replica cold-sync hydration LiteFS has not started the app yet,
+  # so the check fails until the app listens on :8080.
   [[http_service.checks]]
     grace_period = "30s"
     interval = "15s"
