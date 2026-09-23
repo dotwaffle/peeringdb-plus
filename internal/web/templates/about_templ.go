@@ -45,7 +45,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><h1 class=\"text-3xl font-bold text-emerald-500 font-mono mb-6\">About PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed\">PeeringDB Plus is a fast, read-only mirror of PeeringDB data. It syncs all PeeringDB objects regularly and serves them through modern API surfaces from edge locations worldwide.</p><div class=\"mt-8 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Data Freshness</h2>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><h1 class=\"text-3xl font-bold text-emerald-500 font-mono mb-6\">About PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed\">PeeringDB Plus is a read-only mirror of PeeringDB. It syncs all 13 PeeringDB object types on a schedule and serves them through the APIs below.</p><div class=\"mt-8 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Data Freshness</h2>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
