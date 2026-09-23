@@ -125,8 +125,7 @@ recorded here so they read as decisions rather than oversights:
 
 Runtime configuration is supplied by environment variables.
 See [CONFIGURATION.md](CONFIGURATION.md) for the full list.
-For a Fly.io deployment the following must be set via `fly secrets set`
-(or `fly secrets import`):
+Set these secrets with `fly secrets set` (or `fly secrets import`):
 
 | Secret | Purpose |
 | --- | --- |
@@ -717,12 +716,17 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 
 ### 2) Startup object-count seed timeout
 
-- Symptoms: startup warning about timed-out initial object counts,
-  dashboards start at zeros.
-- First checks: DB mount latency, replica hydration status,
-  cold-start IO pressure.
-- Immediate action: allow first successful sync cycle to refresh counts;
-  investigate persistent repeats.
+- Symptom: the WARN log
+  `initial object count seed timed out; continuing with zeroed gauges until first refresh`.
+  The object-count gauges of that machine show 0.
+- On the primary, the next successful sync cycle refreshes the counts.
+- A replica does not run sync cycles,
+  so its gauges stay at 0 until it restarts.
+  The dashboard uses `max by (type)`,
+  so a replica at 0 does not change the totals.
+  To reset the gauges, restart the replica: `fly machine restart <id>`.
+- A seed error that is not a timeout stops the process.
+  Fly restarts the machine.
 
 ### 3) Repeated upstream 429 / long Retry-After
 
@@ -742,8 +746,10 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
   so a missing token disables on-demand sync entirely
   (scheduled syncs are unaffected).
 - First checks: `PDBPLUS_SYNC_TOKEN` present in runtime env and deploy secrets.
-- Immediate action: set token and redeploy;
-  confirm with an authenticated `/sync` probe.
+- Immediate action: set the token with
+  `fly secrets set PDBPLUS_SYNC_TOKEN=...`.
+  This command restarts the machines.
+  Then send an authenticated `POST /sync`.
 
 ### 5) Force a full sync
 
