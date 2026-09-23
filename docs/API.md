@@ -402,7 +402,7 @@ Valid `{type}` values are the same 13 constants defined in
 | `q` | List | Case-insensitive substring search across the type's search fields. For `/api/net`, an ASN literal (e.g. `8075` or `AS8075`) also matches `net.asn` exactly in addition to the text fields. This is a peeringdb-plus **extension**. Upstream ignores `?q=` on `/api` list endpoints. Unlike the field filters, `?q=` does not ignore diacritics. See § Known Divergences |
 | `limit` | List | Maximum rows in response. **Default unlimited** when absent — matches upstream 2.83.0 `rest.py:516` (`limit` defaults to `0`) + `rest.py:757-760` (no slice when `limit=0`). Bare `/api/<type>` URLs return ALL rows from the filtered queryset; the response is gated only by the response memory budget (see below). Explicit `limit=N`: positive `N` is honored with no upper cap, as upstream (`rest.py:757-758`); `limit=0` is the explicit "unlimited" sentinel. A non-numeric `limit` returns `400`, as upstream (`rest.py:515-518`). A negative `limit` also returns `400`; upstream serves it as unlimited (see § Known Divergences). Constant: `DefaultLimit=0` (`internal/pdbcompat/response.go`). The `?page=N` shape is not supported — clients that want pagination set `?limit=N&skip=M` instead |
 | `skip` | List | Offset for pagination. A non-numeric or negative `skip` returns `400`, as upstream: 2.83.0 `rest.py:511-514` rejects a non-numeric value, and Django rejects a negative slice with `ValueError`, which `list()` turns into a `400` (`rest.py:824-827`) |
-| `depth` | Detail | Edge expansion depth, clamped to `0`–`4` (the range upstream accepts, 2.83.0 `serializers.py:1016-1039` — `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2). `0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default — `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists. The detail default is `2` (`default_depth(is_list=False)`). Non-numeric keeps the default; negatives floor to `0`. `3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced). `_set` fields list only live children (see "Soft-delete tombstones" below). The sets are in ascending id order, with these exceptions: `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are in facility-id order, as upstream sends them (up to v1.27.0, in link-id or join order), and `ixlan.net_set` keeps the order of the netixlan rows. **List endpoints silently drop `?depth=`** — see § Known Divergences |
+| `depth` | Detail | Edge expansion depth, clamped to `0`–`4` (the range upstream accepts, 2.83.0 `serializers.py:1016-1039`: `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2). `0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default, with `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists. The detail default is `2` (`default_depth(is_list=False)`). Non-numeric keeps the default; negatives floor to `0`. `3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced). `_set` fields list only live children (see "Soft-delete tombstones" below). The sets are in ascending id order, with these exceptions: `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are in facility-id order, as upstream sends them, and `ixlan.net_set` keeps the order of the netixlan rows. **List endpoints silently drop `?depth=`**. See § Known Divergences |
 | `fields` | Both | Comma-separated list of keys to keep. The response always keeps `id`. It also keeps every key that ends in `_set` (on `net`, this includes `irr_as_set`) and every nested object that has an `id`, so a detail response at the default depth still includes its sets. Unknown names are ignored |
 | `since` | List | The value is Unix seconds as an integer. The list holds the rows with `updated` at or after that second, in `updated` order, then `id` order (see § List order). It also admits `deleted` rows, and `pending` rows on `/api/campus` (see § Soft-delete tombstones). `since=0` or a negative value is ignored. A value that is not an integer returns `400`. Upstream stores `updated` with microseconds and compares it with `N.000000` (2.83.0 `rest.py:736-744`). It shows the value truncated to the second (`serializers.py:1920-1924`), so it also returns almost every row shown as `updated=N`. The mirror stores only the second and includes it |
 | `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream 2.83.0 `rest.py:657-662`. Upstream ignores a key with the `__iexact`, `__icontains` or `__istartswith` suffix; the mirror applies them (see § Known Divergences). Typed against the field; invalid types (e.g. `asn__contains`) return `400`. A key that names a forward FK by its upstream model name filters the FK column: `?org=1` is the same filter as `?org_id=1`. `net` and `network` are names for `net_id`, and `fac` and `facility` are names for `fac_id` (`?network__in=1,2`, `?facility_id=2`). The operators compare the FK id, and `__contains` or `__startswith` on a FK name returns `400`, as upstream (2.83.0 `rest.py:608-631`, `:670-677`, `serializers.py:403-441`). If a request gives one FK in two spellings, the mirror applies both filters. Upstream keeps only the last one |
@@ -542,8 +542,6 @@ Upstream leaves the order of these rows to the database.
 `skip` and `limit` apply after the sort, so each page continues the same order.
 An upstream netixlan list can return its rows in a different order
 (see § Known Divergences).
-Up to v1.27.0, a list without `?since` was ordered by `updated`,
-then `created`, then `id`, newest first.
 
 ### Lookup by `id` or `asn`
 
@@ -558,7 +556,6 @@ and an empty result is `200` with an empty `data` array.
 A request with `?page=` does not get the `404`, as upstream.
 The body is problem+json, like every other error (see § Known Divergences).
 A value that is not an integer, for example `?id=abc`, returns `400` (see § Known Divergences).
-Up to v1.27.0, these requests returned `200` with an empty `data` array.
 
 ### Diacritic-insensitive matching
 
@@ -631,7 +628,6 @@ and campus is the only type whose pending rows reach the mirror.
 For `ix.fac_set` and `ixlan.net_set`, the status of the ixfac or netixlan
 join row decides membership.
 The facility or network that the row points to is not filtered.
-Up to v1.27.0, pdbcompat also listed pending children in the sets.
 
 A deleted `poc` is served with `name`, `phone`, `email` and `url` set to `""`.
 Upstream applies this rule when `status` is among the rendered fields
@@ -640,14 +636,11 @@ so a tombstone shows the deletion but not the contact details.
 The mirror also applies it when `?fields=` leaves out `status`
 (see § Known Divergences).
 `role`, `visible`, `net_id` and the timestamps are not changed.
-Up to v1.27.0, pdbcompat served the stored values.
-The tombstones that sync v1.16.0 to v1.18.1 marked deleted still held the
-contact data, so a `?since=` window that covered them returned it.
-Sync now stores each deleted `poc` with these fields blank.
-The primary blanks them on the older stored tombstones when it starts,
-and again in each sync cycle.
-GraphQL, REST and ConnectRPC, which serve deleted pocs with the stored values,
-thus do not serve them either.
+Sync stores each deleted `poc` with these fields blank.
+The primary also blanks them on older stored tombstones,
+when it starts and in each sync cycle.
+GraphQL, REST and ConnectRPC serve the stored values,
+so they do not serve these fields of a deleted `poc` either.
 
 A `not-operational` netixlan is a published connection that its network
 declares not operational.
@@ -674,9 +667,6 @@ This matches upstream PeeringDB 2.83.0.
 and the matrix filter at `rest.py:745-750` is applied after it.
 Upstream tests lock the result
 (`pdb_api_test.py:4022-4028` and `:4032-4044`).
-Up to v1.27.0, pdbcompat dropped the key and returned the whole matrix set.
-That was a divergence, not parity:
-upstream never overrides a caller's `?status=`.
 
 ### Metadata document (`meta`)
 
@@ -953,7 +943,7 @@ so the new entry needs no annotation.
 
 | Entity | Edge | Reason |
 |--------|------|--------|
-| *(none — all FK edges exposed in v1.16)* | *—* | Initial release. Field-level privacy (`ixlan.ixf_ixp_member_list_url_visible`) operates at the **serializer layer**, not the edge layer, so no edge exclusion is required for the v1.16 surface. Future OAuth-gated relations will populate this table. |
+| (none) | | No edge has the annotation. Field-level privacy applies in the serializers, not on edges. |
 
 #### 2-hop cap
 
@@ -1371,7 +1361,6 @@ An empty `Users` value is the exception.
 An anonymous sync does not get the URL of a `Users` row, and it stores `""`.
 Thus `/api/` omits the key for an empty `Users` value at every tier
 (see § Known Divergences).
-Up to v1.27.0, `/api/` omitted the key for every empty value.
 
 The single source of truth is `internal/privfield.Redact(ctx, visible, value)`.
 Every serializer calls it,
@@ -1393,16 +1382,12 @@ The Users tier gets what upstream gives an authenticated user who is not a
 member of the owning organization:
 `Public` and `Users` values and `poc` rows, but not `Private` ones.
 The mirror has no organization membership, so no tier sees `Private` data.
-Up to v1.27.0, the Users tier also saw `Private` `poc` rows.
 
 The GraphQL `NetworkWhereInput` has no `hasPocs` or `hasPocsWith` predicate.
 Such a predicate tests the `poc` rows in an SQL subquery,
 and the privacy policy does not apply to it.
 A caller could thus match networks on the `name`, `phone` or `email`
 of a contact that the tier hides, and read the value one prefix at a time.
-Up to v1.27.0, the schema had both predicates,
-also nested in other where-inputs, for example
-`organizations(where: {hasNetworksWith: [{hasPocsWith: …}]})`.
 To filter on contact data, query `pocs` or `pocsList` with a `PocWhereInput`.
 The policy applies to that query.
 
@@ -1553,12 +1538,9 @@ PeeringDB Plus strives for behavioural parity with the upstream PeeringDB API
 (`peeringdb/peeringdb`) at the `/api/` surface.
 The remaining divergences are listed below,
 each with an upstream citation and a guarding test.
-The single-object `?depth=0/1/2` response shape —
-including reverse `_set` ID lists, `net_set` through-relations,
-back-reference stripping, second-level nested ID-list sets, and `campus:null` —
-was brought to full parity in v1.20.5
-and verified against live `www.peeringdb.com/api` payloads (2026-06-08);
-see `internal/pdbcompat/depth_test.go`.
+The shape of detail responses at `?depth=0`, `1` and `2` matches upstream,
+including `_set` ID lists, `net_set`, back-reference removal and `campus: null`.
+`internal/pdbcompat/depth_test.go` locks this.
 
 | Request | Upstream behaviour | peeringdb-plus behaviour | Rationale | Since |
 |---------|-------------------|-------------------------|-----------|-------|
