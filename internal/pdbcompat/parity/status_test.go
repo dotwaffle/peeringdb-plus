@@ -22,6 +22,12 @@ import (
 // onboarding workflow expects pending campuses to surface to syncing
 // clients within the cycle window).
 //
+// A caller ?status= is an ordinary model-field filter upstream: it
+// becomes status__iexact (2.83.0 rest.py:683) or status__in
+// (:665-666), and the matrix filter applied after it ANDs with it
+// (:745-750). It can only narrow the admitted set. The explicit_status_*
+// subtests lock this.
+//
 // upstream: peeringdb_server/rest.py:694-727 (status × since matrix)
 // upstream: pdb_api_test.py (multiple sites; admission rules are
 // implicit in fixture-mix expectations across the test corpus).
@@ -232,12 +238,14 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("explicit_status_deleted_no_since_is_empty", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:694-700 (default branch overrides explicit
-		// ?status= when ?since is absent — the implicit ok-filter wins)
-		// upstream: pdb_api_test.py:1341 (explicit ?status=deleted
-		// without ?since returns empty)
+		// synthesised: 2.83.0 rest.py:683 turns ?status= into
+		// status__iexact, and :748 ANDs the no-since matrix (ok only)
+		// after it. The two filters cannot both match, so the list is
+		// empty. The ok row proves the key is not dropped: a dropped
+		// key would return it.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "deleted", t0)
+		seedNet(t, c, 2, 64502, "ok", t0.Add(time.Hour))
 
 		srv := newTestServer(t, c)
 		status, body := httpGet(t, srv, "/api/net?status=deleted")
@@ -247,6 +255,110 @@ func TestParity_Status(t *testing.T) {
 		ids := extractIDs(t, body)
 		if len(ids) != 0 {
 			t.Errorf("?status=deleted w/o since: got %v, want []", ids)
+		}
+	})
+
+	t.Run("explicit_status_pending_no_since_is_empty", func(t *testing.T) {
+		t.Parallel()
+		// synthesised: 2.83.0 rest.py:683 + :748 (same AND as above;
+		// pending rows are PK-visible but never on a no-since list).
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		seedNet(t, c, 2, 64502, "pending", t0.Add(time.Hour))
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?status=pending")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		if len(ids) != 0 {
+			t.Errorf("?status=pending w/o since: got %v, want []", ids)
+		}
+	})
+
+	t.Run("explicit_status_deleted_since_returns_tombstones_only", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:4022-4028 (test_guest_005_list_since:
+		// net?since=N&status=deleted returns exactly the deleted nets,
+		// not ok+deleted)
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		seedNet(t, c, 2, 64502, "deleted", t0.Add(1*time.Hour))
+		seedNet(t, c, 3, 64503, "deleted", t0.Add(2*time.Hour))
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?since=1&status=deleted")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		want := []int{2, 3}
+		if !equalIntSlice(ids, want) {
+			t.Errorf("since+status=deleted: got %v, want %v (tombstones only)", ids, want)
+		}
+	})
+
+	t.Run("explicit_status_pending_campus_since_returns_pending_only", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:4032-4044
+		// (test_guest_005_list_campus_since: campus?since=N&status=pending
+		// returns only pending rows)
+		c := testutil.SetupClient(t)
+		seedCampus(t, c, 1, "ok", t0)
+		seedCampus(t, c, 2, "pending", t0.Add(1*time.Hour))
+		seedCampus(t, c, 3, "deleted", t0.Add(2*time.Hour))
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/campus?since=1&status=pending")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		want := []int{2}
+		if !equalIntSlice(ids, want) {
+			t.Errorf("campus since+status=pending: got %v, want %v (pending only)", ids, want)
+		}
+	})
+
+	t.Run("explicit_status_is_case_insensitive", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:683 (an exact match on a CharField
+		// becomes __iexact, so ?status=OK matches "ok")
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?status=OK")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		want := []int{1}
+		if !equalIntSlice(ids, want) {
+			t.Errorf("?status=OK: got %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("explicit_status_in_ands_with_since_matrix", func(t *testing.T) {
+		t.Parallel()
+		// synthesised: 2.83.0 rest.py:665-666 splits ?status__in= into
+		// a list, and :745 ANDs the since matrix (ok+deleted for net).
+		// pending is in the caller list but outside the matrix.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		seedNet(t, c, 2, 64502, "pending", t0.Add(1*time.Hour))
+		seedNet(t, c, 3, 64503, "deleted", t0.Add(2*time.Hour))
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?since=1&status__in=pending,deleted")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		want := []int{3}
+		if !equalIntSlice(ids, want) {
+			t.Errorf("since+status__in=pending,deleted: got %v, want %v", ids, want)
 		}
 	})
 }

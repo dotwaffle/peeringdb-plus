@@ -113,6 +113,12 @@ var reservedParams = map[string]bool{
 
 // Registry maps PeeringDB type name strings to their TypeConfig.
 // List and Get functions are nil until serializers are wired up.
+//
+// Every type declares "status" as an ordinary filter field. Upstream
+// (2.83.0) turns ?status=X into status__iexact (rest.py:683) and applies
+// it before the list status matrix (rest.py:695, :745-748), so the two
+// filters AND together. wireEntity appends applyStatusMatrix last, so a
+// caller filter can narrow the admitted statuses but never widen them.
 var Registry = map[string]TypeConfig{
 	peeringdb.TypeOrg: {
 		Name: peeringdb.TypeOrg,
@@ -136,6 +142,7 @@ var Registry = map[string]TypeConfig{
 			"longitude": FieldFloat,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
@@ -181,6 +188,7 @@ var Registry = map[string]TypeConfig{
 			"poc_updated":                  FieldTime,
 			"created":                      FieldTime,
 			"updated":                      FieldTime,
+			"status":                       FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "irr_as_set"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true},
@@ -224,6 +232,7 @@ var Registry = map[string]TypeConfig{
 			"longitude":                   FieldFloat,
 			"created":                     FieldTime,
 			"updated":                     FieldTime,
+			"status":                      FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
@@ -264,6 +273,7 @@ var Registry = map[string]TypeConfig{
 			"logo":                      FieldString,
 			"created":                   FieldTime,
 			"updated":                   FieldTime,
+			"status":                    FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true, "city": true},
@@ -281,6 +291,7 @@ var Registry = map[string]TypeConfig{
 			"url":     FieldString,
 			"created": FieldTime,
 			"updated": FieldTime,
+			"status":  FieldString,
 		},
 		SearchFields: []string{"name", "email"},
 	},
@@ -299,6 +310,7 @@ var Registry = map[string]TypeConfig{
 			"ixf_ixp_import_enabled":          FieldBool,
 			"created":                         FieldTime,
 			"updated":                         FieldTime,
+			"status":                          FieldString,
 		},
 		SearchFields: []string{"name", "descr"},
 	},
@@ -312,6 +324,7 @@ var Registry = map[string]TypeConfig{
 			"in_dfz":   FieldBool,
 			"created":  FieldTime,
 			"updated":  FieldTime,
+			"status":   FieldString,
 		},
 		SearchFields: []string{"prefix"},
 	},
@@ -335,6 +348,7 @@ var Registry = map[string]TypeConfig{
 			"ix_side_id":  FieldInt,
 			"created":     FieldTime,
 			"updated":     FieldTime,
+			"status":      FieldString,
 		},
 		SearchFields: []string{"name"},
 	},
@@ -350,6 +364,7 @@ var Registry = map[string]TypeConfig{
 			"local_asn": FieldInt,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name"},
 	},
@@ -364,6 +379,7 @@ var Registry = map[string]TypeConfig{
 			"country": FieldString,
 			"created": FieldTime,
 			"updated": FieldTime,
+			"status":  FieldString,
 		},
 		SearchFields: []string{"name"},
 	},
@@ -382,6 +398,7 @@ var Registry = map[string]TypeConfig{
 			"logo":      FieldString,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true},
@@ -395,6 +412,7 @@ var Registry = map[string]TypeConfig{
 			"name":       FieldString,
 			"created":    FieldTime,
 			"updated":    FieldTime,
+			"status":     FieldString,
 		},
 		SearchFields: []string{"name"},
 	},
@@ -416,6 +434,7 @@ var Registry = map[string]TypeConfig{
 			"logo":      FieldString,
 			"created":   FieldTime,
 			"updated":   FieldTime,
+			"status":    FieldString,
 		},
 		SearchFields: []string{"name"},
 		FoldedFields: map[string]bool{"name": true},

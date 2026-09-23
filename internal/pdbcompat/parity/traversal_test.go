@@ -23,7 +23,7 @@ import (
 //     where both edges exist in the ent schema.
 //   - Path B fallback 1-hop via ent edges: `org__city=` on net —
 //     edge exists, target field exists, but is not in the Path A
-//     allowlist.
+//     allowlist. `org__status=` takes the same path.
 //   - unknown-field silent-ignore: unknown filter keys produce
 //     HTTP 200 with the unfiltered row set; the handler also emits
 //     an OTel span attribute `pdbplus.filter.unknown_fields` for
@@ -136,6 +136,35 @@ func TestParity_Traversal(t *testing.T) {
 		ids := extractIDs(t, body)
 		if len(ids) != 1 || ids[0] != 100 {
 			t.Errorf("path B 1-hop org__city: got %v, want [100]", ids)
+		}
+	})
+
+	t.Run("path_b_1hop_org_status", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:970-996 (queryable_relations
+		// exposes every non-FK field of a FK target, status included,
+		// so net?org__status= is a real filter) + rest.py:683 (iexact).
+		// The net's own status matrix still applies: both nets are ok.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "LiveOrg", t0)
+		if _, err := c.Organization.Create().
+			SetID(2).SetName("PendingOrg").SetNameFold(unifold.Fold("PendingOrg")).
+			SetStatus("pending").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed pending org: %v", err)
+		}
+		mustNet(ctx, t, c, 100, "UnderLive", 64500, 1, t0)
+		mustNet(ctx, t, c, 200, "UnderPending", 64501, 2, t0)
+
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?org__status=pending")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d; body=%s", status, string(body))
+		}
+		ids := extractIDs(t, body)
+		if len(ids) != 1 || ids[0] != 200 {
+			t.Errorf("path B 1-hop org__status: got %v, want [200]", ids)
 		}
 	})
 

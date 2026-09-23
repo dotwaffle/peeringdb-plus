@@ -712,14 +712,9 @@ func TestExactFilter(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
 
-	// ?status= is no longer in the Fields map for any of
-	// the 13 types, so ParseFilters silently drops it. The status matrix
-	// (applyStatusMatrix) applies unconditionally: list without ?since
-	// returns only status=ok rows regardless of what ?status= was passed.
-	// All 3 seed networks are now status=ok, so this returns 3 items.
-	// Dedicated status × since matrix coverage lives in
-	// status_matrix_test.go. This test now asserts the intended exact-
-	// filter behaviour on a still-filterable field (asn).
+	// Exact match on an int field (asn). The ?status= filter and its
+	// AND with the status × since matrix are covered in
+	// status_matrix_test.go and parity/status_test.go.
 	req := httptest.NewRequest(http.MethodGet, "/api/net?asn=13335", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)

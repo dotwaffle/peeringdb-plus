@@ -332,12 +332,24 @@ as the final predicate via `applyStatusMatrix`:
 | List with `?since=N` | `status IN ('ok', 'deleted')`; `pending` additionally admitted on `/api/campus` |
 | Single-object GET `/api/<type>/<id>` | `status IN ('ok', 'pending')` — tombstones return `404` |
 
-`?status=<value>` is dropped at the filter layer
-(the key is absent from every type's `Fields` map in
-`internal/pdbcompat/registry.go`) — the observable outcome is identical to
-upstream's effective behaviour, where a caller-supplied `?status=` is overridden
-by a final unconditional `filter(status='ok')` (`rest.py:733-738`).
-This is parity, not a divergence.
+`?status=<value>` is an ordinary filter on all 13 types.
+Exact match is case-insensitive, and `__in`, `__contains` and `__startswith`
+also work.
+The filter ANDs with the matrix, so it can only narrow the result:
+
+- `/api/net?status=deleted` returns `[]`, because the list without `?since`
+  admits only `ok` rows.
+- `/api/net?since=N&status=deleted` returns only the tombstones in the window.
+- `/api/campus?since=N&status=pending` returns only the pending campuses.
+
+This matches upstream PeeringDB 2.83.0.
+`rest.py:683` turns `?status=` into `status__iexact`,
+and the matrix filter at `rest.py:745-750` is applied after it.
+Upstream tests lock the result
+(`pdb_api_test.py:4022-4028` and `:4032-4044`).
+Up to v1.27.0, pdbcompat dropped the key and returned the whole matrix set.
+That was a divergence, not parity:
+upstream never overrides a caller's `?status=`.
 
 ### Response memory budget
 

@@ -197,9 +197,12 @@ func TestStatusMatrix(t *testing.T) {
 	t.Run("status_deleted_no_since_is_empty", func(t *testing.T) {
 		t.Parallel()
 		client := testutil.SetupClient(t)
-		// Seed only a deleted row. With no ?since, the list filters to
-		// status=ok regardless of any ?status= override.
+		// Seed an ok row and a deleted row. ?status=deleted keeps only
+		// the tombstone, and the matrix without ?since admits only
+		// status=ok. The two filters AND, so the result is empty. A
+		// dropped ?status= key would return the ok row instead.
 		seedNet(t, client, 1, 64501, "deleted", t0)
+		seedNet(t, client, 2, 64502, "ok", t0.Add(time.Hour))
 
 		srv := httptest.NewServer(newMuxForOrdering(client))
 		t.Cleanup(srv.Close)
@@ -283,6 +286,10 @@ func TestStatusMatrix(t *testing.T) {
 //   - ?since=N, generic → status IN (ok, deleted)  (pending still hidden)
 //   - ?since=N, campus  → status IN (ok, deleted, pending)
 //
+// A caller ?status= filter ANDs with the matrix on every type, so it can
+// only narrow the admitted set. The subtests also check this per type: a
+// Registry Fields map that drops "status" would make ?status= a no-op.
+//
 // Each subtest seeds one ok + one deleted + one pending row of its type
 // (under freshly-seeded FK parents of OTHER types, which never appear on
 // the type's own list endpoint) in an isolated client.
@@ -320,6 +327,19 @@ func TestStatusMatrix_AllEntities(t *testing.T) {
 				t.Errorf("GET /api/%s?since=1: got n=%d code=%d, want n=%d code=200 (isCampus=%v: pending %s)",
 					e.tag, n, code, wantSince, e.isCampus,
 					map[bool]string{true: "admitted", false: "hidden"}[e.isCampus])
+			}
+
+			// ?status= narrows inside the matrix: the since window
+			// holds ok+deleted, so status=deleted keeps only the
+			// tombstone. Without ?since, status=pending matches no
+			// admitted row.
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?since=1&status=deleted"); code != http.StatusOK || n != 1 {
+				t.Errorf("GET /api/%s?since=1&status=deleted: got n=%d code=%d, want n=1 code=200 (only the tombstone)",
+					e.tag, n, code)
+			}
+			if n, code := fetchDataLength(t, srv.URL+"/api/"+e.tag+"?status=pending"); code != http.StatusOK || n != 0 {
+				t.Errorf("GET /api/%s?status=pending: got n=%d code=%d, want n=0 code=200 (pending is outside the no-since matrix)",
+					e.tag, n, code)
 			}
 		})
 	}

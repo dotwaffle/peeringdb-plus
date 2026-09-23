@@ -368,11 +368,10 @@ func TestCoerce_OnlyContainsAndStartswith_Untouched(t *testing.T) {
 }
 
 // TestStatusMatrix_FoldFilterLayering — regression guard: the
-// status × since matrix and the diacritic-fold filter layer compose correctly.
-// ?status=deleted&name__contains=foo — status is silently dropped (the matrix
-// removed `status` from Fields), and the contains layer still resolves
-// through the folded column (or falls through to FieldContainsFold for
-// non-folded fields).
+// status × since matrix, a caller ?status= filter, and the diacritic-fold
+// filter layer compose correctly. Upstream (2.83.0) ANDs ?status=
+// (status__iexact, rest.py:683) with the matrix (rest.py:745-748), and the
+// contains layer still resolves through the folded column.
 func TestStatusMatrix_FoldFilterLayering(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
@@ -394,26 +393,35 @@ func TestStatusMatrix_FoldFilterLayering(t *testing.T) {
 	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
-	t.Run("without_since_ok_only", func(t *testing.T) {
-		// ?status=deleted is silently dropped by the Fields map. Only
-		// status=ok rows are returned by the status matrix. The name__contains
-		// is coerced/folded and matches both Foo rows, but the status matrix
-		// restricts the result set to status='ok'.
+	since := strconv.FormatInt(now.Add(-time.Hour).Unix(), 10)
+
+	t.Run("without_since_status_deleted_is_empty", func(t *testing.T) {
+		// The name filter matches both Foo rows. ?status=deleted keeps
+		// only the tombstone, and the matrix without ?since admits only
+		// status=ok, so the AND of the three is empty.
 		ids := foldFetchIDs(t, srv.URL+"/api/net?status=deleted&name__contains=foo")
-		if !sameIDs(ids, []int{1}) {
-			t.Errorf("status+name__contains: got ids %v, want [1] — status=deleted dropped, name filter returns ok row only", ids)
+		if len(ids) != 0 {
+			t.Errorf("status=deleted+name__contains: got ids %v, want [] (status filter ANDs with the ok-only matrix)", ids)
 		}
 	})
 
 	t.Run("with_since_ok_and_deleted", func(t *testing.T) {
-		// rest.py:694-727: when `?since=N` is present, the
+		// 2.83.0 rest.py:719-746: when `?since=N` is present, the
 		// status matrix expands to `status IN ('ok','deleted')` so tombstones
 		// from the since-window are returned. The name__contains
 		// layer must still fold against the shadow column on BOTH branches.
-		since := strconv.FormatInt(now.Add(-time.Hour).Unix(), 10)
 		ids := foldFetchIDs(t, srv.URL+"/api/net?since="+since+"&name__contains=foo")
 		if !sameIDs(ids, []int{1, 2}) {
 			t.Errorf("since+name__contains: got ids %v, want [1 2] — since-branch must return ok+deleted through shadow-routed filter", ids)
+		}
+	})
+
+	t.Run("with_since_status_deleted_tombstone_only", func(t *testing.T) {
+		// The since matrix admits ok+deleted; ?status=deleted narrows
+		// that to the tombstone.
+		ids := foldFetchIDs(t, srv.URL+"/api/net?since="+since+"&status=deleted&name__contains=foo")
+		if !sameIDs(ids, []int{2}) {
+			t.Errorf("since+status=deleted+name__contains: got ids %v, want [2]", ids)
 		}
 	})
 }

@@ -33,8 +33,7 @@ var registryEntStructs = map[string]reflect.Type{
 // registryFieldExclusions lists scalar ent columns deliberately absent
 // from Registry[type].Fields, keyed "<type>.<column>". Every entry needs
 // a justification; the test fails on stale entries (column no longer
-// exists) so the list cannot rot. "status" is excluded globally below —
-// it is owned by applyStatusMatrix on every type, never a client filter.
+// exists) so the list cannot rot.
 var registryFieldExclusions = map[string]string{
 	// Auth-gated field: exposing it as a filter key would let anonymous
 	// callers probe private values by equality/substring match even
@@ -69,8 +68,8 @@ func scalarFieldType(t reflect.Type) (FieldType, bool) {
 }
 
 // TestRegistryFields_AlignWithEntColumns locks Registry[type].Fields to
-// the generated ent schema: every scalar column (except _fold shadows,
-// status, and the justified exclusion list) must be declared as a filter
+// the generated ent schema: every scalar column (except _fold shadows
+// and the justified exclusion list) must be declared as a filter
 // field with the matching FieldType. Without this gate, a column added
 // upstream (and to schema/peeringdb.json) ships syncable and serialized
 // but silently unfilterable — ParseFilters ignores unknown keys with an
@@ -93,9 +92,6 @@ func TestRegistryFields_AlignWithEntColumns(t *testing.T) {
 			column, _, _ := strings.Cut(f.Tag.Get("json"), ",")
 			if column == "" || column == "-" {
 				continue // _fold shadows and untagged internals
-			}
-			if column == "status" {
-				continue // owned by applyStatusMatrix on every type
 			}
 			if reason, excluded := registryFieldExclusions[typeName+"."+column]; excluded {
 				seenExclusions[typeName+"."+column] = true
