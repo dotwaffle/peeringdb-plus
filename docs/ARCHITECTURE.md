@@ -15,11 +15,13 @@ and served with low latency from the nearest Fly.io region.
 Writes (schema migrations and data sync) happen only on the LiteFS primary;
 all other instances are read-only replicas that can be promoted at any time.
 
-The architecture is heavily driven by [entgo](https://entgo.io/) code
-generation: a single set of hand-edited schemas in `ent/schema/` drives
-generation of the database layer, the GraphQL server, the REST server, and the
-ConnectRPC service definitions, keeping all API surfaces consistent with the
-underlying data model.
+[entgo](https://entgo.io/) code generation drives most of the code.
+`schema/peeringdb.json` is a hand-curated description of the 13 PeeringDB types.
+`cmd/pdb-schema-generate` writes `ent/schema/{type}.go` from it,
+and entc generates the database layer, the GraphQL server
+and the REST server from those schemas.
+Hand-written schema methods live in sibling files that the generator does not
+touch.
 
 ## Component diagram
 
@@ -188,13 +190,11 @@ A large `snapshot_lag`, or an old `snapshot_generated`, shows a stale cache.
 
 - **`ent.Client`** (`ent/client.go`) — Generated ent client;
   the single entry point for all typed database access across every API surface.
-- **`schema.*` schemas** (`ent/schema/organization.go`, `ent/schema/network.go`,
-  and 12 others) — Hand-edited ent schema definitions annotated with entgql,
-  entrest, and entproto directives.
-  The source of truth that drives all code generation.
-  Hand-edited methods (Hooks, Policy, Annotations, Mixin) live in sibling files
-  (`{type}_{method}.go`, `{type}_fold.go`, `pdb_allowlists.go`)
-  that `cmd/pdb-schema-generate` never touches.
+- **ent schemas** (`ent/schema/`): `{type}.go` files that
+  `cmd/pdb-schema-generate` writes from `schema/peeringdb.json`.
+  Do not edit them.
+  Hand-written methods live in sibling files (`poc_policy.go`, `{type}_fold.go`,
+  `fold_mixin.go`, `campus_annotations.go`, `pdb_allowlists.go`, `hooks.go`).
 - **`peeringdb.Client`** (`internal/peeringdb/client.go`) —
   Rate-limit-aware HTTP client for `api.peeringdb.com`;
   returns a typed `RateLimitError` on HTTP 429
@@ -294,17 +294,20 @@ deploy/                   # Deployment-adjacent assets (Grafana dashboards, aler
 
 ## Code generation pipeline
 
-`go generate ./...` runs the full pipeline and converges in a **single pass** —
-the schema producer is sequenced ahead of its consumer (entc) within
-`ent/generate.go`, so no second run is needed:
+`go generate ./...` runs the four steps below.
+A schema change converges in a **single pass**,
+because `ent/generate.go` runs the schema producer ahead of its consumer (entc).
+A Tailwind class removal can need a second run (see after step 4).
 
 1. **`ent/generate.go`** runs four directives in order:
    1. `pdb-schema-generate` (run first) regenerates `ent/schema/{type}.go` from
       `schema/peeringdb.json`.
-      This step is re-runnable; hand-edited methods live in sibling files
-      (e.g. `poc_policy.go`, `network_fold.go`)
-      that the generator never touches —
-      see [CLAUDE.md](../CLAUDE.md) for the conventions around this.
+      This step is re-runnable.
+      Hand-written methods live in sibling files
+      (for example `poc_policy.go` and `network_fold.go`)
+      that the generator does not touch.
+      See [Sibling-file convention](DEVELOPMENT.md#sibling-file-convention-load-bearing)
+      for the rules.
       It is sequenced here, ahead of entc, rather than under `schema/`,
       because `go generate ./...` visits `ent/` before `schema/`
       and could not otherwise guarantee the producer runs before the consumer.
@@ -335,17 +338,33 @@ the schema producer is sequenced ahead of its consumer (entc) within
 2. **`graph/generate.go`** runs `gqlgen generate` to produce the GraphQL
    resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
 
-3. **`internal/web/templates/generate.go`** runs `templ generate` to
+3. **`internal/web/static.go`** runs `tailwindcss` to build
+   `internal/web/static/tailwind.css` from `internal/web/tailwind.input.css`.
+
+4. **`internal/web/templates/generate.go`** runs `templ generate` to
    produce the type-safe `*_templ.go` files from `.templ` sources.
 
-`schema/generate.go` carries no `go:generate` directive —
-it documents the extraction pipeline
-(`pdb-schema-extract` parses the PeeringDB Django source into
-`schema/peeringdb.json`), which is a manual step driven by
-`PEERINGDB_REPO_PATH`, not part of `go generate ./...`.
+`go generate ./...` visits the packages in import-path order,
+so step 3 runs before step 4.
+Tailwind scans every file in `internal/web/templates`,
+which includes the generated `*_templ.go` files.
+If a `.templ` change removes the last use of a class,
+step 3 still finds the class in the old `*_templ.go` file.
+Run `go generate ./...` a second time to remove the class
+from `tailwind.css`.
 
-Mise installs `buf`, `templ`, `gqlgen`, and their companion generators
-from the committed manifest and lockfile.
+`schema/generate.go` carries no `go:generate` directive.
+`cmd/pdb-schema-extract <peeringdb-src>` is a manual drift check
+and is not part of `go generate ./...`.
+It extracts a schema from the upstream Django source and writes it to stdout.
+Compare that output with `schema/peeringdb.json`
+and apply real drift to `schema/peeringdb.json` by hand.
+Do not overwrite the curated file with the output.
+With `--validate`, the tool also compares the field names with sample responses
+from `beta.peeringdb.com`.
+
+Mise installs `buf`, `templ`, `gqlgen`, `tailwindcss`, `protoc-gen-go`
+and `protoc-gen-connect-go` from `mise.toml` and `mise.lock`.
 
 ## Middleware chain
 
