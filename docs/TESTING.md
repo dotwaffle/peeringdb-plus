@@ -30,7 +30,7 @@ Key test locations:
 | Parity tests | `internal/pdbcompat/parity/` | 9 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
 | Benchmarks | `bench_test.go`, `bench_*_test.go`, and `*_bench_test.go` files in `internal/pdbcompat`, `internal/pdbcompat/parity`, `internal/grpcserver`, `internal/sync`, and `internal/web`. Also `internal/web/termrender/network_test.go`. | For example `BenchmarkApplyFieldProjection`, `BenchmarkRowSize`, `BenchmarkParity_*` |
-| Live gated tests | `*_live_test.go` | Require `-peeringdb-live` flag |
+| Live gated tests | `internal/conformance/live_test.go`, `internal/peeringdb/client_live_test.go` | Require the `-peeringdb-live` flag |
 
 Generated code under `ent/` and `gen/` is excluded from coverage
 (see [Coverage](#coverage) below)
@@ -384,15 +384,18 @@ Two such tests exist:
 | `TestLiveConformance` | `internal/conformance/live_test.go` | Fetches each type from beta and compares structure against golden files |
 | `TestMetaGeneratedLive` | `internal/peeringdb/client_live_test.go` | Verifies `meta.generated` field presence across fetch patterns |
 
-Run them locally (respect PeeringDB rate limits —
-the tests use a 3s sleep unauthenticated, 1s with an API key):
+The tests wait between requests to stay under the PeeringDB rate limits.
+`TestLiveConformance` always runs anonymously and waits 3 s between requests.
+`TestMetaGeneratedLive` waits 3 s,
+or 1 s when `PDBPLUS_PEERINGDB_API_KEY` is set.
+Put `-peeringdb-live` after the package path:
 
 ```bash
-# Unauthenticated (3s delay between requests)
-go test -race ./internal/conformance/ -peeringdb-live
+# Anonymous, 3 s between requests
+go test -race ./internal/conformance/ -run TestLiveConformance -peeringdb-live
 
-# With API key (1s delay)
-PDBPLUS_PEERINGDB_API_KEY=... go test -race ./internal/peeringdb/ -peeringdb-live
+# 1 s between requests with an API key, 3 s without
+PDBPLUS_PEERINGDB_API_KEY=... go test -race ./internal/peeringdb/ -run TestMetaGeneratedLive -peeringdb-live
 ```
 
 These tests are intentionally excluded from CI because:
@@ -465,8 +468,8 @@ ensuring goroutines started by handlers or workers do not leak between tests.
 - Test functions: `TestFoo`, `TestFoo_Subcase` or `TestFooSubcase`.
 - Benchmarks: `BenchmarkFoo`.
 - Fuzz tests: `FuzzFoo`.
-- Live tests: `TestFooLive` in a `*_live_test.go` file,
-  gated by the `-peeringdb-live` flag.
+- Live tests: gate them with the package-level `-peeringdb-live` flag
+  and call `t.Skip` when the flag is not set.
 - Parity tests: a `TestParity_<Category>` entry function per category
   (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`,
   `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`),
