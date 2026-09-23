@@ -464,6 +464,9 @@ message NetworkIxLan {
 
   google.protobuf.Timestamp updated = 17;
 
+  // ok, not-operational, pending, or deleted. A status filter of ok
+  // leaves out the not-operational rows. An ok row with operational set
+  // to false is also not operational.
   string status = 18;
 
   // Opaque metadata document (PeeringDB 2.83.0). Keys can change without

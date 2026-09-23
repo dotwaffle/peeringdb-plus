@@ -178,6 +178,8 @@ type CampusServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamCampuses(context.Context, *v1.StreamCampusesRequest) (*connect.ServerStreamForClient[v1.Campus], error)
 }
 
@@ -251,6 +253,8 @@ type CampusServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamCampuses(context.Context, *v1.StreamCampusesRequest, *connect.ServerStream[v1.Campus]) error
 }
 
@@ -316,6 +320,8 @@ type CarrierServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamCarriers(context.Context, *v1.StreamCarriersRequest) (*connect.ServerStreamForClient[v1.Carrier], error)
 }
 
@@ -389,6 +395,8 @@ type CarrierServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamCarriers(context.Context, *v1.StreamCarriersRequest, *connect.ServerStream[v1.Carrier]) error
 }
 
@@ -454,6 +462,8 @@ type CarrierFacilityServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest) (*connect.ServerStreamForClient[v1.CarrierFacility], error)
 }
 
@@ -528,6 +538,8 @@ type CarrierFacilityServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest, *connect.ServerStream[v1.CarrierFacility]) error
 }
 
@@ -593,6 +605,8 @@ type FacilityServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest) (*connect.ServerStreamForClient[v1.Facility], error)
 }
 
@@ -666,6 +680,8 @@ type FacilityServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest, *connect.ServerStream[v1.Facility]) error
 }
 
@@ -731,6 +747,8 @@ type InternetExchangeServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest) (*connect.ServerStreamForClient[v1.InternetExchange], error)
 }
 
@@ -805,6 +823,8 @@ type InternetExchangeServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest, *connect.ServerStream[v1.InternetExchange]) error
 }
 
@@ -870,6 +890,8 @@ type IxFacilityServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest) (*connect.ServerStreamForClient[v1.IxFacility], error)
 }
 
@@ -943,6 +965,8 @@ type IxFacilityServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest, *connect.ServerStream[v1.IxFacility]) error
 }
 
@@ -1008,6 +1032,8 @@ type IxLanServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamIxLans(context.Context, *v1.StreamIxLansRequest) (*connect.ServerStreamForClient[v1.IxLan], error)
 }
 
@@ -1081,6 +1107,8 @@ type IxLanServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamIxLans(context.Context, *v1.StreamIxLansRequest, *connect.ServerStream[v1.IxLan]) error
 }
 
@@ -1146,6 +1174,8 @@ type IxPrefixServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest) (*connect.ServerStreamForClient[v1.IxPrefix], error)
 }
 
@@ -1219,6 +1249,8 @@ type IxPrefixServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest, *connect.ServerStream[v1.IxPrefix]) error
 }
 
@@ -1284,6 +1316,8 @@ type NetworkServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamNetworks(context.Context, *v1.StreamNetworksRequest) (*connect.ServerStreamForClient[v1.Network], error)
 }
 
@@ -1357,6 +1391,8 @@ type NetworkServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamNetworks(context.Context, *v1.StreamNetworksRequest, *connect.ServerStream[v1.Network]) error
 }
 
@@ -1422,6 +1458,8 @@ type NetworkFacilityServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest) (*connect.ServerStreamForClient[v1.NetworkFacility], error)
 }
 
@@ -1496,6 +1534,8 @@ type NetworkFacilityServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest, *connect.ServerStream[v1.NetworkFacility]) error
 }
 
@@ -1561,6 +1601,8 @@ type NetworkIxLanServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest) (*connect.ServerStreamForClient[v1.NetworkIxLan], error)
 }
 
@@ -1634,6 +1676,8 @@ type NetworkIxLanServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest, *connect.ServerStream[v1.NetworkIxLan]) error
 }
 
@@ -1699,6 +1743,8 @@ type OrganizationServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest) (*connect.ServerStreamForClient[v1.Organization], error)
 }
 
@@ -1772,6 +1818,8 @@ type OrganizationServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest, *connect.ServerStream[v1.Organization]) error
 }
 
@@ -1837,6 +1885,8 @@ type PocServiceClient interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamPocs(context.Context, *v1.StreamPocsRequest) (*connect.ServerStreamForClient[v1.Poc], error)
 }
 
@@ -1910,6 +1960,8 @@ type PocServiceHandler interface {
 	// Over the Connect protocol, send Content-Type application/connect+proto
 	// or application/connect+json. gRPC and gRPC-Web clients use their own
 	// content types.
+	// A stream without since_id or updated_since sets the
+	// pdbplus-total-count response header to the number of matching rows.
 	StreamPocs(context.Context, *v1.StreamPocsRequest, *connect.ServerStream[v1.Poc]) error
 }
 

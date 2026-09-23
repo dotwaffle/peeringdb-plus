@@ -1949,7 +1949,10 @@ type NetworkIxLan struct {
 	Name        *wrapperspb.StringValue `protobuf:"bytes,15,opt,name=name,proto3" json:"name,omitempty"`
 	Created     *timestamppb.Timestamp  `protobuf:"bytes,16,opt,name=created,proto3" json:"created,omitempty"`
 	Updated     *timestamppb.Timestamp  `protobuf:"bytes,17,opt,name=updated,proto3" json:"updated,omitempty"`
-	Status      string                  `protobuf:"bytes,18,opt,name=status,proto3" json:"status,omitempty"`
+	// ok, not-operational, pending, or deleted. A status filter of ok
+	// leaves out the not-operational rows. An ok row with operational set
+	// to false is also not operational.
+	Status string `protobuf:"bytes,18,opt,name=status,proto3" json:"status,omitempty"`
 	// Opaque metadata document (PeeringDB 2.83.0). Keys can change without
 	// a release. An empty Struct means that no keys are set, the same as
 	// upstream's {}. Absent only when the stored document cannot be
