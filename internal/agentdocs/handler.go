@@ -293,7 +293,9 @@ Use the MCP endpoint for typed network research. Check sync freshness when curre
 - [OpenAPI specification](%s/rest/v1/openapi.json): REST schema and endpoints.
 - [GraphQL endpoint](%s/graphql): GraphQL API and schema explorer.
 - [PeeringDB-compatible API](%s/api/): Read-compatible PeeringDB API.
-`, origin, MCPServerCardPath, origin, WellKnownSkillPath, origin, SkillIndexPath, origin, origin, origin, origin)
+- [Web UI](%s/ui/): Search, detail, and comparison pages. Terminal clients get text output.
+- ConnectRPC: services under %s/peeringdb.v1.*, with gRPC reflection and health checks.
+`, origin, MCPServerCardPath, origin, WellKnownSkillPath, origin, SkillIndexPath, origin, origin, origin, origin, origin, origin)
 }
 
 type serveDocumentInput struct {
