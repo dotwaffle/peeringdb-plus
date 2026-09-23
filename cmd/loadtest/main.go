@@ -1,7 +1,8 @@
-// Command loadtest is an operator tool that exercises every API
-// surface of a peeringdb-plus deployment (default
-// https://peeringdb-plus.fly.dev) for capacity validation, dashboard
-// warmup, and load reproduction.
+// Command loadtest is an operator tool that sends read-only traffic to
+// five interfaces of a peeringdb-plus deployment (default
+// https://peeringdb-plus.fly.dev): /api, /rest/v1, /graphql,
+// ConnectRPC, and /ui. It does not test /mcp. Use it for capacity
+// validation, dashboard warmup, and load reproduction.
 //
 // SAFETY: this binary is compiled by `go build ./...` but is NEVER
 // invoked by CI, Dockerfiles, or deployment scripts — only by
@@ -11,7 +12,7 @@
 //
 // Four modes are supported:
 //
-//	loadtest endpoints [flags]   one-shot inventory sweep across all 5 surfaces
+//	loadtest endpoints [flags]   one-shot inventory sweep across the 5 surfaces
 //	loadtest sync       [flags]  replay the 13-step ordered sync sequence
 //	loadtest soak       [flags]  sustained QPS-capped mixed-surface load
 //	loadtest ramp       [flags]  per-surface inflection-point capacity probe

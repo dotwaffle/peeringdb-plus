@@ -18,13 +18,14 @@
 ## What it does
 
 Four modes drive read-only HTTP traffic against a peeringdb-plus
-mirror, exercising every entity type across all five API surfaces
-(pdbcompat `/api`, entrest `/rest/v1`, GraphQL `/graphql`,
-ConnectRPC `/peeringdb.v1.*`, Web UI `/ui`):
+mirror, exercising every entity type across five of the six API
+surfaces (pdbcompat `/api`, entrest `/rest/v1`, GraphQL `/graphql`,
+ConnectRPC `/peeringdb.v1.*`, Web UI `/ui`). The MCP endpoint
+(`/mcp`) is not covered.
 
 | mode        | purpose                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
-| `endpoints` | One-shot inventory sweep (~114 distinct requests). Validates every API surface returns 2xx. |
+| `endpoints` | One-shot inventory sweep (~114 distinct requests). Checks that each endpoint in the registry returns 2xx. |
 | `sync`      | Replays the 13-step FK-ordered type sequence across 3 depth bands (`depth=0/1/2`) → 39 GETs (full or incremental). Mirrors `internal/sync/worker.go syncSteps()`. |
 | `soak`      | Sustained QPS-capped mixed-surface load. Defaults to 30 s × 4 workers × 5 req/s. |
 | `ramp`      | Per-surface concurrency ramp; finds the inflection point where p95/p99 latency or error rate degrades. Sequential per surface (no cross-surface contention). |
