@@ -93,6 +93,18 @@ Prometheus / Grafana metrics are exported via OTLP to the configured collector
 no Prometheus scrape endpoint is exposed by the process. <!-- VERIFY:
 OTLP collector endpoint configured for the peeringdb-plus.fly.dev deployment -->
 
+### Before the first sync
+
+Until the first sync completes, every route returns
+`503 Service Unavailable`, except `/`, `/healthz`, `/readyz`, `/sync`,
+`/favicon.ico`, `/static/*` and `/grpc.health.v1.Health/*`.
+This includes `/mcp` and the agent discovery files that `GET /` lists.
+A browser gets a syncing page.
+A terminal client gets text.
+Other clients get `{"error":"sync not yet completed"}` as `application/json`.
+ConnectRPC and gRPC clients get `UNAVAILABLE`.
+To know when the server is ready, poll `/readyz` or the gRPC health service.
+
 ## Row status on each surface
 
 The mirror stores rows of every status that upstream sends:
@@ -996,7 +1008,7 @@ Typical status codes:
 | `404` | Unknown `{type}`, missing `{id}`, detail GET on a tombstoned row, or an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn` |
 | `413` | Pre-flight response memory budget exceeded — see "Response memory budget" above |
 | `500` | Database error (details redacted from response body, full error logged) |
-| `503` | Concurrent in-flight response pool exhausted (transient; `Retry-After: 1`) |
+| `503` | The in-flight response pool is full (transient, `Retry-After: 1`), or the first sync has not completed (see § Before the first sync) |
 
 Responses include an `X-Powered-By` header identifying the server
 as PeeringDB Plus.
@@ -1136,6 +1148,7 @@ migrate clients to `pdbplus-total-count`.
 | `CANCELED` | The client canceled the call |
 | `DEADLINE_EXCEEDED` | The client deadline passed, or a stream ran longer than `PDBPLUS_STREAM_TIMEOUT` |
 | `RESOURCE_EXHAUSTED` | The request message is larger than 1 MB |
+| `UNAVAILABLE` | The server has not completed its first sync. Poll `grpc.health.v1.Health` until it reports `SERVING` |
 | `INTERNAL` | Server-side database failure. The message is only `internal error`; the full error is logged and recorded on the request trace |
 
 ### Reflection and health
