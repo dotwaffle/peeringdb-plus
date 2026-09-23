@@ -200,6 +200,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 
 - `PDBPLUS_SYNC_MODE=incremental` (default flipped 2026-04-26 after the incremental-sync evaluation; `full` is operator escape-hatch for first-sync / recovery)
 - `PDBPLUS_SYNC_INTERVAL` defaults `1h` unauthenticated / `15m` when `PDBPLUS_PEERINGDB_API_KEY` is set (auth-conditional)
+- `PDBPLUS_FULL_SYNC_INTERVAL=24h`: the forced full cycle is the ONLY automatic repair for what incremental sync cannot see: count fields, netfac/ixfac name/city/country + carrierfac name (upstream copies them from the fac without bumping `updated`), live rows skipped by `updated` ties under offset paging (0160 gives ~600 netixlans one `updated`), values set upstream before our column existed (`meta`), orphan-nulled FKs. `0` leaves them stale until `POST /sync?mode=full`. Upstream `?since` is strict `updated > N`; it only looks inclusive because the wire `updated` is truncated to the second. See `docs/ARCHITECTURE.md § Daily full reconcile`.
 - `PDBPLUS_RESPONSE_MEMORY_LIMIT=128MiB` — pdbcompat list pre-flight 413 budget; mandatory unit suffix (`KB`/`MB`/`GB`/`TB`); bare numbers rejected except literal `0` (disabled — dev only)
 - `PDBPLUS_SYNC_MEMORY_LIMIT=400MB` — sync-cycle peak heap ceiling; unit suffix required; `0` disables
 - `PDBPLUS_HEAP_WARN_MIB=400`, `PDBPLUS_RSS_WARN_MIB=384` — sync-cycle telemetry warn thresholds (Fly 512 MB cap; sustained breach re-opens the incremental-sync evaluation)

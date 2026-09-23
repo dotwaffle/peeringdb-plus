@@ -114,6 +114,41 @@ default `1h` unauthenticated / `15m` authenticated):
 6. LiteFS replicates the SQLite WAL to all replica regions in the background;
    replicas pick up the new data on their next read without restarting.
 
+### Daily full reconcile
+
+An incremental cycle fetches `?since=<cursor>` in pages of 250 rows,
+and its upserts skip a row whose `updated` value did not advance.
+It cannot see a change that upstream makes without a new `updated` value.
+Once per `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`),
+the cycle runs in full mode instead.
+It fetches each bare list in one request and rewrites every row:
+the `withReconcileAll` marker turns off the `updated` skip gate
+of the upserts (`internal/sync/upsert.go`).
+Only a full-mode cycle repairs this data:
+
+- Count fields, such as `ix_count`, `net_count` and `fac_count`.
+  Upstream saves them without a change to `updated`
+  (2.83.0 `signals.py:92-177`).
+- `name`, `city` and `country` on `netfac` and `ixfac`, and `name` on
+  `carrierfac`.
+  Upstream copies these values from the facility
+  (2.83.0 `docs/api/obj_netfac.md:8-9`, `obj_ixfac.md:8-9`,
+  `obj_carrierfac.md:12`),
+  so a facility edit changes them without a change to the row's `updated`.
+- Live rows that a paged `?since=` fetch skipped.
+  Upstream orders the window by `updated` only and pages it with an offset
+  (2.83.0 `rest.py:738-745`, `:757-760`).
+  Rows that share one `updated` value can move across a page edge between
+  two requests, and the cursor then moves past the rows that were skipped.
+  Upstream migration 0160 gives about 600 netixlans one `updated` value.
+- Values that upstream set before the mirror stored the field,
+  for example `meta` on `net` and `netixlan`.
+- FK columns that the sync set to `NULL` because the parent was missing,
+  and a newly added `_fold` column.
+
+With `PDBPLUS_FULL_SYNC_INTERVAL=0` this data stays stale until an operator
+runs `POST /sync?mode=full`.
+
 ## Key abstractions
 
 - **`ent.Client`** (`ent/client.go`) — Generated ent client;

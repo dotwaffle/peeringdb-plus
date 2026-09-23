@@ -57,9 +57,9 @@ import (
 // mutated locally without bumping `updated` (orphan-filter FK nulls)
 // and backfilling newly added _fold columns. We deliberately use
 // strict `>` rather than `>=`: `>=` would defeat the optimization
-// entirely, since PeeringDB's ?since=N is inclusive and every refetch
-// produces excluded.updated >= existing.updated. The bounded same-
-// second-drift risk is the trade.
+// entirely, since upstream re-sends the rows of the cursor's own second
+// (see GetMaxUpdated) and every refetch produces excluded.updated >=
+// existing.updated. The bounded same-second-drift risk is the trade.
 //
 // Implementation note: ent's UpdateWhere predicate is emitted with a
 // table qualifier active on the Builder. Calling b.Ident("foo")
