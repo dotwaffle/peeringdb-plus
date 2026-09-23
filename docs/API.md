@@ -594,8 +594,10 @@ and § Validation Notes for why MySQL collation is *not* the upstream mechanism.
 
 ### Soft-delete tombstones
 
-Sync soft-deletes rows by setting `status='deleted'` rather than physically
-removing them.
+Sync never deletes a stored row.
+When upstream deletes an object, the next `?since=` fetch returns the row
+with `status='deleted'`, and sync stores that status.
+Sync does not mark a row as deleted when the row is missing from a response.
 The list path applies the upstream PeeringDB 2.83.0 `rest.py:719-750`
 status matrix as the final predicate via `applyStatusMatrix`.
 The matrix starts from the live statuses of the type
