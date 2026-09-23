@@ -166,7 +166,7 @@ func (s *FacilityService) GetFacility(ctx context.Context, req *pb.GetFacilityRe
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity facility %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get facility %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get facility %d", req.GetId()), err)
 	}
 	return &pb.GetFacilityResponse{Facility: facilityToProto(f)}, nil
 }

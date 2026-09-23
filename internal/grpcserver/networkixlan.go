@@ -115,7 +115,7 @@ func (s *NetworkIxLanService) GetNetworkIxLan(ctx context.Context, req *pb.GetNe
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity networkixlan %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get networkixlan %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get networkixlan %d", req.GetId()), err)
 	}
 	return &pb.GetNetworkIxLanResponse{NetworkIxLan: networkIxLanToProto(nixl)}, nil
 }

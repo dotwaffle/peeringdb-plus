@@ -69,7 +69,7 @@ func (s *IxFacilityService) GetIxFacility(ctx context.Context, req *pb.GetIxFaci
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity ixfacility %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get ixfacility %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get ixfacility %d", req.GetId()), err)
 	}
 	return &pb.GetIxFacilityResponse{IxFacility: ixFacilityToProto(ixf)}, nil
 }

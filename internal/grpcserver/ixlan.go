@@ -89,7 +89,7 @@ func (s *IxLanService) GetIxLan(ctx context.Context, req *pb.GetIxLanRequest) (*
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity ixlan %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get ixlan %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get ixlan %d", req.GetId()), err)
 	}
 	return &pb.GetIxLanResponse{IxLan: ixLanToProto(ctx, il)}, nil
 }

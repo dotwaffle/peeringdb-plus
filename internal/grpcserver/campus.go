@@ -100,7 +100,7 @@ func (s *CampusService) GetCampus(ctx context.Context, req *pb.GetCampusRequest)
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity campus %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get campus %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get campus %d", req.GetId()), err)
 	}
 	return &pb.GetCampusResponse{Campus: campusToProto(c)}, nil
 }

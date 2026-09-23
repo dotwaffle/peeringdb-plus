@@ -75,7 +75,7 @@ func (s *NetworkFacilityService) GetNetworkFacility(ctx context.Context, req *pb
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity networkfacility %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get networkfacility %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get networkfacility %d", req.GetId()), err)
 	}
 	return &pb.GetNetworkFacilityResponse{NetworkFacility: networkFacilityToProto(nf)}, nil
 }

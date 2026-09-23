@@ -63,7 +63,7 @@ func (s *CarrierFacilityService) GetCarrierFacility(ctx context.Context, req *pb
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity carrierfacility %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get carrierfacility %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get carrierfacility %d", req.GetId()), err)
 	}
 	return &pb.GetCarrierFacilityResponse{CarrierFacility: carrierFacilityToProto(cf)}, nil
 }

@@ -75,7 +75,7 @@ func (s *PocService) GetPoc(ctx context.Context, req *pb.GetPocRequest) (*pb.Get
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity poc %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get poc %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get poc %d", req.GetId()), err)
 	}
 	return &pb.GetPocResponse{Poc: pocToProto(p)}, nil
 }

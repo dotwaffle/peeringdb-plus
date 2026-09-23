@@ -105,7 +105,7 @@ func (s *OrganizationService) GetOrganization(ctx context.Context, req *pb.GetOr
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity organization %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get organization %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get organization %d", req.GetId()), err)
 	}
 	return &pb.GetOrganizationResponse{Organization: organizationToProto(o)}, nil
 }

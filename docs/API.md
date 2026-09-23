@@ -518,7 +518,7 @@ when many rows share an `updated` timestamp (or an `updated`+`created` pair).
 
 Every stream is capped by `PDBPLUS_STREAM_TIMEOUT`
 (default `60s`) enforced via `context.WithTimeout` at the handler.
-Exceeding the timeout closes the stream with a cancellation error.
+Exceeding the timeout closes the stream with `DEADLINE_EXCEEDED`.
 
 ### `pdbplus-total-count` response header
 
@@ -539,6 +539,17 @@ so the application header moved to the `pdbplus-` prefix.
 The legacy `grpc-total-count` name is still dual-emitted
 for a deprecation window and will be removed in a future release —
 migrate clients to `pdbplus-total-count`.
+
+### Errors
+
+| Code | Cause |
+|------|-------|
+| `INVALID_ARGUMENT` | Invalid filter value or malformed `page_token`. The message names the problem |
+| `NOT_FOUND` | `Get{Type}` found no row with that ID that the caller can see |
+| `CANCELED` | The client canceled the call |
+| `DEADLINE_EXCEEDED` | The client deadline passed, or a stream ran longer than `PDBPLUS_STREAM_TIMEOUT` |
+| `RESOURCE_EXHAUSTED` | The request message is larger than 1 MB |
+| `INTERNAL` | Server-side database failure. The message is only `internal error`; the full error is logged and recorded on the request trace |
 
 ### Reflection and health
 

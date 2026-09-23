@@ -171,7 +171,7 @@ func (s *NetworkService) GetNetwork(ctx context.Context, req *pb.GetNetworkReque
 		if ent.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity network %d not found", req.GetId()))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get network %d: %w", req.GetId(), err))
+		return nil, queryError(ctx, fmt.Sprintf("get network %d", req.GetId()), err)
 	}
 	return &pb.GetNetworkResponse{Network: networkToProto(n)}, nil
 }
