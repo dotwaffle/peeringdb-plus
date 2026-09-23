@@ -226,28 +226,29 @@ peeringdb-plus ignores the header. Every caller sees the tier that
 
 ## Output
 
-Every mode prints a tab-separated summary table at the end. Pipe
-through `column -t -s$'\t'` for fixed-width formatting:
+The `endpoints`, `sync`, and `soak` modes print an aligned summary
+table at the end. The `ramp` mode prints its markdown tables instead
+(see [Sample output](#sample-output)).
 
 ```text
 === loadtest soak summary ===
-wall-clock      30.012s
-observed-rps    4.97 req/s
+wall-clock     30.012s
+observed-rps   4.96 req/s
 
-surface     count  ok   err  success%  p50    p95    p99
-pdbcompat   53     53   0    100.0%    8ms    24ms   48ms
-entrest     31     31   0    100.0%    9ms    27ms   52ms
-graphql     16     16   0    100.0%    18ms   62ms   89ms
-connectrpc  29     29   0    100.0%    11ms   36ms   71ms
-webui       20     20   0    100.0%    7ms    19ms   34ms
-TOTAL       149    149  0    100.0%    10ms   34ms   71ms
+SURFACE     COUNT  OK   ERR  SUCCESS%  P50       P95       P99
+pdbcompat   53     53   0    100.0%    8.412ms   24.13ms   48.007ms
+entrest     31     31   0    100.0%    9.205ms   27.34ms   52.118ms
+graphql     16     16   0    100.0%    18.031ms  89.26ms   89.26ms
+connectrpc  29     29   0    100.0%    11.302ms  36.118ms  71.044ms
+webui       20     20   0    100.0%    7.118ms   19.406ms  34.772ms
+TOTAL       149    149  0    100.0%    10.087ms  34.105ms  71.044ms
 ```
 
 Latency percentiles use the **nearest-rank** method on a sorted
 slice of observed latencies. p99 reports the 99th-percentile of the
 observed distribution; a single anomalous outlier in 100 requests
 will surface only at p100, which is intentionally not printed (read
-the `err` column to surface anomalies).
+the `ERR` column to surface anomalies).
 
 ## CI behaviour
 
