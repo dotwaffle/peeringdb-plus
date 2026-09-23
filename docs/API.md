@@ -1528,31 +1528,34 @@ Request body is capped at 1 MB.
 Bypasses the readiness middleware so an operator can kick off the first sync
 before any sync has completed.
 
-## Rate limits
+## Limits
 
-PeeringDB Plus does not itself enforce request rate limits at any edge.
-The only operational limits are:
+PeeringDB Plus has no request rate limit.
+It enforces these limits:
 
 | Limit | Scope | Default | Configured by |
 |-------|-------|---------|---------------|
-| Request body size | Every non-gRPC request | `1 MB` | `maxRequestBodySize` in `main.go` (hardcoded) |
+| Request body size | Every HTTP request body. For ConnectRPC, each message | `1 MB` | `maxRequestBodySize` in `main.go` (hardcoded) |
 | Read header timeout | Every connection | `10s` | `buildServer` (hardcoded) |
 | Read timeout | Every connection | `30s` | `buildServer` (hardcoded) |
 | Idle timeout | Every keep-alive connection | `120s` | `buildServer` (hardcoded) |
 | Stream timeout | ConnectRPC `Stream{Type}` | `60s` | `PDBPLUS_STREAM_TIMEOUT` |
 | Graceful drain timeout | Shutdown | `10s` | `PDBPLUS_DRAIN_TIMEOUT` |
 | Sync memory ceiling | Sync worker heap | `400MB` | `PDBPLUS_SYNC_MEMORY_LIMIT` |
-| Response memory budget | pdbcompat `/api/` list | `128MiB` | `PDBPLUS_RESPONSE_MEMORY_LIMIT` |
+| Response memory budget | pdbcompat `/api/` | `128MiB` | `PDBPLUS_RESPONSE_MEMORY_LIMIT` |
 | GraphQL query complexity | `POST /graphql` | `1,000,000` (weighted) | `FixedComplexityLimit(graph.ComplexityLimit)` |
 | GraphQL query depth | `POST /graphql` | `15` | `FixedDepthLimit` (hardcoded) |
+| GraphQL page size | `first`, `last`, `limit` | `100`, maximum `1000` (a larger value is an error) | `graph/pagination.go` (hardcoded) |
+| REST `per_page` | `/rest/v1/` lists | `10`, maximum `100` (a larger value returns `400`) | entrest (generated) |
+| ConnectRPC `page_size` | List RPCs | `100`, maximum `1000` (a larger value is clamped) | `internal/grpcserver/pagination.go` (hardcoded) |
+| MCP `page_size` | Search and relation pages | `20`, maximum `100` | `internal/mcpserver` (hardcoded) |
 
 Upstream PeeringDB rate limits apply to the sync worker's outbound requests —
 setting `PDBPLUS_PEERINGDB_API_KEY` raises that ceiling.
 
 Deployment-level rate limiting
 (e.g., Fly.io edge, Cloudflare, or a load balancer)
-is not configured in this repository. <!-- VERIFY:
-rate limiting policy on the peeringdb-plus.fly.dev deployment -->
+is not configured in this repository.
 
 ## CORS
 
