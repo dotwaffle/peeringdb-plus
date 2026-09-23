@@ -13,10 +13,10 @@ import (
 )
 
 // TestTimeFilterSemantics locks upstream's date filter handling
-// (rest.py:619-658): time filters accept ISO 8601 alongside epoch
+// (2.83.0 rest.py:640-679): time filters accept ISO 8601 alongside epoch
 // seconds; a bare 10-char date in gt/lte gets its time forced to
-// end-of-day (rest.py:621-623); and bare date equality matches the
-// whole day (the __startswith rewrite at rest.py:657-658).
+// end-of-day (rest.py:642-645); and bare date equality matches the
+// whole day (the __startswith rewrite at rest.py:678-679).
 func TestTimeFilterSemantics(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
@@ -68,11 +68,11 @@ func TestTimeFilterSemantics(t *testing.T) {
 		name, path string
 		want       []int
 	}{
-		// rest.py:657-658: bare date equality = whole-day window.
+		// rest.py:678-679: bare date equality = whole-day window.
 		{"bare date equality is day window", "/api/net?updated=2026-04-01", []int{1}},
-		// rest.py:621-623: gt on a date means "after that whole day".
+		// rest.py:642-645: gt on a date means "after that whole day".
 		{"gt date is end of day", "/api/net?updated__gt=2026-04-01", []int{2}},
-		// rest.py:621-623: lte on a date includes the whole day.
+		// rest.py:642-645: lte on a date includes the whole day.
 		{"lte date includes whole day", "/api/net?updated__lte=2026-04-01", []int{1}},
 		// gte keeps start-of-day (only gt/lte adjust upstream).
 		{"gte date is start of day", "/api/net?updated__gte=2026-04-01", []int{1, 2}},

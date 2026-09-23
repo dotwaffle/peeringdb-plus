@@ -257,7 +257,7 @@ func TestSyncTombstonesExplicitDeletedRecords(t *testing.T) {
 	}
 
 	// Upstream re-sync delivers org 2 as an explicit status='deleted'
-	// tombstone (mirrors the ?since= shape per rest.py:694-727).
+	// tombstone (mirrors the ?since= shape per 2.83.0 rest.py:719-750).
 	// Org 1 stays 'ok'; dependents of org 2 also tombstone.
 	// Bump org 2's `updated` past the cycle-1
 	// fixture (which had updated=2024-08-01T09:15:00Z) so the

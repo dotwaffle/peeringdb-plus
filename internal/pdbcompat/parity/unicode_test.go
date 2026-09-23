@@ -21,8 +21,10 @@ import (
 // Registry but their _fold pipeline is identical to net's; this
 // suite asserts the user-visible behaviour, not per-entity wiring.
 //
-// upstream: peeringdb_server/rest.py:576 (unidecode pipeline)
-// upstream: pdb_api_test.py:5133 (`fac unaccented` substring filter)
+// upstream: 2.83.0 peeringdb_server/rest.py:597 (unidecode pipeline)
+// upstream: 2.83.0 pdb_api_test.py:5191-5211
+// (test_guest_005_list_filter_accented: `fac unãccented` matches
+// `fac unaccented`)
 //
 // `internal/unifold.Fold` is the reference folder used to BUILD
 // expected matches against fixture-style inputs — never as the
@@ -35,9 +37,9 @@ func TestParity_Unicode(t *testing.T) {
 
 	t.Run("net_name_contains_diacritic_matches_ascii", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:576 (unidecode folding before substring
+		// upstream: 2.83.0 rest.py:597 (unidecode folding before substring
 		// match)
-		// upstream: pdb_api_test.py:5133 (`fac unaccented` matched by
+		// upstream: 2.83.0 pdb_api_test.py:5191-5211 (`fac unaccented` matched by
 		// ASCII substring against folded shadow column)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
@@ -65,7 +67,7 @@ func TestParity_Unicode(t *testing.T) {
 
 	t.Run("fac_city_cjk_roundtrip", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:576 (CJK passes through unidecode unchanged
+		// upstream: 2.83.0 rest.py:597 (CJK passes through unidecode unchanged
 		// since it has no Latin transliteration; the fold column
 		// stores the lowered form which equals the input).
 		// synthesised: no upstream test corpus exercises CJK substring
@@ -109,11 +111,10 @@ func TestParity_Unicode(t *testing.T) {
 
 	t.Run("ix_name_startswith_coerced_case_insensitive", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:576 (`__startswith` is coerced to
-		// `__istartswith` semantics via the fold pipeline — both sides
-		// of the comparison are lowered before matching).
-		// upstream: pdb_api_test.py:1479 (case-insensitive name prefix
-		// search across the IX corpus).
+		// upstream: 2.83.0 rest.py:597 (unidecode folding) + :659-662
+		// (`__startswith` is coerced to `__istartswith`, so the match
+		// ignores case).
+		// synthesised: no upstream API test covers an ix name prefix.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		org, err := c.Organization.Create().
@@ -147,7 +148,7 @@ func TestParity_Unicode(t *testing.T) {
 
 	t.Run("combining_mark_NFKD_equivalent", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:576 (NFKD normalises combining marks; both
+		// upstream: 2.83.0 rest.py:597 (NFKD normalises combining marks; both
 		// composed `Zürich` and decomposed `Zu\u0308rich` fold to
 		// `zurich`).
 		// synthesised: combining-mark equivalence is not exercised by
@@ -188,7 +189,7 @@ func TestParity_Unicode(t *testing.T) {
 
 // TestParity_Unicode_FoldWindow_DIVERGENCE locks the intentional divergence
 // registered in docs/API.md § Known Divergences (fold-window row): upstream
-// folds the query value via unidecode at request time (rest.py:576), so
+// folds the query value via unidecode at request time (2.83.0 rest.py:597), so
 // non-ASCII matching works the moment a row exists. This mirror instead
 // matches against a sync-populated `_fold` shadow column — a row whose shadow
 // column has not yet been (re)populated by a sync cycle is unreachable by a
@@ -196,7 +197,7 @@ func TestParity_Unicode(t *testing.T) {
 // it. The two halves below pin both sides of the window: unsynced rows miss,
 // and the sync-shaped fold-column write closes the window.
 //
-// upstream: peeringdb_server/rest.py:576 (query-time unidecode — no window)
+// upstream: 2.83.0 peeringdb_server/rest.py:597 (query-time unidecode — no window)
 func TestParity_Unicode_FoldWindow_DIVERGENCE(t *testing.T) {
 	t.Parallel()
 
@@ -247,10 +248,10 @@ func TestParity_Unicode_FoldWindow_DIVERGENCE(t *testing.T) {
 // divergence for the `?q=` list parameter (docs/API.md § Known
 // Divergences).
 //
-// upstream: rest.py:545 — the db-field filter loop explicitly skips
+// upstream: 2.83.0 rest.py:566 — the db-field filter loop explicitly skips
 // `k == "q"`, and no other consumer of the parameter exists on the /api
 // surface (the separate `name_search` parameter triggers the
-// Elasticsearch-backed search_v2 at rest.py:512-532; there is no DRF
+// Elasticsearch-backed search_v2 at rest.py:532-553; there is no DRF
 // SearchFilter backend). Upstream therefore returns the UNFILTERED list
 // for any `?q=` value.
 //

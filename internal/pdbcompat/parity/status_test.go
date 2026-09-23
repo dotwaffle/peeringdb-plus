@@ -17,7 +17,8 @@ import (
 //
 //	{no since, since=N} × {list, pk-lookup} × {campus, netixlan, other}
 //
-// The matrix is built from the type's live statuses (models.py:109-122):
+// The matrix is built from the type's live statuses (2.83.0
+// models.py:109-122):
 // "ok" on every type, plus "not-operational" on netixlan. A list without
 // since admits the live statuses (rest.py:748), a since list admits live
 // + deleted (:723), and a PK lookup admits live + pending (:750). The
@@ -37,8 +38,9 @@ import (
 // subtests lock this.
 //
 // upstream: 2.83.0 peeringdb_server/rest.py:719-750 (status × since matrix)
-// upstream: pdb_api_test.py (multiple sites; admission rules are
-// implicit in fixture-mix expectations across the test corpus).
+// upstream: 2.83.0 pdb_api_test.py:4022-4044 (the two since tests;
+// the other admission rules are implicit in fixture-mix expectations
+// across the test corpus).
 func TestParity_Status(t *testing.T) {
 	t.Parallel()
 
@@ -122,10 +124,10 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("list_no_since_status_ok_only", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:694-700 (default branch — list filters to
-		// status=ok unconditionally without ?since)
-		// upstream: pdb_api_test.py:5081 (list endpoint default-mix
-		// expectations)
+		// upstream: 2.83.0 rest.py:747-748 (default branch — a list
+		// without ?since filters to the live statuses, ok on net)
+		// synthesised: no single upstream test asserts the default mix;
+		// every guest list expectation relies on it.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		seedNet(t, c, 2, 64502, "pending", t0.Add(1*time.Hour))
@@ -144,10 +146,10 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("pk_lookup_admits_pending", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:702-710 (pk-lookup branch admits pending)
-		// upstream: pdb_api_test.py:1242 (pk lookup on a pending row
-		// returns 200 — the row is visible by direct ID even if hidden
-		// from list responses).
+		// upstream: 2.83.0 rest.py:749-750 (pk-lookup branch admits
+		// the live statuses plus pending, so a pending row returns 200
+		// by direct ID even though lists hide it)
+		// synthesised: no upstream test fetches a pending row by ID.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 20, 64520, "pending", t0)
 
@@ -161,8 +163,9 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("pk_lookup_deleted_returns_404", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:702-710 (pk-lookup branch excludes deleted)
-		// upstream: pdb_api_test.py:1247 (deleted row pk lookup → 404)
+		// upstream: 2.83.0 rest.py:749-750 (pk-lookup branch excludes
+		// deleted, so the lookup returns 404)
+		// synthesised: no upstream test fetches a deleted row by ID.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 30, 64530, "deleted", t0)
 
@@ -175,9 +178,11 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("list_since_admits_deleted_excludes_pending_noncampus", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:712-715 (since>0 admits ok+deleted, excludes
-		// pending — except for campus carve-out)
-		// upstream: pdb_api_test.py:1317 (since-window list assertion)
+		// upstream: 2.83.0 rest.py:719-746 (since>0 admits the live
+		// statuses plus deleted at :723, and excludes pending except
+		// for the campus carve-out at :725-735)
+		// upstream: 2.83.0 pdb_api_test.py:4022-4028
+		// (test_guest_005_list_since returns deleted rows)
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		seedNet(t, c, 2, 64502, "pending", t0.Add(1*time.Hour))
@@ -245,10 +250,11 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("list_since_campus_admits_pending", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:712-715 (campus carve-out: pending admitted
-		// on since>0 list — the IXP onboarding workflow needs pending
-		// campuses to sync within the cycle window)
-		// upstream: pdb_api_test.py:3965 (campus list with mixed statuses)
+		// upstream: 2.83.0 rest.py:725-735 (campus carve-out: pending
+		// admitted on since>0 list — the IXP onboarding workflow needs
+		// pending campuses to sync within the cycle window)
+		// upstream: 2.83.0 pdb_api_test.py:4032-4044
+		// (test_guest_005_list_campus_since returns pending campuses)
 		c := testutil.SetupClient(t)
 		seedCampus(t, c, 1, "ok", t0)
 		seedCampus(t, c, 2, "pending", t0.Add(1*time.Hour))
@@ -269,8 +275,8 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("since_zero_is_inert_like_bare_list", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:696 (`if since > 0` — since=0 never
-		// activates the matrix; the plain status='ok' list serves).
+		// upstream: 2.83.0 rest.py:719 (`if since > 0` — since=0 never
+		// activates the matrix; the plain live-status list serves).
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		seedNet(t, c, 2, 64502, "deleted", t0.Add(time.Hour))

@@ -1576,7 +1576,7 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 
 // nullSideFK enforces the upstream SET_NULL contract on optional side
 // FKs (NetworkIxLan.{net_side_id, ix_side_id} → fac).
-// Per peeringdb_server/models.py:5630-5642 these
+// Per peeringdb_server/models.py:6088-6101 (2.83.0) these
 // columns are `null=True, on_delete=SET_NULL`, so a missing parent
 // must NULL the column rather than drop the row.
 //

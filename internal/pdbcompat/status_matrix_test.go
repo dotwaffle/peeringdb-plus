@@ -277,9 +277,9 @@ func TestStatusMatrix(t *testing.T) {
 		t.Parallel()
 		client := testutil.SetupClient(t)
 		ctx := t.Context()
-		// Seed 300 status=ok networks (above the historical 250 cap,
-		// below MaxLimit=1000). Both bare URL and ?limit=0 return all
-		// rows (matches upstream rest.py:495 + :737).
+		// Seed 300 status=ok networks (above the historical 250 cap).
+		// Both bare URL and ?limit=0 return all rows (matches upstream
+		// 2.83.0 rest.py:516 + :760).
 		const seedN = 300
 		for i := 1; i <= seedN; i++ {
 			if _, err := client.Network.Create().

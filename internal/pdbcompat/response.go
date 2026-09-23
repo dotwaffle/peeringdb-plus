@@ -14,7 +14,7 @@ import (
 const (
 	// DefaultLimit is the default value used when the `limit=` query
 	// parameter is absent. Set to 0 ("unlimited") to mirror upstream
-	// PeeringDB's `rest.py:495` behaviour: bare `/api/<type>` URLs
+	// PeeringDB's behaviour (2.83.0 `rest.py:516`): bare `/api/<type>` URLs
 	// return ALL rows from the queryset, not a paginated page.
 	//
 	// Earlier revisions of this code defaulted to 250, treating that as
@@ -64,15 +64,15 @@ func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
 // with defaults and validation.
 //
 // Bare URL (no `limit=`): returns DefaultLimit (0 = unlimited),
-// matching upstream `rest.py:495` which defaults `limit` to 0 and
-// then `rest.py:737` which slices `qset[skip:]` (no upper bound).
+// matching upstream 2.83.0 `rest.py:516`, which defaults `limit` to 0,
+// and `rest.py:760`, which slices `qset[skip:]` (no upper bound).
 // All-rows responses are gated by the response-memory
 // budget; if the precount × TypicalRowBytes exceeds the budget, the
 // handler returns 413 application/problem+json before materialising
 // anything.
 //
 // Explicit `limit=N`: positive N is honoured unmodified — upstream
-// applies qset[skip:skip+limit] with no upper cap (rest.py:734-735),
+// applies qset[skip:skip+limit] with no upper cap (rest.py:757-758),
 // and the response-memory budget is the real cost bound. (An earlier
 // revision clamped to 1000, which silently truncated pages for
 // clients paginating with larger windows — rows past the clamp were
@@ -82,10 +82,14 @@ func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
 // gate omits the SQL LIMIT clause when limit is 0.
 //
 // Non-numeric values are a 400 — upstream raises RestValidationError
-// "'limit' needs to be a number" (rest.py:490-497). Silently treating
+// "'limit' needs to be a number" (rest.py:511-518). Silently treating
 // a typo'd limit as absent turned a bounded page request into a
-// full-table dump. Negative values get the same 400 (upstream's
-// negative slice raises server-side; a clean 400 is the sane mirror).
+// full-table dump. Negative values get the same 400. For skip this
+// matches upstream: Django rejects the negative slice with ValueError,
+// which list() turns into a 400 (rest.py:757-760, :824-827). For limit
+// it is a mirror choice: upstream's `limit > 0` gate (rest.py:757-760)
+// serves a negative limit as unlimited. See docs/API.md § Known
+// Divergences.
 func ParsePaginationParams(params url.Values) (limit, skip int, err error) {
 	limit = DefaultLimit
 	if v := params.Get("limit"); v != "" {

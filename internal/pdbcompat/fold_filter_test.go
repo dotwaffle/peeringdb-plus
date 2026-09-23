@@ -117,7 +117,7 @@ func TestShadowRouting_Network_NameFold(t *testing.T) {
 
 // TestShadowRouting_Network_LigatureFold — rows whose names carry the
 // non-NFKD-decomposable code points œ, ð, and dotless ı (folded by upstream's
-// unidecode, rest.py:576) must match their plain-ASCII query spellings
+// unidecode, 2.83.0 rest.py:597) must match their plain-ASCII query spellings
 // end-to-end through the _fold shadow column.
 func TestShadowRouting_Network_LigatureFold(t *testing.T) {
 	t.Parallel()

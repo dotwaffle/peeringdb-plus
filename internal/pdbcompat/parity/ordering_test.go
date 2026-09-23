@@ -35,7 +35,8 @@ func TestParity_Ordering(t *testing.T) {
 	t.Run("default_list_order_updated_desc", func(t *testing.T) {
 		t.Parallel()
 		// upstream: django-handleref/models.py:95-101 (Meta.ordering)
-		// upstream: pdb_api_test.py:1604 (one of many default-list calls)
+		// synthesised: every upstream default-list call relies on this
+		// order; none asserts it directly.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 
@@ -80,8 +81,8 @@ func TestParity_Ordering(t *testing.T) {
 	t.Run("tiebreak_by_created_desc", func(t *testing.T) {
 		t.Parallel()
 		// upstream: django-handleref/models.py:95-101 (`-updated, -created`)
-		// upstream: pdb_api_test.py:1242 (sibling fixture pair with
-		// identical updated and distinct created)
+		// synthesised: a fixture pair with identical updated and
+		// distinct created; no upstream test asserts the tiebreak.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		org, err := c.Organization.Create().

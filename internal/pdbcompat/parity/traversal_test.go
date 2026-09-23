@@ -29,10 +29,9 @@ import (
 //     HTTP 200 with the unfiltered row set; the handler also emits
 //     an OTel span attribute `pdbplus.filter.unknown_fields` for
 //     operator visibility.
-//   - DIVERGENCE: `fac?ixlan__ix__fac_count__gt=0` is silent-ignored
-//     rather than resolved. The generic 2-hop mechanism cannot reach
-//     this — fac has no direct ixlan edge in the ent schema; upstream
-//     uses a bespoke per-serializer prepare_query.
+//   - `fac?ixlan__ix__fac_count__gt=0` is silent-ignored, as upstream
+//     does: fac has no ixlan relation, and upstream resolves no
+//     multi-hop key outside a serializer's prepare_query.
 //   - Path A 1-hop, campus target: `campus__name=` filter on fac.
 //     Previously a documented divergence; fixed in v1.18.0 via
 //     entsql.Annotation{Table: "campuses"} on Campus
@@ -47,9 +46,10 @@ import (
 //   - DIVERGENCE: netixlan net_side__<field> and ix_side__<field>
 //     are silent-ignored. The mirror has no edge to those facilities.
 //
-// upstream: peeringdb_server/serializers.py:754-780 (queryable_relations)
-// upstream: peeringdb_server/rest.py (filter dispatch)
-// upstream: pdb_api_test.py:5081, 2340, 2348 (canonical traversal sites)
+// upstream: 2.83.0 peeringdb_server/serializers.py:970-996
+// (queryable_relations) and :614-656 (get_relation_filters)
+// upstream: 2.83.0 peeringdb_server/rest.py:525-528, :616-683 (filter
+// dispatch over model fields and queryable_relations)
 func TestParity_Traversal(t *testing.T) {
 	t.Parallel()
 
@@ -57,8 +57,9 @@ func TestParity_Traversal(t *testing.T) {
 
 	t.Run("path_a_1hop_org_name", func(t *testing.T) {
 		t.Parallel()
-		// upstream: pdb_api_test.py:5081 (`net?org__name=` is one of
-		// the most common 1-hop traversal shapes in the corpus)
+		// upstream: 2.83.0 serializers.py:970-996 (queryable_relations
+		// adds org__name from the org FK of net)
+		// synthesised: no upstream API test filters net on org__name.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "TraversalOrg-Root", t0)
@@ -83,10 +84,9 @@ func TestParity_Traversal(t *testing.T) {
 
 	t.Run("path_a_2hop_ixpfx_via_ixlan_ix_id", func(t *testing.T) {
 		t.Parallel()
-		// upstream: pdb_api_test.py:3203 (ixpfx scoped via ixlan
-		// → ix). The 2-hop walk is the canonical Path A success
-		// pair because ixpfx → ixlan and ixlan → ix are both real
-		// edges in the ent schema.
+		// synthesised: a 2-hop Path A walk over two real ent edges
+		// (ixpfx → ixlan → ix). No upstream API test filters ixpfx on
+		// ixlan__ix__id.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "IXOrg", t0)
@@ -113,9 +113,9 @@ func TestParity_Traversal(t *testing.T) {
 
 	t.Run("path_b_1hop_org_city", func(t *testing.T) {
 		t.Parallel()
-		// upstream: pdb_api_test.py (Path B fallback covers any
-		// edge × queryable-target-field combination not explicitly
-		// in the Allowlist; the org__city case is representative).
+		// upstream: 2.83.0 serializers.py:970-996 (queryable_relations
+		// adds org__city from the org FK of net). The mirror reaches it
+		// through Path B because org__city is not in the allowlist.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		// Org with city=Amsterdam, second org with city=Berlin.
@@ -180,10 +180,10 @@ func TestParity_Traversal(t *testing.T) {
 
 	t.Run("unknown_field_silently_ignored_with_otel_attr", func(t *testing.T) {
 		t.Parallel()
-		// upstream: pdb_api_test.py (default-list-survives-unknown-
-		// query-string is the implicit contract across the corpus;
-		// none of the upstream tests pass deliberately invalid
-		// filter keys).
+		// upstream: 2.83.0 rest.py:616-683 (a key that is not in
+		// field_names matches no branch of the filter loop and is
+		// skipped).
+		// synthesised: no upstream API test passes an unknown key.
 		// Silent-ignore + OTel span attribute
 		// `pdbplus.filter.unknown_fields` for operator visibility.
 		c := testutil.SetupClient(t)
@@ -208,18 +208,16 @@ func TestParity_Traversal(t *testing.T) {
 		assertUnknownFieldsOTelAttr(t, c)
 	})
 
-	t.Run("DIVERGENCE_fac_ixlan_ix_fac_count_silent_ignore", func(t *testing.T) {
+	t.Run("fac_ixlan_ix_fac_count_ignored_like_upstream", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: Upstream resolves
-		// `fac?ixlan__ix__fac_count__gt=0` via a 3-hop per-serializer
-		// prepare_query (fac → ixfac → ix). The generic 2-hop ceiling
-		// cannot reach this; the filter key is silently ignored and
-		// the response is the unfiltered live-fac set.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: pdb_api_test.py:2340 (canonical site for the
-		// ix.fac_count via ixlan filter; upstream returns a filtered
-		// subset)
+		// upstream: 2.83.0 rest.py:525-528 (field_names is the model
+		// fields plus queryable_relations), serializers.py:970-996
+		// (queryable_relations adds one FK hop only; fac has no ixlan
+		// FK), :2092-2210 (FacilitySerializer.prepare_query has no
+		// ixlan key) and :614-656 (get_relation_filters). The key
+		// matches no branch of the filter loop (rest.py:633, :670), so
+		// upstream ignores it and returns the unfiltered list. The
+		// mirror ignores it too: fac has no ixlan edge.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "DivergenceOrg", t0)
@@ -230,20 +228,16 @@ func TestParity_Traversal(t *testing.T) {
 		srv := newTestServer(t, c)
 		status, body := httpGet(t, srv, "/api/fac?ixlan__ix__fac_count__gt=0")
 		if status != http.StatusOK {
-			t.Fatalf("DIVERGENCE silent-ignore: status = %d, want 200; body=%s",
+			t.Fatalf("silent-ignore: status = %d, want 200; body=%s",
 				status, string(body))
 		}
 		got := slices.Clone(extractIDs(t, body))
 		slices.Sort(got)
-		// All 3 live facs returned — the filter was silently ignored.
-		// If a future change resolves the filter (e.g. by relaxing
-		// the 2-hop cap or wiring a custom serializer hook) the
-		// expected behaviour also changes; treat this assertion as
-		// the canary for the divergence's status.
+		// All 3 live facs returned — the filter was silently ignored,
+		// as upstream does.
 		want := []int{100, 101, 102}
 		if !slices.Equal(got, want) {
-			t.Errorf("silent-ignore: got %v, want %v (divergence canary)",
-				got, want)
+			t.Errorf("silent-ignore: got %v, want %v", got, want)
 		}
 	})
 
@@ -401,9 +395,8 @@ func TestParity_Traversal(t *testing.T) {
 		// cmd/pdb-schema-generate doesn't strip on regen). The Path A
 		// allowlist generator now emits TargetTable="campuses" for
 		// incoming campus edges.
-		// upstream: pdb_api_test.py (campus.name traversal via fac is
-		// a documented surface that upstream handles via the
-		// queryable-relations mechanism)
+		// upstream: 2.83.0 serializers.py:970-996 (queryable_relations
+		// adds campus__name from the campus FK of fac)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "CampusTraversalOrg", t0)

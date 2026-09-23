@@ -768,8 +768,8 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 // codegen emits the literal allowlist entries from serializers.py but
 // the Path A resolver falls through to silent-ignore when LookupEdge
 // can't find a matching forward edge. That's the upstream-documented
-// behaviour (rest.py:658-662: unknown filter fields are silently
-// dropped). This test guards the regression where an entity's ENTIRE
+// behaviour (2.83.0 rest.py:633, :670: a key that names no field
+// matches neither branch and is dropped). This test guards the regression where an entity's ENTIRE
 // allowlist becomes unresolvable — i.e. an entity loses all its Path A
 // plumbing due to a schema rename or annotation drop.
 //

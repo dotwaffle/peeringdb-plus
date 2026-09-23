@@ -11,7 +11,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
-// TestLocationFilterCoercion locks the upstream rest.py:562-574 location
+// TestLocationFilterCoercion locks the upstream 2.83.0 rest.py:583-595 location
 // special cases: bare ?city= / ?address1= / ?state= are substring
 // (icontains) matches, and bare ?country= is iexact for 2-char values /
 // icontains for longer. Explicit operators are untouched.
@@ -71,16 +71,16 @@ func TestLocationFilterCoercion(t *testing.T) {
 		name, path string
 		want       []string
 	}{
-		// upstream rest.py:562-563: bare city is icontains.
+		// upstream rest.py:583-585: bare city is icontains.
 		{"city substring", "/api/fac?city=Frankfurt", []string{"FRA1"}},
 		{"city substring case-insensitive", "/api/fac?city=frankfurt", []string{"FRA1"}},
-		// upstream rest.py:562-563: bare state is icontains.
+		// upstream rest.py:583-585: bare state is icontains.
 		{"state substring", "/api/fac?state=London", []string{"LON1"}},
-		// upstream rest.py:562-563: bare address1 is icontains.
+		// upstream rest.py:583-585: bare address1 is icontains.
 		{"address1 substring", "/api/fac?address1=Kleyerstrasse", []string{"FRA1"}},
-		// upstream rest.py:565-574: 2-char country is iexact.
+		// upstream rest.py:586-595: 2-char country is iexact.
 		{"country 2char iexact", "/api/fac?country=de", []string{"FRA1"}},
-		// upstream rest.py:565-574: longer country is icontains... of the
+		// upstream rest.py:586-595: longer country is icontains... of the
 		// stored 2-char code, so a full name matches nothing — but a
 		// 1-char fragment matches both rows containing it.
 		{"country fragment icontains", "/api/fac?country=B", []string{"LON1"}},

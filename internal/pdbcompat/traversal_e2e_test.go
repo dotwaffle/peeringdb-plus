@@ -78,21 +78,24 @@ func equalIntSets(a, b []int) bool {
 // Coverage matrix (17 subtests):
 //   - Path A 1-hop: org__name on net, fac, ix, carrier (4 entity cases)
 //   - Path A 1-hop: campus__name on fac (5th 1-hop case)
-//   - Path A 2-hop upstream parity: fac?ixlan__ix__fac_count__gt=0
-//     (pdb_api_test.py:2340) — silent-ignored (fac has no ixlan edge)
-//   - Path A 2-hop upstream parity: fac?ixlan__ix__id=8001
-//     (pdb_api_test.py:2348) — silent-ignored (same reason)
-//   - Path A 1-hop + op upstream parity: net?ix__name__contains=TestIX
-//     (pdb_api_test.py:5081) — silent-ignored (net has no ix edge;
-//     `ix__name` in Allowlists["net"].Direct tries Path A, buildSinglHop
-//     fails LookupEdge, falls through to unknown)
+//   - Path A 2-hop: fac?ixlan__ix__fac_count__gt=0 — silent-ignored
+//     (fac has no ixlan edge). Upstream ignores it too: fac has no
+//     ixlan relation (2.83.0 serializers.py:2092-2210, :970-996).
+//   - 2-hop, not allowlisted: fac?ixlan__ix__id=8001 — silent-ignored,
+//     the same as upstream (same reason)
+//   - Path A 1-hop + op: net?ix__name__contains=TestIX — silent-ignored
+//     (net has no ix edge; `ix__name` in Allowlists["net"].Direct tries
+//     Path A, buildSinglHop fails LookupEdge, falls through to unknown).
+//     Upstream filters it through NetworkSerializer.prepare_query
+//     (2.83.0 serializers.py:3708-3740), a registered divergence
+//     (docs/API.md § Known Divergences).
 //   - Path B fallback 1-hop: net?org__city=Amsterdam (edge exists, field
 //     exists, no row matches) — expected empty set
 //   - Unknown-field silent-ignore (5 cases): unknown local, unknown edge,
 //     known edge with unknown target field, 3-hop, 4-hop — each returns
 //     the unfiltered live-row set for the type (DeletedNet 8003 excluded
 //     by the status matrix)
-//   - Multi-filter composition (pdb_api_test.py:5047):
+//   - Multi-filter composition:
 //     net?org__id=8001&ix__name=TestIX — org__id resolves (8001/8002),
 //     ix__name silent-ignored
 //   - _fold preservation: net?name__contains=Zurich — matches
@@ -168,24 +171,25 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 			url:         "/api/fac?campus__name=TestCampus1",
 			expectedIDs: []int{8001},
 		},
-		// Upstream 2-hop parity cases — fac has no "ixlan" edge, so Path A
-		// matches the Via allowlist but buildTwoHop fails LookupEdge;
-		// silent-ignore returns all live facs.
+		// 2-hop keys that upstream ignores too — fac has no "ixlan" edge.
+		// ixlan__ix__fac_count matches the Via allowlist but buildTwoHop
+		// fails LookupEdge; ixlan__ix__id is not allowlisted. Both
+		// silent-ignore and return all live facs.
 		{
-			name:        "upstream_2340_fac_ixlan_ix_fac_count_gt",
+			name:        "fac_ixlan_ix_fac_count_gt_ignored",
 			url:         "/api/fac?ixlan__ix__fac_count__gt=0",
 			expectedIDs: allLiveFacs,
 		},
 		{
-			name:        "upstream_2348_fac_ixlan_ix_id",
+			name:        "fac_ixlan_ix_id_ignored",
 			url:         "/api/fac?ixlan__ix__id=8001",
 			expectedIDs: allLiveFacs,
 		},
-		// Upstream 5081 — net has no "ix" edge (only network_ix_lans); the
-		// `ix__name` allowlist entry fails buildSinglHop lookup and the
-		// key is silent-ignored.
+		// net has no "ix" edge (only network_ix_lans); the `ix__name`
+		// allowlist entry fails buildSinglHop lookup and the key is
+		// silent-ignored. Upstream filters it (registered divergence).
 		{
-			name:        "upstream_5081_net_ix_name_contains",
+			name:        "net_ix_name_contains_ignored",
 			url:         "/api/net?ix__name__contains=TestIX",
 			expectedIDs: allLiveNets,
 		},
@@ -223,10 +227,10 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 			url:         "/api/net?a__b__c__d__e=x",
 			expectedIDs: allLiveNets,
 		},
-		// Upstream 5047: multi-filter composition — org__id resolves
-		// (matches 8001/8002), ix__name silent-ignored (no ix edge on net).
+		// Multi-filter composition — org__id resolves (matches
+		// 8001/8002), ix__name silent-ignored (no ix edge on net).
 		{
-			name:        "upstream_5047_multifilter_org_id_and_ix_name",
+			name:        "multifilter_org_id_and_ix_name",
 			url:         "/api/net?org__id=8001&ix__name=TestIX",
 			expectedIDs: []int{8001, 8002},
 		},

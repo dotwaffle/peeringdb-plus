@@ -103,7 +103,7 @@ Tombstone GC is dormant deferred work (triggers: storage >5% MoM, tombstone rati
 
 ### Shadow-column folding
 
-`internal/unifold` is the single source of truth for diacritic-insensitive folding (`Fold(s string) string` — NFKD normalisation via `golang.org/x/text/unicode/norm` + a hand-rolled ligature map for `ß→ss`, `æ→ae`, `ø→o`, `ł→l`, `þ→th`, `đ→d`, etc.). This mirrors upstream PeeringDB's `unidecode.unidecode(v)` (`peeringdb_server/rest.py:576`) without taking a third-party dep.
+`internal/unifold` is the single source of truth for diacritic-insensitive folding (`Fold(s string) string` — NFKD normalisation via `golang.org/x/text/unicode/norm` + a hand-rolled ligature map for `ß→ss`, `æ→ae`, `ø→o`, `ł→l`, `þ→th`, `đ→d`, etc.). This mirrors upstream PeeringDB's `unidecode.unidecode(v)` (2.83.0 `peeringdb_server/rest.py:597`) without taking a third-party dep.
 
 **16 `<field>_fold` shadow columns live across 6 entities:**
 
@@ -120,7 +120,7 @@ Each `_fold` column is declared with `entgql.Skip(SkipAll)` + `entrest.WithSkip(
 
 **Sync-side populate pattern (`internal/sync/upsert.go`):** every upsert in the 6 affected entity functions chains `.Set<Field>Fold(unifold.Fold(x.<Field>))` setters as a trailing grep-able block on the create builder. `OnConflict().UpdateNewValues()` rewrites `_fold` columns on every re-sync — no backfill script needed.
 
-**pdbcompat filter-side routing pattern (`internal/pdbcompat/filter.go`):** `ParseFilters` reads `tc.FoldedFields[field]` (nil-safe) and threads `folded bool` into `buildPredicate`. When `folded == true`, `buildContains` / `buildStartsWith` route to `<field>_fold` with `unifold.Fold(value)` on the RHS via `sql.FieldContainsFold` / `FieldHasPrefixFold`. `__contains` and `__startswith` are coerced to their case-insensitive variants by `coerceToCaseInsensitive` per `rest.py:638-641`.
+**pdbcompat filter-side routing pattern (`internal/pdbcompat/filter.go`):** `ParseFilters` reads `tc.FoldedFields[field]` (nil-safe) and threads `folded bool` into `buildPredicate`. When `folded == true`, `buildContains` / `buildStartsWith` route to `<field>_fold` with `unifold.Fold(value)` on the RHS via `sql.FieldContainsFold` / `FieldHasPrefixFold`. `__contains` and `__startswith` are coerced to their case-insensitive variants by `coerceToCaseInsensitive` per 2.83.0 `rest.py:657-662`.
 
 **Adding a fold field** (existing or new entity): extend `foldMixin{fields: …}` in the entity's `ent/schema/{type}_fold.go` sibling, add the `.Set<Field>Fold(unifold.Fold(...))` setter to the matching `upsert<Type>s` chain in `internal/sync/upsert.go`, set `"<field>": true` in the entity's `FoldedFields` map in `internal/pdbcompat/registry.go`, and add a round-trip test in `internal/pdbcompat/fold_filter_test.go`. For a new (7th+) entity, also create the sibling file declaring `Mixin()`.
 
@@ -141,7 +141,7 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 
 - Hand-edit `internal/pdbcompat/allowlist_gen.go` — overwritten on every codegen run; CI drift gate catches it.
 - Add traversal allowlists to grpcserver / entrest / GraphQL — out of v1.16 scope; those surfaces have their own filter models.
-- Invent filter keys that don't exist upstream — contract is parity with `peeringdb_server/serializers.py@99e92c72`.
+- Invent filter keys that don't exist upstream — contract is parity with `peeringdb/peeringdb@465931c0` (PeeringDB 2.83.0; `docs/API.md § Validation Notes` pins the full SHA).
 - Add 3+-hop keys — dropped by codegen AND by the 2-hop cap in `parseFieldOp` at request time.
 - Introduce runtime ent-client introspection or `sync.Once` lazy-init for the Edges map — map is codegen-time static, which avoids init-order coupling.
 

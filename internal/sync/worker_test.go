@@ -311,7 +311,7 @@ func TestSyncPersistsExplicitTombstone(t *testing.T) {
 	}
 
 	// Second sync: upstream returns org 2 with status='deleted'
-	// (mirrors the rest.py:694-727 ?since= response shape). Bump the
+	// (mirrors the 2.83.0 rest.py:719-750 ?since= response shape). Bump the
 	// changed row's `updated` past the prior write so the
 	// skip-on-unchanged predicate admits the status flip.
 	f.responses["org"] = []any{

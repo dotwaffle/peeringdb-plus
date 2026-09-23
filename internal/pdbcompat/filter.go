@@ -104,7 +104,7 @@ func applyStatusMatrix(live []string, isCampus, sinceSet bool) func(*sql.Selecto
 }
 
 // coerceToCaseInsensitive maps the subset of operators that upstream
-// rest.py:638-641 forces to case-insensitive variants. Non-matching operators
+// (2.83.0 rest.py:657-662) forces to case-insensitive variants. Non-matching operators
 // pass through unchanged (scope: contains + startswith only).
 //
 // The coercion is purely nominal — the existing
@@ -123,7 +123,7 @@ func coerceToCaseInsensitive(op string) string {
 	return op
 }
 
-// coerceLocationFilterOp mirrors upstream rest.py:562-574, which
+// coerceLocationFilterOp mirrors upstream 2.83.0 rest.py:583-595, which
 // special-cases bare location filters before generic handling:
 // `address1`, `city`, and `state` become `<field>__icontains`
 // (substring match — ?city=Frankfurt also matches "Frankfurt am
@@ -679,7 +679,7 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 			return nil, fmt.Errorf("convert %q to time: %w", value, err)
 		}
 		if dateOnly {
-			// upstream rest.py:657-658 turns bare datetime equality
+			// upstream 2.83.0 rest.py:678-679 turns bare datetime equality
 			// into __startswith — ?created=2024-01-01 matches the
 			// whole day, not the instant of midnight.
 			end := t.Add(24 * time.Hour)
@@ -756,7 +756,7 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 	var marshalErr error
 	switch ft {
 	case FieldString:
-		// Upstream folds ALL filter values with unidecode (rest.py:576)
+		// Upstream folds ALL filter values with unidecode (2.83.0 rest.py:597)
 		// and matches under MySQL's case-insensitive collation, so
 		// string __in is case- and diacritic-insensitive there. SQLite
 		// resolves a bare IN with the column's BINARY collation, so
@@ -851,7 +851,7 @@ func buildComparison(field, op, value string, ft FieldType, cmp func(string, any
 			return nil, err
 		}
 		if dateOnly && (op == "gt" || op == "lte") {
-			// upstream rest.py:621-623: a 10-char date in gt/lte gets
+			// upstream 2.83.0 rest.py:642-645: a 10-char date in gt/lte gets
 			// its time forced to end-of-day (23:59:59.999), so
 			// updated__gt=2024-01-01 means "after that whole day"
 			// and updated__lte=2024-01-01 includes the whole day.
@@ -912,9 +912,10 @@ func parseEpoch(s string) (time.Time, error) {
 
 // parseTimeValue converts a time-filter value. Accepts Unix epoch seconds
 // plus the ISO 8601 layouts DRF's DateTimeField().to_python accepts
-// upstream (rest.py:625-627): date-only, datetime with 'T' or space
-// separator, and RFC 3339 with offset. dateOnly reports a bare 10-char
-// date, which carries day-window semantics upstream (rest.py:619-658).
+// upstream (2.83.0 rest.py:647-653): date-only, datetime with 'T' or
+// space separator, and RFC 3339 with offset. dateOnly reports a bare
+// 10-char date, which carries day-window semantics upstream
+// (rest.py:640-679).
 // Layouts without an explicit offset are interpreted as UTC, matching
 // the stored timestamps.
 func parseTimeValue(s string) (t time.Time, dateOnly bool, err error) {

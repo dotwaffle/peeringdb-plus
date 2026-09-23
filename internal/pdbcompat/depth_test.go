@@ -228,7 +228,7 @@ func TestDepth(t *testing.T) {
 		orgID := int(items[0]["id"].(float64))
 
 		// Explicit ?depth=0 must return the bare row (matches upstream
-		// rest.py:852 short-circuit).
+		// 2.83.0 serializers.py:1068-1069 short-circuit).
 		detReq := httptest.NewRequest(http.MethodGet, "/api/org/"+itoa(orgID)+"?depth=0", nil)
 		detRec := httptest.NewRecorder()
 		mux.ServeHTTP(detRec, detReq)
@@ -259,9 +259,9 @@ func TestDepth(t *testing.T) {
 
 	// default_detail_uses_depth_two locks the upstream-parity behaviour for
 	// a bare detail URL with NO `?depth=` query param: upstream's
-	// `peeringdb_server/serializers.py:default_depth(is_list=False)` (line
-	// 823) returns 2 for single-object GETs, causing
-	// `prefetch_related` (rest.py:750) to fire and embed every per-type
+	// `peeringdb_server/serializers.py:default_depth(is_list=False)` (2.83.0
+	// lines 1032-1039) returns 2 for single-object GETs, causing
+	// `prefetch_related` (rest.py:774-777) to fire and embed every per-type
 	// `_set` collection plus the parent FK objects (`org` for net/fac/ix/
 	// carrier/campus). This is the canonical generalisation of commit
 	// 0d39654 — the IX `fac_set` fix at `?depth=2` — extended to fire on
@@ -494,7 +494,7 @@ func TestDepth(t *testing.T) {
 
 	// two_ix locks the upstream-parity InternetExchange depth=2 shape:
 	// upstream PeeringDB's InternetExchangeSerializer
-	// (peeringdb_server/serializers.py:3514) emits `fac_set` as a list of
+	// (2.83.0 peeringdb_server/serializers.py:4365-4370) emits `fac_set` as a list of
 	// expanded Facility objects via nested(FacilitySerializer,
 	// through="ixfac_set", getter="facility"). It does NOT emit `ixfac_set`
 	// (that surface only appears on the facility-side serializer). Regression
@@ -1106,7 +1106,7 @@ func TestDepth_LeafSecondLevelParity(t *testing.T) {
 }
 
 // TestDepth_IxLanNetSetParity locks the IXLan reverse-relation surface to
-// upstream. Upstream IXLanSerializer (serializers.py:3407) exposes ONE
+// upstream. Upstream IXLanSerializer (2.83.0 serializers.py:4252-4257) exposes ONE
 // reverse collection: net_set = nested(NetworkSerializer, through="netixlan_set",
 // getter="network") — a list of flat Network objects reached through the
 // netixlan join (one per active join row, no dedup). There is NO netixlan_set
@@ -1169,9 +1169,9 @@ func TestDepth_IxLanNetSetParity(t *testing.T) {
 // element keeps vs drops at depth=2, matching upstream's per-serializer
 // `exclude=` lists (peeringdb_server/serializers.py, verified against live
 // www.peeringdb.com payloads 2026-06-08):
-//   - CampusSerializer.fac_set (serializers.py:3917) excludes ["org_id","org"],
+//   - CampusSerializer.fac_set (2.83.0 serializers.py:4784-4788) excludes ["org_id","org"],
 //     so a facility nested under a campus KEEPS campus_id and DROPS org_id.
-//   - CarrierSerializer.carrierfac_set (serializers.py:2196) excludes ["fac"],
+//   - CarrierSerializer.carrierfac_set (2.83.0 serializers.py:2658-2662) excludes ["fac"],
 //     so a carrierfac nested under a carrier KEEPS carrier_id.
 func TestDepth_BackRefStripParity(t *testing.T) {
 	t.Parallel()
@@ -1237,7 +1237,7 @@ func TestDepth_BackRefStripParity(t *testing.T) {
 }
 
 // TestDepth_DepthOne locks the real ?depth=1 level, distinct from both depth=0
-// (bare row) and depth=2 (fully expanded). Upstream (serializers.py:817-823 +
+// (bare row) and depth=2 (fully expanded). Upstream (2.83.0 serializers.py:1032-1039 +
 // the recursive prefetch_related budget) renders depth=1 as: forward FK objects
 // FLAT (no sets of their own) and reverse _set fields as bare ID lists. The
 // mirror previously honoured only ?depth=0/2 and silently coerced depth=1 to 2.
@@ -1373,8 +1373,8 @@ func TestDepth_DepthOne(t *testing.T) {
 }
 
 // TestDepth_FacCampusNullParity locks upstream's FacilitySerializer.campus
-// behaviour: campus is a related field (serializers.py:1728, related_fields
-// 1816, list_exclude 1818) — absent on the bare/list row but present at detail
+// behaviour: campus is a related field (2.83.0 serializers.py:1963, related_fields
+// 2087, list_exclude 2089) — absent on the bare/list row but present at detail
 // depth, emitting `campus: null` for a campus-less facility rather than omitting
 // the key. Verified against live www.peeringdb.com payloads (up_fac_d1 carries
 // campus; a carrierfac's campus-less fac carries campus:null).

@@ -191,7 +191,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// Parse pagination.
 	limit, skip, err := ParsePaginationParams(params)
 	if err != nil {
-		// upstream rest.py:490-497 raises a 400 for non-numeric
+		// upstream 2.83.0 rest.py:511-518 raises a 400 for non-numeric
 		// limit/skip; silently ignoring a typo'd limit would turn a
 		// bounded page request into a full-table dump.
 		WriteProblem(w, httperr.WriteProblemInput{
@@ -416,14 +416,14 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 
 // serveDetail handles detail requests for a single object by ID.
 //
-// Default detail depth is 2 (matches upstream PeeringDB
-// peeringdb_server/serializers.py:817-823 — `default_depth(is_list=False)`
+// Default detail depth is 2 (matches upstream PeeringDB 2.83.0
+// peeringdb_server/serializers.py:1032-1039 — `default_depth(is_list=False)`
 // returns 2 for single-object GETs versus 0 for lists). This causes
-// `prefetch_related` (rest.py:750) to fire on every bare detail URL,
+// `prefetch_related` (rest.py:774-777) to fire on every bare detail URL,
 // embedding the per-type `_set` collections + parent FK objects (`org`,
 // `campus`, etc.) that upstream always returns on `/api/<type>/<id>`.
-// Explicit `?depth=0` short-circuits the prefetch (rest.py:852 returns
-// the qset early when depth<=0) and yields a bare row, matching
+// Explicit `?depth=0` short-circuits the prefetch (serializers.py:1068-1069
+// returns the qset early when depth<=0) and yields a bare row, matching
 // upstream's behaviour for that explicit override.
 //
 // Generalises commit 0d39654 (which fixed the IX `fac_set` shape at
@@ -434,10 +434,11 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 	params := r.URL.Query()
 
 	// Parse depth. Default = 2 for detail endpoints to match upstream's
-	// `default_depth(is_list=False)` (serializers.py:817-823). Upstream parses
-	// `?depth=` as a raw int clamped to [0, max_depth] with max_depth=4 for
-	// single GETs (serializers.py:789-814), so we honour 0/1/2/3/4: 0 is the
-	// bare-row escape hatch (rest.py:852), 1 expands forward FKs flat with
+	// `default_depth(is_list=False)` (2.83.0 serializers.py:1032-1039).
+	// Upstream parses `?depth=` as a raw int clamped to [0, max_depth] with
+	// max_depth=4 for single GETs (serializers.py:1004-1030), so we honour
+	// 0/1/2/3/4: 0 is the bare-row escape hatch (serializers.py:1068-1069),
+	// 1 expands forward FKs flat with
 	// reverse sets as ID lists, 2 fully expands. Depths >2 render the depth=2
 	// shape (the deeper sub-level nesting they add is not reproduced). A
 	// non-numeric value keeps the default; negatives floor to 0.

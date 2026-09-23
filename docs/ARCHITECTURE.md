@@ -572,8 +572,8 @@ for the operator-facing rollout.
 
 Sync uses soft-delete rather than hard-delete across all 13 entity types,
 but tombstones (`status='deleted'`) are sourced **only** from upstream
-PeeringDB's explicit signal: the `?since=N` matrix returns both `ok` and
-`deleted` rows (per `peeringdb_server/rest.py:694-727`).
+PeeringDB's explicit signal: the `?since=N` matrix returns the live rows and
+the `deleted` rows (per 2.83.0 `peeringdb_server/rest.py:719-750`).
 `internal/sync/upsert.go` lands the upstream-supplied status verbatim —
 a deleted row is just an ordinary upsert whose `status` column is `deleted`,
 carrying upstream's own `updated` timestamp.

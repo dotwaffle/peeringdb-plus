@@ -82,8 +82,9 @@ func BenchmarkTraversal_1Hop_Direct(b *testing.B) {
 	}
 }
 
-// BenchmarkTraversal_2Hop_UpstreamParity covers the upstream
-// pdb_api_test.py:2340 canonical 2-hop case. Gate: <50ms/op.
+// BenchmarkTraversal_2Hop_UpstreamParity covers the 2-hop key
+// fac?ixlan__ix__fac_count__gt=0, which the mirror and upstream both
+// ignore. Gate: <50ms/op.
 //
 // fac has no direct `ixlan` edge, so the filter is silently ignored
 // and the handler returns all live facilities. The bench

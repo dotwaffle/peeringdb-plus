@@ -440,7 +440,7 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 // getIXWithDepth fetches an internet exchange by ID with optional depth
 // expansion. At depth >= 2, expands org object and adds ixlan_set plus fac_set.
 // fac_set mirrors upstream PeeringDB's InternetExchangeSerializer
-// (peeringdb_server/serializers.py:3514): a list of expanded Facility objects
+// (2.83.0 peeringdb_server/serializers.py:4365-4370): a list of expanded Facility objects
 // resolved through the IxFacility many-to-many via getter="facility". The raw
 // IxFacility join records are NOT exposed (upstream omits ixfac_set on the IX
 // surface entirely; ixfac_set only appears on the facility-side serializer).
@@ -563,7 +563,7 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 				return nil, err
 			}
 		}
-		// Upstream CarrierSerializer.carrierfac_set (serializers.py:2196)
+		// Upstream CarrierSerializer.carrierfac_set (2.83.0 serializers.py:2658-2662)
 		// excludes only ["fac"] (the nested Facility object, which our flat
 		// CarrierFacility serializer never emits) — carrier_id and fac_id both
 		// stay on each element.
@@ -603,7 +603,7 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 				return nil, err
 			}
 		}
-		// Upstream CampusSerializer.fac_set (serializers.py:3917) excludes
+		// Upstream CampusSerializer.fac_set (2.83.0 serializers.py:4784-4788) excludes
 		// ["org_id","org"], so a facility nested under a campus keeps campus_id
 		// (the parent back-ref) and drops org_id — the inverse of the org case.
 		m["fac_set"] = setWithout(facilitiesFromEnt(c.Edges.Facilities), "org_id")
