@@ -1512,13 +1512,15 @@ Only served by the LiteFS primary.
 |----------------|---------|
 | `X-Sync-Token` request header | Must match `PDBPLUS_SYNC_TOKEN` using `subtle.ConstantTimeCompare`. Empty token on either side = always reject |
 | `?mode=full` or `?mode=incremental` | Overrides `PDBPLUS_SYNC_MODE` for this run. Any other value returns `400` |
+| `?trace=0` | Do not trace this run, the same as a scheduled sync. Without it, the server traces every manual sync |
 
 | Status | Meaning |
 |--------|---------|
-| `202 Accepted` | Request authenticated; sync started in the background (fire-and-forget, using the application root context so request cancellation does not abort it) |
+| `202 Accepted` | Request authenticated; sync started in the background (fire-and-forget, using the application root context so request cancellation does not abort it). The body is `{"status":"accepted"}` |
 | `307 Temporary Redirect` + `fly-replay: region=<primary>` | On Fly.io replicas, the request is replayed to the primary region. Clients following the header will land on the primary and complete the call |
 | `401 Unauthorized` | Missing, wrong, or mismatched-length `X-Sync-Token` |
 | `400 Bad Request` | Invalid `mode` value |
+| `409 Conflict` | A sync cycle is already running. The server does not start a second one. The body is `{"status":"conflict","detail":"a sync cycle is already running"}` |
 | `503 Service Unavailable` | Replica outside Fly.io (no `FLY_REGION`) cannot forward the request |
 
 Request body is capped at 1 MB.
