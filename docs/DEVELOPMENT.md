@@ -51,7 +51,7 @@ Code-change-relevant directories:
 | Path | Purpose |
 |---|---|
 | `cmd/peeringdb-plus/` | Main binary — config load, server wiring, handler registration |
-| `cmd/pdb-schema-extract/` | Drift detector — diffs an upstream PeeringDB checkout against the hand-curated `schema/peeringdb.json`; never writes it |
+| `cmd/pdb-schema-extract/` | Drift detector. Reads a local PeeringDB source checkout and prints the schema it finds as JSON. It never writes `schema/peeringdb.json`. |
 | `cmd/pdb-schema-generate/` | Generates `ent/schema/*.go` from `schema/peeringdb.json` |
 | `cmd/pdb-compat-allowlist/` | Codegens `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go` |
 | `cmd/pdbcompat-check/` | Validates PeeringDB API compatibility |
@@ -70,7 +70,7 @@ Code-change-relevant directories:
 | `internal/web/templates/` | `.templ` source + generated `*_templ.go` |
 | `internal/sync/` | PeeringDB sync worker |
 | `internal/testutil/` | `SetupClient(t)` and `seed/` helpers for tests |
-| `schema/` | Hand-curated `peeringdb.json` (the schema source of truth) + drift-check wiring |
+| `schema/` | Hand-curated `peeringdb.json` (the schema source of truth) |
 | `testdata/fixtures/` | JSON fixtures for 13 PeeringDB entity types, used by sync tests |
 
 ## Build commands
@@ -138,7 +138,8 @@ and `go generate ./...` runs them in this order:
    It writes `*_templ.go` from the `.templ` sources.
 
 `schema/generate.go` has no `go:generate` directive.
-It is the package documentation for the manual drift check.
+It is the package documentation for the manual drift check
+(see [Check for upstream schema drift](#check-for-upstream-schema-drift)).
 `pdb-schema-generate` runs first in `ent/generate.go`, not in `schema/`,
 because `go generate ./...` visits `ent/` before `schema/`.
 This order runs the schema producer before entc, its consumer,
@@ -207,8 +208,8 @@ check `ent/entc.go`.
 
 ```text
 PeeringDB Django source
-    │  (cmd/pdb-schema-extract, needs PEERINGDB_REPO_PATH —
-    │   drift check only: reports differences, never writes the JSON)
+    │  (cmd/pdb-schema-extract <checkout>/src: drift check only,
+    │   prints JSON to stdout, never writes the file)
     ▼
 schema/peeringdb.json   ← committed, canonical, hand-curated
     │  (cmd/pdb-schema-generate, sequenced first in ent/generate.go)
@@ -222,6 +223,33 @@ ent/, graph/, REST handlers, GraphQL schema
     ▼
 internal/pdbcompat/allowlist_gen.go
 ```
+
+### Check for upstream schema drift
+
+`schema/peeringdb.json` is curated by hand.
+`cmd/pdb-schema-extract` shows what upstream declares,
+so that you can find fields that upstream added, changed, or removed.
+
+1. Clone `peeringdb/peeringdb`.
+2. Clone `peeringdb/django-peeringdb`
+   into `<peeringdb-checkout>/django-peeringdb`.
+   Check out the revision that the upstream `pyproject.toml` names.
+   The tool reads `<peeringdb-checkout>/src/peeringdb_server/`
+   and `<peeringdb-checkout>/django-peeringdb/src/django_peeringdb/`.
+3. Run the tool on the `src/` directory of the checkout:
+
+   ```bash
+   go run ./cmd/pdb-schema-extract <peeringdb-checkout>/src > "${TMPDIR:-/tmp}/extracted.json"
+   ```
+
+4. Compare the fields of each type in `extracted.json`
+   with `schema/peeringdb.json`.
+   The tool does not find all fields of some types
+   (see the comment at the top of `cmd/pdb-schema-extract/main.go`).
+   Check an unexpected removal against the upstream source.
+5. Apply real drift to `schema/peeringdb.json` by hand.
+   Do not copy the tool output over the file.
+6. Run `mise run generate`.
 
 ### proto / buf workflow
 
