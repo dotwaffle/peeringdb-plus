@@ -8189,7 +8189,7 @@
 					},
 					"ixf_ixp_member_list_url": {
 						"default": "",
-						"description": "IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)",
+						"description": "IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.",
 						"type": "string"
 					},
 					"ixf_ixp_member_list_url_visible": {
@@ -9161,7 +9161,7 @@
 						"type": "number"
 					},
 					"name": {
-						"description": "Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)",
+						"description": "Organization name. Not unique: PeeringDB permits duplicate names.",
 						"type": "string"
 					},
 					"name_long": {

@@ -69,7 +69,7 @@ func (Organization) Fields() []ent.Field {
 				entgql.OrderField("NAME"),
 				entrest.WithFilter(entrest.FilterGroupEqual|entrest.FilterGroupArray),
 			).
-			Comment("Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)"),
+			Comment("Organization name. Not unique: PeeringDB permits duplicate names."),
 		field.String("name_long").
 			Optional().
 			Default("").

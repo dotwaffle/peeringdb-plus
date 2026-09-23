@@ -46,7 +46,7 @@ func (IxLan) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Annotations(entgql.Skip(entgql.SkipWhereInput)).
-			Comment("IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)"),
+			Comment("IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it."),
 		field.String("ixf_ixp_member_list_url_visible").
 			Optional().
 			Default("Private").

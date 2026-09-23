@@ -19,7 +19,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "Organization name (not unique \u2014 PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)",
+          "help_text": "Organization name. Not unique: PeeringDB permits duplicate names.",
           "default": null
         },
         "aka": {
@@ -1272,7 +1272,7 @@
           "nullable": false,
           "read_only": false,
           "deprecated": false,
-          "help_text": "IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)",
+          "help_text": "IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.",
           "default": ""
         },
         "ixf_ixp_import_enabled": {

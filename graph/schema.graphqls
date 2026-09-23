@@ -2694,7 +2694,7 @@ type IxLan implements Node {
   """
   ixfIxpImportEnabled: Boolean!
   """
-  IXF IX-F member list URL (field-level gated by ixf_ixp_member_list_url_visible)
+  IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.
   """
   ixfIxpMemberListURL: String
   """
@@ -4557,7 +4557,7 @@ type Organization implements Node {
   """
   longitude: Float
   """
-  Organization name (not unique — PeeringDB permits duplicates; observed 2026-04-04 when upstream began serving duplicate display names, breaking every sync with UNIQUE constraint failed)
+  Organization name. Not unique: PeeringDB permits duplicate names.
   """
   name: String!
   """
