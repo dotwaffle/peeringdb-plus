@@ -244,7 +244,7 @@ type NetworkIxLan struct {
 	IPAddr6     *string        `json:"ipaddr6"`
 	IsRSPeer    bool           `json:"is_rs_peer"`
 	BFDSupport  bool           `json:"bfd_support"`
-	Operational bool           `json:"operational"`
+	Operational *bool          `json:"operational"` // derived from status upstream since 2.83.0 and deprecated; nil when upstream omits it
 	NetSideID   *int           `json:"net_side_id"`
 	IXSideID    *int           `json:"ix_side_id"`
 	Meta        map[string]any `json:"meta"` // 2.83.0 metadata document; nil when upstream omits it

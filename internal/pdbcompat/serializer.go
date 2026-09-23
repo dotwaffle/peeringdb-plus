@@ -367,7 +367,7 @@ func networkIxLanFromEnt(n *ent.NetworkIxLan) peeringdb.NetworkIxLan {
 		IPAddr6:     n.Ipaddr6,
 		IsRSPeer:    n.IsRsPeer,
 		BFDSupport:  n.BfdSupport,
-		Operational: n.Operational,
+		Operational: new(n.Operational),
 		NetSideID:   n.NetSideID,
 		IXSideID:    n.IxSideID,
 		Meta:        metaOrEmpty(n.Meta),

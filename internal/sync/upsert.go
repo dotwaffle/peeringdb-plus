@@ -693,6 +693,18 @@ func decodeAndUpsertSingle[E any](
 	return idFn(v), nil
 }
 
+// netixlanOperational returns the operational flag to store for ni.
+// PeeringDB 2.83.0 derives operational from status on every save
+// (models.py:6512) and keeps the field only for a deprecation window.
+// When upstream sends the key, store it as sent. When it omits the key,
+// derive the flag the same way upstream does.
+func netixlanOperational(ni peeringdb.NetworkIxLan) bool {
+	if ni.Operational != nil {
+		return *ni.Operational
+	}
+	return ni.Status == "ok"
+}
+
 // upsertNetworkIxLans bulk upserts network-IXLan associations.
 func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.NetworkIxLan) ([]int, error) {
 	return upsertBatch(ctx, items,
@@ -711,7 +723,7 @@ func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.Netw
 				SetNillableIpaddr6(ni.IPAddr6).
 				SetIsRsPeer(ni.IsRSPeer).
 				SetBfdSupport(ni.BFDSupport).
-				SetOperational(ni.Operational).
+				SetOperational(netixlanOperational(ni)).
 				SetNillableNetSideID(ni.NetSideID).
 				SetNillableIxSideID(ni.IXSideID).
 				SetMeta(ni.Meta).
