@@ -23,7 +23,7 @@ concurrency:
 jobs:
   ci:
     name: CI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write # octocov posts the coverage comment
@@ -102,7 +102,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Least privilege: the job only checks out and builds (push: false).
     # Without this it inherits the repository default token scope.
     permissions:
