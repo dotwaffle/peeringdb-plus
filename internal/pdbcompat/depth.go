@@ -120,6 +120,21 @@ func intsOrEmpty(ids []int, err error) ([]int, error) {
 	return ids, nil
 }
 
+// Status filters in the depth expansions follow upstream PeeringDB 2.83.0:
+//   - A reverse `_set`, as an ID list or as expanded objects, admits only
+//     the live statuses of the child type: "ok", plus "not-operational" on
+//     netixlan (the nested prefetch, serializers.py:1140-1148). A pending
+//     child, such as a campus with fewer than two facilities, is left out
+//     of its parent's set.
+//   - A PK lookup admits the live statuses plus "pending" (rest.py:750), so
+//     the same pending child is still fetchable by ID.
+//   - A through-relation set (ix.fac_set via ixfac, ixlan.net_set via
+//     netixlan) filters the join row only. The facility or network that
+//     the row resolves to is not filtered (serializers.py:1678-1681).
+//
+// Each filter is an inline StatusIn literal that lists the admitted
+// statuses. detailChildSets (detail_budget.go) repeats the set literals.
+
 // nestedOrgMap renders an organization as it appears when embedded in a parent
 // object at depth=2 (e.g. the `org` field of a Network). Upstream expands the
 // org's own scalar fields and represents its reverse relations as bare ID
@@ -129,19 +144,19 @@ func intsOrEmpty(ids []int, err error) ([]int, error) {
 func nestedOrgMap(ctx context.Context, o *ent.Organization) (map[string]any, error) {
 	m := toMap(organizationFromEnt(o))
 	var err error
-	if m["net_set"], err = sortedIDsOrEmpty(o.QueryNetworks().Where(network.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["net_set"], err = sortedIDsOrEmpty(o.QueryNetworks().Where(network.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested org %d net_set: %w", o.ID, err)
 	}
-	if m["fac_set"], err = sortedIDsOrEmpty(o.QueryFacilities().Where(facility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["fac_set"], err = sortedIDsOrEmpty(o.QueryFacilities().Where(facility.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested org %d fac_set: %w", o.ID, err)
 	}
-	if m["ix_set"], err = sortedIDsOrEmpty(o.QueryInternetExchanges().Where(internetexchange.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["ix_set"], err = sortedIDsOrEmpty(o.QueryInternetExchanges().Where(internetexchange.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested org %d ix_set: %w", o.ID, err)
 	}
-	if m["carrier_set"], err = sortedIDsOrEmpty(o.QueryCarriers().Where(carrier.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["carrier_set"], err = sortedIDsOrEmpty(o.QueryCarriers().Where(carrier.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested org %d carrier_set: %w", o.ID, err)
 	}
-	if m["campus_set"], err = sortedIDsOrEmpty(o.QueryCampuses().Where(campus.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["campus_set"], err = sortedIDsOrEmpty(o.QueryCampuses().Where(campus.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested org %d campus_set: %w", o.ID, err)
 	}
 	return m, nil
@@ -153,7 +168,7 @@ func nestedOrgMap(ctx context.Context, o *ent.Organization) (map[string]any, err
 // organization edge (WithCampus(q.WithOrganization())).
 func nestedCampusMap(ctx context.Context, c *ent.Campus) (map[string]any, error) {
 	m := toMap(campusFromEnt(c))
-	ids, err := sortedIDsOrEmpty(c.QueryFacilities().Where(facility.StatusIn("ok", "pending")).IDs(ctx))
+	ids, err := sortedIDsOrEmpty(c.QueryFacilities().Where(facility.StatusIn("ok")).IDs(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("nested campus %d fac_set: %w", c.ID, err)
 	}
@@ -183,13 +198,13 @@ func nestedNetMap(ctx context.Context, n *ent.Network) (map[string]any, error) {
 		return nil, fmt.Errorf("nested net %d org: %w", n.ID, err)
 	}
 	var err error
-	if m["poc_set"], err = sortedIDsOrEmpty(n.QueryPocs().Where(poc.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["poc_set"], err = sortedIDsOrEmpty(n.QueryPocs().Where(poc.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested net %d poc_set: %w", n.ID, err)
 	}
-	if m["netfac_set"], err = sortedIDsOrEmpty(n.QueryNetworkFacilities().Where(networkfacility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["netfac_set"], err = sortedIDsOrEmpty(n.QueryNetworkFacilities().Where(networkfacility.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested net %d netfac_set: %w", n.ID, err)
 	}
-	if m["netixlan_set"], err = sortedIDsOrEmpty(n.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "not-operational", "pending")).IDs(ctx)); err != nil {
+	if m["netixlan_set"], err = sortedIDsOrEmpty(n.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "not-operational")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested net %d netixlan_set: %w", n.ID, err)
 	}
 	return m, nil
@@ -229,10 +244,10 @@ func nestedIxMap(ctx context.Context, ix *ent.InternetExchange) (map[string]any,
 		return nil, fmt.Errorf("nested ix %d org: %w", ix.ID, err)
 	}
 	var err error
-	if m["ixlan_set"], err = sortedIDsOrEmpty(ix.QueryIxLans().Where(ixlan.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["ixlan_set"], err = sortedIDsOrEmpty(ix.QueryIxLans().Where(ixlan.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ix %d ixlan_set: %w", ix.ID, err)
 	}
-	if m["fac_set"], err = intsOrEmpty(ix.QueryIxFacilities().Where(ixfacility.StatusIn("ok", "pending")).Select(ixfacility.FieldFacID).Ints(ctx)); err != nil {
+	if m["fac_set"], err = intsOrEmpty(ix.QueryIxFacilities().Where(ixfacility.StatusIn("ok")).Select(ixfacility.FieldFacID).Ints(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ix %d fac_set: %w", ix.ID, err)
 	}
 	return m, nil
@@ -249,10 +264,10 @@ func nestedIxLanMap(ctx context.Context, l *ent.IxLan) (map[string]any, error) {
 		return nil, fmt.Errorf("nested ixlan %d ix: %w", l.ID, err)
 	}
 	var err error
-	if m["ixpfx_set"], err = sortedIDsOrEmpty(l.QueryIxPrefixes().Where(ixprefix.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["ixpfx_set"], err = sortedIDsOrEmpty(l.QueryIxPrefixes().Where(ixprefix.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ixlan %d ixpfx_set: %w", l.ID, err)
 	}
-	if m["net_set"], err = intsOrEmpty(l.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "not-operational", "pending")).Select(networkixlan.FieldNetID).Ints(ctx)); err != nil {
+	if m["net_set"], err = intsOrEmpty(l.QueryNetworkIxLans().Where(networkixlan.StatusIn("ok", "not-operational")).Select(networkixlan.FieldNetID).Ints(ctx)); err != nil {
 		return nil, fmt.Errorf("nested ixlan %d net_set: %w", l.ID, err)
 	}
 	return m, nil
@@ -268,7 +283,7 @@ func nestedCarrierMap(ctx context.Context, c *ent.Carrier) (map[string]any, erro
 		return nil, fmt.Errorf("nested carrier %d org: %w", c.ID, err)
 	}
 	var err error
-	if m["carrierfac_set"], err = sortedIDsOrEmpty(c.QueryCarrierFacilities().Where(carrierfacility.StatusIn("ok", "pending")).IDs(ctx)); err != nil {
+	if m["carrierfac_set"], err = sortedIDsOrEmpty(c.QueryCarrierFacilities().Where(carrierfacility.StatusIn("ok")).IDs(ctx)); err != nil {
 		return nil, fmt.Errorf("nested carrier %d carrierfac_set: %w", c.ID, err)
 	}
 	return m, nil
@@ -300,11 +315,11 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	if depth >= 2 {
 		o, err := client.Organization.Query().
 			Where(organization.ID(id), organization.StatusIn("ok", "pending")).
-			WithNetworks(func(q *ent.NetworkQuery) { q.Where(network.StatusIn("ok", "pending")) }).
-			WithFacilities(func(q *ent.FacilityQuery) { q.Where(facility.StatusIn("ok", "pending")) }).
-			WithInternetExchanges(func(q *ent.InternetExchangeQuery) { q.Where(internetexchange.StatusIn("ok", "pending")) }).
-			WithCarriers(func(q *ent.CarrierQuery) { q.Where(carrier.StatusIn("ok", "pending")) }).
-			WithCampuses(func(q *ent.CampusQuery) { q.Where(campus.StatusIn("ok", "pending")) }).
+			WithNetworks(func(q *ent.NetworkQuery) { q.Where(network.StatusIn("ok")) }).
+			WithFacilities(func(q *ent.FacilityQuery) { q.Where(facility.StatusIn("ok")) }).
+			WithInternetExchanges(func(q *ent.InternetExchangeQuery) { q.Where(internetexchange.StatusIn("ok")) }).
+			WithCarriers(func(q *ent.CarrierQuery) { q.Where(carrier.StatusIn("ok")) }).
+			WithCampuses(func(q *ent.CampusQuery) { q.Where(campus.StatusIn("ok")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get organization %d: %w", id, err)
@@ -339,9 +354,9 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		n, err := client.Network.Query().
 			Where(network.ID(id), network.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithPocs(func(q *ent.PocQuery) { q.Where(poc.StatusIn("ok", "pending")) }).
-			WithNetworkFacilities(func(q *ent.NetworkFacilityQuery) { q.Where(networkfacility.StatusIn("ok", "pending")) }).
-			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) { q.Where(networkixlan.StatusIn("ok", "not-operational", "pending")) }).
+			WithPocs(func(q *ent.PocQuery) { q.Where(poc.StatusIn("ok")) }).
+			WithNetworkFacilities(func(q *ent.NetworkFacilityQuery) { q.Where(networkfacility.StatusIn("ok")) }).
+			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) { q.Where(networkixlan.StatusIn("ok", "not-operational")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get network %d: %w", id, err)
@@ -434,9 +449,9 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 		ix, err := client.InternetExchange.Query().
 			Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithIxLans(func(q *ent.IxLanQuery) { q.Where(ixlan.StatusIn("ok", "pending")) }).
+			WithIxLans(func(q *ent.IxLanQuery) { q.Where(ixlan.StatusIn("ok")) }).
 			WithIxFacilities(func(q *ent.IxFacilityQuery) {
-				q.Where(ixfacility.StatusIn("ok", "pending")).WithFacility()
+				q.Where(ixfacility.StatusIn("ok")).WithFacility()
 			}).
 			Only(ctx)
 		if err != nil {
@@ -479,13 +494,12 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 			Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
 			WithInternetExchange().
 			WithIxPrefixes(func(q *ent.IxPrefixQuery) {
-				q.Where(ixprefix.StatusIn("ok", "pending"))
+				q.Where(ixprefix.StatusIn("ok"))
 			}).
+			// The join row decides membership; the network it resolves
+			// to is not filtered, the same as the depth=1 ID list.
 			WithNetworkIxLans(func(q *ent.NetworkIxLanQuery) {
-				q.Where(networkixlan.StatusIn("ok", "not-operational", "pending")).
-					WithNetwork(func(nq *ent.NetworkQuery) {
-						nq.Where(network.StatusIn("ok", "pending"))
-					})
+				q.Where(networkixlan.StatusIn("ok", "not-operational")).WithNetwork()
 			}).
 			Only(ctx)
 		if err != nil {
@@ -503,9 +517,9 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 		m["ixpfx_set"] = setWithout(ixPrefixesFromEnt(l.Edges.IxPrefixes), "ixlan_id")
 		// Upstream IXLanSerializer exposes net_set, NOT netixlan_set:
 		// nested(NetworkSerializer, through="netixlan_set", getter="network")
-		// (serializers.py:3407) yields one flat Network per active netixlan
-		// join row — no dedup, join order. We resolve each join row to its
-		// Network and emit the flat NetworkSerializer shape.
+		// (2.83.0 serializers.py:4252-4257) yields one flat Network per live
+		// netixlan join row — no dedup, join order. We resolve each join row
+		// to its Network and emit the flat NetworkSerializer shape.
 		netSet := make([]any, 0, len(l.Edges.NetworkIxLans))
 		for _, nixl := range l.Edges.NetworkIxLans {
 			if nixl != nil && nixl.Edges.Network != nil {
@@ -537,7 +551,7 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 		c, err := client.Carrier.Query().
 			Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithCarrierFacilities(func(q *ent.CarrierFacilityQuery) { q.Where(carrierfacility.StatusIn("ok", "pending")) }).
+			WithCarrierFacilities(func(q *ent.CarrierFacilityQuery) { q.Where(carrierfacility.StatusIn("ok")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get carrier %d: %w", id, err)
@@ -577,7 +591,7 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 		c, err := client.Campus.Query().
 			Where(campus.ID(id), campus.StatusIn("ok", "pending")).
 			WithOrganization().
-			WithFacilities(func(q *ent.FacilityQuery) { q.Where(facility.StatusIn("ok", "pending")) }).
+			WithFacilities(func(q *ent.FacilityQuery) { q.Where(facility.StatusIn("ok")) }).
 			Only(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("get campus %d: %w", id, err)

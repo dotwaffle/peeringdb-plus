@@ -268,7 +268,7 @@ Valid `{type}` values are the same 13 constants defined in
 | `q` | List | Case-insensitive substring search across the type's search fields. For `/api/net`, an ASN literal (e.g. `8075` or `AS8075`) also matches `net.asn` exactly in addition to the text fields. A peeringdb-plus **extension** — upstream ignores `?q=` on `/api` list endpoints — and unlike the `__contains` filter family it is not diacritic-folded; see § Known Divergences |
 | `limit` | List | Maximum rows in response. **Default unlimited** when absent — matches upstream `rest.py:504` (`limit` defaults to `0`) + `rest.py:744-748` (no slice when `limit=0`). Bare `/api/<type>` URLs return ALL rows from the filtered queryset; the response is gated only by the response memory budget (see below). Explicit `limit=N`: positive `N` is clamped to `MaxLimit=1000`; `limit=0` is the explicit "unlimited" sentinel; negative values are ignored. Constants: `DefaultLimit=0`, `MaxLimit=1000` (`internal/pdbcompat/response.go`). The `?page=N` shape is not supported — clients that want pagination set `?limit=N&skip=M` instead |
 | `skip` | List | Offset for pagination. Negative values are ignored |
-| `depth` | Detail | Edge expansion depth, clamped to `0`–`4` (the range upstream accepts, `serializers.py:802-826` — `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2). `0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default — `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists. The detail default is `2` (`default_depth(is_list=False)`). Non-numeric keeps the default; negatives floor to `0`. `3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced). **List endpoints silently drop `?depth=`** — see § Known Divergences |
+| `depth` | Detail | Edge expansion depth, clamped to `0`–`4` (the range upstream accepts, `serializers.py:802-826` — `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2). `0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default — `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists. The detail default is `2` (`default_depth(is_list=False)`). Non-numeric keeps the default; negatives floor to `0`. `3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced). `_set` fields list only live children (see "Soft-delete tombstones" below). **List endpoints silently drop `?depth=`** — see § Known Divergences |
 | `fields` | Both | Comma-separated projection — only the listed JSON keys are returned after retrieval |
 | `since` | List | Only return rows with `updated` greater than the given timestamp (Unix seconds). Invalid input returns `400`. Activates the upstream "since matrix" — see "Soft-delete tombstones" below |
 | `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream `rest.py:638-641`. Typed against the field; invalid types (e.g. `asn__contains`) return `400` |
@@ -336,6 +336,20 @@ The matrix starts from the live statuses of the type
 | List, no `?since` | live statuses only |
 | List with `?since=N` | live statuses and `deleted`; `pending` additionally admitted on `/api/campus` |
 | Single-object GET `/api/<type>/<id>` | live statuses and `pending` — tombstones return `404` |
+| Nested `_set` lists, `?depth=1` and higher | live statuses only |
+
+The nested sets follow the upstream nested prefetch
+(`serializers.py:1140-1148`), which admits only the live statuses of the
+child type.
+A pending child is fetchable by its own ID,
+but it does not appear in the `_set` lists of its parent.
+In practice this affects only campuses:
+a campus is pending while it has fewer than two facilities,
+and campus is the only type whose pending rows reach the mirror.
+For `ix.fac_set` and `ixlan.net_set`, the status of the ixfac or netixlan
+join row decides membership.
+The facility or network that the row points to is not filtered.
+Up to v1.27.0, pdbcompat also listed pending children in the sets.
 
 A `not-operational` netixlan is a published connection that its network
 declares not operational.

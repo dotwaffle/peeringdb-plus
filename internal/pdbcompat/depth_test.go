@@ -1522,41 +1522,6 @@ func TestDepth_NotOperationalNetIXLanInSets(t *testing.T) {
 		SetOperational(false).SetStatus("not-operational").SetCreated(now).SetUpdated(now).SaveX(ctx)
 
 	mux := newMuxForOrdering(c)
-	// setIDs returns the ids in the named _set: bare numbers at depth 1,
-	// the "id" of each object at depth 2.
-	setIDs := func(t *testing.T, path, key string) []int {
-		t.Helper()
-		req := httptest.NewRequest(http.MethodGet, path, nil)
-		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
-		if rec.Code != http.StatusOK {
-			t.Fatalf("GET %s: %d: %s", path, rec.Code, rec.Body.String())
-		}
-		var env struct {
-			Data []map[string]any `json:"data"`
-		}
-		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil || len(env.Data) != 1 {
-			t.Fatalf("GET %s: decode: %v (rows=%d)", path, err, len(env.Data))
-		}
-		raw, ok := env.Data[0][key].([]any)
-		if !ok {
-			t.Fatalf("GET %s: %s is %T, want array", path, key, env.Data[0][key])
-		}
-		var ids []int
-		for _, el := range raw {
-			switch v := el.(type) {
-			case float64:
-				ids = append(ids, int(v))
-			case map[string]any:
-				ids = append(ids, int(v["id"].(float64)))
-			default:
-				t.Fatalf("GET %s: %s element is %T", path, key, el)
-			}
-		}
-		slices.Sort(ids)
-		return ids
-	}
-
 	cases := []struct {
 		path, key string
 		want      []int
@@ -1570,7 +1535,7 @@ func TestDepth_NotOperationalNetIXLanInSets(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.path+"/"+tc.key, func(t *testing.T) {
 			t.Parallel()
-			if got := setIDs(t, tc.path, tc.key); !slices.Equal(got, tc.want) {
+			if got := depthSetIDs(t, mux, tc.path, tc.key); !slices.Equal(got, tc.want) {
 				t.Errorf("%s %s = %v, want %v", tc.path, tc.key, got, tc.want)
 			}
 		})

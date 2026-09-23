@@ -21,7 +21,9 @@ import (
 // "ok" on every type, plus "not-operational" on netixlan. A list without
 // since admits the live statuses (rest.py:748), a since list admits live
 // + deleted (:723), and a PK lookup admits live + pending (:750). The
-// netixlan_* subtests lock the second live status.
+// netixlan_* subtests lock the second live status. The depth_sets_*
+// subtest locks the nested _set rule: live statuses only, so a pending
+// child is left out (serializers.py:1140-1148).
 //
 // The campus row carries the rest.py:725-735 carve-out where
 // status="pending" is admitted on `since>0` list queries (the IXP
@@ -193,6 +195,51 @@ func TestParity_Status(t *testing.T) {
 		want := []int{1, 3}
 		if !equalIntSlice(ids, want) {
 			t.Errorf("since admits ok+deleted: got %v, want %v", ids, want)
+		}
+	})
+
+	t.Run("depth_sets_exclude_pending_campus", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:1140-1148 (the nested _set
+		// prefetch admits the live statuses only; 2.82.0 :935 filtered
+		// status="ok") + rest.py:774-777 (a detail response uses the
+		// same prefetch). A pending campus is left out of its org's
+		// campus_set, as an ID at depth=1 and as an object at depth=2,
+		// but a PK lookup still returns it (rest.py:750).
+		c := testutil.SetupClient(t)
+		seedCampus(t, c, 1, "ok", t0)
+		seedCampus(t, c, 2, "pending", t0.Add(time.Hour))
+
+		srv := newTestServer(t, c)
+		for _, path := range []string{"/api/org/1?depth=1", "/api/org/1?depth=2", "/api/org/1"} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d; body=%s", path, status, string(body))
+			}
+			rows := decodeDataArray(t, body)
+			if len(rows) != 1 {
+				t.Fatalf("GET %s: %d rows, want 1", path, len(rows))
+			}
+			set, ok := rows[0]["campus_set"].([]any)
+			if !ok {
+				t.Fatalf("GET %s: campus_set is %T, want array", path, rows[0]["campus_set"])
+			}
+			var ids []int
+			for _, el := range set {
+				switch v := el.(type) {
+				case float64: // depth=1 ID list
+					ids = append(ids, int(v))
+				case map[string]any: // depth=2 object
+					id, _ := v["id"].(float64)
+					ids = append(ids, int(id))
+				}
+			}
+			if want := []int{1}; !equalIntSlice(ids, want) {
+				t.Errorf("GET %s: campus_set = %v, want %v (pending campus left out)", path, ids, want)
+			}
+		}
+		if status, body := httpGet(t, srv, "/api/campus/2"); status != http.StatusOK {
+			t.Errorf("pk lookup on pending campus: got %d, want 200; body=%s", status, string(body))
 		}
 	})
 

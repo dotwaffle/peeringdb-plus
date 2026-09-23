@@ -611,6 +611,12 @@ The pk-lookup path (`internal/pdbcompat/depth.go`) inlines
 `StatusIn("ok", "pending")` at every call site
 (`StatusIn("ok", "not-operational", "pending")` for netixlan)
 so direct-ID GETs return 404 for tombstones.
+The nested `_set` collections of the depth expansion admit only the live
+statuses of the child (`StatusIn("ok")`,
+`StatusIn("ok", "not-operational")` for netixlan),
+the same as the upstream nested prefetch.
+A pending child, in practice a campus, is fetchable by ID
+but is left out of the sets of its parent.
 
 Tombstone GC is dormant work; triggers are storage growth >5% MoM,
 tombstone ratio >10%, or operator request.
