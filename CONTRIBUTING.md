@@ -165,38 +165,15 @@ Read both before editing schemas or anything privacy-adjacent.
 
 ### Sibling-file convention for ent schemas
 
-The per-entity files in `ent/schema/{type}.go`
-(e.g. `network.go`, `organization.go`, `poc.go`)
-are **regenerated from `schema/peeringdb.json`** by `cmd/pdb-schema-generate` on
-every `go generate ./...` run.
-Anything hand-edited inside those files — `Hooks`, `Policy`, `Annotations`,
-`Edges`, `Mixin` — is silently stripped.
-
-The fix is architectural:
-keep hand-edits in **sibling files** the generator never touches.
-The generator only writes files named after the model type,
-so any sibling with an additional `_suffix` is invisible to it. ent's codegen
-still discovers the methods via reflection on the schema type — the file split
-is transparent to ent.
-
-Existing siblings to model your changes on:
-
-- `ent/schema/poc_policy.go` — `(Poc).Policy()` privacy rule
-- `ent/schema/fold_mixin.go` + `ent/schema/{type}_fold.go` —
-  `(Entity).Mixin()` wiring for the 6 folded entities
-  (`organization`, `network`, `facility`, `internetexchange`, `carrier`,
-  `campus`)
-- `ent/schema/pdb_allowlists.go` —
-  `schema.PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist`
-- `ent/schema/campus_annotations.go` — entity-level annotation overrides
-
-If you add new hand-edited methods
-(Hooks, Policy, Annotations, Edges, Mixin)
-to any generated schema file,
-**move them to a sibling named `{type}_{method}.go`** instead.
-If you don't, your changes will vanish the next time anyone runs
-`go generate ./...` and the CI drift check will not catch it (because the
-regenerated file is what gets committed).
+`cmd/pdb-schema-generate` writes `ent/schema/{type}.go`
+and `ent/schema/types.go` from `schema/peeringdb.json`
+each time `go generate ./...` runs.
+It removes any hand edits in those files.
+Put hand-written schema code in a sibling file,
+for example `{type}_{method}.go`.
+If you commit a hand edit in a generated file, the CI drift check fails.
+For the current sibling files and the methods that a sibling can declare, see
+[DEVELOPMENT.md § Sibling-file convention](docs/DEVELOPMENT.md#sibling-file-convention-load-bearing).
 
 ### Privacy-touching changes (`*_visible` companion fields)
 
