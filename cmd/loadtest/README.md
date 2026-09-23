@@ -223,8 +223,9 @@ Set `PDBPLUS_LOADTEST_AUTH_TOKEN` to send `Authorization: Bearer
 PDBPLUS_LOADTEST_AUTH_TOKEN=$(cat ~/.pdbplus-token) ./loadtest soak --duration=1m
 ```
 
-When unset, requests are anonymous (matching what an unauthenticated
-external client sees).
+Use it only when a proxy in front of the mirror requires a token.
+peeringdb-plus ignores the header. Every caller sees the tier that
+`PDBPLUS_PUBLIC_TIER` sets.
 
 ## Output
 

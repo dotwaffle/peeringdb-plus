@@ -259,6 +259,7 @@ func printHelp(w *os.File) {
 	fmt.Fprintln(w, "      table to stdout when its ramp completes.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Auth: set PDBPLUS_LOADTEST_AUTH_TOKEN to send 'Authorization: Bearer <token>' on every request.")
+	fmt.Fprintln(w, "      Use it only for a proxy that requires a token. peeringdb-plus ignores the header.")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Run `loadtest <mode> --help` for mode-specific flag defaults.")
 }
