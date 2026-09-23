@@ -28,10 +28,10 @@ linters:
           - gosec
 
 formatters:
-  # gofmt with simplify (-s) enforced 2026-04-28: catches unnecessary
-  # syntactic constructs (e.g. `s[a:len(s)]` → `s[a:]`, `for _, x := range
-  # arr` simplifications, redundant literal types). modernize linter
-  # (above) catches semantic-level Go-idiom drift; gofmt -s catches the
+  # gofmt with simplify (-s): catches unnecessary syntax, for example
+  # `s[a:len(s)]` → `s[a:]`, `for x, _ := range v` → `for x := range v`,
+  # and redundant composite-literal types. The modernize linter (above)
+  # catches semantic-level Go-idiom drift. gofmt -s catches the
   # syntactic-level drift on the same axis.
   enable:
     - gofmt
