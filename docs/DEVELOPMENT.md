@@ -640,8 +640,15 @@ Two-step:
    Codegen routes 3-segment keys
    (e.g. `first__second__field`) into `AllowlistEntry.Via` automatically.
 
-To exclude an edge from traversal entirely,
-attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition.
+To exclude an edge from Path B traversal,
+the edge needs the `schemaannot.WithFilterExcludeFromTraversal()` annotation
+(package `internal/pdbcompat/schemaannot`).
+Do not import `internal/pdbcompat` from `ent/schema`,
+because that causes an import cycle.
+Edges are in the generated `ent/schema/{type}.go` files,
+and the schema generator removes hand edits there.
+No edge uses this annotation today.
+To add one, first add support for it to `cmd/pdb-schema-generate`.
 
 A key that an upstream `prepare_query` handles through
 `get_relation_filters` is not an allowlist key.
