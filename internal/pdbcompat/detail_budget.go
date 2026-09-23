@@ -39,9 +39,10 @@ type detailChildSet struct {
 // facilities (one per ixfac join row) and ixlan.net_set renders networks
 // (one per netixlan join row), so their counts run over the join table
 // while childType names the rendered entity. Leaf types (poc, ixpfx,
-// netixlan, netfac, ixfac, carrierfac) embed only bounded parent FK
-// objects at depth>=2 — the flat Depth2 figure already covers them, so
-// they carry no entry.
+// netixlan, netfac, ixfac, carrierfac) and fac embed only bounded parent
+// FK objects at depth>=2 — the flat Depth2 figure already covers them,
+// so they carry no entry. fac renders its org and campus but no reverse
+// set, as upstream's FacilitySerializer has none.
 var detailChildSets = map[string][]detailChildSet{
 	peeringdb.TypeOrg: {
 		{peeringdb.TypeNet, func(ctx context.Context, client *ent.Client, id int) (int, error) {
@@ -69,17 +70,6 @@ var detailChildSets = map[string][]detailChildSet{
 		}},
 		{peeringdb.TypeNetIXLan, func(ctx context.Context, client *ent.Client, id int) (int, error) {
 			return client.NetworkIxLan.Query().Where(networkixlan.NetID(id), networkixlan.StatusIn("ok", "not-operational")).Count(ctx)
-		}},
-	},
-	peeringdb.TypeFac: {
-		{peeringdb.TypeNetFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.NetworkFacility.Query().Where(networkfacility.FacID(id), networkfacility.StatusIn("ok")).Count(ctx)
-		}},
-		{peeringdb.TypeIXFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.IxFacility.Query().Where(ixfacility.FacID(id), ixfacility.StatusIn("ok")).Count(ctx)
-		}},
-		{peeringdb.TypeCarrierFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.CarrierFacility.Query().Where(carrierfacility.FacID(id), carrierfacility.StatusIn("ok")).Count(ctx)
 		}},
 	},
 	peeringdb.TypeIX: {

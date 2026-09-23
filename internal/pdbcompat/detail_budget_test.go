@@ -89,6 +89,48 @@ func TestDetailInflightEstimate_CountsChildren(t *testing.T) {
 	}
 }
 
+// TestDetailInflightEstimate_FacPricesFlat verifies that a facility
+// detail bills only its flat Depth2 figure. getFacWithDepth renders the
+// org and campus but no reverse set, so the netfac, ixfac and carrierfac
+// rows at the facility add nothing.
+func TestDetailInflightEstimate_FacPricesFlat(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	now := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	org := client.Organization.Create().
+		SetName("Org").SetNameFold(unifold.Fold("Org")).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	fac := client.Facility.Create().
+		SetName("Fac").SetNameFold(unifold.Fold("Fac")).SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	net := client.Network.Create().
+		SetName("Net").SetNameFold(unifold.Fold("Net")).SetAsn(65001).
+		SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	ix := client.InternetExchange.Create().
+		SetName("IX").SetNameFold(unifold.Fold("IX")).SetOrganization(org).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	carrier := client.Carrier.Create().
+		SetName("Carrier").SetNameFold(unifold.Fold("Carrier")).SetOrgID(org.ID).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.NetworkFacility.Create().
+		SetNetwork(net).SetFacility(fac).SetLocalAsn(65001).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.IxFacility.Create().
+		SetInternetExchange(ix).SetFacility(fac).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	client.CarrierFacility.Create().
+		SetCarrier(carrier).SetFacility(fac).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+
+	want := int64(TypicalRowBytes(peeringdb.TypeFac, 2))
+	if got := detailInflightEstimate(ctx, client, peeringdb.TypeFac, fac.ID, 2); got != want {
+		t.Errorf("fac depth=2 estimate = %d, want %d (flat Depth2)", got, want)
+	}
+}
+
 // TestDetailInflightEstimate_CountsLiveNetixlan verifies that the two
 // sets built from netixlan rows, net.netixlan_set and the through-relation
 // ixlan.net_set, bill the netixlan live statuses (ok and not-operational)
@@ -135,7 +177,7 @@ func TestDetailInflightEstimate_CountsLiveNetixlan(t *testing.T) {
 }
 
 // TestDetailChildSets_CoverRegistryParents locks the depth.go ↔
-// detailChildSets alignment at the type level: exactly the 7 parent types
+// detailChildSets alignment at the type level: exactly the 6 parent types
 // whose depth>=2 expansion embeds full child objects carry an entry, and
 // every childType named in the table has a calibrated row size (an
 // unknown name would silently price at defaultRowSize).
@@ -144,7 +186,6 @@ func TestDetailChildSets_CoverRegistryParents(t *testing.T) {
 	wantParents := map[string]int{
 		peeringdb.TypeOrg:     5, // net, fac, ix, carrier, campus
 		peeringdb.TypeNet:     3, // poc, netfac, netixlan
-		peeringdb.TypeFac:     3, // netfac, ixfac, carrierfac
 		peeringdb.TypeIX:      2, // ixlan, fac (via ixfac)
 		peeringdb.TypeIXLan:   2, // ixpfx, net (via netixlan)
 		peeringdb.TypeCarrier: 1, // carrierfac
