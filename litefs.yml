@@ -2,6 +2,13 @@
 # Proxy section removed -- app serves traffic directly on :8080 for h2c/gRPC support
 # See: https://fly.io/docs/litefs/config/
 
+# exit-on-error is false: when LiteFS fails during startup (for example, it
+# cannot open its data directory or cannot start the application), it logs
+# the error and keeps running, so you can debug with `fly ssh console`. The
+# application does not run, and the machine does not restart. On the
+# primary, the PdbPlusPrimaryAbsent alert reports this state. When the
+# application itself exits, LiteFS stops too, so the restart policy in
+# fly.toml covers application crashes.
 exit-on-error: false
 
 fuse:
