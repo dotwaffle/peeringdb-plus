@@ -24,7 +24,7 @@ func (r *Renderer) RenderAboutPage(
 	buf.WriteString(StyleHeading.Render("PeeringDB Plus"))
 	buf.WriteString("\n\n")
 
-	writeKV(&buf, "Description", styledVal("Read-only PeeringDB mirror with GraphQL, gRPC, and REST APIs"), labelWidth)
+	writeKV(&buf, "Description", styledVal("Read-only PeeringDB mirror with a web UI and PeeringDB-compatible, REST, GraphQL, ConnectRPC, and MCP interfaces"), labelWidth)
 
 	if data.Available {
 		writeKV(&buf, "Last Sync", styledVal(data.LastSyncAt.Format("2006-01-02 15:04:05 UTC")), labelWidth)
@@ -72,6 +72,8 @@ func (r *Renderer) RenderAboutPage(
 	writeKV(&buf, "REST", styledVal("/rest/v1/"), labelWidth)
 	writeKV(&buf, "PeeringDB API", styledVal("/api/"), labelWidth)
 	writeKV(&buf, "ConnectRPC", styledVal("/peeringdb.v1.*/"), labelWidth)
+	writeKV(&buf, "MCP", styledVal("/mcp"), labelWidth)
+	writeKV(&buf, "Agent Skill", styledVal("/skills/peeringdb-plus.zip"), labelWidth)
 
 	buf.WriteString("\n")
 	buf.WriteString(StyleMuted.Render("Use ?format=json for structured data."))
