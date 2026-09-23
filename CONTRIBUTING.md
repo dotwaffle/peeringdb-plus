@@ -177,37 +177,17 @@ For the current sibling files and the methods that a sibling can declare, see
 
 ### Privacy-touching changes (`*_visible` companion fields)
 
-PeeringDB Plus enforces field-level privacy via
-`internal/privfield.Redact(ctx, visible, value)`.
-This is the **single source of truth** —
-every API serializer must call it for each gated field.
-Today there are 5 serializer surfaces,
-and missing **any one** of them is a privacy leak:
+`internal/privfield.Redact(ctx, visible, value)` decides
+if the caller can see a gated field.
+Every API surface that can show a gated field must call it.
+A surface that does not call it leaks the field.
+There are six surfaces:
+`/api/`, ConnectRPC, GraphQL, `/rest/v1/`, the Web UI, and MCP (`/mcp`).
+Today the Web UI and MCP do not show a gated field.
 
-1. `internal/pdbcompat/serializer.go` — `/api` (PeeringDB-compat surface)
-2. `internal/grpcserver/ixlan.go` — ConnectRPC / `/peeringdb.v1.*`
-3. `graph/schema.resolvers.go` — GraphQL `/graphql`
-4. `internal/middleware/rest_redact.go` `RESTFieldRedact` —
-   entrest `/rest/v1/`
-5. Web UI templates — `/ui/` (when/if a render path is added)
-
-If you add a new `<field>_visible` companion field to a schema:
-
-- Add the ent schema fields
-  (`field.String` for the `_visible` column).
-- Call `privfield.Redact` at **all five** surfaces above.
-- On `/api`, the permission decides the key, not the value.
-  Do not rely on `,omitempty` on a plain `string` value field.
-  Follow the pdbcompat step in
-  [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#adding-a-new-field-level-privacy-gated-field).
-- Update `internal/testutil/seed.Full` to seed both a gated row
-  (e.g. `_visible=Users`) and a `Public` row.
-- Extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with matching
-  `Redacted{Anon,UsersTier}` sub-tests plus a `fail-closed-bypass-middleware`
-  assertion on the ConnectRPC handler.
-
-The existing `ixlan.ixf_ixp_member_list_url_visible` field is a complete worked
-example — grep for its uses across the 5 surfaces to see the pattern.
+Before you add a `<field>_visible` companion field, read
+[DEVELOPMENT.md § Adding a new field-level-privacy gated field](docs/DEVELOPMENT.md#adding-a-new-field-level-privacy-gated-field).
+The worked example is `ixlan.ixf_ixp_member_list_url_visible`.
 
 ## Repository Layout Notes
 
