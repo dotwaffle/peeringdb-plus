@@ -4491,11 +4491,6 @@ input NetworkWhereInput {
   """
   hasOrganization: Boolean
   hasOrganizationWith: [OrganizationWhereInput!]
-  """
-  pocs edge predicates
-  """
-  hasPocs: Boolean
-  hasPocsWith: [PocWhereInput!]
 }
 """
 An object with an ID.

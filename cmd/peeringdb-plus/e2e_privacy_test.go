@@ -427,6 +427,35 @@ func decodeGraphQL(t *testing.T, body []byte) gqlResponse {
 	return r
 }
 
+// assertPocEdgeNotFilterable checks that GraphQL rejects a network filter
+// over the pocs edge. Such a predicate runs as a plain SQL neighbor query
+// without the poc privacy policy, so a match on an email prefix of a
+// hidden POC would disclose the email one character at a time. The
+// direct form and the form nested under organizations must both fail
+// validation and return no data.
+func assertPocEdgeNotFilterable(t *testing.T, fix *e2eFixture, emailPrefixes ...string) {
+	t.Helper()
+	for _, prefix := range emailPrefixes {
+		for _, q := range []string{
+			fmt.Sprintf(`{ networks(where: {hasPocsWith: [{emailHasPrefix: %q}]}) { edges { node { id } } } }`, prefix),
+			fmt.Sprintf(`{ organizations(where: {hasNetworksWith: [{hasPocsWith: [{emailHasPrefix: %q}]}]}) { edges { node { id } } } }`, prefix),
+		} {
+			payload, err := json.Marshal(map[string]string{"query": q})
+			if err != nil {
+				t.Fatalf("marshal query: %v", err)
+			}
+			body, _ := mustPostJSON(t, fix.server.URL+"/graphql", string(payload))
+			r := decodeGraphQL(t, body)
+			if len(r.Errors) == 0 || !strings.Contains(r.Errors[0].Message, "hasPocsWith") {
+				t.Fatalf("%s: want a validation error that names hasPocsWith, got errors=%+v data=%s", q, r.Errors, r.Data)
+			}
+			if strings.Contains(string(r.Data), strconv.Itoa(fix.netID)) {
+				t.Fatalf("%s: the network matched on a hidden POC email: %s", q, r.Data)
+			}
+		}
+	}
+}
+
 // =============================================================================
 // TierPublic: anonymous caller must NOT see the visible="Users" POC.
 // =============================================================================
@@ -596,6 +625,10 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 				t.Fatalf("Users POC leaked into pocsList: %+v", p)
 			}
 		}
+	})
+
+	t.Run("graphql_poc_edge_filter_rejected", func(t *testing.T) {
+		assertPocEdgeNotFilterable(t, fix, "users-", "private-")
 	})
 
 	// -------------------------------------------------------------------------
@@ -938,6 +971,10 @@ func TestE2E_PublicTierUsersHidesPrivatePoc(t *testing.T) {
 			t.Fatalf("graphql: unexpected errors: %+v", r.Errors)
 		}
 		assertNoPrivatePoc(t, "/graphql", r.Data)
+	})
+
+	t.Run("graphql_poc_edge_filter_rejected", func(t *testing.T) {
+		assertPocEdgeNotFilterable(t, fix, "private-")
 	})
 
 	t.Run("ui_contacts_fragment_absent", func(t *testing.T) {

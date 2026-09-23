@@ -46,6 +46,7 @@ Two ent fields carry upstream PeeringDB visibility signals:
 
 - `poc.visible` — row-level (`Public` / `Users` / `Private`). The ent Privacy policy admits `visible IN tier.AdmittedVisibilities() OR NULL`: TierPublic → `Public`; TierUsers → `Public`+`Users`; NO tier sees `Private` (upstream: owning-org members only; mirror has no org membership). Only entity where a whole row can be hidden.
 - `privctx.Tier.AdmittedVisibilities()` is the single tier→visibility mapping; the poc policy, pdbcompat `applyVisibilityGate` (traversal subqueries) and `privfield.Redact` all use it; never hand-code a tier/visibility check.
+- Edge predicates bypass the policy: a `Has<Edge>With` neighbor predicate is plain SQL, so a filter over the `pocs` edge is a boolean oracle on hidden contact data. `cmd/pdb-schema-generate` `rowGatedEdgeTargets` emits `entgql.Skip(entgql.SkipWhereInput)` on every edge to `poc` (no `hasPocs`/`hasPocsWith` anywhere, incl. nested where-inputs). Any new filter path that reaches poc rows MUST apply `AdmittedVisibilities()` or be dropped. Locked by `TestGraphQLAPI_PocEdgeNotFilterable` + e2e `graphql_poc_edge_filter_rejected`.
 - `ixlan.ixf_ixp_member_list_url_visible` — per-field (`Public` / `Users` / `Private`). Gates the sibling `ixf_ixp_member_list_url`; `internal/privfield.Redact` nulls/omits at the serializer layer across all 5 API surfaces. ent's built-in Privacy operates at query/row level only — field-level redaction is a serializer-layer concern.
 
 ### Field-level privacy

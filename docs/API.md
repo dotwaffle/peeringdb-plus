@@ -932,6 +932,17 @@ member of the owning organization:
 The mirror has no organization membership, so no tier sees `Private` data.
 Up to v1.27.0, the Users tier also saw `Private` `poc` rows.
 
+The GraphQL `NetworkWhereInput` has no `hasPocs` or `hasPocsWith` predicate.
+Such a predicate tests the `poc` rows in an SQL subquery,
+and the privacy policy does not apply to it.
+A caller could thus match networks on the `name`, `phone` or `email`
+of a contact that the tier hides, and read the value one prefix at a time.
+Up to v1.27.0, the schema had both predicates,
+also nested in other where-inputs, for example
+`organizations(where: {hasNetworksWith: [{hasPocsWith: …}]})`.
+To filter on contact data, query `pocs` or `pocsList` with a `PocWhereInput`.
+The policy applies to that query.
+
 ## Infrastructure endpoints
 
 ### `GET /`

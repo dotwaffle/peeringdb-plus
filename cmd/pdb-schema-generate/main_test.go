@@ -855,6 +855,34 @@ func TestHasFieldType(t *testing.T) {
 	}
 }
 
+// TestGenerateEdgeCodeRowGatedTarget checks that an edge to the row-gated
+// poc type gets no GraphQL where-input predicates, and that other edges
+// keep them. A hasPocsWith predicate runs without the poc privacy policy
+// and would let a caller probe the contact data of hidden pocs.
+func TestGenerateEdgeCodeRowGatedTarget(t *testing.T) {
+	t.Parallel()
+
+	schema := &Schema{
+		ObjectTypes: map[string]ObjectType{
+			"net":    {ModelName: "Network", APIPath: "net"},
+			"poc":    {ModelName: "Poc", APIPath: "poc"},
+			"netfac": {ModelName: "NetworkFacility", APIPath: "netfac"},
+		},
+	}
+	net := schema.ObjectTypes["net"]
+	const skip = "entgql.Skip(entgql.SkipWhereInput)"
+
+	pocs := generateEdgeCode("pocs", Relationship{Target: "poc", Type: "one_to_many", Field: "net_id"}, net, schema)
+	if !strings.Contains(pocs, skip) || !strings.Contains(pocs, "entrest.WithEagerLoad(true)") {
+		t.Errorf("pocs edge must keep eager load and skip the where-input, got:\n%s", pocs)
+	}
+
+	netfacs := generateEdgeCode("network_facilities", Relationship{Target: "netfac", Type: "one_to_many", Field: "net_id"}, net, schema)
+	if strings.Contains(netfacs, skip) {
+		t.Errorf("network_facilities edge must keep its where-input, got:\n%s", netfacs)
+	}
+}
+
 func TestSynthesizeReverseEdges(t *testing.T) {
 	t.Parallel()
 

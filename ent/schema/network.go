@@ -213,7 +213,10 @@ func (Network) Edges() []ent.Edge {
 			Unique().
 			Annotations(entrest.WithEagerLoad(true)),
 		edge.To("pocs", Poc.Type).
-			Annotations(entrest.WithEagerLoad(true)),
+			Annotations(
+				entrest.WithEagerLoad(true),
+				entgql.Skip(entgql.SkipWhereInput),
+			),
 	}
 }
 

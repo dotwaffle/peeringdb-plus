@@ -523,6 +523,14 @@ The pieces:
    all flow through the same `ent.Client`, so there is exactly one filter,
    not six.
    POC is the only entity where a whole row can be hidden.
+   The policy filters the rows that a poc query returns.
+   It does not apply to a predicate on another type that tests the poc edge,
+   because that predicate is a plain SQL subquery.
+   The schema generator thus marks the `pocs` edge with
+   `entgql.Skip(entgql.SkipWhereInput)`,
+   so the GraphQL `NetworkWhereInput` has no `hasPocs` or `hasPocsWith`.
+   The pdbcompat `?poc__<field>=` traversal adds the same visibility check
+   to its subquery (`applyVisibilityGate`).
 3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
    `Redact(ctx, visible, value) (out string, omit bool)` is the single source of
    truth for per-field redaction.

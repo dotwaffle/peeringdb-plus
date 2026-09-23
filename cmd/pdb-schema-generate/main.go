@@ -554,6 +554,20 @@ func sortedRelationships(rels map[string]Relationship) []namedRelationship {
 	return result
 }
 
+// rowGatedEdgeTargets is the set of API paths whose rows the ent privacy
+// policy hides by tier. Only poc has a row-level gate (poc.visible).
+//
+// A GraphQL where-input predicate over an edge to such a type
+// (hasPocs, hasPocsWith) runs as a plain SQL neighbor query. The privacy
+// policy of the target does not apply to it, so a caller can filter
+// parents on the contact data of hidden rows and use the match or no
+// match as a boolean oracle. Edges that point to these types thus get no
+// where-input predicates. The edge stays in the output type, where the
+// policy filters the rows.
+var rowGatedEdgeTargets = map[string]bool{
+	"poc": true,
+}
+
 // generateEdgeCode produces entgo edge definition code for a relationship.
 func generateEdgeCode(name string, rel Relationship, ot ObjectType, schema *Schema) string {
 	targetType := apiPathToModelName(rel.Target, schema)
@@ -572,8 +586,12 @@ func generateEdgeCode(name string, rel Relationship, ot ObjectType, schema *Sche
 
 	case "one_to_many":
 		// This type owns the reverse edge: edge.To
+		annotations := eagerLoad
+		if rowGatedEdgeTargets[rel.Target] {
+			annotations = ".\n\t\t\tAnnotations(\n\t\t\t\tentrest.WithEagerLoad(true),\n\t\t\t\tentgql.Skip(entgql.SkipWhereInput),\n\t\t\t)"
+		}
 		return fmt.Sprintf("edge.To(%q, %s.Type)%s",
-			name, targetType, eagerLoad)
+			name, targetType, annotations)
 	}
 	return ""
 }
