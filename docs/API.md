@@ -1168,10 +1168,11 @@ as a `google.protobuf.Struct`:
 List and Stream requests accept type-specific optional filter fields
 (see `proto/peeringdb/v1/services.proto`).
 All filters AND together.
-String filters for free-text columns
-(name, aka, name_long)
-use case-insensitive substring match (`ContainsFold`);
-other strings are matched exactly.
+The `name`, `aka`, `name_long` and `city` filters match a substring
+and ignore case (`ContainsFold`).
+They do not ignore diacritics.
+The other string filters, `status` included, must match the full value,
+and they are case-sensitive.
 Integer filters such as `asn` and `org_id` are validated to be positive;
 invalid values return `INVALID_ARGUMENT`.
 
@@ -1180,7 +1181,10 @@ invalid values return `INVALID_ARGUMENT`.
 | Field | Semantics |
 |-------|-----------|
 | `page_size` | Requested page size. Defaults to `100`, clamped to `1000`. See `normalizePageSize` in `internal/grpcserver/pagination.go` |
-| `page_token` | Opaque cursor. Clients pass back the `next_page_token` from the previous response to fetch the next page. Invalid tokens return `INVALID_ARGUMENT` |
+| `page_token` | The `next_page_token` from the previous response. The token holds a row offset. If a sync runs between two pages, rows can move, and a page can skip or repeat rows. A token that does not decode returns `INVALID_ARGUMENT` |
+
+List RPCs return rows in `(-updated, -created, -id)` order:
+the newest `updated` value first.
 
 ### Streaming semantics
 
