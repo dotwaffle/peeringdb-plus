@@ -7,7 +7,7 @@ name: CI
 #
 # `docker-build` stays a separate parallel job: it uses BuildKit's
 # `type=gha` cache (a different cache system from the Go build cache), so
-# folding it into the Go job would only serialise it onto the critical
+# folding it into the Go job would only serialize it onto the critical
 # path for zero cache benefit.
 
 on:
