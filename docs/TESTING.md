@@ -338,6 +338,29 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
   (`newTestServer`, `newTestServerWithBudget`, `httpGet`, `decodeDataArray`,
   `extractIDs`, `mustDecodeProblem`).
 
+### Adding a parity test
+
+1. Pick the category file that matches the behavior under test,
+   for example `ordering_test.go` for list order.
+2. Add a sub-test under `TestParity_<Category>`:
+
+   ```go
+   t.Run("descriptive_name", func(t *testing.T) {
+       t.Parallel()
+       // upstream: pdb_api_test.py:1234
+       c := testutil.SetupClient(t)
+       // Seed only the rows that this sub-test needs, then assert.
+   })
+   ```
+
+3. Seed the rows inline through the ent client (`c.Network.Create()...`).
+   Use the helpers in `harness_helpers_test.go`
+   to start the server and decode the response.
+4. For an intentional divergence from upstream,
+   start the sub-test name with `DIVERGENCE_`.
+   Then add a row that names the sub-test to
+   [API.md § Known Divergences](API.md#known-divergences).
+
 ### Benchmarks
 
 `bench_test.go` defines three named envelopes using the modern `b.Loop()` idiom:
