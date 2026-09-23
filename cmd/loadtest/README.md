@@ -119,16 +119,17 @@ success rates.
 The defaults (4 × 5 req/s) are conservative for `shared-cpu-1x`
 replicas. Reasonable knobs:
 
-- **Smoke / warmup:** `--qps=5 --concurrency=4` (default). Light
-  enough to hit a Fly machine without tripping replica-side
-  middleware rate limits.
+- **Smoke / warmup:** `--qps=5 --concurrency=4` (default). This
+  load is light for one Fly machine.
 - **Stress:** `--qps=20 --concurrency=10`. Approaches the upper end
-  of what a `shared-cpu-2x` primary can sustain across all 5
-  surfaces. Watch the Grafana `Live Heap by Instance` panel during
-  the run.
-- **DO NOT** push `--qps` past ~50 against the deployed Fly app
-  without coordinating — middleware rate limiting and Fly Proxy
-  back-pressure both cut in.
+  of what a `shared-cpu-2x` primary can sustain across the five
+  covered surfaces. Watch the Grafana `Live Heap by Instance` panel
+  during the run.
+- **DO NOT** push `--qps` past about 50 against the deployed Fly app
+  without coordination. peeringdb-plus does not limit the rate of
+  incoming requests, so machine capacity sets the limit. A replica
+  machine has 256 MB of memory. When a machine is at its concurrency
+  soft limit, Fly Proxy sends new requests to other machines first.
 
 ### `ramp` — find inflection point per surface
 
