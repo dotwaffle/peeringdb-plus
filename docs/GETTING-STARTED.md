@@ -237,33 +237,32 @@ IP lookup, and sync-freshness tools plus resources and prompts.
 
 ### Web UI
 
-Open `http://localhost:8080/ui/` in a browser —
-or let the root path redirect you:
+Open `http://localhost:8080/ui/` in a browser.
+A browser that opens `http://localhost:8080/` gets a redirect to `/ui/`:
 
 ```bash
-# Browsers (Accept: text/html) get an HTTP 302 redirect to /ui/
-curl -sI http://localhost:8080/
+# A browser User-Agent with Accept: text/html gets an HTTP 302 redirect to /ui/.
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' \
+  -H 'User-Agent: Mozilla/5.0' -H 'Accept: text/html' http://localhost:8080/
+# 302 http://localhost:8080/ui/
 ```
 
-The UI offers search across all entity types, detail pages,
+The UI searches networks, exchanges, facilities, organizations, campuses,
+and carriers.
+It also has detail pages
 and an ASN-comparison tool at `/ui/compare/{asn1}/{asn2}`.
 
-> **curl gotcha** — `/ui/` does User-Agent / Accept content negotiation via
-> `internal/web/termrender`.
-> Plain CLI clients (curl, wget, HTTPie) get ANSI-styled terminal text,
-> not HTML.
-> If you want to inspect the HTML from the command line,
-> masquerade as a browser:
+> **Terminal output from `/ui/`.**
+> The server sends ANSI-colored text to curl, wget, and HTTPie.
+> Add `?format=plain` to get plain text,
+> or `?nocolor` to remove the color codes.
+> To get HTML, send a browser User-Agent:
 >
 > ```bash
 > curl -sH 'User-Agent: Mozilla/5.0' http://localhost:8080/ui/ | head -c 500
 > ```
 >
-> Or strip ANSI escape sequences from the terminal-mode output:
->
-> ```bash
-> curl -s http://localhost:8080/ui/ | sed 's/\x1b\[[0-9;]*[mGKH]//g' | head
-> ```
+> For all options, see [API.md § The curl gotcha](API.md#the-curl-gotcha).
 
 ## 4. Running in Docker (optional)
 
@@ -320,9 +319,9 @@ for the Fly.io fleet.
   `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MB`).
   Narrow the filter, lower `limit`, or raise the budget.
   Bare numbers without a unit suffix are rejected; use `KB`/`MB`/`GB`/`TB`.
-- **Curl-ing `/ui/` gets ANSI escape codes** —
-  see the curl gotcha in step 3 above.
-  Pass `User-Agent: Mozilla/5.0` or strip ANSI with `sed`.
+- **Curl-ing `/ui/` gets ANSI escape codes.**
+  See the terminal-output note in step 3.
+  Add `?format=plain`, or send a browser User-Agent.
 
 ## Next steps
 
