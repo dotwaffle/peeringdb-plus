@@ -11,11 +11,11 @@ import (
 // from entity names containing metacharacters.
 const bashCompletionScript = `#!/bin/bash
 # PeeringDB Plus shell completions
-# Install: eval "$(curl -s peeringdb-plus.fly.dev/ui/completions/bash)"
-# Or save: curl -s peeringdb-plus.fly.dev/ui/completions/bash > ~/.pdb-completions.bash
+# Install: eval "$(curl -s https://peeringdb-plus.fly.dev/ui/completions/bash)"
+# Or save: curl -s https://peeringdb-plus.fly.dev/ui/completions/bash > ~/.pdb-completions.bash
 #          source ~/.pdb-completions.bash
 
-_PDB_HOST="${PDB_HOST:-peeringdb-plus.fly.dev}"
+_PDB_HOST="${PDB_HOST:-https://peeringdb-plus.fly.dev}"
 
 # Join the arguments with "/" so "pdb asn 13335" requests /ui/asn/13335.
 # A naive "$@" would expand to separate words ("/ui/asn" "13335"), making
@@ -54,10 +54,10 @@ complete -F _pdb_completions pdb
 // zshCompletionScript is the downloadable zsh completion script for PeeringDB Plus.
 const zshCompletionScript = `#!/bin/zsh
 # PeeringDB Plus shell completions for zsh
-# Install: eval "$(curl -s peeringdb-plus.fly.dev/ui/completions/zsh)"
+# Install: eval "$(curl -s https://peeringdb-plus.fly.dev/ui/completions/zsh)"
 # Or save to a file in your fpath
 
-_PDB_HOST="${PDB_HOST:-peeringdb-plus.fly.dev}"
+_PDB_HOST="${PDB_HOST:-https://peeringdb-plus.fly.dev}"
 
 # Join the arguments with "/" so "pdb asn 13335" requests /ui/asn/13335.
 # A naive "$@" would expand to separate words ("/ui/asn" "13335"), making

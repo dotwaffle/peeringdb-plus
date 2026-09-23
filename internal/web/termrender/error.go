@@ -15,7 +15,7 @@ func (r *Renderer) RenderError(w io.Writer, statusCode int, title string, messag
 	buf.WriteString("\n\n")
 	buf.WriteString(message)
 	buf.WriteString("\n\n")
-	buf.WriteString(StyleMuted.Render("Try: curl peeringdb-plus.fly.dev/ui/"))
+	buf.WriteString(StyleMuted.Render("Try: curl https://peeringdb-plus.fly.dev/ui/"))
 	buf.WriteString("\n")
 
 	return r.Write(w, buf.String())
