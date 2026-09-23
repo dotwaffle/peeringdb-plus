@@ -66,7 +66,9 @@ Code-change-relevant directories:
 | `internal/privctx/` | Privacy tier in request context |
 | `internal/privfield/` | Field-level redaction single source of truth |
 | `internal/unifold/` | Diacritic-insensitive folding |
-| `internal/web/` | Web UI handlers, search, compare, query helpers |
+| `internal/web/` | Web UI routing, handlers, and rendering |
+| `internal/catalog/` | Detail, search, and compare queries (`query_*.go`) that the Web UI and MCP share |
+| `internal/mcpserver/` | MCP server at `/mcp` |
 | `internal/web/templates/` | `.templ` source + generated `*_templ.go` |
 | `internal/sync/` | PeeringDB sync worker |
 | `internal/testutil/` | `SetupClient(t)` and `seed/` helpers for tests |
@@ -466,17 +468,27 @@ that internally dispatches by path
 
 1. Add a `.templ` file to `internal/web/templates/` for the new page.
    Follow the pattern of `detail_net.templ`, `compare.templ`, etc.
-2. Run `go generate ./internal/web/templates` (or `templ generate`).
-3. Add a handler method to `internal/web/` (e.g. `handleNewPage` in
-   `internal/web/handler.go` or a new `page_newthing.go`).
+2. Run `mise run generate`.
+   This regenerates the `*_templ.go` files
+   and `internal/web/static/tailwind.css`.
+   Do not run `templ generate` from the repository root.
+   From the root, templ writes path-qualified file names
+   into every `*_templ.go` file, and the CI drift check fails.
+3. Add a handler method to `internal/web/`
+   (e.g. `handleNewPage` in `internal/web/handler.go`,
+   or in a new file as `about.go` does).
 4. Add a `case` arm to the `switch` in `Handler.dispatch` routing the new URL
    sub-path to your handler.
-5. If the page needs database queries, put them in a `query_*.go` file for
-   reuse.
-6. Write a test using `httptest` + `testutil.SetupClient(t)` + `seed.Full`.
+5. If the page needs database queries, add them to `internal/catalog/`
+   (for example in a `query_<type>.go` file).
+   Then the MCP server can use them too.
+6. Write a test with `httptest`, `testutil.SetupClient(t)`,
+   and the seed helpers in `internal/web/detail_test.go`.
 
-Static assets (CSS, images, favicon) live under `internal/web/static/`
-and are served from an embedded filesystem at `/static/`.
+Static assets (CSS, JavaScript, images, favicon) are in `internal/web/static/`.
+The server embeds them and serves them at `/static/`.
+`static/tailwind.css` is generated from `internal/web/tailwind.input.css`.
+Do not edit it by hand.
 
 ## Adding a new field-level-privacy gated field
 
