@@ -406,13 +406,21 @@ Dropping a field is therefore a checklist, not a migration script:
 3. Remove references in:
    - `internal/peeringdb/types.go` (PeeringDB API client types)
    - `internal/pdbcompat/*` (compat-layer serializer, registry, filters)
-   - `internal/grpcserver/*` (ConnectRPC handlers and filter tables)
+   - `internal/grpcserver/*`: stop setting the field in the converter
+     and remove its filter entries.
+     Keep the field in `v1.proto` and `services.proto`,
+     and never reuse its number.
+     If `services.proto` has a filter for it, add `"<entity>/<field>"`
+     (for example `"ixprefix/notes"`)
+     to `deprecatedFilterFields` in `internal/grpcserver/filter_test.go`.
    - `internal/sync/upsert.go` (sync mapping)
-4. Regenerate goldens:
+4. Regenerate the golden files.
+   Put `-update` after the package path.
+   If it comes first, `go test` tests the current directory and fails.
 
    ```bash
-   go test -update ./internal/pdbcompat -run TestGoldenFiles
-   go test -update ./internal/sync -run TestSync_RefactorParity
+   go test ./internal/pdbcompat -run TestGoldenFiles -update
+   go test ./internal/sync -run TestSync_RefactorParity -update
    ```
 
 5. Deploy.
