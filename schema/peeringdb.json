@@ -523,6 +523,15 @@
           "deprecated": false,
           "help_text": "Logo URL",
           "default": null
+        },
+        "meta": {
+          "type": "json_object",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Optional attributes using registered metadata keys",
+          "default": {}
         }
       },
       "computed_fields": [
@@ -1657,6 +1666,15 @@
           "help_text": "IX-side facility FK",
           "default": null,
           "references": "fac"
+        },
+        "meta": {
+          "type": "json_object",
+          "required": false,
+          "nullable": false,
+          "read_only": false,
+          "deprecated": false,
+          "help_text": "Optional attributes using registered metadata keys",
+          "default": {}
         }
       },
       "computed_fields": [

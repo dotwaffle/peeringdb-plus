@@ -340,6 +340,7 @@ type ComplexityRoot struct {
 		IxpUpdateExclude         func(childComplexity int) int
 		Logo                     func(childComplexity int) int
 		LookingGlass             func(childComplexity int) int
+		Meta                     func(childComplexity int) int
 		Name                     func(childComplexity int) int
 		NameLong                 func(childComplexity int) int
 		NetfacUpdated            func(childComplexity int) int
@@ -415,6 +416,7 @@ type ComplexityRoot struct {
 		IxLan       func(childComplexity int) int
 		IxSideID    func(childComplexity int) int
 		IxlanID     func(childComplexity int) int
+		Meta        func(childComplexity int) int
 		Name        func(childComplexity int) int
 		NetID       func(childComplexity int) int
 		NetSideID   func(childComplexity int) int
@@ -1992,6 +1994,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Network.LookingGlass(childComplexity), true
+	case "Network.meta":
+		if e.ComplexityRoot.Network.Meta == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Network.Meta(childComplexity), true
 	case "Network.name":
 		if e.ComplexityRoot.Network.Name == nil {
 			break
@@ -2340,6 +2348,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.NetworkIxLan.IxlanID(childComplexity), true
+	case "NetworkIxLan.meta":
+		if e.ComplexityRoot.NetworkIxLan.Meta == nil {
+			break
+		}
+
+		return e.ComplexityRoot.NetworkIxLan.Meta(childComplexity), true
 	case "NetworkIxLan.name":
 		if e.ComplexityRoot.NetworkIxLan.Name == nil {
 			break
@@ -3816,6 +3830,8 @@ func (ec *executionContext) childFields_Network(ctx context.Context, field graph
 		return ec.fieldContext_Network_logo(ctx, field)
 	case "lookingGlass":
 		return ec.fieldContext_Network_lookingGlass(ctx, field)
+	case "meta":
+		return ec.fieldContext_Network_meta(ctx, field)
 	case "name":
 		return ec.fieldContext_Network_name(ctx, field)
 	case "nameLong":
@@ -3968,6 +3984,8 @@ func (ec *executionContext) childFields_NetworkIxLan(ctx context.Context, field 
 		return ec.fieldContext_NetworkIxLan_ipaddr6(ctx, field)
 	case "isRsPeer":
 		return ec.fieldContext_NetworkIxLan_isRsPeer(ctx, field)
+	case "meta":
+		return ec.fieldContext_NetworkIxLan_meta(ctx, field)
 	case "notes":
 		return ec.fieldContext_NetworkIxLan_notes(ctx, field)
 	case "operational":
@@ -11015,6 +11033,29 @@ func (ec *executionContext) fieldContext_Network_lookingGlass(_ context.Context,
 	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _Network_meta(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Network_meta(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Meta, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v map[string]any) graphql.Marshaler {
+			return ec.marshalOMap2map(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Network_meta(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Network", field, false, false, errors.New("field of type Map does not have child fields"))
+}
+
 func (ec *executionContext) _Network_name(ctx context.Context, field graphql.CollectedField, obj *ent.Network) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12464,6 +12505,29 @@ func (ec *executionContext) _NetworkIxLan_isRsPeer(ctx context.Context, field gr
 }
 func (ec *executionContext) fieldContext_NetworkIxLan_isRsPeer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _NetworkIxLan_meta(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_NetworkIxLan_meta(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Meta, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v map[string]any) graphql.Marshaler {
+			return ec.marshalOMap2map(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_NetworkIxLan_meta(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("NetworkIxLan", field, false, false, errors.New("field of type Map does not have child fields"))
 }
 
 func (ec *executionContext) _NetworkIxLan_notes(ctx context.Context, field graphql.CollectedField, obj *ent.NetworkIxLan) (ret graphql.Marshaler) {
@@ -39651,6 +39715,11 @@ func (ec *executionContext) _Network(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "meta":
+			out.Values[i] = ec._Network_meta(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "name":
 			out.Values[i] = ec._Network_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -40335,6 +40404,11 @@ func (ec *executionContext) _NetworkIxLan(ctx context.Context, sel ast.Selection
 		case "isRsPeer":
 			out.Values[i] = ec._NetworkIxLan_isRsPeer(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "meta":
+			out.Values[i] = ec._NetworkIxLan_meta(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "notes":

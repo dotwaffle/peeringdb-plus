@@ -8555,6 +8555,11 @@
 						"description": "Looking glass URL",
 						"type": "string"
 					},
+					"meta": {
+						"additionalProperties": true,
+						"description": "Optional attributes using registered metadata keys",
+						"type": "object"
+					},
 					"name": {
 						"description": "Network name (not unique — PeeringDB permits duplicates)",
 						"type": "string"
@@ -8898,6 +8903,11 @@
 						"description": "FK to IX LAN",
 						"nullable": true,
 						"type": "integer"
+					},
+					"meta": {
+						"additionalProperties": true,
+						"description": "Optional attributes using registered metadata keys",
+						"type": "object"
 					},
 					"name": {
 						"default": "",

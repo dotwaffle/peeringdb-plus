@@ -1743,6 +1743,11 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldLookingGlass)
 				fieldSeen[network.FieldLookingGlass] = struct{}{}
 			}
+		case "meta":
+			if _, ok := fieldSeen[network.FieldMeta]; !ok {
+				selectedFields = append(selectedFields, network.FieldMeta)
+				fieldSeen[network.FieldMeta] = struct{}{}
+			}
 		case "name":
 			if _, ok := fieldSeen[network.FieldName]; !ok {
 				selectedFields = append(selectedFields, network.FieldName)
@@ -2138,6 +2143,11 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 			if _, ok := fieldSeen[networkixlan.FieldIxlanID]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldIxlanID)
 				fieldSeen[networkixlan.FieldIxlanID] = struct{}{}
+			}
+		case "meta":
+			if _, ok := fieldSeen[networkixlan.FieldMeta]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldMeta)
+				fieldSeen[networkixlan.FieldMeta] = struct{}{}
 			}
 		case "name":
 			if _, ok := fieldSeen[networkixlan.FieldName]; !ok {

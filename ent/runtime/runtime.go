@@ -530,51 +530,51 @@ func init() {
 	// network.DefaultLookingGlass holds the default value on creation for the looking_glass field.
 	network.DefaultLookingGlass = networkDescLookingGlass.Default.(string)
 	// networkDescNameLong is the schema descriptor for name_long field.
-	networkDescNameLong := networkFields[21].Descriptor()
+	networkDescNameLong := networkFields[22].Descriptor()
 	// network.DefaultNameLong holds the default value on creation for the name_long field.
 	network.DefaultNameLong = networkDescNameLong.Default.(string)
 	// networkDescNotes is the schema descriptor for notes field.
-	networkDescNotes := networkFields[22].Descriptor()
+	networkDescNotes := networkFields[23].Descriptor()
 	// network.DefaultNotes holds the default value on creation for the notes field.
 	network.DefaultNotes = networkDescNotes.Default.(string)
 	// networkDescPolicyContracts is the schema descriptor for policy_contracts field.
-	networkDescPolicyContracts := networkFields[23].Descriptor()
+	networkDescPolicyContracts := networkFields[24].Descriptor()
 	// network.DefaultPolicyContracts holds the default value on creation for the policy_contracts field.
 	network.DefaultPolicyContracts = networkDescPolicyContracts.Default.(string)
 	// networkDescPolicyGeneral is the schema descriptor for policy_general field.
-	networkDescPolicyGeneral := networkFields[24].Descriptor()
+	networkDescPolicyGeneral := networkFields[25].Descriptor()
 	// network.DefaultPolicyGeneral holds the default value on creation for the policy_general field.
 	network.DefaultPolicyGeneral = networkDescPolicyGeneral.Default.(string)
 	// networkDescPolicyLocations is the schema descriptor for policy_locations field.
-	networkDescPolicyLocations := networkFields[25].Descriptor()
+	networkDescPolicyLocations := networkFields[26].Descriptor()
 	// network.DefaultPolicyLocations holds the default value on creation for the policy_locations field.
 	network.DefaultPolicyLocations = networkDescPolicyLocations.Default.(string)
 	// networkDescPolicyRatio is the schema descriptor for policy_ratio field.
-	networkDescPolicyRatio := networkFields[26].Descriptor()
+	networkDescPolicyRatio := networkFields[27].Descriptor()
 	// network.DefaultPolicyRatio holds the default value on creation for the policy_ratio field.
 	network.DefaultPolicyRatio = networkDescPolicyRatio.Default.(bool)
 	// networkDescPolicyURL is the schema descriptor for policy_url field.
-	networkDescPolicyURL := networkFields[27].Descriptor()
+	networkDescPolicyURL := networkFields[28].Descriptor()
 	// network.DefaultPolicyURL holds the default value on creation for the policy_url field.
 	network.DefaultPolicyURL = networkDescPolicyURL.Default.(string)
 	// networkDescRouteServer is the schema descriptor for route_server field.
-	networkDescRouteServer := networkFields[30].Descriptor()
+	networkDescRouteServer := networkFields[31].Descriptor()
 	// network.DefaultRouteServer holds the default value on creation for the route_server field.
 	network.DefaultRouteServer = networkDescRouteServer.Default.(string)
 	// networkDescWebsite is the schema descriptor for website field.
-	networkDescWebsite := networkFields[33].Descriptor()
+	networkDescWebsite := networkFields[34].Descriptor()
 	// network.DefaultWebsite holds the default value on creation for the website field.
 	network.DefaultWebsite = networkDescWebsite.Default.(string)
 	// networkDescIxCount is the schema descriptor for ix_count field.
-	networkDescIxCount := networkFields[34].Descriptor()
+	networkDescIxCount := networkFields[35].Descriptor()
 	// network.DefaultIxCount holds the default value on creation for the ix_count field.
 	network.DefaultIxCount = networkDescIxCount.Default.(int)
 	// networkDescFacCount is the schema descriptor for fac_count field.
-	networkDescFacCount := networkFields[35].Descriptor()
+	networkDescFacCount := networkFields[36].Descriptor()
 	// network.DefaultFacCount holds the default value on creation for the fac_count field.
 	network.DefaultFacCount = networkDescFacCount.Default.(int)
 	// networkDescStatus is the schema descriptor for status field.
-	networkDescStatus := networkFields[41].Descriptor()
+	networkDescStatus := networkFields[42].Descriptor()
 	// network.DefaultStatus holds the default value on creation for the status field.
 	network.DefaultStatus = networkDescStatus.Default.(string)
 	// networkDescID is the schema descriptor for id field.
@@ -618,19 +618,19 @@ func init() {
 	// networkixlan.DefaultIsRsPeer holds the default value on creation for the is_rs_peer field.
 	networkixlan.DefaultIsRsPeer = networkixlanDescIsRsPeer.Default.(bool)
 	// networkixlanDescNotes is the schema descriptor for notes field.
-	networkixlanDescNotes := networkixlanFields[10].Descriptor()
+	networkixlanDescNotes := networkixlanFields[11].Descriptor()
 	// networkixlan.DefaultNotes holds the default value on creation for the notes field.
 	networkixlan.DefaultNotes = networkixlanDescNotes.Default.(string)
 	// networkixlanDescOperational is the schema descriptor for operational field.
-	networkixlanDescOperational := networkixlanFields[11].Descriptor()
+	networkixlanDescOperational := networkixlanFields[12].Descriptor()
 	// networkixlan.DefaultOperational holds the default value on creation for the operational field.
 	networkixlan.DefaultOperational = networkixlanDescOperational.Default.(bool)
 	// networkixlanDescName is the schema descriptor for name field.
-	networkixlanDescName := networkixlanFields[14].Descriptor()
+	networkixlanDescName := networkixlanFields[15].Descriptor()
 	// networkixlan.DefaultName holds the default value on creation for the name field.
 	networkixlan.DefaultName = networkixlanDescName.Default.(string)
 	// networkixlanDescStatus is the schema descriptor for status field.
-	networkixlanDescStatus := networkixlanFields[17].Descriptor()
+	networkixlanDescStatus := networkixlanFields[18].Descriptor()
 	// networkixlan.DefaultStatus holds the default value on creation for the status field.
 	networkixlan.DefaultStatus = networkixlanDescStatus.Default.(string)
 	// networkixlanDescID is the schema descriptor for id field.

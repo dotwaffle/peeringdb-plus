@@ -19,3 +19,11 @@ func socialMediaSchema() *ogen.Schema {
 			),
 	)
 }
+
+// jsonObjectSchema returns the OpenAPI schema for an opaque JSON object
+// field. The key set is open, so any property is allowed.
+func jsonObjectSchema() *ogen.Schema {
+	s := ogen.NewSchema().SetType("object")
+	s.AdditionalProperties = &ogen.AdditionalProperties{Bool: new(true)}
+	return s
+}

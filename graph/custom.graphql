@@ -1,4 +1,6 @@
-scalar Map
+# scalar Map is declared in schema.graphqls: entgql emits it there because
+# Network.meta and NetworkIxLan.meta use it. Do not declare it here too, or
+# gqlgen fails with "Cannot redeclare type Map".
 
 """
 SocialMedia represents a social media link with service name and identifier.

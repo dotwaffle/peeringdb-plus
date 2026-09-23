@@ -14179,6 +14179,7 @@ type NetworkMutation struct {
 	appendixp_update_exclude     []string
 	logo                         *string
 	looking_glass                *string
+	meta                         *map[string]interface{}
 	name                         *string
 	name_long                    *string
 	notes                        *string
@@ -15417,6 +15418,55 @@ func (m *NetworkMutation) LookingGlassCleared() bool {
 func (m *NetworkMutation) ResetLookingGlass() {
 	m.looking_glass = nil
 	delete(m.clearedFields, network.FieldLookingGlass)
+}
+
+// SetMeta sets the "meta" field.
+func (m *NetworkMutation) SetMeta(value map[string]interface{}) {
+	m.meta = &value
+}
+
+// Meta returns the value of the "meta" field in the mutation.
+func (m *NetworkMutation) Meta() (r map[string]interface{}, exists bool) {
+	v := m.meta
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMeta returns the old "meta" field's value of the Network entity.
+// If the Network object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkMutation) OldMeta(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMeta is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMeta requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMeta: %w", err)
+	}
+	return oldValue.Meta, nil
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (m *NetworkMutation) ClearMeta() {
+	m.meta = nil
+	m.clearedFields[network.FieldMeta] = struct{}{}
+}
+
+// MetaCleared returns if the "meta" field was cleared in this mutation.
+func (m *NetworkMutation) MetaCleared() bool {
+	_, ok := m.clearedFields[network.FieldMeta]
+	return ok
+}
+
+// ResetMeta resets all changes to the "meta" field.
+func (m *NetworkMutation) ResetMeta() {
+	m.meta = nil
+	delete(m.clearedFields, network.FieldMeta)
 }
 
 // SetName sets the "name" field.
@@ -16726,7 +16776,7 @@ func (m *NetworkMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NetworkMutation) Fields() []string {
-	fields := make([]string, 0, 44)
+	fields := make([]string, 0, 45)
 	if m.name_fold != nil {
 		fields = append(fields, network.FieldNameFold)
 	}
@@ -16792,6 +16842,9 @@ func (m *NetworkMutation) Fields() []string {
 	}
 	if m.looking_glass != nil {
 		fields = append(fields, network.FieldLookingGlass)
+	}
+	if m.meta != nil {
+		fields = append(fields, network.FieldMeta)
 	}
 	if m.name != nil {
 		fields = append(fields, network.FieldName)
@@ -16911,6 +16964,8 @@ func (m *NetworkMutation) Field(name string) (ent.Value, bool) {
 		return m.Logo()
 	case network.FieldLookingGlass:
 		return m.LookingGlass()
+	case network.FieldMeta:
+		return m.Meta()
 	case network.FieldName:
 		return m.Name()
 	case network.FieldNameLong:
@@ -17008,6 +17063,8 @@ func (m *NetworkMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldLogo(ctx)
 	case network.FieldLookingGlass:
 		return m.OldLookingGlass(ctx)
+	case network.FieldMeta:
+		return m.OldMeta(ctx)
 	case network.FieldName:
 		return m.OldName(ctx)
 	case network.FieldNameLong:
@@ -17214,6 +17271,13 @@ func (m *NetworkMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLookingGlass(v)
+		return nil
+	case network.FieldMeta:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMeta(v)
 		return nil
 	case network.FieldName:
 		v, ok := value.(string)
@@ -17510,6 +17574,9 @@ func (m *NetworkMutation) ClearedFields() []string {
 	if m.FieldCleared(network.FieldLookingGlass) {
 		fields = append(fields, network.FieldLookingGlass)
 	}
+	if m.FieldCleared(network.FieldMeta) {
+		fields = append(fields, network.FieldMeta)
+	}
 	if m.FieldCleared(network.FieldNameLong) {
 		fields = append(fields, network.FieldNameLong)
 	}
@@ -17622,6 +17689,9 @@ func (m *NetworkMutation) ClearField(name string) error {
 		return nil
 	case network.FieldLookingGlass:
 		m.ClearLookingGlass()
+		return nil
+	case network.FieldMeta:
+		m.ClearMeta()
 		return nil
 	case network.FieldNameLong:
 		m.ClearNameLong()
@@ -17747,6 +17817,9 @@ func (m *NetworkMutation) ResetField(name string) error {
 		return nil
 	case network.FieldLookingGlass:
 		m.ResetLookingGlass()
+		return nil
+	case network.FieldMeta:
+		m.ResetMeta()
 		return nil
 	case network.FieldName:
 		m.ResetName()
@@ -19012,6 +19085,7 @@ type NetworkIxLanMutation struct {
 	ipaddr4        *string
 	ipaddr6        *string
 	is_rs_peer     *bool
+	meta           *map[string]interface{}
 	notes          *string
 	operational    *bool
 	speed          *int
@@ -19600,6 +19674,55 @@ func (m *NetworkIxLanMutation) ResetIsRsPeer() {
 	m.is_rs_peer = nil
 }
 
+// SetMeta sets the "meta" field.
+func (m *NetworkIxLanMutation) SetMeta(value map[string]interface{}) {
+	m.meta = &value
+}
+
+// Meta returns the value of the "meta" field in the mutation.
+func (m *NetworkIxLanMutation) Meta() (r map[string]interface{}, exists bool) {
+	v := m.meta
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMeta returns the old "meta" field's value of the NetworkIxLan entity.
+// If the NetworkIxLan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NetworkIxLanMutation) OldMeta(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMeta is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMeta requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMeta: %w", err)
+	}
+	return oldValue.Meta, nil
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (m *NetworkIxLanMutation) ClearMeta() {
+	m.meta = nil
+	m.clearedFields[networkixlan.FieldMeta] = struct{}{}
+}
+
+// MetaCleared returns if the "meta" field was cleared in this mutation.
+func (m *NetworkIxLanMutation) MetaCleared() bool {
+	_, ok := m.clearedFields[networkixlan.FieldMeta]
+	return ok
+}
+
+// ResetMeta resets all changes to the "meta" field.
+func (m *NetworkIxLanMutation) ResetMeta() {
+	m.meta = nil
+	delete(m.clearedFields, networkixlan.FieldMeta)
+}
+
 // SetNotes sets the "notes" field.
 func (m *NetworkIxLanMutation) SetNotes(s string) {
 	m.notes = &s
@@ -20082,7 +20205,7 @@ func (m *NetworkIxLanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NetworkIxLanMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.ix_side_id != nil {
 		fields = append(fields, networkixlan.FieldIxSideID)
 	}
@@ -20109,6 +20232,9 @@ func (m *NetworkIxLanMutation) Fields() []string {
 	}
 	if m.is_rs_peer != nil {
 		fields = append(fields, networkixlan.FieldIsRsPeer)
+	}
+	if m.meta != nil {
+		fields = append(fields, networkixlan.FieldMeta)
 	}
 	if m.notes != nil {
 		fields = append(fields, networkixlan.FieldNotes)
@@ -20160,6 +20286,8 @@ func (m *NetworkIxLanMutation) Field(name string) (ent.Value, bool) {
 		return m.Ipaddr6()
 	case networkixlan.FieldIsRsPeer:
 		return m.IsRsPeer()
+	case networkixlan.FieldMeta:
+		return m.Meta()
 	case networkixlan.FieldNotes:
 		return m.Notes()
 	case networkixlan.FieldOperational:
@@ -20203,6 +20331,8 @@ func (m *NetworkIxLanMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldIpaddr6(ctx)
 	case networkixlan.FieldIsRsPeer:
 		return m.OldIsRsPeer(ctx)
+	case networkixlan.FieldMeta:
+		return m.OldMeta(ctx)
 	case networkixlan.FieldNotes:
 		return m.OldNotes(ctx)
 	case networkixlan.FieldOperational:
@@ -20290,6 +20420,13 @@ func (m *NetworkIxLanMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsRsPeer(v)
+		return nil
+	case networkixlan.FieldMeta:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMeta(v)
 		return nil
 	case networkixlan.FieldNotes:
 		v, ok := value.(string)
@@ -20458,6 +20595,9 @@ func (m *NetworkIxLanMutation) ClearedFields() []string {
 	if m.FieldCleared(networkixlan.FieldIpaddr6) {
 		fields = append(fields, networkixlan.FieldIpaddr6)
 	}
+	if m.FieldCleared(networkixlan.FieldMeta) {
+		fields = append(fields, networkixlan.FieldMeta)
+	}
 	if m.FieldCleared(networkixlan.FieldNotes) {
 		fields = append(fields, networkixlan.FieldNotes)
 	}
@@ -20498,6 +20638,9 @@ func (m *NetworkIxLanMutation) ClearField(name string) error {
 		return nil
 	case networkixlan.FieldIpaddr6:
 		m.ClearIpaddr6()
+		return nil
+	case networkixlan.FieldMeta:
+		m.ClearMeta()
 		return nil
 	case networkixlan.FieldNotes:
 		m.ClearNotes()
@@ -20542,6 +20685,9 @@ func (m *NetworkIxLanMutation) ResetField(name string) error {
 		return nil
 	case networkixlan.FieldIsRsPeer:
 		m.ResetIsRsPeer()
+		return nil
+	case networkixlan.FieldMeta:
+		m.ResetMeta()
 		return nil
 	case networkixlan.FieldNotes:
 		m.ResetNotes()

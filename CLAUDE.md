@@ -32,6 +32,7 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
   1. `ent/generate.go` — runs `cmd/pdb-schema-generate` (peeringdb.json → ent/schema/*.go) FIRST, then entc.go (ent + entgql + entrest + entproto), then `cmd/pdb-compat-allowlist`, then `buf generate` for proto Go types
   2. `graph/generate.go` — runs `gqlgen generate` for GraphQL resolvers/models. GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` — a `package graph_test` file sorting before `custom.resolvers.go` breaks generation with "exec and model define the same import path (graph vs graph_test)". Name new test files so they sort after it (e.g. `resolver_*_test.go`).
   3. `internal/web/templates/generate.go` — runs `templ generate` for templ Go files
+  - GOTCHA: `scalar Map` lives in `graph/schema.graphqls`, emitted by entgql because `Network.meta` / `NetworkIxLan.meta` use it. `graph/custom.graphql` must not redeclare it ("Cannot redeclare type Map"). entgql cannot see the custom.graphql declaration: its gqlgen schema load fails when run from `ent/`, so it always emits the builtin.
   - `schema/generate.go` carries no `go:generate` directive (package doc for the manual `pdb-schema-extract` step); the schema-regen step now lives first in `ent/generate.go`.
 - `mise.toml` and `mise.lock` own Go and all contributor CLI versions; run `mise install --locked`, then invoke generators as ordinary binaries.
 - Hand-edited schema methods live in `{type}_{method}.go` siblings — see "Hand-edited schema methods" below.

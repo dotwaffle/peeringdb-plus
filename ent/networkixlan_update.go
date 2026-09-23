@@ -213,6 +213,18 @@ func (_u *NetworkIxLanUpdate) SetNillableIsRsPeer(v *bool) *NetworkIxLanUpdate {
 	return _u
 }
 
+// SetMeta sets the "meta" field.
+func (_u *NetworkIxLanUpdate) SetMeta(v map[string]interface{}) *NetworkIxLanUpdate {
+	_u.mutation.SetMeta(v)
+	return _u
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (_u *NetworkIxLanUpdate) ClearMeta() *NetworkIxLanUpdate {
+	_u.mutation.ClearMeta()
+	return _u
+}
+
 // SetNotes sets the "notes" field.
 func (_u *NetworkIxLanUpdate) SetNotes(v string) *NetworkIxLanUpdate {
 	_u.mutation.SetNotes(v)
@@ -488,6 +500,12 @@ func (_u *NetworkIxLanUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.IsRsPeer(); ok {
 		_spec.SetField(networkixlan.FieldIsRsPeer, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Meta(); ok {
+		_spec.SetField(networkixlan.FieldMeta, field.TypeJSON, value)
+	}
+	if _u.mutation.MetaCleared() {
+		_spec.ClearField(networkixlan.FieldMeta, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)
@@ -783,6 +801,18 @@ func (_u *NetworkIxLanUpdateOne) SetNillableIsRsPeer(v *bool) *NetworkIxLanUpdat
 	if v != nil {
 		_u.SetIsRsPeer(*v)
 	}
+	return _u
+}
+
+// SetMeta sets the "meta" field.
+func (_u *NetworkIxLanUpdateOne) SetMeta(v map[string]interface{}) *NetworkIxLanUpdateOne {
+	_u.mutation.SetMeta(v)
+	return _u
+}
+
+// ClearMeta clears the value of the "meta" field.
+func (_u *NetworkIxLanUpdateOne) ClearMeta() *NetworkIxLanUpdateOne {
+	_u.mutation.ClearMeta()
 	return _u
 }
 
@@ -1091,6 +1121,12 @@ func (_u *NetworkIxLanUpdateOne) sqlSave(ctx context.Context) (_node *NetworkIxL
 	}
 	if value, ok := _u.mutation.IsRsPeer(); ok {
 		_spec.SetField(networkixlan.FieldIsRsPeer, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Meta(); ok {
+		_spec.SetField(networkixlan.FieldMeta, field.TypeJSON, value)
+	}
+	if _u.mutation.MetaCleared() {
+		_spec.ClearField(networkixlan.FieldMeta, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(networkixlan.FieldNotes, field.TypeString, value)

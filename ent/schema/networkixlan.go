@@ -61,6 +61,10 @@ func (NetworkIxLan) Fields() []ent.Field {
 		field.Bool("is_rs_peer").
 			Default(false).
 			Comment("Route server peer"),
+		field.JSON("meta", map[string]any{}).
+			Optional().
+			Annotations(entrest.WithSchema(jsonObjectSchema())).
+			Comment("Optional attributes using registered metadata keys"),
 		field.String("notes").
 			Optional().
 			Default("").

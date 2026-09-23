@@ -56,6 +56,8 @@ const (
 	FieldLogo = "logo"
 	// FieldLookingGlass holds the string denoting the looking_glass field in the database.
 	FieldLookingGlass = "looking_glass"
+	// FieldMeta holds the string denoting the meta field in the database.
+	FieldMeta = "meta"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldNameLong holds the string denoting the name_long field in the database.
@@ -165,6 +167,7 @@ var Columns = []string{
 	FieldIxpUpdateExclude,
 	FieldLogo,
 	FieldLookingGlass,
+	FieldMeta,
 	FieldName,
 	FieldNameLong,
 	FieldNotes,

@@ -97,6 +97,10 @@ func (Network) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Comment("Looking glass URL"),
+		field.JSON("meta", map[string]any{}).
+			Optional().
+			Annotations(entrest.WithSchema(jsonObjectSchema())).
+			Comment("Optional attributes using registered metadata keys"),
 		field.String("name").
 			Annotations(
 				entgql.OrderField("NAME"),

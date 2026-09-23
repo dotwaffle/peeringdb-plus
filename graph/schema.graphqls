@@ -3125,6 +3125,10 @@ input IxPrefixWhereInput {
   hasIxLan: Boolean
   hasIxLanWith: [IxLanWhereInput!]
 }
+"""
+The builtin Map type
+"""
+scalar Map
 type Network implements Node {
   """
   PeeringDB network ID
@@ -3206,6 +3210,10 @@ type Network implements Node {
   Looking glass URL
   """
   lookingGlass: String
+  """
+  Optional attributes using registered metadata keys
+  """
+  meta: Map
   """
   Network name (not unique — PeeringDB permits duplicates)
   """
@@ -3595,6 +3603,10 @@ type NetworkIxLan implements Node {
   Route server peer
   """
   isRsPeer: Boolean!
+  """
+  Optional attributes using registered metadata keys
+  """
+  meta: Map
   """
   Notes
   """

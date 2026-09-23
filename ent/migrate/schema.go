@@ -566,6 +566,7 @@ var (
 		{Name: "ixp_update_exclude", Type: field.TypeJSON, Nullable: true},
 		{Name: "logo", Type: field.TypeString, Nullable: true},
 		{Name: "looking_glass", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "meta", Type: field.TypeJSON, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "name_long", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "notes", Type: field.TypeString, Nullable: true, Default: ""},
@@ -598,7 +599,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "networks_organizations_networks",
-				Columns:    []*schema.Column{NetworksColumns[44]},
+				Columns:    []*schema.Column{NetworksColumns[45]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -612,27 +613,27 @@ var (
 			{
 				Name:    "network_name",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[22]},
+				Columns: []*schema.Column{NetworksColumns[23]},
 			},
 			{
 				Name:    "network_org_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[44]},
+				Columns: []*schema.Column{NetworksColumns[45]},
 			},
 			{
 				Name:    "network_status",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[43]},
+				Columns: []*schema.Column{NetworksColumns[44]},
 			},
 			{
 				Name:    "network_updated",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[42]},
+				Columns: []*schema.Column{NetworksColumns[43]},
 			},
 			{
 				Name:    "network_status_updated_created_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworksColumns[43], NetworksColumns[42], NetworksColumns[41], NetworksColumns[0]},
+				Columns: []*schema.Column{NetworksColumns[44], NetworksColumns[43], NetworksColumns[42], NetworksColumns[0]},
 			},
 		},
 	}
@@ -706,6 +707,7 @@ var (
 		{Name: "ipaddr4", Type: field.TypeString, Nullable: true},
 		{Name: "ipaddr6", Type: field.TypeString, Nullable: true},
 		{Name: "is_rs_peer", Type: field.TypeBool, Default: false},
+		{Name: "meta", Type: field.TypeJSON, Nullable: true},
 		{Name: "notes", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "operational", Type: field.TypeBool, Default: true},
 		{Name: "speed", Type: field.TypeInt},
@@ -725,13 +727,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "network_ix_lans_ix_lans_network_ix_lans",
-				Columns:    []*schema.Column{NetworkIxLansColumns[16]},
+				Columns:    []*schema.Column{NetworkIxLansColumns[17]},
 				RefColumns: []*schema.Column{IxLansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "network_ix_lans_networks_network_ix_lans",
-				Columns:    []*schema.Column{NetworkIxLansColumns[17]},
+				Columns:    []*schema.Column{NetworkIxLansColumns[18]},
 				RefColumns: []*schema.Column{NetworksColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -745,12 +747,12 @@ var (
 			{
 				Name:    "networkixlan_ixlan_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworkIxLansColumns[16]},
+				Columns: []*schema.Column{NetworkIxLansColumns[17]},
 			},
 			{
 				Name:    "networkixlan_net_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworkIxLansColumns[17]},
+				Columns: []*schema.Column{NetworkIxLansColumns[18]},
 			},
 			{
 				Name:    "networkixlan_net_side_id",
@@ -760,12 +762,12 @@ var (
 			{
 				Name:    "networkixlan_status",
 				Unique:  false,
-				Columns: []*schema.Column{NetworkIxLansColumns[15]},
+				Columns: []*schema.Column{NetworkIxLansColumns[16]},
 			},
 			{
 				Name:    "networkixlan_updated",
 				Unique:  false,
-				Columns: []*schema.Column{NetworkIxLansColumns[14]},
+				Columns: []*schema.Column{NetworkIxLansColumns[15]},
 			},
 			{
 				Name:    "networkixlan_ipaddr4",
@@ -780,7 +782,7 @@ var (
 			{
 				Name:    "networkixlan_status_updated_created_id",
 				Unique:  false,
-				Columns: []*schema.Column{NetworkIxLansColumns[15], NetworkIxLansColumns[14], NetworkIxLansColumns[13], NetworkIxLansColumns[0]},
+				Columns: []*schema.Column{NetworkIxLansColumns[16], NetworkIxLansColumns[15], NetworkIxLansColumns[14], NetworkIxLansColumns[0]},
 			},
 		},
 	}
