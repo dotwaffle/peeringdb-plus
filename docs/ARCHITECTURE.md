@@ -1060,26 +1060,34 @@ and its *absence* indicates the *primary*
 (`internal/litefs/primary.go` — `PrimaryFile` constant).
 
 `IsPrimaryWithFallback(path, envKey)` (`internal/litefs/primary.go`) checks
-three conditions in order:
+four conditions in order:
 
 1. If `/litefs/.primary` exists, this node is a replica (`false`).
-2. If `/litefs/` (the parent directory) exists,
+2. If the stat of `/litefs/.primary` fails with any error other than
+   "does not exist", the node is a replica (`false`), and a WARN is logged.
+   A wrong primary would run destructive migrations.
+3. If `/litefs/` (the parent directory) exists,
    LiteFS is mounted and no primary file means this node holds the lease
    (`true`).
-3. Otherwise (no LiteFS at all — typical in local dev),
+4. Otherwise (no LiteFS, as in local dev),
    parse the `PDBPLUS_IS_PRIMARY` env var (default `true`).
+
+Startup fails if `PDBPLUS_IS_PRIMARY` is set but does not parse as a boolean
+(`litefs.ValidateEnvFallback`).
 
 Primary status is checked *live* on every scheduler tick
 (`cmd/peeringdb-plus/main.go` — `isPrimaryFn`),
 so LiteFS-driven promotions and demotions take effect without a process restart.
 The sync worker's scheduler also handles role transitions:
-promoted replicas begin running sync cycles; demoted primaries stop.
+promoted replicas begin running sync cycles, and demoted primaries stop.
+During a sync cycle the worker checks the role every second
+and cancels the cycle if the node is demoted.
 
 The on-demand sync endpoint
 (`POST /sync`)
 uses `IsPrimaryFn` to decide whether to run the sync locally,
 return a Fly.io `fly-replay` header pointing at `PRIMARY_REGION`,
-or 503 in local dev (`cmd/peeringdb-plus/main.go` — `newSyncHandler`).
+or 503 in local dev (`newSyncHandler` in `cmd/peeringdb-plus/sync_handler.go`).
 Fly.io handles the replay; the app itself does not forward HTTP traffic.
 
 The app listens directly on `:8080` with h2c enabled
@@ -1088,7 +1096,7 @@ because the proxy does not handle HTTP/2 streaming RPCs.
 LiteFS runs as a separate FUSE process whose mount point is inspected by the
 detection code above.
 
-### Fleet topology (v1.15+)
+### Fleet topology
 
 The app runs under two Fly process groups — `primary`
 (1 machine, LHR, `shared-cpu-2x`/512 MB, persistent `litefs_data` volume)
