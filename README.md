@@ -46,13 +46,14 @@ and read from the same SQLite database.
 | ConnectRPC / gRPC | `/peeringdb.v1.*/` | Get / List / Stream RPCs for all 13 entity types; reflection + health checks enabled |
 | MCP | `/mcp` | Read-only tools, resources, and prompts for network research agents |
 
-`GET /` returns a JSON service-discovery document and advertises agent
-documents with HTTP `Link` headers;
-browsers are redirected to the Web UI, terminal clients receive plain help text.
+`GET /` returns a JSON service-discovery document to API clients.
+It redirects browsers to the Web UI
+and sends ANSI-colored help text to terminal clients such as curl.
+Each response has an HTTP `Link` header that points to the agent documents.
 
-See [`docs/API.md`](docs/API.md) for the full surface catalogue,
-including filter semantics, ordering guarantees, divergences,
-and the response-memory envelope governing pdbcompat list responses.
+See [`docs/API.md`](docs/API.md) for each API,
+with filter semantics, ordering, divergences,
+and the response memory budget for `/api` lists.
 
 ## Quick start
 
@@ -106,7 +107,8 @@ curl https://peeringdb-plus.fly.dev/api/net
 # Fetch a specific network by PeeringDB numeric ID
 curl https://peeringdb-plus.fly.dev/api/net/42
 
-# Search with query parameters (depth/limit/skip/fields/since/q all supported)
+# Search with query parameters. Lists accept limit, skip, fields, since, and q.
+# depth applies only to single-object requests such as /api/net/42.
 curl 'https://peeringdb-plus.fly.dev/api/net?q=cloudflare&limit=5'
 ```
 
@@ -126,16 +128,22 @@ buf curl --protocol grpc --http2-prior-knowledge \
   http://localhost:8080/peeringdb.v1.NetworkService/GetNetwork \
   -d '{"id": 42}'
 
-# Stream all networks (server-streaming, no manual pagination)
+# Stream the networks that match a filter (server streaming, no pagination)
 buf curl --protocol grpc --http2-prior-knowledge \
   http://localhost:8080/peeringdb.v1.NetworkService/StreamNetworks \
   -d '{"asn": 15169}'
 ```
 
-Streams accept the same filters as `List*` RPCs;
-the `grpc-total-count` response header carries the approximate total.
-Server-side timeout defaults to 60s (`PDBPLUS_STREAM_TIMEOUT`)
-and clients can cancel at any time.
+Streams accept the `List*` filters except `id`,
+and also `since_id` and `updated_since`.
+If you do not set `since_id` or `updated_since`,
+the `pdbplus-total-count` response header gives the number of matching rows.
+The server also sends this value as `grpc-total-count`,
+which is a deprecated name.
+By default, the server stops a stream after 60 seconds
+(`PDBPLUS_STREAM_TIMEOUT`).
+A client can cancel a stream at any time.
+See [`docs/API.md` § Streaming semantics](docs/API.md#streaming-semantics).
 
 ### GraphQL
 
