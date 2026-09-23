@@ -525,6 +525,25 @@ All 13 entity types expose the same three RPCs
 The URL path for every RPC is `/{fully.qualified.ServiceName}/{MethodName}` —
 e.g. `/peeringdb.v1.NetworkService/GetNetwork`.
 
+### Messages
+
+The messages in `proto/peeringdb/v1/v1.proto` are hand-maintained.
+entproto generated them at v1.6.
+A later ent field reaches this surface only when it is added by hand,
+so some fields (for example `Network.ixp_update_exclude`) are not present.
+
+`Network.meta` (field 41) and `NetworkIxLan.meta` (field 19) carry the
+PeeringDB metadata document (added upstream in 2.83.0)
+as a `google.protobuf.Struct`:
+
+- A row without a stored document gets an empty `Struct`,
+  the same as upstream's `{}`. The field is always present.
+- If the server cannot convert a stored document to a `Struct`,
+  it logs a warning and omits the field for that row.
+  The RPC does not fail.
+- Connect and gRPC JSON clients see `meta` as a plain JSON object.
+  All numbers in a `Struct` are doubles.
+
 ### Filtering
 
 List and Stream requests accept type-specific optional filter fields

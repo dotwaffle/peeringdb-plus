@@ -173,7 +173,7 @@ func (s *NetworkService) GetNetwork(ctx context.Context, req *pb.GetNetworkReque
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get network %d", req.GetId()), err)
 	}
-	return &pb.GetNetworkResponse{Network: networkToProto(n)}, nil
+	return &pb.GetNetworkResponse{Network: networkToProto(ctx, n)}, nil
 }
 
 // applyNetworkListFilters builds filter predicates from the generic filter
@@ -208,7 +208,9 @@ func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksR
 			}
 			return q.All(ctx)
 		},
-		Convert: networkToProto,
+		// Closure adapter so networkToProto can log with the request ctx
+		// (see ListIxLans for the rationale).
+		Convert: func(n *ent.Network) *pb.Network { return networkToProto(ctx, n) },
 	})
 	if err != nil {
 		return nil, err
@@ -248,15 +250,17 @@ func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetwo
 			}
 			return q.All(ctx)
 		},
-		Convert:    networkToProto,
+		Convert:    func(n *ent.Network) *pb.Network { return networkToProto(ctx, n) },
 		GetID:      func(n *ent.Network) int { return n.ID },
 		GetUpdated: func(n *ent.Network) time.Time { return n.Updated },
 		GetCreated: func(n *ent.Network) time.Time { return n.Created },
 	}, stream)
 }
 
-// networkToProto converts an ent Network entity to a protobuf Network message.
-func networkToProto(n *ent.Network) *pb.Network {
+// networkToProto converts an ent Network entity to a protobuf Network
+// message. ctx is used only to log a meta document that cannot be
+// converted (see metaStruct).
+func networkToProto(ctx context.Context, n *ent.Network) *pb.Network {
 	return &pb.Network{
 		Id:                       int64(n.ID),
 		OrgId:                    int64PtrVal(n.OrgID),
@@ -298,5 +302,6 @@ func networkToProto(n *ent.Network) *pb.Network {
 		Created:                  timestampVal(n.Created),
 		Updated:                  timestampVal(n.Updated),
 		Status:                   n.Status,
+		Meta:                     metaStruct(ctx, "network", n.ID, n.Meta),
 	}
 }

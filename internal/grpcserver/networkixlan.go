@@ -117,7 +117,7 @@ func (s *NetworkIxLanService) GetNetworkIxLan(ctx context.Context, req *pb.GetNe
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get networkixlan %d", req.GetId()), err)
 	}
-	return &pb.GetNetworkIxLanResponse{NetworkIxLan: networkIxLanToProto(nixl)}, nil
+	return &pb.GetNetworkIxLanResponse{NetworkIxLan: networkIxLanToProto(ctx, nixl)}, nil
 }
 
 // applyNetworkIxLanListFilters builds filter predicates from the generic
@@ -151,7 +151,9 @@ func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.Lis
 			}
 			return q.All(ctx)
 		},
-		Convert: networkIxLanToProto,
+		// Closure adapter so networkIxLanToProto can log with the request
+		// ctx (see ListIxLans for the rationale).
+		Convert: func(nixl *ent.NetworkIxLan) *pb.NetworkIxLan { return networkIxLanToProto(ctx, nixl) },
 	})
 	if err != nil {
 		return nil, err
@@ -189,7 +191,7 @@ func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.S
 			}
 			return q.All(ctx)
 		},
-		Convert:    networkIxLanToProto,
+		Convert:    func(nixl *ent.NetworkIxLan) *pb.NetworkIxLan { return networkIxLanToProto(ctx, nixl) },
 		GetID:      func(nixl *ent.NetworkIxLan) int { return nixl.ID },
 		GetUpdated: func(nixl *ent.NetworkIxLan) time.Time { return nixl.Updated },
 		GetCreated: func(nixl *ent.NetworkIxLan) time.Time { return nixl.Created },
@@ -197,8 +199,9 @@ func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.S
 }
 
 // networkIxLanToProto converts an ent NetworkIxLan entity to a protobuf
-// NetworkIxLan message.
-func networkIxLanToProto(nixl *ent.NetworkIxLan) *pb.NetworkIxLan {
+// NetworkIxLan message. ctx is used only to log a meta document that
+// cannot be converted (see metaStruct).
+func networkIxLanToProto(ctx context.Context, nixl *ent.NetworkIxLan) *pb.NetworkIxLan {
 	return &pb.NetworkIxLan{
 		Id:          int64(nixl.ID),
 		IxSideId:    int64PtrVal(nixl.IxSideID),
@@ -218,5 +221,6 @@ func networkIxLanToProto(nixl *ent.NetworkIxLan) *pb.NetworkIxLan {
 		Created:     timestampVal(nixl.Created),
 		Updated:     timestampVal(nixl.Updated),
 		Status:      nixl.Status,
+		Meta:        metaStruct(ctx, "networkixlan", nixl.ID, nixl.Meta),
 	}
 }
