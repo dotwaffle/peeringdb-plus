@@ -104,6 +104,38 @@ func TestPocPolicy_AdmitsUsersToTierUsers(t *testing.T) {
 	}
 }
 
+// TestPocPolicy_HidesPrivateFromAllTiers: a Private-visibility row must
+// be invisible to every tier. Upstream shows Private contacts only to
+// members of the owning organization, and the mirror has no organization
+// membership, so not even TierUsers may read one. The sync bypass still
+// reads it.
+// upstream: 2.83.0 permissions.py:336-339, signals.py:343-347,
+// pdb_api_test.py:1413-1414 (a user GET of a Private poc is forbidden)
+func TestPocPolicy_HidesPrivateFromAllTiers(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	id := seedPocWithVisible(t, client, 1005, "Private")
+
+	for _, tier := range []privctx.Tier{privctx.TierPublic, privctx.TierUsers} {
+		ctx := privctx.WithTier(context.Background(), tier)
+		if _, err := client.Poc.Get(ctx, id); !ent.IsNotFound(err) {
+			t.Errorf("tier %v Get(Private-row) err = %v, want NotFound", tier, err)
+		}
+		n, err := client.Poc.Query().Where(poc.VisibleEQ("Private")).Count(ctx)
+		if err != nil {
+			t.Fatalf("tier %v count Private rows: %v", tier, err)
+		}
+		if n != 0 {
+			t.Errorf("tier %v sees %d Private rows, want 0", tier, n)
+		}
+	}
+
+	bypass := privacy.DecisionContext(context.Background(), privacy.Allow)
+	if _, err := client.Poc.Get(bypass, id); err != nil {
+		t.Errorf("bypass Get(Private-row) err = %v, want nil", err)
+	}
+}
+
 // TestPocPolicy_AdmitsNullVisibleToTierPublic:
 // a row with NULL visible must be admitted to TierPublic. SQL three-valued
 // logic makes `visible = 'Public'` FALSE for NULL, so the policy adds

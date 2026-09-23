@@ -44,7 +44,8 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 
 Two ent fields carry upstream PeeringDB visibility signals:
 
-- `poc.visible` — row-level (`Public` / `Users`). Non-`Public` rows are filtered from anonymous responses by the ent Privacy policy. Only entity where a whole row can be hidden.
+- `poc.visible` — row-level (`Public` / `Users` / `Private`). The ent Privacy policy admits `visible IN tier.AdmittedVisibilities() OR NULL`: TierPublic → `Public`; TierUsers → `Public`+`Users`; NO tier sees `Private` (upstream: owning-org members only; mirror has no org membership). Only entity where a whole row can be hidden.
+- `privctx.Tier.AdmittedVisibilities()` is the single tier→visibility mapping; the poc policy, pdbcompat `applyVisibilityGate` (traversal subqueries) and `privfield.Redact` all use it; never hand-code a tier/visibility check.
 - `ixlan.ixf_ixp_member_list_url_visible` — per-field (`Public` / `Users` / `Private`). Gates the sibling `ixf_ixp_member_list_url`; `internal/privfield.Redact` nulls/omits at the serializer layer across all 5 API surfaces. ent's built-in Privacy operates at query/row level only — field-level redaction is a serializer-layer concern.
 
 ### Field-level privacy

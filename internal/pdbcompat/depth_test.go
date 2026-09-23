@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
@@ -1721,9 +1722,11 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 // PeeringDB lists EVERY poc id in a depth=1 `poc_set` ID list regardless of
 // visibility (filtering non-Public POCs only when expanded to objects at
 // depth=2), while this mirror applies the row-level poc.visible privacy
-// policy uniformly — a non-Public POC id never appears in an anonymous
-// poc_set ID list. Stricter than upstream by design; if this test fails the
-// way upstream behaves, that is a privacy leak, not a parity win.
+// policy uniformly: a poc_set ID list never holds the id of a POC that the
+// caller's tier cannot read. Anonymous callers get Public ids only; the
+// Users tier gets Public and Users ids, never Private ones. Stricter than
+// upstream by design; if this test fails the way upstream behaves, that is
+// a privacy leak, not a parity win.
 //
 // upstream: peeringdb_server/serializers.py poc_set nested ID-list rendering
 // (no visibility filter on the ID-list path).
@@ -1746,54 +1749,61 @@ func TestDepth_PocSetPrivacy_DIVERGENCE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create net: %v", err)
 	}
-	pubPoc, err := client.Poc.Create().
-		SetName("Public Contact").SetRole("Abuse").SetVisible("Public").
-		SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
-		Save(ctx)
-	if err != nil {
-		t.Fatalf("create public poc: %v", err)
-	}
-	usersPoc, err := client.Poc.Create().
-		SetName("Users-Only Contact").SetRole("Technical").SetVisible("Users").
-		SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
-		Save(ctx)
-	if err != nil {
-		t.Fatalf("create users poc: %v", err)
+	pocIDs := make(map[string]int, 3)
+	for _, visible := range []string{"Public", "Users", "Private"} {
+		p, err := client.Poc.Create().
+			SetName(visible + " Contact").SetRole("Technical").SetVisible(visible).
+			SetNetwork(net).SetCreated(now).SetUpdated(now).SetStatus("ok").
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("create %s poc: %v", visible, err)
+		}
+		pocIDs[visible] = p.ID
 	}
 
 	h := NewHandler(client, 0)
 	mux := http.NewServeMux()
 	h.Register(mux)
-	srv := httptest.NewServer(mux)
-	t.Cleanup(srv.Close)
 
-	// Anonymous request (no privacy tier stamped -> fail-closed TierPublic).
-	resp, err := http.Get(srv.URL + "/api/net/" + itoa(net.ID) + "?depth=1") //nolint:noctx // test code, local httptest server
-	if err != nil {
-		t.Fatalf("GET net depth=1: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("GET net depth=1: status %d", resp.StatusCode)
-	}
-	var env struct {
-		Data []struct {
-			PocSet []int `json:"poc_set"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
-		t.Fatalf("decode envelope: %v", err)
-	}
-	if len(env.Data) != 1 {
-		t.Fatalf("got %d data rows, want 1", len(env.Data))
-	}
-	got := env.Data[0].PocSet
-	for _, id := range got {
-		if id == usersPoc.ID {
-			t.Errorf("anonymous depth=1 poc_set leaked non-Public poc id %d (got %v)", usersPoc.ID, got)
+	// pocSet returns the depth=1 poc_set of net. A nil tier leaves the
+	// request context unstamped, which fails closed to TierPublic.
+	pocSet := func(t *testing.T, tier *privctx.Tier) []int {
+		t.Helper()
+		var handler http.Handler = mux
+		if tier != nil {
+			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mux.ServeHTTP(w, r.WithContext(privctx.WithTier(r.Context(), *tier)))
+			})
 		}
+		srv := httptest.NewServer(handler)
+		t.Cleanup(srv.Close)
+		resp, err := http.Get(srv.URL + "/api/net/" + itoa(net.ID) + "?depth=1") //nolint:noctx // test code, local httptest server
+		if err != nil {
+			t.Fatalf("GET net depth=1: %v", err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("GET net depth=1: status %d", resp.StatusCode)
+		}
+		var env struct {
+			Data []struct {
+				PocSet []int `json:"poc_set"`
+			} `json:"data"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
+			t.Fatalf("decode envelope: %v", err)
+		}
+		if len(env.Data) != 1 {
+			t.Fatalf("got %d data rows, want 1", len(env.Data))
+		}
+		return env.Data[0].PocSet
 	}
-	if len(got) != 1 || got[0] != pubPoc.ID {
-		t.Errorf("anonymous depth=1 poc_set = %v, want [%d] (Public poc only)", got, pubPoc.ID)
+
+	if got, want := pocSet(t, nil), []int{pocIDs["Public"]}; !slices.Equal(got, want) {
+		t.Errorf("anonymous depth=1 poc_set = %v, want %v (Public poc only)", got, want)
+	}
+	users := privctx.TierUsers
+	if got, want := pocSet(t, &users), []int{pocIDs["Public"], pocIDs["Users"]}; !slices.Equal(got, want) {
+		t.Errorf("users-tier depth=1 poc_set = %v, want %v (Public and Users pocs, never Private)", got, want)
 	}
 }

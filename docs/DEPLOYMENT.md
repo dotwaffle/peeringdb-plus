@@ -173,7 +173,9 @@ anonymous API callers still see `Public`-only thanks to the
    is visible — this is expected).
 4. **Operational implication.**
    `Users`-tier rows are now present in the local SQLite database.
-   They are filtered out of anonymous HTTP responses by the ent privacy policy
+   If the key belongs to a member of an organization,
+   that organization's `Private` contacts are also present.
+   The ent privacy policy removes both from anonymous HTTP responses
    on every read path (see [ARCHITECTURE.md](./ARCHITECTURE.md#privacy-layer)).
    No response format or schema change is visible to anonymous callers;
    the mirror's anonymous API shape continues to match upstream's.
@@ -182,8 +184,10 @@ anonymous API callers still see `Public`-only thanks to the
 
 Deployments that are not reachable from the public internet
 (internal tools, CI sidecars, pre-production mirrors)
-can elevate anonymous callers to Users-tier
-so the privacy filter becomes a no-op:
+can elevate anonymous callers to Users-tier,
+so they also see `Users` rows.
+`Private` rows stay hidden in every tier,
+because upstream shows them only to members of the owning organization:
 
 ```bash
 fly secrets set PDBPLUS_PUBLIC_TIER=users --app peeringdb-plus

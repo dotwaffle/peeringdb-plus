@@ -2,8 +2,9 @@
 // configured at startup via PDBPLUS_PUBLIC_TIER (parsed by
 // internal/config.parsePublicTier and surfaced as Config.PublicTier).
 // The ent privacy policy on visibility-bearing entities (see
-// ent/schema/poc.go) reads the tier via internal/privctx and admits
-// Users-visibility rows when the context carries TierUsers.
+// ent/schema/poc_policy.go) reads the tier via internal/privctx and admits
+// Users-visibility rows when the context carries TierUsers. No tier
+// admits Private rows (privctx.Tier.AdmittedVisibilities).
 //
 // Placement: After Logging and before Readiness/SecurityHeaders in the
 // request flow. The stamp is therefore

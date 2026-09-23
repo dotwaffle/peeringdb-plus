@@ -512,8 +512,12 @@ The pieces:
    (`entgo.io/ent/privacy`, feature `privacy` enabled in `ent/entc.go`).
    The POC entity (`ent/schema/poc.go`,
    with `Policy()` in sibling file `ent/schema/poc_policy.go`) has a `Policy()`
-   method whose query rule rejects rows with `visible != "Public"` unless the
-   context carries a Users-tier marker.
+   method whose query rule admits a row only when its `visible` value is in
+   `privctx.Tier.AdmittedVisibilities()` for the context tier:
+   `Public` for the Public tier, `Public` and `Users` for the Users tier.
+   No tier admits `Private`,
+   because upstream shows it only to members of the owning organization.
+   A NULL `visible` counts as the column default, `Public`.
    The policy is evaluated on every ent query; the six read surfaces
    (`/ui/`, `/graphql`, `/rest/v1/`, `/api/`, `/peeringdb.v1.*`, `/mcp`)
    all flow through the same `ent.Client`, so there is exactly one filter,
@@ -522,6 +526,9 @@ The pieces:
 3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
    `Redact(ctx, visible, value) (out string, omit bool)` is the single source of
    truth for per-field redaction.
+   It admits the same visibility values as the row policy
+   (`privctx.Tier.AdmittedVisibilities()`),
+   so the row gate and the field gate cannot disagree.
    Every API serializer that exposes a gated field calls `Redact`;
    unstamped contexts fail-closed to `TierPublic`.
    The current gated field is `ixlan.ixf_ixp_member_list_url`

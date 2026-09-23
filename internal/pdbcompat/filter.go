@@ -487,27 +487,32 @@ func buildTraversalPredicate(tc TypeConfig, relSegs []string, field, op, value s
 // row-level visibility signal. A subquery built against one of these tables
 // MUST reproduce the visibility filter that the entity's ent Privacy policy
 // enforces on direct queries (ent/schema/poc_policy.go). Without it a
-// cross-entity filter becomes a boolean oracle: an anonymous (TierPublic)
-// caller could probe hidden rows — e.g. GET /api/net?pocs__email__startswith=
-// would leak Users-tier poc PII that the policy hides on /api/poc.
+// cross-entity filter becomes a boolean oracle: a caller could probe rows
+// that its tier cannot read. For example, GET /api/net?pocs__email__startswith=
+// would leak Users-tier poc PII to TierPublic, or Private poc PII to
+// TierUsers, that the policy hides on /api/poc.
 var tierGatedTables = map[string]string{
-	"pocs": "visible", // poc.visible: rows != "Public" are hidden from TierPublic
+	"pocs": "visible", // poc.visible: admitted per privctx.Tier.AdmittedVisibilities
 }
 
 // applyVisibilityGate ANDs the row-visibility predicate onto a traversal
-// subquery when the target table is privacy-gated and the caller is
-// anonymous. A NULL visible value is treated as the column default
-// ("Public") and therefore visible, mirroring poc_policy.go NULL-safety.
+// subquery when the target table is privacy-gated. The predicate admits
+// the visibility values of the caller's tier
+// (privctx.Tier.AdmittedVisibilities), the same set as the ent policy. A
+// NULL visible value is treated as the column default ("Public") and
+// therefore visible, mirroring poc_policy.go NULL-safety.
 func applyVisibilityGate(sel *sql.Selector, table string, tier privctx.Tier) {
-	if tier == privctx.TierUsers {
-		return
-	}
 	col, gated := tierGatedTables[table]
 	if !gated {
 		return
 	}
+	admitted := tier.AdmittedVisibilities()
+	args := make([]any, len(admitted))
+	for i, v := range admitted {
+		args[i] = v
+	}
 	sel.Where(sql.Or(
-		sql.EQ(sel.C(col), "Public"),
+		sql.In(sel.C(col), args...),
 		sql.IsNull(sel.C(col)),
 	))
 }

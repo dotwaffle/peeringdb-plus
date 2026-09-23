@@ -20,6 +20,7 @@ package privfield
 
 import (
 	"context"
+	"slices"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
@@ -27,7 +28,9 @@ import (
 // Redact returns (value, false) if the caller's tier on ctx admits the
 // field, or ("", true) if the serializer should omit the field entirely.
 //
-// Admission rules:
+// Admission rule: admit when visible is in the caller tier's
+// privctx.Tier.AdmittedVisibilities, the same set that the row gates use.
+// That gives:
 //   - visible == "Public"                → always admit (any tier)
 //   - visible == "Users" && tier Users+  → admit
 //   - visible == "Users" && tier Public  → redact (the gated case)
@@ -39,18 +42,8 @@ import (
 // contexts, so an un-plumbed ctx naturally lands in the most
 // restrictive branch — no extra check needed here.
 func Redact(ctx context.Context, visible, value string) (out string, omit bool) {
-	tier := privctx.TierFrom(ctx)
-
-	switch visible {
-	case "Public":
+	if slices.Contains(privctx.TierFrom(ctx).AdmittedVisibilities(), visible) {
 		return value, false
-	case "Users":
-		if tier >= privctx.TierUsers {
-			return value, false
-		}
-		return "", true
-	default:
-		// "Private" or unknown → always redact.
-		return "", true
 	}
+	return "", true
 }

@@ -24,7 +24,7 @@ or the `autoexport` SDK package and are documented in their own sections below.
 | `PDBPLUS_DB_PATH` | No | `./peeringdb-plus.db` | path | SQLite database file path. Empty string is rejected at startup. In production (Fly.io) this is set to `/litefs/peeringdb-plus.db` via `fly.toml`. |
 | `PDBPLUS_PEERINGDB_URL` | No | `https://api.peeringdb.com` | URL | PeeringDB API base URL. Must use `https://`, or `http://` against loopback (`localhost`, `127.0.0.1`, `::1`) or RFC 1918 private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Other `http://` hosts and any non-http(s) scheme are rejected at startup. |
 | `PDBPLUS_PEERINGDB_API_KEY` | No | (empty) | secret | **Recommended.** Optional PeeringDB API key. Empty value means unauthenticated requests. Also read directly by the `pdbcompat-check` CLI and the live conformance / client tests. See [Privacy & Tiers](#privacy--tiers) for the operational implication. |
-| `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values are case-sensitive lowercase only: `public` (default — anonymous callers see only rows with `visible="Public"`) or `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too; the application logs `slog.Warn("public tier override active", …)` at startup). Any other value (including case variants like `Users` / `PUBLIC` and whitespace-padded forms) is rejected at startup — the strict switch is a fail-safe-closed choice so a typo cannot silently default to either tier. See [Privacy & Tiers](#privacy--tiers). |
+| `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values are case-sensitive lowercase only: `public` (default — anonymous callers see only rows with `visible="Public"`) or `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too, but never `visible="Private"` rows; the application logs `slog.Warn("public tier override active", …)` at startup). Any other value (including case variants like `Users` / `PUBLIC` and whitespace-padded forms) is rejected at startup — the strict switch is a fail-safe-closed choice so a typo cannot silently default to either tier. See [Privacy & Tiers](#privacy--tiers). |
 | `PDBPLUS_PUBLIC_URL` | No | (empty) | URL | Optional external origin used in generated agent discovery documents and Agent Skill metadata. When empty, the server card, skill index, `llms.txt`, and skill archive use the request `Host` and protocol (`r.TLS`, then `X-Forwarded-Proto`). Set this only when a reverse proxy rewrites `Host`. The value must be an `http` or `https` origin with no userinfo, path, query, or fragment. |
 | `PDBPLUS_CORS_ORIGINS` | No | `*` | string | Comma-separated list of allowed CORS origins. |
 | `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` serves `Content-Security-Policy-Report-Only` — enforcement is opt-in per deploy until explicitly enabled per deployment. |
@@ -221,6 +221,9 @@ this matches upstream's own anonymous API shape.
 When `PDBPLUS_PEERINGDB_API_KEY` is set,
 the sync worker fetches both `Public` and `Users`-tier rows from PeeringDB
 and writes them into the local database.
+If the key belongs to a member of an organization,
+upstream also sends that organization's `Private` contacts,
+and the sync worker writes them too.
 The sync worker bypasses the privacy policy
 (via `privacy.DecisionContext(ctx, privacy.Allow)`), so all rows land in the DB.
 On the read path the policy still filters `Users`-tier rows out of anonymous
@@ -234,6 +237,12 @@ Setting `PDBPLUS_PUBLIC_TIER=users` elevates anonymous callers to Users-tier
 for private-instance deployments
 where the mirror is not reachable from the public internet.
 In this mode the privacy policy admits `Users`-tier rows for anonymous callers.
+It never admits `Private` rows.
+Upstream shows a `Private` contact only to members of the owning organization
+(2.83.0 `permissions.py:336-339`, `signals.py:343-347`),
+and the mirror has no organization membership.
+A Users-tier caller thus sees the rows that an authenticated PeeringDB user
+sees when that user is not a member of the owning organization.
 Startup logs `slog.Warn("public tier override active", …)` naming the override
 so the elevated default is never silent;
 the OTel attribute `pdbplus.privacy.tier=users` also appears on read spans.

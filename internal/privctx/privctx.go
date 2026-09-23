@@ -1,7 +1,7 @@
 // Package privctx propagates the visibility tier of the caller through a
-// Go context. The ent privacy policy (see ent/schema/poc.go) reads the
-// tier via TierFrom and admits Users-visibility rows when the tier is
-// TierUsers.
+// Go context. The ent privacy policy (see ent/schema/poc_policy.go) reads
+// the tier via TierFrom and admits the visibility values that
+// Tier.AdmittedVisibilities returns for it.
 //
 // Tier is set by the HTTP middleware (internal/middleware.PrivacyTier)
 // at the edge of every HTTP request, and — starting v1.15 — by the OAuth
@@ -21,11 +21,33 @@ const (
 	// upstream visibility is "Public" only.
 	TierPublic Tier = iota
 
-	// TierUsers is the signed-in / env-elevated tier. The ent privacy
-	// policy admits every row (Public + Users) when the request context
-	// carries this tier.
+	// TierUsers is the signed-in / env-elevated tier. It sees rows whose
+	// upstream visibility is "Public" or "Users", the same rows that an
+	// authenticated PeeringDB user who is not a member of the owning
+	// organization sees. It never sees "Private" rows: upstream shows
+	// them only to members of the owning organization, and the mirror
+	// has no organization membership.
 	TierUsers
 )
+
+// AdmittedVisibilities returns the upstream visibility values ("Public",
+// "Users", "Private") that tier t may read. It is the single mapping from
+// tier to visibility. The row gates (the poc privacy policy and the
+// pdbcompat traversal gate) and the field gate (privfield.Redact) all use
+// it, so they cannot disagree.
+//
+//   - TierPublic: Public.
+//   - TierUsers:  Public and Users.
+//
+// No tier admits "Private" (upstream 2.83.0 permissions.py:336-339 and
+// signals.py:343-347 grant it only to the owning organization's groups).
+// Each call returns a new slice, so the caller can change it.
+func (t Tier) AdmittedVisibilities() []string {
+	if t >= TierUsers {
+		return []string{"Public", "Users"}
+	}
+	return []string{"Public"}
+}
 
 // tierCtxKey is the unexported context key under which the tier is stored.
 // The type identity (package path + type name) guarantees no other package

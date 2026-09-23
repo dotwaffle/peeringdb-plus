@@ -10,6 +10,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -698,25 +699,39 @@ func TestParity_Status(t *testing.T) {
 	t.Run("DIVERGENCE_poc_hidden_id_returns_404", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream runs the unique-query 404 check before
-		// APIPermissionsApplicator removes the non-Public contacts
-		// (2.83.0 rest.py:809-821), so an anonymous
-		// /api/poc?id=<Users contact> gets 200 {"data": []} and a
-		// missing id gets 404. The mirror hides the contact in the
-		// query (the poc.visible privacy policy) and returns 404 for
-		// both, so the status does not show that the contact exists.
+		// APIPermissionsApplicator removes the contacts that the caller
+		// may not read (2.83.0 rest.py:809-821), so an anonymous
+		// /api/poc?id=<Users contact>, or a /api/poc?id=<Private
+		// contact> from a user who is not a member of the owning
+		// organization, gets 200 {"data": []}, and a missing id gets
+		// 404. The mirror hides the contact in the query (the
+		// poc.visible privacy policy) and returns 404 for both, so the
+		// status does not show that the contact exists.
 		// See docs/API.md § Known Divergences.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		seedNet(t, c, 1, 64501, "ok", t0)
-		if _, err := c.Poc.Create().
-			SetID(101).SetNetID(1).SetRole("NOC").SetVisible("Users").
-			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
-			Save(ctx); err != nil {
-			t.Fatalf("seed poc: %v", err)
+		for id, visible := range map[int]string{101: "Users", 102: "Private"} {
+			if _, err := c.Poc.Create().
+				SetID(id).SetNetID(1).SetRole("NOC").SetVisible(visible).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed poc id=%d: %v", id, err)
+			}
 		}
-		srv := newTestServer(t, c)
-		assertEntityNotFound(t, srv, "/api/poc?id=101")
-		assertEntityNotFound(t, srv, "/api/poc?id=999")
+		anon := newTestServer(t, c)
+		assertEntityNotFound(t, anon, "/api/poc?id=101")
+		assertEntityNotFound(t, anon, "/api/poc?id=102")
+		assertEntityNotFound(t, anon, "/api/poc?id=999")
+
+		users := newTestServerWithTier(t, c, privctx.TierUsers)
+		assertEntityNotFound(t, users, "/api/poc?id=102")
+		assertEntityNotFound(t, users, "/api/poc?id=999")
+		// Control: the users tier reads the Users contact.
+		status, body := httpGet(t, users, "/api/poc?id=101")
+		if got := extractIDs(t, body); status != http.StatusOK || len(got) != 1 || got[0] != 101 {
+			t.Errorf("users tier /api/poc?id=101: status %d ids %v, want 200 [101]", status, got)
+		}
 	})
 
 	t.Run("DIVERGENCE_unique_key_non_integer_returns_400", func(t *testing.T) {
@@ -905,6 +920,56 @@ func TestParity_Status(t *testing.T) {
 		for _, key := range []string{"name", "phone", "email", "url"} {
 			if got := rows[0][key]; got != "" {
 				t.Errorf("retained tombstone %s = %v, want \"\"", key, got)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_hidden_poc_detail_404", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream answers a GET for a contact that the
+		// caller may not read with 403. retrieve returns
+		// HTTP_403_FORBIDDEN when the permission applicator denies the
+		// whole object. The upstream tests expect this for a Users
+		// contact and a guest, and for a Private contact and a user who
+		// is not a member of the owning organization. The mirror answers
+		// 404, as for an id that does not exist, so the status code does
+		// not show that the hidden contact exists.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 rest.py:849-865 (retrieve)
+		// + pdb_api_test.py:575-577 (assert_get_forbidden)
+		// + pdb_api_test.py:3855-3856 (guest, Users contact)
+		// + pdb_api_test.py:1413-1414 (user, Private contact)
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seedNet(t, c, 1, 64501, "ok", t0)
+		for id, visible := range map[int]string{10: "Users", 11: "Private"} {
+			if _, err := c.Poc.Create().
+				SetID(id).SetNetID(1).SetRole("NOC").SetVisible(visible).
+				SetName("Hidden Contact").SetEmail("hidden@example.invalid").
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed poc id=%d: %v", id, err)
+			}
+		}
+
+		cases := []struct {
+			tier privctx.Tier
+			id   int
+			want int
+		}{
+			// Upstream: 403 for each hidden contact.
+			{privctx.TierPublic, 10, http.StatusNotFound},
+			{privctx.TierPublic, 11, http.StatusNotFound},
+			{privctx.TierUsers, 11, http.StatusNotFound},
+			// Control: the Users tier reads the Users contact.
+			{privctx.TierUsers, 10, http.StatusOK},
+		}
+		for _, tc := range cases {
+			srv := newTestServerWithTier(t, c, tc.tier)
+			path := fmt.Sprintf("/api/poc/%d", tc.id)
+			if status, body := httpGet(t, srv, path); status != tc.want {
+				t.Errorf("tier %d GET %s: status = %d, want %d (divergence canary); body=%s", tc.tier, path, status, tc.want, string(body))
 			}
 		}
 	})
