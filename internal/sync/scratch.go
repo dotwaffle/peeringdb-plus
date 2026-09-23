@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
-	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver, already a project dep
@@ -64,36 +62,25 @@ type scratchDB struct {
 //
 // SQLite pragmas:
 //   - journal_mode=OFF — no WAL/rollback journal. The scratch DB is
-//     transient; crash-safety is irrelevant because the unlink-on-close
-//     contract means a crashed process leaves the file for the next
-//     openScratchDB call which unlinks stale files first.
+//     transient, so crash-safety is irrelevant. A crashed process leaves
+//     its file behind, and no later openScratchDB call uses that name.
 //   - synchronous=OFF — skip fsyncs. Writes go straight to the OS page
 //     cache; correctness is preserved because SQLite is the only writer.
 //
-// Path uniqueness: the filename embeds both the process PID and a
-// monotonically-increasing counter so multiple concurrent Sync runs
-// within the same process (e.g. parallel tests) do not collide on the
-// same scratch file. In production there is only ever one primary
-// sync running at a time, so the counter is effectively 0;
-// the counter matters only for tests.
+// Path uniqueness: os.CreateTemp picks a random name, so concurrent Sync
+// runs do not collide on a scratch file. This is also true for different
+// processes that share a temp directory. A PID-based name is not unique
+// across PID namespaces, because sandboxed or containerized processes
+// often get the same small PID.
 func openScratchDB(ctx context.Context) (*scratchDB, error) {
-	// Atomically create an exclusive scratch file via O_EXCL so neither a
-	// stale file nor a pre-placed symlink can be targeted. This eliminates
-	// the /tmp symlink race that a deterministic PID+seq path would expose
-	// on shared-/tmp hosts (local dev, CI runners). Production Fly.io is
-	// single-tenant and not exposed, but the atomic path is a trivial
-	// hardening upgrade.
-	seq := scratchSeq.Add(1)
-	path := filepath.Join(os.TempDir(), fmt.Sprintf("pdbplus-sync-scratch-%d-%d.db", os.Getpid(), seq))
-
-	// O_EXCL fails if the path exists (including as a symlink).
-	// Path is constructed from os.TempDir() + PID + atomic seq — no user
-	// input, so gosec G304's "file inclusion via variable" warning does
-	// not apply here.
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) // #nosec G304 -- path is os.TempDir() + PID + atomic seq, not user input
+	// Atomically create an exclusive scratch file so neither a stale file
+	// nor a pre-placed symlink can be targeted. os.CreateTemp opens with
+	// O_EXCL and mode 0600, and tries a new random name if one exists.
+	f, err := os.CreateTemp("", "pdbplus-sync-scratch-*.db")
 	if err != nil {
-		return nil, fmt.Errorf("create scratch db at %s: %w", path, err)
+		return nil, fmt.Errorf("create scratch db: %w", err)
 	}
+	path := f.Name()
 	_ = f.Close()
 	// sql.Open needs exclusive access; remove the empty file we just
 	// created so SQLite can write its magic bytes fresh. Between here
@@ -127,13 +114,6 @@ func openScratchDB(ctx context.Context) (*scratchDB, error) {
 	}
 	return s, nil
 }
-
-// scratchSeq is a monotonically-increasing counter used to disambiguate
-// scratch filenames when multiple Sync runs overlap in the same process.
-// Production has only one primary at a time, so this is
-// effectively unused in production; test parallelism is the real
-// motivation.
-var scratchSeq atomic.Uint64
 
 // initSchema creates one staging table per PeeringDB type. Schema is
 // minimal: (id INTEGER PRIMARY KEY, data BLOB NOT NULL). The BLOB holds
