@@ -293,15 +293,18 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
-	t.Run("since_boundary_is_strictly_greater", func(t *testing.T) {
+	t.Run("since_boundary_includes_same_second", func(t *testing.T) {
 		t.Parallel()
-		// upstream: django-handleref manager.py since() filters
-		// Q(updated__gt=timestamp) — strictly greater, so a poller
-		// re-using the max updated it has already seen does NOT
-		// re-receive the boundary row.
+		// upstream: 2.83.0 rest.py:736-744 (since() compares updated
+		// with updated__gt against datetime.fromtimestamp(N), which is
+		// N.000000) + serializers.py:1920-1924 (updated is shown
+		// truncated to the second). Upstream stores microseconds, so a
+		// row shown as updated=N is returned for since=N. The mirror
+		// stores only the shown second, so the boundary is inclusive.
 		c := testutil.SetupClient(t)
-		seedNet(t, c, 1, 64501, "ok", t0)                // exactly at the boundary
-		seedNet(t, c, 2, 64502, "ok", t0.Add(time.Hour)) // inside the window
+		seedNet(t, c, 1, 64501, "ok", t0.Add(-time.Second)) // one second before
+		seedNet(t, c, 2, 64502, "ok", t0)                   // same second
+		seedNet(t, c, 3, 64503, "ok", t0.Add(time.Hour))    // inside the window
 
 		srv := newTestServer(t, c)
 		status, body := httpGet(t, srv, fmt.Sprintf("/api/net?since=%d", t0.Unix()))
@@ -309,9 +312,9 @@ func TestParity_Status(t *testing.T) {
 			t.Fatalf("status = %d; body=%s", status, string(body))
 		}
 		ids := extractIDs(t, body)
-		want := []int{2}
+		want := []int{2, 3}
 		if !equalIntSlice(ids, want) {
-			t.Errorf("since boundary must be exclusive (updated > since): got %v, want %v", ids, want)
+			t.Errorf("since boundary must include the same second (updated >= since): got %v, want %v", ids, want)
 		}
 	})
 

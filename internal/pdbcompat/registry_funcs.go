@@ -244,17 +244,25 @@ func castPredicates[T ~func(*sql.Selector)](filters []func(*sql.Selector)) []T {
 	return out
 }
 
-// applySince adds an updated > since filter if Since is set in opts.
-// Strictly-greater mirrors upstream django-handleref's since() filter
-// (Q(created__gt) | Q(updated__gt)); updated__gt alone subsumes
-// created__gt because created <= updated on every row. GTE would
-// re-serve every boundary row to a client polling with
-// since=<max updated seen>.
+// applySince adds an updated >= since filter if Since is set in opts.
+//
+// Upstream filters with django-handleref since(): created__gt or
+// updated__gt against datetime.fromtimestamp(since), which is
+// since.000000 (2.83.0 rest.py:736-744). updated__gt alone covers
+// created__gt because created <= updated on every row. Upstream stores
+// updated with microseconds but serializes it truncated to the second
+// (serializers.py:1920-1924), and the mirror stores only that second.
+// A row shown as updated=N almost always has a non-zero fraction
+// upstream, so upstream returns it for since=N. The boundary is
+// therefore inclusive on the stored second. With a strict > filter, a
+// client that polls with since=<max updated seen> never gets a row
+// that the mirror syncs later with the same second. The cost is that
+// the client gets the boundary rows again, which is idempotent.
 func applySince(opts QueryOptions) func(*sql.Selector) {
 	if opts.Since == nil {
 		return nil
 	}
-	return sql.FieldGT("updated", *opts.Since)
+	return sql.FieldGTE("updated", *opts.Since)
 }
 
 // listOrder returns the ORDER BY for a list query.
