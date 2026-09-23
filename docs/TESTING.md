@@ -23,6 +23,7 @@ Key test locations:
 | Seed fixtures for ent | `internal/testutil/seed/seed.go` | `Full(tb, client)` — all 13 entity types |
 | PeeringDB API fixtures | `testdata/fixtures/` | 13 JSON files, one per object type |
 | Golden files (pdbcompat) | `internal/pdbcompat/testdata/golden/` | Per-type `list.json`, `detail.json`, `depth.json` |
+| Golden file (sync) | `internal/sync/testdata/refactor_parity.golden.json` | `TestSync_RefactorParity` |
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
 | Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
@@ -59,11 +60,16 @@ Run a single test by name:
 go test -race -run TestFullSyncWithFixtures ./internal/sync/
 ```
 
-Update golden files after an intentional serializer or handler change
-(`internal/pdbcompat/golden_test.go` defines the `-update` flag):
+Update the golden files after an intentional serializer, handler,
+or sync-mapping change.
+`internal/pdbcompat/golden_test.go` and `internal/sync/worker_test.go`
+each define an `-update` flag.
+Put `-update` after the package path.
+If it comes first, `go test` tests the current directory and fails.
 
 ```bash
-go test ./internal/pdbcompat/ -update
+go test ./internal/pdbcompat/ -run TestGoldenFiles -update
+go test ./internal/sync/ -run TestSync_RefactorParity -update
 ```
 
 Run benchmarks:
