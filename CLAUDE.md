@@ -30,7 +30,7 @@ LiteFS is in **maintenance mode** — stable but unsupported by Fly.io. No drop-
 ### Code Generation
 - `go generate ./...` runs the full codegen pipeline and converges in a SINGLE pass on a clean tree (the schema producer is sequenced ahead of entc, its consumer):
   1. `ent/generate.go` — runs `cmd/pdb-schema-generate` (peeringdb.json → ent/schema/*.go) FIRST, then entc.go (ent + entgql + entrest + entproto), then `cmd/pdb-compat-allowlist`, then `buf generate` for proto Go types
-  2. `graph/generate.go` — runs `gqlgen generate` for GraphQL resolvers/models. GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` — a `package graph_test` file sorting before `custom.resolvers.go` breaks generation with "exec and model define the same import path (graph vs graph_test)". Name new test files so they sort after it (e.g. `resolver_*_test.go`).
+  2. `graph/generate.go`: runs `gqlgen generate` for GraphQL resolvers/models. GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` (today `complexity.go`); a `package graph_test` file sorting before it breaks generation with "exec and model define the same import path (graph vs graph_test)". Name new test files so they sort after it (e.g. `resolver_*_test.go`).
   3. `internal/web/templates/generate.go` — runs `templ generate` for templ Go files
   - GOTCHA: `scalar Map` lives in `graph/schema.graphqls`, emitted by entgql because `Network.meta` / `NetworkIxLan.meta` use it. `graph/custom.graphql` must not redeclare it ("Cannot redeclare type Map"). entgql cannot see the custom.graphql declaration: its gqlgen schema load fails when run from `ent/`, so it always emits the builtin.
   - `schema/generate.go` carries no `go:generate` directive (package doc for the manual `pdb-schema-extract` step); the schema-regen step now lives first in `ent/generate.go`.
@@ -144,9 +144,9 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 
 **Non-model targets.** `TypeConfig.NonModelFields` (serializer fields / properties upstream, e.g. fac `org_name`, campus `city`) are never a traversal target (`traversalTargetField`) nor a relation-seed tail: upstream `queryable_relations` offers model fields only. Do NOT key this on `UpstreamIgnored`: it also holds renamed MODEL fields (carrier `fac_count`) that stay valid targets (`carrierfac?carrier__fac_count=`).
 
-**Codegen invariants.** Static map emission, NOT runtime `client.Schema.Tables` walk. `cmd/pdb-compat-allowlist` reads `schema.PrepareQueryAllows` from `ent/schema/pdb_allowlists.go` → emits `internal/pdbcompat/allowlist_gen.go`. Every entry carries `// Source: serializers.py:<line>` (audit-required). Path B introspection: `internal/pdbcompat/introspect.go` (`LookupEdge` / `ResolveEdges` / `TargetFields`).
+**Codegen invariants.** Static map emission, NOT runtime `client.Schema.Tables` walk. `cmd/pdb-compat-allowlist` reads `schema.PrepareQueryAllows` from `ent/schema/pdb_allowlists.go` → emits `internal/pdbcompat/allowlist_gen.go`. Each entry's block comment cites the upstream `peeringdb_server/serializers.py:<line>` it derives from (usually `<Serializer>.prepare_query`, else `related_fields` / `queryable_relations`); audit-required. There is no `// Source:` tag. Path B introspection: `internal/pdbcompat/introspect.go` (`LookupEdge` / `ResolveEdges` / `TargetFields`).
 
-**Adding filters:** for 1-hop / 2-hop, add the key to the relevant entry's `Fields` slice in `ent/schema/pdb_allowlists.go` with a `// Source:` comment, then `go generate ./...`. Codegen routes 3-segment keys into `AllowlistEntry.Via` automatically. For excluded edges, attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition. For a 14th entity, add the mapping in `cmd/pdb-compat-allowlist/main.go` `pdbTypeMap` (`TestPdbTypeFor_AllThirteen` will fail until extended).
+**Adding filters:** for 1-hop / 2-hop, add the key to the relevant entry's `Fields` slice in `ent/schema/pdb_allowlists.go` with a comment citing the upstream `serializers.py:<line>`, then `go generate ./...`. Codegen routes 3-segment keys into `AllowlistEntry.Via` automatically. For excluded edges, attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition. For a 14th entity, add the mapping in `cmd/pdb-compat-allowlist/main.go` `pdbTypeMap` (`TestPdbTypeFor_AllThirteen` will fail until extended).
 
 **Do NOT:**
 
@@ -156,7 +156,7 @@ See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent
 - Add 3+-hop keys — dropped by codegen AND by the 2-hop cap in `parseFieldOp` at request time. The cap counts key segments: a relation filter (below) has at most 2 segments but its path can reach 3 tables (`net?ix__name=` walks netixlan → ixlan → ix).
 - Introduce runtime ent-client introspection or `sync.Once` lazy-init for the Edges map — map is codegen-time static, which avoids init-order coupling.
 
-**Status-matrix and fold composition.** Traversal predicates compose with the status matrix (`applyStatusMatrix` still appended LAST in all 13 `registry_funcs.go` closures) and with the `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
+**Status-matrix and fold composition.** Traversal predicates compose with the status matrix (`wireEntity` appends `applyStatusMatrix` LAST for all 13 types) and with the `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`). Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
 
 **Relation filters (`internal/pdbcompat/relation_filter.go`).** The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__iexact`/`__icontains`/`__istartswith` filter the ixlan name), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B. Most seeds pin ONE row of their path to `status='ok'` (`make_relation_filter`, 2.83.0 `models.py:221-234`; `pinAt`, `noPin` for fac `org_name` and carrier); a bare `status` filter on that row is replaced by the pin. A tail field in `TypeConfig.NonModelFields` (serializer field or property upstream) is ignored. They read `vals[0]` (upstream `v[0]`), not the last value. Do not re-add these keys to `pdb_allowlists.go`: Path A never sees them. Semantics table: `docs/API.md § Relation filters`.
 
@@ -202,7 +202,8 @@ Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
 - Full chain (outermost first): `Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux`
 
 ### ConnectRPC / gRPC
-- Services registered via loop in `cmd/peeringdb-plus/main.go` with otelconnect interceptor.
+- `cmd/peeringdb-plus/main.go` registers each of the 13 services with one `registerService` call; each gets the otelconnect interceptor with `connectOTelOpts` (spans only, no `rpc.server.*` metrics).
+- Never return an ent error inside `connect.CodeInternal`. Use `queryError` (`internal/grpcserver/errors.go`): it sends "internal error", records the cause on the span, and maps context cancel/deadline to `CANCELED`/`DEADLINE_EXCEEDED`.
 - Handler implementations in `internal/grpcserver/` — one file per entity type.
 - `gen/peeringdb/v1/peeringdbv1connect/` contains generated handler interfaces.
 - Proto `optional` fields generate pointer types (`*int64`, `*string`) — check `!= nil` for presence.
@@ -223,7 +224,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE=20` — per-cycle cap on **HTTP requests** issued by FK backfill (renamed v1.18.5 from MAX_PER_CYCLE which counted rows; rows is the wrong unit once `?id__in=` batches collapse N rows into 1 request). At 1 req/sec auth, 20 ≈ 20s of upstream pressure max per cycle. With `FetchByIDsBatchSize=100`, that covers up to 2,000 missing-parent rows. `0` disables backfill (orphans fall back to drop-on-miss)
 - `PDBPLUS_FK_BACKFILL_TIMEOUT=5m` — wall-clock budget for backfill HTTP activity per sync cycle; bounds tx-hold time (backfill happens inside the sync tx). On deadline → drop-on-miss with `result=deadline_exceeded` metric
 - `PDBPLUS_LOG_LEVEL=INFO` — minimum severity for the OTel logging branch (Loki). Stdout handler stays at INFO independently. Set `DEBUG` for opt-in deep debugging; invalid values fall back to INFO without crashing.
-- `PDBPLUS_CSP_ENFORCE=false` — defaults to report-only; flip to `true` after v1.13 user-acceptance verification
+- `PDBPLUS_CSP_ENFORCE=false`: defaults to report-only; set `true` after browser verification of the current CSP
 - `PDBPLUS_PUBLIC_TIER=public` — set `users` only for private deployments (WARN at startup)
 - `PDBPLUS_IS_PRIMARY=true` — fallback primary detection when LiteFS not present
 
@@ -302,10 +303,12 @@ End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that
 Most `cmd/*` and `internal/*` paths are self-describing; only the non-obvious ones are listed here.
 
 Codegen tools (run by `go generate ./...`):
-- `cmd/pdb-schema-extract/` — extract PeeringDB API responses to JSON
 - `cmd/pdb-schema-generate/` — generate ent schemas from PeeringDB JSON
 - `cmd/pdb-compat-allowlist/` — emits `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`
-- `cmd/pdbcompat-check/` — validate PeeringDB API compatibility
+
+Manual tools (not run by `go generate` or CI):
+- `cmd/pdb-schema-extract/`: parses an upstream PeeringDB checkout (`<repo>/src`) and prints the extracted schema as JSON on stdout. Diff it against the hand-curated `schema/peeringdb.json` to find drift; it never writes that file.
+- `cmd/pdbcompat-check/`: subcommands `check` (compares the structure of live upstream responses with local golden files) and `capture` / `redact` / `diff` (build the visibility baseline).
 
 Operator tooling (NOT shipped in prod images, NOT invoked by CI):
 - `cmd/loadtest/` — read-only HTTP traffic generator with 4 modes: `endpoints` (sweep), `sync` (replay 13-step ordered GET sequence), `soak` (sustained QPS-capped mixed load), `ramp` (per-surface inflection-point capacity probe → markdown table to stdout, added v1.18.7). Default `--target=https://peeringdb-plus.fly.dev`; **never** point at upstream `https://www.peeringdb.com` (1 req/hour/IP cap will block). See `cmd/loadtest/README.md` and `docs/DEPLOYMENT.md § Capacity probing`.
