@@ -219,7 +219,9 @@ through OpenTelemetry autoexport.
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Local dev workflow, code generation, conventions, sibling-file pattern |
 | [`docs/TESTING.md`](docs/TESTING.md) | Test layout, fixtures, parity harness, live tests against `beta.peeringdb.com` |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Fly.io rollout, asymmetric fleet topology, LiteFS operations |
+| [`docs/meta-generated-behavior.md`](docs/meta-generated-behavior.md) | How upstream `meta.generated` behaves, and why the sync does not use it as a cursor |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to propose changes, run the verification suite, and submit a PR |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release notes |
 
 ## Technology
 
