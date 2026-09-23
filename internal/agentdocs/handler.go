@@ -258,7 +258,7 @@ var mcpTools = []mcpFeature{
 	{Name: "get_carrier", Description: "Get a carrier by ID with a bounded facilities relation."},
 	{Name: "compare_networks", Description: "Compare two ASNs across shared exchanges, facilities, and campuses. A shared exchange can include a connection that is not operational. Check NetA.Markers.NotOperational and NetB.Markers.NotOperational in each shared_exchanges item."},
 	{Name: "lookup_ip", Description: "Find IX peering addresses that exactly match an IP address, with the status and meta of each connection, and the exchange prefixes that contain the address. Status is ok, not-operational, or pending."},
-	{Name: "get_sync_status", Description: "Get mirror freshness and the latest synchronization result."},
+	{Name: "get_sync_status", Description: "Get the latest sync attempt: its status (success, failed, or running), end time (start time while running), duration, and rows written per type. Entity tools report data freshness as the time of the last successful sync."},
 }
 
 var mcpPrompts = []mcpFeature{

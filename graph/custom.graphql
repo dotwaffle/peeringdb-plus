@@ -21,7 +21,8 @@ SyncStatus represents the current state and result of the last PeeringDB data sy
 """
 type SyncStatus {
   """
-  Timestamp of the last completed sync.
+  End time of the most recent sync attempt. While status is "running", this is
+  the start time.
   """
   lastSyncAt: Time
   """
@@ -29,7 +30,8 @@ type SyncStatus {
   """
   durationMs: Int
   """
-  Object counts per PeeringDB type from the last sync.
+  Rows written per PeeringDB type by this sync. An incremental sync counts only
+  changed rows.
   """
   objectCounts: Map
   """

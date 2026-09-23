@@ -11,7 +11,9 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 
 1. Read `peeringdb-plus://service` for the server version and serving region.
 2. Read `peeringdb-plus://guide` before you page through related records.
-3. Use `get_sync_status` when freshness affects the answer.
+3. When data age affects the answer, read the `freshness` field of a record
+   lookup or a typed search. It is the time of the last successful sync. Use
+   `get_sync_status` for the latest sync attempt.
 
 ## Choose a tool
 

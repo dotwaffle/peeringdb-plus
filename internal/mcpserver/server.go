@@ -317,7 +317,7 @@ func addTools(server *mcp.Server, services toolServices) {
 		}, stringLength("ip", 2, 64))
 
 	addReadTool(server, "get_sync_status",
-		"Get mirror freshness and the latest synchronization result.",
+		"Get the latest sync attempt: its status (success, failed, or running), end time (start time while running), duration, and rows written per type. Entity tools report data freshness as the time of the last successful sync.",
 		func(ctx context.Context, _ emptyInput) (syncStatusOutput, error) {
 			status, err := pdbsync.GetLastStatus(ctx, services.db)
 			if err != nil {
