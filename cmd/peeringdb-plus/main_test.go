@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -11,8 +10,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"golang.org/x/net/http2"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
@@ -287,14 +284,11 @@ func TestServerProtocols_H2C(t *testing.T) {
 	go srv.Serve(ln) //nolint:errcheck // test server
 	t.Cleanup(func() { srv.Close() })
 
-	// Make HTTP/2 prior-knowledge (h2c) request.
-	h2Transport := &http2.Transport{
-		AllowHTTP: true,
-		DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
-			return (&net.Dialer{}).DialContext(ctx, network, addr)
-		},
-	}
-	h2Client := &http.Client{Transport: h2Transport}
+	// Make HTTP/2 prior-knowledge (h2c) request. With only
+	// UnencryptedHTTP2 set, the transport sends h2c for http:// URLs.
+	var clientProtocols http.Protocols
+	clientProtocols.SetUnencryptedHTTP2(true)
+	h2Client := &http.Client{Transport: &http.Transport{Protocols: &clientProtocols}}
 	t.Cleanup(func() { h2Client.CloseIdleConnections() })
 
 	resp, err := h2Client.Get("http://" + ln.Addr().String() + "/test")
