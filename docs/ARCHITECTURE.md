@@ -804,10 +804,16 @@ vars.
     (`pdbplus.response.heap_delta`, exported to Prometheus as
     `pdbplus_response_heap_delta_bytes`).
 
-  Two explicit views reshape instruments for cost control:
-  `http.server.request.body.size` is dropped
-  (low debugging value, high cardinality),
-  and `rpc.server.duration` buckets are capped at a 5-boundary set.
+  Explicit views reshape instruments for cost control:
+  `http.server.request.body.size` and `http.server.response.body.size`
+  are dropped (low debugging value, high cardinality),
+  and `http.server.request.duration` is capped at a 5-boundary bucket set
+  and keeps only the `http.route`, `http.response.status_code` and
+  `network.protocol.version` attributes.
+  The ConnectRPC interceptor records no `rpc.server.*` metrics
+  (`otelconnect.WithoutMetrics()`);
+  `http.server.request.duration` covers ConnectRPC latency,
+  with one `http.route` value per service.
 
   **Resource attributes.**
   `internal/otel/provider.go` `buildResourceFiltered` emits the OTel resource via

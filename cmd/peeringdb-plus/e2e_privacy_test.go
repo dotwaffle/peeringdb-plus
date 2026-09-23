@@ -277,10 +277,7 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	// ConnectRPC (/peeringdb.v1.PocService/*). We only need the Poc
 	// service for the assertion — any other service on the prod mux
 	// is privacy-irrelevant here and would pull in more setup.
-	otelInterceptor, err := otelconnect.NewInterceptor(
-		otelconnect.WithoutServerPeerAttributes(),
-		otelconnect.WithoutTraceEvents(),
-	)
+	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
 	if err != nil {
 		t.Fatalf("create otel interceptor: %v", err)
 	}

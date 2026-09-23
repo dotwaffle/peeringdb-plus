@@ -179,7 +179,7 @@ Commonly used variables:
 The full list of variables honoured by autoexport is documented in the upstream
 SDK: see `go.opentelemetry.io/contrib/exporters/autoexport`.
 
-Three signal-specific details are enforced by `internal/otel/provider.go`
+These signal-specific details are enforced by `internal/otel/provider.go`
 regardless of exporter selection:
 
 - W3C Trace Context and Baggage are installed as the global text-map
@@ -187,10 +187,17 @@ regardless of exporter selection:
 - `http.server.request.body.size` and `http.server.response.body.size`
   instruments are dropped via a metric view (low debugging value, high
   cardinality).
-- `rpc.server.duration` uses an explicit-bucket histogram with boundaries
-  `[0.01, 0.05, 0.25, 1, 5]` seconds.
+- `http.server.request.duration` uses an explicit-bucket histogram with
+  boundaries `[0.01, 0.05, 0.25, 1, 5]` seconds. It keeps only the
+  `http.route`, `http.response.status_code` and `network.protocol.version`
+  attributes.
 - Go runtime metrics (goroutines, heap, GC) are started unconditionally via
   `runtime.Start(runtime.WithMeterProvider(mp))`.
+
+The ConnectRPC interceptor records spans but no `rpc.server.*` metrics
+(`otelconnect.WithoutMetrics()` in `cmd/peeringdb-plus/main.go`).
+`http.server.request.duration` covers ConnectRPC latency,
+with one `http.route` value per service.
 
 ## Privacy & Tiers
 

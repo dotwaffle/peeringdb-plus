@@ -1,5 +1,5 @@
-// Tests for the SDK Views configured in provider.go that trim otelhttp /
-// otelconnect cardinality. These are unit tests against a freshly-built
+// Tests for the SDK Views configured in provider.go that trim otelhttp
+// cardinality. These are unit tests against a freshly-built
 // MeterProvider wired to a ManualReader — Setup() itself is not called
 // because it pulls in autoexport (env-driven exporter selection) and we
 // don't need a network exporter to verify View behaviour.
@@ -24,11 +24,6 @@ func trimViews() []sdkmetric.View {
 	dropped := []string{
 		"http.server.request.body.size",
 		"http.server.response.body.size",
-		"rpc.server.duration",
-		"rpc.server.request.size",
-		"rpc.server.response.size",
-		"rpc.server.requests_per_rpc",
-		"rpc.server.responses_per_rpc",
 	}
 	views := make([]sdkmetric.View, 0, len(dropped)+1)
 	for _, name := range dropped {
@@ -89,9 +84,9 @@ func metricNames(rm metricdata.ResourceMetrics) []string {
 	return names
 }
 
-// TestViews_DropsBodySizeAndRPCFamily records data for every instrument the
-// Views are supposed to drop, then asserts none of them survive the Collect.
-func TestViews_DropsBodySizeAndRPCFamily(t *testing.T) {
+// TestViews_DropsBodySize records data for every instrument the Views are
+// supposed to drop, then asserts none of them survive the Collect.
+func TestViews_DropsBodySize(t *testing.T) {
 	t.Parallel()
 	mp, reader := newTestProvider(t)
 	meter := mp.Meter("test")
@@ -99,14 +94,9 @@ func TestViews_DropsBodySizeAndRPCFamily(t *testing.T) {
 	dropped := []string{
 		"http.server.request.body.size",
 		"http.server.response.body.size",
-		"rpc.server.duration",
-		"rpc.server.request.size",
-		"rpc.server.response.size",
-		"rpc.server.requests_per_rpc",
-		"rpc.server.responses_per_rpc",
 	}
 	for _, name := range dropped {
-		// Histograms are the natural shape for duration/size — Drop
+		// Histograms are the natural shape for body sizes — Drop
 		// applies regardless of instrument kind, so a single shape is
 		// enough for the assertion.
 		h, err := meter.Int64Histogram(name)
