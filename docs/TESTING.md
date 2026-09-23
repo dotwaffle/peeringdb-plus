@@ -564,13 +564,15 @@ each reusing the prior compile; `docker-build` runs in parallel:
 |-----|------|---------|
 | `ci` | Install tools | `mise install --locked` via `jdx/mise-action` |
 | `ci` | Generated code drift check | `mise run generate`, then scoped tracked/untracked checks |
+| `ci` | `go.mod`/`go.sum` tidiness | `go mod tidy`, then `git diff --exit-code go.mod go.sum` |
 | `ci` | Compile check | `mise run build` |
 | `ci` | Tests with race detector + coverage | `mise run coverage` |
+| `ci` | Coverage comment | `k1LoW/octocov-action` |
 | `ci` | Lint | `mise run lint` |
 | `ci` | Vulnerability scan (advisory, `continue-on-error`) | `mise run vulncheck` |
 | `docker-build` | Dev and prod image builds | `docker build` using `./Dockerfile` and `./Dockerfile.prod` |
 
-Any test failure, race detection, coverage file write failure,
-or generated-code drift fails the workflow.
-`govulncheck` is advisory:
-a flagged vulnerability warns but does not block the merge.
+A failed drift check, tidiness check, build, test, race check, or lint run
+fails the workflow.
+`govulncheck` is advisory.
+A flagged vulnerability shows a warning but does not block the merge.
