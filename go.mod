@@ -16,13 +16,13 @@ require (
 	github.com/XSAM/otelsql v0.44.0
 	github.com/a-h/templ v0.3.1020
 	github.com/charmbracelet/colorprofile v0.4.3
-	github.com/go-playground/form/v4 v4.3.0
+	github.com/go-playground/form/v4 v4.5.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/jsonschema-go v0.4.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/klauspost/compress v1.20.0
 	github.com/lrstanley/entrest v1.2.0
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/ogen-go/ogen v1.24.0
 	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
 	github.com/rs/cors v1.11.1
@@ -135,7 +135,7 @@ require (
 	golang.org/x/tools v0.49.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260825221802-da73d73af1c5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260825221802-da73d73af1c5 // indirect
-	google.golang.org/grpc v1.83.2 // indirect
+	google.golang.org/grpc v1.84.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
