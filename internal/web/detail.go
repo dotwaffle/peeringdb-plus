@@ -338,7 +338,7 @@ func (h *Handler) handleFragment(w http.ResponseWriter, r *http.Request, path st
 func (h *Handler) handleNetIXLansFragment(w http.ResponseWriter, r *http.Request, netID int) {
 	off := fragmentOffset(r)
 	items, err := h.client.NetworkIxLan.Query().
-		Where(networkixlan.HasNetworkWith(network.ID(netID)), networkixlan.StatusIn("ok", "pending")).
+		Where(networkixlan.HasNetworkWith(network.ID(netID)), networkixlan.StatusIn("ok", "not-operational", "pending")).
 		Order(networkixlan.ByName()).
 		Offset(off).
 		Limit(fragmentPageSize + 1).
@@ -464,7 +464,7 @@ func (h *Handler) handleIXParticipantsFragment(w http.ResponseWriter, r *http.Re
 	items, err := h.client.IxLan.Query().
 		Where(ixlan.HasInternetExchangeWith(internetexchange.ID(ixID)), ixlan.StatusIn("ok", "pending")).
 		QueryNetworkIxLans().
-		Where(networkixlan.StatusIn("ok", "pending")).
+		Where(networkixlan.StatusIn("ok", "not-operational", "pending")).
 		WithNetwork().
 		Order(networkixlan.ByAsn()).
 		Offset(off).

@@ -544,7 +544,7 @@ func (services toolServices) lookupIP(ctx context.Context, raw string) (lookupIP
 	canonical := address.String()
 	exact, err := services.client.NetworkIxLan.Query().
 		Where(
-			networkixlan.StatusIn("ok", "pending"),
+			networkixlan.StatusIn("ok", "not-operational", "pending"),
 			networkixlan.Or(networkixlan.Ipaddr4(canonical), networkixlan.Ipaddr6(canonical)),
 		).
 		All(ctx)

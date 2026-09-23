@@ -619,6 +619,13 @@ the same as the upstream nested prefetch.
 A pending child, in practice a campus, is fetchable by ID
 but is left out of the sets of its parent.
 
+The Web UI fragments, `internal/catalog` (network, IX and compare queries)
+and the MCP `lookup_ip` tool read netixlan with the inline literal
+`StatusIn("ok", "not-operational", "pending")`,
+so a not-operational connection stays listed
+and counts toward the aggregate bandwidth.
+GraphQL, REST and ConnectRPC apply no default status filter.
+
 Tombstone GC is dormant work; triggers are storage growth >5% MoM,
 tombstone ratio >10%, or operator request.
 

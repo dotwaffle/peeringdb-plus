@@ -800,6 +800,22 @@ Requests with an `Origin` header are independently checked at `/mcp`
 to mitigate DNS rebinding;
 non-browser MCP clients do not send `Origin` and are unaffected.
 
+## netixlan `not-operational` status
+
+PeeringDB 2.83.0 adds the netixlan status `not-operational`.
+A connection that was `ok` with `operational=false` now has this status.
+Upstream derives `operational` from the status (`status == 'ok'`),
+and it treats `ok` and `not-operational` as live statuses
+(`models.py:109-122`).
+
+- The Web UI, the ASN comparison and the MCP tools list a
+  `not-operational` connection the same as an `ok` one.
+  Its speed counts toward the aggregate bandwidth of the network or exchange.
+- GraphQL, REST and ConnectRPC apply no default status filter.
+  They return the stored `status` and `operational` values unchanged.
+  A `status` filter for `ok` does not return these connections.
+- For `/api/`, see § Soft-delete tombstones.
+
 ## Field-level privacy
 
 PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker

@@ -68,7 +68,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*Comp
 	g.Go(func() error {
 		var err error
 		ixLansA, err = s.client.NetworkIxLan.Query().
-			Where(networkixlan.HasNetworkWith(network.ID(netA.ID)), networkixlan.StatusIn("ok", "pending")).
+			Where(networkixlan.HasNetworkWith(network.ID(netA.ID)), networkixlan.StatusIn("ok", "not-operational", "pending")).
 			All(gctx)
 		if err != nil {
 			return fmt.Errorf("query IX presences for ASN %d: %w", input.ASN1, err)
@@ -79,7 +79,7 @@ func (s *CompareService) Compare(ctx context.Context, input CompareInput) (*Comp
 	g.Go(func() error {
 		var err error
 		ixLansB, err = s.client.NetworkIxLan.Query().
-			Where(networkixlan.HasNetworkWith(network.ID(netB.ID)), networkixlan.StatusIn("ok", "pending")).
+			Where(networkixlan.HasNetworkWith(network.ID(netB.ID)), networkixlan.StatusIn("ok", "not-operational", "pending")).
 			All(gctx)
 		if err != nil {
 			return fmt.Errorf("query IX presences for ASN %d: %w", input.ASN2, err)
