@@ -4,7 +4,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/dotwaffle/peeringdb-plus.svg)](https://pkg.go.dev/github.com/dotwaffle/peeringdb-plus)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
-A high-performance, globally distributed,
+A globally distributed,
 read-only mirror of [PeeringDB](https://www.peeringdb.com) data.
 PeeringDB Plus incrementally syncs PeeringDB objects on a regular schedule
 (escalating to a periodic full re-fetch as a safety net),
@@ -24,13 +24,13 @@ PeeringDB Plus offers:
 
 - **Low-latency reads** from the nearest Fly.io region (LiteFS replicates
   SQLite transactions to every replica).
-- **Multiple wire formats from a single dataset** — drop-in PeeringDB API
+- **Multiple wire formats from a single dataset**: drop-in PeeringDB API
   compatibility, OpenAPI REST, GraphQL, ConnectRPC/gRPC, MCP, and a Web UI all
   read from the same `ent.Client`.
-- **Mandatory observability** — OpenTelemetry traces, metrics, and structured
-  logs are first-class, not an afterthought.
-- **No CGO, no Java, no orchestrator** — a single static Go binary plus an
-  out-of-process LiteFS FUSE mount.
+- **Built-in observability**: the server sends OpenTelemetry traces
+  (sampled per route), metrics, and structured logs.
+- **One Go binary**: the server needs no cgo.
+  LiteFS runs as a separate FUSE process.
 
 ## API surfaces
 
@@ -224,10 +224,15 @@ through OpenTelemetry autoexport.
 ## Technology
 
 - **Language:** Go 1.27.1
-- **ORM / codegen:** [entgo](https://entgo.io/) underpins all six API surfaces
-  from a single set of schemas in `ent/schema/` (entgql + entrest + entproto)
+- **ORM / codegen:** [entgo](https://entgo.io/).
+  `cmd/pdb-schema-generate` generates the ent schemas from
+  `schema/peeringdb.json`.
+  entgql and entrest generate the GraphQL and REST layers.
+  The protobuf definitions in `proto/peeringdb/v1/` are hand-maintained,
+  and `buf generate` makes the Go code from them.
+  All six APIs read data through the same ent client.
 - **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)
-  (pure Go, no CGO) plus [LiteFS](https://fly.io/docs/litefs/) for edge
+  (pure Go, no cgo) plus [LiteFS](https://fly.io/docs/litefs/) for edge
   replication
 - **RPC:** [ConnectRPC](https://connectrpc.com/) — gRPC, gRPC-Web, and the
   Connect protocol on the same handlers
