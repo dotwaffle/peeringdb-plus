@@ -157,9 +157,9 @@ attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom
 | `FLY_APP_NAME` | `fly.app_name` (custom key) | dropped by Grafana Cloud allowlist | yes (human grep) | OTel resource; `litefs.yml` substitution. |
 | (constant) | `cloud.provider="fly_io"` (`semconv.CloudProviderKey`) | yes | yes | Always-on, 1-cardinality. |
 | (constant) | `cloud.platform="fly_io_apps"` (`semconv.CloudPlatformKey`) | yes | yes | Always-on, 1-cardinality. |
-| `PRIMARY_REGION` | (not a resource attr) | — | — | `POST /sync` handler; `litefs.yml` lease candidacy. Three-letter Fly region designated as the LiteFS primary candidate. `fly.toml` sets this to `lhr`. <!-- VERIFY: PRIMARY_REGION is fixed at lhr per fly.toml; any override must be reconciled with LiteFS lease configuration --> |
-| `FLY_CONSUL_URL` | (not a resource attr) | — | — | `litefs.yml` Consul lease backend. Injected by `fly consul attach`. <!-- VERIFY: FLY_CONSUL_URL is provisioned out-of-band via fly consul attach --> |
-| `HOSTNAME` | (not a resource attr) | — | — | `litefs.yml` advertise URL `http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202`. |
+| `PRIMARY_REGION` | (not a resource attr) | n/a | n/a | `POST /sync` handler; `litefs.yml` lease candidacy. Three-letter Fly region designated as the LiteFS primary candidate. `fly.toml` sets `lhr`. If you change it, the LiteFS lease candidates move to the new region. |
+| `FLY_CONSUL_URL` | (not a resource attr) | n/a | n/a | `litefs.yml` Consul lease backend. `fly consul attach` sets it as an app secret. Run the command once for each app. |
+| `HOSTNAME` | (not a resource attr) | n/a | n/a | `litefs.yml` advertise URL `http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202`. |
 
 ### Standard OpenTelemetry Variables (autoexport)
 
@@ -271,11 +271,14 @@ every runtime option is an environment variable.
 
 Two deployment-adjacent files exist in the repository:
 
-- `fly.toml` — Fly.io deployment manifest.
-  Sets the production values for `PDBPLUS_LISTEN_ADDR` (`:8080`),
-  `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`), and `PRIMARY_REGION` (`lhr`),
-  along with VM sizing (`shared-cpu-2x`, `512mb`), the rolling deploy strategy
-  (`max_unavailable = 0.5`), and the `/readyz` HTTP check.
+- `fly.toml`: the Fly.io deployment manifest.
+  It sets `PDBPLUS_LISTEN_ADDR` (`:8080`),
+  `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`), and `PRIMARY_REGION` (`lhr`).
+  It defines the `primary` process group
+  (`shared-cpu-2x`, 512 MB, `litefs_data` volume)
+  and the `replica` process group (`shared-cpu-1x`, 256 MB, no volume).
+  It also sets the rolling deploy (`max_unavailable = 0.5`),
+  `kill_timeout = 30`, the `always` restart policy, and the `/readyz` HTTP check.
 - `litefs.yml` — LiteFS FUSE and lease configuration.
   Uses `${FLY_REGION}`, `${PRIMARY_REGION}`, `${FLY_APP_NAME}`, `${HOSTNAME}`,
   and `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
@@ -364,30 +367,30 @@ The repository does not ship `.env.development`, `.env.production`,
 or any language-level environment manager.
 Environment values are supplied by:
 
-- **Local Go execution** — The developer's shell.
+- **Local Go execution**: the developer's shell.
   Defaults in `internal/config/config.go` are chosen
   so `./peeringdb-plus` runs with no exports set: listens on `:8080`,
   reads/writes `./peeringdb-plus.db`,
   syncs hourly from `https://api.peeringdb.com`,
   assumes the single process is the primary.
-- **Local Docker** — Image defaults plus `-e` / `--env-file` flags on
+- **Local Docker**: image defaults plus `-e` or `--env-file` flags on
   `docker run`.
-  The Dockerfiles do not set `PDBPLUS_*` variables;
-  production values come from Fly.io.
-- **Fly.io production** —
-  The `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`,
+  `Dockerfile` sets `PDBPLUS_DB_PATH=/data/peeringdb-plus.db`.
+  `Dockerfile.prod` sets no `PDBPLUS_*` variable.
+- **Fly.io production**:
+  the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`,
   and `PRIMARY_REGION`.
-  `FLY_REGION`, `FLY_PROCESS_GROUP`, `FLY_MACHINE_ID`, `FLY_APP_NAME`,
-  and `FLY_CONSUL_URL` are injected by the Fly.io runtime.
-  Secrets such as `PDBPLUS_SYNC_TOKEN`
-  and `PDBPLUS_PEERINGDB_API_KEY` are managed with `fly secrets set`.
-
-  <!-- VERIFY: Production secret names (PDBPLUS_SYNC_TOKEN, PDBPLUS_PEERINGDB_API_KEY) are configured via `fly secrets set` for app `peeringdb-plus` — this cannot be inferred from the repository alone -->
-- **OpenTelemetry collector endpoint** —
-  Set at deploy time through `fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=...`
+  The Fly.io runtime injects `FLY_REGION`, `FLY_PROCESS_GROUP`,
+  `FLY_MACHINE_ID`, and `FLY_APP_NAME`.
+  `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
+  Set other secrets, such as `PDBPLUS_SYNC_TOKEN`
+  and `PDBPLUS_PEERINGDB_API_KEY`, with `fly secrets set`.
+  To see the configured secret names,
+  run `fly secrets list --app peeringdb-plus`.
+- **OpenTelemetry collector endpoint**:
+  set at deploy time with `fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=...`
   (or the individual signal endpoints).
-  <!-- VERIFY: Actual OTLP endpoint URL is deployment-specific
-  and not checked into the repository -->
+  The endpoint is a deployment value and is not in the repository.
 
 ## Related Documentation
 
