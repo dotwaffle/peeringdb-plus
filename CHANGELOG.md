@@ -10,6 +10,91 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-09-23
+
+This release brings the PeeringDB-compatible API (`/api/`) to parity with
+PeeringDB 2.83.0 and fixes conformance and privacy bugs. Several `/api/`
+responses change. Read "Changed" before you upgrade a client.
+
+### Added
+
+- Mirror the `meta` object that PeeringDB 2.83.0 adds to `net` and
+  `netixlan` on every API: `/api/`, REST, GraphQL, ConnectRPC (as
+  `google.protobuf.Struct`) and MCP. `/api/netixlan` accepts `meta__*`
+  filters.
+- Serve the netixlan status `not-operational` as a live status, as
+  PeeringDB 2.83.0 does. The web UI and MCP include these connections and
+  mark them.
+- Accept the upstream names of FK filter keys on `/api/`: `?org=`,
+  `?network=`, `?facility_id__in=`, `network__<field>` and
+  `facility__<field>`, with the upstream operators.
+- Filter `/api/` on the upstream `prepare_query` relation keys, for example
+  `fac?net=`, `net?ix=`, `netixlan?name=` and `campus?facility=`. A join row
+  that is not live does not match.
+- Filter `net` `info_types` and `fac` `available_voltage_services` with the
+  upstream rules for multi-value fields. `net` also accepts the legacy
+  `info_type` keys.
+
+### Changed
+
+- `/api/` lists without `?since` return rows in `id` order, ascending, as
+  upstream does. Up to v1.27.0, the newest `updated` came first. Lists
+  with `?since` are in `updated` order, ascending.
+- `?since=N` includes the rows updated in second `N`. Up to v1.27.0, a
+  poller that sent the last `updated` value it had seen could miss rows.
+- A list request with `id` (any type) or `asn` (`net`) that matches no row
+  returns `404` with the detail `Entity not found`, as upstream does.
+  `id__in` and `asn__in` still return `200` with an empty list.
+- `?status=` narrows the status set of the request and no longer adds
+  other statuses to it, as upstream does.
+- Depth `_set` lists contain only live rows. `net.netfac_set`,
+  `ix.fac_set` and `carrier.carrierfac_set` are in facility `id` order.
+- `ix.media` is always `Ethernet` and `ixlan.dot1q_support` is always
+  `false`, as upstream renders them. `net.info_types` is `[]`, not `null`,
+  when it holds no value.
+- A caller who may see `ixlan.ixf_ixp_member_list_url` gets the key with
+  `""` when no URL is stored. Before, the key was left out.
+- `/api/` ignores the filter keys that upstream ignores: `netixlan`
+  `net_side*`, `carrier` `fac_count*`, relation keys on fields that are not
+  model fields, and reverse or 2-hop `__status` keys.
+- ConnectRPC internal errors no longer include database error text. A
+  canceled request returns `Canceled`, and a request past its deadline
+  returns `DeadlineExceeded`.
+- REST query binding errors are in lower case (form decoder 4.5.0).
+- The GraphQL playground uses GraphiQL 4.1.2.
+- Update connect-go to 1.21.0, the MCP Go SDK to 1.8.0, SQLite to 1.59.0,
+  entgo contrib to a master snapshot with entgql fixes, and the
+  `golang.org/x` modules. Lock buf 1.73.0 and govulncheck 1.8.0.
+- Do not record the ConnectRPC `rpc.server.*` metrics. They were dropped
+  before export, so the exported metrics do not change.
+
+### Fixed
+
+- Do not serve the name, phone, email or url of a deleted contact (`poc`)
+  on any API. Sync stores deleted contacts without these fields, and the
+  primary blanks them on the tombstones that it already holds.
+- `PDBPLUS_PUBLIC_TIER=users` no longer shows `Private` contacts, on any
+  API or through a filter.
+- The GraphQL `where` input no longer has contact edge predicates, which
+  could test values of hidden contacts.
+- A 2-hop `/api/` key through contacts, for example
+  `/api/net?poc__net__asn=`, no longer matches through contacts that the
+  caller cannot read.
+- REST `sort=pocs.count` returns `400`, and the OpenAPI sort list no
+  longer offers it. The count included hidden contacts.
+- `/api/` time filters and `?since=` compare in UTC. A value with an
+  offset, for example `?updated=2026-04-01T11:00:00+01:00`, matches the
+  same instant stored in UTC.
+- Sync sets netixlan `operational` when upstream leaves it out.
+- The `/api/fac` detail budget no longer counts sets that the response
+  does not include.
+
+### Upgrade notes
+
+- A client that mirrors `/api/netixlan` with `?since=` must re-fetch the
+  full list once. Rows that became `not-operational` were hidden before
+  v1.28.0.
+
 ## [1.27.0] — 2026-09-07
 
 ### Changed
