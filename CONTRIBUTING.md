@@ -124,24 +124,22 @@ The `ci` job is a single cached Go job whose steps run in order;
 
 | Job | What it runs |
 |---|---|
-| **`ci`** | In order: locked mise install → generated-code drift check → build → gotestsum race tests with coverage → lint → advisory vulnerability scan |
+| **`ci`** | In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests with coverage, coverage comment, lint (actionlint and golangci-lint), advisory vulnerability scan |
 | **`docker-build`** | Builds both `Dockerfile` (dev) and `Dockerfile.prod` (prod) images |
 
 `govulncheck` runs with `continue-on-error`:
 a flagged vulnerability surfaces as a workflow warning
 but does **not** block the merge.
-The four formerly-parallel Go jobs
-(lint / test / build / govulncheck)
-were collapsed into `ci` so the module download and compile warm once
-and are reused.
 
 ### Generated Code Drift Check
 
-The `ci` job's first real step runs `mise run generate`
-and then `git diff --exit-code` across `ent/`, `gen/`, `graph/`,
-and `internal/web/templates/` —
-ahead of `go build` so a forgotten regeneration fails in seconds.
-If any generated file differs from what's committed, the build fails with:
+The first check in the `ci` job runs `mise run generate`.
+It runs before `go build`, so a missed regeneration fails early.
+The check covers `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
+`internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
+It fails if a generated file differs from the commit,
+or if generation creates an untracked file in these paths.
+For a changed file, the error is:
 
 > Generated code is out of date.
 > Run 'mise run generate' and commit the changes.
