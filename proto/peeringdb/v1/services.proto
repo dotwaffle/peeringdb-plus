@@ -12,9 +12,10 @@ service CampusService {
   rpc GetCampus(GetCampusRequest) returns (GetCampusResponse);
   rpc ListCampuses(ListCampusesRequest) returns (ListCampusesResponse);
 
-  // StreamCampuses streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamCampuses sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamCampuses(StreamCampusesRequest) returns (stream Campus);
 }
 
@@ -79,9 +80,10 @@ service CarrierService {
   rpc GetCarrier(GetCarrierRequest) returns (GetCarrierResponse);
   rpc ListCarriers(ListCarriersRequest) returns (ListCarriersResponse);
 
-  // StreamCarriers streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamCarriers sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamCarriers(StreamCarriersRequest) returns (stream Carrier);
 }
 
@@ -138,9 +140,10 @@ service CarrierFacilityService {
   rpc GetCarrierFacility(GetCarrierFacilityRequest) returns (GetCarrierFacilityResponse);
   rpc ListCarrierFacilities(ListCarrierFacilitiesRequest) returns (ListCarrierFacilitiesResponse);
 
-  // StreamCarrierFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamCarrierFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamCarrierFacilities(StreamCarrierFacilitiesRequest) returns (stream CarrierFacility);
 }
 
@@ -187,9 +190,10 @@ service FacilityService {
   rpc GetFacility(GetFacilityRequest) returns (GetFacilityResponse);
   rpc ListFacilities(ListFacilitiesRequest) returns (ListFacilitiesResponse);
 
-  // StreamFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamFacilities(StreamFacilitiesRequest) returns (stream Facility);
 }
 
@@ -286,9 +290,10 @@ service InternetExchangeService {
   rpc GetInternetExchange(GetInternetExchangeRequest) returns (GetInternetExchangeResponse);
   rpc ListInternetExchanges(ListInternetExchangesRequest) returns (ListInternetExchangesResponse);
 
-  // StreamInternetExchanges streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamInternetExchanges sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamInternetExchanges(StreamInternetExchangesRequest) returns (stream InternetExchange);
 }
 
@@ -377,9 +382,10 @@ service IxFacilityService {
   rpc GetIxFacility(GetIxFacilityRequest) returns (GetIxFacilityResponse);
   rpc ListIxFacilities(ListIxFacilitiesRequest) returns (ListIxFacilitiesResponse);
 
-  // StreamIxFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamIxFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamIxFacilities(StreamIxFacilitiesRequest) returns (stream IxFacility);
 }
 
@@ -430,9 +436,10 @@ service IxLanService {
   rpc GetIxLan(GetIxLanRequest) returns (GetIxLanResponse);
   rpc ListIxLans(ListIxLansRequest) returns (ListIxLansResponse);
 
-  // StreamIxLans streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamIxLans sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamIxLans(StreamIxLansRequest) returns (stream IxLan);
 }
 
@@ -491,9 +498,10 @@ service IxPrefixService {
   rpc GetIxPrefix(GetIxPrefixRequest) returns (GetIxPrefixResponse);
   rpc ListIxPrefixes(ListIxPrefixesRequest) returns (ListIxPrefixesResponse);
 
-  // StreamIxPrefixes streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamIxPrefixes sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamIxPrefixes(StreamIxPrefixesRequest) returns (stream IxPrefix);
 }
 
@@ -544,9 +552,10 @@ service NetworkService {
   rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
   rpc ListNetworks(ListNetworksRequest) returns (ListNetworksResponse);
 
-  // StreamNetworks streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamNetworks sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamNetworks(StreamNetworksRequest) returns (stream Network);
 }
 
@@ -645,9 +654,10 @@ service NetworkFacilityService {
   rpc GetNetworkFacility(GetNetworkFacilityRequest) returns (GetNetworkFacilityResponse);
   rpc ListNetworkFacilities(ListNetworkFacilitiesRequest) returns (ListNetworkFacilitiesResponse);
 
-  // StreamNetworkFacilities streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamNetworkFacilities sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamNetworkFacilities(StreamNetworkFacilitiesRequest) returns (stream NetworkFacility);
 }
 
@@ -700,9 +710,10 @@ service NetworkIxLanService {
   rpc GetNetworkIxLan(GetNetworkIxLanRequest) returns (GetNetworkIxLanResponse);
   rpc ListNetworkIxLans(ListNetworkIxLansRequest) returns (ListNetworkIxLansResponse);
 
-  // StreamNetworkIxLans streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamNetworkIxLans sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamNetworkIxLans(StreamNetworkIxLansRequest) returns (stream NetworkIxLan);
 }
 
@@ -771,9 +782,10 @@ service OrganizationService {
   rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
   rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
 
-  // StreamOrganizations streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamOrganizations sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamOrganizations(StreamOrganizationsRequest) returns (stream Organization);
 }
 
@@ -842,9 +854,10 @@ service PocService {
   rpc GetPoc(GetPocRequest) returns (GetPocResponse);
   rpc ListPocs(ListPocsRequest) returns (ListPocsResponse);
 
-  // StreamPocs streams all matching rows one message at a time.
-  // Supports proto (application/proto) and JSON (application/json) via
-  // Content-Type header. ConnectRPC handles format negotiation automatically.
+  // StreamPocs sends each matching row as a separate message.
+  // Over the Connect protocol, send Content-Type application/connect+proto
+  // or application/connect+json. gRPC and gRPC-Web clients use their own
+  // content types.
   rpc StreamPocs(StreamPocsRequest) returns (stream Poc);
 }
 

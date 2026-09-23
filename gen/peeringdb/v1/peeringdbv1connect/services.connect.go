@@ -174,9 +174,10 @@ const (
 type CampusServiceClient interface {
 	GetCampus(context.Context, *v1.GetCampusRequest) (*v1.GetCampusResponse, error)
 	ListCampuses(context.Context, *v1.ListCampusesRequest) (*v1.ListCampusesResponse, error)
-	// StreamCampuses streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamCampuses sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamCampuses(context.Context, *v1.StreamCampusesRequest) (*connect.ServerStreamForClient[v1.Campus], error)
 }
 
@@ -246,9 +247,10 @@ func (c *campusServiceClient) StreamCampuses(ctx context.Context, req *v1.Stream
 type CampusServiceHandler interface {
 	GetCampus(context.Context, *v1.GetCampusRequest) (*v1.GetCampusResponse, error)
 	ListCampuses(context.Context, *v1.ListCampusesRequest) (*v1.ListCampusesResponse, error)
-	// StreamCampuses streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamCampuses sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamCampuses(context.Context, *v1.StreamCampusesRequest, *connect.ServerStream[v1.Campus]) error
 }
 
@@ -310,9 +312,10 @@ func (UnimplementedCampusServiceHandler) StreamCampuses(context.Context, *v1.Str
 type CarrierServiceClient interface {
 	GetCarrier(context.Context, *v1.GetCarrierRequest) (*v1.GetCarrierResponse, error)
 	ListCarriers(context.Context, *v1.ListCarriersRequest) (*v1.ListCarriersResponse, error)
-	// StreamCarriers streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamCarriers sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamCarriers(context.Context, *v1.StreamCarriersRequest) (*connect.ServerStreamForClient[v1.Carrier], error)
 }
 
@@ -382,9 +385,10 @@ func (c *carrierServiceClient) StreamCarriers(ctx context.Context, req *v1.Strea
 type CarrierServiceHandler interface {
 	GetCarrier(context.Context, *v1.GetCarrierRequest) (*v1.GetCarrierResponse, error)
 	ListCarriers(context.Context, *v1.ListCarriersRequest) (*v1.ListCarriersResponse, error)
-	// StreamCarriers streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamCarriers sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamCarriers(context.Context, *v1.StreamCarriersRequest, *connect.ServerStream[v1.Carrier]) error
 }
 
@@ -446,9 +450,10 @@ func (UnimplementedCarrierServiceHandler) StreamCarriers(context.Context, *v1.St
 type CarrierFacilityServiceClient interface {
 	GetCarrierFacility(context.Context, *v1.GetCarrierFacilityRequest) (*v1.GetCarrierFacilityResponse, error)
 	ListCarrierFacilities(context.Context, *v1.ListCarrierFacilitiesRequest) (*v1.ListCarrierFacilitiesResponse, error)
-	// StreamCarrierFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamCarrierFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest) (*connect.ServerStreamForClient[v1.CarrierFacility], error)
 }
 
@@ -519,9 +524,10 @@ func (c *carrierFacilityServiceClient) StreamCarrierFacilities(ctx context.Conte
 type CarrierFacilityServiceHandler interface {
 	GetCarrierFacility(context.Context, *v1.GetCarrierFacilityRequest) (*v1.GetCarrierFacilityResponse, error)
 	ListCarrierFacilities(context.Context, *v1.ListCarrierFacilitiesRequest) (*v1.ListCarrierFacilitiesResponse, error)
-	// StreamCarrierFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamCarrierFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest, *connect.ServerStream[v1.CarrierFacility]) error
 }
 
@@ -583,9 +589,10 @@ func (UnimplementedCarrierFacilityServiceHandler) StreamCarrierFacilities(contex
 type FacilityServiceClient interface {
 	GetFacility(context.Context, *v1.GetFacilityRequest) (*v1.GetFacilityResponse, error)
 	ListFacilities(context.Context, *v1.ListFacilitiesRequest) (*v1.ListFacilitiesResponse, error)
-	// StreamFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest) (*connect.ServerStreamForClient[v1.Facility], error)
 }
 
@@ -655,9 +662,10 @@ func (c *facilityServiceClient) StreamFacilities(ctx context.Context, req *v1.St
 type FacilityServiceHandler interface {
 	GetFacility(context.Context, *v1.GetFacilityRequest) (*v1.GetFacilityResponse, error)
 	ListFacilities(context.Context, *v1.ListFacilitiesRequest) (*v1.ListFacilitiesResponse, error)
-	// StreamFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest, *connect.ServerStream[v1.Facility]) error
 }
 
@@ -719,9 +727,10 @@ func (UnimplementedFacilityServiceHandler) StreamFacilities(context.Context, *v1
 type InternetExchangeServiceClient interface {
 	GetInternetExchange(context.Context, *v1.GetInternetExchangeRequest) (*v1.GetInternetExchangeResponse, error)
 	ListInternetExchanges(context.Context, *v1.ListInternetExchangesRequest) (*v1.ListInternetExchangesResponse, error)
-	// StreamInternetExchanges streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamInternetExchanges sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest) (*connect.ServerStreamForClient[v1.InternetExchange], error)
 }
 
@@ -792,9 +801,10 @@ func (c *internetExchangeServiceClient) StreamInternetExchanges(ctx context.Cont
 type InternetExchangeServiceHandler interface {
 	GetInternetExchange(context.Context, *v1.GetInternetExchangeRequest) (*v1.GetInternetExchangeResponse, error)
 	ListInternetExchanges(context.Context, *v1.ListInternetExchangesRequest) (*v1.ListInternetExchangesResponse, error)
-	// StreamInternetExchanges streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamInternetExchanges sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest, *connect.ServerStream[v1.InternetExchange]) error
 }
 
@@ -856,9 +866,10 @@ func (UnimplementedInternetExchangeServiceHandler) StreamInternetExchanges(conte
 type IxFacilityServiceClient interface {
 	GetIxFacility(context.Context, *v1.GetIxFacilityRequest) (*v1.GetIxFacilityResponse, error)
 	ListIxFacilities(context.Context, *v1.ListIxFacilitiesRequest) (*v1.ListIxFacilitiesResponse, error)
-	// StreamIxFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamIxFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest) (*connect.ServerStreamForClient[v1.IxFacility], error)
 }
 
@@ -928,9 +939,10 @@ func (c *ixFacilityServiceClient) StreamIxFacilities(ctx context.Context, req *v
 type IxFacilityServiceHandler interface {
 	GetIxFacility(context.Context, *v1.GetIxFacilityRequest) (*v1.GetIxFacilityResponse, error)
 	ListIxFacilities(context.Context, *v1.ListIxFacilitiesRequest) (*v1.ListIxFacilitiesResponse, error)
-	// StreamIxFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamIxFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest, *connect.ServerStream[v1.IxFacility]) error
 }
 
@@ -992,9 +1004,10 @@ func (UnimplementedIxFacilityServiceHandler) StreamIxFacilities(context.Context,
 type IxLanServiceClient interface {
 	GetIxLan(context.Context, *v1.GetIxLanRequest) (*v1.GetIxLanResponse, error)
 	ListIxLans(context.Context, *v1.ListIxLansRequest) (*v1.ListIxLansResponse, error)
-	// StreamIxLans streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamIxLans sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamIxLans(context.Context, *v1.StreamIxLansRequest) (*connect.ServerStreamForClient[v1.IxLan], error)
 }
 
@@ -1064,9 +1077,10 @@ func (c *ixLanServiceClient) StreamIxLans(ctx context.Context, req *v1.StreamIxL
 type IxLanServiceHandler interface {
 	GetIxLan(context.Context, *v1.GetIxLanRequest) (*v1.GetIxLanResponse, error)
 	ListIxLans(context.Context, *v1.ListIxLansRequest) (*v1.ListIxLansResponse, error)
-	// StreamIxLans streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamIxLans sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamIxLans(context.Context, *v1.StreamIxLansRequest, *connect.ServerStream[v1.IxLan]) error
 }
 
@@ -1128,9 +1142,10 @@ func (UnimplementedIxLanServiceHandler) StreamIxLans(context.Context, *v1.Stream
 type IxPrefixServiceClient interface {
 	GetIxPrefix(context.Context, *v1.GetIxPrefixRequest) (*v1.GetIxPrefixResponse, error)
 	ListIxPrefixes(context.Context, *v1.ListIxPrefixesRequest) (*v1.ListIxPrefixesResponse, error)
-	// StreamIxPrefixes streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamIxPrefixes sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest) (*connect.ServerStreamForClient[v1.IxPrefix], error)
 }
 
@@ -1200,9 +1215,10 @@ func (c *ixPrefixServiceClient) StreamIxPrefixes(ctx context.Context, req *v1.St
 type IxPrefixServiceHandler interface {
 	GetIxPrefix(context.Context, *v1.GetIxPrefixRequest) (*v1.GetIxPrefixResponse, error)
 	ListIxPrefixes(context.Context, *v1.ListIxPrefixesRequest) (*v1.ListIxPrefixesResponse, error)
-	// StreamIxPrefixes streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamIxPrefixes sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest, *connect.ServerStream[v1.IxPrefix]) error
 }
 
@@ -1264,9 +1280,10 @@ func (UnimplementedIxPrefixServiceHandler) StreamIxPrefixes(context.Context, *v1
 type NetworkServiceClient interface {
 	GetNetwork(context.Context, *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error)
 	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
-	// StreamNetworks streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamNetworks sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamNetworks(context.Context, *v1.StreamNetworksRequest) (*connect.ServerStreamForClient[v1.Network], error)
 }
 
@@ -1336,9 +1353,10 @@ func (c *networkServiceClient) StreamNetworks(ctx context.Context, req *v1.Strea
 type NetworkServiceHandler interface {
 	GetNetwork(context.Context, *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error)
 	ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error)
-	// StreamNetworks streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamNetworks sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamNetworks(context.Context, *v1.StreamNetworksRequest, *connect.ServerStream[v1.Network]) error
 }
 
@@ -1400,9 +1418,10 @@ func (UnimplementedNetworkServiceHandler) StreamNetworks(context.Context, *v1.St
 type NetworkFacilityServiceClient interface {
 	GetNetworkFacility(context.Context, *v1.GetNetworkFacilityRequest) (*v1.GetNetworkFacilityResponse, error)
 	ListNetworkFacilities(context.Context, *v1.ListNetworkFacilitiesRequest) (*v1.ListNetworkFacilitiesResponse, error)
-	// StreamNetworkFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamNetworkFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest) (*connect.ServerStreamForClient[v1.NetworkFacility], error)
 }
 
@@ -1473,9 +1492,10 @@ func (c *networkFacilityServiceClient) StreamNetworkFacilities(ctx context.Conte
 type NetworkFacilityServiceHandler interface {
 	GetNetworkFacility(context.Context, *v1.GetNetworkFacilityRequest) (*v1.GetNetworkFacilityResponse, error)
 	ListNetworkFacilities(context.Context, *v1.ListNetworkFacilitiesRequest) (*v1.ListNetworkFacilitiesResponse, error)
-	// StreamNetworkFacilities streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamNetworkFacilities sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest, *connect.ServerStream[v1.NetworkFacility]) error
 }
 
@@ -1537,9 +1557,10 @@ func (UnimplementedNetworkFacilityServiceHandler) StreamNetworkFacilities(contex
 type NetworkIxLanServiceClient interface {
 	GetNetworkIxLan(context.Context, *v1.GetNetworkIxLanRequest) (*v1.GetNetworkIxLanResponse, error)
 	ListNetworkIxLans(context.Context, *v1.ListNetworkIxLansRequest) (*v1.ListNetworkIxLansResponse, error)
-	// StreamNetworkIxLans streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamNetworkIxLans sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest) (*connect.ServerStreamForClient[v1.NetworkIxLan], error)
 }
 
@@ -1609,9 +1630,10 @@ func (c *networkIxLanServiceClient) StreamNetworkIxLans(ctx context.Context, req
 type NetworkIxLanServiceHandler interface {
 	GetNetworkIxLan(context.Context, *v1.GetNetworkIxLanRequest) (*v1.GetNetworkIxLanResponse, error)
 	ListNetworkIxLans(context.Context, *v1.ListNetworkIxLansRequest) (*v1.ListNetworkIxLansResponse, error)
-	// StreamNetworkIxLans streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamNetworkIxLans sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest, *connect.ServerStream[v1.NetworkIxLan]) error
 }
 
@@ -1673,9 +1695,10 @@ func (UnimplementedNetworkIxLanServiceHandler) StreamNetworkIxLans(context.Conte
 type OrganizationServiceClient interface {
 	GetOrganization(context.Context, *v1.GetOrganizationRequest) (*v1.GetOrganizationResponse, error)
 	ListOrganizations(context.Context, *v1.ListOrganizationsRequest) (*v1.ListOrganizationsResponse, error)
-	// StreamOrganizations streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamOrganizations sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest) (*connect.ServerStreamForClient[v1.Organization], error)
 }
 
@@ -1745,9 +1768,10 @@ func (c *organizationServiceClient) StreamOrganizations(ctx context.Context, req
 type OrganizationServiceHandler interface {
 	GetOrganization(context.Context, *v1.GetOrganizationRequest) (*v1.GetOrganizationResponse, error)
 	ListOrganizations(context.Context, *v1.ListOrganizationsRequest) (*v1.ListOrganizationsResponse, error)
-	// StreamOrganizations streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamOrganizations sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest, *connect.ServerStream[v1.Organization]) error
 }
 
@@ -1809,9 +1833,10 @@ func (UnimplementedOrganizationServiceHandler) StreamOrganizations(context.Conte
 type PocServiceClient interface {
 	GetPoc(context.Context, *v1.GetPocRequest) (*v1.GetPocResponse, error)
 	ListPocs(context.Context, *v1.ListPocsRequest) (*v1.ListPocsResponse, error)
-	// StreamPocs streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamPocs sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamPocs(context.Context, *v1.StreamPocsRequest) (*connect.ServerStreamForClient[v1.Poc], error)
 }
 
@@ -1881,9 +1906,10 @@ func (c *pocServiceClient) StreamPocs(ctx context.Context, req *v1.StreamPocsReq
 type PocServiceHandler interface {
 	GetPoc(context.Context, *v1.GetPocRequest) (*v1.GetPocResponse, error)
 	ListPocs(context.Context, *v1.ListPocsRequest) (*v1.ListPocsResponse, error)
-	// StreamPocs streams all matching rows one message at a time.
-	// Supports proto (application/proto) and JSON (application/json) via
-	// Content-Type header. ConnectRPC handles format negotiation automatically.
+	// StreamPocs sends each matching row as a separate message.
+	// Over the Connect protocol, send Content-Type application/connect+proto
+	// or application/connect+json. gRPC and gRPC-Web clients use their own
+	// content types.
 	StreamPocs(context.Context, *v1.StreamPocsRequest, *connect.ServerStream[v1.Poc]) error
 }
 
