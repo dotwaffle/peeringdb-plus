@@ -512,12 +512,14 @@ never hand-roll a tier check.
 
 **Developer checklist:**
 
-1. **Schema** — add the ent fields.
-   Use `field.String` (not `Enum`) for the `_visible` column.
-2. **Sync mapping** — populate both fields in `internal/sync/upsert.go`.
-3. **Call `privfield.Redact` at all 5 surfaces.**
-   Missing any one = privacy leak:
-   - **pdbcompat** — `internal/pdbcompat/serializer.go` in the relevant
+1. **Schema:** add the value field and its `_visible` field
+   to the type in `schema/peeringdb.json`
+   (see [Adding a new ent field](#adding-a-new-ent-field)).
+   Give the `_visible` field `"type": "string"`, not an enum.
+2. **Sync mapping:** populate both fields in `internal/sync/upsert.go`.
+3. **Call `privfield.Redact` on all six surfaces.**
+   If you miss one, that surface leaks the field:
+   - **pdbcompat:** `internal/pdbcompat/serializer.go` in the relevant
      `<entity>FromEnt(ctx, e)` function.
      On `/api`, the permission decides the key, not the value
      (upstream 2.83.0 `permissions.py:344-353`).
@@ -534,31 +536,47 @@ never hand-roll a tier check.
      The `peeringdb.<Type>` decode struct keeps its plain `string`,
      because sync decodes upstream input into it.
      `ixLanResponse` and `ixfMemberListURLOut` are the worked example.
-   - **ConnectRPC** — `internal/grpcserver/<entity>.go` in the proto conversion
+   - **ConnectRPC:** `internal/grpcserver/<entity>.go` in the proto conversion
      function.
      Wrap the closure passed to the generic pagination helper
      so `ctx` is captured (the helper signature stays `Convert func(*E) *P`).
-   - **GraphQL** — opt the field into a custom resolver via `graph/gqlgen.yml`,
+   - **GraphQL:** opt the field into a custom resolver via `graph/gqlgen.yml`,
      then return `nil` from the resolver in `graph/schema.resolvers.go` when
      `omit=true`.
-   - **entrest** — extend `middleware.RESTFieldRedact` in
-     `internal/middleware/rest_redact.go` to buffer the response body, parse JSON, and
-     delete the redacted key when `omit=true`.
-     Wrap **inside** `middleware.RESTError`
-     so `application/problem+json` error bodies pass through untouched.
-   - **Web UI** — call `privfield.Redact` in the template data-prep step if
-     the field has any render path.
-4. **Seed both rows** — extend `internal/testutil/seed.Full` to seed BOTH a
+   - **entrest:** add the new key pair to `redactGatedFields`
+     in `internal/middleware/rest_redact.go`.
+     `middleware.RESTFieldRedact` already buffers
+     and parses every `/rest/v1/` body.
+     Keep it wrapped **inside** `middleware.RESTError`
+     so that `application/problem+json` error bodies pass through unchanged.
+   - **Web UI and MCP:** neither shows a gated field today.
+     If the new field reaches them, call `privfield.Redact`
+     in the code that builds the row data.
+     Both read rows through `internal/catalog`.
+     The fragment handlers in `internal/web/detail.go`
+     and the MCP `lookup_ip` tool in `internal/mcpserver/server.go`
+     also query ent directly.
+4. **Seed both rows:** extend `internal/testutil/seed.Full` to seed BOTH a
    gated row (`_visible=Users`) AND a `Public` row, so E2E tests can assert
    the helper does not over-redact.
-5. **E2E tests** — extend `cmd/peeringdb-plus/field_privacy_e2e_test.go` with
-   `Redacted{Anon,UsersTier}` sub-tests plus a
-   `fail-closed-bypass-middleware` assertion against the ConnectRPC handler
-   directly.
+5. **E2E tests:** extend the `TestE2E_FieldLevel_IxlanURL_*` functions
+   in `cmd/peeringdb-plus/field_privacy_e2e_test.go`, or add a set like them.
+   `TestE2E_FieldLevel_IxlanURL_RedactedAnon`
+   and `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier`
+   have sub-tests for `/api`, `/rest/v1/`, ConnectRPC, and GraphQL,
+   and a skipped `webui` sub-test.
+   `RedactedAnon` also has the `fail-closed-bypass-middleware` check
+   against the ConnectRPC handler.
+   `TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey` locks the `/api` key rule
+   for an empty value.
+   If the Web UI shows the field, make the `webui` sub-tests check the page.
+   If MCP shows the field, add an MCP sub-test.
 
-The `_visible` companion field itself is **always** emitted
-(even for anon callers) — this matches upstream PeeringDB's behaviour.
-Do not strip it.
+The surfaces that serve the gated field
+(`/api`, `/rest/v1/`, ConnectRPC, and GraphQL)
+emit its `_visible` field to every caller, including anonymous callers.
+Upstream PeeringDB does the same.
+Do not remove it.
 
 ## Adding a new searchable text field on a folded entity
 
