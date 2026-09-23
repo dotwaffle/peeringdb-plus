@@ -29,7 +29,7 @@ Key test locations:
 | Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
 | Parity tests | `internal/pdbcompat/parity/` | 9 category files + `harness_helpers_test.go` + `bench_test.go`; each sub-test seeds clean rows inline via the ent client |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
-| Benchmarks | `internal/pdbcompat/projection_bench_test.go`, `internal/pdbcompat/parity/bench_test.go` | `BenchmarkApplyFieldProjection`, `BenchmarkParity_*` |
+| Benchmarks | `bench_test.go`, `bench_*_test.go`, and `*_bench_test.go` files in `internal/pdbcompat`, `internal/pdbcompat/parity`, `internal/grpcserver`, `internal/sync`, and `internal/web`. Also `internal/web/termrender/network_test.go`. | For example `BenchmarkApplyFieldProjection`, `BenchmarkRowSize`, `BenchmarkParity_*` |
 | Live gated tests | `*_live_test.go` | Require `-peeringdb-live` flag |
 
 Generated code under `ent/` and `gen/` is excluded from coverage
@@ -75,17 +75,20 @@ go test ./internal/sync/ -run TestSync_RefactorParity -update
 Run benchmarks:
 
 ```bash
-# Hand-written projection benchmark
-go test -bench=. -benchmem ./internal/pdbcompat/
+# Projection benchmark only
+go test -run='^$' -bench=BenchmarkApplyFieldProjection -benchmem ./internal/pdbcompat/
 
-# Parity benchmarks (b.Loop idiom; not run in CI — no benchstat gate)
-go test -run=^$ -bench=BenchmarkParity -benchtime=5x -count=6 ./internal/pdbcompat/parity/
+# Parity benchmarks (not run in CI)
+go test -run='^$' -bench=BenchmarkParity -benchtime=5x -count=6 ./internal/pdbcompat/parity/
 ```
+
+The quotes around `^$` stop zsh with `extendedglob`
+from reading it as a glob pattern.
 
 Run fuzz tests (stops on first panic; run explicitly per package):
 
 ```bash
-go test -run=^$ -fuzz=FuzzFilterParser -fuzztime=30s ./internal/pdbcompat/
+go test -run='^$' -fuzz=FuzzFilterParser -fuzztime=30s ./internal/pdbcompat/
 ```
 
 ### Cgo and the race detector
@@ -344,10 +347,10 @@ Run locally:
 
 ```bash
 # Quick sanity (1 iteration each)
-go test -run=^$ -bench=BenchmarkParity -benchtime=1x ./internal/pdbcompat/parity/
+go test -run='^$' -bench=BenchmarkParity -benchtime=1x ./internal/pdbcompat/parity/
 
 # Statistical run (5 iterations × 6 samples for benchstat)
-go test -run=^$ -bench=BenchmarkParity -benchtime=5x -count=6 ./internal/pdbcompat/parity/
+go test -run='^$' -bench=BenchmarkParity -benchtime=5x -count=6 ./internal/pdbcompat/parity/
 ```
 
 Benchmarks are **not** gated in CI (no benchstat threshold).
@@ -366,7 +369,7 @@ and known edge cases (empty key, unsupported operator, type conversion error).
 Run it with:
 
 ```bash
-go test -run=^$ -fuzz=FuzzFilterParser -fuzztime=30s ./internal/pdbcompat/
+go test -run='^$' -fuzz=FuzzFilterParser -fuzztime=30s ./internal/pdbcompat/
 ```
 
 ## Live Tests (`-peeringdb-live` gate)
