@@ -59,6 +59,9 @@ and the response memory budget for `/api` lists.
 
 ### Local (Go)
 
+You need Go 1.27.1 or later.
+You can also use mise, as shown in [Development](#development).
+
 ```bash
 git clone https://github.com/dotwaffle/peeringdb-plus.git
 cd peeringdb-plus
@@ -89,9 +92,10 @@ curl -s http://localhost:8080/healthz                    # liveness
 curl -sI http://localhost:8080/readyz                    # readiness (200 once first sync completes)
 curl -s http://localhost:8080/api/net/1 | head -c 500    # PeeringDB-compatible API
 curl -sO http://localhost:8080/skills/peeringdb-plus.zip # Origin-aware Agent Skill
-open http://localhost:8080/ui/                           # Web UI
-open http://localhost:8080/graphql                       # GraphQL playground
 ```
+
+Open `http://localhost:8080/ui/` (Web UI)
+and `http://localhost:8080/graphql` (GraphQL playground) in a browser.
 
 For the full first-30-minutes walkthrough, see
 [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md).
@@ -240,6 +244,7 @@ through OpenTelemetry autoexport.
 ## Development
 
 ```bash
+mise trust                        # Trust the repository mise config
 mise install --locked             # Install the pinned toolchain
 mise run generate                 # Full codegen pipeline
 mise run check                    # Generate, tidy, build, test, lint, scan
