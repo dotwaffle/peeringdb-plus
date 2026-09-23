@@ -765,16 +765,13 @@ Run the full suite with `mise run test`.
   `.rumdl.toml` configures the `rumdl` Markdown linter for this rule.
   mise and CI do not run `rumdl`, so run it by hand if you have it installed.
 
-## Branch conventions
-
-The default and only long-lived branch is `main`.
-Feature work is done on short-lived topic branches and merged via PR.
-No explicit branch-name convention is documented in the repo;
-match existing patterns in `git log --oneline` if in doubt.
-
 ## PR process
 
-1. Run the full local check before pushing:
+See [CONTRIBUTING.md](../CONTRIBUTING.md#branch-and-pr-workflow)
+for branches, commit messages, and the PR workflow.
+Before you open a PR:
+
+1. Run the full local check:
 
    ```bash
    mise install --locked
@@ -787,11 +784,7 @@ match existing patterns in `git log --oneline` if in doubt.
    and `internal/pdbcompat/allowlist_gen.go`.
    Otherwise the CI drift check fails.
 3. Open a PR against `main`.
-   CI runs two jobs: `ci` — a single cached mise/Go job that runs, in order,
-   the generated-code drift check, build,
-   gotestsum race tests with a coverage comment, lint,
-   and advisory vulnerability scan — and `docker-build`,
-   which builds both `Dockerfile` and `Dockerfile.prod`.
+   CI runs the jobs in [TESTING.md § CI Integration](TESTING.md#ci-integration).
 4. Coverage excludes `ent/` and `gen/` (generated code).
    Aim to keep coverage on new hand-written code.
 
