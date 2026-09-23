@@ -250,14 +250,14 @@ type mcpFeature struct {
 // internal/mcpserver registers. Keep the text identical to the server.
 var mcpTools = []mcpFeature{
 	{Name: "search_peeringdb", Description: "Search PeeringDB entities. Omit type for grouped previews; set type for cursor pagination."},
-	{Name: "get_network", Description: "Get a network by ASN with bounded ix_presences and facilities relations."},
-	{Name: "get_exchange", Description: "Get an exchange by ID with bounded participants, facilities, and prefixes relations."},
+	{Name: "get_network", Description: "Get a network by ASN with bounded ix_presences and facilities relations. ix_presences include connections that are not operational. Check Markers.NotOperational."},
+	{Name: "get_exchange", Description: "Get an exchange by ID with bounded participants, facilities, and prefixes relations. Participants include connections that are not operational. Check Markers.NotOperational."},
 	{Name: "get_facility", Description: "Get a facility by ID with bounded networks, exchanges, and carriers relations."},
 	{Name: "get_organization", Description: "Get an organization by ID with bounded networks, exchanges, facilities, campuses, and carriers relations."},
 	{Name: "get_campus", Description: "Get a campus by ID with a bounded facilities relation."},
 	{Name: "get_carrier", Description: "Get a carrier by ID with a bounded facilities relation."},
-	{Name: "compare_networks", Description: "Compare two ASNs across shared exchanges, facilities, and campuses."},
-	{Name: "lookup_ip", Description: "Find an exact network peering address and the containing exchange prefix."},
+	{Name: "compare_networks", Description: "Compare two ASNs across shared exchanges, facilities, and campuses. A shared exchange can include a connection that is not operational. Check NetA.Markers.NotOperational and NetB.Markers.NotOperational in each shared_exchanges item."},
+	{Name: "lookup_ip", Description: "Find IX peering addresses that exactly match an IP address, with the status and meta of each connection, and the exchange prefixes that contain the address. Status is ok, not-operational, or pending."},
 	{Name: "get_sync_status", Description: "Get mirror freshness and the latest synchronization result."},
 }
 

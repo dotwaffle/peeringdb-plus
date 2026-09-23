@@ -30,6 +30,9 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 - Set `relation` to fetch one related collection, and set `page_size` to limit
   the rows.
 - Follow relation cursors when a response indicates more related records.
+- IX connection rows include connections that are not operational. Check
+  `Markers.NotOperational` or `status` before you describe a connection as
+  active.
 - Treat the data as a mirror snapshot and report its freshness when material.
 - Distinguish returned facts from inferences, and preserve source record IDs in
   the answer.
