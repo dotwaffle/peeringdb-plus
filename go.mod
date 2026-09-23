@@ -9,7 +9,7 @@ require (
 	connectrpc.com/grpchealth v1.5.0
 	connectrpc.com/grpcreflect v1.3.0
 	connectrpc.com/otelconnect v0.9.0
-	entgo.io/contrib v0.7.1-0.20260306055004-3625dcc2e035
+	entgo.io/contrib v0.7.1-0.20260726130719-793ca36770f6
 	entgo.io/ent v0.14.6
 	github.com/99designs/gqlgen v0.17.95
 	github.com/KimMachineGun/automemlimit v1.0.0

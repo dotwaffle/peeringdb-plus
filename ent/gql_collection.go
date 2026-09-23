@@ -71,11 +71,6 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 				selectedFields = append(selectedFields, campus.FieldOrgID)
 				fieldSeen[campus.FieldOrgID] = struct{}{}
 			}
-		case "orgID":
-			if _, ok := fieldSeen[campus.FieldOrgID]; !ok {
-				selectedFields = append(selectedFields, campus.FieldOrgID)
-				fieldSeen[campus.FieldOrgID] = struct{}{}
-			}
 		case "aka":
 			if _, ok := fieldSeen[campus.FieldAka]; !ok {
 				selectedFields = append(selectedFields, campus.FieldAka)
@@ -90,6 +85,11 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 			if _, ok := fieldSeen[campus.FieldCountry]; !ok {
 				selectedFields = append(selectedFields, campus.FieldCountry)
 				fieldSeen[campus.FieldCountry] = struct{}{}
+			}
+		case "created":
+			if _, ok := fieldSeen[campus.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, campus.FieldCreated)
+				fieldSeen[campus.FieldCreated] = struct{}{}
 			}
 		case "logo":
 			if _, ok := fieldSeen[campus.FieldLogo]; !ok {
@@ -111,6 +111,16 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 				selectedFields = append(selectedFields, campus.FieldNotes)
 				fieldSeen[campus.FieldNotes] = struct{}{}
 			}
+		case "orgID":
+			if _, ok := fieldSeen[campus.FieldOrgID]; !ok {
+				selectedFields = append(selectedFields, campus.FieldOrgID)
+				fieldSeen[campus.FieldOrgID] = struct{}{}
+			}
+		case "orgName":
+			if _, ok := fieldSeen[campus.FieldOrgName]; !ok {
+				selectedFields = append(selectedFields, campus.FieldOrgName)
+				fieldSeen[campus.FieldOrgName] = struct{}{}
+			}
 		case "socialMedia":
 			if _, ok := fieldSeen[campus.FieldSocialMedia]; !ok {
 				selectedFields = append(selectedFields, campus.FieldSocialMedia)
@@ -121,6 +131,16 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 				selectedFields = append(selectedFields, campus.FieldState)
 				fieldSeen[campus.FieldState] = struct{}{}
 			}
+		case "status":
+			if _, ok := fieldSeen[campus.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, campus.FieldStatus)
+				fieldSeen[campus.FieldStatus] = struct{}{}
+			}
+		case "updated":
+			if _, ok := fieldSeen[campus.FieldUpdated]; !ok {
+				selectedFields = append(selectedFields, campus.FieldUpdated)
+				fieldSeen[campus.FieldUpdated] = struct{}{}
+			}
 		case "website":
 			if _, ok := fieldSeen[campus.FieldWebsite]; !ok {
 				selectedFields = append(selectedFields, campus.FieldWebsite)
@@ -130,26 +150,6 @@ func (_q *CampusQuery) collectField(ctx context.Context, oneNode bool, opCtx *gr
 			if _, ok := fieldSeen[campus.FieldZipcode]; !ok {
 				selectedFields = append(selectedFields, campus.FieldZipcode)
 				fieldSeen[campus.FieldZipcode] = struct{}{}
-			}
-		case "orgName":
-			if _, ok := fieldSeen[campus.FieldOrgName]; !ok {
-				selectedFields = append(selectedFields, campus.FieldOrgName)
-				fieldSeen[campus.FieldOrgName] = struct{}{}
-			}
-		case "created":
-			if _, ok := fieldSeen[campus.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, campus.FieldCreated)
-				fieldSeen[campus.FieldCreated] = struct{}{}
-			}
-		case "updated":
-			if _, ok := fieldSeen[campus.FieldUpdated]; !ok {
-				selectedFields = append(selectedFields, campus.FieldUpdated)
-				fieldSeen[campus.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[campus.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, campus.FieldStatus)
-				fieldSeen[campus.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -263,15 +263,20 @@ func (_q *CarrierQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, carrier.FieldOrgID)
 				fieldSeen[carrier.FieldOrgID] = struct{}{}
 			}
-		case "orgID":
-			if _, ok := fieldSeen[carrier.FieldOrgID]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldOrgID)
-				fieldSeen[carrier.FieldOrgID] = struct{}{}
-			}
 		case "aka":
 			if _, ok := fieldSeen[carrier.FieldAka]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldAka)
 				fieldSeen[carrier.FieldAka] = struct{}{}
+			}
+		case "created":
+			if _, ok := fieldSeen[carrier.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldCreated)
+				fieldSeen[carrier.FieldCreated] = struct{}{}
+			}
+		case "facCount":
+			if _, ok := fieldSeen[carrier.FieldFacCount]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldFacCount)
+				fieldSeen[carrier.FieldFacCount] = struct{}{}
 			}
 		case "logo":
 			if _, ok := fieldSeen[carrier.FieldLogo]; !ok {
@@ -293,40 +298,35 @@ func (_q *CarrierQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, carrier.FieldNotes)
 				fieldSeen[carrier.FieldNotes] = struct{}{}
 			}
-		case "socialMedia":
-			if _, ok := fieldSeen[carrier.FieldSocialMedia]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldSocialMedia)
-				fieldSeen[carrier.FieldSocialMedia] = struct{}{}
-			}
-		case "website":
-			if _, ok := fieldSeen[carrier.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldWebsite)
-				fieldSeen[carrier.FieldWebsite] = struct{}{}
+		case "orgID":
+			if _, ok := fieldSeen[carrier.FieldOrgID]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldOrgID)
+				fieldSeen[carrier.FieldOrgID] = struct{}{}
 			}
 		case "orgName":
 			if _, ok := fieldSeen[carrier.FieldOrgName]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldOrgName)
 				fieldSeen[carrier.FieldOrgName] = struct{}{}
 			}
-		case "facCount":
-			if _, ok := fieldSeen[carrier.FieldFacCount]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldFacCount)
-				fieldSeen[carrier.FieldFacCount] = struct{}{}
+		case "socialMedia":
+			if _, ok := fieldSeen[carrier.FieldSocialMedia]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldSocialMedia)
+				fieldSeen[carrier.FieldSocialMedia] = struct{}{}
 			}
-		case "created":
-			if _, ok := fieldSeen[carrier.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldCreated)
-				fieldSeen[carrier.FieldCreated] = struct{}{}
+		case "status":
+			if _, ok := fieldSeen[carrier.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldStatus)
+				fieldSeen[carrier.FieldStatus] = struct{}{}
 			}
 		case "updated":
 			if _, ok := fieldSeen[carrier.FieldUpdated]; !ok {
 				selectedFields = append(selectedFields, carrier.FieldUpdated)
 				fieldSeen[carrier.FieldUpdated] = struct{}{}
 			}
-		case "status":
-			if _, ok := fieldSeen[carrier.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, carrier.FieldStatus)
-				fieldSeen[carrier.FieldStatus] = struct{}{}
+		case "website":
+			if _, ok := fieldSeen[carrier.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, carrier.FieldWebsite)
+				fieldSeen[carrier.FieldWebsite] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -447,6 +447,11 @@ func (_q *CarrierFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 				selectedFields = append(selectedFields, carrierfacility.FieldCarrierID)
 				fieldSeen[carrierfacility.FieldCarrierID] = struct{}{}
 			}
+		case "created":
+			if _, ok := fieldSeen[carrierfacility.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, carrierfacility.FieldCreated)
+				fieldSeen[carrierfacility.FieldCreated] = struct{}{}
+			}
 		case "facID":
 			if _, ok := fieldSeen[carrierfacility.FieldFacID]; !ok {
 				selectedFields = append(selectedFields, carrierfacility.FieldFacID)
@@ -457,20 +462,15 @@ func (_q *CarrierFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 				selectedFields = append(selectedFields, carrierfacility.FieldName)
 				fieldSeen[carrierfacility.FieldName] = struct{}{}
 			}
-		case "created":
-			if _, ok := fieldSeen[carrierfacility.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, carrierfacility.FieldCreated)
-				fieldSeen[carrierfacility.FieldCreated] = struct{}{}
+		case "status":
+			if _, ok := fieldSeen[carrierfacility.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, carrierfacility.FieldStatus)
+				fieldSeen[carrierfacility.FieldStatus] = struct{}{}
 			}
 		case "updated":
 			if _, ok := fieldSeen[carrierfacility.FieldUpdated]; !ok {
 				selectedFields = append(selectedFields, carrierfacility.FieldUpdated)
 				fieldSeen[carrierfacility.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[carrierfacility.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, carrierfacility.FieldStatus)
-				fieldSeen[carrierfacility.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -603,16 +603,6 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, facility.FieldOrgID)
 				fieldSeen[facility.FieldOrgID] = struct{}{}
 			}
-		case "campusID":
-			if _, ok := fieldSeen[facility.FieldCampusID]; !ok {
-				selectedFields = append(selectedFields, facility.FieldCampusID)
-				fieldSeen[facility.FieldCampusID] = struct{}{}
-			}
-		case "orgID":
-			if _, ok := fieldSeen[facility.FieldOrgID]; !ok {
-				selectedFields = append(selectedFields, facility.FieldOrgID)
-				fieldSeen[facility.FieldOrgID] = struct{}{}
-			}
 		case "address1":
 			if _, ok := fieldSeen[facility.FieldAddress1]; !ok {
 				selectedFields = append(selectedFields, facility.FieldAddress1)
@@ -633,6 +623,16 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, facility.FieldAvailableVoltageServices)
 				fieldSeen[facility.FieldAvailableVoltageServices] = struct{}{}
 			}
+		case "campusID":
+			if _, ok := fieldSeen[facility.FieldCampusID]; !ok {
+				selectedFields = append(selectedFields, facility.FieldCampusID)
+				fieldSeen[facility.FieldCampusID] = struct{}{}
+			}
+		case "carrierCount":
+			if _, ok := fieldSeen[facility.FieldCarrierCount]; !ok {
+				selectedFields = append(selectedFields, facility.FieldCarrierCount)
+				fieldSeen[facility.FieldCarrierCount] = struct{}{}
+			}
 		case "city":
 			if _, ok := fieldSeen[facility.FieldCity]; !ok {
 				selectedFields = append(selectedFields, facility.FieldCity)
@@ -648,6 +648,11 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, facility.FieldCountry)
 				fieldSeen[facility.FieldCountry] = struct{}{}
 			}
+		case "created":
+			if _, ok := fieldSeen[facility.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, facility.FieldCreated)
+				fieldSeen[facility.FieldCreated] = struct{}{}
+			}
 		case "diverseServingSubstations":
 			if _, ok := fieldSeen[facility.FieldDiverseServingSubstations]; !ok {
 				selectedFields = append(selectedFields, facility.FieldDiverseServingSubstations)
@@ -657,6 +662,11 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 			if _, ok := fieldSeen[facility.FieldFloor]; !ok {
 				selectedFields = append(selectedFields, facility.FieldFloor)
 				fieldSeen[facility.FieldFloor] = struct{}{}
+			}
+		case "ixCount":
+			if _, ok := fieldSeen[facility.FieldIxCount]; !ok {
+				selectedFields = append(selectedFields, facility.FieldIxCount)
+				fieldSeen[facility.FieldIxCount] = struct{}{}
 			}
 		case "latitude":
 			if _, ok := fieldSeen[facility.FieldLatitude]; !ok {
@@ -683,6 +693,11 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, facility.FieldNameLong)
 				fieldSeen[facility.FieldNameLong] = struct{}{}
 			}
+		case "netCount":
+			if _, ok := fieldSeen[facility.FieldNetCount]; !ok {
+				selectedFields = append(selectedFields, facility.FieldNetCount)
+				fieldSeen[facility.FieldNetCount] = struct{}{}
+			}
 		case "notes":
 			if _, ok := fieldSeen[facility.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, facility.FieldNotes)
@@ -692,6 +707,16 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 			if _, ok := fieldSeen[facility.FieldNpanxx]; !ok {
 				selectedFields = append(selectedFields, facility.FieldNpanxx)
 				fieldSeen[facility.FieldNpanxx] = struct{}{}
+			}
+		case "orgID":
+			if _, ok := fieldSeen[facility.FieldOrgID]; !ok {
+				selectedFields = append(selectedFields, facility.FieldOrgID)
+				fieldSeen[facility.FieldOrgID] = struct{}{}
+			}
+		case "orgName":
+			if _, ok := fieldSeen[facility.FieldOrgName]; !ok {
+				selectedFields = append(selectedFields, facility.FieldOrgName)
+				fieldSeen[facility.FieldOrgName] = struct{}{}
 			}
 		case "property":
 			if _, ok := fieldSeen[facility.FieldProperty]; !ok {
@@ -728,6 +753,11 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, facility.FieldState)
 				fieldSeen[facility.FieldState] = struct{}{}
 			}
+		case "status":
+			if _, ok := fieldSeen[facility.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, facility.FieldStatus)
+				fieldSeen[facility.FieldStatus] = struct{}{}
+			}
 		case "statusDashboard":
 			if _, ok := fieldSeen[facility.FieldStatusDashboard]; !ok {
 				selectedFields = append(selectedFields, facility.FieldStatusDashboard)
@@ -748,6 +778,11 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, facility.FieldTechPhone)
 				fieldSeen[facility.FieldTechPhone] = struct{}{}
 			}
+		case "updated":
+			if _, ok := fieldSeen[facility.FieldUpdated]; !ok {
+				selectedFields = append(selectedFields, facility.FieldUpdated)
+				fieldSeen[facility.FieldUpdated] = struct{}{}
+			}
 		case "website":
 			if _, ok := fieldSeen[facility.FieldWebsite]; !ok {
 				selectedFields = append(selectedFields, facility.FieldWebsite)
@@ -757,41 +792,6 @@ func (_q *FacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 			if _, ok := fieldSeen[facility.FieldZipcode]; !ok {
 				selectedFields = append(selectedFields, facility.FieldZipcode)
 				fieldSeen[facility.FieldZipcode] = struct{}{}
-			}
-		case "orgName":
-			if _, ok := fieldSeen[facility.FieldOrgName]; !ok {
-				selectedFields = append(selectedFields, facility.FieldOrgName)
-				fieldSeen[facility.FieldOrgName] = struct{}{}
-			}
-		case "netCount":
-			if _, ok := fieldSeen[facility.FieldNetCount]; !ok {
-				selectedFields = append(selectedFields, facility.FieldNetCount)
-				fieldSeen[facility.FieldNetCount] = struct{}{}
-			}
-		case "ixCount":
-			if _, ok := fieldSeen[facility.FieldIxCount]; !ok {
-				selectedFields = append(selectedFields, facility.FieldIxCount)
-				fieldSeen[facility.FieldIxCount] = struct{}{}
-			}
-		case "carrierCount":
-			if _, ok := fieldSeen[facility.FieldCarrierCount]; !ok {
-				selectedFields = append(selectedFields, facility.FieldCarrierCount)
-				fieldSeen[facility.FieldCarrierCount] = struct{}{}
-			}
-		case "created":
-			if _, ok := fieldSeen[facility.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, facility.FieldCreated)
-				fieldSeen[facility.FieldCreated] = struct{}{}
-			}
-		case "updated":
-			if _, ok := fieldSeen[facility.FieldUpdated]; !ok {
-				selectedFields = append(selectedFields, facility.FieldUpdated)
-				fieldSeen[facility.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[facility.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, facility.FieldStatus)
-				fieldSeen[facility.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -918,11 +918,6 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				selectedFields = append(selectedFields, internetexchange.FieldOrgID)
 				fieldSeen[internetexchange.FieldOrgID] = struct{}{}
 			}
-		case "orgID":
-			if _, ok := fieldSeen[internetexchange.FieldOrgID]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldOrgID)
-				fieldSeen[internetexchange.FieldOrgID] = struct{}{}
-			}
 		case "aka":
 			if _, ok := fieldSeen[internetexchange.FieldAka]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldAka)
@@ -937,6 +932,26 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 			if _, ok := fieldSeen[internetexchange.FieldCountry]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldCountry)
 				fieldSeen[internetexchange.FieldCountry] = struct{}{}
+			}
+		case "created":
+			if _, ok := fieldSeen[internetexchange.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldCreated)
+				fieldSeen[internetexchange.FieldCreated] = struct{}{}
+			}
+		case "facCount":
+			if _, ok := fieldSeen[internetexchange.FieldFacCount]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldFacCount)
+				fieldSeen[internetexchange.FieldFacCount] = struct{}{}
+			}
+		case "ixfImportRequest":
+			if _, ok := fieldSeen[internetexchange.FieldIxfImportRequest]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldIxfImportRequest)
+				fieldSeen[internetexchange.FieldIxfImportRequest] = struct{}{}
+			}
+		case "ixfImportRequestStatus":
+			if _, ok := fieldSeen[internetexchange.FieldIxfImportRequestStatus]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldIxfImportRequestStatus)
+				fieldSeen[internetexchange.FieldIxfImportRequestStatus] = struct{}{}
 			}
 		case "ixfLastImport":
 			if _, ok := fieldSeen[internetexchange.FieldIxfLastImport]; !ok {
@@ -968,10 +983,20 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				selectedFields = append(selectedFields, internetexchange.FieldNameLong)
 				fieldSeen[internetexchange.FieldNameLong] = struct{}{}
 			}
+		case "netCount":
+			if _, ok := fieldSeen[internetexchange.FieldNetCount]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldNetCount)
+				fieldSeen[internetexchange.FieldNetCount] = struct{}{}
+			}
 		case "notes":
 			if _, ok := fieldSeen[internetexchange.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldNotes)
 				fieldSeen[internetexchange.FieldNotes] = struct{}{}
+			}
+		case "orgID":
+			if _, ok := fieldSeen[internetexchange.FieldOrgID]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldOrgID)
+				fieldSeen[internetexchange.FieldOrgID] = struct{}{}
 			}
 		case "policyEmail":
 			if _, ok := fieldSeen[internetexchange.FieldPolicyEmail]; !ok {
@@ -1023,6 +1048,11 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				selectedFields = append(selectedFields, internetexchange.FieldSocialMedia)
 				fieldSeen[internetexchange.FieldSocialMedia] = struct{}{}
 			}
+		case "status":
+			if _, ok := fieldSeen[internetexchange.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldStatus)
+				fieldSeen[internetexchange.FieldStatus] = struct{}{}
+			}
 		case "statusDashboard":
 			if _, ok := fieldSeen[internetexchange.FieldStatusDashboard]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldStatusDashboard)
@@ -1043,6 +1073,11 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 				selectedFields = append(selectedFields, internetexchange.FieldTerms)
 				fieldSeen[internetexchange.FieldTerms] = struct{}{}
 			}
+		case "updated":
+			if _, ok := fieldSeen[internetexchange.FieldUpdated]; !ok {
+				selectedFields = append(selectedFields, internetexchange.FieldUpdated)
+				fieldSeen[internetexchange.FieldUpdated] = struct{}{}
+			}
 		case "urlStats":
 			if _, ok := fieldSeen[internetexchange.FieldURLStats]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldURLStats)
@@ -1052,41 +1087,6 @@ func (_q *InternetExchangeQuery) collectField(ctx context.Context, oneNode bool,
 			if _, ok := fieldSeen[internetexchange.FieldWebsite]; !ok {
 				selectedFields = append(selectedFields, internetexchange.FieldWebsite)
 				fieldSeen[internetexchange.FieldWebsite] = struct{}{}
-			}
-		case "netCount":
-			if _, ok := fieldSeen[internetexchange.FieldNetCount]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldNetCount)
-				fieldSeen[internetexchange.FieldNetCount] = struct{}{}
-			}
-		case "facCount":
-			if _, ok := fieldSeen[internetexchange.FieldFacCount]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldFacCount)
-				fieldSeen[internetexchange.FieldFacCount] = struct{}{}
-			}
-		case "ixfImportRequest":
-			if _, ok := fieldSeen[internetexchange.FieldIxfImportRequest]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldIxfImportRequest)
-				fieldSeen[internetexchange.FieldIxfImportRequest] = struct{}{}
-			}
-		case "ixfImportRequestStatus":
-			if _, ok := fieldSeen[internetexchange.FieldIxfImportRequestStatus]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldIxfImportRequestStatus)
-				fieldSeen[internetexchange.FieldIxfImportRequestStatus] = struct{}{}
-			}
-		case "created":
-			if _, ok := fieldSeen[internetexchange.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldCreated)
-				fieldSeen[internetexchange.FieldCreated] = struct{}{}
-			}
-		case "updated":
-			if _, ok := fieldSeen[internetexchange.FieldUpdated]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldUpdated)
-				fieldSeen[internetexchange.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[internetexchange.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, internetexchange.FieldStatus)
-				fieldSeen[internetexchange.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -1202,21 +1202,6 @@ func (_q *IxFacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx
 				selectedFields = append(selectedFields, ixfacility.FieldIxID)
 				fieldSeen[ixfacility.FieldIxID] = struct{}{}
 			}
-		case "facID":
-			if _, ok := fieldSeen[ixfacility.FieldFacID]; !ok {
-				selectedFields = append(selectedFields, ixfacility.FieldFacID)
-				fieldSeen[ixfacility.FieldFacID] = struct{}{}
-			}
-		case "ixID":
-			if _, ok := fieldSeen[ixfacility.FieldIxID]; !ok {
-				selectedFields = append(selectedFields, ixfacility.FieldIxID)
-				fieldSeen[ixfacility.FieldIxID] = struct{}{}
-			}
-		case "name":
-			if _, ok := fieldSeen[ixfacility.FieldName]; !ok {
-				selectedFields = append(selectedFields, ixfacility.FieldName)
-				fieldSeen[ixfacility.FieldName] = struct{}{}
-			}
 		case "city":
 			if _, ok := fieldSeen[ixfacility.FieldCity]; !ok {
 				selectedFields = append(selectedFields, ixfacility.FieldCity)
@@ -1232,15 +1217,30 @@ func (_q *IxFacilityQuery) collectField(ctx context.Context, oneNode bool, opCtx
 				selectedFields = append(selectedFields, ixfacility.FieldCreated)
 				fieldSeen[ixfacility.FieldCreated] = struct{}{}
 			}
-		case "updated":
-			if _, ok := fieldSeen[ixfacility.FieldUpdated]; !ok {
-				selectedFields = append(selectedFields, ixfacility.FieldUpdated)
-				fieldSeen[ixfacility.FieldUpdated] = struct{}{}
+		case "facID":
+			if _, ok := fieldSeen[ixfacility.FieldFacID]; !ok {
+				selectedFields = append(selectedFields, ixfacility.FieldFacID)
+				fieldSeen[ixfacility.FieldFacID] = struct{}{}
+			}
+		case "ixID":
+			if _, ok := fieldSeen[ixfacility.FieldIxID]; !ok {
+				selectedFields = append(selectedFields, ixfacility.FieldIxID)
+				fieldSeen[ixfacility.FieldIxID] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[ixfacility.FieldName]; !ok {
+				selectedFields = append(selectedFields, ixfacility.FieldName)
+				fieldSeen[ixfacility.FieldName] = struct{}{}
 			}
 		case "status":
 			if _, ok := fieldSeen[ixfacility.FieldStatus]; !ok {
 				selectedFields = append(selectedFields, ixfacility.FieldStatus)
 				fieldSeen[ixfacility.FieldStatus] = struct{}{}
+			}
+		case "updated":
+			if _, ok := fieldSeen[ixfacility.FieldUpdated]; !ok {
+				selectedFields = append(selectedFields, ixfacility.FieldUpdated)
+				fieldSeen[ixfacility.FieldUpdated] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -1345,15 +1345,15 @@ func (_q *IxLanQuery) collectField(ctx context.Context, oneNode bool, opCtx *gra
 			_q.WithNamedNetworkIxLans(alias, func(wq *NetworkIxLanQuery) {
 				*wq = *query
 			})
-		case "ixID":
-			if _, ok := fieldSeen[ixlan.FieldIxID]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldIxID)
-				fieldSeen[ixlan.FieldIxID] = struct{}{}
-			}
 		case "arpSponge":
 			if _, ok := fieldSeen[ixlan.FieldArpSponge]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldArpSponge)
 				fieldSeen[ixlan.FieldArpSponge] = struct{}{}
+			}
+		case "created":
+			if _, ok := fieldSeen[ixlan.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldCreated)
+				fieldSeen[ixlan.FieldCreated] = struct{}{}
 			}
 		case "descr":
 			if _, ok := fieldSeen[ixlan.FieldDescr]; !ok {
@@ -1364,6 +1364,11 @@ func (_q *IxLanQuery) collectField(ctx context.Context, oneNode bool, opCtx *gra
 			if _, ok := fieldSeen[ixlan.FieldDot1qSupport]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldDot1qSupport)
 				fieldSeen[ixlan.FieldDot1qSupport] = struct{}{}
+			}
+		case "ixID":
+			if _, ok := fieldSeen[ixlan.FieldIxID]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldIxID)
+				fieldSeen[ixlan.FieldIxID] = struct{}{}
 			}
 		case "ixfIxpImportEnabled":
 			if _, ok := fieldSeen[ixlan.FieldIxfIxpImportEnabled]; !ok {
@@ -1395,20 +1400,15 @@ func (_q *IxLanQuery) collectField(ctx context.Context, oneNode bool, opCtx *gra
 				selectedFields = append(selectedFields, ixlan.FieldRsAsn)
 				fieldSeen[ixlan.FieldRsAsn] = struct{}{}
 			}
-		case "created":
-			if _, ok := fieldSeen[ixlan.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldCreated)
-				fieldSeen[ixlan.FieldCreated] = struct{}{}
+		case "status":
+			if _, ok := fieldSeen[ixlan.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, ixlan.FieldStatus)
+				fieldSeen[ixlan.FieldStatus] = struct{}{}
 			}
 		case "updated":
 			if _, ok := fieldSeen[ixlan.FieldUpdated]; !ok {
 				selectedFields = append(selectedFields, ixlan.FieldUpdated)
 				fieldSeen[ixlan.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[ixlan.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, ixlan.FieldStatus)
-				fieldSeen[ixlan.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -1487,15 +1487,20 @@ func (_q *IxPrefixQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, ixprefix.FieldIxlanID)
 				fieldSeen[ixprefix.FieldIxlanID] = struct{}{}
 			}
-		case "ixlanID":
-			if _, ok := fieldSeen[ixprefix.FieldIxlanID]; !ok {
-				selectedFields = append(selectedFields, ixprefix.FieldIxlanID)
-				fieldSeen[ixprefix.FieldIxlanID] = struct{}{}
+		case "created":
+			if _, ok := fieldSeen[ixprefix.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, ixprefix.FieldCreated)
+				fieldSeen[ixprefix.FieldCreated] = struct{}{}
 			}
 		case "inDfz":
 			if _, ok := fieldSeen[ixprefix.FieldInDfz]; !ok {
 				selectedFields = append(selectedFields, ixprefix.FieldInDfz)
 				fieldSeen[ixprefix.FieldInDfz] = struct{}{}
+			}
+		case "ixlanID":
+			if _, ok := fieldSeen[ixprefix.FieldIxlanID]; !ok {
+				selectedFields = append(selectedFields, ixprefix.FieldIxlanID)
+				fieldSeen[ixprefix.FieldIxlanID] = struct{}{}
 			}
 		case "prefix":
 			if _, ok := fieldSeen[ixprefix.FieldPrefix]; !ok {
@@ -1507,20 +1512,15 @@ func (_q *IxPrefixQuery) collectField(ctx context.Context, oneNode bool, opCtx *
 				selectedFields = append(selectedFields, ixprefix.FieldProtocol)
 				fieldSeen[ixprefix.FieldProtocol] = struct{}{}
 			}
-		case "created":
-			if _, ok := fieldSeen[ixprefix.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, ixprefix.FieldCreated)
-				fieldSeen[ixprefix.FieldCreated] = struct{}{}
+		case "status":
+			if _, ok := fieldSeen[ixprefix.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, ixprefix.FieldStatus)
+				fieldSeen[ixprefix.FieldStatus] = struct{}{}
 			}
 		case "updated":
 			if _, ok := fieldSeen[ixprefix.FieldUpdated]; !ok {
 				selectedFields = append(selectedFields, ixprefix.FieldUpdated)
 				fieldSeen[ixprefix.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[ixprefix.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, ixprefix.FieldStatus)
-				fieldSeen[ixprefix.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -1638,11 +1638,6 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 			_q.WithNamedPocs(alias, func(wq *PocQuery) {
 				*wq = *query
 			})
-		case "orgID":
-			if _, ok := fieldSeen[network.FieldOrgID]; !ok {
-				selectedFields = append(selectedFields, network.FieldOrgID)
-				fieldSeen[network.FieldOrgID] = struct{}{}
-			}
 		case "aka":
 			if _, ok := fieldSeen[network.FieldAka]; !ok {
 				selectedFields = append(selectedFields, network.FieldAka)
@@ -1657,6 +1652,16 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 			if _, ok := fieldSeen[network.FieldAsn]; !ok {
 				selectedFields = append(selectedFields, network.FieldAsn)
 				fieldSeen[network.FieldAsn] = struct{}{}
+			}
+		case "created":
+			if _, ok := fieldSeen[network.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, network.FieldCreated)
+				fieldSeen[network.FieldCreated] = struct{}{}
+			}
+		case "facCount":
+			if _, ok := fieldSeen[network.FieldFacCount]; !ok {
+				selectedFields = append(selectedFields, network.FieldFacCount)
+				fieldSeen[network.FieldFacCount] = struct{}{}
 			}
 		case "infoIpv6":
 			if _, ok := fieldSeen[network.FieldInfoIpv6]; !ok {
@@ -1718,6 +1723,11 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldIrrAsSet)
 				fieldSeen[network.FieldIrrAsSet] = struct{}{}
 			}
+		case "ixCount":
+			if _, ok := fieldSeen[network.FieldIxCount]; !ok {
+				selectedFields = append(selectedFields, network.FieldIxCount)
+				fieldSeen[network.FieldIxCount] = struct{}{}
+			}
 		case "ixpUpdateExclude":
 			if _, ok := fieldSeen[network.FieldIxpUpdateExclude]; !ok {
 				selectedFields = append(selectedFields, network.FieldIxpUpdateExclude)
@@ -1743,10 +1753,30 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldNameLong)
 				fieldSeen[network.FieldNameLong] = struct{}{}
 			}
+		case "netfacUpdated":
+			if _, ok := fieldSeen[network.FieldNetfacUpdated]; !ok {
+				selectedFields = append(selectedFields, network.FieldNetfacUpdated)
+				fieldSeen[network.FieldNetfacUpdated] = struct{}{}
+			}
+		case "netixlanUpdated":
+			if _, ok := fieldSeen[network.FieldNetixlanUpdated]; !ok {
+				selectedFields = append(selectedFields, network.FieldNetixlanUpdated)
+				fieldSeen[network.FieldNetixlanUpdated] = struct{}{}
+			}
 		case "notes":
 			if _, ok := fieldSeen[network.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, network.FieldNotes)
 				fieldSeen[network.FieldNotes] = struct{}{}
+			}
+		case "orgID":
+			if _, ok := fieldSeen[network.FieldOrgID]; !ok {
+				selectedFields = append(selectedFields, network.FieldOrgID)
+				fieldSeen[network.FieldOrgID] = struct{}{}
+			}
+		case "pocUpdated":
+			if _, ok := fieldSeen[network.FieldPocUpdated]; !ok {
+				selectedFields = append(selectedFields, network.FieldPocUpdated)
+				fieldSeen[network.FieldPocUpdated] = struct{}{}
 			}
 		case "policyContracts":
 			if _, ok := fieldSeen[network.FieldPolicyContracts]; !ok {
@@ -1793,55 +1823,25 @@ func (_q *NetworkQuery) collectField(ctx context.Context, oneNode bool, opCtx *g
 				selectedFields = append(selectedFields, network.FieldSocialMedia)
 				fieldSeen[network.FieldSocialMedia] = struct{}{}
 			}
+		case "status":
+			if _, ok := fieldSeen[network.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, network.FieldStatus)
+				fieldSeen[network.FieldStatus] = struct{}{}
+			}
 		case "statusDashboard":
 			if _, ok := fieldSeen[network.FieldStatusDashboard]; !ok {
 				selectedFields = append(selectedFields, network.FieldStatusDashboard)
 				fieldSeen[network.FieldStatusDashboard] = struct{}{}
-			}
-		case "website":
-			if _, ok := fieldSeen[network.FieldWebsite]; !ok {
-				selectedFields = append(selectedFields, network.FieldWebsite)
-				fieldSeen[network.FieldWebsite] = struct{}{}
-			}
-		case "ixCount":
-			if _, ok := fieldSeen[network.FieldIxCount]; !ok {
-				selectedFields = append(selectedFields, network.FieldIxCount)
-				fieldSeen[network.FieldIxCount] = struct{}{}
-			}
-		case "facCount":
-			if _, ok := fieldSeen[network.FieldFacCount]; !ok {
-				selectedFields = append(selectedFields, network.FieldFacCount)
-				fieldSeen[network.FieldFacCount] = struct{}{}
-			}
-		case "netixlanUpdated":
-			if _, ok := fieldSeen[network.FieldNetixlanUpdated]; !ok {
-				selectedFields = append(selectedFields, network.FieldNetixlanUpdated)
-				fieldSeen[network.FieldNetixlanUpdated] = struct{}{}
-			}
-		case "netfacUpdated":
-			if _, ok := fieldSeen[network.FieldNetfacUpdated]; !ok {
-				selectedFields = append(selectedFields, network.FieldNetfacUpdated)
-				fieldSeen[network.FieldNetfacUpdated] = struct{}{}
-			}
-		case "pocUpdated":
-			if _, ok := fieldSeen[network.FieldPocUpdated]; !ok {
-				selectedFields = append(selectedFields, network.FieldPocUpdated)
-				fieldSeen[network.FieldPocUpdated] = struct{}{}
-			}
-		case "created":
-			if _, ok := fieldSeen[network.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, network.FieldCreated)
-				fieldSeen[network.FieldCreated] = struct{}{}
 			}
 		case "updated":
 			if _, ok := fieldSeen[network.FieldUpdated]; !ok {
 				selectedFields = append(selectedFields, network.FieldUpdated)
 				fieldSeen[network.FieldUpdated] = struct{}{}
 			}
-		case "status":
-			if _, ok := fieldSeen[network.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, network.FieldStatus)
-				fieldSeen[network.FieldStatus] = struct{}{}
+		case "website":
+			if _, ok := fieldSeen[network.FieldWebsite]; !ok {
+				selectedFields = append(selectedFields, network.FieldWebsite)
+				fieldSeen[network.FieldWebsite] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -1957,26 +1957,6 @@ func (_q *NetworkFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 				selectedFields = append(selectedFields, networkfacility.FieldNetID)
 				fieldSeen[networkfacility.FieldNetID] = struct{}{}
 			}
-		case "facID":
-			if _, ok := fieldSeen[networkfacility.FieldFacID]; !ok {
-				selectedFields = append(selectedFields, networkfacility.FieldFacID)
-				fieldSeen[networkfacility.FieldFacID] = struct{}{}
-			}
-		case "netID":
-			if _, ok := fieldSeen[networkfacility.FieldNetID]; !ok {
-				selectedFields = append(selectedFields, networkfacility.FieldNetID)
-				fieldSeen[networkfacility.FieldNetID] = struct{}{}
-			}
-		case "localAsn":
-			if _, ok := fieldSeen[networkfacility.FieldLocalAsn]; !ok {
-				selectedFields = append(selectedFields, networkfacility.FieldLocalAsn)
-				fieldSeen[networkfacility.FieldLocalAsn] = struct{}{}
-			}
-		case "name":
-			if _, ok := fieldSeen[networkfacility.FieldName]; !ok {
-				selectedFields = append(selectedFields, networkfacility.FieldName)
-				fieldSeen[networkfacility.FieldName] = struct{}{}
-			}
 		case "city":
 			if _, ok := fieldSeen[networkfacility.FieldCity]; !ok {
 				selectedFields = append(selectedFields, networkfacility.FieldCity)
@@ -1992,15 +1972,35 @@ func (_q *NetworkFacilityQuery) collectField(ctx context.Context, oneNode bool, 
 				selectedFields = append(selectedFields, networkfacility.FieldCreated)
 				fieldSeen[networkfacility.FieldCreated] = struct{}{}
 			}
-		case "updated":
-			if _, ok := fieldSeen[networkfacility.FieldUpdated]; !ok {
-				selectedFields = append(selectedFields, networkfacility.FieldUpdated)
-				fieldSeen[networkfacility.FieldUpdated] = struct{}{}
+		case "facID":
+			if _, ok := fieldSeen[networkfacility.FieldFacID]; !ok {
+				selectedFields = append(selectedFields, networkfacility.FieldFacID)
+				fieldSeen[networkfacility.FieldFacID] = struct{}{}
+			}
+		case "localAsn":
+			if _, ok := fieldSeen[networkfacility.FieldLocalAsn]; !ok {
+				selectedFields = append(selectedFields, networkfacility.FieldLocalAsn)
+				fieldSeen[networkfacility.FieldLocalAsn] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[networkfacility.FieldName]; !ok {
+				selectedFields = append(selectedFields, networkfacility.FieldName)
+				fieldSeen[networkfacility.FieldName] = struct{}{}
+			}
+		case "netID":
+			if _, ok := fieldSeen[networkfacility.FieldNetID]; !ok {
+				selectedFields = append(selectedFields, networkfacility.FieldNetID)
+				fieldSeen[networkfacility.FieldNetID] = struct{}{}
 			}
 		case "status":
 			if _, ok := fieldSeen[networkfacility.FieldStatus]; !ok {
 				selectedFields = append(selectedFields, networkfacility.FieldStatus)
 				fieldSeen[networkfacility.FieldStatus] = struct{}{}
+			}
+		case "updated":
+			if _, ok := fieldSeen[networkfacility.FieldUpdated]; !ok {
+				selectedFields = append(selectedFields, networkfacility.FieldUpdated)
+				fieldSeen[networkfacility.FieldUpdated] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -2094,26 +2094,6 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, networkixlan.FieldNetID)
 				fieldSeen[networkixlan.FieldNetID] = struct{}{}
 			}
-		case "ixSideID":
-			if _, ok := fieldSeen[networkixlan.FieldIxSideID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldIxSideID)
-				fieldSeen[networkixlan.FieldIxSideID] = struct{}{}
-			}
-		case "ixlanID":
-			if _, ok := fieldSeen[networkixlan.FieldIxlanID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldIxlanID)
-				fieldSeen[networkixlan.FieldIxlanID] = struct{}{}
-			}
-		case "netID":
-			if _, ok := fieldSeen[networkixlan.FieldNetID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldNetID)
-				fieldSeen[networkixlan.FieldNetID] = struct{}{}
-			}
-		case "netSideID":
-			if _, ok := fieldSeen[networkixlan.FieldNetSideID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldNetSideID)
-				fieldSeen[networkixlan.FieldNetSideID] = struct{}{}
-			}
 		case "asn":
 			if _, ok := fieldSeen[networkixlan.FieldAsn]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldAsn)
@@ -2123,6 +2103,11 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 			if _, ok := fieldSeen[networkixlan.FieldBfdSupport]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldBfdSupport)
 				fieldSeen[networkixlan.FieldBfdSupport] = struct{}{}
+			}
+		case "created":
+			if _, ok := fieldSeen[networkixlan.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldCreated)
+				fieldSeen[networkixlan.FieldCreated] = struct{}{}
 			}
 		case "ipaddr4":
 			if _, ok := fieldSeen[networkixlan.FieldIpaddr4]; !ok {
@@ -2139,6 +2124,36 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, networkixlan.FieldIsRsPeer)
 				fieldSeen[networkixlan.FieldIsRsPeer] = struct{}{}
 			}
+		case "ixID":
+			if _, ok := fieldSeen[networkixlan.FieldIxID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldIxID)
+				fieldSeen[networkixlan.FieldIxID] = struct{}{}
+			}
+		case "ixSideID":
+			if _, ok := fieldSeen[networkixlan.FieldIxSideID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldIxSideID)
+				fieldSeen[networkixlan.FieldIxSideID] = struct{}{}
+			}
+		case "ixlanID":
+			if _, ok := fieldSeen[networkixlan.FieldIxlanID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldIxlanID)
+				fieldSeen[networkixlan.FieldIxlanID] = struct{}{}
+			}
+		case "name":
+			if _, ok := fieldSeen[networkixlan.FieldName]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldName)
+				fieldSeen[networkixlan.FieldName] = struct{}{}
+			}
+		case "netID":
+			if _, ok := fieldSeen[networkixlan.FieldNetID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldNetID)
+				fieldSeen[networkixlan.FieldNetID] = struct{}{}
+			}
+		case "netSideID":
+			if _, ok := fieldSeen[networkixlan.FieldNetSideID]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldNetSideID)
+				fieldSeen[networkixlan.FieldNetSideID] = struct{}{}
+			}
 		case "notes":
 			if _, ok := fieldSeen[networkixlan.FieldNotes]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldNotes)
@@ -2154,30 +2169,15 @@ func (_q *NetworkIxLanQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, networkixlan.FieldSpeed)
 				fieldSeen[networkixlan.FieldSpeed] = struct{}{}
 			}
-		case "ixID":
-			if _, ok := fieldSeen[networkixlan.FieldIxID]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldIxID)
-				fieldSeen[networkixlan.FieldIxID] = struct{}{}
-			}
-		case "name":
-			if _, ok := fieldSeen[networkixlan.FieldName]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldName)
-				fieldSeen[networkixlan.FieldName] = struct{}{}
-			}
-		case "created":
-			if _, ok := fieldSeen[networkixlan.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldCreated)
-				fieldSeen[networkixlan.FieldCreated] = struct{}{}
+		case "status":
+			if _, ok := fieldSeen[networkixlan.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, networkixlan.FieldStatus)
+				fieldSeen[networkixlan.FieldStatus] = struct{}{}
 			}
 		case "updated":
 			if _, ok := fieldSeen[networkixlan.FieldUpdated]; !ok {
 				selectedFields = append(selectedFields, networkixlan.FieldUpdated)
 				fieldSeen[networkixlan.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[networkixlan.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, networkixlan.FieldStatus)
-				fieldSeen[networkixlan.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -2331,6 +2331,11 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, organization.FieldCountry)
 				fieldSeen[organization.FieldCountry] = struct{}{}
 			}
+		case "created":
+			if _, ok := fieldSeen[organization.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, organization.FieldCreated)
+				fieldSeen[organization.FieldCreated] = struct{}{}
+			}
 		case "floor":
 			if _, ok := fieldSeen[organization.FieldFloor]; !ok {
 				selectedFields = append(selectedFields, organization.FieldFloor)
@@ -2376,10 +2381,20 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 				selectedFields = append(selectedFields, organization.FieldState)
 				fieldSeen[organization.FieldState] = struct{}{}
 			}
+		case "status":
+			if _, ok := fieldSeen[organization.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, organization.FieldStatus)
+				fieldSeen[organization.FieldStatus] = struct{}{}
+			}
 		case "suite":
 			if _, ok := fieldSeen[organization.FieldSuite]; !ok {
 				selectedFields = append(selectedFields, organization.FieldSuite)
 				fieldSeen[organization.FieldSuite] = struct{}{}
+			}
+		case "updated":
+			if _, ok := fieldSeen[organization.FieldUpdated]; !ok {
+				selectedFields = append(selectedFields, organization.FieldUpdated)
+				fieldSeen[organization.FieldUpdated] = struct{}{}
 			}
 		case "website":
 			if _, ok := fieldSeen[organization.FieldWebsite]; !ok {
@@ -2390,21 +2405,6 @@ func (_q *OrganizationQuery) collectField(ctx context.Context, oneNode bool, opC
 			if _, ok := fieldSeen[organization.FieldZipcode]; !ok {
 				selectedFields = append(selectedFields, organization.FieldZipcode)
 				fieldSeen[organization.FieldZipcode] = struct{}{}
-			}
-		case "created":
-			if _, ok := fieldSeen[organization.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, organization.FieldCreated)
-				fieldSeen[organization.FieldCreated] = struct{}{}
-			}
-		case "updated":
-			if _, ok := fieldSeen[organization.FieldUpdated]; !ok {
-				selectedFields = append(selectedFields, organization.FieldUpdated)
-				fieldSeen[organization.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[organization.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, organization.FieldStatus)
-				fieldSeen[organization.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
@@ -2505,10 +2505,10 @@ func (_q *PocQuery) collectField(ctx context.Context, oneNode bool, opCtx *graph
 				selectedFields = append(selectedFields, poc.FieldNetID)
 				fieldSeen[poc.FieldNetID] = struct{}{}
 			}
-		case "netID":
-			if _, ok := fieldSeen[poc.FieldNetID]; !ok {
-				selectedFields = append(selectedFields, poc.FieldNetID)
-				fieldSeen[poc.FieldNetID] = struct{}{}
+		case "created":
+			if _, ok := fieldSeen[poc.FieldCreated]; !ok {
+				selectedFields = append(selectedFields, poc.FieldCreated)
+				fieldSeen[poc.FieldCreated] = struct{}{}
 			}
 		case "email":
 			if _, ok := fieldSeen[poc.FieldEmail]; !ok {
@@ -2520,6 +2520,11 @@ func (_q *PocQuery) collectField(ctx context.Context, oneNode bool, opCtx *graph
 				selectedFields = append(selectedFields, poc.FieldName)
 				fieldSeen[poc.FieldName] = struct{}{}
 			}
+		case "netID":
+			if _, ok := fieldSeen[poc.FieldNetID]; !ok {
+				selectedFields = append(selectedFields, poc.FieldNetID)
+				fieldSeen[poc.FieldNetID] = struct{}{}
+			}
 		case "phone":
 			if _, ok := fieldSeen[poc.FieldPhone]; !ok {
 				selectedFields = append(selectedFields, poc.FieldPhone)
@@ -2530,6 +2535,16 @@ func (_q *PocQuery) collectField(ctx context.Context, oneNode bool, opCtx *graph
 				selectedFields = append(selectedFields, poc.FieldRole)
 				fieldSeen[poc.FieldRole] = struct{}{}
 			}
+		case "status":
+			if _, ok := fieldSeen[poc.FieldStatus]; !ok {
+				selectedFields = append(selectedFields, poc.FieldStatus)
+				fieldSeen[poc.FieldStatus] = struct{}{}
+			}
+		case "updated":
+			if _, ok := fieldSeen[poc.FieldUpdated]; !ok {
+				selectedFields = append(selectedFields, poc.FieldUpdated)
+				fieldSeen[poc.FieldUpdated] = struct{}{}
+			}
 		case "url":
 			if _, ok := fieldSeen[poc.FieldURL]; !ok {
 				selectedFields = append(selectedFields, poc.FieldURL)
@@ -2539,21 +2554,6 @@ func (_q *PocQuery) collectField(ctx context.Context, oneNode bool, opCtx *graph
 			if _, ok := fieldSeen[poc.FieldVisible]; !ok {
 				selectedFields = append(selectedFields, poc.FieldVisible)
 				fieldSeen[poc.FieldVisible] = struct{}{}
-			}
-		case "created":
-			if _, ok := fieldSeen[poc.FieldCreated]; !ok {
-				selectedFields = append(selectedFields, poc.FieldCreated)
-				fieldSeen[poc.FieldCreated] = struct{}{}
-			}
-		case "updated":
-			if _, ok := fieldSeen[poc.FieldUpdated]; !ok {
-				selectedFields = append(selectedFields, poc.FieldUpdated)
-				fieldSeen[poc.FieldUpdated] = struct{}{}
-			}
-		case "status":
-			if _, ok := fieldSeen[poc.FieldStatus]; !ok {
-				selectedFields = append(selectedFields, poc.FieldStatus)
-				fieldSeen[poc.FieldStatus] = struct{}{}
 			}
 		case "id":
 		case "__typename":
