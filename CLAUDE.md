@@ -2,7 +2,7 @@
 
 **PeeringDB Plus**
 
-A high-performance, globally distributed, read-only mirror of PeeringDB data. It syncs PeeringDB objects incrementally by default (full re-fetch is an operator escape-hatch) on a regular schedule (default 1h, 15m when authenticated, or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and presents the data through modern API surfaces: GraphQL, gRPC, and OpenAPI-compliant REST. Built in Go using entgo as the ORM.
+A high-performance, globally distributed, read-only mirror of PeeringDB data. It syncs PeeringDB objects incrementally by default (a full re-fetch runs once per `PDBPLUS_FULL_SYNC_INTERVAL`, default 24h, or on operator request) on a regular schedule (default 1h, 15m when authenticated, or on-demand), stores them in SQLite on LiteFS for edge-local reads on Fly.io, and serves the data through six read surfaces: the PeeringDB-compatible `/api`, REST, GraphQL, ConnectRPC, MCP, and a Web UI. Built in Go using entgo as the ORM.
 
 **Core Value:** Fast, reliable access to PeeringDB data from anywhere in the world, served from the nearest edge node with low latency.
 
@@ -16,7 +16,7 @@ A high-performance, globally distributed, read-only mirror of PeeringDB data. It
 - **Data fidelity**: Must handle PeeringDB's actual API responses, not their documented spec
 
 ## Documentation
-- Canonical user/operator/contributor docs live in `docs/` (`ARCHITECTURE.md`, `CONFIGURATION.md`, `GETTING-STARTED.md`, `DEVELOPMENT.md`, `TESTING.md`, `API.md`, `DEPLOYMENT.md`) and `CONTRIBUTING.md` at the root. Read the relevant doc before re-deriving information from code or duplicating content into a response.
+- Canonical user/operator/contributor docs live in `docs/` (`ARCHITECTURE.md`, `CONFIGURATION.md`, `GETTING-STARTED.md`, `DEVELOPMENT.md`, `TESTING.md`, `API.md`, `DEPLOYMENT.md`, `meta-generated-behavior.md`) and `CONTRIBUTING.md` at the root; operator tools: `cmd/loadtest/README.md`, `deploy/grafana/alerts/README.md`. Read the relevant doc before re-deriving information from code or duplicating content into a response.
 - `CLAUDE.md` is Claude's project memory, not user-facing docs. Keep it out of any docs-generation workflow; edit it directly.
 
 ## Technology Stack
@@ -288,12 +288,13 @@ End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that
 **Prod debugging:** image ships with `sqlite3` — `fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'`. Replicas expose the FUSE path read-only.
 ## Architecture
 
-### API Surfaces (5)
+### API Surfaces (6)
 - **Web UI**: `/ui/` — templ + htmx + Tailwind CSS (search, detail pages, ASN comparison). Content-negotiates: browsers get HTML, plain User-Agents (curl, wget, scripts) get ANSI-styled terminal text via `internal/web/termrender`. To smoke-test with curl, either send `-H 'User-Agent: Mozilla/5.0'` or strip ANSI: `sed 's/\x1b\[[0-9;]*[mGKH]//g'`.
 - **GraphQL**: `/graphql` — gqlgen via entgql, interactive playground
 - **REST**: `/rest/v1/` — entrest, OpenAPI-compliant
 - **PeeringDB Compat**: `/api/` — drop-in replacement for PeeringDB API
-- **ConnectRPC**: `/peeringdb.v1.*/` — Get/List RPCs for all 13 types with typed filtering, reflection, health check
+- **ConnectRPC**: `/peeringdb.v1.*/`: Get, List and Stream RPCs for all 13 types with typed filtering, reflection, health check
+- **MCP**: `/mcp` (`internal/mcpserver`): read-only tools over `internal/catalog` DTOs, plus `lookup_ip` (raw ent rows); `internal/agentdocs` serves the skill, `/.well-known/` files and `llms.txt`
 
 ### Key Packages
 
