@@ -189,8 +189,11 @@ func TestParity_Limit(t *testing.T) {
 		c := testutil.SetupClient(t)
 		srv := newTestServer(t, c)
 
-		// Both error classes carry the same problem+json envelope:
-		// a 400 from a malformed ?limit= and a 404 from a missing PK.
+		// Every error class carries the same problem+json envelope:
+		// a 400 from a malformed ?limit=, a 404 from a missing PK, and
+		// the 404 of a unique list query with no match (upstream body
+		// {"data": [], "meta": {"error": "Entity not found"}},
+		// rest.py:809-815).
 		for _, tc := range []struct {
 			name       string
 			path       string
@@ -198,6 +201,7 @@ func TestParity_Limit(t *testing.T) {
 		}{
 			{"bad_limit_400", "/api/net?limit=abc", http.StatusBadRequest},
 			{"missing_pk_404", "/api/net/999999", http.StatusNotFound},
+			{"unique_list_miss_404", "/api/net?id=999999", http.StatusNotFound},
 		} {
 			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+tc.path, nil)
 			if err != nil {

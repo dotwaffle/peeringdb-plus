@@ -320,7 +320,8 @@ for the rationale.
 as a single JSON array via SQLite's `json_each()`,
 sidestepping the variable-binding limit.
 An empty `__in` (`?asn__in=`) short-circuits the request to an empty `data: []`
-envelope without running SQL.
+envelope without running SQL
+(a `404` if the request is a lookup by `id` or `asn`, see § Lookup by `id` or `asn`).
 Malformed `__in` values for typed fields
 (e.g. non-integer in `asn__in=`) return `400`.
 
@@ -339,6 +340,21 @@ An upstream netixlan list can return its rows in a different order
 (see § Known Divergences).
 Up to v1.27.0, a list without `?since` was ordered by `updated`,
 then `created`, then `id`, newest first.
+
+### Lookup by `id` or `asn`
+
+A list request with the `id` key on any type,
+or with the `asn` key on `/api/net`, is a lookup of one object.
+If the list is empty, the response is `404` with the detail `Entity not found`,
+as upstream (2.83.0 `rest.py:809-815`, `serializers.py:962-967` and `:3815-3820`).
+Only the key counts.
+Any other filter, `skip`, `limit` or `since` that empties the list also causes the `404`.
+`id__in`, `asn__in`, and `asn` on other types are ordinary filters,
+and an empty result is `200` with an empty `data` array.
+A request with `?page=` does not get the `404`, as upstream.
+The body is problem+json, like every other error (see § Known Divergences).
+A value that is not an integer, for example `?id=abc`, returns `400` (see § Known Divergences).
+Up to v1.27.0, these requests returned `200` with an empty `data` array.
 
 ### Diacritic-insensitive substring / prefix search
 
@@ -595,7 +611,7 @@ Typical status codes:
 | Status | Cause |
 |--------|-------|
 | `400` | Invalid filter operator, malformed `since`, non-integer ID, filter type mismatch, malformed `__in` value |
-| `404` | Unknown `{type}`, missing `{id}`, or detail GET on a tombstoned row |
+| `404` | Unknown `{type}`, missing `{id}`, detail GET on a tombstoned row, or an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn` |
 | `413` | Pre-flight response memory budget exceeded — see "Response memory budget" above |
 | `500` | Database error (details redacted from response body, full error logged) |
 | `503` | Concurrent in-flight response pool exhausted (transient; `Retry-After: 1`) |
@@ -1059,8 +1075,10 @@ see `internal/pdbcompat/depth_test.go`.
 | Relation keys that upstream ignores: 2-hop keys, for example `ixpfx?ixlan__ix__id=`, `netixlan?net__org__status=` and `net?netfac__fac__name=`; reverse keys named by the mirror's traversal key, for example `org?net__status=`; and the field-level `FILTER_EXCLUDE` entries `org__latitude`, `org__longitude` and `ixlan__descr`, for example `fac?org__latitude__gt=` | Resolves one relation hop: `queryable_relations()` adds `<fk>__<field>` and `<related_name>__<field>` (2.83.0 `serializers.py:970-996`), and a `prepare_query` handles the keys whose first segment is in its seed list (`:614-656`). Other keys are ignored, and the list is unfiltered: `org?net__status=` becomes `network__status` (`serializers.py:403-441`), which is not a filter key (`rest.py:525-528`, `:670`). For a 2-hop key whose first segment a `prepare_query` handles, upstream drops the third segment and filters the relation on the value, so `net?netfac__fac__name=X` compares the facility id with `X` (a `400` for a non-numeric `X`). A `prepare_query` relation filter also keeps only related rows with status `ok` (`models.py:223-234`), whatever `?<rel>__status=` asks for. | Resolves each key through the Path A allowlist or the Path B edges and filters on the related rows as given, without a status check on them. | A 2-hop key and a reverse key have one clear meaning on the mirror's edges, and the extra filters cost one subquery each. Locked by `TestParity_Traversal/DIVERGENCE_relation_keys_upstream_ignores_resolve` and `TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`. | v1.16 (registered 2026-09-23) |
 | Reverse keys by upstream's `<related_name>`, for example `ix?ixlan_set__status=` and `org?net_set__status=` | Filters on the related rows: `queryable_relations()` adds `<related_name>__<field>` for each reverse relation (2.83.0 `serializers.py:970-996`, related names at `models.py:3308`, `:5322`). | Silently ignored: HTTP 200 with the unfiltered list. The mirror names a reverse edge by its traversal key instead (`ix?ixlan__status=`). | The traversal keys cover the same relations. Accepting both names would double the key surface for no new query. Locked by `TestParity_Traversal/DIVERGENCE_reverse_set_keys_silent_ignore`. | v1.16 (registered 2026-09-23) |
 | `?<field>__iexact=`, `__icontains=` and `__istartswith=`, for example `netixlan?status__iexact=OK` | Ignored. The operator regex (2.83.0 `rest.py:616`) knows only `lt`, `lte`, `gt`, `gte`, `contains`, `startswith` and `in`, so a key with another suffix is not a filter key (`:628-630`, `:670`), and the list is unfiltered. | Applies the suffix: an exact, substring or prefix match that ignores case. | These suffixes have one clear meaning, and `contains` and `startswith` already ignore case. The metadata keys accept only the upstream operators (see § Metadata filters). Locked by `TestParity_Status/DIVERGENCE_i_operator_suffixes_filter`. | v1.16 (registered 2026-09-23) |
-| Filters on a single-object GET, for example `/api/netixlan/<id>?status=ok` for a `not-operational` row or `/api/net/<id>?name=<other>` | Applies them. `retrieve` (2.83.0 `rest.py:849-855`) calls DRF `get_object`, which filters `get_queryset()`: the same query-parameter filters as a list (`rest.py:565-703`) plus the live-or-pending PK status set (`:750`). A filter that excludes the object returns `404`. | Reads only `?depth=` and `?fields=` on a detail request. Every other key is ignored, and the object is returned. | A detail request stays a plain PK lookup. To test one object against a filter, list with `?id=<id>&<filter>=`. Locked by `TestParity_Status/DIVERGENCE_detail_ignores_filters`. | v1.1 (registered 2026-09-23) |
+| Filters on a single-object GET, for example `/api/netixlan/<id>?status=ok` for a `not-operational` row or `/api/net/<id>?name=<other>` | Applies them. `retrieve` (2.83.0 `rest.py:849-855`) calls DRF `get_object`, which filters `get_queryset()`: the same query-parameter filters as a list (`rest.py:565-703`) plus the live-or-pending PK status set (`:750`). A filter that excludes the object returns `404`. | Reads only `?depth=` and `?fields=` on a detail request. Every other key is ignored, and the object is returned. | A detail request stays a plain PK lookup. To test one object against a filter, list with `?id=<id>&<filter>=`, which returns `404` when the filter excludes the object. Locked by `TestParity_Status/DIVERGENCE_detail_ignores_filters`. | v1.1 (registered 2026-09-23) |
 | `/api/netixlan` without `?since` | Returns the rows in the order of the MySQL access path, because the query has no `ORDER BY` (2.83.0 `rest.py:747-748`). MySQL can read the `status IN ('ok', 'not-operational')` filter through the `netixlan_status` index (`models.py:6111`), which returns the `not-operational` rows first. A live capture on 2026-09-23 of `/api/netixlan?limit=2` returned two `not-operational` rows ahead of `ok` rows with lower ids. Other filters can also change the upstream order when MySQL reads the rows through a different index. | Always returns `id` order, ascending (see § List order). | An order that depends on the query plan cannot be reproduced, and it changes when the upstream data or indexes change. A fixed order keeps `skip`/`limit` pages stable. Locked by `TestParity_Ordering/DIVERGENCE_netixlan_list_order_is_id_asc`. | v1.28.0 (registered 2026-09-23) |
+| Anonymous `/api/poc?id=<id>` for a contact that is not `Public` | Returns `200` with an empty `data` array. The unique-query `404` check runs before `APIPermissionsApplicator` removes the contact (2.83.0 `rest.py:809-821`), so the status shows that the contact exists: a missing id gets `404`. | Returns `404` (`Entity not found`), the same as for a missing id. | The `poc.visible` privacy policy removes the contact in the query, before the check, so the status does not show whether a hidden contact exists. The mirror is stricter than upstream here. Locked by `TestParity_Status/DIVERGENCE_poc_hidden_id_returns_404`. | v1.28.0 (registered 2026-09-23) |
+| `?id=` on any type, or `?asn=` on `/api/net`, with a value that is not an integer, for example `?id=abc` or `?asn=` | Returns `404` (`Entity not found`). A plain key on a field that is not a relation, a date or a boolean becomes an `__iexact` filter (2.83.0 `rest.py:670-683`). Django does not convert an `iexact` value to an integer, so the query matches no row, and the key makes the request a unique query that gets the `404` (`rest.py:809-815`). | Returns `400` (`convert "abc" to int`), as for every other integer filter with a value that is not an integer. | The mirror checks the type of each integer filter value before it runs the query, and reports a bad value as a client error. Locked by `TestParity_Status/DIVERGENCE_unique_key_non_integer_returns_400`. | v1.1 (registered 2026-09-23) |
 
 ## Validation Notes
 

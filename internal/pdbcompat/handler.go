@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -173,6 +174,7 @@ func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 // heap-delta sampler lives in dispatch (shared with serveDetail).
 func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
+	unique := isUniqueQuery(tc.Name, params)
 
 	// List-depth guardrail: list + ?depth= is not supported. Silently
 	// ignore the param here so callers get normal list behaviour rather
@@ -360,6 +362,10 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		// (servedRowCount = max(total-skip,0)) cannot see. The COUNT(*)
 		// above is cheap and bounded; the sort is not.
 		if count == 0 {
+			if unique {
+				writeEntityNotFound(w, r)
+				return
+			}
 			if err := StreamListResponse(r.Context(), w, struct{}{}, iterFromSlice(nil)); err != nil {
 				slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
 					slog.String("endpoint", r.URL.Path),
@@ -388,6 +394,13 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// An empty result also covers the empty-__in short-circuit, which
+	// skips the budget count above.
+	if len(results) == 0 && unique {
+		writeEntityNotFound(w, r)
+		return
+	}
+
 	// Apply field projection after retrieval.
 	if len(fields) > 0 {
 		results = applyFieldProjection(results, fields)
@@ -412,6 +425,38 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		)
 		return
 	}
+}
+
+// isUniqueQuery reports whether a list request names one object, so
+// that an empty result is a 404 instead of an empty list. It mirrors
+// upstream is_unique_query: the "id" key on every type (2.83.0
+// serializers.py:962-967), and also the "asn" key on net
+// (serializers.py:3815-3820). Only the key counts, whatever its value
+// and whatever the other filters, skip, limit and since are.
+//
+// Upstream skips the 404 when ?page= applies, because the response
+// data is then the pagination object and never empty (rest.py:799-815,
+// pagination.py:35-50). The mirror does not implement ?page=, but it
+// keeps this exception so that a request with ?page= gets the same
+// status as upstream.
+func isUniqueQuery(typeName string, params url.Values) bool {
+	if params.Has("page") {
+		return false
+	}
+	return params.Has("id") || (typeName == peeringdb.TypeNet && params.Has("asn"))
+}
+
+// writeEntityNotFound writes the 404 for a unique list query that
+// matched no row. Upstream sends {"data": [], "meta": {"error": "Entity
+// not found"}} (2.83.0 rest.py:809-815, renderers.py:134-146). The
+// mirror sends the same detail as problem+json, like every other /api
+// error (see docs/API.md § Known Divergences).
+func writeEntityNotFound(w http.ResponseWriter, r *http.Request) {
+	WriteProblem(w, httperr.WriteProblemInput{
+		Status:   http.StatusNotFound,
+		Detail:   "Entity not found",
+		Instance: r.URL.Path,
+	})
 }
 
 // serveDetail handles detail requests for a single object by ID.

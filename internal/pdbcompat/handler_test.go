@@ -787,6 +787,40 @@ func TestResultsSortedByDefaultOrder(t *testing.T) {
 	}
 }
 
+// TestServeList_UniqueQueryEmptyExits checks that the unique-query 404
+// fires on each exit that serves an empty list: the empty-__in
+// short-circuit, the budget COUNT(*) of 0, and an empty List result.
+// HEAD gets the same status as GET. The parity suite
+// (parity/status_test.go) holds the upstream citations.
+func TestServeList_UniqueQueryEmptyExits(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	for _, budget := range []int64{0, 1 << 30} {
+		mux := http.NewServeMux()
+		NewHandler(client, budget).Register(mux)
+		for _, tc := range []struct {
+			method string
+			path   string
+			want   int
+		}{
+			{http.MethodGet, "/api/net?id=1&asn__in=", http.StatusNotFound},
+			{http.MethodGet, "/api/net?id=1", http.StatusNotFound},
+			{http.MethodGet, "/api/net?asn=1", http.StatusNotFound},
+			{http.MethodHead, "/api/net?id=1", http.StatusNotFound},
+			{http.MethodGet, "/api/fac?asn=1", http.StatusOK},
+			{http.MethodGet, "/api/net?name__in=", http.StatusOK},
+		} {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != tc.want {
+				t.Errorf("budget=%d %s %s: status = %d, want %d; body=%s",
+					budget, tc.method, tc.path, rec.Code, tc.want, rec.Body.String())
+			}
+		}
+	}
+}
+
 func TestSearch(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)

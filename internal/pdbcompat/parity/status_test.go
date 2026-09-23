@@ -3,10 +3,13 @@ package parity
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -562,6 +565,186 @@ func TestParity_Status(t *testing.T) {
 			}
 			if ids := extractIDs(t, body); !equalIntSlice(ids, tc.want) {
 				t.Errorf("GET /api/netixlan%s: got %v, want %v", tc.query, ids, tc.want)
+			}
+		}
+	})
+
+	// assertEntityNotFound checks the 404 that upstream returns for a
+	// unique list query with an empty result. The body is problem+json
+	// under the registered error-envelope divergence.
+	assertEntityNotFound := func(t *testing.T, srv *httptest.Server, path string) {
+		t.Helper()
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusNotFound {
+			t.Errorf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
+			return
+		}
+		if p := mustDecodeProblem(t, body); p.Detail != "Entity not found" {
+			t.Errorf("GET %s: detail = %q, want %q", path, p.Detail, "Entity not found")
+		}
+	}
+	// assertEmptyList checks a 200 with an empty data array.
+	assertEmptyList := func(t *testing.T, srv *httptest.Server, path string) {
+		t.Helper()
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusOK {
+			t.Errorf("GET %s: status = %d, want 200; body=%s", path, status, string(body))
+			return
+		}
+		if ids := extractIDs(t, body); len(ids) != 0 {
+			t.Errorf("GET %s: got ids %v, want []", path, ids)
+		}
+	}
+
+	t.Run("unique_id_miss_404_all_types", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:3904-3910 (test_guest_001_GET_list_404:
+		// every reftag with id=99999999 raises NotFoundException) +
+		// 2.83.0 rest.py:809-815 + serializers.py:962-967
+		c := testutil.SetupClient(t)
+		srv := newTestServer(t, c)
+		for _, typ := range pdbtypes.Names() {
+			assertEntityNotFound(t, srv, "/api/"+typ+"?limit=1&id=99999999")
+		}
+	})
+
+	t.Run("unique_net_asn_miss_404", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:3908-3910 (net with
+		// asn=99999999999 raises NotFoundException) +
+		// serializers.py:3815-3820 (NetworkSerializer adds "asn")
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		assertEntityNotFound(t, srv, "/api/net?limit=1&asn=99999999999")
+	})
+
+	t.Run("unique_id_hit_200", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:3912-3918 (an id that exists
+		// returns exactly one row)
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		seedNet(t, c, 2, 64502, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, path := range []string{"/api/net?id=1", "/api/net?asn=64501"} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d; body=%s", path, status, string(body))
+			}
+			if ids := extractIDs(t, body); !equalIntSlice(ids, []int{1}) {
+				t.Errorf("GET %s: got %v, want [1]", path, ids)
+			}
+		}
+	})
+
+	t.Run("unique_id_with_excluding_filter_404", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:1031-1033 (net with its own id and
+		// a non-matching filter raises NotFoundException): the check
+		// runs on the final result, whatever filtered it out.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		seedNet(t, c, 2, 64502, "deleted", t0)
+		srv := newTestServer(t, c)
+		assertEntityNotFound(t, srv, "/api/net?id=1&name=nomatch")
+		// A tombstone is outside the no-since status matrix.
+		assertEntityNotFound(t, srv, "/api/net?id=2")
+		assertEntityNotFound(t, srv, "/api/net?asn=64501&name=nomatch")
+		assertEntityNotFound(t, srv, fmt.Sprintf("/api/net?id=1&since=%d", t0.Add(time.Hour).Unix()))
+	})
+
+	t.Run("unique_id_skip_past_end_404", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:757-760 (skip slices the result)
+		// + :809-815 (the check runs on the sliced list). With a
+		// budget the mirror answers this from COUNT(*) and never
+		// runs the list query.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServerWithBudget(t, c, 1<<30)
+		assertEntityNotFound(t, srv, "/api/net?id=1&skip=5")
+		assertEmptyList(t, srv, "/api/net?name=nomatch&skip=5")
+	})
+
+	t.Run("non_unique_keys_miss_200_empty", func(t *testing.T) {
+		t.Parallel()
+		// upstream: serializers.py:962-967 checks the literal key
+		// "id" only, so id__in is not unique; "asn" is unique on net
+		// only (:3815-3820), so netixlan?asn= is a plain filter.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/org?id__in=999",
+			"/api/net?asn__in=99999",
+			"/api/netixlan?asn=99999",
+			"/api/net?name=nomatch",
+		} {
+			assertEmptyList(t, srv, path)
+		}
+	})
+
+	t.Run("unique_id_with_page_200_empty", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:799-815 + pagination.py:35-50: with
+		// ?page= the response data is the pagination object, which is
+		// never empty, so the 404 check does not fire.
+		c := testutil.SetupClient(t)
+		srv := newTestServer(t, c)
+		assertEmptyList(t, srv, "/api/net?id=99999999&page=1")
+	})
+
+	t.Run("DIVERGENCE_poc_hidden_id_returns_404", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream runs the unique-query 404 check before
+		// APIPermissionsApplicator removes the non-Public contacts
+		// (2.83.0 rest.py:809-821), so an anonymous
+		// /api/poc?id=<Users contact> gets 200 {"data": []} and a
+		// missing id gets 404. The mirror hides the contact in the
+		// query (the poc.visible privacy policy) and returns 404 for
+		// both, so the status does not show that the contact exists.
+		// See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seedNet(t, c, 1, 64501, "ok", t0)
+		if _, err := c.Poc.Create().
+			SetID(101).SetNetID(1).SetRole("NOC").SetVisible("Users").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed poc: %v", err)
+		}
+		srv := newTestServer(t, c)
+		assertEntityNotFound(t, srv, "/api/poc?id=101")
+		assertEntityNotFound(t, srv, "/api/poc?id=999")
+	})
+
+	t.Run("DIVERGENCE_unique_key_non_integer_returns_400", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream turns a plain id or asn key into an
+		// __iexact filter (2.83.0 rest.py:670-683). Django does not
+		// convert an iexact value to an integer, so a non-integer or
+		// empty value matches no row, and the unique query then gets
+		// the 404 (rest.py:809-815). The mirror rejects the value with
+		// a 400, as for every other integer filter. See docs/API.md
+		// § Known Divergences.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/net?id=abc",
+			"/api/net?id=",
+			"/api/net?asn=abc",
+			"/api/net?asn=",
+			"/api/fac?id=abc",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
+				continue
+			}
+			if p := mustDecodeProblem(t, body); !strings.Contains(p.Detail, "to int") {
+				t.Errorf("GET %s: detail = %q, want an int conversion error", path, p.Detail)
 			}
 		}
 	})
