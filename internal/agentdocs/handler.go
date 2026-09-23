@@ -37,7 +37,7 @@ const (
 	skillArchivePath  = "peeringdb-plus/SKILL.md"
 	openAIArchivePath = "peeringdb-plus/agents/openai.yaml"
 	mcpPath           = "/mcp"
-	skillDescription  = "Query the PeeringDB Plus read-only mirror for PeeringDB research, interconnection discovery, network footprint analysis, IP ownership, comparisons, and sync freshness."
+	skillDescription  = "Query the PeeringDB Plus read-only mirror for networks, exchanges, facilities, organizations, campuses, carriers, IX peering addresses, network comparisons, and sync freshness. Use for PeeringDB research, interconnection discovery, network footprint analysis, or mirror health checks."
 )
 
 var zipEpoch = time.Date(1980, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -162,7 +162,7 @@ func (h *Handler) serveMCPServerCard(w http.ResponseWriter, r *http.Request) {
 		Name:                      "peeringdb-plus",
 		Title:                     "PeeringDB Plus",
 		Version:                   h.version,
-		Description:               "Read-only access to a local PeeringDB mirror through catalog search, entity detail, network comparison, IP lookup, and sync freshness tools.",
+		Description:               "Read-only access to a local PeeringDB mirror through catalog search, entity detail, network comparison, IX peering address lookup, and sync freshness tools.",
 		Endpoint:                  origin + mcpPath,
 		Transport:                 "http",
 		ProtocolVersion:           "2026-07-28",
