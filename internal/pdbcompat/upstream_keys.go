@@ -120,3 +120,23 @@ func traversalKeyFor(tc TypeConfig, seg string) string {
 func namesFKColumn(field string) bool {
 	return len(field) >= 4 && strings.HasSuffix(field, "_id") && field[len(field)-4] != '_'
 }
+
+// relationStatusFilterable reports whether a relation key may filter the
+// status of the related rows. Upstream filters <fk>__status only for a
+// forward FK of the listed type, one hop away (queryable_relations,
+// 2.83.0 serializers.py:970-996). It ignores status on a 2-hop key, and
+// on a reverse key that the mirror names by its traversal key
+// (org?net__status= becomes network__status, which is no filter key,
+// rest.py:525-528, :670). The mirror resolves these keys for other
+// fields (see docs/API.md § Known Divergences) but ignores status on
+// them, as upstream does.
+//
+// A first segment that names no edge of tc returns true, so the routing
+// of the netixlan and ixpfx exchange keys decides.
+func relationStatusFilterable(tc TypeConfig, relSegs []string) bool {
+	if len(relSegs) != 1 {
+		return false
+	}
+	edge, ok := LookupEdge(tc.Name, traversalKeyFor(tc, relSegs[0]))
+	return !ok || edge.OwnFK
+}

@@ -141,3 +141,40 @@ func TestParseFilters_UpstreamFKKeys(t *testing.T) {
 		})
 	}
 }
+
+// TestParseFilters_RelationStatusKeys checks that a relation key filters
+// status only through a forward edge one hop away, as upstream
+// queryable_relations (2.83.0 serializers.py:970-996).
+func TestParseFilters_RelationStatusKeys(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		typ, key string
+		resolves bool
+	}{
+		{peeringdb.TypeNet, "org__status", true},
+		{peeringdb.TypeNet, "org__status__in", true},
+		{peeringdb.TypePoc, "network__status", true},
+		{peeringdb.TypeIXPfx, "ixlan__status", true},
+		{peeringdb.TypeOrg, "net__status", false},
+		{peeringdb.TypeOrg, "network__status", false},
+		{peeringdb.TypeIX, "ixlan__status__in", false},
+		{peeringdb.TypeNetIXLan, "net__org__status", false},
+		{peeringdb.TypeIXPfx, "ixlan__ix__status", false},
+		// Other fields on the same keys still resolve.
+		{peeringdb.TypeOrg, "net__name", true},
+		{peeringdb.TypeNetIXLan, "net__org__name", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.typ+"?"+tt.key, func(t *testing.T) {
+			t.Parallel()
+			ctx := WithUnknownFields(context.Background())
+			preds, _, err := ParseFiltersCtx(ctx, url.Values{tt.key: {"ok"}}, Registry[tt.typ])
+			if err != nil {
+				t.Fatalf("ParseFiltersCtx: %v", err)
+			}
+			if got := len(preds) == 1; got != tt.resolves {
+				t.Errorf("resolves = %v, want %v (unknown = %v)", got, tt.resolves, UnknownFieldsFromCtx(ctx))
+			}
+		})
+	}
+}

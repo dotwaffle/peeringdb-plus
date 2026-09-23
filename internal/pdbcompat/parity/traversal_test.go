@@ -57,9 +57,10 @@ import (
 //     city, carrier org_name) and relation keys whose field is a FK
 //     column (netixlan?net__org_id=).
 //   - DIVERGENCE: 2-hop keys (`ixlan__ix__id=` on ixpfx), reverse keys
-//     named by the mirror's traversal key (`org?net__status=`) and
+//     named by the mirror's traversal key (`org?net__name=`) and
 //     the field-level FILTER_EXCLUDE entries resolve, where upstream
-//     ignores them.
+//     ignores them. Status on a 2-hop or reverse key is ignored on
+//     both sides.
 //   - DIVERGENCE: upstream's reverse `<related_name>` keys
 //     (`ix?ixlan_set__status=`, `org?ix_set__in=`) are silent-ignored.
 //     The net_set and fac_set keys are ignored on both sides: upstream
@@ -662,9 +663,11 @@ func TestParity_Traversal(t *testing.T) {
 		//     value (:614-656): net?netfac__fac__name=X becomes
 		//     netfac.facility = X, a 400 for a non-numeric X.
 		//   - Reverse keys named by the mirror's traversal key, outside
-		//     the prepare_query seeds: org?net__status= becomes
-		//     network__status upstream (serializers.py:403-441), which
+		//     the prepare_query seeds: org?net__name= becomes
+		//     network__name upstream (serializers.py:403-441), which
 		//     is not a filter key (rest.py:525-528, :670).
+		// The mirror ignores status on these keys, as upstream: see
+		// status_on_reverse_and_2hop_keys_ignored_like_upstream.
 		//   - The field-level FILTER_EXCLUDE entries org__latitude,
 		//     org__longitude and ixlan__descr (serializers.py:136-141).
 		// Upstream returns every live row for each request.
@@ -673,15 +676,39 @@ func TestParity_Traversal(t *testing.T) {
 		srv := newTestServer(t, seedRelationKeys(t))
 		assertKeysResolve(t, srv, []silentIgnoreCase{
 			// Upstream: [500 501].
-			{path: "/api/netixlan?net__org__status=pending", want: []int{501}},
+			{path: "/api/netixlan?net__org__name=RelOrgPending", want: []int{501}},
 			// Upstream: 400.
 			{path: "/api/net?netfac__fac__name=RelFacA", want: []int{100}},
 			// Upstream: [1 3].
-			{path: "/api/org?net__status=deleted", want: []int{1}},
+			{path: "/api/org?net__name=RelNetA", want: []int{1}},
 			// Upstream: [400 401].
 			{path: "/api/fac?org__latitude__gt=50", want: []int{400}},
 			// Upstream: [1000 1001 2000].
 			{path: "/api/ixpfx?ixlan__descr=secretdescr", want: []int{1000, 1001}},
+		})
+	})
+
+	t.Run("status_on_reverse_and_2hop_keys_ignored_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:970-996. queryable_relations
+		// adds <fk>__status for a forward FK of the listed type, so
+		// net?org__status= and ixpfx?ixlan__status= filter. It adds no
+		// 2-hop key, and a reverse key named by the mirror's traversal
+		// key is no filter key: org?net__status= becomes
+		// network__status (serializers.py:403-441), which matches no
+		// field (rest.py:525-528, :670). Upstream ignores these status
+		// keys, and so does the mirror.
+		srv := newTestServer(t, seedRelationKeys(t))
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/org?net__status=deleted", want: []int{1, 3}},
+			{path: "/api/org?net__status__in=deleted", want: []int{1, 3}},
+			{path: "/api/org?network__status=deleted", want: []int{1, 3}},
+			{path: "/api/netixlan?net__org__status=pending", want: []int{500, 501}},
+			{path: "/api/ixpfx?ixlan__ix__status=pending", want: []int{1000, 1001, 2000}},
+		})
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/net?org__status=pending", want: []int{200}},
+			{path: "/api/ixpfx?ixlan__status=pending", want: []int{1000, 1001}},
 		})
 	})
 

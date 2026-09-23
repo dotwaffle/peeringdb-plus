@@ -237,7 +237,9 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // names a forward FK in upstream spelling (org, network_id, facility)
 // filters the FK column (resolveLocalField). A key that upstream never
 // filters (TypeConfig.UpstreamIgnored) is unknown, and so is a relation
-// key whose field is a FK column (namesFKColumn).
+// key whose field is a FK column (namesFKColumn). A relation key filters
+// status only through a forward edge one hop away
+// (relationStatusFilterable).
 //
 // Traversal resolution order (1-hop and 2-hop, len(relSegs) <= 2):
 //  1. Path A: Allowlists[tc.Name].Direct or .Via exact match
@@ -297,6 +299,10 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// Also check if the raw final field is a reserved name
 		// (e.g. "fields" on a top-level single-segment key).
 		if len(relSegs) == 0 && reservedParams[field] {
+			continue
+		}
+		if len(relSegs) > 0 && field == "status" && !relationStatusFilterable(tc, relSegs) {
+			appendUnknown(ctx, key)
 			continue
 		}
 		routedSegs, routedField := routeIXKey(tc.Name, relSegs, field)
