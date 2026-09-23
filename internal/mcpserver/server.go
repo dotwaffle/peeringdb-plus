@@ -581,10 +581,13 @@ func (services toolServices) lookupIP(ctx context.Context, raw string) (lookupIP
 }
 
 func addResources(server *mcp.Server, input Input) {
-	serviceText := fmt.Sprintf(
-		"PeeringDB Plus %s is a read-only local PeeringDB mirror. Region: %s. Use get_sync_status for live freshness.",
-		input.Version, input.Region,
-	)
+	// Region is empty outside Fly.io. Leave the sentence out then, so the
+	// text does not read "Region: .".
+	serviceText := "PeeringDB Plus " + input.Version + " is a read-only PeeringDB mirror."
+	if input.Region != "" {
+		serviceText += " Serving region: " + input.Region + "."
+	}
+	serviceText += " Use get_sync_status to see the latest sync."
 	addTextResource(server, "peeringdb-plus://service", "Service context", serviceText)
 	addTextResource(server, "peeringdb-plus://guide", "Research guide",
 		"Search first, then fetch details by ASN or PeeringDB ID. Related collections are bounded; follow next_cursor with the same relation. Cursors expire after a successful mirror sync.")
