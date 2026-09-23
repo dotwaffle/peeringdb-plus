@@ -193,7 +193,6 @@ var (
 			"network_facilities.count",
 			"network_ix_lans.count",
 			"organization.updated",
-			"pocs.count",
 			"random",
 			"updated",
 		},

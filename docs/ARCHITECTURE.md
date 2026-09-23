@@ -457,6 +457,9 @@ and that pdbcompat returns `id` order on the same data.
   requested sort direction) whenever the request's sort field matches each
   schema's declared default (`updated`).
   Explicit `?sort=<field>&order=<dir>` overrides are honoured unchanged.
+  The template also takes the sort fields from `restSortableFields`,
+  which leaves out the sorts over the `pocs` edge
+  (see § Privacy layer).
 - **Nested `_set` arrays at depth ≥ 1**
   (entrest only):
   entrest's eager-load template calls `applySorting<Type>` on auto-eagerloaded
@@ -532,6 +535,12 @@ The pieces:
    The pdbcompat traversal adds the same visibility check
    to each subquery that reads `pocs` (`applyVisibilityGate`):
    the leaf of `?poc__<field>=` and the middle hop of `?poc__net__<field>=`.
+   A REST sort over the edge has the same problem:
+   `?sort=pocs.count` orders networks by a SQL count of all their pocs.
+   The REST sort fields thus come from `restSortableFields` (`ent/entc.go`),
+   which drops each sort over an edge to a type with a privacy policy.
+   `/rest/v1/networks?sort=pocs.count` returns 400,
+   and the OpenAPI enum does not list the field.
 3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
    `Redact(ctx, visible, value) (out string, omit bool)` is the single source of
    truth for per-field redaction.

@@ -456,6 +456,25 @@ func assertPocEdgeNotFilterable(t *testing.T, fix *e2eFixture, emailPrefixes ...
 	}
 }
 
+// assertPocEdgeNotSortable checks that REST rejects a network sort over
+// the pocs edge. sort=pocs.count orders the networks by a plain SQL count
+// of their POCs, which the poc privacy policy does not filter, so the
+// order would show how many hidden POCs each network has. The OpenAPI
+// spec must not offer the sort either.
+func assertPocEdgeNotSortable(t *testing.T, fix *e2eFixture) {
+	t.Helper()
+	for _, order := range []string{"asc", "desc"} {
+		path := "/rest/v1/networks?sort=pocs.count&order=" + order
+		body, status := mustGet(t, fix.server.URL+path)
+		if status != http.StatusBadRequest {
+			t.Fatalf("GET %s: status=%d, want 400; body=%s", path, status, body)
+		}
+	}
+	if strings.Contains(string(rest.OpenAPI), `"pocs.count"`) {
+		t.Fatal("the REST OpenAPI spec offers the pocs.count sort")
+	}
+}
+
 // =============================================================================
 // TierPublic: anonymous caller must NOT see the visible="Users" POC.
 // =============================================================================
@@ -528,6 +547,10 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 				t.Fatalf("Users POC leaked into /rest/v1/pocs list: %+v", row)
 			}
 		}
+	})
+
+	t.Run("rest_poc_edge_sort_rejected", func(t *testing.T) {
+		assertPocEdgeNotSortable(t, fix)
 	})
 
 	// -------------------------------------------------------------------------
@@ -936,6 +959,10 @@ func TestE2E_PublicTierUsersHidesPrivatePoc(t *testing.T) {
 			t.Fatalf("GET /rest/v1/pocs: status=%d; body=%s", status, body)
 		}
 		assertNoPrivatePoc(t, "/rest/v1/pocs", body)
+	})
+
+	t.Run("rest_poc_edge_sort_rejected", func(t *testing.T) {
+		assertPocEdgeNotSortable(t, fix)
 	})
 
 	t.Run("grpc_get_CodeNotFound", func(t *testing.T) {
