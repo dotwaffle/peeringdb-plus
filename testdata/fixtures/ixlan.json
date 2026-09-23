@@ -22,7 +22,7 @@
       "name": "Berlin IX LAN",
       "descr": "",
       "mtu": 1500,
-      "dot1q_support": true,
+      "dot1q_support": false,
       "rs_asn": null,
       "arp_sponge": "00:00:5e:00:01:01",
       "ixf_ixp_member_list_url_visible": "Private",
