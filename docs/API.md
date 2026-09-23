@@ -45,7 +45,7 @@ or return `503 not primary` when running outside Fly.io.
 |--------|------|---------|-------------|
 | `GET` | `/` | Root | Content-negotiated service discovery (terminal / browser / JSON) |
 | `GET` | `/healthz` | Health | Liveness probe (always `200`) |
-| `GET` | `/readyz` | Health | Readiness probe (checks DB and sync freshness) |
+| `GET` | `/readyz` | Health | Readiness probe (checks the DB, the last sync result and sync freshness) |
 | `POST` | `/sync` | Admin | On-demand sync trigger (primary only, token-gated) |
 | `GET` | `/favicon.ico` | Static | Favicon served from embedded `internal/web/static/` |
 | `GET` | `/static/*` | Static | Embedded UI assets (CSS, JS, images) |
@@ -1359,13 +1359,22 @@ Bypasses the readiness middleware.
 ### `GET /readyz`
 
 Readiness probe.
-Returns `200 OK` only when:
+Returns `200 OK` only when all of these conditions are true:
 
-1. The database is reachable (`db.PingContext`).
-2. The most recent sync is more recent than `PDBPLUS_SYNC_STALE_THRESHOLD`
+1. The database answers a ping in 2 seconds or less.
+2. At least one sync has succeeded.
+3. The latest sync did not fail.
+   While a sync runs, the server checks the last successful sync instead.
+4. The last successful sync is not older than `PDBPLUS_SYNC_STALE_THRESHOLD`
    (default `24h`).
 
-Returns `503 Service Unavailable` otherwise.
+Otherwise it returns `503 Service Unavailable`.
+After a failed sync, `/readyz` returns `503` until the next sync attempt
+starts: a retry or the next scheduled cycle.
+Replicas read the same replicated `sync_status` table,
+so every machine returns `503` during that time.
+The Fly.io health check uses `/readyz`,
+so Fly Proxy stops routing to these machines until then.
 The response body is the opaque shape `{"status":"ok"}`
 or `{"status":"unhealthy"}` —
 detailed error strings are written to structured logs only
