@@ -107,33 +107,46 @@ do not inflate application module metadata or vulnerability reports.
 PeeringDB Plus is heavily code-generated.
 A single `go generate ./...` invocation runs every stage in the correct order
 and converges in a single pass.
-The `go:generate` directives live in three files:
+`mise run generate` runs this command.
+The `go:generate` directives are in four files,
+and `go generate ./...` runs them in this order:
 
-1. `ent/generate.go` — four sequenced directives:
+1. `ent/generate.go` has four directives:
    1. `cd ../schema && go run ../cmd/pdb-schema-generate/main.go peeringdb.json ../ent/schema`
-      — regenerates `ent/schema/{type}.go` from `schema/peeringdb.json`.
-      Runs **first**, before entc consumes those schemas.
-   2. `go run -mod=mod entc.go` — runs ent + entgql + entrest + entproto.
-   3. `cd .. && go run ./cmd/pdb-compat-allowlist` — emits
+      writes `ent/schema/{type}.go` and `ent/schema/types.go`
+      from `schema/peeringdb.json`.
+      It runs **first**, before entc reads those schemas.
+   2. `go run -mod=mod entc.go` runs ent with the entgql and entrest extensions.
+      It writes `ent/`, `graph/schema.graphqls`, and the REST OpenAPI spec
+      (`ent/rest/openapi.json`).
+      The entproto extension is also configured,
+      but it writes no file, because no ent schema has an entproto annotation.
+   3. `cd .. && go run ./cmd/pdb-compat-allowlist` writes
       `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
-   4. `cd .. && buf generate` — emits protobuf Go types and ConnectRPC
+   4. `cd .. && buf generate` writes the protobuf Go types and the ConnectRPC
       handler interfaces from the proto sources.
-2. `graph/generate.go` — runs `gqlgen generate` to produce the GraphQL
-   resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
-3. `internal/web/templates/generate.go` — runs `templ generate` to
-   regenerate `*_templ.go` from `.templ` sources.
+2. `graph/generate.go` runs `gqlgen generate`.
+   It reads `graph/schema.graphqls` (from entgql),
+   the hand-written `graph/custom.graphql`, and `graph/gqlgen.yml`.
+   It writes `graph/generated.go` and updates the resolver files.
+3. `internal/web/static.go` runs the mise-managed `tailwindcss` CLI.
+   It compiles `internal/web/tailwind.input.css`
+   into `internal/web/static/tailwind.css`.
+   It reads class names only from `internal/web/templates/`
+   and `internal/web/static/ui.js`.
+4. `internal/web/templates/generate.go` runs `templ generate`.
+   It writes `*_templ.go` from the `.templ` sources.
 
-`schema/generate.go` carries no `go:generate` directive;
-it only documents the manual drift-detection step
-(run `pdb-schema-extract` against an upstream checkout,
-then hand-apply any real drift to the curated JSON).
-Sequencing `pdb-schema-generate` **first** within `ent/generate.go` —
-rather than under `schema/`, which `go generate ./...` visits after `ent/` —
-is what lets a single pass converge:
-the schema producer always runs before entc, its consumer.
+`schema/generate.go` has no `go:generate` directive.
+It is the package documentation for the manual drift check.
+`pdb-schema-generate` runs first in `ent/generate.go`, not in `schema/`,
+because `go generate ./...` visits `ent/` before `schema/`.
+This order runs the schema producer before entc, its consumer,
+so a single pass converges.
 
 A clean tree must produce zero drift after `go generate ./...`.
-CI enforces this — see "Generated code drift check" below.
+CI checks this
+(see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
 
 ### Sibling-file convention (load-bearing)
 
@@ -258,7 +271,9 @@ mise run test
 mise run lint
 ```
 
-**Edited `ent/schema/*.go`:**
+**Edited `schema/peeringdb.json` or a hand-edited sibling file in `ent/schema/`
+(for example `pdb_allowlists.go`, `fold_mixin.go`, `poc_policy.go`,
+or a `{type}_fold.go` file):**
 
 ```bash
 mise run generate
@@ -266,7 +281,8 @@ mise run test
 mise run lint
 ```
 
-**Edited `proto/peeringdb/v1/services.proto` or `common.proto`:**
+**Edited a file in `proto/peeringdb/v1/`
+(`v1.proto`, `services.proto`, or `common.proto`):**
 
 ```bash
 mise run generate
@@ -287,11 +303,11 @@ CGO_ENABLED=1 mise exec -- go test -race ./internal/web/...
 mise run check
 ```
 
-Always commit `*_templ.go` alongside `.templ` changes,
-and commit generated `ent/`, `gen/`, `graph/`,
-`internal/pdbcompat/allowlist_gen.go` files alongside the schema changes
-that produced them.
-CI enforces this — see "Generated code drift check" below.
+Commit the generated files with the source change that produced them:
+`ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`,
+`internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
+CI checks this
+(see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
 
 ## Adding a new ent field
 
@@ -634,11 +650,11 @@ match existing patterns in `git log --oneline` if in doubt.
    mise run check
    ```
 
-2. Commit any regenerated files
-   (`ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`,
-   `internal/pdbcompat/allowlist_gen.go`) alongside the changes
-   that produced them.
-   CI will fail on generated-code drift otherwise.
+2. Commit the regenerated files with the changes that produced them:
+   `ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`,
+   `internal/web/static/tailwind.css`,
+   and `internal/pdbcompat/allowlist_gen.go`.
+   Otherwise the CI drift check fails.
 3. Open a PR against `main`.
    CI runs two jobs: `ci` — a single cached mise/Go job that runs, in order,
    the generated-code drift check, build,
@@ -669,6 +685,7 @@ match existing patterns in `git log --oneline` if in doubt.
   and commit the resulting diff.
   The drift check compares tracked files and separately rejects untracked
   output under `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
+  `internal/web/static/tailwind.css`,
   and `internal/pdbcompat/allowlist_gen.go`.
 - **Schema hand-edits keep disappearing:** you almost certainly added them to
   the generated `ent/schema/{type}.go` file.
@@ -679,11 +696,13 @@ match existing patterns in `git log --oneline` if in doubt.
   Rebuild and re-run `go generate ./ent`.
 - **Trace / log noise:** `PDBPLUS_OTEL_SAMPLE_RATE=0` turns off sampling for
   local runs. `OTEL_*` env vars follow the autoexport conventions.
-- **ent schema change didn't propagate:** you probably skipped
-  `go generate ./ent`.
-  The `ent/` directory, `graph/schema.graphqls`, `proto/peeringdb/v1/v1.proto`,
-  the REST OpenAPI spec, and `internal/pdbcompat/allowlist_gen.go` are **all**
-  derived from `ent/schema/`.
+- **An ent schema change did not reach an API:** run `mise run generate`,
+  not only `go generate ./ent`.
+  `go generate ./ent` does not run gqlgen, Tailwind, or templ.
+  `ent/`, `graph/schema.graphqls`, the REST OpenAPI spec,
+  and `internal/pdbcompat/allowlist_gen.go` come from `ent/schema/`.
+  The proto files in `proto/peeringdb/v1/` do not.
+  Edit them by hand (see [proto / buf workflow](#proto--buf-workflow)).
 
 ## Next steps
 
