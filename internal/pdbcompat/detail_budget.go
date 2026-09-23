@@ -22,9 +22,10 @@ import (
 // detailChildSet describes one reverse `_set` collection that a depth>=2
 // detail response fully embeds: the child entity whose Depth0 row size
 // prices each element, and a COUNT(*) closure mirroring the status filter
-// the depth expansion applies when it loads the set (the same StatusIn
-// literal as the With* eager-loads in depth.go: the child's live
-// statuses only, "ok" plus "not-operational" on netixlan).
+// the depth expansion applies when it loads the set (the same filter as
+// the With* eager-loads in depth.go: the child's live statuses only,
+// likelyOK for "ok", or a StatusIn literal of "ok" plus
+// "not-operational" on netixlan).
 type detailChildSet struct {
 	childType string
 	count     func(ctx context.Context, client *ent.Client, id int) (int, error)
@@ -46,27 +47,27 @@ type detailChildSet struct {
 var detailChildSets = map[string][]detailChildSet{
 	peeringdb.TypeOrg: {
 		{peeringdb.TypeNet, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.Network.Query().Where(network.OrgID(id), network.StatusIn("ok")).Count(ctx)
+			return client.Network.Query().Where(network.OrgID(id), likelyOK).Count(ctx)
 		}},
 		{peeringdb.TypeFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.Facility.Query().Where(facility.OrgID(id), facility.StatusIn("ok")).Count(ctx)
+			return client.Facility.Query().Where(facility.OrgID(id), likelyOK).Count(ctx)
 		}},
 		{peeringdb.TypeIX, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.InternetExchange.Query().Where(internetexchange.OrgID(id), internetexchange.StatusIn("ok")).Count(ctx)
+			return client.InternetExchange.Query().Where(internetexchange.OrgID(id), likelyOK).Count(ctx)
 		}},
 		{peeringdb.TypeCarrier, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.Carrier.Query().Where(carrier.OrgID(id), carrier.StatusIn("ok")).Count(ctx)
+			return client.Carrier.Query().Where(carrier.OrgID(id), likelyOK).Count(ctx)
 		}},
 		{peeringdb.TypeCampus, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.Campus.Query().Where(campus.OrgID(id), campus.StatusIn("ok")).Count(ctx)
+			return client.Campus.Query().Where(campus.OrgID(id), likelyOK).Count(ctx)
 		}},
 	},
 	peeringdb.TypeNet: {
 		{peeringdb.TypePoc, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.Poc.Query().Where(poc.NetID(id), poc.StatusIn("ok")).Count(ctx)
+			return client.Poc.Query().Where(poc.NetID(id), likelyOK).Count(ctx)
 		}},
 		{peeringdb.TypeNetFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.NetworkFacility.Query().Where(networkfacility.NetID(id), networkfacility.StatusIn("ok")).Count(ctx)
+			return client.NetworkFacility.Query().Where(networkfacility.NetID(id), likelyOK).Count(ctx)
 		}},
 		{peeringdb.TypeNetIXLan, func(ctx context.Context, client *ent.Client, id int) (int, error) {
 			return client.NetworkIxLan.Query().Where(networkixlan.NetID(id), networkixlan.StatusIn("ok", "not-operational")).Count(ctx)
@@ -74,16 +75,16 @@ var detailChildSets = map[string][]detailChildSet{
 	},
 	peeringdb.TypeIX: {
 		{peeringdb.TypeIXLan, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.IxLan.Query().Where(ixlan.IxID(id), ixlan.StatusIn("ok")).Count(ctx)
+			return client.IxLan.Query().Where(ixlan.IxID(id), likelyOK).Count(ctx)
 		}},
 		// ix.fac_set resolves facilities through the ixfac join.
 		{peeringdb.TypeFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.IxFacility.Query().Where(ixfacility.IxID(id), ixfacility.StatusIn("ok")).Count(ctx)
+			return client.IxFacility.Query().Where(ixfacility.IxID(id), likelyOK).Count(ctx)
 		}},
 	},
 	peeringdb.TypeIXLan: {
 		{peeringdb.TypeIXPfx, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.IxPrefix.Query().Where(ixprefix.IxlanID(id), ixprefix.StatusIn("ok")).Count(ctx)
+			return client.IxPrefix.Query().Where(ixprefix.IxlanID(id), likelyOK).Count(ctx)
 		}},
 		// ixlan.net_set resolves networks through the netixlan join.
 		{peeringdb.TypeNet, func(ctx context.Context, client *ent.Client, id int) (int, error) {
@@ -92,12 +93,12 @@ var detailChildSets = map[string][]detailChildSet{
 	},
 	peeringdb.TypeCarrier: {
 		{peeringdb.TypeCarrierFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.CarrierFacility.Query().Where(carrierfacility.CarrierID(id), carrierfacility.StatusIn("ok")).Count(ctx)
+			return client.CarrierFacility.Query().Where(carrierfacility.CarrierID(id), likelyOK).Count(ctx)
 		}},
 	},
 	peeringdb.TypeCampus: {
 		{peeringdb.TypeFac, func(ctx context.Context, client *ent.Client, id int) (int, error) {
-			return client.Facility.Query().Where(facility.CampusID(id), facility.StatusIn("ok")).Count(ctx)
+			return client.Facility.Query().Where(facility.CampusID(id), likelyOK).Count(ctx)
 		}},
 	},
 }

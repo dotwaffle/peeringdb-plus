@@ -3,6 +3,7 @@ package pdbcompat
 import (
 	"context"
 	"database/sql"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -119,11 +120,18 @@ func listPlans(t *testing.T, typ string, opts QueryOptions) (list, count string)
 	return list, count
 }
 
-// recordingDriver keeps the last query that ent sent, so a test can
-// run it through EXPLAIN QUERY PLAN.
+// recordingDriver keeps the queries that ent sent, so a test can run
+// them through EXPLAIN QUERY PLAN.
 type recordingDriver struct {
 	dialect.Driver
 	mu   sync.Mutex
+	q    string
+	args []any
+	all  []recordedQuery
+}
+
+// recordedQuery is one query that recordingDriver saw.
+type recordedQuery struct {
 	q    string
 	args []any
 }
@@ -132,8 +140,16 @@ func (d *recordingDriver) Query(ctx context.Context, query string, args, v any) 
 	d.mu.Lock()
 	d.q = query
 	d.args, _ = args.([]any)
+	d.all = append(d.all, recordedQuery{q: d.q, args: d.args})
 	d.mu.Unlock()
 	return d.Driver.Query(ctx, query, args, v)
+}
+
+// queries returns every query recorded so far.
+func (d *recordingDriver) queries() []recordedQuery {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return slices.Clone(d.all)
 }
 
 func (d *recordingDriver) lastQuery(t *testing.T) (string, []any) {

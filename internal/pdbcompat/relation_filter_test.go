@@ -131,8 +131,8 @@ func TestLookupRelationSeed_NotSeeds(t *testing.T) {
 }
 
 // TestParseFilters_RelationSeedSQL checks the SQL shape of relation
-// keys: the path of nested IN subqueries, the row pinned to status ok,
-// and the FK compare that skips the last row of a bare key.
+// keys: the path of nested IN subqueries, the row pinned to status ok
+// (likelyOK), and the FK compare that skips the last row of a bare key.
 func TestParseFilters_RelationSeedSQL(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -141,19 +141,19 @@ func TestParseFilters_RelationSeedSQL(t *testing.T) {
 	}{
 		{
 			peeringdb.TypeFac, "net=100",
-			[]string{"`facilities`.`id` IN (SELECT `network_facilities`.`fac_id` FROM `network_facilities` WHERE `network_facilities`.`net_id` = ? AND `network_facilities`.`status` = ?)"},
+			[]string{"`facilities`.`id` IN (SELECT `network_facilities`.`fac_id` FROM `network_facilities` WHERE `network_facilities`.`net_id` = ? AND likely(`network_facilities`.`status` IN (?)))"},
 		},
 		{
 			peeringdb.TypeNet, "ix__name=X",
-			[]string{"`networks`.`id` IN (SELECT `network_ix_lans`.`net_id` FROM `network_ix_lans` WHERE `network_ix_lans`.`ixlan_id` IN (SELECT `ix_lans`.`id` FROM `ix_lans` WHERE `ix_lans`.`ix_id` IN (SELECT `internet_exchanges`.`id` FROM `internet_exchanges` WHERE", "AND `network_ix_lans`.`status` = ?)"},
+			[]string{"`networks`.`id` IN (SELECT `network_ix_lans`.`net_id` FROM `network_ix_lans` WHERE `network_ix_lans`.`ixlan_id` IN (SELECT `ix_lans`.`id` FROM `ix_lans` WHERE `ix_lans`.`ix_id` IN (SELECT `internet_exchanges`.`id` FROM `internet_exchanges` WHERE", "AND likely(`network_ix_lans`.`status` IN (?)))"},
 		},
 		{
 			peeringdb.TypeIXPfx, "ix=20",
-			[]string{"`ix_prefixes`.`ixlan_id` IN (SELECT `ix_lans`.`id` FROM `ix_lans` WHERE `ix_lans`.`ix_id` = ?)", "`ix_prefixes`.`status` = ?"},
+			[]string{"`ix_prefixes`.`ixlan_id` IN (SELECT `ix_lans`.`id` FROM `ix_lans` WHERE `ix_lans`.`ix_id` = ?)", "likely(`ix_prefixes`.`status` IN (?))"},
 		},
 		{
 			peeringdb.TypeOrg, "asn=64500",
-			[]string{"`organizations`.`id` IN (SELECT `networks`.`org_id` FROM `networks` WHERE `networks`.`asn` = ? AND `networks`.`status` = ?)"},
+			[]string{"`organizations`.`id` IN (SELECT `networks`.`org_id` FROM `networks` WHERE `networks`.`asn` = ? AND likely(`networks`.`status` IN (?)))"},
 		},
 		{
 			peeringdb.TypeCarrier, "carrierfac_set__facility_id=400",
@@ -161,7 +161,7 @@ func TestParseFilters_RelationSeedSQL(t *testing.T) {
 		},
 		{
 			peeringdb.TypeNetIXLan, "name__iexact=LanA",
-			[]string{"`network_ix_lans`.`ixlan_id` IN (SELECT `ix_lans`.`id` FROM `ix_lans` WHERE", "`ix_lans`.`status` = ?)"},
+			[]string{"`network_ix_lans`.`ixlan_id` IN (SELECT `ix_lans`.`id` FROM `ix_lans` WHERE", "likely(`ix_lans`.`status` IN (?)))"},
 		},
 		{
 			peeringdb.TypeFac, "org_name=Equinix",
@@ -169,7 +169,7 @@ func TestParseFilters_RelationSeedSQL(t *testing.T) {
 		},
 		{
 			peeringdb.TypeNetFac, "city=Berlin",
-			[]string{"`network_facilities`.`fac_id` IN (SELECT `facilities`.`id` FROM `facilities` WHERE LOWER(`facilities`.`city_fold`) = ?)", "`network_facilities`.`status` = ?"},
+			[]string{"`network_facilities`.`fac_id` IN (SELECT `facilities`.`id` FROM `facilities` WHERE LOWER(`facilities`.`city_fold`) = ?)", "likely(`network_facilities`.`status` IN (?))"},
 		},
 	}
 	for _, tt := range tests {

@@ -327,7 +327,8 @@ func relationPathPredicate(edges []EdgeMetadata, pinAt int, leaf func(*sql.Selec
 	return pred
 }
 
-// withStatusPin adds status = "ok" to pred when pin is true.
+// withStatusPin adds the status "ok" test (likelyOK) to pred when pin is
+// true.
 func withStatusPin(pred func(*sql.Selector), pin bool) func(*sql.Selector) {
 	if !pin {
 		return pred
@@ -336,7 +337,7 @@ func withStatusPin(pred func(*sql.Selector), pin bool) func(*sql.Selector) {
 		if pred != nil {
 			pred(s)
 		}
-		s.Where(sql.EQ(s.C("status"), "ok"))
+		likelyOK(s)
 	}
 }
 

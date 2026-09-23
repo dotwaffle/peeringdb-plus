@@ -715,9 +715,15 @@ The pk-lookup path (`internal/pdbcompat/depth.go`) inlines
 (`StatusIn("ok", "not-operational", "pending")` for netixlan)
 so direct-ID GETs return 404 for tombstones.
 The nested `_set` collections of the depth expansion admit only the live
-statuses of the child (`StatusIn("ok")`,
+statuses of the child (`likelyOK`,
 `StatusIn("ok", "not-operational")` for netixlan),
 the same as the upstream nested prefetch.
+`likelyOK` is `likely(status IN ('ok'))`.
+Without the hint, SQLite can read every `ok` row of the child table
+through its status index instead of the parent's rows through the FK index.
+The relation-key status pin (`withStatusPin`) uses the same filter.
+`TestDetailPlan_KeepsFKIndex` and `TestRelationFilterPlan_KeepsFKIndex`
+lock these plans.
 A pending child, in practice a campus, is fetchable by ID
 but is left out of the sets of its parent.
 The sets `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set`

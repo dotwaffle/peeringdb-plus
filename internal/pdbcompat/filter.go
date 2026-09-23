@@ -126,6 +126,18 @@ func likelyStatusIn(statuses []string) func(*sql.Selector) {
 	}
 }
 
+// likelyOK is likely(status IN ('ok')). It is the filter of a depth set
+// whose child type has the one live status "ok", of the detailChildSets
+// count for that set, and of a relation-key status pin. Each of these
+// queries selects the rows of one parent through an FK column. Without
+// ANALYZE statistics, SQLite scores status = ? as selective as the FK
+// equality. For pocs and ixlans it then reads every "ok" row through
+// the status index. On a database with 40k pocs, /api/net/<id> at depth
+// 2 took 20 ms instead of 1 ms, and /api/net?ixlan=<id> took 23 ms
+// instead of 0.2 ms. The likely() hint keeps these plans on the FK
+// index.
+var likelyOK = likelyStatusIn([]string{"ok"})
+
 // coerceToCaseInsensitive maps the subset of operators that upstream
 // (2.83.0 rest.py:657-662) forces to case-insensitive variants. Non-matching operators
 // pass through unchanged (scope: contains + startswith only).
