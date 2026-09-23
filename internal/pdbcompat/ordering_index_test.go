@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -40,27 +41,55 @@ func TestDefaultOrdering_IndexBacked(t *testing.T) {
 }
 
 // TestPdbcompatListPlan_NoTempBTree runs the SQL that the Registry
-// List and Count closures emit through EXPLAIN QUERY PLAN. A plain list
-// on a type with one live status is ordered by id, and the
-// single-column status index returns its rows in (status, rowid)
-// order, so SQLite needs no sort. The app never runs ANALYZE, so the
-// empty test database gets the same plan as production.
+// List and Count closures emit through EXPLAIN QUERY PLAN. The app never
+// runs ANALYZE, so the empty test database gets the same plan as
+// production.
+//
+//   - A plain list on a type with one live status is ordered by id. The
+//     single-column status index returns its rows in (status, rowid)
+//     order, so SQLite needs no sort.
+//   - A plain netixlan list (two live statuses) and every ?since= list
+//     wrap the status set in likely(). SQLite then reads the rowid
+//     table (id order) or the updated index (?since= order) and needs
+//     no sort. The COUNT query still reads a covering status index.
 func TestPdbcompatListPlan_NoTempBTree(t *testing.T) {
 	t.Parallel()
+	since := time.Unix(1, 0)
 	for _, tc := range []struct {
-		name string
-		typ  string
-		opts QueryOptions
+		name      string
+		typ       string
+		opts      QueryOptions
+		wantList  string // substring of the list plan
+		wantCount string // substring of the count plan
 	}{
-		{"net_default", "net", QueryOptions{Limit: 250, Skip: 30000}},
-		{"org_default", "org", QueryOptions{Limit: 250}},
-		{"fac_default_unbounded", "fac", QueryOptions{}},
+		{"net_default", "net", QueryOptions{Limit: 250, Skip: 30000},
+			"USING INDEX network_status (status=?)", "COVERING INDEX network_status"},
+		{"org_default", "org", QueryOptions{Limit: 250},
+			"USING INDEX organization_status (status=?)", "COVERING INDEX organization_status"},
+		{"fac_default_unbounded", "fac", QueryOptions{},
+			"USING INDEX facility_status (status=?)", "COVERING INDEX facility_status"},
+		{"netixlan_default", "netixlan", QueryOptions{Limit: 250, Skip: 30000},
+			"SCAN network_ix_lans", "COVERING INDEX networkixlan_status"},
+		{"netixlan_default_unbounded", "netixlan", QueryOptions{},
+			"SCAN network_ix_lans", "COVERING INDEX networkixlan_status"},
+		{"net_since", "net", QueryOptions{Since: &since, Limit: 250},
+			"USING INDEX network_updated (updated>?)", "COVERING INDEX"},
+		{"netixlan_since", "netixlan", QueryOptions{Since: &since, Limit: 250},
+			"USING INDEX networkixlan_updated (updated>?)", "COVERING INDEX"},
+		{"campus_since_unbounded", "campus", QueryOptions{Since: &since},
+			"USING INDEX campus_updated (updated>?)", "COVERING INDEX"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			list, _ := listPlans(t, tc.typ, tc.opts)
+			list, count := listPlans(t, tc.typ, tc.opts)
 			if strings.Contains(list, "TEMP B-TREE") {
 				t.Errorf("list plan sorts in a temp B-tree: %s", list)
+			}
+			if !strings.Contains(list, tc.wantList) {
+				t.Errorf("list plan = %q, want it to contain %q", list, tc.wantList)
+			}
+			if !strings.Contains(count, tc.wantCount) {
+				t.Errorf("count plan = %q, want it to contain %q", count, tc.wantCount)
 			}
 		})
 	}

@@ -86,22 +86,45 @@ func isKnownOperator(suffix string) bool {
 // isCampus (rest.py:723-735). Always returns a non-nil predicate, because
 // every list request needs a status filter.
 //
-// A single live status emits status = ? instead of IN: SQLite then
-// reads the single-column status index, which returns the rows in
-// (status, rowid) order, so the default id order needs no sort. An IN
-// list with two values, as on netixlan, needs a temp B-tree sort.
+// A single live status emits status = ?. SQLite then reads the
+// single-column status index, which returns the rows in (status, rowid)
+// order, so the default id order needs no sort. A set of two or more
+// statuses emits likelyStatusIn instead of a plain IN.
 func applyStatusMatrix(live []string, isCampus, sinceSet bool) func(*sql.Selector) {
 	if !sinceSet {
 		if len(live) == 1 {
 			return sql.FieldEQ("status", live[0])
 		}
-		return sql.FieldIn("status", live...)
+		return likelyStatusIn(live)
 	}
 	allowed := append(slices.Clone(live), "deleted")
 	if isCampus {
 		allowed = append(allowed, "pending")
 	}
-	return sql.FieldIn("status", allowed...)
+	return likelyStatusIn(allowed)
+}
+
+// likelyStatusIn returns `likely(status IN (...))`. The status set of
+// the matrix admits almost every row, but without ANALYZE statistics
+// the SQLite planner treats a plain IN on an indexed column as
+// selective. It then reads the rows through a status-leading index, one
+// range per status, and sorts them in a temp B-tree. The likely() hint
+// tells the planner that the IN is not selective, so it reads the rows
+// in the list order instead: the rowid table for id order, and the
+// updated index for the ?since= order. COUNT queries keep the covering
+// status index. Measured on 69,700 netixlan rows: a 250-row page at
+// skip=30000 went from 119 ms to 9 ms, and a 250-row ?since=1 page from
+// 26 ms to 2 ms.
+func likelyStatusIn(statuses []string) func(*sql.Selector) {
+	args := make([]any, len(statuses))
+	for i, v := range statuses {
+		args[i] = v
+	}
+	return func(s *sql.Selector) {
+		s.Where(sql.P(func(b *sql.Builder) {
+			b.WriteString("likely(").Join(sql.In(s.C("status"), args...)).WriteString(")")
+		}))
+	}
 }
 
 // coerceToCaseInsensitive maps the subset of operators that upstream

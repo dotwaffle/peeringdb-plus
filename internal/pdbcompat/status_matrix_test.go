@@ -67,15 +67,15 @@ func TestApplyStatusMatrix_SQL(t *testing.T) {
 		{"one live status, no since", []string{"ok"}, false, false,
 			"SELECT * FROM `t` WHERE `t`.`status` = ?", []any{"ok"}},
 		{"one live status, since", []string{"ok"}, false, true,
-			"SELECT * FROM `t` WHERE `t`.`status` IN (?, ?)", []any{"ok", "deleted"}},
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?))", []any{"ok", "deleted"}},
 		{"campus, no since", []string{"ok"}, true, false,
 			"SELECT * FROM `t` WHERE `t`.`status` = ?", []any{"ok"}},
 		{"campus, since", []string{"ok"}, true, true,
-			"SELECT * FROM `t` WHERE `t`.`status` IN (?, ?, ?)", []any{"ok", "deleted", "pending"}},
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?, ?))", []any{"ok", "deleted", "pending"}},
 		{"two live statuses, no since", []string{"ok", "not-operational"}, false, false,
-			"SELECT * FROM `t` WHERE `t`.`status` IN (?, ?)", []any{"ok", "not-operational"}},
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?))", []any{"ok", "not-operational"}},
 		{"two live statuses, since", []string{"ok", "not-operational"}, false, true,
-			"SELECT * FROM `t` WHERE `t`.`status` IN (?, ?, ?)", []any{"ok", "not-operational", "deleted"}},
+			"SELECT * FROM `t` WHERE likely(`t`.`status` IN (?, ?, ?))", []any{"ok", "not-operational", "deleted"}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

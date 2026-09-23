@@ -478,9 +478,9 @@ and that pdbcompat returns `id` order on the same data.
   declared via `index.Fields("updated")` in `ent/schema/<entity>.go`, so
   `ORDER BY updated DESC, id DESC` hits an index scan rather than a full-table
   sort.
-  The pdbcompat `id` order needs no index of its own:
-  on a type with one live status, the `status` index returns the rows
-  in `id` order.
+  The pdbcompat orders need no index of their own:
+  the `status` index or the rowid table returns the rows in `id` order,
+  and the `updated` index returns a `?since` window in `updated` order.
   Post-deploy verification:
   `sqlite3 /litefs/peeringdb-plus.db '.schema'` should list a `<entity>_updated`
   index for every entity.
@@ -649,7 +649,14 @@ for every entity to mirror upstream PeeringDB's `rest.py` status × since matrix
 (`ok`, plus `not-operational` on netixlan).
 A single live status is emitted as `status = ?`,
 so the `status` index returns the rows in `id` order and the list needs no sort.
-The two-value netixlan set is an `IN` list and needs a sort.
+A set of two or more statuses (netixlan, and every `?since` list)
+is emitted as `likely(status IN (...))`.
+Without `ANALYZE` statistics, SQLite otherwise reads a plain `IN`
+through a status-leading index and sorts the result in a temp B-tree.
+With the hint, SQLite reads the rowid table for `id` order
+and the `updated` index for the `?since` order, and does not sort.
+`COUNT` queries still read a covering status index.
+`TestPdbcompatListPlan_NoTempBTree` locks these plans.
 The pk-lookup path (`internal/pdbcompat/depth.go`) inlines
 `StatusIn("ok", "pending")` at every call site
 (`StatusIn("ok", "not-operational", "pending")` for netixlan)
