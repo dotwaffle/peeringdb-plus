@@ -99,22 +99,26 @@ mise install --locked
 mise run check
 ```
 
-If you touched any of the following, regenerate code and commit the result:
+If you changed one of these files, regenerate code and commit the result:
 
-- `.proto` files (everything under `proto/peeringdb/v1/`, including `v1.proto`,
-  `services.proto`, and `common.proto`)
-- `.templ` files under `internal/web/templates/`
-- ent schemas under `ent/schema/`
-
-Run the full codegen pipeline:
+- `schema/peeringdb.json`, or a hand-edited sibling file under `ent/schema/`
+- a `.proto` file under `proto/peeringdb/v1/`
+  (`v1.proto`, `services.proto`, or `common.proto`)
+- `graph/custom.graphql` or `graph/gqlgen.yml`
+- a `.templ` file under `internal/web/templates/`,
+  `internal/web/tailwind.input.css`, or `internal/web/static/ui.js`
+- a code generator or its configuration, for example `ent/entc.go`,
+  `buf.gen.yaml`, `cmd/pdb-schema-generate/`, `cmd/pdb-compat-allowlist/`,
+  or a generator version in `mise.toml`
 
 ```bash
-go generate ./...
+mise run generate
 ```
 
-This regenerates `ent/`, `gen/`, `graph/`,
-and `internal/web/templates/*_templ.go`.
-CI will reject PRs where these directories are out of sync (see below).
+This command runs `go generate ./...`.
+It updates `ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`,
+`internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
+CI rejects a PR in which these files are out of date (see below).
 
 ## Required CI Checks
 
