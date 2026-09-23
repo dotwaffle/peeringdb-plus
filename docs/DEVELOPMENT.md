@@ -825,8 +825,12 @@ match existing patterns in `git log --oneline` if in doubt.
 - **`campus` shows up as `campu` somewhere:** the inflection patch in
   `ent/entc.go` is not applying.
   Rebuild and re-run `go generate ./ent`.
-- **Trace / log noise:** `PDBPLUS_OTEL_SAMPLE_RATE=0` turns off sampling for
-  local runs. `OTEL_*` env vars follow the autoexport conventions.
+- **Trace and log noise in local runs:** set `OTEL_TRACES_EXPORTER=none`,
+  `OTEL_METRICS_EXPORTER=none`, and `OTEL_LOGS_EXPORTER=none` to stop export.
+  `PDBPLUS_OTEL_SAMPLE_RATE=0` stops traces only for `/api/`, `/rest/v1/`,
+  `/peeringdb.v1.`, and `/graphql`.
+  Other paths keep their fixed ratios
+  (see [ARCHITECTURE.md § Sampling Matrix](ARCHITECTURE.md#sampling-matrix)).
 - **An ent schema change did not reach an API:** run `mise run generate`,
   not only `go generate ./ent`.
   `go generate ./ent` does not run gqlgen, Tailwind, or templ.
