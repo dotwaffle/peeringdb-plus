@@ -81,6 +81,55 @@ func TestScratchDB_Schema(t *testing.T) {
 	}
 }
 
+// TestScratchDB_StageStats asserts that stageType reports the response
+// meta.generated and the newest parseable updated among the staged rows.
+// A missing or malformed updated drops out of the maximum and does not
+// fail the stage; Phase B owns updated validation.
+func TestScratchDB_StageStats(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	body := []byte(`{"meta":{"generated":1790000000.75},"data":[
+{"id":1,"updated":"2026-09-22T20:00:00Z"},
+{"id":2,"updated":"2026-09-22T22:40:00Z"},
+{"id":3},
+{"id":4,"updated":"not-a-time"}
+]}`)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+
+	client := peeringdb.NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.SetRetryBaseDelay(0)
+
+	s, err := openScratchDB(ctx)
+	if err != nil {
+		t.Fatalf("openScratchDB: %v", err)
+	}
+	defer closeScratchDB(ctx, s, slog.Default())
+
+	stats, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{})
+	if err != nil {
+		t.Fatalf("stageType: %v", err)
+	}
+	if want := time.Date(2026, 9, 22, 22, 40, 0, 0, time.UTC); !stats.maxUpdated.Equal(want) {
+		t.Errorf("maxUpdated = %v, want %v", stats.maxUpdated, want)
+	}
+	if want := time.Unix(1790000000, 0); !stats.generated.Equal(want) {
+		t.Errorf("generated = %v, want %v", stats.generated, want)
+	}
+	rows, _, err := s.drainChunk(ctx, peeringdb.TypeOrg, 0, 100)
+	if err != nil {
+		t.Fatalf("drainChunk: %v", err)
+	}
+	if len(rows) != 4 {
+		t.Errorf("staged %d rows, want 4", len(rows))
+	}
+}
+
 // TestScratchDB_StageAndDrain asserts the round-trip from StreamAll
 // through stageType into scratch, and back out via drainChunk. The test
 // serves a synthetic PeeringDB response with three org rows, stages
@@ -119,7 +168,7 @@ func TestScratchDB_StageAndDrain(t *testing.T) {
 	}
 	defer closeScratchDB(ctx, s, slog.Default())
 
-	if err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
+	if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
 		t.Fatalf("stageType: %v", err)
 	}
 
@@ -192,7 +241,7 @@ func TestScratchDB_DrainChunkPagination(t *testing.T) {
 	}
 	defer closeScratchDB(ctx, s, slog.Default())
 
-	if err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
+	if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
 		t.Fatalf("stageType: %v", err)
 	}
 

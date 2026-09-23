@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	stdsync "sync"
@@ -1451,7 +1452,9 @@ func TestIncrementalSync(t *testing.T) {
 // reverted in v1.18.3 because it tripped upstream's
 // API_THROTTLE_REPEATED_REQUEST throttle. Historical-delete capture
 // for fresh installs is deferred to a proper multi-cycle bootstrap
-// design (v1.19+); FK backfill catches orphans on demand.
+// design (v1.19+); FK backfill catches orphans on demand. The only
+// ?since= request is the window from the snapshot's newest updated,
+// which covers the changes since upstream built the snapshot.
 func TestIncrementalFirstSyncFallsBackToBareList(t *testing.T) {
 	t.Parallel()
 	generated := float64(time.Date(2026, 3, 23, 12, 0, 0, 0, time.UTC).Unix())
@@ -1465,9 +1468,10 @@ func TestIncrementalFirstSyncFallsBackToBareList(t *testing.T) {
 		t.Fatalf("sync: %v", err)
 	}
 
-	// v1.18.3 contract: zero cursor → bare list, NO since= parameter.
-	if orgSeen, ok := f.sinceSeen["org"]; ok && orgSeen.Load() {
-		t.Error("unexpected ?since= on first incremental sync (v1.18.2 bootstrap regression)")
+	// v1.18.3 contract: zero cursor → bare list first, never ?since=1.
+	snapshotMax := strconv.FormatInt(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC).Unix(), 10)
+	if got, want := f.sinceValues["org"].snapshot(), []string{"", snapshotMax}; !slices.Equal(got, want) {
+		t.Errorf("org since values = %q, want %q (bare list, then the snapshot window)", got, want)
 	}
 
 	// Verify data was synced via the bare path.
@@ -3822,5 +3826,36 @@ func TestSync_TombstoneCapture_AcrossCycles(t *testing.T) {
 	if !maxOrg2.After(maxOrg1) {
 		t.Errorf("expected MAX(updated) to advance past tombstone event (t1=%v → t2=%v); got %v → %v",
 			t1, t2, maxOrg1, maxOrg2)
+	}
+}
+
+// TestSnapshotWindowStart locks the start of the window fetch that
+// follows a full snapshot: the earlier of the pre-cycle cursor and the
+// snapshot's newest updated, where a zero value means "unknown".
+func TestSnapshotWindowStart(t *testing.T) {
+	t.Parallel()
+	early := time.Date(2026, 9, 22, 22, 40, 0, 0, time.UTC)
+	late := time.Date(2026, 9, 23, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name        string
+		cursor      time.Time
+		snapshotMax time.Time
+		want        time.Time
+	}{
+		{"empty table and empty snapshot: no window", time.Time{}, time.Time{}, time.Time{}},
+		{"empty table: window from snapshot", time.Time{}, early, early},
+		{"empty snapshot: window from cursor", late, time.Time{}, late},
+		{"stale snapshot: window from snapshot", late, early, early},
+		{"fresh snapshot: window from cursor", early, late, early},
+		{"equal: window from cursor", late, late, late},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := snapshotWindowStart(tt.cursor, tt.snapshotMax); !got.Equal(tt.want) {
+				t.Errorf("snapshotWindowStart(%v, %v) = %v, want %v", tt.cursor, tt.snapshotMax, got, tt.want)
+			}
+		})
 	}
 }

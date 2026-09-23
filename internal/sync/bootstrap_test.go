@@ -26,7 +26,9 @@ import (
 // tripped upstream's API_THROTTLE_REPEATED_REQUEST throttle and was
 // reverted in v1.18.3. Historical-delete capture is deferred to a
 // proper multi-cycle bootstrap design (v1.19+); the FK backfill catches
-// orphans on demand.
+// orphans on demand. The snapshots here are empty, so no window fetch
+// follows; TestSync_ZeroCursorWindowFailureTolerated covers the window
+// from a non-empty snapshot.
 func TestSync_IncrementalNoCursorFallsBackToBareList(t *testing.T) {
 	t.Parallel()
 
@@ -67,7 +69,8 @@ func TestSync_IncrementalNoCursorFallsBackToBareList(t *testing.T) {
 	if len(captured) == 0 {
 		t.Fatal("no URLs captured — sync didn't hit the test server")
 	}
-	// No URL may contain since= when cursor is zero (v1.18.3 contract).
+	// No URL may contain since= when the cursor is zero and the snapshot
+	// is empty (v1.18.3 contract).
 	for _, u := range captured {
 		if strings.Contains(u, "since=") {
 			t.Errorf("URL has since= but cursor is zero (v1.18.2 bootstrap regression): %s", u)
@@ -76,11 +79,11 @@ func TestSync_IncrementalNoCursorFallsBackToBareList(t *testing.T) {
 }
 
 // TestSync_FullModeStillBare asserts that mode=full on a FRESH database
-// (zero cursor for every type) does NOT add since= — the bare /api/<type>
-// path, same as the no-cursor incremental fallback (post-v1.18.3). On a
-// populated database, full mode DOES issue an additional ?since=<cursor>
-// fetch per type to capture the window's tombstones — see
-// TestSync_FullModeFetchesTombstoneWindow.
+// (zero cursor for every type) with empty snapshots does NOT add since=:
+// the bare /api/<type> path, same as the no-cursor incremental fallback
+// (post-v1.18.3). A non-empty snapshot or a populated database adds a
+// ?since= window fetch per type; see
+// TestSync_FullModeFetchesTombstoneWindow and stale_snapshot_test.go.
 func TestSync_FullModeStillBare(t *testing.T) {
 	t.Parallel()
 
@@ -179,7 +182,7 @@ func seedTombstoneTestOrgs(t *testing.T, client *ent.Client, updated time.Time) 
 
 // TestSync_FullModeFetchesTombstoneWindow asserts that a full-mode cycle
 // over a populated table (non-zero derived cursor) issues a follow-up
-// ?since=<cursor> fetch on top of the bare snapshot and lands the window's
+// ?since= fetch on top of the bare snapshot and lands the window's
 // tombstones. Bare lists carry only status='ok' rows (upstream filters
 // them), and committing the snapshot advances the derived MAX(updated)
 // cursor past the pre-cycle window — so without this fetch, upstream

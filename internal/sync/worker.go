@@ -543,7 +543,8 @@ func (w *Worker) syncSteps() []syncStep {
 // if the configured mode is incremental AND the configured
 // FullSyncInterval is positive AND the most recent successful full sync is
 // older than that interval, the cycle's effective mode upgrades to full —
-// every per-type fetch issues a bare list (no since=).
+// every per-type fetch starts with a bare list, followed by a ?since=
+// window (see stageOneTypeToScratch).
 //
 // Single GetLastSuccessfulFullSyncTime call per cycle by design (NOT once
 // per type) — the per-step loop in syncFetchPass receives the resolved
@@ -1234,16 +1235,18 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 // retry-after values up to 54 minutes, blocking sync indefinitely.
 //
 // Current behaviour: cursor zero → full sync via bare list (live statuses
-// only, smaller responses). Historical-delete capture for fresh installs
+// only, smaller responses), then a window from the snapshot's newest
+// updated (see snapshotWindowStart), which covers only the changes since
+// upstream built the snapshot. Historical-delete capture for fresh installs
 // is deferred to a proper multi-cycle bootstrap design (v1.19+);
 // FK backfill catches the orphans that matter on
 // demand, including via recursive grandparent backfill (v1.18.3).
 func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (bool, error) {
 	fellBack := false
 	// Incremental attempt requires a populated cursor. Zero cursor falls
-	// through to the full-sync path below (bare list, live statuses only).
+	// through to the full-sync path below (bare list, then the window).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
-		incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
+		_, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
 		if incErr == nil {
 			return true, nil
 		}
@@ -1266,48 +1269,115 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 		}
 	}
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
-	if err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}); err != nil {
+	snapshot, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{})
+	if err != nil {
 		return false, err
 	}
-	// Tombstone-window capture: a bare list contains only live rows (ok,
-	// plus not-operational on netixlan; upstream filters bare lists per
-	// rest.py), and committing the full snapshot advances the derived
-	// cursor (MAX(updated)) past the pre-cycle window — without a
-	// follow-up ?since= fetch, deletes that landed upstream since the
-	// last cycle would be permanently lost: served live by all surfaces
-	// forever and absent from our own ?since= exports. Stage the window
-	// on top of the snapshot; the scratch INSERT OR REPLACE is keyed on
-	// id, so window rows (including tombstones) win over their bare-list
-	// versions.
+	// Window capture: stage a ?since= fetch on top of the snapshot. The
+	// scratch INSERT OR REPLACE is keyed on id, so window rows (including
+	// tombstones) win over their snapshot versions. The window covers
+	// two gaps:
 	//
-	// In explicit full mode a failure here MUST fail the type: committing
-	// the snapshot without the window would advance the cursor past
-	// deletes we never saw, so the cycle retries instead. On the
-	// incremental-fallback path the window fetch is the same request
-	// shape that just failed — it is retried once best-effort (the
-	// earlier failure may have been transient), but a second failure is
-	// logged and tolerated so the fallback keeps its purpose: a cycle
-	// that lands fresh 'ok' rows despite a broken ?since= endpoint.
-	if !cursor.IsZero() {
-		if err := scratch.stageType(ctx, w.pdbClient, name, cursor); err != nil {
-			if !fellBack {
-				return false, fmt.Errorf("stage tombstone window %s since %s: %w",
-					name, cursor.Format(time.RFC3339), err)
-			}
-			stepSpan.AddEvent("tombstone_window.discarded",
-				trace.WithAttributes(
-					attribute.String("type", name),
-					attribute.String("error", err.Error()),
-				),
-			)
-			w.logger.LogAttrs(ctx, slog.LevelWarn, "tombstone window discarded after incremental fallback",
-				slog.String("type", name),
-				slog.Time("since", cursor),
-				slog.Any("error", err),
-			)
+	//   - Deletes. A bare list contains only live rows (ok, plus
+	//     not-operational on netixlan; upstream filters bare lists per
+	//     rest.py), and committing the snapshot advances the derived
+	//     cursor (MAX(updated)) past the pre-cycle window. Without the
+	//     window, deletes since the last cycle would be permanently
+	//     lost: served live by all surfaces and absent from our own
+	//     ?since= exports.
+	//   - A stale snapshot. Upstream serves the bare list from its API
+	//     cache, which can be hours or days old. Rows changed after the
+	//     cache was built appear in their old state, and the cursor may
+	//     already be past them. See snapshotWindowStart.
+	since := snapshotWindowStart(cursor, snapshot.maxUpdated)
+	w.recordSnapshotWindow(ctx, stepSpan, name, cursor, snapshot, since)
+	if since.IsZero() {
+		return false, nil
+	}
+	// A window failure fails the type only when committing without the
+	// window could lose data: in explicit full mode over a populated
+	// table, the commit would advance the cursor past deletes we never
+	// saw, so the cycle retries instead. The failure is tolerated in two
+	// cases. On a zero cursor the table is empty, and the next cycle's
+	// ?since=MAX(updated) fetch is this same window. On the
+	// incremental-fallback path the window is the same request shape that
+	// just failed; it is retried once best-effort (the earlier failure may
+	// have been transient), and a second failure is logged and tolerated
+	// so the fallback keeps its purpose: a cycle that lands fresh live
+	// rows despite a broken ?since= endpoint.
+	if _, err := scratch.stageType(ctx, w.pdbClient, name, since); err != nil {
+		if !fellBack && !cursor.IsZero() {
+			return false, fmt.Errorf("stage tombstone window %s since %s: %w",
+				name, since.Format(time.RFC3339), err)
 		}
+		stepSpan.AddEvent("tombstone_window.discarded",
+			trace.WithAttributes(
+				attribute.String("type", name),
+				attribute.String("error", err.Error()),
+			),
+		)
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "tombstone window discarded",
+			slog.String("type", name),
+			slog.Time("since", since),
+			slog.Bool("incremental_fallback", fellBack),
+			slog.Any("error", err),
+		)
 	}
 	return false, nil
+}
+
+// snapshotWindowStart returns the ?since= start of the window fetch that
+// follows a full snapshot, or zero for no window.
+//
+// cursor is the pre-cycle MAX(updated); a window from there captures the
+// deletes since the last cycle. snapshotMax is the newest updated among
+// the snapshot's rows. Upstream builds its API cache with
+// ?updated__lte=<build start>, so a row that changed after the snapshot
+// was taken carries an updated later than snapshotMax. A window from
+// snapshotMax replaces the stale snapshot versions of those rows, also
+// when the cursor is already past them. meta.generated is not a safe
+// start: it is the cache file's write time, which can be later than the
+// query cutoff by the duration of the cache build.
+func snapshotWindowStart(cursor, snapshotMax time.Time) time.Time {
+	if cursor.IsZero() || (!snapshotMax.IsZero() && snapshotMax.Before(cursor)) {
+		return snapshotMax
+	}
+	return cursor
+}
+
+// recordSnapshotWindow puts the snapshot times and the window start of
+// one type on its fetch span. For a populated table it logs at INFO when
+// the window starts at the snapshot instead of the cursor, that is, when
+// the newest row in the snapshot is older than the newest row we hold.
+// That is normal after any change since upstream built its API cache, or
+// when the newest stored row is one that a bare list omits (a tombstone,
+// or a pending campus). A large snapshot_lag, or an old
+// snapshot_generated, is what shows a stale cache.
+func (w *Worker) recordSnapshotWindow(ctx context.Context, span trace.Span, name string, cursor time.Time, snapshot stageStats, since time.Time) {
+	var attrs []attribute.KeyValue
+	addTime := func(key string, t time.Time) {
+		if !t.IsZero() {
+			attrs = append(attrs, attribute.String(key, t.UTC().Format(time.RFC3339)))
+		}
+	}
+	addTime("pdbplus.sync.snapshot.generated", snapshot.generated)
+	addTime("pdbplus.sync.snapshot.max_updated", snapshot.maxUpdated)
+	addTime("pdbplus.sync.window.since", since)
+	span.SetAttributes(attrs...)
+
+	if cursor.IsZero() || since.IsZero() || since.Equal(cursor) {
+		return
+	}
+	logAttrs := []slog.Attr{
+		slog.String("type", name),
+		slog.Time("cursor", cursor.UTC()),
+		slog.Time("snapshot_max_updated", snapshot.maxUpdated.UTC()),
+		slog.Duration("snapshot_lag", cursor.Sub(snapshot.maxUpdated)),
+	}
+	if !snapshot.generated.IsZero() {
+		logAttrs = append(logAttrs, slog.Time("snapshot_generated", snapshot.generated.UTC()))
+	}
+	w.logger.LogAttrs(ctx, slog.LevelInfo, "window starts at full snapshot", logAttrs...)
 }
 
 // syncUpsertPass runs Phase B upserts inside the single tx. It drains
