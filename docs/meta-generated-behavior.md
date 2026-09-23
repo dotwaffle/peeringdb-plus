@@ -33,8 +33,9 @@ Its behavior was determined empirically.
 > That coupling was removed in v1.18.10 —
 > the cursor is now derived from `MAX(updated)` on each entity table
 > (see [Impact on the sync pipeline](#impact-on-the-sync-pipeline)).
-> `meta.generated` is still parsed and returned,
-> but the sync worker no longer consumes it.
+> `meta.generated` is still parsed and returned.
+> Since v1.28.1 the worker reports it on the fetch span and in logs only
+> (see [Stale snapshots](#stale-snapshots-v1281)).
 > The empirical observations below remain accurate
 > and are why the field is unsuitable as a cursor.
 
@@ -125,8 +126,9 @@ and computes `FetchMeta.Generated`
 as the **earliest non-zero `meta.generated`** across all pages.
 Pages with empty `meta` (Pattern 2) contribute nothing;
 the field stays zero only if **every** page returned empty meta.
-`scratch.stageType` returns this aggregated value to its caller, but —
-as of the cursor change below — the sync worker discards it.
+`scratch.stageType` returns this aggregated value to its caller,
+together with the newest `updated` value among the staged rows.
+The worker uses neither for the cursor.
 
 ### The cursor is `MAX(updated)`, not `meta.generated` (v1.18.10+)
 
@@ -149,10 +151,12 @@ Each sync cycle derives a per-type cursor from
   (the `OnConflict` UPDATE is skipped on unchanged rows).
 - **Zero cursor (empty table) or full mode** → a bare `?depth=0` list
   (live statuses only: `ok`, plus `not-operational` on netixlan),
-  the existing full-sync path.
+  the existing full-sync path,
+  then a `?since=` window fetch
+  (see [Stale snapshots](#stale-snapshots-v1281)).
 
 The `meta.Generated` value returned by `stageType` is **not** used to advance
-the cursor; the worker discards it (`_, err := scratch.stageType(...)`).
+the cursor.
 
 **Why the change.**
 The earlier design aggregated `meta.generated` into the cursor
@@ -181,6 +185,38 @@ The `sync_cursors` table
 and the `UpsertCursor` / `GetCursor` helpers in `internal/sync/status.go` are no
 longer on the cursor-advancement path; cursor advancement is implicit in the
 entity tables' own `updated` columns.
+
+### Stale snapshots (v1.28.1)
+
+The bare list is the one request shape that upstream serves from its API cache.
+Upstream's `pdb_api_cache` command builds each cache file with
+`?updated__lte=<build start>`,
+and `api_cache.py` reports the file's modification time as `meta.generated`.
+The cache can be hours or days old
+(on 2026-09-23 the netixlan cache was from 2026-09-22 23:14:11Z,
+before the 2.83.0 release).
+A row that changed after the build appears in its old state,
+with its old `updated` value.
+
+`meta.generated` is not a safe start for the window that follows the snapshot:
+the file is written after the query ran,
+and one build took more than 24 minutes between the `net` and `netixlan` files.
+The worker starts the window at the earlier of the pre-cycle cursor and
+the newest `updated` value in the snapshot (`snapshotWindowStart`).
+That value is at or before the query cutoff,
+so the window's `?since=` filter matches every row that changed after the build.
+The window is paged like any `?since=` fetch,
+so rows that share one `updated` value can still be skipped at a page edge
+(see `docs/ARCHITECTURE.md` § Daily full reconcile).
+Full-mode upserts also keep a stored row whose `updated` value is newer than
+the snapshot's version and not older than the snapshot's newest row
+(`skipUnchangedPredicate`).
+
+The fetch span carries `pdbplus.sync.snapshot.generated`,
+`pdbplus.sync.snapshot.max_updated` and `pdbplus.sync.window.since`.
+When the window of a populated table starts at the snapshot, the worker logs
+`INFO "window starts at full snapshot"` with `snapshot_lag`.
+Only a large lag, or an old `snapshot_generated`, shows a stale cache.
 
 ### `parseMeta` implementation
 
@@ -216,7 +252,8 @@ since the cursor is `MAX(updated)`.
    It is derived freshly each cycle by `GetMaxUpdated`
    (`internal/sync/cursor.go`), is never persisted to `sync_cursors`, and does
    not depend on any response metadata.
-   `meta.generated` is still parsed and returned but is discarded by the worker.
+   `meta.generated` is still parsed and returned; the worker reports it for
+   observability only.
 
 3. **Incremental responses omit `meta.generated`, which is exactly why it cannot
    be the cursor.**

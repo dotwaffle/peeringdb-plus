@@ -643,6 +643,16 @@ fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'
    SELECT COUNT(*) FROM network_ix_lans WHERE status = 'ok' AND operational = 0;
    ```
 
+   If the result is not `0`, the paged window of the full sync skipped some
+   rows. While the upstream API cache predates 2.83.0, only the window
+   returns these rows in their current state. Compare the
+   `pdbplus.sync.snapshot.generated` attribute on the `sync-fetch-netixlan`
+   span with the time of the upstream deploy. Start another full sync
+   later: each full sync fetches the window again, and a row stored as
+   `not-operational` stays, because the upserts keep a stored row that is
+   newer than the snapshot. When upstream rebuilds its cache, the snapshot
+   itself carries the rows.
+
 ## Operational failure modes quick-runbook
 
 ### 1) LiteFS lease/primary flaps
