@@ -762,7 +762,7 @@ pdbcompat resolves `<fk>__<field>`
 and `<fk>__<fk>__<field>` filter paths through two mechanisms,
 both driven by codegen from ent schema annotations at `go generate` time:
 
-- **Path A — per-serializer allowlists.**
+- **Path A: per-serializer allowlists.**
   Derived from the upstream `peeringdb_server/serializers.py`
   `prepare_query(...)` / `get_relation_filters(...)` seed lists and from
   `queryable_relations()`.
@@ -774,10 +774,10 @@ both driven by codegen from ent schema annotations at `go generate` time:
   Generated from ent schema `pdbcompat.WithPrepareQueryAllow(...)` annotations
   via `cmd/pdb-compat-allowlist`; emitted into
   `internal/pdbcompat/allowlist_gen.go`.
-  This is the "explicitly blessed" set of filter keys —
-  every entry carries a `// serializers.py:<line>` comment anchoring it to
+  This is the "explicitly blessed" set of filter keys.
+  Every entry carries a `// serializers.py:<line>` comment that anchors it to
   upstream 2.83.0.
-- **Path B — ent edge introspection.**
+- **Path B: ent edge introspection.**
   When a filter key does not match Path A,
   the parser consults the generated `Edges` map
   (also emitted into `allowlist_gen.go`).
@@ -803,8 +803,9 @@ both driven by codegen from ent schema annotations at `go generate` time:
   A relation key filters `status` only through a forward edge
   one hop away (`net?org__status=`).
   Upstream ignores `status` on the mirror's reverse and 2-hop keys too.
-  Resolution uses a codegen-time static map —
-  no runtime ent-client introspection, no `sync.Once`, no init-order coupling.
+  Resolution uses a static map that codegen emits.
+  There is no runtime ent-client introspection, `sync.Once` or init-order
+  coupling.
 
 The resolution order is implemented in `internal/pdbcompat/filter.go`
 `ParseFiltersCtx` and `buildTraversalPredicate`:
@@ -959,12 +960,12 @@ Filter keys with more than 2 `__`-separated relation segments are silently
 ignored.
 Examples:
 
-- `?org__name=X` — 1 hop, resolves via Path A (every primary entity).
-- `?ixlan__ix__id=N` on `ixpfx` — 2 hops, resolves via Path A
+- `?org__name=X`: 1 hop, resolves via Path A (every primary entity).
+- `?ixlan__ix__id=N` on `ixpfx`: 2 hops, resolves via Path A
   (`TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`).
   Upstream ignores this key: it is a mirror extension
   (see § Known Divergences).
-- `?ixlan__ix__org__name=X` — 3 hops, SILENTLY IGNORED (HTTP 200,
+- `?ixlan__ix__org__name=X`: 3 hops, SILENTLY IGNORED (HTTP 200,
   result set is unfiltered).
 
 A relation key of a `prepare_query` also has at most two segments
