@@ -530,6 +530,14 @@ Two-step:
 To exclude an edge from traversal entirely,
 attach `pdbcompat.WithFilterExcludeFromTraversal()` to the edge definition.
 
+A key that an upstream `prepare_query` handles through
+`get_relation_filters` is not an allowlist key.
+Add it to `relationSeeds` in `internal/pdbcompat/relation_filter.go`
+with its path and the row that upstream pins to status `ok`,
+and add a case to
+`TestParity_Traversal/prepare_query_relation_keys_pin_join_status_ok`.
+See `docs/API.md § Relation filters`.
+
 **Do NOT:**
 
 - Hand-edit `internal/pdbcompat/allowlist_gen.go` — it is overwritten on

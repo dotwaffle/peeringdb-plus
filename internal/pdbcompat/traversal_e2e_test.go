@@ -75,7 +75,7 @@ func equalIntSets(a, b []int) bool {
 // fixtures at IDs 8000+ (org/campus/ix/ixlan/fac/3 nets) are the
 // deterministic targets for each URL shape.
 //
-// Coverage matrix (17 subtests):
+// Coverage matrix (18 subtests):
 //   - Path A 1-hop: org__name on net, fac, ix, carrier (4 entity cases)
 //   - Path A 1-hop: campus__name on fac (5th 1-hop case)
 //   - Path A 2-hop: fac?ixlan__ix__fac_count__gt=0 — silent-ignored
@@ -83,12 +83,11 @@ func equalIntSets(a, b []int) bool {
 //     ixlan relation (2.83.0 serializers.py:2092-2210, :970-996).
 //   - 2-hop, not allowlisted: fac?ixlan__ix__id=8001 — silent-ignored,
 //     the same as upstream (same reason)
-//   - Path A 1-hop + op: net?ix__name__contains=TestIX — silent-ignored
-//     (net has no ix edge; `ix__name` in Allowlists["net"].Direct tries
-//     Path A, buildSinglHop fails LookupEdge, falls through to unknown).
-//     Upstream filters it through NetworkSerializer.prepare_query
-//     (2.83.0 serializers.py:3708-3740), a registered divergence
-//     (docs/API.md § Known Divergences).
+//   - prepare_query relation keys: net?ix__id=20 and
+//     net?ix__name__contains=TestIX walk netixlan -> ixlan -> ix, as
+//     NetworkSerializer.prepare_query does (2.83.0
+//     serializers.py:3708-3740). TestIX has no netixlan, so the second
+//     key matches no net.
 //   - Path B fallback 1-hop: net?org__city=Amsterdam (edge exists, field
 //     exists, no row matches) — expected empty set
 //   - Unknown-field silent-ignore (5 cases): unknown local, unknown edge,
@@ -96,8 +95,7 @@ func equalIntSets(a, b []int) bool {
 //     the unfiltered live-row set for the type (DeletedNet 8003 excluded
 //     by the status matrix)
 //   - Multi-filter composition:
-//     net?org__id=8001&ix__name=TestIX — org__id resolves (8001/8002),
-//     ix__name silent-ignored
+//     net?org__id=1&ix=20: both keys filter, and net 10 matches both
 //   - _fold preservation: net?name__contains=Zurich — matches
 //     both fold-normalised rows
 //   - __in sentinel: net?org_id__in= — empty __in short-circuits
@@ -185,13 +183,19 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 			url:         "/api/fac?ixlan__ix__id=8001",
 			expectedIDs: allLiveFacs,
 		},
-		// net has no "ix" edge (only network_ix_lans); the `ix__name`
-		// allowlist entry fails buildSinglHop lookup and the key is
-		// silent-ignored. Upstream filters it (registered divergence).
+		// net?ix__<field> is a relation key of the upstream net
+		// prepare_query: it walks netixlan -> ixlan -> ix and keeps the
+		// nets with a matching netixlan. Only net 10 has a netixlan, on
+		// IX 20. TestIX (8001) has no netixlan.
 		{
-			name:        "net_ix_name_contains_ignored",
+			name:        "net_ix_id_through_netixlan",
+			url:         "/api/net?ix__id=20",
+			expectedIDs: []int{10},
+		},
+		{
+			name:        "net_ix_name_without_netixlan",
 			url:         "/api/net?ix__name__contains=TestIX",
-			expectedIDs: allLiveNets,
+			expectedIDs: []int{},
 		},
 		// Path B fallback 1-hop: org.city is a queryable field via Path B
 		// introspection (net has org edge → Registry["org"].Fields["city"]
@@ -227,12 +231,12 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 			url:         "/api/net?a__b__c__d__e=x",
 			expectedIDs: allLiveNets,
 		},
-		// Multi-filter composition — org__id resolves (matches
-		// 8001/8002), ix__name silent-ignored (no ix edge on net).
+		// Multi-filter composition: org__id matches nets 10 and 11, and
+		// ix keeps the nets with a netixlan on that exchange.
 		{
-			name:        "multifilter_org_id_and_ix_name",
-			url:         "/api/net?org__id=8001&ix__name=TestIX",
-			expectedIDs: []int{8001, 8002},
+			name:        "multifilter_org_id_and_ix",
+			url:         "/api/net?org__id=1&ix=20",
+			expectedIDs: []int{10},
 		},
 		// _fold preservation on traversal-parser path. `name` is
 		// a local FoldedFields field; contains routes through the _fold

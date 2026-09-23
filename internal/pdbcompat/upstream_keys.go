@@ -129,14 +129,12 @@ func namesFKColumn(field string) bool {
 // (org?net__status= becomes network__status, which is no filter key,
 // rest.py:525-528, :670). The mirror resolves these keys for other
 // fields (see docs/API.md § Known Divergences) but ignores status on
-// them, as upstream does.
-//
-// A first segment that names no edge of tc returns true, so the routing
-// of the netixlan and ixpfx exchange keys decides.
+// them, as upstream does. The relation keys of a prepare_query
+// (relationSeeds) do not come here: they filter status as upstream does.
 func relationStatusFilterable(tc TypeConfig, relSegs []string) bool {
 	if len(relSegs) != 1 {
 		return false
 	}
 	edge, ok := LookupEdge(tc.Name, traversalKeyFor(tc, relSegs[0]))
-	return !ok || edge.OwnFK
+	return ok && edge.OwnFK
 }

@@ -6,33 +6,6 @@ import (
 	"testing"
 )
 
-// upstreamNonModelFields lists the Registry Fields keys that are not
-// fields of the upstream model: serializer fields and model properties.
-// The upstream filter loop filters only model fields and
-// queryable_relations (2.83.0 rest.py:525-528, :633, :670), so each of
-// these keys is either an upstream query key (upstreamQueryKeys) or
-// ignored upstream (TypeConfig.UpstreamIgnored). Keyed "<type>.<field>".
-var upstreamNonModelFields = map[string]string{
-	"fac.org_name":     "serializer field (serializers.py:1947)",
-	"net.info_type":    "property (models.py:5812-5816)",
-	"netixlan.name":    "property (models.py:6113-6115)",
-	"netixlan.ix_id":   "property (models.py:6131-6133)",
-	"netfac.name":      "serializer field (serializers.py:3372-3380)",
-	"netfac.city":      "serializer field (serializers.py:3372-3380)",
-	"netfac.country":   "serializer field (serializers.py:3372-3380)",
-	"netfac.local_asn": "property (models.py:6046-6051)",
-	"ixfac.name":       "serializer field (serializers.py:2792-2800)",
-	"ixfac.city":       "serializer field (serializers.py:2792-2800)",
-	"ixfac.country":    "serializer field (serializers.py:2792-2800)",
-	"carrier.org_name": "serializer field (serializers.py:2667)",
-	"carrierfac.name":  "serializer field (serializers.py:2601)",
-	"campus.org_name":  "serializer field (serializers.py:4792)",
-	"campus.city":      "property (models.py:2113-2120)",
-	"campus.country":   "property (models.py:2122-2129)",
-	"campus.state":     "property (models.py:2131-2138)",
-	"campus.zipcode":   "property (models.py:2140-2147)",
-}
-
 // upstreamQueryKeys lists the Registry Fields keys that upstream handles
 // before its model-field filters, in a serializer's prepare_query or
 // finalize_query_params. Keyed "<type>.<field>".
@@ -57,8 +30,8 @@ var upstreamQueryKeys = map[string]string{
 // one class and checks that the parser treats it to match upstream:
 //   - A FK column (a TypeConfig.ForeignKeys value) filters as the FK.
 //   - A key that queryable_field_xl renames (serializers.py:428-438) or
-//     that is not an upstream model field must be an upstream query key
-//     or be in TypeConfig.UpstreamIgnored.
+//     that is not an upstream model field (TypeConfig.NonModelFields)
+//     must be an upstream query key or be in TypeConfig.UpstreamIgnored.
 //   - Every other key is an upstream model field under the same name.
 //
 // A new net_ or fac_ column fails the test until someone decides how
@@ -72,7 +45,7 @@ func TestRegistryFields_UpstreamKeyClass(t *testing.T) {
 				continue
 			}
 			renamed := upstreamFieldName(field) != stripIDSuffix(field)
-			_, nonModel := upstreamNonModelFields[key]
+			nonModel := tc.NonModelFields[field]
 			_, queryKey := upstreamQueryKeys[key]
 			ignored := tc.UpstreamIgnored[field]
 			switch {
@@ -85,18 +58,21 @@ func TestRegistryFields_UpstreamKeyClass(t *testing.T) {
 				t.Errorf("%s is in UpstreamIgnored, but it is an upstream model field", key)
 			}
 		}
-		for field := range tc.UpstreamIgnored {
-			if _, ok := tc.Fields[field]; !ok {
-				t.Errorf("%s.UpstreamIgnored[%q] is not in Fields", typ, field)
+		for name, set := range map[string]map[string]bool{
+			"UpstreamIgnored": tc.UpstreamIgnored,
+			"NonModelFields":  tc.NonModelFields,
+		} {
+			for field := range set {
+				if _, ok := tc.Fields[field]; !ok {
+					t.Errorf("%s.%s[%q] is not in Fields", typ, name, field)
+				}
 			}
 		}
 	}
-	for _, list := range []map[string]string{upstreamNonModelFields, upstreamQueryKeys} {
-		for key := range list {
-			typ, field, _ := strings.Cut(key, ".")
-			if _, ok := Registry[typ].Fields[field]; !ok {
-				t.Errorf("stale entry %q: not a Registry field", key)
-			}
+	for key := range upstreamQueryKeys {
+		typ, field, _ := strings.Cut(key, ".")
+		if _, ok := Registry[typ].Fields[field]; !ok {
+			t.Errorf("stale entry %q: not a Registry field", key)
 		}
 	}
 }

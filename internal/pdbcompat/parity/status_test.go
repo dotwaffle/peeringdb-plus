@@ -1018,6 +1018,110 @@ func TestParity_Status(t *testing.T) {
 		if status, body := httpGet(t, fk, "/api/net?org__icontains=1"); status != http.StatusBadRequest {
 			t.Errorf("?org__icontains=1: status = %d, want 400; body=%s", status, string(body))
 		}
+
+		// On a relation key of a prepare_query, get_relation_filters
+		// does not parse the suffix (serializers.py:643-654). A
+		// 3-segment key drops it and filters the field on the value, so
+		// upstream runs an exact match. On the status of the pinned
+		// row, make_relation_filter then replaces the value with ok
+		// (models.py:221-234). A 2-segment key keeps the suffix as a
+		// Django lookup on the relation, which raises FieldError, so
+		// upstream returns 400 (rest.py:488-500).
+		rel := newTestServer(t, seedRelationSeedKeys(t, t0))
+		assertKeysResolve(t, rel, []silentIgnoreCase{
+			// Upstream: [].
+			{path: "/api/net?ix__name__icontains=seedix20", want: []int{100}},
+			// Upstream: [20].
+			{path: "/api/ix?ixlan__status__iexact=pending", want: []int{}},
+			// Upstream: 400.
+			{path: "/api/net?ixlan__iexact=200", want: []int{100}},
+		})
+	})
+
+	t.Run("relation_keys_pin_row_status_under_since", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0. Some related_to_<x> methods run
+		// make_relation_filter on the listed rows, so status="ok"
+		// applies to the listed row itself (models.py:221-234):
+		//   - ixpfx related_to_ix filters ixlan__<field> on the prefix
+		//     (models.py:5167-5177). The ixlan and the exchange are not
+		//     checked.
+		//   - netfac and ixfac related_to_{name,country,city} filter
+		//     facility__<field> on the row (models.py:6002-6037,
+		//     :3239-3274). The facility is not checked.
+		//   - campus related_to_facility filters fac_set on the campus
+		//     (models.py:2101-2111).
+		// A since list admits deleted rows, and pending campuses
+		// (rest.py:719-750), but these keys still drop them.
+		// pdb_api_test.py:5107-5127 and :5141-5161 test the netfac and
+		// ixfac keys.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "PinOrg", t0)
+		mustIX(ctx, t, c, 20, "PinIX20", 1, t0)
+		mustIX(ctx, t, c, 21, "PinIX21", 1, t0)
+		mustIxLan(ctx, t, c, 200, "PinLanA", 20, t0)
+		c.IxLan.Create().
+			SetID(210).SetIxID(21).SetName("PinLanP").
+			SetStatus("pending").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustIxPfx(ctx, t, c, 1000, "10.0.0.0/24", 200, t0)
+		c.IxPrefix.Create().
+			SetID(1001).SetPrefix("10.0.1.0/24").SetProtocol("IPv4").SetIxlanID(200).
+			SetStatus("deleted").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustIxPfx(ctx, t, c, 1002, "10.1.0.0/24", 210, t0)
+		mustNet(ctx, t, c, 100, "PinNet", 64500, 1, t0)
+		c.Campus.Create().
+			SetID(50).SetName("PinCampusA").SetNameFold(unifold.Fold("PinCampusA")).SetOrgID(1).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.Campus.Create().
+			SetID(51).SetName("PinCampusP").SetNameFold(unifold.Fold("PinCampusP")).SetOrgID(1).
+			SetStatus("pending").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		for _, f := range []struct {
+			id, campus int
+			name       string
+		}{
+			{400, 0, "PinFacA"},
+			{402, 50, "PinFacC"},
+			{403, 51, "PinFacD"},
+		} {
+			fc := c.Facility.Create().
+				SetID(f.id).SetName(f.name).SetNameFold(unifold.Fold(f.name)).
+				SetOrgID(1).SetCity("TestCity").SetCityFold(unifold.Fold("TestCity")).
+				SetCountry("DE").
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0)
+			if f.campus != 0 {
+				fc.SetCampusID(f.campus)
+			}
+			fc.SaveX(ctx)
+		}
+		for id, st := range map[int]string{600: "ok", 601: "deleted"} {
+			c.NetworkFacility.Create().
+				SetID(id).SetNetID(100).SetFacID(400).SetLocalAsn(64500).
+				SetStatus(st).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		for id, st := range map[int]string{700: "ok", 701: "deleted"} {
+			c.IxFacility.Create().
+				SetID(id).SetIxID(id - 680).SetFacID(400).
+				SetStatus(st).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ixpfx?ix_id=20&since=1", want: []int{1000}},
+			{path: "/api/ixpfx?ix__name=PinIX20&since=1", want: []int{1000}},
+			{path: "/api/ixpfx?ix_id=21", want: []int{1002}},
+			{path: "/api/netfac?name=PinFacA&since=1", want: []int{600}},
+			{path: "/api/netfac?city=TestCity&since=1", want: []int{600}},
+			{path: "/api/ixfac?name=PinFacA&since=1", want: []int{700}},
+			{path: "/api/ixfac?country=DE&since=1", want: []int{700}},
+			{path: "/api/campus?facility=402&since=1", want: []int{50}},
+			{path: "/api/campus?facility=403&since=1", want: []int{}},
+			{path: "/api/campus?facility__name=PinFacC&since=1", want: []int{50}},
+			// Controls: a forward FK key checks no status.
+			{path: "/api/ixpfx?ixlan_id=200&since=1", want: []int{1000, 1001}},
+			{path: "/api/netfac?fac_id=400&since=1", want: []int{600, 601}},
+			{path: "/api/campus?since=1", want: []int{50, 51}},
+		})
 	})
 
 	t.Run("DIVERGENCE_detail_ignores_filters", func(t *testing.T) {

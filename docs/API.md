@@ -426,6 +426,13 @@ The matrix starts from the live statuses of the type
 | Single-object GET `/api/<type>/<id>` | live statuses and `pending` — tombstones return `404` |
 | Nested `_set` lists, `?depth=1` and higher | live statuses only |
 
+Most relation keys of a `prepare_query` also require status `ok`
+on one row of their path (see § Relation filters).
+For `ixpfx?ix=`, `netfac?name=`, `ixfac?city=` and `campus?facility=`,
+that row is the listed row.
+A `?since=N` list with one of these keys does not return the deleted rows,
+or the pending campuses.
+
 The nested sets follow the upstream nested prefetch
 (`serializers.py:1140-1148`), which admits only the live statuses of the
 child type.
@@ -1125,13 +1132,16 @@ see `internal/pdbcompat/depth_test.go`.
 | Any `/api/` error response (4xx/5xx) | `{"meta":{"error":"<detail>"},"data":[]}` with `Content-Type: application/json` — 2.83.0 `renderers.py:134-146` pops `detail` into `meta["error"]`. | RFC 9457 `application/problem+json` (`type`/`title`/`status`/`detail`); no top-level `meta` key at all (`internal/pdbcompat/response.go` `WriteProblem`). Clients parsing `meta.error` on errors must adapt. | A standards-based, machine-readable error shape shared with the other API surfaces (entrest emits problem+json too) beats the bespoke upstream envelope; success responses keep full envelope parity. Locked by `TestParity_Limit/DIVERGENCE_error_envelope_problem_json_not_meta_error`. | v1.1 (registered 2026-06-10) |
 | `?q=<term>` on list endpoints | Ignored — the db-field filter loop skips `q` (2.83.0 `rest.py:566`) and no other consumer exists on the `/api` surface (the separate `name_search` parameter triggers the Elasticsearch-backed `search_v2`, `rest.py:532-553`), so any `?q=` value returns the unfiltered list. | Convenience **extension**: case-insensitive substring search (`ContainsFold`) across the type's SearchFields, plus exact-ASN match on `/api/net`. NOT diacritic-folded — `?q=munchen` does not match "München" although `?name__contains=munchen` does (the `_fold` shadow routing applies to the `__contains` filter family only). | A search that narrows results is strictly more useful than upstream's silent no-op, and clients relying on upstream behaviour (unfiltered dump) should not be sending `?q=` at all. Fold-routing `?q=` would multiply every SearchFields OR-branch across the `_fold` shadows for marginal benefit; revisit if a real client asks. Locked by `TestParity_Unicode_QSearchExtension_DIVERGENCE`. | v1.1 (registered 2026-07-10) |
 | Filters on upstream model columns that the API does not serialize: `org_flags` on `org`; `geocode_status` and `geocode_date` on `org` and `fac`; `location_method` and `location_place_id` on `fac` (new in 2.83.0); `ixf_import_request_user` on `ix`; and their `<fk>__<field>` forms, for example `net?org__org_flags=`, `netfac?fac__location_method=` and `netixlan?ix_side__location_method=` | Filters on them. The filter loop accepts every model field (2.83.0 `rest.py:525-528`), and `queryable_relations` adds `<fk>__<field>` for each FK (`serializers.py:970-996`). Columns: `models.py:1259-1264` (`org_flags`), `:591-599` (`geocode_*`), `:2207-2217` (`location_*`), `:2612` (`ixf_import_request_user`). | Silently ignored, like any unknown key: HTTP 200 with the unfiltered list. | The mirror stores only the fields that the API serializes. It never receives these values, so it cannot filter on them. Locked by `TestParity_Traversal/DIVERGENCE_unserialized_model_columns_silent_ignore`. | v1.1 (registered 2026-09-23) |
-| Query keys that upstream handles in Python and that are not model fields: the `prepare_query` keys (`fac`: `asn_overlap`, `org_present`, `org_not_present`, `all_net`, `not_net`, `distance`; `net`: `not_ix`, `not_fac`; `ix`: `ipblock`, `asn_overlap`, `all_net`, `not_net`, `org_present`, `org_not_present`, `capacity`; `org`: `asn`, `distance`; `ixpfx`: `whereis`); relation keys through a join table, for example `net?ix_id=`, `net?fac_id=`, `net?ix__name=`, `fac?net_id=`, `ix?net_id=` and `ix?fac_id=`; `hide_ix_no_fac` on `ix`, `ixlan`, `net` and `netixlan`; and `name_search` | Filters in Python before the model-field filters: `prepare_query` (2.83.0 `serializers.py:2092-2210` for `fac`, `:3708-3762` for `net`, `:4503-4631` for `ix`, `:4970-4992` for `org`, `:4154-4168` for `ixpfx`), the `hide_ix_no_fac` mixin (`rest.py:1267-1297`), and the search index for `name_search` (`rest.py:532-553`). `asn_overlap` returns `400` for one ASN or for more than 25 (`models.py:2457-2461` and `:2867-2871`). | Silently ignored, like any unknown key: HTTP 200 with the unfiltered list. `?asn_overlap=` never returns `400`. | Each key needs its own query logic: presence through join tables, IP prefix containment, spatial distance, or a search index. The model-field filters that pdbcompat mirrors do not cover them. Implement a key when a client needs it. Locked by `TestParity_Traversal/DIVERGENCE_prepare_query_keys_silent_ignore`. | v1.1 (registered 2026-09-23) |
+| Query keys that upstream handles in Python and that are not model fields: the `prepare_query` keys (`fac`: `asn_overlap`, `org_present`, `org_not_present`, `all_net`, `not_net`, `distance`; `net`: `not_ix`, `not_fac`; `ix`: `ipblock`, `asn_overlap`, `all_net`, `not_net`, `org_present`, `org_not_present`, `capacity`; `org`: `distance`; `ixpfx`: `whereis`); `hide_ix_no_fac` on `ix`, `ixlan`, `net` and `netixlan`; and `name_search` | Filters in Python before the model-field filters: `prepare_query` (2.83.0 `serializers.py:2092-2210` for `fac`, `:3708-3762` for `net`, `:4503-4631` for `ix`, `:4970-4992` for `org`, `:4154-4168` for `ixpfx`), the `hide_ix_no_fac` mixin (`rest.py:1267-1297`), and the search index for `name_search` (`rest.py:532-553`). `asn_overlap` returns `400` for one ASN or for more than 25 (`models.py:2457-2461` and `:2867-2871`). `distance` returns `400` without a location (`serializers.py:1856-1865`). | Silently ignored, like any unknown key: HTTP 200 with the unfiltered list. `?asn_overlap=` and `?distance=` never return `400`. | Each key needs its own query logic: presence through join tables, IP prefix containment, spatial distance, or a search index. The relation keys of a `prepare_query` are not in this row: they filter as upstream does (see § Relation filters). The model-field filters that pdbcompat mirrors do not cover them. Implement a key when a client needs it. Locked by `TestParity_Traversal/DIVERGENCE_prepare_query_keys_silent_ignore`. | v1.1 (registered 2026-09-23) |
 | `/api/poc?since=N` when the window covers a contact that was deleted more than 30 days ago | Hard deletes a soft-deleted contact when its `updated` value is `POC_DELETION_PERIOD` old (default 30 days: 2.83.0 `management/commands/pdb_delete_pocs.py:34-38,58`, `mainsite/settings/__init__.py:684`). After that, the window does not return its tombstone. This is the only hard delete upstream (`docs/api/obj_poc.md:14-17`, `docs/api/api_description.md:11-13`). | Keeps every `poc` tombstone, so the window still returns it. The tombstone shows `name`, `phone`, `email` and `url` blanked, as upstream shows every deleted contact (2.83.0 `serializers.py:2941-2954`). | Sync never infers a delete from a missing row (see § Soft-delete tombstones), and tombstone GC is dormant. A client that applies the tombstone deletes a contact that upstream also no longer has. Locked by `TestParity_Status/DIVERGENCE_poc_tombstone_outlives_upstream_retention`. | v1.16 (registered 2026-09-23) |
 | `/api/poc?since=N&fields=<list>` for a deleted contact when `<list>` leaves out `status`, for example `fields=id,name,email` | Returns the stored `name`, `phone`, `email` and `url`. The serializer removes the fields that `?fields=` does not name (2.83.0 `serializers.py:942-950`) and blanks the contact fields only when the rendered `status` is `deleted` (`:2941-2954`). A soft delete does not blank the stored values. | Returns `""` for these fields. pdbcompat blanks them before it applies `?fields=`, and sync stores a deleted contact without them. The mirror is **stricter** than upstream here. | The contact data of a deleted contact must not reach a caller, whatever fields the caller asks for. Locked by `TestParity_Status/DIVERGENCE_deleted_poc_blanked_without_status_field`. | v1.16 (registered 2026-09-23) |
 | `netixlan?ix_side__<field>=`, for example `?ix_side__name=` | Filters on the facility. `ix_side` is a FK to `Facility` (2.83.0 `models.py:6095-6101`), so `queryable_relations` adds its `ix_side__<field>` keys (`serializers.py:970-996`). | Silently ignored, like any unknown key: HTTP 200 with the unfiltered list. `?ix_side=` and `?ix_side_id=` filter as usual. | The mirror stores `ix_side_id` but models no edge from netixlan to the facility, so traversal has nothing to walk. Add the edge when a client needs these keys. The `net_side` keys are parity: upstream renames them to `network_side`, which matches no field (`serializers.py:428-438`), and ignores them. Locked by `TestParity_Traversal/DIVERGENCE_netixlan_ix_side_facility_keys_silent_ignore` and `net_fac_renamed_keys_ignored_like_upstream`. | v1.1 (registered 2026-09-23) |
-| Relation keys that upstream ignores: 2-hop keys, for example `ixpfx?ixlan__ix__id=`, `netixlan?net__org__name=` and `net?netfac__fac__name=`; reverse keys named by the mirror's traversal key, for example `org?net__name=`; and the field-level `FILTER_EXCLUDE` entries `org__latitude`, `org__longitude` and `ixlan__descr`, for example `fac?org__latitude__gt=` | Resolves one relation hop: `queryable_relations()` adds `<fk>__<field>` and `<related_name>__<field>` (2.83.0 `serializers.py:970-996`), and a `prepare_query` handles the keys whose first segment is in its seed list (`:614-656`). Other keys are ignored, and the list is unfiltered: `org?net__name=` becomes `network__name` (`serializers.py:403-441`), which is not a filter key (`rest.py:525-528`, `:670`). For a 2-hop key whose first segment a `prepare_query` handles, upstream drops the third segment and filters the relation on the value, so `net?netfac__fac__name=X` compares the facility id with `X` (a `400` for a non-numeric `X`). A `prepare_query` relation filter also keeps only related rows with status `ok` (`models.py:223-234`), whatever `?<rel>__status=` asks for. | Resolves each key through the Path A allowlist or the Path B edges and filters on the related rows as given, without a status check on them. The exception is `status`: a 2-hop key or a reverse key never filters it, so `org?net__status=` and `netixlan?net__org__status=` are ignored, as upstream. | A 2-hop key and a reverse key have one clear meaning on the mirror's edges, and the extra filters cost one subquery each. Locked by `TestParity_Traversal/DIVERGENCE_relation_keys_upstream_ignores_resolve` and `TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`. The `status` keys are parity, locked by `TestParity_Traversal/status_on_reverse_and_2hop_keys_ignored_like_upstream`. | v1.16 (registered 2026-09-23) |
+| Relation keys that upstream ignores: 2-hop keys, for example `ixpfx?ixlan__ix__id=` and `netixlan?net__org__name=`; reverse keys named by the mirror's traversal key, for example `org?net__name=`; and the field-level `FILTER_EXCLUDE` entries `org__latitude`, `org__longitude` and `ixlan__descr`, for example `fac?org__latitude__gt=` | Resolves one relation hop: `queryable_relations()` adds `<fk>__<field>` and `<related_name>__<field>` (2.83.0 `serializers.py:970-996`), and a `prepare_query` handles the keys whose first segment is in its seed list (`:614-656`). Other keys are ignored, and the list is unfiltered: `org?net__name=` becomes `network__name` (`serializers.py:403-441`), which is not a filter key (`rest.py:525-528`, `:670`). A key whose first segment a `prepare_query` handles is a relation filter (see § Relation filters). | Resolves each key through the Path A allowlist or the Path B edges and filters on the related rows as given, without a status check on them. The exception is `status`: a 2-hop key or a reverse key never filters it, so `org?net__status=` and `netixlan?net__org__status=` are ignored, as upstream. | A 2-hop key and a reverse key have one clear meaning on the mirror's edges, and the extra filters cost one subquery each. Locked by `TestParity_Traversal/DIVERGENCE_relation_keys_upstream_ignores_resolve` and `TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`. The `status` keys are parity, locked by `TestParity_Traversal/status_on_reverse_and_2hop_keys_ignored_like_upstream`. | v1.16 (registered 2026-09-23) |
 | Reverse keys by upstream's `<related_name>`, for example `ix?ixlan_set__status=`, `org?ix_set__name=`, `org?ix_set__in=` and `org?ix_set=` | Filters on the related rows. A reverse relation reports the `ForeignKey` type, so `field_names` holds the bare related name, and `queryable_relations()` adds `<related_name>__<field>` (2.83.0 `serializers.py:970-996`; related names at `models.py:3308` and `:2621-2622`). `<related_name>__<field>` is an exact match on the related rows, with the match rules of the field type (`rest.py:670-683`). `<related_name>__in`, `__lt`, `__lte`, `__gt` and `__gte` compare the related row ids (`rest.py:633-669`). A bare `<related_name>` returns `400`: `rest.py:676-677` builds `<related_name>_id`, which Django cannot resolve (`:702-703`). Upstream ignores the related names that start with `net_` or `fac_` (`net_set` and `fac_set` on `org`, `fac_set` on `campus`, `net_side_set` on `fac`): `queryable_field_xl` renames them to `network_*` and `facility_*` (`serializers.py:428-438`), and these names match no relation. | Silently ignored: HTTP 200 with the unfiltered list. The mirror names a reverse edge by its traversal key instead (`org?ix__name=`). | The traversal keys cover the same relations. Accepting both names would double the key surface for no new query. Locked by `TestParity_Traversal/DIVERGENCE_reverse_set_keys_silent_ignore`. The `net_set` and `fac_set` keys are parity, locked by `TestParity_Traversal/reverse_net_fac_set_keys_ignored_like_upstream`. | v1.16 (registered 2026-09-23) |
-| `?<field>__iexact=`, `__icontains=` and `__istartswith=`, for example `netixlan?status__iexact=OK` and `net?org__iexact=1` | Ignored. The operator regex (2.83.0 `rest.py:616`) knows only `lt`, `lte`, `gt`, `gte`, `contains`, `startswith` and `in`, so a key with another suffix is not a filter key (`:628-630`, `:670`), and the list is unfiltered. | Applies the suffix: an exact, substring or prefix match that ignores case. On a field that is not a string, and on a key that names a FK, `__iexact` is an exact match, and `__icontains` and `__istartswith` return `400`. | These suffixes have one clear meaning, and `contains` and `startswith` already ignore case. The metadata keys accept only the upstream operators (see § Metadata filters). Locked by `TestParity_Status/DIVERGENCE_i_operator_suffixes_filter`. | v1.16 (registered 2026-09-23) |
+| `?<field>__iexact=`, `__icontains=` and `__istartswith=`, for example `netixlan?status__iexact=OK`, `net?org__iexact=1` and `net?ix__name__icontains=x` | Ignored. The operator regex (2.83.0 `rest.py:616`) knows only `lt`, `lte`, `gt`, `gte`, `contains`, `startswith` and `in`, so a key with another suffix is not a filter key (`:628-630`, `:670`), and the list is unfiltered. On a relation key of a `prepare_query` (§ Relation filters), `get_relation_filters` does not parse the suffix (`serializers.py:614-656`). A 3-segment key, for example `net?ix__name__icontains=`, drops the suffix and runs an exact match, and so do the `netfac` and `ixfac` keys `name`, `country` and `city`. A status of the pinned row is then replaced with `ok`. A 2-segment key, for example `net?ixlan__iexact=`, keeps the suffix as a Django lookup on the relation, which raises `FieldError`, so upstream returns `400` (`rest.py:488-500`). `netixlan?name__iexact=` filters the name of the ixlan with the lookup (`serializers.py:3161-3169`), and `fac?org_name__iexact=` is ignored (`:2108-2117`). | Applies the suffix: an exact, substring or prefix match that ignores case. On a field that is not a string, and on a key that names a FK, `__iexact` is an exact match, and `__icontains` and `__istartswith` return `400`. The `netixlan` `name` keys and the `fac` `org_name` keys with these suffixes match upstream (see § Relation filters). | These suffixes have one clear meaning, and `contains` and `startswith` already ignore case. The metadata keys accept only the upstream operators (see § Metadata filters). Locked by `TestParity_Status/DIVERGENCE_i_operator_suffixes_filter`. | v1.16 (registered 2026-09-23) |
+| `<rel>__<field>__contains=` and `<rel>__<field>__startswith=` on a relation key of a `prepare_query`, for example `netixlan?ix__name__contains=` and `net?ix__name__startswith=` | Case-sensitive. `get_relation_filters` keeps the raw operator for a 3-segment key (2.83.0 `serializers.py:643-654`), and Django runs `contains` and `startswith` as `LIKE BINARY` on MySQL. Only the 2-segment form becomes `icontains` or `istartswith` (`:622-626`). | Ignores case, and folds diacritics on the fields that have a `_fold` column, as for every other `contains` and `startswith` key. | One rule for every `contains` and `startswith` key. SQLite has no `LIKE BINARY` on the fold columns. Locked by `TestParity_Traversal/DIVERGENCE_relation_field_contains_ignores_case`. | v1.28.0 (registered 2026-09-23) |
+| `campus?facility__<field>=`, `campus?facility__in=` and the other `campus?facility` keys that match more than one facility of a campus | Returns the campus once for each matching facility. `related_to_facility` filters the reverse `fac_set` join (2.83.0 `models.py:2101-2111`). `_filters_may_produce_duplicates` looks up `facility`, which is not a `Campus` field, so upstream does not call `distinct()` (`rest.py:115-141`, `:715-716`). Found by reading the code, not checked against a live upstream. | Returns each campus once. | A list with repeated rows has no use to a client, and `distinct()` is what upstream runs for the other reverse joins. Locked by `TestParity_Traversal/DIVERGENCE_campus_facility_keys_no_duplicates`. | v1.28.0 (registered 2026-09-23) |
+| A relation key of a `prepare_query` whose field the related row does not have, for example `fac?net__bogus=1` or `net?ix__fac_count=1`. This includes a serializer field or a model property that the mirror stores, for example `net?netfac__name=`, `net?netfac__city=`, `ix?ixfac__name=` and `net?netixlan__name=` | Returns `400` (`Invalid query`): the Django filter raises `FieldError` inside `prepare_query` (2.83.0 `rest.py:488-500`). `net?netfac__name=` runs `NetworkFacility.filter(name=...)`, and `name` is a serializer field (`serializers.py:3372-3380`). | Silently ignored, like any unknown key: HTTP 200 with the unfiltered list. | Every other unknown filter key is ignored, and one rule is easier to use. Upstream returns `400` for a bad value on a known field, and so does the mirror (`net?ix=abc`). Locked by `TestParity_Traversal/DIVERGENCE_relation_key_unknown_field_silent_ignore`. | v1.28.0 (registered 2026-09-23) |
 | Filters on a single-object GET, for example `/api/netixlan/<id>?status=ok` for a `not-operational` row or `/api/net/<id>?name=<other>` | Applies them. `retrieve` (2.83.0 `rest.py:849-855`) calls DRF `get_object`, which filters `get_queryset()`: the same query-parameter filters as a list (`rest.py:565-703`) plus the live-or-pending PK status set (`:750`). A filter that excludes the object returns `404`. | Reads only `?depth=` and `?fields=` on a detail request. Every other key is ignored, and the object is returned. | A detail request stays a plain PK lookup. To test one object against a filter, list with `?id=<id>&<filter>=`, which returns `404` when the filter excludes the object. Locked by `TestParity_Status/DIVERGENCE_detail_ignores_filters`. | v1.1 (registered 2026-09-23) |
 | `/api/netixlan` without `?since` | Returns the rows in the order of the MySQL access path, because the query has no `ORDER BY` (2.83.0 `rest.py:747-748`). MySQL can read the `status IN ('ok', 'not-operational')` filter through the `netixlan_status` index (`models.py:6111`), which returns the `not-operational` rows first. A live capture on 2026-09-23 of `/api/netixlan?limit=2` returned two `not-operational` rows ahead of `ok` rows with lower ids. Other filters can also change the upstream order when MySQL reads the rows through a different index. | Always returns `id` order, ascending (see § List order). | An order that depends on the query plan cannot be reproduced, and it changes when the upstream data or indexes change. A fixed order keeps `skip`/`limit` pages stable. Locked by `TestParity_Ordering/DIVERGENCE_netixlan_list_order_is_id_asc`. | v1.28.0 (registered 2026-09-23) |
 | `/api/poc?id=<id>` for a contact that the caller's tier cannot read: a `Users` contact for an anonymous caller, or a `Private` contact for any tier | Returns `200` with an empty `data` array. The unique-query `404` check runs before `APIPermissionsApplicator` removes the contact (2.83.0 `rest.py:809-821`), so the status shows that the contact exists: a missing id gets `404`. The same applies to a user who is not a member of the organization that owns a `Private` contact. | Returns `404` (`Entity not found`), the same as for a missing id. | The `poc.visible` privacy policy removes the contact in the query, before the check, so the status does not show whether a hidden contact exists. The mirror is stricter than upstream here. Locked by `TestParity_Status/DIVERGENCE_poc_hidden_id_returns_404`. | v1.28.0 (registered 2026-09-23) |
@@ -1201,6 +1211,8 @@ both driven by codegen from ent schema annotations at `go generate` time:
   The keys are the mirror's choice of aliases, not a copy of an upstream
   list: some resolve keys that upstream ignores, and some do not resolve
   here.
+  The relation keys that a `prepare_query` handles are not in Path A:
+  they resolve first, as relation filters (see § Relation filters).
   Generated from ent schema `pdbcompat.WithPrepareQueryAllow(...)` annotations
   via `cmd/pdb-compat-allowlist`; emitted into
   `internal/pdbcompat/allowlist_gen.go`.
@@ -1230,11 +1242,95 @@ both driven by codegen from ent schema annotations at `go generate` time:
   no runtime ent-client introspection, no `sync.Once`, no init-order coupling.
 
 The resolution order is implemented in `internal/pdbcompat/filter.go`
-`buildTraversalPredicate`: Path A first; on a soft miss (allowlist hit but
+`ParseFiltersCtx` and `buildTraversalPredicate`:
+relation filters first, then Path A; on a soft miss (allowlist hit but
 downstream introspection unavailable) the parser falls through to Path B rather
 than suppressing the key.
 `parseFieldOp` returns the 3-tuple `(relationSegments, finalField, op)`
 so the same machinery serves 1-hop and 2-hop paths with a single split.
+
+### Relation filters
+
+Upstream handles some relation keys in the `prepare_query` method of a
+serializer, apart from its model-field filters
+(2.83.0 `serializers.py:614-656`).
+pdbcompat resolves these keys before Path A and Path B,
+with the same paths and status rules
+(`relationSeeds` in `internal/pdbcompat/relation_filter.go`).
+
+| Type | Relation keys | Path from the listed row | Row that must have status `ok` |
+|------|---------------|--------------------------|--------------------------------|
+| `fac` | `net`, `ix` | netfac → net, ixfac → ix | the netfac or ixfac row |
+| `fac` | `org_name` | org, field `name` | none |
+| `ix` | `ixlan`, `ixfac` | ixlan, ixfac | that row |
+| `ix` | `fac` | ixfac → fac | the ixfac row |
+| `ix` | `net` | ixlan → netixlan → net | the netixlan row (not the ixlan) |
+| `net` | `ix` | netixlan → ixlan → ix | the netixlan row |
+| `net` | `ixlan`, `fac` | netixlan → ixlan, netfac → fac | the netixlan or netfac row |
+| `net` | `netixlan`, `netfac` | netixlan, netfac | that row |
+| `netixlan` | `ix`, `name` | ixlan → ix | the ixlan row |
+| `netixlan` | `name__iexact`, `name__icontains`, `name__istartswith` | ixlan, field `name` | the ixlan row |
+| `ixpfx` | `ix` | ixlan → ix | the listed prefix |
+| `netfac`, `ixfac` | `name`, `country`, `city` | fac, field of the same name | the listed row |
+| `campus` | `facility` | fac | the listed campus |
+| `org` | `asn` | net, field `asn` | the net row |
+| `carrier` | `carrierfac_set__facility_id` | carrierfac, field `fac_id` | none |
+
+The relation keys of `fac`, `ix`, `net`, `netixlan` and `ixpfx`
+also accept the spelling `<rel>_id`, except `org_name` and `name`.
+The key forms follow `get_relation_filters`:
+
+- `<rel>=V` compares the id of the related row, and `<rel>__<op>=V`
+  compares that id with the operator.
+- `<rel>__<field>=V` filters a field of the related row,
+  and `<rel>__<field>__<op>=V` adds an operator.
+  A field that ends in `_id` names a FK of that row
+  (`ix?ixfac__fac_id=`).
+  A field that is not a model field upstream is ignored,
+  for example the serializer field in `net?netfac__name=`
+  (upstream returns `400`, see § Known Divergences).
+- `<rel>__<field>__<other>=V` drops the third segment:
+  `net?netfac__fac__name=X` compares the facility id with `X`,
+  which returns `400` for a non-numeric `X`.
+- A key with four or more segments is ignored.
+- `netixlan?name=V` compares the exchange name,
+  not the stored `name` of the netixlan
+  (`serializers.py:3166-3167`).
+  `get_relation_filters` does not parse the suffixes `__iexact`,
+  `__icontains` and `__istartswith` (`serializers.py:614-656`),
+  so `related_to_name` applies them to the name of the ixlan:
+  `netixlan?name__iexact=V` compares the ixlan name, not the exchange name.
+- `fac?org_name=V` is a substring match on the name of the organization
+  (`serializers.py:2115-2117`),
+  not an exact match on the stored `org_name` of the facility.
+  It accepts only an operator that `get_relation_filters` parses
+  after the key.
+  Upstream ignores `fac?org_name__iexact=`, `__icontains=` and
+  `__istartswith=`, and so does pdbcompat.
+- The `netfac` and `ixfac` keys `name`, `country` and `city`
+  filter the field of the same name on the facility
+  (`serializers.py:3417-3424`).
+  One or two segments after the key name have no effect,
+  but an operator at the end applies.
+  `city` and `country` are exact matches:
+  the substring rewrite of the location keys applies only to model fields
+  (`rest.py:583-595`).
+- `org?asn=V` and `carrier?carrierfac_set__facility_id=V`
+  accept no operator.
+  Upstream ignores `org?asn__in=` and the operator forms of the carrier key,
+  and so does pdbcompat.
+
+The status rules follow `make_relation_filter` (`models.py:221-234`):
+
+- The row in the table must have status `ok`.
+  The other rows have no status check.
+  For example, `net?ix=` does not check the ixlan.
+- If the key filters `status` of that row without an operator,
+  upstream replaces the value with `ok`:
+  `net?netixlan__status=deleted` returns the nets that have an `ok` netixlan.
+  With an operator, both filters apply.
+- A repeated relation key uses its first value, not the last
+  (`serializers.py:618-619`).
 
 ### Supported shapes per entity (1-hop + 2-hop)
 
@@ -1246,7 +1342,7 @@ The 2-hop rows come from the Path A allowlist:
 | `?org__name=X` (net, fac, ix, carrier, campus) | 1 | A | 2.83.0 `serializers.py:970-996` (`queryable_relations()` adds `org__<field>` from the `org` FK) |
 | `?net__asn=X` (netfac, netixlan, poc) | 1 | A | (same allowlist block) |
 | `?ix__name=X` (ixfac, ixlan) | 1 | A | (same allowlist block) |
-| `?ix=N`, `?ix_id=N`, `?ix__<field>=X` (netixlan, ixpfx) | 1 upstream | Routed by `routeIXKey`: netixlan filters its `ix_id` column, ixpfx filters `ixlan.ix_id`, and other `ix__<field>` keys walk `ixlan` → `ix` | 2.83.0 `serializers.py:3161-3169` (netixlan) and `:4157-4163` (ixpfx) route these keys to `related_to_ix` (`models.py:6172-6186`, `:5167-5177`) |
+| `?<rel>=N`, `?<rel>__<field>=X` for the `prepare_query` relation keys, for example `fac?net=N`, `net?ix__name=X` and `netixlan?ix_id=N` | 1 (up to 3 tables) | Relation filter (`relationSeeds`), before Path A and B. See § Relation filters | 2.83.0 `serializers.py:614-656` (`get_relation_filters`) and the `related_to_<x>` methods, which pin one row to status `ok` (`models.py:221-234`) |
 | `?fac__name=X` (netfac, ixfac, carrierfac) | 1 | A | (same allowlist block) |
 | `?network__<field>=X` (poc, netfac, netixlan) and `?facility__<field>=X` (netfac, ixfac, carrierfac) | 1 | A or B, through the `net` or `fac` edge | 2.83.0 `serializers.py:416-438` (`queryable_field_xl` renames `net` and `fac` to `network` and `facility`) and `:970-996` |
 | `?org=N`, `?network=N`, `?facility_id__in=N,M` and the other upstream FK names | 0 | Local FK column (`TypeConfig.ForeignKeys`) | 2.83.0 `rest.py:608-631` and `:670-677` (a ForeignKey key filters `<fk>_id`) |
@@ -1296,6 +1392,11 @@ Examples:
   (see § Known Divergences).
 - `?ixlan__ix__org__name=X` — 3 hops, SILENTLY IGNORED (HTTP 200,
   result set is unfiltered).
+
+A relation key of a `prepare_query` also has at most two segments
+before its operator, but its path can reach three tables:
+`net?ix__name=` walks netixlan, ixlan and ix
+(see § Relation filters).
 
 The netixlan metadata filter keys, such as
 `meta__planned_status_change__date__lt`, are not relation paths.

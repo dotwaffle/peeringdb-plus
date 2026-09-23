@@ -58,68 +58,45 @@ var PrepareQueryAllows = map[string]schemaannot.PrepareQueryAllowAnnotation{
 	// peeringdb_server/serializers.py:3708 NetworkSerializer.prepare_query
 	// (secondary cite: serializers.py:3765
 	// NetworkSerializer.finalize_query_params — legacy info_type → info_types
-	// rewrite). get_relation_filters seeds ["ixlan", "ix", "netixlan",
-	// "netfac", "fac", ...] plus org__* derived from select_related("org").
-	//
-	// Junction-only gap: ix__name, ixlan__name, and fac__name on net are
-	// listed here for upstream-parity readability only — NONE resolve
-	// at runtime. Network has no direct edges to ix / ixlan / fac in
-	// our ent schema; those targets are reachable only through the
-	// junction entities (netixlan, netfac), which would require a
-	// 3-hop traversal (net→netixlan→ixlan→ix or net→netfac→fac) and
-	// exceeds the 2-hop cap. The parser silent-ignores these
-	// keys (TestTraversal_E2E_Matrix.net_ix_name_contains_ignored
-	// locks the behaviour). Upstream resolves them in prepare_query, a
-	// registered divergence. Kept in the list as a comment-like marker
-	// so upstream-parity readers see the mapping; removing them would
-	// hide the upstream shape without changing behaviour.
+	// rewrite). The get_relation_filters seeds (ixlan, ix, netixlan,
+	// netfac, fac) are relation keys with their own status rules
+	// (relationSeeds in internal/pdbcompat/relation_filter.go), which
+	// the parser resolves before this list. org__* derives from
+	// select_related("org").
 	"net": {
 		Fields: []string{
 			"org__name",
 			"org__id",
-			"ix__name",    // junction-only: via netixlan, >2 hops
-			"ixlan__name", // junction-only: via netixlan, >2 hops
-			"fac__name",   // junction-only: via netfac, >2 hops
-			"netfac__fac__name",
 		},
 	},
 
 	// Path A allowlist mirrored from upstream
 	// peeringdb_server/serializers.py:2092 FacilitySerializer.prepare_query.
-	// Concrete <fk>__<field> keys derived from the get_relation_filters
-	// seed list ("net", "ix", "org_name", ...). The net__* and ix__* keys
-	// do not resolve here: fac has no net or ix edge (registered
-	// divergence). ixlan__ix__fac_count is not an upstream fac filter
-	// either (fac has no ixlan relation); both sides ignore it.
+	// The get_relation_filters seeds net and ix are relation keys
+	// (relationSeeds in internal/pdbcompat/relation_filter.go).
+	// ixlan__ix__fac_count is not an upstream fac filter (fac has no
+	// ixlan relation); both sides ignore it.
 	"fac": {
 		Fields: []string{
 			"org__name",
 			"campus__name",
-			"net__name",
-			"net__asn",
-			"ix__name",
-			"ix__id",
 			"ixlan__ix__fac_count",
 		},
 	},
 
 	// Path A allowlist mirrored from upstream
 	// peeringdb_server/serializers.py:4503 InternetExchangeSerializer.prepare_query.
-	// get_relation_filters seeds ["ixlan", "ixfac", "fac", "net", ...] plus
-	// org__* derived from select_related("org"). ixpfx__prefix exposed as
-	// PDB-surface alias resolving through ix_lans.ix_prefixes (1-hop
-	// via reverse FK).
+	// The get_relation_filters seeds (ixlan, ixfac, fac, net) are
+	// relation keys (relationSeeds in
+	// internal/pdbcompat/relation_filter.go). org__* derives from
+	// select_related("org"). ixpfx__prefix is a PDB-surface alias for
+	// the prefixes of the exchange's LANs.
 	// DROP: capacity — special aggregator filter (Model.filter_capacity
 	// line 4546), not a relation field.
 	"ix": {
 		Fields: []string{
 			"org__name",
-			"ixlan__name",
 			"ixpfx__prefix",
-			"net__name",
-			"net__asn",
-			"fac__name",
-			"fac__country",
 		},
 	},
 
@@ -170,9 +147,9 @@ var PrepareQueryAllows = map[string]schemaannot.PrepareQueryAllowAnnotation{
 
 	// Path A allowlist mirrored from upstream
 	// peeringdb_server/serializers.py:4154 IXLanPrefixSerializer.prepare_query.
-	// get_relation_filters seed ["ix_id", "ix", "whereis"]. ixpfx has no ix
-	// edge, so routeIXKey (internal/pdbcompat/filter.go) routes the ix keys
-	// through ixlan before this list is read. We also expose the 2-hop
+	// get_relation_filters seed ["ix_id", "ix", "whereis"]. The ix keys
+	// are relation keys (relationSeeds in
+	// internal/pdbcompat/relation_filter.go). We also expose the 2-hop
 	// ixlan__ix__{name,id} paths implied by the eager-load chain
 	// select_related("ixlan", "ixlan__ix", "ixlan__ix__org") at line 4155.
 	// DROP: whereis — not a relation filter (IP-in-prefix search via
@@ -218,9 +195,9 @@ var PrepareQueryAllows = map[string]schemaannot.PrepareQueryAllowAnnotation{
 	// Path A allowlist mirrored from upstream
 	// peeringdb_server/serializers.py:3152 NetworkIXLanSerializer.prepare_query.
 	// get_relation_filters seed ["ix_id", "ix", "name"]; upstream rewrites
-	// "name" to "ix__name" at lines 3166-3167. netixlan has no ix edge, so
-	// routeIXKey (internal/pdbcompat/filter.go) routes the ix keys before
-	// this list is read. net__* filters derive from the eager-load chain
+	// "name" to "ix__name" at lines 3166-3167. These keys are relation
+	// keys (relationSeeds in internal/pdbcompat/relation_filter.go).
+	// net__* filters derive from the eager-load chain
 	// select_related("network", "network__org").
 	"netixlan": {
 		Fields: []string{

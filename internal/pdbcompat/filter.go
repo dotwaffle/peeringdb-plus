@@ -13,7 +13,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -253,7 +252,10 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // The filterable meta keys of the type (netixlan meta__<path> and the
 // upstream meta_* column names, see lookupMetaFilter) resolve first,
-// before the key is split for traversal.
+// before the key is split for traversal. The relation keys of an
+// upstream prepare_query (relationSeeds, for example fac?net= and
+// net?ix__name=) resolve next, with their own path and status rules
+// (buildRelationSeedPredicate).
 //
 // The status matrix and the _fold-routing / empty-__in invariants
 // are preserved: traversal predicates wrap around buildPredicate which still
@@ -295,26 +297,40 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 			predicates = append(predicates, p)
 			continue
 		}
+		// The relation keys of an upstream prepare_query resolve before
+		// the other keys, as upstream handles them apart from its
+		// model-field filters. They use the first value of a repeated
+		// key, as get_relation_filters does (2.83.0
+		// serializers.py:618-619).
+		if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
+			p, ok, emptyResult, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			if emptyResult {
+				return nil, true, nil
+			}
+			if !ok {
+				appendUnknown(ctx, key)
+				continue
+			}
+			predicates = append(predicates, p)
+			continue
+		}
 		relSegs, field, op := parseFieldOp(key)
 		// Also check if the raw final field is a reserved name
 		// (e.g. "fields" on a top-level single-segment key).
 		if len(relSegs) == 0 && reservedParams[field] {
 			continue
 		}
-		if len(relSegs) > 0 && field == "status" && !relationStatusFilterable(tc, relSegs) {
+		// Upstream ignores a relation key whose field is a FK column
+		// (net__org_id, see namesFKColumn), and status on a reverse or
+		// 2-hop key (see relationStatusFilterable).
+		if len(relSegs) > 0 && (namesFKColumn(field) ||
+			field == "status" && !relationStatusFilterable(tc, relSegs)) {
 			appendUnknown(ctx, key)
 			continue
 		}
-		routedSegs, routedField := routeIXKey(tc.Name, relSegs, field)
-		// A relation key whose field is a FK column (net__org_id) is
-		// ignored upstream, see namesFKColumn. The netixlan and ixpfx
-		// exchange keys are the exception: upstream handles them in
-		// prepare_query, which resolves ix__org_id to the org FK.
-		if len(relSegs) > 0 && namesFKColumn(field) && slices.Equal(routedSegs, relSegs) {
-			appendUnknown(ctx, key)
-			continue
-		}
-		relSegs, field = routedSegs, routedField
 		// Hard cap: >2 relation segments is silently rejected.
 		if len(relSegs) > 2 {
 			appendUnknown(ctx, key)
@@ -361,36 +377,6 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		predicates = append(predicates, p)
 	}
 	return predicates, false, nil
-}
-
-// routeIXKey rewrites the exchange keys of netixlan and ixpfx onto the
-// path that reaches the exchange here. Upstream handles ix, ix_id and
-// ix__<field> for these types in prepare_query (2.83.0
-// serializers.py:3161-3169 and :4157-4163). related_to_ix then keeps the
-// rows whose ixlan belongs to a matching exchange (models.py:6172-6186
-// and :5167-5177). Neither type has an ix edge in the ent schema:
-//
-//   - netixlan stores ix_id, so ix and ix__id filter that column.
-//   - ixpfx reaches the exchange through its ixlan, so ix, ix_id and
-//     ix__id filter ixlan.ix_id.
-//   - Any other ix__<field> walks ixlan -> ix.
-//
-// Every other key is returned unchanged.
-func routeIXKey(typ string, relSegs []string, field string) ([]string, string) {
-	if typ != peeringdb.TypeNetIXLan && typ != peeringdb.TypeIXPfx {
-		return relSegs, field
-	}
-	namesIX := len(relSegs) == 0 && (field == "ix" || field == "ix_id") ||
-		len(relSegs) == 1 && relSegs[0] == "ix" && field == "id"
-	switch {
-	case namesIX && typ == peeringdb.TypeNetIXLan:
-		return nil, "ix_id"
-	case namesIX:
-		return []string{"ixlan"}, "ix_id"
-	case len(relSegs) == 1 && relSegs[0] == "ix":
-		return []string{"ixlan", "ix"}, field
-	}
-	return relSegs, field
 }
 
 // buildLocalPredicate extracts the original local-field behaviour into a

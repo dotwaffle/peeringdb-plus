@@ -111,6 +111,26 @@ func BenchmarkTraversal_2Hop_WithLimitAndSkip(b *testing.B) {
 	}
 }
 
+// BenchmarkTraversal_RelationFilter_ThreeTables covers the relation
+// filters whose path reaches three tables: net?ix__name= walks netixlan
+// -> ixlan -> ix, and ix?net__asn= walks ixlan -> netixlan -> net
+// (relationSeeds, docs/API.md § Relation filters). These are the
+// deepest SQL paths that a filter key can emit.
+func BenchmarkTraversal_RelationFilter_ThreeTables(b *testing.B) {
+	h, client := setupBenchHandlerTB(b)
+	testdata.Seed(b, client, testdata.Default10k())
+	for _, url := range []string{
+		"/api/net?ix__name=BenchIX-000042",
+		"/api/ix?net__asn=64042",
+	} {
+		b.Run(url, func(b *testing.B) {
+			for b.Loop() {
+				dispatchBench(b, h, url)
+			}
+		})
+	}
+}
+
 // TestBenchTraversal_TwoHopCeiling is a go-test-time gate enforcing
 // the <50ms ceiling on the 2-hop upstream-parity case at 10k rows.
 // Runs a single warm query (not a *testing.B loop) and fails if wall

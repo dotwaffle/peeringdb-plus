@@ -21,9 +21,11 @@ import (
 // TestParity_Traversal locks cross-entity traversal semantics:
 //
 //   - Path A 1-hop: `org__name=` filter on net.
-//   - netixlan and ixpfx exchange keys (`ix=`, `ix_id=`,
-//     `ix__<field>=`), routed onto the path to the exchange as
-//     upstream's prepare_query does.
+//   - The relation keys of upstream's prepare_query (`fac?net=`,
+//     `net?ix__name=`, `netixlan?ix_id=`, `netfac?city=`,
+//     `campus?facility=`, `org?asn=`): each walks its related rows and
+//     pins the row that upstream's make_relation_filter pins to status
+//     ok.
 //   - Upstream FK spellings: a bare FK name and its operators
 //     (`net?org=`, `poc?network__in=`, `netfac?facility_id=`) filter
 //     the FK column, and `network__<field>` / `facility__<field>` walk
@@ -47,8 +49,10 @@ import (
 //     silent-ignored. The mirror never receives these values.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
 //     (prepare_query keys such as asn_overlap, not_ix and whereis,
-//     relation keys through a join table such as net?ix_id=,
 //     hide_ix_no_fac, name_search) are silent-ignored.
+//   - DIVERGENCE: a 3-segment relation key with contains or
+//     startswith ignores case, and campus?facility__<field>= returns
+//     each campus once.
 //   - DIVERGENCE: netixlan ix_side__<field> keys are silent-ignored.
 //     The mirror has no edge to that facility.
 //   - Keys that upstream never filters are ignored on both sides: the
@@ -142,7 +146,9 @@ func TestParity_Traversal(t *testing.T) {
 		// models.py:6172-6186 (related_to_ix keeps the rows whose ixlan
 		// belongs to a matching exchange). pdb_api_test.py:5066 tests
 		// ix_id and ix_id__in; docs/api/object_metadata.md:170 uses
-		// ?ix= in the headline meta query.
+		// ?ix= in the headline meta query. A 3-segment key keeps the raw
+		// contains, which is case-sensitive upstream, so the value keeps
+		// the case of the name.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "IXOrg", t0)
@@ -171,7 +177,7 @@ func TestParity_Traversal(t *testing.T) {
 			"ix__id=20",
 			"ix__in=20,99",
 			"ix__name=TargetIX",
-			"ix__name__contains=target",
+			"ix__name__contains=Target",
 			"ix=20&meta__planned_status_change__status=deleted" +
 				"&meta__planned_status_change__date__lt=2026-06-01",
 		} {
@@ -190,7 +196,9 @@ func TestParity_Traversal(t *testing.T) {
 		// upstream: 2.83.0 serializers.py:4157-4163 (prepare_query
 		// routes ix, ix_id and ix__<field> to related_to_ix) and
 		// models.py:5167-5177 (related_to_ix filters on ixlan__<field>).
-		// pdb_api_test.py:4374 tests ix_id and ix_id__in.
+		// pdb_api_test.py:4374 tests ix_id and ix_id__in. A 3-segment
+		// key keeps the raw startswith, which is case-sensitive
+		// upstream, so the value keeps the case of the name.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "IXOrg", t0)
@@ -209,7 +217,7 @@ func TestParity_Traversal(t *testing.T) {
 			"ix__id=20",
 			"ix_id__in=20,99",
 			"ix__name=TargetIX",
-			"ix__name__startswith=target",
+			"ix__name__startswith=Target",
 		} {
 			status, body := httpGet(t, srv, "/api/ixpfx?"+q)
 			if status != http.StatusOK {
@@ -396,10 +404,11 @@ func TestParity_Traversal(t *testing.T) {
 	t.Run("DIVERGENCE_prepare_query_keys_silent_ignore", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream handles these keys in Python before its
-		// model-field filters: prepare_query in each serializer, the
-		// hide_ix_no_fac mixin, and the search index for name_search.
-		// They are not model fields, and the mirror does not implement
-		// them, so they are silent-ignored and the list is unfiltered.
+		// model-field filters: the custom prepare_query keys of each
+		// serializer, the hide_ix_no_fac mixin, and the search index for
+		// name_search. They are not model fields, and the mirror does
+		// not implement them, so they are silent-ignored and the list is
+		// unfiltered.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 serializers.py:2092-2210
@@ -432,9 +441,12 @@ func TestParity_Traversal(t *testing.T) {
 
 		srv := newTestServer(t, c)
 		// No netfac or ixfac rows exist. Upstream returns a narrower
-		// list for each request below (for example [101] for not_ix,
-		// [100] for net?ix_id and [4000] for whereis), or 400 (see
-		// asn_overlap).
+		// list for each request below (for example [101] for not_ix and
+		// [4000] for whereis), or 400 (see asn_overlap and distance).
+		// The relation keys of a prepare_query (net?ix_id=,
+		// fac?net_id=, org?asn=) resolve: see
+		// prepare_query_relation_keys_pin_join_status_ok and
+		// prepare_query_relation_keys_on_listed_row.
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			// prepare_query keys.
 			{path: "/api/fac?asn_overlap=64500,64501", want: []int{200, 201}},
@@ -444,15 +456,10 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ix?ipblock=10.0.0.0/24", want: []int{300, 301}},
 			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4001}},
 			{path: "/api/ix?capacity__gte=1000", want: []int{300, 301}},
-			{path: "/api/org?asn=64500", want: []int{1, 2}},
+			{path: "/api/org?distance=10", want: []int{1, 2}},
 			// Upstream returns 400 for a single ASN
 			// (models.py:2867-2868).
 			{path: "/api/ix?asn_overlap=64500", want: []int{300, 301}},
-			// Relation keys through a join table (related_to_*).
-			{path: "/api/net?ix_id=300", want: []int{100, 101}},
-			{path: "/api/net?fac_id=200", want: []int{100, 101}},
-			{path: "/api/fac?net_id=100", want: []int{200, 201}},
-			{path: "/api/ix?net_id=100", want: []int{300, 301}},
 			// hide_ix_no_fac: neither IX has a facility.
 			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
 			// name_search: upstream returns the search-index hits.
@@ -656,12 +663,10 @@ func TestParity_Traversal(t *testing.T) {
 		// serializers.py:970-996), plus the keys that a prepare_query
 		// handles. It ignores the keys below, which the mirror
 		// resolves:
-		//   - 2-hop keys. Path B reaches any second edge; Path A lists
-		//     ixpfx ixlan__ix__* and net netfac__fac__name. For a key
-		//     whose first segment a prepare_query handles, upstream
-		//     drops the third segment and filters the relation on the
-		//     value (:614-656): net?netfac__fac__name=X becomes
-		//     netfac.facility = X, a 400 for a non-numeric X.
+		//   - 2-hop keys. Path B reaches any second edge, and Path A
+		//     lists ixpfx ixlan__ix__*. A key whose first segment a
+		//     prepare_query handles is a relation key instead: see
+		//     prepare_query_relation_keys_pin_join_status_ok.
 		//   - Reverse keys named by the mirror's traversal key, outside
 		//     the prepare_query seeds: org?net__name= becomes
 		//     network__name upstream (serializers.py:403-441), which
@@ -677,14 +682,255 @@ func TestParity_Traversal(t *testing.T) {
 		assertKeysResolve(t, srv, []silentIgnoreCase{
 			// Upstream: [500 501].
 			{path: "/api/netixlan?net__org__name=RelOrgPending", want: []int{501}},
-			// Upstream: 400.
-			{path: "/api/net?netfac__fac__name=RelFacA", want: []int{100}},
 			// Upstream: [1 3].
 			{path: "/api/org?net__name=RelNetA", want: []int{1}},
 			// Upstream: [400 401].
 			{path: "/api/fac?org__latitude__gt=50", want: []int{400}},
 			// Upstream: [1000 1001 2000].
 			{path: "/api/ixpfx?ixlan__descr=secretdescr", want: []int{1000, 1001}},
+		})
+	})
+
+	t.Run("prepare_query_relation_keys_pin_join_status_ok", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:614-656 (get_relation_filters)
+		// and models.py:221-234 (make_relation_filter adds status="ok").
+		// The related_to_<x> methods pin one row to ok and check no
+		// other row on the path:
+		//   - fac net/ix: the netfac or ixfac row (models.py:2332-2416).
+		//   - ix ixlan/ixfac: that row, and the key names its fields
+		//     (prefix, :2712-2743). ix fac/net: the ixfac or netixlan
+		//     row, not the ixlan (:2746-2775).
+		//   - net ix/ixlan/fac: the netixlan or netfac row. net
+		//     netixlan/netfac: that row, with the prefix rule
+		//     (:5587-5680).
+		//   - netixlan ix/ix_id/name: the ixlan row, and name compares
+		//     the exchange name (serializers.py:3161-3169,
+		//     models.py:6172-6197). pdb_api_test.py:5063-5067 and
+		//     :5094-5097 test ix_id and name.
+		// Without an operator, status on the pinned row is replaced
+		// with ok. With an operator, both filters apply. A third
+		// segment that is not an operator is dropped
+		// (serializers.py:643-654), so net?netfac__fac__name=X
+		// compares the facility id with X.
+		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// fac: netfac 601 and ixfac 701 are deleted.
+			{path: "/api/fac?net=100", want: []int{400}},
+			{path: "/api/fac?net=101", want: []int{}},
+			{path: "/api/fac?net_id__in=100,101", want: []int{400}},
+			{path: "/api/fac?net__name=RelSeedNet101", want: []int{}},
+			{path: "/api/fac?ix=20", want: []int{400}},
+			{path: "/api/fac?ix_id=21", want: []int{}},
+			// ix: ixlan 210 is pending and ixlan 220 is deleted.
+			{path: "/api/ix?ixlan=210", want: []int{}},
+			{path: "/api/ix?ixlan_id=200", want: []int{20}},
+			{path: "/api/ix?ixlan__name=LanP", want: []int{}},
+			{path: "/api/ix?ixlan__name=LanA", want: []int{20}},
+			{path: "/api/ix?ixlan__status=pending", want: []int{20}},
+			{path: "/api/ix?ixlan__status__in=pending", want: []int{}},
+			{path: "/api/ix?ixfac__fac_id=400", want: []int{20}},
+			{path: "/api/ix?fac=400", want: []int{20}},
+			// netixlan 503 (ok) is on the pending ixlan 210 of ix 21.
+			{path: "/api/ix?net=100", want: []int{20, 21}},
+			// netixlan 501 is not-operational. 504 is ok, on ix 22.
+			{path: "/api/ix?net=101", want: []int{22}},
+			// net: netixlan 501 is not-operational, 502 is deleted.
+			{path: "/api/net?ix=20", want: []int{100}},
+			{path: "/api/net?ix__name=RelSeedIX20", want: []int{100}},
+			{path: "/api/net?ixlan=200", want: []int{100}},
+			{path: "/api/net?ixlan_id=210", want: []int{100}},
+			{path: "/api/net?netixlan__ixlan_id=200", want: []int{100}},
+			{path: "/api/net?netixlan__status=deleted", want: []int{100, 101}},
+			{path: "/api/net?netixlan=501", want: []int{}},
+			{path: "/api/net?netfac__fac_id=400", want: []int{100}},
+			{path: "/api/net?fac=400", want: []int{100}},
+			{path: "/api/net?netfac=601", want: []int{}},
+			// netixlan: the ixlan must be ok. The stored name is
+			// "RelSeedIX20: LanA", and name compares the exchange name.
+			{path: "/api/netixlan?ix_id=20", want: []int{500, 501}},
+			{path: "/api/netixlan?ix_id=21", want: []int{}},
+			{path: "/api/netixlan?ix=22", want: []int{}},
+			{path: "/api/netixlan?ix__id=21", want: []int{}},
+			{path: "/api/netixlan?ix__name=RelSeedIX21", want: []int{}},
+			{path: "/api/netixlan?name=RelSeedIX20", want: []int{500, 501}},
+			{path: "/api/netixlan?name=RelSeedIX21", want: []int{}},
+			{path: "/api/netixlan?name__contains=seedix2", want: []int{500, 501}},
+			// get_relation_filters does not parse iexact, icontains or
+			// istartswith, so it keeps the whole key, and related_to_name
+			// applies the lookup to the name of the ixlan, not of the
+			// exchange (serializers.py:643-654, :3161-3169).
+			{path: "/api/netixlan?name__iexact=lana", want: []int{500, 501}},
+			{path: "/api/netixlan?name__iexact=RelSeedIX20", want: []int{}},
+			{path: "/api/netixlan?name__icontains=AN", want: []int{500, 501}},
+			{path: "/api/netixlan?name__istartswith=lan", want: []int{500, 501}},
+			// Control: a queryable_relations key checks no status
+			// (serializers.py:970-996).
+			{path: "/api/netixlan?ixlan__name=LanP", want: []int{503}},
+		})
+		// Relation keys use the first value of a repeated key
+		// (serializers.py:618-619).
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/net?ix=20&ix=21", want: []int{100}},
+			{path: "/api/net?ix=21&ix=20", want: []int{100}},
+			{path: "/api/net?ix=22&ix=20", want: []int{101}},
+		})
+		// Upstream ignores a key with four or more segments. It returns
+		// 400 for a value that the pinned field cannot take.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/net?ix__org__name__x=y", want: []int{100, 101, 102}},
+		})
+		for _, path := range []string{
+			"/api/net?netfac__fac__name=RelSeedFac400",
+			"/api/net?ix=abc",
+			"/api/fac?net__contains=1",
+		} {
+			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_relation_field_contains_ignores_case", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: for a 3-segment relation key such as
+		// <seed>__<field>__contains, get_relation_filters keeps the
+		// raw operator (2.83.0 serializers.py:643-654). Only the
+		// 2-segment form becomes icontains or istartswith (:622-626).
+		// On MySQL, Django runs contains and startswith as LIKE BINARY,
+		// which is case-sensitive. The mirror ignores case, as for every
+		// other contains and startswith key.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// Upstream: [].
+			{path: "/api/netixlan?ix__name__contains=relseedix20", want: []int{500, 501}},
+			// Upstream: [].
+			{path: "/api/net?ix__name__startswith=relseed", want: []int{100, 101}},
+		})
+	})
+
+	t.Run("DIVERGENCE_relation_key_unknown_field_silent_ignore", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: a prepare_query relation key filters the related
+		// rows with the Django ORM (2.83.0 serializers.py:614-656,
+		// models.py:221-234). A field that the related model does not
+		// have raises FieldError inside prepare_query, and upstream
+		// returns 400 (rest.py:488-500). Serializer fields and model
+		// properties are not model fields: net?netfac__name= runs
+		// NetworkFacility.filter(name=...) (serializers.py:3372-3380),
+		// and net?netixlan__name= names a property (models.py:6113-6115).
+		// The mirror ignores these keys, as any other unknown key, also
+		// where it stores a copy of the value.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
+		// Upstream returns 400 for each request.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?net__bogus=1", want: []int{400}},
+			{path: "/api/net?ix__fac_count=1", want: []int{100, 101, 102}},
+			{path: "/api/net?netfac__name=nomatch", want: []int{100, 101, 102}},
+			{path: "/api/net?netfac__city__contains=nomatch", want: []int{100, 101, 102}},
+			{path: "/api/net?netixlan__name=nomatch", want: []int{100, 101, 102}},
+			{path: "/api/ix?ixfac__name=nomatch", want: []int{20, 21, 22}},
+		})
+	})
+
+	t.Run("prepare_query_relation_keys_on_listed_row", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0. These prepare_query keys filter the listed
+		// row through a relation:
+		//   - netfac and ixfac name, country and city: the key becomes
+		//     facility__<seed> for any tail (serializers.py:3417-3424,
+		//     :2840-2847), and related_to_<seed> pins the listed row
+		//     (models.py:6002-6037, :3239-3274). city and country are
+		//     exact: they are not model fields, so the location rewrite
+		//     (rest.py:583-595) does not apply.
+		//   - campus facility: fac_set (serializers.py:4854-4869), and
+		//     related_to_facility pins the campus (models.py:2101-2111).
+		//     facility_id is not a seed.
+		//   - org asn: net_set__asn with net_set__status="ok" in one
+		//     filter call (serializers.py:4980-4983). asn__in is not a
+		//     seed.
+		//   - carrier carrierfac_set__facility_id: a plain filter with
+		//     no status check (serializers.py:2712-2740). The operator
+		//     forms have three segments and are ignored.
+		//   - fac org_name: org__name__icontains when the key has no
+		//     operator (serializers.py:2100, :2115-2117). It compares
+		//     the name of the organization, not a copy on the facility.
+		//     get_relation_filters does not parse iexact, icontains or
+		//     istartswith, so the key is then org_name__<suffix>, which
+		//     the prepare_query does not match: upstream ignores it.
+		// Each relation key reads the first value of a repeated key
+		// (serializers.py:618-619, :4981).
+		srv := newTestServer(t, seedListedRowRelationKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/netfac?name=LRFacA", want: []int{600}},
+			{path: "/api/netfac?name__contains=facb", want: []int{601}},
+			{path: "/api/netfac?name__in=LRFacA,LRFacB", want: []int{600, 601}},
+			// A segment that is not an operator has no effect.
+			{path: "/api/netfac?name__x=LRFacA", want: []int{600}},
+			{path: "/api/netfac?name__x__y=LRFacB", want: []int{601}},
+			{path: "/api/netfac?city=Test", want: []int{}},
+			{path: "/api/netfac?city=testcity", want: []int{600, 601}},
+			{path: "/api/netfac?country=de", want: []int{600, 601}},
+			{path: "/api/ixfac?name=LRFacB", want: []int{701}},
+			{path: "/api/ixfac?city__startswith=test", want: []int{700, 701}},
+			{path: "/api/campus?facility=402", want: []int{50}},
+			{path: "/api/campus?facility__in=402,404", want: []int{50, 51}},
+			{path: "/api/campus?facility__name=LRFacE", want: []int{51}},
+			{path: "/api/org?asn=64500", want: []int{1}},
+			// Net 101 (asn 64501) is deleted.
+			{path: "/api/org?asn=64501", want: []int{}},
+			{path: "/api/org?asn=64502&asn=64500", want: []int{3}},
+			// Carrierfac 901 is deleted, and the key checks no status.
+			{path: "/api/carrier?carrierfac_set__facility_id=401", want: []int{801}},
+			{path: "/api/fac?org_name=equinix", want: []int{401}},
+			{path: "/api/fac?org_name__startswith=Equi", want: []int{401}},
+			{path: "/api/fac?org_name__in=LROrg1", want: []int{400, 402, 403, 404}},
+			// Facility 400 stores a stale copy of the organization name.
+			{path: "/api/fac?org_name=StaleName", want: []int{}},
+		})
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/netfac?name__a__b__c=LRFacA", want: []int{600, 601}},
+			{path: "/api/campus?facility_id=402", want: []int{50, 51}},
+			{path: "/api/org?asn__in=64500", want: []int{1, 2, 3}},
+			{path: "/api/carrier?carrierfac_set__facility_id__in=400", want: []int{800, 801}},
+			{path: "/api/fac?org_name__x=Equinix", want: []int{400, 401, 402, 403, 404}},
+			{path: "/api/fac?org_name__iexact=LROrg1", want: []int{400, 401, 402, 403, 404}},
+			{path: "/api/fac?org_name__icontains=equinix", want: []int{400, 401, 402, 403, 404}},
+		})
+		for _, path := range []string{
+			"/api/campus?facility=abc",
+			"/api/campus?facility__contains=4",
+			"/api/org?asn=abc",
+			"/api/carrier?carrierfac_set__facility_id=abc",
+		} {
+			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_campus_facility_keys_no_duplicates", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: campus?facility__<field>= filters the campus
+		// through the reverse fac_set join (2.83.0 models.py:2101-2111).
+		// _filters_may_produce_duplicates (rest.py:115-141) looks up the
+		// key "facility", which is not a Campus field, so upstream
+		// skips distinct() (rest.py:715-716) and returns the campus once
+		// for each matching facility. The mirror returns each campus
+		// once. Found by reading the code; not checked against a live
+		// upstream.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		srv := newTestServer(t, seedListedRowRelationKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// Upstream: [50 50].
+			{path: "/api/campus?facility__in=402,403", want: []int{50}},
+			// Upstream: [50 50].
+			{path: "/api/campus?facility__name__contains=LRFacC", want: []int{50}},
 		})
 	})
 
@@ -943,7 +1189,8 @@ func mustFac(ctx context.Context, t *testing.T, c *ent.Client, id int, name stri
 	t.Helper()
 	if _, err := c.Facility.Create().
 		SetID(id).SetName(name).SetNameFold(unifold.Fold(name)).
-		SetOrgID(orgID).SetCity("TestCity").SetCountry("DE").
+		SetOrgID(orgID).SetCity("TestCity").SetCityFold(unifold.Fold("TestCity")).
+		SetCountry("DE").
 		SetStatus("ok").SetCreated(t0).SetUpdated(t0).
 		Save(ctx); err != nil {
 		t.Fatalf("seed fac id=%d: %v", id, err)
@@ -1204,5 +1451,141 @@ func seedIgnoredKeys(t *testing.T, t0 time.Time) *ent.Client {
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	c.Facility.UpdateOneID(200).SetNetCount(3).ExecX(ctx)
+	return c
+}
+
+// seedRelationSeedKeys seeds rows for the relation keys of an upstream
+// prepare_query, with a live and a dead row on each join table:
+//   - nets 100, 101 and 102, facility 400, exchanges 20, 21 and 22.
+//   - ixlans 200 (ix 20, ok, LanA), 210 (ix 21, pending, LanP) and
+//     220 (ix 22, deleted).
+//   - netixlans 500 (net 100, ixlan 200, ok), 501 (net 101, ixlan 200,
+//     not-operational), 502 (net 102, ixlan 200, deleted), 503 (net
+//     100, ixlan 210, ok) and 504 (net 101, ixlan 220, ok).
+//   - netfacs 600 (net 100, ok) and 601 (net 101, deleted) on fac 400.
+//   - ixfacs 700 (ix 20, ok) and 701 (ix 21, deleted) on fac 400.
+func seedRelationSeedKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "RelSeedOrg", t0)
+	for _, id := range []int{100, 101, 102} {
+		mustNet(ctx, t, c, id, fmt.Sprintf("RelSeedNet%d", id), 64400+id, 1, t0)
+	}
+	mustFac(ctx, t, c, 400, "RelSeedFac400", 1, t0)
+	for _, id := range []int{20, 21, 22} {
+		mustIX(ctx, t, c, id, fmt.Sprintf("RelSeedIX%d", id), 1, t0)
+	}
+	for _, l := range []struct {
+		id, ix       int
+		name, status string
+	}{
+		{200, 20, "LanA", "ok"},
+		{210, 21, "LanP", "pending"},
+		{220, 22, "LanD", "deleted"},
+	} {
+		c.IxLan.Create().
+			SetID(l.id).SetIxID(l.ix).SetName(l.name).
+			SetStatus(l.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for _, n := range []struct {
+		id, net, lan int
+		status       string
+	}{
+		{500, 100, 200, "ok"},
+		{501, 101, 200, "not-operational"},
+		{502, 102, 200, "deleted"},
+		{503, 100, 210, "ok"},
+		{504, 101, 220, "ok"},
+	} {
+		c.NetworkIxLan.Create().
+			SetID(n.id).SetNetID(n.net).SetIxlanID(n.lan).SetIxID(n.lan / 10).
+			SetName(fmt.Sprintf("RelSeedIX%d: LanA", n.lan/10)).
+			SetAsn(64400 + n.net).SetSpeed(1000).
+			SetStatus(n.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for id, st := range map[int]string{600: "ok", 601: "deleted"} {
+		c.NetworkFacility.Create().
+			SetID(id).SetNetID(id - 500).SetFacID(400).SetLocalAsn(64400).
+			SetStatus(st).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for id, st := range map[int]string{700: "ok", 701: "deleted"} {
+		c.IxFacility.Create().
+			SetID(id).SetIxID(id - 680).SetFacID(400).
+			SetStatus(st).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	return c
+}
+
+// seedListedRowRelationKeys seeds rows for the prepare_query keys that
+// filter the listed row through a relation:
+//   - orgs 1 (LROrg1), 2 (Equinix, Inc.) and 3 (LROrg3).
+//   - nets 100 (org 1, asn 64500), 101 (org 1, asn 64501, deleted) and
+//     102 (org 3, asn 64502).
+//   - facs 400 (org 1, a stale org_name copy), 401 (org 2), 402 and 403
+//     (org 1, campus 50) and 404 (org 1, campus 51).
+//   - campuses 50 and 51 (org 1).
+//   - netfacs 600 (net 100, fac 400) and 601 (net 100, fac 401).
+//   - ixfacs 700 (ix 20, fac 400) and 701 (ix 20, fac 401).
+//   - carriers 800 and 801 (org 1), carrierfacs 900 (carrier 800, fac
+//     400) and 901 (carrier 801, fac 401, deleted).
+func seedListedRowRelationKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "LROrg1", t0)
+	mustOrg(ctx, t, c, 2, "Equinix, Inc.", t0)
+	mustOrg(ctx, t, c, 3, "LROrg3", t0)
+	mustNet(ctx, t, c, 100, "LRNet100", 64500, 1, t0)
+	c.Network.Create().
+		SetID(101).SetName("LRNet101").SetNameFold(unifold.Fold("LRNet101")).
+		SetAsn(64501).SetOrgID(1).
+		SetStatus("deleted").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	mustNet(ctx, t, c, 102, "LRNet102", 64502, 3, t0)
+	mustCampus(ctx, t, c, 50, "LRCampus50", 1, t0)
+	mustCampus(ctx, t, c, 51, "LRCampus51", 1, t0)
+	for _, f := range []struct {
+		id, org, campus int
+		name            string
+	}{
+		{400, 1, 0, "LRFacA"},
+		{401, 2, 0, "LRFacB"},
+		{402, 1, 50, "LRFacC"},
+		{403, 1, 50, "LRFacC2"},
+		{404, 1, 51, "LRFacE"},
+	} {
+		mustFac(ctx, t, c, f.id, f.name, f.org, t0)
+		if f.campus != 0 {
+			c.Facility.UpdateOneID(f.id).SetCampusID(f.campus).ExecX(ctx)
+		}
+	}
+	c.Facility.UpdateOneID(400).SetOrgName("StaleName").ExecX(ctx)
+	mustIX(ctx, t, c, 20, "LRIX20", 1, t0)
+	for id, fac := range map[int]int{600: 400, 601: 401} {
+		c.NetworkFacility.Create().
+			SetID(id).SetNetID(100).SetFacID(fac).SetLocalAsn(64500).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for id, fac := range map[int]int{700: 400, 701: 401} {
+		c.IxFacility.Create().
+			SetID(id).SetIxID(20).SetFacID(fac).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for _, cf := range []struct {
+		id, carrier, fac int
+		status           string
+	}{
+		{900, 800, 400, "ok"},
+		{901, 801, 401, "deleted"},
+	} {
+		c.Carrier.Create().
+			SetID(cf.carrier).SetName(fmt.Sprintf("LRCarrier%d", cf.carrier)).
+			SetNameFold(unifold.Fold(fmt.Sprintf("LRCarrier%d", cf.carrier))).
+			SetOrgID(1).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.CarrierFacility.Create().
+			SetID(cf.id).SetCarrierID(cf.carrier).SetFacID(cf.fac).
+			SetStatus(cf.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
 	return c
 }

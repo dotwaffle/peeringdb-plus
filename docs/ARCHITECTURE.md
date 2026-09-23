@@ -777,6 +777,14 @@ Two paths resolve the target field:
   the `cmd/pdb-compat-allowlist` step emits the maps from the same schema source
   as Path A, avoiding init-order coupling.
 
+The relation keys that an upstream `prepare_query` handles
+(`net?ix=`, `fac?net__name=`, `netixlan?ix_id=`)
+resolve before both paths, through `relationSeeds` in
+`internal/pdbcompat/relation_filter.go`.
+Each key walks a fixed path of up to three tables with nested `IN`
+subqueries and requires status `ok` on the one row that upstream pins
+(`docs/API.md § Relation filters`).
+
 Traversal predicates compose with the soft-delete status matrix
 and shadow-column folding:
 the status matrix predicate is appended LAST to every `registry_funcs.go`

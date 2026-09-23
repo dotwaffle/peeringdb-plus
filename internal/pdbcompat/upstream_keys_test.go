@@ -157,9 +157,13 @@ func TestParseFilters_RelationStatusKeys(t *testing.T) {
 		{peeringdb.TypeIXPfx, "ixlan__status", true},
 		{peeringdb.TypeOrg, "net__status", false},
 		{peeringdb.TypeOrg, "network__status", false},
-		{peeringdb.TypeIX, "ixlan__status__in", false},
+		{peeringdb.TypeFac, "netfac__status__in", false},
 		{peeringdb.TypeNetIXLan, "net__org__status", false},
 		{peeringdb.TypeIXPfx, "ixlan__ix__status", false},
+		// The relation keys of a prepare_query filter status as
+		// upstream does (see relationSeeds).
+		{peeringdb.TypeIX, "ixlan__status__in", true},
+		{peeringdb.TypeNet, "netixlan__status", true},
 		// Other fields on the same keys still resolve.
 		{peeringdb.TypeOrg, "net__name", true},
 		{peeringdb.TypeNetIXLan, "net__org__name", true},

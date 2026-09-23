@@ -3,7 +3,6 @@ package pdbcompat
 import (
 	"context"
 	"net/url"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -150,44 +149,6 @@ func slicesEqual(a, b []string) bool {
 		}
 	}
 	return true
-}
-
-func TestRouteIXKey(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		typ, key    string
-		wantRelSegs []string
-		wantField   string
-	}{
-		{"netixlan", "ix", nil, "ix_id"},
-		{"netixlan", "ix_id", nil, "ix_id"},
-		{"netixlan", "ix__id", nil, "ix_id"},
-		{"netixlan", "ix__in", nil, "ix_id"},
-		{"netixlan", "ix__name", []string{"ixlan", "ix"}, "name"},
-		{"netixlan", "ix__name__contains", []string{"ixlan", "ix"}, "name"},
-		{"netixlan", "ixlan__name", []string{"ixlan"}, "name"},
-		{"netixlan", "ix__org__name", []string{"ix", "org"}, "name"},
-		{"ixpfx", "ix", []string{"ixlan"}, "ix_id"},
-		{"ixpfx", "ix_id", []string{"ixlan"}, "ix_id"},
-		{"ixpfx", "ix_id__in", []string{"ixlan"}, "ix_id"},
-		{"ixpfx", "ix__id", []string{"ixlan"}, "ix_id"},
-		{"ixpfx", "ix__name", []string{"ixlan", "ix"}, "name"},
-		{"ixpfx", "ixlan__ix__id", []string{"ixlan", "ix"}, "id"},
-		{"ixlan", "ix", nil, "ix"},
-		{"ixfac", "ix__name", []string{"ix"}, "name"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.typ+"?"+tt.key, func(t *testing.T) {
-			t.Parallel()
-			relSegs, field, _ := parseFieldOp(tt.key)
-			gotSegs, gotField := routeIXKey(tt.typ, relSegs, field)
-			if !slices.Equal(gotSegs, tt.wantRelSegs) || gotField != tt.wantField {
-				t.Errorf("routeIXKey(%s, %q) = (%v, %q), want (%v, %q)",
-					tt.typ, tt.key, gotSegs, gotField, tt.wantRelSegs, tt.wantField)
-			}
-		})
-	}
 }
 
 func TestParseFilters(t *testing.T) {

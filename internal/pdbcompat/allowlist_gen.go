@@ -36,10 +36,6 @@ var Allowlists = map[string]AllowlistEntry{
 	"fac": {
 		Direct: []string{
 			"campus__name",
-			"ix__id",
-			"ix__name",
-			"net__asn",
-			"net__name",
 			"org__name",
 		},
 		Via: map[string][]string{
@@ -50,12 +46,7 @@ var Allowlists = map[string]AllowlistEntry{
 	},
 	"ix": {
 		Direct: []string{
-			"fac__country",
-			"fac__name",
-			"ixlan__name",
 			"ixpfx__prefix",
-			"net__asn",
-			"net__name",
 			"org__name",
 		},
 	},
@@ -87,16 +78,8 @@ var Allowlists = map[string]AllowlistEntry{
 	},
 	"net": {
 		Direct: []string{
-			"fac__name",
-			"ix__name",
-			"ixlan__name",
 			"org__id",
 			"org__name",
-		},
-		Via: map[string][]string{
-			"netfac": {
-				"fac__name",
-			},
 		},
 	},
 	"netfac": {
