@@ -49,8 +49,11 @@ that cold-sync from the primary on boot.
   Used by GitHub Actions for the `Docker Build` CI job and as a base
   for local container-based development.
 
-Both images use `cgr.dev/chainguard/go` as the build stage
-and `cgr.dev/chainguard/glibc-dynamic:latest-dev` as the runtime stage.
+Both images use `cgr.dev/chainguard/go` as the build stage.
+`Dockerfile.prod` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
+as the runtime stage and runs as root.
+`Dockerfile` uses `cgr.dev/chainguard/glibc-dynamic`, which has no shell,
+and runs as `nonroot`.
 
 ## Build pipeline
 
@@ -62,10 +65,13 @@ It comprises two jobs:
    warms one module/build cache, then runs these steps in order:
    1. **Generated-code drift check** —
       `mise run generate` then
-      `git diff --exit-code` scoped to
+      `git diff --exit-code` over
       `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
+      `internal/web/static/tailwind.css`,
       and `internal/pdbcompat/allowlist_gen.go`
       (the security-load-bearing `/api` traversal allowlist).
+      The step also fails when generation creates untracked files
+      in these paths.
       Runs first so a forgotten regeneration fails in seconds,
       ahead of the expensive build and test steps.
       A `go mod tidy` gate follows it,
@@ -108,8 +114,9 @@ recorded here so they read as decisions rather than oversights:
   (Fly microVM per machine) is the primary isolation layer.
   Revisit if LiteFS grows a privilege-drop option
   or the app moves off FUSE.
-- **The runtime base is `glibc-dynamic:latest-dev`** —
-  the `-dev` variant ships a shell, `apk`, and the `sqlite3` CLI.
+- **The runtime base is `glibc-dynamic:latest-dev`.**
+  The `-dev` variant has a shell and `apk`,
+  and `Dockerfile.prod` installs the `sqlite3` CLI with `apk`.
   This is deliberate incident-response tooling:
   `fly ssh console` + `sqlite3 /litefs/peeringdb-plus.db`
   is the documented production debugging path.
@@ -507,7 +514,7 @@ re-evaluate the incremental-sync defaults.
 
 **Dashboard.**
 The `Sync Memory` row in `deploy/grafana/dashboards/pdbplus-overview.json`
-contains three panels:
+contains four panels:
 
 - `Peak Heap` — threshold line at 400 MiB
   (Grafana auto-formats MiB / GiB from the `bytes` field unit)
@@ -515,6 +522,8 @@ contains three panels:
 - `Live Heap by Instance` —
   sourced from the `go_memory_used_bytes` OTel runtime gauge,
   plots all fleet machines (primary + replicas) across the asymmetric fleet
+- `Response Heap Delta`: p50, p95, and p99 of
+  `pdbplus_response_heap_delta_bytes` for each endpoint
 
 **Memory escalation.**
 If peak heap is sustained above `PDBPLUS_HEAP_WARN_MIB` across multiple sync
@@ -558,9 +567,12 @@ Four subcommands:
   emitting a markdown table per surface to stdout (paste into
   capacity-planning docs / incident reports).
 
-Default `--target` is `https://peeringdb-plus.fly.dev`.
-**Never** point any subcommand at `https://www.peeringdb.com` —
-upstream PeeringDB enforces a 1-req/hour-per-IP cap and will block your IP.
+The default `--base` is `https://peeringdb-plus.fly.dev`
+(`--target` is an alias).
+The tool refuses `peeringdb.com` and its subdomains,
+except `beta.peeringdb.com`.
+Do not point it at upstream PeeringDB.
+Upstream rate limits are strict and can block your IP.
 See `cmd/loadtest/README.md` for full flag documentation and example output.
 
 ## Rollback
@@ -655,8 +667,13 @@ The checks below use a SQLite shell on a machine of the fleet:
 fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 ```
 
-1. Make sure that the mirror runs a release with the 2.83.0 parity changes
-   (see `CHANGELOG.md`).
+1. Make sure that the mirror runs v1.28.0 or later.
+   To see the running version, run:
+
+   ```bash
+   curl -s -H 'Accept: application/json' https://peeringdb-plus.fly.dev/ | jq -r .version
+   ```
+
    Older releases hide `not-operational` connections on `/api` and in the
    Web UI.
 2. Wait until upstream has deployed 2.83.0.
