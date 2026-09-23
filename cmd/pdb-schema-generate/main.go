@@ -1,12 +1,19 @@
-// pdb-schema-generate reads an intermediate JSON schema produced by
-// pdb-schema-extract and generates entgo schema Go files.
+// Command pdb-schema-generate reads the hand-curated schema/peeringdb.json
+// and writes the entgo schema files. It writes one file for each PeeringDB
+// type, named for the model in lower case (for example
+// ent/schema/networkixlan.go), and the shared ent/schema/types.go.
+//
+// The tool overwrites these files on every run and removes hand edits.
+// Put hand-written schema methods in sibling files named
+// {type}_{method}.go, for example ent/schema/poc_policy.go.
+// ent/generate.go runs this tool in its first go:generate step.
 //
 // Usage:
 //
 //	pdb-schema-generate <schema.json> [output-dir]
 //
-// If output-dir is not specified, it defaults to "ent/schema".
-// Generated files are formatted with go/format.
+// The default output-dir is "ent/schema", relative to the working
+// directory. The tool formats the generated files with go/format.
 package main
 
 import (
