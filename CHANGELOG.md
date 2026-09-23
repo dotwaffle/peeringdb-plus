@@ -1054,7 +1054,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.1...HEAD
+[1.28.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.0...v1.28.1
 [1.28.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.27.0...v1.28.0
 [1.27.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.26.0...v1.27.0
 [1.26.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.25.0...v1.26.0
