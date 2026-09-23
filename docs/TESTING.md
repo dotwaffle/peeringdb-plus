@@ -486,9 +486,10 @@ and raw `*sql.DB`.
 
 ### Context
 
-Use `t.Context()` instead of `context.Background()` in tests —
-it is cancelled when the test finishes,
-ensuring goroutines started by handlers or workers do not leak between tests.
+Use `t.Context()` instead of `context.Background()` in tests.
+The testing package cancels this context
+just before it runs the cleanup functions of the test,
+so goroutines that handlers or workers start do not leak between tests.
 
 ### Naming
 

@@ -166,7 +166,7 @@ that prevents the schema generator from undoing your work.
 
 ### The `campus` inflection patch
 
-`go-openapi/inflect` singularises `campus` → `campu`
+`go-openapi/inflect` singularizes `campus` → `campu`
 (and plural handling is equally broken).
 Without a fix, ent generates `Campu`-themed code
 and entrest produces `/campu` URL paths.
