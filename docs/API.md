@@ -48,6 +48,7 @@ or return `503 not primary` when running outside Fly.io.
 | `GET` | `/readyz` | Health | Readiness probe (checks the DB, the last sync result and sync freshness) |
 | `POST` | `/sync` | Admin | On-demand sync trigger (primary only, token-gated) |
 | `GET` | `/favicon.ico` | Static | Favicon served from embedded `internal/web/static/` |
+| `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/` |
 | `GET` | `/static/*` | Static | Embedded UI assets (CSS, JS, images) |
 | `GET` | `/ui/` | Web UI | Home / search page |
 | `GET` | `/ui/asn/{asn}` | Web UI | Network detail by ASN |
@@ -56,13 +57,15 @@ or return `503 not primary` when running outside Fly.io.
 | `GET` | `/ui/org/{id}` | Web UI | Organization detail |
 | `GET` | `/ui/campus/{id}` | Web UI | Campus detail |
 | `GET` | `/ui/carrier/{id}` | Web UI | Carrier detail |
-| `GET` | `/ui/search` | Web UI | Search results (supports `?q=`) |
+| `GET` | `/ui/search` | Web UI | Search results (`?q=`). With `?type=`, the results of one type with `offset` paging |
 | `GET` | `/ui/about` | Web UI | Application version, optional serving region, privacy mode, and sync freshness |
 | `GET` | `/ui/compare` | Web UI | ASN comparison form |
+| `GET` | `/ui/compare/{asn1}` | Web UI | Comparison form with the first ASN filled in |
 | `GET` | `/ui/compare/{asn1}/{asn2}` | Web UI | ASN comparison results |
 | `GET` | `/ui/completions/bash` | Web UI | Bash completion script |
 | `GET` | `/ui/completions/zsh` | Web UI | Zsh completion script |
-| `GET` | `/ui/completions/search` | Web UI | Name suggestions for shell completion |
+| `GET` | `/ui/completions/search` | Web UI | Identifiers for shell completion |
+| `GET` | `/ui/fragment/{type}/{id}/{relation}` | Web UI | htmx fragments for detail pages. Not a stable interface |
 | `GET` | `/graphql` | GraphQL | GraphiQL playground (HTML) |
 | `POST` | `/graphql` | GraphQL | Query execution |
 | `GET` | `/rest/v1/openapi.json` | REST | OpenAPI 3 specification |
@@ -178,7 +181,7 @@ If you pipe this output to a file, a logger,
 or a tool that does not render ANSI codes,
 you will see escape sequences like `\x1b[38;5;...`.
 
-Three ways to get clean output:
+Four ways to get clean output:
 
 ```bash
 # Option 1: request plain ASCII
@@ -203,6 +206,7 @@ For machine-readable output, use one of the structured API surfaces
 |-------|-------------|
 | `GET /ui/` | Home page. Accepts `?q=` for pre-rendered search results (shareable URLs) |
 | `GET /ui/search?q=` | Search results. Returns a full page, an htmx fragment, or a terminal render depending on headers. Sets `HX-Push-Url` for browser history |
+| `GET /ui/search?q=&type=&offset=` | Results of one type: `net`, `ix`, `fac`, `org`, `campus` or `carrier`. Returns 50 rows for each page. A request with `offset` above 0 returns only the next rows as an htmx fragment. An unknown type returns the 404 page |
 | `GET /ui/asn/{asn}` | Network detail by ASN (1 .. 2³²−1; values outside the range return `400 Problem+JSON`) |
 | `GET /ui/ix/{id}` | Internet exchange detail by numeric ID |
 | `GET /ui/fac/{id}` | Facility detail |
@@ -215,7 +219,8 @@ For machine-readable output, use one of the structured API surfaces
 | `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union with shared-flag highlighting. Any other `view` value falls back to the shared view. |
 | `GET /ui/completions/bash` | Installable bash completion script |
 | `GET /ui/completions/zsh` | Installable zsh completion script |
-| `GET /ui/completions/search?q=&type=` | Newline-separated name suggestions used by the shell completion scripts (`type=net|ix|fac|org`) |
+| `GET /ui/completions/search?q=&type=` | Newline-separated identifiers for the shell completion scripts: the ASN for `net`, and the numeric ID for `ix`, `fac`, `org`, `campus` and `carrier`. Up to 10 for each type. `type` is optional. A `q` shorter than 2 characters returns an empty body |
+| `GET /ui/fragment/{type}/{id}/{relation}` | htmx fragments that the detail pages load, for example `/ui/fragment/net/{id}/ixlans`. Not a stable interface. `robots.txt` blocks them |
 
 Unknown `/ui/*` paths render the themed 404 page via `handleNotFound`.
 
