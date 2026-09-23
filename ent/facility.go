@@ -90,13 +90,13 @@ type Facility struct {
 	Website string `json:"website"`
 	// Postal / ZIP code
 	Zipcode string `json:"zipcode"`
-	// Org Name (computed)
+	// Name of the organization this record belongs to (computed)
 	OrgName string `json:"org_name"`
-	// Net Count (computed)
+	// Number of networks at this facility (computed)
 	NetCount int `json:"net_count"`
-	// Ix Count (computed)
+	// Number of exchanges at this facility (computed)
 	IxCount int `json:"ix_count"`
-	// Carrier Count (computed)
+	// Number of carriers at this facility (computed)
 	CarrierCount int `json:"carrier_count"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

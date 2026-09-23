@@ -39,7 +39,7 @@ func (CarrierFacility) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Name (computed)"),
+			Comment("Name of the facility this record refers to (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").

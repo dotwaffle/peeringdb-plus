@@ -95,15 +95,15 @@ type Network struct {
 	StatusDashboard *string `json:"status_dashboard"`
 	// Network website URL
 	Website string `json:"website"`
-	// Ix Count (computed)
+	// Number of exchanges at this network (computed)
 	IxCount int `json:"ix_count"`
-	// Fac Count (computed)
+	// Number of facilities at this network (computed)
 	FacCount int `json:"fac_count"`
-	// Netixlan Updated (computed)
+	// Time the most recently changed exchange connection (`netixlan`) of this network was updated (computed)
 	NetixlanUpdated *time.Time `json:"netixlan_updated"`
-	// Netfac Updated (computed)
+	// Time the most recently changed facility presence (`netfac`) of this network was updated (computed)
 	NetfacUpdated *time.Time `json:"netfac_updated"`
-	// Poc Updated (computed)
+	// Time the most recently changed point of contact (`poc`) of this network was updated (computed)
 	PocUpdated *time.Time `json:"poc_updated"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

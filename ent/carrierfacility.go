@@ -24,7 +24,7 @@ type CarrierFacility struct {
 	CarrierID *int `json:"carrier_id"`
 	// FK to facility
 	FacID *int `json:"fac_id"`
-	// Name (computed)
+	// Name of the facility this record refers to (computed)
 	Name string `json:"name"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

@@ -164,23 +164,23 @@ func (Network) Fields() []ent.Field {
 		field.Int("ix_count").
 			Optional().
 			Default(0).
-			Comment("Ix Count (computed)"),
+			Comment("Number of exchanges at this network (computed)"),
 		field.Int("fac_count").
 			Optional().
 			Default(0).
-			Comment("Fac Count (computed)"),
+			Comment("Number of facilities at this network (computed)"),
 		field.Time("netixlan_updated").
 			Optional().
 			Nillable().
-			Comment("Netixlan Updated (computed)"),
+			Comment("Time the most recently changed exchange connection (`netixlan`) of this network was updated (computed)"),
 		field.Time("netfac_updated").
 			Optional().
 			Nillable().
-			Comment("Netfac Updated (computed)"),
+			Comment("Time the most recently changed facility presence (`netfac`) of this network was updated (computed)"),
 		field.Time("poc_updated").
 			Optional().
 			Nillable().
-			Comment("Poc Updated (computed)"),
+			Comment("Time the most recently changed point of contact (`poc`) of this network was updated (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").

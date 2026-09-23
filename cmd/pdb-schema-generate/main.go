@@ -244,6 +244,45 @@ var statusComments = map[string]string{
 	"netixlan": "Connection state: `ok` and `not-operational` are published, `pending` awaits approval, and `deleted` is removed",
 }
 
+// computedComments gives the comment of a computed field by
+// "<api path>.<field>". The comment becomes the GraphQL and OpenAPI
+// field description. A field without an entry gets its title-cased name.
+// The text follows the upstream 2.83.0 help_text in models.py and
+// serializers.py. On netfac, ixfac and carrierfac, name, city and country
+// are values of the facility, not of the network, exchange or carrier.
+var computedComments = map[string]string{
+	"campus.org_name":              "Name of the organization this record belongs to",
+	"carrier.org_name":             "Name of the organization this record belongs to",
+	"carrier.fac_count":            "Number of facilities for this carrier",
+	"carrierfac.name":              "Name of the facility this record refers to",
+	"fac.org_name":                 "Name of the organization this record belongs to",
+	"fac.net_count":                "Number of networks at this facility",
+	"fac.ix_count":                 "Number of exchanges at this facility",
+	"fac.carrier_count":            "Number of carriers at this facility",
+	"ix.net_count":                 "Number of networks at this exchange",
+	"ix.fac_count":                 "Number of facilities at this exchange",
+	"ix.ixf_import_request":        "Time of the most recent manual IX-F import request",
+	"ix.ixf_import_request_status": "Status of the manual IX-F import request",
+	"ixfac.name":                   "Name of the facility this record refers to",
+	"ixfac.city":                   "City of the facility this record refers to",
+	"ixfac.country":                "Country code of the facility this record refers to",
+	"net.ix_count":                 "Number of exchanges at this network",
+	"net.fac_count":                "Number of facilities at this network",
+	"net.netixlan_updated":         "Time the most recently changed exchange connection (`netixlan`) of this network was updated",
+	"net.netfac_updated":           "Time the most recently changed facility presence (`netfac`) of this network was updated",
+	"net.poc_updated":              "Time the most recently changed point of contact (`poc`) of this network was updated",
+	"netfac.name":                  "Name of the facility this record refers to",
+	"netfac.city":                  "City of the facility this record refers to",
+	"netfac.country":               "Country code of the facility this record refers to",
+	"netixlan.name":                "Name of the exchange, with the LAN name after a colon when the LAN has a name",
+}
+
+// computedComment returns the comment of the computed field name on the
+// type at apiPath.
+func computedComment(apiPath, name string) string {
+	return cmp.Or(computedComments[apiPath+"."+name], toTitleCase(name)) + " (computed)"
+}
+
 // entFieldData represents a single entgo field definition.
 type entFieldData struct {
 	Name     string
@@ -518,7 +557,7 @@ func fieldAnnotations(name string, fd FieldDef) string {
 }
 
 // generateComputedFieldCode produces entgo field code for serializer-computed fields.
-func generateComputedFieldCode(name, _ string) string {
+func generateComputedFieldCode(name, apiPath string) string {
 	var annotation string
 	if filterableStringFields[name] {
 		annotation = fmt.Sprintf(".\n\t\t\t%s", equalArrayFilterAnnotation)
@@ -527,21 +566,21 @@ func generateComputedFieldCode(name, _ string) string {
 	// Infer type from field name patterns.
 	switch {
 	case strings.HasSuffix(name, "_count"):
-		return fmt.Sprintf("field.Int(%q).\n\t\t\tOptional().\n\t\t\tDefault(0).\n\t\t\tComment(%q)", name, toTitleCase(name)+" (computed)")
+		return fmt.Sprintf("field.Int(%q).\n\t\t\tOptional().\n\t\t\tDefault(0).\n\t\t\tComment(%q)", name, computedComment(apiPath, name))
 	case strings.HasSuffix(name, "_updated"):
-		return fmt.Sprintf("field.Time(%q).\n\t\t\tOptional().\n\t\t\tNillable().\n\t\t\tComment(%q)", name, toTitleCase(name)+" (computed)")
+		return fmt.Sprintf("field.Time(%q).\n\t\t\tOptional().\n\t\t\tNillable().\n\t\t\tComment(%q)", name, computedComment(apiPath, name))
 	case name == "org_name":
-		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tDefault(\"\").\n\t\t\tComment(%q)", name, toTitleCase(name)+" (computed)")
+		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tDefault(\"\").\n\t\t\tComment(%q)", name, computedComment(apiPath, name))
 	case name == "name" || name == "city" || name == "country":
-		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tDefault(\"\")%s.\n\t\t\tComment(%q)", name, annotation, toTitleCase(name)+" (computed)")
+		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tDefault(\"\")%s.\n\t\t\tComment(%q)", name, annotation, computedComment(apiPath, name))
 	case name == "ix_id":
 		return fmt.Sprintf("field.Int(%q).\n\t\t\tOptional().\n\t\t\tComment(%q)", name, "Internet exchange ID (computed)")
 	case strings.HasSuffix(name, "_request"):
-		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tNillable().\n\t\t\tComment(%q)", name, toTitleCase(name)+" (computed)")
+		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tNillable().\n\t\t\tComment(%q)", name, computedComment(apiPath, name))
 	case strings.HasSuffix(name, "_status"):
-		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tDefault(\"\").\n\t\t\tComment(%q)", name, toTitleCase(name)+" (computed)")
+		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tDefault(\"\").\n\t\t\tComment(%q)", name, computedComment(apiPath, name))
 	default:
-		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tComment(%q)", name, toTitleCase(name)+" (computed)")
+		return fmt.Sprintf("field.String(%q).\n\t\t\tOptional().\n\t\t\tComment(%q)", name, computedComment(apiPath, name))
 	}
 }
 

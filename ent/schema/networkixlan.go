@@ -83,7 +83,7 @@ func (NetworkIxLan) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Name (computed)"),
+			Comment("Name of the exchange, with the LAN name after a colon when the LAN has a name (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").

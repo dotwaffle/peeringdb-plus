@@ -162,19 +162,19 @@ func (Facility) Fields() []ent.Field {
 		field.String("org_name").
 			Optional().
 			Default("").
-			Comment("Org Name (computed)"),
+			Comment("Name of the organization this record belongs to (computed)"),
 		field.Int("net_count").
 			Optional().
 			Default(0).
-			Comment("Net Count (computed)"),
+			Comment("Number of networks at this facility (computed)"),
 		field.Int("ix_count").
 			Optional().
 			Default(0).
-			Comment("Ix Count (computed)"),
+			Comment("Number of exchanges at this facility (computed)"),
 		field.Int("carrier_count").
 			Optional().
 			Default(0).
-			Comment("Carrier Count (computed)"),
+			Comment("Number of carriers at this facility (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").

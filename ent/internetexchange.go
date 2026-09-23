@@ -83,13 +83,13 @@ type InternetExchange struct {
 	URLStats string `json:"url_stats"`
 	// IX website URL
 	Website string `json:"website"`
-	// Net Count (computed)
+	// Number of networks at this exchange (computed)
 	NetCount int `json:"net_count"`
-	// Fac Count (computed)
+	// Number of facilities at this exchange (computed)
 	FacCount int `json:"fac_count"`
-	// Ixf Import Request (computed)
+	// Time of the most recent manual IX-F import request (computed)
 	IxfImportRequest *string `json:"ixf_import_request"`
-	// Ixf Import Request Status (computed)
+	// Status of the manual IX-F import request (computed)
 	IxfImportRequestStatus string `json:"ixf_import_request_status"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

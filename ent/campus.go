@@ -47,7 +47,7 @@ type Campus struct {
 	Website string `json:"website"`
 	// Postal / ZIP code
 	Zipcode string `json:"zipcode"`
-	// Org Name (computed)
+	// Name of the organization this record belongs to (computed)
 	OrgName string `json:"org_name"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

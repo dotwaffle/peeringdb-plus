@@ -54,7 +54,7 @@ type Campus implements Node {
   """
   zipcode: String
   """
-  Org Name (computed)
+  Name of the organization this record belongs to (computed)
   """
   orgName: String
   """
@@ -432,11 +432,11 @@ type Carrier implements Node {
   """
   website: String
   """
-  Org Name (computed)
+  Name of the organization this record belongs to (computed)
   """
   orgName: String
   """
-  Fac Count (computed)
+  Number of facilities for this carrier (computed)
   """
   facCount: Int
   """
@@ -498,7 +498,7 @@ type CarrierFacility implements Node {
   """
   facID: ID
   """
-  Name (computed)
+  Name of the facility this record refers to (computed)
   """
   name: String
   """
@@ -1018,19 +1018,19 @@ type Facility implements Node {
   """
   zipcode: String
   """
-  Org Name (computed)
+  Name of the organization this record belongs to (computed)
   """
   orgName: String
   """
-  Net Count (computed)
+  Number of networks at this facility (computed)
   """
   netCount: Int
   """
-  Ix Count (computed)
+  Number of exchanges at this facility (computed)
   """
   ixCount: Int
   """
-  Carrier Count (computed)
+  Number of carriers at this facility (computed)
   """
   carrierCount: Int
   """
@@ -1835,19 +1835,19 @@ type InternetExchange implements Node {
   """
   website: String
   """
-  Net Count (computed)
+  Number of networks at this exchange (computed)
   """
   netCount: Int
   """
-  Fac Count (computed)
+  Number of facilities at this exchange (computed)
   """
   facCount: Int
   """
-  Ixf Import Request (computed)
+  Time of the most recent manual IX-F import request (computed)
   """
   ixfImportRequest: String
   """
-  Ixf Import Request Status (computed)
+  Status of the manual IX-F import request (computed)
   """
   ixfImportRequestStatus: String
   """
@@ -2472,15 +2472,15 @@ type IxFacility implements Node {
   """
   ixID: ID
   """
-  Name (computed)
+  Name of the facility this record refers to (computed)
   """
   name: String
   """
-  City (computed)
+  City of the facility this record refers to (computed)
   """
   city: String
   """
-  Country (computed)
+  Country code of the facility this record refers to (computed)
   """
   country: String
   """
@@ -3271,23 +3271,23 @@ type Network implements Node {
   """
   website: String
   """
-  Ix Count (computed)
+  Number of exchanges at this network (computed)
   """
   ixCount: Int
   """
-  Fac Count (computed)
+  Number of facilities at this network (computed)
   """
   facCount: Int
   """
-  Netixlan Updated (computed)
+  Time the most recently changed exchange connection (`netixlan`) of this network was updated (computed)
   """
   netixlanUpdated: Time
   """
-  Netfac Updated (computed)
+  Time the most recently changed facility presence (`netfac`) of this network was updated (computed)
   """
   netfacUpdated: Time
   """
-  Poc Updated (computed)
+  Time the most recently changed point of contact (`poc`) of this network was updated (computed)
   """
   pocUpdated: Time
   """
@@ -3355,15 +3355,15 @@ type NetworkFacility implements Node {
   """
   localAsn: Int!
   """
-  Name (computed)
+  Name of the facility this record refers to (computed)
   """
   name: String
   """
-  City (computed)
+  City of the facility this record refers to (computed)
   """
   city: String
   """
-  Country (computed)
+  Country code of the facility this record refers to (computed)
   """
   country: String
   """
@@ -3624,7 +3624,7 @@ type NetworkIxLan implements Node {
   """
   ixID: Int
   """
-  Name (computed)
+  Name of the exchange, with the LAN name after a colon when the LAN has a name (computed)
   """
   name: String
   """

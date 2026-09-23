@@ -67,11 +67,11 @@ func (Carrier) Fields() []ent.Field {
 		field.String("org_name").
 			Optional().
 			Default("").
-			Comment("Org Name (computed)"),
+			Comment("Name of the organization this record belongs to (computed)"),
 		field.Int("fac_count").
 			Optional().
 			Default(0).
-			Comment("Fac Count (computed)"),
+			Comment("Number of facilities for this carrier (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").

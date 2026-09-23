@@ -26,11 +26,11 @@ type NetworkFacility struct {
 	NetID *int `json:"net_id"`
 	// Local ASN
 	LocalAsn int `json:"local_asn"`
-	// Name (computed)
+	// Name of the facility this record refers to (computed)
 	Name string `json:"name"`
-	// City (computed)
+	// City of the facility this record refers to (computed)
 	City string `json:"city"`
-	// Country (computed)
+	// Country code of the facility this record refers to (computed)
 	Country string `json:"country"`
 	// PeeringDB creation timestamp
 	Created time.Time `json:"created"`

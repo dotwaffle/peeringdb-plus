@@ -41,17 +41,17 @@ func (NetworkFacility) Fields() []ent.Field {
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Name (computed)"),
+			Comment("Name of the facility this record refers to (computed)"),
 		field.String("city").
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("City (computed)"),
+			Comment("City of the facility this record refers to (computed)"),
 		field.String("country").
 			Optional().
 			Default("").
 			Annotations(entrest.WithFilter(entrest.FilterGroupEqual | entrest.FilterGroupArray)).
-			Comment("Country (computed)"),
+			Comment("Country code of the facility this record refers to (computed)"),
 
 		// HandleRefModel common fields
 		field.Time("created").
