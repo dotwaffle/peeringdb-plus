@@ -493,6 +493,13 @@ ensuring goroutines started by handlers or workers do not leak between tests.
 ### Naming
 
 - Test files: `foo_test.go` (co-located).
+- Test files in `graph/`:
+  gqlgen takes the package name from the first `.go` file in `graph/`
+  in alphabetical order (today `complexity.go`).
+  A `package graph_test` file that sorts before it
+  makes `gqlgen generate` fail
+  with "exec and model define the same import path".
+  Give such files names that sort after it, for example `resolver_*_test.go`.
 - Test functions: `TestFoo`, `TestFoo_Subcase` or `TestFooSubcase`.
 - Benchmarks: `BenchmarkFoo`.
 - Fuzz tests: `FuzzFoo`.
