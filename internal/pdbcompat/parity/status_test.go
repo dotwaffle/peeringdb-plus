@@ -476,8 +476,8 @@ func TestParity_Status(t *testing.T) {
 		if status != http.StatusOK {
 			t.Fatalf("status = %d; body=%s", status, string(body))
 		}
-		// Default order is updated descending.
-		want := []int{2, 1}
+		// A plain list is ordered by id ascending.
+		want := []int{1, 2}
 		if ids := extractIDs(t, body); !equalIntSlice(ids, want) {
 			t.Errorf("netixlan bare list: got %v, want %v (ok + not-operational)", ids, want)
 		}
@@ -550,7 +550,7 @@ func TestParity_Status(t *testing.T) {
 		}{
 			{"?status=ok", []int{1}},
 			{"?status=not-operational", []int{2}},
-			{"?status__in=ok,not-operational", []int{2, 1}},
+			{"?status__in=ok,not-operational", []int{1, 2}},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, "/api/netixlan"+tc.query)
@@ -669,10 +669,9 @@ func TestParity_Status(t *testing.T) {
 	})
 }
 
-// equalIntSlice is a local helper because slices.Equal requires
-// matching element counts AND positions (which is what we want — all
-// status assertions are order-sensitive due to the (-updated,
-// -created) default).
+// equalIntSlice reports whether a and b hold the same ids in the same
+// positions. The status assertions compare order too: a plain list is
+// ordered by id ascending, and a ?since= list by updated ascending.
 func equalIntSlice(a, b []int) bool {
 	if len(a) != len(b) {
 		return false

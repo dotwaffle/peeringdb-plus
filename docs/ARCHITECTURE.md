@@ -435,18 +435,22 @@ and read from the same ent client:
 
 ## Ordering
 
-All list endpoints return rows in compound `(-updated, -created, -id)` order by
-default, matching upstream PeeringDB's `django-handleref` base
-`Meta.ordering = ("-updated", "-created")` plus a deterministic `id DESC`
-tertiary tiebreaker for cross-replica consistency.
-The ordering contract spans three surfaces — pdbcompat `/api/<type>`,
-entrest `/rest/v1/<type>`, and ConnectRPC `List*`/`Stream*` RPCs —
-with parity verified end-to-end by
-`cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go`.
+pdbcompat `/api/<type>` lists use the upstream PeeringDB order.
+A list without `?since` is ordered by `id`, ascending,
+because upstream adds no `ORDER BY` and MySQL returns primary-key order.
+A `?since` list is ordered by `updated`, ascending, with `id` as the tiebreak.
+`listOrder` in `internal/pdbcompat/registry_funcs.go` sets both orders.
+See [API.md § List order](./API.md#list-order).
 
-- **pdbcompat** and **ConnectRPC** emit the full compound `ORDER BY` directly
-  via ent (`internal/pdbcompat/registry_funcs.go` and the
-  `List<Entity>`/`Stream<Entity>` closures in `internal/grpcserver/*.go`).
+entrest `/rest/v1/<type>` and the ConnectRPC `List*`/`Stream*` RPCs
+return rows in compound `(-updated, -created, -id)` order by default.
+The trailing `id DESC` makes the order deterministic across replicas.
+`cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go` verifies that
+these two surfaces return the same order,
+and that pdbcompat returns `id` order on the same data.
+
+- **ConnectRPC** emits the full compound `ORDER BY` directly via ent
+  (the `List<Entity>`/`Stream<Entity>` closures in `internal/grpcserver/*.go`).
 - **entrest** uses an in-tree template override at
   `ent/templates/entrest-sorting/sorting.tmpl` because entrest's annotation API
   is single-field; the template injects `created, id` tie-breakers (in the
@@ -474,6 +478,9 @@ with parity verified end-to-end by
   declared via `index.Fields("updated")` in `ent/schema/<entity>.go`, so
   `ORDER BY updated DESC, id DESC` hits an index scan rather than a full-table
   sort.
+  The pdbcompat `id` order needs no index of its own:
+  on a type with one live status, the `status` index returns the rows
+  in `id` order.
   Post-deploy verification:
   `sqlite3 /litefs/peeringdb-plus.db '.schema'` should list a `<entity>_updated`
   index for every entity.
@@ -641,8 +648,8 @@ for every entity to mirror upstream PeeringDB's `rest.py` status × since matrix
 `live` is the type's live status set from `pdbtypes.LiveStatuses`
 (`ok`, plus `not-operational` on netixlan).
 A single live status is emitted as `status = ?`,
-so the composite `(status, updated, created, id)` index still serves the default
-ordering; the two-value netixlan set is an `IN` list and needs a sort.
+so the `status` index returns the rows in `id` order and the list needs no sort.
+The two-value netixlan set is an `IN` list and needs a sort.
 The pk-lookup path (`internal/pdbcompat/depth.go`) inlines
 `StatusIn("ok", "pending")` at every call site
 (`StatusIn("ok", "not-operational", "pending")` for netixlan)

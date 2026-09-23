@@ -257,15 +257,22 @@ func applySince(opts QueryOptions) func(*sql.Selector) {
 	return sql.FieldGT("updated", *opts.Since)
 }
 
-// listOrder returns the ordering for a list query. Plain lists keep the
-// stable newest-first triple; ?since= lists are ordered updated-ascending
-// (id-ascending tiebreak) to mirror upstream's incremental-update
-// ordering, so pollers can resume from the last row's updated value.
+// listOrder returns the ORDER BY for a list query.
+//
+// A plain list is ordered by id ascending. Upstream adds no ORDER BY to
+// a plain list (2.83.0 rest.py:747-748), and none of the 13 models
+// declares Meta.ordering (migrations/0001_initial.py has no "ordering"
+// option), so MySQL serves the rows in primary-key order. SQLite reads
+// the rowid table in this order and does not sort.
+//
+// A ?since= list is ordered by updated ascending, as upstream orders it
+// (rest.py:738-745). The id tiebreak keeps the order of rows with the
+// same updated value stable across pages.
 func listOrder[T ~func(*sql.Selector)](opts QueryOptions) []T {
 	if opts.Since != nil {
 		return []T{T(ent.Asc("updated")), T(ent.Asc("id"))}
 	}
-	return []T{T(ent.Desc("updated")), T(ent.Desc("created")), T(ent.Desc("id"))}
+	return []T{T(ent.Asc("id"))}
 }
 
 // servedRowCount computes the post-Offset/Limit row count the handler

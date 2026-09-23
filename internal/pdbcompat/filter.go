@@ -87,9 +87,9 @@ func isKnownOperator(suffix string) bool {
 // every list request needs a status filter.
 //
 // A single live status emits status = ? instead of IN: SQLite then
-// serves the default ordering straight from the composite (status,
-// updated, created, id) index. An IN list with two values, as on
-// netixlan, needs a temp B-tree sort.
+// reads the single-column status index, which returns the rows in
+// (status, rowid) order, so the default id order needs no sort. An IN
+// list with two values, as on netixlan, needs a temp B-tree sort.
 func applyStatusMatrix(live []string, isCampus, sinceSet bool) func(*sql.Selector) {
 	if !sinceSet {
 		if len(live) == 1 {

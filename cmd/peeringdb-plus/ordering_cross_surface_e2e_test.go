@@ -1,20 +1,18 @@
 // Package main ordering_cross_surface_e2e_test.go —
-// cross-surface ordering parity + entrest override + nested _set
+// cross-surface ordering + entrest override + nested _set
 // end-to-end verification.
 //
-// This test covers the default-ordering flip by exercising the
-// three query surfaces (pdbcompat /api, entrest /rest/v1, ConnectRPC
-// List*) against a shared in-memory ent client and asserting that the
-// row order returned from each surface is identical under the
-// compound (-updated, -created, -id) default. Three matching surfaces
-// is the goal-backward verification — the
-// per-surface tests assert their contracts in isolation,
-// but only this test locks in the cross-surface parity guarantee that
-// the user-visible contract depends on.
+// This test exercises the three list surfaces (pdbcompat /api, entrest
+// /rest/v1, ConnectRPC List*) against a shared in-memory ent client.
+// entrest and ConnectRPC share the compound (-updated, -created, -id)
+// default, and the test asserts that they return the same row order.
+// pdbcompat follows upstream PeeringDB instead: a plain list is ordered
+// by id ascending (see internal/pdbcompat/parity/ordering_test.go), and
+// the test asserts that order on the same seed.
 //
-// Four top-level tests:
+// Three top-level tests:
 //
-//   - TestOrdering_CrossSurface  — compound default + tie-break parity across all 3 surfaces
+//   - TestOrdering_CrossSurface  — compound default + tie-break parity across entrest and ConnectRPC, id order on pdbcompat
 //   - TestEntrestDefaultOrder    — override contract (no sort = compound default; explicit ?sort= honoured)
 //   - TestEntrestNestedSetOrder  — nested eager-loaded edge arrays sort by (-updated)
 //
@@ -238,9 +236,9 @@ func idSliceEqual(a, b []int) bool {
 
 // =============================================================================
 // TestOrdering_CrossSurface — compound default + tie-break parity across
-// pdbcompat, entrest, and ConnectRPC for Network (the representative
-// entity; the underlying compound ORDER BY is identical across all 13
-// per Plans 03/04/05).
+// entrest and ConnectRPC for Network (the representative entity; the
+// compound ORDER BY is identical across all 13), plus the id order of
+// pdbcompat on the same seed.
 // =============================================================================
 
 func TestOrdering_CrossSurface(t *testing.T) {
@@ -250,7 +248,8 @@ func TestOrdering_CrossSurface(t *testing.T) {
 
 	// ---------------------------------------------------------------
 	// Sub-test 1: compound default — 3 rows with distinct `updated`.
-	// All three surfaces must return the same (-updated) DESC order.
+	// entrest and ConnectRPC must return the same (-updated) DESC
+	// order. pdbcompat returns id order.
 	// ---------------------------------------------------------------
 	t.Run("Network", func(t *testing.T) {
 		t.Parallel()
@@ -261,8 +260,8 @@ func TestOrdering_CrossSurface(t *testing.T) {
 		entrestIDs := fetchEntrestNetworkIDs(t, fix.server.URL, "")
 		grpcIDs := fetchGrpcNetworkIDs(t, fix.server.URL, 100)
 
-		if !idSliceEqual(compatIDs, expected) {
-			t.Errorf("pdbcompat /api/net order = %v, want %v", compatIDs, expected)
+		if want := []int{1, 2, 3}; !idSliceEqual(compatIDs, want) {
+			t.Errorf("pdbcompat /api/net order = %v, want %v (id order)", compatIDs, want)
 		}
 		if !idSliceEqual(entrestIDs, expected) {
 			t.Errorf("entrest /rest/v1/networks order = %v, want %v", entrestIDs, expected)
@@ -271,21 +270,18 @@ func TestOrdering_CrossSurface(t *testing.T) {
 			t.Errorf("ConnectRPC ListNetworks order = %v, want %v", grpcIDs, expected)
 		}
 
-		// Cross-surface parity: the three slices must be pairwise equal.
-		// This is the contract the test locks in — any surface diverging
-		// from the others is a user-visible regression regardless of
-		// whether its standalone ordering matches "expected".
-		if !idSliceEqual(compatIDs, entrestIDs) {
-			t.Errorf("cross-surface parity FAILED: pdbcompat=%v entrest=%v", compatIDs, entrestIDs)
-		}
-		if !idSliceEqual(compatIDs, grpcIDs) {
-			t.Errorf("cross-surface parity FAILED: pdbcompat=%v grpc=%v", compatIDs, grpcIDs)
+		// Cross-surface parity: entrest and ConnectRPC must return the
+		// same slice. A difference between them is a user-visible
+		// regression even if one of them matches "expected".
+		if !idSliceEqual(entrestIDs, grpcIDs) {
+			t.Errorf("cross-surface parity FAILED: entrest=%v grpc=%v", entrestIDs, grpcIDs)
 		}
 	})
 
 	// ---------------------------------------------------------------
 	// Sub-test 2: TieBreakCreated — 2 rows share `updated` but differ
-	// by `created`. All three surfaces must fall through to (-created).
+	// by `created`. entrest and ConnectRPC must fall through to
+	// (-created). pdbcompat returns id order.
 	// ---------------------------------------------------------------
 	t.Run("TieBreakCreated", func(t *testing.T) {
 		t.Parallel()
@@ -323,8 +319,8 @@ func TestOrdering_CrossSurface(t *testing.T) {
 		entrestIDs := fetchEntrestNetworkIDs(t, fix.server.URL, "")
 		grpcIDs := fetchGrpcNetworkIDs(t, fix.server.URL, 100)
 
-		if !idSliceEqual(compatIDs, want) {
-			t.Errorf("pdbcompat TieBreakCreated = %v, want %v", compatIDs, want)
+		if wantCompat := []int{10, 11}; !idSliceEqual(compatIDs, wantCompat) {
+			t.Errorf("pdbcompat TieBreakCreated = %v, want %v (id order)", compatIDs, wantCompat)
 		}
 		if !idSliceEqual(entrestIDs, want) {
 			t.Errorf("entrest TieBreakCreated = %v, want %v", entrestIDs, want)
@@ -336,7 +332,8 @@ func TestOrdering_CrossSurface(t *testing.T) {
 
 	// ---------------------------------------------------------------
 	// Sub-test 3: TieBreakID — 2 rows share both `updated` and
-	// `created`. All three surfaces must fall through to (-id).
+	// `created`. entrest and ConnectRPC must fall through to (-id).
+	// pdbcompat returns id order.
 	// ---------------------------------------------------------------
 	t.Run("TieBreakID", func(t *testing.T) {
 		t.Parallel()
@@ -373,8 +370,8 @@ func TestOrdering_CrossSurface(t *testing.T) {
 		entrestIDs := fetchEntrestNetworkIDs(t, fix.server.URL, "")
 		grpcIDs := fetchGrpcNetworkIDs(t, fix.server.URL, 100)
 
-		if !idSliceEqual(compatIDs, want) {
-			t.Errorf("pdbcompat TieBreakID = %v, want %v", compatIDs, want)
+		if wantCompat := []int{10, 99}; !idSliceEqual(compatIDs, wantCompat) {
+			t.Errorf("pdbcompat TieBreakID = %v, want %v (id order)", compatIDs, wantCompat)
 		}
 		if !idSliceEqual(entrestIDs, want) {
 			t.Errorf("entrest TieBreakID = %v, want %v", entrestIDs, want)

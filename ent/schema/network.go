@@ -225,14 +225,19 @@ func (Network) Indexes() []ent.Index {
 		index.Fields("org_id"),
 		index.Fields("status"),
 		index.Fields("updated"),
-		// Composite index covering the default list ordering. Every list and
-		// stream query filters on status and orders by updated, created, id;
-		// with status leading, SQLite satisfies status-IN plus the three-key
-		// DESC sort directly from this index on the common single-status path
-		// instead of materialising a temp B-tree for the sort (verified with
-		// EXPLAIN QUERY PLAN). A leading status column is required: a bare
-		// updated, created, id index is ignored because the planner prefers
-		// the single-column status index for the filter and then still sorts.
+		// Composite (status, updated, created, id) index. The pdbcompat
+		// ?since= COUNT(*) reads it as a covering index for the status set
+		// plus the updated bound (verified with EXPLAIN QUERY PLAN).
+		// entrest and ConnectRPC list and stream queries order by
+		// (-updated, -created, -id). SQLite reads that order from this
+		// index without a temp B-tree only when the client filters on one
+		// status. Their default lists have no status filter: they do not
+		// use this index and sort in a temp B-tree. A leading status
+		// column is required for the filtered case: the planner ignores a
+		// bare updated, created, id index, reads the single-column status
+		// index for the filter and then sorts. pdbcompat lists do not use
+		// this index: they are ordered by id, or by updated for a ?since=
+		// window.
 		index.Fields("status", "updated", "created", "id"),
 	}
 }

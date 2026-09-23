@@ -50,11 +50,10 @@ func fetchStatusCode(t *testing.T, url string) int {
 }
 
 // TestApplyStatusMatrix_SQL locks the predicate each matrix cell emits.
-// A single live status must stay an equality: SQLite serves the default
-// ordering from the composite (status, updated, created, id) index for
-// status = ?, but a two-value IN list (netixlan) needs a temp B-tree sort
-// (TestDefaultOrdering_IndexBacked). The since cells append to a copy of
-// the live set, never to the caller's slice.
+// A single live status must stay an equality: the single-column status
+// index then returns a plain list in id order, so SQLite does not sort
+// (TestPdbcompatListPlan_NoTempBTree). The since cells append to a copy
+// of the live set, never to the caller's slice.
 func TestApplyStatusMatrix_SQL(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

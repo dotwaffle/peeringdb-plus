@@ -130,16 +130,13 @@ func TestAnonParityFixtures(t *testing.T) {
 			// internal/conformance/compare.go:94-101), so one local row is
 			// sufficient to characterise envelope + per-row structure.
 			//
-			// Under the default ordering
-			// (-updated, -created, -id), seed.Full's two ixlan rows
-			// (id=100 gated / id=101 Public; identical timestamps) tie
-			// on updated+created and resolve id DESC => id=101 wins.
-			// id=101 is Public so `ixf_ixp_member_list_url` surfaces —
-			// introducing an extra-field shape mismatch vs the Private
-			// reference fixture. Pin to id=100 (the gated row, matching
-			// the fixture's Private data[0] shape) via the id filter so
-			// this test stays ordering-independent and keeps exercising
-			// the same redaction path as before.
+			// seed.Full has two ixlan rows: id=100 (gated) and id=101
+			// (Public). On id=101 `ixf_ixp_member_list_url` surfaces,
+			// which adds a field that the Private reference fixture
+			// does not have. The id filter pins id=100 (the gated row,
+			// which matches the fixture's data[0] shape), so this test
+			// does not depend on the list order and keeps exercising
+			// the redaction path.
 			extra := ""
 			if typeName == "ixlan" {
 				extra = "&id=" + strconv.Itoa(seed.IxLanGatedID)

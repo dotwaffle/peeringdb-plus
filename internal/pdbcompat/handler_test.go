@@ -753,10 +753,12 @@ func TestResponseHeaders(t *testing.T) {
 }
 
 // TestResultsSortedByDefaultOrder asserts the default-ordering
-// contract: pdbcompat list endpoints return rows in (-updated, -created, -id)
-// order per upstream django-handleref Meta.ordering. setupTestHandler seeds
-// three Network rows with distinct (created, updated) stamps: past, now,
-// future — so the expected id sequence is [3, 2, 1].
+// contract: a pdbcompat list without ?since returns rows in id order,
+// ascending (upstream 2.83.0 rest.py:747-748 adds no ORDER BY, so MySQL
+// serves primary-key order). setupTestHandler seeds ids 1, 2 and 3.
+// The parity tests in parity/ordering_test.go seed updated values in
+// the reverse order of the ids, so they also prove that updated is not
+// a sort key.
 func TestResultsSortedByDefaultOrder(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
@@ -779,10 +781,7 @@ func TestResultsSortedByDefaultOrder(t *testing.T) {
 		ids[i] = int(item["id"].(float64))
 	}
 
-	// setupTestHandler creates 3 networks with updated = past < now < future
-	// and ids 1, 2, 3 (sequential). Under (-updated, -created, -id) we
-	// expect the newest-updated row first: [3, 2, 1].
-	want := []int{3, 2, 1}
+	want := []int{1, 2, 3}
 	if !slices.Equal(ids, want) {
 		t.Errorf("default-order results: got %v, want %v", ids, want)
 	}

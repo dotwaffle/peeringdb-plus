@@ -324,6 +324,22 @@ envelope without running SQL.
 Malformed `__in` values for typed fields
 (e.g. non-integer in `asn__in=`) return `400`.
 
+### List order
+
+A list without `?since` returns rows in `id` order, ascending.
+Upstream adds no `ORDER BY` to this query (2.83.0 `rest.py:747-748`),
+and none of the 13 models declares a default ordering,
+so MySQL returns the rows in primary-key order.
+A `?since` list returns rows in `updated` order, ascending,
+as upstream orders it (`rest.py:744`).
+Rows with the same `updated` value come back in `id` order.
+Upstream leaves the order of these rows to the database.
+`skip` and `limit` apply after the sort, so each page continues the same order.
+An upstream netixlan list can return its rows in a different order
+(see § Known Divergences).
+Up to v1.27.0, a list without `?since` was ordered by `updated`,
+then `created`, then `id`, newest first.
+
 ### Diacritic-insensitive substring / prefix search
 
 `?<field>__contains=` and `?<field>__startswith=`
@@ -1044,6 +1060,7 @@ see `internal/pdbcompat/depth_test.go`.
 | Reverse keys by upstream's `<related_name>`, for example `ix?ixlan_set__status=` and `org?net_set__status=` | Filters on the related rows: `queryable_relations()` adds `<related_name>__<field>` for each reverse relation (2.83.0 `serializers.py:970-996`, related names at `models.py:3308`, `:5322`). | Silently ignored: HTTP 200 with the unfiltered list. The mirror names a reverse edge by its traversal key instead (`ix?ixlan__status=`). | The traversal keys cover the same relations. Accepting both names would double the key surface for no new query. Locked by `TestParity_Traversal/DIVERGENCE_reverse_set_keys_silent_ignore`. | v1.16 (registered 2026-09-23) |
 | `?<field>__iexact=`, `__icontains=` and `__istartswith=`, for example `netixlan?status__iexact=OK` | Ignored. The operator regex (2.83.0 `rest.py:616`) knows only `lt`, `lte`, `gt`, `gte`, `contains`, `startswith` and `in`, so a key with another suffix is not a filter key (`:628-630`, `:670`), and the list is unfiltered. | Applies the suffix: an exact, substring or prefix match that ignores case. | These suffixes have one clear meaning, and `contains` and `startswith` already ignore case. The metadata keys accept only the upstream operators (see § Metadata filters). Locked by `TestParity_Status/DIVERGENCE_i_operator_suffixes_filter`. | v1.16 (registered 2026-09-23) |
 | Filters on a single-object GET, for example `/api/netixlan/<id>?status=ok` for a `not-operational` row or `/api/net/<id>?name=<other>` | Applies them. `retrieve` (2.83.0 `rest.py:849-855`) calls DRF `get_object`, which filters `get_queryset()`: the same query-parameter filters as a list (`rest.py:565-703`) plus the live-or-pending PK status set (`:750`). A filter that excludes the object returns `404`. | Reads only `?depth=` and `?fields=` on a detail request. Every other key is ignored, and the object is returned. | A detail request stays a plain PK lookup. To test one object against a filter, list with `?id=<id>&<filter>=`. Locked by `TestParity_Status/DIVERGENCE_detail_ignores_filters`. | v1.1 (registered 2026-09-23) |
+| `/api/netixlan` without `?since` | Returns the rows in the order of the MySQL access path, because the query has no `ORDER BY` (2.83.0 `rest.py:747-748`). MySQL can read the `status IN ('ok', 'not-operational')` filter through the `netixlan_status` index (`models.py:6111`), which returns the `not-operational` rows first. A live capture on 2026-09-23 of `/api/netixlan?limit=2` returned two `not-operational` rows ahead of `ok` rows with lower ids. Other filters can also change the upstream order when MySQL reads the rows through a different index. | Always returns `id` order, ascending (see § List order). | An order that depends on the query plan cannot be reproduced, and it changes when the upstream data or indexes change. A fixed order keeps `skip`/`limit` pages stable. Locked by `TestParity_Ordering/DIVERGENCE_netixlan_list_order_is_id_asc`. | v1.28.0 (registered 2026-09-23) |
 
 ## Validation Notes
 
@@ -1051,10 +1068,10 @@ Future conformance auditors reading third-party gotchas documentation
 (notably pdbfe's upstream-behaviour claims)
 against the PeeringDB Plus codebase may encounter assertions about upstream
 behaviour that turn out to be wrong.
-This section documents 5 such invalid claims from the v1.16 audit,
+This section documents 4 such invalid claims from the v1.16 audit,
 each with a pinned `peeringdb/peeringdb@<sha>` reference
 so the authoritative upstream source can be re-read without re-research.
-All 5 were re-confirmed against commit
+All 4 were re-confirmed against commit
 `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516` (PeeringDB
 2.83.0), the parity anchor as of 2026-09-23.
 
@@ -1062,7 +1079,6 @@ All 5 were re-confirmed against commit
 |-------|---------|----------------|--------------------|
 | `net?country=NL` is a valid filter key | **WRONG** | `country` lives on `org`, not `net`. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/serializers.py:3708` — `NetworkSerializer.prepare_query` has no `country` key, and `django-peeringdb/src/django_peeringdb/models/abstract.py`'s Network model has no country field. Callers who want `net` filtered by country must traverse through `org` (e.g. `net?org__country=NL`). | Filter key silently ignored via the unknown-field silent-ignore mechanism — no row-level match, response unfiltered. OTel span attribute `pdbplus.filter.unknown_fields` records the dropped key. Parity-locked by `TestParity_Traversal/unknown_field_silently_ignored_with_otel_attr`. |
 | `?limit=0` returns a count-only envelope | **WRONG** | `limit=0` means unlimited. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/rest.py:516` (`limit` defaults to `0`) + `:757-760` (`if limit > 0: qset[skip:skip+limit] else: qset[skip:]` — a non-positive `limit` applies no SQL `LIMIT`). There is no count-only semantic upstream. Callers wanting a count read the length of the returned `data` array (`meta` is the empty `{}` envelope — there is no top-level count field). | Unbounded response (ent v0.14.6 `.Limit(0)` = unlimited, gated by sqlgraph `graph.go:1086 if q.Limit != 0`) plus the memory budget (`PDBPLUS_RESPONSE_MEMORY_LIMIT`, default 128 MiB) with RFC 9457 413 on over-budget. Parity-locked by `TestParity_Limit/bare_url_and_zero_both_return_all_rows` and `TestParity_Limit/zero_over_budget_returns_413_problem_json`. |
-| Default list ordering is `id ASC` | **WRONG** | Default ordering is `(-updated, -created)` via the `django-handleref` base Meta. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516` + upstream dep `django-handleref` 2.0.1 (the version upstream locks in `uv.lock`) `src/django_handleref/models.py:95-101` (`class Meta: ordering = ('-updated', '-created')`). Every PeeringDB model inherits from this base, so the default applies across all 13 entity types. | pdbcompat `/api/*`, entrest `/rest/v1/*`, ConnectRPC list RPCs, and GraphQL list queries all use the compound `(-updated, -created, -id)` order (the trailing `-id` is a tie-breaker to ensure stable cursor pagination). Single-object lookups and nested `_set` fields retain their default ordering. Parity-locked by `TestParity_Ordering/default_list_order_updated_desc`, `tiebreak_by_created_desc`, and `tiebreak_by_id_desc`. |
 | Unicode folding uses MySQL collation (`utf8_general_ci` or similar) | **WRONG** | Folding is Python-side via `unidecode.unidecode(v)` at query time. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/rest.py:597` — the call happens in the Python filter construction layer before any SQL is emitted, so the database collation is irrelevant. | peeringdb-plus uses shadow `<field>_fold` columns populated at sync time via `internal/unifold.Fold` (`golang.org/x/text/unicode/norm` NFKD decomposition + a hand-rolled ligature map for `ß`/`æ`/`œ`/`ø`/`ł`/`þ`/`đ`/`ð`/dotless `ı`). `__contains` / `__startswith` route to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS. Not byte-compatible with Python `unidecode` for every input (e.g. the two libraries handle rare CJK edge cases differently); any specific gap that surfaces will be logged as a new § Known Divergences row. Parity-locked by `TestParity_Unicode/net_name_contains_diacritic_matches_ascii`, `fac_city_cjk_roundtrip`, and `combining_mark_NFKD_equivalent`. |
 | Filter surface is a DRF `filterset_class` per ViewSet | **WRONG** | Filter surface is a per-serializer `prepare_query(...)` method plus an auto-`queryable_relations()` mechanism with a `FILTER_EXCLUDE` denylist. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/serializers.py:970` (`queryable_relations()`) and `:136-166` (`FILTER_EXCLUDE`). No `django_filters.FilterSet` subclass exists anywhere in the upstream codebase. | Path A = `pdbcompat.WithPrepareQueryAllow` ent-schema annotations → `allowlist_gen.go` `Allowlists` map (13 entries derived from upstream `prepare_query` seed lists and `queryable_relations()`); Path B = ent edge introspection via the generated `Edges` map. The `WithFilterExcludeFromTraversal` edge annotation is the edge-level counterpart of upstream's `FILTER_EXCLUDE` — currently empty across all 13 schemas (every FK edge exposed in v1.16). Upstream's field-level entries have no counterpart (see § Known Divergences). Parity-locked by `TestParity_Traversal/path_a_1hop_org_name` and `path_b_1hop_org_city`. |
 
@@ -1073,6 +1089,21 @@ The claim is correct.
 Upstream filters on it but does not serialize it,
 so the mirror ignores the key.
 See § Known Divergences.
+
+An earlier revision also listed the claim that the default list order is
+`id ASC` as wrong.
+It cited the `django-handleref` base `Meta.ordering = ('-updated', '-created')`.
+The claim is correct.
+The django-peeringdb abstract bases declare their own `class Meta`
+without subclassing the handleref `Meta`,
+so the 13 models do not inherit that ordering.
+The upstream migrations record no `ordering` option for them
+(2.83.0 `migrations/0001_initial.py`).
+A list without `?since` has no `ORDER BY` (`rest.py:747-748`),
+and MySQL returns primary-key order.
+A live capture on 2026-09-23 returned the lowest ids first on every type
+except netixlan.
+See § List order and § Known Divergences.
 
 Quarterly re-validation against upstream is a manual review against the pinned
 commit above — it does not block merges.
