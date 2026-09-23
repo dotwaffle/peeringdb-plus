@@ -37,6 +37,7 @@ func TestRenderHelp_RichMode(t *testing.T) {
 		"/skills/peeringdb-plus.zip",
 		"completions/bash",
 		"completions/zsh",
+		"PDB_HOST=",
 		"pdb()",
 		"Data last synced:",
 		"2026-01-15 12:00:00 UTC",
