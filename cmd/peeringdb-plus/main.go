@@ -49,6 +49,12 @@ import (
 // GraphQL queries rarely exceed 10 KB; 1 MB is generous.
 const maxRequestBodySize = 1 << 20
 
+// graphQLCSPPolicy is the browser policy for the GraphiQL playground on
+// /graphql. The GraphiQL stylesheet embeds its fonts as data: URIs, so
+// font-src allows data:. Without it, fonts fall back to default-src 'self'
+// and an enforcing policy blocks them.
+const graphQLCSPPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; font-src 'self' data:"
+
 // connectHandlerOpts builds the handler options shared by all 13 ConnectRPC
 // service registrations: OTel tracing plus an inbound message-size cap.
 // WithReadMaxBytes bounds each received message (raw AND decompressed) at the
@@ -683,7 +689,7 @@ func main() {
 			// flag-icons stylesheet. img-src includes the validated map tile
 			// origin and jsdelivr, where the stylesheet loads its flag SVGs.
 			UIPolicy:      uiCSPPolicy(cfg.MapTiles.CSPSource()),
-			GraphQLPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'",
+			GraphQLPolicy: graphQLCSPPolicy,
 			EnforcingMode: cfg.CSPEnforce,
 		},
 		CachingState: cachingState,
