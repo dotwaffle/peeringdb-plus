@@ -626,6 +626,16 @@ removed for exactly this reason — absence-based inference mis-classified rows
 omitted from partial responses and dropped children whose upstream-deleted
 parents had never been synced.)
 
+A deleted `poc` is stored without contact data.
+`upsertPocs` sets `name`, `phone`, `email` and `url` to `""` on a row with
+`status='deleted'` (`peeringdb.Poc.BlankDeletedContact`),
+whatever upstream sends.
+This is the rule that upstream applies when it renders a contact with its status
+(2.83.0 `serializers.py:2941-2954`).
+GraphQL, REST and ConnectRPC serve deleted pocs with the stored values,
+so they need no rule of their own.
+pdbcompat also applies the rule when it renders a contact.
+
 Full-mode fetches capture the tombstone window.
 A bare `/api/<type>` list contains only live rows
 (`status='ok'`, plus `not-operational` on netixlan; upstream filters bare lists),

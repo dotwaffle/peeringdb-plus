@@ -369,3 +369,75 @@ func TestUpsert_SkipOnUnchanged(t *testing.T) {
 		}
 	})
 }
+
+// TestUpsert_BlanksDeletedPocContact verifies that upsertPocs stores a
+// deleted contact with name, phone, email and url blanked, on insert and
+// on the ok→deleted conflict update, and keeps role, visible and net_id.
+// A live contact keeps its contact data.
+// upstream: 2.83.0 serializers.py:2941-2954 (#569)
+func TestUpsert_BlanksDeletedPocContact(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client := testutil.SetupClient(t)
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	later := base.Add(time.Hour)
+
+	client.Organization.Create().SetID(1).SetName("Org").SetNameFold("org").
+		SetStatus("ok").SetCreated(base).SetUpdated(base).SaveX(ctx)
+	client.Network.Create().SetID(1).SetOrgID(1).SetName("Net").SetNameFold("net").
+		SetAsn(64500).SetStatus("ok").SetCreated(base).SetUpdated(base).SaveX(ctx)
+
+	withContact := func(id int, status string, updated time.Time) peeringdb.Poc {
+		return peeringdb.Poc{
+			ID: id, NetID: 1, Role: "NOC", Visible: "Public",
+			Name: "Jane Doe", Phone: "+1 555 0100", Email: "jane@example.invalid", URL: "https://example.invalid/jane",
+			Created: base, Updated: updated, Status: status,
+		}
+	}
+	upsert := func(items ...peeringdb.Poc) {
+		t.Helper()
+		tx, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx: %v", err)
+		}
+		if _, err := upsertPocs(ctx, tx, items); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("upsert: %v", err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+	}
+
+	// 10: inserted as a tombstone. 11: live. 12: live, then deleted.
+	upsert(withContact(10, "deleted", base), withContact(11, "ok", base), withContact(12, "ok", base))
+	upsert(withContact(12, "deleted", later))
+
+	for _, tc := range []struct {
+		id          int
+		wantStatus  string
+		wantContact bool
+	}{
+		{10, "deleted", false},
+		{11, "ok", true},
+		{12, "deleted", false},
+	} {
+		got, err := client.Poc.Get(ctx, tc.id)
+		if err != nil {
+			t.Fatalf("read back poc %d: %v", tc.id, err)
+		}
+		want := withContact(tc.id, tc.wantStatus, got.Updated)
+		if !tc.wantContact {
+			want = want.BlankDeletedContact()
+		}
+		if got.Status != want.Status || got.Name != want.Name || got.Phone != want.Phone ||
+			got.Email != want.Email || got.URL != want.URL {
+			t.Errorf("poc %d: got status=%q name=%q phone=%q email=%q url=%q, want status=%q name=%q phone=%q email=%q url=%q",
+				tc.id, got.Status, got.Name, got.Phone, got.Email, got.URL,
+				want.Status, want.Name, want.Phone, want.Email, want.URL)
+		}
+		if got.Role != "NOC" || got.Visible != "Public" || got.NetID == nil || *got.NetID != 1 {
+			t.Errorf("poc %d: role=%q visible=%q net_id=%v, want NOC, Public, 1", tc.id, got.Role, got.Visible, got.NetID)
+		}
+	}
+}

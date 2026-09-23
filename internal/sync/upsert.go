@@ -587,11 +587,15 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 	)
 }
 
-// upsertPocs bulk upserts points of contact.
+// upsertPocs bulk upserts points of contact. A deleted contact is stored
+// with name, phone, email and url blanked (peeringdb.Poc.BlankDeletedContact),
+// whatever upstream sends, so no stored tombstone holds contact data and
+// no read path depends on a render-time rule to hide it.
 func upsertPocs(ctx context.Context, tx *ent.Tx, items []peeringdb.Poc) ([]int, error) {
 	return upsertBatch(ctx, items,
 		func(p peeringdb.Poc) int { return p.ID },
 		func(p peeringdb.Poc) *ent.PocCreate {
+			p = p.BlankDeletedContact()
 			return tx.Poc.Create().
 				SetID(p.ID).
 				SetNillableNetID(&p.NetID).
