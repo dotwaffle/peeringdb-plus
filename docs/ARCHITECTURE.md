@@ -245,15 +245,19 @@ with additional top-level directories for generated code and proto sources.
 ```text
 cmd/
   peeringdb-plus/         # Main binary: HTTP server, sync worker wiring
-  pdb-schema-extract/     # Parses PeeringDB Django source into schema/peeringdb.json
+  pdb-schema-extract/     # Drift check: extracts a schema from upstream Django source
+                          # for comparison with schema/peeringdb.json
   pdb-schema-generate/    # Generates ent/schema/*.go from schema/peeringdb.json
   pdb-compat-allowlist/   # Generates internal/pdbcompat/allowlist_gen.go (cross-entity traversal allowlist)
   pdbcompat-check/        # Validates PeeringDB-compatibility responses
+  loadtest/               # Operator load generator (not in prod images)
 ent/
-  schema/                 # Hand-edited ent schemas + sibling files (*_fold.go,
-                          # *_policy.go, fold_mixin.go, pdb_allowlists.go)
+  schema/                 # Generated ent schemas + hand-written sibling files
+                          # (*_fold.go, *_policy.go, fold_mixin.go, pdb_allowlists.go)
+  schematypes/            # JSON value types for ent fields
+  templates/              # entrest template override (sorting)
   entc.go                 # Code-generation driver (runs ent + extensions + go:linkname patches)
-  generate.go             # go:generate directives (ent + buf)
+  generate.go             # go:generate directives (schema, entc, allowlist, buf)
   rest/                   # Generated entrest HTTP handlers
   ...                     # Generated ent query/mutation code (one pkg per entity)
 gen/
@@ -265,12 +269,19 @@ proto/
     services.proto        # Hand-written RPC service definitions
     common.proto          # Hand-written shared types (e.g., SocialMedia)
 schema/
-  peeringdb.json          # Intermediate PeeringDB schema used by pdb-schema-generate
+  peeringdb.json          # Hand-curated schema, input to pdb-schema-generate
   generate.go             # package doc for extraction (schema regen runs from ent/generate.go)
+scripts/                  # Upstream comparison scripts
 internal/
+  agentdocs/              # Agent skill, well-known files, llms.txt
+  buildinfo/              # Build version string (ldflags, module or VCS)
+  catalog/                # Shared queries for Web UI and MCP
   config/                 # Env-var config loading, validation, fail-fast
   database/               # SQLite open + ent client setup (WAL, FKs, busy timeout)
   litefs/                 # Primary/replica detection
+  maptiles/               # Browser basemap config validation
+  mcpserver/              # MCP server at /mcp
+  pdbtypes/               # The 13 type names (leaf package)
   peeringdb/              # PeeringDB API client (rate-limiting, Retry-After parsing)
   sync/                   # Sync worker, scheduler, two-phase apply, sync_status table
   otel/                   # TracerProvider, MeterProvider, LoggerProvider setup + metrics
@@ -285,10 +296,11 @@ internal/
   web/                    # templ + htmx Web UI (handlers, templates, termrender)
   health/                 # /healthz and /readyz probes
   httperr/                # RFC 9457 Problem Details responses
-  conformance/            # API-surface conformance tests
+  conformance/            # JSON structure comparison for compatibility checks
   testutil/               # Test helpers + deterministic seed data (seed/)
 testdata/
   fixtures/               # 13 JSON files matching PeeringDB API response shapes
+  visibility-baseline/    # Visibility baseline captures
 deploy/                   # Deployment-adjacent assets (Grafana dashboards, alerts)
 ```
 
