@@ -1006,6 +1006,18 @@ func TestParity_Status(t *testing.T) {
 				t.Errorf("?%s: got %v, want %v (divergence canary)", tc.query, ids, tc.want)
 			}
 		}
+
+		// On an int field, and on a key that names a FK, __iexact is an
+		// exact id match and __icontains is a 400 (the int column has no
+		// substring match). Upstream ignores both keys and returns every
+		// net.
+		fk := newTestServer(t, seedFKKeys(t, t0))
+		assertKeysResolve(t, fk, []silentIgnoreCase{
+			{path: "/api/net?org__iexact=1", want: []int{100}},
+		})
+		if status, body := httpGet(t, fk, "/api/net?org__icontains=1"); status != http.StatusBadRequest {
+			t.Errorf("?org__icontains=1: status = %d, want 400; body=%s", status, string(body))
+		}
 	})
 
 	t.Run("DIVERGENCE_detail_ignores_filters", func(t *testing.T) {

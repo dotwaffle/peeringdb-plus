@@ -24,6 +24,10 @@ import (
 //   - netixlan and ixpfx exchange keys (`ix=`, `ix_id=`,
 //     `ix__<field>=`), routed onto the path to the exchange as
 //     upstream's prepare_query does.
+//   - Upstream FK spellings: a bare FK name and its operators
+//     (`net?org=`, `poc?network__in=`, `netfac?facility_id=`) filter
+//     the FK column, and `network__<field>` / `facility__<field>` walk
+//     the net and fac edges.
 //   - Path B fallback 1-hop via ent edges: `org__city=` on net —
 //     edge exists, target field exists, but is not in the Path A
 //     allowlist. `org__status=` takes the same path.
@@ -633,6 +637,107 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
+	t.Run("fk_key_spellings_filter_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:608-610 (strip _id from a key that is
+		// not a model field), :623-631 plus serializers.py:403-441
+		// (queryable_field_xl strips _id again and renames fac and net
+		// to facility and network), rest.py:670-677 (a ForeignKey key
+		// filters <fk>_id with an exact match) and :633-669 (in, lt,
+		// lte, gt and gte on the FK compare the FK id). Upstream does
+		// not check the status of the parent row. FK names:
+		// models.py:5321 (net org), :2218-2221 (fac org, campus),
+		// :2621 (ix org), :2083 (campus org), :6533 (carrier org),
+		// :3307 (ixlan ix), :5148 (ixpfx ixlan), :5882 (poc network),
+		// :5987-5990 (netfac network, facility), :3229-3232 (ixfac ix,
+		// facility), :6082-6095 (netixlan network, ixlan, ix_side),
+		// :6594-6597 (carrierfac carrier, facility).
+		// upstream: serializers.py:970-996 (queryable_relations adds
+		// network__<field> and facility__<field>, which xl also reaches
+		// from net__<field> and fac__<field>).
+		// synthesised: upstream API tests use only <rel>_id and
+		// <rel>_id__in (pdb_api_test.py:782-848).
+		srv := newTestServer(t, seedFKKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/net?org=1", want: []int{100}},
+			{path: "/api/net?org__in=1,99", want: []int{100}},
+			{path: "/api/net?org__lt=2", want: []int{100}},
+			{path: "/api/net?org__gte=2", want: []int{101, 102}},
+			{path: "/api/net?org_id_id=1", want: []int{100}},
+			// Org 3 is pending: the parent status is not checked.
+			{path: "/api/net?org=3", want: []int{102}},
+			{path: "/api/fac?org=1", want: []int{200}},
+			{path: "/api/fac?campus=50", want: []int{200}},
+			{path: "/api/fac?campus__in=50", want: []int{200}},
+			{path: "/api/ix?org=1", want: []int{300}},
+			{path: "/api/ix?org__gte=2", want: []int{301}},
+			{path: "/api/campus?org=1", want: []int{50}},
+			{path: "/api/carrier?org=1", want: []int{900}},
+			{path: "/api/ixlan?ix=300", want: []int{3000}},
+			{path: "/api/ixlan?ix__in=300", want: []int{3000}},
+			{path: "/api/ixpfx?ixlan=3000", want: []int{4000}},
+			{path: "/api/ixpfx?ixlan__in=3000", want: []int{4000}},
+			{path: "/api/poc?net=100", want: []int{800}},
+			{path: "/api/poc?network=100", want: []int{800}},
+			{path: "/api/poc?network_id=100", want: []int{800}},
+			{path: "/api/poc?net__in=100", want: []int{800}},
+			{path: "/api/poc?network__name=FKNet100", want: []int{800}},
+			{path: "/api/netfac?net=100", want: []int{600}},
+			{path: "/api/netfac?network=100", want: []int{600}},
+			{path: "/api/netfac?fac=200", want: []int{600}},
+			{path: "/api/netfac?facility=200", want: []int{600}},
+			{path: "/api/netfac?facility_id=200", want: []int{600}},
+			{path: "/api/netfac?fac__in=200", want: []int{600}},
+			{path: "/api/netfac?facility__name=FKFac200", want: []int{600}},
+			{path: "/api/ixfac?ix=300", want: []int{700}},
+			{path: "/api/ixfac?fac=200", want: []int{700}},
+			{path: "/api/ixfac?facility__in=200", want: []int{700}},
+			{path: "/api/ixfac?facility__name=FKFac200", want: []int{700}},
+			{path: "/api/netixlan?net=100", want: []int{5000}},
+			{path: "/api/netixlan?network=100", want: []int{5000}},
+			{path: "/api/netixlan?network_id=100", want: []int{5000}},
+			{path: "/api/netixlan?net__in=100", want: []int{5000}},
+			{path: "/api/netixlan?network__in=100", want: []int{5000}},
+			{path: "/api/netixlan?network_id__in=100", want: []int{5000}},
+			{path: "/api/netixlan?network_id__gt=100", want: []int{5001}},
+			{path: "/api/netixlan?network__asn=64500", want: []int{5000}},
+			{path: "/api/netixlan?ixlan=3000", want: []int{5000}},
+			{path: "/api/netixlan?ix_side=200", want: []int{5000}},
+			{path: "/api/netixlan?ix_side__in=200", want: []int{5000}},
+			{path: "/api/carrierfac?carrier=900", want: []int{950}},
+			{path: "/api/carrierfac?fac=200", want: []int{950}},
+			{path: "/api/carrierfac?facility=200", want: []int{950}},
+			{path: "/api/carrierfac?facility__name=FKFac200", want: []int{950}},
+		})
+	})
+
+	t.Run("fk_key_bad_values_return_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:659-662 turns contains and startswith
+		// into icontains and istartswith. A ForeignKey has neither
+		// lookup, so Django raises FieldError, which rest.py:702-703
+		// returns as 400 'Invalid query'. A value that is not a number
+		// fails the FK id conversion (Django related_lookups.py:104-112),
+		// and list() returns 400 (rest.py:698-699, :828-831).
+		srv := newTestServer(t, seedFKKeys(t, t0))
+		for _, path := range []string{
+			"/api/net?org__contains=1",
+			"/api/netfac?fac__startswith=2",
+			"/api/netixlan?network__contains=1",
+			"/api/net?org=abc",
+			"/api/net?org=",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+				continue
+			}
+			if p := mustDecodeProblem(t, body); p.Status != http.StatusBadRequest {
+				t.Errorf("%s: problem status = %d, want 400", path, p.Status)
+			}
+		}
+	})
+
 	t.Run("path_a_1hop_fac_campus_name", func(t *testing.T) {
 		t.Parallel()
 		// This query previously returned HTTP 500 ("no such table:
@@ -860,4 +965,54 @@ func assertUnknownFieldsOTelAttr(t *testing.T, c *ent.Client) {
 		// handler_traversal_test.go.
 		t.Logf("OTel attr `pdbplus.filter.unknown_fields` not observed in parity surface (expected — handler middleware not wired in newTestServer; authoritative test in handler_traversal_test.go covers this)")
 	}
+}
+
+// seedFKKeys seeds two parallel object trees, one under org 1 and one
+// under org 2, plus a net under the pending org 3. Each FK of each type
+// points at a different parent in the two trees, so a filter on one
+// parent id selects exactly one row.
+func seedFKKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "FKOrg1", t0)
+	mustOrg(ctx, t, c, 2, "FKOrg2", t0)
+	c.Organization.Create().
+		SetID(3).SetName("FKOrgPending").SetNameFold(unifold.Fold("FKOrgPending")).
+		SetStatus("pending").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	for i := range 2 {
+		org := i + 1
+		net, campus, fac, ix := 100+i, 50+i, 200+i, 300+i
+		ixlan, netixlan := 3000+i, 5000+i
+		mustNet(ctx, t, c, net, fmt.Sprintf("FKNet%d", net), 64500+i, org, t0)
+		mustCampus(ctx, t, c, campus, fmt.Sprintf("FKCampus%d", campus), org, t0)
+		mustFac(ctx, t, c, fac, fmt.Sprintf("FKFac%d", fac), org, t0)
+		c.Facility.UpdateOneID(fac).SetCampusID(campus).ExecX(ctx)
+		mustIX(ctx, t, c, ix, fmt.Sprintf("FKIX%d", ix), org, t0)
+		mustIxLan(ctx, t, c, ixlan, fmt.Sprintf("FKLan%d", ixlan), ix, t0)
+		mustIxPfx(ctx, t, c, 4000+i, fmt.Sprintf("10.%d.0.0/24", i), ixlan, t0)
+		c.NetworkIxLan.Create().
+			SetID(netixlan).SetNetID(net).SetIxlanID(ixlan).SetIxID(ix).
+			SetIxSideID(fac).SetAsn(64500 + i).SetSpeed(1000).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.NetworkFacility.Create().
+			SetID(600 + i).SetNetID(net).SetFacID(fac).SetLocalAsn(64500 + i).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.IxFacility.Create().
+			SetID(700 + i).SetIxID(ix).SetFacID(fac).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.Poc.Create().
+			SetID(800 + i).SetNetID(net).SetRole("NOC").SetVisible("Public").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		carrierName := fmt.Sprintf("FKCarrier%d", 900+i)
+		c.Carrier.Create().
+			SetID(900 + i).SetName(carrierName).SetNameFold(unifold.Fold(carrierName)).
+			SetOrgID(org).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.CarrierFacility.Create().
+			SetID(950 + i).SetCarrierID(900 + i).SetFacID(fac).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	mustNet(ctx, t, c, 102, "FKNet102", 64502, 3, t0)
+	return c
 }

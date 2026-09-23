@@ -99,6 +99,15 @@ type TypeConfig struct {
 	// diacritic-insensitive matching. Nil is safe —
 	// map reads on nil return the zero value (false).
 	FoldedFields map[string]bool
+
+	// ForeignKeys maps the upstream name of each forward foreign key of
+	// the type (the Django field name, for example "org" or "network")
+	// to the local FK column in Fields. Upstream filters a key that
+	// names the FK (?org=1, ?network__in=1,2, ?facility_id=2) on the FK
+	// column (2.83.0 rest.py:608-631, :670-677). A relation key that
+	// starts with the upstream name (?network__asn=) walks the edge
+	// that owns the column. Nil when the type has no forward FK.
+	ForeignKeys map[string]string
 }
 
 // reservedParams lists query parameter names that are not filter fields.
@@ -192,6 +201,7 @@ var Registry = map[string]TypeConfig{
 		},
 		SearchFields: []string{"name", "aka", "name_long", "irr_as_set"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
 	},
 	peeringdb.TypeFac: {
 		Name: peeringdb.TypeFac,
@@ -236,6 +246,7 @@ var Registry = map[string]TypeConfig{
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
+		ForeignKeys:  map[string]string{"org": "org_id", "campus": "campus_id"},
 	},
 	peeringdb.TypeIX: {
 		Name: peeringdb.TypeIX,
@@ -277,6 +288,7 @@ var Registry = map[string]TypeConfig{
 		},
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true, "city": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
 	},
 	peeringdb.TypePoc: {
 		Name: peeringdb.TypePoc,
@@ -294,6 +306,7 @@ var Registry = map[string]TypeConfig{
 			"status":  FieldString,
 		},
 		SearchFields: []string{"name", "email"},
+		ForeignKeys:  map[string]string{"network": "net_id"},
 	},
 	peeringdb.TypeIXLan: {
 		Name: peeringdb.TypeIXLan,
@@ -313,6 +326,7 @@ var Registry = map[string]TypeConfig{
 			"status":                          FieldString,
 		},
 		SearchFields: []string{"name", "descr"},
+		ForeignKeys:  map[string]string{"ix": "ix_id"},
 	},
 	peeringdb.TypeIXPfx: {
 		Name: peeringdb.TypeIXPfx,
@@ -327,6 +341,8 @@ var Registry = map[string]TypeConfig{
 			"status":   FieldString,
 		},
 		SearchFields: []string{"prefix"},
+		// The ix keys are prepare_query keys, see routeIXKey.
+		ForeignKeys: map[string]string{"ixlan": "ixlan_id"},
 	},
 	peeringdb.TypeNetIXLan: {
 		Name: peeringdb.TypeNetIXLan,
@@ -351,6 +367,14 @@ var Registry = map[string]TypeConfig{
 			"status":      FieldString,
 		},
 		SearchFields: []string{"name"},
+		// The ix keys are prepare_query keys, see routeIXKey. Upstream
+		// cannot reach net_side: queryable_field_xl renames it to
+		// network_side, which names no field (serializers.py:428-432).
+		ForeignKeys: map[string]string{
+			"network": "net_id",
+			"ixlan":   "ixlan_id",
+			"ix_side": "ix_side_id",
+		},
 	},
 	peeringdb.TypeNetFac: {
 		Name: peeringdb.TypeNetFac,
@@ -367,6 +391,7 @@ var Registry = map[string]TypeConfig{
 			"status":    FieldString,
 		},
 		SearchFields: []string{"name"},
+		ForeignKeys:  map[string]string{"network": "net_id", "facility": "fac_id"},
 	},
 	peeringdb.TypeIXFac: {
 		Name: peeringdb.TypeIXFac,
@@ -382,6 +407,7 @@ var Registry = map[string]TypeConfig{
 			"status":  FieldString,
 		},
 		SearchFields: []string{"name"},
+		ForeignKeys:  map[string]string{"ix": "ix_id", "facility": "fac_id"},
 	},
 	peeringdb.TypeCarrier: {
 		Name: peeringdb.TypeCarrier,
@@ -402,6 +428,7 @@ var Registry = map[string]TypeConfig{
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
 	},
 	peeringdb.TypeCarrierFac: {
 		Name: peeringdb.TypeCarrierFac,
@@ -415,6 +442,7 @@ var Registry = map[string]TypeConfig{
 			"status":     FieldString,
 		},
 		SearchFields: []string{"name"},
+		ForeignKeys:  map[string]string{"carrier": "carrier_id", "facility": "fac_id"},
 	},
 	peeringdb.TypeCampus: {
 		Name: peeringdb.TypeCampus,
@@ -438,5 +466,6 @@ var Registry = map[string]TypeConfig{
 		},
 		SearchFields: []string{"name"},
 		FoldedFields: map[string]bool{"name": true},
+		ForeignKeys:  map[string]string{"org": "org_id"},
 	},
 }

@@ -233,9 +233,17 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // are silently ignored for the HTTP response AND appended to the ctx-attached
 // accumulator so operators can observe them via slog.DebugContext + OTel.
 //
+// A key without relation segments filters a local column. A key that
+// names a forward FK in upstream spelling (org, network_id, facility)
+// filters the FK column (resolveLocalField).
+//
 // Traversal resolution order (1-hop and 2-hop, len(relSegs) <= 2):
 //  1. Path A: Allowlists[tc.Name].Direct or .Via exact match
 //  2. Path B: LookupEdge + TargetFields introspection
+//
+// An upstream FK name as the first relation segment (network__asn,
+// facility__name) resolves as the mirror traversal key of the same edge
+// (traversalKeyFor).
 //
 // Keys with len(relSegs) > 2 are silently rejected.
 //
@@ -319,7 +327,9 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 			continue
 		}
 
-		// Traversal path (1-hop or 2-hop).
+		// Traversal path (1-hop or 2-hop). An upstream FK name as the
+		// first segment (network__asn) walks the matching mirror edge.
+		relSegs[0] = traversalKeyFor(tc, relSegs[0])
 		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
 		if err != nil {
 			return nil, false, fmt.Errorf("filter %s: %w", key, err)
@@ -373,13 +383,13 @@ func routeIXKey(typ string, relSegs []string, field string) ([]string, string) {
 // ok=false => the field is unknown on tc; caller silently ignores.
 // emptyResult=true => empty __in sentinel; caller short-circuits.
 func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Selector), bool, bool, error) {
-	ft, exists := tc.Fields[field]
+	col, ft, exists := resolveLocalField(tc, field)
 	if !exists {
 		return nil, false, false, nil
 	}
-	folded := tc.FoldedFields[field]
-	op = coerceLocationFilterOp(field, op, value)
-	p, err := buildPredicate(field, op, value, ft, folded)
+	folded := tc.FoldedFields[col]
+	op = coerceLocationFilterOp(col, op, value)
+	p, err := buildPredicate(col, op, value, ft, folded)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, true, false, nil
