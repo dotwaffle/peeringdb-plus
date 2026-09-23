@@ -90,11 +90,8 @@ It comprises two jobs:
    `type=gha` cache.
    Images are built but **not pushed** from CI.
 
-The four formerly-parallel Go jobs
-(lint / test / build / govulncheck)
-were collapsed into the single `ci` job so the module download and compile warm
-once and are reused; `docker-build` stays separate
-because its BuildKit cache is independent of the Go build cache.
+`docker-build` is a separate job
+because its BuildKit `type=gha` cache is separate from the Go build cache.
 
 There is no automated deploy step.
 Deployment to Fly.io is a manual action run from a developer workstation,
@@ -218,12 +215,10 @@ Non-secret configuration lives in `fly.toml`'s `[env]` block:
 - `PRIMARY_REGION=lhr` — consumed by both `litefs.yml` for lease candidacy
   and the `POST /sync` handler for `fly-replay` forwarding.
 
-Fly.io injects `FLY_REGION`, `FLY_APP_NAME`, `FLY_CONSUL_URL`,
-and `HOSTNAME` automatically.
-Consul must be attached to the app once via `fly consul attach` so
-that `FLY_CONSUL_URL` is populated for LiteFS lease election. <!-- VERIFY:
-fly consul attach must be run once per app to populate FLY_CONSUL_URL;
-this is a manual out-of-band step not captured in fly.toml -->
+Fly.io injects `FLY_REGION`, `FLY_APP_NAME`, and `HOSTNAME` automatically.
+`fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
+Run it once for each app.
+LiteFS uses this URL for lease election.
 
 Standard `OTEL_*` environment variables apply via the
 `go.opentelemetry.io/contrib/exporters/autoexport` package used in
@@ -242,9 +237,7 @@ Set `PDBPLUS_SYNC_MODE=full` only when every cycle must fetch all data.
 LiteFS is in maintenance mode —
 stable but no longer actively supported by Fly.io.
 There is no drop-in alternative for edge SQLite replication,
-so the project continues to use it. <!-- VERIFY:
-LiteFS Cloud subscription / hosted-control-plane state
-for this deployment is not encoded in the repository -->
+so the project continues to use it.
 
 - **FUSE mount.** `Dockerfile.prod`'s entrypoint is `litefs mount`, which
   starts the LiteFS FUSE process, mounts the database directory at
@@ -284,7 +277,7 @@ for this deployment is not encoded in the repository -->
   the handler returns HTTP 307 with a `fly-replay: region=${PRIMARY_REGION}`
   header so the Fly edge re-routes the request to the primary region.
 
-### Rolling deploy behaviour
+### Rolling deploy behavior
 
 During a rolling deploy the LiteFS FUSE mount takes a brief moment to come up on
 each new machine, and Fly's proxy may log "not listening" warnings while the
@@ -295,13 +288,10 @@ The `grace_period = "30s"` on the `/readyz` check in `fly.toml` is sized to
 accommodate this.
 
 `fly.toml` sets `strategy = "rolling"` with `max_unavailable = 0.5`,
-which replaces roughly half the fleet at a time. <!-- VERIFY:
-exact production fleet size
-(currently documented as 1 primary + 7 replicas)
-is not encoded in fly.toml —
-counts are managed via `fly scale count` against the live app --> Blue-green
-deploys are not usable here because running two parallel fleets would conflict
-with the LiteFS + Consul primary election.
+which replaces roughly half the fleet at a time.
+Blue-green deploys are not usable here
+because two parallel fleets would conflict in the LiteFS + Consul primary
+election.
 
 ## Asymmetric fleet
 
@@ -318,11 +308,14 @@ with different VM sizing and mount policies
   On boot, LiteFS cold-syncs the database from the primary via HTTP.
   LiteFS starts the application only after this cold sync,
   so the `/readyz` check fails
-  and Fly Proxy routes around the machine until it is ready. <!-- VERIFY:
-  current replica count and region list
-  (documented as 7 machines: iad, nrt, syd, lax, jnb, sin, gru)
-  is managed via `fly scale count --region <r>`
-  and is not encoded in fly.toml -->
+  and Fly Proxy routes around the machine until it is ready.
+
+The production fleet has 8 machines:
+1 primary in `lhr` and 7 replicas,
+one in each of `iad`, `nrt`, `syd`, `lax`, `jnb`, `sin`, and `gru`.
+`fly scale count` sets these counts.
+`fly.toml` does not.
+The `PdbPlusFleetMachineCountLow` alert expects this fleet.
 
 **Volume-only-on-primary contract:** `[[mounts]]` in `fly.toml` is scoped to
 `processes = ["primary"]`.
@@ -339,9 +332,7 @@ To replace a damaged replica, do these steps:
    The machine cold-syncs the database from the primary before it serves
    traffic.
 
-**Replica cold-sync expectations:** <!-- VERIFY:
-hydration windows below are observed values from the v1.15 rollout,
-not encoded in the repository -->
+**Replica cold-sync expectations** (measured during the v1.15 rollout):
 
 | Region | Expected hydration | Notes |
 |--------|--------------------|-------|
@@ -349,10 +340,7 @@ not encoded in the repository -->
 | nrt, sin | 15-30s | Transpacific |
 | syd, gru, jnb | 30-45s | Furthest edges; long-haul to LHR |
 
-Typical hydration window is 5-45 seconds per region. <!-- VERIFY:
-current production database size
-(documented as ~88 MB)
-is observed at runtime and not encoded in the repository -->
+Typical hydration window is 5-45 seconds per region.
 
 If a replica returns 503 for more than 5 minutes,
 look for `readyz sync marked failed` or `readyz sync stale` in its logs.
@@ -368,13 +356,6 @@ for LiteFS LTX replay spikes.
 The primary keeps `shared-cpu-2x` / 512 MB —
 it runs the sync worker whose memory profile was characterized during production
 load testing.
-
-**Cost:** Asymmetric fleet is ~$20.75/mo vs the previous uniform ~$57.20/mo —
-saves ~$36/mo. <!-- VERIFY:
-monthly cost figures depend on Fly.io's current billing tiers
-and observed traffic volume —
-not derivable from the repository --> Real win is operational simplicity
-(no replica-volume orphans, destroy-and-recreate recovery in seconds).
 
 ## Regional rollout
 
@@ -441,16 +422,12 @@ instances.
 Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`
 and are applied via `mimirtool rules sync`
 (see `deploy/grafana/alerts/README.md` for the workflow).
-<!-- VERIFY: production Grafana / Mimir tenant target
-for `mimirtool rules sync` is operator-specific
-and not encoded in the repository -->
 
-The specific OTLP collector, metrics backend,
-and dashboard host used in production are deployment-specific
-and must be configured via Fly secrets
-(`fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`).
-<!-- VERIFY: production OTLP endpoint / collector target (Honeycomb, Grafana Cloud, self-hosted, etc.) is not encoded in the repository -->
-<!-- VERIFY: Grafana dashboard host URL is not encoded in the repository -->
+The OTLP endpoint, the Grafana host, and the Mimir tenant are deployment
+values.
+They are not in the repository.
+Set the OTLP endpoint and headers as Fly secrets:
+`fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`.
 
 Fly.io's built-in machine metrics
 (CPU, memory, network, disk)
@@ -500,9 +477,8 @@ that includes API-serving load and only resets on restart.
 The same values are exported as Prometheus gauges
 (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`)
 for dashboard timeseries.
-Bytes is the canonical Prom unit
-(per the 2026-04-26 audit unit canonicalisation);
-Grafana formats MiB / GiB at render time.
+Bytes is the canonical Prometheus unit.
+Grafana formats MiB and GiB at render time.
 
 Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB`
 (default 384).
@@ -532,9 +508,7 @@ Look at `pdbplus_sync_peak_heap_bytes` for each cycle
 and at the sync mode of those cycles (`sync_status.mode`).
 Full cycles use more memory than incremental cycles.
 Observed baseline (2026-04-17): primary peak 83.8 MiB,
-replicas 58-59 MiB. <!-- VERIFY:
-post-incremental-flip (2026-04-26) memory baseline has not
-yet been captured into the repository -->
+replicas 58-59 MiB.
 
 ### Incident-response debug shell
 
