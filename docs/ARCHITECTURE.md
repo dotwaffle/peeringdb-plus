@@ -121,9 +121,10 @@ and its upserts skip a row whose `updated` value did not advance.
 It cannot see a change that upstream makes without a new `updated` value.
 Once per `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`),
 the cycle runs in full mode instead.
-It fetches each bare list in one request and rewrites every row:
-the `withReconcileAll` marker turns off the `updated` skip gate
-of the upserts (`internal/sync/upsert.go`).
+It fetches each bare list in one request and also rewrites rows whose
+`updated` value did not advance:
+the `withReconcileAll` marker relaxes the `updated` skip gate
+of the upserts from `>` to `>=` (`internal/sync/upsert.go`).
 Only a full-mode cycle repairs this data:
 
 - Count fields, such as `ix_count`, `net_count` and `fac_count`.
@@ -148,6 +149,40 @@ Only a full-mode cycle repairs this data:
 
 With `PDBPLUS_FULL_SYNC_INTERVAL=0` this data stays stale until an operator
 runs `POST /sync?mode=full`.
+
+Upstream serves the bare list from its API cache
+(2.83.0 `api_cache.py`, built by `pdb_api_cache`),
+which can be hours or days older than the data the mirror holds.
+Two rules keep a stale snapshot from rolling rows back:
+
+- The upserts keep a stored row whose `updated` value is newer than the
+  snapshot's version and not older than the newest `updated` value in the
+  snapshot. Such a row can have changed after upstream built the cache.
+  A stored row older than the snapshot's newest row predates the snapshot,
+  so the snapshot's version replaces it even when its `updated` value is
+  older: an IX-F import-log rollback on upstream restores an old version,
+  old `updated` included.
+- The window fetch that follows the snapshot starts at the earlier of the
+  cursor and the newest `updated` value in the snapshot
+  (see [Soft-delete tombstones](#soft-delete-tombstones)).
+  Its `?since=` filter matches every row that changed after upstream built
+  the cache. The window is paged like any `?since=` fetch, so rows that
+  share one `updated` value can be skipped at a page edge, as described
+  above. The next full cycle fetches them again.
+
+These rules protect data that the mirror holds when the cycle starts. A
+full cycle before v1.28.1 could turn an upstream delete back into a live
+row. No later cycle returns such a row, because bare lists contain live
+rows only and the tombstone's `updated` value is behind every window.
+
+Each fetch span carries `pdbplus.sync.snapshot.generated`,
+`pdbplus.sync.snapshot.max_updated` and `pdbplus.sync.window.since`.
+When the window of a populated table starts at the snapshot, the worker
+logs `INFO "window starts at full snapshot"` with `snapshot_lag`, the
+cursor minus the snapshot's newest `updated` value.
+That is normal after any change since upstream built its cache, or when
+the newest stored row is a tombstone.
+A large `snapshot_lag`, or an old `snapshot_generated`, shows a stale cache.
 
 ## Key abstractions
 
@@ -697,13 +732,22 @@ the pre-cycle window — so a full-mode cycle (the daily
 `PDBPLUS_FULL_SYNC_INTERVAL` escalation, or the per-type incremental-fallback)
 would otherwise permanently discard any deletes that landed upstream inside that
 window.
-To prevent this, full-mode staging over a populated table issues a follow-up
-`?since=<cursor>` fetch on top of the bare snapshot (`internal/sync/worker.go`
-`stageOneTypeToScratch`); the scratch table's `INSERT OR REPLACE` is keyed on
+To prevent this, full-mode staging issues a follow-up `?since=` fetch on top
+of the bare snapshot (`internal/sync/worker.go` `stageOneTypeToScratch`).
+The window starts at the earlier of the pre-cycle cursor and the newest
+`updated` value in the snapshot (`snapshotWindowStart`),
+so it also replaces rows that a stale upstream cache lists in an old state
+(see [Daily full reconcile](#daily-full-reconcile)).
+The scratch table's `INSERT OR REPLACE` is keyed on
 id, so window rows — including tombstones — win over their bare-list versions.
-If the window fetch fails, the type's fetch fails and the cycle retries:
+If the window fetch fails over a populated table in full mode,
+the type's fetch fails and the cycle retries:
 committing the snapshot without the window would advance the cursor past deletes
 that were never seen.
+On an empty table the worker logs the failure and commits the snapshot,
+because the next cycle's `?since=MAX(updated)` fetch is the same window.
+On the incremental-fallback path it does the same,
+because the window uses the request shape that just failed.
 
 The pdbcompat list path (`internal/pdbcompat/registry_funcs.go`) appends
 `applyStatusMatrix(live, isCampus, opts.Since != nil)` to the predicate chain

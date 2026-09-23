@@ -22,9 +22,11 @@ import (
 // rows whose local copy diverged from upstream WITHOUT an updated bump —
 // e.g. FKs nulled by the orphan filter — on every cycle INCLUDING the
 // daily forced-full whose documented purpose is complete reconciliation.
-// Full-mode cycles now carry the reconcile-all marker that disables the
-// gate, so the snapshot rewrites the row; incremental cycles keep the
-// optimization (and its documented bounded same-second-drift).
+// Full-mode cycles now carry the reconcile-all marker that relaxes the
+// gate to `>=`, so the snapshot rewrites the row; incremental cycles keep
+// the optimization (and its documented bounded same-second-drift). A
+// full-mode snapshot never rewrites a row whose stored updated is newer:
+// upstream serves that snapshot from a cache that can be stale.
 func TestSync_FullModeReconcilesLocallyDivergedRows(t *testing.T) {
 	t.Parallel()
 
@@ -49,15 +51,13 @@ func TestSync_FullModeReconcilesLocallyDivergedRows(t *testing.T) {
 	// server out from under them.
 	t.Cleanup(server.Close)
 
-	run := func(t *testing.T, mode config.SyncMode, wantName string) {
+	run := func(t *testing.T, mode config.SyncMode, localName string, localUpdated time.Time, wantName string) {
 		t.Helper()
 		client, db := testutil.SetupClientWithDB(t)
 		ctx := t.Context()
-		// Local copy diverged from upstream with the SAME updated value
-		// (the orphan-filter FK-null shape: local mutation, no bump).
 		if _, err := client.Organization.Create().
-			SetID(1).SetName("Locally Diverged").
-			SetCreated(seeded).SetUpdated(seeded).SetStatus("ok").
+			SetID(1).SetName(localName).
+			SetCreated(seeded).SetUpdated(localUpdated).SetStatus("ok").
 			Save(ctx); err != nil {
 			t.Fatalf("seed org: %v", err)
 		}
@@ -80,16 +80,29 @@ func TestSync_FullModeReconcilesLocallyDivergedRows(t *testing.T) {
 		if org.Name != wantName {
 			t.Errorf("mode=%s: org name = %q, want %q", mode, org.Name, wantName)
 		}
+		if wantName == localName && !org.Updated.Equal(localUpdated) {
+			t.Errorf("mode=%s: org updated = %v, want the stored %v", mode, org.Updated, localUpdated)
+		}
 	}
 
+	// The diverged cases store the SAME updated value as upstream (the
+	// orphan-filter FK-null shape: local mutation, no bump).
 	t.Run("full reconciles", func(t *testing.T) {
 		t.Parallel()
-		run(t, config.SyncModeFull, upstreamName)
+		run(t, config.SyncModeFull, "Locally Diverged", seeded, upstreamName)
 	})
 	t.Run("incremental keeps skip gate", func(t *testing.T) {
 		t.Parallel()
 		// Incremental with an equal updated value skips the rewrite —
 		// the deliberate optimization (strict >, not >=).
-		run(t, config.SyncModeIncremental, "Locally Diverged")
+		run(t, config.SyncModeIncremental, "Locally Diverged", seeded, "Locally Diverged")
+	})
+	t.Run("full keeps newer stored row", func(t *testing.T) {
+		t.Parallel()
+		// The stored row is newer than the snapshot's version, for
+		// example from an incremental cycle after upstream built its
+		// API cache. The window fetch here returns nothing, so only
+		// the gate keeps the row from rolling back.
+		run(t, config.SyncModeFull, "Locally Newer", seeded.Add(time.Hour), "Locally Newer")
 	})
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -36,6 +37,9 @@ import (
 //	OR <table>.updated IS NULL
 //	OR <table>.updated <= '1900-01-01'
 //
+// Full-mode cycles use `>=` in the first term and can add a cutoff term
+// (see below).
+//
 // The OR-IS-NULL / OR-pre-1900 guards exist because PeeringDB rows
 // occasionally land with zero `updated` (legacy rows pre-Phase-X
 // migration); we must always allow them through, otherwise a row with
@@ -52,14 +56,36 @@ import (
 // advance will skip on the next incremental cycle. Mitigations:
 // (a) the next upstream change will bump `updated` past the cursor and
 // reconcile naturally; (b) full-mode cycles carry the reconcile-all
-// marker (withReconcileAll, set in syncCycle) which disables this
-// predicate so the cycle reconciles completely — healing rows the sync
-// mutated locally without bumping `updated` (orphan-filter FK nulls)
-// and backfilling newly added _fold columns. We deliberately use
-// strict `>` rather than `>=`: `>=` would defeat the optimization
+// marker (withReconcileAll, set in syncCycle) which relaxes this
+// predicate to `>=` so the cycle reconciles completely, healing rows
+// the sync mutated locally without bumping `updated` (orphan-filter FK
+// nulls) and backfilling newly added _fold columns. Incremental cycles
+// deliberately use strict `>`: `>=` would defeat the optimization
 // entirely, since upstream re-sends the rows of the cursor's own second
 // (see GetMaxUpdated) and every refetch produces excluded.updated >=
 // existing.updated. The bounded same-second-drift risk is the trade.
+//
+// Full mode keeps the gate against OLDER rows. Upstream serves the
+// full-mode bare list from its API cache, which can be hours or days
+// stale. Without the gate, a full cycle rewrote rows that incremental
+// cycles had already brought up to date with their stale versions,
+// `updated` included, and the MAX(updated) cursor was already past them,
+// so no later ?since= fetch returned them.
+//
+// The gate must not keep every newer stored row, though: upstream can
+// move `updated` backwards. The IX-F import-log rollback reverts a row
+// through django-reversion, which saves the old version raw, old
+// `updated` included. Only a full cycle can repair such a row, so full
+// mode adds the term
+//
+//	OR <table>.updated < <cutoff>
+//
+// where cutoff is the newest `updated` in the table's full snapshot. A
+// stored version older than the cutoff predates the snapshot query, so
+// the snapshot's version is current even when its `updated` is older.
+// A stored version at or after the cutoff can be newer than the snapshot
+// and is kept. Upstream builds its cache with updated__lte=<build
+// start>, so the cutoff is at or before the query.
 //
 // Implementation note: ent's UpdateWhere predicate is emitted with a
 // table qualifier active on the Builder. Calling b.Ident("foo")
@@ -68,24 +94,26 @@ import (
 // do its thing. For the `excluded.updated` reference (the pseudo-table
 // SQLite exposes inside ON CONFLICT DO UPDATE) we emit the literal
 // text since "excluded" is a SQL keyword in that context, not a real
-// table. The `table` parameter is kept on the API surface for clarity
-// at the 13 call sites — it documents which table this predicate is
-// targeting even though the qualifier is supplied by ent at emission
-// time.
+// table. The cutoff is bound as a time.Time argument, which the driver
+// stores in the same text form as the column. table selects the cutoff.
 func skipUnchangedPredicate(ctx context.Context, table string) *sql.Predicate {
-	_ = table // documentation parameter; see godoc above
-	if reconcileAll(ctx) {
-		// Full-mode cycle: every conflicting row is rewritten from the
-		// upstream snapshot regardless of the updated gate. Expressed
-		// as an always-true UpdateWhere rather than omitting the clause
-		// so the 13 OnConflict call sites stay uniform.
-		return sql.P(func(b *sql.Builder) {
-			b.WriteString("1=1")
-		})
+	cmp := " > "
+	cutoffs, full := reconcileAll(ctx)
+	cutoff, hasCutoff := cutoffs[table]
+	if full {
+		// Full-mode cycle: rows with an equal updated are rewritten
+		// too.
+		cmp = " >= "
 	}
 	return sql.P(func(b *sql.Builder) {
-		b.WriteString("excluded.updated > ")
+		b.WriteString("excluded.updated" + cmp)
 		b.Ident("updated")
+		if hasCutoff {
+			b.WriteString(" OR ")
+			b.Ident("updated")
+			b.WriteString(" < ")
+			b.Arg(cutoff.UTC())
+		}
 		b.WriteString(" OR ")
 		b.Ident("updated")
 		b.WriteString(" IS NULL OR ")
@@ -94,23 +122,29 @@ func skipUnchangedPredicate(ctx context.Context, table string) *sql.Predicate {
 	})
 }
 
-// reconcileAllKey marks a sync cycle whose upserts must rewrite every
-// conflicting row regardless of the updated-timestamp gate. Carried on
-// the cycle context (cycle-scoped data, set once in syncCycle for
-// full-mode runs) so the flag reaches the 13 upsert closures without
+// reconcileAllKey marks a full-mode sync cycle. Its upserts also rewrite
+// conflicting rows whose updated equals the stored value, and rows older
+// than the table's snapshot cutoff (see skipUnchangedPredicate). Carried
+// on the cycle context (cycle-scoped data, set once in syncCycle for
+// full-mode runs) so the marker reaches the 13 upsert closures without
 // widening every signature in the dispatch chain.
 type reconcileAllKey struct{}
 
-// withReconcileAll returns ctx marked for full reconciliation.
-func withReconcileAll(ctx context.Context) context.Context {
-	return context.WithValue(ctx, reconcileAllKey{}, true)
+// withReconcileAll returns ctx marked as a full-mode cycle. cutoffs maps
+// each entity table to the newest updated in its full snapshot; a table
+// without an entry gets no cutoff term.
+func withReconcileAll(ctx context.Context, cutoffs map[string]time.Time) context.Context {
+	if cutoffs == nil {
+		cutoffs = map[string]time.Time{}
+	}
+	return context.WithValue(ctx, reconcileAllKey{}, cutoffs)
 }
 
-// reconcileAll reports whether the cycle context carries the
-// full-reconciliation marker.
-func reconcileAll(ctx context.Context) bool {
-	v, _ := ctx.Value(reconcileAllKey{}).(bool)
-	return v
+// reconcileAll returns the snapshot cutoffs of a full-mode cycle and
+// reports whether ctx carries the full-mode marker.
+func reconcileAll(ctx context.Context) (map[string]time.Time, bool) {
+	cutoffs, ok := ctx.Value(reconcileAllKey{}).(map[string]time.Time)
+	return cutoffs, ok
 }
 
 // batchSize limits the number of builders per bulk upsert to stay within

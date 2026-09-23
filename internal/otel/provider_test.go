@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -504,8 +503,9 @@ func TestSetup_PrometheusExporter(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = out.Shutdown(ctx) })
 
-	// Wait briefly for the HTTP server to start.
-	time.Sleep(100 * time.Millisecond)
+	// No wait is needed: autoexport binds the listener before Setup returns
+	// and only starts server.Serve in a goroutine. The kernel queues the
+	// connection in the accept backlog until Serve accepts it.
 
 	// Verify the /metrics endpoint responds with Prometheus text format.
 	resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/metrics", port))

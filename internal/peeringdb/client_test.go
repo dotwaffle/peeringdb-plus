@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -1272,33 +1273,52 @@ func TestDoWithRetry_RateLimiterError(t *testing.T) {
 	}
 }
 
+// TestDoWithRetry_ContextCancellation asserts that cancelling the
+// context during the 5xx retry backoff ends the retry ladder at once.
+//
+// FetchAll runs in a synctest bubble against an in-memory inner
+// RoundTripper. synctest.Wait returns only when FetchAll is durably
+// blocked, which is the backoff select, so the cancel always lands
+// between retries. The fake clock makes the check exact: any backoff
+// that ignored ctx would advance it.
 func TestDoWithRetry_ContextCancellation(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}))
-	defer server.Close()
+	synctest.Test(t, func(t *testing.T) {
+		const baseDelay = 30 * time.Second
+		var attempts atomic.Int32
+		inner := roundTripFunc(func(*http.Request) (*http.Response, error) {
+			attempts.Add(1)
+			return &http.Response{StatusCode: http.StatusServiceUnavailable, Body: http.NoBody}, nil
+		})
+		logger := slog.New(slog.DiscardHandler)
+		client := NewClient("http://peeringdb.invalid", logger)
+		client.SetRetryBaseDelay(baseDelay)
+		client.http.Transport = newRateLimitedTransport(inner, rate.NewLimiter(rate.Inf, 1), logger)
 
-	client := NewClient(server.URL, slog.Default())
-	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
-	client.SetRetryBaseDelay(200 * time.Millisecond)
-
-	ctx, cancel := context.WithCancel(t.Context())
-
-	// Cancel the context after a short delay so it triggers between retries.
-	go func() {
-		time.Sleep(100 * time.Millisecond)
+		ctx, cancel := context.WithCancel(t.Context())
+		start := time.Now()
+		errc := make(chan error, 1)
+		go func() {
+			_, err := client.FetchAll(ctx, "test")
+			errc <- err
+		}()
+		synctest.Wait() // FetchAll is parked in the first backoff select.
 		cancel()
-	}()
+		err := <-errc
 
-	_, err := client.FetchAll(ctx, "test")
-	if err == nil {
-		t.Fatal("expected error from context cancellation")
-	}
-	if !strings.Contains(err.Error(), "context") {
-		t.Errorf("error = %q, want substring %q", err, "context")
-	}
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("FetchAll error = %v, want context.Canceled", err)
+		}
+		// Time in the bubble advances only while every goroutine is
+		// durably blocked, so a backoff that honors ctx returns at once.
+		if elapsed := time.Since(start); elapsed != 0 {
+			t.Errorf("fake clock advanced %v, want 0 (cancellation should interrupt the %v retry backoff)", elapsed, baseDelay)
+		}
+		if got := attempts.Load(); got != 1 {
+			t.Errorf("attempts = %d, want 1 (no retry after cancellation)", got)
+		}
+	})
 }
 
 // fetchByIDsRecorder is a small per-server URL recorder for the

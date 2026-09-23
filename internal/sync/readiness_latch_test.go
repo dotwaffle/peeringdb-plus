@@ -15,6 +15,11 @@ import (
 // appears in the (LiteFS-replicated) database — previously the latch was
 // evaluated once at StartScheduler entry and never again, so such a
 // replica served 503 on every data route for the life of the process.
+//
+// The test steps the scheduler through its IsPrimary role checks: the
+// entry check follows the boot-time sync_status read, and each
+// heartbeat's check precedes that heartbeat's re-read. Counting role
+// checks orders the assertions against the scheduler without sleeps.
 func TestScheduler_ReplicaLatchRecovers(t *testing.T) {
 	t.Parallel()
 	client, db := testutil.SetupClientWithDB(t)
@@ -25,20 +30,53 @@ func TestScheduler_ReplicaLatchRecovers(t *testing.T) {
 		t.Fatalf("init status table: %v", err)
 	}
 
+	// roleChecks receives once per IsPrimary call. The unbuffered send
+	// holds the scheduler until the test takes the value.
+	roleChecks := make(chan struct{})
 	w := NewWorker(nil, client, db, WorkerConfig{
-		IsPrimary: func() bool { return false }, // permanent replica
+		IsPrimary: func() bool {
+			select {
+			case roleChecks <- struct{}{}:
+			case <-ctx.Done():
+			}
+			return false // permanent replica
+		},
 	}, slog.Default())
+	awaitRoleChecks := func(n int) {
+		t.Helper()
+		for i := range n {
+			select {
+			case <-roleChecks:
+			case <-time.After(10 * time.Second):
+				t.Fatalf("scheduler stalled: role check %d of %d never came", i+1, n)
+			}
+		}
+	}
 
-	go w.StartScheduler(ctx, 20*time.Millisecond)
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(ctx, time.Millisecond)
+		close(done)
+	}()
+	defer func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(10 * time.Second):
+			t.Error("scheduler did not stop after cancel")
+		}
+	}()
 
-	// Boot state: no sync history → not ready.
-	time.Sleep(60 * time.Millisecond)
+	// Boot state: no sync history → not ready. Check 1 follows the boot
+	// read; check 3 follows heartbeat 1's re-read.
+	awaitRoleChecks(3)
 	if w.HasCompletedSync() {
 		t.Fatal("replica reported ready with no sync history")
 	}
 
 	// Simulate LiteFS replication delivering the primary's first
-	// successful sync.
+	// successful sync. The boot read already ran, so only the heartbeat
+	// re-read can flip the latch from here.
 	syncTime := time.Now().UTC()
 	id, err := RecordSyncStart(ctx, db, syncTime, "full")
 	if err != nil {
@@ -52,13 +90,10 @@ func TestScheduler_ReplicaLatchRecovers(t *testing.T) {
 		t.Fatalf("record sync complete: %v", err)
 	}
 
-	// The next heartbeat must observe the history and flip the latch.
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		if w.HasCompletedSync() {
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
+	// The heartbeat released by the next check re-reads after the
+	// insert; the check after that follows its re-read.
+	awaitRoleChecks(2)
+	if !w.HasCompletedSync() {
+		t.Fatal("replica latch never recovered after sync history appeared")
 	}
-	t.Fatal("replica latch never recovered after sync history appeared")
 }

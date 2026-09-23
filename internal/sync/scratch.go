@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
-	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver, already a project dep
@@ -64,36 +62,25 @@ type scratchDB struct {
 //
 // SQLite pragmas:
 //   - journal_mode=OFF — no WAL/rollback journal. The scratch DB is
-//     transient; crash-safety is irrelevant because the unlink-on-close
-//     contract means a crashed process leaves the file for the next
-//     openScratchDB call which unlinks stale files first.
+//     transient, so crash-safety is irrelevant. A crashed process leaves
+//     its file behind, and no later openScratchDB call uses that name.
 //   - synchronous=OFF — skip fsyncs. Writes go straight to the OS page
 //     cache; correctness is preserved because SQLite is the only writer.
 //
-// Path uniqueness: the filename embeds both the process PID and a
-// monotonically-increasing counter so multiple concurrent Sync runs
-// within the same process (e.g. parallel tests) do not collide on the
-// same scratch file. In production there is only ever one primary
-// sync running at a time, so the counter is effectively 0;
-// the counter matters only for tests.
+// Path uniqueness: os.CreateTemp picks a random name, so concurrent Sync
+// runs do not collide on a scratch file. This is also true for different
+// processes that share a temp directory. A PID-based name is not unique
+// across PID namespaces, because sandboxed or containerized processes
+// often get the same small PID.
 func openScratchDB(ctx context.Context) (*scratchDB, error) {
-	// Atomically create an exclusive scratch file via O_EXCL so neither a
-	// stale file nor a pre-placed symlink can be targeted. This eliminates
-	// the /tmp symlink race that a deterministic PID+seq path would expose
-	// on shared-/tmp hosts (local dev, CI runners). Production Fly.io is
-	// single-tenant and not exposed, but the atomic path is a trivial
-	// hardening upgrade.
-	seq := scratchSeq.Add(1)
-	path := filepath.Join(os.TempDir(), fmt.Sprintf("pdbplus-sync-scratch-%d-%d.db", os.Getpid(), seq))
-
-	// O_EXCL fails if the path exists (including as a symlink).
-	// Path is constructed from os.TempDir() + PID + atomic seq — no user
-	// input, so gosec G304's "file inclusion via variable" warning does
-	// not apply here.
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600) // #nosec G304 -- path is os.TempDir() + PID + atomic seq, not user input
+	// Atomically create an exclusive scratch file so neither a stale file
+	// nor a pre-placed symlink can be targeted. os.CreateTemp opens with
+	// O_EXCL and mode 0600, and tries a new random name if one exists.
+	f, err := os.CreateTemp("", "pdbplus-sync-scratch-*.db")
 	if err != nil {
-		return nil, fmt.Errorf("create scratch db at %s: %w", path, err)
+		return nil, fmt.Errorf("create scratch db: %w", err)
 	}
+	path := f.Name()
 	_ = f.Close()
 	// sql.Open needs exclusive access; remove the empty file we just
 	// created so SQLite can write its magic bytes fresh. Between here
@@ -127,13 +114,6 @@ func openScratchDB(ctx context.Context) (*scratchDB, error) {
 	}
 	return s, nil
 }
-
-// scratchSeq is a monotonically-increasing counter used to disambiguate
-// scratch filenames when multiple Sync runs overlap in the same process.
-// Production has only one primary at a time, so this is
-// effectively unused in production; test parallelism is the real
-// motivation.
-var scratchSeq atomic.Uint64
 
 // initSchema creates one staging table per PeeringDB type. Schema is
 // minimal: (id INTEGER PRIMARY KEY, data BLOB NOT NULL). The BLOB holds
@@ -195,31 +175,39 @@ func closeScratchDB(ctx context.Context, s *scratchDB, logger *slog.Logger) {
 // stmt for the next row. Peak Go heap is bounded to one handler
 // invocation's buffer.
 //
-// Errors wrap the objectType for operator diagnostics. (The response
-// meta.generated timestamp is no longer returned — cursors derive from
-// MAX(updated) per entity table, see cursor.go.)
-func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, objectType string, since time.Time) error {
+// Errors wrap the objectType for operator diagnostics. Cursors derive
+// from MAX(updated) per entity table (see cursor.go); the returned
+// stageStats bound the follow-up window fetch after a full snapshot.
+func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, objectType string, since time.Time) (stageStats, error) {
 	// #nosec G201 — objectType is validated against the closed-set scratchTypes list
 	// at schema creation time; SQL injection is not possible.
 	insertSQL := fmt.Sprintf("INSERT OR REPLACE INTO %q (id, data) VALUES (?, ?)", objectType)
 	stmt, err := s.db.PrepareContext(ctx, insertSQL)
 	if err != nil {
-		return fmt.Errorf("prepare scratch insert %s: %w", objectType, err)
+		return stageStats{}, fmt.Errorf("prepare scratch insert %s: %w", objectType, err)
 	}
 	defer func() { _ = stmt.Close() }()
 
+	var stats stageStats
 	handler := func(raw json.RawMessage) error {
-		// Minimal decode to extract the primary key. The full decode
-		// happens in Phase B at replay time, not here — keeps Go heap
-		// bounded to the raw bytes + this tiny id struct per element.
-		var id struct {
-			ID int `json:"id"`
+		// Minimal decode to extract the primary key and the updated
+		// timestamp. The full decode happens in Phase B at replay time,
+		// not here, which keeps Go heap bounded to the raw bytes + this tiny
+		// struct per element.
+		var row struct {
+			ID      int    `json:"id"`
+			Updated string `json:"updated"`
 		}
-		if err := json.Unmarshal(raw, &id); err != nil {
+		if err := json.Unmarshal(raw, &row); err != nil {
 			return fmt.Errorf("decode id from %s element: %w", objectType, err)
 		}
-		if _, err := stmt.ExecContext(ctx, id.ID, []byte(raw)); err != nil {
-			return fmt.Errorf("insert scratch %s id=%d: %w", objectType, id.ID, err)
+		// Phase B owns updated validation; an unparseable value only
+		// drops out of the maximum here.
+		if updated, err := time.Parse(time.RFC3339, row.Updated); err == nil && updated.After(stats.maxUpdated) {
+			stats.maxUpdated = updated
+		}
+		if _, err := stmt.ExecContext(ctx, row.ID, []byte(raw)); err != nil {
+			return fmt.Errorf("insert scratch %s id=%d: %w", objectType, row.ID, err)
 		}
 		return nil
 	}
@@ -228,10 +216,23 @@ func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, 
 	if !since.IsZero() {
 		opts = append(opts, peeringdb.WithSince(since))
 	}
-	if _, err := pdbClient.StreamAll(ctx, objectType, handler, opts...); err != nil {
-		return fmt.Errorf("stream %s to scratch: %w", objectType, err)
+	meta, err := pdbClient.StreamAll(ctx, objectType, handler, opts...)
+	if err != nil {
+		return stageStats{}, fmt.Errorf("stream %s to scratch: %w", objectType, err)
 	}
-	return nil
+	stats.generated = meta.Generated
+	return stats, nil
+}
+
+// stageStats describes the response that one stageType call staged.
+type stageStats struct {
+	// generated is the response meta.generated time. Upstream sets it
+	// only on responses served from its API cache, where it is the
+	// cache file's write time. Zero when absent.
+	generated time.Time
+	// maxUpdated is the newest parseable updated timestamp among the
+	// staged rows. Zero when no row carried one.
+	maxUpdated time.Time
 }
 
 // scratchRow is a single (id, data) tuple drained from a scratch table

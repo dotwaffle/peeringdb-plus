@@ -10,6 +10,41 @@ Git history (tags `v1.0.0` through `v1.15.0`).
 
 ## [Unreleased]
 
+## [1.28.1] - 2026-09-23
+
+### Fixed
+
+- A full sync no longer rolls rows back to an older version. PeeringDB
+  serves the list that a full sync fetches from a cache that can be hours
+  or days old. From v1.21.0, a full sync wrote the cached version of every
+  row, `updated` included, over the version that incremental syncs had
+  stored, and later incremental syncs did not fetch those rows again. On
+  2026-09-23 this reverted 623 netixlans that PeeringDB had marked
+  `not-operational`. A full sync now keeps a stored row that is newer than
+  the cached version, and fetches the rows that changed after PeeringDB
+  built the cache. It still takes the cached version of a row that
+  PeeringDB restored to an older version.
+- A full sync repairs a reverted row that PeeringDB lists as live. When
+  many rows share one `updated` value, the repair can take more than one
+  full sync.
+- A sync no longer fails with `file exists` when it creates its scratch
+  database. The file name had the process ID in it, so a file left by a
+  killed process, or by a process in another PID namespace that shares
+  the temp directory, could have the same name. The name is now random.
+
+### Upgrade notes
+
+- A client that mirrors any `/api/<type>` list with `?since=` should
+  re-fetch each full list once after the first full sync on v1.28.1. The
+  repair moves `updated` forward to a value that can be below the
+  client's cursor, so a `?since=` poll can miss it.
+- A full sync before v1.28.1 could also turn a PeeringDB delete back into
+  a live row. Sync does not repair these rows: a bare list contains live
+  rows only, and the delete is older than every later window. Such a row
+  is live in the mirror, missing from a fresh PeeringDB bare list, and no
+  newer than the newest row in that list. PeeringDB returns its tombstone
+  for `?since=1&id__in=<ids>`.
+
 ## [1.28.0] - 2026-09-23
 
 This release brings the PeeringDB-compatible API (`/api/`) to parity with
