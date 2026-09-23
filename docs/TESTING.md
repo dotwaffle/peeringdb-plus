@@ -296,7 +296,7 @@ infrastructure:
 | `meta_test.go` | `TestParity_Meta` | netixlan `meta__*` filters (typed keys, absent key never matches, net keys ignored) |
 | `serializer_test.go` | `TestParity_Serializer` | Serializer values and keys (IX-F URL key for permitted callers, `ix.media`/`ixlan.dot1q_support` constants, `info_types` as a list) |
 | `multichoice_test.go` | `TestParity_MultiChoice` | Multi-value choice filters (net `info_types` and legacy `info_type`, fac `available_voltage_services`) |
-| `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring + response decoding; no seeders) |
+| `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget` / `newTestServerWithTier`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring and response decoding, no seeders) |
 | `harness_test.go` | `TestHarness_*` | Self-tests for the helpers |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
 | `doc.go` | (package doc) | Package documentation |
@@ -334,9 +334,9 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
   cross-referencing it.
 - **TB widening**: parity helpers accept `testing.TB`
   (not `*testing.T`) so the same code paths run under benchmarks.
-  Applied across the 6 helper functions in `harness_helpers_test.go`
-  (`newTestServer`, `newTestServerWithBudget`, `httpGet`, `decodeDataArray`,
-  `extractIDs`, `mustDecodeProblem`).
+  Applied across the 7 helper functions in `harness_helpers_test.go`
+  (`newTestServer`, `newTestServerWithBudget`, `newTestServerWithTier`,
+  `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`).
 
 ### Adding a parity test
 
