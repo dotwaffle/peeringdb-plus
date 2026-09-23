@@ -243,7 +243,7 @@ The object is left out when no marker is set.
 ## 2. GraphQL (`/graphql`)
 
 GraphQL is served by [gqlgen](https://gqlgen.com) wired through
-[entgql](https://entgo.io/docs/graphql-integration/).
+[entgql](https://entgo.io/docs/graphql/).
 The handler lives in `internal/graphql/handler.go`.
 
 | Method | Behavior |
@@ -258,6 +258,26 @@ The handler lives in `internal/graphql/handler.go`.
 | Request body | 1 MB | `http.MaxBytesReader` wrap at the route + global `MaxBytesBody` middleware |
 | Query complexity | 1,000,000 (weighted) | `gqlgen.extension.FixedComplexityLimit(graph.ComplexityLimit)` — per-field costs weighted by row materialization via `graph.ComplexityLimits()`, not a raw field count |
 | Query depth | 15 | `gqlgen-depth-limit-extension` |
+| Page size | 1000 (default 100) | `validatePageSize` and `ValidateOffsetLimit` in `graph/pagination.go` |
+
+### Queries and pagination
+
+- Relay connections, for example
+  `networks(first: 10, after: $cursor, where: {...})`.
+  Without `first` or `last`, a connection returns the first 100 rows.
+  A `first` or `last` value above 1000 returns an error.
+  The default order is `id` ascending.
+  `campuses`, `carriers`, `facilities`, `internetExchanges`, `networks`
+  and `organizations` also accept `orderBy: {field: NAME}`.
+- Offset lists, for example
+  `networksList(offset: 0, limit: 100, where: {...})`.
+  `limit` defaults to 100 and must be 1 to 1000.
+  `offset` must be 0 or more.
+  These queries set no order, so use a connection for stable paging.
+- `networkByAsn(asn: Int!)` returns one network with status `ok` or `pending`,
+  or `null`.
+- `syncStatus` returns the latest sync record, which can be a running sync:
+  `status`, `lastSyncAt`, `durationMs`, `objectCounts` and `errorMessage`.
 
 ### Error envelope
 
@@ -269,9 +289,11 @@ populated by `classifyError` in `internal/graphql/handler.go`:
 | `NOT_FOUND` | `ent.IsNotFound(err)` |
 | `VALIDATION_ERROR` | `ent.IsValidationError(err)` |
 | `CONSTRAINT_ERROR` | `ent.IsConstraintError(err)` |
-| `INTERNAL_ERROR` | Anything else |
+| `INTERNAL_ERROR` | Any other error. This includes a query that does not parse or validate, a query over the complexity or depth limit, and a page-size argument out of range (for example `first: 5000` or `limit: 0`) |
 
-Every error also includes a populated `path` pointing at the offending field.
+An error from a resolver includes `path`, which points to the field.
+An error for the full request, for example a parse error or a complexity-limit
+error, has no `path`.
 
 ### Example
 
@@ -288,8 +310,8 @@ Every error also includes a populated `path` pointing at the offending field.
 ```
 
 Schema browsing is easiest through the GraphiQL playground.
-The schema is generated from `ent/schema/`
-and committed to `graph/schema.graphqls`.
+The schema comes from `ent/schema/` (`graph/schema.graphqls`)
+and the hand-written `graph/custom.graphql`.
 
 `Network.meta` and `NetworkIxLan.meta` carry the PeeringDB metadata
 document (added upstream in 2.83.0) as the `Map` scalar.
