@@ -72,11 +72,12 @@ import (
 // `updated` included, and the MAX(updated) cursor was already past them,
 // so no later ?since= fetch returned them.
 //
-// The gate must not keep every newer stored row, though: upstream can
-// move `updated` backwards. The IX-F import-log rollback reverts a row
-// through django-reversion, which saves the old version raw, old
-// `updated` included. Only a full cycle can repair such a row, so full
-// mode adds the term
+// The gate must not keep every newer stored row, though: a raw save of
+// an old version moves `updated` backwards. The IX-F import-log rollback
+// is not one: it reverts a row through django-reversion under
+// create_revision, and handle_version then saves the row again with a
+// new `updated`. A raw save outside a revision still can, and only a
+// full cycle can repair such a row, so full mode adds the term
 //
 //	OR <table>.updated < <cutoff>
 //
@@ -97,6 +98,15 @@ import (
 // table. The cutoff is bound as a time.Time argument, which the driver
 // stores in the same text form as the column. table selects the cutoff.
 func skipUnchangedPredicate(ctx context.Context, table string) *sql.Predicate {
+	return sql.P(func(b *sql.Builder) {
+		writeSkipUnchanged(ctx, b, table)
+	})
+}
+
+// writeSkipUnchanged writes the terms of skipUnchangedPredicate to b,
+// without enclosing parentheses. b must carry the upsert table as its
+// qualifier.
+func writeSkipUnchanged(ctx context.Context, b *sql.Builder, table string) {
 	cmp := " > "
 	cutoffs, full := reconcileAll(ctx)
 	cutoff, hasCutoff := cutoffs[table]
@@ -105,20 +115,58 @@ func skipUnchangedPredicate(ctx context.Context, table string) *sql.Predicate {
 		// too.
 		cmp = " >= "
 	}
-	return sql.P(func(b *sql.Builder) {
-		b.WriteString("excluded.updated" + cmp)
-		b.Ident("updated")
-		if hasCutoff {
-			b.WriteString(" OR ")
-			b.Ident("updated")
-			b.WriteString(" < ")
-			b.Arg(cutoff.UTC())
-		}
+	b.WriteString("excluded.updated" + cmp)
+	b.Ident("updated")
+	if hasCutoff {
 		b.WriteString(" OR ")
 		b.Ident("updated")
-		b.WriteString(" IS NULL OR ")
+		b.WriteString(" < ")
+		b.Arg(cutoff.UTC())
+	}
+	b.WriteString(" OR ")
+	b.Ident("updated")
+	b.WriteString(" IS NULL OR ")
+	b.Ident("updated")
+	b.WriteString(" <= '1900-01-01'")
+}
+
+// netIxLanUpsertPredicate is the ON CONFLICT DO UPDATE WHERE clause of
+// the netixlan upsert. It adds a tombstone term to skipUnchangedPredicate:
+//
+//	(<skipUnchanged>) AND (<table>.status <> 'deleted'
+//	  OR excluded.status = 'deleted'
+//	  OR excluded.updated <> <table>.updated
+//	  OR <table>.updated IS NULL)
+//
+// A stored tombstone is not rewritten by a live row that carries the same
+// updated. Upstream changes updated on every real undelete: pdb_undelete
+// saves the row, and an IX-F import-log rollback runs under
+// create_revision, so handle_version saves the row again with a new
+// updated. Only a stale full-mode bare list sends the live version of a
+// tombstone with an equal updated. A revival with a newer updated, the
+// cutoff repair of an older stored row, and a tombstone-to-tombstone
+// rewrite still pass. Incremental mode already refuses the pair through
+// its strict `>`.
+//
+// Known limitation: the term cannot tell a stale re-list from a delete
+// and an undelete upstream in the same second, where the mirror stored
+// the delete in between. The mirror stores whole seconds only, so such a
+// row stays deleted until upstream changes it again.
+//
+// The predicate writes its own parentheses. sql.And wraps only a
+// predicate with more than one fn, so it would emit `a OR b AND c`, and
+// b.Wrap starts a builder without the table qualifier.
+func netIxLanUpsertPredicate(ctx context.Context) *sql.Predicate {
+	return sql.P(func(b *sql.Builder) {
+		b.WriteString("(")
+		writeSkipUnchanged(ctx, b, "network_ix_lans")
+		b.WriteString(") AND (")
+		b.Ident("status")
+		b.WriteString(" <> 'deleted' OR excluded.status = 'deleted' OR excluded.updated <> ")
 		b.Ident("updated")
-		b.WriteString(" <= '1900-01-01'")
+		b.WriteString(" OR ")
+		b.Ident("updated")
+		b.WriteString(" IS NULL)")
 	})
 }
 
@@ -774,7 +822,7 @@ func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.Netw
 				OnConflict(
 					sql.ConflictColumns(networkixlan.FieldID),
 					sql.ResolveWithNewValues(),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "network_ix_lans")),
+					sql.UpdateWhere(netIxLanUpsertPredicate(ctx)),
 				).
 				Exec(ctx)
 		},
