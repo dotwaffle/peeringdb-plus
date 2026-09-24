@@ -70,8 +70,8 @@ func TestCheckpointResumeSkipsDoneTuples(t *testing.T) {
 	}
 }
 
-// TestCheckpointAtomicWrite asserts that after Save the .tmp sibling does not
-// exist — os.Rename moved it into place atomically.
+// TestCheckpointAtomicWrite asserts that after Save no temporary sibling
+// exists: os.Rename moved it into place atomically.
 func TestCheckpointAtomicWrite(t *testing.T) {
 	t.Parallel()
 
@@ -84,12 +84,52 @@ func TestCheckpointAtomicWrite(t *testing.T) {
 		t.Fatalf("Save: %v", err)
 	}
 
-	tmpPath := path + ".tmp"
-	if _, err := os.Stat(tmpPath); !errors.Is(err, os.ErrNotExist) {
-		t.Errorf(".tmp file still present after Save (expected rename to remove it): err=%v", err)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
 	}
-	if _, err := os.Stat(path); err != nil {
-		t.Errorf("final state file missing: %v", err)
+	if len(entries) != 1 || entries[0].Name() != "state.json" {
+		var names []string
+		for _, e := range entries {
+			names = append(names, e.Name())
+		}
+		t.Errorf("dir holds %v after Save, want only state.json", names)
+	}
+}
+
+// TestCheckpointSaveIgnoresTmpSymlink puts a symlink at the old fixed
+// temporary path, path+".tmp", that points at another file. Asserts that
+// Save does not write through it, and that the checkpoint is a regular
+// file with mode 0600.
+func TestCheckpointSaveIgnoresTmpSymlink(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	victim := filepath.Join(dir, "victim")
+	if err := os.WriteFile(victim, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(victim, path+".tmp"); err != nil {
+		t.Skipf("symlink: %v", err)
+	}
+
+	s := &visbaseline.State{
+		Tuples: []visbaseline.Tuple{{Target: "beta", Mode: "anon", Type: "net", Page: 1}},
+	}
+	if err := s.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	if got, err := os.ReadFile(victim); err != nil || string(got) != "keep" {
+		t.Errorf("victim = %q (err %v), want %q: Save wrote through the symlink", got, err, "keep")
+	}
+	fi, err := os.Lstat(path)
+	if err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+	if !fi.Mode().IsRegular() || fi.Mode().Perm() != 0o600 {
+		t.Errorf("checkpoint mode = %v, want a regular file with mode 0600", fi.Mode())
 	}
 }
 

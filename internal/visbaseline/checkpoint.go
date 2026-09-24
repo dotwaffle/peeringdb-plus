@@ -3,6 +3,7 @@ package visbaseline
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -64,10 +65,12 @@ type State struct {
 }
 
 // Save serialises s to path atomically. Save creates a missing parent
-// directory with mode 0700. The write goes to path+".tmp" first
-// with mode 0600, then os.Rename moves it into place. POSIX rename on the
-// same filesystem is atomic. A concurrent reader sees either the old state
-// or the new state, never a partial write.
+// directory with mode 0700. The write goes to a new temporary file in the
+// same directory first. os.CreateTemp gives it a unique name and mode
+// 0600, and fails rather than open an existing file or symlink. Then
+// os.Rename moves it into place. POSIX rename on the same filesystem is
+// atomic. A concurrent reader sees either the old state or the new state,
+// never a partial write.
 //
 // Version is auto-stamped to the current schema version on Save if unset.
 func (s *State) Save(path string) error {
@@ -79,11 +82,18 @@ func (s *State) Save(path string) error {
 		return fmt.Errorf("marshal state: %w", err)
 	}
 	// 0700 and 0600: only the invoking user can read the checkpoint.
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create state dir: %w", err)
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+	f, err := os.CreateTemp(dir, filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return fmt.Errorf("create state tmp: %w", err)
+	}
+	tmp := f.Name()
+	_, werr := f.Write(data)
+	if err := errors.Join(werr, f.Close()); err != nil {
+		_ = os.Remove(tmp)
 		return fmt.Errorf("write state tmp: %w", err)
 	}
 	if err := os.Rename(tmp, path); err != nil {
