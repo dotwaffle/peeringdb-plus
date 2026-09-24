@@ -220,6 +220,7 @@ Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.
 - Full chain (outermost first): `Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux`
+- **ETag (v1.28.3):** `Caching` sends a weak ETag of the local database version. `startETagWatcher` (`cmd/peeringdb-plus/etag.go`) runs on every node and polls once a second. It reads the LiteFS `<db>-pos` file, or `PRAGMA data_version` on a pinned connection when LiteFS is absent. A node sends no caching headers until it has seen a successful sync, and a read error clears the ETag. Each committed write changes the ETag, so one sync cycle can change it more than once. Do not set the ETag from the sync worker: replicas never run it. Before v1.28.3, replicas kept the ETag from process start and answered 304 with old bodies.
 
 ### ConnectRPC / gRPC
 - `cmd/peeringdb-plus/main.go` registers each of the 13 services with one `registerService` call; each gets the otelconnect interceptor with `connectOTelOpts` (spans only, no `rpc.server.*` metrics).
@@ -285,7 +286,10 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
   process groups: `primary` (1 machine, LHR, `shared-cpu-2x`/512 MB,
   persistent `litefs_data` volume) and `replica` (7 machines in other
   regions, `shared-cpu-1x`/256 MB, ephemeral rootfs). Replicas cold-sync
-  the 88 MB DB from primary over LiteFS HTTP on boot (5-45s per region);
+  the DB (126 MB on 2026-09-24) from primary over LiteFS HTTP on boot
+  (5-45s per region). LiteFS starts the app only after it applies the
+  snapshot, and later LTX files stream in the background. Fly caps the
+  ephemeral rootfs at 2000 IOPS and 8 MiB/s.
   `/readyz` fail-closes during hydration so Fly Proxy excludes them
   until ready. Replica recovery = destroy-and-recreate (no volume
   management). See `docs/DEPLOYMENT.md` § Asymmetric fleet.
