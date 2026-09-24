@@ -543,7 +543,8 @@ Four subcommands:
 - `loadtest soak` — sustained QPS-capped mixed-surface load.
 - `loadtest ramp` — finds the per-surface inflection point by
   ramping concurrency C=1 ×1.5/2s, triggering on p95 > 2× baseline
-  OR p99 > 1s OR error rate > 1%, holding past inflection, then
+  OR p99 > 1s OR error rate > 1% OR a step in which no request
+  completes, holding past inflection, then
   emitting a markdown table per surface to stdout (paste into
   capacity-planning docs / incident reports).
 
