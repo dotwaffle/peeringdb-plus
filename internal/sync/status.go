@@ -242,9 +242,9 @@ func GetLastCompletedStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 // AND any "failed" rows to find the most recent row with status="success".
 // Returns nil if no successful sync has ever been recorded.
 //
-// Unlike GetLastSuccessfulSyncTime (which returns only the timestamp for
-// ETag seeding), this returns the full Status struct including object
-// counts and duration for display purposes.
+// Unlike GetLastSuccessfulSyncTime (which returns only the timestamp),
+// this returns the full Status struct including object counts and
+// duration for display purposes.
 func GetLastSuccessfulStatus(ctx context.Context, db *sql.DB) (*Status, error) {
 	row := db.QueryRowContext(ctx,
 		`SELECT started_at, completed_at, duration_ms, object_counts, status, error_message

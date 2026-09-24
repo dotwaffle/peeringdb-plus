@@ -53,8 +53,8 @@ func TestMiddlewareChain_Order(t *testing.T) {
 	//
 	// The caching middleware is now wrapped via
 	// `cc.CachingState.Middleware()(h)` instead of `middleware.Caching(...)(h)`
-	// because the ETag cache moved to an atomic.Pointer that is updated
-	// from OnSyncComplete — the call-site pattern changed accordingly.
+	// because the ETag cache moved to an atomic.Pointer that the ETag
+	// watcher updates; the call-site pattern changed accordingly.
 	wantOrder := []string{
 		"routeTagMiddleware(",
 		"middleware.Compression(",

@@ -10,6 +10,22 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.28.3] - 2026-09-24
+
+### Fixed
+
+- A replica now changes its HTTP ETag when its data changes. Only the
+  primary updated the ETag after a sync, so a replica kept the ETag that
+  it read at process start. A client or CDN that revalidated with
+  `If-None-Match` got `304 Not Modified` from a replica and kept a body
+  as old as the replica's last restart. A replica that started before
+  the first sync sent no caching headers until it restarted. The ETag is
+  now keyed on the version of the local database (the LiteFS position,
+  or `PRAGMA data_version` without LiteFS), which every node reads each
+  second, so a write outside a sync cycle, such as the startup
+  poc-contact scrub or netixlan cascade, also changes it. Each ETag value
+  changes once at upgrade, so caches fetch each URL once more.
+
 ## [1.28.2] - 2026-09-24
 
 ### Changed
@@ -1103,7 +1119,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.2...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.3...HEAD
+[1.28.3]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.2...v1.28.3
 [1.28.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.1...v1.28.2
 [1.28.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.0...v1.28.1
 [1.28.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.27.0...v1.28.0

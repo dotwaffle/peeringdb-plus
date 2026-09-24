@@ -3,7 +3,9 @@
 package database
 
 import (
+	"context"
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"time"
 
@@ -53,9 +55,10 @@ func init() {
 // volume is bounded by the trace sampler: scheduled sync cycles are not traced,
 // so the high-volume sync path produces no DB spans — see internal/otel sampler.
 // The low-signal sql.rows and sql.conn.reset_session span types are suppressed
-// (see WithSpanOptions below): they roughly halve the span count per request
+// (see otelOptions): they roughly halve the span count per request
 // trace and remove the orphan single-span traces that pool-lifecycle and
 // boot-time schema-migration DB operations otherwise emit with no request root.
+// The DataVersionProbe query emits no span either (see omitProbeSpan).
 func Open(dbPath string, traceSQL bool) (*ent.Client, *sql.DB, error) {
 	dsn := fmt.Sprintf(
 		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"+
@@ -67,19 +70,7 @@ func Open(dbPath string, traceSQL bool) (*ent.Client, *sql.DB, error) {
 		err error
 	)
 	if traceSQL {
-		db, err = otelsql.Open("sqlite3", dsn,
-			otelsql.WithAttributes(attribute.String("db.system", "sqlite")),
-			// Suppress the high-volume, low-signal span types: per-row
-			// iteration (sql.rows) and connection-pool session resets
-			// (sql.conn.reset_session). These roughly halve the DB-span count
-			// on every request trace and eliminate the orphan single-span
-			// traces that pool-lifecycle and boot-time (schema migration) DB
-			// operations emit outside any request context. The query spans
-			// (sql.conn.query, carrying db.query.text) are retained.
-			otelsql.WithSpanOptions(otelsql.SpanOptions{
-				OmitRows:             true,
-				OmitConnResetSession: true,
-			}))
+		db, err = otelsql.Open("sqlite3", dsn, otelOptions()...)
 	} else {
 		db, err = sql.Open("sqlite3", dsn)
 	}
@@ -95,4 +86,31 @@ func Open(dbPath string, traceSQL bool) (*ent.Client, *sql.DB, error) {
 
 	drv := entsql.OpenDB(dialect.SQLite, db)
 	return ent.NewClient(ent.Driver(drv)), db, nil
+}
+
+// otelOptions returns the otelsql options of the traced handle that Open
+// returns.
+func otelOptions() []otelsql.Option {
+	return []otelsql.Option{
+		otelsql.WithAttributes(attribute.String("db.system", "sqlite")),
+		// Suppress the high-volume, low-signal span types: per-row
+		// iteration (sql.rows) and connection-pool session resets
+		// (sql.conn.reset_session). These roughly halve the DB-span count
+		// on every request trace and eliminate the orphan single-span
+		// traces that pool-lifecycle and boot-time (schema migration) DB
+		// operations emit outside any request context. The query spans
+		// (sql.conn.query, carrying db.query.text) are retained.
+		otelsql.WithSpanOptions(otelsql.SpanOptions{
+			OmitRows:             true,
+			OmitConnResetSession: true,
+			SpanFilter:           omitProbeSpan,
+		}),
+	}
+}
+
+// omitProbeSpan is the otelsql span filter of Open. It drops the span of
+// the DataVersionProbe query, which a caller runs about once a second
+// outside any request: each span would be the root of its own trace.
+func omitProbeSpan(_ context.Context, _ otelsql.Method, query string, _ []driver.NamedValue) bool {
+	return query != dataVersionQuery
 }

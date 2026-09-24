@@ -23,12 +23,12 @@ var weakETagRE = regexp.MustCompile(`^W/"[0-9a-f]{32}"$`)
 func TestCaching(t *testing.T) {
 	t.Parallel()
 
-	fixedTime := time.Date(2026, 3, 26, 12, 0, 0, 0, time.UTC)
+	const fixedVersion = "0000000000000001/00000000000000aa"
 	syncInterval := time.Hour
 
-	// Precompute the ETag for fixedTime so tests can reference it.
+	// Precompute the ETag for fixedVersion so tests can reference it.
 	probeState := middleware.NewCachingState(syncInterval)
-	probeState.UpdateETag(fixedTime)
+	probeState.SetVersion(fixedVersion)
 	probeMW := probeState.Middleware()
 	probe := httptest.NewRequest(http.MethodGet, "/api/net", nil)
 	probeRec := httptest.NewRecorder()
@@ -40,8 +40,8 @@ func TestCaching(t *testing.T) {
 	tests := []struct {
 		name          string
 		method        string
-		callUpdate    bool // if false, do NOT call UpdateETag (pre-sync state)
-		syncTime      time.Time
+		callSet       bool // if false, do NOT call SetVersion (pre-sync state)
+		version       string
 		ifNoneMatch   string
 		wantStatus    int
 		wantCacheCtrl string
@@ -51,20 +51,20 @@ func TestCaching(t *testing.T) {
 		wantEmptyBody bool
 	}{
 		{
-			name:          "GET with valid sync time sets Cache-Control and ETag",
+			name:          "GET with a version sets Cache-Control and ETag",
 			method:        http.MethodGet,
-			callUpdate:    true,
-			syncTime:      fixedTime,
+			callSet:       true,
+			version:       fixedVersion,
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "public, max-age=3720",
 			wantETag:      true,
 			wantCalled:    true,
 		},
 		{
-			name:          "HEAD with valid sync time sets Cache-Control and ETag",
+			name:          "HEAD with a version sets Cache-Control and ETag",
 			method:        http.MethodHead,
-			callUpdate:    true,
-			syncTime:      fixedTime,
+			callSet:       true,
+			version:       fixedVersion,
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "public, max-age=3720",
 			wantETag:      true,
@@ -73,23 +73,23 @@ func TestCaching(t *testing.T) {
 		{
 			name:       "POST request has no caching headers",
 			method:     http.MethodPost,
-			callUpdate: true,
-			syncTime:   fixedTime,
+			callSet:    true,
+			version:    fixedVersion,
 			wantStatus: http.StatusOK,
 			wantCalled: true,
 		},
 		{
-			name:       "GET before first UpdateETag has no caching headers",
+			name:       "GET before first SetVersion has no caching headers",
 			method:     http.MethodGet,
-			callUpdate: false,
+			callSet:    false,
 			wantStatus: http.StatusOK,
 			wantCalled: true,
 		},
 		{
 			name:          "GET with matching If-None-Match returns 304",
 			method:        http.MethodGet,
-			callUpdate:    true,
-			syncTime:      fixedTime,
+			callSet:       true,
+			version:       fixedVersion,
 			ifNoneMatch:   currentETag,
 			wantStatus:    http.StatusNotModified,
 			wantETag:      true,
@@ -100,8 +100,8 @@ func TestCaching(t *testing.T) {
 		{
 			name:          "GET with If-None-Match wildcard returns 304",
 			method:        http.MethodGet,
-			callUpdate:    true,
-			syncTime:      fixedTime,
+			callSet:       true,
+			version:       fixedVersion,
 			ifNoneMatch:   "*",
 			wantStatus:    http.StatusNotModified,
 			wantETag:      true,
@@ -113,8 +113,8 @@ func TestCaching(t *testing.T) {
 			// a 304 is due when ANY member matches.
 			name:          "GET with matching tag in a comma-separated list returns 304",
 			method:        http.MethodGet,
-			callUpdate:    true,
-			syncTime:      fixedTime,
+			callSet:       true,
+			version:       fixedVersion,
 			ifNoneMatch:   `W/"0000000000000000000000000000dead", ` + currentETag + `, W/"0000000000000000000000000000beef"`,
 			wantStatus:    http.StatusNotModified,
 			wantETag:      true,
@@ -125,8 +125,8 @@ func TestCaching(t *testing.T) {
 		{
 			name:          "GET with no matching tag in a comma-separated list returns normal response",
 			method:        http.MethodGet,
-			callUpdate:    true,
-			syncTime:      fixedTime,
+			callSet:       true,
+			version:       fixedVersion,
 			ifNoneMatch:   `W/"0000000000000000000000000000dead", W/"0000000000000000000000000000beef"`,
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "public, max-age=3720",
@@ -136,8 +136,8 @@ func TestCaching(t *testing.T) {
 		{
 			name:          "GET with non-matching If-None-Match returns normal response",
 			method:        http.MethodGet,
-			callUpdate:    true,
-			syncTime:      fixedTime,
+			callSet:       true,
+			version:       fixedVersion,
 			ifNoneMatch:   `W/"0000000000000000000000000000dead"`,
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "public, max-age=3720",
@@ -157,8 +157,8 @@ func TestCaching(t *testing.T) {
 			})
 
 			state := middleware.NewCachingState(syncInterval)
-			if tc.callUpdate {
-				state.UpdateETag(tc.syncTime)
+			if tc.callSet {
+				state.SetVersion(tc.version)
 			}
 			handler := state.Middleware()(inner)
 
@@ -181,7 +181,7 @@ func TestCaching(t *testing.T) {
 				if got != tc.wantCacheCtrl {
 					t.Errorf("Cache-Control = %q, want %q", got, tc.wantCacheCtrl)
 				}
-			} else if tc.method == http.MethodPost || !tc.callUpdate {
+			} else if tc.method == http.MethodPost || !tc.callSet {
 				got := rec.Header().Get("Cache-Control")
 				if got != "" {
 					t.Errorf("Cache-Control = %q, want empty for %s / pre-sync", got, tc.method)
@@ -209,7 +209,7 @@ func TestCachingETagFormat(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour)
-	state.UpdateETag(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	state.SetVersion("v1")
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -238,7 +238,7 @@ func TestCaching_TierControlsSharedCacheability(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 	state := middleware.NewCachingState(time.Hour)
-	state.UpdateETag(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	state.SetVersion("v1")
 	mw := state.Middleware()(inner)
 
 	cases := []struct {
@@ -268,27 +268,24 @@ func TestCaching_TierControlsSharedCacheability(t *testing.T) {
 	}
 }
 
-func TestCachingETagChangesWithSyncTime(t *testing.T) {
+func TestCachingETagChangesWithVersion(t *testing.T) {
 	t.Parallel()
 
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	time1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	time2 := time.Date(2026, 1, 1, 1, 0, 0, 0, time.UTC)
-
-	// Single CachingState across the two UpdateETag calls — validates
+	// Single CachingState across the two SetVersion calls validates
 	// that the atomic swap surfaces the new value on the next GET.
 	state := middleware.NewCachingState(time.Hour)
 	mw := state.Middleware()(inner)
 
-	state.UpdateETag(time1)
+	state.SetVersion("v1")
 	req1 := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec1 := httptest.NewRecorder()
 	mw.ServeHTTP(rec1, req1)
 
-	state.UpdateETag(time2)
+	state.SetVersion("v2")
 	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec2 := httptest.NewRecorder()
 	mw.ServeHTTP(rec2, req2)
@@ -297,13 +294,13 @@ func TestCachingETagChangesWithSyncTime(t *testing.T) {
 	etag2 := rec2.Header().Get("ETag")
 
 	if etag1 == etag2 {
-		t.Errorf("ETags should differ for different sync times, both = %q", etag1)
+		t.Errorf("ETags should differ for different versions, both = %q", etag1)
 	}
 }
 
-// TestCaching_ETagAtomicSwap proves that calling UpdateETag with a new sync
-// timestamp between two GETs changes the ETag returned to subsequent requests.
-// This is the core contract: one UpdateETag call -> next Load observes
+// TestCaching_ETagAtomicSwap proves that calling SetVersion with a new
+// version between two GETs changes the ETag returned to subsequent requests.
+// This is the core contract: one SetVersion call -> next Load observes
 // the new value. Regression-locks the atomic.Pointer swap semantics.
 func TestCaching_ETagAtomicSwap(t *testing.T) {
 	t.Parallel()
@@ -313,15 +310,12 @@ func TestCaching_ETagAtomicSwap(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	time1 := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
-	time2 := time.Date(2026, 2, 1, 13, 0, 0, 0, time.UTC)
-
-	state.UpdateETag(time1)
+	state.SetVersion("v1")
 	recA := httptest.NewRecorder()
 	mw.ServeHTTP(recA, httptest.NewRequest(http.MethodGet, "/api/net", nil))
 	etagA := recA.Header().Get("ETag")
 
-	state.UpdateETag(time2)
+	state.SetVersion("v2")
 	recB := httptest.NewRecorder()
 	mw.ServeHTTP(recB, httptest.NewRequest(http.MethodGet, "/api/net", nil))
 	etagB := recB.Header().Get("ETag")
@@ -333,14 +327,14 @@ func TestCaching_ETagAtomicSwap(t *testing.T) {
 		t.Errorf("etagB = %q, want weak ETag format", etagB)
 	}
 	if etagA == etagB {
-		t.Errorf("ETag did not swap after UpdateETag: A=%q B=%q", etagA, etagB)
+		t.Errorf("ETag did not swap after SetVersion: A=%q B=%q", etagA, etagB)
 	}
 }
 
 // TestCaching_ETagStableBetweenSyncs proves that 100 consecutive GETs between
-// UpdateETag calls return byte-identical ETag headers. This is the cheap proxy
+// SetVersion calls return byte-identical ETag headers. This is the cheap proxy
 // for "no per-request recomputation" — if computeETag were still being called
-// on every GET, the ETag value would still be identical (same syncTime input),
+// on every GET, the ETag value would still be identical (same version input),
 // but the runtime cost wouldn't. The byte-identity assertion is necessary but
 // not sufficient; the stronger regression lock is the acceptance criterion
 // that awk-slices the Middleware body and asserts zero sha256/computeETag
@@ -349,7 +343,7 @@ func TestCaching_ETagStableBetweenSyncs(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour)
-	state.UpdateETag(time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC))
+	state.SetVersion("v1")
 	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -381,7 +375,7 @@ func TestCaching_IfNoneMatch304(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour)
-	state.UpdateETag(time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC))
+	state.SetVersion("v1")
 
 	var innerCalled atomic.Bool
 	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -421,48 +415,107 @@ func TestCaching_IfNoneMatch304(t *testing.T) {
 	}
 }
 
+// TestCaching_Clear locks the Clear contract: after SetVersion then Clear,
+// the middleware is back in the pre-sync state. No caching headers are set,
+// and even the "*" wildcard reaches the handler, so no client can
+// revalidate against a version that may be stale.
+func TestCaching_Clear(t *testing.T) {
+	t.Parallel()
+
+	state := middleware.NewCachingState(time.Hour)
+	var called atomic.Bool
+	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called.Store(true)
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	state.SetVersion("v1")
+	rec := httptest.NewRecorder()
+	mw.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/net", nil))
+	if rec.Header().Get("ETag") == "" {
+		t.Fatal("ETag missing after SetVersion")
+	}
+
+	state.Clear()
+	called.Store(false)
+	req := httptest.NewRequest(http.MethodGet, "/api/net", nil)
+	req.Header.Set("If-None-Match", "*")
+	rec = httptest.NewRecorder()
+	mw.ServeHTTP(rec, req)
+	if !called.Load() {
+		t.Error("inner handler not called after Clear with If-None-Match: *")
+	}
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("ETag"); got != "" {
+		t.Errorf("ETag = %q after Clear, want none", got)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "" {
+		t.Errorf("Cache-Control = %q after Clear, want none", got)
+	}
+}
+
 // TestCaching_ConcurrentReadDuringUpdate runs 8 reader goroutines hammering
-// the middleware while a 9th goroutine alternates between two UpdateETag
+// the middleware while a 9th goroutine alternates between two SetVersion
 // values in a tight loop. Under -race this catches any future drift that
 // removes the atomic.Pointer wrapper. Every observed ETag MUST be one of the
 // two known values — never a torn read, never empty.
+//
+// The test ends by read count, not by a wall-clock window: each reader
+// starts after the writer's first store and makes at least minReads reads
+// before the writer stops, so a slow CI box cannot shrink the overlap.
 func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour)
-	time1 := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
-	time2 := time.Date(2026, 2, 1, 13, 0, 0, 0, time.UTC)
+	const (
+		v1 = "v1"
+		v2 = "v2"
+	)
 
 	// Pre-compute both expected ETag values via a throwaway state so the
 	// test knows the exact strings to compare against. computeETag is
 	// unexported; we derive both values the same way the middleware does:
-	// one UpdateETag call, one probe GET.
-	expect := func(ts time.Time) string {
+	// one SetVersion call, one probe GET.
+	expect := func(v string) string {
 		s := middleware.NewCachingState(time.Hour)
-		s.UpdateETag(ts)
+		s.SetVersion(v)
 		rec := httptest.NewRecorder()
 		s.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 		return rec.Header().Get("ETag")
 	}
-	etag1 := expect(time1)
-	etag2 := expect(time2)
+	etag1 := expect(v1)
+	etag2 := expect(v2)
 	if etag1 == etag2 || etag1 == "" || etag2 == "" {
 		t.Fatalf("probe etags invalid: etag1=%q etag2=%q", etag1, etag2)
 	}
 
-	state.UpdateETag(time1)
+	state.SetVersion(v1)
 	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	var wg sync.WaitGroup
+	const (
+		readers  = 8
+		minReads = 500
+	)
+	var (
+		wg     sync.WaitGroup
+		enough sync.WaitGroup
+	)
 	stop := make(chan struct{})
+	writing := make(chan struct{})
 
-	// Writer goroutine: flips between time1 and time2 as fast as it can.
+	// Writer goroutine: flips between v1 and v2 as fast as it can.
+	// It closes writing after its first store, so every reader starts
+	// while the writer is active.
 	wg.Go(func() {
-		flip := true
+		state.SetVersion(v2)
+		close(writing)
+		flip := false
 		for {
 			select {
 			case <-stop:
@@ -470,21 +523,26 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 			default:
 			}
 			if flip {
-				state.UpdateETag(time2)
+				state.SetVersion(v2)
 			} else {
-				state.UpdateETag(time1)
+				state.SetVersion(v1)
 			}
 			flip = !flip
 		}
 	})
 
 	// Reader goroutines: hammer the middleware and check the observed ETag
-	// is always one of the two known values.
-	const readers = 8
+	// is always one of the two known values. Each reader releases enough
+	// after minReads reads (or on an early exit) and keeps reading until
+	// stop, so the readers overlap each other and the writer throughout.
 	readErrs := make(chan string, readers)
+	enough.Add(readers)
 	for range readers {
 		wg.Go(func() {
-			for {
+			done := sync.OnceFunc(enough.Done)
+			defer done()
+			<-writing
+			for n := 1; ; n++ {
 				select {
 				case <-stop:
 					return
@@ -500,12 +558,14 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 					}
 					return
 				}
+				if n == minReads {
+					done()
+				}
 			}
 		})
 	}
 
-	// Run for 100ms then signal stop.
-	time.Sleep(100 * time.Millisecond)
+	enough.Wait()
 	close(stop)
 	wg.Wait()
 	close(readErrs)
@@ -516,19 +576,20 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 }
 
 // TestCaching_SkipPath verifies that paths passed to NewCachingState via the
-// variadic skipPaths argument bypass the sync-time-keyed ETag entirely:
+// variadic skipPaths argument bypass the version-keyed ETag entirely:
 // they must receive Cache-Control: no-store, must NOT emit an ETag header,
 // must reach the inner handler on every GET, and must NOT short-circuit to
 // 304 even when the client sends If-None-Match: *.
 //
 // The regression this locks in: /ui/about contains wall-clock-relative
 // rendering ("N minutes ago") that would freeze at cache-creation time
-// under the sync-time ETag, misleading users for up to a full sync interval.
+// under the version-keyed ETag, misleading users for up to a full sync
+// interval.
 func TestCaching_SkipPath(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour, "/ui/about")
-	state.UpdateETag(time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC))
+	state.SetVersion("v1")
 
 	var called atomic.Bool
 	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -584,13 +645,13 @@ func TestCaching_SkipPath(t *testing.T) {
 
 // TestCaching_StaticAssets locks the /static/ prefix rule: embedded
 // assets change on deploy, not on sync, so they get a fixed day-long
-// public max-age instead of the sync-time-keyed ETag (which would
+// public max-age instead of the version-keyed ETag (which would
 // invalidate every stylesheet and script each sync cycle).
 func TestCaching_StaticAssets(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour)
-	state.UpdateETag(time.Date(2026, 4, 11, 12, 27, 46, 0, time.UTC))
+	state.SetVersion("v1")
 
 	var called atomic.Bool
 	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -610,7 +671,7 @@ func TestCaching_StaticAssets(t *testing.T) {
 		t.Errorf("ETag = %q, want empty on static asset", got)
 	}
 
-	// The sync-keyed 304 short-circuit must not apply either.
+	// The version-keyed 304 short-circuit must not apply either.
 	called.Store(false)
 	req := httptest.NewRequest(http.MethodGet, "/static/ui.js", nil)
 	req.Header.Set("If-None-Match", "*")
@@ -628,7 +689,7 @@ func TestCaching_SkillHandlersOwnCaching(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour)
-	state.UpdateETag(time.Date(2026, 7, 24, 12, 0, 0, 0, time.UTC))
+	state.SetVersion("v1")
 
 	var called atomic.Bool
 	mw := state.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

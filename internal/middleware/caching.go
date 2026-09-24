@@ -14,22 +14,23 @@ import (
 
 // CachingState holds the HTTP caching middleware's mutable ETag value behind
 // an atomic pointer so the hot request path can read it without locks or
-// per-request SHA-256 computation. The hash work was moved
-// out of the request path; the SHA-256 now runs exactly once per sync
-// completion inside UpdateETag, driven by the sync worker's OnSyncComplete
-// callback. Construct via NewCachingState.
+// per-request SHA-256 computation. The SHA-256 runs once per database
+// version change inside SetVersion, called by the ETag watcher in
+// cmd/peeringdb-plus, which polls the local database version on every
+// node. Construct via NewCachingState.
 //
-// A zero-value etag pointer (never called UpdateETag, i.e. pre-sync startup)
-// is the documented pre-sync state: the Middleware skips Cache-Control and
-// ETag headers and passes the request straight to the inner handler. This
+// A nil etag pointer (SetVersion never called, or Clear called) is the
+// documented pre-sync state: the Middleware skips Cache-Control and ETag
+// headers and passes the request straight to the inner handler. This
 // preserves the v1.0-v1.12 "no caching headers before first successful sync"
 // semantic verbatim.
 type CachingState struct {
 	// etag holds the current weak ETag string; nil pointer means pre-sync.
-	// Readers use etag.Load(); the writer is UpdateETag. Embedded as a value
-	// (not *atomic.Pointer[string]) because atomic.Pointer methods take pointer
-	// receivers and CachingState is itself always heap-allocated via
-	// NewCachingState — one allocation, not two.
+	// Readers use etag.Load(); the writers are SetVersion and Clear.
+	// Embedded as a value (not *atomic.Pointer[string]) because
+	// atomic.Pointer methods take pointer receivers and CachingState is
+	// itself always heap-allocated via NewCachingState: one allocation,
+	// not two.
 	etag atomic.Pointer[string]
 
 	// syncInterval is the configured duration between automatic sync runs.
@@ -38,7 +39,7 @@ type CachingState struct {
 	syncInterval time.Duration
 
 	// skipPaths is the list of request paths (exact r.URL.Path match) that
-	// must not be cached by the sync-time-keyed ETag. Intended for pages
+	// must not be cached by the version-keyed ETag. Intended for pages
 	// containing wall-clock-relative text (e.g. "5 minutes ago") that goes
 	// stale at wall-clock cadence rather than sync cadence. Captured once
 	// at construction via NewCachingState; the Middleware closure snapshots
@@ -47,14 +48,14 @@ type CachingState struct {
 }
 
 // NewCachingState returns a CachingState with a nil ETag pointer (pre-sync)
-// and the given sync interval. Call UpdateETag once the first sync completes;
+// and the given sync interval. Call SetVersion once the first sync completes;
 // until then, Middleware skips caching headers.
 //
 // Any additional skipPaths are treated as exact-match r.URL.Path opt-outs:
 // matching requests receive Cache-Control: no-store, bypass the 304
 // short-circuit, and always reach the inner handler. Use for pages that
 // contain wall-clock-relative rendering (e.g. "5 minutes ago") which would
-// freeze at cache-creation time under the sync-time-keyed ETag and mislead
+// freeze at cache-creation time under the version-keyed ETag and mislead
 // users for up to a full sync interval.
 func NewCachingState(syncInterval time.Duration, skipPaths ...string) *CachingState {
 	return &CachingState{
@@ -63,14 +64,21 @@ func NewCachingState(syncInterval time.Duration, skipPaths ...string) *CachingSt
 	}
 }
 
-// UpdateETag computes a fresh weak ETag from syncTime and stores it atomically.
-// Safe to call concurrently with any number of Middleware reads. Intended to
-// be called from the sync worker's OnSyncComplete callback exactly once per
-// successful sync (i.e. once per hour at default settings), not on the request
-// path. The SHA-256 cost thus moves from O(requests) to O(syncs).
-func (s *CachingState) UpdateETag(syncTime time.Time) {
-	v := computeETag(syncTime)
-	s.etag.Store(&v)
+// SetVersion computes a weak ETag from the database version v and stores it
+// atomically. Safe to call concurrently with any number of Middleware reads.
+// Call it only when the version changes, never on the request path, so the
+// SHA-256 cost is O(commits), not O(requests).
+func (s *CachingState) SetVersion(v string) {
+	etag := computeETag(v)
+	s.etag.Store(&etag)
+}
+
+// Clear removes the ETag and returns the Middleware to the pre-sync state:
+// no caching headers and no 304 responses. Call it when the current
+// database version cannot be read, so that no client revalidates against
+// a version that may be stale.
+func (s *CachingState) Clear() {
+	s.etag.Store(nil)
 }
 
 // Middleware returns the HTTP caching middleware factory. The returned factory
@@ -118,7 +126,7 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 
 			// Agent skill handlers derive their own content ETags. In
 			// particular, the downloadable archive varies by request origin,
-			// so the sync-time-keyed application ETag cannot safely short
+			// so the version-keyed application ETag cannot safely short
 			// circuit it. Leave the entire /skills/ namespace to its handler.
 			if strings.HasPrefix(r.URL.Path, "/skills/") {
 				next.ServeHTTP(w, r)
@@ -126,7 +134,7 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 			}
 
 			// Embedded static assets change only on deploy, never on
-			// sync, so the sync-time-keyed ETag is the wrong key: it
+			// sync, so the version-keyed ETag is the wrong key: it
 			// would invalidate every stylesheet and script each sync
 			// cycle. A fixed day-long public max-age is appropriate for
 			// content this stable (and self-corrects within a day of a
@@ -139,7 +147,7 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 
 			// Opt-out list: pages with wall-clock-relative rendering
 			// (e.g. /ui/about's "5 minutes ago") must never be cached
-			// by the sync-time-keyed ETag, or the relative text freezes
+			// by the version-keyed ETag, or the relative text freezes
 			// at cache-creation time and misleads users for up to a
 			// full sync interval. Exact path match is sufficient for
 			// current use — prefix matching can be added if needed.
@@ -151,8 +159,9 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 
 			etagPtr := s.etag.Load()
 			if etagPtr == nil {
-				// Pre-sync: no ETag available yet, skip caching headers
-				// to preserve v1.0 "no sync time -> no headers" contract.
+				// Pre-sync, or the version is unreadable: skip caching
+				// headers to preserve the v1.0 "no sync -> no headers"
+				// contract.
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -224,16 +233,12 @@ func (w *cacheStripWriter) Flush() {
 	}
 }
 
-// computeETag produces a weak ETag from the sync timestamp.
-// Format: W/"<32 hex chars>" (SHA-256 truncated to 16 bytes).
-//
-// The input format (SHA-256 of RFC3339Nano-formatted sync time) is preserved
-// byte-for-byte from the earlier implementation so existing client cache
-// entries keep matching across the v1.13 deploy. Switching to a sync-ID
-// counter was considered and rejected — the timestamp-hash form needs no
-// persisted counter state and is stable across restarts.
-func computeETag(syncTime time.Time) string {
-	h := sha256.Sum256([]byte(syncTime.Format(time.RFC3339Nano)))
+// computeETag produces a weak ETag from a database version string.
+// Format: W/"<32 hex chars>" (SHA-256 truncated to 16 bytes). Hashing keeps
+// the tag opaque, so the version format can change without a change to the
+// wire format.
+func computeETag(version string) string {
+	h := sha256.Sum256([]byte(version))
 	return fmt.Sprintf(`W/"%x"`, h[:16])
 }
 
