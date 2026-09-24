@@ -108,10 +108,12 @@ default `1h` unauthenticated / `15m` authenticated):
    transaction opens.
 4. Phase B — apply: the worker opens a single ent transaction
    and upserts all rows (`internal/sync/upsert.go`), then commits.
-   Tombstones are not inferred here —
-   a row carries `status="deleted"` only when upstream's `?since` response said
-   so (see [Soft-delete tombstones](#soft-delete-tombstones));
-   deleted rows are ordinary upserts whose `status` column is `deleted`.
+   Sync does not infer a tombstone from a row that a list response leaves out.
+   A row carries `status="deleted"` when upstream's `?since` response said so,
+   or when it is a live netixlan of a deleted network that upstream no longer
+   has (see [Soft-delete tombstones](#soft-delete-tombstones)).
+   An upstream tombstone is an ordinary upsert whose `status` column is
+   `deleted`.
    `PRAGMA defer_foreign_keys = ON` is set on the same connection
    (`internal/sync/worker.go`) to keep FK enforcement while allowing
    mid-transaction orphan handling.
@@ -169,6 +171,8 @@ the worker fetches the missing parents with `?since=1&id__in=<ids>`,
 These calls run inside the open transaction.
 `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` (default 20, `0` disables
 backfill) and `PDBPLUS_FK_BACKFILL_TIMEOUT` (default `5m`) limit them.
+The same cap setting also limits the netixlan cascade verification
+(see [Class B: verified against upstream](#class-b-verified-against-upstream)).
 The worker drops the child row, or sets a nullable FK to `NULL`,
 in these cases:
 
@@ -231,8 +235,10 @@ Two rules keep a stale snapshot from rolling rows back:
   snapshot. Such a row can have changed after upstream built the cache.
   A stored row older than the snapshot's newest row predates the snapshot,
   so the snapshot's version replaces it even when its `updated` value is
-  older: an IX-F import-log rollback on upstream restores an old version,
-  old `updated` included.
+  older, for example after a raw save of an old version outside a revision.
+  An IX-F import-log rollback gets a new `updated` value,
+  because it runs in a revision and handleref saves the row again
+  (2.83.0 `models.py:3745-3747`, django-handleref `models.py:9-16`).
 - The window fetch that follows the snapshot starts at the earlier of the
   cursor and the newest `updated` value in the snapshot
   (see [Soft-delete tombstones](#soft-delete-tombstones)).
@@ -245,6 +251,11 @@ These rules protect data that the mirror holds when the cycle starts. A
 full cycle before v1.28.1 could turn an upstream delete back into a live
 row. No later cycle returns such a row, because bare lists contain live
 rows only and the tombstone's `updated` value is behind every window.
+The netixlan upsert also keeps a stored tombstone when the snapshot lists
+the row live with the same `updated` value.
+Upstream changes `updated` on every real undelete, so only a stale cache
+sends that pair, except for a delete and an undelete in the same second
+(see [Netixlan cascade of deleted networks](#netixlan-cascade-of-deleted-networks)).
 
 Each fetch span carries `pdbplus.sync.snapshot.generated`,
 `pdbplus.sync.snapshot.max_updated` and `pdbplus.sync.window.since`.
@@ -842,10 +853,12 @@ for the operator-facing rollout.
 
 ## Soft-delete tombstones
 
-Sync uses soft-delete rather than hard-delete across all 13 entity types,
-but tombstones (`status='deleted'`) are sourced **only** from upstream
-PeeringDB's explicit signal: the `?since=N` matrix returns the live rows and
-the `deleted` rows (per 2.83.0 `peeringdb_server/rest.py:719-750`).
+Sync uses soft-delete rather than hard-delete across all 13 entity types.
+Tombstones (`status='deleted'`) come from upstream PeeringDB's explicit
+signal, with one derived exception
+(see [Netixlan cascade of deleted networks](#netixlan-cascade-of-deleted-networks)).
+The `?since=N` matrix returns the live rows and the `deleted` rows
+(per 2.83.0 `peeringdb_server/rest.py:719-750`).
 `internal/sync/upsert.go` lands the upstream-supplied status verbatim —
 a deleted row is just an ordinary upsert whose `status` column is `deleted`,
 carrying upstream's own `updated` timestamp.
@@ -967,6 +980,304 @@ GraphQL, REST and ConnectRPC apply no default status filter.
 
 Tombstone GC is dormant work; triggers are storage growth >5% MoM,
 tombstone ratio >10%, or operator request.
+
+### Netixlan cascade of deleted networks
+
+Upstream hard-deletes some netixlans.
+When the RIR reclaims the ASN of a network, the nightly `pdb_rir_status` command
+deletes the live netixlans of the network (`ok` and `not-operational`)
+with an SQL delete, then soft-deletes the network
+(2.83.0 `management/commands/pdb_rir_status.py:440-443`, `models.py:5720-5725`).
+It runs at about 22:55 UTC and deletes about 0.7 networks a day.
+Upstream sends no tombstone for these netixlans,
+so a `?since=` fetch never shows the delete,
+and the mirror would serve them as live forever.
+On 2026-09-23 the mirror held about 260 such rows on about 115 networks.
+
+`cascadeDeletedNetIxLans` (`internal/sync/netixlan_cascade.go`) repairs them.
+It sets `status='deleted'` and `operational=false` on a live netixlan
+of a network with `status='deleted'`.
+It does not change `updated`, so the incremental cursor does not move.
+A guard limits it to rows whose `updated` value is not later than
+the `updated` value of the network tombstone.
+Upstream does not accept a new live netixlan under a deleted network
+(`validate_parent_status`, `models.py:401-429`),
+so a newer live row was saved after an undelete, and it stays live.
+`pending` rows are out of scope:
+the handleref delete cascade soft-deletes them,
+and their tombstones arrive through `?since=`.
+
+A live netixlan of a deleted network is marked only when one of these
+two sources names it:
+
+- Class A, the network turned deleted in this cycle.
+  No request is necessary.
+- Class B, upstream no longer serves the netixlan live.
+  One request checks up to 100 netixlans.
+
+#### Class A: RIR reclaim in this cycle
+
+In Phase A, `rirTransitionNets` reads the network tombstones in the scratch
+database whose upstream JSON has `rir_status` set to `null` and a
+`rir_status_updated` value.
+It drops the networks that are already `deleted` in the committed database.
+`pdb_rir_status` leaves this signature: it deletes only a network whose
+RIR status is bad, and the serializer shows a bad status as `null`
+(2.83.0 `pdb_rir_status.py:377-443`, `serializers.py:3855-3864`).
+The command deletes the live netixlans and the network in one transaction,
+and a manual delete of a network also soft-deletes its netixlans.
+So a network that turns deleted with this signature has no live netixlan
+upstream.
+
+An old tombstone that upstream saves again, for example after an
+organization merge, does not qualify,
+because the network is already deleted in the mirror.
+Class B covers those networks.
+The signature comes from the JSON, not from the stored `rir_status` columns.
+When every row of a batch upsert has a `null` `rir_status`,
+ent leaves the column out of the `INSERT`,
+and the stored row keeps its old value.
+A network tombstone that FK backfill lands in Phase B is not in the scratch
+database, so class B marks its netixlans in the next cycle.
+
+#### Class B: verified against upstream
+
+`verifyNetIxLanCandidates` (`internal/sync/netixlan_verify.go`) runs in
+Phase A, outside any transaction.
+It reads the candidates from the committed database:
+the live netixlans of deleted networks that pass the guard.
+It asks upstream for them with
+`GET /api/netixlan?hide_ix_no_fac=0&id__in=<ids>&since=1`,
+one request for each chunk of ids, through `peeringdb.Client.StreamByIDs`.
+Upstream answers this request from the database, not from its API cache
+(2.83.0 `api_cache.py:109`).
+`since=1` admits live and deleted rows (`rest.py:719-746`).
+It leaves out `pending` rows (`rest.py:723`),
+but a `pending` netixlan cannot exist under a deleted network:
+upstream runs `validate_parent_status` on every save (`models.py:6513`),
+and the delete of a network soft-deletes its `pending` netixlans.
+`/api/netixlan` has no filter on the network status.
+`hide_ix_no_fac=0` turns off the per-user "hide IXs without facilities"
+filter of an API key owner (`rest.py:1270-1297`).
+So a requested id that the response does not hold no longer exists upstream.
+`pdb_rir_status` is the only netixlan hard delete, and upstream does not
+use an id again.
+
+The worker classifies each requested id:
+
+- Absent: the cascade marks the row.
+- `deleted`: the worker stages the upstream row in the scratch database,
+  and the upsert pass stores upstream's own tombstone with its `updated`
+  value.
+  The memo keeps no entry for a staged row,
+  because a retry of the cycle has a new scratch database
+  and must ask upstream and stage the row again.
+  When that `updated` value is later than the netixlan cursor,
+  the worker does not stage the row.
+  The cascade marks it, and the next `?since=` fetch stores the upstream
+  tombstone.
+  A staging error leaves the row live, and the next cycle tries again.
+- `ok` or `not-operational`: the row stays live.
+  An upstream-live orphan under a deleted network is not marked.
+
+A 2xx body without a `data` array, or a row that does not decode,
+fails its chunk.
+A body that the worker cannot read never counts as absent.
+
+Limits:
+
+- A pass sends at most the smaller of 10 and
+  `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` requests,
+  in a deadline of 2 minutes.
+  These requests do not count against the FK backfill requests.
+  `0` turns verification off: the rows of networks that were deleted before
+  the cycle stay live, and class A still runs.
+  No setting turns class A off.
+- A chunk holds 100 ids that never failed, 10 ids after one failure,
+  or 1 id after two or more failures.
+  One bad id then stops blocking the others after two failures.
+- A 429, a WAF 403, the end of the context, or a request that gets no
+  HTTP response (DNS, connection, TLS or response header timeout)
+  stops the pass.
+  These errors say nothing about the ids.
+  The worker defers the rest of the ids with no memo entry,
+  and the next cycle tries them again.
+- Any other error backs off the ids of the chunk for 6 hours.
+  This includes a 5xx after the retries, a 4xx and a body that does not
+  decode.
+  The pass continues with the next chunk only when the chunk before the
+  failed one succeeded.
+  So a chunk with one bad id does not stop the others,
+  and an endpoint that fails every request gets one request in each pass.
+- When the candidates need more requests than the limit,
+  the worker defers the rest and logs a WARN.
+- Each sync attempt (a retry is a new attempt) and each primary start
+  runs a pass.
+  In the worst case, a pass sends as many requests as the limit above,
+  each with up to 3 tries for a 5xx, and takes 2 minutes.
+
+`Worker.netIxLanVerifyMemo` holds the outcome of each id in memory.
+An entry also holds the stored `updated` values of the netixlan and of its
+network.
+Each pass removes the entries of ids that are no longer candidates,
+and the entries whose `updated` values changed.
+
+- `live`, for 24 hours: the pass does not ask for the id again.
+  An upstream-live orphan costs one request for each 100 orphans a day.
+- `gone`, for 24 hours: the id goes to the cascade with no request.
+  So a retry after a failed Phase B, or after a failed startup
+  transaction, sends no request again for an absent id.
+  A staged `deleted` verdict gets no entry (see above).
+- `failed`, for 6 hours: the pass skips the id.
+
+A restart clears the memo, which costs one more verification.
+
+#### Upsert gate
+
+`netIxLanUpsertPredicate` (`internal/sync/upsert.go`) keeps a stored
+tombstone when an incoming live row has the same `updated` value,
+in every sync mode.
+Upstream changes `updated` on every real undelete:
+`pdb_undelete` saves the row, an IX-F import-log rollback runs in a revision,
+and handleref saves each row of a revision again.
+So a live row with the same `updated` value comes from a stale bare list.
+A revival with a newer `updated` value, a tombstone that replaces a
+tombstone, and the v1.28.1 cutoff repair still pass.
+
+#### Run points
+
+- In each sync transaction, after the upsert pass and the poc scrub.
+  Class B runs first, then class A.
+  Both statements check the guard and the network status again
+  against the state after the upsert pass.
+  A failed statement fails the cycle, and the retries use the `gone` memo.
+- When the scheduler starts on the primary,
+  after `scrubPocContactsAtStartup` (`cascadeNetIxLansAtStartup`).
+  The run holds the sync `running` latch.
+  It verifies the candidates before it opens a short transaction of its own,
+  and it runs class B only.
+  It does not stage `deleted` verdicts.
+  The first cycle stages them, so the stored tombstone keeps upstream's
+  `updated` value.
+  A panic logs `ERROR "startup netixlan cascade panic recovered"` with the
+  stack and releases the latch.
+  A failed run logs a WARN, and the next cycle retries it.
+  A replica never runs the cascade.
+  After a promotion, the first cycle does the work.
+
+The candidate query reads the deleted networks through the
+`network_status_updated_created_id` index and their netixlans through
+`networkixlan_net_id`.
+Class A finds the netixlans through `networkixlan_net_id`,
+and class B updates by primary key.
+`TestNetIxLanCascadePlans` locks these plans.
+When no row matches, the `UPDATE` writes no page and LiteFS has nothing to
+ship.
+Upstream gets about 3 requests at the first start after the upgrade,
+none in a normal cycle, and 1 for each class-A miss.
+
+#### Observability
+
+- `WARN "cascaded network deletes to netixlans"` with `count`, `nets`,
+  `backlog` and `mode`, at DEBUG when `count=0`.
+  `backlog` counts the rows that class B marked,
+  whose network was deleted before this cycle.
+  `mode` is `startup`, `incremental` or `full`.
+- `"verified netixlan cascade candidates"` with `mode`, `candidates`,
+  `memo_hits`, `backoff`, `requests`, `absent`, `live`, `deleted`, `staged`,
+  `failed`, `deferred`, `waiting`, `disabled`, `live_ids` and `failed_ids`.
+  The two id lists hold the first 10 ids.
+  `waiting` counts the `deleted` verdicts that the pass leaves for the
+  first cycle, at startup or when the cursor read failed.
+  The level is DEBUG when the pass sent no request and nothing failed,
+  INFO when it sent requests, and WARN when `failed` or `deferred` is
+  more than 0.
+  `waiting` does not change the level.
+- `WARN "netixlan cascade verification failed, cascade deferred"`
+  with `mode`, `error`, `requests`, `failed` and `deferred`,
+  once for each pass, with the first error.
+- The `sync-verify-netixlan-cascade` span carries
+  `pdbplus.sync.netixlan_verify.{candidates,memo_hits,backoff,requests,absent,live,deleted,staged,failed,deferred,waiting}`.
+  The `sync-cascade-netixlan-deletes` span carries
+  `pdbplus.sync.netixlans_cascaded` and
+  `pdbplus.sync.netixlans_cascaded_backlog`.
+  The sampler drops scheduled cycles, so these spans show for a
+  `POST /sync` cycle.
+  At startup they are root spans without a URL path,
+  so the sampler keeps 1% of them.
+- `pdbplus.sync.type.deleted{type="netixlan"}` counts the marked rows
+  after each commit, on the primary only.
+  The Cascaded Deletes per Type dashboard panel plots it.
+  The verification requests also show in `pdbplus.peeringdb.requests`.
+
+How to read the logs:
+
+- First start on v1.28.2: verification at INFO with `mode=startup`,
+  `requests` about 3 and `absent` about 260.
+  `waiting` more than 0 means that upstream returned tombstones,
+  which the first cycle stores.
+  Then the cascade WARN with `count` about 260, `nets` about 115,
+  and `backlog` equal to `count`.
+- `count` more than 0 with `backlog=0` in an `incremental` or `full` cycle:
+  class A after the nightly reclaim. This is normal.
+- `backlog` more than 0 outside `mode=startup`: class B marked verified rows.
+  One such line is normal after a class-A miss, a deferral,
+  or a row that a stale cache inserted.
+  The same network ids every day are not normal.
+- `live` more than 0: upstream-live orphans, checked again about once a day.
+- `failed` more than 0 again and again with the same `failed_ids`:
+  upstream fails on that id.
+
+LogQL for these lines (the attributes are structured metadata,
+so the queries need no parser):
+
+```logql
+{service_name="peeringdb-plus"} |= "cascaded network deletes to netixlans" | backlog > 0 | mode != "startup"
+{service_name="peeringdb-plus"} |= "verified netixlan cascade candidates" | live > 0
+{service_name="peeringdb-plus"} |= "verified netixlan cascade candidates" | failed > 0
+```
+
+Loki receives INFO and above by default (`PDBPLUS_LOG_LEVEL`),
+so the DEBUG lines do not show there.
+
+#### Read side and residuals
+
+pdbcompat leaves the marked rows out of lists without `?since`,
+`/api/netixlan/<id>`, `?id=<id>`, the depth sets and the relation keys.
+A `?since=N` list with N not later than the row's `updated` value returns
+the tombstone, where upstream returns nothing
+(see [API.md § Known Divergences](./API.md#known-divergences)).
+GraphQL, REST and ConnectRPC show `status='deleted'` with the old `updated`
+value.
+The Web UI, `internal/catalog` and the MCP tools do not show the rows.
+A client that syncs by `updated` does not see the change.
+An upstream undelete of the network leaves the marked rows deleted,
+as upstream does.
+
+These cases stay open:
+
+- A stale cache from before the reclaim lists a netixlan newer than the
+  stored row, or one that the mirror never stored.
+  A full cycle stores it live.
+  Class B then marks it in the next cycle, and the upsert gate keeps it
+  deleted.
+  It stays live only when upstream undeleted the network first.
+- Upstream deletes and revives a netixlan in the same second,
+  and the mirror stores the delete between the two.
+  The upsert gate keeps the row deleted until upstream changes it again.
+- A verified-absent row stays live when the same cycle also stores the
+  undelete of its network, because the guard then fails.
+  The row is then no longer a candidate.
+- Upstream can undelete a network for a new owner
+  (`undelete_for_new_owner`, 2.83.0 `models.py:5542-5580`).
+  The netixlans of the old owner stay deleted or removed upstream.
+  When the undelete came before the mirror marked those netixlans,
+  for example for a network reclaimed before v1.28.2,
+  the network is `ok` in the mirror.
+  Only networks with `status='deleted'` give candidates,
+  so the netixlans that `pdb_rir_status` removed stay live on every surface.
+- An upstream-live orphan that upstream removes later stays live for up to
+  24 hours and one cycle, until its `live` memo entry expires.
 
 ## Shadow-column folding
 
@@ -1207,7 +1518,9 @@ vars.
   - `pdbplus.sync.operations` (counter): attributes `status`
     (`success`, `failed`) and `mode` (`full`, `incremental`).
   - `pdbplus.sync.type.objects` (counter) — per-type object counts.
-  - `pdbplus.sync.type.deleted` (counter) — per-type tombstone counts.
+  - `pdbplus.sync.type.deleted` (counter): rows that sync marks deleted itself,
+    by `type`. Only the netixlan cascade emits it
+    (see [Netixlan cascade of deleted networks](#netixlan-cascade-of-deleted-networks)).
   - `pdbplus.sync.type.fetch_errors` / `upsert_errors` / `fallback` / `orphans`
     (counters).
   - `pdbplus.sync.fk_backfill` (counter): FK backfill attempts by `result`.

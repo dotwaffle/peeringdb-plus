@@ -602,7 +602,9 @@ and § Validation Notes for why MySQL collation is *not* the upstream mechanism.
 Sync never deletes a stored row.
 When upstream deletes an object, the next `?since=` fetch returns the row
 with `status='deleted'`, and sync stores that status.
-Sync does not mark a row as deleted when the row is missing from a response.
+Sync does not mark a row as deleted when the row is missing from a list
+response.
+The one exception is a connection of a deleted network (see below).
 The list path applies the upstream PeeringDB 2.83.0 `rest.py:719-750`
 status matrix as the final predicate via `applyStatusMatrix`.
 The matrix starts from the live statuses of the type
@@ -636,6 +638,25 @@ and campus is the only type whose pending rows reach the mirror.
 For `ix.fac_set` and `ixlan.net_set`, the status of the ixfac or netixlan
 join row decides membership.
 The facility or network that the row points to is not filtered.
+
+A network that upstream deletes because the RIR reclaimed its ASN loses its
+live connections without a tombstone
+(2.83.0 `management/commands/pdb_rir_status.py:440-443`).
+The mirror marks such a connection `deleted`, sets `operational` to `false`,
+and keeps its `updated` value.
+It does this when the network was deleted in that sync,
+or when upstream no longer returns the connection live for an uncached
+`?since=1&id__in=` request.
+A connection that upstream still serves, or that it changed after it deleted
+the network, stays live.
+Lists without `?since`, the depth sets, relation keys, `/api/netixlan/<id>`
+and `?id=<id>` leave the marked connections out, as upstream does.
+A `?since=N` list, with N not later than their `updated` value,
+returns them as tombstones, and so does `?id=<id>&since=N`.
+Upstream returns nothing, or `404` for the `id` query
+(see § Known Divergences).
+Because `updated` does not change, a client that syncs by `updated`
+does not see the change on any API.
 
 A deleted `poc` is served with `name`, `phone`, `email` and `url` set to `""`.
 Upstream applies this rule when `status` is among the rendered fields
