@@ -1645,6 +1645,29 @@ vars.
     `InitMemoryGauges`): sync-cycle peaks.
     Prometheus names: `pdbplus_sync_peak_heap_bytes`,
     `pdbplus_sync_peak_rss_bytes`.
+  - `pdbplus.litefs.*` (`InitLiteFSGauges`): the values of the local LiteFS
+    metrics endpoint. The app registers these instruments only when
+    `PDBPLUS_LITEFS_METRICS_URL` is set. One collection reads the endpoint
+    once. A failed read exports no LiteFS values, so a dashboard shows a gap.
+    A read fails when a sample is missing, when a value is not finite
+    or a count is not an integer, and when the body is larger than 1 MiB.
+    - `txid` (gauge): the current LiteFS transaction ID of the database.
+    - `commits` (counter): database commits since LiteFS started.
+    - `ltx.size` (gauge, bytes): `litefs_db_ltx_bytes` as LiteFS 0.5 sets it.
+      A commit sets it to the size of the new LTX file.
+      Each retention pass (once a minute) sets it to the size of the LTX files
+      on disk. A large commit shows in both values.
+      Do not use it as a disk-usage signal.
+    - `ltx.files` (gauge): the number of LTX files on disk.
+    - `ltx.lag` (gauge, seconds): the time from the creation of the last
+      LTX file that the node applied to its apply. A commit on the primary
+      sets it to 0.
+    - `lag` (gauge, seconds): the time since the node last received a frame
+      (LTX file or heartbeat) from the primary. It is 0 on the primary.
+    - `subscribers` (gauge): the replicas connected to the node.
+
+    The app does not export `litefs_http_frame_send_count`:
+    LiteFS 0.5 never increments it.
   - Per-request response heap-delta histogram
     (`pdbplus.response.heap_delta`, exported to Prometheus as
     `pdbplus_response_heap_delta_bytes`).
