@@ -241,6 +241,83 @@ func TestSync_ZeroCursorWindowFailureTolerated(t *testing.T) {
 	}
 }
 
+// TestSync_CursorReadErrorFailsType asserts that a failed cursor read over
+// a populated table fails the cycle before any request for the type. A
+// zero cursor in its place starts the window at the snapshot's newest row.
+// That window misses the older tombstone of org 2, and the commit moves
+// the cursor past it, so org 2 stays live permanently. The next cycle,
+// with a good cursor, must land the tombstone.
+func TestSync_CursorReadErrorFailsType(t *testing.T) {
+	t.Parallel()
+
+	deletedAt := orgOldAt.Add(time.Hour)
+	editedAt := orgOldAt.Add(2 * time.Hour)
+	snapshot := []map[string]any{staleTestOrg(1, "Org1 New", "ok", editedAt)}
+	live := []map[string]any{
+		staleTestOrg(2, "Org2", "deleted", deletedAt),
+		staleTestOrg(1, "Org1 New", "ok", editedAt),
+	}
+
+	for _, mode := range []config.SyncMode{config.SyncModeIncremental, config.SyncModeFull} {
+		t.Run(string(mode), func(t *testing.T) {
+			t.Parallel()
+			server := newStaleSnapshotServer(t, cacheBuilt, snapshot, live, false)
+
+			client, db := testutil.SetupClientWithDB(t)
+			ctx := t.Context()
+			for id := 1; id <= 3; id++ {
+				if _, err := client.Organization.Create().
+					SetID(id).SetName("Org" + strconv.Itoa(id)).
+					SetCreated(orgOldAt).SetUpdated(orgOldAt).SetStatus("ok").
+					Save(ctx); err != nil {
+					t.Fatalf("seed org %d: %v", id, err)
+				}
+			}
+			// A BLOB sorts after every time value, and the driver cannot
+			// scan it into a time, so the cursor read of the table fails.
+			if _, err := db.ExecContext(ctx, `UPDATE organizations SET updated = x'00' WHERE id = 3`); err != nil {
+				t.Fatalf("corrupt org 3 updated: %v", err)
+			}
+
+			err := runStaleSnapshotSync(t, client, db, server, mode)
+			if err == nil {
+				t.Fatal("sync succeeded despite a failed cursor read")
+			}
+			if !strings.Contains(err.Error(), "fetch org: get max(updated) for organizations") {
+				t.Errorf("sync error = %q, want the org cursor read error", err)
+			}
+			if got := server.sinceValues(); len(got) != 0 {
+				t.Errorf("org since values = %q, want no org request", got)
+			}
+			for id := 1; id <= 2; id++ {
+				org, err := client.Organization.Get(ctx, id)
+				if err != nil {
+					t.Fatalf("get org %d: %v", id, err)
+				}
+				if org.Name != "Org"+strconv.Itoa(id) || org.Status != "ok" || !org.Updated.Equal(orgOldAt) {
+					t.Errorf("org %d = (%q, %q, %v), want the stored row unchanged", id, org.Name, org.Status, org.Updated)
+				}
+			}
+
+			// Remove the fault. The retry reads the real cursor and lands
+			// the tombstone.
+			if err := client.Organization.DeleteOneID(3).Exec(ctx); err != nil {
+				t.Fatalf("delete org 3: %v", err)
+			}
+			if err := runStaleSnapshotSync(t, client, db, server, mode); err != nil {
+				t.Fatalf("retry sync: %v", err)
+			}
+			org2, err := client.Organization.Get(ctx, 2)
+			if err != nil {
+				t.Fatalf("get org 2: %v", err)
+			}
+			if org2.Status != "deleted" {
+				t.Errorf("org 2 status = %q after the retry, want %q", org2.Status, "deleted")
+			}
+		})
+	}
+}
+
 // TestSync_FullModeRepairsRevertedRow covers an upstream change that
 // moves updated backwards: the IX-F import-log rollback reverts a row
 // through django-reversion, which saves the old version, old updated

@@ -62,6 +62,20 @@ are in the Git history at their tags.
   range check of both variables, and `Inf` passed the
   `PDBPLUS_PEERINGDB_RPS` check. The new `PDBPLUS_OTEL_SYNC_SAMPLE_RATE`
   has the same rule.
+- A failed read of the sync cursor (the newest `updated` value of a
+  table) now fails the sync cycle before its first upstream request, and
+  the next cycle retries. Before this release, the worker logged
+  `INFO "failed to get max(updated), using full sync"` and continued
+  with a zero cursor, which is the cursor of an empty table. The type
+  then fetched the bare list and a `?since=` window from the newest row
+  of that list. A bare list holds only live rows, so a row that upstream
+  deleted between the real cursor and that newest row was in neither
+  fetch. Committing the cycle moved the cursor past the delete, and the
+  row stayed live on all surfaces. In incremental mode, the zero cursor
+  also skipped the incremental fetch of the type. The cursor read error
+  counts in `pdbplus.sync.type.fetch_errors`. A failed fetch step now
+  also sets an error status on its `sync-fetch-<type>` span, whatever
+  the cause.
 
 ## [1.30.0] - 2026-09-24
 

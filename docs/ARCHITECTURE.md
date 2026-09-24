@@ -143,6 +143,12 @@ in pages of 250.
 An empty table fetches the bare list, which holds only live rows.
 When that list is not empty, the worker then fetches a `?since=` window
 from the newest `updated` value in the list.
+The worker reads all cursors before the first upstream request.
+When a cursor read fails, the cycle fails before it sends a request
+and commits no synced rows. The next cycle retries.
+A zero cursor would start the window at the newest row of the bare list,
+and a populated table would lose the deletes between the real cursor
+and that row.
 If an incremental fetch fails, the worker deletes the rows of that type
 from the scratch staging database and fetches the bare list.
 Then it tries the `?since=` window once more

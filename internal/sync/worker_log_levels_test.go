@@ -18,7 +18,6 @@ import (
 //   - "fetching"             INFO → DEBUG
 //   - "upserted"              INFO → DEBUG
 //   - "marked stale deleted" INFO → DEBUG
-//   - "failed to get cursor, using full sync" WARN → INFO
 //   - "sync rate-limited, deferring to next scheduled tick" WARN → INFO
 //   - "sync rate-limited during retry, deferring" WARN → INFO
 //   - "failed to get last sync time" WARN → DEBUG

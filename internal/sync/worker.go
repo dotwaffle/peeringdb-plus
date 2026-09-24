@@ -20,6 +20,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
@@ -1261,51 +1262,69 @@ func sumCounts(m map[string]int) int {
 // entity table, for the full-mode upsert gate (see skipUnchangedPredicate).
 func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) (map[string]time.Time, error) {
 	steps := w.syncSteps()
+	cursors, err := w.readSyncCursors(ctx, steps)
+	if err != nil {
+		return nil, err
+	}
 	snapshotCutoffs := make(map[string]time.Time, len(steps))
 
-	for _, step := range steps {
+	for i, step := range steps {
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "fetching",
 			slog.String("type", step.name),
 			slog.String("mode", string(mode)),
 		)
 
 		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
-
-		// Derive cursor from MAX(updated) on the entity
-		// table instead of reading sync_cursors. Replaces the v1.13
-		// meta.generated-based design that alternated every cycle into
-		// a full bare-list re-fetch (PeeringDB ?since= responses omit
-		// meta.generated — see internal/peeringdb/client_live_test.go).
-		table, ok := entityTables[step.name]
-		if !ok {
-			stepSpan.End()
-			return nil, fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
-		}
-		cursor, cursorErr := GetMaxUpdated(ctx, w.db, table)
-		if cursorErr != nil {
-			w.logger.LogAttrs(ctx, slog.LevelInfo, "failed to get max(updated), using full sync",
-				slog.String("type", step.name),
-				slog.Any("error", cursorErr),
-			)
-			// Fall through with zero cursor → full bare-list path — the
-			// correct fail-soft response (full path is always safe).
-		}
-
-		snapshotMax, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursor, stepSpan)
-
-		stepSpan.End()
-		typeAttr := metric.WithAttributes(attribute.String("type", step.name))
-
+		snapshotMax, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursors[i], stepSpan)
 		if stepErr != nil {
-			pdbotel.SyncTypeFetchErrors.Add(ctx, 1, typeAttr)
-			return nil, fmt.Errorf("fetch %s: %w", step.name, stepErr)
+			return nil, failFetchStep(ctx, stepSpan, step.name, stepErr)
 		}
+		stepSpan.End()
 		if !snapshotMax.IsZero() {
-			snapshotCutoffs[table] = snapshotMax
+			snapshotCutoffs[entityTables[step.name]] = snapshotMax
 		}
 	}
 
 	return snapshotCutoffs, nil
+}
+
+// readSyncCursors returns the cursor of each step, in step order: the
+// newest updated value of its entity table, or zero for an empty table
+// (see GetMaxUpdated). It reads all cursors before the first upstream
+// request, so a local read fault costs no upstream requests.
+//
+// A cursor read error fails the type and the cycle, and the next cycle
+// retries. A zero cursor in its place starts the tombstone window at the
+// newest row of the bare snapshot (see snapshotWindowStart). Over a
+// populated table, that window misses the deletes between the real cursor
+// and that row, and the commit moves the cursor past them.
+func (w *Worker) readSyncCursors(ctx context.Context, steps []syncStep) ([]time.Time, error) {
+	cursors := make([]time.Time, len(steps))
+	for i, step := range steps {
+		table, ok := entityTables[step.name]
+		if !ok {
+			return nil, fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
+		}
+		cursor, err := GetMaxUpdated(ctx, w.db, table)
+		if err != nil {
+			_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
+			return nil, failFetchStep(ctx, stepSpan, step.name, err)
+		}
+		cursors[i] = cursor
+	}
+	return cursors, nil
+}
+
+// failFetchStep records err as the failure of the fetch step of type name.
+// It sets the error on stepSpan, ends stepSpan and adds 1 to the
+// fetch-error counter of the type. It returns err wrapped with the type
+// name.
+func failFetchStep(ctx context.Context, stepSpan trace.Span, name string, err error) error {
+	stepSpan.RecordError(err)
+	stepSpan.SetStatus(codes.Error, "fetch failed")
+	stepSpan.End()
+	pdbotel.SyncTypeFetchErrors.Add(ctx, 1, metric.WithAttributes(attribute.String("type", name)))
+	return fmt.Errorf("fetch %s: %w", name, err)
 }
 
 // stageOneTypeToScratch streams a single PeeringDB type into its scratch
