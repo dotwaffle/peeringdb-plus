@@ -1,8 +1,13 @@
 package database
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
+
+	"github.com/XSAM/otelsql"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 func TestOpen_Success(t *testing.T) {
@@ -91,5 +96,52 @@ func TestOpen_PoolConfig(t *testing.T) {
 	stats := db.Stats()
 	if stats.MaxOpenConnections != 10 {
 		t.Errorf("MaxOpenConnections = %d, want 10", stats.MaxOpenConnections)
+	}
+}
+
+// TestOtelOptions_ProbeQueryHasNoSpan checks that a handle opened with
+// Open's otelsql options emits no span for the DataVersionProbe query and
+// still emits one for other queries. It passes its own TracerProvider, so
+// it does not touch the global one.
+func TestOtelOptions_ProbeQueryHasNoSpan(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	rec := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
+	t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
+
+	dsn := "file:" + filepath.Join(t.TempDir(), "probe.db")
+	db, err := otelsql.Open("sqlite3", dsn, append(otelOptions(), otelsql.WithTracerProvider(tp))...)
+	if err != nil {
+		t.Fatalf("open traced db: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	querySpans := func() int {
+		n := 0
+		for _, s := range rec.Ended() {
+			if s.Name() == string(otelsql.MethodConnQuery) {
+				n++
+			}
+		}
+		return n
+	}
+
+	p := NewDataVersionProbe(db)
+	t.Cleanup(func() { _ = p.Close() })
+	for range 3 {
+		if _, err := p.Version(ctx); err != nil {
+			t.Fatalf("Version: %v", err)
+		}
+	}
+	if n := querySpans(); n != 0 {
+		t.Errorf("query spans after 3 probe reads = %d, want 0", n)
+	}
+
+	var one int
+	if err := db.QueryRowContext(ctx, "SELECT 1").Scan(&one); err != nil {
+		t.Fatalf("SELECT 1: %v", err)
+	}
+	if n := querySpans(); n != 1 {
+		t.Errorf("query spans after SELECT 1 = %d, want 1", n)
 	}
 }
