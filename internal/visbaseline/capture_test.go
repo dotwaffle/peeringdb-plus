@@ -284,6 +284,7 @@ func TestCaptureRawAuthDirOutsideOutDir(t *testing.T) {
 				Types:      []string{"poc"},
 				OutDir:     tc.outDir,
 				RawAuthDir: tc.rawDir,
+				StatePath:  filepath.Join(base, "state.json"),
 				Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 			}
 			_, err := visbaseline.New(cfg)
@@ -694,12 +695,13 @@ func TestCaptureConfigValidates(t *testing.T) {
 	t.Parallel()
 
 	base := visbaseline.Config{
-		Target:  "beta",
-		BaseURL: "http://example.com",
-		Modes:   []string{"anon"},
-		Types:   []string{"poc"},
-		OutDir:  t.TempDir(),
-		Logger:  slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Target:    "beta",
+		BaseURL:   "http://example.com",
+		Modes:     []string{"anon"},
+		Types:     []string{"poc"},
+		OutDir:    t.TempDir(),
+		StatePath: filepath.Join(t.TempDir(), "state.json"),
+		Logger:    slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 
 	cases := []struct {
@@ -720,5 +722,68 @@ func TestCaptureConfigValidates(t *testing.T) {
 				t.Errorf("New with %s returned nil, want error", tc.name)
 			}
 		})
+	}
+}
+
+// TestCaptureDefaultStatePath asserts that a Capture with no StatePath
+// keeps its checkpoint at DefaultStatePath and creates the missing cache
+// dir for it.
+func TestCaptureDefaultStatePath(t *testing.T) {
+	skipUnlessXDGCache(t)
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+
+	srv, hits := captureTestServer(t)
+	cfg := visbaseline.Config{
+		Target:         "beta",
+		BaseURL:        srv.URL,
+		Modes:          []string{"anon"},
+		Types:          []string{"poc"},
+		Pages:          1,
+		OutDir:         t.TempDir(),
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ClientOverride: newFastClient(t, srv.URL),
+	}
+	capt, err := visbaseline.New(cfg)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	// Run saves the fresh checkpoint before the cancelled context stops
+	// it at the first tuple.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := capt.Run(ctx); err == nil {
+		t.Fatal("Run with a cancelled context returned nil, want error")
+	}
+	want := filepath.Join(cache, "peeringdb-plus", "pdb-vis-capture-state.json")
+	if _, err := visbaseline.LoadState(want); err != nil {
+		t.Errorf("checkpoint not at default path %s: %v", want, err)
+	}
+	if hits.Load() != 0 {
+		t.Errorf("server hits = %d, want 0", hits.Load())
+	}
+}
+
+// TestCaptureNoDefaultStatePath asserts that New returns an error when
+// StatePath is empty and the user cache dir is unknown.
+func TestCaptureNoDefaultStatePath(t *testing.T) {
+	skipUnlessXDGCache(t)
+	t.Setenv("XDG_CACHE_HOME", "")
+	t.Setenv("HOME", "")
+
+	cfg := visbaseline.Config{
+		Target:  "beta",
+		BaseURL: "http://example.invalid",
+		Modes:   []string{"anon"},
+		Types:   []string{"poc"},
+		OutDir:  t.TempDir(),
+		Logger:  slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+	_, err := visbaseline.New(cfg)
+	if err == nil {
+		t.Fatal("New with no StatePath and no user cache dir returned nil, want error")
+	}
+	if !strings.Contains(err.Error(), "set StatePath") {
+		t.Errorf("err = %v, want it to tell the caller to set StatePath", err)
 	}
 }

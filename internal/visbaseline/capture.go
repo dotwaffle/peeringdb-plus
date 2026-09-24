@@ -73,7 +73,11 @@ func New(cfg Config) (*Capture, error) {
 		cfg.Pages = 2
 	}
 	if cfg.StatePath == "" {
-		cfg.StatePath = DefaultStatePath
+		path, err := DefaultStatePath()
+		if err != nil {
+			return nil, fmt.Errorf("visbaseline.New: no default checkpoint path, set StatePath: %w", err)
+		}
+		cfg.StatePath = path
 	}
 	if cfg.RawAuthDir != "" {
 		if err := checkRawAuthDir(cfg.RawAuthDir, cfg.OutDir); err != nil {

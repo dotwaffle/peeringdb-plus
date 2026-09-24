@@ -57,8 +57,9 @@ type Config struct {
 	// not log the value.
 	APIKey string
 
-	// StatePath is the checkpoint file path. Defaults to DefaultStatePath
-	// when empty.
+	// StatePath is the checkpoint file path. Defaults to DefaultStatePath()
+	// when empty. New returns an error when it is empty and
+	// DefaultStatePath fails.
 	StatePath string
 
 	// Logger receives structured capture events. Required.

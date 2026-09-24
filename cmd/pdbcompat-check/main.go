@@ -92,7 +92,7 @@ func run(argv []string, stdout, stderr io.Writer) error {
 		fs.StringVar(&cfg.outDir, "out", "", "anon fixtures root (default: testdata/visibility-baseline/<target>)")
 		fs.StringVar(&cfg.types, "types", "", "comma-separated types to capture (default: 13 for beta, poc,org,net for prod)")
 		fs.BoolVar(&cfg.prodAuth, "prod-auth", false, "allow auth mode against prod target (requires API key; default false)")
-		fs.StringVar(&cfg.statePath, "state", "", "checkpoint file path (default: /tmp/pdb-vis-capture-state.json)")
+		fs.StringVar(&cfg.statePath, "state", "", "checkpoint file path (default: <user cache dir>/peeringdb-plus/pdb-vis-capture-state.json)")
 		fs.StringVar(&cfg.apiKey, "api-key", "", "PeeringDB API key (overrides PDBPLUS_PEERINGDB_API_KEY env var)")
 	case "redact":
 		fs.StringVar(&cfg.inDir, "in", "", "raw auth staging dir (e.g. /tmp/pdb-vis-capture-xxx/auth)")

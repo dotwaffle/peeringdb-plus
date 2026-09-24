@@ -10,10 +10,18 @@ import (
 	"strings"
 )
 
-// DefaultStatePath is the canonical location of the capture checkpoint file.
-// /tmp is used deliberately so the checkpoint survives process exit but not
-// reboots, matching operator expectations for a one-shot CLI.
-const DefaultStatePath = "/tmp/pdb-vis-capture-state.json"
+// DefaultStatePath returns the default location of the capture checkpoint
+// file: <user cache dir>/peeringdb-plus/pdb-vis-capture-state.json. The
+// user cache dir belongs to the invoking user, so other users cannot read,
+// replace or block the file. The checkpoint survives a reboot. This is
+// safe because the resume prompt defaults to restart.
+func DefaultStatePath() (string, error) {
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		return "", fmt.Errorf("find user cache dir: %w", err)
+	}
+	return filepath.Join(dir, "peeringdb-plus", "pdb-vis-capture-state.json"), nil
+}
 
 // stateVersion is the current State schema version. Incremented only on
 // breaking changes to the persisted JSON shape. Unknown versions on load
@@ -44,9 +52,9 @@ func (t Tuple) String() string {
 // State is the capture checkpoint.
 //
 // State carries ONLY tuple metadata. No response bytes, no API keys, no
-// payload. Per the checkpoint threat model: the
-// checkpoint file is written to /tmp and could be read by other users on
-// multi-tenant hosts, so it must never contain sensitive data. The
+// payload. Per the checkpoint threat model: the checkpoint file stays on
+// disk after an interrupted run, and the operator can put it at any path
+// with -state, so it must never contain sensitive data. The
 // TestCheckpointContainsNoPayload unit test enforces this invariant by
 // asserting the serialised top-level and tuple key sets are exactly the
 // declared JSON tags.
@@ -55,9 +63,10 @@ type State struct {
 	Tuples  []Tuple `json:"tuples"`
 }
 
-// Save serialises s to path atomically. The write goes to path+".tmp" first
+// Save serialises s to path atomically. Save creates a missing parent
+// directory with mode 0700. The write goes to path+".tmp" first
 // with mode 0600, then os.Rename moves it into place. POSIX rename on the
-// same filesystem is atomic — a concurrent reader sees either the old state
+// same filesystem is atomic. A concurrent reader sees either the old state
 // or the new state, never a partial write.
 //
 // Version is auto-stamped to the current schema version on Save if unset.
@@ -69,9 +78,11 @@ func (s *State) Save(path string) error {
 	if err != nil {
 		return fmt.Errorf("marshal state: %w", err)
 	}
+	// 0700 and 0600: only the invoking user can read the checkpoint.
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create state dir: %w", err)
+	}
 	tmp := path + ".tmp"
-	// 0600 — readable only by the invoking user. Checkpoint may live on
-	// shared hosts in /tmp; deny others by default.
 	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return fmt.Errorf("write state tmp: %w", err)
 	}

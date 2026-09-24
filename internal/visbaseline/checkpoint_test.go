@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -89,6 +90,76 @@ func TestCheckpointAtomicWrite(t *testing.T) {
 	}
 	if _, err := os.Stat(path); err != nil {
 		t.Errorf("final state file missing: %v", err)
+	}
+}
+
+// TestCheckpointSaveCreatesParentDir asserts that Save creates a missing
+// parent dir with mode 0700 and writes the file with mode 0600, so the
+// default checkpoint path works on a machine with no cache dir yet.
+func TestCheckpointSaveCreatesParentDir(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "cache", "peeringdb-plus")
+	path := filepath.Join(dir, "state.json")
+	s := &visbaseline.State{
+		Tuples: []visbaseline.Tuple{{Target: "beta", Mode: "anon", Type: "net", Page: 1}},
+	}
+	if err := s.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	for _, c := range []struct {
+		path string
+		want os.FileMode
+	}{
+		{dir, 0o700},
+		{path, 0o600},
+	} {
+		fi, err := os.Stat(c.path)
+		if err != nil {
+			t.Fatalf("Stat(%s): %v", c.path, err)
+		}
+		if got := fi.Mode().Perm(); got != c.want {
+			t.Errorf("mode of %s = %v, want %v", c.path, got, c.want)
+		}
+	}
+}
+
+// skipUnlessXDGCache skips the test when os.UserCacheDir does not read
+// XDG_CACHE_HOME and HOME on this platform.
+func skipUnlessXDGCache(t *testing.T) {
+	t.Helper()
+	switch runtime.GOOS {
+	case "windows", "darwin", "ios", "plan9":
+		t.Skipf("os.UserCacheDir does not use XDG_CACHE_HOME on %s", runtime.GOOS)
+	}
+}
+
+// TestDefaultStatePath asserts that the default checkpoint path is in the
+// user cache dir of the invoking user, not at a fixed path in /tmp.
+func TestDefaultStatePath(t *testing.T) {
+	skipUnlessXDGCache(t)
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+
+	got, err := visbaseline.DefaultStatePath()
+	if err != nil {
+		t.Fatalf("DefaultStatePath: %v", err)
+	}
+	want := filepath.Join(cache, "peeringdb-plus", "pdb-vis-capture-state.json")
+	if got != want {
+		t.Errorf("DefaultStatePath() = %q, want %q", got, want)
+	}
+}
+
+// TestDefaultStatePathNoCacheDir asserts that DefaultStatePath returns an
+// error when the user cache dir is unknown.
+func TestDefaultStatePathNoCacheDir(t *testing.T) {
+	skipUnlessXDGCache(t)
+	t.Setenv("XDG_CACHE_HOME", "")
+	t.Setenv("HOME", "")
+
+	if got, err := visbaseline.DefaultStatePath(); err == nil {
+		t.Errorf("DefaultStatePath() = %q, want error", got)
 	}
 }
 
