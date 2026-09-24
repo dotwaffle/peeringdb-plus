@@ -504,11 +504,9 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 // summariseStep computes p50/p95/p99/error-rate/rps for a step. It
 // counts each sample. A sample that is not OK counts as an error, and
 // its latency goes into the percentiles. A request that reached the
-// client timeout (--timeout) before the response headers arrived is
-// such an error: its error matches context.DeadlineExceeded. Hit does
-// not check the body read, so a timeout during the body read does not
-// make an error. Empty sample sets return a zero-valued
-// stepStats: no request ended within the step.
+// client timeout (--timeout) is such an error, also during the body
+// read: its error matches context.DeadlineExceeded. Empty sample sets
+// return a zero-valued stepStats: no request ended within the step.
 //
 // The worker loop in runRampStep decides which results are samples.
 // It drops the requests that the end of the step or of the run

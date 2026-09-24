@@ -1260,12 +1260,21 @@ func TestSummariseStep_NoSamples_ReturnsZero(t *testing.T) {
 // server, so no server delay races with it.
 const clientTimeout = 20 * time.Millisecond
 
-// newStalledServer returns a test server that answers no request. Its
-// handler returns when the client ends the request, or at cleanup.
-func newStalledServer(tb testing.TB) *httptest.Server {
+// newStalledServer returns a test server that does not complete a
+// response. With headers false, it sends nothing. With headers true, it
+// sends 200 response headers and the start of the body, then stalls the
+// body. Its handler returns when the client ends the request, or at
+// cleanup.
+func newStalledServer(tb testing.TB, headers bool) *httptest.Server {
 	tb.Helper()
 	release := make(chan struct{})
-	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if headers {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"data":[`)
+			_ = http.NewResponseController(w).Flush()
+		}
 		select {
 		case <-release:
 		case <-r.Context().Done():
@@ -1284,7 +1293,7 @@ func newStalledServer(tb testing.TB) *httptest.Server {
 func TestSummariseStep_CountsClientTimeout(t *testing.T) {
 	t.Parallel()
 
-	srv := newStalledServer(t)
+	srv := newStalledServer(t, false)
 	client := &http.Client{Transport: srv.Client().Transport, Timeout: clientTimeout}
 	res := Hit(t.Context(), client, srv.URL, "", rampEndpointFor(SurfacePdbCompat, "net", 1, 15169))
 
@@ -1373,52 +1382,153 @@ func TestRunRampStep_EndsOnDurationByDefault(t *testing.T) {
 }
 
 // TestRunRampStep_CountsClientTimeouts runs a step against a server
-// that answers no request, with a client timeout shorter than the
-// step. Asserts that the timed-out requests are samples with a 100%
-// error rate, and that detectInflection reports the error rate, not a
-// step without samples.
+// that does not complete a response, with a client timeout shorter than
+// the step. The server sends no response, or it sends the response
+// headers and stalls the body. Asserts that the timed-out requests are
+// samples with a 100% error rate, and that detectInflection reports the
+// error rate, not a step without samples.
 func TestRunRampStep_CountsClientTimeouts(t *testing.T) {
 	t.Parallel()
 
-	srv := newStalledServer(t)
-	// stepGate ends the step when concurrency+gateSamples requests have
-	// started. Only the client timeout ends a request, so the step lasts
-	// several client timeouts and has at least gateSamples samples.
-	gate := &stepGate{next: srv.Client().Transport, samples: gateSamples}
+	for _, tt := range []struct {
+		name    string
+		headers bool
+	}{
+		{name: "no response", headers: false},
+		{name: "stalled body", headers: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := newStalledServer(t, tt.headers)
+			// stepGate ends the step when concurrency+gateSamples requests
+			// have started. Only the client timeout ends a request, so the
+			// step lasts several client timeouts and has at least
+			// gateSamples samples.
+			gate := &stepGate{next: srv.Client().Transport, samples: gateSamples}
+			cfg := Config{
+				Base:       srv.URL,
+				HTTPClient: &http.Client{Transport: gate, Timeout: clientTimeout},
+				Timeout:    clientTimeout,
+			}
+			rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+			rcfg.stepEnd = gate.stepEnd
+			// Make the latency triggers unreachable. A sample takes at
+			// least clientTimeout and less than rampTestTimeout, so p95
+			// cannot pass clientTimeout*1e4 = 200s and p99 cannot pass an
+			// hour.
+			rcfg.P95Multiplier = 1e4
+			rcfg.P99Absolute = time.Hour
+
+			ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+			defer cancel()
+			step, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, 2, rcfg.StepDuration, []int{1, 2}, []int{15169, 32934}, io.Discard)
+			if err != nil {
+				t.Fatalf("runRampStep: %v", err)
+			}
+
+			if step.Samples < gateSamples {
+				t.Errorf("Samples = %d, want at least %d", step.Samples, gateSamples)
+			}
+			if step.ErrRate != 1 {
+				t.Errorf("ErrRate = %v, want 1 (each request reached the client timeout)", step.ErrRate)
+			}
+			if step.P50 < clientTimeout {
+				t.Errorf("P50 = %v, want at least the client timeout %v", step.P50, clientTimeout)
+			}
+			baseline := stepStats{Concurrency: 1, Samples: gateSamples, P50: clientTimeout, P95: clientTimeout, P99: clientTimeout}
+			reason, hit := detectInflection(step, baseline, rcfg)
+			if !hit || !strings.HasPrefix(reason, "error rate 100.00%") {
+				t.Errorf("detectInflection = (%q, %v), want the error-rate reason", reason, hit)
+			}
+		})
+	}
+}
+
+// TestRunRampStep_DropsBodyReadsAtStepEnd ends the step when each worker
+// has the response headers of its request, while the server stalls the
+// bodies. Asserts that the step has no samples: a request that reads its
+// body when the step ends is still in flight.
+func TestRunRampStep_DropsBodyReadsAtStepEnd(t *testing.T) {
+	t.Parallel()
+
+	const concurrency = 2
+	srv := newStalledServer(t, true)
+	transport := srv.Client().Transport
+	var (
+		responses atomic.Int64
+		endStep   context.CancelFunc
+	)
 	cfg := Config{
-		Base:       srv.URL,
-		HTTPClient: &http.Client{Transport: gate, Timeout: clientTimeout},
-		Timeout:    clientTimeout,
+		Base: srv.URL,
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := transport.RoundTrip(r)
+			if err == nil && responses.Add(1) == concurrency {
+				endStep()
+			}
+			return resp, err
+		})},
+		Timeout: 5 * time.Second,
 	}
 	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
-	rcfg.stepEnd = gate.stepEnd
-	// Make the latency triggers unreachable. A sample takes at least
-	// clientTimeout and less than rampTestTimeout, so p95 cannot pass
-	// clientTimeout*1e4 = 200s and p99 cannot pass an hour.
-	rcfg.P95Multiplier = 1e4
-	rcfg.P99Absolute = time.Hour
+	rcfg.stepEnd = func(ctx context.Context, _ int, _ time.Duration) (context.Context, context.CancelFunc) {
+		stepCtx, cancel := context.WithCancel(ctx)
+		endStep = cancel
+		return stepCtx, cancel
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
-	step, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, 2, rcfg.StepDuration, []int{1, 2}, []int{15169, 32934}, io.Discard)
+	stats, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, concurrency, rcfg.StepDuration, []int{1, 2}, []int{15169, 32934}, io.Discard)
 	if err != nil {
 		t.Fatalf("runRampStep: %v", err)
 	}
+	if ctx.Err() != nil {
+		t.Fatalf("step did not end before the test deadline")
+	}
+	if stats.Samples != 0 {
+		t.Errorf("Samples = %d (errors %d), want 0 (each request was reading its body when the step ended)", stats.Samples, stats.Errors)
+	}
+}
 
-	if step.Samples < gateSamples {
-		t.Errorf("Samples = %d, want at least %d", step.Samples, gateSamples)
-	}
-	if step.ErrRate != 1 {
-		t.Errorf("ErrRate = %v, want 1 (each request reached the client timeout)", step.ErrRate)
-	}
-	if step.P50 < clientTimeout {
-		t.Errorf("P50 = %v, want at least the client timeout %v", step.P50, clientTimeout)
-	}
-	baseline := stepStats{Concurrency: 1, Samples: gateSamples, P50: clientTimeout, P95: clientTimeout, P99: clientTimeout}
-	reason, hit := detectInflection(step, baseline, rcfg)
-	if !hit || !strings.HasPrefix(reason, "error rate 100.00%") {
-		t.Errorf("detectInflection = (%q, %v), want the error-rate reason", reason, hit)
-	}
+// TestHit_ReportsBodyReadErrors gets a response whose body stalls after
+// the headers. Asserts that a client timeout and a canceled ctx during
+// the body read give an error, with the status of the headers.
+func TestHit_ReportsBodyReadErrors(t *testing.T) {
+	t.Parallel()
+
+	srv := newStalledServer(t, true)
+	ep := rampEndpointFor(SurfacePdbCompat, "net", 1, 15169)
+
+	t.Run("client timeout", func(t *testing.T) {
+		t.Parallel()
+		client := &http.Client{Transport: srv.Client().Transport, Timeout: clientTimeout}
+		res := Hit(t.Context(), client, srv.URL, "", ep)
+		if !errors.Is(res.Err, context.DeadlineExceeded) {
+			t.Errorf("Err = %v, want an error that matches %v", res.Err, context.DeadlineExceeded)
+		}
+		if res.Status != http.StatusOK || res.OK() {
+			t.Errorf("Status = %d, OK = %v, want 200 and false", res.Status, res.OK())
+		}
+	})
+	t.Run("ctx canceled", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		transport := srv.Client().Transport
+		client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := transport.RoundTrip(r)
+			cancel() // the headers are in; cancel during the body read
+			return resp, err
+		})}
+		res := Hit(ctx, client, srv.URL, "", ep)
+		if !errors.Is(res.Err, context.Canceled) {
+			t.Errorf("Err = %v, want an error that matches %v", res.Err, context.Canceled)
+		}
+		if res.Status != http.StatusOK || res.OK() {
+			t.Errorf("Status = %d, OK = %v, want 200 and false", res.Status, res.OK())
+		}
+	})
 }
 
 // TestRamp_Interrupted_ReportsMeasuredSteps cancels the run when the

@@ -167,13 +167,13 @@ error columns.
 A request completes when it gets a response, fails, or reaches
 `--timeout`. Each request that completes within its step is a sample.
 A non-2xx response, a failed request and a request that reaches
-`--timeout` before the response headers arrive count as errors, and
-their latencies go into the percentiles. The body read does not check
-for errors, so a request that reaches `--timeout` while it reads the
-body counts by its status code. A request that is in flight when the step ends is not a
-sample. Thus, against a target that does not answer, a step has a
-100% error rate if `--timeout` is shorter than the step, and no
-samples if it is not.
+`--timeout` count as errors, and their latencies go into the
+percentiles. A request that fails while it reads the response body is
+a failed request. A request that the end of the step cuts off is not a
+sample, also when it has its response headers. A request that
+completes as the step ends is a sample. Thus, against a target that
+does not answer, a step has a 100% error rate if `--timeout` is
+shorter than the step, and no samples if it is not.
 
 Surfaces are exercised **sequentially** (in `--surfaces` order) so
 cross-surface contention does not bias results. Each surface fetches
