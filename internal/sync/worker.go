@@ -618,26 +618,47 @@ func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.Syn
 	return configured
 }
 
-// forceTraceKey is the context key carrying the manual-sync force-trace flag.
+// forceTraceKey is the context key that carries the trace choice of a
+// manual sync. The value true forces the trace, and false blocks it. A
+// context without the key runs a scheduled cycle, which the sampler keeps at
+// PDBPLUS_OTEL_SYNC_SAMPLE_RATE.
 type forceTraceKey struct{}
 
-// WithForceTrace marks ctx so the sync cycle run under it force-samples its
-// trace, overriding the sampler's default of dropping scheduled-sync traces.
-// It is set by the manual POST /sync handler and never by the timer scheduler,
-// so an on-demand sync is observable end to end — including its per-query DB
-// spans when PDBPLUS_OTEL_SQL is enabled.
+// WithForceTrace marks ctx so that the sync cycle run under it is always
+// traced, whatever PDBPLUS_OTEL_SYNC_SAMPLE_RATE is. The POST /sync handler
+// sets it, and the timer scheduler never does. The trace has the step spans
+// of the cycle and no DB spans (see pdbotel.WithoutDBSpans).
 func WithForceTrace(ctx context.Context) context.Context {
 	return context.WithValue(ctx, forceTraceKey{}, true)
 }
 
-// forceTraceFromContext reports whether ctx was marked by WithForceTrace.
-func forceTraceFromContext(ctx context.Context) bool {
-	v, _ := ctx.Value(forceTraceKey{}).(bool)
-	return v
+// WithNoTrace marks ctx so that the sync cycle run under it is never
+// traced, whatever PDBPLUS_OTEL_SYNC_SAMPLE_RATE is. The POST /sync handler
+// sets it for ?trace=0.
+func WithNoTrace(ctx context.Context) context.Context {
+	return context.WithValue(ctx, forceTraceKey{}, false)
+}
+
+// RootSpanAttributes returns the start attributes of the root span of a
+// sync cycle run under ctx. The sampler reads them before the route (see
+// internal/otel sampler). AttrSyncOrigin marks the span as a sync cycle.
+// AttrForceSample is present only when ctx carries a trace choice from
+// WithForceTrace or WithNoTrace. A scheduled cycle has no AttrForceSample.
+func RootSpanAttributes(ctx context.Context) []attribute.KeyValue {
+	attrs := []attribute.KeyValue{attribute.String(pdbotel.AttrSyncOrigin, pdbotel.SyncOriginValue)}
+	if force, ok := ctx.Value(forceTraceKey{}).(bool); ok {
+		attrs = append(attrs, attribute.Bool(pdbotel.AttrForceSample, force))
+	}
+	return attrs
 }
 
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // privacy bypass — sole production call site
+	// No otelsql DB spans in a cycle: a full cycle runs thousands of
+	// statements (one upsert for each 100-row chunk, plus the FK parent
+	// lookups), and with their spans its trace is larger than the per-trace
+	// limit of Grafana Cloud Tempo. The step spans stay.
+	ctx = pdbotel.WithoutDBSpans(ctx)
 	if !w.running.CompareAndSwap(false, true) {
 		// The trigger (and its requested mode — possibly the operator's
 		// ?mode=full escape hatch) is dropped, not queued. Return the
@@ -660,15 +681,11 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 		defer cancel()
 	}
 
-	// Tag the root sync span so the sampler can gate sync traces: origin=sync
-	// makes scheduled cycles drop by default; a manual POST /sync sets
-	// force_sample (via WithForceTrace) so that one cycle — and its per-query
-	// DB spans when PDBPLUS_OTEL_SQL is on — is sampled.
-	spanAttrs := []attribute.KeyValue{attribute.String(pdbotel.AttrSyncOrigin, pdbotel.SyncOriginValue)}
-	if forceTraceFromContext(ctx) {
-		spanAttrs = append(spanAttrs, attribute.Bool(pdbotel.AttrForceSample, true))
-	}
-	ctx, span := otel.Tracer("sync").Start(ctx, "sync-"+string(mode), trace.WithAttributes(spanAttrs...))
+	// Tag the root sync span so that the sampler can gate sync traces. The
+	// sampler keeps a scheduled cycle at PDBPLUS_OTEL_SYNC_SAMPLE_RATE
+	// (default 1.0: every cycle). A POST /sync cycle is always traced, or
+	// never traced with ?trace=0.
+	ctx, span := otel.Tracer("sync").Start(ctx, "sync-"+string(mode), trace.WithAttributes(RootSpanAttributes(ctx)...))
 	defer span.End()
 
 	start := time.Now()

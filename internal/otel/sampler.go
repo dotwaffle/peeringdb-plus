@@ -10,13 +10,17 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-// Span-start attributes the sync worker stamps on its root span so this
-// sampler can gate sync traces independently of HTTP route. AttrSyncOrigin set
-// to SyncOriginValue marks a scheduled sync cycle (dropped by default so it
-// emits no trace — and, with PDBPLUS_OTEL_SQL on, no per-query DB spans);
-// AttrForceSample set true marks a manually-triggered sync (POST /sync) and
-// forces the trace to be sampled. Untyped string constants so they compare
-// directly against attribute.Key in the ShouldSample scan.
+// Span-start attributes that the sync worker sets on its root span. The
+// sampler reads them before the route, because a sync root span has no URL
+// path and would otherwise get the 1% default ratio.
+//
+// AttrSyncOrigin set to SyncOriginValue marks a sync cycle. A cycle without
+// AttrForceSample is a scheduled cycle, and the sampler keeps it at
+// PerRouteSamplerInput.SyncRatio (PDBPLUS_OTEL_SYNC_SAMPLE_RATE).
+// AttrForceSample overrides every ratio. The value true always samples the
+// span (POST /sync). The value false never samples it (POST /sync?trace=0).
+// The constants are untyped strings, so they compare directly with
+// attribute.Key in the ShouldSample scan.
 const (
 	AttrSyncOrigin  = "pdbplus.origin"
 	SyncOriginValue = "sync"
@@ -32,10 +36,13 @@ const (
 // can override the broader "/api/" entry.
 //
 // DefaultRatio applies when no prefix matches AND when no
-// url.path / http.target attribute is present (sync-worker spans,
-// internal traces).
+// url.path / http.target attribute is present (internal traces).
+//
+// SyncRatio applies to scheduled sync cycles: spans with AttrSyncOrigin set
+// to SyncOriginValue and no AttrForceSample.
 type PerRouteSamplerInput struct {
 	DefaultRatio float64
+	SyncRatio    float64
 	Routes       map[string]float64
 }
 
@@ -68,6 +75,8 @@ func NewPerRouteSampler(in PerRouteSamplerInput) sdktrace.Sampler {
 	return &perRouteSampler{
 		defaultSampler: defaultSampler,
 		defaultRatio:   in.DefaultRatio,
+		syncSampler:    sdktrace.TraceIDRatioBased(in.SyncRatio),
+		syncRatio:      in.SyncRatio,
 		entries:        entries,
 	}
 }
@@ -94,13 +103,16 @@ type routeEntry struct {
 // the longest route prefix that matches the url.path (or legacy
 // http.target) span attribute, and the default sampler when no prefix
 // matches. The route ratios keep health probes low and let
-// PDBPLUS_OTEL_SAMPLE_RATE set the ratio of the API routes. It drops
-// scheduled sync cycles and samples forced syncs, whatever the route.
+// PDBPLUS_OTEL_SAMPLE_RATE set the ratio of the API routes. Sync cycles do
+// not use the route: the sampler keeps scheduled cycles at the sync ratio,
+// always samples forced syncs and never samples opted-out syncs.
 // provider.go wraps it in sdktrace.ParentBased, so child spans inherit the
 // root decision.
 type perRouteSampler struct {
 	defaultSampler sdktrace.Sampler
 	defaultRatio   float64
+	syncSampler    sdktrace.Sampler
+	syncRatio      float64
 	entries        []routeEntry
 }
 
@@ -110,22 +122,24 @@ type perRouteSampler struct {
 // url.path then http.target (legacy semconv fallback). Both keys are
 // inspected because otelhttp's RequestTraceAttrs may emit either depending
 // on the semconv version pinned in go.mod. The first non-empty match
-// drives the prefix lookup; if neither is present (sync-worker span,
-// internal trace), the default sampler is consulted.
+// drives the prefix lookup; if neither is present (internal trace), the
+// default sampler is consulted. Sync spans are gated before this lookup.
 //
 // Hot-path allocation is bounded — the entries slice is pre-sorted at
 // construction time and the SamplingResult is the only allocation.
 func (s *perRouteSampler) ShouldSample(params sdktrace.SamplingParameters) sdktrace.SamplingResult {
-	// Sync-trace gating, independent of route: a manual force-sample wins;
-	// otherwise a sync-origin span (scheduled cycle) is dropped so it emits no
-	// trace. Non-sync spans fall through to the per-route logic below.
+	// Sync-trace gating comes before the route. A sync root span has no URL
+	// path, so without this gate it gets the 1% default ratio. Non-sync
+	// spans fall through to the per-route logic below.
 	switch syncSampleDecision(params.Attributes) {
 	case decideForceSample:
 		return sdktrace.AlwaysSample().ShouldSample(params)
 	case decideDrop:
 		return sdktrace.NeverSample().ShouldSample(params)
+	case decideSyncRatio:
+		return s.syncSampler.ShouldSample(params)
 	case decideUnset:
-		// Not a sync span — fall through to per-route sampling below.
+		// Not a sync span. Use the per-route sampling below.
 	}
 
 	path := pathFromAttributes(params.Attributes)
@@ -195,12 +209,15 @@ const (
 	decideUnset syncDecision = iota
 	decideForceSample
 	decideDrop
+	decideSyncRatio
 )
 
-// syncSampleDecision inspects a span's start attributes for the sync-trace
-// gating markers. Returns decideForceSample when AttrForceSample is true
-// (manual POST /sync), decideDrop when the span is sync-origin without a force
-// flag (scheduled cycle), or decideUnset for everything else (HTTP/internal).
+// syncSampleDecision reads the sync-trace markers in the start attributes of
+// a span. AttrForceSample decides first: true returns decideForceSample
+// (POST /sync), and false returns decideDrop (POST /sync?trace=0). A
+// sync-origin span without AttrForceSample returns decideSyncRatio (a
+// scheduled cycle). All other spans return decideUnset (HTTP and internal
+// spans).
 func syncSampleDecision(attrs []attribute.KeyValue) syncDecision {
 	origin := false
 	for _, kv := range attrs {
@@ -209,6 +226,7 @@ func syncSampleDecision(attrs []attribute.KeyValue) syncDecision {
 			if kv.Value.AsBool() {
 				return decideForceSample
 			}
+			return decideDrop
 		case AttrSyncOrigin:
 			if kv.Value.AsString() == SyncOriginValue {
 				origin = true
@@ -216,14 +234,15 @@ func syncSampleDecision(attrs []attribute.KeyValue) syncDecision {
 		}
 	}
 	if origin {
-		return decideDrop
+		return decideSyncRatio
 	}
 	return decideUnset
 }
 
 // Description returns a stable human-readable identifier for OTel debug
-// output. Includes the marker "PerRouteSampler" and the configured
-// route count for at-a-glance diagnostics.
+// output. Includes the marker "PerRouteSampler", the configured route
+// count and the default and sync ratios for at-a-glance diagnostics.
 func (s *perRouteSampler) Description() string {
-	return fmt.Sprintf("PerRouteSampler{routes=%d, default=TraceIDRatioBased(%v)}", len(s.entries), s.defaultRatio)
+	return fmt.Sprintf("PerRouteSampler{routes=%d, default=TraceIDRatioBased(%v), sync=TraceIDRatioBased(%v)}",
+		len(s.entries), s.defaultRatio, s.syncRatio)
 }

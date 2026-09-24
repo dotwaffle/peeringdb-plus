@@ -144,8 +144,9 @@ func main() {
 	defer cancel()
 
 	otelOut, err := pdbotel.Setup(ctx, pdbotel.SetupInput{
-		ServiceName: "peeringdb-plus",
-		SampleRate:  cfg.OTelSampleRate,
+		ServiceName:    "peeringdb-plus",
+		SampleRate:     cfg.OTelSampleRate,
+		SyncSampleRate: cfg.OTelSyncSampleRate,
 	})
 	if err != nil {
 		slog.Error("failed to init otel", slog.Any("error", err))

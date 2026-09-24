@@ -1,11 +1,15 @@
 package otel
 
 import (
+	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"go.opentelemetry.io/otel"
@@ -13,6 +17,8 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func TestSetup_ReturnsNonNilShutdown(t *testing.T) {
@@ -473,6 +479,104 @@ func TestSetup_InvertedSamplerDefault(t *testing.T) {
 				if got != want {
 					t.Errorf("Routes[%q] = %v, want %v (must be unchanged by inversion)", prefix, got, want)
 				}
+			}
+		})
+	}
+}
+
+// TestSetup_SyncRatioFromSyncSampleRate locks the plumbing of
+// PDBPLUS_OTEL_SYNC_SAMPLE_RATE: SyncRatio equals in.SyncSampleRate and
+// does not follow in.SampleRate.
+func TestSetup_SyncRatioFromSyncSampleRate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		sampleRate, syncSampleRate float64
+	}{
+		{sampleRate: 1.0, syncSampleRate: 0.0},
+		{sampleRate: 0.0, syncSampleRate: 1.0},
+		{sampleRate: 1.0, syncSampleRate: 0.25},
+	}
+	for _, tt := range tests {
+		out := defaultSamplerInput(SetupInput{
+			ServiceName:    "test-service",
+			SampleRate:     tt.sampleRate,
+			SyncSampleRate: tt.syncSampleRate,
+		})
+		if out.SyncRatio != tt.syncSampleRate {
+			t.Errorf("SampleRate=%v SyncSampleRate=%v: SyncRatio = %v, want %v",
+				tt.sampleRate, tt.syncSampleRate, out.SyncRatio, tt.syncSampleRate)
+		}
+	}
+}
+
+// allOnesIDs is an sdktrace.IDGenerator that gives each trace
+// allOnesTraceID. Each ratio below 1.0 drops that TraceID, so a span that
+// does not follow a sampled root span is dropped.
+type allOnesIDs struct{ next atomic.Uint64 }
+
+func (g *allOnesIDs) NewIDs(context.Context) (trace.TraceID, trace.SpanID) {
+	return allOnesTraceID, g.spanID()
+}
+
+func (g *allOnesIDs) NewSpanID(context.Context, trace.TraceID) trace.SpanID {
+	return g.spanID()
+}
+
+func (g *allOnesIDs) spanID() trace.SpanID {
+	var id trace.SpanID
+	binary.BigEndian.PutUint64(id[:], g.next.Add(1))
+	return id
+}
+
+// TestSetup_SyncCycleChildSpansFollowRoot runs the root span of a sync
+// cycle and one of its step spans through the sampler of Setup. The step
+// span has no URL path, so without sdktrace.ParentBased it would get the 1%
+// default ratio and drop. Asserts that the step span follows the root
+// decision for each trace choice. TestRootSpanAttributes in internal/sync locks the attributes
+// that each choice sets.
+func TestSetup_SyncCycleChildSpansFollowRoot(t *testing.T) {
+	t.Parallel()
+
+	origin := attribute.String(AttrSyncOrigin, SyncOriginValue)
+	tests := []struct {
+		name      string
+		syncRatio float64
+		attrs     []attribute.KeyValue
+		traced    bool
+	}{
+		{name: "scheduled cycle at ratio 1", syncRatio: 1, attrs: []attribute.KeyValue{origin}, traced: true},
+		{name: "scheduled cycle at ratio 0", syncRatio: 0, attrs: []attribute.KeyValue{origin}, traced: false},
+		{name: "POST /sync at ratio 0", syncRatio: 0, attrs: []attribute.KeyValue{origin, attribute.Bool(AttrForceSample, true)}, traced: true},
+		{name: "POST /sync?trace=0 at ratio 1", syncRatio: 1, attrs: []attribute.KeyValue{origin, attribute.Bool(AttrForceSample, false)}, traced: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			rec := tracetest.NewSpanRecorder()
+			tp := sdktrace.NewTracerProvider(
+				sdktrace.WithSampler(newSampler(SetupInput{SampleRate: 1, SyncSampleRate: tt.syncRatio})),
+				sdktrace.WithIDGenerator(&allOnesIDs{}),
+				sdktrace.WithSpanProcessor(rec),
+			)
+			t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
+
+			ctx, root := tp.Tracer("sync").Start(t.Context(), "sync-incremental", trace.WithAttributes(tt.attrs...))
+			_, child := tp.Tracer("sync").Start(ctx, "sync-upsert-org")
+			child.End()
+			root.End()
+
+			var got []string
+			for _, s := range rec.Ended() {
+				got = append(got, s.Name())
+			}
+			var want []string
+			if tt.traced {
+				want = []string{"sync-upsert-org", "sync-incremental"}
+			}
+			if !slices.Equal(got, want) {
+				t.Errorf("recorded spans = %v, want %v", got, want)
 			}
 		})
 	}

@@ -8,6 +8,8 @@ import (
 	"github.com/XSAM/otelsql"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+
+	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 )
 
 func TestOpen_Success(t *testing.T) {
@@ -143,5 +145,59 @@ func TestOtelOptions_ProbeQueryHasNoSpan(t *testing.T) {
 	}
 	if n := querySpans(); n != 1 {
 		t.Errorf("query spans after SELECT 1 = %d, want 1", n)
+	}
+}
+
+// TestOtelOptions_WithoutDBSpans checks that a handle opened with Open's
+// otelsql options emits no span for a statement under a context from
+// pdbotel.WithoutDBSpans: a query, an exec, and a transaction with its begin
+// and commit. The same statements under a plain context emit spans.
+func TestOtelOptions_WithoutDBSpans(t *testing.T) {
+	t.Parallel()
+	rec := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
+	t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
+
+	dsn := "file:" + filepath.Join(t.TempDir(), "nospans.db")
+	db, err := otelsql.Open("sqlite3", dsn, append(otelOptions(), otelsql.WithTracerProvider(tp))...)
+	if err != nil {
+		t.Fatalf("open traced db: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	run := func(ctx context.Context) {
+		t.Helper()
+		var one int
+		if err := db.QueryRowContext(ctx, "SELECT 1").Scan(&one); err != nil {
+			t.Fatalf("SELECT 1: %v", err)
+		}
+		if _, err := db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS t (v INTEGER)"); err != nil {
+			t.Fatalf("create table: %v", err)
+		}
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatalf("begin: %v", err)
+		}
+		if _, err := tx.ExecContext(ctx, "INSERT INTO t (v) VALUES (1)"); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("insert: %v", err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+	}
+
+	run(pdbotel.WithoutDBSpans(t.Context()))
+	if n := len(rec.Ended()); n != 0 {
+		names := make([]string, 0, n)
+		for _, s := range rec.Ended() {
+			names = append(names, s.Name())
+		}
+		t.Errorf("spans under WithoutDBSpans = %v, want none", names)
+	}
+
+	run(t.Context())
+	if n := len(rec.Ended()); n == 0 {
+		t.Error("no spans under a plain context: the handle does not trace")
 	}
 }

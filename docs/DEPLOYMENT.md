@@ -414,6 +414,8 @@ Signals are selected by the standard environment variables documented at
 - `OTEL_EXPORTER_PROMETHEUS_HOST` / `OTEL_EXPORTER_PROMETHEUS_PORT` for
   scrape-based metrics.
 - `PDBPLUS_OTEL_SAMPLE_RATE` (app-specific) for the trace sampling ratio.
+- `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` (app-specific) for the trace sampling
+  ratio of scheduled sync cycles (default `1.0`: every cycle).
 
 A Grafana dashboard is provided in
 `deploy/grafana/dashboards/pdbplus-overview.json` with a provisioning manifest
@@ -772,8 +774,11 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
    Wait until it ends, then send the request again.
    A `401` means that the token is wrong or not set.
 
-The primary traces this cycle.
+The primary always traces this cycle,
+whatever `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` is.
 To send the request without a trace, add `&trace=0` to the URL.
+The primary then does not trace the cycle, also when it traces every
+scheduled cycle.
 
 ### 6) Primary lost its database
 

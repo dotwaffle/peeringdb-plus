@@ -38,7 +38,7 @@ type DataVersionProbe struct {
 }
 
 // dataVersionQuery is the only statement that a DataVersionProbe runs.
-// omitProbeSpan matches it by text.
+// keepQuerySpan matches it by text.
 const dataVersionQuery = "PRAGMA data_version"
 
 // NewDataVersionProbe returns a probe for db. It pins no connection until

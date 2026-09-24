@@ -822,6 +822,8 @@ Before you open a PR:
   `OTEL_METRICS_EXPORTER=none`, and `OTEL_LOGS_EXPORTER=none` to stop export.
   `PDBPLUS_OTEL_SAMPLE_RATE=0` stops traces only for `/api/`, `/rest/v1/`,
   `/peeringdb.v1.`, and `/graphql`.
+  `PDBPLUS_OTEL_SYNC_SAMPLE_RATE=0` stops the traces of scheduled sync
+  cycles.
   Other paths keep their fixed ratios
   (see [ARCHITECTURE.md § Sampling Matrix](ARCHITECTURE.md#sampling-matrix)).
 - **An ent schema change did not reach an API:** run `mise run generate`,

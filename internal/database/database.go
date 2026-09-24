@@ -16,6 +16,7 @@ import (
 	"modernc.org/sqlite"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
 )
 
 func init() {
@@ -50,15 +51,16 @@ func init() {
 //
 // When traceSQL is true the underlying *sql.DB is opened through XSAM/otelsql,
 // so every query — ent's and the raw sync_status statements that share this
-// handle — emits an OpenTelemetry span beneath the active request/sync span.
+// handle — emits an OpenTelemetry span beneath the active request span.
 // Controlled by PDBPLUS_OTEL_SQL (default on; set false to disable). Span
-// volume is bounded by the trace sampler: scheduled sync cycles are not traced,
-// so the high-volume sync path produces no DB spans — see internal/otel sampler.
+// volume is bounded by the trace sampler: a DB span follows the decision of
+// its parent span. A sync cycle emits no DB spans (see
+// pdbotel.WithoutDBSpans).
 // The low-signal sql.rows and sql.conn.reset_session span types are suppressed
 // (see otelOptions): they roughly halve the span count per request
 // trace and remove the orphan single-span traces that pool-lifecycle and
 // boot-time schema-migration DB operations otherwise emit with no request root.
-// The DataVersionProbe query emits no span either (see omitProbeSpan).
+// The DataVersionProbe query emits no span either (see keepQuerySpan).
 func Open(dbPath string, traceSQL bool) (*ent.Client, *sql.DB, error) {
 	dsn := fmt.Sprintf(
 		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"+
@@ -103,14 +105,16 @@ func otelOptions() []otelsql.Option {
 		otelsql.WithSpanOptions(otelsql.SpanOptions{
 			OmitRows:             true,
 			OmitConnResetSession: true,
-			SpanFilter:           omitProbeSpan,
+			SpanFilter:           keepQuerySpan,
 		}),
 	}
 }
 
-// omitProbeSpan is the otelsql span filter of Open. It drops the span of
+// keepQuerySpan is the otelsql span filter of Open. It drops the span of
 // the DataVersionProbe query, which a caller runs about once a second
-// outside any request: each span would be the root of its own trace.
-func omitProbeSpan(_ context.Context, _ otelsql.Method, query string, _ []driver.NamedValue) bool {
-	return query != dataVersionQuery
+// outside any request: each span would be the root of its own trace. It
+// also drops each span under a context from pdbotel.WithoutDBSpans, which
+// marks a sync cycle.
+func keepQuerySpan(ctx context.Context, _ otelsql.Method, query string, _ []driver.NamedValue) bool {
+	return !pdbotel.DBSpansOff(ctx) && query != dataVersionQuery
 }
