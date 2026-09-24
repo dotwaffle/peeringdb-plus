@@ -27,9 +27,9 @@ func TestInitLiteFSGauges_RecordsValues(t *testing.T) {
 		return litefs.Metrics{
 			TXID:          58649,
 			Commits:       12,
-			LTXBytes:      203607,
-			LTXFiles:      6,
-			LTXLagSeconds: 0.5,
+			LTXBytes:      new(int64(203607)),
+			LTXFiles:      new(int64(6)),
+			LTXLagSeconds: new(0.5),
 			LagSeconds:    1.25,
 			Subscribers:   7,
 		}, nil
@@ -83,6 +83,44 @@ func TestInitLiteFSGauges_RecordsValues(t *testing.T) {
 	sum, ok := m.Data.(metricdata.Sum[int64])
 	if !ok || !sum.IsMonotonic || len(sum.DataPoints) != 1 || sum.DataPoints[0].Value != 12 {
 		t.Errorf("pdbplus.litefs.commits = %+v, want one monotonic Sum[int64] point of 12", m.Data)
+	}
+}
+
+// TestInitLiteFSGauges_LazySeriesAbsent checks that a scrape from a
+// node that has not committed since LiteFS started exports the series
+// it has, and no value for the absent ones.
+func TestInitLiteFSGauges_LazySeriesAbsent(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
+
+	err := InitLiteFSGauges(func(context.Context) (litefs.Metrics, error) {
+		return litefs.Metrics{TXID: 58661, LagSeconds: 0.5, Subscribers: 7}, nil
+	})
+	if err != nil {
+		t.Fatalf("InitLiteFSGauges: %v", err)
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+	for _, name := range []string{"pdbplus.litefs.ltx.size", "pdbplus.litefs.ltx.files", "pdbplus.litefs.ltx.lag"} {
+		if m := findMetric(rm, name); m != nil {
+			t.Errorf("%s = %+v, want no value for an absent series", name, m.Data)
+		}
+	}
+	if m := findMetric(rm, "pdbplus.litefs.txid"); m == nil {
+		t.Error("pdbplus.litefs.txid not found")
+	}
+	m := findMetric(rm, "pdbplus.litefs.commits")
+	if m == nil {
+		t.Fatal("pdbplus.litefs.commits not found")
+	}
+	sum, ok := m.Data.(metricdata.Sum[int64])
+	if !ok || len(sum.DataPoints) != 1 || sum.DataPoints[0].Value != 0 {
+		t.Errorf("pdbplus.litefs.commits = %+v, want one point of 0", m.Data)
 	}
 }
 

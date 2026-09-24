@@ -3,10 +3,12 @@ package litefs_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -15,32 +17,90 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 )
 
-// TestParseMetrics_PrimarySample parses the output of a production
-// primary (LiteFS 0.5, 2026-09-24).
-func TestParseMetrics_PrimarySample(t *testing.T) {
+// TestParseMetrics_ProductionSamples parses the output of production
+// nodes (LiteFS 0.5, 2026-09-24). The fresh samples come from nodes that
+// had not committed since a restart, so they have no
+// litefs_db_commit_count series.
+func TestParseMetrics_ProductionSamples(t *testing.T) {
 	t.Parallel()
-	f, err := os.Open("testdata/metrics-primary.txt")
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		file string
+		want litefs.Metrics
+	}{
+		{
+			file: "testdata/metrics-primary.txt",
+			want: litefs.Metrics{
+				TXID:          58649,
+				Commits:       12,
+				LTXBytes:      new(int64(203607)),
+				LTXFiles:      new(int64(6)),
+				LTXLagSeconds: new(float64(0)),
+				LagSeconds:    0,
+				Subscribers:   7,
+			},
+		},
+		{
+			file: "testdata/metrics-primary-fresh.txt",
+			want: litefs.Metrics{
+				TXID:          58661,
+				Commits:       0,
+				LTXBytes:      new(int64(886)),
+				LTXFiles:      new(int64(1)),
+				LTXLagSeconds: new(385.649),
+				LagSeconds:    0,
+				Subscribers:   7,
+			},
+		},
+		{
+			file: "testdata/metrics-replica-fresh.txt",
+			want: litefs.Metrics{
+				TXID:          58661,
+				Commits:       0,
+				LTXBytes:      new(int64(54882450)),
+				LTXFiles:      new(int64(1)),
+				LTXLagSeconds: new(18.921),
+				LagSeconds:    0.575,
+				Subscribers:   0,
+			},
+		},
 	}
-	t.Cleanup(func() { _ = f.Close() })
+	for _, tt := range tests {
+		t.Run(tt.file, func(t *testing.T) {
+			t.Parallel()
+			f, err := os.Open(tt.file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = f.Close() })
 
-	got, err := litefs.ParseMetrics(f, "peeringdb-plus.db")
-	if err != nil {
-		t.Fatalf("ParseMetrics: %v", err)
+			got, err := litefs.ParseMetrics(f, "peeringdb-plus.db")
+			if err != nil {
+				t.Fatalf("ParseMetrics: %v", err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParseMetrics = %s, want %s", describe(got), describe(tt.want))
+			}
+		})
 	}
-	want := litefs.Metrics{
-		TXID:          58649,
-		Commits:       12,
-		LTXBytes:      203607,
-		LTXFiles:      6,
-		LTXLagSeconds: 0,
-		LagSeconds:    0,
-		Subscribers:   7,
+}
+
+// describe formats m with the values of its pointer fields.
+func describe(m litefs.Metrics) string {
+	opt := func(p any) string {
+		switch v := p.(type) {
+		case *int64:
+			if v != nil {
+				return fmt.Sprint(*v)
+			}
+		case *float64:
+			if v != nil {
+				return fmt.Sprint(*v)
+			}
+		}
+		return "nil"
 	}
-	if got != want {
-		t.Errorf("ParseMetrics = %+v, want %+v", got, want)
-	}
+	return fmt.Sprintf("{TXID:%d Commits:%d LTXBytes:%s LTXFiles:%s LTXLagSeconds:%s LagSeconds:%v Subscribers:%d}",
+		m.TXID, m.Commits, opt(m.LTXBytes), opt(m.LTXFiles), opt(m.LTXLagSeconds), m.LagSeconds, m.Subscribers)
 }
 
 // baseExposition holds one sample of each metric that ParseMetrics
@@ -57,9 +117,9 @@ litefs_subscriber_count 0
 var baseMetrics = litefs.Metrics{
 	TXID:          12,
 	Commits:       3,
-	LTXBytes:      100,
-	LTXFiles:      2,
-	LTXLagSeconds: 0.25,
+	LTXBytes:      new(int64(100)),
+	LTXFiles:      new(int64(2)),
+	LTXLagSeconds: new(0.25),
 	LagSeconds:    1.5,
 }
 
@@ -72,7 +132,8 @@ func TestParseMetrics(t *testing.T) {
 		return strings.Replace(baseExposition, from, to, 1)
 	}
 	withBytes := baseMetrics
-	withBytes.LTXBytes = 1234500
+	withBytes.LTXBytes = new(int64(1234500))
+	lazyAbsent := litefs.Metrics{TXID: 12, LagSeconds: 1.5}
 
 	tests := []struct {
 		name    string
@@ -108,9 +169,22 @@ litefs_db_commit_count{db="a.db"} NaNx
 			want: baseMetrics,
 		},
 		{
+			name: "lazy series absent",
+			input: `litefs_db_txid{db="a.db"} 12
+litefs_lag_seconds 1.5
+litefs_subscriber_count 0
+`,
+			want: lazyAbsent,
+		},
+		{
 			name:    "database missing",
 			input:   strings.ReplaceAll(baseExposition, `db="a.db"`, `db="other.db"`),
-			wantErr: `database "a.db": no litefs_db_commit_count sample`,
+			wantErr: `database "a.db": no litefs_db_txid sample`,
+		},
+		{
+			name:    "txid missing",
+			input:   replace(`litefs_db_txid{db="a.db"} 12`+"\n", ""),
+			wantErr: "no litefs_db_txid sample",
 		},
 		{
 			name:    "sample missing",
@@ -140,7 +214,7 @@ litefs_db_commit_count{db="a.db"} NaNx
 		{
 			name:    "not an exposition",
 			input:   "<html>not found</html>\n",
-			wantErr: "no litefs_db_commit_count sample",
+			wantErr: "no litefs_db_txid sample",
 		},
 	}
 	for _, tt := range tests {
@@ -156,8 +230,8 @@ litefs_db_commit_count{db="a.db"} NaNx
 			if err != nil {
 				t.Fatalf("ParseMetrics: %v", err)
 			}
-			if got != tt.want {
-				t.Errorf("ParseMetrics = %+v, want %+v", got, tt.want)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ParseMetrics = %s, want %s", describe(got), describe(tt.want))
 			}
 		})
 	}
@@ -185,8 +259,8 @@ func TestMetricsScraper_Scrape(t *testing.T) {
 	ctx := context.Background()
 
 	m, err := s.Scrape(ctx)
-	if err != nil || m != baseMetrics {
-		t.Fatalf("Scrape = %+v, %v; want %+v", m, err, baseMetrics)
+	if err != nil || !reflect.DeepEqual(m, baseMetrics) {
+		t.Fatalf("Scrape = %s, %v; want %s", describe(m), err, describe(baseMetrics))
 	}
 	if logs.Len() != 0 {
 		t.Errorf("successful scrape logged %q", logs.String())

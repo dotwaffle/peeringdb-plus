@@ -1650,10 +1650,16 @@ vars.
     metrics endpoint. The app registers these instruments only when
     `PDBPLUS_LITEFS_METRICS_URL` is set. One collection reads the endpoint
     once. A failed read exports no LiteFS values, so a dashboard shows a gap.
-    A read fails when a sample is missing, when a value is not finite
+    A read fails when the `litefs_db_txid`, `litefs_lag_seconds` or
+    `litefs_subscriber_count` sample is missing, when a value is not finite
     or a count is not an integer, and when the body is larger than 1 MiB.
+    LiteFS creates the other series only at the first commit, LTX apply or
+    retention pass after it starts. Until then, `commits` is 0 and
+    `ltx.size`, `ltx.files` and `ltx.lag` have no value.
+    A replica does not commit, so `commits` does not grow on a replica.
     - `txid` (gauge): the current LiteFS transaction ID of the database.
-    - `commits` (counter): database commits since LiteFS started.
+    - `commits` (counter): database commits on the node since LiteFS started.
+      It does not grow while the node is a replica.
     - `ltx.size` (gauge, bytes): `litefs_db_ltx_bytes` as LiteFS 0.5 sets it.
       A commit sets it to the size of the new LTX file.
       Each retention pass (once a minute) sets it to the size of the LTX files
