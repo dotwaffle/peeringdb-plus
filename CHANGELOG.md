@@ -10,6 +10,14 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- The overview dashboard has a LiteFS Replication row: replica stream
+  lag, LTX apply lag, transactions behind the primary, commits on the
+  primary, the raw LTX size and connected replicas. It needs
+  `PDBPLUS_LITEFS_METRICS_URL`. Re-import
+  `deploy/grafana/dashboards/pdbplus-overview.json` in Grafana.
+
 ### Fixed
 
 - The LiteFS metrics export now works on replicas, and on a primary
