@@ -740,27 +740,75 @@ func TestDetectInflection(t *testing.T) {
 	}
 }
 
+// cancelOnResponse is an http.RoundTripper that calls cancel after the
+// wrapped transport returns a response. A test uses it to end a ramp
+// on the first completed request instead of on the step clock.
+type cancelOnResponse struct {
+	next   http.RoundTripper
+	cancel context.CancelFunc
+}
+
+func (c cancelOnResponse) RoundTrip(r *http.Request) (*http.Response, error) {
+	resp, err := c.next.RoundTrip(r)
+	if err == nil {
+		c.cancel()
+	}
+	return resp, err
+}
+
 // TestRamp_Verbose_PrintsPrefetchAndErrors asserts that --verbose
 // emits exactly one prefetch summary line per surface (with ids and
-// asns when entity=net) and one log line per non-OK Result, while
-// suppressing the spammy step-boundary `err=context.Canceled` lines.
+// asns when entity=net) and one log line per non-OK Result, and that
+// it drops the result of a request that the ramp context canceled.
 func TestRamp_Verbose_PrintsPrefetchAndErrors(t *testing.T) {
 	t.Parallel()
 
-	// errorCThresh=1 → server returns 500 once inflight >= 1, so every
-	// hit fails. Guarantees at least one per-error line.
-	rts := newRampTestServer(t, 1*time.Millisecond, 0, 1)
+	// The server answers the first request with a 500 only after the
+	// second request arrives, and later requests wait until their
+	// client cancels. So a request is always in flight when the first
+	// response cancels ctx.
+	var n atomic.Int32
+	second := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch n.Add(1) {
+		case 1:
+			select {
+			case <-second:
+			case <-r.Context().Done():
+				return
+			}
+			http.Error(w, "synthetic 500", http.StatusInternalServerError)
+		case 2:
+			close(second)
+			<-r.Context().Done()
+		default:
+			<-r.Context().Done()
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	// The step clock must not end the step: under CPU load (-race,
+	// full-repo run) a 50ms step can end before any request completes,
+	// which leaves no per-error line. The step durations exceed the
+	// ctx timeout, and the transport cancels ctx after the first
+	// response. Hit still returns that response, so it is logged.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	cfg := Config{
-		Base:       rts.srv.URL,
-		HTTPClient: rts.srv.Client(),
-		Timeout:    5 * time.Second,
-		Verbose:    true,
+		Base: srv.URL,
+		HTTPClient: &http.Client{
+			Transport: cancelOnResponse{next: srv.Client().Transport, cancel: cancel},
+		},
+		Timeout: 5 * time.Second,
+		Verbose: true,
 	}
 	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
-	rcfg.MaxConcurrency = 2 // keep test runtime tiny
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	rcfg.StepDuration = time.Minute
+	rcfg.HoldDuration = time.Minute
+	// One step (the baseline) with two workers: the second request is
+	// in flight when ctx is canceled, and its result must not be logged.
+	rcfg.Start = 2
+	rcfg.MaxConcurrency = 2
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); err != nil {
@@ -776,17 +824,21 @@ func TestRamp_Verbose_PrintsPrefetchAndErrors(t *testing.T) {
 	if !strings.Contains(out, "asns=[") {
 		t.Errorf("entity=net prefetch line should include asns=[\n%s", out)
 	}
-	// Per-error line shape: `[ramp] pdbcompat C=<n> ... status=500`.
+	// Per-error line shape: `[ramp] pdbcompat C=<n> ... status=500
+	// err=<nil>`. Only the 500 is logged. The canceled request of the
+	// second worker is dropped.
 	perErrorPrefix := fmt.Sprintf("[ramp] %s C=", SurfacePdbCompat)
-	if !strings.Contains(out, perErrorPrefix) {
-		t.Errorf("output missing per-error line %q\n%s", perErrorPrefix, out)
+	var perError []string
+	for line := range strings.Lines(out) {
+		if strings.HasPrefix(line, perErrorPrefix) {
+			perError = append(perError, strings.TrimSpace(line))
+		}
 	}
-	if !strings.Contains(out, "status=500") {
-		t.Errorf("per-error line should include status=500\n%s", out)
+	if len(perError) != 1 {
+		t.Fatalf("got %d per-error lines, want 1\n%s", len(perError), out)
 	}
-	// Step-boundary cancellations must NOT appear in the verbose log.
-	if strings.Contains(out, "err=context.Canceled") {
-		t.Errorf("verbose output must suppress err=context.Canceled\n%s", out)
+	if !strings.HasSuffix(perError[0], "status=500 err=<nil>") {
+		t.Errorf("per-error line %q, want status=500 err=<nil>", perError[0])
 	}
 }
 
