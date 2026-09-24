@@ -10,6 +10,21 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Changed
+
+- The primary now retries its short writes when SQLite reports a lock
+  error: `SQLITE_BUSY` (5) or `SQLITE_PROTOCOL` (15), which failed a
+  startup commit with `locking protocol (15)` on 2026-09-24. The retried
+  writes are the `sync_status` row writes of each sync cycle, the
+  startup reap of stale `running` rows, and the startup poc contact
+  scrub and netixlan cascade transactions. A write gets up to 4
+  attempts, with waits of 250ms, 500ms and 1s. Before this release, a
+  failed startup transaction waited for the next sync cycle, up to one
+  interval later. The main sync transaction does not retry. Each retry
+  logs `WARN "retrying write after sqlite lock error"` with `op`,
+  `attempt` and `error`, and adds 1 to the new counter
+  `pdbplus.sync.lock_retries{op}`.
+
 ### Fixed
 
 - The `pdbplus.sync.type.objects` counter now counts the objects of a
