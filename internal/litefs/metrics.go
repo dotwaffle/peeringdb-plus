@@ -30,25 +30,32 @@ const maxMetricsBody = 1 << 20
 // Metrics holds the LiteFS values that the app exports, from one scrape
 // of the LiteFS Prometheus endpoint (http.addr, :20202 by default). The
 // db-labelled values are for one database.
+//
+// LiteFS creates some db-labelled series only when it first sets them:
+// at the first commit, LTX apply or retention pass after it starts. A
+// pointer field is nil while its series is absent.
 type Metrics struct {
 	// TXID is the current transaction ID of the database
 	// (litefs_db_txid).
 	TXID int64
-	// Commits is the number of database commits since LiteFS started
-	// (litefs_db_commit_count).
+	// Commits is the number of database commits on this node since
+	// LiteFS started (litefs_db_commit_count). LiteFS creates the series
+	// at the first commit, so it is 0 until then. A replica applies LTX
+	// files and does not commit, so the value does not grow while the
+	// node is a replica. A node that LiteFS demoted keeps its count.
 	Commits int64
 	// LTXBytes is litefs_db_ltx_bytes. Each retention pass (once a
 	// minute by default) sets it to the size of the LTX files on disk.
 	// A commit sets it to the size of the new LTX file, until the next
 	// retention pass. LiteFS keeps each LTX file for its retention
 	// period, so a large commit shows in both values.
-	LTXBytes int64
+	LTXBytes *int64
 	// LTXFiles is the number of LTX files on disk (litefs_db_ltx_count).
-	LTXFiles int64
+	LTXFiles *int64
 	// LTXLagSeconds is the time from the creation of the last LTX file
 	// that this node applied to its apply (litefs_db_lag_seconds). A
 	// commit on the primary sets it to 0.
-	LTXLagSeconds float64
+	LTXLagSeconds *float64
 	// LagSeconds is the time since this node last received a frame
 	// (LTX file or heartbeat) from the primary (litefs_lag_seconds). It
 	// is 0 on the primary.
@@ -63,20 +70,31 @@ type metricSample struct {
 	// dbScoped is true for a metric with a "db" label. ParseMetrics
 	// reads only the sample for the requested database.
 	dbScoped bool
+	// lazy is true for a series that LiteFS creates only when it first
+	// sets it, after it starts. A scrape without it is valid.
+	lazy bool
 	// setInt stores a count and setFloat stores a float. Each entry
 	// sets exactly one of them.
 	setInt   func(m *Metrics, v int64)
 	setFloat func(m *Metrics, v float64)
 }
 
-// metricSamples lists the LiteFS metrics that ParseMetrics reads. Each
-// one must be present in a scrape.
+// metricSamples lists the LiteFS metrics that ParseMetrics reads. A
+// scrape must hold each one that is not lazy. The lazy ones follow
+// LiteFS 0.5 db.go: commit_count starts at the first commit (CommitWAL,
+// CommitJournal and Drop, db.go:1757, 2123, 2264; not while a replica),
+// ltx_bytes and ltx_count at the first commit or retention pass
+// (db.go:1758-1759, 3555-3556), lag_seconds at the first commit or LTX
+// apply (db.go:1760, 2607). A restarted primary and a restarted replica
+// both have litefs_db_txid before their first commit
+// (testdata/metrics-*-fresh.txt), so it stays required: without it, a
+// wrong database name would give a scrape with no database values.
 var metricSamples = map[string]metricSample{
 	"litefs_db_txid":          {dbScoped: true, setInt: func(m *Metrics, v int64) { m.TXID = v }},
-	"litefs_db_commit_count":  {dbScoped: true, setInt: func(m *Metrics, v int64) { m.Commits = v }},
-	"litefs_db_ltx_bytes":     {dbScoped: true, setInt: func(m *Metrics, v int64) { m.LTXBytes = v }},
-	"litefs_db_ltx_count":     {dbScoped: true, setInt: func(m *Metrics, v int64) { m.LTXFiles = v }},
-	"litefs_db_lag_seconds":   {dbScoped: true, setFloat: func(m *Metrics, v float64) { m.LTXLagSeconds = v }},
+	"litefs_db_commit_count":  {dbScoped: true, lazy: true, setInt: func(m *Metrics, v int64) { m.Commits = v }},
+	"litefs_db_ltx_bytes":     {dbScoped: true, lazy: true, setInt: func(m *Metrics, v int64) { m.LTXBytes = new(v) }},
+	"litefs_db_ltx_count":     {dbScoped: true, lazy: true, setInt: func(m *Metrics, v int64) { m.LTXFiles = new(v) }},
+	"litefs_db_lag_seconds":   {dbScoped: true, lazy: true, setFloat: func(m *Metrics, v float64) { m.LTXLagSeconds = new(v) }},
 	"litefs_lag_seconds":      {setFloat: func(m *Metrics, v float64) { m.LagSeconds = v }},
 	"litefs_subscriber_count": {setInt: func(m *Metrics, v int64) { m.Subscribers = v }},
 }
@@ -85,9 +103,10 @@ var metricSamples = map[string]metricSample{
 // LiteFS values for the database named db (the base name of the database
 // file, the value of the "db" label). It ignores lines it cannot parse
 // and metrics it does not use. It returns an error when a metric in
-// metricSamples has no sample, or when a sample value is not finite or
-// a count is not an int64. A wrong URL, a wrong database name or a
-// changed LiteFS exposition then gives an error, not zero values.
+// metricSamples that is not lazy has no sample, or when a sample value
+// is not finite or a count is not an int64. A wrong URL, a wrong
+// database name or a changed LiteFS exposition then gives an error, not
+// zero values.
 func ParseMetrics(r io.Reader, db string) (Metrics, error) {
 	var m Metrics
 	seen := make(map[string]bool, len(metricSamples))
@@ -122,7 +141,7 @@ func ParseMetrics(r io.Reader, db string) (Metrics, error) {
 		return Metrics{}, fmt.Errorf("read litefs metrics: %w", err)
 	}
 	for _, name := range slices.Sorted(maps.Keys(metricSamples)) {
-		if !seen[name] {
+		if !seen[name] && !metricSamples[name].lazy {
 			return Metrics{}, fmt.Errorf("litefs metrics for database %q: no %s sample", db, name)
 		}
 	}

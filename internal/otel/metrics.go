@@ -319,10 +319,11 @@ func InitObjectCountGauges(countsFn func() map[string]int64) error {
 }
 
 // InitLiteFSGauges registers instruments that report the LiteFS metrics
-// of the local node. One collection calls scrape once and observes all
-// instruments from its result. When scrape fails, the collection
-// observes no LiteFS values, so a dashboard shows a gap instead of
-// zeros. The caller logs scrape failures.
+// of the local node. One collection calls scrape once and observes the
+// instruments from its result. An instrument whose LiteFS series is
+// absent (a nil field of litefs.Metrics) gets no value. When scrape
+// fails, the collection observes no LiteFS values, so a dashboard shows
+// a gap instead of zeros. The caller logs scrape failures.
 //
 // Register the instruments only when the LiteFS metrics endpoint is
 // configured. LiteFS runs only in the Fly.io deployment.
@@ -336,7 +337,7 @@ func InitLiteFSGauges(scrape func(ctx context.Context) (litefs.Metrics, error)) 
 		return fmt.Errorf("registering pdbplus.litefs.txid gauge: %w", err)
 	}
 	commits, err := meter.Int64ObservableCounter("pdbplus.litefs.commits",
-		metric.WithDescription("Database commits seen by LiteFS since LiteFS started"),
+		metric.WithDescription("Database commits on this node since LiteFS started; a replica does not commit"),
 		metric.WithUnit("{commit}"),
 	)
 	if err != nil {
@@ -384,9 +385,17 @@ func InitLiteFSGauges(scrape func(ctx context.Context) (litefs.Metrics, error)) 
 		}
 		o.ObserveInt64(txid, m.TXID)
 		o.ObserveInt64(commits, m.Commits)
-		o.ObserveInt64(ltxSize, m.LTXBytes)
-		o.ObserveInt64(ltxFiles, m.LTXFiles)
-		o.ObserveFloat64(ltxLag, m.LTXLagSeconds)
+		// A nil value is a series that LiteFS has not created yet. It
+		// leaves a gap, not a zero.
+		if m.LTXBytes != nil {
+			o.ObserveInt64(ltxSize, *m.LTXBytes)
+		}
+		if m.LTXFiles != nil {
+			o.ObserveInt64(ltxFiles, *m.LTXFiles)
+		}
+		if m.LTXLagSeconds != nil {
+			o.ObserveFloat64(ltxLag, *m.LTXLagSeconds)
+		}
 		o.ObserveFloat64(lag, m.LagSeconds)
 		o.ObserveInt64(subscribers, m.Subscribers)
 		return nil
