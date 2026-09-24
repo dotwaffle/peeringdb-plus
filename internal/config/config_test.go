@@ -736,6 +736,48 @@ func TestConfig_PeeringDBURLValidation(t *testing.T) {
 	}
 }
 
+// TestLoad_LiteFSMetricsURL asserts that the LiteFS metrics are off by
+// default and that a set value must be an http:// or https:// URL.
+func TestLoad_LiteFSMetricsURL(t *testing.T) {
+	tests := []struct {
+		name            string
+		envVal          string
+		want            string
+		wantErrContains string
+	}{
+		{name: "unset is disabled", envVal: "", want: ""},
+		{name: "fly localhost", envVal: "http://localhost:20202/metrics", want: "http://localhost:20202/metrics"},
+		{name: "https", envVal: "https://litefs.internal/metrics", want: "https://litefs.internal/metrics"},
+		{name: "missing scheme", envVal: "localhost:20202/metrics", wantErrContains: "must use http"},
+		{name: "unsupported scheme", envVal: "file:///tmp/metrics", wantErrContains: "must use http"},
+		{name: "empty host", envVal: "http:///metrics", wantErrContains: "empty host"},
+		{name: "unparseable", envVal: "http://[::1/metrics", wantErrContains: "not a valid URL"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PDBPLUS_LITEFS_METRICS_URL", tt.envVal)
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErrContains != "" {
+				if err == nil {
+					t.Fatalf("PDBPLUS_LITEFS_METRICS_URL=%q: expected error, got nil", tt.envVal)
+				}
+				if msg := err.Error(); !strings.Contains(msg, "PDBPLUS_LITEFS_METRICS_URL") || !strings.Contains(msg, tt.wantErrContains) {
+					t.Errorf("error = %q, want the env var name and %q", msg, tt.wantErrContains)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("PDBPLUS_LITEFS_METRICS_URL=%q: unexpected error: %v", tt.envVal, err)
+			}
+			if cfg.LiteFSMetricsURL != tt.want {
+				t.Errorf("LiteFSMetricsURL = %q, want %q", cfg.LiteFSMetricsURL, tt.want)
+			}
+		})
+	}
+}
+
 // TestLoad_SyncMemoryLimit_Default asserts the default (no env var set)
 // resolves to 400 MB. The default matches the benchmark regression
 // gate and leaves 112 MB headroom under the 512 MB Fly.io VM cap.

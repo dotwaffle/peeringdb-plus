@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -254,6 +255,17 @@ func main() {
 	}); err != nil {
 		logger.Error("failed to init freshness gauge", slog.Any("error", err))
 		os.Exit(1)
+	}
+
+	// LiteFS metrics are exported only when PDBPLUS_LITEFS_METRICS_URL is
+	// set. LiteFS runs only in the Fly.io deployment, where fly.toml sets
+	// the URL. The LiteFS "db" label is the base name of the database file.
+	if cfg.LiteFSMetricsURL != "" {
+		scraper := litefs.NewMetricsScraper(cfg.LiteFSMetricsURL, filepath.Base(cfg.DBPath), logger)
+		if err := pdbotel.InitLiteFSGauges(scraper.Scrape); err != nil {
+			logger.Error("failed to init litefs gauges", slog.Any("error", err))
+			os.Exit(1)
+		}
 	}
 
 	// Cached object counts for metrics gauge.

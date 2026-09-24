@@ -21,6 +21,9 @@ kill_timeout = 30
   PDBPLUS_LISTEN_ADDR = ":8080"
   PDBPLUS_DB_PATH = "/litefs/peeringdb-plus.db"
   PRIMARY_REGION = "lhr"
+  # LiteFS serves its Prometheus metrics on its HTTP port (litefs.yml).
+  # The app exports them as pdbplus.litefs.* over OTLP.
+  PDBPLUS_LITEFS_METRICS_URL = "http://localhost:20202/metrics"
 
 # Consul is required for LiteFS leader election.
 [consul]

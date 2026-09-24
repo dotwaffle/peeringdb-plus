@@ -9,6 +9,8 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 )
 
 // SyncPeakHeapBytes holds the most-recent end-of-sync-cycle Go runtime
@@ -312,6 +314,85 @@ func InitObjectCountGauges(countsFn func() map[string]int64) error {
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.data.type.count gauge: %w", err)
+	}
+	return nil
+}
+
+// InitLiteFSGauges registers instruments that report the LiteFS metrics
+// of the local node. One collection calls scrape once and observes all
+// instruments from its result. When scrape fails, the collection
+// observes no LiteFS values, so a dashboard shows a gap instead of
+// zeros. The caller logs scrape failures.
+//
+// Register the instruments only when the LiteFS metrics endpoint is
+// configured. LiteFS runs only in the Fly.io deployment.
+func InitLiteFSGauges(scrape func(ctx context.Context) (litefs.Metrics, error)) error {
+	meter := otel.Meter("peeringdb-plus")
+	txid, err := meter.Int64ObservableGauge("pdbplus.litefs.txid",
+		metric.WithDescription("Current LiteFS transaction ID of the database"),
+		metric.WithUnit("{transaction}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.litefs.txid gauge: %w", err)
+	}
+	commits, err := meter.Int64ObservableCounter("pdbplus.litefs.commits",
+		metric.WithDescription("Database commits seen by LiteFS since LiteFS started"),
+		metric.WithUnit("{commit}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.litefs.commits counter: %w", err)
+	}
+	ltxSize, err := meter.Int64ObservableGauge("pdbplus.litefs.ltx.size",
+		metric.WithDescription("LiteFS litefs_db_ltx_bytes: size of the newest LTX file after a commit, size of the retained LTX files after each retention pass"),
+		metric.WithUnit("By"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.litefs.ltx.size gauge: %w", err)
+	}
+	ltxFiles, err := meter.Int64ObservableGauge("pdbplus.litefs.ltx.files",
+		metric.WithDescription("Number of LTX files that LiteFS keeps on disk for the database"),
+		metric.WithUnit("{file}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.litefs.ltx.files gauge: %w", err)
+	}
+	ltxLag, err := meter.Float64ObservableGauge("pdbplus.litefs.ltx.lag",
+		metric.WithDescription("Time from the creation of the last LTX file applied on this node to its apply"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.litefs.ltx.lag gauge: %w", err)
+	}
+	lag, err := meter.Float64ObservableGauge("pdbplus.litefs.lag",
+		metric.WithDescription("Time since this node last received a frame from the LiteFS primary; 0 on the primary"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.litefs.lag gauge: %w", err)
+	}
+	subscribers, err := meter.Int64ObservableGauge("pdbplus.litefs.subscribers",
+		metric.WithDescription("Replicas connected to this LiteFS node"),
+		metric.WithUnit("{subscriber}"),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.litefs.subscribers gauge: %w", err)
+	}
+	_, err = meter.RegisterCallback(func(ctx context.Context, o metric.Observer) error {
+		m, err := scrape(ctx)
+		if err != nil {
+			return nil //nolint:nilerr // scrape logs its failures; returning the error would log it again on every collection.
+		}
+		o.ObserveInt64(txid, m.TXID)
+		o.ObserveInt64(commits, m.Commits)
+		o.ObserveInt64(ltxSize, m.LTXBytes)
+		o.ObserveInt64(ltxFiles, m.LTXFiles)
+		o.ObserveFloat64(ltxLag, m.LTXLagSeconds)
+		o.ObserveFloat64(lag, m.LagSeconds)
+		o.ObserveInt64(subscribers, m.Subscribers)
+		return nil
+	}, txid, commits, ltxSize, ltxFiles, ltxLag, lag, subscribers)
+	if err != nil {
+		return fmt.Errorf("registering litefs metrics callback: %w", err)
 	}
 	return nil
 }

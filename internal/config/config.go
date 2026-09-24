@@ -249,6 +249,14 @@ type Config struct {
 	// disables the escape hatch (only the per-cycle MAX(updated) cursor
 	// applies).
 	FullSyncInterval time.Duration
+
+	// LiteFSMetricsURL is the LiteFS Prometheus metrics endpoint (for
+	// example http://localhost:20202/metrics). When it is set, the app
+	// reads it at each OTel metric collection and exports the values as
+	// pdbplus.litefs.* instruments. Configured via
+	// PDBPLUS_LITEFS_METRICS_URL. Default empty: LiteFS runs only in the
+	// Fly.io deployment, so the instruments are not registered.
+	LiteFSMetricsURL string
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -278,6 +286,7 @@ func Load() (*Config, error) {
 		PublicURL:        envOrDefault("PDBPLUS_PUBLIC_URL", ""),
 		MapTiles:         mapTileConfig,
 		PeeringDBAPIKey:  envOrDefault("PDBPLUS_PEERINGDB_API_KEY", ""),
+		LiteFSMetricsURL: envOrDefault("PDBPLUS_LITEFS_METRICS_URL", ""),
 	}
 
 	// PDBPLUS_SYNC_INTERVAL has an auth-conditional default: 15m when an API
@@ -455,6 +464,9 @@ func (c *Config) validate() error {
 	if err := validatePeeringDBURL(c.PeeringDBBaseURL); err != nil {
 		return err
 	}
+	if err := validateLiteFSMetricsURL(c.LiteFSMetricsURL); err != nil {
+		return err
+	}
 	if c.DrainTimeout <= 0 {
 		return errors.New("PDBPLUS_DRAIN_TIMEOUT must be greater than 0")
 	}
@@ -491,6 +503,25 @@ func (c *Config) validate() error {
 		// StreamTimeout silently removes the ONLY bound on stream lifetime.
 		// Fail fast rather than run unbounded streams.
 		return errors.New("PDBPLUS_STREAM_TIMEOUT must be greater than 0 (it is the only bound on streaming RPC lifetime)")
+	}
+	return nil
+}
+
+// validateLiteFSMetricsURL accepts an empty value (LiteFS metrics off) or
+// an absolute http:// or https:// URL with a host.
+func validateLiteFSMetricsURL(raw string) error {
+	if raw == "" {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("PDBPLUS_LITEFS_METRICS_URL is not a valid URL (got %q): %w", raw, err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("PDBPLUS_LITEFS_METRICS_URL must use http:// or https:// (got %q)", raw)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("PDBPLUS_LITEFS_METRICS_URL has empty host (got %q)", raw)
 	}
 	return nil
 }

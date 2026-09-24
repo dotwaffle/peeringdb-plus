@@ -132,6 +132,7 @@ logged.
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
 | `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary; (4) otherwise parse this variable (default `true` when unset). An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role. Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`. |
+| `PDBPLUS_LITEFS_METRICS_URL` | No | empty (off) | URL | LiteFS Prometheus metrics endpoint. When it is set, the app reads the endpoint at each OTel metric collection and exports the values as `pdbplus.litefs.*` instruments (see `docs/ARCHITECTURE.md` § OpenTelemetry instrumentation). LiteFS runs only in the Fly.io deployment, so the default is empty and the app registers no LiteFS instruments. `fly.toml` sets `http://localhost:20202/metrics`. A set value must be an `http://` or `https://` URL with a host. When a read fails, the app logs a WARN and exports no LiteFS values until a read succeeds. |
 
 ### Fly.io Resource Attribution (read-only)
 
@@ -298,6 +299,7 @@ These validation errors stop startup:
 | `PDBPLUS_OTEL_SAMPLE_RATE` | `0.0 ≤ value ≤ 1.0` | `PDBPLUS_OTEL_SAMPLE_RATE must be between 0.0 and 1.0` |
 | `PDBPLUS_LISTEN_ADDR` | Contains `:` | `PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')` |
 | `PDBPLUS_PEERINGDB_URL` | `https://` always allowed; `http://` only to loopback or RFC 1918; scheme must be set; host must be set. An empty value selects the default. | Multiple messages, one per rejection class (invalid URL, missing scheme, unsupported scheme, empty host, non-local `http://`). |
+| `PDBPLUS_LITEFS_METRICS_URL` | Empty, or an `http://` or `https://` URL with a host | One message for each rejection class (invalid URL, other scheme, empty host). |
 | `PDBPLUS_DRAIN_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_DRAIN_TIMEOUT must be greater than 0` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `> 0` after duration parse | `PDBPLUS_SYNC_STALE_THRESHOLD must be greater than 0` |
 | `PDBPLUS_STREAM_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_STREAM_TIMEOUT must be greater than 0 (it is the only bound on streaming RPC lifetime)` |
@@ -379,7 +381,7 @@ Environment values are supplied by:
   `Dockerfile.prod` sets no `PDBPLUS_*` variable.
 - **Fly.io production**:
   the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`,
-  and `PRIMARY_REGION`.
+  `PDBPLUS_LITEFS_METRICS_URL`, and `PRIMARY_REGION`.
   The Fly.io runtime injects `FLY_REGION`, `FLY_PROCESS_GROUP`,
   `FLY_MACHINE_ID`, and `FLY_APP_NAME`.
   `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.

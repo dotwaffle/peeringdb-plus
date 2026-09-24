@@ -266,6 +266,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - Lease file semantics are **inverted**: `/litefs/.primary` file **absent** = primary, **present** = replica (file contains primary hostname).
 - Detection fallback (`internal/litefs/primary.go`): (1) check `.primary` file, (2) check if `/litefs/` dir exists, (3) fall back to `PDBPLUS_IS_PRIMARY` env var (default true for local dev).
 - App serves directly on `:8080` with h2c — does NOT use LiteFS proxy (needed for gRPC/ConnectRPC support).
+- Metrics: `PDBPLUS_LITEFS_METRICS_URL` (set in `fly.toml`, empty = off) makes `InitLiteFSGauges` read LiteFS `:20202/metrics` once per OTel collection → `pdbplus.litefs.*`. LiteFS 0.5 quirks: `litefs_http_frame_send_count` never increments (missing `.Inc()`, `http/server.go:735/774`); `litefs_db_ltx_bytes` = new LTX file size after a commit, on-disk total after the 1m retention pass.
 
 ### CI
 - 2 jobs on PR + main: `ci` (one cached mise/Go job running, in order: generated-code drift check, build, gotestsum race tests with coverage comment, lint, advisory vulnerability scan) and `docker-build` (dev + prod images, separate BuildKit `type=gha` cache).
