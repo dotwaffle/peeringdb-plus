@@ -17,6 +17,15 @@ are in the Git history at their tags.
   to `0` to trace no scheduled cycle, as before this release.
   `POST /sync` always traces its cycle, and `POST /sync?trace=0` never
   does, whatever the ratio.
+- `PDBPLUS_SCRATCH_DIR` sets the directory of the sync scratch database.
+  The default is empty, which selects `os.TempDir()`. A set value must be
+  an absolute path. On the primary, the scheduler removes the stale
+  scratch files in a set directory at start, because a crashed process
+  leaves its file. `fly.toml` sets `/var/lib/litefs/scratch` on the
+  primary volume. Before this release, a full cycle wrote about 100 MB of
+  scratch data to `/tmp` on the root file system, which Fly.io limits to
+  2000 IOPS and 8 MiB/s. LiteFS does not read or remove files in the
+  scratch directory.
 
 ### Changed
 

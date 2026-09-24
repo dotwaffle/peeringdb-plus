@@ -6,8 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver, already a project dep
@@ -31,7 +35,7 @@ import (
 // 110 MB) on the heap, and its heap samples included them.
 const scratchChunkSize = 100
 
-// scratchDB is a sql.DB handle to the per-sync /tmp SQLite file plus the
+// scratchDB is a sql.DB handle to the per-sync SQLite file plus the
 // absolute path so closeScratchDB can unlink it on teardown.
 //
 // The scratch DB stages raw JSON rows from each PeeringDB type via
@@ -40,20 +44,24 @@ const scratchChunkSize = 100
 // (~35 MB for netixlan). Phase B reads the scratch rows back in chunks
 // and replays them into the real ent tables inside the single ent.Tx.
 //
-// Lifetime: opened at the start of a sync run if UseScratchDB is true,
-// closed+unlinked via defer closeScratchDB(...) at the end of the same
-// run. PID-scoped filename prevents collisions across concurrent worker
-// processes (cross-process is a non-issue on Fly.io — only one primary
-// runs at a time).
+// Lifetime: opened at the start of each sync cycle, closed and unlinked
+// by defer closeScratchDB(...) at the end of the same cycle. A random
+// file name prevents collisions across concurrent worker processes.
+// On Fly.io, this case does not occur: only one primary runs at a time.
 type scratchDB struct {
 	db   *sql.DB
 	path string
 }
 
-// openScratchDB creates an isolated SQLite database file in os.TempDir()
-// scoped to the current process PID, pre-populates all 13 staging tables,
-// and returns a scratchDB wrapper. The caller MUST call closeScratchDB
-// to both close the handle and unlink the file.
+// scratchFilePrefix starts the name of each scratch database file.
+// sweepStaleScratchFiles removes only files with this prefix.
+const scratchFilePrefix = "pdbplus-sync-scratch-"
+
+// openScratchDB creates an isolated SQLite database file in dir,
+// pre-populates all 13 staging tables, and returns a scratchDB wrapper.
+// An empty dir means os.TempDir(). A missing dir is created with mode
+// 0700. The caller MUST call closeScratchDB to both close the handle and
+// unlink the file.
 //
 // SQLite pragmas:
 //   - journal_mode=MEMORY: the rollback journal is in memory, not in a
@@ -67,9 +75,9 @@ type scratchDB struct {
 //     tombstone window replaces staged rows. In a test with a copy of the
 //     production data, a window that replaced every staged row raised peak
 //     RSS by 95 MiB. A window of 1000 rows for each table raised it by
-//     9 MiB or less. A journal file would write the same pages to the
-//     temp directory, which is on the root file system in production, and
-//     Fly.io limits that disk to 8 MiB/s.
+//     9 MiB or less. A journal file would write the same pages to dir.
+//     In production, dir is on the volume of the primary, and the journal
+//     writes would compete with the LiteFS writes to that volume.
 //   - synchronous=OFF — skip fsyncs. Writes go straight to the OS page
 //     cache; correctness is preserved because SQLite is the only writer.
 //
@@ -78,11 +86,17 @@ type scratchDB struct {
 // processes that share a temp directory. A PID-based name is not unique
 // across PID namespaces, because sandboxed or containerized processes
 // often get the same small PID.
-func openScratchDB(ctx context.Context) (*scratchDB, error) {
+func openScratchDB(ctx context.Context, dir string) (*scratchDB, error) {
+	// A configured dir can be missing, for example on a new volume.
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, fmt.Errorf("create scratch dir %s: %w", dir, err)
+		}
+	}
 	// Atomically create an exclusive scratch file so neither a stale file
 	// nor a pre-placed symlink can be targeted. os.CreateTemp opens with
 	// O_EXCL and mode 0600, and tries a new random name if one exists.
-	f, err := os.CreateTemp("", "pdbplus-sync-scratch-*.db")
+	f, err := os.CreateTemp(dir, scratchFilePrefix+"*.db")
 	if err != nil {
 		return nil, fmt.Errorf("create scratch db: %w", err)
 	}
@@ -104,7 +118,14 @@ func openScratchDB(ctx context.Context) (*scratchDB, error) {
 	// Negative cache_size is in KiB (positive is pages); -2048 = 2 MiB.
 	// With synchronous=OFF, this keeps the non-Go-heap footprint of the
 	// scratch DB small.
-	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=journal_mode(MEMORY)&_pragma=synchronous(OFF)&_pragma=cache_size(-2048)")
+	//
+	// EscapedPath percent-encodes path. SQLite reads '?', '#' and '%' in
+	// a URI as syntax, so an unescaped dir with one of these characters
+	// makes SQLite open a different file, which closeScratchDB does not
+	// remove.
+	dsn := "file:" + (&url.URL{Path: path}).EscapedPath() +
+		"?_pragma=journal_mode(MEMORY)&_pragma=synchronous(OFF)&_pragma=cache_size(-2048)"
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open scratch db at %s: %w", path, err)
 	}
@@ -148,7 +169,7 @@ func (s *scratchDB) initSchema(ctx context.Context) error {
 // closeScratchDB closes the underlying sql.DB handle and unlinks the
 // file. Safe to call in a defer even if openScratchDB returned an error
 // (nil-safe on receiver). Errors are logged at WARN level — a failure
-// to close or unlink a transient /tmp file is non-fatal but deserves
+// to close or unlink a transient scratch file is non-fatal but deserves
 // operator attention. The ctx parameter is used only for log attribute
 // propagation (trace context) — actual close/unlink is synchronous.
 func closeScratchDB(ctx context.Context, s *scratchDB, logger *slog.Logger) {
@@ -171,6 +192,88 @@ func closeScratchDB(ctx context.Context, s *scratchDB, logger *slog.Logger) {
 			)
 		}
 	}
+}
+
+// sweepStaleScratchFiles removes the scratch files that an earlier
+// process left in dir. It returns the number of files and bytes that it
+// removed. closeScratchDB removes the file of each cycle, but a process
+// that crashes or is killed during a cycle leaves its file. On a
+// persistent volume, these files stay after a restart and can fill the
+// volume.
+//
+// The sweep removes only regular files whose name starts with
+// scratchFilePrefix. It keeps directories, symbolic links and all other
+// files. It cannot tell the file of a live process from a stale file, so
+// dir must belong to one process. An empty dir means os.TempDir(), which
+// other processes share, so the sweep does nothing. A missing dir has no
+// files to remove.
+//
+// It logs a WARN with the counts when it removed files, and a DEBUG when
+// it removed none. It logs an error at WARN and does not return it,
+// because a failed sweep must not stop the scheduler.
+func sweepStaleScratchFiles(ctx context.Context, dir string, logger *slog.Logger) (files int, size int64) {
+	if dir == "" {
+		return 0, 0
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		logger.LogAttrs(ctx, slog.LevelWarn, "failed to sweep stale scratch files",
+			slog.String("dir", dir),
+			slog.Any("error", err),
+		)
+		return 0, 0
+	}
+	for _, e := range entries {
+		if !e.Type().IsRegular() || !strings.HasPrefix(e.Name(), scratchFilePrefix) {
+			continue
+		}
+		path := filepath.Join(dir, e.Name())
+		var n int64
+		if info, err := e.Info(); err == nil {
+			n = info.Size()
+		}
+		if err := os.Remove(path); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				logger.LogAttrs(ctx, slog.LevelWarn, "failed to remove stale scratch file",
+					slog.String("path", path),
+					slog.Any("error", err),
+				)
+			}
+			continue
+		}
+		files++
+		size += n
+	}
+	level := slog.LevelDebug
+	if files > 0 {
+		level = slog.LevelWarn
+	}
+	logger.LogAttrs(ctx, level, "removed stale scratch files",
+		slog.String("dir", dir),
+		slog.Int("count", files),
+		slog.Int64("bytes", size),
+	)
+	return files, size
+}
+
+// sweepScratchDirAtStartup runs sweepStaleScratchFiles on the configured
+// scratch directory. StartScheduler calls it on the primary before it
+// waits for the first sync cycle. It does nothing when ScratchDir is
+// empty.
+//
+// The run holds the running latch, so it cannot remove the live file of
+// a cycle that POST /sync started. When a cycle holds the latch, the
+// sweep is skipped, and the stale files stay until the next start.
+func (w *Worker) sweepScratchDirAtStartup(ctx context.Context) {
+	if w.config.ScratchDir == "" {
+		return
+	}
+	if !w.running.CompareAndSwap(false, true) {
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "sync cycle running, skipping startup scratch sweep")
+		return
+	}
+	defer w.running.Store(false)
+	sweepStaleScratchFiles(ctx, w.config.ScratchDir, w.logger)
 }
 
 // stageType streams a single PeeringDB type's full response into the

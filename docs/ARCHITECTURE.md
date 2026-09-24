@@ -104,9 +104,15 @@ default `1h` unauthenticated / `15m` authenticated):
    If the delete fails, the worker logs a WARN and the cycle continues.
 2. Phase A — fetch: the worker calls `api.peeringdb.com`
    for every object type using `internal/peeringdb/client.go`,
-   staging all responses in an on-disk SQLite scratch database in `os.TempDir()`
+   staging all responses in an on-disk SQLite scratch database
    (`internal/sync/scratch.go`) — deliberately spilled to disk to keep heap
    under the sync memory gate.
+   The database is in `PDBPLUS_SCRATCH_DIR`, or in `os.TempDir()` when that
+   is empty.
+   On Fly.io it is on the primary volume, which is faster than the root
+   file system.
+   At scheduler start, the primary removes the scratch files that a crashed
+   process left in a set `PDBPLUS_SCRATCH_DIR`.
 3. A memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT`, default `400MB`) aborts the
    sync if `runtime.MemStats.HeapAlloc` exceeds the ceiling before the
    transaction opens.

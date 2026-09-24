@@ -161,6 +161,13 @@ type WorkerConfig struct {
 	// PDBPLUS_FULL_SYNC_INTERVAL (default 24h). Zero disables the
 	// escape hatch (only the per-cycle MAX(updated) cursor applies).
 	FullSyncInterval time.Duration
+
+	// ScratchDir is the directory of the scratch database of each sync
+	// cycle (see openScratchDB). Empty means os.TempDir(). When it is
+	// set, StartScheduler removes stale scratch files from it on the
+	// primary (see sweepStaleScratchFiles), so the directory must belong
+	// to one process. Wired from PDBPLUS_SCRATCH_DIR.
+	ScratchDir string
 }
 
 // Worker orchestrates PeeringDB data synchronization.
@@ -537,7 +544,7 @@ func (w *Worker) syncSteps() []syncStep {
 // Sync is an orchestrator split into three phases:
 //
 //  1. Phase A (NO TX HELD): HTTP fetch + JSON decode stream into an
-//     isolated /tmp SQLite "scratch" database — Go heap stays bounded
+//     isolated on-disk SQLite "scratch" database: Go heap stays bounded
 //     to one element per StreamAll handler invocation (~5-10 KB) instead
 //     of one full []T per type (~35 MB for netixlan).
 //  2. Fetch Barrier: scratch DB fully populated; open the real LiteFS tx.
@@ -794,7 +801,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	prevMemLimit := debug.SetMemoryLimit(syncMemLimit)
 	defer debug.SetMemoryLimit(prevMemLimit)
 
-	scratch, err := openScratchDB(ctx)
+	scratch, err := openScratchDB(ctx, w.config.ScratchDir)
 	if err != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
@@ -1226,7 +1233,7 @@ func sumCounts(m map[string]int) int {
 }
 
 // syncFetchPass runs Phase A against the scratch DB: for each of the 13
-// PeeringDB types, stream the HTTP response body into a /tmp SQLite
+// PeeringDB types, stream the HTTP response body into an on-disk SQLite
 // staging table via StreamAll's callback. Go heap stays bounded to one
 // element per handler invocation (~5-10 KB) instead of one full []T per
 // type (~35 MB for netixlan). No ent.Tx is held during Phase A — the
@@ -2077,8 +2084,8 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 // On primary nodes it executes sync cycles; on replicas it waits for promotion.
 // Role changes are detected dynamically at each scheduler wakeup via
 // w.config.IsPrimary(). The scheduler stops when ctx is cancelled.
-// On a primary, it first runs scrubPocContactsAtStartup and
-// cascadeNetIxLansAtStartup.
+// On a primary, it first runs sweepScratchDirAtStartup,
+// scrubPocContactsAtStartup and cascadeNetIxLansAtStartup.
 //
 // Scheduling anchor: the next sync is scheduled at lastCompletion + interval,
 // not at processStart + N*interval. This matters across restarts — a rolling
@@ -2114,10 +2121,12 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 
 	wasPrimary := w.config.IsPrimary()
 
-	// Repair legacy poc tombstones and cascade network deletes to
-	// netixlans now. The first cycle can be up to one interval away (see
+	// Remove the scratch files of a crashed process, repair legacy poc
+	// tombstones and cascade network deletes to netixlans now. The first
+	// cycle can be up to one interval away (see sweepScratchDirAtStartup,
 	// scrubPocContactsAtStartup and cascadeNetIxLansAtStartup).
 	if wasPrimary {
+		w.sweepScratchDirAtStartup(ctx)
 		w.scrubPocContactsAtStartup(ctx)
 		w.cascadeNetIxLansAtStartup(ctx)
 	}

@@ -252,6 +252,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - `PDBPLUS_CSP_ENFORCE=false`: defaults to report-only; set `true` after browser verification of the current CSP
 - `PDBPLUS_PUBLIC_TIER=public` — set `users` only for private deployments (WARN at startup)
 - `PDBPLUS_IS_PRIMARY=true` — fallback primary detection when LiteFS not present
+- `PDBPLUS_SCRATCH_DIR` (empty = `os.TempDir()`, absolute path required): `fly.toml` sets `/var/lib/litefs/scratch`, on the primary volume (the rootfs is capped at 2000 IOPS and 8 MiB/s). That is the LiteFS data dir, but LiteFS 0.5 uses only `dbs/`, `clusterid` and `id` there. When set, the primary removes stale `pdbplus-sync-scratch-*` files at scheduler start (`sweepScratchDirAtStartup`, holds the `running` latch). Never sweep a shared dir such as `os.TempDir()`.
 
 ### Testing
 - Live tests (against `beta.peeringdb.com`): gated by `-peeringdb-live` flag, not run in CI.

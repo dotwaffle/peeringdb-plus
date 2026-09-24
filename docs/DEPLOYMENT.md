@@ -214,6 +214,11 @@ Non-secret configuration lives in `fly.toml`'s `[env]` block:
   FUSE-mounted LiteFS directory.
 - `PRIMARY_REGION=lhr` — consumed by both `litefs.yml` for lease candidacy
   and the `POST /sync` handler for `fly-replay` forwarding.
+- `PDBPLUS_LITEFS_METRICS_URL=http://localhost:20202/metrics`: the LiteFS
+  metrics endpoint, which the app exports as `pdbplus.litefs.*` over OTLP.
+- `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`: the directory of the sync
+  scratch database, on the primary volume
+  (see [Asymmetric fleet](#asymmetric-fleet)).
 
 Fly.io injects `FLY_REGION`, `FLY_APP_NAME`, and `HOSTNAME` automatically.
 `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
@@ -256,6 +261,8 @@ so the project continues to use it.
   `[[mounts]]` block, auto-extending up to 10 GB when 80 percent full.
   The mount is scoped to `processes = ["primary"]` —
   replicas have no volume and cold-sync to ephemeral rootfs.
+  The sync scratch directory is also on this volume
+  (see [Asymmetric fleet](#asymmetric-fleet)).
 - **Direct HTTP on :8080 with h2c.**
   The LiteFS proxy is intentionally not used;
   the app serves traffic directly on port 8080 with HTTP/2 cleartext so
@@ -316,6 +323,27 @@ one in each of `iad`, `nrt`, `syd`, `lax`, `jnb`, `sin`, and `gru`.
 `fly scale count` sets these counts.
 `fly.toml` does not.
 The `PdbPlusFleetMachineCountLow` alert expects this fleet.
+
+**Scratch directory on the volume:** `fly.toml` sets
+`PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`.
+Each sync cycle on the primary stages the fetched rows in a scratch SQLite
+file in this directory.
+A full cycle writes about 100 MB there.
+Fly.io limits the root file system to 2000 IOPS and 8 MiB/s.
+A volume has higher limits, for example 4000 IOPS and 16 MiB/s on a
+`shared-cpu-1x` VM.
+`/var/lib/litefs` is also the LiteFS data directory (`data.dir` in
+`litefs.yml`).
+LiteFS 0.5 uses only `dbs/`, `clusterid`, and `id` in that directory,
+so it does not read or remove the scratch files.
+The directory is outside the `/litefs` FUSE mount,
+so LiteFS does not replicate the scratch files.
+A crashed process leaves its scratch file,
+so the primary removes stale scratch files at scheduler start.
+The `[env]` block applies to both groups.
+Replicas normally do not run the sync worker.
+A replica machine that takes the lease (see [Regional rollout](#regional-rollout))
+uses the directory on its root file system.
 
 **Volume-only-on-primary contract:** `[[mounts]]` in `fly.toml` is scoped to
 `processes = ["primary"]`.

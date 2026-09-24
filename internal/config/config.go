@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -263,6 +264,16 @@ type Config struct {
 	// PDBPLUS_LITEFS_METRICS_URL. Default empty: LiteFS runs only in the
 	// Fly.io deployment, so the instruments are not registered.
 	LiteFSMetricsURL string
+
+	// ScratchDir is the directory of the sync scratch SQLite database.
+	// Configured via PDBPLUS_SCRATCH_DIR. Default empty: the worker uses
+	// os.TempDir(). A set value must be an absolute path. The worker
+	// creates the directory when it is missing. On the primary, the
+	// scheduler removes stale scratch files from a set directory at
+	// start, so the directory must belong to one process. Fly.io sets a
+	// directory on the primary volume, which is faster than the root
+	// file system.
+	ScratchDir string
 }
 
 // Load reads configuration from environment variables, applies defaults,
@@ -435,6 +446,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parsing PDBPLUS_FULL_SYNC_INTERVAL: %w", err)
 	}
 	cfg.FullSyncInterval = fullSyncInterval
+
+	scratchDir, err := parseAbsPath("PDBPLUS_SCRATCH_DIR")
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_SCRATCH_DIR: %w", err)
+	}
+	cfg.ScratchDir = scratchDir
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validating config: %w", err)
@@ -784,6 +801,21 @@ func parseByteSize(key string, defaultVal int64) (int64, error) {
 		return 0, fmt.Errorf("invalid byte size %q for %s: overflows int64", v, key)
 	}
 	return num * mult, nil
+}
+
+// parseAbsPath reads key from the environment as an absolute path and
+// cleans it with filepath.Clean. Empty / unset returns "". A relative
+// path returns an error, because its meaning would depend on the working
+// directory of the process.
+func parseAbsPath(key string) (string, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return "", nil
+	}
+	if !filepath.IsAbs(v) {
+		return "", fmt.Errorf("invalid path %q for %s: must be an absolute path", v, key)
+	}
+	return filepath.Clean(v), nil
 }
 
 // parseNonNegativeInt reads key from the environment as a non-negative

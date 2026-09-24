@@ -886,6 +886,47 @@ func TestLoad_LiteFSMetricsURL(t *testing.T) {
 	}
 }
 
+// TestLoad_ScratchDir asserts that an unset PDBPLUS_SCRATCH_DIR keeps the
+// default (os.TempDir() in the worker), that a set value is cleaned, and
+// that a relative path stops startup.
+func TestLoad_ScratchDir(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    string
+		wantErr bool
+	}{
+		{name: "unset is the temp dir", envVal: "", want: ""},
+		{name: "absolute", envVal: "/var/lib/litefs/scratch", want: "/var/lib/litefs/scratch"},
+		{name: "absolute is cleaned", envVal: "/var/lib/litefs//scratch/../scratch/", want: "/var/lib/litefs/scratch"},
+		{name: "relative rejected", envVal: "scratch", wantErr: true},
+		{name: "dot relative rejected", envVal: "./scratch", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PDBPLUS_SCRATCH_DIR", tt.envVal)
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("PDBPLUS_SCRATCH_DIR=%q: expected error, got nil", tt.envVal)
+				}
+				if msg := err.Error(); !strings.Contains(msg, "PDBPLUS_SCRATCH_DIR") || !strings.Contains(msg, "absolute path") {
+					t.Errorf("error = %q, want the env var name and %q", msg, "absolute path")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("PDBPLUS_SCRATCH_DIR=%q: unexpected error: %v", tt.envVal, err)
+			}
+			if cfg.ScratchDir != tt.want {
+				t.Errorf("ScratchDir = %q, want %q", cfg.ScratchDir, tt.want)
+			}
+		})
+	}
+}
+
 // TestLoad_SyncMemoryLimit_Default asserts the default (no env var set)
 // resolves to 400 MB. The default matches the benchmark regression
 // gate and leaves 112 MB headroom under the 512 MB Fly.io VM cap.

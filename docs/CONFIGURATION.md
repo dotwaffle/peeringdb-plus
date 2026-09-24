@@ -67,6 +67,7 @@ Apply provider-supported domain and usage restrictions to that key.
 | `PDBPLUS_FK_BACKFILL_TIMEOUT` | No | `5m` | Go duration | Per-cycle wall-clock budget for FK-backfill HTTP activity. Backfill calls happen inside the sync transaction; without a deadline a cascade of slow / rate-limited backfills could hold the tx open for tens of minutes, stalling LiteFS replication. After the deadline, `fkBackfillParent` short-circuits to drop-on-miss with the `pdbplus.sync.fk_backfill{result="deadline_exceeded"}` counter incremented; the rest of the sync (bulk fetches + upserts) commits cleanly and the next cycle picks up where we left off. Set to `0` (or any negative duration) to disable the deadline (only the cap applies). |
 | `PDBPLUS_SYNC_TIMEOUT` | No | `30m` | Go duration | Wall-clock bound on a single sync attempt (each retry in the 30s/2m/8m ladder gets its own budget). The upstream HTTP client deliberately carries no whole-request timeout — a full-sync body read is legitimately slow — so this watchdog is what stops an upstream body that stalls or trickles forever from wedging the cycle, and with it the worker's running latch, for the life of the process (every later trigger would return `ErrSyncAlreadyRunning` while data went silently stale fleet-wide). Cancellation propagates into in-flight HTTP body reads via the request context. Size it comfortably above the slowest observed full-sync cycle. The netixlan cascade verification adds at most 2 minutes to a cycle. Set to `0` to disable (dev/debug only). Must be non-negative. |
 | `PDBPLUS_FULL_SYNC_INTERVAL` | No | `24h` | Go duration | Maximum time between full sync cycles in `incremental` mode. When the newest successful full cycle is older than this value, the next cycle fetches every type completely. It also rewrites rows whose `updated` did not advance, but keeps a stored row whose `updated` is newer than the snapshot's version and not older than the snapshot's newest row, because upstream serves the bare list from an API cache that can be stale. This repairs data that incremental sync cannot see. [Daily full reconcile](ARCHITECTURE.md#daily-full-reconcile) lists these cases. A full cycle also fetches a `?since=` window per type, from the earlier of the cursor and the newest `updated` in the snapshot. The window captures tombstones (bare lists carry only live rows) and rows that changed after upstream built its API cache. `0` disables the forced cycle. The data then stays stale until an operator sends `POST /sync?mode=full`. |
+| `PDBPLUS_SCRATCH_DIR` | No | empty (`os.TempDir()`) | absolute path | Directory of the scratch SQLite database of each sync cycle. The cycle stages the fetched rows there before it writes them to the database. A full cycle writes about 100 MB. An empty value selects `os.TempDir()`. A set value must be an absolute path: a relative path stops startup. The worker creates a missing directory with mode `0700`. When the value is set, the primary removes the `pdbplus-sync-scratch-*` files in the directory at scheduler start, because a crashed process leaves its file and a persistent volume keeps it. The sweep cannot tell the file of another live process from a stale file, so the directory must belong to one process. An empty value sweeps nothing, because other processes share `os.TempDir()`. `fly.toml` sets `/var/lib/litefs/scratch` on the primary volume (see [Asymmetric fleet](DEPLOYMENT.md#asymmetric-fleet)). |
 
 #### WAF behavior
 
@@ -275,7 +276,9 @@ Two deployment-adjacent files exist in the repository:
 
 - `fly.toml`: the Fly.io deployment manifest.
   It sets `PDBPLUS_LISTEN_ADDR` (`:8080`),
-  `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`), and `PRIMARY_REGION` (`lhr`).
+  `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`),
+  `PDBPLUS_LITEFS_METRICS_URL` (`http://localhost:20202/metrics`),
+  `PDBPLUS_SCRATCH_DIR` (`/var/lib/litefs/scratch`), and `PRIMARY_REGION` (`lhr`).
   It defines the `primary` process group
   (`shared-cpu-2x`, 512 MB, `litefs_data` volume)
   and the `replica` process group (`shared-cpu-1x`, 256 MB, no volume).
@@ -302,6 +305,7 @@ These validation errors stop startup:
 | `PDBPLUS_LISTEN_ADDR` | Contains `:` | `PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')` |
 | `PDBPLUS_PEERINGDB_URL` | `https://` always allowed; `http://` only to loopback or RFC 1918; scheme must be set; host must be set. An empty value selects the default. | Multiple messages, one per rejection class (invalid URL, missing scheme, unsupported scheme, empty host, non-local `http://`). |
 | `PDBPLUS_LITEFS_METRICS_URL` | Empty, or an `http://` or `https://` URL with a host | One message for each rejection class (invalid URL, other scheme, empty host). |
+| `PDBPLUS_SCRATCH_DIR` | Empty, or an absolute path | `invalid path "<v>" for PDBPLUS_SCRATCH_DIR: must be an absolute path` |
 | `PDBPLUS_DRAIN_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_DRAIN_TIMEOUT must be greater than 0` |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | `> 0` after duration parse | `PDBPLUS_SYNC_STALE_THRESHOLD must be greater than 0` |
 | `PDBPLUS_STREAM_TIMEOUT` | `> 0` after duration parse | `PDBPLUS_STREAM_TIMEOUT must be greater than 0 (it is the only bound on streaming RPC lifetime)` |
@@ -383,7 +387,7 @@ Environment values are supplied by:
   `Dockerfile.prod` sets no `PDBPLUS_*` variable.
 - **Fly.io production**:
   the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`,
-  `PDBPLUS_LITEFS_METRICS_URL`, and `PRIMARY_REGION`.
+  `PDBPLUS_LITEFS_METRICS_URL`, `PDBPLUS_SCRATCH_DIR`, and `PRIMARY_REGION`.
   The Fly.io runtime injects `FLY_REGION`, `FLY_PROCESS_GROUP`,
   `FLY_MACHINE_ID`, and `FLY_APP_NAME`.
   `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
