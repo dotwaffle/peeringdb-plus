@@ -385,7 +385,7 @@ Environment values are supplied by:
 - **Local Docker**: image defaults plus `-e` or `--env-file` flags on
   `docker run`.
   `Dockerfile` sets `PDBPLUS_DB_PATH=/data/peeringdb-plus.db`.
-  `Dockerfile.prod` sets no `PDBPLUS_*` variable.
+  `Dockerfile.litefs` sets no `PDBPLUS_*` variable.
 - **Fly.io production**:
   the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`,
   `PDBPLUS_LITEFS_METRICS_URL`, `PDBPLUS_SCRATCH_DIR`, and `PRIMARY_REGION`.
@@ -409,7 +409,7 @@ Environment values are supplied by:
 - `internal/otel/logger.go` —
   `PDBPLUS_LOG_LEVEL` parser and OTel log handler filter.
 - `internal/litefs/primary.go` — primary detection and env fallback.
-- `fly.toml`, `litefs.yml`, `Dockerfile.prod` — deployment manifests.
+- `fly.toml`, `litefs.yml`, `Dockerfile.litefs`: deployment manifests.
 
 ## Upstream sync threat model and mitigations
 

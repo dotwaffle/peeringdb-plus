@@ -12,10 +12,10 @@ that cold-sync from the primary on boot.
 
 | Target | Config file | Notes |
 | --- | --- | --- |
-| Fly.io (production) | `fly.toml`, `Dockerfile.prod`, `litefs.yml` | App name `peeringdb-plus`, primary region `lhr`. |
-| Generic Docker host | `Dockerfile` | Development image; runs the binary directly without LiteFS. |
+| Fly.io (production) | `fly.toml`, `Dockerfile.litefs`, `litefs.yml` | App name `peeringdb-plus`, primary region `lhr`. |
+| Generic Docker host | `Dockerfile` | Standalone image. Runs the binary directly without LiteFS. CI publishes it to GHCR (see [Published image](#published-image)). |
 
-- `fly.toml` — app (`peeringdb-plus`), primary region (`lhr`), rolling deploy
+- `fly.toml`: app (`peeringdb-plus`), primary region (`lhr`), rolling deploy
   strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases,
   two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]`
   blocks (`shared-cpu-2x` / 512 MB for `primary`, `shared-cpu-1x` / 256 MB
@@ -24,7 +24,7 @@ that cold-sync from the primary on boot.
   no volume), and an HTTP health check on `GET /readyz` every 15s (the
   readiness probe, so Fly Proxy routes around hydrating or stale machines;
   `GET /healthz` remains the always-200 liveness probe).
-- `Dockerfile.prod` — LiteFS-aware production image.
+- `Dockerfile.litefs`: LiteFS-aware production image.
   Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite`
   (CLI for incident response —
   see [Incident-response debug shell](#incident-response-debug-shell)) installed,
@@ -36,32 +36,72 @@ that cold-sync from the primary on boot.
   and `-trimpath -ldflags="-s -w …"`
   (the version string is injected via
   `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
-- `Dockerfile` — development image.
-  Chainguard `glibc-dynamic` runtime,
-  `CGO_ENABLED=0` with `-trimpath -ldflags="-s -w"`.
-  Unlike the prod image it does **not** inject the build version
-  (no `-X …buildinfo.injected=$VERSION`),
-  so `internal/buildinfo` reports its default.
+- `Dockerfile`: standalone image.
+  Chainguard `static` runtime
+  (no libc, no shell), `CGO_ENABLED=0` with `-trimpath -ldflags="-s -w …"`.
+  The build stage runs on the build platform and cross-compiles
+  for the target platform, so an arm64 image builds without QEMU.
+  Like the prod image, it injects the version string from `git describe`
+  or the `VERSION` build argument.
   No LiteFS.
   Runs the binary directly
   as `ENTRYPOINT ["/usr/local/bin/peeringdb-plus"]` with
   `PDBPLUS_DB_PATH=/data/peeringdb-plus.db` and `EXPOSE 8080`.
-  Used by GitHub Actions for the `Docker Build` CI job and as a base
-  for local container-based development.
+  The `Docker Build` CI job builds it for `linux/amd64` and `linux/arm64`.
+  The `Docker Publish` job pushes it to GHCR.
 
 Both images use `cgr.dev/chainguard/go` as the build stage.
-`Dockerfile.prod` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
+`Dockerfile.litefs` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
 as the runtime stage and runs as root.
-`Dockerfile` uses `cgr.dev/chainguard/glibc-dynamic`, which has no shell,
+`Dockerfile` uses `cgr.dev/chainguard/static`, which has no libc and no shell,
 and runs as `nonroot`.
+
+## Published image
+
+CI publishes the standalone image from `Dockerfile` to
+`ghcr.io/dotwaffle/peeringdb-plus` for `linux/amd64` and `linux/arm64`.
+The image does not use LiteFS.
+
+| Tag | Points to |
+| --- | --- |
+| `X.Y.Z` | The release tag `vX.Y.Z`. |
+| `X.Y` | The most recent release tag `vX.Y.*` that CI published. |
+| `latest` | The most recent release tag that CI published. |
+| `main` | The most recent commit on the `main` branch. |
+| `sha-<commit>` | One commit, by its short hash. |
+
+Use a release tag or `latest` for a stable deployment.
+`main` changes with each merge.
+
+```bash
+docker pull ghcr.io/dotwaffle/peeringdb-plus:<version>
+docker run -p 8080:8080 -v pdbdata:/data ghcr.io/dotwaffle/peeringdb-plus:latest
+```
+
+The image keeps its database in `/data/peeringdb-plus.db`.
+Mount a volume at `/data` to keep the data when you replace the container.
+
+Each image has a GitHub artifact attestation with SLSA build provenance.
+To verify it, run:
+
+```bash
+gh attestation verify oci://ghcr.io/dotwaffle/peeringdb-plus:<tag> --owner dotwaffle
+```
+
+Each image also has an SBOM and a BuildKit provenance attestation.
+To read the SBOM, run:
+
+```bash
+docker buildx imagetools inspect ghcr.io/dotwaffle/peeringdb-plus:<tag> --format '{{ json .SBOM }}'
+```
 
 ## Build pipeline
 
-GitHub Actions workflow `.github/workflows/ci.yml` runs on every pull request
-and on pushes to `main`.
-It comprises two jobs:
+GitHub Actions workflow `.github/workflows/ci.yml` runs on every pull request,
+on pushes to `main`, and on pushes of `v*` tags.
+It has three jobs:
 
-1. **`ci`** — a single mise/Go job that installs the committed lockfile,
+1. **`ci`**: a single mise/Go job that installs the committed lockfile,
    warms one module/build cache, then runs these steps in order:
    1. **Generated-code drift check** —
       `mise run generate` then
@@ -83,10 +123,21 @@ It comprises two jobs:
       Advisory (`continue-on-error`):
       a flagged vulnerability surfaces as a workflow warning
       but does **not** block the merge.
-2. **`docker-build`** — a separate parallel job that builds both `Dockerfile`
-   and `Dockerfile.prod` using `docker/build-push-action@v7` with BuildKit's
-   `type=gha` cache.
-   Images are built but **not pushed** from CI.
+2. **`docker-build`**: a separate parallel job
+   that uses `docker/build-push-action@v7` with BuildKit's `type=gha` cache.
+   It builds `Dockerfile` for `linux/amd64` and `linux/arm64`
+   and `Dockerfile.litefs` for `linux/amd64`.
+   Each Dockerfile has its own cache scope.
+   This job pushes nothing.
+3. **`docker-publish`**: runs only on pushes to `main` and `v*` tags,
+   after `ci` and `docker-build` pass.
+   It builds `Dockerfile` again for both platforms,
+   pushes it to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM
+   and BuildKit provenance, and adds a GitHub artifact attestation.
+   See [Published image](#published-image) for the tags.
+   Pull requests publish nothing.
+   `Dockerfile.litefs` is never published,
+   because it needs the LiteFS lease of the Fly deployment.
 
 `docker-build` is a separate job
 because its BuildKit `type=gha` cache is separate from the Go build cache.
@@ -97,7 +148,7 @@ as documented in `fly.toml`.
 
 ### Production image: accepted risks
 
-Two deliberate trade-offs in `Dockerfile.prod`,
+Two deliberate trade-offs in `Dockerfile.litefs`,
 recorded here so they read as decisions rather than oversights:
 
 - **The process tree runs as root.**
@@ -111,11 +162,11 @@ recorded here so they read as decisions rather than oversights:
   or the app moves off FUSE.
 - **The runtime base is `glibc-dynamic:latest-dev`.**
   The `-dev` variant has a shell and `apk`,
-  and `Dockerfile.prod` installs the `sqlite3` CLI with `apk`.
+  and `Dockerfile.litefs` installs the `sqlite3` CLI with `apk`.
   This is deliberate incident-response tooling:
   `fly ssh console` + `sqlite3 /litefs/peeringdb-plus.db`
   is the documented production debugging path.
-  The dev `Dockerfile` uses the plain (shell-less) variant,
+  The dev `Dockerfile` uses `static`, which has no shell,
   since nothing execs into it.
   Both base tags float (`:latest`);
   Chainguard's free tier offers no pinned tags,
@@ -242,7 +293,7 @@ stable but no longer actively supported by Fly.io.
 There is no drop-in alternative for edge SQLite replication,
 so the project continues to use it.
 
-- **FUSE mount.** `Dockerfile.prod`'s entrypoint is `litefs mount`, which
+- **FUSE mount.** `Dockerfile.litefs`'s entrypoint is `litefs mount`, which
   starts the LiteFS FUSE process, mounts the database directory at
   `/litefs`, and then execs the application (see `litefs.yml` `exec:`
   stanza, which invokes `/usr/local/bin/peeringdb-plus`).
@@ -634,15 +685,15 @@ fly deploy
 ```bash
 # Deploy the current working tree with Fly's remote builder.
 # After a long pause the remote builder starts cold. `go build -v` in
-# Dockerfile.prod prints each package, so a slow build shows progress.
+# Dockerfile.litefs prints each package, so a slow build shows progress.
 # If a transient api.machines.dev error occurs, run `fly deploy` again.
 fly deploy
 
 # Build on the local Docker daemon instead
 fly deploy --local-only
 
-# Deploy with a specific Dockerfile (defaults to Dockerfile.prod per fly.toml)
-fly deploy --dockerfile Dockerfile.prod
+# Deploy with a specific Dockerfile (defaults to Dockerfile.litefs per fly.toml)
+fly deploy --dockerfile Dockerfile.litefs
 
 # Check status after deploy
 fly status

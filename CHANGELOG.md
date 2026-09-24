@@ -10,6 +10,19 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- CI publishes the standalone image (`Dockerfile`) to
+  `ghcr.io/dotwaffle/peeringdb-plus` for `linux/amd64` and
+  `linux/arm64`. A release tag `vX.Y.Z` publishes the tags `X.Y.Z`,
+  `X.Y` and `latest`. A push to `main` publishes `main`. Each published
+  commit also gets `sha-<commit>`. Each image has an SBOM, BuildKit
+  provenance and a GitHub artifact attestation, which
+  `gh attestation verify` checks. The new `docker-publish` job runs only
+  on pushes, after the `ci` and `docker-build` jobs pass. Pull requests
+  publish nothing. The Fly image (`Dockerfile.litefs`) is not published.
+  See `docs/DEPLOYMENT.md` § Published image.
+
 ### Changed
 
 - CI runs the race test suite without coverage and posts no coverage
@@ -27,6 +40,18 @@ are in the Git history at their tags.
   default FK backfill cap, backfill adds up to about 40 seconds (was
   about 20). An operator who set `PDBPLUS_PEERINGDB_RPS` keeps that
   value.
+- The standalone image (`Dockerfile`) uses the `cgr.dev/chainguard/static`
+  runtime base in place of `cgr.dev/chainguard/glibc-dynamic`. The binary
+  is `CGO_ENABLED=0` and needs no libc. The image also stamps the binary
+  with its version, as `Dockerfile.litefs` does: the `VERSION` build
+  argument, else `git describe --tags --always`. Before this release the
+  standalone image reported only a short commit hash. The build stage
+  cross-compiles, so an arm64 build needs no QEMU.
+- `Dockerfile.prod` is renamed to `Dockerfile.litefs`. The file builds
+  the LiteFS image for the Fly deployment. `fly.toml` builds from the new
+  name, so a plain `fly deploy` needs no change. Operators who run
+  `fly deploy --dockerfile Dockerfile.prod` must use
+  `fly deploy --dockerfile Dockerfile.litefs`.
 
 ## [1.31.1] - 2026-09-24
 

@@ -125,12 +125,14 @@ CI rejects a PR in which these files are out of date (see below).
 
 Every pull request runs two jobs (defined in `.github/workflows/ci.yml`).
 The `ci` job is a single cached Go job whose steps run in order;
-`docker-build` runs in parallel:
+`docker-build` runs in parallel.
+A third job, `docker-publish`, runs only on pushes to `main` and `v*` tags:
 
 | Job | What it runs |
 |---|---|
 | **`ci`** | In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests, lint (actionlint and golangci-lint), advisory vulnerability scan |
-| **`docker-build`** | Builds both `Dockerfile` (dev) and `Dockerfile.prod` (prod) images |
+| **`docker-build`** | Builds `Dockerfile` (standalone, `linux/amd64` and `linux/arm64`) and `Dockerfile.litefs` (Fly, `linux/amd64`). Pushes nothing |
+| **`docker-publish`** | Push events only, after `ci` and `docker-build` pass: pushes the standalone image to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM, provenance, and an artifact attestation |
 
 `govulncheck` runs with `continue-on-error`:
 a flagged vulnerability surfaces as a workflow warning

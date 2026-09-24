@@ -262,8 +262,8 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 
 ### Build
 - Pure Go: `CGO_ENABLED=0` in Docker (modernc.org/sqlite is CGo-free); CI flips it to `1` only for the race detector.
-- Chainguard base images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/glibc-dynamic`); prod flags: `-trimpath -ldflags="-s -w"`.
-- LiteFS is a separate FUSE process — the app does not link to it. Prod Dockerfile uses `litefs mount` as entrypoint.
+- Chainguard base images: `cgr.dev/chainguard/go` (build), `cgr.dev/chainguard/static` (standalone `Dockerfile` runtime), `cgr.dev/chainguard/glibc-dynamic:latest-dev` (`Dockerfile.litefs` runtime); flags: `-trimpath -ldflags="-s -w"`, version via `-X …buildinfo.injected`.
+- LiteFS is a separate FUSE process: the app does not link to it. `Dockerfile.litefs` (the Fly image, `fly.toml` `[build]`) uses `litefs mount` as entrypoint.
 
 ### LiteFS
 - Lease file semantics are **inverted**: `/litefs/.primary` file **absent** = primary, **present** = replica (file contains primary hostname).
@@ -272,7 +272,10 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - Metrics: `PDBPLUS_LITEFS_METRICS_URL` (set in `fly.toml`, empty = off) makes `InitLiteFSGauges` read LiteFS `:20202/metrics` once per OTel collection → `pdbplus.litefs.*`. LiteFS 0.5 quirks: `litefs_http_frame_send_count` never increments (missing `.Inc()`, `http/server.go:735/774`); `litefs_db_ltx_bytes` = new LTX file size after a commit, on-disk total after the 1m retention pass; `commit_count`, `ltx_bytes`, `ltx_count` and db `lag_seconds` appear only after the first commit/apply/retention pass since LiteFS started (`commit_count` only after the node commits as primary: only CommitWAL/CommitJournal/Drop set it), so `ParseMetrics` requires only `txid`, `litefs_lag_seconds` and `subscriber_count` (v1.29.0 required all: every replica failed every scrape, the primary until its first commit).
 
 ### CI
-- 2 jobs on PR + main: `ci` (one cached mise/Go job running, in order: generated-code drift check, build, gotestsum race tests, lint, advisory vulnerability scan) and `docker-build` (dev + prod images, separate BuildKit `type=gha` cache).
+- Triggers: PR, push to main, push of `v*` tags. 3 jobs:
+  - `ci`: one cached mise/Go job running, in order: generated-code drift check, build, gotestsum race tests, lint, advisory vulnerability scan.
+  - `docker-build` (parallel, pushes nothing): `Dockerfile` for amd64+arm64 (gha cache `scope=dev`), `Dockerfile.litefs` for amd64 (`scope=prod`).
+  - `docker-publish` (push events only, `needs: [ci, docker-build]`): pushes `Dockerfile` (amd64+arm64) to `ghcr.io/dotwaffle/peeringdb-plus` with SBOM + `provenance: mode=max`, then `actions/attest` (pushed to the registry). Tags: `X.Y.Z`/`X.Y`/`latest` on `v*` tags, `main` on main, `sha-<short>` always. Reads the `dev` cache, never writes it. `Dockerfile.litefs` is never published (needs the Fly LiteFS lease).
 - **Generated code drift check**: first step of the `ci` job — runs `mise run generate` then fails if `ent/`, `gen/`, `graph/`, `internal/web/templates/`, Tailwind output, or the pdbcompat allowlist differ from committed files.
 - govulncheck is advisory (`continue-on-error`): a flagged vuln warns but does not block merge.
 - Linters: contextcheck, exhaustive, gocritic, gosec, misspell, modernize, nolintlint, revive (see `.golangci.yml`).

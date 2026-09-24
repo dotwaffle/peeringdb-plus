@@ -8,15 +8,26 @@ name: CI
 # `docker-build` stays a separate parallel job: it uses BuildKit's
 # `type=gha` cache (a different cache system from the Go build cache), so
 # folding it into the Go job would only serialize it onto the critical
-# path for zero cache benefit.
+# path for zero cache benefit. It builds the standalone `Dockerfile` for
+# linux/amd64 and linux/arm64 and the Fly-only `Dockerfile.litefs` for
+# linux/amd64, and pushes nothing.
+#
+# `docker-publish` runs on pushes only (main and `v*` tags), after `ci`
+# and `docker-build` pass. It pushes the standalone image to
+# ghcr.io/dotwaffle/peeringdb-plus with an SBOM, BuildKit provenance and
+# a GitHub artifact attestation. `Dockerfile.litefs` is never published:
+# it needs the LiteFS lease of the Fly deployment.
 
 on:
   pull_request:
   push:
     branches: [main]
+    tags: ['v*']
 
-# Cancel an in-flight run for a PR ref when a new commit arrives; main
-# pushes run to completion so every committed SHA keeps a full CI record.
+# Cancel an in-flight run for a PR ref when a new commit arrives. Main and
+# tag pushes run to completion so every committed SHA keeps a full CI
+# record and a started publish is never cut off. Each tag is its own ref,
+# so a tag run never waits for or cancels a main run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -111,20 +122,97 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build development image
+      # One gha cache scope per Dockerfile, so the two builds stop
+      # overwriting one cache entry. The build stage cross-compiles, so the
+      # arm64 build needs no QEMU.
+      - name: Build standalone image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=dev
+          cache-to: type=gha,mode=max,scope=dev
 
       - name: Build production image
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile.prod
+          file: ./Dockerfile.litefs
+          platforms: linux/amd64
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=prod
+          cache-to: type=gha,mode=max,scope=prod
+
+  docker-publish:
+    name: Docker Publish
+    if: github.event_name == 'push'
+    needs: [ci, docker-build]
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io
+      id-token: write # Sigstore signing certificate for the attestation
+      attestations: write # store the attestation
+    steps:
+      # Full history and tags: the Dockerfile stamps the binary with
+      # `git describe --tags`.
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # A release tag vX.Y.Z gives X.Y.Z, X.Y and latest (flavor
+      # latest=auto adds latest through the semver rules, and skips it for
+      # a pre-release). A main push gives main. Every push gives sha-<short>.
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=main,enable={{is_default_branch}}
+            type=sha
+
+      # cache-from only: docker-build owns the dev scope, and a second
+      # writer would race it.
+      - name: Build and push standalone image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=dev
+
+      # With no predicate or SBOM input, actions/attest makes a SLSA build
+      # provenance attestation. Storage records need artifact-metadata:
+      # write and an organization-owned repository, so they stay off.
+      - name: Attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false

@@ -82,9 +82,15 @@ once the database is populated,
 ### Local (Docker)
 
 ```bash
+docker run -p 8080:8080 -v pdbdata:/data ghcr.io/dotwaffle/peeringdb-plus:latest
+# Or build the image from your checkout:
 docker build -t peeringdb-plus .
 docker run -p 8080:8080 -v pdbdata:/data peeringdb-plus
 ```
+
+CI publishes the image for `linux/amd64` and `linux/arm64`.
+For the tags and for how to verify an image,
+see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#published-image).
 
 The image stores the database at `/data/peeringdb-plus.db`;
 mount a volume to persist data across container restarts.
@@ -251,7 +257,8 @@ through OpenTelemetry autoexport.
 - **Platform:** [Fly.io](https://fly.io) with an asymmetric `primary` /
   `replica` process-group fleet
 - **Container base:** [Chainguard](https://www.chainguard.dev/) minimal
-  images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/glibc-dynamic`)
+  images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/static`, and
+  `cgr.dev/chainguard/glibc-dynamic` for the LiteFS image)
 
 ## Development
 
