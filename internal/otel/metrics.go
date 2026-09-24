@@ -80,9 +80,10 @@ var SyncFKBackfill metric.Int64Counter
 
 // SyncLockRetries counts the retries of short primary writes after a
 // transient SQLite lock error (SQLITE_BUSY or SQLITE_PROTOCOL), by op:
-// the sync_status writes and the startup poc scrub and netixlan cascade
-// transactions (internal/sync/lockretry.go). The sync transaction is not
-// retried. Cardinality: 5 op values.
+// the sync_status INSERT and UPDATE and the startup poc scrub and
+// netixlan cascade transactions (internal/sync/lockretry.go). The sync
+// transaction and the sync_status prune are not retried. Cardinality: 5
+// op values.
 var SyncLockRetries metric.Int64Counter
 
 // PeeringDBRequests counts outbound HTTP requests to the PeeringDB API by

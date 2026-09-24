@@ -98,6 +98,10 @@ default `1h` unauthenticated / `15m` authenticated):
 1. The scheduler in `internal/sync/worker.go` (`Worker.StartScheduler`) wakes up
    and checks `IsPrimary()`.
    Replicas loop without syncing.
+   On the primary, the worker inserts a `running` row into `sync_status`.
+   Then it deletes up to 1000 rows that are older than the newest 3000 rows.
+   It keeps the newest success row and the newest full success row.
+   If the delete fails, the worker logs a WARN and the cycle continues.
 2. Phase A — fetch: the worker calls `api.peeringdb.com`
    for every object type using `internal/peeringdb/client.go`,
    staging all responses in an on-disk SQLite scratch database in `os.TempDir()`
@@ -291,8 +295,9 @@ On 2026-09-24 the startup netixlan cascade commit failed with
 - The startup netixlan cascade transaction.
   The verification requests run once, before the first attempt.
 
-The main sync transaction does not retry.
-Its fetch pass is expensive, and the next cycle does the work again.
+The main sync transaction and the `sync_status` prune do not retry.
+The fetch pass of the sync transaction is expensive,
+and the next cycle does the work of both again.
 
 A retry starts only for a `modernc.org/sqlite` error whose primary code
 (`code & 0xff`) is `SQLITE_BUSY` (5) or `SQLITE_PROTOCOL` (15).

@@ -2,7 +2,10 @@ package sync_test
 
 import (
 	"database/sql"
+	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -471,4 +474,257 @@ func columnExistsTest(t *testing.T, db *sql.DB, table, column string) bool {
 	}
 	defer func() { _ = rows.Close() }()
 	return rows.Next()
+}
+
+// statusStep is one step of a sync_status seed: a cycle row with its
+// final status and mode, or a reap of the running rows when status is "".
+type statusStep struct {
+	status string // "success", "failed" or "running", or "" for a reap
+	mode   string
+}
+
+var (
+	fullSuccess = statusStep{"success", "full"}
+	incrSuccess = statusStep{"success", "incremental"}
+	failedCycle = statusStep{"failed", "incremental"}
+	runningRow  = statusStep{"running", "incremental"}
+	reapRunning = statusStep{}
+)
+
+// newStatusDB returns a database with an empty sync_status table.
+func newStatusDB(t *testing.T) *sql.DB {
+	t.Helper()
+	_, db := testutil.SetupClientWithDB(t)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+	return db
+}
+
+// seedStatusRows writes steps to sync_status through the production
+// writers, so the rows store times in the format of modernc.org/sqlite.
+// Each row has its own times and object counts, so the readers can tell
+// the rows apart.
+func seedStatusRows(t *testing.T, db *sql.DB, steps []statusStep) {
+	t.Helper()
+	ctx := t.Context()
+	base := time.Now().Add(-24 * time.Hour)
+	for i, step := range steps {
+		if step.status == "" {
+			if _, err := sync.ReapStaleRunningRows(ctx, db, slog.Default(), sync.DefaultLockRetry()); err != nil {
+				t.Fatalf("ReapStaleRunningRows: %v", err)
+			}
+			continue
+		}
+		startedAt := base.Add(time.Duration(i) * 15 * time.Minute)
+		id, err := sync.RecordSyncStart(ctx, db, startedAt, step.mode)
+		if err != nil {
+			t.Fatalf("RecordSyncStart: %v", err)
+		}
+		if step.status == "running" {
+			continue
+		}
+		status := sync.Status{
+			LastSyncAt:   startedAt.Add(time.Minute),
+			Duration:     time.Minute,
+			ObjectCounts: map[string]int{"org": i},
+			Status:       step.status,
+		}
+		if step.status == "failed" {
+			status.ErrorMessage = fmt.Sprintf("seeded failure %d", i)
+		}
+		if err := sync.RecordSyncComplete(ctx, db, id, status); err != nil {
+			t.Fatalf("RecordSyncComplete: %v", err)
+		}
+	}
+}
+
+// statusIDs returns the ids of the sync_status rows in ascending order.
+func statusIDs(t *testing.T, db *sql.DB) []int64 {
+	t.Helper()
+	rows, err := db.QueryContext(t.Context(), `SELECT id FROM sync_status ORDER BY id`)
+	if err != nil {
+		t.Fatalf("read sync_status ids: %v", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("scan sync_status id: %v", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate sync_status ids: %v", err)
+	}
+	return ids
+}
+
+// statusReads holds the results of the sync_status readers.
+type statusReads struct {
+	last, completed, success *sync.Status
+	successAt, fullAt        time.Time
+}
+
+// readStatus calls each sync_status reader.
+func readStatus(t *testing.T, db *sql.DB) statusReads {
+	t.Helper()
+	ctx := t.Context()
+	var (
+		r   statusReads
+		err error
+	)
+	if r.last, err = sync.GetLastStatus(ctx, db); err != nil {
+		t.Fatalf("GetLastStatus: %v", err)
+	}
+	if r.completed, err = sync.GetLastCompletedStatus(ctx, db); err != nil {
+		t.Fatalf("GetLastCompletedStatus: %v", err)
+	}
+	if r.success, err = sync.GetLastSuccessfulStatus(ctx, db); err != nil {
+		t.Fatalf("GetLastSuccessfulStatus: %v", err)
+	}
+	if r.successAt, err = sync.GetLastSuccessfulSyncTime(ctx, db); err != nil {
+		t.Fatalf("GetLastSuccessfulSyncTime: %v", err)
+	}
+	if r.fullAt, err = sync.GetLastSuccessfulFullSyncTime(ctx, db); err != nil {
+		t.Fatalf("GetLastSuccessfulFullSyncTime: %v", err)
+	}
+	return r
+}
+
+// sameStatus reports whether a and b hold the same row values.
+func sameStatus(a, b *sync.Status) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.LastSyncAt.Equal(b.LastSyncAt) && a.Duration == b.Duration &&
+		maps.Equal(a.ObjectCounts, b.ObjectCounts) && a.Status == b.Status &&
+		a.ErrorMessage == b.ErrorMessage
+}
+
+// equal reports whether each reader returned the same result in r and o.
+func (r statusReads) equal(o statusReads) bool {
+	return sameStatus(r.last, o.last) && sameStatus(r.completed, o.completed) &&
+		sameStatus(r.success, o.success) && r.successAt.Equal(o.successAt) &&
+		r.fullAt.Equal(o.fullAt)
+}
+
+// TestPruneSyncStatus verifies the retention rule with keep 3: the prune
+// deletes the rows older than the 3 newest rows, except the newest
+// success row and the newest full success row. A missing anchor does not
+// stop the prune. Each sync_status reader returns the same result before
+// and after the prune, and a second prune deletes nothing.
+func TestPruneSyncStatus(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name        string
+		steps       []statusStep
+		wantDeleted int64
+		wantIDs     []int64
+	}{
+		{"empty table", nil, 0, nil},
+		{"fewer rows than keep", []statusStep{fullSuccess, failedCycle}, 0, []int64{1, 2}},
+		{"no success row", slices.Repeat([]statusStep{failedCycle}, 6), 3, []int64{4, 5, 6}},
+		{"both anchors outside the window",
+			[]statusStep{fullSuccess, incrSuccess, failedCycle, failedCycle, failedCycle, runningRow},
+			1, []int64{1, 2, 4, 5, 6}},
+		{"older full success is not an anchor",
+			[]statusStep{fullSuccess, fullSuccess, incrSuccess, failedCycle, failedCycle, failedCycle},
+			1, []int64{2, 3, 4, 5, 6}},
+		{"no full success row",
+			[]statusStep{incrSuccess, incrSuccess, failedCycle, failedCycle, failedCycle, failedCycle},
+			2, []int64{2, 4, 5, 6}},
+		{"failed full cycle after the full success",
+			[]statusStep{fullSuccess, {"failed", "full"}, incrSuccess, failedCycle, failedCycle, failedCycle},
+			1, []int64{1, 3, 4, 5, 6}},
+		{"reaped running row",
+			[]statusStep{fullSuccess, runningRow, reapRunning, failedCycle, failedCycle, failedCycle},
+			1, []int64{1, 3, 4, 5}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+			db := newStatusDB(t)
+			seedStatusRows(t, db, tc.steps)
+			before := readStatus(t, db)
+
+			deleted, err := sync.PruneSyncStatus(ctx, db, 3, 100)
+			if err != nil {
+				t.Fatalf("PruneSyncStatus: %v", err)
+			}
+			if deleted != tc.wantDeleted {
+				t.Errorf("deleted = %d, want %d", deleted, tc.wantDeleted)
+			}
+			if got := statusIDs(t, db); !slices.Equal(got, tc.wantIDs) {
+				t.Errorf("ids after the prune = %v, want %v", got, tc.wantIDs)
+			}
+			if after := readStatus(t, db); !after.equal(before) {
+				t.Errorf("readers changed after the prune:\nbefore %+v\n after %+v", before, after)
+			}
+
+			again, err := sync.PruneSyncStatus(ctx, db, 3, 100)
+			if err != nil {
+				t.Fatalf("second PruneSyncStatus: %v", err)
+			}
+			if again != 0 {
+				t.Errorf("second prune deleted %d rows, want 0", again)
+			}
+			if got := statusIDs(t, db); !slices.Equal(got, tc.wantIDs) {
+				t.Errorf("ids after the second prune = %v, want %v", got, tc.wantIDs)
+			}
+		})
+	}
+}
+
+// TestPruneSyncStatus_Batch verifies that a prune deletes at most batch
+// rows, oldest first, and that the function reads keep and batch below 1
+// as 1.
+func TestPruneSyncStatus_Batch(t *testing.T) {
+	t.Parallel()
+	tenFailed := slices.Repeat([]statusStep{failedCycle}, 10)
+
+	t.Run("oldest rows first", func(t *testing.T) {
+		t.Parallel()
+		db := newStatusDB(t)
+		seedStatusRows(t, db, tenFailed)
+		for i, want := range []struct{ deleted, minID int64 }{{3, 4}, {3, 7}, {1, 8}, {0, 8}} {
+			deleted, err := sync.PruneSyncStatus(t.Context(), db, 3, 3)
+			if err != nil {
+				t.Fatalf("prune %d: %v", i+1, err)
+			}
+			ids := statusIDs(t, db)
+			if deleted != want.deleted || len(ids) == 0 || ids[0] != want.minID {
+				t.Errorf("prune %d: deleted %d, ids %v; want %d deleted and MIN(id) %d",
+					i+1, deleted, ids, want.deleted, want.minID)
+			}
+		}
+	})
+
+	for _, tc := range []struct {
+		name        string
+		keep, batch int
+		wantDeleted int64
+		wantIDs     []int64
+	}{
+		{"batch 0 reads as 1", 3, 0, 1, []int64{2, 3, 4, 5, 6, 7, 8, 9, 10}},
+		{"negative batch reads as 1", 3, -1, 1, []int64{2, 3, 4, 5, 6, 7, 8, 9, 10}},
+		{"keep 0 keeps the newest row", 0, 100, 9, []int64{10}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			db := newStatusDB(t)
+			seedStatusRows(t, db, tenFailed)
+			deleted, err := sync.PruneSyncStatus(t.Context(), db, tc.keep, tc.batch)
+			if err != nil {
+				t.Fatalf("PruneSyncStatus: %v", err)
+			}
+			if deleted != tc.wantDeleted {
+				t.Errorf("deleted = %d, want %d", deleted, tc.wantDeleted)
+			}
+			if got := statusIDs(t, db); !slices.Equal(got, tc.wantIDs) {
+				t.Errorf("ids = %v, want %v", got, tc.wantIDs)
+			}
+		})
+	}
 }

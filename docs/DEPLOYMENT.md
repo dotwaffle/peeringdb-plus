@@ -512,6 +512,9 @@ find the cause before the primary reaches its 512 MB limit.
 Look at `pdbplus_sync_peak_heap_bytes` for each cycle
 and at the sync mode of those cycles (`sync_status.mode`).
 Full cycles use more memory than incremental cycles.
+`sync_status` keeps the newest 3000 cycles (about 31 days at the 15m interval),
+plus the newest success row and the newest full success row.
+For older cycles, use the Grafana metrics and logs.
 Observed baseline (2026-04-17): primary peak 83.8 MiB,
 replicas 58-59 MiB.
 
@@ -683,6 +686,9 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
    SELECT id, mode, status, completed_at FROM sync_status
      WHERE mode = 'full' ORDER BY id DESC LIMIT 1;
    ```
+
+   `sync_status` keeps the newest 3000 cycles and the newest full success
+   row, so this query always finds the full sync that you started.
 
 5. Make sure that no skipped row is left.
    The result must be `0`,

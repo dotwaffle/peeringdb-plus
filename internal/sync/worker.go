@@ -173,8 +173,9 @@ type Worker struct {
 	logger        *slog.Logger
 	retryBackoffs []time.Duration // defaults to 30s, 2m, 8m
 	// lockRetry is the retry policy of the short writes that retry on a
-	// SQLite lock error: the sync_status writes and the startup poc
-	// scrub and netixlan cascade transactions (see retryOnLock).
+	// SQLite lock error: the sync_status INSERT and UPDATE and the
+	// startup poc scrub and netixlan cascade transactions (see
+	// retryOnLock). The sync_status prune does not retry.
 	// NewWorker sets DefaultLockRetry. Tests set short delays.
 	lockRetry LockRetry
 	// fkRegistry maps parent type name to the set of IDs successfully
@@ -693,6 +694,11 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 		start:    start,
 		errp:     &err,
 	})
+
+	// Prune after the INSERT, and only when it succeeded. It never fails the cycle.
+	if startErr == nil {
+		w.pruneStatusRows(ctx)
+	}
 
 	err = w.syncCycle(ctx, effectiveMode, statusID, start)
 	return err

@@ -1259,6 +1259,65 @@ func TestSync_ObjectsCounterAfterCommit(t *testing.T) {
 	}
 }
 
+// TestSync_PrunesSyncStatus verifies that a sync cycle prunes sync_status
+// with the production limits, after the INSERT of its own running row.
+// The seed is a full success row (id 1) and 3049 failed rows. The cycle
+// adds row 3051, and the prune keeps the newest 3000 rows (ids 52 to
+// 3051) and id 1, which is both anchors. A prune before the INSERT would
+// keep ids 51 to 3051. TestPruneSyncStatus checks each anchor alone.
+func TestSync_PrunesSyncStatus(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	w, db := newTestWorker(t, f)
+	ctx := t.Context()
+
+	now := time.Now()
+	id, err := RecordSyncStart(ctx, db, now.Add(-time.Hour), string(config.SyncModeFull))
+	if err != nil {
+		t.Fatalf("RecordSyncStart: %v", err)
+	}
+	if err := RecordSyncComplete(ctx, db, id, Status{
+		LastSyncAt: now.Add(-59 * time.Minute), Duration: time.Minute, Status: "success",
+	}); err != nil {
+		t.Fatalf("RecordSyncComplete: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+		WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 3049)
+		INSERT INTO sync_status (started_at, completed_at, status, mode, error_message)
+		SELECT ?, ?, 'failed', 'incremental', 'seeded failure' FROM n`,
+		now.Add(-30*time.Minute), now.Add(-29*time.Minute),
+	); err != nil {
+		t.Fatalf("seed failed rows: %v", err)
+	}
+
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	var count, anchors, minOther int
+	var newestStatus, newestMode string
+	if err := db.QueryRowContext(ctx, `
+		SELECT COUNT(*),
+		       COUNT(*) FILTER (WHERE id = 1),
+		       MIN(id) FILTER (WHERE id != 1)
+		FROM sync_status`).Scan(&count, &anchors, &minOther); err != nil {
+		t.Fatalf("read sync_status: %v", err)
+	}
+	if err := db.QueryRowContext(ctx,
+		`SELECT status, mode FROM sync_status ORDER BY id DESC LIMIT 1`,
+	).Scan(&newestStatus, &newestMode); err != nil {
+		t.Fatalf("read newest sync_status row: %v", err)
+	}
+	if count != 3001 || anchors != 1 || minOther != 52 {
+		t.Errorf("sync_status: %d rows, id 1 present %d, smallest other id %d; want 3001, 1, 52",
+			count, anchors, minOther)
+	}
+	if newestStatus != "success" || newestMode != "full" {
+		t.Errorf("newest row = %s/%s, want success/full", newestStatus, newestMode)
+	}
+}
+
 // TestSyncRecordsFailureMetrics verifies that a failed sync records
 // failure metrics with status=failed and per-type fetch_errors.
 // Not parallel: writes to package-level metric vars.
