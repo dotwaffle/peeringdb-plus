@@ -97,7 +97,7 @@ func (r *Renderer) RenderHelp(w io.Writer, freshness time.Time) error {
 	// Data freshness footer.
 	//
 	// Renders only the absolute UTC timestamp; no "(N ago)" wall-clock-relative
-	// phrasing. The help page is served through the sync-time-keyed HTTP caching
+	// phrasing. The help page is served through the version-keyed HTTP caching
 	// middleware, so a relative age string would freeze at cache-creation time
 	// and mislead readers for up to a full sync interval. Readers who want a
 	// relative age can compute it locally from the absolute timestamp.

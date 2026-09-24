@@ -325,29 +325,30 @@ func main() {
 	pdbClient := peeringdb.NewClient(cfg.PeeringDBBaseURL, logger, clientOpts...)
 
 	// Caching middleware holds the current ETag behind an atomic
-	// pointer. Constructed once here so the OnSyncComplete callback below
-	// can capture it. The initial ETag is seeded from any existing
-	// sync_status row so warm restarts serve cacheable GETs immediately;
-	// cold starts leave the pointer nil (Middleware skips caching headers
-	// until the first sync completes, matching the prior atomic-ETag behavior).
+	// pointer. The ETag watcher keys it on the local database version
+	// (the LiteFS "-pos" file, or PRAGMA data_version without LiteFS) and
+	// runs on every node, so replicas, which never run the sync worker,
+	// follow each replicated commit, and so do writes outside a sync
+	// cycle. startETagWatcher runs the first poll before it returns, so a
+	// warm restart serves cacheable GETs at once; a node that has not seen
+	// a successful sync sends no caching headers until it does. The call
+	// must stay unconditional (TestMain_StartsETagWatcherUnconditionally).
 	//
 	// /ui/about is opted out of caching because it renders wall-clock-
 	// relative text ("N minutes ago") that would freeze at cache-creation
-	// time under the sync-time-keyed ETag. See internal/web/about.go and
+	// time under the version-keyed ETag. See internal/web/about.go and
 	// internal/web/templates/about.templ.
 	// /healthz and /readyz are opted out alongside /ui/about: a shared
 	// cache pinning a stale health verdict (or a 304 short-circuit that
 	// skips the readiness probes entirely) defeats their purpose.
 	cachingState := middleware.NewCachingState(cfg.SyncInterval, "/ui/about", "/healthz", "/readyz")
-	if t, err := pdbsync.GetLastSuccessfulSyncTime(ctx, db); err == nil && !t.IsZero() {
-		cachingState.UpdateETag(t)
-	}
+	startETagWatcher(ctx, cfg.DBPath, db, cachingState, logger)
 
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
 		IsPrimary: isPrimaryFn,
 		SyncMode:  cfg.SyncMode,
-		OnSyncComplete: func(ctx context.Context, syncTime time.Time) {
+		OnSyncComplete: func(ctx context.Context, _ time.Time) {
 			// Refresh the gauge cache from live
 			// row counts instead of the per-cycle upsert deltas the
 			// callback used to receive. The old shape under-counted
@@ -376,13 +377,6 @@ func main() {
 			} else {
 				objectCountCache.Store(&counts)
 			}
-			// Swap the cached ETag using the exact completion
-			// timestamp the worker persisted to sync_status. One SHA-256
-			// per sync, zero per request. Kept outside the err branch
-			// because ETag freshness is decoupled from gauge cache —
-			// even if InitialObjectCounts fails the sync itself
-			// succeeded.
-			cachingState.UpdateETag(syncTime)
 		},
 		SyncMemoryLimit:               cfg.SyncMemoryLimit,
 		HeapWarnBytes:                 cfg.HeapWarnBytes,

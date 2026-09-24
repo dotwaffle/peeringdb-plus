@@ -50,7 +50,7 @@ func TestRenderHelp_RichMode(t *testing.T) {
 	}
 
 	// Cache-safety regression lock: the help page is served through the
-	// sync-time-keyed HTTP caching middleware. Any wall-clock-relative text
+	// version-keyed HTTP caching middleware. Any wall-clock-relative text
 	// in the "Data last synced:" footer would freeze at cache-creation time
 	// and mislead readers for up to a full sync interval, so it must not
 	// appear in the rendered output.

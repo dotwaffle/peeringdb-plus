@@ -120,8 +120,10 @@ default `1h` unauthenticated / `15m` authenticated):
    Phase B can also call upstream to fetch missing parent rows
    (see [FK backfill](#fk-backfill)).
 5. The worker writes the `sync_status` row.
-   Then the `OnSyncComplete` callback refreshes the object-count cache
-   and the HTTP ETag, with the same completion time.
+   Then the `OnSyncComplete` callback refreshes the object-count cache.
+   The HTTP ETag does not use this callback;
+   it follows the database version on every node
+   (see [Middleware chain](#middleware-chain)).
 6. LiteFS sends each committed transaction to the replicas over HTTP.
    Replicas read the new data without a restart.
 
@@ -292,10 +294,10 @@ A large `snapshot_lag`, or an old `snapshot_generated`, shows a stale cache.
   The companion `StreamEntities[E, P]` (same file)
   streams rows in keyset batches.
 - **`middleware.CachingState`** (`internal/middleware/caching.go`):
-  an ETag keyed on the last successful sync completion time,
+  an ETag keyed on the local database version,
   held behind an atomic pointer.
-  It costs one SHA-256 for each update and none for each request.
-  Only the primary updates it after a sync
+  It costs one SHA-256 for each version change and none for each request.
+  The ETag watcher (`cmd/peeringdb-plus/etag.go`) updates it on every node
   (see [Middleware chain](#middleware-chain)).
 - **`pdbotel.SetupOutput`** (`internal/otel/provider.go`) —
   Bundles the OTel shutdown function and `LoggerProvider`
@@ -514,8 +516,8 @@ Outermost first:
     - `/static/*`: `Cache-Control: public, max-age=86400`.
     - `/ui/about`, `/healthz` and `/readyz`: `Cache-Control: no-store`.
       (`/ui/about` renders relative timestamps
-      that would freeze under a sync-time key.)
-    - All other paths: a weak ETag from the last sync time,
+      that would freeze under a version key.)
+    - All other paths: a weak ETag from the database version,
       and 304 for a matching `If-None-Match`.
       `Cache-Control` is `public` for the Public tier
       and `private` for the Users tier,
@@ -523,14 +525,41 @@ Outermost first:
       A response with status 400 or higher gets `Cache-Control: no-store`
       and no ETag.
 
-    At process start, `cmd/peeringdb-plus/main.go` reads the last sync time
-    from `sync_status`.
-    If no sync is recorded, the middleware has no ETag,
+    The ETag watcher (`cmd/peeringdb-plus/etag.go`) runs on every node,
+    the primary and each replica.
+    Each second it reads the version of the local database:
+    the LiteFS `<db>-pos` file (TXID and checksum),
+    or `PRAGMA data_version` on a pinned connection when LiteFS is absent.
+    Every committed write changes the version:
+    a sync, its LTX apply on a replica,
+    and writes outside a sync cycle, such as the startup poc-contact scrub.
+    When the version changes, the watcher sets a new ETag.
+    The first read runs before the server starts,
+    so a warm restart serves cacheable responses at once.
+
+    Until the node has seen a successful sync in `sync_status`,
+    the middleware has no ETag,
     and it adds no caching headers on the paths of the last list item.
-    The primary updates the ETag after each sync.
-    A replica keeps the ETag that it read at process start.
-    A replica that started before the first sync has no ETag
-    until it restarts.
+    A replica that starts before hydration gets its ETag
+    when the first success row arrives, with no restart.
+    If the version or `sync_status` read returns an error,
+    the watcher removes the ETag at once
+    and logs one WARN for each run of failures.
+    The SQL reads time out after 2 seconds.
+    The pos read has no timeout:
+    if the LiteFS mount stops answering, the poll waits
+    and the node keeps its last ETag.
+
+    Staleness bound: after a committed write becomes readable on a node
+    (at commit on the primary, at LTX apply on a replica),
+    the node stops sending 304 for the old ETag within 1 second
+    plus one version read.
+    From the primary commit, add the LiteFS replication lag.
+    A client inside `max-age` does not revalidate,
+    and a client that revalidates in the second between a commit
+    and the ETag change keeps its old body for one more `max-age`.
+    A deploy that changes the rendered output without a database write
+    keeps the ETag until the next commit.
 11. **Gzip / Compression** (`internal/middleware/compression.go`) —
     Response compression.
 12. **RouteTag** (`cmd/peeringdb-plus/route_tag.go` `routeTagMiddleware`):

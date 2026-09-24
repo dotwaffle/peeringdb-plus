@@ -18,7 +18,7 @@ func TestCaching_ErrorResponsesNotCacheable(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour)
-	state.UpdateETag(time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC))
+	state.SetVersion("v1")
 	mw := state.Middleware()
 
 	for _, status := range []int{http.StatusBadRequest, http.StatusNotFound, http.StatusRequestEntityTooLarge, http.StatusInternalServerError} {
@@ -56,8 +56,7 @@ func TestCaching_HealthEndpointsSkipped(t *testing.T) {
 	t.Parallel()
 
 	state := middleware.NewCachingState(time.Hour, "/healthz", "/readyz")
-	syncTime := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
-	state.UpdateETag(syncTime)
+	state.SetVersion("v1")
 	mw := state.Middleware()
 
 	for _, path := range []string{"/healthz", "/readyz"} {

@@ -67,9 +67,10 @@ type WorkerConfig struct {
 	// OnSyncComplete is called after a successful sync with the worker's
 	// ctx and the completion timestamp. The timestamp is the same value
 	// persisted into the sync_status row by recordSuccess, so downstream
-	// consumers (e.g. the caching middleware ETag setter wired in
-	// cmd/peeringdb-plus/main.go) stay in lock-step with the
-	// database without an extra round-trip.
+	// consumers stay in lock-step with the database without an extra
+	// round-trip. It runs only on the node that ran the sync; state that
+	// every node must refresh (such as the HTTP ETag) must follow the
+	// database instead.
 	//
 	// The per-cycle upsert-count map (the old
 	// `counts map[string]int` arg) was removed. It was the wrong value to
@@ -1128,9 +1129,7 @@ func (w *Worker) recordSuccess(
 		slog.Duration("duration", elapsed),
 		slog.Int("total_objects", sumCounts(objectCounts)))
 	// Capture completion timestamp once so the sync_status row AND the
-	// OnSyncComplete callback (the caching middleware ETag setter)
-	// see the exact same value. A drift here would mean the atomic ETag
-	// pointer and the DB-backed sync time could disagree.
+	// OnSyncComplete callback see the exact same value.
 	completedAt := time.Now()
 	if statusID > 0 {
 		// sync-record-status span around the

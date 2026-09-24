@@ -10,7 +10,7 @@ import (
 //
 // The output is intentionally free of wall-clock-relative phrasing ("N minutes
 // ago"). The terminal footer is rendered into responses that are cached by
-// the sync-time-keyed HTTP caching middleware, and any relative text would
+// the version-keyed HTTP caching middleware, and any relative text would
 // freeze at cache-creation time and mislead readers for up to a full sync
 // interval. Readers who want a relative age can compute it locally from the
 // absolute RFC3339 timestamp.
