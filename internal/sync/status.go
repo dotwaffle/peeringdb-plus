@@ -24,7 +24,8 @@ type Status struct {
 	ErrorMessage string         // empty on success
 }
 
-// InitStatusTable creates the sync_status table if it doesn't exist.
+// InitStatusTable creates the sync_status and sync_history_sweep tables
+// if they do not exist.
 // These are not ent-managed entities; they store operational metadata via raw SQL.
 //
 // A `mode TEXT NOT NULL DEFAULT 'incremental'` column is added
@@ -71,6 +72,11 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 		); err != nil {
 			return fmt.Errorf("add sync_status.mode column: %w", err)
 		}
+	}
+
+	// Progress of the history sweep (see history_sweep.go).
+	if _, err := db.ExecContext(ctx, historySweepTableSQL); err != nil {
+		return fmt.Errorf("create sync_history_sweep table: %w", err)
 	}
 
 	return nil

@@ -32,6 +32,7 @@ func TestInstruments_BoundAtPackageInit(t *testing.T) {
 		{"SyncTypeOrphans", SyncTypeOrphans},
 		{"SyncFKBackfill", SyncFKBackfill},
 		{"SyncLockRetries", SyncLockRetries},
+		{"SyncHistoryRequests", SyncHistoryRequests},
 		{"PeeringDBRequests", PeeringDBRequests},
 		{"PeeringDBRetries", PeeringDBRetries},
 		{"PeeringDBRateLimitWaitMS", PeeringDBRateLimitWaitMS},

@@ -265,3 +265,51 @@ func TestSyncHandler_TraceChoice(t *testing.T) {
 		})
 	}
 }
+
+// TestSyncHandler_Mode checks the ?mode= values that POST /sync accepts
+// and the mode that it gives to SyncFn.
+func TestSyncHandler_Mode(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		query      string
+		wantStatus int
+		wantMode   config.SyncMode
+	}{
+		{query: "", wantStatus: http.StatusAccepted, wantMode: config.SyncModeIncremental},
+		{query: "?mode=full", wantStatus: http.StatusAccepted, wantMode: config.SyncModeFull},
+		{query: "?mode=incremental", wantStatus: http.StatusAccepted, wantMode: config.SyncModeIncremental},
+		{query: "?mode=history", wantStatus: http.StatusAccepted, wantMode: config.SyncModeHistory},
+		{query: "?mode=bogus", wantStatus: http.StatusBadRequest},
+	} {
+		t.Run(tt.query, func(t *testing.T) {
+			t.Parallel()
+			modeCh := make(chan config.SyncMode, 1)
+			handler := newSyncHandler(t.Context(), SyncHandlerInput{
+				IsPrimaryFn: func() bool { return true },
+				SyncToken:   "s3cret-token",
+				DefaultMode: config.SyncModeIncremental,
+				SyncFn: func(_ context.Context, mode config.SyncMode) {
+					modeCh <- mode
+				},
+			})
+			req := httptest.NewRequest(http.MethodPost, "/sync"+tt.query, nil)
+			req.Header.Set("X-Sync-Token", "s3cret-token")
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d (body=%q)", rec.Code, tt.wantStatus, rec.Body.String())
+			}
+			if tt.wantStatus != http.StatusAccepted {
+				return
+			}
+			select {
+			case mode := <-modeCh:
+				if mode != tt.wantMode {
+					t.Errorf("mode = %q, want %q", mode, tt.wantMode)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("SyncFn was not called within 2s")
+			}
+		})
+	}
+}

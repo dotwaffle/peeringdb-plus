@@ -395,6 +395,7 @@ func main() {
 		RSSWarnBytes:                  cfg.RSSWarnBytes,
 		FKBackfillMaxRequestsPerCycle: cfg.FKBackfillMaxRequestsPerCycle,
 		FKBackfillTimeout:             cfg.FKBackfillTimeout,
+		HistoryMaxRequestsPerCycle:    cfg.HistoryMaxRequestsPerCycle,
 		SyncTimeout:                   cfg.SyncTimeout,
 		FullSyncInterval:              cfg.FullSyncInterval,
 		ScratchDir:                    cfg.ScratchDir,

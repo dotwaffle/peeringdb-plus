@@ -216,6 +216,8 @@ func TestLoad_SyncMode(t *testing.T) {
 		{name: "explicit incremental", envVal: "incremental", want: SyncModeIncremental},
 		{name: "invalid value", envVal: "invalid", wantErr: true},
 		{name: "wrong case FULL", envVal: "FULL", wantErr: true},
+		// history is a POST /sync mode only; the scheduler never runs it.
+		{name: "history rejected", envVal: "history", wantErr: true},
 	}
 
 	for _, tt := range tests {
@@ -543,6 +545,45 @@ func TestLoad_FKBackfillMaxRequestsPerCycle(t *testing.T) {
 			}
 			if cfg.FKBackfillMaxRequestsPerCycle != tt.want {
 				t.Errorf("FKBackfillMaxRequestsPerCycle = %d, want %d", cfg.FKBackfillMaxRequestsPerCycle, tt.want)
+			}
+		})
+	}
+}
+
+// TestLoad_HistoryMaxRequestsPerCycle locks the default at 15 and covers
+// the disable and reject edges.
+func TestLoad_HistoryMaxRequestsPerCycle(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVal  string
+		want    int
+		wantErr bool
+	}{
+		{name: "default is 15", envVal: "", want: 15},
+		{name: "explicit 5", envVal: "5", want: 5},
+		{name: "zero disables", envVal: "0", want: 0},
+		{name: "negative rejected", envVal: "-1", wantErr: true},
+		{name: "non-integer rejected", envVal: "abc", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE=%q, got nil", tt.envVal)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.HistoryMaxRequestsPerCycle != tt.want {
+				t.Errorf("HistoryMaxRequestsPerCycle = %d, want %d", cfg.HistoryMaxRequestsPerCycle, tt.want)
 			}
 		})
 	}
