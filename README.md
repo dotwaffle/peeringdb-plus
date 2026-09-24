@@ -251,7 +251,8 @@ through OpenTelemetry autoexport.
 - **Platform:** [Fly.io](https://fly.io) with an asymmetric `primary` /
   `replica` process-group fleet
 - **Container base:** [Chainguard](https://www.chainguard.dev/) minimal
-  images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/glibc-dynamic`)
+  images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/static`, and
+  `cgr.dev/chainguard/glibc-dynamic` for the LiteFS image)
 
 ## Development
 

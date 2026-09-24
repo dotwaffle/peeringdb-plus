@@ -262,7 +262,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 
 ### Build
 - Pure Go: `CGO_ENABLED=0` in Docker (modernc.org/sqlite is CGo-free); CI flips it to `1` only for the race detector.
-- Chainguard base images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/glibc-dynamic`); prod flags: `-trimpath -ldflags="-s -w"`.
+- Chainguard base images: `cgr.dev/chainguard/go` (build), `cgr.dev/chainguard/static` (standalone `Dockerfile` runtime), `cgr.dev/chainguard/glibc-dynamic:latest-dev` (`Dockerfile.prod` runtime); flags: `-trimpath -ldflags="-s -w"`, version via `-X …buildinfo.injected`.
 - LiteFS is a separate FUSE process — the app does not link to it. Prod Dockerfile uses `litefs mount` as entrypoint.
 
 ### LiteFS

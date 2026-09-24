@@ -37,11 +37,12 @@ that cold-sync from the primary on boot.
   (the version string is injected via
   `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
 - `Dockerfile` — development image.
-  Chainguard `glibc-dynamic` runtime,
-  `CGO_ENABLED=0` with `-trimpath -ldflags="-s -w"`.
-  Unlike the prod image it does **not** inject the build version
-  (no `-X …buildinfo.injected=$VERSION`),
-  so `internal/buildinfo` reports its default.
+  Chainguard `static` runtime
+  (no libc, no shell), `CGO_ENABLED=0` with `-trimpath -ldflags="-s -w …"`.
+  The build stage runs on the build platform and cross-compiles
+  for the target platform, so an arm64 image builds without QEMU.
+  Like the prod image, it injects the version string from `git describe`
+  or the `VERSION` build argument.
   No LiteFS.
   Runs the binary directly
   as `ENTRYPOINT ["/usr/local/bin/peeringdb-plus"]` with
@@ -52,7 +53,7 @@ that cold-sync from the primary on boot.
 Both images use `cgr.dev/chainguard/go` as the build stage.
 `Dockerfile.prod` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
 as the runtime stage and runs as root.
-`Dockerfile` uses `cgr.dev/chainguard/glibc-dynamic`, which has no shell,
+`Dockerfile` uses `cgr.dev/chainguard/static`, which has no libc and no shell,
 and runs as `nonroot`.
 
 ## Build pipeline
@@ -115,7 +116,7 @@ recorded here so they read as decisions rather than oversights:
   This is deliberate incident-response tooling:
   `fly ssh console` + `sqlite3 /litefs/peeringdb-plus.db`
   is the documented production debugging path.
-  The dev `Dockerfile` uses the plain (shell-less) variant,
+  The dev `Dockerfile` uses `static`, which has no shell,
   since nothing execs into it.
   Both base tags float (`:latest`);
   Chainguard's free tier offers no pinned tags,

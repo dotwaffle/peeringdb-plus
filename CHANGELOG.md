@@ -27,6 +27,13 @@ are in the Git history at their tags.
   default FK backfill cap, backfill adds up to about 40 seconds (was
   about 20). An operator who set `PDBPLUS_PEERINGDB_RPS` keeps that
   value.
+- The standalone image (`Dockerfile`) uses the `cgr.dev/chainguard/static`
+  runtime base in place of `cgr.dev/chainguard/glibc-dynamic`. The binary
+  is `CGO_ENABLED=0` and needs no libc. The image also stamps the binary
+  with its version, as `Dockerfile.prod` does: the `VERSION` build
+  argument, else `git describe --tags --always`. Before this release the
+  standalone image reported only a short commit hash. The build stage
+  cross-compiles, so an arm64 build needs no QEMU.
 
 ## [1.31.1] - 2026-09-24
 

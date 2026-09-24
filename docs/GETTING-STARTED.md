@@ -279,9 +279,8 @@ The image stores the database at `/data/peeringdb-plus.db`
 so mount a volume if you want data to persist across `docker run` invocations.
 
 The container is built from Chainguard base images
-(`cgr.dev/chainguard/go` for build,
-`cgr.dev/chainguard/glibc-dynamic` for runtime), runs as the `nonroot` user,
-and exposes port 8080.
+(`cgr.dev/chainguard/go` for build, `cgr.dev/chainguard/static` for runtime),
+runs as the `nonroot` user, and exposes port 8080.
 
 For the production image with LiteFS edge replication,
 see `Dockerfile.prod` and [DEPLOYMENT.md](DEPLOYMENT.md).
