@@ -93,9 +93,8 @@ type Config struct {
 	// OTelSQL enables per-query OpenTelemetry DB spans (XSAM/otelsql) on the
 	// shared *sql.DB. Configured via PDBPLUS_OTEL_SQL. Default true — the data
 	// is useful and its volume is bounded by the trace sampler; set
-	// PDBPLUS_OTEL_SQL=false to disable. Scheduled sync cycles are never traced
-	// regardless (the prior high-volume concern); only a manually-triggered
-	// POST /sync is — see internal/otel sampler.
+	// PDBPLUS_OTEL_SQL=false to disable. A sync cycle emits no DB spans
+	// (see internal/otel WithoutDBSpans).
 	OTelSQL bool
 
 	// SyncStaleThreshold is the maximum age of sync data before health reports degraded.

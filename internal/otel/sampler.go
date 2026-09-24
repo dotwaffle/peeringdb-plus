@@ -13,7 +13,7 @@ import (
 // Span-start attributes the sync worker stamps on its root span so this
 // sampler can gate sync traces independently of HTTP route. AttrSyncOrigin set
 // to SyncOriginValue marks a scheduled sync cycle (dropped by default so it
-// emits no trace — and, with PDBPLUS_OTEL_SQL on, no per-query DB spans);
+// emits no trace);
 // AttrForceSample set true marks a manually-triggered sync (POST /sync) and
 // forces the trace to be sampled. Untyped string constants so they compare
 // directly against attribute.Key in the ShouldSample scan.

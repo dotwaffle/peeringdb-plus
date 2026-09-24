@@ -624,8 +624,8 @@ type forceTraceKey struct{}
 // WithForceTrace marks ctx so the sync cycle run under it force-samples its
 // trace, overriding the sampler's default of dropping scheduled-sync traces.
 // It is set by the manual POST /sync handler and never by the timer scheduler,
-// so an on-demand sync is observable end to end — including its per-query DB
-// spans when PDBPLUS_OTEL_SQL is enabled.
+// so an on-demand sync is observable end to end. The trace has the step
+// spans of the cycle and no DB spans (see pdbotel.WithoutDBSpans).
 func WithForceTrace(ctx context.Context) context.Context {
 	return context.WithValue(ctx, forceTraceKey{}, true)
 }
@@ -638,6 +638,11 @@ func forceTraceFromContext(ctx context.Context) bool {
 
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // privacy bypass — sole production call site
+	// No otelsql DB spans in a cycle: a full cycle runs thousands of
+	// statements (one upsert for each 100-row chunk, plus the FK parent
+	// lookups), and with their spans its trace is larger than the per-trace
+	// limit of Grafana Cloud Tempo. The step spans stay.
+	ctx = pdbotel.WithoutDBSpans(ctx)
 	if !w.running.CompareAndSwap(false, true) {
 		// The trigger (and its requested mode — possibly the operator's
 		// ?mode=full escape hatch) is dropped, not queued. Return the
@@ -662,8 +667,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 
 	// Tag the root sync span so the sampler can gate sync traces: origin=sync
 	// makes scheduled cycles drop by default; a manual POST /sync sets
-	// force_sample (via WithForceTrace) so that one cycle — and its per-query
-	// DB spans when PDBPLUS_OTEL_SQL is on — is sampled.
+	// force_sample (via WithForceTrace) so that one cycle is sampled.
 	spanAttrs := []attribute.KeyValue{attribute.String(pdbotel.AttrSyncOrigin, pdbotel.SyncOriginValue)}
 	if forceTraceFromContext(ctx) {
 		spanAttrs = append(spanAttrs, attribute.Bool(pdbotel.AttrForceSample, true))

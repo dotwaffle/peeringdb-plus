@@ -1559,8 +1559,16 @@ which reads standard `OTEL_*` env vars to select exporters (OTLP, stdout, none):
   and by the sync worker for sync cycles.
   With `PDBPLUS_OTEL_SQL=true` (the default), `otelsql` adds one span
   for each SQL statement (`internal/database/database.go`).
-  These spans are children of the request or sync span,
+  These spans are children of the request span,
   so the same sampling decision applies.
+  A sync cycle emits no DB spans:
+  the worker marks the cycle context with `WithoutDBSpans`
+  (`internal/otel/dbspans.go`),
+  and the otelsql span filter drops each span under that mark.
+  A full cycle runs thousands of statements
+  (one upsert for each 100-row chunk, plus the FK parent lookups).
+  With their spans, its trace is larger than the per-trace limit
+  of the trace backend.
   A statement outside a request or sync cycle, such as a startup migration,
   starts a root span at the 1% default.
   There is no per-mutation tracing:
