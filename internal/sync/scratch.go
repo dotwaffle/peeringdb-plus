@@ -16,27 +16,18 @@ import (
 
 // scratchChunkSize is the number of raw rows drained from the scratch DB
 // into memory at a time during Phase B replay. Each chunk is decoded
-// into typed Go structs (one per row, dozens of fields each) and then
-// passed to the per-type upsertX function. Internally `upsertBatch`
-// builds ALL builders for the chunk up front before sub-batching by
-// upsert.go's batchSize = 500 for the actual INSERT OR REPLACE — with
-// chunk=100 every chunk fits in a single sub-batch and the live
-// builder slice's peak memory footprint stays minimal.
+// into typed Go structs and then passed to the per-type upsertX
+// function. upsertBatch writes the chunk with one upsert statement for
+// each batchSize rows (see upsert.go). The FK pre-pass also works on one
+// chunk at a time: it sends one backfill request for each parent type
+// that has missing parents in the chunk.
 //
-// Tuning (benchmarked against production-scale fixtures at 364K rows;
-// the sampler has 100ms granularity so transient GC scheduling
-// fluctuation adds ±50 MiB variance run-to-run):
-//
-//	chunk=5000 → ~424 MiB (over gate)
-//	chunk=1000 → ~356-422 MiB (on the gate edge, risky)
-//	chunk=250  → ~334-422 MiB (still intermittently over)
-//	chunk=100  → comfortably under with a runtime.GC() hint after every type
-//
-// 100 combined with the runtime.GC() hint in syncUpsertPass gives
-// deterministic peak heap well under the 400 MiB hard gate. The numbers
-// above predate gcHintMinRows: the hint now runs only after a type that
-// upserted at least that many rows, which at the bench's production-scale
-// counts is every type except campus.
+// The chunk size had almost no effect on memory. In a full sync at
+// production row counts, peak Go heap was 20-23 MiB above the base, and
+// peak RSS at most 12 MiB above the base, with chunks of 50, 100 and 500
+// rows. An earlier table here showed chunks of 250 rows and more near a
+// 400 MiB heap limit. That benchmark kept all of its fixtures (about
+// 110 MB) on the heap, and its heap samples included them.
 const scratchChunkSize = 100
 
 // scratchDB is a sql.DB handle to the per-sync /tmp SQLite file plus the

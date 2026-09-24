@@ -655,7 +655,7 @@ func RootSpanAttributes(ctx context.Context) []attribute.KeyValue {
 func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	ctx = privacy.DecisionContext(ctx, privacy.Allow) // privacy bypass — sole production call site
 	// No otelsql DB spans in a cycle: a full cycle runs thousands of
-	// statements (one upsert for each 100-row chunk, plus the FK parent
+	// statements (one upsert for each 50 rows, plus the FK parent
 	// lookups), and with their spans its trace is larger than the per-trace
 	// limit of Grafana Cloud Tempo. The step spans stay.
 	ctx = pdbotel.WithoutDBSpans(ctx)
@@ -1605,7 +1605,7 @@ func (w *Worker) syncUpsertPass(
 //
 // The chunked replay is the difference between peak heap ~20 MB and
 // peak heap ~600 MB: netixlan is ~200K rows × ~200 bytes = ~40 MB if
-// loaded in one shot, versus ~1 MB per 5000-row chunk. Atomicity
+// loaded in one shot, versus less than 1 MB per chunk. Atomicity
 // is preserved because all upserts run through the same ent.Tx.
 //
 // Per-chunk decode+filter+upsert dispatches to the
