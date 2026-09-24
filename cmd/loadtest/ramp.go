@@ -81,6 +81,21 @@ type RampConfig struct {
 	// PrefetchCount is the size of the round-robin ID list fetched
 	// once before any surface ramps. Not exposed as a flag.
 	PrefetchCount int
+
+	// stepEnd returns the context that bounds one ramp step. When it
+	// is nil, the step ends after its duration. Tests set it to end
+	// steps on completed requests instead of on the wall clock. It is
+	// not a flag.
+	stepEnd func(ctx context.Context, concurrency int, dur time.Duration) (context.Context, context.CancelFunc)
+}
+
+// stepContext returns the context that bounds one ramp step: by
+// default a timeout of dur, or the context from stepEnd when set.
+func (r *RampConfig) stepContext(ctx context.Context, concurrency int, dur time.Duration) (context.Context, context.CancelFunc) {
+	if r.stepEnd != nil {
+		return r.stepEnd(ctx, concurrency, dur)
+	}
+	return context.WithTimeout(ctx, dur)
 }
 
 // stepStats summarises one ramp step: the latencies observed during
@@ -399,7 +414,7 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 	if concurrency < 1 {
 		return stepStats{}, fmt.Errorf("concurrency must be >= 1, got %d", concurrency)
 	}
-	stepCtx, cancel := context.WithTimeout(ctx, dur)
+	stepCtx, cancel := rcfg.stepContext(ctx, concurrency, dur)
 	defer cancel()
 
 	// Buffered sample channel sized to absorb short bursts; the
