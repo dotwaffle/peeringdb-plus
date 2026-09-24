@@ -1655,3 +1655,57 @@ func TestStreamByIDs(t *testing.T) {
 		}
 	})
 }
+
+// TestStreamWithParams checks that StreamWithParams sends one request with
+// exactly the given params and no paging params of its own. StreamByIDs
+// runs on it, so TestStreamByIDs covers the response handling.
+func TestStreamWithParams(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name   string
+		params url.Values
+		want   string
+	}{
+		{name: "sorted_params", params: url.Values{"status": {"deleted"}, "since": {"1"}, "id__gte": {"1"}, "id__lt": {"801"}}, want: "id__gte=1&id__lt=801&since=1&status=deleted"},
+		{name: "no_params", params: nil, want: ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var (
+				calls atomic.Int32
+				mu    sync.Mutex
+				path  string
+				query string
+			)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				mu.Lock()
+				path, query = r.URL.Path, r.URL.RawQuery
+				mu.Unlock()
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"meta":{},"data":[{"id":7},{"id":9}]}`))
+			}))
+			t.Cleanup(server.Close)
+			client := NewClient(server.URL, slog.Default())
+			client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+
+			var rows int
+			err := client.StreamWithParams(t.Context(), "net", tc.params, func(json.RawMessage) error {
+				rows++
+				return nil
+			})
+			if err != nil {
+				t.Fatalf("StreamWithParams: %v", err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if calls.Load() != 1 || path != "/api/net" || query != tc.want {
+				t.Errorf("requests=%d path=%q query=%q, want 1 /api/net %q", calls.Load(), path, query, tc.want)
+			}
+			if rows != 2 {
+				t.Errorf("rows = %d, want 2", rows)
+			}
+		})
+	}
+}
