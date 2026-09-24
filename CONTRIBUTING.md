@@ -129,7 +129,7 @@ The `ci` job is a single cached Go job whose steps run in order;
 
 | Job | What it runs |
 |---|---|
-| **`ci`** | In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests with coverage, coverage comment, lint (actionlint and golangci-lint), advisory vulnerability scan |
+| **`ci`** | In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests, lint (actionlint and golangci-lint), advisory vulnerability scan |
 | **`docker-build`** | Builds both `Dockerfile` (dev) and `Dockerfile.prod` (prod) images |
 
 `govulncheck` runs with `continue-on-error`:
@@ -157,7 +157,6 @@ Always commit generated output alongside the source changes that produced it
 See `.golangci.yml` for the enabled linters.
 Notable ones: `contextcheck`, `exhaustive`, `gocritic`, `gosec`, `misspell`,
 `modernize`, `nolintlint`, `revive`.
-Coverage excludes `ent/` and `gen/` (generated).
 
 ## Contributor Gotchas
 

@@ -1,9 +1,9 @@
 name: CI
 
 # A single `ci` job runs generation, the go.mod tidiness check, build,
-# race tests with coverage, the coverage comment, lint, and govulncheck in
-# order against one Go cache. Mise supplies every tool from the committed
-# manifest and lockfile, so local and CI versions cannot drift.
+# race tests, lint, and govulncheck in order against one Go cache. Mise
+# supplies every tool from the committed manifest and lockfile, so local
+# and CI versions cannot drift.
 #
 # `docker-build` stays a separate parallel job: it uses BuildKit's
 # `type=gha` cache (a different cache system from the Go build cache), so
@@ -27,7 +27,6 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: read
-      pull-requests: write # octocov posts the coverage comment
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -78,10 +77,7 @@ jobs:
         run: mise run build
 
       - name: Run tests with race detector
-        run: mise run coverage
-
-      - name: Post coverage comment
-        uses: k1LoW/octocov-action@v1
+        run: mise run test
 
       - name: Run golangci-lint
         run: mise run lint

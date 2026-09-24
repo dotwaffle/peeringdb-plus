@@ -20,7 +20,6 @@ deploy/
 scripts/
 .github/
 .golangci.yml
-.octocov.yml
 fly.toml
 Dockerfile
 Dockerfile.prod
