@@ -64,6 +64,10 @@ type Result struct {
 // Hit executes one request against base+ep.Path and returns a Result.
 // Network errors are folded into Result.Err; non-2xx is recorded as
 // Status only — callers categorise success via the helper Result.OK.
+// An error while Hit reads the response body is also a Result.Err, with
+// the status that the response headers gave. A client timeout or a
+// canceled ctx during the body read is thus an error, as it is before
+// the headers arrive.
 func Hit(ctx context.Context, client *http.Client, base, authToken string, ep Endpoint) Result {
 	url := base + ep.Path
 	res := Result{Endpoint: ep}
@@ -105,10 +109,13 @@ func Hit(ctx context.Context, client *http.Client, base, authToken string, ep En
 	// Drain the body so the connection is reusable (mirror the
 	// project's own internal/peeringdb/client.go pattern). Record
 	// byte count for verbose output + capacity sizing dashboards.
-	n, _ := io.Copy(io.Discard, resp.Body)
+	n, err := io.Copy(io.Discard, resp.Body)
 	res.Latency = time.Since(start)
 	res.Bytes = n
 	res.Status = resp.StatusCode
+	if err != nil {
+		res.Err = fmt.Errorf("read body %s %s: %w", ep.Method, url, err)
+	}
 	return res
 }
 

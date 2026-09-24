@@ -164,6 +164,17 @@ latency to compare with. It prints `ABORTED` for the surface and moves
 on. In the table, a step without samples shows `-` in the latency and
 error columns.
 
+A request completes when it gets a response, fails, or reaches
+`--timeout`. Each request that completes within its step is a sample.
+A non-2xx response, a failed request and a request that reaches
+`--timeout` count as errors, and their latencies go into the
+percentiles. A request that fails while it reads the response body is
+a failed request. A request that the end of the step cuts off is not a
+sample, also when it has its response headers. A request that
+completes as the step ends is a sample. Thus, against a target that
+does not answer, a step has a 100% error rate if `--timeout` is
+shorter than the step, and no samples if it is not.
+
 Surfaces are exercised **sequentially** (in `--surfaces` order) so
 cross-surface contention does not bias results. Each surface fetches
 the same prefetched ID list (round-robin) so requests don't all hit

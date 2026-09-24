@@ -1118,22 +1118,20 @@ func TestRamp_Verbose_OrgEntity_OmitsAsns(t *testing.T) {
 	t.Parallel()
 
 	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0) // always 200
-	cfg := Config{
-		Base:       rts.srv.URL,
-		HTTPClient: rts.srv.Client(),
-		Timeout:    5 * time.Second,
-		Verbose:    true,
-	}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	cfg, rcfg, _ := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	cfg.Verbose = true
 	rcfg.Entity = "org"
 	rcfg.MaxConcurrency = 2
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{7, 8}, nil, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
 	}
 
 	out := stdout.String()
@@ -1152,90 +1150,93 @@ func TestRamp_Verbose_OrgEntity_OmitsAsns(t *testing.T) {
 }
 
 // TestRamp_NoVerbose_StaysQuiet asserts the verbose log lines are
-// fully gated on cfg.Verbose — markdown still emits, but no [ramp]
-// lines appear.
+// fully gated on cfg.Verbose: markdown still emits, but no [ramp]
+// lines appear. The ramp runs steps with errors, so a verbose run
+// would also log one line for each error.
 func TestRamp_NoVerbose_StaysQuiet(t *testing.T) {
 	t.Parallel()
 
-	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0)
-	cfg := Config{
-		Base:       rts.srv.URL,
-		HTTPClient: rts.srv.Client(),
-		Timeout:    5 * time.Second,
-		Verbose:    false, // explicit
-	}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	// Every request of a step with concurrency >= 2 gets a 500.
+	rts := newRampTestServer(t, 1*time.Millisecond, 0, 2)
+	cfg, rcfg, gate := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	cfg.Verbose = false // explicit
 	rcfg.MaxConcurrency = 2
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
 	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
 
+	// The errors make the C=2 step an inflection. The ramp holds at C=2
+	// and stops there, at --max-concurrency. Each step has samples.
+	wantSteps := []gateStep{
+		{concurrency: 1, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.HoldDuration},
+	}
+	if got := gate.stepLog(); !slices.Equal(got, wantSteps) {
+		t.Errorf("ramp steps = %+v, want %+v", got, wantSteps)
+	}
 	out := stdout.String()
 	if !strings.Contains(out, fmt.Sprintf("### %s", SurfacePdbCompat)) {
 		t.Errorf("markdown still expected without --verbose\n%s", out)
+	}
+	for _, want := range []string{rampRow("baseline", 1), rampRow("inflection", 2), rampRow("hold", 2)} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing row %q\n%s", want, out)
+		}
 	}
 	if strings.Contains(out, "[ramp] ") {
 		t.Errorf("non-verbose run must not emit [ramp] lines\n%s", out)
 	}
 }
 
-// TestSummariseStep_FiltersCanceled asserts that Result entries whose
-// Err is context.Canceled OR context.DeadlineExceeded (step-boundary
-// cancellations, not real measurements) are dropped from the
-// percentile/error/RPS computation.
-//
-// Background: each step sets a stepCtx deadline; when it fires,
-// errgroup's gctx propagates the parent's error. WithTimeout fires
-// DeadlineExceeded, not Canceled — so the filter must match both. The
-// primary discriminator is in the worker loop; this filter is
-// defensive backup.
-func TestSummariseStep_FiltersCanceled(t *testing.T) {
+// TestSummariseStep_CountsErrorLatencies asserts that summariseStep
+// counts each sample: a sample with a client timeout error and a 500
+// count as errors, and their latencies go into the percentiles.
+func TestSummariseStep_CountsErrorLatencies(t *testing.T) {
 	t.Parallel()
 
+	// The error has the shape that Hit returns for a client timeout.
+	timeoutErr := fmt.Errorf("do GET /api/net/1: %w", context.DeadlineExceeded)
 	samples := []Result{
 		{Status: 200, Latency: 5 * time.Millisecond},
 		{Status: 200, Latency: 10 * time.Millisecond},
-		{Err: context.Canceled, Latency: 1 * time.Millisecond},         // dropped
-		{Err: context.DeadlineExceeded, Latency: 2 * time.Millisecond}, // dropped
 		{Status: 500, Latency: 7 * time.Millisecond},
+		{Err: timeoutErr, Latency: 30 * time.Millisecond},
 	}
 	stats := summariseStep(samples, 4, 1*time.Second)
 
-	if stats.Samples != 3 {
-		t.Errorf("Samples = %d, want 3 (both context errors must be dropped)", stats.Samples)
+	if stats.Samples != 4 {
+		t.Errorf("Samples = %d, want 4", stats.Samples)
 	}
-	if stats.Errors != 1 {
-		t.Errorf("Errors = %d, want 1 (only the 500 counts)", stats.Errors)
+	if stats.Errors != 2 {
+		t.Errorf("Errors = %d, want 2 (the 500 and the timeout)", stats.Errors)
 	}
-	if stats.RPS != 3.0 {
-		t.Errorf("RPS = %v, want 3.0 (3 samples / 1s)", stats.RPS)
+	if stats.ErrRate != 0.5 {
+		t.Errorf("ErrRate = %v, want 0.5 (2/4)", stats.ErrRate)
 	}
-	// p50/p95/p99 are computed only over the 3 non-cancelled latencies
-	// {5ms, 7ms, 10ms} — the 1ms/2ms cancelled latencies must NOT appear.
-	if stats.P50 < 5*time.Millisecond || stats.P50 > 10*time.Millisecond {
-		t.Errorf("P50 = %v, want within [5ms,10ms]", stats.P50)
+	if stats.RPS != 4.0 {
+		t.Errorf("RPS = %v, want 4.0 (4 samples / 1s)", stats.RPS)
 	}
-	if stats.P50 == 1*time.Millisecond || stats.P50 == 2*time.Millisecond {
-		t.Errorf("P50 = %v — cancelled/deadline latency must not influence percentiles", stats.P50)
+	// The timeout is the slowest sample, so it sets the tail.
+	if stats.P99 != 30*time.Millisecond {
+		t.Errorf("P99 = %v, want 30ms (the latency of the timeout)", stats.P99)
 	}
 }
 
-// TestSummariseStep_AllCanceled_ReturnsZero asserts that an entirely
-// cancelled sample set behaves identically to len(samples)==0.
-func TestSummariseStep_AllCanceled_ReturnsZero(t *testing.T) {
+// TestSummariseStep_NoSamples_ReturnsZero asserts that a step without
+// samples has zero counts and keeps its concurrency and duration.
+func TestSummariseStep_NoSamples_ReturnsZero(t *testing.T) {
 	t.Parallel()
 
-	samples := []Result{
-		{Err: context.Canceled, Latency: 1 * time.Millisecond},
-		{Err: context.Canceled, Latency: 2 * time.Millisecond},
-		{Err: context.Canceled, Latency: 3 * time.Millisecond},
-	}
-	stats := summariseStep(samples, 8, 500*time.Millisecond)
+	stats := summariseStep(nil, 8, 500*time.Millisecond)
 
 	if stats.Samples != 0 {
 		t.Errorf("Samples = %d, want 0", stats.Samples)
@@ -1247,10 +1248,73 @@ func TestSummariseStep_AllCanceled_ReturnsZero(t *testing.T) {
 		t.Errorf("RPS = %v, want 0", stats.RPS)
 	}
 	if stats.Concurrency != 8 {
-		t.Errorf("Concurrency = %d, want 8 (preserved even when all-canceled)", stats.Concurrency)
+		t.Errorf("Concurrency = %d, want 8 (preserved without samples)", stats.Concurrency)
 	}
 	if stats.Duration != 500*time.Millisecond {
-		t.Errorf("Duration = %v, want 500ms (preserved even when all-canceled)", stats.Duration)
+		t.Errorf("Duration = %v, want 500ms (preserved without samples)", stats.Duration)
+	}
+}
+
+// clientTimeout is the client timeout of the tests that use
+// newStalledServer. Only the client timeout ends a request to that
+// server, so no server delay races with it.
+const clientTimeout = 20 * time.Millisecond
+
+// newStalledServer returns a test server that does not complete a
+// response. With headers false, it sends nothing. With headers true, it
+// sends 200 response headers and the start of the body, then stalls the
+// body. Its handler returns when the client ends the request, or at
+// cleanup.
+func newStalledServer(tb testing.TB, headers bool) *httptest.Server {
+	tb.Helper()
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if headers {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"data":[`)
+			_ = http.NewResponseController(w).Flush()
+		}
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
+	}))
+	// Cleanups run in reverse order: release the handlers, then close
+	// the server, which waits for them.
+	tb.Cleanup(srv.Close)
+	tb.Cleanup(func() { close(release) })
+	return srv
+}
+
+// TestSummariseStep_CountsClientTimeout gets a real client timeout
+// error from Hit and asserts that summariseStep counts the result as a
+// sample and an error, with its latency.
+func TestSummariseStep_CountsClientTimeout(t *testing.T) {
+	t.Parallel()
+
+	srv := newStalledServer(t, false)
+	client := &http.Client{Transport: srv.Client().Transport, Timeout: clientTimeout}
+	res := Hit(t.Context(), client, srv.URL, "", rampEndpointFor(SurfacePdbCompat, "net", 1, 15169))
+
+	// net/http reports a client timeout with an error that matches
+	// context.DeadlineExceeded, as a step deadline does.
+	if !errors.Is(res.Err, context.DeadlineExceeded) {
+		t.Fatalf("Hit error = %v, want an error that matches %v", res.Err, context.DeadlineExceeded)
+	}
+	if res.Latency < clientTimeout {
+		t.Fatalf("Latency = %v, want at least the client timeout %v", res.Latency, clientTimeout)
+	}
+
+	stats := summariseStep([]Result{res}, 1, time.Second)
+	if stats.Samples != 1 {
+		t.Errorf("Samples = %d, want 1 (the timeout is a sample)", stats.Samples)
+	}
+	if stats.Errors != 1 || stats.ErrRate != 1 {
+		t.Errorf("Errors = %d, ErrRate = %v, want 1 and 1 (the timeout is an error)", stats.Errors, stats.ErrRate)
+	}
+	if stats.P99 != res.Latency {
+		t.Errorf("P99 = %v, want %v (the latency of the timeout)", stats.P99, res.Latency)
 	}
 }
 
@@ -1315,6 +1379,156 @@ func TestRunRampStep_EndsOnDurationByDefault(t *testing.T) {
 	if stats.Samples != 0 {
 		t.Errorf("Samples = %d, want 0 (the step drops requests in flight)", stats.Samples)
 	}
+}
+
+// TestRunRampStep_CountsClientTimeouts runs a step against a server
+// that does not complete a response, with a client timeout shorter than
+// the step. The server sends no response, or it sends the response
+// headers and stalls the body. Asserts that the timed-out requests are
+// samples with a 100% error rate, and that detectInflection reports the
+// error rate, not a step without samples.
+func TestRunRampStep_CountsClientTimeouts(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name    string
+		headers bool
+	}{
+		{name: "no response", headers: false},
+		{name: "stalled body", headers: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := newStalledServer(t, tt.headers)
+			// stepGate ends the step when concurrency+gateSamples requests
+			// have started. Only the client timeout ends a request, so the
+			// step lasts several client timeouts and has at least
+			// gateSamples samples.
+			gate := &stepGate{next: srv.Client().Transport, samples: gateSamples}
+			cfg := Config{
+				Base:       srv.URL,
+				HTTPClient: &http.Client{Transport: gate, Timeout: clientTimeout},
+				Timeout:    clientTimeout,
+			}
+			rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+			rcfg.stepEnd = gate.stepEnd
+			// Make the latency triggers unreachable. A sample takes at
+			// least clientTimeout and less than rampTestTimeout, so p95
+			// cannot pass clientTimeout*1e4 = 200s and p99 cannot pass an
+			// hour.
+			rcfg.P95Multiplier = 1e4
+			rcfg.P99Absolute = time.Hour
+
+			ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+			defer cancel()
+			step, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, 2, rcfg.StepDuration, []int{1, 2}, []int{15169, 32934}, io.Discard)
+			if err != nil {
+				t.Fatalf("runRampStep: %v", err)
+			}
+
+			if step.Samples < gateSamples {
+				t.Errorf("Samples = %d, want at least %d", step.Samples, gateSamples)
+			}
+			if step.ErrRate != 1 {
+				t.Errorf("ErrRate = %v, want 1 (each request reached the client timeout)", step.ErrRate)
+			}
+			if step.P50 < clientTimeout {
+				t.Errorf("P50 = %v, want at least the client timeout %v", step.P50, clientTimeout)
+			}
+			baseline := stepStats{Concurrency: 1, Samples: gateSamples, P50: clientTimeout, P95: clientTimeout, P99: clientTimeout}
+			reason, hit := detectInflection(step, baseline, rcfg)
+			if !hit || !strings.HasPrefix(reason, "error rate 100.00%") {
+				t.Errorf("detectInflection = (%q, %v), want the error-rate reason", reason, hit)
+			}
+		})
+	}
+}
+
+// TestRunRampStep_DropsBodyReadsAtStepEnd ends the step when each worker
+// has the response headers of its request, while the server stalls the
+// bodies. Asserts that the step has no samples: a request that reads its
+// body when the step ends is still in flight.
+func TestRunRampStep_DropsBodyReadsAtStepEnd(t *testing.T) {
+	t.Parallel()
+
+	const concurrency = 2
+	srv := newStalledServer(t, true)
+	transport := srv.Client().Transport
+	var (
+		responses atomic.Int64
+		endStep   context.CancelFunc
+	)
+	cfg := Config{
+		Base: srv.URL,
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := transport.RoundTrip(r)
+			if err == nil && responses.Add(1) == concurrency {
+				endStep()
+			}
+			return resp, err
+		})},
+		Timeout: 5 * time.Second,
+	}
+	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	rcfg.stepEnd = func(ctx context.Context, _ int, _ time.Duration) (context.Context, context.CancelFunc) {
+		stepCtx, cancel := context.WithCancel(ctx)
+		endStep = cancel
+		return stepCtx, cancel
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+	defer cancel()
+	stats, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, concurrency, rcfg.StepDuration, []int{1, 2}, []int{15169, 32934}, io.Discard)
+	if err != nil {
+		t.Fatalf("runRampStep: %v", err)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("step did not end before the test deadline")
+	}
+	if stats.Samples != 0 {
+		t.Errorf("Samples = %d (errors %d), want 0 (each request was reading its body when the step ended)", stats.Samples, stats.Errors)
+	}
+}
+
+// TestHit_ReportsBodyReadErrors gets a response whose body stalls after
+// the headers. Asserts that a client timeout and a canceled ctx during
+// the body read give an error, with the status of the headers.
+func TestHit_ReportsBodyReadErrors(t *testing.T) {
+	t.Parallel()
+
+	srv := newStalledServer(t, true)
+	ep := rampEndpointFor(SurfacePdbCompat, "net", 1, 15169)
+
+	t.Run("client timeout", func(t *testing.T) {
+		t.Parallel()
+		client := &http.Client{Transport: srv.Client().Transport, Timeout: clientTimeout}
+		res := Hit(t.Context(), client, srv.URL, "", ep)
+		if !errors.Is(res.Err, context.DeadlineExceeded) {
+			t.Errorf("Err = %v, want an error that matches %v", res.Err, context.DeadlineExceeded)
+		}
+		if res.Status != http.StatusOK || res.OK() {
+			t.Errorf("Status = %d, OK = %v, want 200 and false", res.Status, res.OK())
+		}
+	})
+	t.Run("ctx canceled", func(t *testing.T) {
+		t.Parallel()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		transport := srv.Client().Transport
+		client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			resp, err := transport.RoundTrip(r)
+			cancel() // the headers are in; cancel during the body read
+			return resp, err
+		})}
+		res := Hit(ctx, client, srv.URL, "", ep)
+		if !errors.Is(res.Err, context.Canceled) {
+			t.Errorf("Err = %v, want an error that matches %v", res.Err, context.Canceled)
+		}
+		if res.Status != http.StatusOK || res.OK() {
+			t.Errorf("Status = %d, OK = %v, want 200 and false", res.Status, res.OK())
+		}
+	})
 }
 
 // TestRamp_Interrupted_ReportsMeasuredSteps cancels the run when the
