@@ -53,8 +53,9 @@ func init() {
 // so every query — ent's and the raw sync_status statements that share this
 // handle — emits an OpenTelemetry span beneath the active request span.
 // Controlled by PDBPLUS_OTEL_SQL (default on; set false to disable). Span
-// volume is bounded by the trace sampler, and a sync cycle emits no DB
-// spans (see pdbotel.WithoutDBSpans).
+// volume is bounded by the trace sampler: a DB span follows the decision of
+// its parent span. A sync cycle emits no DB spans (see
+// pdbotel.WithoutDBSpans).
 // The low-signal sql.rows and sql.conn.reset_session span types are suppressed
 // (see otelOptions): they roughly halve the span count per request
 // trace and remove the orphan single-span traces that pool-lifecycle and

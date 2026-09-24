@@ -1534,7 +1534,7 @@ Only served by the LiteFS primary.
 |----------------|---------|
 | `X-Sync-Token` request header | Must match `PDBPLUS_SYNC_TOKEN` using `subtle.ConstantTimeCompare`. Empty token on either side = always reject |
 | `?mode=full` or `?mode=incremental` | Overrides `PDBPLUS_SYNC_MODE` for this run. Any other value returns `400` |
-| `?trace=0` | Do not trace this run, the same as a scheduled sync. Without it, the server traces every manual sync |
+| `?trace=0` | Do not trace this run, whatever `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` is. Without it, the server traces every manual sync. `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` applies only to scheduled cycles |
 
 | Status | Meaning |
 |--------|---------|

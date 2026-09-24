@@ -126,13 +126,13 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 		// Use application root ctx, NOT r.Context() -- request context
 		// is cancelled when the response is sent, which would kill the sync.
 		//
-		// A manually-triggered sync is traced by default (you asked for it,
-		// you want to see it); ?trace=0 opts out. Scheduled timer syncs are
-		// never traced (see internal/otel sampler). The force-trace flag rides
-		// the app root ctx so it reaches the worker's root span.
-		syncCtx := appCtx
-		if r.URL.Query().Get("trace") != "0" {
-			syncCtx = pdbsync.WithForceTrace(appCtx)
+		// A manual sync is always traced. ?trace=0 blocks the trace, also
+		// when PDBPLUS_OTEL_SYNC_SAMPLE_RATE traces the scheduled cycles.
+		// The flag rides the app root ctx to the root span of the worker
+		// (see pdbsync.RootSpanAttributes).
+		syncCtx := pdbsync.WithForceTrace(appCtx)
+		if r.URL.Query().Get("trace") == "0" {
+			syncCtx = pdbsync.WithNoTrace(appCtx)
 		}
 		if in.SyncRunning != nil && in.SyncRunning() {
 			w.Header().Set("Content-Type", "application/json")

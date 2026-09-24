@@ -66,43 +66,123 @@ func TestPerRouteSampler_APIDispatchedToFullRatio(t *testing.T) {
 	}
 }
 
-// TestPerRouteSampler_SyncTraceGating locks the sync-trace gates: a sync-origin
-// span is dropped by default (scheduled cycles emit no trace), force_sample
-// always samples (manual POST /sync), and force wins over origin. allOnes
-// TraceID makes the assertions deterministic against the route/default ratios.
+// TestPerRouteSampler_SyncTraceGating locks the sync-trace gates. A
+// scheduled cycle (origin=sync, no force_sample) uses SyncRatio, not the
+// route or the default. force_sample=true always samples (POST /sync).
+// force_sample=false never samples (POST /sync?trace=0), also at SyncRatio
+// 1.0. Spans without the markers keep the per-route logic. The all-ones
+// TraceID makes each ratio decision deterministic: ratio 1.0 admits it, and
+// a ratio below 1.0 drops it.
 func TestPerRouteSampler_SyncTraceGating(t *testing.T) {
 	t.Parallel()
 
-	// DefaultRatio 1.0 would otherwise admit allOnes — proves the gate
-	// overrides route/default for sync-origin spans.
-	s := NewPerRouteSampler(PerRouteSamplerInput{
-		DefaultRatio: 1.0,
-		Routes:       map[string]float64{"/api/": 1.0},
-	})
+	origin := attribute.String(AttrSyncOrigin, SyncOriginValue)
+	force := attribute.Bool(AttrForceSample, true)
+	optOut := attribute.Bool(AttrForceSample, false)
 
-	if res := s.ShouldSample(sampleParams(allOnesTraceID,
-		attribute.String(AttrSyncOrigin, SyncOriginValue))); res.Decision != sdktrace.Drop {
-		t.Errorf("origin=sync (no force): got %v, want Drop", res.Decision)
+	tests := []struct {
+		name         string
+		defaultRatio float64
+		syncRatio    float64
+		attrs        []attribute.KeyValue
+		want         sdktrace.SamplingDecision
+	}{
+		{
+			// DefaultRatio 0 drops the span if the gate falls through.
+			name:         "scheduled cycle at sync ratio 1.0 samples",
+			defaultRatio: 0.0,
+			syncRatio:    1.0,
+			attrs:        []attribute.KeyValue{origin},
+			want:         sdktrace.RecordAndSample,
+		},
+		{
+			// The production default ratio. A sync root span has no URL
+			// path, so without the gate it gets this 1% ratio.
+			name:         "scheduled cycle does not use the 1% default",
+			defaultRatio: 0.01,
+			syncRatio:    1.0,
+			attrs:        []attribute.KeyValue{origin},
+			want:         sdktrace.RecordAndSample,
+		},
+		{
+			// DefaultRatio 1.0 samples the span if the gate falls through.
+			name:         "scheduled cycle at sync ratio 0 drops",
+			defaultRatio: 1.0,
+			syncRatio:    0.0,
+			attrs:        []attribute.KeyValue{origin},
+			want:         sdktrace.Drop,
+		},
+		{
+			name:         "force at sync ratio 0 samples",
+			defaultRatio: 0.0,
+			syncRatio:    0.0,
+			attrs:        []attribute.KeyValue{origin, force},
+			want:         sdktrace.RecordAndSample,
+		},
+		{
+			name:         "force without origin samples",
+			defaultRatio: 0.0,
+			syncRatio:    0.0,
+			attrs:        []attribute.KeyValue{force},
+			want:         sdktrace.RecordAndSample,
+		},
+		{
+			name:         "opt-out at sync ratio 1.0 drops",
+			defaultRatio: 1.0,
+			syncRatio:    1.0,
+			attrs:        []attribute.KeyValue{origin, optOut},
+			want:         sdktrace.Drop,
+		},
+		{
+			name:         "opt-out before origin drops",
+			defaultRatio: 1.0,
+			syncRatio:    1.0,
+			attrs:        []attribute.KeyValue{optOut, origin},
+			want:         sdktrace.Drop,
+		},
+		{
+			name:         "non-sync span uses the route",
+			defaultRatio: 0.0,
+			syncRatio:    0.0,
+			attrs:        []attribute.KeyValue{attribute.String("url.path", "/api/net")},
+			want:         sdktrace.RecordAndSample,
+		},
+		{
+			name:         "non-sync span on a zero route drops",
+			defaultRatio: 1.0,
+			syncRatio:    1.0,
+			attrs:        []attribute.KeyValue{attribute.String("url.path", "/healthz")},
+			want:         sdktrace.Drop,
+		},
+		{
+			name:         "non-sync span without a path uses the default",
+			defaultRatio: 0.0,
+			syncRatio:    1.0,
+			attrs:        nil,
+			want:         sdktrace.Drop,
+		},
+		{
+			name:         "other origin value uses the default",
+			defaultRatio: 0.0,
+			syncRatio:    1.0,
+			attrs:        []attribute.KeyValue{attribute.String(AttrSyncOrigin, "startup")},
+			want:         sdktrace.Drop,
+		},
 	}
-
-	// force_sample always samples — here against a 0-ratio default that would
-	// otherwise drop the all-ones TraceID.
-	s0 := NewPerRouteSampler(PerRouteSamplerInput{DefaultRatio: 0.0})
-	if res := s0.ShouldSample(sampleParams(allOnesTraceID,
-		attribute.Bool(AttrForceSample, true))); res.Decision != sdktrace.RecordAndSample {
-		t.Errorf("force_sample: got %v, want RecordAndSample", res.Decision)
-	}
-
-	if res := s.ShouldSample(sampleParams(allOnesTraceID,
-		attribute.String(AttrSyncOrigin, SyncOriginValue),
-		attribute.Bool(AttrForceSample, true))); res.Decision != sdktrace.RecordAndSample {
-		t.Errorf("force_sample + origin=sync: got %v, want RecordAndSample (force wins)", res.Decision)
-	}
-
-	// No sync markers: ordinary per-route logic still applies.
-	if res := s.ShouldSample(sampleParams(allOnesTraceID,
-		attribute.String("url.path", "/api/net"))); res.Decision != sdktrace.RecordAndSample {
-		t.Errorf("no markers, /api/ at 1.0: got %v, want RecordAndSample", res.Decision)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			s := NewPerRouteSampler(PerRouteSamplerInput{
+				DefaultRatio: tt.defaultRatio,
+				SyncRatio:    tt.syncRatio,
+				Routes:       map[string]float64{"/api/": 1.0, "/healthz": 0.0},
+			})
+			res := s.ShouldSample(sampleParams(allOnesTraceID, tt.attrs...))
+			if res.Decision != tt.want {
+				t.Errorf("default=%v sync=%v attrs=%v: got %v, want %v",
+					tt.defaultRatio, tt.syncRatio, tt.attrs, res.Decision, tt.want)
+			}
+		})
 	}
 }
 
@@ -181,10 +261,10 @@ func TestPerRouteSampler_NoPathAttributeFallsBackToDefault(t *testing.T) {
 		},
 	})
 
-	// Sync-worker spans created without HTTP attributes hit this branch.
+	// Internal spans created without HTTP attributes hit this branch.
 	res := s.ShouldSample(sampleParams(allOnesTraceID))
 	if res.Decision != sdktrace.RecordAndSample {
-		t.Errorf("no path attribute at default ratio 1.0: got %v, want RecordAndSample (sync-worker fallback)", res.Decision)
+		t.Errorf("no path attribute at default ratio 1.0: got %v, want RecordAndSample (internal-span fallback)", res.Decision)
 	}
 }
 

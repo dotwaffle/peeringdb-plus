@@ -24,10 +24,13 @@ import (
 )
 
 // SetupInput holds configuration for initializing the OTel pipeline.
-// SampleRate controls trace sampling (0.0 to 1.0).
+// SampleRate controls trace sampling of the known app routes (0.0 to 1.0).
+// SyncSampleRate controls trace sampling of scheduled sync cycles (0.0 to
+// 1.0).
 type SetupInput struct {
-	ServiceName string
-	SampleRate  float64
+	ServiceName    string
+	SampleRate     float64
+	SyncSampleRate float64
 }
 
 // SetupOutput holds the OTel shutdown function and LoggerProvider
@@ -66,14 +69,15 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	// (DefaultRatio=0.01). PDBPLUS_OTEL_SAMPLE_RATE drives the four
 	// known app surfaces (/api/, /rest/v1/, /peeringdb.v1., /graphql)
 	// only; explicit deny-prefixes /. and /wp- catch dotfile and
-	// WordPress scanner bait at 0.1%. Wrapped in sdktrace.ParentBased
+	// WordPress scanner bait at 0.1%. PDBPLUS_OTEL_SYNC_SAMPLE_RATE
+	// drives scheduled sync cycles. Wrapped in sdktrace.ParentBased
 	// so children inherit the parent decision — preserves cross-service
 	// trace continuity. Full table in docs/ARCHITECTURE.md § Sampling
 	// Matrix and the project history
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(spanExporter),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.ParentBased(NewPerRouteSampler(defaultSamplerInput(in)))),
+		sdktrace.WithSampler(newSampler(in)),
 	)
 	otel.SetTracerProvider(tp)
 
@@ -174,6 +178,13 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	}, nil
 }
 
+// newSampler returns the trace sampler of Setup: the per-route sampler of
+// defaultSamplerInput in sdktrace.ParentBased. A child span, such as a DB
+// span of a sync cycle, thus follows the decision of its root span.
+func newSampler(in SetupInput) sdktrace.Sampler {
+	return sdktrace.ParentBased(NewPerRouteSampler(defaultSamplerInput(in)))
+}
+
 // defaultSamplerInput returns the per-route sampler configuration used by
 // Setup. Lifted into a helper so provider_test.go can lock the inverted
 // policy without the round-trip through the opaque sdktrace.Sampler
@@ -196,6 +207,9 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 //     /.well-known/ also samples at 0.1% — acceptable since pdbplus does
 //     not currently serve it.
 //   - Health probes / static / UI ratios unchanged.
+//   - SyncRatio = in.SyncSampleRate (PDBPLUS_OTEL_SYNC_SAMPLE_RATE): the
+//     ratio of scheduled sync cycles. A sync root span has no URL path, so
+//     it does not use the routes or the default.
 //
 // The the project history ratio matrix is
 // SUPERSEDED by this policy; defer to this file + docs/ARCHITECTURE.md
@@ -203,6 +217,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 func defaultSamplerInput(in SetupInput) PerRouteSamplerInput {
 	return PerRouteSamplerInput{
 		DefaultRatio: 0.01,
+		SyncRatio:    in.SyncSampleRate,
 		Routes: map[string]float64{
 			// Scanner bait — drop aggressively. Trailing non-alnum byte
 			// means "/." matches /.env /.git/ /.aws/... and "/wp-" matches

@@ -1311,8 +1311,10 @@ none in a normal cycle, and 1 for each class-A miss.
   `pdbplus.sync.netixlans_cascaded_backlog`.
   They count the rows that the `UPDATE` statements changed in the
   transaction. The span ends before the commit.
-  The sampler drops scheduled cycles, so these spans show for a
-  `POST /sync` cycle.
+  These spans show in the trace of a sync cycle.
+  The sampler keeps scheduled cycles at `PDBPLUS_OTEL_SYNC_SAMPLE_RATE`
+  (default `1.0`: every cycle).
+  It always keeps a `POST /sync` cycle, unless the request has `?trace=0`.
   At startup they are root spans without a URL path,
   so the sampler keeps 1% of them.
 - `pdbplus.sync.type.deleted{type="netixlan"}` counts the marked rows
@@ -1549,11 +1551,17 @@ which reads standard `OTEL_*` env vars to select exporters (OTLP, stdout, none):
   The known-app-route ratio honours `PDBPLUS_OTEL_SAMPLE_RATE`
   (default `1.0`).
   Unknown-path traces drop to 1% to limit the volume from scanners.
-  The sampler drops every scheduled sync cycle
-  (root span attribute `pdbplus.origin=sync`).
-  It always samples a cycle that `POST /sync` starts,
-  unless the request has `?trace=0`.
+  The sampler keeps scheduled sync cycles
+  (root span attribute `pdbplus.origin=sync`)
+  at `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` (default `1.0`: every cycle).
+  It always samples a cycle that `POST /sync` starts
+  (`pdbplus.force_sample=true`).
+  It never samples a cycle that `POST /sync?trace=0` starts
+  (`pdbplus.force_sample=false`).
   Other spans without a URL path use the 1% default.
+  The sync rule comes before the route rules,
+  because a sync root span has no URL path.
+  Without the rule, the 1% default would drop 99% of the sync cycles.
   Spans are created automatically by `otelhttp` middleware for HTTP requests,
   by `otelconnect.NewInterceptor` for ConnectRPC RPCs,
   and by the sync worker for sync cycles.
@@ -1594,7 +1602,7 @@ the root decision (the in-process trace continuity rule):
 | `/ui/` | 0.5 | Browser traffic; halved per the telemetry audit. |
 | `/static/`, `/favicon.ico` | 0.01 | Static assets; rare debugging value. |
 | (default: unknown paths, internal spans) | 0.01 | Deny-by-default for unknown URL paths (scanner protection, hardcoded). Internal spans without a `url.path` attribute also use it. To raise this floor, edit `defaultSamplerInput` in `internal/otel/provider.go`. |
-| Sync cycle root span | 0 (scheduled), 1.0 (`POST /sync`) | Set by `pdbplus.origin` and `pdbplus.force_sample`. The sampler checks them before the route. `POST /sync?trace=0` turns off the forced sample. |
+| Sync cycle root span | `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` (scheduled, default 1.0), 1.0 (`POST /sync`), 0 (`POST /sync?trace=0`) | Set by `pdbplus.origin` and `pdbplus.force_sample`. The sampler checks them before the route. A scheduled cycle has no `pdbplus.force_sample`. `true` forces the sample and `false` blocks it, whatever the ratio. A cycle has step spans and no DB spans. With every cycle traced at the 15m interval, the volume is about 4.2k spans per day (prod traces of 2026-09-24, less their DB spans). |
 
 `/mcp`, `/skills/` and `/llms.txt` have no entry, so they use the 1% default.
 The agent-skill files and the MCP server card under `/.well-known/`

@@ -7,7 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
+	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
+	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 )
 
 // TestSyncHandler_TokenCompare verifies the /sync token compare is
@@ -176,5 +182,86 @@ func TestSyncHandler_DisabledModeRejectsAll(t *testing.T) {
 	case <-calledCh:
 		t.Errorf("SyncFn must NEVER be called in disabled mode")
 	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+// TestSyncHandler_TraceChoice locks the trace choice of a manual sync, from
+// the query string to the sampler decision. The handler marks the cycle ctx,
+// pdbsync.RootSpanAttributes turns the mark into root-span attributes, and
+// the sampler decides. A manual sync is traced at every sync ratio. With
+// ?trace=0 it is traced at no sync ratio, also at 1.0 (the default), where
+// every scheduled cycle is traced.
+func TestSyncHandler_TraceChoice(t *testing.T) {
+	t.Parallel()
+
+	// The all-ones TraceID is dropped by every ratio below 1.0.
+	allOnes := trace.TraceID{
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	}
+
+	for _, tt := range []struct {
+		name        string
+		query       string
+		wantSampled bool
+	}{
+		{name: "default forces the trace", query: "", wantSampled: true},
+		{name: "trace=1 forces the trace", query: "?trace=1", wantSampled: true},
+		{name: "trace=0 blocks the trace", query: "?trace=0", wantSampled: false},
+		{name: "trace=0 with mode blocks the trace", query: "?mode=full&trace=0", wantSampled: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// SyncFn runs in the goroutine of the handler. The buffered
+			// channel gives its ctx to the test goroutine without a race.
+			ctxCh := make(chan context.Context, 1)
+			handler := newSyncHandler(t.Context(), SyncHandlerInput{
+				IsPrimaryFn: func() bool { return true },
+				SyncToken:   "s3cret-token",
+				DefaultMode: config.SyncModeIncremental,
+				SyncFn: func(ctx context.Context, _ config.SyncMode) {
+					ctxCh <- ctx
+				},
+			})
+
+			req := httptest.NewRequest(http.MethodPost, "/sync"+tt.query, nil)
+			req.Header.Set("X-Sync-Token", "s3cret-token")
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusAccepted {
+				t.Fatalf("status = %d, want %d (body=%q)", rec.Code, http.StatusAccepted, rec.Body.String())
+			}
+
+			var syncCtx context.Context
+			select {
+			case syncCtx = <-ctxCh:
+			case <-time.After(2 * time.Second):
+				t.Fatal("SyncFn was not called within 2s")
+			}
+
+			attrs := pdbsync.RootSpanAttributes(syncCtx)
+			set := attribute.NewSet(attrs...)
+			force, ok := set.Value(pdbotel.AttrForceSample)
+			if !ok || force.Type() != attribute.BOOL || force.AsBool() != tt.wantSampled {
+				t.Errorf("%s = %v (present=%v), want %v", pdbotel.AttrForceSample, force, ok, tt.wantSampled)
+			}
+
+			for _, ratio := range []float64{0, 1} {
+				s := pdbotel.NewPerRouteSampler(pdbotel.PerRouteSamplerInput{
+					DefaultRatio: 0.01, // the production default
+					SyncRatio:    ratio,
+				})
+				res := s.ShouldSample(sdktrace.SamplingParameters{
+					ParentContext: syncCtx,
+					TraceID:       allOnes,
+					Name:          "sync-incremental",
+					Attributes:    attrs,
+				})
+				if got := res.Decision == sdktrace.RecordAndSample; got != tt.wantSampled {
+					t.Errorf("sync ratio %v: sampled = %v, want %v", ratio, got, tt.wantSampled)
+				}
+			}
+		})
 	}
 }

@@ -90,9 +90,16 @@ type Config struct {
 	// Configured via PDBPLUS_OTEL_SAMPLE_RATE. Default is 1.0 (always sample).
 	OTelSampleRate float64
 
+	// OTelSyncSampleRate is the trace sampling ratio of scheduled sync
+	// cycles (0.0 to 1.0). Configured via PDBPLUS_OTEL_SYNC_SAMPLE_RATE.
+	// Default is 1.0 (trace every cycle). 0 traces no scheduled cycle. A
+	// POST /sync cycle does not use it: the handler always traces the cycle,
+	// or never traces it with ?trace=0.
+	OTelSyncSampleRate float64
+
 	// OTelSQL enables per-query OpenTelemetry DB spans (XSAM/otelsql) on the
-	// shared *sql.DB. Configured via PDBPLUS_OTEL_SQL. Default true — the data
-	// is useful and its volume is bounded by the trace sampler; set
+	// shared *sql.DB. Configured via PDBPLUS_OTEL_SQL. Default true. The data
+	// is useful and its volume is bounded by the trace sampler. Set
 	// PDBPLUS_OTEL_SQL=false to disable. A sync cycle emits no DB spans
 	// (see internal/otel WithoutDBSpans).
 	OTelSQL bool
@@ -333,6 +340,12 @@ func Load() (*Config, error) {
 	}
 	cfg.OTelSampleRate = sampleRate
 
+	syncSampleRate, err := parseFloat64("PDBPLUS_OTEL_SYNC_SAMPLE_RATE", 1.0)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_OTEL_SYNC_SAMPLE_RATE: %w", err)
+	}
+	cfg.OTelSyncSampleRate = syncSampleRate
+
 	otelSQL, err := parseBool("PDBPLUS_OTEL_SQL", true)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_OTEL_SQL: %w", err)
@@ -456,6 +469,9 @@ func (c *Config) validate() error {
 	}
 	if c.OTelSampleRate < 0.0 || c.OTelSampleRate > 1.0 {
 		return errors.New("PDBPLUS_OTEL_SAMPLE_RATE must be between 0.0 and 1.0")
+	}
+	if c.OTelSyncSampleRate < 0.0 || c.OTelSyncSampleRate > 1.0 {
+		return errors.New("PDBPLUS_OTEL_SYNC_SAMPLE_RATE must be between 0.0 and 1.0")
 	}
 	if !strings.Contains(c.ListenAddr, ":") {
 		return errors.New("PDBPLUS_LISTEN_ADDR must contain ':' (e.g., ':8080' or '0.0.0.0:8080')")
