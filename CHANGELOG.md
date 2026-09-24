@@ -36,6 +36,12 @@ are in the Git history at their tags.
   was larger than the 5 MB per-trace limit of Grafana Cloud Tempo. The
   spans after the limit were lost, among them the upsert step spans of
   net, poc, netfac and netixlan. API request traces keep their DB spans.
+- A sync cycle writes each 100-row scratch chunk with two upsert
+  statements of 50 rows, not one statement of 100 rows. The SQLite
+  driver binds the parameters of a statement in a time that increases
+  as the square of their count. In a local test at production row
+  counts, the upsert step of a full cycle over a populated database took
+  about 8.4 s instead of about 10.7 s.
 
 ### Fixed
 

@@ -1574,7 +1574,7 @@ which reads standard `OTEL_*` env vars to select exporters (OTLP, stdout, none):
   (`internal/otel/dbspans.go`),
   and the otelsql span filter drops each span under that mark.
   A full cycle runs thousands of statements
-  (one upsert for each 100-row chunk, plus the FK parent lookups).
+  (one upsert for each 50 rows, plus the FK parent lookups).
   With their spans, its trace is larger than the per-trace limit
   of the trace backend.
   A statement outside a request or sync cycle, such as a startup migration,

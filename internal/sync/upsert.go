@@ -272,9 +272,29 @@ func reconcileAll(ctx context.Context) (map[string]time.Time, bool) {
 	return cutoffs, ok
 }
 
-// batchSize limits the number of builders per bulk upsert to stay within
-// SQLite's variable count limit.
-const batchSize = 500
+// batchSize is the maximum number of rows in one upsert statement.
+//
+// The cost to bind the parameters of a statement increases as the square
+// of the parameter count. For each parameter, the modernc.org/sqlite
+// driver (v1.59.0) searches the argument list for the parameter's
+// ordinal. The SQLite parse of each statement occurs one time for each
+// statement, so a small batch has more of that cost. Upsert time of a
+// second full sync over a populated file DB, at production row counts
+// and production pragmas, with one statement for each scratch chunk:
+//
+//	25 rows  → 8.8 s
+//	50 rows  → 8.5 s
+//	100 rows → 10.6 s
+//	250 rows → 18.0 s
+//	500 rows → 30.6 s
+//
+// With 100-row chunks and 50 rows per statement, the upsert step took
+// 8.3-8.4 s, against 10.6-10.9 s with 100 rows per statement.
+//
+// Memory use did not change with the size (see scratchChunkSize). Without
+// a limit, the first org statement failed with "too many SQL variables":
+// SQLite accepts at most 32766 parameters in one statement.
+const batchSize = 50
 
 // upsertBatch splits items into batches of batchSize, creates a builder for
 // each item via buildFn, and executes saveFn for each batch. Returns collected
