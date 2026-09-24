@@ -12,10 +12,10 @@ that cold-sync from the primary on boot.
 
 | Target | Config file | Notes |
 | --- | --- | --- |
-| Fly.io (production) | `fly.toml`, `Dockerfile.prod`, `litefs.yml` | App name `peeringdb-plus`, primary region `lhr`. |
+| Fly.io (production) | `fly.toml`, `Dockerfile.litefs`, `litefs.yml` | App name `peeringdb-plus`, primary region `lhr`. |
 | Generic Docker host | `Dockerfile` | Standalone image. Runs the binary directly without LiteFS. CI publishes it to GHCR (see [Published image](#published-image)). |
 
-- `fly.toml` — app (`peeringdb-plus`), primary region (`lhr`), rolling deploy
+- `fly.toml`: app (`peeringdb-plus`), primary region (`lhr`), rolling deploy
   strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases,
   two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]`
   blocks (`shared-cpu-2x` / 512 MB for `primary`, `shared-cpu-1x` / 256 MB
@@ -24,7 +24,7 @@ that cold-sync from the primary on boot.
   no volume), and an HTTP health check on `GET /readyz` every 15s (the
   readiness probe, so Fly Proxy routes around hydrating or stale machines;
   `GET /healthz` remains the always-200 liveness probe).
-- `Dockerfile.prod` — LiteFS-aware production image.
+- `Dockerfile.litefs`: LiteFS-aware production image.
   Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite`
   (CLI for incident response —
   see [Incident-response debug shell](#incident-response-debug-shell)) installed,
@@ -51,7 +51,7 @@ that cold-sync from the primary on boot.
   The `Docker Publish` job pushes it to GHCR.
 
 Both images use `cgr.dev/chainguard/go` as the build stage.
-`Dockerfile.prod` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
+`Dockerfile.litefs` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
 as the runtime stage and runs as root.
 `Dockerfile` uses `cgr.dev/chainguard/static`, which has no libc and no shell,
 and runs as `nonroot`.
@@ -126,7 +126,7 @@ It has three jobs:
 2. **`docker-build`**: a separate parallel job
    that uses `docker/build-push-action@v7` with BuildKit's `type=gha` cache.
    It builds `Dockerfile` for `linux/amd64` and `linux/arm64`
-   and `Dockerfile.prod` for `linux/amd64`.
+   and `Dockerfile.litefs` for `linux/amd64`.
    Each Dockerfile has its own cache scope.
    This job pushes nothing.
 3. **`docker-publish`**: runs only on pushes to `main` and `v*` tags,
@@ -136,7 +136,7 @@ It has three jobs:
    and BuildKit provenance, and adds a GitHub artifact attestation.
    See [Published image](#published-image) for the tags.
    Pull requests publish nothing.
-   `Dockerfile.prod` is never published,
+   `Dockerfile.litefs` is never published,
    because it needs the LiteFS lease of the Fly deployment.
 
 `docker-build` is a separate job
@@ -148,7 +148,7 @@ as documented in `fly.toml`.
 
 ### Production image: accepted risks
 
-Two deliberate trade-offs in `Dockerfile.prod`,
+Two deliberate trade-offs in `Dockerfile.litefs`,
 recorded here so they read as decisions rather than oversights:
 
 - **The process tree runs as root.**
@@ -162,7 +162,7 @@ recorded here so they read as decisions rather than oversights:
   or the app moves off FUSE.
 - **The runtime base is `glibc-dynamic:latest-dev`.**
   The `-dev` variant has a shell and `apk`,
-  and `Dockerfile.prod` installs the `sqlite3` CLI with `apk`.
+  and `Dockerfile.litefs` installs the `sqlite3` CLI with `apk`.
   This is deliberate incident-response tooling:
   `fly ssh console` + `sqlite3 /litefs/peeringdb-plus.db`
   is the documented production debugging path.
@@ -293,7 +293,7 @@ stable but no longer actively supported by Fly.io.
 There is no drop-in alternative for edge SQLite replication,
 so the project continues to use it.
 
-- **FUSE mount.** `Dockerfile.prod`'s entrypoint is `litefs mount`, which
+- **FUSE mount.** `Dockerfile.litefs`'s entrypoint is `litefs mount`, which
   starts the LiteFS FUSE process, mounts the database directory at
   `/litefs`, and then execs the application (see `litefs.yml` `exec:`
   stanza, which invokes `/usr/local/bin/peeringdb-plus`).
@@ -685,15 +685,15 @@ fly deploy
 ```bash
 # Deploy the current working tree with Fly's remote builder.
 # After a long pause the remote builder starts cold. `go build -v` in
-# Dockerfile.prod prints each package, so a slow build shows progress.
+# Dockerfile.litefs prints each package, so a slow build shows progress.
 # If a transient api.machines.dev error occurs, run `fly deploy` again.
 fly deploy
 
 # Build on the local Docker daemon instead
 fly deploy --local-only
 
-# Deploy with a specific Dockerfile (defaults to Dockerfile.prod per fly.toml)
-fly deploy --dockerfile Dockerfile.prod
+# Deploy with a specific Dockerfile (defaults to Dockerfile.litefs per fly.toml)
+fly deploy --dockerfile Dockerfile.litefs
 
 # Check status after deploy
 fly status

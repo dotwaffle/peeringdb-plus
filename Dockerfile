@@ -46,7 +46,7 @@ RUN mkdir /data-skeleton
 # Runtime stage. chainguard/static has no libc, no shell and no package
 # manager. The binary is CGO_ENABLED=0 and needs only what the image
 # ships: the CA bundle, tzdata and the nonroot user (65532). Do not add a
-# RUN step here: the build stage explains why. (Dockerfile.prod keeps
+# RUN step here: the build stage explains why. (Dockerfile.litefs keeps
 # glibc-dynamic:latest-dev deliberately for incident response; see
 # docs/DEPLOYMENT.md.)
 FROM cgr.dev/chainguard/static

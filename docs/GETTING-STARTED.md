@@ -294,7 +294,7 @@ The container is built from Chainguard base images
 runs as the `nonroot` user, and exposes port 8080.
 
 For the production image with LiteFS edge replication,
-see `Dockerfile.prod` and [DEPLOYMENT.md](DEPLOYMENT.md).
+see `Dockerfile.litefs` and [DEPLOYMENT.md](DEPLOYMENT.md).
 The prod image runs `litefs mount` as its entrypoint and is intended
 for the Fly.io fleet.
 

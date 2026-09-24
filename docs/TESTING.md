@@ -532,7 +532,7 @@ On a push, `docker-publish` runs after both jobs pass:
 | `ci` | Tests with race detector | `mise run test` |
 | `ci` | Lint | `mise run lint` |
 | `ci` | Vulnerability scan (advisory, `continue-on-error`) | `mise run vulncheck` |
-| `docker-build` | Standalone and prod image builds | `docker build` using `./Dockerfile` (amd64 and arm64) and `./Dockerfile.prod` (amd64) |
+| `docker-build` | Standalone and prod image builds | `docker build` using `./Dockerfile` (amd64 and arm64) and `./Dockerfile.litefs` (amd64) |
 | `docker-publish` | Publish the standalone image (push events only) | `docker buildx build --push` of `./Dockerfile` to GHCR, then an artifact attestation |
 
 A failed drift check, tidiness check, build, test, race check, or lint run

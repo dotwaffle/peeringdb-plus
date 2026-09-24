@@ -7,7 +7,7 @@ primary_region = "lhr"
 kill_timeout = 30
 
 [build]
-  dockerfile = "Dockerfile.prod"
+  dockerfile = "Dockerfile.litefs"
 
 [deploy]
   strategy = "rolling"
@@ -50,7 +50,7 @@ kill_timeout = 30
 # Both run `litefs mount` (the container ENTRYPOINT), not a separate binary.
 # The command string here is informational; the image ENTRYPOINT wins at runtime.
 # Fly docs state the command is passed to the Dockerfile entrypoint. Our
-# ENTRYPOINT is ["litefs", "mount"] (see Dockerfile.prod), so both groups
+# ENTRYPOINT is ["litefs", "mount"] (see Dockerfile.litefs), so both groups
 # run the same image and entrypoint.
 [processes]
   primary = ""

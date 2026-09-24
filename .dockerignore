@@ -1,7 +1,8 @@
 # Keep the build context to what the image build actually consumes:
 # Go sources (go build ./cmd/peeringdb-plus), go.mod/go.sum, litefs.yml
-# (COPY'd into the prod image), and .git — Dockerfile.prod derives the
-# injected version from `git describe`, so .git MUST stay in context.
+# (COPY'd into the LiteFS image), and .git: Dockerfile and
+# Dockerfile.litefs derive the injected version from `git describe`, so
+# .git MUST stay in context.
 #
 # Everything below is either operator/CI tooling, documentation, test
 # fixtures, or local editor/agent state. Excluding it shrinks the
@@ -22,7 +23,7 @@ scripts/
 .golangci.yml
 fly.toml
 Dockerfile
-Dockerfile.prod
+Dockerfile.litefs
 .dockerignore
 buf.yaml
 buf.gen.yaml

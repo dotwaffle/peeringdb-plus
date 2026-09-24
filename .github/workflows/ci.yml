@@ -9,13 +9,13 @@ name: CI
 # `type=gha` cache (a different cache system from the Go build cache), so
 # folding it into the Go job would only serialize it onto the critical
 # path for zero cache benefit. It builds the standalone `Dockerfile` for
-# linux/amd64 and linux/arm64 and the Fly-only `Dockerfile.prod` for
+# linux/amd64 and linux/arm64 and the Fly-only `Dockerfile.litefs` for
 # linux/amd64, and pushes nothing.
 #
 # `docker-publish` runs on pushes only (main and `v*` tags), after `ci`
 # and `docker-build` pass. It pushes the standalone image to
 # ghcr.io/dotwaffle/peeringdb-plus with an SBOM, BuildKit provenance and
-# a GitHub artifact attestation. `Dockerfile.prod` is never published:
+# a GitHub artifact attestation. `Dockerfile.litefs` is never published:
 # it needs the LiteFS lease of the Fly deployment.
 
 on:
@@ -139,7 +139,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile.prod
+          file: ./Dockerfile.litefs
           platforms: linux/amd64
           push: false
           cache-from: type=gha,scope=prod

@@ -131,7 +131,7 @@ A third job, `docker-publish`, runs only on pushes to `main` and `v*` tags:
 | Job | What it runs |
 |---|---|
 | **`ci`** | In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests, lint (actionlint and golangci-lint), advisory vulnerability scan |
-| **`docker-build`** | Builds `Dockerfile` (standalone, `linux/amd64` and `linux/arm64`) and `Dockerfile.prod` (Fly, `linux/amd64`). Pushes nothing |
+| **`docker-build`** | Builds `Dockerfile` (standalone, `linux/amd64` and `linux/arm64`) and `Dockerfile.litefs` (Fly, `linux/amd64`). Pushes nothing |
 | **`docker-publish`** | Push events only, after `ci` and `docker-build` pass: pushes the standalone image to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM, provenance, and an artifact attestation |
 
 `govulncheck` runs with `continue-on-error`:
