@@ -283,14 +283,15 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	//    when it trips the per-cycle request cap, the deadline, an
 	//    upstream miss, or a fetch error. Upserting the parent anyway
 	//    would write a row whose non-NULL FK points at a missing
-	//    grandparent; with foreign_keys(1) + defer_foreign_keys=ON that
-	//    dangling FK is not caught at insert time but at tx.Commit() as
-	//    SQLITE_CONSTRAINT_FOREIGNKEY (787), rolling back the ENTIRE
-	//    sync cycle (all 13 types) — and it is self-perpetuating because
-	//    each cycle re-exhausts the cap the same way. Withholding the
-	//    dangling parent here mirrors the fkFilter drop-on-miss contract:
-	//    the orphan is recorded and the commit succeeds. Recovery comes
-	//    from the next FULL-mode cycle, which re-fetches every row,
+	//    grandparent. The per-statement FK check then fails that upsert
+	//    (logged below as "fk backfill upsert failed"). Before
+	//    2026-09-24 the sync tx deferred FK checks, so the dangling row
+	//    failed the whole cycle at tx.Commit() with
+	//    SQLITE_CONSTRAINT_FOREIGNKEY (787), and again on every cycle.
+	//    Withholding the dangling parent here mirrors the fkFilter
+	//    drop-on-miss contract: the orphan is recorded and the commit
+	//    succeeds. Recovery comes from the next FULL-mode cycle,
+	//    which re-fetches every row,
 	//    stages the tombstone window, and relaxes the upsert skip gate
 	//    (reconcile-all) — an incremental cycle does NOT retry the
 	//    withheld row, because its MAX(updated) cursor has typically

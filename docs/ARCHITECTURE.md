@@ -114,9 +114,10 @@ default `1h` unauthenticated / `15m` authenticated):
    has (see [Soft-delete tombstones](#soft-delete-tombstones)).
    An upstream tombstone is an ordinary upsert whose `status` column is
    `deleted`.
-   `PRAGMA defer_foreign_keys = ON` is set on the same connection
-   (`internal/sync/worker.go`) to keep FK enforcement while allowing
-   mid-transaction orphan handling.
+   SQLite checks foreign keys per statement.
+   The step order writes every parent type before its children.
+   Before the upsert, `fkFilter` drops a row whose required parent is missing,
+   and sets a nullable FK whose parent is missing to NULL.
    Phase B can also call upstream to fetch missing parent rows
    (see [FK backfill](#fk-backfill)).
 5. The worker writes the `sync_status` row.

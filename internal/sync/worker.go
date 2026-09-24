@@ -187,8 +187,8 @@ type Worker struct {
 	// PeeringDB's public /api/{type}?depth=0 responses occasionally
 	// contain child rows whose parent rows are suppressed server-side
 	// (deleted orgs still referenced by live nets, etc). Without this
-	// registry, the defer_foreign_keys=ON commit check rejects
-	// the entire sync transaction.
+	// registry, the chunk's INSERT fails its foreign key check, and the
+	// sync transaction with it.
 	//
 	// Reset by resetFKState at the start of each Sync run. Single-writer
 	// because Worker.running serialises concurrent Sync calls.
@@ -1043,12 +1043,19 @@ func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
 }
 
 // prepareTxPragmas runs the per-tx PRAGMA setup that the bulk-upsert
-// transaction depends on. It runs:
-//   - PRAGMA defer_foreign_keys = ON    (existing — defers FK constraint
-//     checking to commit so we can upsert in any order)
-//   - PRAGMA cache_spill = OFF          (keeps dirty
-//     pages in the connection's page cache instead of spilling to the WAL
-//     between writes; bounded by cache_size from the DSN)
+// transaction depends on: PRAGMA cache_spill = OFF keeps dirty pages in
+// the connection's page cache instead of spilling them to the WAL
+// between writes (bounded by cache_size from the DSN).
+//
+// Foreign keys are checked per statement, the SQLite default. The step
+// order writes every parent type before its children, fkFilter drops or
+// nulls a row whose parent is missing, and FK backfill lands a parent
+// before the child statement. A violation that gets through fails the
+// statement that caused it, with a precise error. The transaction stays
+// usable: SQLite undoes only that statement. PRAGMA defer_foreign_keys
+// was set here until 2026-09-24. It moved every check to COMMIT, where
+// one dangling row rolled back the whole cycle with no pointer to the
+// row.
 //
 // cache_spill is per-tx (not via the DSN) because it's a connection-scoped
 // pragma whose effect we only want during the bulk-write tx. Setting it via
@@ -1058,9 +1065,6 @@ func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
 // line budget enforced by TestWorkerSync_LineBudget. DO NOT
 // inline this back into Sync.
 func prepareTxPragmas(ctx context.Context, tx *ent.Tx) error {
-	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
-		return fmt.Errorf("defer foreign keys: %w", err)
-	}
 	if _, err := tx.ExecContext(ctx, "PRAGMA cache_spill = OFF"); err != nil {
 		return fmt.Errorf("disable cache_spill: %w", err)
 	}

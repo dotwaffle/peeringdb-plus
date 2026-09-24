@@ -30,6 +30,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"golang.org/x/time/rate"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
@@ -2475,28 +2477,19 @@ func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 // ----------------------------------------------------------------------------
 // Sync refactor tests
 //
-// TestSync_DeferredFKSameTx    — regression-locks the FK pragma switch.
+// TestSync_ForeignKeysCheckedPerStatement — locks per-statement FK checks.
 // TestSync_RefactorParity      — byte-identical DB state before/after refactor.
 // TestWorkerSync_LineBudget    — enforces the line budget on Sync.
 // ----------------------------------------------------------------------------
 
-// TestSync_DeferredFKSameTx verifies that the refactor's per-tx
-// `PRAGMA defer_foreign_keys = ON` correctly defers FK enforcement until
-// commit time, allowing temporarily-dangling FKs inside the transaction.
-//
-// Test shape:
-//
-//  1. Open an ent.Tx.
-//  2. Set `PRAGMA defer_foreign_keys = ON` via the generated tx.ExecContext
-//     (sql/execquery feature enabled in ent/entc.go).
-//  3. Insert a Facility referencing Organization 999 which does NOT yet exist.
-//  4. Insert Organization 999 BEFORE commit.
-//  5. Commit. Asserts no FK error.
-//
-// Without the pragma, SQLite's default immediate FK enforcement would reject
-// step 3 on insert. With the pragma, FK checks are deferred to commit time;
-// at commit time the FK is resolved because step 4 ran first.
-func TestSync_DeferredFKSameTx(t *testing.T) {
+// TestSync_ForeignKeysCheckedPerStatement locks the FK mode of the sync
+// transaction. After prepareTxPragmas, an insert whose parent is missing
+// fails at its own statement with SQLITE_CONSTRAINT_FOREIGNKEY, and the
+// transaction stays usable: later writes and the COMMIT succeed. FK
+// backfill relies on this when it logs a failed single-row upsert and
+// carries on. With PRAGMA defer_foreign_keys (set until 2026-09-24) the
+// dangling insert succeeded and the COMMIT failed instead.
+func TestSync_ForeignKeysCheckedPerStatement(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	client, _ := testutil.SetupClientWithDB(t)
@@ -2509,58 +2502,51 @@ func TestSync_DeferredFKSameTx(t *testing.T) {
 		// Rollback is a no-op after Commit.
 		_ = tx.Rollback()
 	})
-
-	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
-		t.Fatalf("set defer_foreign_keys: %v", err)
+	if err := prepareTxPragmas(ctx, tx); err != nil {
+		t.Fatalf("prepareTxPragmas: %v", err)
 	}
 
-	// Insert a facility referencing org_id=999 which does not yet exist.
-	// Without defer_foreign_keys this would fail at insert time.
-	_, err = tx.Facility.Create().
-		SetID(12345).
-		SetName("dangling-fk-fac").
-		SetOrgID(999).
-		SetCity("Testville").
-		SetCountry("DE").
-		SetCreated(time.Now()).
-		SetUpdated(time.Now()).
-		Save(ctx)
-	if err != nil {
-		t.Fatalf("insert facility with temporarily-dangling FK: %v", err)
+	newFac := func(id int) *ent.FacilityCreate {
+		return tx.Facility.Create().
+			SetID(id).
+			SetName(fmt.Sprintf("fac-%d", id)).
+			SetOrgID(999).
+			SetCity("Testville").
+			SetCountry("DE").
+			SetCreated(time.Now()).
+			SetUpdated(time.Now())
 	}
 
-	// Now insert the parent org BEFORE commit — this resolves the FK.
-	_, err = tx.Organization.Create().
+	// Org 999 does not exist yet: the statement itself must fail.
+	_, err = newFac(12345).Save(ctx)
+	var serr *sqlite.Error
+	if !errors.As(err, &serr) || serr.Code() != sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
+		t.Fatalf("insert with missing parent: err = %v, want SQLITE_CONSTRAINT_FOREIGNKEY at the statement", err)
+	}
+
+	// The transaction is still usable after the failed statement.
+	if _, err := tx.Organization.Create().
 		SetID(999).
-		SetName("dangling-fk-resolver").
+		SetName("parent").
 		SetCity("Testville").
 		SetCountry("DE").
 		SetCreated(time.Now()).
 		SetUpdated(time.Now()).
-		Save(ctx)
-	if err != nil {
-		t.Fatalf("insert parent org: %v", err)
+		Save(ctx); err != nil {
+		t.Fatalf("insert parent org after the failed statement: %v", err)
 	}
-
-	// Commit MUST succeed — the FK is resolved and deferred enforcement passes.
+	if _, err := newFac(12346).Save(ctx); err != nil {
+		t.Fatalf("insert child after its parent: %v", err)
+	}
 	if err := tx.Commit(); err != nil {
-		t.Fatalf("commit with resolved deferred FK: %v", err)
+		t.Fatalf("commit after a failed statement: %v", err)
 	}
 
-	// Sanity: both rows are present on a fresh query.
-	gotFac, err := client.Facility.Get(ctx, 12345)
-	if err != nil {
-		t.Fatalf("get facility after commit: %v", err)
+	if ok, _ := client.Facility.Query().Where(facility.ID(12345)).Exist(ctx); ok {
+		t.Error("facility 12345 exists, want the failed insert undone")
 	}
-	if gotFac.Name != "dangling-fk-fac" {
-		t.Errorf("facility name: got %q, want %q", gotFac.Name, "dangling-fk-fac")
-	}
-	gotOrg, err := client.Organization.Get(ctx, 999)
-	if err != nil {
-		t.Fatalf("get org after commit: %v", err)
-	}
-	if gotOrg.Name != "dangling-fk-resolver" {
-		t.Errorf("org name: got %q, want %q", gotOrg.Name, "dangling-fk-resolver")
+	if _, err := client.Facility.Get(ctx, 12346); err != nil {
+		t.Errorf("facility 12346 after commit: %v", err)
 	}
 }
 
