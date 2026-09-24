@@ -1354,3 +1354,67 @@ func TestFKBackfill_WithholdsParentWhenGrandparentCapped(t *testing.T) {
 		t.Errorf("orgCount = %d, want 1 (only the bulk fac org; capped grandparent absent)", got)
 	}
 }
+
+// TestFKBackfill_NullsMissingCampusOfBackfilledFac locks the null-on-miss
+// contract of Facility.campus_id on the backfill path. A carrierfac
+// references a facility that only backfill lands, and that facility
+// references a campus that is not in the database. The chunk path nulls
+// such a campus in the fac fkFilter. Before the fix, backfill stored the
+// dangling campus_id and the deferred FK check failed the whole cycle
+// at COMMIT, on every cycle.
+func TestFKBackfill_NullsMissingCampusOfBackfilledFac(t *testing.T) {
+	t.Parallel()
+
+	const (
+		orgID        = 10
+		carrierID    = 20
+		facID        = 30
+		campusID     = 777 // absent locally and upstream
+		carrierFacID = 1
+	)
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"org":        {orgJSON(orgID, "Org", "ok")},
+			"carrier":    {mustJSON(makeMinimalCarrier(carrierID, orgID))},
+			"carrierfac": {mustJSON(makeMinimalCarrierFac(carrierFacID, carrierID, facID))},
+		},
+		map[string]func(int) json.RawMessage{
+			"fac": func(id int) json.RawMessage {
+				f := makeMinimalFac(id, orgID)
+				f["campus_id"] = campusID
+				return mustJSON(f)
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxRequestsPerCycle: 5,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v (a dangling campus_id fails the commit)", err)
+	}
+
+	if _, _, byType := rec.snapshot(); len(byType["fac"]) != 1 || len(byType["campus"]) != 0 {
+		t.Errorf("backfill calls = %v, want one fac call and no campus call", byType)
+	}
+	fac, err := client.Facility.Get(t.Context(), facID)
+	if err != nil {
+		t.Fatalf("backfilled fac %d: %v", facID, err)
+	}
+	if fac.CampusID != nil {
+		t.Errorf("fac.campus_id = %d, want NULL (campus %d is missing)", *fac.CampusID, campusID)
+	}
+	if got, _ := client.CarrierFacility.Query().Count(t.Context()); got != 1 {
+		t.Errorf("carrierfacCount = %d, want 1 (its fac was backfilled)", got)
+	}
+}

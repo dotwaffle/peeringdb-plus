@@ -295,10 +295,10 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	//    (reconcile-all) — an incremental cycle does NOT retry the
 	//    withheld row, because its MAX(updated) cursor has typically
 	//    advanced past the row's updated by the time the cycle commits.
-	//    Only REQUIRED FKs gate the upsert — nullable side-FKs
-	//    (campus, net_side_id, ix_side_id) are absent from parentFKSpec
-	//    and follow the existing null-on-miss path, so they never block
-	//    here.
+	//    Only REQUIRED FKs gate the upsert. Nullable FKs are not in
+	//    parentFKSpec and never block here: nullMissingOptionalFKs sets
+	//    a missing fac campus_id to NULL before the upsert, and backfill
+	//    never lands a netixlan (the side FKs).
 	returnedIDs := make(map[int]struct{}, len(rows))
 	inserted := make([]int, 0, len(rows))
 	for _, r := range rows {
@@ -314,7 +314,8 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 				slog.Int("grandparent_id", gp.ID))
 			continue
 		}
-		if _, upsertErr := upsertSingleRaw(ctx, tx, parentType, r.raw); upsertErr != nil {
+		raw := w.nullMissingOptionalFKs(ctx, tx, parentType, r.id, r.raw)
+		if _, upsertErr := upsertSingleRaw(ctx, tx, parentType, raw); upsertErr != nil {
 			w.recordBackfill(ctx, childType, parentType, fkBackfillError)
 			w.logger.LogAttrs(ctx, slog.LevelWarn, "fk backfill upsert failed",
 				slog.String("child_type", childType),
@@ -363,9 +364,10 @@ type parentFKRef struct {
 // parentFKSpec maps each entity type to its required-non-null parent
 // FK fields, mirroring the upstream Django on_delete=CASCADE FKs in
 // peeringdb_server/models.py. Nullable FKs (Facility.campus_id,
-// NetworkIXLan.net_side_id / ix_side_id) are handled by the existing
-// fkFilter null-on-miss path in worker.go; they're omitted here so the
-// recursive backfill doesn't gratuitously chase optional references.
+// NetworkIXLan.net_side_id / ix_side_id) are omitted so the recursive
+// backfill does not chase optional references. The fkFilter closures
+// in registry.go null them on a miss for chunk rows, and
+// nullMissingOptionalFKs (optionalFKSpec) does it for backfilled rows.
 //
 // Mirrors the upstream FK audit table in CLAUDE.md § Soft-delete
 // tombstones — keep these two in sync when a new FK is added.
@@ -383,6 +385,61 @@ var parentFKSpec = map[string][]parentFKRef{
 	peeringdb.TypePoc:        {{FieldName: "net_id", ParentType: peeringdb.TypeNet}},
 	peeringdb.TypeNetFac:     {{FieldName: "net_id", ParentType: peeringdb.TypeNet}, {FieldName: "fac_id", ParentType: peeringdb.TypeFac}},
 	peeringdb.TypeNetIXLan:   {{FieldName: "net_id", ParentType: peeringdb.TypeNet}, {FieldName: "ixlan_id", ParentType: peeringdb.TypeIXLan}},
+}
+
+// optionalFKSpec lists the nullable FKs of the types that FK backfill
+// can land. On the chunk path, the fkFilter closures in registry.go set
+// a nullable FK to NULL when its parent is missing. A backfilled row
+// skips fkFilter, so nullMissingOptionalFKs does the same for it.
+// Without this, a backfilled facility stored a campus_id for a campus
+// that is not in the database. NetworkIxLan side FKs are not listed:
+// no type references netixlan, so backfill never lands one.
+var optionalFKSpec = map[string][]parentFKRef{
+	peeringdb.TypeFac: {{FieldName: "campus_id", ParentType: peeringdb.TypeCampus}},
+}
+
+// nullMissingOptionalFKs returns raw with each optionalFKSpec field set
+// to null when its parent is not in the database. It records each one
+// as an orphan with action "null" and does not backfill the optional
+// parent, as the fac fkFilter does. It returns raw unchanged when no
+// parent is missing or when raw does not decode (the upsert then
+// reports the decode error).
+func (w *Worker) nullMissingOptionalFKs(ctx context.Context, tx *ent.Tx, typeName string, id int, raw []byte) []byte {
+	spec := optionalFKSpec[typeName]
+	if len(spec) == 0 {
+		return raw
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return raw
+	}
+	changed := false
+	for _, fk := range spec {
+		rawVal, present := fields[fk.FieldName]
+		if !present || string(rawVal) == "null" {
+			continue
+		}
+		var parentID int
+		if err := json.Unmarshal(rawVal, &parentID); err == nil && w.fkHasParent(ctx, tx, fk.ParentType, parentID) {
+			continue
+		}
+		w.recordOrphan(ctx, fkOrphanKey{
+			ChildType:  typeName,
+			ParentType: fk.ParentType,
+			Field:      fk.FieldName,
+			Action:     "null",
+		}, id, parentID)
+		fields[fk.FieldName] = json.RawMessage("null")
+		changed = true
+	}
+	if !changed {
+		return raw
+	}
+	out, err := json.Marshal(fields)
+	if err != nil {
+		return raw
+	}
+	return out
 }
 
 // parentFKsOf decodes the upstream JSON for one row and returns the
