@@ -100,6 +100,7 @@ func TestDashboard_HasRequiredRows(t *testing.T) {
 		"Per-Type Sync Detail",
 		"Go Runtime",
 		"Business Metrics",
+		"LiteFS Replication",
 	}
 
 	rowTitles := make(map[string]bool)
@@ -214,6 +215,12 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"go_memory_allocated_bytes_total", "Go allocation rate"},
 		{"pdbplus_data_type_count", "business metrics object count"},
 		{"pdbplus_role_transitions_total", "role transition events"},
+		{"pdbplus_litefs_lag_seconds", "LiteFS replica stream lag"},
+		{"pdbplus_litefs_ltx_lag_seconds", "LiteFS LTX apply lag"},
+		{"pdbplus_litefs_txid", "LiteFS transaction ID"},
+		{"pdbplus_litefs_commits_total", "LiteFS commits on the primary"},
+		{"pdbplus_litefs_ltx_size_bytes", "LiteFS LTX size"},
+		{"pdbplus_litefs_subscribers", "LiteFS connected replicas"},
 	}
 
 	for _, m := range requiredMetrics {

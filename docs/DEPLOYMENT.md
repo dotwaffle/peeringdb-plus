@@ -419,6 +419,10 @@ A Grafana dashboard is provided in
 `deploy/grafana/dashboards/pdbplus-overview.json` with a provisioning manifest
 at `deploy/grafana/provisioning/dashboards.yaml` for self-hosted Grafana
 instances.
+Its `LiteFS Replication` row reads the `pdbplus.litefs.*` instruments,
+so it has data only when `PDBPLUS_LITEFS_METRICS_URL` is set.
+The row shows replica stream lag, LTX apply lag, transactions behind the
+primary, commits on the primary, the raw LTX size and connected replicas.
 Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`
 and are applied via `mimirtool rules sync`
 (see `deploy/grafana/alerts/README.md` for the workflow).
