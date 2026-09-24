@@ -117,7 +117,7 @@ type WorkerConfig struct {
 	// now directly bounds upstream HTTP traffic, the surface protected
 	// by upstream's API_THROTTLE_REPEATED_REQUEST and our local rate
 	// limiter. Default 20 (PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE)
-	// — at 1 req/sec auth, ≈20s of upstream pressure max per cycle.
+	// — at 30 req/min auth, ≈40s of upstream pressure max per cycle.
 	// 0 disables backfill entirely (drop-on-miss behavior, preserved
 	// as an operator escape-hatch). The same value caps the netixlan
 	// cascade verification at min(10, value) requests per pass, counted

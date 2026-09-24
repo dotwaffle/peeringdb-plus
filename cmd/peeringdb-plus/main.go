@@ -304,9 +304,8 @@ func main() {
 	}
 
 	// Create PeeringDB client.
-	// WithRPS comes BEFORE WithAPIKey so the auth
-	// path can override the unauth RPS to the upstream-fixed 60/min quota
-	// inside NewClient (see internal/peeringdb/client.go option apply order).
+	// With an API key, NewClient ignores the WithRPS value and uses the
+	// authenticated rate (30 req/min, internal/peeringdb/client.go).
 	var clientOpts []peeringdb.ClientOption
 	clientOpts = append(clientOpts, peeringdb.WithRPS(cfg.PeeringDBRPS))
 	if cfg.PeeringDBAPIKey != "" {

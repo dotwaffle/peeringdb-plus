@@ -29,12 +29,13 @@ import (
 // backoff ladders instead of burning more of our rate-limited quota on retries
 // that are guaranteed to 429 again.
 //
-// Background: PeeringDB enforces 1 request per distinct query-string per hour
-// for unauthenticated clients. Their 429 response includes a Retry-After
-// header in seconds (e.g. "Retry-After: 2200" = 36m40s). The sync worker's
-// default retry backoff ladder (30s, 2m, 8m) all fall well inside that window,
-// so every retry within a single sync cycle is doomed — and each one consumes
-// another slot against the hourly quota.
+// Background: PeeringDB limits repeated identical anonymous requests: 1 per
+// hour when the response is larger than 100 KB, 2 per minute otherwise
+// (docs.peeringdb.com, "Work Within PeeringDB's Query Limits"). Their 429
+// response includes a Retry-After header in seconds (e.g. "Retry-After:
+// 2200" = 36m40s). The sync worker's default retry backoff ladder (30s, 2m,
+// 8m) all fall well inside that window, so every retry within a single sync
+// cycle is doomed — and each one consumes another slot against the quota.
 type RateLimitError struct {
 	// URL is the request URL that was rate-limited.
 	URL string
@@ -121,26 +122,22 @@ type ClientOption func(*Client)
 
 // WithAPIKey sets the PeeringDB API key for authenticated requests.
 // When set, requests include the Authorization header and the rate
-// limiter increases to 60 req/min — overriding any WithRPS value.
-// (The authenticated quota is fixed by upstream regardless of any
-// operator preference; making this an override is the simplest way to
-// preserve "auth → 1/sec" without re-deriving it from a float.)
+// limiter uses authRequestInterval (30 req/min), overriding any WithRPS
+// value.
 func WithAPIKey(key string) ClientOption {
 	return func(c *Client) {
 		c.apiKey = key
 	}
 }
 
-// WithRPS sets the unauthenticated sustained requests-per-second cap.
-// Replaces the hardcoded 1/3s with a float knob
+// WithRPS sets the unauthenticated sustained requests-per-second cap,
 // driven by PDBPLUS_PEERINGDB_RPS. Burst stays at 1 — concurrent bursts
 // against PeeringDB are not desirable. Authenticated clients (WithAPIKey)
-// override this back to 60 req/min in NewClient — the upstream auth
-// quota is fixed at 60/min regardless of operator preference.
+// ignore it and use authRequestInterval.
 //
-// Values <= 0 are silently coerced to the default (2 RPS) so a misconfig
-// in main.go cannot accidentally produce a zero-rate limiter that blocks
-// every request forever.
+// Values <= 0 are ignored, so the client keeps defaultRPS: a misconfig
+// in main.go cannot produce a zero-rate limiter that blocks every
+// request forever.
 func WithRPS(rps float64) ClientOption {
 	return func(c *Client) {
 		if rps > 0 {
@@ -149,16 +146,26 @@ func WithRPS(rps float64) ClientOption {
 	}
 }
 
+// PeeringDB documents a limit of 20 queries per minute per IP for
+// anonymous callers and 40 per minute per user or organization for
+// authenticated callers, and asks for at least two seconds between
+// queries (docs.peeringdb.com, "Work Within PeeringDB's Query Limits").
+
 // defaultRPS is the unauthenticated rate-limit default when neither
-// WithRPS nor WithAPIKey is supplied. 2 RPS is conservative against
-// PeeringDB's anonymous ceiling and matches the current operator default
-// (PDBPLUS_PEERINGDB_RPS=2.0).
-const defaultRPS = 2.0
+// WithRPS nor WithAPIKey is supplied: 20 requests per minute, the
+// documented anonymous limit. It matches the PDBPLUS_PEERINGDB_RPS
+// default.
+const defaultRPS = 1.0 / 3
+
+// authRequestInterval is the interval between authenticated requests:
+// 30 requests per minute. That is the documented two-second spacing,
+// below the authenticated limit of 40 per minute.
+const authRequestInterval = 2 * time.Second
 
 // NewClient creates a PeeringDB API client with the given base URL and
-// logger. By default, the client enforces a 2 req/sec rate limit and a
+// logger. By default, the client enforces a 20 req/min rate limit and a
 // 30-second HTTP timeout. Use WithAPIKey to enable authenticated access
-// with a higher 60 req/min rate limit; use WithRPS to override the
+// with a higher 30 req/min rate limit; use WithRPS to override the
 // unauthenticated default.
 //
 // Internal requests bypass otelhttp instrumentation to avoid span bloat
@@ -176,10 +183,10 @@ func NewClient(baseURL string, logger *slog.Logger, opts ...ClientOption) *Clien
 	for _, opt := range opts {
 		opt(c)
 	}
-	// Construct limiter: auth path overrides RPS to the upstream-fixed
-	// 60/min quota; unauth honors WithRPS / defaultRPS.
+	// Construct limiter: the auth path uses authRequestInterval; unauth
+	// honors WithRPS / defaultRPS.
 	if c.apiKey != "" {
-		c.limiter = rate.NewLimiter(rate.Every(1*time.Second), 1) // 60 req/min authenticated
+		c.limiter = rate.NewLimiter(rate.Every(authRequestInterval), 1) // 30 req/min authenticated
 	} else {
 		c.limiter = rate.NewLimiter(rate.Limit(c.rps), 1)
 	}
@@ -577,7 +584,7 @@ func (c *Client) retryDelay(attempt int) time.Duration {
 // takes effect on the very next request — without this, the transport
 // would keep using the limiter captured at NewClient time and tests
 // like TestFetchAllPagination (which set rate.Inf for fast iteration)
-// would still see the default 2 RPS limit applied per request.
+// would still see the default 20 req/min limit applied per request.
 func (c *Client) SetRateLimit(limiter *rate.Limiter) {
 	c.limiter = limiter
 	if rt, ok := c.http.Transport.(*rateLimitedTransport); ok {

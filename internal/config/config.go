@@ -199,16 +199,16 @@ type Config struct {
 
 	// PeeringDBRPS is the unauthenticated sustained requests-per-second
 	// cap to the PeeringDB API. Configured via PDBPLUS_PEERINGDB_RPS
-	// (float, must be >0). Default 2.0. Burst is hardcoded at 1 in the
-	// peeringdb client. Authenticated requests (PDBPLUS_PEERINGDB_API_KEY
-	// set) override this to 60 req/min — the upstream auth quota is fixed
-	// regardless of operator preference.
+	// (float, must be >0). Default 1/3 (20 req/min, the documented
+	// anonymous limit). Burst is hardcoded at 1 in the peeringdb client.
+	// Authenticated requests (PDBPLUS_PEERINGDB_API_KEY set) ignore it
+	// and use 30 req/min (the documented two-second spacing).
 	PeeringDBRPS float64
 
 	// FKBackfillMaxRequestsPerCycle caps the number of underlying HTTP
 	// requests issued by FK-backfill per sync cycle. Configured via
 	// PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE (non-negative integer).
-	// Default 20 — at 1 req/sec authenticated, that's ≈20s of upstream
+	// Default 20 — at 30 req/min authenticated, that's ≈40s of upstream
 	// pressure per cycle, well within budget. Set to 0 to disable
 	// backfill entirely (drop-on-miss behavior).
 	//
@@ -419,7 +419,7 @@ func Load() (*Config, error) {
 	}
 	cfg.RSSWarnBytes = rssWarn
 
-	rps, err := parseFloat64("PDBPLUS_PEERINGDB_RPS", 2.0)
+	rps, err := parseFloat64("PDBPLUS_PEERINGDB_RPS", 1.0/3)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_PEERINGDB_RPS: %w", err)
 	}
