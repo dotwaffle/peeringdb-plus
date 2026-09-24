@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.31.1] - 2026-09-24
+
 ### Fixed
 
 - A facility keeps its `campus_id` when the campus is not in the mirror
@@ -1366,7 +1368,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.1...HEAD
+[1.31.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.0...v1.31.1
 [1.31.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.30.0...v1.31.0
 [1.30.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.29.0...v1.30.0
 [1.29.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.5...v1.29.0
