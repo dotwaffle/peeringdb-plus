@@ -55,7 +55,10 @@ func runCapture(cfg runConfig, logger *slog.Logger) error {
 
 	statePath := cfg.statePath
 	if statePath == "" {
-		statePath = visbaseline.DefaultStatePath
+		statePath, err = visbaseline.DefaultStatePath()
+		if err != nil {
+			return fmt.Errorf("no default checkpoint path, pass -state: %w", err)
+		}
 	}
 
 	vc := visbaseline.Config{

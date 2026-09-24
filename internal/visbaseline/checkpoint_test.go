@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -69,8 +70,8 @@ func TestCheckpointResumeSkipsDoneTuples(t *testing.T) {
 	}
 }
 
-// TestCheckpointAtomicWrite asserts that after Save the .tmp sibling does not
-// exist — os.Rename moved it into place atomically.
+// TestCheckpointAtomicWrite asserts that after Save no temporary sibling
+// exists: os.Rename moved it into place atomically.
 func TestCheckpointAtomicWrite(t *testing.T) {
 	t.Parallel()
 
@@ -83,12 +84,122 @@ func TestCheckpointAtomicWrite(t *testing.T) {
 		t.Fatalf("Save: %v", err)
 	}
 
-	tmpPath := path + ".tmp"
-	if _, err := os.Stat(tmpPath); !errors.Is(err, os.ErrNotExist) {
-		t.Errorf(".tmp file still present after Save (expected rename to remove it): err=%v", err)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
 	}
-	if _, err := os.Stat(path); err != nil {
-		t.Errorf("final state file missing: %v", err)
+	if len(entries) != 1 || entries[0].Name() != "state.json" {
+		var names []string
+		for _, e := range entries {
+			names = append(names, e.Name())
+		}
+		t.Errorf("dir holds %v after Save, want only state.json", names)
+	}
+}
+
+// TestCheckpointSaveIgnoresTmpSymlink puts a symlink at the old fixed
+// temporary path, path+".tmp", that points at another file. Asserts that
+// Save does not write through it, and that the checkpoint is a regular
+// file with mode 0600.
+func TestCheckpointSaveIgnoresTmpSymlink(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	victim := filepath.Join(dir, "victim")
+	if err := os.WriteFile(victim, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(victim, path+".tmp"); err != nil {
+		t.Skipf("symlink: %v", err)
+	}
+
+	s := &visbaseline.State{
+		Tuples: []visbaseline.Tuple{{Target: "beta", Mode: "anon", Type: "net", Page: 1}},
+	}
+	if err := s.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	if got, err := os.ReadFile(victim); err != nil || string(got) != "keep" {
+		t.Errorf("victim = %q (err %v), want %q: Save wrote through the symlink", got, err, "keep")
+	}
+	fi, err := os.Lstat(path)
+	if err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+	if !fi.Mode().IsRegular() || fi.Mode().Perm() != 0o600 {
+		t.Errorf("checkpoint mode = %v, want a regular file with mode 0600", fi.Mode())
+	}
+}
+
+// TestCheckpointSaveCreatesParentDir asserts that Save creates a missing
+// parent dir with mode 0700 and writes the file with mode 0600, so the
+// default checkpoint path works on a machine with no cache dir yet.
+func TestCheckpointSaveCreatesParentDir(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.Join(t.TempDir(), "cache", "peeringdb-plus")
+	path := filepath.Join(dir, "state.json")
+	s := &visbaseline.State{
+		Tuples: []visbaseline.Tuple{{Target: "beta", Mode: "anon", Type: "net", Page: 1}},
+	}
+	if err := s.Save(path); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	for _, c := range []struct {
+		path string
+		want os.FileMode
+	}{
+		{dir, 0o700},
+		{path, 0o600},
+	} {
+		fi, err := os.Stat(c.path)
+		if err != nil {
+			t.Fatalf("Stat(%s): %v", c.path, err)
+		}
+		if got := fi.Mode().Perm(); got != c.want {
+			t.Errorf("mode of %s = %v, want %v", c.path, got, c.want)
+		}
+	}
+}
+
+// skipUnlessXDGCache skips the test when os.UserCacheDir does not read
+// XDG_CACHE_HOME and HOME on this platform.
+func skipUnlessXDGCache(t *testing.T) {
+	t.Helper()
+	switch runtime.GOOS {
+	case "windows", "darwin", "ios", "plan9":
+		t.Skipf("os.UserCacheDir does not use XDG_CACHE_HOME on %s", runtime.GOOS)
+	}
+}
+
+// TestDefaultStatePath asserts that the default checkpoint path is in the
+// user cache dir of the invoking user, not at a fixed path in /tmp.
+func TestDefaultStatePath(t *testing.T) {
+	skipUnlessXDGCache(t)
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+
+	got, err := visbaseline.DefaultStatePath()
+	if err != nil {
+		t.Fatalf("DefaultStatePath: %v", err)
+	}
+	want := filepath.Join(cache, "peeringdb-plus", "pdb-vis-capture-state.json")
+	if got != want {
+		t.Errorf("DefaultStatePath() = %q, want %q", got, want)
+	}
+}
+
+// TestDefaultStatePathNoCacheDir asserts that DefaultStatePath returns an
+// error when the user cache dir is unknown.
+func TestDefaultStatePathNoCacheDir(t *testing.T) {
+	skipUnlessXDGCache(t)
+	t.Setenv("XDG_CACHE_HOME", "")
+	t.Setenv("HOME", "")
+
+	if got, err := visbaseline.DefaultStatePath(); err == nil {
+		t.Errorf("DefaultStatePath() = %q, want error", got)
 	}
 }
 
