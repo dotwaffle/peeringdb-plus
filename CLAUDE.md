@@ -106,7 +106,7 @@ Tombstones (`status='deleted'`) come from upstream's explicit signal, plus one d
 - Runs in every sync tx after the upsert pass + poc scrub, and at primary start (`cascadeNetIxLansAtStartup`: own tx, `running` latch, panic firewall, verification before the tx).
 - `netIxLanUpsertPredicate` keeps a stored tombstone against a live row with the same `updated`. Real undeletes bump `updated`; residual: a same-second delete+revive.
 - Residual: a net that upstream undeleted for a new owner (`undelete_for_new_owner`, `models.py:5542-5580`) before the mirror cascaded it keeps the old owner's hard-deleted netixlans live (only `status='deleted'` nets produce candidates).
-- Log: WARN `cascaded network deletes to netixlans` {count, nets, backlog = class B rows, mode}. Also `verified netixlan cascade candidates`, and counter `pdbplus.sync.type.deleted{type=netixlan}` after commit.
+- Log: WARN `cascaded network deletes to netixlans` {count, nets, backlog = class B rows, mode} (DEBUG at 0) and counter `pdbplus.sync.type.deleted{type=netixlan}`: both from `recordCascadeCommitted`, only after the owning tx commits. A failed commit logs only its failure. Span attrs `pdbplus.sync.netixlans_cascaded*` count the in-tx UPDATE; the span ends before commit. Also `verified netixlan cascade candidates` (Phase A HTTP work, not the commit).
 - `/api/netixlan?since=N` returns the tombstone: `DIVERGENCE_deleted_net_netixlan_tombstone_in_since_window`.
 - Locked by `TestCascadeDeletedNetIxLans*`, `TestVerifyNetIxLanCandidates*`, `TestRIRTransitionNets`, `TestSync_CascadesDeletedNetIxLans`, `TestSync_FullModeKeepsCascadedNetIxLanTombstone`, `TestUpsertNetworkIxLans_TombstoneGate`, `TestStartScheduler_CascadesNetIxLansAtStartup`, `TestStreamByIDs`.
 

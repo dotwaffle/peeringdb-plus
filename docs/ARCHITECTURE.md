@@ -1209,6 +1209,10 @@ none in a normal cycle, and 1 for each class-A miss.
 
 - `WARN "cascaded network deletes to netixlans"` with `count`, `nets`,
   `backlog` and `mode`, at DEBUG when `count=0`.
+  The line comes only after the transaction commits.
+  When the commit fails, the startup run logs only
+  `WARN "startup netixlan cascade failed, the next sync cycle retries it"`,
+  and a sync cycle records a failed sync.
   `backlog` counts the rows that class B marked,
   whose network was deleted before this cycle.
   `mode` is `startup`, `incremental` or `full`.
@@ -1230,6 +1234,8 @@ none in a normal cycle, and 1 for each class-A miss.
   The `sync-cascade-netixlan-deletes` span carries
   `pdbplus.sync.netixlans_cascaded` and
   `pdbplus.sync.netixlans_cascaded_backlog`.
+  They count the rows that the `UPDATE` statements changed in the
+  transaction. The span ends before the commit.
   The sampler drops scheduled cycles, so these spans show for a
   `POST /sync` cycle.
   At startup they are root spans without a URL path,
