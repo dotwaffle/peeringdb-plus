@@ -2224,94 +2224,187 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 	}
 }
 
-// TestRunSyncCycle_DemotionAbort verifies that demotion mid-sync cancels the
-// cycle context, causing SyncWithRetry to return early.
+// TestRunSyncCycle_DemotionAbort verifies that a demotion mid-sync cancels
+// the cycle context: the client drops the in-flight upstream request,
+// SyncWithRetry leaves its backoff without a retry, nothing commits, and
+// the cycle is recorded as failed.
+//
+// Each case holds one upstream request open until the client drops it, so
+// the cycle cannot get past that request by itself. The test demotes the
+// node when the request starts and then waits for the cycle to end. The
+// demotion monitor polls once per second. The deadline only bounds a
+// monitor that never cancels.
 func TestRunSyncCycle_DemotionAbort(t *testing.T) {
 	t.Parallel()
 
-	ps := &primarySwitch{}
-	ps.v.Store(true) // Start as primary.
+	tests := []struct {
+		name string
+		// hold reports whether the handler holds request r open.
+		hold func(r *http.Request) bool
+		// seed stores rows before the cycle, or is nil.
+		seed func(t *testing.T, client *ent.Client)
+		// upstream holds the list rows by type, served on the first page.
+		upstream map[string][]any
+	}{
+		{
+			// The netixlan list fetch, the last type of the fetch pass.
+			// The earlier types, org 1 included, are staged in scratch.
+			name: "type_fetch",
+			hold: func(r *http.Request) bool {
+				return r.URL.Path == "/api/netixlan" && !r.URL.Query().Has("id__in")
+			},
+			upstream: map[string][]any{"org": {makeOrg(1, "Org1", "ok")}},
+		},
+		{
+			// The netixlan cascade verification of 9110, 9111 and 9120,
+			// which runs after the fetch pass. The RIR tombstone of
+			// network 910 plans a class A cascade of 9100. The
+			// verification returns no error, so the cycle must stop when
+			// it opens its transaction: neither org 1 nor the cascade may
+			// commit.
+			name: "cascade_verification",
+			hold: func(r *http.Request) bool {
+				return r.URL.Path == "/api/netixlan" && r.URL.Query().Has("id__in")
+			},
+			seed: seedCascadeRows,
+			upstream: map[string][]any{
+				"org": {makeOrg(1, "Org1", "ok")},
+				"net": {rirTombstoneNet(910, cascadeT(96))},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	// The org fetch never completes by itself: the handler holds it open
-	// until the client abandons the request. Only a cancelled cycle
-	// context can then end the sync.
-	orgStarted := make(chan struct{})
-	signalOrgStarted := stdsync.OnceFunc(func() { close(orgStarted) })
-	release := make(chan struct{})
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "?")
-		objType := parts[0]
+			var held atomic.Int32
+			started := make(chan struct{})
+			signalStarted := stdsync.OnceFunc(func() { close(started) })
+			dropped := make(chan struct{})
+			signalDropped := stdsync.OnceFunc(func() { close(dropped) })
+			release := make(chan struct{})
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if tc.hold(r) {
+					held.Add(1)
+					// Send the headers before holding the body open.
+					// Otherwise the transport's ResponseHeaderTimeout
+					// ends the request by itself.
+					w.WriteHeader(http.StatusOK)
+					if err := http.NewResponseController(w).Flush(); err != nil {
+						t.Errorf("flush held response headers: %v", err)
+					}
+					signalStarted()
+					select {
+					case <-r.Context().Done():
+						signalDropped()
+					case <-release:
+					}
+					return
+				}
+				rows := []any{}
+				if skip := r.URL.Query().Get("skip"); skip == "" || skip == "0" {
+					if typed, ok := tc.upstream[strings.TrimPrefix(r.URL.Path, "/api/")]; ok {
+						rows = typed
+					}
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": rows})
+			}))
+			t.Cleanup(srv.Close)
+			// Cleanups run last-in first-out: release a held handler
+			// before srv.Close waits for it.
+			t.Cleanup(func() { close(release) })
 
-		// Only return data on first page (skip=0).
-		skip := r.URL.Query().Get("skip")
-		if skip != "" && skip != "0" {
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
-			return
-		}
-
-		if objType == "org" {
-			// Send the headers before holding the body open. Otherwise the
-			// transport's ResponseHeaderTimeout ends the fetch by itself,
-			// and the failed sync returns without a demotion.
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			if err := http.NewResponseController(w).Flush(); err != nil {
-				t.Errorf("flush org headers: %v", err)
+			client, db := testutil.SetupClientWithDB(t)
+			if err := InitStatusTable(t.Context(), db); err != nil {
+				t.Fatalf("init status table: %v", err)
 			}
-			signalOrgStarted()
+			if tc.seed != nil {
+				tc.seed(t, client)
+			}
+			wantOrgs := client.Organization.Query().Order(organization.ByID()).IDsX(t.Context())
+			wantNetIxLans := allNetIxLans(t, client)
+
+			ps := &primarySwitch{}
+			ps.v.Store(true)
+			logs := &logBuffer{}
+			w := NewWorker(newFastPDBClient(t, srv.URL), client, db, WorkerConfig{
+				IsPrimary: ps.IsPrimary,
+				// Also turns on the cascade verification.
+				FKBackfillMaxRequestsPerCycle: 20,
+			}, slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug})))
+			// The backoff is longer than the deadline, so the retry ladder
+			// can end only through the cancelled context, and no second
+			// attempt starts.
+			w.SetRetryBackoffs([]time.Duration{time.Hour})
+
+			ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+			defer cancel()
+			done := make(chan struct{})
+			go func() {
+				w.runSyncCycle(ctx, config.SyncModeFull)
+				close(done)
+			}()
+
 			select {
-			case <-r.Context().Done():
-			case <-release:
+			case <-started:
+			case <-done:
+				t.Fatal("sync cycle ended before the held request started")
+			case <-ctx.Done():
+				<-done
+				t.Fatal("held request did not start before the deadline")
 			}
-			return
-		}
+			ps.v.Store(false)
 
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"meta": map[string]any{}, "data": []any{}})
-	}))
-	t.Cleanup(srv.Close)
-	// Cleanups run last-in first-out: unblock a held handler before
-	// srv.Close waits for it.
-	t.Cleanup(func() { close(release) })
+			// The held request cannot complete, so the cycle ends before
+			// ctx only if the demotion monitor cancelled it.
+			<-done
+			if err := ctx.Err(); err != nil {
+				t.Fatalf("sync cycle ended only with its parent context (%v), not on demotion", err)
+			}
+			select {
+			case <-dropped:
+			case <-ctx.Done():
+				t.Fatal("the client did not drop the held request")
+			}
 
-	client, db := testutil.SetupClientWithDB(t)
-	pdbClient := newFastPDBClient(t, srv.URL)
-	if err := InitStatusTable(t.Context(), db); err != nil {
-		t.Fatalf("init status: %v", err)
-	}
+			if n := held.Load(); n != 1 {
+				t.Errorf("held request sent %d times, want 1 (no retry after the demotion)", n)
+			}
+			if got := client.Organization.Query().Order(organization.ByID()).IDsX(t.Context()); !slices.Equal(got, wantOrgs) {
+				t.Errorf("organizations after the aborted cycle = %v, want %v", got, wantOrgs)
+			}
+			if got := allNetIxLans(t, client); !maps.Equal(got, wantNetIxLans) {
+				t.Errorf("netixlans after the aborted cycle:\n got %v\nwant %v", got, wantNetIxLans)
+			}
+			if w.HasCompletedSync() {
+				t.Error("HasCompletedSync is true after the aborted cycle")
+			}
+			if w.Running() {
+				t.Error("running latch still held after the aborted cycle")
+			}
 
-	w := NewWorker(pdbClient, client, db, WorkerConfig{
-		IsPrimary: ps.IsPrimary,
-	}, slog.Default())
-	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+			// One status row, completed as failed: the terminal record
+			// must not be lost to the cancelled cycle context.
+			var statusRows int
+			if err := db.QueryRowContext(t.Context(), "SELECT COUNT(*) FROM sync_status").Scan(&statusRows); err != nil {
+				t.Fatalf("count sync status rows: %v", err)
+			}
+			st, err := GetLastStatus(t.Context(), db)
+			if err != nil {
+				t.Fatalf("read sync status: %v", err)
+			}
+			if statusRows != 1 || st == nil || st.Status != "failed" || !strings.Contains(st.ErrorMessage, context.Canceled.Error()) {
+				t.Errorf("sync status rows = %d, last = %+v, want one failed row with %q", statusRows, st, context.Canceled)
+			}
 
-	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
-	defer cancel()
-
-	// Start runSyncCycle in a goroutine.
-	done := make(chan struct{})
-	go func() {
-		w.runSyncCycle(ctx, config.SyncModeFull)
-		close(done)
-	}()
-
-	// Demote while the org fetch is in flight.
-	select {
-	case <-orgStarted:
-	case <-done:
-		t.Fatal("sync cycle ended before the org fetch started")
-	case <-ctx.Done():
-		<-done
-		t.Fatal("org fetch did not start before the deadline")
-	}
-	ps.v.Store(false)
-
-	// The org fetch cannot complete, so runSyncCycle returns before ctx
-	// ends only if the demotion monitor cancelled the cycle.
-	<-done
-	if err := ctx.Err(); err != nil {
-		t.Errorf("sync cycle ended only with its parent context (%v), not on demotion", err)
+			if recs := logs.records(t, "demoted during sync, aborting cycle"); len(recs) != 1 || recs[0]["level"] != "WARN" {
+				t.Errorf("demotion log = %v, want one WARN record", recs)
+			}
+			if recs := logs.records(t, "sync cycle failed"); len(recs) != 1 || !strings.Contains(fmt.Sprint(recs[0]["error"]), "sync retry cancelled") {
+				t.Errorf("cycle failure log = %v, want one record of the cancelled retry", recs)
+			}
+		})
 	}
 }
 
