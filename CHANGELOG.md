@@ -10,6 +10,20 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- The LiteFS metrics export now works on replicas, and on a primary
+  that has not committed since LiteFS started. LiteFS creates
+  `litefs_db_commit_count` at the first commit on the node, and the
+  export required it. In v1.29.0 every replica logged
+  `WARN "litefs metrics scrape failed"` and exported no
+  `pdbplus.litefs.*` values, because a replica does not commit. The
+  primary exported nothing until its first commit after a restart. The
+  export now requires only `litefs_db_txid`, `litefs_lag_seconds` and
+  `litefs_subscriber_count`. `pdbplus.litefs.commits` is 0 on a node
+  that has not committed since LiteFS started. Until LiteFS creates
+  them, `ltx.size`, `ltx.files` and `ltx.lag` have no value.
+
 ## [1.29.0] - 2026-09-24
 
 ### Added
