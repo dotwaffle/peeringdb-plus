@@ -1118,22 +1118,20 @@ func TestRamp_Verbose_OrgEntity_OmitsAsns(t *testing.T) {
 	t.Parallel()
 
 	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0) // always 200
-	cfg := Config{
-		Base:       rts.srv.URL,
-		HTTPClient: rts.srv.Client(),
-		Timeout:    5 * time.Second,
-		Verbose:    true,
-	}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	cfg, rcfg, _ := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	cfg.Verbose = true
 	rcfg.Entity = "org"
 	rcfg.MaxConcurrency = 2
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{7, 8}, nil, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
 	}
 
 	out := stdout.String()
@@ -1152,32 +1150,47 @@ func TestRamp_Verbose_OrgEntity_OmitsAsns(t *testing.T) {
 }
 
 // TestRamp_NoVerbose_StaysQuiet asserts the verbose log lines are
-// fully gated on cfg.Verbose — markdown still emits, but no [ramp]
-// lines appear.
+// fully gated on cfg.Verbose: markdown still emits, but no [ramp]
+// lines appear. The ramp runs steps with errors, so a verbose run
+// would also log one line for each error.
 func TestRamp_NoVerbose_StaysQuiet(t *testing.T) {
 	t.Parallel()
 
-	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0)
-	cfg := Config{
-		Base:       rts.srv.URL,
-		HTTPClient: rts.srv.Client(),
-		Timeout:    5 * time.Second,
-		Verbose:    false, // explicit
-	}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	// Every request of a step with concurrency >= 2 gets a 500.
+	rts := newRampTestServer(t, 1*time.Millisecond, 0, 2)
+	cfg, rcfg, gate := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	cfg.Verbose = false // explicit
 	rcfg.MaxConcurrency = 2
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
 	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
 
+	// The errors make the C=2 step an inflection. The ramp holds at C=2
+	// and stops there, at --max-concurrency. Each step has samples.
+	wantSteps := []gateStep{
+		{concurrency: 1, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.HoldDuration},
+	}
+	if got := gate.stepLog(); !slices.Equal(got, wantSteps) {
+		t.Errorf("ramp steps = %+v, want %+v", got, wantSteps)
+	}
 	out := stdout.String()
 	if !strings.Contains(out, fmt.Sprintf("### %s", SurfacePdbCompat)) {
 		t.Errorf("markdown still expected without --verbose\n%s", out)
+	}
+	for _, want := range []string{rampRow("baseline", 1), rampRow("inflection", 2), rampRow("hold", 2)} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing row %q\n%s", want, out)
+		}
 	}
 	if strings.Contains(out, "[ramp] ") {
 		t.Errorf("non-verbose run must not emit [ramp] lines\n%s", out)
