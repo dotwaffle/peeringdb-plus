@@ -528,7 +528,7 @@ func TestSync_CascadesDeletedNetIxLans(t *testing.T) {
 		wantCascadeLog(t, logs, "WARN", "incremental", 2, 1, 0)
 	})
 
-	t.Run("batch_union", func(t *testing.T) {
+	t.Run("stored_rir_status_cleared", func(t *testing.T) {
 		t.Parallel()
 		up, w, _, logs := setup(t, 20)
 		rirOK := "ok"
@@ -536,12 +536,11 @@ func TestSync_CascadesDeletedNetIxLans(t *testing.T) {
 
 		syncCascade(t, w, config.SyncModeIncremental)
 
-		// The batch upsert drops rir_status from the INSERT when every row
-		// of the batch has it null, so the stored value stays stale. Class
-		// A reads the scratch JSON and still acts.
-		if got := w.entClient.Network.GetX(t.Context(), 911).RirStatus; got == nil || *got != "ok" {
-			t.Fatalf("stored rir_status of network 911 = %v, want the stale \"ok\"; "+
-				"this subtest no longer covers a stale stored rir_status", got)
+		// The tombstone is the only net row of its batch and carries a
+		// null rir_status. The upsert clears the stored "ok"
+		// (resolveWithRow), and class A cascades the netixlans.
+		if got := w.entClient.Network.GetX(t.Context(), 911).RirStatus; got != nil {
+			t.Fatalf("stored rir_status of network 911 = %q, want nil", *got)
 		}
 		for _, id := range []int{9110, 9111} {
 			if got := readNetIxLan(t, w.entClient, id); got != cascadedRow {

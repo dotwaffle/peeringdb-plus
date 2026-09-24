@@ -6,9 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/schema"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
@@ -19,6 +21,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
@@ -170,6 +173,28 @@ func netIxLanUpsertPredicate(ctx context.Context) *sql.Predicate {
 	})
 }
 
+// resolveWithRow is the ON CONFLICT DO UPDATE action of the entity
+// upserts. It sets every column of t outside the primary key from the
+// excluded row, so a conflicting row ends up the same as a fresh insert.
+//
+// ent's ResolveWithNewValues sets only the columns of the INSERT. A bulk
+// INSERT lists a column when at least one row of the batch sets it, and
+// SetNillable* leaves a nil value unset. So when every row of a batch
+// had a nil value, the stored value stayed: a value that upstream
+// cleared (a removed ipaddr6, a facility that left its campus) was kept,
+// most often in the small batches of incremental cycles. SQLite fills a
+// column that the INSERT does not list with its default in the excluded
+// row, which is NULL for each such column.
+func resolveWithRow(t *schema.Table) sql.ConflictOption {
+	return sql.ResolveWith(func(u *sql.UpdateSet) {
+		for _, c := range t.Columns {
+			if !slices.Contains(t.PrimaryKey, c) {
+				u.SetExcluded(c.Name)
+			}
+		}
+	})
+}
+
 // reconcileAllKey marks a full-mode sync cycle. Its upserts also rewrite
 // conflicting rows whose updated equals the stored value, and rows older
 // than the table's snapshot cutoff (see skipUnchangedPredicate). Carried
@@ -276,7 +301,7 @@ func upsertOrganizations(ctx context.Context, tx *ent.Tx, orgs []peeringdb.Organ
 			return tx.Organization.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(organization.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.OrganizationsTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "organizations")),
 				).
 				Exec(ctx)
@@ -315,7 +340,7 @@ func upsertCampuses(ctx context.Context, tx *ent.Tx, items []peeringdb.Campus) (
 			return tx.Campus.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(campus.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.CampusesTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "campuses")),
 				).
 				Exec(ctx)
@@ -378,7 +403,7 @@ func upsertFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.Facilit
 			return tx.Facility.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(facility.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.FacilitiesTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "facilities")),
 				).
 				Exec(ctx)
@@ -415,7 +440,7 @@ func upsertCarriers(ctx context.Context, tx *ent.Tx, items []peeringdb.Carrier) 
 			return tx.Carrier.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(carrier.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.CarriersTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "carriers")),
 				).
 				Exec(ctx)
@@ -442,7 +467,7 @@ func upsertCarrierFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 			return tx.CarrierFacility.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(carrierfacility.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.CarrierFacilitiesTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "carrier_facilities")),
 				).
 				Exec(ctx)
@@ -502,7 +527,7 @@ func upsertInternetExchanges(ctx context.Context, tx *ent.Tx, items []peeringdb.
 			return tx.InternetExchange.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(internetexchange.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.InternetExchangesTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "internet_exchanges")),
 				).
 				Exec(ctx)
@@ -536,7 +561,7 @@ func upsertIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.IxLan) ([]i
 			return tx.IxLan.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(ixlan.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.IxLansTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_lans")),
 				).
 				Exec(ctx)
@@ -564,7 +589,7 @@ func upsertIxPrefixes(ctx context.Context, tx *ent.Tx, items []peeringdb.IxPrefi
 			return tx.IxPrefix.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(ixprefix.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.IxPrefixesTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_prefixes")),
 				).
 				Exec(ctx)
@@ -593,7 +618,7 @@ func upsertIxFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.IxFac
 			return tx.IxFacility.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(ixfacility.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.IxFacilitiesTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_facilities")),
 				).
 				Exec(ctx)
@@ -660,7 +685,7 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 			return tx.Network.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(network.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.NetworksTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "networks")),
 				).
 				Exec(ctx)
@@ -695,7 +720,7 @@ func upsertPocs(ctx context.Context, tx *ent.Tx, items []peeringdb.Poc) ([]int, 
 			return tx.Poc.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(poc.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.PocsTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "pocs")),
 				).
 				Exec(ctx)
@@ -725,7 +750,7 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 			return tx.NetworkFacility.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(networkfacility.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.NetworkFacilitiesTable),
 					sql.UpdateWhere(skipUnchangedPredicate(ctx, "network_facilities")),
 				).
 				Exec(ctx)
@@ -736,7 +761,7 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 
 // upsertSingleRaw decodes a single raw PeeringDB JSON object into the
 // per-type Go struct and reuses the bulk upsert helper to land it. The
-// existing OnConflict().UpdateNewValues() pattern handles re-insert
+// ON CONFLICT action of the bulk helper (resolveWithRow) handles re-insert
 // idempotently — a backfilled row that arrives during a normal Phase B
 // upsert will be overwritten by the bulk path without conflict.
 //
@@ -821,7 +846,7 @@ func upsertNetworkIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.Netw
 			return tx.NetworkIxLan.CreateBulk(batch...).
 				OnConflict(
 					sql.ConflictColumns(networkixlan.FieldID),
-					sql.ResolveWithNewValues(),
+					resolveWithRow(migrate.NetworkIxLansTable),
 					sql.UpdateWhere(netIxLanUpsertPredicate(ctx)),
 				).
 				Exec(ctx)

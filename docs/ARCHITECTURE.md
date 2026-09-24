@@ -1062,10 +1062,10 @@ An old tombstone that upstream saves again, for example after an
 organization merge, does not qualify,
 because the network is already deleted in the mirror.
 Class B covers those networks.
-The signature comes from the JSON, not from the stored `rir_status` columns.
-When every row of a batch upsert has a `null` `rir_status`,
-ent leaves the column out of the `INSERT`,
-and the stored row keeps its old value.
+The signature comes from the JSON in scratch, not from the stored
+`rir_status` columns.
+Class A runs in Phase A, before the upsert pass,
+so the stored row is still the live network.
 A network tombstone that FK backfill lands in Phase B is not in the scratch
 database, so class B marks its netixlans in the next cycle.
 

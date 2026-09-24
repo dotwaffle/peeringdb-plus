@@ -193,9 +193,9 @@ func TestParity_Unicode(t *testing.T) {
 // non-ASCII matching works the moment a row exists. This mirror instead
 // matches against a sync-populated `_fold` shadow column — a row whose shadow
 // column has not yet been (re)populated by a sync cycle is unreachable by a
-// folded query until the next sync's OnConflict().UpdateNewValues() rewrites
-// it. The two halves below pin both sides of the window: unsynced rows miss,
-// and the sync-shaped fold-column write closes the window.
+// folded query until the next sync's upsert rewrites it. The two halves
+// below pin both sides of the window: unsynced rows miss, and the
+// sync-shaped fold-column write closes the window.
 //
 // upstream: 2.83.0 peeringdb_server/rest.py:597 (query-time unidecode — no window)
 func TestParity_Unicode_FoldWindow_DIVERGENCE(t *testing.T) {
