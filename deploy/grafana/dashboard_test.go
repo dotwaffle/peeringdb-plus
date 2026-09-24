@@ -202,7 +202,7 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"pdbplus_sync_operations_total", "sync operations counter"},
 		{"pdbplus_sync_type_objects_total", "per-type object count (also drives Sync Throughput)"},
 		{"pdbplus_response_heap_delta_bytes", "per-request pdbcompat heap delta histogram"},
-		{"pdbplus_sync_type_deleted_total", "per-type delete count"},
+		{"pdbplus_sync_type_deleted_total", "netixlans that the cascade marks deleted"},
 		{"pdbplus_sync_type_fetch_errors_total", "per-type fetch errors"},
 		{"pdbplus_sync_type_upsert_errors_total", "per-type upsert errors"},
 		{"pdbplus_sync_type_fallback_total", "per-type fallback events"},

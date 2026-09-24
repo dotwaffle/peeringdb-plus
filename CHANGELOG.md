@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.28.2] - 2026-09-24
+
 ### Changed
 
 - A sync forces a garbage collection after a type only when it upserted
@@ -18,6 +20,44 @@ are in the Git history at their tags.
   although an hourly incremental sync upserts only tens to hundreds of
   rows per type. A full sync still forces one after each large type,
   where it keeps the peak heap low.
+
+### Fixed
+
+- Sync no longer serves the connections (`netixlan`) of a deleted network
+  as live. When PeeringDB deletes a network because the RIR reclaimed its
+  ASN, it removes the live connections of the network without a
+  tombstone, so a `?since=` sync does not see the delete. Sync now marks
+  such a connection `deleted` and sets `operational` to `false`. Before it
+  marks a connection of a network that was deleted before the current
+  sync, it asks PeeringDB for the connection, and it keeps the connection
+  live when PeeringDB still serves it. A connection that PeeringDB changed
+  after it deleted the network stays live. When the primary starts, it
+  also marks the connections that it already holds. `updated` does not
+  change.
+- A full sync no longer turns a deleted connection back into a live one
+  when the PeeringDB cache lists an old copy of it with the same
+  `updated` value.
+
+### Upgrade notes
+
+- PeeringDB removes these connections about once a day, and sync marks
+  them without a new `updated` value on every API. A client that syncs
+  netixlan by `updated` (REST or GraphQL `updated` filters, ConnectRPC
+  `updated_since`, `/api/` `?since=`) does not see these changes. The
+  same is true against PeeringDB, which sends no tombstone for them.
+  Re-fetch the full netixlan list once after this upgrade, and then from
+  time to time. `/api/netixlan?since=N` returns these connections with
+  status `deleted` when N is not later than their `updated` value.
+  PeeringDB returns nothing (see `docs/API.md` § Known Divergences).
+- Sync sends up to 10 more requests to PeeringDB in a sync, usually none,
+  to check the connections of deleted networks. The first start after
+  the upgrade sends about 3. `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE`
+  now also caps these requests, and `0` turns the check off. The
+  connections of a network that the RIR reclaim deletes during a sync
+  are still marked in that sync, with no request.
+- The Deletes per Type panel of the overview dashboard is now Cascaded
+  Deletes per Type. It shows the connections that sync marks deleted.
+  Re-import `deploy/grafana/dashboards/pdbplus-overview.json` in Grafana.
 
 ## [1.28.1] - 2026-09-23
 
@@ -1063,7 +1103,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.1...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.2...HEAD
+[1.28.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.1...v1.28.2
 [1.28.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.0...v1.28.1
 [1.28.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.27.0...v1.28.0
 [1.27.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.26.0...v1.27.0

@@ -50,7 +50,7 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 			span.RecordError(err)
 			return FetchMeta{}, fmt.Errorf("fetch %s: %w", objectType, err)
 		}
-		meta, count, decErr := streamDecodeResponse(resp.Body, objectType, handler)
+		meta, count, _, decErr := streamDecodeResponse(resp.Body, objectType, handler)
 		closeErr := resp.Body.Close()
 		if decErr != nil {
 			span.RecordError(decErr)
@@ -83,7 +83,7 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 			return FetchMeta{}, fmt.Errorf("fetch %s page %d: %w", objectType, page, err)
 		}
 
-		pageMeta, pageCount, decErr := streamDecodeResponse(resp.Body, objectType, handler)
+		pageMeta, pageCount, _, decErr := streamDecodeResponse(resp.Body, objectType, handler)
 		_ = resp.Body.Close()
 		if decErr != nil {
 			span.RecordError(decErr)
@@ -113,45 +113,48 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 // invoking handler for each element of the "data" array. Both key orderings
 // ({meta,data} and {data,meta}) are supported via a token-walk state machine.
 // Returns the parsed FetchMeta, the number of elements passed to handler,
-// and any error encountered.
-func streamDecodeResponse(body io.Reader, objectType string, handler func(raw json.RawMessage) error) (FetchMeta, int, error) {
+// whether the body had a "data" array, and any error encountered. A "data"
+// value that is not an array (for example null) is an error.
+func streamDecodeResponse(body io.Reader, objectType string, handler func(raw json.RawMessage) error) (FetchMeta, int, bool, error) {
 	dec := json.NewDecoder(body)
 
 	// Consume opening '{' of the outer object.
 	tok, err := dec.Token()
 	if err != nil {
-		return FetchMeta{}, 0, fmt.Errorf("decode %s: %w", objectType, err)
+		return FetchMeta{}, 0, false, fmt.Errorf("decode %s: %w", objectType, err)
 	}
 	if delim, ok := tok.(json.Delim); !ok || delim != '{' {
-		return FetchMeta{}, 0, fmt.Errorf("decode %s: expected object, got %v", objectType, tok)
+		return FetchMeta{}, 0, false, fmt.Errorf("decode %s: expected object, got %v", objectType, tok)
 	}
 
 	var meta FetchMeta
 	count := 0
+	sawData := false
 
 	for dec.More() {
 		keyTok, err := dec.Token()
 		if err != nil {
-			return FetchMeta{}, count, fmt.Errorf("decode %s key: %w", objectType, err)
+			return FetchMeta{}, count, sawData, fmt.Errorf("decode %s key: %w", objectType, err)
 		}
 		key, ok := keyTok.(string)
 		if !ok {
-			return FetchMeta{}, count, fmt.Errorf("decode %s: expected string key, got %v", objectType, keyTok)
+			return FetchMeta{}, count, sawData, fmt.Errorf("decode %s: expected string key, got %v", objectType, keyTok)
 		}
 
 		switch key {
 		case "data":
 			n, err := streamDataArray(dec, objectType, handler)
 			if err != nil {
-				return FetchMeta{}, count, err
+				return FetchMeta{}, count, sawData, err
 			}
 			count += n
+			sawData = true
 		case "meta":
 			var m struct {
 				Generated float64 `json:"generated"`
 			}
 			if err := dec.Decode(&m); err != nil {
-				return FetchMeta{}, count, fmt.Errorf("decode %s meta: %w", objectType, err)
+				return FetchMeta{}, count, sawData, fmt.Errorf("decode %s meta: %w", objectType, err)
 			}
 			if m.Generated != 0 {
 				meta.Generated = time.Unix(int64(m.Generated), 0)
@@ -162,16 +165,16 @@ func streamDecodeResponse(body io.Reader, objectType string, handler func(raw js
 			// JSON value regardless of whether it is a scalar, array, or object.
 			var skip json.RawMessage
 			if err := dec.Decode(&skip); err != nil {
-				return FetchMeta{}, count, fmt.Errorf("decode %s skip %s: %w", objectType, key, err)
+				return FetchMeta{}, count, sawData, fmt.Errorf("decode %s skip %s: %w", objectType, key, err)
 			}
 		}
 	}
 
 	// Consume closing '}' of the outer object. EOF after the close is fine.
 	if _, err := dec.Token(); err != nil && err != io.EOF {
-		return FetchMeta{}, count, fmt.Errorf("decode %s close: %w", objectType, err)
+		return FetchMeta{}, count, sawData, fmt.Errorf("decode %s close: %w", objectType, err)
 	}
-	return meta, count, nil
+	return meta, count, sawData, nil
 }
 
 // streamDataArray walks a "data": [ ... ] array, invoking handler for each

@@ -42,7 +42,10 @@ var SyncOperations metric.Int64Counter
 // SyncTypeObjects counts objects synced per type.
 var SyncTypeObjects metric.Int64Counter
 
-// SyncTypeDeleted counts objects deleted per type.
+// SyncTypeDeleted counts the rows that sync itself marks deleted, per type.
+// Only the netixlan cascade of a deleted network emits it
+// (internal/sync/netixlan_cascade.go), after its transaction commits.
+// Tombstones that upstream sends are counted in SyncTypeObjects.
 var SyncTypeDeleted metric.Int64Counter
 
 // SyncTypeFetchErrors counts PeeringDB API fetch errors per type.
@@ -130,7 +133,7 @@ func BindInstruments() {
 		metric.WithUnit("{object}"),
 	)
 	SyncTypeDeleted = mustInt64Counter("pdbplus.sync.type.deleted",
-		metric.WithDescription("Number of objects deleted per type"),
+		metric.WithDescription("Rows that sync marked deleted, per type (netixlan cascade)"),
 		metric.WithUnit("{object}"),
 	)
 	SyncTypeFetchErrors = mustInt64Counter("pdbplus.sync.type.fetch_errors",

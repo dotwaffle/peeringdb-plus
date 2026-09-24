@@ -12,8 +12,13 @@
 package sync
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
+
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
@@ -439,5 +444,172 @@ func TestUpsert_BlanksDeletedPocContact(t *testing.T) {
 		if got.Role != "NOC" || got.Visible != "Public" || got.NetID == nil || *got.NetID != 1 {
 			t.Errorf("poc %d: role=%q visible=%q net_id=%v, want NOC, Public, 1", tc.id, got.Role, got.Visible, got.NetID)
 		}
+	}
+}
+
+// TestUpsertNetworkIxLans_TombstoneGate locks netIxLanUpsertPredicate. A
+// stored netixlan tombstone is not rewritten by a live row that carries
+// the same updated, which only a stale full-mode bare list sends. Every
+// other conflict follows skipUnchangedPredicate: a revival with a newer
+// updated, the cutoff repair of a stored row older than the snapshot, a
+// tombstone-to-tombstone rewrite, and a rewrite of a stored live row.
+func TestUpsertNetworkIxLans_TombstoneGate(t *testing.T) {
+	t.Parallel()
+	u := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	cutoff := u.Add(2 * time.Hour)
+
+	for _, tc := range []struct {
+		name         string
+		storedStatus string
+		full         bool
+		status       string
+		updated      time.Time
+		speed        int
+		wantStatus   string
+		wantSpeed    int
+	}{
+		{"full_ok_equal_updated_stays_deleted", "deleted", true, "ok", u, 2, "deleted", 1},
+		{"full_not_operational_equal_updated_stays_deleted", "deleted", true, "not-operational", u, 3, "deleted", 1},
+		{"full_deleted_equal_updated_is_rewritten", "deleted", true, "deleted", u, 5, "deleted", 5},
+		{"full_ok_older_below_cutoff_revives", "deleted", true, "ok", u.Add(-time.Hour), 6, "ok", 6},
+		{"full_ok_newer_revives", "deleted", true, "ok", u.Add(time.Hour), 7, "ok", 7},
+		{"full_live_row_equal_updated_is_rewritten", "ok", true, "ok", u, 8, "ok", 8},
+		{"incremental_ok_equal_updated_stays_deleted", "deleted", false, "ok", u, 9, "deleted", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+			client := testutil.SetupClient(t)
+			seedNetIxLanGateParents(t, client, u)
+			client.NetworkIxLan.Create().
+				SetID(9110).SetNetID(1).SetIxlanID(1).SetIxID(1).
+				SetAsn(64500).SetSpeed(1).SetName("Gate IX").
+				SetOperational(tc.storedStatus == "ok").SetStatus(tc.storedStatus).
+				SetCreated(u).SetUpdated(u).SaveX(ctx)
+
+			upsertCtx := ctx
+			if tc.full {
+				upsertCtx = withReconcileAll(ctx, map[string]time.Time{"network_ix_lans": cutoff})
+			}
+			tx, err := client.Tx(ctx)
+			if err != nil {
+				t.Fatalf("open tx: %v", err)
+			}
+			if _, err := upsertNetworkIxLans(upsertCtx, tx, []peeringdb.NetworkIxLan{{
+				ID: 9110, NetID: 1, IXID: 1, IXLanID: 1, Name: "Gate IX",
+				Speed: tc.speed, ASN: 64500,
+				Created: u, Updated: tc.updated, Status: tc.status,
+			}}); err != nil {
+				_ = tx.Rollback()
+				t.Fatalf("upsert: %v", err)
+			}
+			if err := tx.Commit(); err != nil {
+				t.Fatalf("commit: %v", err)
+			}
+
+			got := client.NetworkIxLan.GetX(ctx, 9110)
+			if got.Status != tc.wantStatus || got.Speed != tc.wantSpeed {
+				t.Errorf("status=%q speed=%d, want status=%q speed=%d",
+					got.Status, got.Speed, tc.wantStatus, tc.wantSpeed)
+			}
+			if tc.wantSpeed == 1 && (got.Operational || !got.Updated.Equal(u)) {
+				t.Errorf("kept row changed: operational=%v updated=%s, want false and %s",
+					got.Operational, got.Updated, u)
+			}
+		})
+	}
+}
+
+// seedNetIxLanGateParents creates org, net, ix and ixlan 1, the parents
+// of the netixlan rows in the upsert gate tests.
+func seedNetIxLanGateParents(t *testing.T, client *ent.Client, at time.Time) {
+	t.Helper()
+	ctx := t.Context()
+	client.Organization.Create().SetID(1).SetName("Org").SetNameFold("org").
+		SetStatus("ok").SetCreated(at).SetUpdated(at).SaveX(ctx)
+	client.Network.Create().SetID(1).SetOrgID(1).SetName("Net").SetNameFold("net").
+		SetAsn(64500).SetStatus("ok").SetCreated(at).SetUpdated(at).SaveX(ctx)
+	client.InternetExchange.Create().SetID(1).SetOrgID(1).SetName("IX").SetNameFold("ix").
+		SetStatus("ok").SetCreated(at).SetUpdated(at).SaveX(ctx)
+	client.IxLan.Create().SetID(1).SetIxID(1).
+		SetStatus("ok").SetCreated(at).SetUpdated(at).SaveX(ctx)
+}
+
+// TestNetIxLanUpsertPredicate_SQL locks the WHERE text of the netixlan
+// upsert in both modes: the skip terms and the tombstone term each sit in
+// their own parentheses, and every column carries the table qualifier.
+// The predicate of the other tables does not change.
+func TestNetIxLanUpsertPredicate_SQL(t *testing.T) {
+	t.Parallel()
+	cutoff := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	where := func(t *testing.T, table string, p *sql.Predicate) string {
+		t.Helper()
+		q, _ := sql.Dialect(dialect.SQLite).Insert(table).
+			Columns("id", "status", "updated").
+			Values(1, "ok", cutoff).
+			OnConflict(
+				sql.ConflictColumns("id"),
+				sql.ResolveWithNewValues(),
+				sql.UpdateWhere(p),
+			).Query()
+		_, text, ok := strings.Cut(q, " WHERE ")
+		if !ok {
+			t.Fatalf("no WHERE in %q", q)
+		}
+		return text
+	}
+	const tombstone = " AND (`network_ix_lans`.`status` <> 'deleted' OR excluded.status = 'deleted'" +
+		" OR excluded.updated <> `network_ix_lans`.`updated` OR `network_ix_lans`.`updated` IS NULL)"
+
+	for _, tc := range []struct {
+		name  string
+		ctx   func(context.Context) context.Context
+		table string
+		pred  func(context.Context) *sql.Predicate
+		want  string
+	}{
+		{
+			name: "netixlan_full",
+			ctx: func(ctx context.Context) context.Context {
+				return withReconcileAll(ctx, map[string]time.Time{"network_ix_lans": cutoff})
+			},
+			table: "network_ix_lans",
+			pred:  netIxLanUpsertPredicate,
+			want: "(excluded.updated >= `network_ix_lans`.`updated` OR `network_ix_lans`.`updated` < ?" +
+				" OR `network_ix_lans`.`updated` IS NULL OR `network_ix_lans`.`updated` <= '1900-01-01')" + tombstone,
+		},
+		{
+			name:  "netixlan_incremental",
+			ctx:   func(ctx context.Context) context.Context { return ctx },
+			table: "network_ix_lans",
+			pred:  netIxLanUpsertPredicate,
+			want: "(excluded.updated > `network_ix_lans`.`updated`" +
+				" OR `network_ix_lans`.`updated` IS NULL OR `network_ix_lans`.`updated` <= '1900-01-01')" + tombstone,
+		},
+		{
+			name: "organizations_full",
+			ctx: func(ctx context.Context) context.Context {
+				return withReconcileAll(ctx, map[string]time.Time{"organizations": cutoff})
+			},
+			table: "organizations",
+			pred:  func(ctx context.Context) *sql.Predicate { return skipUnchangedPredicate(ctx, "organizations") },
+			want: "excluded.updated >= `organizations`.`updated` OR `organizations`.`updated` < ?" +
+				" OR `organizations`.`updated` IS NULL OR `organizations`.`updated` <= '1900-01-01'",
+		},
+		{
+			name:  "organizations_incremental",
+			ctx:   func(ctx context.Context) context.Context { return ctx },
+			table: "organizations",
+			pred:  func(ctx context.Context) *sql.Predicate { return skipUnchangedPredicate(ctx, "organizations") },
+			want: "excluded.updated > `organizations`.`updated`" +
+				" OR `organizations`.`updated` IS NULL OR `organizations`.`updated` <= '1900-01-01'",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := where(t, tc.table, tc.pred(tc.ctx(t.Context()))); got != tc.want {
+				t.Errorf("WHERE\n got: %s\nwant: %s", got, tc.want)
+			}
+		})
 	}
 }

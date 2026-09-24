@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1517,4 +1518,139 @@ func TestClientFetchByIDs_ErrorPropagates(t *testing.T) {
 	if raws != nil {
 		t.Errorf("raws = %v, want nil on error (no partial returns)", raws)
 	}
+}
+
+// TestStreamByIDs locks the single-request id__in stream: one request
+// with since=1, the id list and the extra params; zero rows for an empty
+// data array; an error for a body without a data array, a data value
+// that is not an array, an id count out of range (no request), the 5xx
+// ladder, a 429 and a handler error.
+func TestStreamByIDs(t *testing.T) {
+	t.Parallel()
+
+	type result struct {
+		err     error
+		calls   int32
+		queries []url.Values
+		rows    []string
+	}
+	run := func(t *testing.T, ids []int, respond func(w http.ResponseWriter), handlerErr error) result {
+		t.Helper()
+		var (
+			mu  sync.Mutex
+			res result
+		)
+		var calls atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls.Add(1)
+			mu.Lock()
+			res.queries = append(res.queries, r.URL.Query())
+			mu.Unlock()
+			respond(w)
+		}))
+		t.Cleanup(server.Close)
+		client := NewClient(server.URL, slog.Default())
+		client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+		client.SetRetryBaseDelay(time.Millisecond)
+		res.err = client.StreamByIDs(t.Context(), "netixlan", ids, url.Values{"hide_ix_no_fac": {"0"}},
+			func(raw json.RawMessage) error {
+				res.rows = append(res.rows, string(raw))
+				return handlerErr
+			})
+		res.calls = calls.Load()
+		return res
+	}
+	body := func(s string) func(http.ResponseWriter) {
+		return func(w http.ResponseWriter) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(s))
+		}
+	}
+
+	t.Run("one_request_with_params", func(t *testing.T) {
+		t.Parallel()
+		res := run(t, []int{9110, 9111, 9120}, body(`{"meta":{},"data":[{"id":9111,"status":"ok"}]}`), nil)
+		if res.err != nil {
+			t.Fatalf("StreamByIDs: %v", res.err)
+		}
+		if res.calls != 1 {
+			t.Fatalf("requests = %d, want 1", res.calls)
+		}
+		q := res.queries[0]
+		if q.Get("since") != "1" || q.Get("id__in") != "9110,9111,9120" || q.Get("hide_ix_no_fac") != "0" || len(q) != 3 {
+			t.Errorf("query = %v, want since=1, id__in=9110,9111,9120, hide_ix_no_fac=0", q)
+		}
+		if len(res.rows) != 1 || res.rows[0] != `{"id":9111,"status":"ok"}` {
+			t.Errorf("rows = %v, want the one data element", res.rows)
+		}
+	})
+
+	t.Run("empty_data_array", func(t *testing.T) {
+		t.Parallel()
+		res := run(t, []int{1}, body(`{"meta":{},"data":[]}`), nil)
+		if res.err != nil || len(res.rows) != 0 {
+			t.Errorf("err=%v rows=%v, want nil and none", res.err, res.rows)
+		}
+	})
+
+	for name, b := range map[string]string{"empty_object": `{}`, "meta_only": `{"meta":{}}`} {
+		t.Run("no_data_array_"+name, func(t *testing.T) {
+			t.Parallel()
+			res := run(t, []int{1}, body(b), nil)
+			if !errors.Is(res.err, errNoDataArray) {
+				t.Errorf("err = %v, want errNoDataArray", res.err)
+			}
+		})
+	}
+
+	t.Run("null_data", func(t *testing.T) {
+		t.Parallel()
+		res := run(t, []int{1}, body(`{"data":null}`), nil)
+		if res.err == nil {
+			t.Error("err = nil, want an error for a null data value")
+		}
+	})
+
+	t.Run("id_count_out_of_range", func(t *testing.T) {
+		t.Parallel()
+		tooMany := make([]int, FetchByIDsBatchSize+1)
+		for i := range tooMany {
+			tooMany[i] = i + 1
+		}
+		for _, ids := range [][]int{nil, {}, tooMany} {
+			res := run(t, ids, body(`{"data":[]}`), nil)
+			if res.err == nil || res.calls != 0 {
+				t.Errorf("%d ids: err=%v requests=%d, want an error and no request", len(ids), res.err, res.calls)
+			}
+		}
+	})
+
+	t.Run("5xx_ladder", func(t *testing.T) {
+		t.Parallel()
+		res := run(t, []int{1}, func(w http.ResponseWriter) {
+			http.Error(w, "boom", http.StatusInternalServerError)
+		}, nil)
+		if res.err == nil || res.calls != maxRetries {
+			t.Errorf("err=%v requests=%d, want an error after %d requests", res.err, res.calls, maxRetries)
+		}
+	})
+
+	t.Run("429_without_retry_after", func(t *testing.T) {
+		t.Parallel()
+		res := run(t, []int{1}, func(w http.ResponseWriter) {
+			w.WriteHeader(http.StatusTooManyRequests)
+		}, nil)
+		if _, ok := errors.AsType[*RateLimitError](res.err); !ok {
+			t.Errorf("err = %v, want *RateLimitError", res.err)
+		}
+	})
+
+	t.Run("handler_error_aborts", func(t *testing.T) {
+		t.Parallel()
+		stop := errors.New("stop")
+		res := run(t, []int{1, 2}, body(`{"data":[{"id":1},{"id":2}]}`), stop)
+		if !errors.Is(res.err, stop) || len(res.rows) != 1 {
+			t.Errorf("err=%v rows=%d, want the handler error after 1 row", res.err, len(res.rows))
+		}
+	})
 }
