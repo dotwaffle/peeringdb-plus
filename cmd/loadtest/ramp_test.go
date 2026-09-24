@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -224,47 +225,43 @@ func TestParseSurfaces_RoundTrip(t *testing.T) {
 }
 
 // rampTestServer wraps an httptest server that injects synthetic
-// latency proportional to in-flight concurrency, optionally returning
+// latency that grows with the step concurrency, optionally returning
 // 500 for requests from ramp steps at or above a concurrency threshold.
 // Used to trigger ramp inflection from inside the unit test.
 type rampTestServer struct {
-	srv      *httptest.Server
-	inflight atomic.Int32
-	hits     atomic.Int64
+	srv  *httptest.Server
+	hits atomic.Int64
 	// behaviour knobs
 	baseLatency  time.Duration
-	perReqExtra  time.Duration
+	perStepExtra time.Duration
 	errorCThresh int // when >0, return 500 if the step concurrency >= this value
 }
 
 // newRampTestServer constructs a configurable httptest backend. The
-// error threshold needs a stepGate transport: the server reads the
-// step concurrency from stepConcurrencyHeader.
+// extra latency and the error threshold need a stepGate transport: the
+// server reads the step concurrency from stepConcurrencyHeader.
 func newRampTestServer(tb testing.TB, base time.Duration, extra time.Duration, errorThreshold int) *rampTestServer {
 	tb.Helper()
 	rts := &rampTestServer{
 		baseLatency:  base,
-		perReqExtra:  extra,
+		perStepExtra: extra,
 		errorCThresh: errorThreshold,
 	}
 	rts.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := rts.inflight.Add(1)
-		defer rts.inflight.Add(-1)
 		rts.hits.Add(1)
 
-		// Synthetic latency = base + (concurrency - 1) * perReqExtra.
-		// At C=1 this is just base; at higher C the in-flight count
-		// drives a saturation curve. Sleep is interruptible via ctx.
-		dur := base + time.Duration(int64(c-1)*int64(extra))
+		// The latency and the error decision use the step concurrency,
+		// not the in-flight count: under CPU load the requests of a
+		// step do not always overlap at the server. A request of a step
+		// at concurrency C waits base + (C-1)*extra; without the header
+		// it waits base. Sleep is interruptible via ctx.
+		stepC, _ := strconv.Atoi(r.Header.Get(stepConcurrencyHeader))
+		dur := base + time.Duration(max(stepC-1, 0))*extra
 		select {
 		case <-time.After(dur):
 		case <-r.Context().Done():
 			return
 		}
-		// The error decision uses the step concurrency, not the
-		// in-flight count: under CPU load the requests of a step do not
-		// always overlap at the server.
-		stepC, _ := strconv.Atoi(r.Header.Get(stepConcurrencyHeader))
 		if rts.errorCThresh > 0 && stepC >= rts.errorCThresh {
 			http.Error(w, "synthetic 500", http.StatusInternalServerError)
 			return
@@ -435,39 +432,66 @@ func shortRampConfig(surfaces []Surface) RampConfig {
 	}
 }
 
-// TestRamp_Inflection_TriggersOnP99Absolute drives a single-surface
-// ramp against a server that exceeds 500ms p99 once concurrency >= 4
-// (perReqExtra * 3 = 600ms). Asserts the markdown emits an
-// "inflection" row at C >= 4.
+// TestRamp_Inflection_TriggersOnP99Absolute drives a ramp against a
+// server that makes each request of a step at concurrency C wait
+// 5ms + (C-1)*25ms. Asserts that the markdown records the inflection at
+// C=2, driven by the p99-absolute trigger.
 func TestRamp_Inflection_TriggersOnP99Absolute(t *testing.T) {
 	t.Parallel()
 
-	// base 10ms + 200ms per extra in-flight request → at C=4, latency
-	// observed is ~10 + 3*200 = 610ms which exceeds 500ms p99.
-	rts := newRampTestServer(t, 10*time.Millisecond, 200*time.Millisecond, 0)
-	cfg := Config{Base: rts.srv.URL, HTTPClient: rts.srv.Client(), Timeout: 5 * time.Second}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	const base, extra = 5 * time.Millisecond, 25 * time.Millisecond
+	rts := newRampTestServer(t, base, extra, 0)
+	cfg, rcfg, gate := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	// Each sample of the C=2 step takes at least base+extra = 30ms, so
+	// the p99 of the step passes the 20ms ceiling. The ramp does not
+	// check the baseline step for inflection, so C=2 is the first step
+	// that can trigger. Make the other triggers unreachable, with the
+	// bounds of TestRamp_Inflection_TriggersOnErrorRate. The error rate
+	// cannot pass 100%.
+	rcfg.P99Absolute = 20 * time.Millisecond
+	rcfg.P95Multiplier = 1e4
+	rcfg.ErrorRateThreshold = 1.0
+	rcfg.MaxConcurrency = 4
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
 	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
 
+	// The ramp stops at C=2, then holds and runs one step past it.
+	wantSteps := []gateStep{
+		{concurrency: 1, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.HoldDuration},
+		{concurrency: 4, dur: rcfg.StepDuration},
+	}
+	if got := gate.stepLog(); !slices.Equal(got, wantSteps) {
+		t.Errorf("ramp steps = %+v, want %+v", got, wantSteps)
+	}
 	out := stdout.String()
-	if !strings.Contains(out, "baseline") {
-		t.Errorf("output missing 'baseline' label\n%s", out)
+	if want := rampRow("inflection", 2); !strings.Contains(out, want) {
+		t.Errorf("output missing row %q\n%s", want, out)
 	}
-	if !strings.Contains(out, "inflection") {
-		t.Errorf("output missing 'inflection' label\n%s", out)
+	// The reason text of the p99-absolute trigger, with the p99 of the
+	// step.
+	reason := regexp.MustCompile(fmt.Sprintf(`(?m)^inflection reason: p99 (\S+) > %s absolute$`,
+		regexp.QuoteMeta(rcfg.P99Absolute.String())))
+	m := reason.FindStringSubmatch(out)
+	if m == nil {
+		t.Fatalf("output missing the p99-absolute inflection reason\n%s", out)
 	}
-	if !strings.Contains(out, "inflection reason:") {
-		t.Errorf("output missing inflection reason\n%s", out)
+	p99, err := time.ParseDuration(m[1])
+	if err != nil {
+		t.Fatalf("parse p99 %q in the reason: %v", m[1], err)
 	}
-	if !strings.Contains(out, "p99") {
-		t.Errorf("output should mention p99 in the reason\n%s", out)
+	if p99 < base+extra {
+		t.Errorf("reason p99 = %v, want at least %v (the latency of each C=2 request)", p99, base+extra)
 	}
 }
 
