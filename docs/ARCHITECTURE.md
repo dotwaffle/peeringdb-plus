@@ -933,8 +933,14 @@ When no row matches, the UPDATE writes no page and LiteFS has nothing to ship.
 The first run after an upgrade logs
 `WARN "scrubbed contact fields of deleted pocs"` with the row `count`.
 Later runs log the same message at DEBUG with `count=0`.
+The line comes only after the transaction commits.
+When the commit fails, the startup run logs only
+`WARN "startup poc contact scrub failed, the next sync cycle retries it"`,
+and a sync cycle records a failed sync.
 The `sync-scrub-poc-contacts` span carries the count in the
 `pdbplus.sync.poc_contacts_scrubbed` attribute.
+The attribute counts the rows that the `UPDATE` changed in the transaction.
+The span ends before the commit.
 
 Full-mode fetches capture the tombstone window.
 A bare `/api/<type>` list contains only live rows

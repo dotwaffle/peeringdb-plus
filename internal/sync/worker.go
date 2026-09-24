@@ -824,7 +824,8 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	}
 	// Data repair for poc tombstones that still hold contact data (see
 	// scrubDeletedPocContacts). Same tx, so LiteFS replicates the result.
-	if _, err := scrubDeletedPocContacts(ctx, tx, w.logger); err != nil {
+	scrubbed, err := scrubDeletedPocContacts(ctx, tx)
+	if err != nil {
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
@@ -840,6 +841,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
 		return syncErr
 	}
+	logScrubbedPocContacts(ctx, w.logger, scrubbed)
 	recordCascadeCommitted(ctx, w.logger, cascade.Mode, cascaded)
 
 	w.recordSuccess(ctx, effectiveMode, statusID, start, objectCounts)
