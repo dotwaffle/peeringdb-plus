@@ -15,6 +15,7 @@ import (
 	"context"
 	stdsql "database/sql"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -543,7 +544,9 @@ func seedNetIxLanGateParents(t *testing.T, client *ent.Client, at time.Time) {
 // TestNetIxLanUpsertPredicate_SQL locks the WHERE text of the netixlan
 // upsert in both modes: the skip terms and the tombstone term each sit in
 // their own parentheses, and every column carries the table qualifier.
-// The predicate of the other tables does not change.
+// The predicate of the other tables has no tombstone term. In full mode,
+// the updated terms and the column comparison sit in their own
+// parentheses.
 func TestNetIxLanUpsertPredicate_SQL(t *testing.T) {
 	t.Parallel()
 	cutoff := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
@@ -565,6 +568,17 @@ func TestNetIxLanUpsertPredicate_SQL(t *testing.T) {
 	}
 	const tombstone = " AND (`network_ix_lans`.`status` <> 'deleted' OR excluded.status = 'deleted'" +
 		" OR excluded.updated <> `network_ix_lans`.`updated` OR `network_ix_lans`.`updated` IS NULL)"
+	// differs is the full-mode term that compares each column outside
+	// the primary key.
+	differs := func(tb *schema.Table) string {
+		var terms []string
+		for _, c := range tb.Columns {
+			if !slices.Contains(tb.PrimaryKey, c) {
+				terms = append(terms, fmt.Sprintf("excluded.`%s` IS NOT `%s`.`%s`", c.Name, tb.Name, c.Name))
+			}
+		}
+		return strings.Join(terms, " OR ")
+	}
 
 	for _, tc := range []struct {
 		name  string
@@ -580,8 +594,9 @@ func TestNetIxLanUpsertPredicate_SQL(t *testing.T) {
 			},
 			table: "network_ix_lans",
 			pred:  netIxLanUpsertPredicate,
-			want: "(excluded.updated >= `network_ix_lans`.`updated` OR `network_ix_lans`.`updated` < ?" +
-				" OR `network_ix_lans`.`updated` IS NULL OR `network_ix_lans`.`updated` <= '1900-01-01')" + tombstone,
+			want: "((excluded.updated >= `network_ix_lans`.`updated` OR `network_ix_lans`.`updated` < ?" +
+				" OR `network_ix_lans`.`updated` IS NULL OR `network_ix_lans`.`updated` <= '1900-01-01')" +
+				" AND (" + differs(migrate.NetworkIxLansTable) + "))" + tombstone,
 		},
 		{
 			name:  "netixlan_incremental",
@@ -597,15 +612,20 @@ func TestNetIxLanUpsertPredicate_SQL(t *testing.T) {
 				return withReconcileAll(ctx, map[string]time.Time{"organizations": cutoff})
 			},
 			table: "organizations",
-			pred:  func(ctx context.Context) *sql.Predicate { return skipUnchangedPredicate(ctx, "organizations") },
-			want: "excluded.updated >= `organizations`.`updated` OR `organizations`.`updated` < ?" +
-				" OR `organizations`.`updated` IS NULL OR `organizations`.`updated` <= '1900-01-01'",
+			pred: func(ctx context.Context) *sql.Predicate {
+				return skipUnchangedPredicate(ctx, migrate.OrganizationsTable)
+			},
+			want: "(excluded.updated >= `organizations`.`updated` OR `organizations`.`updated` < ?" +
+				" OR `organizations`.`updated` IS NULL OR `organizations`.`updated` <= '1900-01-01')" +
+				" AND (" + differs(migrate.OrganizationsTable) + ")",
 		},
 		{
 			name:  "organizations_incremental",
 			ctx:   func(ctx context.Context) context.Context { return ctx },
 			table: "organizations",
-			pred:  func(ctx context.Context) *sql.Predicate { return skipUnchangedPredicate(ctx, "organizations") },
+			pred: func(ctx context.Context) *sql.Predicate {
+				return skipUnchangedPredicate(ctx, migrate.OrganizationsTable)
+			},
 			want: "excluded.updated > `organizations`.`updated`" +
 				" OR `organizations`.`updated` IS NULL OR `organizations`.`updated` <= '1900-01-01'",
 		},
@@ -750,7 +770,9 @@ func TestUpsert_NilValueClearsStoredValue(t *testing.T) {
 // TestUpsert_ConflictSetsEveryColumn runs each entity upsert with one row
 // whose optional values are nil, and reads the statement it sends. The
 // ON CONFLICT DO UPDATE must set every column of the table except the
-// primary key, including the columns that the INSERT leaves out.
+// primary key, including the columns that the INSERT leaves out. In full
+// mode, its WHERE must compare each of those columns, so a row that
+// differs only in one column is still written.
 func TestUpsert_ConflictSetsEveryColumn(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -812,25 +834,41 @@ func TestUpsert_ConflictSetsEveryColumn(t *testing.T) {
 	} {
 		t.Run(tc.table.Name, func(t *testing.T) {
 			t.Parallel()
-			stmt := captureUpsert(t, tc.upsert)
+			stmt := captureUpsert(t, func(ctx context.Context, tx *ent.Tx) error {
+				return tc.upsert(withReconcileAll(ctx, nil), tx)
+			})
 			_, set, ok := strings.Cut(stmt, " DO UPDATE SET ")
 			if !ok {
 				t.Fatalf("no DO UPDATE SET in %q", stmt)
 			}
-			set, _, _ = strings.Cut(set, " WHERE ")
+			set, where, _ := strings.Cut(set, " WHERE ")
 			got := map[string]bool{}
 			for assignment := range strings.SplitSeq(set, ", ") {
 				col, _, _ := strings.Cut(assignment, " = ")
 				got[strings.Trim(col, "`")] = true
 			}
+			compared := map[string]bool{}
+			for _, m := range comparedColumn.FindAllStringSubmatch(where, -1) {
+				if m[1] != m[2] {
+					t.Errorf("excluded.%s compared with %s", m[1], m[2])
+				}
+				compared[m[1]] = true
+			}
 			for _, c := range tc.table.Columns {
-				if want := !slices.Contains(tc.table.PrimaryKey, c); got[c.Name] != want {
+				want := !slices.Contains(tc.table.PrimaryKey, c)
+				if got[c.Name] != want {
 					t.Errorf("column %s set=%v, want %v", c.Name, got[c.Name], want)
+				}
+				if compared[c.Name] != want {
+					t.Errorf("column %s compared=%v, want %v", c.Name, compared[c.Name], want)
 				}
 			}
 		})
 	}
 }
+
+// comparedColumn matches one column comparison of the full-mode WHERE.
+var comparedColumn = regexp.MustCompile("excluded\\.`(\\w+)` IS NOT `\\w+`\\.`(\\w+)`")
 
 // captureUpsert runs upsert in a transaction on a new database and
 // returns the INSERT statement it sends. Foreign keys are off, so the
