@@ -1214,7 +1214,7 @@
           "id": 19,
           "type": "timeseries",
           "title": "Fetch / Upsert Errors",
-          "description": "PeeringDB API fetch errors and database upsert errors by type",
+          "description": "Sync fetch-step errors (cursor read, PeeringDB request, scratch write) and database upsert errors by type",
           "gridPos": {
             "h": 6,
             "w": 12,

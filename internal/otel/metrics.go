@@ -52,7 +52,9 @@ var SyncTypeObjects metric.Int64Counter
 // Tombstones that upstream sends are counted in SyncTypeObjects.
 var SyncTypeDeleted metric.Int64Counter
 
-// SyncTypeFetchErrors counts PeeringDB API fetch errors per type.
+// SyncTypeFetchErrors counts the failed sync fetch steps per type. The
+// cause can be a cursor read, a PeeringDB request or a scratch write
+// (internal/sync/worker.go failFetchStep).
 var SyncTypeFetchErrors metric.Int64Counter
 
 // SyncTypeUpsertErrors counts database upsert errors per type.
@@ -149,7 +151,7 @@ func BindInstruments() {
 		metric.WithUnit("{object}"),
 	)
 	SyncTypeFetchErrors = mustInt64Counter("pdbplus.sync.type.fetch_errors",
-		metric.WithDescription("PeeringDB API fetch errors per type"),
+		metric.WithDescription("Sync fetch-step errors per type (cursor read, PeeringDB request, scratch write)"),
 		metric.WithUnit("{error}"),
 	)
 	SyncTypeUpsertErrors = mustInt64Counter("pdbplus.sync.type.upsert_errors",

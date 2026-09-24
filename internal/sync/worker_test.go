@@ -25,6 +25,7 @@ import (
 	"runtime"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -1375,6 +1376,84 @@ func TestSyncRecordsFailureMetrics(t *testing.T) {
 	}
 	if fetchSum.DataPoints[0].Value != 1 {
 		t.Errorf("expected fetch_errors sum = 1, got %d", fetchSum.DataPoints[0].Value)
+	}
+}
+
+// TestSync_CursorReadErrorSendsNoRequest asserts that a cursor read error
+// on net, a late step, fails the cycle before the first upstream request.
+// A persistent local fault must not fetch the earlier types again on each
+// retry. The error goes to the fetch step of net: its span has an error
+// status, and the fetch-error counter of net counts 1.
+// Not parallel: it sets the global MeterProvider and TracerProvider.
+func TestSync_CursorReadErrorSendsNoRequest(t *testing.T) {
+	reader := setupMetricTest(t)
+	rec := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
+
+	f := newFixture(t)
+	w, db := newTestWorker(t, f)
+	ctx := t.Context()
+	at := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+	w.entClient.Organization.Create().SetID(1).SetName("Org").SetNameFold("org").
+		SetStatus("ok").SetCreated(at).SetUpdated(at).SaveX(ctx)
+	w.entClient.Network.Create().SetID(1).SetOrgID(1).SetName("Net").SetNameFold("net").
+		SetAsn(64500).SetStatus("ok").SetCreated(at).SetUpdated(at).SaveX(ctx)
+	// A BLOB sorts after every time value, and the driver cannot scan it
+	// into a time, so the cursor read of networks fails.
+	if _, err := db.ExecContext(ctx, `UPDATE networks SET updated = x'00' WHERE id = 1`); err != nil {
+		t.Fatalf("corrupt net 1 updated: %v", err)
+	}
+
+	err := w.Sync(ctx, config.SyncModeIncremental)
+	if err == nil {
+		t.Fatal("sync succeeded despite a failed cursor read")
+	}
+	if !strings.Contains(err.Error(), "fetch net: get max(updated) for networks") {
+		t.Errorf("sync error = %q, want the net cursor read error", err)
+	}
+	if n := f.callCount.Load(); n != 0 {
+		t.Errorf("upstream requests = %d, want 0", n)
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(ctx, &rm); err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+	fetchErrors := map[string]int64{}
+	if m := findMetric(rm, "pdbplus.sync.type.fetch_errors"); m != nil {
+		sum, ok := m.Data.(metricdata.Sum[int64])
+		if !ok {
+			t.Fatalf("pdbplus.sync.type.fetch_errors is %T, want Sum[int64]", m.Data)
+		}
+		for _, dp := range sum.DataPoints {
+			typ, _ := dp.Attributes.Value("type")
+			fetchErrors[typ.AsString()] = dp.Value
+		}
+	}
+	if want := map[string]int64{"net": 1}; !maps.Equal(fetchErrors, want) {
+		t.Errorf("fetch errors by type = %v, want %v", fetchErrors, want)
+	}
+
+	var fetchSpans []string
+	for _, s := range rec.Ended() {
+		if !strings.HasPrefix(s.Name(), "sync-fetch-") {
+			continue
+		}
+		fetchSpans = append(fetchSpans, s.Name())
+		if s.Name() != "sync-fetch-net" {
+			continue
+		}
+		if s.Status().Code != codes.Error {
+			t.Errorf("sync-fetch-net status = %v, want Error", s.Status().Code)
+		}
+		if !slices.ContainsFunc(s.Events(), func(e sdktrace.Event) bool { return e.Name == "exception" }) {
+			t.Error("sync-fetch-net has no exception event")
+		}
+	}
+	if want := []string{"sync-fetch-net"}; !slices.Equal(fetchSpans, want) {
+		t.Errorf("fetch spans = %v, want %v", fetchSpans, want)
 	}
 }
 
