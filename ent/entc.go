@@ -102,8 +102,8 @@ func main() {
 		entc.Extensions(gqlExt, restExt, protoExt),
 		// sql/upsert: used by internal/sync/upsert.go for bulk UpsertColumns.
 		// sql/execquery: exposes tx.ExecContext on the generated ent.Tx so
-		// the sync worker can run `PRAGMA defer_foreign_keys = ON` on the
-		// SAME connection as the writes (the previous connection-level
+		// the sync worker can run per-tx pragmas (`PRAGMA cache_spill = OFF`)
+		// on the SAME connection as the writes (the previous connection-level
 		// `PRAGMA foreign_keys = OFF` was silently non-functional because
 		// the ent tx pulled a fresh pool connection).
 		//

@@ -187,8 +187,8 @@ type Worker struct {
 	// PeeringDB's public /api/{type}?depth=0 responses occasionally
 	// contain child rows whose parent rows are suppressed server-side
 	// (deleted orgs still referenced by live nets, etc). Without this
-	// registry, the defer_foreign_keys=ON commit check rejects
-	// the entire sync transaction.
+	// registry, the chunk's INSERT fails its foreign key check, and the
+	// sync transaction with it.
 	//
 	// Reset by resetFKState at the start of each Sync run. Single-writer
 	// because Worker.running serialises concurrent Sync calls.
@@ -417,17 +417,18 @@ func (w *Worker) fkRegisterIDs(typeName string, ids []int) {
 }
 
 // fkHasParent reports whether the given ID is registered for the named
-// parent type. An id of zero is treated as a null/unset FK and passes
-// through unchanged — ent's schema nullability is the source of truth
-// for whether zero/null is actually allowed on the column.
+// parent type. An id of zero or less is never present: upstream ids
+// start at 1, and a null or absent FK decodes to 0. A required FK of 0
+// once passed as present, so the row stored a dangling reference to
+// parent 0.
 //
 // State-aware fallback (Phase v1.16+): if the parent set is missing or
 // the ID is not found in memory (common during incremental syncs), we
 // query the local database to check if the record exists there before
 // declaring it an orphan.
 func (w *Worker) fkHasParent(ctx context.Context, tx *ent.Tx, typeName string, id int) bool {
-	if id == 0 {
-		return true
+	if id <= 0 {
+		return false
 	}
 	set, ok := w.fkRegistry[typeName]
 	if ok {
@@ -1042,12 +1043,19 @@ func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
 }
 
 // prepareTxPragmas runs the per-tx PRAGMA setup that the bulk-upsert
-// transaction depends on. It runs:
-//   - PRAGMA defer_foreign_keys = ON    (existing — defers FK constraint
-//     checking to commit so we can upsert in any order)
-//   - PRAGMA cache_spill = OFF          (keeps dirty
-//     pages in the connection's page cache instead of spilling to the WAL
-//     between writes; bounded by cache_size from the DSN)
+// transaction depends on: PRAGMA cache_spill = OFF keeps dirty pages in
+// the connection's page cache instead of spilling them to the WAL
+// between writes (bounded by cache_size from the DSN).
+//
+// Foreign keys are checked per statement, the SQLite default. The step
+// order writes every parent type before its children, fkFilter drops or
+// nulls a row whose parent is missing, and FK backfill lands a parent
+// before the child statement. A violation that gets through fails the
+// statement that caused it, with a precise error. The transaction stays
+// usable: SQLite undoes only that statement. PRAGMA defer_foreign_keys
+// was set here until 2026-09-24. It moved every check to COMMIT, where
+// one dangling row rolled back the whole cycle with no pointer to the
+// row.
 //
 // cache_spill is per-tx (not via the DSN) because it's a connection-scoped
 // pragma whose effect we only want during the bulk-write tx. Setting it via
@@ -1057,9 +1065,6 @@ func commitWithSpan(ctx context.Context, tx *ent.Tx) error {
 // line budget enforced by TestWorkerSync_LineBudget. DO NOT
 // inline this back into Sync.
 func prepareTxPragmas(ctx context.Context, tx *ent.Tx) error {
-	if _, err := tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
-		return fmt.Errorf("defer foreign keys: %w", err)
-	}
 	if _, err := tx.ExecContext(ctx, "PRAGMA cache_spill = OFF"); err != nil {
 		return fmt.Errorf("disable cache_spill: %w", err)
 	}
@@ -1726,8 +1731,10 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 
 // fkCheckParent is the per-row FK validation helper called from the
 // fkFilter closures in dispatchScratchChunk. Returns true if parentID
-// is registered for parentType (or is a zero/null FK), or if the live
-// backfill recovered the parent from upstream.
+// is registered for parentType, or if the live backfill recovered the
+// parent from upstream. Every caller passes a required FK, so a zero or
+// negative parentID (null or absent upstream) drops the row without a
+// backfill attempt.
 // Otherwise records the orphan via Worker.recordOrphan (DEBUG log +
 // per-cycle counter) and returns false so syncIncremental drops the
 // row from the chunk. emitOrphanSummary surfaces the per-cycle
@@ -1740,7 +1747,7 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 	if w.fkHasParent(ctx, tx, parentType, parentID) {
 		return true
 	}
-	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
+	if parentID > 0 && w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return true
 	}
 	w.recordOrphan(ctx, fkOrphanKey{
@@ -1761,7 +1768,7 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 // Process:
 //  1. ptr is nil (FK already null) → no-op.
 //  2. Parent present (cache or DB) → no-op.
-//  3. Backfill enabled and recovers parent → no-op.
+//  3. Id above zero, backfill enabled and recovers parent → no-op.
 //  4. Otherwise: record the orphan with action="null" and zero ptr.
 //
 // Field name is recorded on the orphan counter so dashboards can split
@@ -1775,7 +1782,7 @@ func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field st
 	if w.fkHasParent(ctx, tx, peeringdb.TypeFac, parentID) {
 		return
 	}
-	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
+	if parentID > 0 && w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
 		return
 	}
 	w.recordOrphan(ctx, fkOrphanKey{

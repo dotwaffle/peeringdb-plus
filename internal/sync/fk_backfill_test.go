@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/time/rate"
 
+	"github.com/dotwaffle/peeringdb-plus/ent/facility"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -1251,8 +1252,8 @@ func TestFKBackfill_BatchedFetch_RespectsDeadline(t *testing.T) {
 // grandparent recursion hits the cap and lands nothing, step 7 of
 // fkBackfillBatch must NOT upsert carrier 403 (its required org_id FK
 // would dangle). Before the fix the carrier was upserted unconditionally,
-// and foreign_keys(1) + defer_foreign_keys=ON turned the dangling FK into
-// a SQLITE_CONSTRAINT_FOREIGNKEY (787) at tx.Commit(), rolling back the
+// and the then-deferred FK check turned the dangling FK into a
+// SQLITE_CONSTRAINT_FOREIGNKEY (787) at tx.Commit(), rolling back the
 // whole cycle so Worker.Sync returned an error.
 //
 // The carrierfac's OTHER required FK (fac 999) is satisfied via the bulk
@@ -1353,4 +1354,170 @@ func TestFKBackfill_WithholdsParentWhenGrandparentCapped(t *testing.T) {
 	if got, _ := client.Organization.Query().Count(t.Context()); got != 1 {
 		t.Errorf("orgCount = %d, want 1 (only the bulk fac org; capped grandparent absent)", got)
 	}
+}
+
+// TestFKBackfill_NullsMissingCampusOfBackfilledFac locks the null-on-miss
+// contract of Facility.campus_id on the backfill path. A carrierfac
+// references a facility that only backfill lands, and that facility
+// references a campus that is not in the database. The chunk path nulls
+// such a campus in the fac fkFilter. Before the fix, backfill stored the
+// dangling campus_id and the deferred FK check failed the whole cycle
+// at COMMIT, on every cycle.
+func TestFKBackfill_NullsMissingCampusOfBackfilledFac(t *testing.T) {
+	t.Parallel()
+
+	const (
+		orgID        = 10
+		carrierID    = 20
+		facID        = 30
+		campusID     = 777 // absent locally and upstream
+		carrierFacID = 1
+	)
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"org":        {orgJSON(orgID, "Org", "ok")},
+			"carrier":    {mustJSON(makeMinimalCarrier(carrierID, orgID))},
+			"carrierfac": {mustJSON(makeMinimalCarrierFac(carrierFacID, carrierID, facID))},
+		},
+		map[string]func(int) json.RawMessage{
+			"fac": func(id int) json.RawMessage {
+				f := makeMinimalFac(id, orgID)
+				f["campus_id"] = campusID
+				return mustJSON(f)
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxRequestsPerCycle: 5,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v (a dangling campus_id fails the commit)", err)
+	}
+
+	if _, _, byType := rec.snapshot(); len(byType["fac"]) != 1 || len(byType["campus"]) != 0 {
+		t.Errorf("backfill calls = %v, want one fac call and no campus call", byType)
+	}
+	fac, err := client.Facility.Get(t.Context(), facID)
+	if err != nil {
+		t.Fatalf("backfilled fac %d: %v", facID, err)
+	}
+	if fac.CampusID != nil {
+		t.Errorf("fac.campus_id = %d, want NULL (campus %d is missing)", *fac.CampusID, campusID)
+	}
+	if got, _ := client.CarrierFacility.Query().Count(t.Context()); got != 1 {
+		t.Errorf("carrierfacCount = %d, want 1 (its fac was backfilled)", got)
+	}
+}
+
+// TestSync_NonPositiveFKIDs locks the rule that an FK id of zero or
+// less is missing. Upstream ids start at 1, and a null or absent FK
+// decodes to 0. Before the fix, fkHasParent reported id 0 as present,
+// so the row stored a reference to parent 0 and the deferred FK check
+// failed the whole cycle at COMMIT.
+//
+//   - net 20 has a null required org_id: dropped.
+//   - fac 10 has campus_id 0: kept with a NULL campus.
+//   - carrierfac 40 needs fac 50, which only backfill lands, and fac 50
+//     has a null required org_id: fac 50 is withheld, so the carrierfac
+//     is dropped. The test checks the withhold log, because the
+//     per-statement FK check would also keep fac 50 out, through a
+//     failed upsert.
+func TestSync_NonPositiveFKIDs(t *testing.T) {
+	t.Parallel()
+
+	const orgID = 1
+	nullOrgNet := makeMinimalNet(20, orgID)
+	nullOrgNet["org_id"] = nil
+	zeroCampusFac := makeMinimalFac(10, orgID)
+	zeroCampusFac["campus_id"] = 0
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"org":        {orgJSON(orgID, "Org", "ok")},
+			"fac":        {mustJSON(zeroCampusFac)},
+			"carrier":    {mustJSON(makeMinimalCarrier(30, orgID))},
+			"carrierfac": {mustJSON(makeMinimalCarrierFac(40, 30, 50))},
+			"net":        {mustJSON(nullOrgNet)},
+		},
+		map[string]func(int) json.RawMessage{
+			"fac": func(id int) json.RawMessage {
+				f := makeMinimalFac(id, orgID)
+				f["org_id"] = nil
+				return mustJSON(f)
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	logs := &lockedWriter{}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxRequestsPerCycle: 5,
+	}, slog.New(slog.NewTextHandler(logs, nil)))
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v (a stored FK of 0 fails the commit)", err)
+	}
+	log := logs.String()
+	if !strings.Contains(log, `msg="fk backfill: parent withheld, required grandparent still missing" child_type=carrierfac parent_type=fac parent_id=50`) {
+		t.Errorf("no withhold log for fac 50, log:\n%s", log)
+	}
+	if strings.Contains(log, "fk backfill upsert failed") {
+		t.Errorf("a backfill upsert failed, want fac 50 withheld before its upsert, log:\n%s", log)
+	}
+
+	if _, _, byType := rec.snapshot(); len(byType["org"]) != 0 {
+		t.Errorf("org backfill calls = %d, want 0 (no fetch for id 0)", len(byType["org"]))
+	}
+	if n, _ := client.Network.Query().Count(t.Context()); n != 0 {
+		t.Errorf("netCount = %d, want 0 (null required org_id drops the row)", n)
+	}
+	fac, err := client.Facility.Get(t.Context(), 10)
+	if err != nil {
+		t.Fatalf("fac 10: %v", err)
+	}
+	if fac.CampusID != nil {
+		t.Errorf("fac 10 campus_id = %d, want NULL", *fac.CampusID)
+	}
+	if ok, _ := client.Facility.Query().Where(facility.ID(50)).Exist(t.Context()); ok {
+		t.Error("fac 50 landed, want it withheld (null required org_id)")
+	}
+	if n, _ := client.CarrierFacility.Query().Count(t.Context()); n != 0 {
+		t.Errorf("carrierfacCount = %d, want 0 (its fac was withheld)", n)
+	}
+}
+
+// lockedWriter is a goroutine-safe io.Writer for a test logger.
+type lockedWriter struct {
+	mu  stdsync.Mutex
+	buf strings.Builder
+}
+
+func (w *lockedWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.Write(p)
+}
+
+func (w *lockedWriter) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.String()
 }

@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-09-24
+
 ### Added
 
 - The app can export the LiteFS metrics of each node as
@@ -33,6 +35,14 @@ are in the Git history at their tags.
   logs `WARN "retrying write after sqlite lock error"` with `op`,
   `attempt` and `error`, and adds 1 to the new counter
   `pdbplus.sync.lock_retries{op}`.
+- The sync transaction now checks foreign keys per statement, the SQLite
+  default. Before this release, it set `PRAGMA defer_foreign_keys`, so
+  SQLite checked them at `COMMIT`. One row with a missing parent then
+  rolled back the whole cycle with `FOREIGN KEY constraint failed
+  (787)`, no pointer to the row, and the same failure on the next
+  cycle. Now the statement that writes the row fails, and the error
+  names the type and the batch. FK backfill logs a failed parent upsert as
+  `WARN "fk backfill upsert failed"` and the cycle continues.
 
 ### Fixed
 
@@ -42,6 +52,19 @@ are in the Git history at their tags.
   rolled back, for example on a failed commit, still added its counts,
   and the next cycle added the same rows again. The Sync Throughput
   panel showed these writes, but no row changed.
+- FK backfill now sets the `campus_id` of a backfilled facility to NULL
+  when the campus is not in the database, as the facility sync step
+  does. Before this release, it wrote the missing campus id, and every
+  sync cycle that backfilled that facility failed at `COMMIT`. The
+  nulled field adds an orphan with `action=null` to
+  `pdbplus.sync.type.orphans`.
+- The sync worker now treats a foreign key id of 0 or less as a missing
+  parent. A null or absent upstream foreign key decodes to 0. Before
+  this release, the worker sent no backfill request for it and wrote
+  the row with a reference to parent 0, which failed the cycle at
+  `COMMIT`. Now the worker drops a row whose required parent id is 0,
+  withholds a backfilled parent with such a reference, and sets an
+  optional one to NULL.
 
 ## [1.28.5] - 2026-09-24
 
@@ -1195,7 +1218,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.5...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.29.0...HEAD
+[1.29.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.5...v1.29.0
 [1.28.5]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.4...v1.28.5
 [1.28.4]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.3...v1.28.4
 [1.28.3]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.2...v1.28.3
