@@ -9,6 +9,9 @@ import (
 	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 )
 
@@ -30,6 +33,9 @@ type Status struct {
 // existing databases get it via an idempotent ALTER TABLE probed against
 // pragma_table_info. GetLastSuccessfulFullSyncTime reads the column to
 // implement the PDBPLUS_FULL_SYNC_INTERVAL escape hatch.
+//
+// The table is bounded: each sync cycle deletes old rows (see
+// pruneSyncStatus).
 func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS sync_status (
@@ -134,6 +140,111 @@ func (w *Worker) recordSyncComplete(ctx context.Context, id int64, status Status
 		return struct{}{}, RecordSyncComplete(ctx, w.db, id, status)
 	})
 	return err
+}
+
+// The sync_status retention limits of Worker.Sync (see pruneSyncStatus).
+const (
+	// syncStatusKeepRows is the number of newest sync_status rows that
+	// the prune keeps. That is about 31 days at the 15m sync interval.
+	// When each tick fails and retries 3 times, it is about 7.8 days. A
+	// reader that lists cycles sees at most this number of rows, plus the
+	// two anchor rows.
+	syncStatusKeepRows = 3000
+	// syncStatusPruneBatch is the maximum number of rows that one prune
+	// deletes. When the first prunes delete an old backlog, the batch
+	// keeps each commit small, so each LTX file that LiteFS sends to the
+	// replicas is small too.
+	syncStatusPruneBatch = 1000
+)
+
+// pruneSyncStatus deletes the sync_status rows that are older than the
+// keep newest rows, at most batch rows per call, oldest first. It returns
+// the number of deleted rows. It never deletes the two anchor rows,
+// however old they are:
+//
+//   - The newest success row. GetLastSuccessfulSyncTime and
+//     GetLastSuccessfulStatus read it for the synced latch, the warm
+//     start, the ETag watcher and the freshness displays.
+//   - The newest full success row. GetLastSuccessfulFullSyncTime reads
+//     it for the PDBPLUS_FULL_SYNC_INTERVAL check.
+//
+// The anchor predicates are copies of the WHERE clauses of these
+// readers, so each anchor is the row that its reader returns.
+// Worker.Sync calls the prune after it inserts the running row of the
+// cycle, so the window always holds the newest row (GetLastStatus). It
+// also holds the newest completed row (GetLastCompletedStatus) unless
+// the keep-1 rows before the running row all stayed 'running', which
+// needs keep-1 failed status updates in a row. At most keep + 2 rows
+// remain.
+//
+// The rule counts rows, not days. The DSN sets no _time_format, so
+// modernc.org/sqlite stores a time.Time as the text of t.String(), which
+// the SQLite date functions cannot parse. Never compare sync_status times
+// in SQL. AUTOINCREMENT ids only increase, so the id order is the insert
+// order.
+//
+// The boundary is the id of the keep-th newest row. When the table has
+// fewer rows, the boundary is NULL and no row is deleted. The anchors use
+// IS NOT. When no success row or no full success row exists, that anchor
+// is NULL, and "id IS NOT NULL" is true. So a missing anchor does not
+// stop the prune. With != (or NOT IN with a list of the two anchor
+// values), a NULL anchor gives NULL for every row, and the prune deletes
+// nothing.
+//
+// This SQLite build has no DELETE ... LIMIT, so the LIMIT is in the
+// IN-subquery. SQLite completes the subquery before it deletes a row.
+// SQLite reads a negative LIMIT as no limit and a negative OFFSET as 0,
+// so the function reads keep and batch below 1 as 1.
+func pruneSyncStatus(ctx context.Context, db *sql.DB, keep, batch int) (int64, error) {
+	result, err := db.ExecContext(ctx,
+		`DELETE FROM sync_status
+		 WHERE id IN (
+		   SELECT id FROM sync_status
+		   WHERE id < (SELECT id FROM sync_status ORDER BY id DESC LIMIT 1 OFFSET ?)
+		     AND id IS NOT (SELECT id FROM sync_status
+		                    WHERE status = 'success' ORDER BY id DESC LIMIT 1)
+		     AND id IS NOT (SELECT id FROM sync_status
+		                    WHERE status = 'success' AND mode = 'full' ORDER BY id DESC LIMIT 1)
+		   ORDER BY id
+		   LIMIT ?
+		 )`,
+		max(keep, 1)-1, max(batch, 1),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("prune sync_status: %w", err)
+	}
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("prune sync_status affected count: %w", err)
+	}
+	return deleted, nil
+}
+
+// pruneStatusRows runs pruneSyncStatus on w.db with syncStatusKeepRows
+// and syncStatusPruneBatch. Worker.Sync calls it once per attempt, after
+// the INSERT of the running row. It runs inside the running latch, so no
+// other sync_status write runs at the same time. It uses the cycle
+// context, so the watchdog, a demotion and SIGTERM cancel it.
+//
+// The prune is optional, and the next attempt runs it again, so it makes
+// one attempt and does not retry on a lock error. busy_timeout still
+// limits a SQLITE_BUSY wait. SQLite rolls back a failed autocommit
+// statement, so a failure deletes no row. An error logs a WARN and does
+// not fail the cycle. A successful prune sets the
+// pdbplus.sync.status_rows_pruned attribute on the sync span, and logs
+// the count at DEBUG when it deleted rows.
+func (w *Worker) pruneStatusRows(ctx context.Context) {
+	deleted, err := pruneSyncStatus(ctx, w.db, syncStatusKeepRows, syncStatusPruneBatch)
+	if err != nil {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to prune sync_status rows",
+			slog.Any("error", err))
+		return
+	}
+	trace.SpanFromContext(ctx).SetAttributes(attribute.Int64("pdbplus.sync.status_rows_pruned", deleted))
+	if deleted > 0 {
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "pruned sync_status rows",
+			slog.Int64("deleted", deleted))
+	}
 }
 
 // RecordSyncStart inserts a new running sync status row and returns its ID.

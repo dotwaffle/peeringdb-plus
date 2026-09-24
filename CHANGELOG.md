@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-09-24
+
 ### Added
 
 - The overview dashboard has a LiteFS Replication row: replica stream
@@ -17,6 +19,20 @@ are in the Git history at their tags.
   primary, the raw LTX size and connected replicas. It needs
   `PDBPLUS_LITEFS_METRICS_URL`. Re-import
   `deploy/grafana/dashboards/pdbplus-overview.json` in Grafana.
+
+### Changed
+
+- The primary now keeps only the newest 3000 `sync_status` rows, plus
+  the newest success row and the newest full success row. Before this
+  release, each sync cycle added a row and no row was deleted, so the
+  table grew without limit (4.6 MiB in prod on 2026-09-24). At the 15m
+  interval, 3000 rows is about 31 days. Each sync cycle deletes up to
+  1000 old rows right after it inserts its own row, so the first cycles
+  after the deploy delete the old rows in small commits. A failed delete
+  logs `WARN "failed to prune sync_status rows"`, and the cycle
+  continues. The database file does not shrink: SQLite uses the freed
+  pages again for new rows. To keep the old history, export the
+  database before you deploy.
 
 ### Fixed
 
@@ -1240,7 +1256,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.29.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.30.0...HEAD
+[1.30.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.29.0...v1.30.0
 [1.29.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.5...v1.29.0
 [1.28.5]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.4...v1.28.5
 [1.28.4]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.3...v1.28.4

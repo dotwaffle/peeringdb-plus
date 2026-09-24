@@ -58,7 +58,7 @@ type etagWatcher struct {
 	logger  *slog.Logger
 
 	last     string // version of the last poll that read one; "" after a failure
-	seenSync bool   // a success row was seen; sync_status rows are never deleted
+	seenSync bool   // a success row was seen; the sync_status prune keeps the newest success row
 	failing  bool   // a failure streak is in progress and was logged
 }
 

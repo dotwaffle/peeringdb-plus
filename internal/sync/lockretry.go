@@ -92,7 +92,8 @@ func isLockError(err error) bool {
 // itself. So a retry starts on a clean connection.
 //
 // Use it only for short writes. The sync transaction does not retry: its
-// fetch pass is expensive, and the next cycle does the work again.
+// fetch pass is expensive, and the next cycle does the work again. The
+// sync_status prune does not retry either: the next cycle runs it again.
 func retryOnLock[T any](ctx context.Context, logger *slog.Logger, p LockRetry, op string, fn func(context.Context) (T, error)) (T, error) {
 	attempts := max(p.Attempts, 1)
 	delay := p.BaseDelay

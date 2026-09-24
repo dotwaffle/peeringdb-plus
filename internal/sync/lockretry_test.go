@@ -697,6 +697,96 @@ func TestSync_StatusWritesRetryLockErrors(t *testing.T) {
 	}
 }
 
+// TestSync_PruneFailureDoesNotFailCycle verifies that a failed
+// sync_status prune logs one WARN and does not fail the cycle. The prune
+// makes one attempt, also on a lock error.
+func TestSync_PruneFailureDoesNotFailCycle(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		err     error
+		errText string
+	}{
+		{"lock error", errProtocol(), "locking protocol (15)"},
+		{"other error", sqliteErr(1, "SQL logic error (1)"), "SQL logic error (1)"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			f := newFixture(t)
+			f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+			faults := &execFaults{prefix: "DELETE FROM sync_status", queued: []error{tc.err}}
+			client, db := newFaultDB(t, faults)
+			logger, logs := newLogger()
+			w := NewWorker(newFastPDBClient(t, f.server.URL), client, db, WorkerConfig{}, logger)
+			w.lockRetry = testLockRetry
+
+			if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
+				t.Fatalf("sync error = %v, want nil", err)
+			}
+
+			if got := faults.matchingCalls(); got != 1 {
+				t.Errorf("prune calls = %d, want 1", got)
+			}
+			if got := lastSyncStatus(t, db); got != "success" {
+				t.Errorf("newest sync_status = %q, want %q", got, "success")
+			}
+			recs := logs.records(t, "failed to prune sync_status rows")
+			if len(recs) != 1 || recs[0]["level"] != "WARN" ||
+				!strings.Contains(fmt.Sprint(recs[0]["error"]), tc.errText) {
+				t.Errorf("prune failure log = %v, want one WARN with %q", recs, tc.errText)
+			}
+			if recs := logs.records(t, lockRetryMsg); len(recs) != 0 {
+				t.Errorf("retry records = %v, want none", recs)
+			}
+			if recs := logs.records(t, "failed to record sync completion"); len(recs) != 0 {
+				t.Errorf("completion failure log = %v, want none", recs)
+			}
+		})
+	}
+}
+
+// TestSync_SkipsPruneWhenStartFails verifies that a cycle whose
+// sync_status INSERT failed does not prune. The seed is 3050 failed rows,
+// so a prune would delete 50 of them.
+func TestSync_SkipsPruneWhenStartFails(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	faults := &execFaults{prefix: "INSERT INTO sync_status", queued: []error{sqliteErr(1, "SQL logic error (1)")}}
+	client, db := newFaultDB(t, faults)
+	ctx := t.Context()
+	now := time.Now()
+	if _, err := db.ExecContext(ctx, `
+		WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 3050)
+		INSERT INTO sync_status (started_at, completed_at, status, mode, error_message)
+		SELECT ?, ?, 'failed', 'incremental', 'seeded failure' FROM n`,
+		now.Add(-30*time.Minute), now.Add(-29*time.Minute),
+	); err != nil {
+		t.Fatalf("seed failed rows: %v", err)
+	}
+	logger, logs := newLogger()
+	w := NewWorker(newFastPDBClient(t, f.server.URL), client, db, WorkerConfig{}, logger)
+	w.lockRetry = testLockRetry
+
+	if err := w.Sync(ctx, config.SyncModeFull); err != nil {
+		t.Fatalf("sync error = %v, want nil", err)
+	}
+
+	if got := faults.matchingCalls(); got != 1 {
+		t.Errorf("sync_status INSERT calls = %d, want 1", got)
+	}
+	if recs := logs.records(t, "failed to record sync start"); len(recs) != 1 {
+		t.Errorf("start failure log = %v, want one record", recs)
+	}
+	var count int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sync_status`).Scan(&count); err != nil {
+		t.Fatalf("count sync_status: %v", err)
+	}
+	if count != 3050 {
+		t.Errorf("sync_status rows = %d, want 3050 (no prune)", count)
+	}
+}
+
 // TestReapStaleRunningRows_RetriesLockErrors verifies that the startup
 // reap retries its UPDATE on a lock error, gives up after the attempt
 // limit, does not retry another error, and stops when its context is
