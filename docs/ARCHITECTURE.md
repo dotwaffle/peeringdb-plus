@@ -1566,6 +1566,8 @@ vars.
   - `pdbplus.sync.operations` (counter): attributes `status`
     (`success`, `failed`) and `mode` (`full`, `incremental`).
   - `pdbplus.sync.type.objects` (counter) — per-type object counts.
+    The worker adds the counts of a cycle only after its transaction
+    commits. A cycle that rolls back adds nothing.
   - `pdbplus.sync.type.deleted` (counter): rows that sync marks deleted itself,
     by `type`. Only the netixlan cascade emits it
     (see [Netixlan cascade of deleted networks](#netixlan-cascade-of-deleted-networks)).

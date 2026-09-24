@@ -39,7 +39,9 @@ var ResponseHeapDeltaBytes metric.Int64Histogram
 // SyncOperations counts sync operations by status (success/failed).
 var SyncOperations metric.Int64Counter
 
-// SyncTypeObjects counts objects synced per type.
+// SyncTypeObjects counts objects synced per type. The sync worker adds
+// the counts of a cycle only after its transaction commits
+// (internal/sync/worker.go recordObjectCounts).
 var SyncTypeObjects metric.Int64Counter
 
 // SyncTypeDeleted counts the rows that sync itself marks deleted, per type.

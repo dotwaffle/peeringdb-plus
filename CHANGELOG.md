@@ -10,6 +10,15 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- The `pdbplus.sync.type.objects` counter now counts the objects of a
+  sync cycle only after its transaction commits. Before this release,
+  the worker added each type's count before the commit. A cycle that
+  rolled back, for example on a failed commit, still added its counts,
+  and the next cycle added the same rows again. The Sync Throughput
+  panel showed these writes, but no row changed.
+
 ## [1.28.5] - 2026-09-24
 
 ### Changed

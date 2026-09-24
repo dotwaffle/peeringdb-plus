@@ -1193,6 +1193,70 @@ func TestSyncRecordsMetrics(t *testing.T) {
 	}
 }
 
+// objectsCounterValues returns the pdbplus.sync.type.objects data points
+// by type, or an empty map when no cycle added a count.
+func objectsCounterValues(t *testing.T, reader *sdkmetric.ManualReader) map[string]int64 {
+	t.Helper()
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+	out := map[string]int64{}
+	m := findMetric(rm, "pdbplus.sync.type.objects")
+	if m == nil {
+		return out
+	}
+	sum, ok := m.Data.(metricdata.Sum[int64])
+	if !ok {
+		t.Fatalf("pdbplus.sync.type.objects is %T, want Sum[int64]", m.Data)
+	}
+	for _, dp := range sum.DataPoints {
+		typ, _ := dp.Attributes.Value("type")
+		out[typ.AsString()] = dp.Value
+	}
+	return out
+}
+
+// TestSync_ObjectsCounterAfterCommit verifies that a sync cycle adds its
+// per-type counts to pdbplus.sync.type.objects only after its commit. A
+// cycle whose commit fails adds nothing. The next cycle adds one data
+// point per type, with the counts that its sync_status row records.
+// Not parallel: rebinds the package-level metric instruments.
+func TestSync_ObjectsCounterAfterCommit(t *testing.T) {
+	reader := setupMetricTest(t)
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+	w, db := newTestWorker(t, f)
+	probe := withCommitProbe(w, db)
+
+	probe.fail.Store(true)
+	if err := w.Sync(t.Context(), config.SyncModeFull); !errors.Is(err, errInjectedCommit) {
+		t.Fatalf("sync error = %v, want the injected commit failure", err)
+	}
+	if got := objectsCounterValues(t, reader); len(got) != 0 {
+		t.Errorf("counter after the failed commit = %v, want no data points", got)
+	}
+
+	probe.fail.Store(false)
+	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+	st, err := GetLastStatus(t.Context(), db)
+	if err != nil || st == nil || st.Status != "success" {
+		t.Fatalf("last status = %+v, %v; want a success row", st, err)
+	}
+	want := make(map[string]int64, len(st.ObjectCounts))
+	for typ, n := range st.ObjectCounts {
+		want[typ] = int64(n)
+	}
+	if len(want) != 13 || want["org"] != 1 {
+		t.Fatalf("status object counts = %v, want 13 types with org = 1", st.ObjectCounts)
+	}
+	if got := objectsCounterValues(t, reader); !maps.Equal(got, want) {
+		t.Errorf("counter after the commit = %v, want %v", got, want)
+	}
+}
+
 // TestSyncRecordsFailureMetrics verifies that a failed sync records
 // failure metrics with status=failed and per-type fetch_errors.
 // Not parallel: writes to package-level metric vars.
