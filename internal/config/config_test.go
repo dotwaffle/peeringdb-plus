@@ -23,6 +23,9 @@ func TestLoad_OTelSampleRate(t *testing.T) {
 		{name: "negative is invalid", envVal: "-0.1", wantErr: true},
 		{name: "above 1.0 is invalid", envVal: "2.0", wantErr: true},
 		{name: "non-numeric is invalid", envVal: "abc", wantErr: true},
+		{name: "NaN is invalid", envVal: "NaN", wantErr: true},
+		{name: "Inf is invalid", envVal: "Inf", wantErr: true},
+		{name: "-Inf is invalid", envVal: "-Inf", wantErr: true},
 	}
 
 	for _, tt := range tests {
@@ -55,7 +58,10 @@ func TestLoad_OTelSampleRate(t *testing.T) {
 // trace ratio of scheduled sync cycles. The default traces every cycle, and
 // the range error names the variable.
 func TestLoad_OTelSyncSampleRate(t *testing.T) {
-	const rangeMsg = "PDBPLUS_OTEL_SYNC_SAMPLE_RATE must be between 0.0 and 1.0"
+	const (
+		rangeMsg  = "PDBPLUS_OTEL_SYNC_SAMPLE_RATE must be between 0.0 and 1.0"
+		finiteMsg = "for PDBPLUS_OTEL_SYNC_SAMPLE_RATE: must be a finite number"
+	)
 	tests := []struct {
 		name    string
 		envVal  string
@@ -70,6 +76,8 @@ func TestLoad_OTelSyncSampleRate(t *testing.T) {
 		{name: "negative is invalid", envVal: "-0.1", wantErr: true, wantMsg: rangeMsg},
 		{name: "above 1.0 is invalid", envVal: "1.5", wantErr: true, wantMsg: rangeMsg},
 		{name: "non-numeric is invalid", envVal: "all", wantErr: true, wantMsg: "parsing PDBPLUS_OTEL_SYNC_SAMPLE_RATE"},
+		{name: "NaN is invalid", envVal: "NaN", wantErr: true, wantMsg: finiteMsg},
+		{name: "Inf is invalid", envVal: "+Inf", wantErr: true, wantMsg: finiteMsg},
 	}
 
 	for _, tt := range tests {
@@ -95,6 +103,57 @@ func TestLoad_OTelSyncSampleRate(t *testing.T) {
 			}
 			if cfg.OTelSyncSampleRate != tt.want {
 				t.Errorf("OTelSyncSampleRate = %v, want %v", cfg.OTelSyncSampleRate, tt.want)
+			}
+		})
+	}
+}
+
+// TestLoad_PeeringDBRPS covers PDBPLUS_PEERINGDB_RPS. A NaN or infinite
+// value must stop startup: NaN passes the "> 0" check in validate, and
+// +Inf passes it too.
+func TestLoad_PeeringDBRPS(t *testing.T) {
+	const (
+		rangeMsg  = "PDBPLUS_PEERINGDB_RPS must be greater than 0"
+		finiteMsg = "for PDBPLUS_PEERINGDB_RPS: must be a finite number"
+	)
+	tests := []struct {
+		name    string
+		envVal  string
+		want    float64
+		wantErr bool
+		wantMsg string
+	}{
+		{name: "default is 2.0", envVal: "", want: 2.0},
+		{name: "explicit 0.5", envVal: "0.5", want: 0.5},
+		{name: "zero is invalid", envVal: "0", wantErr: true, wantMsg: rangeMsg},
+		{name: "negative is invalid", envVal: "-1", wantErr: true, wantMsg: rangeMsg},
+		{name: "NaN is invalid", envVal: "NaN", wantErr: true, wantMsg: finiteMsg},
+		{name: "Inf is invalid", envVal: "Inf", wantErr: true, wantMsg: finiteMsg},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Cannot use t.Parallel with t.Setenv per Go 1.26 testing rules.
+			if tt.envVal != "" {
+				t.Setenv("PDBPLUS_PEERINGDB_RPS", tt.envVal)
+			}
+			t.Setenv("PDBPLUS_DB_PATH", t.TempDir()+"/test.db")
+
+			cfg, err := Load()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for PDBPLUS_PEERINGDB_RPS=%q, got nil", tt.envVal)
+				}
+				if !strings.Contains(err.Error(), tt.wantMsg) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.PeeringDBRPS != tt.want {
+				t.Errorf("PeeringDBRPS = %v, want %v", cfg.PeeringDBRPS, tt.want)
 			}
 		})
 	}

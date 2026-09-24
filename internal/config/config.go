@@ -623,6 +623,9 @@ func parseDuration(key string, defaultVal time.Duration) (time.Duration, error) 
 	return d, nil
 }
 
+// parseFloat64 rejects NaN and infinite values. strconv.ParseFloat accepts
+// "NaN" and "Inf", and a NaN passes each range check in validate because
+// every comparison with NaN is false.
 func parseFloat64(key string, defaultVal float64) (float64, error) {
 	v := os.Getenv(key)
 	if v == "" {
@@ -631,6 +634,9 @@ func parseFloat64(key string, defaultVal float64) (float64, error) {
 	f, err := strconv.ParseFloat(v, 64)
 	if err != nil {
 		return 0, fmt.Errorf("invalid float %q for %s: %w", v, key, err)
+	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, fmt.Errorf("invalid float %q for %s: must be a finite number", v, key)
 	}
 	return f, nil
 }

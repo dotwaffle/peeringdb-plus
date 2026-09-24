@@ -37,6 +37,14 @@ are in the Git history at their tags.
   spans after the limit were lost, among them the upsert step spans of
   net, poc, netfac and netixlan. API request traces keep their DB spans.
 
+### Fixed
+
+- `PDBPLUS_OTEL_SAMPLE_RATE` and `PDBPLUS_PEERINGDB_RPS` reject `NaN`
+  and infinite values at startup. Before this release, `NaN` passed the
+  range check of both variables, and `Inf` passed the
+  `PDBPLUS_PEERINGDB_RPS` check. The new `PDBPLUS_OTEL_SYNC_SAMPLE_RATE`
+  has the same rule.
+
 ## [1.30.0] - 2026-09-24
 
 ### Added
