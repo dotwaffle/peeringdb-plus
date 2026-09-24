@@ -35,10 +35,21 @@ type Config struct {
 	Pages int
 
 	// OutDir is the REPO-SIDE output root for anon fixtures. Auth fixtures
-	// are written EXCLUSIVELY under a private /tmp directory created per
-	// run — NEVER under OutDir. This invariant is enforced by the capture
-	// loop and asserted by TestCaptureWritesAuthBytesToTmpOnly.
+	// are written EXCLUSIVELY under the raw auth dir (see RawAuthDir),
+	// NEVER under OutDir. New rejects a RawAuthDir that overlaps OutDir, and
+	// TestCaptureWritesAuthBytesToRawDirOnly asserts the invariant.
 	OutDir string
+
+	// RawAuthDir is the staging dir for the unredacted auth pages. Run
+	// writes them to <RawAuthDir>/auth/api/{type}/page-{N}.json, and the
+	// redact step reads them from there. Run never removes this dir.
+	// Use a dir outside the repository. Use the same dir when you
+	// resume a capture, so that all auth pages stay in one dir.
+	//
+	// When empty, Run makes a new private dir (pdb-vis-capture-*) in
+	// os.TempDir when it writes the first auth page. Tests set a
+	// t.TempDir() so that no dir stays behind after the test.
+	RawAuthDir string
 
 	// APIKey is the PeeringDB API key. Required when Modes contains "auth".
 	// Must never be logged (secret-leak mitigation); the Capture implementation uses the
