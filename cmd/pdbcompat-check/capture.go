@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -99,10 +101,21 @@ func runCapture(cfg runConfig, logger *slog.Logger) error {
 		slog.String("anon_out", outDir),
 		slog.String("raw_auth_dir", rawAuthDir),
 	)
-	fmt.Fprintf(os.Stdout,
-		"\nCapture complete.\nAnon fixtures: %s\nRaw auth bytes (private, DO NOT COMMIT): %s\nNext: run redaction pass + diff (plan 03) then commit.\n",
-		outDir, rawAuthDir)
+	writeCaptureSummary(os.Stdout, outDir, rawAuthDir)
 	return nil
+}
+
+// writeCaptureSummary prints where a capture run wrote its pages and the
+// next step. Capture keeps the raw auth dir because the redact step reads
+// it, so the summary tells the operator to delete it after that step.
+func writeCaptureSummary(w io.Writer, outDir, rawAuthDir string) {
+	fmt.Fprintf(w, "\nCapture complete.\nAnon fixtures: %s\n", outDir)
+	if rawAuthDir == "" {
+		return
+	}
+	fmt.Fprintf(w,
+		"Raw auth bytes (private, DO NOT COMMIT): %s\nNext: pdbcompat-check redact -in=%s -out=%s\nThe raw auth dir holds unredacted contact data. Delete it after the redact step.\n",
+		rawAuthDir, filepath.Join(rawAuthDir, "auth"), filepath.Join(outDir, "auth"))
 }
 
 // targetBaseURL maps the -target flag value to the PeeringDB base URL.

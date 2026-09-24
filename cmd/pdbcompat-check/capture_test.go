@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 )
 
@@ -46,6 +47,51 @@ func TestRunCaptureUnknownMode(t *testing.T) {
 	err := runCapture(cfg, discardLogger())
 	if err == nil {
 		t.Fatal("expected error for unknown mode, got nil")
+	}
+}
+
+func TestWriteCaptureSummary(t *testing.T) {
+	t.Parallel()
+	const outDir = "testdata/visibility-baseline/beta"
+	cases := []struct {
+		name       string
+		rawAuthDir string
+		want       []string
+		notWant    []string
+	}{
+		{
+			name:       "auth pages staged",
+			rawAuthDir: "/tmp/pdb-vis-capture-1",
+			want: []string{
+				"Anon fixtures: " + outDir + "\n",
+				"Raw auth bytes (private, DO NOT COMMIT): /tmp/pdb-vis-capture-1\n",
+				"Next: pdbcompat-check redact -in=/tmp/pdb-vis-capture-1/auth -out=" + outDir + "/auth\n",
+				"Delete it after the redact step.\n",
+			},
+		},
+		{
+			name:    "anon only",
+			want:    []string{"Anon fixtures: " + outDir + "\n"},
+			notWant: []string{"Raw auth", "redact"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var b strings.Builder
+			writeCaptureSummary(&b, outDir, tc.rawAuthDir)
+			got := b.String()
+			for _, s := range tc.want {
+				if !strings.Contains(got, s) {
+					t.Errorf("summary does not contain %q:\n%s", s, got)
+				}
+			}
+			for _, s := range tc.notWant {
+				if strings.Contains(got, s) {
+					t.Errorf("summary contains %q:\n%s", s, got)
+				}
+			}
+		})
 	}
 }
 

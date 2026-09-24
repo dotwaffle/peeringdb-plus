@@ -101,11 +101,12 @@ func TestCaptureWritesRawAnonBytes(t *testing.T) {
 	}
 }
 
-func TestCaptureWritesAuthBytesToTmpOnly(t *testing.T) {
+func TestCaptureWritesAuthBytesToRawDirOnly(t *testing.T) {
 	t.Parallel()
 
 	srv, _ := captureTestServer(t)
 	outDir := t.TempDir()
+	wantRawDir := t.TempDir()
 	statePath := filepath.Join(t.TempDir(), "state.json")
 
 	cfg := visbaseline.Config{
@@ -115,6 +116,7 @@ func TestCaptureWritesAuthBytesToTmpOnly(t *testing.T) {
 		Types:          []string{"poc"},
 		Pages:          1,
 		OutDir:         outDir,
+		RawAuthDir:     wantRawDir,
 		APIKey:         "test-key",
 		StatePath:      statePath,
 		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -129,9 +131,8 @@ func TestCaptureWritesAuthBytesToTmpOnly(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	// Assert the returned rawAuthDir is under /tmp or os.TempDir().
-	if !strings.Contains(rawAuthDir, "pdb-vis-capture-") {
-		t.Errorf("rawAuthDir = %q, want path containing pdb-vis-capture-", rawAuthDir)
+	if rawAuthDir != wantRawDir {
+		t.Errorf("rawAuthDir = %q, want the configured %q", rawAuthDir, wantRawDir)
 	}
 
 	// Walk the repo-side outDir and assert NO file lives under an auth/ subtree.
@@ -152,6 +153,211 @@ func TestCaptureWritesAuthBytesToTmpOnly(t *testing.T) {
 	authPath := filepath.Join(rawAuthDir, "auth", "api", "poc", "page-1.json")
 	if _, err := os.Stat(authPath); err != nil {
 		t.Errorf("expected auth bytes at %s: %v", authPath, err)
+	}
+}
+
+// TestCaptureDefaultRawAuthDir runs auth mode without a RawAuthDir. Run
+// must make one private pdb-vis-capture-* dir in os.TempDir. The test
+// sets TMPDIR to its own dir, so that the dir does not stay behind.
+// t.Setenv needs a test that is not parallel.
+func TestCaptureDefaultRawAuthDir(t *testing.T) {
+	srv, _ := captureTestServer(t)
+	outDir := t.TempDir()
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	tmpRoot := t.TempDir()
+	t.Setenv("TMPDIR", tmpRoot)
+
+	cfg := visbaseline.Config{
+		Target:         "beta",
+		BaseURL:        srv.URL,
+		Modes:          []string{"auth"},
+		Types:          []string{"poc"},
+		Pages:          1,
+		OutDir:         outDir,
+		APIKey:         "test-key",
+		StatePath:      statePath,
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ClientOverride: newFastClient(t, srv.URL, peeringdb.WithAPIKey("test-key")),
+	}
+	capt, err := visbaseline.New(cfg)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	rawAuthDir, err := capt.Run(t.Context())
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if filepath.Dir(rawAuthDir) != tmpRoot || !strings.HasPrefix(filepath.Base(rawAuthDir), "pdb-vis-capture-") {
+		t.Errorf("rawAuthDir = %q, want %s/pdb-vis-capture-*", rawAuthDir, tmpRoot)
+	}
+	info, err := os.Stat(rawAuthDir)
+	if err != nil {
+		t.Fatalf("stat rawAuthDir: %v", err)
+	}
+	if perm := info.Mode().Perm(); perm != 0o700 {
+		t.Errorf("rawAuthDir mode = %o, want 700", perm)
+	}
+	authPath := filepath.Join(rawAuthDir, "auth", "api", "poc", "page-1.json")
+	if _, err := os.Stat(authPath); err != nil {
+		t.Errorf("expected auth bytes at %s: %v", authPath, err)
+	}
+	entries, err := os.ReadDir(tmpRoot)
+	if err != nil {
+		t.Fatalf("read TMPDIR: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("TMPDIR has %d entries, want 1 raw auth dir", len(entries))
+	}
+}
+
+// TestCaptureAnonOnlyMakesNoRawAuthDir runs anon mode without a
+// RawAuthDir. Run must not make a dir in os.TempDir, and must return "".
+// t.Setenv needs a test that is not parallel.
+func TestCaptureAnonOnlyMakesNoRawAuthDir(t *testing.T) {
+	srv, _ := captureTestServer(t)
+	outDir := t.TempDir()
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	tmpRoot := t.TempDir()
+	t.Setenv("TMPDIR", tmpRoot)
+
+	cfg := visbaseline.Config{
+		Target:         "beta",
+		BaseURL:        srv.URL,
+		Modes:          []string{"anon"},
+		Types:          []string{"poc"},
+		Pages:          1,
+		OutDir:         outDir,
+		StatePath:      statePath,
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ClientOverride: newFastClient(t, srv.URL),
+	}
+	capt, err := visbaseline.New(cfg)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	rawAuthDir, err := capt.Run(t.Context())
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if rawAuthDir != "" {
+		t.Errorf("rawAuthDir = %q, want empty for an anon-only run", rawAuthDir)
+	}
+	entries, err := os.ReadDir(tmpRoot)
+	if err != nil {
+		t.Fatalf("read TMPDIR: %v", err)
+	}
+	for _, e := range entries {
+		t.Errorf("anon-only run left %s in TMPDIR", e.Name())
+	}
+}
+
+// TestCaptureRawAuthDirOutsideOutDir asserts that New rejects a
+// RawAuthDir that overlaps OutDir in either direction. Raw auth pages
+// hold unredacted contact data, and OutDir goes into the repository.
+func TestCaptureRawAuthDirOutsideOutDir(t *testing.T) {
+	t.Parallel()
+
+	base := t.TempDir()
+	outDir := filepath.Join(base, "out")
+	cases := []struct {
+		name    string
+		rawDir  string
+		outDir  string
+		wantErr bool
+	}{
+		{"same as out dir", outDir, outDir, true},
+		{"same as out dir before clean", outDir + "/anon/..", outDir, true},
+		{"in out dir", filepath.Join(outDir, ".raw-auth"), outDir, true},
+		{"parent of out dir", base, outDir, true},
+		{"out dir is raw auth subdir", base, filepath.Join(base, "auth"), true},
+		{"sibling of out dir", filepath.Join(base, "raw"), outDir, false},
+		{"sibling with out dir as name prefix", outDir + "-raw", outDir, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := visbaseline.Config{
+				Target:     "beta",
+				BaseURL:    "http://example.invalid",
+				Modes:      []string{"anon"},
+				Types:      []string{"poc"},
+				OutDir:     tc.outDir,
+				RawAuthDir: tc.rawDir,
+				Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+			}
+			_, err := visbaseline.New(cfg)
+			if gotErr := err != nil; gotErr != tc.wantErr {
+				t.Errorf("New(RawAuthDir=%q, OutDir=%q) err = %v, want error %t", tc.rawDir, tc.outDir, err, tc.wantErr)
+			}
+		})
+	}
+}
+
+// TestCaptureRestartRawAuthDirWarning asserts the WARN line about the
+// raw auth dir of the earlier run after a restart answer. The State does
+// not record that dir, so only a run without a RawAuthDir loses it.
+func TestCaptureRestartRawAuthDirWarning(t *testing.T) {
+	t.Parallel()
+
+	const restartWarn = "prior pdb-vis-capture-* dir"
+	cases := []struct {
+		name      string
+		setRawDir bool
+		wantWarn  bool
+	}{
+		{"restart without raw dir", false, true},
+		{"restart with raw dir", true, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Anon mode keeps the run from writing auth pages, so the
+			// run makes no pdb-vis-capture-* dir.
+			srv, _ := captureTestServer(t)
+			statePath := filepath.Join(t.TempDir(), "state.json")
+			seeded := &visbaseline.State{
+				Tuples: []visbaseline.Tuple{
+					{Target: "beta", Mode: "anon", Type: "poc", Page: 1, Done: true},
+				},
+			}
+			if err := seeded.Save(statePath); err != nil {
+				t.Fatalf("seed Save: %v", err)
+			}
+
+			var buf bytes.Buffer
+			var mu sync.Mutex
+			cfg := visbaseline.Config{
+				Target:         "beta",
+				BaseURL:        srv.URL,
+				Modes:          []string{"anon"},
+				Types:          []string{"poc"},
+				Pages:          1,
+				OutDir:         t.TempDir(),
+				APIKey:         "test-key",
+				StatePath:      statePath,
+				Logger:         slog.New(slog.NewTextHandler(&syncWriter{mu: &mu, w: &buf}, nil)),
+				ClientOverride: newFastClient(t, srv.URL),
+				PromptReader:   strings.NewReader("restart\n"),
+				PromptWriter:   io.Discard,
+			}
+			if tc.setRawDir {
+				cfg.RawAuthDir = t.TempDir()
+			}
+			capt, err := visbaseline.New(cfg)
+			if err != nil {
+				t.Fatalf("New: %v", err)
+			}
+			if _, err := capt.Run(t.Context()); err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if got := strings.Contains(buf.String(), restartWarn); got != tc.wantWarn {
+				t.Errorf("log has %q = %t, want %t; log:\n%s", restartWarn, got, tc.wantWarn, buf.String())
+			}
+		})
 	}
 }
 
@@ -382,6 +588,7 @@ func TestCaptureDoesNotLogAPIKey(t *testing.T) {
 		Types:          []string{"poc"},
 		Pages:          1,
 		OutDir:         outDir,
+		RawAuthDir:     t.TempDir(),
 		APIKey:         "SECRET_KEY_DO_NOT_LEAK",
 		StatePath:      statePath,
 		Logger:         logger,

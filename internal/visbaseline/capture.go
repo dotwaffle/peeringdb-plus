@@ -75,10 +75,16 @@ func New(cfg Config) (*Capture, error) {
 	if cfg.StatePath == "" {
 		cfg.StatePath = DefaultStatePath
 	}
+	if cfg.RawAuthDir != "" {
+		if err := checkRawAuthDir(cfg.RawAuthDir, cfg.OutDir); err != nil {
+			return nil, err
+		}
+	}
 
 	c := &Capture{
-		cfg:    cfg,
-		jitter: cfg.RateLimitJitter,
+		cfg:        cfg,
+		rawAuthDir: cfg.RawAuthDir,
+		jitter:     cfg.RateLimitJitter,
 	}
 	if c.jitter <= 0 {
 		c.jitter = defaultRateLimitJitter
@@ -95,30 +101,49 @@ func New(cfg Config) (*Capture, error) {
 	return c, nil
 }
 
-// Run executes the capture walk. Returns the path to the private /tmp
-// directory holding raw auth bytes (for the redactor to consume in plan
-// 03), or an error. Context cancellation is honoured between tuples and
-// during rate-limit sleeps — returned error wraps ctx.Err().
+// checkRawAuthDir returns an error when rawDir and outDir overlap: when
+// one of them is the other or a dir in the other. OutDir holds the
+// fixtures that go into the repository, and the raw auth pages hold
+// unredacted contact data. A RawAuthDir that contains OutDir (for
+// example ".") would put those pages next to the fixtures.
+func checkRawAuthDir(rawDir, outDir string) error {
+	raw, err := filepath.Abs(rawDir)
+	if err != nil {
+		return fmt.Errorf("visbaseline.New: RawAuthDir: %w", err)
+	}
+	out, err := filepath.Abs(outDir)
+	if err != nil {
+		return fmt.Errorf("visbaseline.New: OutDir: %w", err)
+	}
+	if within(out, raw) || within(raw, out) {
+		return fmt.Errorf("visbaseline.New: RawAuthDir %q and OutDir %q must not contain each other", rawDir, outDir)
+	}
+	return nil
+}
+
+// within reports whether the absolute path dir is base or a path in base.
+func within(base, dir string) bool {
+	rel, err := filepath.Rel(base, dir)
+	return err == nil && filepath.IsLocal(rel)
+}
+
+// Run executes the capture walk and returns the raw auth dir. The result
+// is "" when Config.RawAuthDir is empty and the run wrote no auth page.
+// Run does not remove the raw auth dir because the redact step reads it.
+// Context cancellation is honored between tuples and during rate-limit
+// sleeps. The returned error then wraps ctx.Err().
 //
 // On successful completion the checkpoint file is removed. On early exit
 // (error, cancel) the checkpoint persists so a later invocation can resume.
 func (c *Capture) Run(ctx context.Context) (string, error) {
-	// 1. Private dir for raw auth bytes (mode 0700 via POSIX default on
-	//    os.MkdirTemp). Guaranteed outside the repo tree.
-	tmpDir, err := os.MkdirTemp("", "pdb-vis-capture-*")
-	if err != nil {
-		return "", fmt.Errorf("mkdir tmp: %w", err)
-	}
-	c.rawAuthDir = tmpDir
-
-	// 2. Resolve state: load or enumerate fresh. On existing state, prompt
+	// 1. Resolve state: load or enumerate fresh. On existing state, prompt
 	//    the operator Resume/Restart. Restart wipes the slate.
 	state, err := c.resolveState(ctx)
 	if err != nil {
 		return c.rawAuthDir, err
 	}
 
-	// 3. Walk pending tuples. On successful advance, persist checkpoint.
+	// 2. Walk pending tuples. On successful advance, persist checkpoint.
 	pending := state.PendingTuples()
 	for _, t := range pending {
 		select {
@@ -141,7 +166,7 @@ func (c *Capture) Run(ctx context.Context) (string, error) {
 		}
 	}
 
-	// 4. Clean the checkpoint on clean completion. Log but continue on
+	// 3. Clean the checkpoint on clean completion. Log but continue on
 	//    cleanup failure — the run itself succeeded.
 	if err := CleanupStatePath(c.cfg.StatePath); err != nil {
 		c.cfg.Logger.LogAttrs(ctx, slog.LevelWarn, "checkpoint cleanup failed",
@@ -178,14 +203,18 @@ func (c *Capture) resolveState(ctx context.Context) (*State, error) {
 			slog.String("state_path", c.cfg.StatePath),
 		)
 		// Restart discards the checkpoint but the State does not know
-		// where the previous run's raw-auth /tmp dir lived. Warn the operator
+		// where the previous run's raw auth dir lived. Warn the operator
 		// so they can clean it up manually. State intentionally carries no
 		// PII, so recording the prior rawAuthDir in State would widen the
-		// PII exposure surface; a log line is the right trade-off.
-		c.cfg.Logger.LogAttrs(ctx, slog.LevelWarn,
-			"restart discards checkpoint; prior /tmp/pdb-vis-capture-* dir (if any) must be cleaned manually",
-			slog.String("state_path", c.cfg.StatePath),
-		)
+		// PII exposure surface; a log line is the right trade-off. With a
+		// RawAuthDir, the restart writes to the same dir.
+		if c.cfg.RawAuthDir == "" {
+			c.cfg.Logger.LogAttrs(ctx, slog.LevelWarn,
+				"restart discards checkpoint; prior pdb-vis-capture-* dir (if any) must be cleaned manually",
+				slog.String("state_path", c.cfg.StatePath),
+				slog.String("temp_dir", os.TempDir()),
+			)
+		}
 		// Fall through to fresh enumeration.
 	case errors.Is(err, os.ErrNotExist):
 		// No checkpoint — fresh run.
@@ -255,9 +284,23 @@ func (c *Capture) clientFor(mode string) *peeringdb.Client {
 	}
 }
 
+// authDir returns the raw auth dir. When Config.RawAuthDir is empty, the
+// first call makes a private dir in os.TempDir (os.MkdirTemp uses mode
+// 0700). A run that writes no auth page thus makes no dir.
+func (c *Capture) authDir() (string, error) {
+	if c.rawAuthDir == "" {
+		dir, err := os.MkdirTemp("", "pdb-vis-capture-*")
+		if err != nil {
+			return "", fmt.Errorf("make raw auth dir: %w", err)
+		}
+		c.rawAuthDir = dir
+	}
+	return c.rawAuthDir, nil
+}
+
 // writeBytes lays down one tuple's raw bytes to the correct destination.
 // anon → <OutDir>/anon/api/{type}/page-{N}.json (repo-side, committable).
-// auth → <rawAuthDir>/auth/api/{type}/page-{N}.json (private /tmp).
+// auth → <rawAuthDir>/auth/api/{type}/page-{N}.json (private staging).
 //
 // Directory mode 0700, file mode 0600. Auth path is NEVER under OutDir.
 func (c *Capture) writeBytes(t Tuple, raw []byte) error {
@@ -266,7 +309,11 @@ func (c *Capture) writeBytes(t Tuple, raw []byte) error {
 	case "anon":
 		base = c.cfg.OutDir
 	case "auth":
-		base = c.rawAuthDir
+		dir, err := c.authDir()
+		if err != nil {
+			return err
+		}
+		base = dir
 	default:
 		return fmt.Errorf("writeBytes: unknown mode %q", t.Mode)
 	}
