@@ -88,8 +88,12 @@ func logScrubbedPocContacts(ctx context.Context, logger *slog.Logger, n int) {
 //
 // The run holds the running latch, so it does not overlap a sync cycle.
 // When a cycle holds the latch, the run is skipped, because that cycle
-// runs the repair itself. An error is logged at WARN and not returned,
-// because the call in each sync cycle retries the repair.
+// runs the repair itself. A transient SQLite lock error runs the
+// transaction again under w.lockRetry (see retryOnLock). The UPDATE
+// selects only the rows that still hold contact data, so a second
+// attempt is safe. Another error, or the last failed attempt, is logged
+// at WARN and not returned, because the call in each sync cycle retries
+// the repair.
 //
 // The UPDATE needs no privacy bypass: the poc policy has only a query
 // rule, and an update does not evaluate it.
@@ -100,7 +104,10 @@ func (w *Worker) scrubPocContactsAtStartup(ctx context.Context) {
 	}
 	defer w.running.Store(false)
 
-	n, err := scrubPocContactsInTx(ctx, w.entClient)
+	n, err := retryOnLock(ctx, w.logger, w.lockRetry, opStartupPocScrub,
+		func(ctx context.Context) (int, error) {
+			return scrubPocContactsInTx(ctx, w.entClient)
+		})
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "startup poc contact scrub failed, the next sync cycle retries it",
 			slog.Any("error", err))

@@ -261,8 +261,12 @@ func queryIDs(ctx context.Context, db *sql.DB, query string, args ...any) ([]int
 // The run holds the running latch, so it does not overlap a sync cycle;
 // when a cycle holds the latch, the run is skipped, because that cycle
 // runs the cascade itself. A panic is recovered and logged, so a bad row
-// cannot crash the primary on every start. An error is logged at WARN
-// and not returned, because each sync cycle retries the cascade.
+// cannot crash the primary on every start. A transient SQLite lock error
+// runs the transaction again under w.lockRetry (see retryOnLock). The
+// UPDATEs check each row again, so a second attempt changes only the
+// rows that are still live. Verification does not run again. Another
+// error, or the last failed attempt, is logged at WARN and not returned,
+// because each sync cycle retries the cascade.
 func (w *Worker) cascadeNetIxLansAtStartup(ctx context.Context) {
 	if !w.running.CompareAndSwap(false, true) {
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "sync cycle running, skipping startup netixlan cascade")
@@ -278,7 +282,12 @@ func (w *Worker) cascadeNetIxLansAtStartup(ctx context.Context) {
 		recordCascadeCommitted(ctx, w.logger, mode, cascadeResult{})
 		return
 	}
-	res, err := cascadeNetIxLansInTx(ctx, w.entClient, plan)
+	// Only the transaction retries on a lock error. The plan and its
+	// verification requests stay the same for each attempt.
+	res, err := retryOnLock(ctx, w.logger, w.lockRetry, opStartupNetIxLanCascade,
+		func(ctx context.Context) (cascadeResult, error) {
+			return cascadeNetIxLansInTx(ctx, w.entClient, plan)
+		})
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "startup netixlan cascade failed, the next sync cycle retries it",
 			slog.Any("error", err))

@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"database/sql"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -175,7 +176,7 @@ func TestReapStaleRunningRows(t *testing.T) {
 		t.Fatalf("seed failed row: %v", err)
 	}
 
-	reaped, err := sync.ReapStaleRunningRows(ctx, db)
+	reaped, err := sync.ReapStaleRunningRows(ctx, db, slog.Default(), sync.DefaultLockRetry())
 	if err != nil {
 		t.Fatalf("ReapStaleRunningRows: %v", err)
 	}
@@ -233,7 +234,7 @@ func TestReapStaleRunningRows_NoOp(t *testing.T) {
 		t.Fatalf("InitStatusTable: %v", err)
 	}
 
-	reaped, err := sync.ReapStaleRunningRows(ctx, db)
+	reaped, err := sync.ReapStaleRunningRows(ctx, db, slog.Default(), sync.DefaultLockRetry())
 	if err != nil {
 		t.Fatalf("ReapStaleRunningRows: %v", err)
 	}

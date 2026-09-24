@@ -232,7 +232,7 @@ func main() {
 		// and /readyz stop reporting phantom in-flight syncs left behind
 		// by a previous process that was killed mid-cycle (typically
 		// during rolling deploys). Non-fatal on error — it's cosmetic.
-		if reaped, err := pdbsync.ReapStaleRunningRows(ctx, db); err != nil {
+		if reaped, err := pdbsync.ReapStaleRunningRows(ctx, db, logger, pdbsync.DefaultLockRetry()); err != nil {
 			logger.LogAttrs(ctx, slog.LevelError, "failed to reap stale running rows",
 				slog.Any("error", err))
 		} else if reaped > 0 {

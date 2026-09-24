@@ -172,6 +172,11 @@ type Worker struct {
 	synced        atomic.Bool // true after first successful sync
 	logger        *slog.Logger
 	retryBackoffs []time.Duration // defaults to 30s, 2m, 8m
+	// lockRetry is the retry policy of the short writes that retry on a
+	// SQLite lock error: the sync_status writes and the startup poc
+	// scrub and netixlan cascade transactions (see retryOnLock).
+	// NewWorker sets DefaultLockRetry. Tests set short delays.
+	lockRetry LockRetry
 	// fkRegistry maps parent type name to the set of IDs successfully
 	// upserted during the current Phase B. Populated by recordIDs
 	// callbacks from dispatchScratchChunk as parent types land (org,
@@ -294,6 +299,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		config:               cfg,
 		logger:               logger,
 		retryBackoffs:        defaultRetryBackoffs,
+		lockRetry:            DefaultLockRetry(),
 		fkBackfillRequestCap: cfg.FKBackfillMaxRequestsPerCycle,
 		fkBackfillTimeout:    cfg.FKBackfillTimeout,
 		netIxLanVerifyMemo:   make(map[int]netIxLanVerifyEntry),
@@ -667,7 +673,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	// Resolve effective mode (PDBPLUS_FULL_SYNC_INTERVAL
 	// escape hatch) BEFORE recording the status row.
 	effectiveMode := w.resolveEffectiveMode(ctx, mode)
-	statusID, startErr := RecordSyncStart(ctx, w.db, start, string(effectiveMode))
+	statusID, startErr := w.recordSyncStart(ctx, start, effectiveMode)
 	if startErr != nil {
 		w.logger.LogAttrs(ctx, slog.LevelError, "failed to record sync start",
 			slog.Any("error", startErr))
@@ -1143,7 +1149,7 @@ func (w *Worker) recordSuccess(
 		// already succeeded), but it must be VISIBLE: a persistently
 		// failing write leaves sync_status rows stuck "running" and
 		// freshness reporting frozen at the last successful write.
-		if recErr := RecordSyncComplete(ctx, w.db, statusID, Status{
+		if recErr := w.recordSyncComplete(ctx, statusID, Status{
 			LastSyncAt:   completedAt,
 			Duration:     elapsed,
 			ObjectCounts: objectCounts,
@@ -1833,7 +1839,7 @@ func (w *Worker) recordFailure(ctx context.Context, mode config.SyncMode, status
 		// terminal path on a bookkeeping write, but never swallow it
 		// silently either — otherwise rows stuck "running" accumulate
 		// with no operator signal.
-		if recErr := RecordSyncComplete(recCtx, w.db, statusID, Status{
+		if recErr := w.recordSyncComplete(recCtx, statusID, Status{
 			LastSyncAt:   time.Now(),
 			Duration:     time.Since(start),
 			Status:       "failed",

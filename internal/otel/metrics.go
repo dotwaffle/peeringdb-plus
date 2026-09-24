@@ -76,6 +76,13 @@ var SyncTypeOrphans metric.Int64Counter
 // rate-limit pressure.
 var SyncFKBackfill metric.Int64Counter
 
+// SyncLockRetries counts the retries of short primary writes after a
+// transient SQLite lock error (SQLITE_BUSY or SQLITE_PROTOCOL), by op:
+// the sync_status writes and the startup poc scrub and netixlan cascade
+// transactions (internal/sync/lockretry.go). The sync transaction is not
+// retried. Cardinality: 5 op values.
+var SyncLockRetries metric.Int64Counter
+
 // PeeringDBRequests counts outbound HTTP requests to the PeeringDB API by
 // status_class ∈ {2xx, 3xx, 4xx, 5xx, network_error}.
 // The sync-level fk_backfill counter only sees post-decision events;
@@ -157,6 +164,10 @@ func BindInstruments() {
 	SyncFKBackfill = mustInt64Counter("pdbplus.sync.fk_backfill",
 		metric.WithDescription("Live FK-backfill attempts during sync, by type/parent_type/result"),
 		metric.WithUnit("{attempt}"),
+	)
+	SyncLockRetries = mustInt64Counter("pdbplus.sync.lock_retries",
+		metric.WithDescription("Retries of short primary writes after a transient SQLite lock error, by op"),
+		metric.WithUnit("{retry}"),
 	)
 	PeeringDBRequests = mustInt64Counter("pdbplus.peeringdb.requests",
 		metric.WithDescription("Outbound HTTP requests to PeeringDB API, by status_class"),
