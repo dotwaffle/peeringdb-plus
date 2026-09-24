@@ -51,6 +51,10 @@ It redirects browsers to the Web UI
 and sends ANSI-colored help text to terminal clients such as curl.
 Each response has an HTTP `Link` header that points to the agent documents.
 
+Most responses carry a weak `ETag` that changes when the database changes.
+All nodes send the same `ETag` for the same database version.
+A client that sends `If-None-Match` gets `304 Not Modified` while the data stays the same.
+
 See [`docs/API.md`](docs/API.md) for each API,
 with filter semantics, ordering, divergences,
 and the response memory budget for `/api` lists.
@@ -198,6 +202,7 @@ Operationally-relevant defaults:
 | `PDBPLUS_PEERINGDB_API_KEY` | _(unset)_ | Optional — raises rate limit and shortens default sync interval |
 | `PDBPLUS_SYNC_MODE` | `incremental` | `incremental` (delta) or `full` (re-fetch); `full` is the operator escape-hatch |
 | `PDBPLUS_SYNC_INTERVAL` | `1h` (15m if API key set) | Time between sync cycles |
+| `PDBPLUS_FULL_SYNC_INTERVAL` | `24h` | Maximum time between full re-fetches in `incremental` mode. A full cycle repairs data that incremental sync cannot see. `0` disables it |
 | `PDBPLUS_RESPONSE_MEMORY_LIMIT` | `128MB` | Memory budget for `/api` responses. A list whose estimated size is larger gets HTTP 413. The same budget also limits the total estimate of all `/api` responses in progress. A request that would go over that total gets HTTP 503. The value needs a unit suffix: `KB`, `MB`, `GB`, or `TB` (base 1024). |
 | `PDBPLUS_PUBLIC_TIER` | `public` | Anonymous-caller tier; set `users` only for private deployments |
 | `PDBPLUS_PUBLIC_URL` | _(unset)_ | Optional public-origin override for generated Agent Skill metadata |
