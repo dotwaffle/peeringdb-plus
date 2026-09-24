@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"maps"
 	"slices"
@@ -56,10 +57,10 @@ const (
 
 // fkBackfillParent is the single-row entry point preserved for the
 // existing per-row callers in worker.go (carrier→org check at
-// dispatchScratchChunk:fkCheckParent and the NetworkIxLan side-FK
-// null-on-miss path at nullSideFK). The body was refactored
-// to a thin wrapper around fkBackfillBatch so single-row and
-// batched paths share one HTTP / dedup / cap / deadline / recursion
+// dispatchScratchChunk:fkCheckParent and the null-on-miss path of the
+// fac campus_id and NetworkIxLan side FKs at nullOptionalFK). The body
+// was refactored to a thin wrapper around fkBackfillBatch so single-row
+// and batched paths share one HTTP / dedup / cap / deadline / recursion
 // implementation.
 //
 // Returns true iff the row is now present in the local DB and the
@@ -366,9 +367,10 @@ type parentFKRef struct {
 // FK fields, mirroring the upstream Django on_delete=CASCADE FKs in
 // peeringdb_server/models.py. Nullable FKs (Facility.campus_id,
 // NetworkIXLan.net_side_id / ix_side_id) are omitted so the recursive
-// backfill does not chase optional references. The fkFilter closures
-// in registry.go null them on a miss for chunk rows, and
-// nullMissingOptionalFKs (optionalFKSpec) does it for backfilled rows.
+// backfill does not chase optional references. For chunk rows, the
+// fkFilter closures in registry.go try a backfill and null them on a
+// miss (nullOptionalFK). For backfilled rows, nullMissingOptionalFKs
+// (optionalFKSpec) nulls them without a backfill.
 //
 // Mirrors the upstream FK audit table in CLAUDE.md § Soft-delete
 // tombstones — keep these two in sync when a new FK is added.
@@ -390,8 +392,9 @@ var parentFKSpec = map[string][]parentFKRef{
 
 // optionalFKSpec lists the nullable FKs of the types that FK backfill
 // can land. On the chunk path, the fkFilter closures in registry.go set
-// a nullable FK to NULL when its parent is missing. A backfilled row
-// skips fkFilter, so nullMissingOptionalFKs does the same for it.
+// a nullable FK to NULL when backfill cannot recover its parent. A
+// backfilled row skips fkFilter, so nullMissingOptionalFKs sets the FK
+// to NULL when its parent is missing.
 // Without this, a backfilled facility stored a campus_id for a campus
 // that is not in the database. NetworkIxLan side FKs are not listed:
 // no type references netixlan, so backfill never lands one.
@@ -401,10 +404,13 @@ var optionalFKSpec = map[string][]parentFKRef{
 
 // nullMissingOptionalFKs returns raw with each optionalFKSpec field set
 // to null when its parent is not in the database. It records each one
-// as an orphan with action "null" and does not backfill the optional
-// parent, as the fac fkFilter does. It returns raw unchanged when no
-// parent is missing or when raw does not decode (the upsert then
-// reports the decode error).
+// as an orphan with action "null". Unlike the fac fkFilter, it does not
+// backfill the optional parent. A backfilled fac is not in the fac rows
+// of the cycle, so in practice it is a deleted facility that only a
+// child row references. A campus request for such a row would use the
+// request budget that the required FKs of the cycle need. It returns raw
+// unchanged when no parent is missing or when raw does not decode (the
+// upsert then reports the decode error).
 func (w *Worker) nullMissingOptionalFKs(ctx context.Context, tx *ent.Tx, typeName string, id int, raw []byte) []byte {
 	spec := optionalFKSpec[typeName]
 	if len(spec) == 0 {
@@ -535,15 +541,14 @@ func (w *Worker) firstMissingRequiredFK(ctx context.Context, tx *ent.Tx, parentT
 // Worker.Sync (atomic Worker.running guard). Same assumption as
 // fkBackfillBatch.
 //
-// Nullable FKs (Facility.campus_id, NetworkIxLan.{net_side_id,
-// ix_side_id}) are intentionally NOT batched here — the fkRefs
-// accessors exclude them (mirroring parentFKSpec); they're handled by
-// the existing fkFilter null-on-miss path. The goal is to batch the
-// REQUIRED FKs that drive drops, not the optional FKs that drive
-// null-overrides.
+// Nullable FKs are not in the fkRefs accessors (mirroring
+// parentFKSpec). The pre-pass never drops a row, it only fetches, so
+// prefetchStagedFacCampuses also calls it once per type with the
+// nullable fac campus_id refs. The NetworkIxLan side FKs are left to
+// the per-row nullSideFK path.
 func (w *Worker) prefetchMissingParents(ctx context.Context, tx *ent.Tx, chunkType string, refs []parentFKRef) {
 	// Backfill disabled (cap=0 escape-hatch): mirror the fkCheckParent /
-	// nullSideFK gates and skip the pre-pass entirely. Without this,
+	// nullOptionalFK gates and skip the pre-pass entirely. Without this,
 	// every chunk with missing parents would flow into fkBackfillBatch,
 	// where a zero budget records every id as result="ratelimited" and
 	// emits a per-chunk "fk backfill cap reached" WARN — falsely
@@ -580,6 +585,49 @@ func (w *Worker) prefetchMissingParents(ctx context.Context, tx *ent.Tx, chunkTy
 		// series absorbing the majority of activity.)
 		w.fkBackfillBatch(ctx, tx, parentType, ids, chunkType)
 	}
+}
+
+// scratchFacCampusIDsSQL selects the distinct campus ids that the
+// staged facilities reference. A null or absent campus_id does not
+// match. data is a BLOB; the CAST reads it as text JSON.
+const scratchFacCampusIDsSQL = `SELECT DISTINCT json_extract(CAST(data AS TEXT), '$.campus_id') AS campus_id FROM "fac"
+WHERE json_type(CAST(data AS TEXT), '$.campus_id') = 'integer'
+ORDER BY campus_id`
+
+// prefetchStagedFacCampuses backfills the missing campuses of all
+// staged facilities before the first fac chunk replays (the fac
+// descriptor's prefetchStaged pass). It sends one request for each
+// peeringdb.FetchByIDsBatchSize missing campuses. prefetchMissingParents
+// applies the per-cycle dedup, request cap and deadline.
+//
+// Why one pass for the type and not the chunk pre-pass: upstream keeps
+// a campus pending while it has fewer than two facilities, and a bare
+// /api/campus list holds only ok campuses. So each missing campus has
+// at most one facility, and on a first sync the missing campuses are
+// spread across the fac chunks. The chunk pre-pass sends one request
+// for each chunk that holds one. That uses the request cap that the
+// required FKs of the later types share, and can use all of it before
+// they run.
+//
+// campus_id is nullable: a campus that stays missing does not drop the
+// facility. The fac fkFilter sets campus_id to NULL (nullOptionalFK),
+// and its backfill attempt sends no second request for an id that
+// this pass tried. A scratch read error fails the type, as it does in
+// drainChunk.
+func (w *Worker) prefetchStagedFacCampuses(ctx context.Context, tx *ent.Tx, scratch *scratchDB) error {
+	if w.fkBackfillRequestCap <= 0 {
+		return nil
+	}
+	ids, err := queryIDs(ctx, scratch.db, scratchFacCampusIDsSQL)
+	if err != nil {
+		return fmt.Errorf("read staged fac campus ids: %w", err)
+	}
+	refs := make([]parentFKRef, 0, len(ids))
+	for _, id := range ids {
+		refs = append(refs, parentFKRef{FieldName: "campus_id", ParentType: peeringdb.TypeCampus, ID: id})
+	}
+	w.prefetchMissingParents(ctx, tx, peeringdb.TypeFac, refs)
+	return nil
 }
 
 // recordBackfill emits the per-attempt fk_backfill counter.

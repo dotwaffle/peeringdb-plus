@@ -635,6 +635,8 @@ but it does not appear in the `_set` lists of its parent.
 In practice this affects only campuses:
 a campus is pending while it has fewer than two facilities,
 and campus is the only type whose pending rows reach the mirror.
+A pending campus reaches the mirror in a `?since=` window when it changes,
+or through the FK backfill of a facility that points to it.
 For `ix.fac_set` and `ixlan.net_set`, the status of the ixfac or netixlan
 join row decides membership.
 The facility or network that the row points to is not filtered.

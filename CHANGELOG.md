@@ -10,6 +10,26 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- A facility keeps its `campus_id` when the campus is not in the mirror
+  and upstream returns the campus to the FK backfill. Upstream keeps a
+  campus `pending` while it has fewer than two facilities. A bare
+  `/api/campus` list holds only `ok` campuses, and a `?since=` window
+  holds a pending campus only when it changes. Thus the mirror did not
+  store a pending campus that did not change after the first sync.
+  Before this release, the sync set the `campus_id` of its facilities to
+  `NULL` and sent no backfill request. Each full cycle logged these
+  facilities in the WARN `fk orphans summary` (3 facilities in
+  production). The sync now fetches the missing campuses of all
+  facilities of a cycle together with `/api/campus?since=1&id__in=`
+  (one request for each 100 campuses), stores them with status
+  `pending` and keeps `campus_id`. It still sets `campus_id` to `NULL`
+  when backfill is off, a backfill limit is reached, the fetch fails,
+  or upstream does not return the campus, and for a facility that the
+  FK backfill itself stores. The next full cycle repairs the facilities
+  that lost their campus.
+
 ## [1.31.0] - 2026-09-24
 
 ### Added

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -69,42 +70,12 @@ func TestFKFilter_NetworkIxLan_NullsSideFKOnMiss(t *testing.T) {
 				"status": "ok",
 			}})
 		case "ix":
-			data = mustJSON([]any{map[string]any{
-				"id": 1, "org_id": 1, "name": "IX1", "aka": "", "name_long": "",
-				"city": "", "country": "US", "region_continent": "",
-				"media": "Ethernet", "notes": "",
-				"proto_unicast": true, "proto_multicast": false, "proto_ipv6": true,
-				"website": "", "social_media": []any{}, "url_stats": "",
-				"tech_email": "", "tech_phone": "",
-				"policy_email": "", "policy_phone": "",
-				"sales_email": "", "sales_phone": "",
-				"net_count": 0, "fac_count": 0, "ixf_net_count": 0,
-				"ixf_last_import": nil, "ixf_import_request": nil,
-				"ixf_import_request_status": "",
-				"service_level":             "", "terms": "",
-				"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
-				"status": "ok",
-			}})
+			data = mustJSON([]any{sideFKIX()})
 		case "ixlan":
-			data = mustJSON([]any{map[string]any{
-				"id": 1, "ix_id": 1, "name": "L1", "descr": "",
-				"mtu": 9000, "dot1q_support": false, "rs_asn": 65500,
-				"arp_sponge": nil, "ixf_ixp_member_list_url_visible": "Public",
-				"ixf_ixp_import_enabled": true,
-				"created":                "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
-				"status": "ok",
-			}})
+			data = mustJSON([]any{sideFKIXLan()})
 		case "netixlan":
 			// netixlan referencing missing fac 999 in net_side_id.
-			data = mustJSON([]any{map[string]any{
-				"id": 10, "net_id": 1, "ix_id": 1, "ixlan_id": 1,
-				"name": "", "notes": "", "speed": 10000, "asn": 65001,
-				"ipaddr4": "192.0.2.1", "ipaddr6": nil,
-				"is_rs_peer": false, "bfd_support": false, "operational": true,
-				"net_side_id": 999, "ix_side_id": nil,
-				"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
-				"status": "ok",
-			}})
+			data = mustJSON([]any{sideFKNetIxLan(999)})
 		default:
 			data = json.RawMessage(`[]`)
 		}
@@ -143,5 +114,96 @@ func TestFKFilter_NetworkIxLan_NullsSideFKOnMiss(t *testing.T) {
 	// ix_side_id was already nil in the fixture and should remain nil.
 	if got.IxSideID != nil {
 		t.Errorf("ix_side_id = %d, want nil", *got.IxSideID)
+	}
+}
+
+// sideFKIX returns ix 1 of org 1 for the side-FK tests.
+func sideFKIX() map[string]any {
+	return map[string]any{
+		"id": 1, "org_id": 1, "name": "IX1", "aka": "", "name_long": "",
+		"city": "", "country": "US", "region_continent": "",
+		"media": "Ethernet", "notes": "",
+		"proto_unicast": true, "proto_multicast": false, "proto_ipv6": true,
+		"website": "", "social_media": []any{}, "url_stats": "",
+		"tech_email": "", "tech_phone": "",
+		"policy_email": "", "policy_phone": "",
+		"sales_email": "", "sales_phone": "",
+		"net_count": 0, "fac_count": 0, "ixf_net_count": 0,
+		"ixf_last_import": nil, "ixf_import_request": nil,
+		"ixf_import_request_status": "",
+		"service_level":             "", "terms": "",
+		"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
+		"status": "ok",
+	}
+}
+
+// sideFKIXLan returns ixlan 1 of ix 1 for the side-FK tests.
+func sideFKIXLan() map[string]any {
+	return map[string]any{
+		"id": 1, "ix_id": 1, "name": "L1", "descr": "",
+		"mtu": 9000, "dot1q_support": false, "rs_asn": 65500,
+		"arp_sponge": nil, "ixf_ixp_member_list_url_visible": "Public",
+		"ixf_ixp_import_enabled": true,
+		"created":                "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
+		"status": "ok",
+	}
+}
+
+// sideFKNetIxLan returns netixlan 10 of net 1 on ixlan 1, with
+// net_side_id set to netSideID and no ix_side_id.
+func sideFKNetIxLan(netSideID int) map[string]any {
+	return map[string]any{
+		"id": 10, "net_id": 1, "ix_id": 1, "ixlan_id": 1,
+		"name": "", "notes": "", "speed": 10000, "asn": 65001,
+		"ipaddr4": "192.0.2.1", "ipaddr6": nil,
+		"is_rs_peer": false, "bfd_support": false, "operational": true,
+		"net_side_id": netSideID, "ix_side_id": nil,
+		"created": "2026-04-01T00:00:00Z", "updated": "2026-04-01T00:00:00Z",
+		"status": "ok",
+	}
+}
+
+// TestFKFilter_NetworkIxLan_BackfillsSideFK locks the backfill step of
+// nullOptionalFK for the side FKs. The side FKs are not in the netixlan
+// fkRefs, so the per-row path is their only backfill. With backfill on,
+// a missing side facility is fetched with one
+// /api/fac?since=1&id__in= request, and net_side_id keeps its value.
+// TestFKFilter_NetworkIxLan_NullsSideFKOnMiss runs with backfill off.
+func TestFKFilter_NetworkIxLan_BackfillsSideFK(t *testing.T) {
+	t.Parallel()
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"org":      {orgJSON(1, "Org1", "ok")},
+			"net":      {mustJSON(makeMinimalNet(1, 1))},
+			"ix":       {mustJSON(sideFKIX())},
+			"ixlan":    {mustJSON(sideFKIXLan())},
+			"netixlan": {mustJSON(sideFKNetIxLan(999))},
+		},
+		map[string]func(int) json.RawMessage{
+			"fac": func(id int) json.RawMessage { return mustJSON(makeMinimalFac(id, 1)) },
+		},
+	)
+	t.Cleanup(server.Close)
+
+	client, log := fullSyncWithDebugLog(t, server.URL, 5)
+
+	_, _, byType := rec.snapshot()
+	if want := []string{"999"}; !slices.Equal(byType["fac"], want) {
+		t.Errorf("fac backfill requests = %q, want %q", byType["fac"], want)
+	}
+	got, err := client.NetworkIxLan.Get(t.Context(), 10)
+	if err != nil {
+		t.Fatalf("netixlan 10: %v", err)
+	}
+	if got.NetSideID == nil || *got.NetSideID != 999 {
+		t.Errorf("net_side_id = %v, want 999 (backfill recovered fac 999)", got.NetSideID)
+	}
+	if _, err := client.Facility.Get(t.Context(), 999); err != nil {
+		t.Errorf("fac 999: %v (want it stored by backfill)", err)
+	}
+	if strings.Contains(log, `msg="fk orphan" child_type=netixlan`) {
+		t.Errorf("netixlan orphan recorded, want none, log:\n%s", log)
 	}
 }
