@@ -275,6 +275,55 @@ That is normal after any change since upstream built its cache, or when
 the newest stored row is a tombstone.
 A large `snapshot_lag`, or an old `snapshot_generated`, shows a stale cache.
 
+### Lock-error retry of short writes
+
+On the LiteFS primary, a commit can fail when SQLite cannot get a lock.
+On 2026-09-24 the startup netixlan cascade commit failed with
+`locking protocol (15)`.
+`retryOnLock` (`internal/sync/lockretry.go`) runs these short writes again:
+
+- The `sync_status` INSERT at the start of a cycle.
+- The `sync_status` UPDATE at the end of a cycle, for a success and for a
+  failure.
+- The startup `ReapStaleRunningRows` UPDATE.
+- The startup poc contact scrub transaction.
+- The startup netixlan cascade transaction.
+  The verification requests run once, before the first attempt.
+
+The main sync transaction does not retry.
+Its fetch pass is expensive, and the next cycle does the work again.
+
+A retry starts only for a `modernc.org/sqlite` error whose primary code
+(`code & 0xff`) is `SQLITE_BUSY` (5) or `SQLITE_PROTOCOL` (15).
+The extended codes of `SQLITE_BUSY`, such as `SQLITE_BUSY_SNAPSHOT` (517),
+also retry.
+`busy_timeout` does not wait for `SQLITE_PROTOCOL` or `SQLITE_BUSY_SNAPSHOT`.
+`SQLITE_LOCKED` (6) does not retry.
+It comes from a conflict in one connection or in a shared cache,
+and production does not use a shared cache.
+Other errors do not retry.
+
+The policy (`LockRetry`) is 4 attempts, with waits of 250ms, 500ms and 1s.
+The worker and `cmd/peeringdb-plus` pass it as a value.
+A wait stops when the context is done.
+Each write is safe to run again.
+A failed INSERT adds no row.
+The UPDATEs set the same values, or select only the rows that still need
+the change.
+A failed attempt leaves no open transaction on its pooled connection.
+The caller rolls back after a failed statement.
+When a COMMIT fails and SQLite keeps the transaction open,
+`modernc.org/sqlite` rolls it back before `database/sql` returns the
+connection to the pool.
+
+Each retry logs `WARN "retrying write after sqlite lock error"` with `op`,
+`attempt`, `max_attempts`, `delay` and `error`,
+and adds 1 to `pdbplus.sync.lock_retries{op}`.
+The `op` values are `record_sync_start`, `record_sync_complete`,
+`reap_stale_running_rows`, `startup_poc_scrub` and
+`startup_netixlan_cascade`.
+When the last attempt fails, the caller logs its usual failure line.
+
 ## Key abstractions
 
 - **`ent.Client`** (`ent/client.go`) — Generated ent client;
@@ -931,6 +980,8 @@ It runs at two points:
   Without this run, GraphQL, REST and ConnectRPC would serve the stored values
   until then, and `/api/` filters such as `?email__startswith=` would match them.
   The run holds the sync `running` latch, so it does not overlap a cycle.
+  A SQLite lock error runs the transaction again
+  (see [Lock-error retry of short writes](#lock-error-retry-of-short-writes)).
   A failed run logs a WARN, and the next cycle retries the repair.
 - In each sync transaction, after the upsert pass.
 
@@ -943,6 +994,7 @@ Later runs log the same message at DEBUG with `count=0`.
 The line comes only after the transaction commits.
 When the commit fails, the startup run logs only
 `WARN "startup poc contact scrub failed, the next sync cycle retries it"`,
+after the retry WARNs of a lock error,
 and a sync cycle records a failed sync.
 The `sync-scrub-poc-contacts` span carries the count in the
 `pdbplus.sync.poc_contacts_scrubbed` attribute.
@@ -1203,6 +1255,9 @@ tombstone, and the v1.28.1 cutoff repair still pass.
   `updated` value.
   A panic logs `ERROR "startup netixlan cascade panic recovered"` with the
   stack and releases the latch.
+  A SQLite lock error runs the transaction again, without a new
+  verification
+  (see [Lock-error retry of short writes](#lock-error-retry-of-short-writes)).
   A failed run logs a WARN, and the next cycle retries it.
   A replica never runs the cascade.
   After a promotion, the first cycle does the work.
@@ -1225,6 +1280,7 @@ none in a normal cycle, and 1 for each class-A miss.
   The line comes only after the transaction commits.
   When the commit fails, the startup run logs only
   `WARN "startup netixlan cascade failed, the next sync cycle retries it"`,
+  after the retry WARNs of a lock error,
   and a sync cycle records a failed sync.
   `backlog` counts the rows that class B marked,
   whose network was deleted before this cycle.
@@ -1574,6 +1630,9 @@ vars.
   - `pdbplus.sync.type.fetch_errors` / `upsert_errors` / `fallback` / `orphans`
     (counters).
   - `pdbplus.sync.fk_backfill` (counter): FK backfill attempts by `result`.
+  - `pdbplus.sync.lock_retries` (counter): retries of short primary writes
+    after a SQLite lock error, by `op`
+    (see [Lock-error retry of short writes](#lock-error-retry-of-short-writes)).
   - `pdbplus.peeringdb.requests` and `pdbplus.peeringdb.retries` (counters)
     and `pdbplus.peeringdb.rate_limit_wait_ms` (histogram): upstream calls.
   - `pdbplus.role.transitions` (counter) — LiteFS promote/demote events.

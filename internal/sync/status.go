@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/config"
 )
 
 // Status represents the result of a sync operation.
@@ -82,8 +85,20 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 // (latest write wins); in practice the reap runs BEFORE the first
 // sync worker tick so there's no real overlap window.
 //
+// A transient SQLite lock error retries the UPDATE under retry, and each
+// retry logs a WARN to logger (see retryOnLock). The UPDATE is safe to
+// run again: a row that an earlier attempt changed is no longer
+// "running".
+//
 // Returns the number of rows transitioned.
-func ReapStaleRunningRows(ctx context.Context, db *sql.DB) (int, error) {
+func ReapStaleRunningRows(ctx context.Context, db *sql.DB, logger *slog.Logger, retry LockRetry) (int, error) {
+	return retryOnLock(ctx, logger, retry, opReapStaleRunningRows, func(ctx context.Context) (int, error) {
+		return reapStaleRunningRows(ctx, db)
+	})
+}
+
+// reapStaleRunningRows is one attempt of ReapStaleRunningRows.
+func reapStaleRunningRows(ctx context.Context, db *sql.DB) (int, error) {
 	result, err := db.ExecContext(ctx,
 		`UPDATE sync_status
 		 SET status = 'failed',
@@ -100,6 +115,25 @@ func ReapStaleRunningRows(ctx context.Context, db *sql.DB) (int, error) {
 		return 0, fmt.Errorf("reap stale running rows affected count: %w", err)
 	}
 	return int(affected), nil
+}
+
+// recordSyncStart runs RecordSyncStart on w.db, and retries it under
+// w.lockRetry on a transient SQLite lock error (see retryOnLock). A
+// failed INSERT adds no row, so a retry cannot add a second one.
+func (w *Worker) recordSyncStart(ctx context.Context, startedAt time.Time, mode config.SyncMode) (int64, error) {
+	return retryOnLock(ctx, w.logger, w.lockRetry, opRecordSyncStart, func(ctx context.Context) (int64, error) {
+		return RecordSyncStart(ctx, w.db, startedAt, string(mode))
+	})
+}
+
+// recordSyncComplete runs RecordSyncComplete on w.db, and retries it
+// under w.lockRetry on a transient SQLite lock error (see retryOnLock).
+// Each attempt writes the same values.
+func (w *Worker) recordSyncComplete(ctx context.Context, id int64, status Status) error {
+	_, err := retryOnLock(ctx, w.logger, w.lockRetry, opRecordSyncComplete, func(ctx context.Context) (struct{}, error) {
+		return struct{}{}, RecordSyncComplete(ctx, w.db, id, status)
+	})
+	return err
 }
 
 // RecordSyncStart inserts a new running sync status row and returns its ID.
