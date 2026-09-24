@@ -207,9 +207,24 @@ in these cases:
 - The fetch fails.
 - Upstream does not return the parent.
 
-The facility `campus_id` FK is the exception.
-When the campus is missing, the worker sets `campus_id` to `NULL`
-and does not try a backfill (`internal/sync/registry.go`).
+For a facility, a missing campus also gets a backfill.
+Before the first facility chunk, the worker reads the campus IDs
+of all staged facilities and fetches the missing campuses together
+(`prefetchStagedFacCampuses`), so the campuses do not use one request
+for each chunk from the cap that later types share.
+The campus fetch still counts against that cap:
+one request for each 100 missing campuses,
+and none after the campuses are stored.
+With a cap of 1, that request can leave no budget for a required parent
+of a later type, and the worker drops that row until the next full cycle.
+When the backfill does not return the campus, the worker sets `campus_id`
+to `NULL` and keeps the facility (`nullOptionalFK` in `internal/sync/worker.go`).
+A bare `/api/campus` list holds only `ok` campuses,
+so a pending campus that did not change since the first sync
+reaches the mirror only through this backfill.
+A facility that the backfill itself lands is the exception.
+When its campus is missing, the worker sets `campus_id` to `NULL`
+and does not try a backfill (`nullMissingOptionalFKs`).
 The `pdbplus.sync.type.orphans` counter records each dropped row
 or `NULL` FK.
 

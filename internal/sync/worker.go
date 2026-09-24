@@ -1681,7 +1681,16 @@ func (w *Worker) syncUpsertPass(
 // The per-chunk typed slice is local to syncIncremental[E] and is
 // reclaimed when that helper returns, so the memory bound needs no
 // explicit clearing between iterations.
+//
+// Before the first chunk, it runs the descriptor's prefetchStaged pass,
+// if the type has one. An error from that pass fails the type, as a
+// scratch read error does.
 func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *scratchDB, name string) (int, error) {
+	if desc, ok := descriptorByName[name]; ok && desc.prefetchStaged != nil {
+		if err := desc.prefetchStaged(w, ctx, tx, scratch); err != nil {
+			return 0, err
+		}
+	}
 	total := 0
 	afterID := 0
 	for {
@@ -1725,10 +1734,12 @@ func (w *Worker) drainAndUpsertType(ctx context.Context, tx *ent.Tx, scratch *sc
 // fkRefs, when non-nil, returns the row's REQUIRED parent FK references
 // (mirroring parentFKSpec) from the typed decode. Together with the
 // prefetch hook it drives the chunk-level missing-parent pre-pass on
-// the already-decoded rows — the pre-pass previously re-decoded every
+// the already-decoded rows. The pre-pass previously re-decoded every
 // row's raw JSON into a map to read the same FK fields the typed
-// struct already carries. Nullable FKs (fac.campus_id, netixlan side
-// FKs) are deliberately excluded, matching parentFKSpec.
+// struct already carries. Nullable FKs are not listed: the descriptor's
+// prefetchStaged pass fetches the missing fac campuses once for the
+// type, and nullSideFK backfills the netixlan side FKs one row at a
+// time.
 type syncIncrementalInput[E any] struct {
 	objectType string
 	fkRefs     func(*E) []parentFKRef
@@ -1853,7 +1864,20 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 // FKs (NetworkIxLan.{net_side_id, ix_side_id} → fac).
 // Per peeringdb_server/models.py:6088-6101 (2.83.0) these
 // columns are `null=True, on_delete=SET_NULL`, so a missing parent
-// must NULL the column rather than drop the row.
+// must NULL the column rather than drop the row. nullOptionalFK does
+// the work.
+//
+// Field name is recorded on the orphan counter so dashboards can split
+// "net_side_id" misses from "ix_side_id" misses for the same NetworkIxLan
+// child type.
+func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field string, childID int) {
+	w.nullOptionalFK(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, ptr, field, childID)
+}
+
+// nullOptionalFK is the chunk-path rule for a nullable FK: the fkFilter
+// closures call it for the fac campus_id and, through nullSideFK, for
+// the netixlan side FKs. ptr points at the FK field of the row. The
+// row is always kept.
 //
 // Process:
 //  1. ptr is nil (FK already null) → no-op.
@@ -1861,23 +1885,24 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 //  3. Id above zero, backfill enabled and recovers parent → no-op.
 //  4. Otherwise: record the orphan with action="null" and zero ptr.
 //
-// Field name is recorded on the orphan counter so dashboards can split
-// "net_side_id" misses from "ix_side_id" misses for the same NetworkIxLan
-// child type.
-func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field string, childID int) {
+// Step 3 uses the same per-cycle dedup, request cap and deadline as
+// fkCheckParent, so a parent that a pre-pass already tried sends no
+// second request. For the fac campus_id, prefetchStagedFacCampuses
+// tried every missing campus before the first fac chunk.
+func (w *Worker) nullOptionalFK(ctx context.Context, tx *ent.Tx, childType, parentType string, ptr **int, field string, childID int) {
 	if ptr == nil || *ptr == nil {
 		return
 	}
 	parentID := **ptr
-	if w.fkHasParent(ctx, tx, peeringdb.TypeFac, parentID) {
+	if w.fkHasParent(ctx, tx, parentType, parentID) {
 		return
 	}
-	if parentID > 0 && w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
+	if parentID > 0 && w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return
 	}
 	w.recordOrphan(ctx, fkOrphanKey{
-		ChildType:  peeringdb.TypeNetIXLan,
-		ParentType: peeringdb.TypeFac,
+		ChildType:  childType,
+		ParentType: parentType,
 		Field:      field,
 		Action:     "null",
 	}, childID, parentID)

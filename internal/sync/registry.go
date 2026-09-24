@@ -38,6 +38,10 @@ import (
 //   - chunkUpsert: the Phase B scratch-chunk replay (decode + FK filter
 //   - bulk upsert) — the body each dispatchScratchChunk arm used to
 //     hold. FK-orphan policy lives in the fkFilter closures here.
+//   - prefetchStaged: optional. It runs once before the first chunk of
+//     the type replays, when scratch holds all staged rows of the type.
+//     The fac descriptor uses it to backfill the missing campuses of all
+//     staged facilities in one batch.
 //   - singleUpsert: decode ONE raw JSON object and land it via the same
 //     bulk upsert helper — the FK-backfill path.
 //   - exists: ID existence probe against the real DB inside the sync tx.
@@ -45,9 +49,10 @@ type typeDescriptor struct {
 	name  string // PeeringDB type name, e.g. "org"
 	table string // ent SQL table name, e.g. "organizations"
 
-	chunkUpsert  func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error)
-	singleUpsert func(ctx context.Context, tx *ent.Tx, raw json.RawMessage) (int, error)
-	exists       func(ctx context.Context, tx *ent.Tx, id int) (bool, error)
+	chunkUpsert    func(w *Worker, ctx context.Context, tx *ent.Tx, rows []scratchRow) (int, error)
+	prefetchStaged func(w *Worker, ctx context.Context, tx *ent.Tx, scratch *scratchDB) error
+	singleUpsert   func(ctx context.Context, tx *ent.Tx, raw json.RawMessage) (int, error)
+	exists         func(ctx context.Context, tx *ent.Tx, id int) (bool, error)
 }
 
 // typeRegistry is the single source of truth for the 13 PeeringDB
@@ -116,25 +121,22 @@ var typeRegistry = []typeDescriptor{
 						return false
 					}
 					// campus_id is Optional().Nillable() in the ent
-					// schema — if the referenced campus is missing,
-					// null the reference out and keep the facility
-					// (avoids cascading the drop through netfac /
-					// ixfac / carrierfac children of the facility).
-					if v.CampusID != nil && !w.fkHasParent(ctx, tx, peeringdb.TypeCampus, *v.CampusID) {
-						w.recordOrphan(ctx, fkOrphanKey{
-							ChildType:  peeringdb.TypeFac,
-							ParentType: peeringdb.TypeCampus,
-							Field:      "campus_id",
-							Action:     "null",
-						}, v.ID, *v.CampusID)
-						v.CampusID = nil
-					}
+					// schema. When backfill cannot recover the campus,
+					// null the reference and keep the facility (a drop
+					// would cascade through the netfac, ixfac and
+					// carrierfac children of the facility).
+					// prefetchStagedFacCampuses tried each missing
+					// campus before the first chunk, so this sends no
+					// second request.
+					w.nullOptionalFK(ctx, tx, peeringdb.TypeFac, peeringdb.TypeCampus,
+						&v.CampusID, "campus_id", v.ID)
 					return true
 				},
 				recordIDs: func(ids []int) { w.fkRegisterIDs(peeringdb.TypeFac, ids) },
 				upsert:    upsertFacilities,
 			}, rows)
 		},
+		prefetchStaged: (*Worker).prefetchStagedFacCampuses,
 		singleUpsert: singleRawUpserter(peeringdb.TypeFac,
 			func(v peeringdb.Facility) int { return v.ID }, upsertFacilities),
 		exists: func(ctx context.Context, tx *ent.Tx, id int) (bool, error) {
