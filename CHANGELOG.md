@@ -18,6 +18,20 @@ are in the Git history at their tags.
   `PDBPLUS_LITEFS_METRICS_URL`. Re-import
   `deploy/grafana/dashboards/pdbplus-overview.json` in Grafana.
 
+### Changed
+
+- The primary now keeps only the newest 3000 `sync_status` rows, plus
+  the newest success row and the newest full success row. Before this
+  release, each sync cycle added a row and no row was deleted, so the
+  table grew without limit (4.6 MiB in prod on 2026-09-24). At the 15m
+  interval, 3000 rows is about 31 days. Each sync cycle deletes up to
+  1000 old rows right after it inserts its own row, so the first cycles
+  after the deploy delete the old rows in small commits. A failed delete
+  logs `WARN "failed to prune sync_status rows"`, and the cycle
+  continues. The database file does not shrink: SQLite uses the freed
+  pages again for new rows. To keep the old history, export the
+  database before you deploy.
+
 ### Fixed
 
 - The LiteFS metrics export now works on replicas, and on a primary
