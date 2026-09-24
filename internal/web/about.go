@@ -24,9 +24,9 @@ import (
 // recorded and the page truthfully shows "Sync status unavailable". This
 // is the right answer for a fresh database or a broken-from-the-start sync.
 //
-// Note: /readyz uses GetLastCompletedStatus instead because a health check
-// wants to report "most recent outcome, success or failure" — the two
-// surfaces have different semantics by design.
+// Note: /readyz reads the newest row (GetLastStatus), so a failed last
+// sync makes it return 503. It falls back to GetLastSuccessfulStatus only
+// while a sync runs. The two surfaces have different semantics by design.
 //
 // PrivacySync is built from the handler's captured startup fields
 // (h.authMode, h.publicTier) — never re-read from env vars at request
