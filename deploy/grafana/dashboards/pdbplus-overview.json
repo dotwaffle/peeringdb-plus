@@ -1139,8 +1139,8 @@
         {
           "id": 18,
           "type": "timeseries",
-          "title": "Deletes per Type",
-          "description": "Soft-delete tombstones marked per type per sync. Non-zero deletes are normal as PeeringDB data churns.",
+          "title": "Cascaded Deletes per Type",
+          "description": "Rows per type that sync marks deleted itself. Only the netixlan cascade emits this. It marks the live connections of a network that PeeringDB deleted without a tombstone for them (pdb_rir_status, about 0.7 networks a day, after about 22:55 UTC). Tombstones that PeeringDB sends are in Objects Synced per Type. The first primary start on v1.28.2 shows about 260. For another large value, look at the 'cascaded network deletes to netixlans' log.",
           "gridPos": {
             "h": 6,
             "w": 12,
