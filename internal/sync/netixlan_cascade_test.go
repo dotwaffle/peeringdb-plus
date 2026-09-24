@@ -258,7 +258,7 @@ func TestRIRTransitionNets(t *testing.T) {
 		t.Parallel()
 		// A query on a closed DB fails, so a nil error shows that
 		// rirTransitionNets sent none.
-		closed, err := openScratchDB(t.Context())
+		closed, err := openScratchDB(t.Context(), "")
 		if err != nil {
 			t.Fatalf("open scratch: %v", err)
 		}

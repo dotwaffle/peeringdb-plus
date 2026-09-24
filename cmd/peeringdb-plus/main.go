@@ -398,6 +398,7 @@ func main() {
 		FKBackfillTimeout:             cfg.FKBackfillTimeout,
 		SyncTimeout:                   cfg.SyncTimeout,
 		FullSyncInterval:              cfg.FullSyncInterval,
+		ScratchDir:                    cfg.ScratchDir,
 	}, logger)
 
 	// Pre-warm the 5 zero-rate counters so dashboard

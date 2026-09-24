@@ -338,7 +338,7 @@ func newCascadeWorker(t *testing.T, up *cascadeUpstream, fkCap int) (*Worker, *s
 // newCascadeScratch opens a scratch DB that the test closes at cleanup.
 func newCascadeScratch(t *testing.T) *scratchDB {
 	t.Helper()
-	s, err := openScratchDB(t.Context())
+	s, err := openScratchDB(t.Context(), "")
 	if err != nil {
 		t.Fatalf("open scratch: %v", err)
 	}

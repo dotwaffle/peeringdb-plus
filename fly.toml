@@ -24,6 +24,12 @@ kill_timeout = 30
   # LiteFS serves its Prometheus metrics on its HTTP port (litefs.yml).
   # The app exports them as pdbplus.litefs.* over OTLP.
   PDBPLUS_LITEFS_METRICS_URL = "http://localhost:20202/metrics"
+  # The sync scratch database goes on the primary volume, which is faster
+  # than the root file system. The directory is outside the /litefs FUSE
+  # mount, and LiteFS does not read or remove files in it. Replicas
+  # normally do not run the sync worker. A replica that takes the lease
+  # uses the directory on its root file system.
+  PDBPLUS_SCRATCH_DIR = "/var/lib/litefs/scratch"
 
 # Consul is required for LiteFS leader election.
 [consul]

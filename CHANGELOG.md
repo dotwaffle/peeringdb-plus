@@ -17,6 +17,27 @@ are in the Git history at their tags.
   to `0` to trace no scheduled cycle, as before this release.
   `POST /sync` always traces its cycle, and `POST /sync?trace=0` never
   does, whatever the ratio.
+- `PDBPLUS_SCRATCH_DIR` sets the directory of the sync scratch database.
+  The default is empty, which selects `os.TempDir()`. A set value must be
+  an absolute path. On the primary, the scheduler removes the stale
+  scratch files in a set directory at start, because a crashed process
+  leaves its file. When that sweep does not run, the first cycle of the
+  process runs it. `fly.toml` sets `/var/lib/litefs/scratch` on the
+  primary volume. Before this release, a full cycle wrote about 100 MB of
+  scratch data to `/tmp` on the root file system, which Fly.io limits to
+  2000 IOPS and 8 MiB/s. LiteFS does not read or remove files in the
+  scratch directory. Each process that stages a cycle in a set directory
+  holds a shared `flock` lock on `.pdbplus-scratch.lock` in it, and the
+  sweep needs the exclusive lock. Thus the sweep never removes the file
+  of another live process. When another process holds a lock, the sweep
+  is skipped with a WARN. When a cycle cannot get the shared lock, it
+  stages in `os.TempDir()` with a WARN. The directory must not be a
+  shared temp dir such as `/tmp`, because a process that stages in
+  `os.TempDir()` takes no lock. A cycle also stages in `os.TempDir()`
+  with a WARN when the directory has less than 512 MiB of free space, so
+  the scratch file does not take the space that LiteFS needs on the
+  primary volume. The span attribute `pdbplus.sync.scratch_dir` names the
+  directory that the cycle used.
 
 ### Changed
 

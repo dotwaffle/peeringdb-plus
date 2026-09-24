@@ -26,7 +26,7 @@ func TestScratchDB_OpenAndCleanup(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 
-	s, err := openScratchDB(ctx)
+	s, err := openScratchDB(ctx, "")
 	if err != nil {
 		t.Fatalf("openScratchDB: %v", err)
 	}
@@ -53,7 +53,7 @@ func TestScratchDB_Schema(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 
-	s, err := openScratchDB(ctx)
+	s, err := openScratchDB(ctx, "")
 	if err != nil {
 		t.Fatalf("openScratchDB: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestScratchDB_StageStats(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.SetRetryBaseDelay(0)
 
-	s, err := openScratchDB(ctx)
+	s, err := openScratchDB(ctx, "")
 	if err != nil {
 		t.Fatalf("openScratchDB: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestScratchDB_StageAndDrain(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.SetRetryBaseDelay(0)
 
-	s, err := openScratchDB(ctx)
+	s, err := openScratchDB(ctx, "")
 	if err != nil {
 		t.Fatalf("openScratchDB: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestScratchDB_FailedStage(t *testing.T) {
 			client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 			client.SetRetryBaseDelay(0)
 
-			s, err := openScratchDB(ctx)
+			s, err := openScratchDB(ctx, "")
 			if err != nil {
 				t.Fatalf("openScratchDB: %v", err)
 			}
@@ -354,7 +354,7 @@ func TestScratchDB_StageErrorSource(t *testing.T) {
 			client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 			client.SetRetryBaseDelay(0)
 
-			s, err := openScratchDB(ctx)
+			s, err := openScratchDB(ctx, "")
 			if err != nil {
 				t.Fatalf("openScratchDB: %v", err)
 			}
@@ -412,7 +412,7 @@ func TestScratchDB_DrainChunkPagination(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.SetRetryBaseDelay(0)
 
-	s, err := openScratchDB(ctx)
+	s, err := openScratchDB(ctx, "")
 	if err != nil {
 		t.Fatalf("openScratchDB: %v", err)
 	}

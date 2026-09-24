@@ -4195,7 +4195,7 @@ func TestStageOneTypeToScratch_ScratchFaultSkipsFallback(t *testing.T) {
 	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
 	client.SetRetryBaseDelay(0)
 
-	s, err := openScratchDB(ctx)
+	s, err := openScratchDB(ctx, "")
 	if err != nil {
 		t.Fatalf("openScratchDB: %v", err)
 	}
