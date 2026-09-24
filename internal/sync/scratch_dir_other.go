@@ -5,6 +5,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"math"
 )
 
 // errScratchLockUnsupported is the error of lockExclusive on this
@@ -28,4 +29,11 @@ func (l *scratchDirLock) lockExclusive(string) error {
 // cycle needs no lock.
 func (l *scratchDirLock) lockShared(string) error {
 	return nil
+}
+
+// dirFreeBytes disables the free-space guard on this platform, because
+// the guard uses the Linux statfs call. It returns the largest value, so
+// a cycle always stages in the set directory.
+func dirFreeBytes(string) (uint64, error) {
+	return math.MaxUint64, nil
 }

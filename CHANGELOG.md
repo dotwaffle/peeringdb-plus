@@ -32,7 +32,11 @@ are in the Git history at their tags.
   is skipped with a WARN. When a cycle cannot get the shared lock, it
   stages in `os.TempDir()` with a WARN. The directory must not be a
   shared temp dir such as `/tmp`, because a process that stages in
-  `os.TempDir()` takes no lock.
+  `os.TempDir()` takes no lock. A cycle also stages in `os.TempDir()`
+  with a WARN when the directory has less than 512 MiB of free space, so
+  the scratch file does not take the space that LiteFS needs on the
+  primary volume. The span attribute `pdbplus.sync.scratch_dir` names the
+  directory that the cycle used.
 
 ### Changed
 

@@ -2,7 +2,9 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -10,6 +12,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 )
@@ -34,10 +40,12 @@ func writeScratchTestFile(t *testing.T, dir, name string, size int) {
 
 // setScratchDir sets the scratch dir of w to dir. The test cleanup
 // releases the scratch dir lock of w, which a worker keeps until the
-// process exits.
+// process exits. A stub reports enough free space in dir, so the result
+// does not depend on the free space of the test host.
 func setScratchDir(t *testing.T, w *Worker, dir string) {
 	t.Helper()
 	w.config.ScratchDir = dir
+	w.scratchFreeBytes = func(string) (uint64, error) { return math.MaxUint64, nil }
 	t.Cleanup(func() { _ = w.scratchLock.close() })
 }
 
@@ -370,5 +378,153 @@ func TestSync_UsesScratchDir(t *testing.T) {
 	names := slices.DeleteFunc(dirNames(t, dir), func(n string) bool { return n == scratchLockName })
 	if len(names) != 0 {
 		t.Errorf("scratch dir after sync = %v, want only the lock file", names)
+	}
+}
+
+// TestScratchDirForCycle_FreeSpace verifies that a cycle stages in the
+// set scratch dir only when the dir has scratchDirMinFreeBytes of free
+// space. With less free space, or when the free space cannot be read,
+// the cycle stages in the temp dir and a WARN names the dir.
+func TestScratchDirForCycle_FreeSpace(t *testing.T) {
+	t.Parallel()
+	const (
+		lowMsg    = "scratch dir low on free space, staging in the temp dir"
+		statfsMsg = "failed to read free space of scratch dir, staging in the temp dir"
+	)
+
+	tests := []struct {
+		name string
+		free uint64
+		err  error
+		// wantDir is true when the cycle uses the set dir, false when it
+		// uses the temp dir.
+		wantDir bool
+		wantLog string // WARN message, empty for none
+	}{
+		{name: "at the reserve", free: scratchDirMinFreeBytes, wantDir: true},
+		{name: "above the reserve", free: 10 << 30, wantDir: true},
+		{name: "below the reserve", free: scratchDirMinFreeBytes - 1, wantLog: lowMsg},
+		{name: "statfs error", err: errors.New("statfs failed"), wantLog: statfsMsg},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			w := &Worker{}
+			var buf *logBuffer
+			w.logger, buf = newSweepLogger()
+			dir := t.TempDir()
+			setScratchDir(t, w, dir)
+			var asked []string
+			w.scratchFreeBytes = func(d string) (uint64, error) {
+				asked = append(asked, d)
+				return tt.free, tt.err
+			}
+
+			got := w.scratchDirForCycle(t.Context())
+
+			want := ""
+			if tt.wantDir {
+				want = dir
+			}
+			if got != want {
+				t.Errorf("scratchDirForCycle = %q, want %q", got, want)
+			}
+			if !slices.Equal(asked, []string{dir}) {
+				t.Errorf("free space read for %v, want [%s]", asked, dir)
+			}
+			for _, msg := range []string{lowMsg, statfsMsg} {
+				logs := buf.records(t, msg)
+				if msg != tt.wantLog {
+					if len(logs) != 0 {
+						t.Errorf("log %q = %v, want none", msg, logs)
+					}
+					continue
+				}
+				if len(logs) != 1 || logs[0]["level"] != "WARN" || logs[0]["dir"] != dir ||
+					logs[0]["reserve_bytes"] != float64(scratchDirMinFreeBytes) {
+					t.Errorf("log %q = %v, want one WARN record with dir and reserve_bytes", msg, logs)
+					continue
+				}
+				if tt.err != nil && logs[0]["error"] == nil {
+					t.Errorf("log %q = %v, want the error", msg, logs)
+				}
+				if tt.err == nil && logs[0]["free_bytes"] != float64(tt.free) {
+					t.Errorf("log %q = %v, want free_bytes %d", msg, logs, tt.free)
+				}
+			}
+		})
+	}
+}
+
+// TestNewWorker_ScratchFreeBytes verifies that NewWorker sets the free
+// space function of the scratch dir guard, which the other tests of the
+// guard replace with a stub.
+func TestNewWorker_ScratchFreeBytes(t *testing.T) {
+	t.Parallel()
+	w := NewWorker(nil, nil, nil, WorkerConfig{}, slog.Default())
+	if w.scratchFreeBytes == nil {
+		t.Fatal("NewWorker left scratchFreeBytes nil")
+	}
+	if free, err := w.scratchFreeBytes(t.TempDir()); err != nil || free == 0 {
+		t.Errorf("scratchFreeBytes(temp dir) = %d, %v; want free space > 0 and no error", free, err)
+	}
+}
+
+// TestSync_ScratchDirSpanAttribute verifies that the span of a cycle
+// names the directory that the cycle used: the set scratch dir, or the
+// temp dir when the scratch dir is low on free space.
+//
+// Not parallel: it sets TMPDIR and the global TracerProvider, which the
+// sync tracer reads. On Windows, os.TempDir() does not read TMPDIR, so
+// the test compares with os.TempDir() after it sets TMPDIR.
+func TestSync_ScratchDirSpanAttribute(t *testing.T) {
+	t.Setenv("TMPDIR", t.TempDir())
+	tmp := os.TempDir()
+	rec := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
+
+	tests := []struct {
+		name    string
+		free    uint64
+		wantTmp bool // true when the cycle uses the temp dir
+	}{
+		{name: "enough free space", free: 1 << 40, wantTmp: false},
+		{name: "low free space", free: 0, wantTmp: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newFixture(t)
+			f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+			w, _ := newTestWorker(t, f)
+			dir := t.TempDir()
+			setScratchDir(t, w, dir)
+			w.scratchFreeBytes = func(string) (uint64, error) { return tt.free, nil }
+			want := dir
+			if tt.wantTmp {
+				want = tmp
+			}
+
+			before := len(rec.Ended())
+			if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
+				t.Fatalf("sync: %v", err)
+			}
+
+			var got []string
+			for _, s := range rec.Ended()[before:] {
+				if s.Name() != "sync-full" {
+					continue
+				}
+				for _, a := range s.Attributes() {
+					if a.Key == "pdbplus.sync.scratch_dir" {
+						got = append(got, a.Value.AsString())
+					}
+				}
+			}
+			if !slices.Equal(got, []string{want}) {
+				t.Errorf("pdbplus.sync.scratch_dir = %v, want [%s]", got, want)
+			}
+		})
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"slices"
@@ -289,6 +290,10 @@ type Worker struct {
 	// (see scratchDirLock). The startup sweep and scratchDirForCycle
 	// take it. The process keeps it until it exits.
 	scratchLock scratchDirLock
+	// scratchFreeBytes returns the free space in bytes of a directory.
+	// scratchDirForCycle compares it with scratchDirMinFreeBytes.
+	// NewWorker sets dirFreeBytes. Tests set a stub.
+	scratchFreeBytes func(dir string) (uint64, error)
 }
 
 // fkOrphanKey is the dimension grouping a single class of FK-orphan
@@ -319,6 +324,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		fkBackfillRequestCap: cfg.FKBackfillMaxRequestsPerCycle,
 		fkBackfillTimeout:    cfg.FKBackfillTimeout,
 		netIxLanVerifyMemo:   make(map[int]netIxLanVerifyEntry),
+		scratchFreeBytes:     dirFreeBytes,
 	}
 }
 
@@ -814,6 +820,10 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		return err
 	}
 	defer closeScratchDB(ctx, scratch, w.logger)
+	// The directory that the cycle uses. It is os.TempDir() when
+	// scratchDirForCycle falls back from a set ScratchDir.
+	trace.SpanFromContext(ctx).SetAttributes(
+		attribute.String("pdbplus.sync.scratch_dir", filepath.Dir(scratch.path)))
 
 	// === Phase A — NO TX HELD ===
 	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.

@@ -116,6 +116,9 @@ default `1h` unauthenticated / `15m` authenticated):
    The sweep needs the exclusive lock on `.pdbplus-scratch.lock` in the
    directory, and each process that stages a cycle there holds a shared lock.
    When a cycle cannot get the shared lock, it stages in `os.TempDir()`.
+   It also stages in `os.TempDir()` when the directory has less than 512 MiB
+   of free space, so the scratch file does not take the space that LiteFS
+   needs on the primary volume.
 3. A memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT`, default `400MB`) aborts the
    sync if `runtime.MemStats.HeapAlloc` exceeds the ceiling before the
    transaction opens.

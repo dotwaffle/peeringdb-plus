@@ -8,6 +8,18 @@ import (
 	stdsync "sync"
 )
 
+// scratchDirMinFreeBytes is the free space that a set scratch dir must
+// have before a cycle stages in it. With less free space, the cycle
+// stages in os.TempDir().
+//
+// A full cycle stages about 100 MB. In production, the dir is on the
+// primary volume, and LiteFS writes the database and its LTX files to
+// the same volume. After a full cycle stages its file, at least 400 MiB
+// stay free for these LiteFS writes. Fly.io extends the volume only when
+// it is 80 percent full. Thus the free space can be low for some time,
+// and the scratch file must not take the space that LiteFS needs then.
+const scratchDirMinFreeBytes = 512 << 20
+
 // scratchDirForCycle returns the directory of the scratch database of the
 // next cycle: ScratchDir, or "" for os.TempDir(). The caller holds the
 // running latch.
@@ -15,9 +27,11 @@ import (
 // A cycle stages in a set ScratchDir only while this process holds its
 // shared lock (see scratchDirLock). The startup sweep can fail to take
 // the lock, or run on a replica that later becomes the primary, so this
-// process takes the lock here when it holds none. When it cannot take
-// the lock, the cycle stages in os.TempDir(). A lock error never fails
-// the cycle.
+// process takes the lock here when it holds none. The dir must also have
+// scratchDirMinFreeBytes of free space (see Worker.scratchFreeBytes).
+// When the lock or the free space check fails, the cycle stages in
+// os.TempDir() and the function logs a WARN. These checks never fail the
+// cycle.
 func (w *Worker) scratchDirForCycle(ctx context.Context) string {
 	dir := w.config.ScratchDir
 	if dir == "" {
@@ -27,6 +41,23 @@ func (w *Worker) scratchDirForCycle(ctx context.Context) string {
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to lock scratch dir, staging in the temp dir",
 			slog.String("dir", dir),
 			slog.Any("error", err),
+		)
+		return ""
+	}
+	free, err := w.scratchFreeBytes(dir)
+	if err != nil {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to read free space of scratch dir, staging in the temp dir",
+			slog.String("dir", dir),
+			slog.Uint64("reserve_bytes", scratchDirMinFreeBytes),
+			slog.Any("error", err),
+		)
+		return ""
+	}
+	if free < scratchDirMinFreeBytes {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "scratch dir low on free space, staging in the temp dir",
+			slog.String("dir", dir),
+			slog.Uint64("free_bytes", free),
+			slog.Uint64("reserve_bytes", scratchDirMinFreeBytes),
 		)
 		return ""
 	}

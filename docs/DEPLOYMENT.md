@@ -344,6 +344,18 @@ The sweep needs an exclusive `flock` lock on `.pdbplus-scratch.lock`
 in the directory.
 Each process that stages a cycle there holds a shared lock,
 so the sweep never removes the live file of another process.
+LiteFS writes the database to the same volume,
+and Fly.io extends the volume only when it is 80 percent full.
+Before each cycle, the worker checks that the directory has at least
+512 MiB of free space.
+With less free space, the cycle stages in `/tmp` on the root file system,
+and the worker logs the WARN `scratch dir low on free space, staging in the temp dir`.
+On the 1 GB volume, the check fails at about 45 percent use.
+Auto-extend acts only at 80 percent use,
+so it does not stop the fallback.
+When the WARN repeats, extend the volume with `fly volumes extend`.
+The span attribute `pdbplus.sync.scratch_dir` names the directory that
+the cycle used.
 The `[env]` block applies to both groups.
 Replicas normally do not run the sync worker.
 A replica machine that takes the lease (see [Regional rollout](#regional-rollout))

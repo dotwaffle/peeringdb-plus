@@ -4,6 +4,7 @@ package sync
 
 import (
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -289,6 +290,13 @@ func TestScratchDirForCycle_LockFileRemoved(t *testing.T) {
 			w.logger, _ = newSweepLogger()
 			dir := filepath.Join(t.TempDir(), "scratch")
 			setScratchDir(t, w, dir)
+			// The free-space check fails for a missing dir, as statfs does.
+			w.scratchFreeBytes = func(d string) (uint64, error) {
+				if _, err := dirFreeBytes(d); err != nil {
+					return 0, err
+				}
+				return math.MaxUint64, nil
+			}
 			if got := w.scratchDirForCycle(t.Context()); got != dir {
 				t.Fatalf("first scratchDirForCycle = %q, want %q", got, dir)
 			}
@@ -347,5 +355,49 @@ func TestSync_ScratchDirLockedByOtherProcess(t *testing.T) {
 	}
 	if logs := buf.records(t, "failed to lock scratch dir, staging in the temp dir"); len(logs) != 1 {
 		t.Errorf("lock log = %v, want one record", logs)
+	}
+}
+
+// TestDirFreeBytes verifies that dirFreeBytes reads the free space of an
+// existing directory and returns an error for a missing directory.
+func TestDirFreeBytes(t *testing.T) {
+	t.Parallel()
+	free, err := dirFreeBytes(t.TempDir())
+	if err != nil || free == 0 {
+		t.Errorf("dirFreeBytes(temp dir) = %d, %v; want free space > 0 and no error", free, err)
+	}
+	if _, err := dirFreeBytes(filepath.Join(t.TempDir(), "missing")); err == nil {
+		t.Error("dirFreeBytes(missing dir) returned no error")
+	}
+}
+
+// TestFreeBytes verifies that freeBytes counts the available units of
+// statfs(2) in the fragment size, uses the block size when the fragment
+// size is not set, and does not wrap on a very large product.
+func TestFreeBytes(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name          string
+		bavail        uint64
+		frsize, bsize int64
+		want          uint64
+		wantErr       bool
+	}{
+		{name: "fragment size smaller than block size", bavail: 10, frsize: 1024, bsize: 4096, want: 10 * 1024},
+		{name: "fragment size not set", bavail: 10, frsize: 0, bsize: 4096, want: 10 * 4096},
+		{name: "product does not fit in 64 bits", bavail: math.MaxUint64 / 2, frsize: 4096, bsize: 4096, want: math.MaxUint64},
+		{name: "no size", bavail: 10, frsize: 0, bsize: -1, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := freeBytes(tt.bavail, tt.frsize, tt.bsize)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("freeBytes error = %v, want error %v", err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Errorf("freeBytes = %d, want %d", got, tt.want)
+			}
+		})
 	}
 }

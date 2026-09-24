@@ -5,6 +5,8 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"math"
+	"math/bits"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -101,6 +103,41 @@ func isFileAt(f *os.File, path string) bool {
 	}
 	cur, err := os.Lstat(path)
 	return err == nil && os.SameFile(held, cur)
+}
+
+// dirFreeBytes returns the free space of the file system of dir, in
+// bytes, that a process without root privileges can use (see statfs(2)).
+func dirFreeBytes(dir string) (uint64, error) {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(dir, &st); err != nil {
+		return 0, fmt.Errorf("statfs %s: %w", dir, err)
+	}
+	free, err := freeBytes(st.Bavail, int64(st.Frsize), int64(st.Bsize))
+	if err != nil {
+		return 0, fmt.Errorf("statfs %s: %w", dir, err)
+	}
+	return free, nil
+}
+
+// freeBytes returns the size in bytes of bavail units of statfs(2).
+// Bavail counts units of the fragment size frsize (see statvfs(3)). Linux
+// sets frsize to the block size bsize when a file system does not set
+// it, and freeBytes does the same. The size fields are signed on some
+// systems, so a size of 0 or less is an error, not a very large free
+// space. A product that does not fit in 64 bits returns math.MaxUint64.
+func freeBytes(bavail uint64, frsize, bsize int64) (uint64, error) {
+	unit := frsize
+	if unit <= 0 {
+		unit = bsize
+	}
+	if unit <= 0 {
+		return 0, fmt.Errorf("fragment size %d, block size %d", frsize, bsize)
+	}
+	hi, lo := bits.Mul64(bavail, uint64(unit))
+	if hi != 0 {
+		return math.MaxUint64, nil
+	}
+	return lo, nil
 }
 
 // flockFile calls flock(2) with how on the file descriptor of f.
