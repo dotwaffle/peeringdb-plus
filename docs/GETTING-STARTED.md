@@ -266,8 +266,19 @@ and an ASN-comparison tool at `/ui/compare/{asn1}/{asn2}`.
 
 ## 4. Running in Docker (optional)
 
-If you prefer a container, the dev image
-(single-process, no LiteFS) is the easiest way to get going:
+If you prefer a container, the standalone image
+(single-process, no LiteFS) is the easiest way to get going.
+CI publishes it for `linux/amd64` and `linux/arm64`:
+
+```bash
+docker run -p 8080:8080 -v pdbdata:/data ghcr.io/dotwaffle/peeringdb-plus:latest
+```
+
+`latest` follows the release tags, and `main` follows the `main` branch.
+For all tags and for how to verify an image,
+see [DEPLOYMENT.md § Published image](DEPLOYMENT.md#published-image).
+
+To build the image from your checkout:
 
 ```bash
 docker build -f Dockerfile -t peeringdb-plus .

@@ -516,10 +516,12 @@ so goroutines that handlers or workers start do not leak between tests.
 
 ## CI Integration
 
-The `.github/workflows/ci.yml` workflow runs two jobs on every pull request
-and every push to `main`.
+The `.github/workflows/ci.yml` workflow runs on every pull request
+and on every push to `main` or a `v*` tag.
 The `ci` job is a single cached Go job whose steps run in order,
-each reusing the prior compile; `docker-build` runs in parallel:
+each reusing the prior compile.
+`docker-build` runs in parallel.
+On a push, `docker-publish` runs after both jobs pass:
 
 | Job | Step (in order) | Command |
 |-----|------|---------|
@@ -530,7 +532,8 @@ each reusing the prior compile; `docker-build` runs in parallel:
 | `ci` | Tests with race detector | `mise run test` |
 | `ci` | Lint | `mise run lint` |
 | `ci` | Vulnerability scan (advisory, `continue-on-error`) | `mise run vulncheck` |
-| `docker-build` | Dev and prod image builds | `docker build` using `./Dockerfile` and `./Dockerfile.prod` |
+| `docker-build` | Standalone and prod image builds | `docker build` using `./Dockerfile` (amd64 and arm64) and `./Dockerfile.prod` (amd64) |
+| `docker-publish` | Publish the standalone image (push events only) | `docker buildx build --push` of `./Dockerfile` to GHCR, then an artifact attestation |
 
 A failed drift check, tidiness check, build, test, race check, or lint run
 fails the workflow.

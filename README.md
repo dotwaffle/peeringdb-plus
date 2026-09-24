@@ -82,9 +82,15 @@ once the database is populated,
 ### Local (Docker)
 
 ```bash
+docker run -p 8080:8080 -v pdbdata:/data ghcr.io/dotwaffle/peeringdb-plus:latest
+# Or build the image from your checkout:
 docker build -t peeringdb-plus .
 docker run -p 8080:8080 -v pdbdata:/data peeringdb-plus
 ```
+
+CI publishes the image for `linux/amd64` and `linux/arm64`.
+For the tags and for how to verify an image,
+see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#published-image).
 
 The image stores the database at `/data/peeringdb-plus.db`;
 mount a volume to persist data across container restarts.

@@ -10,6 +10,19 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- CI publishes the standalone image (`Dockerfile`) to
+  `ghcr.io/dotwaffle/peeringdb-plus` for `linux/amd64` and
+  `linux/arm64`. A release tag `vX.Y.Z` publishes the tags `X.Y.Z`,
+  `X.Y` and `latest`. A push to `main` publishes `main`. Each published
+  commit also gets `sha-<commit>`. Each image has an SBOM, BuildKit
+  provenance and a GitHub artifact attestation, which
+  `gh attestation verify` checks. The new `docker-publish` job runs only
+  on pushes, after the `ci` and `docker-build` jobs pass. Pull requests
+  publish nothing. The Fly image (`Dockerfile.prod`) is not published.
+  See `docs/DEPLOYMENT.md` § Published image.
+
 ### Changed
 
 - CI runs the race test suite without coverage and posts no coverage
