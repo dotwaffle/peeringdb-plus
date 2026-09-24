@@ -1,5 +1,6 @@
 // Package litefs provides utilities for detecting the role of the current
-// node in a LiteFS cluster (primary vs replica).
+// node in a LiteFS cluster (primary vs replica) and for reading the
+// replication position of a database.
 package litefs
 
 import (
