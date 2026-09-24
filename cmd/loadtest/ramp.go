@@ -455,14 +455,14 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 				}
 				ep := rampEndpointFor(surface, rcfg.Entity, id, asn)
 				res := Hit(gctx, cfg.HTTPClient, cfg.Base, cfg.AuthToken, ep)
-				// Step-boundary discriminator: if Hit returned an
-				// error AND the step's context is done, the cancellation
-				// came from the step deadline (parent fires
-				// DeadlineExceeded; gctx propagates that, NOT
-				// context.Canceled). Drop before logging or sample
-				// channel send so logged errors match counted errors.
-				// Real client timeouts (>30s requests when gctx is
-				// still alive) and 5xx responses still flow through.
+				// Step-boundary discriminator: an error while gctx is
+				// done comes from the end of the step or of the run,
+				// not from the target. Drop it before the log line and
+				// the sample send, so that logged errors match counted
+				// errors. This is the only result that the step drops.
+				// A client timeout (--timeout) while gctx is alive and a
+				// 5xx response are samples, and summariseStep counts
+				// them as errors.
 				if res.Err != nil && gctx.Err() != nil {
 					return nil
 				}
@@ -501,47 +501,40 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 	return summariseStep(samples, concurrency, dur), nil
 }
 
-// summariseStep computes p50/p95/p99/error-rate/rps for a step.
-// Empty sample sets return a zero-valued stepStats (legitimate when
-// the ctx is cancelled before any request completes).
+// summariseStep computes p50/p95/p99/error-rate/rps for a step. It
+// counts each sample. A sample that is not OK counts as an error, and
+// its latency goes into the percentiles. A request that reached the
+// client timeout (--timeout) before the response headers arrived is
+// such an error: its error matches context.DeadlineExceeded. Hit does
+// not check the body read, so a timeout during the body read does not
+// make an error. Empty sample sets return a zero-valued
+// stepStats: no request ended within the step.
 //
-// The primary discriminator for step-boundary cancellation lives in
-// the worker loop (drops samples where res.Err != nil && gctx.Err()
-// != nil before they reach this function). The filter below is
-// defensive: it strips any sample whose Err matches context.Canceled
-// or context.DeadlineExceeded that somehow slipped through.
+// The worker loop in runRampStep decides which results are samples.
+// It drops the requests that the end of the step or of the run
+// canceled, so no sample has an error from the step context.
 func summariseStep(samples []Result, concurrency int, dur time.Duration) stepStats {
 	stats := stepStats{Concurrency: concurrency, Duration: dur}
-	// Defensive: drop residual step-boundary cancellations. Use a
-	// 3-arg slice expression so the filtered slice gets fresh
-	// backing storage and the caller's slice is left intact.
-	filtered := samples[:0:0]
-	for _, r := range samples {
-		if errors.Is(r.Err, context.Canceled) || errors.Is(r.Err, context.DeadlineExceeded) {
-			continue
-		}
-		filtered = append(filtered, r)
-	}
-	if len(filtered) == 0 {
+	if len(samples) == 0 {
 		return stats
 	}
-	latencies := make([]time.Duration, 0, len(filtered))
+	latencies := make([]time.Duration, 0, len(samples))
 	errs := 0
-	for _, r := range filtered {
+	for _, r := range samples {
 		latencies = append(latencies, r.Latency)
 		if !r.OK() {
 			errs++
 		}
 	}
 	slices.Sort(latencies)
-	stats.Samples = len(filtered)
+	stats.Samples = len(samples)
 	stats.Errors = errs
 	stats.P50 = percentilesFromSorted(latencies, 50)
 	stats.P95 = percentilesFromSorted(latencies, 95)
 	stats.P99 = percentilesFromSorted(latencies, 99)
-	stats.ErrRate = float64(errs) / float64(len(filtered))
+	stats.ErrRate = float64(errs) / float64(len(samples))
 	if dur > 0 {
-		stats.RPS = float64(len(filtered)) / dur.Seconds()
+		stats.RPS = float64(len(samples)) / dur.Seconds()
 	}
 	return stats
 }

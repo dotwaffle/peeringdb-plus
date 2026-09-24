@@ -1197,58 +1197,46 @@ func TestRamp_NoVerbose_StaysQuiet(t *testing.T) {
 	}
 }
 
-// TestSummariseStep_FiltersCanceled asserts that Result entries whose
-// Err is context.Canceled OR context.DeadlineExceeded (step-boundary
-// cancellations, not real measurements) are dropped from the
-// percentile/error/RPS computation.
-//
-// Background: each step sets a stepCtx deadline; when it fires,
-// errgroup's gctx propagates the parent's error. WithTimeout fires
-// DeadlineExceeded, not Canceled — so the filter must match both. The
-// primary discriminator is in the worker loop; this filter is
-// defensive backup.
-func TestSummariseStep_FiltersCanceled(t *testing.T) {
+// TestSummariseStep_CountsErrorLatencies asserts that summariseStep
+// counts each sample: a sample with a client timeout error and a 500
+// count as errors, and their latencies go into the percentiles.
+func TestSummariseStep_CountsErrorLatencies(t *testing.T) {
 	t.Parallel()
 
+	// The error has the shape that Hit returns for a client timeout.
+	timeoutErr := fmt.Errorf("do GET /api/net/1: %w", context.DeadlineExceeded)
 	samples := []Result{
 		{Status: 200, Latency: 5 * time.Millisecond},
 		{Status: 200, Latency: 10 * time.Millisecond},
-		{Err: context.Canceled, Latency: 1 * time.Millisecond},         // dropped
-		{Err: context.DeadlineExceeded, Latency: 2 * time.Millisecond}, // dropped
 		{Status: 500, Latency: 7 * time.Millisecond},
+		{Err: timeoutErr, Latency: 30 * time.Millisecond},
 	}
 	stats := summariseStep(samples, 4, 1*time.Second)
 
-	if stats.Samples != 3 {
-		t.Errorf("Samples = %d, want 3 (both context errors must be dropped)", stats.Samples)
+	if stats.Samples != 4 {
+		t.Errorf("Samples = %d, want 4", stats.Samples)
 	}
-	if stats.Errors != 1 {
-		t.Errorf("Errors = %d, want 1 (only the 500 counts)", stats.Errors)
+	if stats.Errors != 2 {
+		t.Errorf("Errors = %d, want 2 (the 500 and the timeout)", stats.Errors)
 	}
-	if stats.RPS != 3.0 {
-		t.Errorf("RPS = %v, want 3.0 (3 samples / 1s)", stats.RPS)
+	if stats.ErrRate != 0.5 {
+		t.Errorf("ErrRate = %v, want 0.5 (2/4)", stats.ErrRate)
 	}
-	// p50/p95/p99 are computed only over the 3 non-cancelled latencies
-	// {5ms, 7ms, 10ms} — the 1ms/2ms cancelled latencies must NOT appear.
-	if stats.P50 < 5*time.Millisecond || stats.P50 > 10*time.Millisecond {
-		t.Errorf("P50 = %v, want within [5ms,10ms]", stats.P50)
+	if stats.RPS != 4.0 {
+		t.Errorf("RPS = %v, want 4.0 (4 samples / 1s)", stats.RPS)
 	}
-	if stats.P50 == 1*time.Millisecond || stats.P50 == 2*time.Millisecond {
-		t.Errorf("P50 = %v — cancelled/deadline latency must not influence percentiles", stats.P50)
+	// The timeout is the slowest sample, so it sets the tail.
+	if stats.P99 != 30*time.Millisecond {
+		t.Errorf("P99 = %v, want 30ms (the latency of the timeout)", stats.P99)
 	}
 }
 
-// TestSummariseStep_AllCanceled_ReturnsZero asserts that an entirely
-// cancelled sample set behaves identically to len(samples)==0.
-func TestSummariseStep_AllCanceled_ReturnsZero(t *testing.T) {
+// TestSummariseStep_NoSamples_ReturnsZero asserts that a step without
+// samples has zero counts and keeps its concurrency and duration.
+func TestSummariseStep_NoSamples_ReturnsZero(t *testing.T) {
 	t.Parallel()
 
-	samples := []Result{
-		{Err: context.Canceled, Latency: 1 * time.Millisecond},
-		{Err: context.Canceled, Latency: 2 * time.Millisecond},
-		{Err: context.Canceled, Latency: 3 * time.Millisecond},
-	}
-	stats := summariseStep(samples, 8, 500*time.Millisecond)
+	stats := summariseStep(nil, 8, 500*time.Millisecond)
 
 	if stats.Samples != 0 {
 		t.Errorf("Samples = %d, want 0", stats.Samples)
@@ -1260,10 +1248,64 @@ func TestSummariseStep_AllCanceled_ReturnsZero(t *testing.T) {
 		t.Errorf("RPS = %v, want 0", stats.RPS)
 	}
 	if stats.Concurrency != 8 {
-		t.Errorf("Concurrency = %d, want 8 (preserved even when all-canceled)", stats.Concurrency)
+		t.Errorf("Concurrency = %d, want 8 (preserved without samples)", stats.Concurrency)
 	}
 	if stats.Duration != 500*time.Millisecond {
-		t.Errorf("Duration = %v, want 500ms (preserved even when all-canceled)", stats.Duration)
+		t.Errorf("Duration = %v, want 500ms (preserved without samples)", stats.Duration)
+	}
+}
+
+// clientTimeout is the client timeout of the tests that use
+// newStalledServer. Only the client timeout ends a request to that
+// server, so no server delay races with it.
+const clientTimeout = 20 * time.Millisecond
+
+// newStalledServer returns a test server that answers no request. Its
+// handler returns when the client ends the request, or at cleanup.
+func newStalledServer(tb testing.TB) *httptest.Server {
+	tb.Helper()
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
+	}))
+	// Cleanups run in reverse order: release the handlers, then close
+	// the server, which waits for them.
+	tb.Cleanup(srv.Close)
+	tb.Cleanup(func() { close(release) })
+	return srv
+}
+
+// TestSummariseStep_CountsClientTimeout gets a real client timeout
+// error from Hit and asserts that summariseStep counts the result as a
+// sample and an error, with its latency.
+func TestSummariseStep_CountsClientTimeout(t *testing.T) {
+	t.Parallel()
+
+	srv := newStalledServer(t)
+	client := &http.Client{Transport: srv.Client().Transport, Timeout: clientTimeout}
+	res := Hit(t.Context(), client, srv.URL, "", rampEndpointFor(SurfacePdbCompat, "net", 1, 15169))
+
+	// net/http reports a client timeout with an error that matches
+	// context.DeadlineExceeded, as a step deadline does.
+	if !errors.Is(res.Err, context.DeadlineExceeded) {
+		t.Fatalf("Hit error = %v, want an error that matches %v", res.Err, context.DeadlineExceeded)
+	}
+	if res.Latency < clientTimeout {
+		t.Fatalf("Latency = %v, want at least the client timeout %v", res.Latency, clientTimeout)
+	}
+
+	stats := summariseStep([]Result{res}, 1, time.Second)
+	if stats.Samples != 1 {
+		t.Errorf("Samples = %d, want 1 (the timeout is a sample)", stats.Samples)
+	}
+	if stats.Errors != 1 || stats.ErrRate != 1 {
+		t.Errorf("Errors = %d, ErrRate = %v, want 1 and 1 (the timeout is an error)", stats.Errors, stats.ErrRate)
+	}
+	if stats.P99 != res.Latency {
+		t.Errorf("P99 = %v, want %v (the latency of the timeout)", stats.P99, res.Latency)
 	}
 }
 
@@ -1327,6 +1369,55 @@ func TestRunRampStep_EndsOnDurationByDefault(t *testing.T) {
 	}
 	if stats.Samples != 0 {
 		t.Errorf("Samples = %d, want 0 (the step drops requests in flight)", stats.Samples)
+	}
+}
+
+// TestRunRampStep_CountsClientTimeouts runs a step against a server
+// that answers no request, with a client timeout shorter than the
+// step. Asserts that the timed-out requests are samples with a 100%
+// error rate, and that detectInflection reports the error rate, not a
+// step without samples.
+func TestRunRampStep_CountsClientTimeouts(t *testing.T) {
+	t.Parallel()
+
+	srv := newStalledServer(t)
+	// stepGate ends the step when concurrency+gateSamples requests have
+	// started. Only the client timeout ends a request, so the step lasts
+	// several client timeouts and has at least gateSamples samples.
+	gate := &stepGate{next: srv.Client().Transport, samples: gateSamples}
+	cfg := Config{
+		Base:       srv.URL,
+		HTTPClient: &http.Client{Transport: gate, Timeout: clientTimeout},
+		Timeout:    clientTimeout,
+	}
+	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	rcfg.stepEnd = gate.stepEnd
+	// Make the latency triggers unreachable. A sample takes at least
+	// clientTimeout and less than rampTestTimeout, so p95 cannot pass
+	// clientTimeout*1e4 = 200s and p99 cannot pass an hour.
+	rcfg.P95Multiplier = 1e4
+	rcfg.P99Absolute = time.Hour
+
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+	defer cancel()
+	step, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, 2, rcfg.StepDuration, []int{1, 2}, []int{15169, 32934}, io.Discard)
+	if err != nil {
+		t.Fatalf("runRampStep: %v", err)
+	}
+
+	if step.Samples < gateSamples {
+		t.Errorf("Samples = %d, want at least %d", step.Samples, gateSamples)
+	}
+	if step.ErrRate != 1 {
+		t.Errorf("ErrRate = %v, want 1 (each request reached the client timeout)", step.ErrRate)
+	}
+	if step.P50 < clientTimeout {
+		t.Errorf("P50 = %v, want at least the client timeout %v", step.P50, clientTimeout)
+	}
+	baseline := stepStats{Concurrency: 1, Samples: gateSamples, P50: clientTimeout, P95: clientTimeout, P99: clientTimeout}
+	reason, hit := detectInflection(step, baseline, rcfg)
+	if !hit || !strings.HasPrefix(reason, "error rate 100.00%") {
+		t.Errorf("detectInflection = (%q, %v), want the error-rate reason", reason, hit)
 	}
 }
 
