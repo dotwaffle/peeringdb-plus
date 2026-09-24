@@ -2,12 +2,15 @@ package sync
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -111,7 +114,7 @@ func TestScratchDB_StageStats(t *testing.T) {
 	}
 	defer closeScratchDB(ctx, s, slog.Default())
 
-	stats, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{})
+	stats, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}, discardRows)
 	if err != nil {
 		t.Fatalf("stageType: %v", err)
 	}
@@ -168,7 +171,7 @@ func TestScratchDB_StageAndDrain(t *testing.T) {
 	}
 	defer closeScratchDB(ctx, s, slog.Default())
 
-	if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
+	if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}, discardRows); err != nil {
 		t.Fatalf("stageType: %v", err)
 	}
 
@@ -201,6 +204,180 @@ func TestScratchDB_StageAndDrain(t *testing.T) {
 		if v.ID != wantIDs[i] {
 			t.Errorf("row[%d] decoded id: got %d, want %d", i, v.ID, wantIDs[i])
 		}
+	}
+}
+
+// TestScratchDB_FailedStage asserts what a stageType call that fails part
+// way leaves in the table. With discardRows, the table keeps only the rows
+// that it had before the call. The table is larger than the 2 MiB page
+// cache, and the failed stream replaces every row, so SQLite writes
+// changed pages of the table to the file before the error. Without a
+// transaction, the rows before the error stay. With journal_mode=OFF, the
+// rollback cannot restore the written pages. With keepRows, every row
+// streamed before the error stays.
+func TestScratchDB_FailedStage(t *testing.T) {
+	t.Parallel()
+
+	const n = 2000
+	pad := strings.Repeat("x", 2000)
+	body := func(name string, truncate bool) []byte {
+		var buf strings.Builder
+		buf.WriteString(`{"meta":{},"data":[`)
+		for i := 1; i <= n; i++ {
+			if i > 1 {
+				buf.WriteString(",")
+			}
+			buf.WriteString(`{"id":`)
+			buf.WriteString(strconv.Itoa(i))
+			buf.WriteString(`,"name":"` + name + `","pad":"` + pad + `"}`)
+		}
+		if truncate {
+			buf.WriteString(`,{"id":`) // The decoder fails here.
+			return []byte(buf.String())
+		}
+		buf.WriteString(`]}`)
+		return []byte(buf.String())
+	}
+	good, bad := body("old", false), body("new", true)
+
+	tests := []struct {
+		name        string
+		onFailure   stageFailure
+		wantChanged int
+	}{
+		{"discardRows", discardRows, 0},
+		{"keepRows", keepRows, n},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if requests.Add(1) == 1 {
+					_, _ = w.Write(good)
+					return
+				}
+				_, _ = w.Write(bad)
+			}))
+			defer server.Close()
+
+			client := peeringdb.NewClient(server.URL, slog.Default())
+			client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+			client.SetRetryBaseDelay(0)
+
+			s, err := openScratchDB(ctx)
+			if err != nil {
+				t.Fatalf("openScratchDB: %v", err)
+			}
+			defer closeScratchDB(ctx, s, slog.Default())
+
+			if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}, discardRows); err != nil {
+				t.Fatalf("first stageType: %v", err)
+			}
+			if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}, tt.onFailure); err == nil {
+				t.Fatal("second stageType: got nil error for a truncated body")
+			}
+
+			rows, _, err := s.drainChunk(ctx, peeringdb.TypeOrg, 0, 2*n)
+			if err != nil {
+				t.Fatalf("drainChunk: %v", err)
+			}
+			if len(rows) != n {
+				t.Fatalf("staged %d rows after the failed stage, want %d", len(rows), n)
+			}
+			var changed int
+			for _, r := range rows {
+				var v struct {
+					Name string `json:"name"`
+				}
+				if err := json.Unmarshal(r.raw, &v); err != nil {
+					t.Fatalf("row %d unmarshal: %v", r.id, err)
+				}
+				if v.Name != "old" {
+					changed++
+				}
+			}
+			if changed != tt.wantChanged {
+				t.Errorf("%d of %d rows changed by the failed stage, want %d", changed, n, tt.wantChanged)
+			}
+		})
+	}
+}
+
+// TestScratchDB_StageErrorSource asserts that a stageType error carries
+// errScratchDB when the scratch DB fails, and not when the upstream body
+// fails. A caller tolerates only the second kind (windowFailureTolerated).
+// The scratch DB fails here because max_page_count stops it from growing.
+func TestScratchDB_StageErrorSource(t *testing.T) {
+	t.Parallel()
+
+	var buf strings.Builder
+	buf.WriteString(`{"meta":{},"data":[`)
+	for i := 1; i <= 200; i++ {
+		if i > 1 {
+			buf.WriteString(",")
+		}
+		buf.WriteString(`{"id":` + strconv.Itoa(i) + `,"pad":"` + strings.Repeat("x", 2000) + `"}`)
+	}
+	large := []byte(buf.String() + `]}`)
+
+	truncated := []byte(`{"meta":{},"data":[{"id":1},{"id":`)
+	tests := []struct {
+		name        string
+		body        []byte
+		limitPages  bool
+		onFailure   stageFailure
+		wantScratch bool
+	}{
+		// discardRows makes no commit, so only the failed insert marks
+		// the error.
+		{"scratch db full, discardRows", large, true, discardRows, true},
+		{"scratch db full, keepRows", large, true, keepRows, true},
+		{"truncated upstream body, discardRows", truncated, false, discardRows, false},
+		{"truncated upstream body, keepRows", truncated, false, keepRows, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write(tt.body)
+			}))
+			defer server.Close()
+
+			client := peeringdb.NewClient(server.URL, slog.Default())
+			client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+			client.SetRetryBaseDelay(0)
+
+			s, err := openScratchDB(ctx)
+			if err != nil {
+				t.Fatalf("openScratchDB: %v", err)
+			}
+			defer closeScratchDB(ctx, s, slog.Default())
+
+			if tt.limitPages {
+				var pages int
+				if err := s.db.QueryRowContext(ctx, "PRAGMA page_count").Scan(&pages); err != nil {
+					t.Fatalf("page_count: %v", err)
+				}
+				if _, err := s.db.ExecContext(ctx, fmt.Sprintf("PRAGMA max_page_count = %d", pages)); err != nil {
+					t.Fatalf("max_page_count: %v", err)
+				}
+			}
+
+			_, err = s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}, tt.onFailure)
+			if err == nil {
+				t.Fatal("stageType: got nil error")
+			}
+			if got := errors.Is(err, errScratchDB); got != tt.wantScratch {
+				t.Errorf("errors.Is(%v, errScratchDB) = %v, want %v", err, got, tt.wantScratch)
+			}
+		})
 	}
 }
 
@@ -241,7 +418,7 @@ func TestScratchDB_DrainChunkPagination(t *testing.T) {
 	}
 	defer closeScratchDB(ctx, s, slog.Default())
 
-	if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}); err != nil {
+	if _, err := s.stageType(ctx, client, peeringdb.TypeOrg, time.Time{}, discardRows); err != nil {
 		t.Fatalf("stageType: %v", err)
 	}
 

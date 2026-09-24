@@ -273,5 +273,73 @@ func TestSync_FullModeTombstoneWindowFailureFailsCycle(t *testing.T) {
 	}
 }
 
+// TestSync_FallbackWindowKeepsStagedTombstones covers a failed window on
+// the incremental-fallback path, where the failure is tolerated. The
+// ?since= responses stream a tombstone for org 1 and then fail, and the
+// bare snapshot has a newer org 2. Committing org 2 moves the cursor past
+// the tombstone, so no later ?since= fetch returns it. The tombstone that
+// the window streamed before the error must land.
+func TestSync_FallbackWindowKeepsStagedTombstones(t *testing.T) {
+	t.Parallel()
+
+	seeded := time.Date(2026, 4, 1, 6, 0, 0, 0, time.UTC)
+	deletedAt := seeded.Add(time.Hour)
+	newerAt := seeded.Add(2 * time.Hour)
+
+	var sinceRequests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		skip := r.URL.Query().Get("skip")
+		if strings.TrimPrefix(r.URL.Path, "/api/") != "org" || (skip != "" && skip != "0") {
+			_, _ = w.Write([]byte(`{"meta":{},"data":[]}`))
+			return
+		}
+		if r.URL.Query().Get("since") != "" {
+			sinceRequests.Add(1)
+			// The body ends part way through the second row.
+			_, _ = w.Write([]byte(`{"meta":{},"data":[` +
+				string(mustJSON(tombstoneTestOrgRow(1, "deleted", deletedAt))) + `,{"id":`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"meta":{},"data":` +
+			string(mustJSON([]any{tombstoneTestOrgRow(2, "ok", newerAt)})) + `}`))
+	}))
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	if _, err := client.Organization.Create().
+		SetID(1).SetName("Org1").
+		SetCreated(seeded).SetUpdated(seeded).SetStatus("ok").
+		Save(t.Context()); err != nil {
+		t.Fatalf("create org 1: %v", err)
+	}
+
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init status table: %v", err)
+	}
+
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{}, slog.Default())
+	if err := w.Sync(t.Context(), config.SyncModeIncremental); err != nil {
+		t.Fatalf("sync failed on a tolerated fallback window error: %v", err)
+	}
+	// The incremental attempt and the window.
+	if got := sinceRequests.Load(); got != 2 {
+		t.Errorf("?since= requests = %d, want 2", got)
+	}
+	org1, err := client.Organization.Get(t.Context(), 1)
+	if err != nil {
+		t.Fatalf("get org 1: %v", err)
+	}
+	if org1.Status != "deleted" {
+		t.Errorf("org 1 status = %q, want %q (tombstone streamed before the window failed)", org1.Status, "deleted")
+	}
+	if _, err := client.Organization.Get(t.Context(), 2); err != nil {
+		t.Errorf("snapshot row org 2 not committed: %v", err)
+	}
+}
+
 // silenceContext exists to keep the context import live across edits.
 var _ = context.Background

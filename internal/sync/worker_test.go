@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/time/rate"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -4045,6 +4046,100 @@ func TestSync_TombstoneCapture_AcrossCycles(t *testing.T) {
 	if !maxOrg2.After(maxOrg1) {
 		t.Errorf("expected MAX(updated) to advance past tombstone event (t1=%v → t2=%v); got %v → %v",
 			t1, t2, maxOrg1, maxOrg2)
+	}
+}
+
+// TestWindowFailureTolerated locks which failed tombstone windows a cycle
+// can skip: only upstream failures on an empty table or on the
+// incremental-fallback path. A scratch DB error is never skipped.
+func TestWindowFailureTolerated(t *testing.T) {
+	t.Parallel()
+	cursor := time.Date(2026, 9, 23, 12, 0, 0, 0, time.UTC)
+	upstream := errors.New("stream org to scratch: unexpected EOF")
+	local := fmt.Errorf("insert scratch org id=1: %w: disk full", errScratchDB)
+
+	tests := []struct {
+		name     string
+		err      error
+		fellBack bool
+		cursor   time.Time
+		want     bool
+	}{
+		{"upstream, full mode over a populated table", upstream, false, cursor, false},
+		{"upstream, empty table", upstream, false, time.Time{}, true},
+		{"upstream, incremental fallback", upstream, true, cursor, true},
+		{"scratch db, empty table", local, false, time.Time{}, false},
+		{"scratch db, incremental fallback", local, true, cursor, false},
+		{"scratch db joined with upstream, incremental fallback", errors.Join(upstream, local), true, cursor, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := windowFailureTolerated(tt.err, tt.fellBack, tt.cursor); got != tt.want {
+				t.Errorf("windowFailureTolerated(%v, %v, %v) = %v, want %v", tt.err, tt.fellBack, tt.cursor, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestStageOneTypeToScratch_ScratchFaultSkipsFallback asserts that a
+// scratch DB fault in the incremental attempt fails the type with no
+// fallback to a full fetch. The fallback makes a window failure
+// tolerated, and a scratch fault does not show that ?since= is broken.
+func TestStageOneTypeToScratch_ScratchFaultSkipsFallback(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	var buf strings.Builder
+	buf.WriteString(`{"meta":{},"data":[`)
+	for i := 1; i <= 200; i++ {
+		if i > 1 {
+			buf.WriteString(",")
+		}
+		buf.WriteString(`{"id":` + strconv.Itoa(i) + `,"pad":"` + strings.Repeat("x", 2000) + `"}`)
+	}
+	body := []byte(buf.String() + `]}`)
+
+	var sinceRequests, bareRequests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("since") != "" {
+			sinceRequests.Add(1)
+		} else {
+			bareRequests.Add(1)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+
+	client := peeringdb.NewClient(server.URL, slog.Default())
+	client.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	client.SetRetryBaseDelay(0)
+
+	s, err := openScratchDB(ctx)
+	if err != nil {
+		t.Fatalf("openScratchDB: %v", err)
+	}
+	defer closeScratchDB(ctx, s, slog.Default())
+	var pages int
+	if err := s.db.QueryRowContext(ctx, "PRAGMA page_count").Scan(&pages); err != nil {
+		t.Fatalf("page_count: %v", err)
+	}
+	if _, err := s.db.ExecContext(ctx, fmt.Sprintf("PRAGMA max_page_count = %d", pages)); err != nil {
+		t.Fatalf("max_page_count: %v", err)
+	}
+
+	w := &Worker{pdbClient: client, logger: slog.New(slog.DiscardHandler)}
+	cursor := time.Date(2026, 9, 23, 12, 0, 0, 0, time.UTC)
+	_, err = w.stageOneTypeToScratch(ctx, s, peeringdb.TypeOrg, config.SyncModeIncremental, cursor, trace.SpanFromContext(ctx))
+	if !errors.Is(err, errScratchDB) {
+		t.Fatalf("stageOneTypeToScratch error = %v, want errScratchDB", err)
+	}
+	if got := sinceRequests.Load(); got != 1 {
+		t.Errorf("?since= requests = %d, want 1", got)
+	}
+	if got := bareRequests.Load(); got != 0 {
+		t.Errorf("bare-list requests = %d, want 0 (no fallback)", got)
 	}
 }
 

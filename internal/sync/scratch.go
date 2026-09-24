@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -55,9 +56,20 @@ type scratchDB struct {
 // to both close the handle and unlink the file.
 //
 // SQLite pragmas:
-//   - journal_mode=OFF — no WAL/rollback journal. The scratch DB is
-//     transient, so crash-safety is irrelevant. A crashed process leaves
-//     its file behind, and no later openScratchDB call uses that name.
+//   - journal_mode=MEMORY: the rollback journal is in memory, not in a
+//     file. The scratch DB is transient, so crash-safety is irrelevant. A
+//     crashed process leaves its file behind, and no later openScratchDB
+//     call uses that name. stageType can roll back a failed transaction,
+//     and the rollback needs the journal. With journal_mode=OFF, the changed
+//     pages that SQLite already wrote to the file stay after a rollback.
+//     The journal holds the original pages that a transaction changes: a
+//     few pages when a stage fills an empty table, and more when a
+//     tombstone window replaces staged rows. In a test with a copy of the
+//     production data, a window that replaced every staged row raised peak
+//     RSS by 95 MiB. A window of 1000 rows for each table raised it by
+//     9 MiB or less. A journal file would write the same pages to the
+//     temp directory, which is on the root file system in production, and
+//     Fly.io limits that disk to 8 MiB/s.
 //   - synchronous=OFF — skip fsyncs. Writes go straight to the OS page
 //     cache; correctness is preserved because SQLite is the only writer.
 //
@@ -90,9 +102,9 @@ func openScratchDB(ctx context.Context) (*scratchDB, error) {
 	// 2000 pages ≈ 8 MB, but for bulk staging we read rows sequentially
 	// in chunks and never revisit older ones, so a tiny cache is fine.
 	// Negative cache_size is in KiB (positive is pages); -2048 = 2 MiB.
-	// Combined with journal_mode=OFF and synchronous=OFF this keeps the
-	// scratch SQLite process's non-Go-heap footprint minimal.
-	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=journal_mode(OFF)&_pragma=synchronous(OFF)&_pragma=cache_size(-2048)")
+	// With synchronous=OFF, this keeps the non-Go-heap footprint of the
+	// scratch DB small.
+	db, err := sql.Open("sqlite", "file:"+path+"?_pragma=journal_mode(MEMORY)&_pragma=synchronous(OFF)&_pragma=cache_size(-2048)")
 	if err != nil {
 		return nil, fmt.Errorf("open scratch db at %s: %w", path, err)
 	}
@@ -169,16 +181,29 @@ func closeScratchDB(ctx context.Context, s *scratchDB, logger *slog.Logger) {
 // stmt for the next row. Peak Go heap is bounded to one handler
 // invocation's buffer.
 //
+// All rows of one call go in one transaction. With one autocommit
+// transaction for each row, SQLite took a file lock, checked for a hot
+// journal and committed for every row: about 8 s of CPU in syscalls for
+// the two stages of each type in a full cycle at production row counts.
+// onFailure sets what a failed call does with the rows that it streamed
+// before the error (see stageFailure).
+//
 // Errors wrap the objectType for operator diagnostics. Cursors derive
 // from MAX(updated) per entity table (see cursor.go); the returned
 // stageStats bound the follow-up window fetch after a full snapshot.
-func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, objectType string, since time.Time) (stageStats, error) {
+func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, objectType string, since time.Time, onFailure stageFailure) (stageStats, error) {
 	// #nosec G201 — objectType is validated against the closed-set scratchTypes list
 	// at schema creation time; SQL injection is not possible.
 	insertSQL := fmt.Sprintf("INSERT OR REPLACE INTO %q (id, data) VALUES (?, ?)", objectType)
-	stmt, err := s.db.PrepareContext(ctx, insertSQL)
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return stageStats{}, fmt.Errorf("prepare scratch insert %s: %w", objectType, err)
+		return stageStats{}, fmt.Errorf("begin scratch stage %s: %w: %w", objectType, errScratchDB, err)
+	}
+	// Rolls back a failed discardRows stage. After Commit it does nothing.
+	defer func() { _ = tx.Rollback() }()
+	stmt, err := tx.PrepareContext(ctx, insertSQL)
+	if err != nil {
+		return stageStats{}, fmt.Errorf("prepare scratch insert %s: %w: %w", objectType, errScratchDB, err)
 	}
 	defer func() { _ = stmt.Close() }()
 
@@ -201,7 +226,7 @@ func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, 
 			stats.maxUpdated = updated
 		}
 		if _, err := stmt.ExecContext(ctx, row.ID, []byte(raw)); err != nil {
-			return fmt.Errorf("insert scratch %s id=%d: %w", objectType, row.ID, err)
+			return fmt.Errorf("insert scratch %s id=%d: %w: %w", objectType, row.ID, errScratchDB, err)
 		}
 		return nil
 	}
@@ -212,11 +237,40 @@ func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, 
 	}
 	meta, err := pdbClient.StreamAll(ctx, objectType, handler, opts...)
 	if err != nil {
-		return stageStats{}, fmt.Errorf("stream %s to scratch: %w", objectType, err)
+		err = fmt.Errorf("stream %s to scratch: %w", objectType, err)
+		if onFailure == keepRows {
+			if cerr := tx.Commit(); cerr != nil {
+				err = errors.Join(err, fmt.Errorf("commit partial scratch stage %s: %w: %w", objectType, errScratchDB, cerr))
+			}
+		}
+		return stageStats{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return stageStats{}, fmt.Errorf("commit scratch stage %s: %w: %w", objectType, errScratchDB, err)
 	}
 	stats.generated = meta.Generated
 	return stats, nil
 }
+
+// errScratchDB marks a stageType error from the scratch DB itself (begin,
+// prepare, insert or commit), not from the upstream response. A caller
+// that tolerates a failed upstream fetch must not tolerate this error: the
+// rows that the failed write lost can include tombstones.
+var errScratchDB = errors.New("scratch db")
+
+// stageFailure sets what a failed stageType call does with the rows that
+// it streamed before the error.
+type stageFailure int
+
+const (
+	// discardRows rolls the rows back. The table keeps only the rows that
+	// it had before the call.
+	discardRows stageFailure = iota
+	// keepRows commits the rows. Use it for a ?since= window on top of a
+	// snapshot: each window row is a newer upstream version of its row,
+	// so each one that is staged is an improvement.
+	keepRows
+)
 
 // stageStats describes the response that one stageType call staged.
 type stageStats struct {
