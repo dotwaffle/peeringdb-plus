@@ -5,9 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -222,41 +225,29 @@ func TestParseSurfaces_RoundTrip(t *testing.T) {
 
 // rampTestServer wraps an httptest server that injects synthetic
 // latency proportional to in-flight concurrency, optionally returning
-// 500 once concurrency exceeds a threshold. Used to deterministically
-// trigger ramp inflection from inside the unit test.
+// 500 for requests from ramp steps at or above a concurrency threshold.
+// Used to trigger ramp inflection from inside the unit test.
 type rampTestServer struct {
 	srv      *httptest.Server
 	inflight atomic.Int32
 	hits     atomic.Int64
-	// per-surface first-hit timestamps for the ordering test
-	mu        sync.Mutex
-	firstSeen map[Surface]time.Time
 	// behaviour knobs
 	baseLatency  time.Duration
 	perReqExtra  time.Duration
-	errorCThresh int32 // when >0, return 500 once inflight >= this value
+	errorCThresh int // when >0, return 500 if the step concurrency >= this value
 }
 
-// newRampTestServer constructs a configurable httptest backend that
-// classifies each request by the surface inferred from URL prefix
-// and stamps first-seen timestamps for the sequential-surface test.
-func newRampTestServer(tb testing.TB, base time.Duration, extra time.Duration, errorThreshold int32) *rampTestServer {
+// newRampTestServer constructs a configurable httptest backend. The
+// error threshold needs a stepGate transport: the server reads the
+// step concurrency from stepConcurrencyHeader.
+func newRampTestServer(tb testing.TB, base time.Duration, extra time.Duration, errorThreshold int) *rampTestServer {
 	tb.Helper()
 	rts := &rampTestServer{
 		baseLatency:  base,
 		perReqExtra:  extra,
 		errorCThresh: errorThreshold,
-		firstSeen:    map[Surface]time.Time{},
 	}
 	rts.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		surface := surfaceFromPath(r.URL.Path)
-		now := time.Now()
-		rts.mu.Lock()
-		if _, ok := rts.firstSeen[surface]; !ok && surface != "" {
-			rts.firstSeen[surface] = now
-		}
-		rts.mu.Unlock()
-
 		c := rts.inflight.Add(1)
 		defer rts.inflight.Add(-1)
 		rts.hits.Add(1)
@@ -270,7 +261,11 @@ func newRampTestServer(tb testing.TB, base time.Duration, extra time.Duration, e
 		case <-r.Context().Done():
 			return
 		}
-		if rts.errorCThresh > 0 && c >= rts.errorCThresh {
+		// The error decision uses the step concurrency, not the
+		// in-flight count: under CPU load the requests of a step do not
+		// always overlap at the server.
+		stepC, _ := strconv.Atoi(r.Header.Get(stepConcurrencyHeader))
+		if rts.errorCThresh > 0 && stepC >= rts.errorCThresh {
 			http.Error(w, "synthetic 500", http.StatusInternalServerError)
 			return
 		}
@@ -283,8 +278,8 @@ func newRampTestServer(tb testing.TB, base time.Duration, extra time.Duration, e
 	return rts
 }
 
-// surfaceFromPath maps a URL path back to the Surface for first-seen
-// bookkeeping. Order matters: /api/ comes before /rest/ in the
+// surfaceFromPath maps a URL path back to the Surface for the request
+// log of stepGate. Order matters: /api/ comes before /rest/ in the
 // switch by convention, but each branch is mutually exclusive.
 func surfaceFromPath(p string) Surface {
 	switch {
@@ -303,9 +298,126 @@ func surfaceFromPath(p string) Surface {
 	}
 }
 
+// stepConcurrencyHeader carries the concurrency of the ramp step that
+// sent a request. stepGate sets it and rampTestServer reads it.
+const stepConcurrencyHeader = "X-Test-Step-Concurrency"
+
+// gateSamples is the minimum number of samples in each step of a ramp
+// that runs through stepGate.
+const gateSamples = 8
+
+// rampTestTimeout bounds each ramp test. A ramp through stepGate has no
+// wall-clock steps, so this is the only time limit.
+const rampTestTimeout = 30 * time.Second
+
+// stepGate is a step clock for RampConfig.stepEnd and the HTTP
+// transport of the ramp. It ends each step after the workers of the
+// step start concurrency+samples requests. A worker sends the sample of
+// a request before it starts its next request, so the step then has at
+// least `samples` samples. A slow machine only makes the step longer.
+type stepGate struct {
+	next    http.RoundTripper
+	samples int
+
+	mu       sync.Mutex
+	steps    []gateStep // each step of the ramp, in run order
+	requests []Surface  // surface of each request start and end, in order
+}
+
+// gateStep is one ramp step as the ramp asked stepGate for it.
+type gateStep struct {
+	concurrency int
+	dur         time.Duration
+}
+
+// gateRunKey is the context key of the *gateRun of a step.
+type gateRunKey struct{}
+
+// gateRun is the state of one running step. It travels in the step
+// context, so the requests of a step always count against that step.
+type gateRun struct {
+	concurrency int
+	cancel      context.CancelFunc
+	started     atomic.Int64
+}
+
+// gatedRamp returns the configs for a ramp against rts whose steps end
+// through a stepGate instead of on the wall clock.
+func gatedRamp(rts *rampTestServer, surfaces []Surface) (Config, RampConfig, *stepGate) {
+	gate := &stepGate{next: rts.srv.Client().Transport, samples: gateSamples}
+	cfg := Config{Base: rts.srv.URL, HTTPClient: &http.Client{Transport: gate}, Timeout: 5 * time.Second}
+	rcfg := shortRampConfig(surfaces)
+	rcfg.stepEnd = gate.stepEnd
+	return cfg, rcfg, gate
+}
+
+// stepEnd records the step and returns a context that RoundTrip
+// cancels when the step has enough samples.
+func (g *stepGate) stepEnd(ctx context.Context, concurrency int, dur time.Duration) (context.Context, context.CancelFunc) {
+	g.mu.Lock()
+	g.steps = append(g.steps, gateStep{concurrency: concurrency, dur: dur})
+	g.mu.Unlock()
+	run := &gateRun{concurrency: concurrency}
+	stepCtx, cancel := context.WithCancel(context.WithValue(ctx, gateRunKey{}, run))
+	run.cancel = cancel
+	return stepCtx, cancel
+}
+
+// RoundTrip counts the request against its step, ends the step when
+// the count reaches concurrency+samples, and tells the server the step
+// concurrency.
+func (g *stepGate) RoundTrip(r *http.Request) (*http.Response, error) {
+	run, ok := r.Context().Value(gateRunKey{}).(*gateRun)
+	if !ok {
+		if r.Body != nil {
+			_ = r.Body.Close()
+		}
+		return nil, errors.New("stepGate: request outside a ramp step")
+	}
+	if run.started.Add(1) >= int64(run.concurrency+g.samples) {
+		run.cancel()
+	}
+	surface := surfaceFromPath(r.URL.Path)
+	g.logRequest(surface)
+	defer g.logRequest(surface)
+
+	r = r.Clone(r.Context())
+	r.Header.Set(stepConcurrencyHeader, strconv.Itoa(run.concurrency))
+	return g.next.RoundTrip(r)
+}
+
+func (g *stepGate) logRequest(s Surface) {
+	g.mu.Lock()
+	g.requests = append(g.requests, s)
+	g.mu.Unlock()
+}
+
+// stepLog returns the steps that the ramp ran, in order.
+func (g *stepGate) stepLog() []gateStep {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return slices.Clone(g.steps)
+}
+
+// surfaceOrder returns the surfaces in the order of their requests,
+// with repeats removed. A surface appears more than once when its
+// requests overlap or alternate with the requests of another surface.
+func (g *stepGate) surfaceOrder() []Surface {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return slices.Compact(slices.Clone(g.requests))
+}
+
+// rampRow returns the start of the markdown row for a step label at
+// concurrency c, in the emitMarkdown format.
+func rampRow(label string, c int) string {
+	return fmt.Sprintf("| %-18s | %3d |", label, c)
+}
+
 // shortRampConfig returns a RampConfig with tiny step/hold durations
 // (50ms / 100ms) and small max-concurrency so the test runs in well
-// under a second per surface.
+// under a second per surface. A ramp from gatedRamp does not use the
+// durations to end its steps.
 func shortRampConfig(surfaces []Surface) RampConfig {
 	return RampConfig{
 		Entity:             "net",
@@ -360,33 +472,38 @@ func TestRamp_Inflection_TriggersOnP99Absolute(t *testing.T) {
 }
 
 // TestRamp_Inflection_TriggersOnErrorRate drives a ramp against a
-// server that returns 500 once in-flight >= 4. Asserts the markdown
-// records an inflection step driven by the error-rate trigger.
+// server that returns 500 for every request of a step with
+// concurrency >= 4. Asserts the markdown records the inflection at
+// C=4, driven by the error-rate trigger.
 func TestRamp_Inflection_TriggersOnErrorRate(t *testing.T) {
 	t.Parallel()
 
 	rts := newRampTestServer(t, 5*time.Millisecond, 0, 4)
-	cfg := Config{Base: rts.srv.URL, HTTPClient: rts.srv.Client(), Timeout: 5 * time.Second}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
-	// Make the p99 trigger unreachable so error-rate is the only
-	// path that can fire inflection — keeps the test deterministic.
-	rcfg.P99Absolute = 10 * time.Second
-	rcfg.P95Multiplier = 100.0
+	cfg, rcfg, _ := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	// Make the latency triggers unreachable so error rate is the only
+	// trigger that can fire. A sample takes at least the 5ms server
+	// latency and less than rampTestTimeout, so p95 cannot pass
+	// 5ms*1e4 = 50s and p99 cannot pass an hour.
+	rcfg.P99Absolute = time.Hour
+	rcfg.P95Multiplier = 1e4
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
 	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
 
 	out := stdout.String()
-	if !strings.Contains(out, "inflection") {
-		t.Errorf("output missing 'inflection' label\n%s", out)
+	if want := rampRow("inflection", 4); !strings.Contains(out, want) {
+		t.Errorf("output missing row %q\n%s", want, out)
 	}
-	if !strings.Contains(out, "error rate") {
-		t.Errorf("inflection reason should cite error rate\n%s", out)
+	if want := "inflection reason: error rate 100.00%"; !strings.Contains(out, want) {
+		t.Errorf("output missing %q\n%s", want, out)
 	}
 }
 
@@ -436,80 +553,89 @@ func TestRamp_NoInflection_ReportsAllSteps(t *testing.T) {
 }
 
 // TestRamp_HoldDuration_PastInflection asserts that after inflection
-// the ramp emits at least a hold step and one inflection+1 step
-// (subject to MaxConcurrency).
+// the ramp holds the inflection concurrency for HoldDuration and then
+// runs the inflection+1 and inflection+2 steps.
 func TestRamp_HoldDuration_PastInflection(t *testing.T) {
 	t.Parallel()
 
 	// Drive inflection via the err-rate threshold: server returns 500
-	// once in-flight concurrency >= 2, which triggers the 1% err-rate
-	// trigger at the very first step past baseline. This leaves
-	// headroom for hold + past steps before MaxConcurrency=16.
+	// for every request of a step with concurrency >= 2, which triggers
+	// the 1% err-rate trigger at the very first step past baseline.
+	// This leaves headroom for hold + past steps before
+	// MaxConcurrency=16.
 	rts := newRampTestServer(t, 5*time.Millisecond, 0, 2)
-	cfg := Config{Base: rts.srv.URL, HTTPClient: rts.srv.Client(), Timeout: 5 * time.Second}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	cfg, rcfg, gate := gatedRamp(rts, []Surface{SurfacePdbCompat})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
 	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
 
+	// Baseline, inflection at C=2, hold at C=2 for HoldDuration, then
+	// two steps past the inflection.
+	wantSteps := []gateStep{
+		{concurrency: 1, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.HoldDuration},
+		{concurrency: 4, dur: rcfg.StepDuration},
+		{concurrency: 8, dur: rcfg.StepDuration},
+	}
+	if got := gate.stepLog(); !slices.Equal(got, wantSteps) {
+		t.Errorf("ramp steps = %+v, want %+v", got, wantSteps)
+	}
 	out := stdout.String()
-	if !strings.Contains(out, "| baseline") {
-		t.Errorf("output missing baseline row\n%s", out)
-	}
-	if !strings.Contains(out, "| inflection") {
-		t.Errorf("output missing inflection row\n%s", out)
-	}
-	// At least one of "| hold" or "| inflection+1" must be present —
-	// MaxConcurrency=16 leaves headroom for at least the hold step
-	// after typical inflection at C=2 or 4.
-	if !strings.Contains(out, "| hold") && !strings.Contains(out, "| inflection+1") {
-		t.Errorf("output should contain hold or inflection+1 row\n%s", out)
+	for _, want := range []string{
+		rampRow("baseline", 1),
+		rampRow("inflection", 2),
+		rampRow("hold", 2),
+		rampRow("inflection+1", 4),
+		rampRow("inflection+2", 8),
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing row %q\n%s", want, out)
+		}
 	}
 }
 
 // TestRamp_PerSurface_Sequential drives a multi-surface ramp and
 // asserts surfaces are exercised one-at-a-time in the order
-// specified by --surfaces. Each surface's first-hit timestamp must
-// be strictly later than the previous surface's last-hit.
+// specified by --surfaces. Each request of a surface must start and
+// end before the first request of the next surface starts.
 func TestRamp_PerSurface_Sequential(t *testing.T) {
 	t.Parallel()
 
 	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0)
-	cfg := Config{Base: rts.srv.URL, HTTPClient: rts.srv.Client(), Timeout: 5 * time.Second}
 
 	// Use only 2 surfaces to keep the test runtime bounded; the
 	// invariant we're checking is monotonic-by-surface, not all 5.
 	order := []Surface{SurfaceGraphQL, SurfacePdbCompat}
-	rcfg := shortRampConfig(order)
+	cfg, rcfg, gate := gatedRamp(rts, order)
 	// Cap the ramp early so each surface only spends a handful of
 	// steps before we move to the next.
 	rcfg.P99Absolute = 1 * time.Microsecond // any non-zero latency triggers inflection
 	rcfg.MaxConcurrency = 2
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
 	}
-
-	rts.mu.Lock()
-	t1, ok1 := rts.firstSeen[order[0]]
-	t2, ok2 := rts.firstSeen[order[1]]
-	rts.mu.Unlock()
-
-	if !ok1 || !ok2 {
-		t.Fatalf("missing first-seen for %v / %v: ok1=%v ok2=%v", order[0], order[1], ok1, ok2)
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
 	}
-	if !t2.After(t1) {
-		t.Errorf("surface %v first-seen %v should be strictly after %v first-seen %v",
-			order[1], t2, order[0], t1)
+
+	// The transport logs the start and the end of each request. The
+	// requests of each surface must form one run, in the given order.
+	if got := gate.surfaceOrder(); !slices.Equal(got, order) {
+		t.Errorf("surfaces in request order = %v, want %v", got, order)
 	}
 
 	out := stdout.String()
@@ -1009,6 +1135,41 @@ func TestSummariseStep_NoCanceled_PreservesPriorBehavior(t *testing.T) {
 	}
 	if stats.ErrRate != 0.25 {
 		t.Errorf("ErrRate = %v, want 0.25 (1/4)", stats.ErrRate)
+	}
+}
+
+// TestRunRampStep_EndsOnDurationByDefault asserts that a step without
+// RampConfig.stepEnd ends after its duration, also when no request
+// completes. This is the production path.
+func TestRunRampStep_EndsOnDurationByDefault(t *testing.T) {
+	t.Parallel()
+
+	// The server holds every request until the client cancels it.
+	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+	defer cancel()
+	cfg := Config{Base: srv.URL, HTTPClient: srv.Client(), Timeout: 5 * time.Second}
+	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+	const dur = 50 * time.Millisecond
+
+	start := time.Now()
+	stats, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, 2, dur, []int{1, 2}, []int{15169, 32934}, io.Discard)
+	elapsed := time.Since(start)
+	if err != nil {
+		t.Fatalf("runRampStep: %v", err)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("step did not end before the test deadline")
+	}
+	if elapsed < dur {
+		t.Errorf("step ended after %v, want at least %v", elapsed, dur)
+	}
+	if stats.Samples != 0 {
+		t.Errorf("Samples = %d, want 0 (the step drops requests in flight)", stats.Samples)
 	}
 }
 
