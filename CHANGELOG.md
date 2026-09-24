@@ -10,6 +10,15 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- The app can export the LiteFS metrics of each node as
+  `pdbplus.litefs.*` OTel instruments: transaction ID, commits, LTX file
+  size and count, apply lag, replication lag and connected replicas.
+  Set `PDBPLUS_LITEFS_METRICS_URL` to the LiteFS metrics endpoint to
+  turn this on. The default is off, because LiteFS runs only in the
+  Fly.io deployment. `fly.toml` sets `http://localhost:20202/metrics`.
+
 ### Changed
 
 - The primary now retries its short writes when SQLite reports a lock
