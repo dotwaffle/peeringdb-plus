@@ -25,7 +25,14 @@ are in the Git history at their tags.
   primary volume. Before this release, a full cycle wrote about 100 MB of
   scratch data to `/tmp` on the root file system, which Fly.io limits to
   2000 IOPS and 8 MiB/s. LiteFS does not read or remove files in the
-  scratch directory.
+  scratch directory. Each process that stages a cycle in a set directory
+  holds a shared `flock` lock on `.pdbplus-scratch.lock` in it, and the
+  sweep needs the exclusive lock. Thus the sweep never removes the file
+  of another live process. When another process holds a lock, the sweep
+  is skipped with a WARN. When a cycle cannot get the shared lock, it
+  stages in `os.TempDir()` with a WARN. The directory must not be a
+  shared temp dir such as `/tmp`, because a process that stages in
+  `os.TempDir()` takes no lock.
 
 ### Changed
 

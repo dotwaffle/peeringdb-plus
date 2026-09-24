@@ -203,10 +203,11 @@ func closeScratchDB(ctx context.Context, s *scratchDB, logger *slog.Logger) {
 //
 // The sweep removes only regular files whose name starts with
 // scratchFilePrefix. It keeps directories, symbolic links and all other
-// files. It cannot tell the file of a live process from a stale file, so
-// dir must belong to one process. An empty dir means os.TempDir(), which
-// other processes share, so the sweep does nothing. A missing dir has no
-// files to remove.
+// files, which include the lock file. It cannot tell the file of a live
+// process from a stale file, so the caller must hold the exclusive lock
+// of dir (see scratchDirLock). An empty dir means os.TempDir(), which
+// other processes share without the lock, so the sweep does nothing. A
+// missing dir has no files to remove.
 //
 // It logs a WARN with the counts when it removed files, and a DEBUG when
 // it removed none. It logs an error at WARN and does not return it,
@@ -264,8 +265,17 @@ func sweepStaleScratchFiles(ctx context.Context, dir string, logger *slog.Logger
 // The run holds the running latch, so it cannot remove the live file of
 // a cycle that POST /sync started. When a cycle holds the latch, the
 // sweep is skipped, and the stale files stay until the next start.
+//
+// The sweep also needs the exclusive lock of the directory (see
+// scratchDirLock), so it cannot remove the live file of another process
+// that uses the directory. When another process holds a lock, the sweep
+// is skipped. After the sweep, or when another process holds a lock,
+// this process takes the shared lock and keeps it. When the lock fails
+// for another reason, the sweep is skipped, and the first cycle tries to
+// take the shared lock again (see scratchDirForCycle).
 func (w *Worker) sweepScratchDirAtStartup(ctx context.Context) {
-	if w.config.ScratchDir == "" {
+	dir := w.config.ScratchDir
+	if dir == "" {
 		return
 	}
 	if !w.running.CompareAndSwap(false, true) {
@@ -273,7 +283,34 @@ func (w *Worker) sweepScratchDirAtStartup(ctx context.Context) {
 		return
 	}
 	defer w.running.Store(false)
-	sweepStaleScratchFiles(ctx, w.config.ScratchDir, w.logger)
+	err := w.scratchLock.lockExclusive(dir)
+	switch {
+	case err == nil:
+		sweepStaleScratchFiles(ctx, dir, w.logger)
+	case errors.Is(err, errScratchDirInUse):
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "scratch dir in use by another process, skipping stale file sweep",
+			slog.String("dir", dir),
+		)
+	default:
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to lock scratch dir, skipping stale file sweep",
+			slog.String("dir", dir),
+			slog.Any("error", err),
+		)
+		return
+	}
+	// With the shared lock, another process cannot sweep the files of
+	// the cycles of this process. After the sweep, flock converts the
+	// exclusive lock, and the conversion is not atomic: flock releases the
+	// exclusive lock first, so another process can sweep in the gap. This
+	// is safe, because this process holds the running latch and has no
+	// live scratch file now.
+	if err := w.scratchLock.lockShared(dir); err != nil {
+		// The first cycle tries again (see scratchDirForCycle).
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "failed to take shared scratch dir lock",
+			slog.String("dir", dir),
+			slog.Any("error", err),
+		)
+	}
 }
 
 // stageType streams a single PeeringDB type's full response into the

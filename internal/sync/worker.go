@@ -165,8 +165,11 @@ type WorkerConfig struct {
 	// ScratchDir is the directory of the scratch database of each sync
 	// cycle (see openScratchDB). Empty means os.TempDir(). When it is
 	// set, StartScheduler removes stale scratch files from it on the
-	// primary (see sweepStaleScratchFiles), so the directory must belong
-	// to one process. Wired from PDBPLUS_SCRATCH_DIR.
+	// primary (see sweepStaleScratchFiles). The sweep skips the
+	// directory while another process holds its lock (see
+	// scratchDirLock). A process that stages in os.TempDir() takes no
+	// lock, so the directory must not be a shared temp dir. Wired from
+	// PDBPLUS_SCRATCH_DIR.
 	ScratchDir string
 }
 
@@ -282,6 +285,10 @@ type Worker struct {
 	// the top of each Sync; single-writer because Worker.running
 	// serializes cycles.
 	cyclePeakHeapBytes int64
+	// scratchLock is the lock of this process on WorkerConfig.ScratchDir
+	// (see scratchDirLock). The startup sweep and scratchDirForCycle
+	// take it. The process keeps it until it exits.
+	scratchLock scratchDirLock
 }
 
 // fkOrphanKey is the dimension grouping a single class of FK-orphan
@@ -801,7 +808,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	prevMemLimit := debug.SetMemoryLimit(syncMemLimit)
 	defer debug.SetMemoryLimit(prevMemLimit)
 
-	scratch, err := openScratchDB(ctx, w.config.ScratchDir)
+	scratch, err := openScratchDB(ctx, w.scratchDirForCycle(ctx))
 	if err != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err

@@ -340,6 +340,10 @@ The directory is outside the `/litefs` FUSE mount,
 so LiteFS does not replicate the scratch files.
 A crashed process leaves its scratch file,
 so the primary removes stale scratch files at scheduler start.
+The sweep needs an exclusive `flock` lock on `.pdbplus-scratch.lock`
+in the directory.
+Each process that stages a cycle there holds a shared lock,
+so the sweep never removes the live file of another process.
 The `[env]` block applies to both groups.
 Replicas normally do not run the sync worker.
 A replica machine that takes the lease (see [Regional rollout](#regional-rollout))

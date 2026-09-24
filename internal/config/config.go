@@ -270,9 +270,11 @@ type Config struct {
 	// os.TempDir(). A set value must be an absolute path. The worker
 	// creates the directory when it is missing. On the primary, the
 	// scheduler removes stale scratch files from a set directory at
-	// start, so the directory must belong to one process. Fly.io sets a
-	// directory on the primary volume, which is faster than the root
-	// file system.
+	// start. A lock file keeps the sweep away from the files of other
+	// processes that use the directory, but a process that stages in
+	// os.TempDir() takes no lock. Thus the directory must not be a shared
+	// temp dir. Fly.io sets a directory on the primary volume, which is
+	// faster than the root file system.
 	ScratchDir string
 }
 

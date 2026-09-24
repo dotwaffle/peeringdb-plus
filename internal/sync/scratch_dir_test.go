@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -29,6 +30,15 @@ func writeScratchTestFile(t *testing.T, dir, name string, size int) {
 	if err := os.WriteFile(filepath.Join(dir, name), make([]byte, size), 0o600); err != nil {
 		t.Fatalf("write %s: %v", name, err)
 	}
+}
+
+// setScratchDir sets the scratch dir of w to dir. The test cleanup
+// releases the scratch dir lock of w, which a worker keeps until the
+// process exits.
+func setScratchDir(t *testing.T, w *Worker, dir string) {
+	t.Helper()
+	w.config.ScratchDir = dir
+	t.Cleanup(func() { _ = w.scratchLock.close() })
 }
 
 // dirNames returns the sorted names of the entries in dir.
@@ -226,12 +236,15 @@ func TestStartScheduler_SweepsScratchDir(t *testing.T) {
 
 	t.Run("primary", func(t *testing.T) {
 		t.Parallel()
+		if runtime.GOOS != "linux" {
+			t.Skip("the startup sweep needs the scratch dir lock, which uses Linux flock")
+		}
 		f := newFixture(t)
 		w, db := newTestWorker(t, f)
 		var buf *logBuffer
 		w.logger, buf = newSweepLogger()
 		dir := t.TempDir()
-		w.config.ScratchDir = dir
+		setScratchDir(t, w, dir)
 		writeScratchTestFile(t, dir, "pdbplus-sync-scratch-crashed.db", 64)
 		writeScratchTestFile(t, dir, "keep.txt", 1)
 
@@ -274,8 +287,8 @@ func TestStartScheduler_SweepsScratchDir(t *testing.T) {
 		cancel()
 		<-done
 
-		if got := dirNames(t, dir); !slices.Equal(got, []string{"keep.txt"}) {
-			t.Errorf("scratch dir after start = %v, want [keep.txt]", got)
+		if got, want := dirNames(t, dir), []string{scratchLockName, "keep.txt"}; !slices.Equal(got, want) {
+			t.Errorf("scratch dir after start = %v, want %v", got, want)
 		}
 		if calls := f.callCount.Load(); calls != 0 {
 			t.Errorf("got %d upstream calls, want 0 (no sync cycle is due)", calls)
@@ -294,7 +307,7 @@ func TestStartScheduler_SweepsScratchDir(t *testing.T) {
 		w, _ := newTestWorker(t, f)
 		w.config.IsPrimary = func() bool { return false }
 		dir := t.TempDir()
-		w.config.ScratchDir = dir
+		setScratchDir(t, w, dir)
 		writeScratchTestFile(t, dir, "pdbplus-sync-scratch-crashed.db", 64)
 
 		// A done ctx makes a replica scheduler return after its startup
@@ -319,7 +332,7 @@ func TestSweepScratchDirAtStartup_SkipsWhileSyncRuns(t *testing.T) {
 	var buf *logBuffer
 	w.logger, buf = newSweepLogger()
 	dir := t.TempDir()
-	w.config.ScratchDir = dir
+	setScratchDir(t, w, dir)
 	writeScratchTestFile(t, dir, "pdbplus-sync-scratch-live.db", 64)
 
 	w.running.Store(true)
@@ -341,19 +354,21 @@ func TestSweepScratchDirAtStartup_SkipsWhileSyncRuns(t *testing.T) {
 
 // TestSync_UsesScratchDir verifies that a sync cycle stages its scratch
 // database in the configured directory and removes the file at the end.
+// The lock file stays.
 func TestSync_UsesScratchDir(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
 	w, _ := newTestWorker(t, f)
 	dir := filepath.Join(t.TempDir(), "scratch")
-	w.config.ScratchDir = dir
+	setScratchDir(t, w, dir)
 
 	if err := w.Sync(t.Context(), config.SyncModeFull); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 	// The cycle created the missing directory for its scratch file.
-	if names := dirNames(t, dir); len(names) != 0 {
-		t.Errorf("scratch dir after sync = %v, want empty", names)
+	names := slices.DeleteFunc(dirNames(t, dir), func(n string) bool { return n == scratchLockName })
+	if len(names) != 0 {
+		t.Errorf("scratch dir after sync = %v, want only the lock file", names)
 	}
 }
