@@ -880,10 +880,12 @@ func TestParity_Status(t *testing.T) {
 	t.Run("DIVERGENCE_poc_tombstone_outlives_upstream_retention", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream hard deletes a soft-deleted poc when its
-		// updated value is POC_DELETION_PERIOD (default 30 days) old. It
-		// is the only upstream hard delete. After that, a ?since= window
-		// that covers the deletion no longer returns the tombstone. The
-		// mirror keeps every tombstone, so the window still returns it.
+		// updated value is POC_DELETION_PERIOD (default 30 days) old.
+		// After that, a ?since= window that covers the deletion no longer
+		// returns the tombstone. The mirror keeps every tombstone, so the
+		// window still returns it. Upstream documents the poc purge as its
+		// only hard delete; pdb_rir_status is another
+		// (DIVERGENCE_deleted_net_netixlan_tombstone_in_since_window).
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 management/commands/pdb_delete_pocs.py:34-38,58
@@ -920,6 +922,75 @@ func TestParity_Status(t *testing.T) {
 		for _, key := range []string{"name", "phone", "email", "url"} {
 			if got := rows[0][key]; got != "" {
 				t.Errorf("retained tombstone %s = %v, want \"\"", key, got)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_deleted_net_netixlan_tombstone_in_since_window", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: when the RIR reclaims the ASN of a network,
+		// upstream pdb_rir_status removes the live connections (ok,
+		// not-operational) of the network with an SQL delete, then
+		// soft-deletes the network. The connections get no tombstone, so
+		// a ?since= window returns nothing for them, and ?id=<id>&since=N
+		// answers 404 Entity not found. Sync marks such a connection
+		// deleted with operational false and keeps its updated value, so
+		// the window returns the tombstone and the id query answers 200.
+		// The seed is the state that the sync cascade leaves.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 management/commands/pdb_rir_status.py:440-443
+		// + models.py:5720-5725 (netixlan_set_active)
+		// + models.py:109-122 (live_statuses)
+		// + rest.py:809-815 (unique-query 404)
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		last := t0.Add(time.Hour)
+		mustOrg(ctx, t, c, 1, "ReclaimOrg", t0)
+		mustIX(ctx, t, c, 20, "ReclaimIX", 1, t0)
+		mustIxLan(ctx, t, c, 200, "ReclaimLAN", 20, t0)
+		if _, err := c.Network.Create().
+			SetID(101).SetName("ReclaimNet").SetNameFold(unifold.Fold("ReclaimNet")).
+			SetAsn(64511).SetOrgID(1).
+			SetStatus("deleted").SetCreated(t0).SetUpdated(t0.Add(48 * time.Hour)).
+			Save(ctx); err != nil {
+			t.Fatalf("seed net tombstone: %v", err)
+		}
+		if _, err := c.NetworkIxLan.Create().
+			SetID(1001).SetNetID(101).SetIxlanID(200).SetIxID(20).
+			SetAsn(64511).SetSpeed(10000).SetName("ReclaimIX").
+			SetOperational(false).SetStatus("deleted").
+			SetCreated(t0).SetUpdated(last).
+			Save(ctx); err != nil {
+			t.Fatalf("seed cascaded netixlan: %v", err)
+		}
+
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			fmt.Sprintf("/api/netixlan?since=%d", last.Unix()),
+			// Upstream answers 404 Entity not found here.
+			fmt.Sprintf("/api/netixlan?id=1001&since=%d", last.Unix()),
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Errorf("GET %s: status = %d, want 200 (divergence canary); body=%s", path, status, string(body))
+				continue
+			}
+			// Upstream returns no row for the connection.
+			rows := decodeDataArray(t, body)
+			if len(rows) != 1 || rows[0]["id"] != float64(1001) {
+				t.Errorf("GET %s: got %v, want one row with id 1001 (divergence canary)", path, rows)
+				continue
+			}
+			for key, want := range map[string]any{
+				"status":      "deleted",
+				"operational": false,
+				"net_id":      float64(101),
+				"updated":     last.Format(time.RFC3339),
+			} {
+				if got := rows[0][key]; got != want {
+					t.Errorf("GET %s: %s = %v, want %v", path, key, got, want)
+				}
 			}
 		}
 	})
