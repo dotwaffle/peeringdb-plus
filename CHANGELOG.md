@@ -10,6 +10,25 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.28.4] - 2026-09-24
+
+### Changed
+
+- The GraphQL endpoint rejects a query that selects one response key
+  twice with different list or object arguments, as the GraphQL
+  specification requires. Before, the two selections could merge into
+  one response key. This comes from gqlparser 2.5.58.
+
+### Fixed
+
+- A sync now clears an optional value that upstream removed, such as
+  a netixlan IPv6 address, a facility's campus or a network's RIR
+  status. The upsert updated only the columns of its INSERT, and a
+  batch in which every row had the value unset left the column out,
+  so the stored value stayed. Incremental cycles often write batches
+  of one row. 33 columns in 8 tables were exposed.
+  The next daily full cycle repairs live rows that hold a stale value.
+
 ## [1.28.3] - 2026-09-24
 
 ### Fixed
@@ -1119,7 +1138,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.3...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.4...HEAD
+[1.28.4]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.3...v1.28.4
 [1.28.3]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.2...v1.28.3
 [1.28.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.1...v1.28.2
 [1.28.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.0...v1.28.1

@@ -13,22 +13,27 @@ package sync
 
 import (
 	"context"
+	stdsql "database/sql"
+	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/schema"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
 // TestUpsert_UnDeletesOnResync verifies the deleted→ok transition: when
 // upstream re-delivers a row that had been tombstoned, with a newer
-// `updated` timestamp and status "ok", the OnConflict UpdateNewValues
-// path flips the row back to "ok" (auto-undelete). The same row resent
+// `updated` timestamp and status "ok", the ON CONFLICT update
+// flips the row back to "ok" (auto-undelete). The same row resent
 // with an unchanged `updated` is left tombstoned by the skip-on-unchanged
 // predicate — upstream advances `updated` on every real change, so a
 // status flip always carries a newer timestamp (audit PA5).
@@ -143,8 +148,8 @@ func TestUpsertPopulatesFoldColumns(t *testing.T) {
 	}
 
 	// Idempotency check: re-upsert with ASCII variants must produce the
-	// same fold values (OnConflictColumns().UpdateNewValues() path rewrites
-	// the _fold columns on every cycle).
+	// same fold values (the ON CONFLICT update rewrites the _fold
+	// columns).
 	tx2, err := client.Tx(ctx)
 	if err != nil {
 		t.Fatalf("open tx2: %v", err)
@@ -612,4 +617,262 @@ func TestNetIxLanUpsertPredicate_SQL(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestUpsert_NilValueClearsStoredValue upserts rows in batches of one,
+// first with optional values set and then with them nil. The nil values
+// must clear the stored ones. Before resolveWithRow, a column that was
+// nil on every row of a batch was left out of the INSERT, and ON
+// CONFLICT kept the stored value.
+func TestUpsert_NilValueClearsStoredValue(t *testing.T) {
+	t.Parallel()
+	u := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	later := u.Add(time.Second)
+
+	upsert := func(t *testing.T, client *ent.Client, fn func(context.Context, *ent.Tx) error) {
+		t.Helper()
+		ctx := t.Context()
+		tx, err := client.Tx(ctx)
+		if err != nil {
+			t.Fatalf("open tx: %v", err)
+		}
+		if err := fn(ctx, tx); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("upsert: %v", err)
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+	}
+	// seedSide creates campus 1 and facility 1, the targets of the
+	// campus and side FKs.
+	seedSide := func(t *testing.T, client *ent.Client) {
+		t.Helper()
+		ctx := t.Context()
+		client.Campus.Create().SetID(1).SetOrgID(1).SetName("Campus").SetNameFold("campus").
+			SetStatus("ok").SetCreated(u).SetUpdated(u).SaveX(ctx)
+		client.Facility.Create().SetID(1).SetOrgID(1).SetName("Fac").SetNameFold("fac").
+			SetStatus("ok").SetCreated(u).SetUpdated(u).SaveX(ctx)
+	}
+
+	t.Run("netixlan", func(t *testing.T) {
+		t.Parallel()
+		client := testutil.SetupClient(t)
+		seedNetIxLanGateParents(t, client, u)
+		seedSide(t, client)
+		row := func(updated time.Time, v4, v6 *string, side *int) peeringdb.NetworkIxLan {
+			return peeringdb.NetworkIxLan{
+				ID: 9120, NetID: 1, IXID: 1, IXLanID: 1, Name: "IX", Speed: 1, ASN: 64500,
+				IPAddr4: v4, IPAddr6: v6, NetSideID: side, IXSideID: side,
+				Created: u, Updated: updated, Status: "ok",
+			}
+		}
+		v4, v6, side := "192.0.2.1", "2001:db8::1", 1
+		upsert(t, client, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertNetworkIxLans(ctx, tx, []peeringdb.NetworkIxLan{row(u, &v4, &v6, &side)})
+			return err
+		})
+		if got := client.NetworkIxLan.GetX(t.Context(), 9120); got.Ipaddr6 == nil || got.NetSideID == nil {
+			t.Fatalf("seed: ipaddr6=%v net_side_id=%v, want both set", got.Ipaddr6, got.NetSideID)
+		}
+		upsert(t, client, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertNetworkIxLans(ctx, tx, []peeringdb.NetworkIxLan{row(later, nil, nil, nil)})
+			return err
+		})
+		got := client.NetworkIxLan.GetX(t.Context(), 9120)
+		if got.Ipaddr4 != nil || got.Ipaddr6 != nil || got.NetSideID != nil || got.IxSideID != nil {
+			t.Errorf("ipaddr4=%v ipaddr6=%v net_side_id=%v ix_side_id=%v, want all nil",
+				got.Ipaddr4, got.Ipaddr6, got.NetSideID, got.IxSideID)
+		}
+	})
+
+	t.Run("network", func(t *testing.T) {
+		t.Parallel()
+		client := testutil.SetupClient(t)
+		seedNetIxLanGateParents(t, client, u)
+		row := func(updated time.Time, rir *string, rirUpdated *time.Time, prefixes *int) peeringdb.Network {
+			return peeringdb.Network{
+				ID: 1, OrgID: 1, Name: "Net", ASN: 64500,
+				RIRStatus: rir, RIRStatusUpdated: rirUpdated, InfoPrefixes4: prefixes,
+				Created: u, Updated: updated, Status: "ok",
+			}
+		}
+		rir, prefixes := "ok", 10
+		upsert(t, client, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertNetworks(ctx, tx, []peeringdb.Network{row(later, &rir, &u, &prefixes)})
+			return err
+		})
+		if got := client.Network.GetX(t.Context(), 1); got.RirStatus == nil {
+			t.Fatal("seed: rir_status nil, want set")
+		}
+		upsert(t, client, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertNetworks(ctx, tx, []peeringdb.Network{row(later.Add(time.Second), nil, nil, nil)})
+			return err
+		})
+		got := client.Network.GetX(t.Context(), 1)
+		if got.RirStatus != nil || got.RirStatusUpdated != nil || got.InfoPrefixes4 != nil {
+			t.Errorf("rir_status=%v rir_status_updated=%v info_prefixes4=%v, want all nil",
+				got.RirStatus, got.RirStatusUpdated, got.InfoPrefixes4)
+		}
+	})
+
+	t.Run("facility", func(t *testing.T) {
+		t.Parallel()
+		client := testutil.SetupClient(t)
+		seedNetIxLanGateParents(t, client, u)
+		seedSide(t, client)
+		row := func(updated time.Time, campusID *int, lat *float64) peeringdb.Facility {
+			return peeringdb.Facility{
+				ID: 1, OrgID: 1, Name: "Fac", CampusID: campusID, Latitude: lat, Longitude: lat,
+				Created: u, Updated: updated, Status: "ok",
+			}
+		}
+		campusID, lat := 1, 51.5
+		upsert(t, client, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertFacilities(ctx, tx, []peeringdb.Facility{row(later, &campusID, &lat)})
+			return err
+		})
+		if got := client.Facility.GetX(t.Context(), 1); got.CampusID == nil {
+			t.Fatal("seed: campus_id nil, want set")
+		}
+		upsert(t, client, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertFacilities(ctx, tx, []peeringdb.Facility{row(later.Add(time.Second), nil, nil)})
+			return err
+		})
+		got := client.Facility.GetX(t.Context(), 1)
+		if got.CampusID != nil || got.Latitude != nil || got.Longitude != nil {
+			t.Errorf("campus_id=%v latitude=%v longitude=%v, want all nil",
+				got.CampusID, got.Latitude, got.Longitude)
+		}
+	})
+}
+
+// TestUpsert_ConflictSetsEveryColumn runs each entity upsert with one row
+// whose optional values are nil, and reads the statement it sends. The
+// ON CONFLICT DO UPDATE must set every column of the table except the
+// primary key, including the columns that the INSERT leaves out.
+func TestUpsert_ConflictSetsEveryColumn(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		table  *schema.Table
+		upsert func(context.Context, *ent.Tx) error
+	}{
+		{migrate.OrganizationsTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertOrganizations(ctx, tx, []peeringdb.Organization{{ID: 1}})
+			return err
+		}},
+		{migrate.CampusesTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertCampuses(ctx, tx, []peeringdb.Campus{{ID: 1}})
+			return err
+		}},
+		{migrate.FacilitiesTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertFacilities(ctx, tx, []peeringdb.Facility{{ID: 1}})
+			return err
+		}},
+		{migrate.CarriersTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertCarriers(ctx, tx, []peeringdb.Carrier{{ID: 1}})
+			return err
+		}},
+		{migrate.CarrierFacilitiesTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertCarrierFacilities(ctx, tx, []peeringdb.CarrierFacility{{ID: 1}})
+			return err
+		}},
+		{migrate.InternetExchangesTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertInternetExchanges(ctx, tx, []peeringdb.InternetExchange{{ID: 1}})
+			return err
+		}},
+		{migrate.IxLansTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertIxLans(ctx, tx, []peeringdb.IxLan{{ID: 1}})
+			return err
+		}},
+		{migrate.IxPrefixesTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertIxPrefixes(ctx, tx, []peeringdb.IxPrefix{{ID: 1, Prefix: "192.0.2.0/24", Protocol: "IPv4"}})
+			return err
+		}},
+		{migrate.IxFacilitiesTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertIxFacilities(ctx, tx, []peeringdb.IxFacility{{ID: 1}})
+			return err
+		}},
+		{migrate.NetworksTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertNetworks(ctx, tx, []peeringdb.Network{{ID: 1, Name: "Net", ASN: 64500}})
+			return err
+		}},
+		{migrate.PocsTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertPocs(ctx, tx, []peeringdb.Poc{{ID: 1, Role: "Abuse", Visible: "Public"}})
+			return err
+		}},
+		{migrate.NetworkFacilitiesTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertNetworkFacilities(ctx, tx, []peeringdb.NetworkFacility{{ID: 1}})
+			return err
+		}},
+		{migrate.NetworkIxLansTable, func(ctx context.Context, tx *ent.Tx) error {
+			_, err := upsertNetworkIxLans(ctx, tx, []peeringdb.NetworkIxLan{{ID: 1, ASN: 64500, Speed: 1}})
+			return err
+		}},
+	} {
+		t.Run(tc.table.Name, func(t *testing.T) {
+			t.Parallel()
+			stmt := captureUpsert(t, tc.upsert)
+			_, set, ok := strings.Cut(stmt, " DO UPDATE SET ")
+			if !ok {
+				t.Fatalf("no DO UPDATE SET in %q", stmt)
+			}
+			set, _, _ = strings.Cut(set, " WHERE ")
+			got := map[string]bool{}
+			for assignment := range strings.SplitSeq(set, ", ") {
+				col, _, _ := strings.Cut(assignment, " = ")
+				got[strings.Trim(col, "`")] = true
+			}
+			for _, c := range tc.table.Columns {
+				if want := !slices.Contains(tc.table.PrimaryKey, c); got[c.Name] != want {
+					t.Errorf("column %s set=%v, want %v", c.Name, got[c.Name], want)
+				}
+			}
+		})
+	}
+}
+
+// captureUpsert runs upsert in a transaction on a new database and
+// returns the INSERT statement it sends. Foreign keys are off, so the
+// rows need no parents; the transaction is rolled back.
+func captureUpsert(t *testing.T, upsert func(context.Context, *ent.Tx) error) string {
+	t.Helper()
+	ctx := t.Context()
+	dsn := "file:" + strings.ReplaceAll(t.Name(), "/", "_") + "?mode=memory&cache=shared&_pragma=foreign_keys(1)"
+	db, err := stdsql.Open("sqlite3", dsn)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	// One connection, so the pragma below applies to the transaction.
+	db.SetMaxOpenConns(1)
+	var stmt string
+	drv := dialect.DebugWithContext(sql.OpenDB(dialect.SQLite, db), func(_ context.Context, v ...any) {
+		if s := fmt.Sprint(v...); strings.Contains(s, "INSERT INTO") {
+			stmt = s
+		}
+	})
+	client := ent.NewClient(ent.Driver(drv))
+	// Migrate a copy: the migration writes to the tables it gets, and
+	// the subtests run in parallel (enttest does the same).
+	tables, err := schema.CopyTables(migrate.Tables)
+	if err != nil {
+		t.Fatalf("copy tables: %v", err)
+	}
+	if err := migrate.Create(ctx, client.Schema, tables); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
+		t.Fatalf("foreign keys off: %v", err)
+	}
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx: %v", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := upsert(ctx, tx); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	stmt, _, _ = strings.Cut(stmt, " args=")
+	return stmt
 }

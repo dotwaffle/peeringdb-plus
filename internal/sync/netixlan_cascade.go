@@ -48,9 +48,10 @@ RETURNING net_id`
 // scratchRIRTombstonesSQL selects the network tombstones in scratch that
 // carry the signature of the pdb_rir_status reclaim in their upstream
 // JSON: rir_status present and null, rir_status_updated a string. It
-// reads the JSON and not the stored columns, because the batch upsert can
-// keep a stale stored rir_status. A missing rir_status key does not
-// match. data is a BLOB; the CAST reads it as text JSON.
+// reads the JSON and not the stored columns, because it runs in Phase A,
+// before the upsert pass: the stored row is still the live network. A
+// missing rir_status key does not match. data is a BLOB; the CAST reads
+// it as text JSON.
 const scratchRIRTombstonesSQL = `SELECT id FROM "net"
 WHERE json_extract(CAST(data AS TEXT), '$.status') = 'deleted'
   AND json_type(CAST(data AS TEXT), '$.rir_status') = 'null'
