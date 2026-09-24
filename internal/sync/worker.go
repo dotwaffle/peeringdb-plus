@@ -485,8 +485,8 @@ func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, i
 // Exception: cascadeDeletedNetIxLans marks deleted the live netixlans of
 // a deleted network, because upstream pdb_rir_status removes them without
 // a tombstone. It acts only on rows that an uncached ?since=1&id__in=
-// request no longer returns live; that is not inference from a partial
-// response.
+// request no longer returns live, or on a network that the RIR reclaim
+// deleted in this cycle; that is not inference from a partial response.
 type syncStep struct {
 	name string
 }
@@ -510,8 +510,8 @@ func StepOrder() []string {
 // Exception: cascadeDeletedNetIxLans marks deleted the live netixlans of
 // a deleted network, because upstream pdb_rir_status removes them without
 // a tombstone. It acts only on rows that an uncached ?since=1&id__in=
-// request no longer returns live; that is not inference from a partial
-// response.
+// request no longer returns live, or on a network that the RIR reclaim
+// deleted in this cycle; that is not inference from a partial response.
 func (w *Worker) syncSteps() []syncStep {
 	steps := make([]syncStep, len(canonicalStepOrder))
 	for i, name := range canonicalStepOrder {
@@ -776,8 +776,9 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
-	// Verify the netixlan cascade candidates against upstream now, while
-	// no tx is held (see verifyNetIxLanCandidates).
+	// Plan the netixlan cascade now, while no tx is held: verify its
+	// candidates against upstream and read the RIR network deletes of
+	// this cycle from scratch (see prepareNetIxLanCascade).
 	cascade := w.prepareNetIxLanCascade(ctx, scratch, effectiveMode, time.Now())
 	// Full-mode cycles reconcile completely: the reconcile-all marker
 	// relaxes the upsert pass's updated-timestamp skip gate from `>` to
@@ -1469,8 +1470,8 @@ const gcHintMinRows = 1000
 // Exception: cascadeDeletedNetIxLans marks deleted the live netixlans of
 // a deleted network, because upstream pdb_rir_status removes them without
 // a tombstone. It acts only on rows that an uncached ?since=1&id__in=
-// request no longer returns live; that is not inference from a partial
-// response.
+// request no longer returns live, or on a network that the RIR reclaim
+// deleted in this cycle; that is not inference from a partial response.
 //
 // Atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.

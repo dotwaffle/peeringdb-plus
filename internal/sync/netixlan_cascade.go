@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -33,17 +34,48 @@ WHERE id IN (SELECT value FROM json_each(?1))
                   WHERE n.id = network_ix_lans.net_id AND n.status = 'deleted')
 RETURNING net_id`
 
+// cascadeRIRNetsSQL marks deleted the live netixlans of the networks in
+// ?1 (a JSON array of the ids that rirTransitionNets returned). The guard
+// and the network's status are checked again against the state after the
+// upsert pass, as in cascadeVerifiedSQL. updated does not change.
+const cascadeRIRNetsSQL = `UPDATE network_ix_lans SET status = 'deleted', operational = false
+WHERE net_id IN (SELECT value FROM json_each(?1))
+  AND likely(status IN ('ok', 'not-operational'))
+  AND updated <= (SELECT n.updated FROM networks AS n
+                  WHERE n.id = network_ix_lans.net_id AND n.status = 'deleted')
+RETURNING net_id`
+
+// scratchRIRTombstonesSQL selects the network tombstones in scratch that
+// carry the signature of the pdb_rir_status reclaim in their upstream
+// JSON: rir_status present and null, rir_status_updated a string. It
+// reads the JSON and not the stored columns, because the batch upsert can
+// keep a stale stored rir_status. A missing rir_status key does not
+// match. data is a BLOB; the CAST reads it as text JSON.
+const scratchRIRTombstonesSQL = `SELECT id FROM "net"
+WHERE json_extract(CAST(data AS TEXT), '$.status') = 'deleted'
+  AND json_type(CAST(data AS TEXT), '$.rir_status') = 'null'
+  AND json_type(CAST(data AS TEXT), '$.rir_status_updated') = 'text'
+ORDER BY id`
+
+// liveAtStartNetsSQL keeps the network ids in ?1 (a JSON array) that are
+// not deleted in the committed DB. An id that is not in the DB is kept.
+const liveAtStartNetsSQL = `SELECT j.value FROM json_each(?1) AS j
+WHERE NOT EXISTS (SELECT 1 FROM networks AS n WHERE n.id = j.value AND n.status = 'deleted')`
+
 // cascadePlan is the work of one cascadeDeletedNetIxLans call. Gone holds
-// the ids that verifyNetIxLanCandidates found gone upstream.
+// the ids that verifyNetIxLanCandidates found gone upstream. RIRNets
+// holds the networks that rirTransitionNets found deleted by the RIR
+// reclaim in this cycle.
 type cascadePlan struct {
-	Mode string
-	Gone []int
+	Mode    string
+	Gone    []int
+	RIRNets []int
 }
 
 // cascadeResult counts the rows that one cascadeDeletedNetIxLans call
 // marked deleted, and their distinct networks. Backlog counts the rows
 // marked through Gone: rows of networks that were deleted before this
-// cycle.
+// cycle. Rows marked through RIRNets are not backlog.
 type cascadeResult struct {
 	Rows    int
 	Nets    int
@@ -51,7 +83,9 @@ type cascadeResult struct {
 }
 
 // cascadeDeletedNetIxLans sets status 'deleted' and operational false on
-// the live netixlans of deleted networks that p selects.
+// the live netixlans of deleted networks that p selects: the rows in
+// p.Gone, which upstream no longer returns live, and the rows of the
+// networks in p.RIRNets, which the RIR reclaim deleted in this cycle.
 //
 // Why: upstream pdb_rir_status (2.83.0 pdb_rir_status.py:440-443) deletes
 // the live netixlans of a reclaimed network with SQL and then soft-deletes
@@ -88,6 +122,13 @@ func cascadeDeletedNetIxLans(ctx context.Context, tx *ent.Tx, logger *slog.Logge
 		}
 		res.Rows += n
 		res.Backlog += n
+	}
+	if len(p.RIRNets) > 0 {
+		n, err := runNetIxLanCascade(ctx, tx, cascadeRIRNetsSQL, p.RIRNets, nets)
+		if err != nil {
+			return cascadeResult{}, err
+		}
+		res.Rows += n
 	}
 	res.Nets = len(nets)
 
@@ -139,15 +180,23 @@ func logCascadedNetIxLans(ctx context.Context, logger *slog.Logger, mode string,
 }
 
 // prepareNetIxLanCascade runs the Phase A part of the cascade for a sync
-// cycle: it reads the netixlan cursor and verifies the candidates, which
-// can stage upstream tombstones into scratch. It returns the plan for
+// cycle: it reads the netixlan cursor, finds the networks that the RIR
+// reclaim deleted in this cycle, and verifies the candidates, which can
+// stage upstream tombstones into scratch. It returns the plan for
 // cascadeDeletedNetIxLans. It never fails the cycle: an unknown cursor
-// only defers upstream tombstones to the next cycle.
+// only defers upstream tombstones to the next cycle, and a failed RIR
+// read leaves those networks to the verified path.
 func (w *Worker) prepareNetIxLanCascade(ctx context.Context, scratch *scratchDB, mode config.SyncMode, now time.Time) cascadePlan {
 	cursor, err := GetMaxUpdated(ctx, w.db, entityTables[peeringdb.TypeNetIXLan])
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "netixlan cursor read failed, deferring upstream netixlan tombstones",
 			slog.Any("error", err))
+	}
+	rirNets, rirErr := rirTransitionNets(ctx, scratch, w.db)
+	if rirErr != nil {
+		w.logger.LogAttrs(ctx, slog.LevelWarn, "rir reclaim read failed, netixlans wait for verification",
+			slog.String("mode", string(mode)),
+			slog.Any("error", rirErr))
 	}
 	v := w.verifyNetIxLanCandidates(ctx, netIxLanVerifyInput{
 		Scratch:     scratch,
@@ -156,7 +205,57 @@ func (w *Worker) prepareNetIxLanCascade(ctx context.Context, scratch *scratchDB,
 		Now:         now,
 		Mode:        string(mode),
 	})
-	return cascadePlan{Mode: string(mode), Gone: v.Gone}
+	return cascadePlan{Mode: string(mode), Gone: v.Gone, RIRNets: rirNets}
+}
+
+// rirTransitionNets returns the ids of the networks that the pdb_rir_status
+// reclaim deleted in this cycle: the tombstones in scratch with the reclaim
+// signature (scratchRIRTombstonesSQL) that are not deleted in the committed
+// DB. It does not query db when scratch holds no such tombstone.
+//
+// Why no verification: the reclaim deletes the live netixlans of the
+// network and soft-deletes the network in one transaction (2.83.0
+// pdb_rir_status.py:440-443), a manual delete cascades tombstones to the
+// netixlans, and upstream refuses a new live netixlan under a deleted
+// network. So a network that turns deleted with the signature has no live
+// netixlan left upstream. A tombstone that upstream re-saves later (org
+// merge, handle_version) is already deleted in the committed DB and does
+// not qualify; verifyNetIxLanCandidates covers its rows.
+func rirTransitionNets(ctx context.Context, scratch *scratchDB, db *sql.DB) ([]int, error) {
+	ids, err := queryIDs(ctx, scratch.db, scratchRIRTombstonesSQL)
+	if err != nil {
+		return nil, fmt.Errorf("read scratch rir network tombstones: %w", err)
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	nets, err := queryIDs(ctx, db, liveAtStartNetsSQL, jsonIDs(ids))
+	if err != nil {
+		return nil, fmt.Errorf("read network status at cycle start: %w", err)
+	}
+	return nets, nil
+}
+
+// queryIDs runs query on db and returns the int of each row's single
+// column.
+func queryIDs(ctx context.Context, db *sql.DB, query string, args ...any) ([]int, error) {
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 // cascadeNetIxLansAtStartup verifies the cascade candidates and runs
@@ -170,7 +269,8 @@ func (w *Worker) prepareNetIxLanCascade(ctx context.Context, scratch *scratchDB,
 //
 // Verification runs before the transaction opens. An upstream deleted
 // verdict is left for the first cycle, which stages the upstream row, so
-// the row keeps upstream's own updated.
+// the row keeps upstream's own updated. The run has no scratch DB, so its
+// plan holds no RIRNets.
 //
 // The run holds the running latch, so it does not overlap a sync cycle;
 // when a cycle holds the latch, the run is skipped, because that cycle

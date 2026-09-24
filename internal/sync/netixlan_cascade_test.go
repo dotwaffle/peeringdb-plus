@@ -3,10 +3,12 @@ package sync
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -110,6 +112,140 @@ func TestCascadeDeletedNetIxLans(t *testing.T) {
 	}
 }
 
+// TestCascadeDeletedNetIxLans_RIRNets verifies the cascade by network:
+// the live rows of a network in RIRNets whose updated is not later than
+// the network's become deleted, and they do not count as backlog. Rows
+// of other networks and a row newer than the network's delete do not
+// change.
+func TestCascadeDeletedNetIxLans_RIRNets(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		plan    cascadePlan
+		flipped []int
+		want    cascadeResult
+	}{
+		{"rir_nets", cascadePlan{Mode: "incremental", RIRNets: []int{911}},
+			[]int{9110, 9111}, cascadeResult{Rows: 2, Nets: 1, Backlog: 0}},
+		{"rir_nets_and_gone", cascadePlan{Mode: "incremental", Gone: []int{9120}, RIRNets: []int{911}},
+			[]int{9110, 9111, 9120}, cascadeResult{Rows: 3, Nets: 2, Backlog: 1}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client := testutil.SetupClient(t)
+			seedCascadeRows(t, client)
+			before := allNetIxLans(t, client)
+			logs := &logBuffer{}
+
+			if got := runCascadeTx(t, client, logs, tc.plan); got != tc.want {
+				t.Errorf("cascade = %+v, want %+v", got, tc.want)
+			}
+			want := maps.Clone(before)
+			for _, id := range tc.flipped {
+				want[id] = cascadedRow
+			}
+			if got := allNetIxLans(t, client); !maps.Equal(got, want) {
+				t.Errorf("rows after the cascade:\n got %v\nwant %v", got, want)
+			}
+			wantCascadeLog(t, logs, "WARN", "incremental", tc.want.Rows, tc.want.Nets, tc.want.Backlog)
+		})
+	}
+}
+
+// rirTombstoneNet returns an upstream tombstone of network id, updated at
+// updated, with the signature of the pdb_rir_status reclaim: rir_status
+// null and rir_status_updated set.
+func rirTombstoneNet(id int, updated time.Time) map[string]any {
+	row := bumpUpdated(makeNet(id, 910, 64000+id, "CascadeNet"+strconv.Itoa(id), "deleted"),
+		updated.Format(time.RFC3339))
+	row["rir_status"] = nil
+	row["rir_status_updated"] = cascadeT(-24 * 30).Format(time.RFC3339)
+	return row
+}
+
+// stageScratchNets stores rows in the "net" table of scratch.
+func stageScratchNets(t *testing.T, s *scratchDB, rows ...map[string]any) {
+	t.Helper()
+	for _, row := range rows {
+		data, err := json.Marshal(row)
+		if err != nil {
+			t.Fatalf("marshal net %v: %v", row["id"], err)
+		}
+		if _, err := s.db.ExecContext(t.Context(), `INSERT INTO "net" (id, data) VALUES (?, ?)`, row["id"], data); err != nil {
+			t.Fatalf("stage net %v: %v", row["id"], err)
+		}
+	}
+}
+
+// TestRIRTransitionNets verifies the networks that class A acts on: a
+// scratch tombstone with the reclaim signature whose network is not
+// deleted in the committed DB, or not stored at all. A tombstone of a
+// network that is already deleted (re-saved upstream) does not qualify,
+// and neither does a row without the exact signature. An empty scratch
+// sends no query to the committed DB.
+func TestRIRTransitionNets(t *testing.T) {
+	t.Parallel()
+	scratchRows := func() []map[string]any {
+		noRIRStatus := rirTombstoneNet(917, cascadeT(48))
+		delete(noRIRStatus, "rir_status")
+		rirOK := rirTombstoneNet(913, cascadeT(48))
+		rirOK["rir_status"] = "ok"
+		noUpdated := rirTombstoneNet(914, cascadeT(48))
+		noUpdated["rir_status_updated"] = nil
+		live := rirTombstoneNet(916, cascadeT(48))
+		live["status"] = "ok"
+		return []map[string]any{
+			rirTombstoneNet(911, cascadeT(48)),
+			rirOK,
+			noUpdated,
+			rirTombstoneNet(915, cascadeT(48)), // not stored
+			live,
+			noRIRStatus,
+		}
+	}
+
+	for _, tc := range []struct {
+		name      string
+		stored911 string
+		want      []int
+	}{
+		{"transition", "ok", []int{911, 915}},
+		{"resaved_tombstone", "deleted", []int{915}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client, db := testutil.SetupClientWithDB(t)
+			seedCascadeParents(t, client)
+			client.Network.UpdateOneID(911).SetStatus(tc.stored911).ExecX(t.Context())
+			scratch := newCascadeScratch(t)
+			stageScratchNets(t, scratch, scratchRows()...)
+
+			got, err := rirTransitionNets(t.Context(), scratch, db)
+			if err != nil {
+				t.Fatalf("rirTransitionNets: %v", err)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("rirTransitionNets = %v, want %v", got, tc.want)
+			}
+		})
+	}
+
+	t.Run("empty_scratch", func(t *testing.T) {
+		t.Parallel()
+		// A query on a closed DB fails, so a nil error shows that
+		// rirTransitionNets sent none.
+		closed, err := openScratchDB(t.Context())
+		if err != nil {
+			t.Fatalf("open scratch: %v", err)
+		}
+		closeScratchDB(t.Context(), closed, nil)
+		got, err := rirTransitionNets(t.Context(), newCascadeScratch(t), closed.db)
+		if err != nil || got != nil {
+			t.Errorf("rirTransitionNets = %v, %v; want nil and no error", got, err)
+		}
+	})
+}
+
 // TestJSONIDs locks the json_each argument: an empty or nil list must be
 // "[]", because json_each reads "null" as one NULL row.
 func TestJSONIDs(t *testing.T) {
@@ -130,9 +266,10 @@ func TestJSONIDs(t *testing.T) {
 }
 
 // TestNetIxLanCascadePlans locks the query plans of the cascade SQL. The
-// candidate read must reach netixlans through networkixlan_net_id, and
-// the cascade must update by primary key. No plan may read the
-// networkixlan_status index, which covers most of the table.
+// candidate read and the cascade by network must reach netixlans through
+// networkixlan_net_id, the cascade by id must update by primary key, and
+// the network status read must look networks up by primary key. No plan
+// may read the networkixlan_status index, which covers most of the table.
 func TestNetIxLanCascadePlans(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
@@ -146,6 +283,10 @@ func TestNetIxLanCascadePlans(t *testing.T) {
 			[]string{"COVERING INDEX network_status_updated_created_id", "INDEX networkixlan_net_id"}},
 		{"verified", cascadeVerifiedSQL, []any{"[1,2]"},
 			[]string{"network_ix_lans USING INTEGER PRIMARY KEY"}},
+		{"rir_nets", cascadeRIRNetsSQL, []any{"[1,2]"},
+			[]string{"INDEX networkixlan_net_id (net_id=?)"}},
+		{"live_at_start_nets", liveAtStartNetsSQL, []any{"[1,2]"},
+			[]string{"INTEGER PRIMARY KEY"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -353,6 +494,83 @@ func TestSync_CascadesDeletedNetIxLans(t *testing.T) {
 				t.Errorf("id__in request %q asks for 9115", q.Get("id__in"))
 			}
 		}
+	})
+
+	// freshRIRNet stores network 911 live with rirStatus and serves its
+	// upstream tombstone with the reclaim signature, as the first cycle
+	// after the reclaim sees it. 9120 is stored deleted, so no row is a
+	// verification candidate.
+	freshRIRNet := func(t *testing.T, up *cascadeUpstream, w *Worker, rirStatus *string) {
+		t.Helper()
+		w.entClient.Network.UpdateOneID(911).SetStatus("ok").SetUpdated(cascadeRowTime).
+			SetNillableRirStatus(rirStatus).ExecX(t.Context())
+		w.entClient.NetworkIxLan.UpdateOneID(9120).SetStatus("deleted").ExecX(t.Context())
+		up.setBulk("net", rirTombstoneNet(911, cascadeT(48)))
+	}
+
+	t.Run("incremental_fresh_rir_net", func(t *testing.T) {
+		t.Parallel()
+		up, w, _, logs := setup(t, 20)
+		freshRIRNet(t, up, w, nil)
+		before := allNetIxLans(t, w.entClient)
+
+		syncCascade(t, w, config.SyncModeIncremental)
+
+		want := maps.Clone(before)
+		want[9110] = cascadedRow
+		want[9111] = cascadedRow
+		if got := allNetIxLans(t, w.entClient); !maps.Equal(got, want) {
+			t.Errorf("rows after the cycle:\n got %v\nwant %v", got, want)
+		}
+		if reqs := up.idInRequests(); len(reqs) != 0 {
+			t.Errorf("id__in requests = %d, want 0", len(reqs))
+		}
+		wantCascadeLog(t, logs, "WARN", "incremental", 2, 1, 0)
+	})
+
+	t.Run("batch_union", func(t *testing.T) {
+		t.Parallel()
+		up, w, _, logs := setup(t, 20)
+		rirOK := "ok"
+		freshRIRNet(t, up, w, &rirOK)
+
+		syncCascade(t, w, config.SyncModeIncremental)
+
+		// The batch upsert drops rir_status from the INSERT when every row
+		// of the batch has it null, so the stored value stays stale. Class
+		// A reads the scratch JSON and still acts.
+		if got := w.entClient.Network.GetX(t.Context(), 911).RirStatus; got == nil || *got != "ok" {
+			t.Fatalf("stored rir_status of network 911 = %v, want the stale \"ok\"; "+
+				"this subtest no longer covers a stale stored rir_status", got)
+		}
+		for _, id := range []int{9110, 9111} {
+			if got := readNetIxLan(t, w.entClient, id); got != cascadedRow {
+				t.Errorf("netixlan %d = %+v, want %+v", id, got, cascadedRow)
+			}
+		}
+		wantCascadeLog(t, logs, "WARN", "incremental", 2, 1, 0)
+	})
+
+	t.Run("resaved_deleted_net", func(t *testing.T) {
+		t.Parallel()
+		up, w, _, logs := setup(t, 20)
+		up.setBulk("net", rirTombstoneNet(911, cascadeT(60)))
+		before := allNetIxLans(t, w.entClient)
+
+		syncCascade(t, w, config.SyncModeIncremental)
+
+		if got := w.entClient.Network.GetX(t.Context(), 911).Updated.UTC(); !got.Equal(cascadeT(60)) {
+			t.Fatalf("network 911 updated = %v, want the re-saved tombstone's %v", got, cascadeT(60))
+		}
+		want := maps.Clone(before)
+		want[9120] = cascadedRow
+		if got := allNetIxLans(t, w.entClient); !maps.Equal(got, want) {
+			t.Errorf("rows after the cycle:\n got %v\nwant %v", got, want)
+		}
+		if reqs := up.idInRequests(); len(reqs) != 1 {
+			t.Errorf("id__in requests = %d, want 1", len(reqs))
+		}
+		wantCascadeLog(t, logs, "WARN", "incremental", 1, 1, 1)
 	})
 
 	t.Run("kill_switch", func(t *testing.T) {
