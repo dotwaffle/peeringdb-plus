@@ -149,6 +149,7 @@ Ramp loop per surface:
 1. **Baseline** at `--start` concurrency for `--step-duration`.
 2. Multiply concurrency by `--growth` each step (capped at `--max-concurrency`).
 3. **Inflection** triggers on the first step where:
+   - no request completed within the step (`no samples`), OR
    - `p95 > baseline.p95 × --p95-multiplier`, OR
    - `p99 > --p99-absolute`, OR
    - `error rate > --error-rate-threshold`.
@@ -157,6 +158,11 @@ Ramp loop per surface:
 5. **Past-inflection**: 1-2 additional steps (concurrency permitting)
    so the operator can see how badly things degrade just past the knee.
 6. Print a markdown table for the surface to stdout, then move on.
+
+If no request completes within the baseline step, the ramp has no
+latency to compare with. It prints `ABORTED` for the surface and moves
+on. In the table, a step without samples shows `-` in the latency and
+error columns.
 
 Surfaces are exercised **sequentially** (in `--surfaces` order) so
 cross-surface contention does not bias results. Each surface fetches

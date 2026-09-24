@@ -290,7 +290,9 @@ func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, 
 		}
 		emitMarkdown(stdout, surface, rcfg.Entity, labels, reason)
 	}
-	return nil
+	// An interrupt during the last surface must not look like a
+	// completed ramp.
+	return ctx.Err()
 }
 
 // rampOneSurface drives the ramp loop for a single surface. Returns
@@ -298,7 +300,7 @@ func runRamp(ctx context.Context, cfg Config, rcfg RampConfig, ids, asns []int, 
 // inflection+1, inflection+2 — or, when no inflection fires before
 // MaxConcurrency, baseline plus every measured step with the final
 // one labelled "max-concurrency") and the inflection reason
-// string, or an error if the baseline step itself fails.
+// string, or an error if the baseline step fails or has no samples.
 //
 // The stdout writer is plumbed through to runRampStep for verbose
 // emission gated by cfg.Verbose; passing it via parameter (rather
@@ -324,6 +326,11 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 	if err != nil {
 		return nil, "", fmt.Errorf("baseline step: %w", err)
 	}
+	if baseline.Samples == 0 {
+		// A baseline without samples gives no latency to compare with,
+		// and the p95 trigger would stay off for the whole ramp.
+		return nil, "", fmt.Errorf("baseline step: %s", noSamplesReason(baseline))
+	}
 	labels := []surfaceLabel{{Label: "baseline", Stats: baseline}}
 
 	// 2. Ramp until inflection or MaxConcurrency. Every measured step
@@ -343,6 +350,15 @@ func rampOneSurface(ctx context.Context, cfg Config, rcfg RampConfig, surface Su
 			nextC = rcfg.MaxConcurrency
 		}
 		step, stepErr := runRampStep(ctx, cfg, rcfg, surface, nextC, rcfg.StepDuration, ids, asns, stdout)
+		if stepErr != nil && ctx.Err() != nil {
+			// The run was interrupted. Report the measured steps, as
+			// the no-inflection path does, so that the load already
+			// generated is not lost.
+			for _, s := range steps {
+				labels = append(labels, surfaceLabel{Label: fmt.Sprintf("C=%d", s.Concurrency), Stats: s})
+			}
+			return labels, fmt.Sprintf("interrupted at C=%d: %v", nextC, stepErr), nil
+		}
 		if stepErr != nil {
 			return labels, "", fmt.Errorf("ramp step C=%d: %w", nextC, stepErr)
 		}
@@ -456,11 +472,12 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 						surface, concurrency, ep.Method, ep.Path, res.Status, res.Err)
 					verboseMu.Unlock()
 				}
-				select {
-				case sampleCh <- res:
-				case <-gctx.Done():
-					return nil
-				}
+				// Send without a select on gctx: a request that completed
+				// as the step ended is a sample, and a dropped one could
+				// turn the step into a false no-samples inflection. The
+				// drain below reads until every worker returns, so the
+				// send cannot block forever.
+				sampleCh <- res
 			}
 			return nil
 		})
@@ -475,6 +492,12 @@ func runRampStep(ctx context.Context, cfg Config, rcfg RampConfig, surface Surfa
 		samples = append(samples, res)
 	}
 
+	// When the run's context ended the step, the step is not a
+	// measurement. Without this error, detectInflection would report
+	// the canceled step as a step without samples.
+	if err := ctx.Err(); err != nil {
+		return stepStats{}, err
+	}
 	return summariseStep(samples, concurrency, dur), nil
 }
 
@@ -523,13 +546,14 @@ func summariseStep(samples []Result, concurrency int, dur time.Duration) stepSta
 	return stats
 }
 
-// detectInflection applies the three-trigger rule from the plan:
-// p95 exceeds baseline×multiplier, p99 exceeds an absolute ceiling,
-// or error rate exceeds a fractional threshold. Returns the human
-// reason string and a hit/miss flag.
+// detectInflection applies the inflection triggers: the step has no
+// samples, p95 exceeds baseline×multiplier, p99 exceeds an absolute
+// ceiling, or error rate exceeds a fractional threshold. A step
+// without samples is the worst result: no request completed within
+// the step. Returns the human reason string and a hit/miss flag.
 func detectInflection(step, baseline stepStats, rcfg RampConfig) (string, bool) {
 	if step.Samples == 0 {
-		return "", false
+		return noSamplesReason(step), true
 	}
 	if baseline.P95 > 0 {
 		threshold := time.Duration(float64(baseline.P95) * rcfg.P95Multiplier)
@@ -556,6 +580,11 @@ func detectInflection(step, baseline stepStats, rcfg RampConfig) (string, bool) 
 	return "", false
 }
 
+// noSamplesReason describes a step in which no request completed.
+func noSamplesReason(step stepStats) string {
+	return fmt.Sprintf("no samples: no request completed within %s", step.Duration)
+}
+
 // emitMarkdown writes a per-surface markdown block to w. Format:
 //
 //	### <surface> (entity=<entity>)
@@ -566,13 +595,21 @@ func detectInflection(step, baseline stepStats, rcfg RampConfig) (string, bool) 
 //
 //	inflection reason: ...
 //
-// Operators can pipe stdout to `tee surface_results.md` to capture.
+// A row for a step without samples shows "-" in the latency and error
+// columns. Operators can pipe stdout to `tee surface_results.md` to
+// capture.
 func emitMarkdown(w io.Writer, surface Surface, entity string, labels []surfaceLabel, reason string) {
 	fmt.Fprintf(w, "\n### %s (entity=%s)\n\n", surface, entity)
 	fmt.Fprintln(w, "| label              |   C |     p50 |     p95 |     p99 |  err % |     rps |")
 	fmt.Fprintln(w, "|--------------------|----:|--------:|--------:|--------:|-------:|--------:|")
 	for _, l := range labels {
 		s := l.Stats
+		if s.Samples == 0 {
+			// Zero latencies and a 0% error rate would look healthy.
+			fmt.Fprintf(w, "| %-18s | %3d | %7s | %7s | %7s | %6s | %7.1f |\n",
+				l.Label, s.Concurrency, "-", "-", "-", "-", s.RPS)
+			continue
+		}
 		fmt.Fprintf(w, "| %-18s | %3d | %7s | %7s | %7s | %5.2f%% | %7.1f |\n",
 			l.Label,
 			s.Concurrency,

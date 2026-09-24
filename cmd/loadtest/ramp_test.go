@@ -315,6 +315,11 @@ const rampTestTimeout = 30 * time.Second
 type stepGate struct {
 	next    http.RoundTripper
 	samples int
+	// stallFrom, when > 0, stalls each step with concurrency >=
+	// stallFrom: no request of the step gets a response, and the step
+	// ends when each of its workers has a request in flight. Such a
+	// step has no samples. Set it before the ramp starts.
+	stallFrom int
 
 	mu       sync.Mutex
 	steps    []gateStep // each step of the ramp, in run order
@@ -361,8 +366,8 @@ func (g *stepGate) stepEnd(ctx context.Context, concurrency int, dur time.Durati
 }
 
 // RoundTrip counts the request against its step, ends the step when
-// the count reaches concurrency+samples, and tells the server the step
-// concurrency.
+// the count reaches concurrency+samples (concurrency for a stalled
+// step), and tells the server the step concurrency.
 func (g *stepGate) RoundTrip(r *http.Request) (*http.Response, error) {
 	run, ok := r.Context().Value(gateRunKey{}).(*gateRun)
 	if !ok {
@@ -371,13 +376,26 @@ func (g *stepGate) RoundTrip(r *http.Request) (*http.Response, error) {
 		}
 		return nil, errors.New("stepGate: request outside a ramp step")
 	}
-	if run.started.Add(1) >= int64(run.concurrency+g.samples) {
+	stall := g.stallFrom > 0 && run.concurrency >= g.stallFrom
+	limit := int64(run.concurrency + g.samples)
+	if stall {
+		limit = int64(run.concurrency)
+	}
+	if run.started.Add(1) >= limit {
 		run.cancel()
 	}
 	surface := surfaceFromPath(r.URL.Path)
 	g.logRequest(surface)
 	defer g.logRequest(surface)
 
+	if stall {
+		// Hold the request until its step ends.
+		if r.Body != nil {
+			_ = r.Body.Close()
+		}
+		<-r.Context().Done()
+		return nil, r.Context().Err()
+	}
 	r = r.Clone(r.Context())
 	r.Header.Set(stepConcurrencyHeader, strconv.Itoa(run.concurrency))
 	return g.next.RoundTrip(r)
@@ -531,6 +549,100 @@ func TestRamp_Inflection_TriggersOnErrorRate(t *testing.T) {
 	}
 }
 
+// TestRamp_Inflection_TriggersOnNoSamples drives a ramp in which no
+// request of a step with concurrency >= 4 gets a response before the
+// step ends. Asserts that the markdown records the inflection at C=4
+// with the no-samples reason, and that the rows of the steps without
+// samples show no latency or error figures.
+func TestRamp_Inflection_TriggersOnNoSamples(t *testing.T) {
+	t.Parallel()
+
+	rts := newRampTestServer(t, 5*time.Millisecond, 0, 0)
+	cfg, rcfg, gate := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	gate.stallFrom = 4
+	// Make the other triggers unreachable, with the bounds of
+	// TestRamp_Inflection_TriggersOnErrorRate. The error rate cannot
+	// pass 100%.
+	rcfg.P99Absolute = time.Hour
+	rcfg.P95Multiplier = 1e4
+	rcfg.ErrorRateThreshold = 1.0
+
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+	defer cancel()
+
+	var stdout bytes.Buffer
+	if err := runRamp(ctx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout); err != nil {
+		t.Fatalf("runRamp: %v", err)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
+
+	// The ramp stops at C=4, then holds and runs two steps past it.
+	wantSteps := []gateStep{
+		{concurrency: 1, dur: rcfg.StepDuration},
+		{concurrency: 2, dur: rcfg.StepDuration},
+		{concurrency: 4, dur: rcfg.StepDuration},
+		{concurrency: 4, dur: rcfg.HoldDuration},
+		{concurrency: 8, dur: rcfg.StepDuration},
+		{concurrency: 16, dur: rcfg.StepDuration},
+	}
+	if got := gate.stepLog(); !slices.Equal(got, wantSteps) {
+		t.Errorf("ramp steps = %+v, want %+v", got, wantSteps)
+	}
+	out := stdout.String()
+	want := fmt.Sprintf("\ninflection reason: no samples: no request completed within %s\n", rcfg.StepDuration)
+	if !strings.Contains(out, want) {
+		t.Errorf("output missing %q\n%s", want, out)
+	}
+	for _, row := range []struct {
+		label string
+		c     int
+	}{{"inflection", 4}, {"hold", 4}, {"inflection+1", 8}, {"inflection+2", 16}} {
+		want := rampRow(row.label, row.c) + "       - |       - |       - |      - |     0.0 |\n"
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing row %q\n%s", want, out)
+		}
+	}
+}
+
+// TestRamp_BaselineWithoutSamples_Aborts drives a ramp in which no
+// request gets a response. Asserts that the surface is reported as
+// aborted without a table: a baseline without samples gives no latency
+// to compare with.
+func TestRamp_BaselineWithoutSamples_Aborts(t *testing.T) {
+	t.Parallel()
+
+	rts := newRampTestServer(t, 5*time.Millisecond, 0, 0)
+	cfg, rcfg, gate := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	gate.stallFrom = 1
+
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+	defer cancel()
+
+	var stdout bytes.Buffer
+	if err := runRamp(ctx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout); err != nil {
+		t.Fatalf("runRamp: %v", err)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
+
+	wantSteps := []gateStep{{concurrency: 1, dur: rcfg.StepDuration}}
+	if got := gate.stepLog(); !slices.Equal(got, wantSteps) {
+		t.Errorf("ramp steps = %+v, want %+v", got, wantSteps)
+	}
+	out := stdout.String()
+	want := fmt.Sprintf("### %s ramp ABORTED: baseline step: no samples: no request completed within %s\n",
+		SurfacePdbCompat, rcfg.StepDuration)
+	if !strings.Contains(out, want) {
+		t.Errorf("output missing %q\n%s", want, out)
+	}
+	if strings.Contains(out, "| baseline") {
+		t.Errorf("an aborted surface must not emit a table\n%s", out)
+	}
+}
+
 // TestRamp_NoInflection_ReportsAllSteps drives a ramp against a
 // healthy server that never degrades (no synthetic latency growth, no
 // errors, triggers raised out of reach) and asserts every measured
@@ -541,21 +653,27 @@ func TestRamp_Inflection_TriggersOnErrorRate(t *testing.T) {
 func TestRamp_NoInflection_ReportsAllSteps(t *testing.T) {
 	t.Parallel()
 
-	rts := newRampTestServer(t, 1*time.Millisecond, 0, 0)
-	cfg := Config{Base: rts.srv.URL, HTTPClient: rts.srv.Client(), Timeout: 5 * time.Second}
-	rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
-	// Make every trigger unreachable so the ramp runs to MaxConcurrency.
-	rcfg.P95Multiplier = 1000.0
-	rcfg.P99Absolute = 10 * time.Second
+	rts := newRampTestServer(t, 5*time.Millisecond, 0, 0)
+	// The steps end through stepGate, so each step has samples: a step
+	// without samples is an inflection.
+	cfg, rcfg, _ := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	// Make every trigger unreachable so the ramp runs to MaxConcurrency,
+	// with the bounds of TestRamp_Inflection_TriggersOnErrorRate. The
+	// error rate cannot pass 100%.
+	rcfg.P95Multiplier = 1e4
+	rcfg.P99Absolute = time.Hour
 	rcfg.ErrorRateThreshold = 1.0
 	rcfg.MaxConcurrency = 8 // Start=1, Growth=2 -> steps at C=2, 4, 8
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
 	defer cancel()
 
 	var stdout bytes.Buffer
 	if err := runRamp(ctx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout); err != nil {
 		t.Fatalf("runRamp: %v", err)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
 	}
 
 	out := stdout.String()
@@ -828,8 +946,8 @@ func TestRun_AllModesRefuseUpstreamBase(t *testing.T) {
 	}
 }
 
-// TestDetectInflection covers the three trigger conditions in
-// isolation. Baseline is fixed at p95=10ms, p99=20ms, err=0.
+// TestDetectInflection covers the trigger conditions in isolation.
+// Baseline is fixed at p95=10ms, p99=20ms, err=0.
 func TestDetectInflection(t *testing.T) {
 	t.Parallel()
 
@@ -871,9 +989,10 @@ func TestDetectInflection(t *testing.T) {
 			wantText: "error rate",
 		},
 		{
-			name:    "no samples short-circuits",
-			step:    stepStats{Concurrency: 4, Samples: 0},
-			wantHit: false,
+			name:     "no samples trigger",
+			step:     stepStats{Concurrency: 4, Samples: 0, Duration: 2 * time.Second},
+			wantHit:  true,
+			wantText: "no samples: no request completed within 2s",
 		},
 	}
 	for _, tc := range tests {
@@ -960,9 +1079,10 @@ func TestRamp_Verbose_PrintsPrefetchAndErrors(t *testing.T) {
 	rcfg.Start = 2
 	rcfg.MaxConcurrency = 2
 
+	// The transport cancels ctx, so runRamp returns the context error.
 	var stdout bytes.Buffer
-	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); err != nil {
-		t.Fatalf("runRamp: %v", err)
+	if err := runRamp(ctx, cfg, rcfg, []int{1, 2}, []int{15169, 32934}, &stdout); !errors.Is(err, context.Canceled) {
+		t.Fatalf("runRamp error = %v, want %v", err, context.Canceled)
 	}
 
 	out := stdout.String()
@@ -1194,6 +1314,120 @@ func TestRunRampStep_EndsOnDurationByDefault(t *testing.T) {
 	}
 	if stats.Samples != 0 {
 		t.Errorf("Samples = %d, want 0 (the step drops requests in flight)", stats.Samples)
+	}
+}
+
+// TestRamp_Interrupted_ReportsMeasuredSteps cancels the run when the
+// ramp starts the step at C=4. Asserts that the markdown still reports
+// the baseline and the C=2 step, with the interrupt as the reason, that
+// the surface is not reported as aborted, and that runRamp returns the
+// context error.
+func TestRamp_Interrupted_ReportsMeasuredSteps(t *testing.T) {
+	t.Parallel()
+
+	rts := newRampTestServer(t, 5*time.Millisecond, 0, 0)
+	cfg, rcfg, gate := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	// Make every trigger unreachable, with the bounds of
+	// TestRamp_Inflection_TriggersOnNoSamples.
+	rcfg.P99Absolute = time.Hour
+	rcfg.P95Multiplier = 1e4
+	rcfg.ErrorRateThreshold = 1.0
+
+	ctx, cancel := context.WithTimeout(context.Background(), rampTestTimeout)
+	defer cancel()
+	runCtx, cancelRun := context.WithCancel(ctx)
+	defer cancelRun()
+	rcfg.stepEnd = func(ctx context.Context, concurrency int, dur time.Duration) (context.Context, context.CancelFunc) {
+		if concurrency >= 4 {
+			cancelRun()
+		}
+		return gate.stepEnd(ctx, concurrency, dur)
+	}
+
+	var stdout bytes.Buffer
+	err := runRamp(runCtx, cfg, rcfg, []int{1, 2, 3, 4}, []int{15169, 32934, 13335, 16509}, &stdout)
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("runRamp error = %v, want %v", err, context.Canceled)
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("ramp did not finish before the test deadline")
+	}
+
+	out := stdout.String()
+	for _, want := range []string{
+		rampRow("baseline", 1),
+		rampRow("C=2", 2),
+		"\ninflection reason: interrupted at C=4: context canceled\n",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "ABORTED") {
+		t.Errorf("output reports the surface as aborted\n%s", out)
+	}
+}
+
+// TestRunRampStep_KeepsResultCompletedAtStepEnd ends the step inside
+// the only request of the step, after the response is made. The worker
+// then has a completed request and a done step context at the same
+// time. Asserts that the step keeps the request as a sample. The loop
+// runs 50 steps, because a select between the send and the step end
+// drops the sample on about half of them.
+func TestRunRampStep_KeepsResultCompletedAtStepEnd(t *testing.T) {
+	t.Parallel()
+
+	for i := range 50 {
+		var endStep context.CancelFunc
+		cfg := Config{
+			Base: "http://ramp.invalid",
+			HTTPClient: &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				endStep()
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     http.Header{"Content-Type": {"application/json"}},
+					Body:       io.NopCloser(strings.NewReader(`{"data":[]}`)),
+					Request:    r,
+				}, nil
+			})},
+			Timeout: 5 * time.Second,
+		}
+		rcfg := shortRampConfig([]Surface{SurfacePdbCompat})
+		rcfg.stepEnd = func(ctx context.Context, _ int, _ time.Duration) (context.Context, context.CancelFunc) {
+			stepCtx, cancel := context.WithCancel(ctx)
+			endStep = cancel
+			return stepCtx, cancel
+		}
+		stats, err := runRampStep(t.Context(), cfg, rcfg, SurfacePdbCompat, 1, rcfg.StepDuration, []int{1}, []int{15169}, io.Discard)
+		if err != nil {
+			t.Fatalf("step %d: runRampStep: %v", i, err)
+		}
+		if stats.Samples != 1 {
+			t.Fatalf("step %d: Samples = %d, want 1", i, stats.Samples)
+		}
+	}
+}
+
+// roundTripFunc adapts a function to http.RoundTripper.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// TestRunRampStep_RunCanceled_ReturnsError asserts that a step ended by
+// the context of the run returns the context error. Stats without
+// samples would make detectInflection report an inflection that the
+// target did not cause.
+func TestRunRampStep_RunCanceled_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	rts := newRampTestServer(t, 5*time.Millisecond, 0, 0)
+	cfg, rcfg, _ := gatedRamp(rts, []Surface{SurfacePdbCompat})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := runRampStep(ctx, cfg, rcfg, SurfacePdbCompat, 2, rcfg.StepDuration, []int{1, 2}, []int{15169, 32934}, io.Discard)
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("runRampStep error = %v, want %v", err, context.Canceled)
 	}
 }
 
