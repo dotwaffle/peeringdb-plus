@@ -10,6 +10,16 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Changed
+
+- A full sync writes only the rows that differ from the stored rows.
+  It also rewrote unchanged rows before, and SQLite writes the index
+  entries of each rewritten column again even when the value is the
+  same. So each daily full sync wrote nearly every index page of the
+  database, about 53 MiB of 121 MiB, and each replica applied it with
+  the WAL locks held. A replica reader that waits more than about 10
+  seconds for a lock fails with `locking protocol`.
+
 ### Fixed
 
 - The primary now logs `WARN "cascaded network deletes to netixlans"`
