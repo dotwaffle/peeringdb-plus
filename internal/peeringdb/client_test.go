@@ -779,8 +779,9 @@ func TestAuthenticatedRateLimit(t *testing.T) {
 	t.Parallel()
 
 	client := NewClient("http://127.0.0.1:1", slog.Default(), WithAPIKey("key"))
-	// Authenticated client should use 1 req/sec (rate.Every(1*time.Second)).
-	wantLimit := rate.Every(1 * time.Second)
+	// Authenticated client should use 30 req/min (rate.Every(2*time.Second)),
+	// the documented two-second spacing.
+	wantLimit := rate.Every(2 * time.Second)
 	if client.limiter.Limit() != wantLimit {
 		t.Errorf("authenticated limiter rate = %v, want %v", client.limiter.Limit(), wantLimit)
 	}
@@ -789,10 +790,10 @@ func TestAuthenticatedRateLimit(t *testing.T) {
 func TestUnauthenticatedRateLimit(t *testing.T) {
 	t.Parallel()
 
-	// Default unauth RPS bumped from 0.33 (1/3s) to
-	// 2.0 (PDBPLUS_PEERINGDB_RPS default). Burst stays at 1.
+	// Default unauth rate is 20 req/min, the documented anonymous
+	// limit (PDBPLUS_PEERINGDB_RPS default). Burst stays at 1.
 	client := NewClient("http://127.0.0.1:1", slog.Default())
-	wantLimit := rate.Limit(defaultRPS)
+	wantLimit := rate.Every(3 * time.Second)
 	if client.limiter.Limit() != wantLimit {
 		t.Errorf("unauthenticated limiter rate = %v, want %v", client.limiter.Limit(), wantLimit)
 	}
@@ -810,13 +811,13 @@ func TestWithRPS_OverridesDefault(t *testing.T) {
 }
 
 // TestWithAPIKey_OverridesWithRPS asserts that even with a WithRPS option,
-// the auth path picks the upstream-fixed 60/min quota.
+// the auth path uses authRequestInterval (30 req/min).
 func TestWithAPIKey_OverridesWithRPS(t *testing.T) {
 	t.Parallel()
 
 	client := NewClient("http://127.0.0.1:1", slog.Default(),
 		WithRPS(5.0), WithAPIKey("dummy"))
-	wantLimit := rate.Every(1 * time.Second)
+	wantLimit := rate.Every(2 * time.Second)
 	if client.limiter.Limit() != wantLimit {
 		t.Errorf("WithAPIKey + WithRPS → limiter rate = %v, want %v", client.limiter.Limit(), wantLimit)
 	}

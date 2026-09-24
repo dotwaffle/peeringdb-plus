@@ -113,8 +113,8 @@ func (w *Worker) fkBackfillParent(ctx context.Context, tx *ent.Tx, childType, pa
 //     batching collapsed N rows into 1 request. The cap now directly
 //     bounds upstream HTTP traffic, which is the actual surface
 //     protected by upstream's API_THROTTLE_REPEATED_REQUEST and our
-//     local rate limiter. Default 20 requests/cycle (≈20s of upstream
-//     pressure at 1 req/sec auth) — generous but firm.
+//     local rate limiter. Default 20 requests/cycle (≈40s of upstream
+//     pressure at 30 req/min auth) — generous but firm.
 //     The dashboard interpretation of fk_backfill{result=hit} does not
 //     change: still one hit per inserted row.
 //   - Deadline check fires WITHOUT issuing any HTTP request once

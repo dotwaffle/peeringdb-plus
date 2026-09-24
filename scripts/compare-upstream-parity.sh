@@ -6,10 +6,11 @@
 # Usage:
 #   PDB_API_KEY=<your-key> ./scripts/compare-upstream-parity.sh > /tmp/parity-results.txt
 #
-# Without an API key upstream rate-limits anonymous requests to 1/hour.
-# WITH a key, upstream allows ~60 req/min. Either way, this script
-# issues at most 8 upstream requests, so even unauthenticated it would
-# take ~8 hours — set PDB_API_KEY.
+# Upstream documents 20 req/min per IP without an API key and 40 req/min
+# with one. Without a key it also allows an identical request with a
+# response over 100 KB only once per hour. This script issues at most 8
+# upstream requests, some of them large and repeated between runs, so
+# set PDB_API_KEY.
 #
 # Output: a results file you can paste back to compare row counts +
 # response sizes side by side.

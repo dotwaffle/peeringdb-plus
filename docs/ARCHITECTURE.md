@@ -173,8 +173,11 @@ cursor does not use the `meta.generated` value of upstream responses.
 ### Upstream requests
 
 All upstream calls share one rate limiter (`internal/peeringdb/client.go`):
-`PDBPLUS_PEERINGDB_RPS` (default 2) requests per second,
-or 1 request per second with an API key, with a burst of 1.
+`PDBPLUS_PEERINGDB_RPS` (default 1/3, 20 per minute) requests per second,
+or 30 requests per minute with an API key, with a burst of 1.
+PeeringDB documents 20 queries per minute per IP for anonymous callers,
+40 per minute per user or organization with a key,
+and asks for at least two seconds between queries.
 The transport (`internal/peeringdb/transport.go`) handles these responses:
 
 - HTTP 429 with a `Retry-After` of 60 seconds or less:

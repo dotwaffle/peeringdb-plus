@@ -17,6 +17,16 @@ are in the Git history at their tags.
   `.octocov.yml`, the `pull-requests: write` permission of the `ci` job
   and the `mise run coverage` task are removed. CI now runs
   `mise run test`.
+- The upstream request rate now follows the limits that PeeringDB
+  documents: 20 queries per minute per IP without an API key, and 40
+  per minute per user or organization with a key, with at least two
+  seconds between queries. With `PDBPLUS_PEERINGDB_API_KEY` set, the
+  client sends 30 requests per minute (was 60). Without a key, the
+  default `PDBPLUS_PEERINGDB_RPS` is `0.333`, 20 requests per minute
+  (was `2.0`, 120 per minute). A full sync cycle takes longer: at the
+  default FK backfill cap, backfill adds up to about 40 seconds (was
+  about 20). An operator who set `PDBPLUS_PEERINGDB_RPS` keeps that
+  value.
 
 ## [1.31.1] - 2026-09-24
 

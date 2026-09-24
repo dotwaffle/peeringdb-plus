@@ -123,7 +123,7 @@ func TestLoad_PeeringDBRPS(t *testing.T) {
 		wantErr bool
 		wantMsg string
 	}{
-		{name: "default is 2.0", envVal: "", want: 2.0},
+		{name: "default is 1/3 (20 req/min)", envVal: "", want: 1.0 / 3},
 		{name: "explicit 0.5", envVal: "0.5", want: 0.5},
 		{name: "zero is invalid", envVal: "0", wantErr: true, wantMsg: rangeMsg},
 		{name: "negative is invalid", envVal: "-1", wantErr: true, wantMsg: rangeMsg},
