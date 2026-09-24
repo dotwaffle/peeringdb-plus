@@ -3,11 +3,13 @@ package peeringdb
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -348,6 +350,58 @@ func (c *Client) FetchByIDs(ctx context.Context, objectType string, ids []int) (
 		out = append(out, raws...)
 	}
 	return out, nil
+}
+
+// errNoDataArray is returned by StreamByIDs when a 2xx response body has
+// no "data" key.
+var errNoDataArray = errors.New("peeringdb: response has no data array")
+
+// StreamByIDs issues ONE ?since=1&id__in=<csv> request against the named
+// object type, with the params in extra added, and invokes handler for
+// each element of the "data" array. url.Values.Encode sorts the keys.
+//
+// Unlike FetchByIDs, it keeps no rows: the caller reads what it needs
+// from each element. The raw message passed to handler is valid only
+// until handler returns, as in StreamAll.
+//
+// A caller that treats a missing id as a verdict needs to tell zero rows
+// from a body it cannot read. FetchRaw reads a 2xx body without a "data"
+// array as zero rows; StreamByIDs returns errNoDataArray for it, and an
+// error for a "data" value that is not an array.
+//
+// len(ids) must be 1 to FetchByIDsBatchSize; otherwise StreamByIDs
+// returns an error and sends no request. The request goes through
+// doWithRetry, so it observes the rate limiter, the WAF detector, the
+// bounded 429 ladder and the 5xx ladder.
+func (c *Client) StreamByIDs(ctx context.Context, objectType string, ids []int, extra url.Values, handler func(raw json.RawMessage) error) error {
+	if len(ids) == 0 || len(ids) > FetchByIDsBatchSize {
+		return fmt.Errorf("stream %s by ids: %d ids, want 1 to %d", objectType, len(ids), FetchByIDsBatchSize)
+	}
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = strconv.Itoa(id)
+	}
+	params := url.Values{}
+	for k, v := range extra {
+		params[k] = slices.Clone(v)
+	}
+	params.Set("since", "1")
+	params.Set("id__in", strings.Join(parts, ","))
+	u := fmt.Sprintf("%s/api/%s?%s", c.baseURL, objectType, params.Encode())
+
+	resp, err := c.doWithRetry(ctx, u)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	_, _, sawData, err := streamDecodeResponse(resp.Body, objectType, handler)
+	if err != nil {
+		return fmt.Errorf("stream %s: %w", u, err)
+	}
+	if !sawData {
+		return fmt.Errorf("stream %s: %w", u, errNoDataArray)
+	}
+	return nil
 }
 
 // FetchRawPage fetches a single page of objects for the given type and
