@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/time/rate"
 
+	"github.com/dotwaffle/peeringdb-plus/ent/facility"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -1416,5 +1417,79 @@ func TestFKBackfill_NullsMissingCampusOfBackfilledFac(t *testing.T) {
 	}
 	if got, _ := client.CarrierFacility.Query().Count(t.Context()); got != 1 {
 		t.Errorf("carrierfacCount = %d, want 1 (its fac was backfilled)", got)
+	}
+}
+
+// TestSync_NonPositiveFKIDs locks the rule that an FK id of zero or
+// less is missing. Upstream ids start at 1, and a null or absent FK
+// decodes to 0. Before the fix, fkHasParent reported id 0 as present,
+// so the row stored a reference to parent 0 and the deferred FK check
+// failed the whole cycle at COMMIT.
+//
+//   - net 20 has a null required org_id: dropped.
+//   - fac 10 has campus_id 0: kept with a NULL campus.
+//   - carrierfac 40 needs fac 50, which only backfill lands, and fac 50
+//     has a null required org_id: fac 50 is withheld, so the carrierfac
+//     is dropped.
+func TestSync_NonPositiveFKIDs(t *testing.T) {
+	t.Parallel()
+
+	const orgID = 1
+	nullOrgNet := makeMinimalNet(20, orgID)
+	nullOrgNet["org_id"] = nil
+	zeroCampusFac := makeMinimalFac(10, orgID)
+	zeroCampusFac["campus_id"] = 0
+
+	rec := newBatchedFetchRecorder()
+	server := newBatchedTestServer(t, rec,
+		map[string][]json.RawMessage{
+			"org":        {orgJSON(orgID, "Org", "ok")},
+			"fac":        {mustJSON(zeroCampusFac)},
+			"carrier":    {mustJSON(makeMinimalCarrier(30, orgID))},
+			"carrierfac": {mustJSON(makeMinimalCarrierFac(40, 30, 50))},
+			"net":        {mustJSON(nullOrgNet)},
+		},
+		map[string]func(int) json.RawMessage{
+			"fac": func(id int) json.RawMessage {
+				f := makeMinimalFac(id, orgID)
+				f["org_id"] = nil
+				return mustJSON(f)
+			},
+		},
+	)
+	defer server.Close()
+
+	client, db := testutil.SetupClientWithDB(t)
+	pdbClient := peeringdb.NewClient(server.URL, slog.Default())
+	pdbClient.SetRateLimit(rate.NewLimiter(rate.Inf, 1))
+	pdbClient.SetRetryBaseDelay(0)
+	if err := sync.InitStatusTable(t.Context(), db); err != nil {
+		t.Fatalf("init: %v", err)
+	}
+	w := sync.NewWorker(pdbClient, client, db, sync.WorkerConfig{
+		FKBackfillMaxRequestsPerCycle: 5,
+	}, slog.Default())
+	if err := w.Sync(t.Context(), "full"); err != nil {
+		t.Fatalf("sync: %v (a stored FK of 0 fails the commit)", err)
+	}
+
+	if _, _, byType := rec.snapshot(); len(byType["org"]) != 0 {
+		t.Errorf("org backfill calls = %d, want 0 (no fetch for id 0)", len(byType["org"]))
+	}
+	if n, _ := client.Network.Query().Count(t.Context()); n != 0 {
+		t.Errorf("netCount = %d, want 0 (null required org_id drops the row)", n)
+	}
+	fac, err := client.Facility.Get(t.Context(), 10)
+	if err != nil {
+		t.Fatalf("fac 10: %v", err)
+	}
+	if fac.CampusID != nil {
+		t.Errorf("fac 10 campus_id = %d, want NULL", *fac.CampusID)
+	}
+	if ok, _ := client.Facility.Query().Where(facility.ID(50)).Exist(t.Context()); ok {
+		t.Error("fac 50 landed, want it withheld (null required org_id)")
+	}
+	if n, _ := client.CarrierFacility.Query().Count(t.Context()); n != 0 {
+		t.Errorf("carrierfacCount = %d, want 0 (its fac was withheld)", n)
 	}
 }

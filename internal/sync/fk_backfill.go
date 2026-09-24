@@ -477,23 +477,32 @@ func parentFKsOf(parentType string, raw []byte) []parentFKRef {
 // firstMissingRequiredFK reports the first REQUIRED parent FK of a
 // freshly-fetched backfill row that is still absent from the local DB,
 // after the step-6 grandparent recursion has run. It mirrors the
-// fkFilter drop-on-miss decision: parentFKsOf enumerates only the
-// required (non-null) FKs declared in parentFKSpec, and fkHasParent
-// checks presence (registry then DB; a zero/null id passes through as
-// present). Returns (ref, true) for the first missing required FK so
-// the caller can withhold the dangling parent and record the orphan;
-// (parentFKRef{}, false) when every required grandparent is present.
+// fkFilter drop-on-miss decision: it checks each FK in parentFKSpec
+// with fkHasParent (registry, then DB). An absent, null or nonpositive
+// FK is missing, because the upsert would store 0 and reference a
+// parent that cannot exist. Returns (ref, true) for the first missing
+// required FK so the caller can withhold the dangling parent and record
+// the orphan; (parentFKRef{}, false) when every required grandparent is
+// present, or when raw does not decode (the upsert then reports the
+// decode error).
 //
-// Nullable side-FKs (campus, net_side_id, ix_side_id) are deliberately
-// not in parentFKSpec — they follow the existing null-on-miss path and
-// must never block the upsert here.
+// Nullable FKs (campus, net_side_id, ix_side_id) are not in
+// parentFKSpec. nullMissingOptionalFKs handles campus.
 func (w *Worker) firstMissingRequiredFK(ctx context.Context, tx *ent.Tx, parentType string, raw []byte) (parentFKRef, bool) {
-	for _, gp := range parentFKsOf(parentType, raw) {
-		if gp.ID == 0 {
-			continue
-		}
-		if !w.fkHasParent(ctx, tx, gp.ParentType, gp.ID) {
-			return gp, true
+	spec := parentFKSpec[parentType]
+	if len(spec) == 0 {
+		return parentFKRef{}, false
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return parentFKRef{}, false
+	}
+	for _, fk := range spec {
+		ref := parentFKRef{FieldName: fk.FieldName, ParentType: fk.ParentType}
+		// An absent, null or non-integer value leaves ref.ID at 0.
+		_ = json.Unmarshal(fields[fk.FieldName], &ref.ID)
+		if !w.fkHasParent(ctx, tx, ref.ParentType, ref.ID) {
+			return ref, true
 		}
 	}
 	return parentFKRef{}, false

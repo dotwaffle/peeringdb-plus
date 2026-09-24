@@ -417,17 +417,18 @@ func (w *Worker) fkRegisterIDs(typeName string, ids []int) {
 }
 
 // fkHasParent reports whether the given ID is registered for the named
-// parent type. An id of zero is treated as a null/unset FK and passes
-// through unchanged — ent's schema nullability is the source of truth
-// for whether zero/null is actually allowed on the column.
+// parent type. An id of zero or less is never present: upstream ids
+// start at 1, and a null or absent FK decodes to 0. A required FK of 0
+// once passed as present, so the row stored a dangling reference to
+// parent 0.
 //
 // State-aware fallback (Phase v1.16+): if the parent set is missing or
 // the ID is not found in memory (common during incremental syncs), we
 // query the local database to check if the record exists there before
 // declaring it an orphan.
 func (w *Worker) fkHasParent(ctx context.Context, tx *ent.Tx, typeName string, id int) bool {
-	if id == 0 {
-		return true
+	if id <= 0 {
+		return false
 	}
 	set, ok := w.fkRegistry[typeName]
 	if ok {
@@ -1726,8 +1727,10 @@ func (w *Worker) dispatchScratchChunk(ctx context.Context, tx *ent.Tx, name stri
 
 // fkCheckParent is the per-row FK validation helper called from the
 // fkFilter closures in dispatchScratchChunk. Returns true if parentID
-// is registered for parentType (or is a zero/null FK), or if the live
-// backfill recovered the parent from upstream.
+// is registered for parentType, or if the live backfill recovered the
+// parent from upstream. Every caller passes a required FK, so a zero or
+// negative parentID (null or absent upstream) drops the row without a
+// backfill attempt.
 // Otherwise records the orphan via Worker.recordOrphan (DEBUG log +
 // per-cycle counter) and returns false so syncIncremental drops the
 // row from the chunk. emitOrphanSummary surfaces the per-cycle
@@ -1740,7 +1743,7 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 	if w.fkHasParent(ctx, tx, parentType, parentID) {
 		return true
 	}
-	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
+	if parentID > 0 && w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, childType, parentType, parentID) {
 		return true
 	}
 	w.recordOrphan(ctx, fkOrphanKey{
@@ -1761,7 +1764,7 @@ func (w *Worker) fkCheckParent(ctx context.Context, tx *ent.Tx, childType string
 // Process:
 //  1. ptr is nil (FK already null) → no-op.
 //  2. Parent present (cache or DB) → no-op.
-//  3. Backfill enabled and recovers parent → no-op.
+//  3. Id above zero, backfill enabled and recovers parent → no-op.
 //  4. Otherwise: record the orphan with action="null" and zero ptr.
 //
 // Field name is recorded on the orphan counter so dashboards can split
@@ -1775,7 +1778,7 @@ func (w *Worker) nullSideFK(ctx context.Context, tx *ent.Tx, ptr **int, field st
 	if w.fkHasParent(ctx, tx, peeringdb.TypeFac, parentID) {
 		return
 	}
-	if w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
+	if parentID > 0 && w.fkBackfillRequestCap > 0 && w.fkBackfillParent(ctx, tx, peeringdb.TypeNetIXLan, peeringdb.TypeFac, parentID) {
 		return
 	}
 	w.recordOrphan(ctx, fkOrphanKey{
