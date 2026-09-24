@@ -1240,7 +1240,7 @@ func sumCounts(m map[string]int) int {
 // `defer closeScratchDB(...)`.
 //
 // Fallback-to-full-on-incremental-error semantics preserved: if the
-// incremental stage fails mid-way, the scratch table is truncated and
+// incremental stage fails mid-way, stageType rolls back its rows and
 // the full-mode stage is retried. The final batch for that type is
 // flagged as full so the delete pass runs.
 //
@@ -1310,8 +1310,8 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 
 // stageOneTypeToScratch streams a single PeeringDB type into its scratch
 // staging table, handling the incremental-with-fallback-to-full
-// semantics. On incremental error the scratch table for this type is
-// truncated (to drop any partial insert) and a full stage is retried.
+// semantics. On incremental error stageType rolls back its rows, so the
+// scratch table for this type stays empty, and a full stage is retried.
 // Returns the newest updated among the rows of the full snapshot, or zero
 // when the incremental fetch succeeded or the snapshot had no such row.
 //
@@ -1342,12 +1342,18 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// Incremental attempt requires a populated cursor. Zero cursor falls
 	// through to the full-sync path below (bare list, then the window).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
-		_, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor)
+		_, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor, discardRows)
 		if incErr == nil {
 			return time.Time{}, nil
 		}
+		// The fallback is for a failed ?since= request, and it makes a
+		// window failure tolerated (windowFailureTolerated). A scratch
+		// DB fault says nothing about the endpoint, so it fails the type.
+		if errors.Is(incErr, errScratchDB) {
+			return time.Time{}, incErr
+		}
 		fellBack = true
-		// Fallback: clear partial incremental state and retry as full.
+		// Fallback: retry as full. The failed stage rolled back its rows.
 		typeAttr := metric.WithAttributes(attribute.String("type", name))
 		pdbotel.SyncTypeFallback.Add(ctx, 1, typeAttr)
 		stepSpan.AddEvent("incremental.fallback",
@@ -1360,12 +1366,9 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 			slog.String("type", name),
 			slog.Any("error", incErr),
 		)
-		if _, delErr := scratch.db.ExecContext(ctx, fmt.Sprintf("DELETE FROM %q", name)); delErr != nil {
-			return time.Time{}, fmt.Errorf("clear partial incremental scratch %s: %w", name, delErr)
-		}
 	}
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
-	snapshot, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{})
+	snapshot, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}, discardRows)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -1401,8 +1404,13 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// have been transient), and a second failure is logged and tolerated
 	// so the fallback keeps its purpose: a cycle that lands fresh live
 	// rows despite a broken ?since= endpoint.
-	if _, err := scratch.stageType(ctx, w.pdbClient, name, since); err != nil {
-		if !fellBack && !cursor.IsZero() {
+	//
+	// A failed window keeps the rows that it streamed before the error
+	// (keepRows). A tolerated failure then loses only the rest of the
+	// window, the tombstones in it included. A failed write to the
+	// scratch DB is never tolerated (see windowFailureTolerated).
+	if _, err := scratch.stageType(ctx, w.pdbClient, name, since, keepRows); err != nil {
+		if !windowFailureTolerated(err, fellBack, cursor) {
 			return time.Time{}, fmt.Errorf("stage tombstone window %s since %s: %w",
 				name, since.Format(time.RFC3339), err)
 		}
@@ -1420,6 +1428,19 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 		)
 	}
 	return snapshot.maxUpdated, nil
+}
+
+// windowFailureTolerated reports whether a failed tombstone window stage
+// can be logged and skipped (see stageOneTypeToScratch). A failure over a
+// populated table fails the type in explicit full mode. A scratch DB error
+// (errScratchDB) fails the type on every path: it is a local fault, not a
+// broken ?since= endpoint, and the window rows that it lost can include
+// tombstones.
+func windowFailureTolerated(err error, fellBack bool, cursor time.Time) bool {
+	if errors.Is(err, errScratchDB) {
+		return false
+	}
+	return fellBack || cursor.IsZero()
 }
 
 // snapshotWindowStart returns the ?since= start of the window fetch that

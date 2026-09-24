@@ -42,6 +42,18 @@ are in the Git history at their tags.
   as the square of their count. In a local test at production row
   counts, the upsert step of a full cycle over a populated database took
   about 8.4 s instead of about 10.7 s.
+- A sync cycle stages each type in the scratch database in one
+  transaction, not one transaction for each row. In a local test with a
+  copy of the production data, the fetch step of a full cycle took
+  4.4 s instead of 14.5 s. The scratch database keeps its rollback
+  journal in memory, and the journal holds the rows that a tombstone
+  window replaces. In the same test, a window that replaced every row
+  raised peak RSS by 95 MiB, and a window of 1000 rows for each type by
+  9 MiB or less. A failed write to the scratch database now fails the
+  cycle. Before this release, such a failure in the incremental attempt
+  started a full fetch of the type. On that incremental-fallback path, a
+  failure during the tombstone window was logged and skipped, and the
+  rows that it did not write were lost.
 
 ### Fixed
 
