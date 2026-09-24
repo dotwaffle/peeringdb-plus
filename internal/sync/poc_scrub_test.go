@@ -5,7 +5,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +16,9 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/config"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
+
+// scrubLogMsg is the log message of logScrubbedPocContacts.
+const scrubLogMsg = "scrubbed contact fields of deleted pocs"
 
 // legacyPocTime is the created/updated time of the seeded legacy rows.
 // No test fixture sends these pocs, so a sync cycle never rewrites them.
@@ -71,7 +77,7 @@ func assertPocContact(t *testing.T, client *ent.Client, id int, want [4]string) 
 	}
 }
 
-// scrubLogRecords decodes the JSON log lines that scrubDeletedPocContacts
+// scrubLogRecords decodes the JSON log lines that logScrubbedPocContacts
 // wrote to buf.
 func scrubLogRecords(t *testing.T, buf *bytes.Buffer) []map[string]any {
 	t.Helper()
@@ -82,7 +88,7 @@ func scrubLogRecords(t *testing.T, buf *bytes.Buffer) []map[string]any {
 		if err := dec.Decode(&rec); err != nil {
 			t.Fatalf("decode log line: %v", err)
 		}
-		if rec["msg"] == "scrubbed contact fields of deleted pocs" {
+		if rec["msg"] == scrubLogMsg {
 			out = append(out, rec)
 		}
 	}
@@ -91,8 +97,9 @@ func scrubLogRecords(t *testing.T, buf *bytes.Buffer) []map[string]any {
 
 // TestScrubDeletedPocContacts verifies the data repair: it blanks the
 // contact fields of each deleted poc that holds any, leaves live pocs and
-// updated alone, logs the count at WARN, and changes nothing on a second
-// run (DEBUG log, count 0).
+// updated alone, and changes nothing on a second run. The count is logged
+// after the commit, as the callers do: at WARN, then at DEBUG with count
+// 0.
 func TestScrubDeletedPocContacts(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
@@ -107,7 +114,7 @@ func TestScrubDeletedPocContacts(t *testing.T) {
 		if err != nil {
 			t.Fatalf("open tx: %v", err)
 		}
-		n, err := scrubDeletedPocContacts(ctx, tx, logger)
+		n, err := scrubDeletedPocContacts(ctx, tx)
 		if err != nil {
 			_ = tx.Rollback()
 			t.Fatalf("scrub: %v", err)
@@ -115,6 +122,7 @@ func TestScrubDeletedPocContacts(t *testing.T) {
 		if err := tx.Commit(); err != nil {
 			t.Fatalf("commit: %v", err)
 		}
+		logScrubbedPocContacts(ctx, logger, n)
 		return n, scrubLogRecords(t, &buf)
 	}
 
@@ -142,22 +150,42 @@ func TestScrubDeletedPocContacts(t *testing.T) {
 
 // TestSync_ScrubsLegacyPocTombstones verifies that a sync cycle runs the
 // repair: legacy tombstones that upstream no longer sends lose their
-// contact data, and a live poc keeps it.
+// contact data, and a live poc keeps it. A cycle whose commit fails
+// changes no poc and does not log the scrub. The next cycle logs the
+// count after its commit.
 func TestSync_ScrubsLegacyPocTombstones(t *testing.T) {
 	t.Parallel()
 	f := newFixture(t)
 	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
-	w, _ := newTestWorker(t, f)
+	w, db := newTestWorker(t, f)
+	probe := withCommitProbe(w, db)
 	seedLegacyPocs(t, w.entClient)
+	jim := [4]string{"Jim Roe", "+1 555 0101", "jim@example.invalid", "https://example.invalid/jim"}
 
+	probe.fail.Store(true)
+	if err := w.Sync(t.Context(), config.SyncModeIncremental); !errors.Is(err, errInjectedCommit) {
+		t.Fatalf("sync error = %v, want the injected commit failure", err)
+	}
+	assertPocContact(t, w.entClient, 10, [4]string{"Jane Doe", "+1 555 0100", "jane@example.invalid", "https://example.invalid/jane"})
+	if recs := probe.logs.records(t, scrubLogMsg); len(recs) != 0 {
+		t.Errorf("scrub log after the failed commit = %v, want none", recs)
+	}
+
+	probe.fail.Store(false)
 	if err := w.Sync(t.Context(), config.SyncModeIncremental); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 
 	blank := [4]string{}
 	assertPocContact(t, w.entClient, 10, blank)
-	assertPocContact(t, w.entClient, 12, [4]string{"Jim Roe", "+1 555 0101", "jim@example.invalid", "https://example.invalid/jim"})
+	assertPocContact(t, w.entClient, 12, jim)
 	assertPocContact(t, w.entClient, 13, blank)
+	if recs := probe.logsAtCommit().records(t, scrubLogMsg); len(recs) != 0 {
+		t.Errorf("scrub log before the commit = %v, want none", recs)
+	}
+	if recs := probe.logs.records(t, scrubLogMsg); len(recs) != 1 || recs[0]["level"] != "WARN" || recs[0]["count"] != float64(2) {
+		t.Errorf("scrub log = %v, want one WARN record with count 2", recs)
+	}
 }
 
 // pocContactSQL reads the stored contact fields of poc id with plain SQL,
@@ -251,6 +279,46 @@ func TestStartScheduler_ScrubsPocTombstonesAtStartup(t *testing.T) {
 	}
 	if logs := scrubLogRecords(t, &buf); len(logs) != 1 || logs[0]["level"] != "WARN" || logs[0]["count"] != float64(3) {
 		t.Errorf("scrub log = %v, want one WARN record with count 3 (ids 10, 13, 14)", logs)
+	}
+	if w.Running() {
+		t.Error("running latch still held after the startup scrub")
+	}
+}
+
+// TestScrubPocContactsAtStartup_CommitFails verifies that a startup scrub
+// whose commit fails keeps the contact data and logs only the failure.
+// The next run logs the count after its commit.
+func TestScrubPocContactsAtStartup_CommitFails(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+	w, db := newTestWorker(t, f)
+	probe := withCommitProbe(w, db)
+	seedLegacyPocs(t, w.entClient)
+
+	probe.fail.Store(true)
+	w.scrubPocContactsAtStartup(t.Context())
+	if got, want := pocContactSQL(t, db, 10), [4]string{"Jane Doe", "+1 555 0100", "jane@example.invalid", "https://example.invalid/jane"}; got != want {
+		t.Errorf("poc 10 contact = %q after the failed commit, want %q", got, want)
+	}
+	if recs := probe.logs.records(t, scrubLogMsg); len(recs) != 0 {
+		t.Errorf("scrub log after the failed commit = %v, want none", recs)
+	}
+	recs := probe.logs.records(t, "startup poc contact scrub failed, the next sync cycle retries it")
+	if len(recs) != 1 || recs[0]["level"] != "WARN" ||
+		!strings.Contains(fmt.Sprint(recs[0]["error"]), errInjectedCommit.Error()) {
+		t.Errorf("failure log = %v, want one WARN record with the injected commit error", recs)
+	}
+
+	probe.fail.Store(false)
+	w.scrubPocContactsAtStartup(t.Context())
+	if got := pocContactSQL(t, db, 10); got != [4]string{} {
+		t.Errorf("poc 10 contact = %q after the retry, want blank", got)
+	}
+	if recs := probe.logsAtCommit().records(t, scrubLogMsg); len(recs) != 0 {
+		t.Errorf("scrub log before the commit = %v, want none", recs)
+	}
+	if recs := probe.logs.records(t, scrubLogMsg); len(recs) != 1 || recs[0]["level"] != "WARN" || recs[0]["count"] != float64(2) {
+		t.Errorf("scrub log = %v, want one WARN record with count 2", recs)
 	}
 	if w.Running() {
 		t.Error("running latch still held after the startup scrub")

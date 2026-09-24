@@ -28,7 +28,9 @@ import (
 // Callers: scrubPocContactsAtStartup when the scheduler starts on the
 // primary, and Worker.Sync in each sync transaction after the upsert
 // pass. Both run on the primary, and LiteFS replicates the change to the
-// replicas, which are read-only.
+// replicas, which are read-only. The caller logs the count after its
+// commit (see logScrubbedPocContacts). A rolled-back transaction changed
+// no row, so its count is not logged.
 //
 // Cost: the status index limits the read to the deleted pocs. When no
 // row matches, the UPDATE writes no page, so LiteFS has nothing to ship.
@@ -36,10 +38,10 @@ import (
 // The function does not change updated. The incremental cursor is
 // MAX(updated), and the upstream content of the row has not changed.
 //
-// Observability: a WARN log line with the row count when rows change
-// (DEBUG when none do), and the pdbplus.sync.poc_contacts_scrubbed
-// attribute on the sync-scrub-poc-contacts span.
-func scrubDeletedPocContacts(ctx context.Context, tx *ent.Tx, logger *slog.Logger) (int, error) {
+// Observability: the pdbplus.sync.poc_contacts_scrubbed attribute on the
+// sync-scrub-poc-contacts span counts the rows that the UPDATE changed in
+// tx. The span ends before the commit.
+func scrubDeletedPocContacts(ctx context.Context, tx *ent.Tx) (int, error) {
 	ctx, span := otel.Tracer("sync").Start(ctx, "sync-scrub-poc-contacts")
 	defer span.End()
 
@@ -58,12 +60,19 @@ func scrubDeletedPocContacts(ctx context.Context, tx *ent.Tx, logger *slog.Logge
 	}
 
 	span.SetAttributes(attribute.Int("pdbplus.sync.poc_contacts_scrubbed", n))
+	return n, nil
+}
+
+// logScrubbedPocContacts logs the number of pocs that a scrub changed: at
+// WARN when rows changed, at DEBUG when none did. Call it only after the
+// transaction that ran the scrub commits. A scrub whose transaction
+// rolled back changed no row, and its caller logs the failure.
+func logScrubbedPocContacts(ctx context.Context, logger *slog.Logger, n int) {
 	level := slog.LevelDebug
 	if n > 0 {
 		level = slog.LevelWarn
 	}
 	logger.LogAttrs(ctx, level, "scrubbed contact fields of deleted pocs", slog.Int("count", n))
-	return n, nil
 }
 
 // scrubPocContactsAtStartup runs scrubDeletedPocContacts once, in its own
@@ -91,27 +100,32 @@ func (w *Worker) scrubPocContactsAtStartup(ctx context.Context) {
 	}
 	defer w.running.Store(false)
 
-	if err := scrubPocContactsInTx(ctx, w.entClient, w.logger); err != nil {
+	n, err := scrubPocContactsInTx(ctx, w.entClient)
+	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "startup poc contact scrub failed, the next sync cycle retries it",
 			slog.Any("error", err))
+		return
 	}
+	logScrubbedPocContacts(ctx, w.logger, n)
 }
 
 // scrubPocContactsInTx runs scrubDeletedPocContacts in a transaction of
-// its own and commits it.
-func scrubPocContactsInTx(ctx context.Context, client *ent.Client, logger *slog.Logger) error {
+// its own and commits it. It returns the number of changed rows only when
+// the commit succeeds.
+func scrubPocContactsInTx(ctx context.Context, client *ent.Client) (int, error) {
 	tx, err := client.Tx(ctx)
 	if err != nil {
-		return fmt.Errorf("begin poc scrub transaction: %w", err)
+		return 0, fmt.Errorf("begin poc scrub transaction: %w", err)
 	}
-	if _, err := scrubDeletedPocContacts(ctx, tx, logger); err != nil {
+	n, err := scrubDeletedPocContacts(ctx, tx)
+	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
 			err = errors.Join(err, fmt.Errorf("rollback poc scrub transaction: %w", rbErr))
 		}
-		return err
+		return 0, err
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit poc scrub transaction: %w", err)
+		return 0, fmt.Errorf("commit poc scrub transaction: %w", err)
 	}
-	return nil
+	return n, nil
 }

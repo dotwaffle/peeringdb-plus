@@ -103,14 +103,15 @@ type cascadeResult struct {
 //
 // Callers: Worker.Sync in each sync transaction after the upsert pass and
 // the poc scrub, and cascadeNetIxLansAtStartup in a transaction of its
-// own. The caller emits pdbplus.sync.type.deleted after its commit (see
-// recordCascadeDeleted).
+// own. The caller logs the result and adds it to
+// pdbplus.sync.type.deleted after its commit (see recordCascadeCommitted).
+// A rolled-back transaction changed no row, so its result is not logged.
 //
-// Observability: a WARN log line with the counts when rows change (DEBUG
-// when none do), and the pdbplus.sync.netixlans_cascaded and
+// Observability: the pdbplus.sync.netixlans_cascaded and
 // pdbplus.sync.netixlans_cascaded_backlog attributes on the
-// sync-cascade-netixlan-deletes span.
-func cascadeDeletedNetIxLans(ctx context.Context, tx *ent.Tx, logger *slog.Logger, p cascadePlan) (cascadeResult, error) {
+// sync-cascade-netixlan-deletes span count the rows that the UPDATEs
+// changed in tx. The span ends before the commit.
+func cascadeDeletedNetIxLans(ctx context.Context, tx *ent.Tx, p cascadePlan) (cascadeResult, error) {
 	ctx, span := otel.Tracer("sync").Start(ctx, "sync-cascade-netixlan-deletes")
 	defer span.End()
 
@@ -137,7 +138,6 @@ func cascadeDeletedNetIxLans(ctx context.Context, tx *ent.Tx, logger *slog.Logge
 		attribute.Int("pdbplus.sync.netixlans_cascaded", res.Rows),
 		attribute.Int("pdbplus.sync.netixlans_cascaded_backlog", res.Backlog),
 	)
-	logCascadedNetIxLans(ctx, logger, p.Mode, res)
 	return res, nil
 }
 
@@ -163,21 +163,6 @@ func runNetIxLanCascade(ctx context.Context, tx *ent.Tx, query string, ids []int
 		return 0, fmt.Errorf("cascade network deletes to netixlans: %w", err)
 	}
 	return n, nil
-}
-
-// logCascadedNetIxLans logs the result of a cascade: WARN when rows
-// changed, DEBUG when none did.
-func logCascadedNetIxLans(ctx context.Context, logger *slog.Logger, mode string, res cascadeResult) {
-	level := slog.LevelDebug
-	if res.Rows > 0 {
-		level = slog.LevelWarn
-	}
-	logger.LogAttrs(ctx, level, "cascaded network deletes to netixlans",
-		slog.Int("count", res.Rows),
-		slog.Int("nets", res.Nets),
-		slog.Int("backlog", res.Backlog),
-		slog.String("mode", mode),
-	)
 }
 
 // prepareNetIxLanCascade runs the Phase A part of the cascade for a sync
@@ -290,16 +275,16 @@ func (w *Worker) cascadeNetIxLansAtStartup(ctx context.Context) {
 	v := w.verifyNetIxLanCandidates(ctx, netIxLanVerifyInput{Now: time.Now(), Mode: mode})
 	plan := cascadePlan{Mode: mode, Gone: v.Gone}
 	if len(plan.Gone) == 0 {
-		logCascadedNetIxLans(ctx, w.logger, mode, cascadeResult{})
+		recordCascadeCommitted(ctx, w.logger, mode, cascadeResult{})
 		return
 	}
-	res, err := cascadeNetIxLansInTx(ctx, w.entClient, w.logger, plan)
+	res, err := cascadeNetIxLansInTx(ctx, w.entClient, plan)
 	if err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "startup netixlan cascade failed, the next sync cycle retries it",
 			slog.Any("error", err))
 		return
 	}
-	recordCascadeDeleted(ctx, res.Rows)
+	recordCascadeCommitted(ctx, w.logger, mode, res)
 }
 
 // recoverStartupPanic is the deferred panic firewall of a startup run. It
@@ -317,13 +302,14 @@ func recoverStartupPanic(ctx context.Context, logger *slog.Logger, msg string) {
 }
 
 // cascadeNetIxLansInTx runs cascadeDeletedNetIxLans in a transaction of
-// its own and commits it.
-func cascadeNetIxLansInTx(ctx context.Context, client *ent.Client, logger *slog.Logger, p cascadePlan) (cascadeResult, error) {
+// its own and commits it. It returns the result only when the commit
+// succeeds.
+func cascadeNetIxLansInTx(ctx context.Context, client *ent.Client, p cascadePlan) (cascadeResult, error) {
 	tx, err := client.Tx(ctx)
 	if err != nil {
 		return cascadeResult{}, fmt.Errorf("begin netixlan cascade transaction: %w", err)
 	}
-	res, err := cascadeDeletedNetIxLans(ctx, tx, logger, p)
+	res, err := cascadeDeletedNetIxLans(ctx, tx, p)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
 			err = errors.Join(err, fmt.Errorf("rollback netixlan cascade transaction: %w", rbErr))
@@ -336,14 +322,28 @@ func cascadeNetIxLansInTx(ctx context.Context, client *ent.Client, logger *slog.
 	return res, nil
 }
 
-// recordCascadeDeleted adds the cascaded rows to
-// pdbplus.sync.type.deleted{type=netixlan}. Call it only after the
-// transaction that ran the cascade commits.
-func recordCascadeDeleted(ctx context.Context, rows int) {
-	if rows <= 0 {
+// recordCascadeCommitted reports the result of a cascade: a log line with
+// the counts, at WARN when rows changed and at DEBUG when none did, and
+// the changed rows added to pdbplus.sync.type.deleted{type=netixlan}.
+// Call it only after the transaction that ran the cascade commits, or
+// with a zero result when no transaction ran. A cascade whose
+// transaction rolled back changed no row, and its caller logs the
+// failure.
+func recordCascadeCommitted(ctx context.Context, logger *slog.Logger, mode string, res cascadeResult) {
+	level := slog.LevelDebug
+	if res.Rows > 0 {
+		level = slog.LevelWarn
+	}
+	logger.LogAttrs(ctx, level, "cascaded network deletes to netixlans",
+		slog.Int("count", res.Rows),
+		slog.Int("nets", res.Nets),
+		slog.Int("backlog", res.Backlog),
+		slog.String("mode", mode),
+	)
+	if res.Rows <= 0 {
 		return
 	}
-	pdbotel.SyncTypeDeleted.Add(ctx, int64(rows),
+	pdbotel.SyncTypeDeleted.Add(ctx, int64(res.Rows),
 		metric.WithAttributes(attribute.String("type", peeringdb.TypeNetIXLan)))
 }
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"maps"
 	"net/http"
@@ -23,28 +25,33 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 )
 
-// cascadeLogMsg is the log message of cascadeDeletedNetIxLans.
+// cascadeLogMsg is the log message of recordCascadeCommitted.
 const cascadeLogMsg = "cascaded network deletes to netixlans"
 
+// startupCascadeFailedMsg is the log message of a startup cascade whose
+// transaction fails.
+const startupCascadeFailedMsg = "startup netixlan cascade failed, the next sync cycle retries it"
+
 // runCascadeTx runs cascadeDeletedNetIxLans with p in a transaction of its
-// own and commits it. The log goes to logs.
+// own, commits it, and records the result as the callers do. The log goes
+// to logs.
 func runCascadeTx(t *testing.T, client *ent.Client, logs *logBuffer, p cascadePlan) cascadeResult {
 	t.Helper()
 	logger := slog.New(slog.NewJSONHandler(logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	res, err := cascadeNetIxLansInTx(t.Context(), client, logger, p)
+	res, err := cascadeNetIxLansInTx(t.Context(), client, p)
 	if err != nil {
 		t.Fatalf("cascade: %v", err)
 	}
+	recordCascadeCommitted(t.Context(), logger, p.Mode, res)
 	return res
 }
 
 // cascadedRow is the state of a seeded T0 row after the cascade.
 var cascadedRow = netIxLanRow{Status: "deleted", Operational: false, Updated: cascadeRowTime, Speed: 1}
 
-// wantCascadeLog fails the test unless logs hold exactly one cascade
-// record at level with the given counts, among any number of DEBUG
-// records with count 0.
-func wantCascadeLog(t *testing.T, logs *logBuffer, level, mode string, count, nets, backlog int) {
+// cascadeChangeRecords returns the cascade log records in logs other
+// than DEBUG records with count 0.
+func cascadeChangeRecords(t *testing.T, logs *logBuffer) []map[string]any {
 	t.Helper()
 	var hits []map[string]any
 	for _, rec := range logs.records(t, cascadeLogMsg) {
@@ -52,6 +59,24 @@ func wantCascadeLog(t *testing.T, logs *logBuffer, level, mode string, count, ne
 			hits = append(hits, rec)
 		}
 	}
+	return hits
+}
+
+// wantNoCascadeChangeLog fails the test when logs hold a cascade record
+// other than a DEBUG record with count 0.
+func wantNoCascadeChangeLog(t *testing.T, logs *logBuffer) {
+	t.Helper()
+	if hits := cascadeChangeRecords(t, logs); len(hits) != 0 {
+		t.Errorf("cascade log records with changes = %v, want none", hits)
+	}
+}
+
+// wantCascadeLog fails the test unless logs hold exactly one cascade
+// record at level with the given counts, among any number of DEBUG
+// records with count 0.
+func wantCascadeLog(t *testing.T, logs *logBuffer, level, mode string, count, nets, backlog int) {
+	t.Helper()
+	hits := cascadeChangeRecords(t, logs)
 	if len(hits) != 1 {
 		t.Fatalf("cascade log records with changes = %v, want one", hits)
 	}
@@ -106,8 +131,7 @@ func TestCascadeDeletedNetIxLans(t *testing.T) {
 	if err := tx.Rollback(); err != nil {
 		t.Fatalf("rollback: %v", err)
 	}
-	logger := slog.New(slog.NewJSONHandler(logs, nil))
-	if res, err := cascadeDeletedNetIxLans(t.Context(), tx, logger, cascadePlan{Mode: "incremental"}); err != nil || res != (cascadeResult{}) {
+	if res, err := cascadeDeletedNetIxLans(t.Context(), tx, cascadePlan{Mode: "incremental"}); err != nil || res != (cascadeResult{}) {
 		t.Errorf("empty plan = %+v, %v; want zero and no error", res, err)
 	}
 }
@@ -455,6 +479,35 @@ func TestSync_CascadesDeletedNetIxLans(t *testing.T) {
 		}
 	})
 
+	t.Run("commit_failure", func(t *testing.T) {
+		t.Parallel()
+		up, w, db, _ := setup(t, 20)
+		probe := withCommitProbe(w, db)
+		before := allNetIxLans(t, w.entClient)
+
+		probe.fail.Store(true)
+		if err := w.Sync(t.Context(), config.SyncModeIncremental); !errors.Is(err, errInjectedCommit) {
+			t.Fatalf("sync error = %v, want the injected commit failure", err)
+		}
+		if got := allNetIxLans(t, w.entClient); !maps.Equal(got, before) {
+			t.Errorf("rows after the failed commit:\n got %v\nwant %v", got, before)
+		}
+		wantNoCascadeChangeLog(t, probe.logs)
+
+		// The retry reuses the gone verdict and commits. It logs the
+		// cascade only after the commit.
+		probe.fail.Store(false)
+		syncCascade(t, w, config.SyncModeIncremental)
+		if got := readNetIxLan(t, w.entClient, 9120); got != cascadedRow {
+			t.Errorf("netixlan 9120 = %+v after the retry, want %+v", got, cascadedRow)
+		}
+		if reqs := up.idInRequests(); len(reqs) != 1 {
+			t.Errorf("id__in requests = %d, want 1 (the retry reuses the gone verdict)", len(reqs))
+		}
+		wantNoCascadeChangeLog(t, probe.logsAtCommit())
+		wantCascadeLog(t, probe.logs, "WARN", "incremental", 1, 1, 1)
+	})
+
 	t.Run("phase_b_retry_deleted_verdict", func(t *testing.T) {
 		t.Parallel()
 		up, w, _, _ := setup(t, 20)
@@ -754,44 +807,74 @@ func waitFor(t *testing.T, cancel context.CancelFunc, done <-chan struct{}, what
 
 // TestStartScheduler_CascadesNetIxLansAtStartup verifies that a primary
 // verifies and cascades the backlog when the scheduler starts, before the
-// first sync cycle is due. The last sync is recent, so no cycle runs.
+// first sync cycle is due. The last sync is recent, so no cycle runs. The
+// cascade log comes after the commit. When the commit fails, no row
+// changes, and the failure is the only WARN about the cascade.
 func TestStartScheduler_CascadesNetIxLansAtStartup(t *testing.T) {
 	t.Parallel()
-	up := newCascadeUpstream(t)
-	w, db, logs := newCascadeWorker(t, up, 20)
-	seedCascadeRows(t, w.entClient)
-	recordRecentSync(t, db)
-	want := allNetIxLans(t, w.entClient)
-	for _, id := range []int{9110, 9111, 9120} {
-		want[id] = cascadedRow
-	}
+	for _, tc := range []struct {
+		name       string
+		failCommit bool
+	}{
+		{"committed", false},
+		{"commit_fails", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			up := newCascadeUpstream(t)
+			w, db, _ := newCascadeWorker(t, up, 20)
+			probe := withCommitProbe(w, db)
+			seedCascadeRows(t, w.entClient)
+			recordRecentSync(t, db)
+			want := allNetIxLans(t, w.entClient)
+			if !tc.failCommit {
+				for _, id := range []int{9110, 9111, 9120} {
+					want[id] = cascadedRow
+				}
+			}
+			probe.fail.Store(tc.failCommit)
 
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	done := make(chan struct{})
-	go func() {
-		w.StartScheduler(ctx, time.Hour)
-		close(done)
-	}()
-	// A read error means "not yet": the cascade transaction can lock the
-	// shared-cache table.
-	waitFor(t, cancel, done, "the startup cascade committed", func() bool {
-		var status string
-		err := db.QueryRowContext(ctx, "SELECT status FROM network_ix_lans WHERE id = 9120").Scan(&status)
-		return err == nil && status == "deleted"
-	})
-	cancel()
-	<-done
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			done := make(chan struct{})
+			go func() {
+				w.StartScheduler(ctx, time.Hour)
+				close(done)
+			}()
+			waitFor(t, cancel, done, "the startup cascade ended", func() bool {
+				if tc.failCommit {
+					return len(probe.logs.records(t, startupCascadeFailedMsg)) == 1
+				}
+				// A read error means "not yet": the cascade transaction
+				// can lock the shared-cache table.
+				var status string
+				err := db.QueryRowContext(ctx, "SELECT status FROM network_ix_lans WHERE id = 9120").Scan(&status)
+				return err == nil && status == "deleted"
+			})
+			cancel()
+			<-done
 
-	if calls, reqs := up.requestCount(), up.idInRequests(); calls != 1 || len(reqs) != 1 {
-		t.Errorf("upstream requests = %d (id__in %d), want exactly the one id__in request", calls, len(reqs))
-	}
-	if got := allNetIxLans(t, w.entClient); !maps.Equal(got, want) {
-		t.Errorf("rows after the startup cascade:\n got %v\nwant %v", got, want)
-	}
-	wantCascadeLog(t, logs, "WARN", "startup", 3, 2, 3)
-	if w.Running() {
-		t.Error("running latch still held after the startup cascade")
+			if calls, reqs := up.requestCount(), up.idInRequests(); calls != 1 || len(reqs) != 1 {
+				t.Errorf("upstream requests = %d (id__in %d), want exactly the one id__in request", calls, len(reqs))
+			}
+			if got := allNetIxLans(t, w.entClient); !maps.Equal(got, want) {
+				t.Errorf("rows after the startup cascade:\n got %v\nwant %v", got, want)
+			}
+			if tc.failCommit {
+				wantNoCascadeChangeLog(t, probe.logs)
+				recs := probe.logs.records(t, startupCascadeFailedMsg)
+				if len(recs) != 1 || recs[0]["level"] != "WARN" ||
+					!strings.Contains(fmt.Sprint(recs[0]["error"]), errInjectedCommit.Error()) {
+					t.Errorf("failure log = %v, want one WARN record with the injected commit error", recs)
+				}
+			} else {
+				wantNoCascadeChangeLog(t, probe.logsAtCommit())
+				wantCascadeLog(t, probe.logs, "WARN", "startup", 3, 2, 3)
+			}
+			if w.Running() {
+				t.Error("running latch still held after the startup cascade")
+			}
+		})
 	}
 }
 

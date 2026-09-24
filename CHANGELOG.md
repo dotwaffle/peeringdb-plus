@@ -10,6 +10,18 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- The primary now logs `WARN "cascaded network deletes to netixlans"`
+  only after the transaction that marks the connections commits. Before
+  this release, it logged the line before the commit. When the commit
+  failed, the line still reported connections as `deleted`, but they
+  stayed live. On 2026-09-24 a startup run logged `count=256` for a
+  commit that failed with the SQLite error `locking protocol (15)`. A
+  failed commit now logs only the failure, and the next sync cycle does
+  the work again. The `WARN "scrubbed contact fields of deleted pocs"`
+  line had the same fault. It also comes after the commit now.
+
 ## [1.28.4] - 2026-09-24
 
 ### Changed

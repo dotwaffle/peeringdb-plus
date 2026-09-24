@@ -824,13 +824,14 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	}
 	// Data repair for poc tombstones that still hold contact data (see
 	// scrubDeletedPocContacts). Same tx, so LiteFS replicates the result.
-	if _, err := scrubDeletedPocContacts(ctx, tx, w.logger); err != nil {
+	scrubbed, err := scrubDeletedPocContacts(ctx, tx)
+	if err != nil {
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
 	// Mark deleted the live netixlans of deleted networks that upstream
 	// removed without a tombstone (see cascadeDeletedNetIxLans).
-	cascaded, err := cascadeDeletedNetIxLans(ctx, tx, w.logger, cascade)
+	cascaded, err := cascadeDeletedNetIxLans(ctx, tx, cascade)
 	if err != nil {
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
@@ -840,7 +841,8 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
 		return syncErr
 	}
-	recordCascadeDeleted(ctx, cascaded.Rows)
+	logScrubbedPocContacts(ctx, w.logger, scrubbed)
+	recordCascadeCommitted(ctx, w.logger, cascade.Mode, cascaded)
 
 	w.recordSuccess(ctx, effectiveMode, statusID, start, objectCounts)
 	return nil

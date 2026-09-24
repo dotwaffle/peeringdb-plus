@@ -288,6 +288,15 @@ func (b *logBuffer) Write(p []byte) (int, error) {
 	return b.buf.Write(p)
 }
 
+// snapshot returns a copy of the log that b holds now.
+func (b *logBuffer) snapshot() *logBuffer {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	s := &logBuffer{}
+	s.buf.Write(b.buf.Bytes())
+	return s
+}
+
 // records returns the decoded log records with message msg.
 func (b *logBuffer) records(t *testing.T, msg string) []map[string]any {
 	t.Helper()
