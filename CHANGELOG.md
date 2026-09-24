@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.28.2] - 2026-09-24
+
 ### Changed
 
 - A sync forces a garbage collection after a type only when it upserted
@@ -1101,7 +1103,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.1...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.2...HEAD
+[1.28.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.1...v1.28.2
 [1.28.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.28.0...v1.28.1
 [1.28.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.27.0...v1.28.0
 [1.27.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.26.0...v1.27.0
