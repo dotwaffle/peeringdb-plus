@@ -257,14 +257,33 @@ func sweepStaleScratchFiles(ctx context.Context, dir string, logger *slog.Logger
 	return files, size
 }
 
-// sweepScratchDirAtStartup runs sweepStaleScratchFiles on the configured
-// scratch directory. StartScheduler calls it on the primary before it
-// waits for the first sync cycle. It does nothing when ScratchDir is
-// empty.
+// sweepScratchDirAtStartup runs sweepScratchDir on the configured scratch
+// directory. StartScheduler calls it on the primary before it waits for
+// the first sync cycle. It does nothing when ScratchDir is empty.
 //
 // The run holds the running latch, so it cannot remove the live file of
 // a cycle that POST /sync started. When a cycle holds the latch, the
-// sweep is skipped, and the stale files stay until the next start.
+// startup sweep is skipped, and the next cycle runs the sweep (see
+// scratchDirForCycle).
+func (w *Worker) sweepScratchDirAtStartup(ctx context.Context) {
+	if w.config.ScratchDir == "" {
+		return
+	}
+	if !w.running.CompareAndSwap(false, true) {
+		w.logger.LogAttrs(ctx, slog.LevelDebug, "sync cycle running, skipping startup scratch sweep")
+		return
+	}
+	defer w.running.Store(false)
+	w.sweepScratchDir(ctx)
+}
+
+// sweepScratchDir runs sweepStaleScratchFiles on the configured scratch
+// directory once for each process. The caller holds the running latch,
+// so this process has no live scratch file. The startup sweep calls it,
+// and scratchDirForCycle calls it when the startup sweep did not run: a
+// cycle held the latch at startup, or the process became the primary
+// later. It marks the sweep as done after the first run, whatever the
+// result, so a lock error does not log a WARN in each cycle.
 //
 // The sweep also needs the exclusive lock of the directory (see
 // scratchDirLock), so it cannot remove the live file of another process
@@ -273,16 +292,9 @@ func sweepStaleScratchFiles(ctx context.Context, dir string, logger *slog.Logger
 // this process takes the shared lock and keeps it. When the lock fails
 // for another reason, the sweep is skipped, and the first cycle tries to
 // take the shared lock again (see scratchDirForCycle).
-func (w *Worker) sweepScratchDirAtStartup(ctx context.Context) {
+func (w *Worker) sweepScratchDir(ctx context.Context) {
 	dir := w.config.ScratchDir
-	if dir == "" {
-		return
-	}
-	if !w.running.CompareAndSwap(false, true) {
-		w.logger.LogAttrs(ctx, slog.LevelDebug, "sync cycle running, skipping startup scratch sweep")
-		return
-	}
-	defer w.running.Store(false)
+	w.scratchSwept = true
 	err := w.scratchLock.lockExclusive(dir)
 	switch {
 	case err == nil:

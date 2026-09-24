@@ -129,6 +129,52 @@ func TestSweepScratchDirAtStartup_Lock(t *testing.T) {
 	}
 }
 
+// TestScratchDirForCycle_SweepsAfterSkippedStartup verifies that the
+// first cycle sweeps the scratch dir when the startup sweep did not run,
+// because a cycle held the running latch. The sweep runs once for each
+// process: a later cycle keeps a new stale-named file.
+func TestScratchDirForCycle_SweepsAfterSkippedStartup(t *testing.T) {
+	t.Parallel()
+	f := newFixture(t)
+	w, _ := newTestWorker(t, f)
+	var buf *logBuffer
+	w.logger, buf = newSweepLogger()
+	dir := t.TempDir()
+	setScratchDir(t, w, dir)
+	writeScratchTestFile(t, dir, "pdbplus-sync-scratch-stale.db", 64)
+	ctx := t.Context()
+
+	// A cycle holds the latch, so the startup sweep is skipped. The
+	// scratchDirForCycle calls below run as that cycle.
+	w.running.Store(true)
+	w.sweepScratchDirAtStartup(ctx)
+	if got := dirNames(t, dir); !slices.Contains(got, "pdbplus-sync-scratch-stale.db") {
+		t.Fatalf("scratch dir after the skipped startup sweep = %v, want the stale file kept", got)
+	}
+
+	if got := w.scratchDirForCycle(ctx); got != dir {
+		t.Errorf("scratchDirForCycle = %q, want %q", got, dir)
+	}
+	if got := dirNames(t, dir); !slices.Equal(got, []string{scratchLockName}) {
+		t.Errorf("scratch dir after the first cycle = %v, want only the lock file", got)
+	}
+	if logs := buf.records(t, sweepLogMsg); len(logs) != 1 || logs[0]["level"] != "WARN" {
+		t.Errorf("sweep log = %v, want one WARN record", logs)
+	}
+
+	writeScratchTestFile(t, dir, "pdbplus-sync-scratch-later.db", 64)
+	if got := w.scratchDirForCycle(ctx); got != dir {
+		t.Errorf("second scratchDirForCycle = %q, want %q", got, dir)
+	}
+	if got := dirNames(t, dir); !slices.Contains(got, "pdbplus-sync-scratch-later.db") {
+		t.Errorf("scratch dir after the second cycle = %v, want the new file kept", got)
+	}
+	if logs := buf.records(t, sweepLogMsg); len(logs) != 1 {
+		t.Errorf("sweep log = %v, want the sweep to run once", logs)
+	}
+	w.running.Store(false)
+}
+
 // TestSweepScratchDirAtStartup_LockError verifies that the startup sweep
 // is skipped with a WARN when the lock file cannot be opened.
 func TestSweepScratchDirAtStartup_LockError(t *testing.T) {

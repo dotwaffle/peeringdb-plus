@@ -290,6 +290,9 @@ type Worker struct {
 	// (see scratchDirLock). The startup sweep and scratchDirForCycle
 	// take it. The process keeps it until it exits.
 	scratchLock scratchDirLock
+	// scratchSwept reports that this process ran sweepScratchDir. The
+	// running latch serializes its readers and writers.
+	scratchSwept bool
 	// scratchFreeBytes returns the free space in bytes of a directory.
 	// scratchDirForCycle compares it with scratchDirMinFreeBytes.
 	// NewWorker sets dirFreeBytes. Tests set a stub.

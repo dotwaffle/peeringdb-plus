@@ -339,7 +339,8 @@ so it does not read or remove the scratch files.
 The directory is outside the `/litefs` FUSE mount,
 so LiteFS does not replicate the scratch files.
 A crashed process leaves its scratch file,
-so the primary removes stale scratch files at scheduler start.
+so the primary removes stale scratch files at scheduler start,
+or in its first cycle when the start sweep did not run.
 The sweep needs an exclusive `flock` lock on `.pdbplus-scratch.lock`
 in the directory.
 Each process that stages a cycle there holds a shared lock,

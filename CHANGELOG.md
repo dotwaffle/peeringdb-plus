@@ -21,7 +21,8 @@ are in the Git history at their tags.
   The default is empty, which selects `os.TempDir()`. A set value must be
   an absolute path. On the primary, the scheduler removes the stale
   scratch files in a set directory at start, because a crashed process
-  leaves its file. `fly.toml` sets `/var/lib/litefs/scratch` on the
+  leaves its file. When that sweep does not run, the first cycle of the
+  process runs it. `fly.toml` sets `/var/lib/litefs/scratch` on the
   primary volume. Before this release, a full cycle wrote about 100 MB of
   scratch data to `/tmp` on the root file system, which Fly.io limits to
   2000 IOPS and 8 MiB/s. LiteFS does not read or remove files in the

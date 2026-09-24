@@ -24,10 +24,12 @@ const scratchDirMinFreeBytes = 512 << 20
 // next cycle: ScratchDir, or "" for os.TempDir(). The caller holds the
 // running latch.
 //
+// When this process has not swept the directory yet, it sweeps it first
+// (see sweepScratchDir).
+//
 // A cycle stages in a set ScratchDir only while this process holds its
 // shared lock (see scratchDirLock). The startup sweep can fail to take
-// the lock, or run on a replica that later becomes the primary, so this
-// process takes the lock here when it holds none. The dir must also have
+// the lock, so this process takes the lock here when it holds none. The dir must also have
 // scratchDirMinFreeBytes of free space (see Worker.scratchFreeBytes).
 // When the lock or the free space check fails, the cycle stages in
 // os.TempDir() and the function logs a WARN. These checks never fail the
@@ -36,6 +38,9 @@ func (w *Worker) scratchDirForCycle(ctx context.Context) string {
 	dir := w.config.ScratchDir
 	if dir == "" {
 		return ""
+	}
+	if !w.scratchSwept {
+		w.sweepScratchDir(ctx)
 	}
 	if err := w.scratchLock.lockShared(dir); err != nil {
 		w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to lock scratch dir, staging in the temp dir",
