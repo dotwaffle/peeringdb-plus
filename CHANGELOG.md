@@ -10,6 +10,16 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- A sync now clears an optional value that upstream removed, such as
+  a netixlan IPv6 address, a facility's campus or a network's RIR
+  status. The upsert updated only the columns of its INSERT, and a
+  batch in which every row had the value unset left the column out,
+  so the stored value stayed. Incremental cycles often write batches
+  of one row. 33 columns in 8 tables were exposed.
+  The next daily full cycle repairs live rows that hold a stale value.
+
 ## [1.28.3] - 2026-09-24
 
 ### Fixed
