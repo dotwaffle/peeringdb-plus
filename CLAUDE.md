@@ -318,7 +318,7 @@ End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that
 
 **Dashboards + alerts** in `deploy/grafana/{dashboards,alerts}/` — see `docs/DEPLOYMENT.md`. OTel runtime metrics (`go_memory_used_bytes` etc.) come from `runtime.Start(...)` and tick on every machine; `pdbplus_sync_peak_*` is primary-only.
 
-**Prod debugging:** image ships with `sqlite3` — `fly ssh console -a peeringdb-plus -C 'sqlite3 /litefs/peeringdb-plus.db'`. Replicas expose the FUSE path read-only.
+**Prod debugging:** agents never open the live `/litefs/peeringdb-plus.db` with `sqlite3` (user decision, 2026-09-24): a read transaction on a replica makes the LTX apply wait, and on the primary it blocks WAL checkpoints. Use the read APIs (`/api/`, `/rest/v1/`, GraphQL) and Grafana first. For SQL, query a copy: `fly ssh console -a peeringdb-plus --process-group primary -C "sh -c 'litefs export -name peeringdb-plus.db /tmp/pdb.db && sqlite3 -readonly /tmp/pdb.db \"<SQL>\"; rm -f /tmp/pdb.db'"`. `litefs export` (LiteFS 0.5) holds a LiteFS read lock only while it copies the database (126 MB). The image ships `sh` and `sqlite3`. A write to the prod DB needs the user's approval of the exact SQL.
 ## Architecture
 
 ### API Surfaces (6)
