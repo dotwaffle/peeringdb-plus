@@ -32,10 +32,8 @@ Key test locations:
 | Benchmarks | `bench_test.go`, `bench_*_test.go`, and `*_bench_test.go` files in `internal/pdbcompat`, `internal/pdbcompat/parity`, `internal/grpcserver`, `internal/sync`, and `internal/web`. Also `internal/web/termrender/network_test.go`. | For example `BenchmarkApplyFieldProjection`, `BenchmarkRowSize`, `BenchmarkParity_*` |
 | Live gated tests | `internal/conformance/live_test.go`, `internal/peeringdb/client_live_test.go` | Require the `-peeringdb-live` flag |
 
-Generated code under `ent/` and `gen/` is excluded from coverage
-(see [Coverage](#coverage) below)
-and should not be tested directly —
-tests exercise the handlers and services that consume the generated code.
+Do not test the generated code under `ent/` and `gen/` directly.
+Tests exercise the handlers and services that consume the generated code.
 
 ## Running Tests
 
@@ -45,8 +43,7 @@ Run the full suite with the race detector:
 mise run test
 ```
 
-CI runs `mise run coverage`.
-That task runs the same suite and also writes a coverage profile.
+CI runs the same command.
 
 Run a single package:
 
@@ -96,7 +93,7 @@ go test -run='^$' -fuzz=FuzzFilterParser -fuzztime=30s ./internal/pdbcompat/
 The race detector needs cgo and a C compiler.
 `modernc.org/sqlite` is pure Go, so the server binary does not need cgo.
 The Docker images build with `CGO_ENABLED=0`.
-The `test` and `coverage` mise tasks set `CGO_ENABLED=1`.
+The `test` mise task sets `CGO_ENABLED=1`.
 
 If your machine has no C compiler, run the tests without the race detector:
 
@@ -517,43 +514,6 @@ so goroutines that handlers or workers start do not leak between tests.
   A divergence test that is its own top-level function ends its name
   with `_DIVERGENCE` (e.g. `TestParity_Unicode_FoldWindow_DIVERGENCE`).
 
-## Coverage
-
-There is no enforced coverage threshold —
-the `.octocov.yml` configuration records coverage for reporting only.
-Generated code is excluded so the headline number reflects hand-written code:
-
-```yaml
-# .octocov.yml
-coverage:
-  paths:
-    - coverage.out
-  exclude:
-    - 'ent/**/*.go'
-    - 'gen/**/*.go'
-    - 'graph/generated.go'
-    - '**/*_templ.go'
-```
-
-The coverage task names the hand-written package trees explicitly.
-This avoids a shell-built `go list | grep | tr | sed` package list,
-keeps generated `ent/` and `gen/` packages out of instrumentation,
-and leaves file-level exclusions such as `graph/generated.go`
-to `.octocov.yml`:
-
-```bash
-gotestsum -- \
-  -race \
-  -coverprofile=coverage.out \
-  -coverpkg=./cmd/...,./deploy/...,./graph/...,./internal/...,./schema/... \
-  ./...
-```
-
-Run this through `mise run coverage`;
-gotestsum prints compact package-level progress, failure details,
-and the 10 slowest tests.
-The `k1LoW/octocov-action` CI step posts the resulting summary as a PR comment.
-
 ## CI Integration
 
 The `.github/workflows/ci.yml` workflow runs two jobs on every pull request
@@ -567,8 +527,7 @@ each reusing the prior compile; `docker-build` runs in parallel:
 | `ci` | Generated code drift check | `mise run generate`, then scoped tracked/untracked checks |
 | `ci` | `go.mod`/`go.sum` tidiness | `go mod tidy`, then `git diff --exit-code go.mod go.sum` |
 | `ci` | Compile check | `mise run build` |
-| `ci` | Tests with race detector + coverage | `mise run coverage` |
-| `ci` | Coverage comment | `k1LoW/octocov-action` |
+| `ci` | Tests with race detector | `mise run test` |
 | `ci` | Lint | `mise run lint` |
 | `ci` | Vulnerability scan (advisory, `continue-on-error`) | `mise run vulncheck` |
 | `docker-build` | Dev and prod image builds | `docker build` using `./Dockerfile` and `./Dockerfile.prod` |

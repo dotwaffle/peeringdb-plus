@@ -77,9 +77,7 @@ It comprises two jobs:
       A `go mod tidy` gate follows it,
       failing the job when go.mod/go.sum are untidy.
    2. **Build** — `mise run build` to confirm compilation and warm the cache.
-   3. **Test** — `mise run coverage` uses gotestsum and the race detector, with
-      coverage excluding `ent/` and `gen/`; posts a coverage comment via
-      `k1LoW/octocov-action`.
+   3. **Test** — `mise run test` runs gotestsum with the race detector.
    4. **Lint** — `mise run lint` checks the workflow and Go sources.
    5. **Govulncheck** — `mise run vulncheck`.
       Advisory (`continue-on-error`):

@@ -11,8 +11,7 @@ For environment variables and runtime configuration, see
 - Git and a local clone of this repository.
 - A C compiler, for example gcc or clang.
   The race detector needs cgo.
-  `mise run test` and `mise run coverage` set `CGO_ENABLED=1`
-  and run the race detector.
+  `mise run test` sets `CGO_ENABLED=1` and runs the race detector.
   `mise run check` runs `mise run test`.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
@@ -81,7 +80,6 @@ Code-change-relevant directories:
 |---|---|
 | `mise run build` | Build all packages with `-trimpath` |
 | `mise run test` | Run all tests through gotestsum with compact failure-focused output and the race detector |
-| `mise run coverage` | Run race tests, write `coverage.out`, and report the 10 slowest tests |
 | `mise run generate` | Run the full codegen pipeline in order |
 | `mise run lint` | Run actionlint and golangci-lint |
 | `mise run format` | Format Go sources with `golangci-lint fmt` (`gofmt -s`) |
@@ -785,8 +783,6 @@ Before you open a PR:
    Otherwise the CI drift check fails.
 3. Open a PR against `main`.
    CI runs the jobs in [TESTING.md § CI Integration](TESTING.md#ci-integration).
-4. Coverage excludes `ent/` and `gen/` (generated code).
-   Aim to keep coverage on new hand-written code.
 
 ## Debugging tips
 
@@ -839,6 +835,6 @@ Before you open a PR:
 - [ARCHITECTURE.md](ARCHITECTURE.md) — system design and package layout.
 - [CONFIGURATION.md](CONFIGURATION.md) — environment variables and runtime
   configuration.
-- [TESTING.md](TESTING.md) — test framework, conventions, and coverage.
+- [TESTING.md](TESTING.md) — test framework and conventions.
 - [API.md](API.md) — API surfaces, traversal allowlists, divergence
   registry.

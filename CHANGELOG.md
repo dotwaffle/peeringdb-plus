@@ -10,6 +10,14 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Changed
+
+- CI runs the race test suite without coverage and posts no coverage
+  comment on pull requests. The `k1LoW/octocov-action` step,
+  `.octocov.yml`, the `pull-requests: write` permission of the `ci` job
+  and the `mise run coverage` task are removed. CI now runs
+  `mise run test`.
+
 ## [1.31.1] - 2026-09-24
 
 ### Fixed
