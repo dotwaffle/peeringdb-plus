@@ -205,6 +205,10 @@ type Config struct {
 	// pressure per cycle, well within budget. Set to 0 to disable
 	// backfill entirely (drop-on-miss behavior).
 	//
+	// The same value caps the netixlan cascade verification of the sync
+	// worker at min(10, value) requests per pass, counted apart from the
+	// backfill requests; 0 also turns that verification off.
+	//
 	// Semantic shift (v1.18.5): the previous cap counted
 	// rows. With the dataloader pattern (one ?id__in= request per up to
 	// FetchByIDsBatchSize rows), counting rows is a weak circuit

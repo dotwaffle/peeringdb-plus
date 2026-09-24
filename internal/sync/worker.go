@@ -116,7 +116,10 @@ type WorkerConfig struct {
 	// limiter. Default 20 (PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE)
 	// — at 1 req/sec auth, ≈20s of upstream pressure max per cycle.
 	// 0 disables backfill entirely (drop-on-miss behavior, preserved
-	// as an operator escape-hatch).
+	// as an operator escape-hatch). The same value caps the netixlan
+	// cascade verification at min(10, value) requests per pass, counted
+	// apart from backfill; 0 also turns verification off (see
+	// verifyNetIxLanCandidates).
 	FKBackfillMaxRequestsPerCycle int
 
 	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
@@ -226,6 +229,8 @@ type Worker struct {
 	// requests issued by FK backfill. Captured once in NewWorker from
 	// WorkerConfig.FKBackfillMaxRequestsPerCycle; 0 disables backfill
 	// entirely (drop-on-miss behavior, preserved for operator escape-hatch).
+	// verifyNetIxLanCandidates also reads it as its request cap, with its
+	// own count.
 	fkBackfillRequestCap int
 	// fkBackfillDeadline is the wall-clock deadline for FK-backfill HTTP
 	// activity within the current sync cycle. Set in resetFKState from
@@ -243,6 +248,13 @@ type Worker struct {
 	// WorkerConfig.FKBackfillTimeout; zero or negative disables the
 	// deadline (no timeout — only the cap applies).
 	fkBackfillTimeout time.Duration
+	// netIxLanVerifyMemo holds the upstream verdicts on netixlan cascade
+	// candidates (see verifyNetIxLanCandidates), keyed by netixlan id. An
+	// entry applies while the stored updated values of the row and of
+	// its network match. It outlives the cycle, so resetFKState does not
+	// clear it. Single writer: only code that holds the running latch
+	// (Sync, cascadeNetIxLansAtStartup) touches it.
+	netIxLanVerifyMemo map[int]netIxLanVerifyEntry
 	// cyclePeakHeapBytes is the running per-cycle maximum of HeapInuse,
 	// folded in by foldPeakHeap at the points where the cycle's heap
 	// actually peaks: after the Phase A fetch and after each type's
@@ -283,6 +295,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		retryBackoffs:        defaultRetryBackoffs,
 		fkBackfillRequestCap: cfg.FKBackfillMaxRequestsPerCycle,
 		fkBackfillTimeout:    cfg.FKBackfillTimeout,
+		netIxLanVerifyMemo:   make(map[int]netIxLanVerifyEntry),
 	}
 }
 
@@ -468,6 +481,12 @@ func (w *Worker) dbHasRecord(ctx context.Context, tx *ent.Tx, typeName string, i
 // payloads — no inference needed. Existing tombstones in the live DB
 // are preserved (no schema change, no row mutation by this commit);
 // the dormant tombstone-GC work still owns the eventual GC story.
+//
+// Exception: cascadeDeletedNetIxLans marks deleted the live netixlans of
+// a deleted network, because upstream pdb_rir_status removes them without
+// a tombstone. It acts only on rows that an uncached ?since=1&id__in=
+// request no longer returns live; that is not inference from a partial
+// response.
 type syncStep struct {
 	name string
 }
@@ -487,6 +506,12 @@ func StepOrder() []string {
 // upstream sends explicit status='deleted' tombstones in ?since=N
 // payloads (Task 2 bootstrap), and the live FK backfill (Task 3)
 // handles missing parents.
+//
+// Exception: cascadeDeletedNetIxLans marks deleted the live netixlans of
+// a deleted network, because upstream pdb_rir_status removes them without
+// a tombstone. It acts only on rows that an uncached ?since=1&id__in=
+// request no longer returns live; that is not inference from a partial
+// response.
 func (w *Worker) syncSteps() []syncStep {
 	steps := make([]syncStep, len(canonicalStepOrder))
 	for i, name := range canonicalStepOrder {
@@ -751,6 +776,9 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
+	// Verify the netixlan cascade candidates against upstream now, while
+	// no tx is held (see verifyNetIxLanCandidates).
+	cascade := w.prepareNetIxLanCascade(ctx, scratch, effectiveMode, time.Now())
 	// Full-mode cycles reconcile completely: the reconcile-all marker
 	// relaxes the upsert pass's updated-timestamp skip gate from `>` to
 	// `>=` so rows the sync mutated locally without bumping `updated`
@@ -798,11 +826,19 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
+	// Mark deleted the live netixlans of deleted networks that upstream
+	// removed without a tombstone (see cascadeDeletedNetIxLans).
+	cascaded, err := cascadeDeletedNetIxLans(ctx, tx, w.logger, cascade)
+	if err != nil {
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
+		return err
+	}
 	if commitErr := commitWithSpan(ctx, tx); commitErr != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", commitErr)
 		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
 		return syncErr
 	}
+	recordCascadeDeleted(ctx, cascaded.Rows)
 
 	w.recordSuccess(ctx, effectiveMode, statusID, start, objectCounts)
 	return nil
@@ -1430,6 +1466,12 @@ const gcHintMinRows = 1000
 // infers deletions from absence; upstream sends explicit
 // status='deleted' tombstones.
 //
+// Exception: cascadeDeletedNetIxLans marks deleted the live netixlans of
+// a deleted network, because upstream pdb_rir_status removes them without
+// a tombstone. It acts only on rows that an uncached ?since=1&id__in=
+// request no longer returns live; that is not inference from a partial
+// response.
+//
 // Atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
 //
@@ -1944,7 +1986,8 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 // On primary nodes it executes sync cycles; on replicas it waits for promotion.
 // Role changes are detected dynamically at each scheduler wakeup via
 // w.config.IsPrimary(). The scheduler stops when ctx is cancelled.
-// On a primary, it first runs scrubPocContactsAtStartup.
+// On a primary, it first runs scrubPocContactsAtStartup and
+// cascadeNetIxLansAtStartup.
 //
 // Scheduling anchor: the next sync is scheduled at lastCompletion + interval,
 // not at processStart + N*interval. This matters across restarts — a rolling
@@ -1980,10 +2023,12 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 
 	wasPrimary := w.config.IsPrimary()
 
-	// Repair legacy poc tombstones now. The first cycle can be up to one
-	// interval away (see scrubPocContactsAtStartup).
+	// Repair legacy poc tombstones and cascade network deletes to
+	// netixlans now. The first cycle can be up to one interval away (see
+	// scrubPocContactsAtStartup and cascadeNetIxLansAtStartup).
 	if wasPrimary {
 		w.scrubPocContactsAtStartup(ctx)
+		w.cascadeNetIxLansAtStartup(ctx)
 	}
 
 	// Fresh-DB fast path: a primary with no prior successful sync must run

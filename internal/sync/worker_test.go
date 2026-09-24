@@ -223,6 +223,23 @@ func makeNet(id, orgID, asn int, name, status string) map[string]any {
 	}
 }
 
+// makeNetIxLan builds a fixture netixlan JSON row matching the upstream
+// PeeringDB /api/netixlan shape (internal/peeringdb/types.go NetworkIxLan
+// struct), on ix and ixlan ixlanID. operational follows status, as
+// upstream derives it.
+func makeNetIxLan(id, netID, ixlanID int, status string) map[string]any {
+	return map[string]any{
+		"id": id, "net_id": netID, "ix_id": ixlanID, "ixlan_id": ixlanID,
+		"name": "", "notes": "", "speed": 1000, "asn": 64000 + netID,
+		"ipaddr4": nil, "ipaddr6": nil,
+		"is_rs_peer": false, "bfd_support": false,
+		"operational": status == "ok",
+		"net_side_id": nil, "ix_side_id": nil,
+		"created": "2024-01-01T00:00:00Z", "updated": "2024-01-01T00:00:00Z",
+		"status": status,
+	}
+}
+
 // makePoc builds a fixture Poc JSON row matching the upstream PeeringDB
 // /api/poc shape (internal/peeringdb/types.go Poc struct). Used by
 // TestSync_IncrementalRoleTombstone to drive a role="" tombstone
