@@ -10,6 +10,33 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` sets the ratio of scheduled sync
+  cycles that are traced, from `0.0` to `1.0` (default `1.0`). Set it
+  to `0` to trace no scheduled cycle, as before this release.
+  `POST /sync` always traces its cycle, and `POST /sync?trace=0` never
+  does, whatever the ratio.
+
+### Changed
+
+- The primary now traces every scheduled sync cycle. Before this
+  release, the sampler dropped each scheduled cycle, and only a
+  `POST /sync` cycle had a trace. Some signals are only on the sync
+  spans: the per-type `sync-fetch-*` and `sync-upsert-*` step spans,
+  `pdbplus.sync.status_rows_pruned` and the `tombstone_window.discarded`
+  event. The `trace_id` on a log line from inside a cycle now finds its
+  trace. The retry and final-failure logs of the scheduler are outside
+  the cycle and have no sync `trace_id`. In the prod traces of
+  2026-09-24 without their DB spans, a full cycle has about 58 spans and
+  an incremental cycle about 44. At the 15m interval, this is about 4.2k
+  spans per day.
+- A sync cycle emits no DB spans, a `POST /sync` cycle included. A full
+  cycle runs thousands of statements, and with their spans its trace
+  was larger than the 5 MB per-trace limit of Grafana Cloud Tempo. The
+  spans after the limit were lost, among them the upsert step spans of
+  net, poc, netfac and netixlan. API request traces keep their DB spans.
+
 ## [1.30.0] - 2026-09-24
 
 ### Added
