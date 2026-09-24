@@ -200,6 +200,13 @@ It fetches each bare list in one request and also rewrites rows whose
 `updated` value did not advance:
 the `withReconcileAll` marker relaxes the `updated` skip gate
 of the upserts from `>` to `>=` (`internal/sync/upsert.go`).
+A full-mode upsert writes a row only when a column differs
+from the stored row.
+SQLite writes the index entries of each updated column again,
+also when the value is the same.
+Each replica applies a commit with the WAL locks held,
+so a rewrite of unchanged rows made each daily commit
+about as large as all the indexes of the database.
 Only a full-mode cycle repairs this data:
 
 - Count fields, such as `ix_count`, `net_count` and `fac_count`.

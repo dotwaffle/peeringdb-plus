@@ -41,7 +41,8 @@ import (
 //	OR <table>.updated <= '1900-01-01'
 //
 // Full-mode cycles use `>=` in the first term and can add a cutoff term
-// (see below).
+// (see below). They also write a row only when one of its columns
+// differs (see writeRowDiffers).
 //
 // The OR-IS-NULL / OR-pre-1900 guards exist because PeeringDB rows
 // occasionally land with zero `updated` (legacy rows pre-Phase-X
@@ -99,25 +100,36 @@ import (
 // SQLite exposes inside ON CONFLICT DO UPDATE) we emit the literal
 // text since "excluded" is a SQL keyword in that context, not a real
 // table. The cutoff is bound as a time.Time argument, which the driver
-// stores in the same text form as the column. table selects the cutoff.
-func skipUnchangedPredicate(ctx context.Context, table string) *sql.Predicate {
+// stores in the same text form as the column. t selects the cutoff and
+// the compared columns.
+func skipUnchangedPredicate(ctx context.Context, t *schema.Table) *sql.Predicate {
 	return sql.P(func(b *sql.Builder) {
-		writeSkipUnchanged(ctx, b, table)
+		writeSkipUnchanged(ctx, b, t)
 	})
 }
 
-// writeSkipUnchanged writes the terms of skipUnchangedPredicate to b,
-// without enclosing parentheses. b must carry the upsert table as its
-// qualifier.
-func writeSkipUnchanged(ctx context.Context, b *sql.Builder, table string) {
-	cmp := " > "
+// writeSkipUnchanged writes the terms of skipUnchangedPredicate to b.
+// b must carry the upsert table t as its qualifier.
+func writeSkipUnchanged(ctx context.Context, b *sql.Builder, t *schema.Table) {
 	cutoffs, full := reconcileAll(ctx)
-	cutoff, hasCutoff := cutoffs[table]
-	if full {
-		// Full-mode cycle: rows with an equal updated are rewritten
-		// too.
-		cmp = " >= "
+	if !full {
+		writeUpdatedGate(b, " > ", time.Time{}, false)
+		return
 	}
+	// Full-mode cycle: rows with an equal updated pass the gate too,
+	// and only a row that differs is written.
+	cutoff, hasCutoff := cutoffs[t.Name]
+	b.WriteString("(")
+	writeUpdatedGate(b, " >= ", cutoff, hasCutoff)
+	b.WriteString(") AND (")
+	writeRowDiffers(b, t)
+	b.WriteString(")")
+}
+
+// writeUpdatedGate writes the updated terms of skipUnchangedPredicate,
+// without enclosing parentheses. cmp compares excluded.updated with the
+// stored value.
+func writeUpdatedGate(b *sql.Builder, cmp string, cutoff time.Time, hasCutoff bool) {
 	b.WriteString("excluded.updated" + cmp)
 	b.Ident("updated")
 	if hasCutoff {
@@ -162,7 +174,7 @@ func writeSkipUnchanged(ctx context.Context, b *sql.Builder, table string) {
 func netIxLanUpsertPredicate(ctx context.Context) *sql.Predicate {
 	return sql.P(func(b *sql.Builder) {
 		b.WriteString("(")
-		writeSkipUnchanged(ctx, b, "network_ix_lans")
+		writeSkipUnchanged(ctx, b, migrate.NetworkIxLansTable)
 		b.WriteString(") AND (")
 		b.Ident("status")
 		b.WriteString(" <> 'deleted' OR excluded.status = 'deleted' OR excluded.updated <> ")
@@ -187,17 +199,57 @@ func netIxLanUpsertPredicate(ctx context.Context) *sql.Predicate {
 // row, which is NULL for each such column.
 func resolveWithRow(t *schema.Table) sql.ConflictOption {
 	return sql.ResolveWith(func(u *sql.UpdateSet) {
-		for _, c := range t.Columns {
-			if !slices.Contains(t.PrimaryKey, c) {
-				u.SetExcluded(c.Name)
-			}
+		for _, c := range nonKeyColumns(t) {
+			u.SetExcluded(c.Name)
 		}
 	})
 }
 
+// writeRowDiffers writes a term that is true when a column that
+// resolveWithRow sets differs between the excluded row and the stored
+// row:
+//
+//	excluded.c1 IS NOT <table>.c1 OR excluded.c2 IS NOT <table>.c2 ...
+//
+// Full mode needs it. The full-mode gate passes rows with an equal
+// updated, and every stored row older than the cutoff, so it passes
+// nearly every row of the snapshot. SQLite does not rewrite a table cell
+// that is unchanged, but it deletes and inserts again the index entries
+// of every column in the SET list. So an unchanged row still wrote the
+// index pages of its table. A full re-upsert of 20000 unchanged netixlan
+// rows wrote 4.3 MiB to the WAL, the size of the table's indexes (SQLite
+// 3.53.4). The indexes were 53 MiB of the 121 MiB database on 2026-09-24.
+// Each replica applies a commit with all WAL locks held, and readers that
+// wait more than about 10s fail with SQLITE_PROTOCOL.
+//
+// IS NOT is true when one side is NULL and the other is not. The
+// excluded row and the stored row come from the same Go values, so an
+// unchanged column has the same stored type and bytes.
+func writeRowDiffers(b *sql.Builder, t *schema.Table) {
+	for i, c := range nonKeyColumns(t) {
+		if i > 0 {
+			b.WriteString(" OR ")
+		}
+		b.WriteString("excluded." + b.Quote(c.Name) + " IS NOT ")
+		b.Ident(c.Name)
+	}
+}
+
+// nonKeyColumns returns the columns of t outside its primary key.
+func nonKeyColumns(t *schema.Table) []*schema.Column {
+	cols := make([]*schema.Column, 0, len(t.Columns))
+	for _, c := range t.Columns {
+		if !slices.Contains(t.PrimaryKey, c) {
+			cols = append(cols, c)
+		}
+	}
+	return cols
+}
+
 // reconcileAllKey marks a full-mode sync cycle. Its upserts also rewrite
 // conflicting rows whose updated equals the stored value, and rows older
-// than the table's snapshot cutoff (see skipUnchangedPredicate). Carried
+// than the table's snapshot cutoff, when a column differs (see
+// skipUnchangedPredicate). Carried
 // on the cycle context (cycle-scoped data, set once in syncCycle for
 // full-mode runs) so the marker reaches the 13 upsert closures without
 // widening every signature in the dispatch chain.
@@ -302,7 +354,7 @@ func upsertOrganizations(ctx context.Context, tx *ent.Tx, orgs []peeringdb.Organ
 				OnConflict(
 					sql.ConflictColumns(organization.FieldID),
 					resolveWithRow(migrate.OrganizationsTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "organizations")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.OrganizationsTable)),
 				).
 				Exec(ctx)
 		},
@@ -341,7 +393,7 @@ func upsertCampuses(ctx context.Context, tx *ent.Tx, items []peeringdb.Campus) (
 				OnConflict(
 					sql.ConflictColumns(campus.FieldID),
 					resolveWithRow(migrate.CampusesTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "campuses")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.CampusesTable)),
 				).
 				Exec(ctx)
 		},
@@ -404,7 +456,7 @@ func upsertFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.Facilit
 				OnConflict(
 					sql.ConflictColumns(facility.FieldID),
 					resolveWithRow(migrate.FacilitiesTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.FacilitiesTable)),
 				).
 				Exec(ctx)
 		},
@@ -441,7 +493,7 @@ func upsertCarriers(ctx context.Context, tx *ent.Tx, items []peeringdb.Carrier) 
 				OnConflict(
 					sql.ConflictColumns(carrier.FieldID),
 					resolveWithRow(migrate.CarriersTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "carriers")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.CarriersTable)),
 				).
 				Exec(ctx)
 		},
@@ -468,7 +520,7 @@ func upsertCarrierFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 				OnConflict(
 					sql.ConflictColumns(carrierfacility.FieldID),
 					resolveWithRow(migrate.CarrierFacilitiesTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "carrier_facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.CarrierFacilitiesTable)),
 				).
 				Exec(ctx)
 		},
@@ -528,7 +580,7 @@ func upsertInternetExchanges(ctx context.Context, tx *ent.Tx, items []peeringdb.
 				OnConflict(
 					sql.ConflictColumns(internetexchange.FieldID),
 					resolveWithRow(migrate.InternetExchangesTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "internet_exchanges")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.InternetExchangesTable)),
 				).
 				Exec(ctx)
 		},
@@ -562,7 +614,7 @@ func upsertIxLans(ctx context.Context, tx *ent.Tx, items []peeringdb.IxLan) ([]i
 				OnConflict(
 					sql.ConflictColumns(ixlan.FieldID),
 					resolveWithRow(migrate.IxLansTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_lans")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.IxLansTable)),
 				).
 				Exec(ctx)
 		},
@@ -590,7 +642,7 @@ func upsertIxPrefixes(ctx context.Context, tx *ent.Tx, items []peeringdb.IxPrefi
 				OnConflict(
 					sql.ConflictColumns(ixprefix.FieldID),
 					resolveWithRow(migrate.IxPrefixesTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_prefixes")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.IxPrefixesTable)),
 				).
 				Exec(ctx)
 		},
@@ -619,7 +671,7 @@ func upsertIxFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.IxFac
 				OnConflict(
 					sql.ConflictColumns(ixfacility.FieldID),
 					resolveWithRow(migrate.IxFacilitiesTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "ix_facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.IxFacilitiesTable)),
 				).
 				Exec(ctx)
 		},
@@ -686,7 +738,7 @@ func upsertNetworks(ctx context.Context, tx *ent.Tx, items []peeringdb.Network) 
 				OnConflict(
 					sql.ConflictColumns(network.FieldID),
 					resolveWithRow(migrate.NetworksTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "networks")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.NetworksTable)),
 				).
 				Exec(ctx)
 		},
@@ -721,7 +773,7 @@ func upsertPocs(ctx context.Context, tx *ent.Tx, items []peeringdb.Poc) ([]int, 
 				OnConflict(
 					sql.ConflictColumns(poc.FieldID),
 					resolveWithRow(migrate.PocsTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "pocs")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.PocsTable)),
 				).
 				Exec(ctx)
 		},
@@ -751,7 +803,7 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 				OnConflict(
 					sql.ConflictColumns(networkfacility.FieldID),
 					resolveWithRow(migrate.NetworkFacilitiesTable),
-					sql.UpdateWhere(skipUnchangedPredicate(ctx, "network_facilities")),
+					sql.UpdateWhere(skipUnchangedPredicate(ctx, migrate.NetworkFacilitiesTable)),
 				).
 				Exec(ctx)
 		},
