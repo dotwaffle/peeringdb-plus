@@ -426,6 +426,10 @@ func TestCaching_IfNoneMatch304(t *testing.T) {
 // values in a tight loop. Under -race this catches any future drift that
 // removes the atomic.Pointer wrapper. Every observed ETag MUST be one of the
 // two known values — never a torn read, never empty.
+//
+// The test ends by read count, not by a wall-clock window: each reader
+// starts after the writer's first store and makes at least minReads reads
+// before the writer stops, so a slow CI box cannot shrink the overlap.
 func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 	t.Parallel()
 
@@ -457,12 +461,24 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	var wg sync.WaitGroup
+	const (
+		readers  = 8
+		minReads = 500
+	)
+	var (
+		wg     sync.WaitGroup
+		enough sync.WaitGroup
+	)
 	stop := make(chan struct{})
+	writing := make(chan struct{})
 
 	// Writer goroutine: flips between time1 and time2 as fast as it can.
+	// It closes writing after its first store, so every reader starts
+	// while the writer is active.
 	wg.Go(func() {
-		flip := true
+		state.UpdateETag(time2)
+		close(writing)
+		flip := false
 		for {
 			select {
 			case <-stop:
@@ -479,12 +495,17 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 	})
 
 	// Reader goroutines: hammer the middleware and check the observed ETag
-	// is always one of the two known values.
-	const readers = 8
+	// is always one of the two known values. Each reader releases enough
+	// after minReads reads (or on an early exit) and keeps reading until
+	// stop, so the readers overlap each other and the writer throughout.
 	readErrs := make(chan string, readers)
+	enough.Add(readers)
 	for range readers {
 		wg.Go(func() {
-			for {
+			done := sync.OnceFunc(enough.Done)
+			defer done()
+			<-writing
+			for n := 1; ; n++ {
 				select {
 				case <-stop:
 					return
@@ -500,12 +521,14 @@ func TestCaching_ConcurrentReadDuringUpdate(t *testing.T) {
 					}
 					return
 				}
+				if n == minReads {
+					done()
+				}
 			}
 		})
 	}
 
-	// Run for 100ms then signal stop.
-	time.Sleep(100 * time.Millisecond)
+	enough.Wait()
 	close(stop)
 	wg.Wait()
 	close(readErrs)
