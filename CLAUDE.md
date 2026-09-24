@@ -305,6 +305,8 @@ End-of-sync-cycle memory telemetry surfaces the sustained-high-heap trigger that
 
 **Log signal:** when a threshold is breached, worker emits `slog.Warn("heap threshold crossed", peak_heap_bytes, heap_warn_bytes, peak_rss_bytes, rss_warn_bytes, heap_over, rss_over)`. Thresholds gated by `PDBPLUS_HEAP_WARN_MIB` / `PDBPLUS_RSS_WARN_MIB` (defaults sit under the Fly 512 MB VM cap so order under pressure is: log → app crash → Fly OOM-kill).
 
+**Per-type objects counter:** `pdbplus.sync.type.objects{type}` comes from `recordObjectCounts` in `recordSuccess`, after the commit. A cycle that rolls back adds nothing. Locked by `TestSync_ObjectsCounterAfterCommit`.
+
 **FK-orphan summary:** each sync cycle emits one `slog.Warn("fk orphans summary", total, groups)` (DEBUG when `total=0`) and increments `pdbplus.sync.type.orphans{type, parent_type, field, action}` per row. Per-row events log at DEBUG only — replaces the prior per-row WARN spam that breached Tempo's 7.5 MB per-trace cap.
 
 **Escalation:** sustained peak heap above `PDBPLUS_HEAP_WARN_MIB` across multiple cycles re-opens the incremental-sync evaluation.

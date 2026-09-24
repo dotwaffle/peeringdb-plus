@@ -1126,6 +1126,7 @@ func (w *Worker) recordSuccess(
 	)
 	pdbotel.SyncDuration.Record(ctx, elapsed.Seconds(), attrs)
 	pdbotel.SyncOperations.Add(ctx, 1, attrs)
+	recordObjectCounts(ctx, objectCounts)
 	w.logger.LogAttrs(ctx, slog.LevelInfo, "sync complete",
 		slog.String("mode", string(mode)),
 		slog.Duration("duration", elapsed),
@@ -1166,6 +1167,17 @@ func (w *Worker) recordSuccess(
 		_, onCompleteSpan := otel.Tracer("sync").Start(ctx, "sync-on-complete")
 		w.config.OnSyncComplete(ctx, completedAt)
 		onCompleteSpan.End()
+	}
+}
+
+// recordObjectCounts adds the per-type upsert counts of a committed cycle
+// to pdbplus.sync.type.objects{type}. Call it only after the sync
+// transaction commits. A cycle that rolls back upserted no row, so it
+// adds nothing.
+func recordObjectCounts(ctx context.Context, objectCounts map[string]int) {
+	for name, count := range objectCounts {
+		pdbotel.SyncTypeObjects.Add(ctx, int64(count),
+			metric.WithAttributes(attribute.String("type", name)))
 	}
 }
 
@@ -1514,7 +1526,8 @@ func (w *Worker) syncUpsertPass(
 			return nil, fmt.Errorf("upsert %s: %w", step.name, stepErr)
 		}
 
-		pdbotel.SyncTypeObjects.Add(ctx, int64(count), typeAttr)
+		// pdbplus.sync.type.objects is added by recordSuccess, after the
+		// commit: this transaction can still roll back.
 		objectCounts[step.name] = count
 
 		// Capture the true peak BEFORE a forced GC below reclaims the
