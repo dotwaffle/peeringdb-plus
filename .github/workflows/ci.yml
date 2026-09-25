@@ -12,16 +12,25 @@ name: CI
 # `Dockerfile` for linux/amd64 and linux/arm64 and the Fly-only
 # `Dockerfile.litefs` for linux/amd64, and pushes nothing.
 #
-# `docker-publish` runs on pushes only (main and `v*` tags), after `ci`
-# passes. It builds the standalone image once and pushes it to
-# ghcr.io/dotwaffle/peeringdb-plus with an SBOM, BuildKit provenance and
-# a GitHub artifact attestation. A push does not also run `docker-build`:
-# publish checks out the full history, so that `go build` can stamp the
-# version from the tags. Its build context and version string thus differ
-# from a shallow checkout, and it could not reuse the layers of a second
-# build. `Dockerfile.litefs` is never
-# published: it needs the LiteFS lease of the Fly deployment, and `fly
-# deploy` builds it.
+# `docker-publish` runs on pushes only (main and `v*` tags). It builds the
+# standalone image once and pushes it to ghcr.io/dotwaffle/peeringdb-plus
+# with an SBOM, BuildKit provenance and a GitHub artifact attestation. A
+# push does not also run `docker-build`: publish checks out the full
+# history, so that `go build` can stamp the version from the tags. Its
+# build context and version string thus differ from a shallow checkout,
+# and it could not reuse the layers of a second build. `Dockerfile.litefs`
+# is never published: it needs the LiteFS lease of the Fly deployment,
+# and `fly deploy` builds it.
+#
+# A `v*` tag push does not run `ci`. A release tag points to a commit
+# that a push to main already tested, so a second `ci` run would repeat
+# the same work. On a main push, `docker-publish` waits for `ci` to pass.
+# On a tag push, its first step waits until the tagged commit has a
+# successful `CI` job in a run of this workflow for a push to main. The
+# step fails when that job did not pass, or when no such job completes
+# within 30 minutes. The tag run still builds its own image, because `go build`
+# stamps the tag as the version and the main image can carry a Go
+# pseudo-version.
 
 on:
   pull_request:
@@ -40,6 +49,9 @@ concurrency:
 jobs:
   ci:
     name: CI
+    # A tag push reuses the result of the main push for the same commit.
+    # See the gate step in docker-publish.
+    if: github.ref_type != 'tag'
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -155,15 +167,93 @@ jobs:
 
   docker-publish:
     name: Docker Publish
-    if: github.event_name == 'push'
+    # A skipped need skips this job unless the condition calls a status
+    # function, so `!cancelled()` is necessary. A main push needs a
+    # successful `ci`. A tag push skips `ci` and runs the gate step below.
+    if: >-
+      ${{ !cancelled() && github.event_name == 'push' &&
+      (needs.ci.result == 'success' ||
+      (github.ref_type == 'tag' && needs.ci.result == 'skipped')) }}
     needs: [ci]
     runs-on: ubuntu-26.04
     permissions:
       contents: read
+      actions: read # read the CI result of the main push in the tag gate
       packages: write # push to ghcr.io
       id-token: write # Sigstore signing certificate for the attestation
       attestations: write # store the attestation
     steps:
+      # A tag push does not run `ci`. Publish only when a run of this
+      # workflow for a push to main has a successful `CI` job for the
+      # tagged commit. Main and the tag can be pushed together, so the
+      # step waits while that run is not registered yet or its `CI` job
+      # has not completed.
+      - name: Require CI success on main for the tagged commit
+        if: github.ref_type == 'tag'
+        timeout-minutes: 35
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          TAG: ${{ github.ref_name }}
+          WAIT_SECONDS: 1800
+          POLL_SECONDS: 30
+        run: |
+          set -euo pipefail
+
+          # Verdict for one run: success, pending, or the reason that the
+          # run did not pass. GitHub can list a new run before it creates
+          # its jobs, so a missing CI job in an unfinished run is pending.
+          # shellcheck disable=SC2016 # $ci is a jq variable, not a shell one.
+          verdict_jq='
+            [(.jobs // [])[] | select(.name == "CI")] as $ci
+            | if any($ci[]; .conclusion == "success") then "success"
+              elif .status != "completed" or any($ci[]; .status != "completed") then "pending"
+              elif ($ci | length) == 0 then "no CI job"
+              else "CI job " + ($ci | map(.conclusion) | join(","))
+              end'
+
+          deadline=$((SECONDS + WAIT_SECONDS))
+          while true; do
+            runs="$(gh run list --repo "$REPO" --workflow ci.yml \
+              --commit "$SHA" --branch main --event push --limit 50 \
+              --json databaseId --jq '.[].databaseId')"
+
+            pending=0
+            if [[ -z "$runs" ]]; then
+              echo "No run for a push to main has tested $SHA yet."
+              pending=1
+            fi
+            for run in $runs; do
+              verdict="$(gh run view "$run" --repo "$REPO" \
+                --json status,jobs --jq "$verdict_jq")"
+              case "$verdict" in
+                success)
+                  echo "Run $run for a push to main passed CI for $SHA. Publishing $TAG."
+                  exit 0
+                  ;;
+                pending)
+                  echo "Run $run for a push to main has not completed CI for $SHA."
+                  pending=1
+                  ;;
+                *)
+                  echo "Run $run for a push to main did not pass: $verdict."
+                  ;;
+              esac
+            done
+
+            if [[ "$pending" -eq 0 ]]; then
+              echo "::error::$TAG points to $SHA, which did not pass CI in a push to main. Tag a commit that CI tested in a push to main, for example the tip of a push. After a successful re-run of that CI job, re-run this job."
+              exit 1
+            fi
+            if [[ "$SECONDS" -ge "$deadline" ]]; then
+              echo "::error::No completed CI job for $SHA in a push to main after $WAIT_SECONDS seconds. Tag a commit that CI tested in a push to main, for example the tip of a push. If that CI job is still in progress, re-run this job after it passes."
+              exit 1
+            fi
+            echo "Waiting $POLL_SECONDS seconds."
+            sleep "$POLL_SECONDS"
+          done
+
       # Full history and tags: `go build` stamps the version from the
       # nearest tag (Go 1.24 and later).
       - name: Checkout code
@@ -183,7 +273,9 @@ jobs:
 
       # A release tag vX.Y.Z gives X.Y.Z, X.Y and latest (flavor
       # latest=auto adds latest through the semver rules, and skips it for
-      # a pre-release). A main push gives main. Every push gives sha-<short>.
+      # a pre-release). A main push gives main and sha-<short>. A tag run
+      # does not push sha-<short>: the main run for the same commit pushes
+      # it, and two pushes of one tag leave the digest of the later one.
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -195,7 +287,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=main,enable={{is_default_branch}}
-            type=sha
+            type=sha,enable={{is_default_branch}}
 
       # docker-build does not run on a push, so this job is the only writer
       # of the dev scope on main. Pull request builds read it.

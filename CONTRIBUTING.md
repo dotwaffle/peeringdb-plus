@@ -126,14 +126,15 @@ CI rejects a PR in which these files are out of date (see below).
 Every pull request runs two jobs (defined in `.github/workflows/ci.yml`).
 The `ci` job is a single cached Go job whose steps run in order;
 `docker-build` runs in parallel.
-A push to `main` or a `v*` tag runs `ci` and then `docker-publish`,
-and does not run `docker-build`:
+A push to `main` runs `ci` and then `docker-publish`.
+A push of a `v*` tag runs only `docker-publish`.
+A push does not run `docker-build`:
 
 | Job | What it runs |
 |---|---|
-| **`ci`** | In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests, lint (actionlint and golangci-lint), advisory vulnerability scan |
+| **`ci`** | Pull requests and pushes to `main`. In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests, lint (actionlint and golangci-lint), advisory vulnerability scan |
 | **`docker-build`** | Pull requests only: builds `Dockerfile` (standalone, `linux/amd64` and `linux/arm64`) and `Dockerfile.litefs` (Fly, `linux/amd64`). Pushes nothing |
-| **`docker-publish`** | Push events only, after `ci` passes: builds and pushes the standalone image to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM, provenance, and an artifact attestation |
+| **`docker-publish`** | Push events only: builds and pushes the standalone image to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM, provenance, and an artifact attestation. On a push to `main`, it runs after `ci` passes. On a `v*` tag push, it first requires that the tagged commit passed `ci` in a push to `main` |
 
 `govulncheck` runs with `continue-on-error`:
 a flagged vulnerability surfaces as a workflow warning
