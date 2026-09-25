@@ -104,7 +104,9 @@ GitHub Actions workflow `.github/workflows/ci.yml` runs on every pull request,
 on pushes to `main`, and on pushes of `v*` tags.
 It has three jobs:
 
-1. **`ci`**: a single mise/Go job that installs the committed lockfile,
+1. **`ci`**: runs on pull requests and on pushes to `main`,
+   but not on pushes of `v*` tags.
+   It is a single mise/Go job that installs the committed lockfile,
    warms one module/build cache, then runs these steps in order:
    1. **Generated-code drift check** —
       `mise run generate` then
@@ -132,8 +134,11 @@ It has three jobs:
    and `Dockerfile.litefs` for `linux/amd64`.
    Each Dockerfile has its own cache scope.
    This job pushes nothing.
-3. **`docker-publish`**: runs only on pushes to `main` and `v*` tags,
-   after `ci` passes.
+3. **`docker-publish`**: runs only on pushes to `main` and `v*` tags.
+   On a push to `main`, it runs after `ci` passes.
+   On a `v*` tag push, its first step requires
+   that the tagged commit passed `ci` in a push to `main`
+   (see [Release tags](#release-tags)).
    It builds `Dockerfile` for both platforms,
    pushes it to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM
    and BuildKit provenance, and adds a GitHub artifact attestation.
@@ -154,6 +159,29 @@ and pull request builds read it.
 There is no automated deploy step.
 Deployment to Fly.io is a manual action run from a developer workstation,
 as documented in `fly.toml`.
+
+### Release tags
+
+A release tag points to a commit that CI already tested in a push to `main`.
+Thus a `v*` tag push does not run `ci` again.
+Instead, the first step of `docker-publish` looks for a run of `ci.yml`
+for a push to `main` that has the tagged commit.
+The step passes when the `CI` job of such a run passed.
+The step fails when each such run completed without a passed `CI` job.
+You can push `main` and the tag together
+(`git push origin main vX.Y.Z`).
+The step then waits for the `CI` job of the `main` run.
+It checks every 30 seconds and fails after 30 minutes.
+
+Tag a commit that a push to `main` tested,
+for example the last commit of a push.
+A push to `main` tests only its last commit.
+If you tag a commit from the middle of a push of more than one commit,
+`docker-publish` fails.
+
+The tag run builds and pushes its own image.
+The image of the `main` run can have a Go pseudo-version,
+but `go build` stamps the tag as the version of the tag image.
 
 ### Production image: accepted risks
 

@@ -10,6 +10,22 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Changed
+
+- A push of a `v*` tag no longer runs the `ci` job. Before, pushing
+  `main` and a release tag together ran `ci` twice for the same commit,
+  and the tag's `docker-publish` waited for its own `ci`. Now the first
+  step of `docker-publish` on a tag run requires that the tagged commit
+  passed the `CI` job in a run for a push to `main`. When that run is
+  not registered yet or its `CI` job has not completed, the step waits.
+  It checks every 30 seconds and fails after 30 minutes. It fails at
+  once when the `CI` job of each such run failed. Tag a commit that a
+  push to `main` tested, for example the last commit of a push. A push
+  tests only its last commit, so a tag on a commit from the middle of a
+  push of more than one commit fails the publish. The tag run still
+  builds and pushes its own image, so the image carries the tag as its
+  version. See `docs/DEPLOYMENT.md` § Release tags.
+
 ## [1.32.0] - 2026-09-25
 
 ### Added
