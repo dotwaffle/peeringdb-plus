@@ -13,6 +13,7 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/XSAM/otelsql"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/noop"
 	"modernc.org/sqlite"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -95,6 +96,10 @@ func Open(dbPath string, traceSQL bool) (*ent.Client, *sql.DB, error) {
 func otelOptions() []otelsql.Option {
 	return []otelsql.Option{
 		otelsql.WithAttributes(attribute.String("db.system", "sqlite")),
+		// Record no metrics. The db.client.operation.duration histogram
+		// exported 40 to 70 series per machine, and no dashboard or
+		// alert reads it. The spans keep the per-query timing.
+		otelsql.WithMeterProvider(noop.NewMeterProvider()),
 		// Suppress the high-volume, low-signal span types: per-row
 		// iteration (sql.rows) and connection-pool session resets
 		// (sql.conn.reset_session). These roughly halve the DB-span count

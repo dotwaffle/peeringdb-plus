@@ -1815,6 +1815,8 @@ which reads standard `OTEL_*` env vars to select exporters (OTLP, stdout, none):
   and by the sync worker for sync cycles.
   With `PDBPLUS_OTEL_SQL=true` (the default), `otelsql` adds one span
   for each SQL statement (`internal/database/database.go`).
+  It records no metrics (a no-op MeterProvider):
+  its `db.client.operation.duration` histogram had no reader.
   These spans are children of the request span,
   so the same sampling decision applies.
   A sync cycle emits no DB spans:
@@ -1906,9 +1908,12 @@ vars.
   - `pdbplus.peeringdb.requests` and `pdbplus.peeringdb.retries` (counters)
     and `pdbplus.peeringdb.rate_limit_wait_ms` (histogram): upstream calls.
   - `pdbplus.role.transitions` (counter) — LiteFS promote/demote events.
+  - `pdbplus.build.info` (gauge, `InitBuildInfoGauge`): the value 1 with
+    the attribute `service.version`, on every machine.
   - `pdbplus.data.type.count` (gauge, `InitObjectCountGauges`): object count
     per type, from an atomic cache that each successful sync updates,
     so no request runs a live `COUNT(*)`.
+    Only the primary reports it: the cache of a replica is never updated.
   - `pdbplus.sync.freshness` (gauge, seconds, `InitFreshnessGauge`):
     time since the last successful sync, read from the `sync_status` table.
   - `pdbplus.scratch.free` (gauge, bytes, `InitScratchFreeGauge`): the free
@@ -1969,7 +1974,8 @@ vars.
   **Resource attributes.**
   `internal/otel/provider.go` `buildResourceFiltered` emits the OTel resource via
   two filtered constructors — `buildResource` (full) for traces / logs,
-  `buildMetricResource` (omits `service.instance.id`) for metrics.
+  `buildMetricResource` (omits `service.instance.id` and `service.version`)
+  for metrics.
   Grafana Cloud's hosted OTLP receiver only promotes a small allowlist of OTel
   semconv resource attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`,
   `k8s.*`); custom keys outside that allowlist are silently dropped on the metrics
@@ -1980,12 +1986,39 @@ vars.
   | `FLY_REGION` | `cloud.region` | `semconv.CloudRegion` | yes | yes |
   | `FLY_PROCESS_GROUP` | `service.namespace` | `semconv.ServiceNamespace` | yes | yes |
   | `FLY_MACHINE_ID` | `service.instance.id` | `semconv.ServiceInstanceID` | NO (per-VM cardinality) | yes |
+  | (build info) | `service.version` | `semconv.ServiceVersion` | NO (per-deploy cardinality; `pdbplus_build_info` carries it) | yes |
   | `FLY_APP_NAME` | `fly.app_name` | (custom) | dropped by GC | yes (human grep) |
   | (constant) | `cloud.provider="fly_io"` | `semconv.CloudProviderKey` | yes | yes |
   | (constant) | `cloud.platform="fly_io_apps"` | `semconv.CloudPlatformKey` | yes | yes |
 
-  The `service.instance.id` strip on the metric resource is gated by
-  `includeInstanceID` in `buildResourceFiltered`.
+  The `service.instance.id` and `service.version` strips on the metric
+  resource are gated by `forMetrics` in `buildResourceFiltered`.
+  Grafana Cloud promotes `service.version` to a label on every series,
+  so with it each deploy started a new copy of every series of the fleet.
+  The `pdbplus.build.info` gauge (value 1, attribute `service.version`)
+  gives the version of each machine:
+  `count by (service_version) (pdbplus_build_info{service_name="peeringdb-plus"})`.
+  OTLP sends no staleness markers,
+  so for up to 5 minutes after a restart a machine has one series for the
+  old version and one for the new version.
+  To compare another metric between versions (for example during a rolling
+  deploy), join it to the newest series of each machine:
+
+  ```promql
+  sum by (service_version) (
+    rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m])
+    * on (service_namespace, cloud_region) group_left (service_version)
+      (topk by (service_namespace, cloud_region) (1,
+        timestamp(pdbplus_build_info{service_name="peeringdb-plus"})) * 0 + 1)
+  )
+  ```
+
+  A plain `group_left` join to `pdbplus_build_info` fails for those
+  5 minutes with "found duplicate series for the match group".
+  The join needs one machine for each `service_namespace` and
+  `cloud_region`, as in the current fleet
+  (the metric series of two such machines would collide anyway,
+  because the metric resource has no `service.instance.id`).
   `service.namespace` (2-cardinality:
   primary / replica) and `cloud.region` (8-cardinality) stay on metrics
   because they answer the operator's actual breakdown questions;

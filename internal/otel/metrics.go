@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 )
@@ -331,16 +332,46 @@ func InitScratchFreeGauge(dir string, free func(dir string) (uint64, error)) err
 	return nil
 }
 
+// InitBuildInfoGauge registers the pdbplus.build.info gauge: the value 1
+// with the attribute service.version set to version. The metric resource
+// has no service.version (buildMetricResource), so this one series per
+// machine carries the version on the metrics path, and a deploy does not
+// start a new copy of every other series.
+// Must be called after OTel Setup().
+func InitBuildInfoGauge(version string) error {
+	meter := otel.Meter("peeringdb-plus")
+	attrs := metric.WithAttributeSet(attribute.NewSet(semconv.ServiceVersion(version)))
+	// No unit: the Prometheus translation would add a suffix to the
+	// name (unit "1" on a gauge gives pdbplus_build_info_ratio).
+	_, err := meter.Int64ObservableGauge("pdbplus.build.info",
+		metric.WithDescription("Build of the running process; the value is always 1"),
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			o.Observe(1, attrs)
+			return nil
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.build.info gauge: %w", err)
+	}
+	return nil
+}
+
 // InitObjectCountGauges registers an observable Int64Gauge that reports the
 // number of objects stored per PeeringDB type. Reads from a cache function
 // that returns pre-computed counts updated at sync completion time.
+// A collection observes nothing while isPrimary returns false: only the
+// primary runs the sync worker that updates the cache, so the counts of a
+// replica stay at their values from process start.
 // Must be called after OTel Setup().
-func InitObjectCountGauges(countsFn func() map[string]int64) error {
+func InitObjectCountGauges(countsFn func() map[string]int64, isPrimary func() bool) error {
 	meter := otel.Meter("peeringdb-plus")
 	_, err := meter.Int64ObservableGauge("pdbplus.data.type.count",
 		metric.WithDescription("Number of objects stored per PeeringDB type"),
 		metric.WithUnit("{object}"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			if !isPrimary() {
+				return nil
+			}
 			counts := countsFn()
 			for typeName, count := range counts {
 				o.Observe(count, metric.WithAttributes(

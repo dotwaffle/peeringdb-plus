@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
 // TestInstruments_BoundAtPackageInit locks the package-init binding
@@ -344,7 +347,7 @@ func TestInitObjectCountGauges_NoError(t *testing.T) {
 	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
 
 	counts := make(map[string]int64)
-	if err := InitObjectCountGauges(func() map[string]int64 { return counts }); err != nil {
+	if err := InitObjectCountGauges(func() map[string]int64 { return counts }, isPrimaryTrue); err != nil {
 		t.Fatalf("InitObjectCountGauges returned error: %v", err)
 	}
 }
@@ -362,7 +365,7 @@ func TestInitObjectCountGauges_RecordsValues(t *testing.T) {
 		"net": 300, "poc": 150, "netfac": 400, "netixlan": 500,
 	}
 
-	if err := InitObjectCountGauges(func() map[string]int64 { return counts }); err != nil {
+	if err := InitObjectCountGauges(func() map[string]int64 { return counts }, isPrimaryTrue); err != nil {
 		t.Fatalf("InitObjectCountGauges: %v", err)
 	}
 
@@ -411,6 +414,94 @@ func TestInitObjectCountGauges_RecordsValues(t *testing.T) {
 	}
 }
 
+// TestInitBuildInfoGauge checks that the gauge reports one data point, the
+// value 1 with service.version set to the version it was given.
+func TestInitBuildInfoGauge(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
+
+	if err := InitBuildInfoGauge("v9.8.7"); err != nil {
+		t.Fatalf("InitBuildInfoGauge: %v", err)
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+	found := findMetric(rm, "pdbplus.build.info")
+	if found == nil {
+		t.Fatal("expected pdbplus.build.info metric, not found")
+		return
+	}
+	if found.Unit != "" {
+		t.Errorf("unit = %q, want none (a unit adds a suffix to the Prometheus name)", found.Unit)
+	}
+	gauge, ok := found.Data.(metricdata.Gauge[int64])
+	if !ok {
+		t.Fatalf("expected Gauge[int64], got %T", found.Data)
+	}
+	if len(gauge.DataPoints) != 1 {
+		t.Fatalf("data points = %d, want 1", len(gauge.DataPoints))
+	}
+	dp := gauge.DataPoints[0]
+	if dp.Value != 1 {
+		t.Errorf("value = %d, want 1", dp.Value)
+	}
+	if v, ok := dp.Attributes.Value("service.version"); !ok || v.AsString() != "v9.8.7" {
+		t.Errorf("attributes = %v, want service.version=v9.8.7", dp.Attributes.ToSlice())
+	}
+	if n := dp.Attributes.Len(); n != 1 {
+		t.Errorf("attribute count = %d, want 1", n)
+	}
+}
+
+func isPrimaryTrue() bool { return true }
+
+// TestInitObjectCountGauges_OnlyPrimary checks that the gauge observes
+// nothing while the node is not the primary, and all 13 types once it is.
+func TestInitObjectCountGauges_OnlyPrimary(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(t.Context()) })
+
+	counts := make(map[string]int64)
+	for _, name := range pdbtypes.Names() {
+		counts[name] = 1
+	}
+	var primary atomic.Bool
+	if err := InitObjectCountGauges(func() map[string]int64 { return counts }, primary.Load); err != nil {
+		t.Fatalf("InitObjectCountGauges: %v", err)
+	}
+
+	points := func() int {
+		t.Helper()
+		var rm metricdata.ResourceMetrics
+		if err := reader.Collect(t.Context(), &rm); err != nil {
+			t.Fatalf("Collect: %v", err)
+		}
+		found := findMetric(rm, "pdbplus.data.type.count")
+		if found == nil {
+			return 0
+		}
+		gauge, ok := found.Data.(metricdata.Gauge[int64])
+		if !ok {
+			t.Fatalf("expected Gauge[int64], got %T", found.Data)
+		}
+		return len(gauge.DataPoints)
+	}
+
+	if n := points(); n != 0 {
+		t.Errorf("data points on a replica = %d, want 0", n)
+	}
+	primary.Store(true)
+	if n := points(); n != len(counts) {
+		t.Errorf("data points on the primary = %d, want %d", n, len(counts))
+	}
+}
+
 func TestInitObjectCountGauges_EmptyCache(t *testing.T) {
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
@@ -419,7 +510,7 @@ func TestInitObjectCountGauges_EmptyCache(t *testing.T) {
 
 	// Empty map simulates state before first sync completes.
 	counts := make(map[string]int64)
-	if err := InitObjectCountGauges(func() map[string]int64 { return counts }); err != nil {
+	if err := InitObjectCountGauges(func() map[string]int64 { return counts }, isPrimaryTrue); err != nil {
 		t.Fatalf("InitObjectCountGauges: %v", err)
 	}
 

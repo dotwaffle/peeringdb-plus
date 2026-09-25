@@ -197,6 +197,18 @@ func TestBuildResource_IncludesServiceVersion(t *testing.T) {
 	}
 }
 
+// TestBuildMetricResource_OmitsServiceVersion locks in the per-deploy
+// cardinality reduction: Grafana Cloud promotes service.version to a label
+// on every series, so the metric resource must not carry it. The
+// pdbplus.build.info gauge carries the version instead.
+func TestBuildMetricResource_OmitsServiceVersion(t *testing.T) {
+	res := mustBuildMetricResource(t, "test-service")
+
+	if got, ok := findAttr(res, "service.version"); ok {
+		t.Errorf("metric resource must not contain service.version; found %q", got)
+	}
+}
+
 // TestBuildMetricResource_OmitsServiceInstanceID locks in the metric
 // resource's per-VM cardinality reduction: service.instance.id must NOT
 // appear on metric resource attributes so the backend aggregates across

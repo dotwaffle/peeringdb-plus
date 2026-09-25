@@ -178,6 +178,11 @@ func main() {
 		logger.Error("failed to init memory gauges", slog.Any("error", err))
 		os.Exit(1)
 	}
+	// The metric resource has no service.version: this gauge carries it.
+	if err := pdbotel.InitBuildInfoGauge(buildinfo.Version()); err != nil {
+		logger.Error("failed to init build info gauge", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	// Open database.
 	entClient, db, err := database.Open(cfg.DBPath, cfg.OTelSQL)
@@ -304,10 +309,11 @@ func main() {
 		slog.Int("type_count", len(seededCounts)))
 
 	// Initialize per-type object count gauges for business metrics dashboard.
-	// Reads from atomic cache instead of live COUNT queries.
+	// Reads from atomic cache instead of live COUNT queries. Only the
+	// primary reports: the sync worker updates the cache there only.
 	if err := pdbotel.InitObjectCountGauges(func() map[string]int64 {
 		return *objectCountCache.Load()
-	}); err != nil {
+	}, isPrimaryFn); err != nil {
 		logger.Error("failed to init object count gauges", slog.Any("error", err))
 		os.Exit(1)
 	}
@@ -424,7 +430,13 @@ func main() {
 	// starts" startup ordering established by the Init* calls above).
 	//
 	// Total baseline series introduced: 4 per-type × 13 types + 1 direction × 2 = 54.
-	pdbotel.PrewarmCounters(ctx)
+	// Only a node that LiteFS can elect as primary pre-warms: the sync
+	// worker and the role transitions run there only, so on a replica
+	// the 54 series would stay at 0 for the life of the process. A
+	// counter that a replica increments still exports its series.
+	if litefs.IsCandidate(os.Getenv("FLY_REGION"), os.Getenv("PRIMARY_REGION")) {
+		pdbotel.PrewarmCounters(ctx)
+	}
 
 	// Start scheduler on all instances.
 	// The scheduler gates sync on live IsPrimary() checks per tick.

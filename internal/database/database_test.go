@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/XSAM/otelsql"
+	"go.opentelemetry.io/otel"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
@@ -199,5 +202,37 @@ func TestOtelOptions_WithoutDBSpans(t *testing.T) {
 	run(t.Context())
 	if n := len(rec.Ended()); n == 0 {
 		t.Error("no spans under a plain context: the handle does not trace")
+	}
+}
+
+// TestOtelOptions_NoMetrics checks that a handle opened with Open's otelsql
+// options records no metrics, even with a real global MeterProvider. It
+// sets the global MeterProvider, so it does not run in parallel.
+func TestOtelOptions_NoMetrics(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	otel.SetMeterProvider(mp)
+	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+
+	dsn := "file:" + filepath.Join(t.TempDir(), "nometrics.db")
+	db, err := otelsql.Open("sqlite3", dsn, otelOptions()...)
+	if err != nil {
+		t.Fatalf("open traced db: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	var one int
+	if err := db.QueryRowContext(t.Context(), "SELECT 1").Scan(&one); err != nil {
+		t.Fatalf("SELECT 1: %v", err)
+	}
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			t.Errorf("metric %q from scope %q, want none", m.Name, sm.Scope.Name)
+		}
 	}
 }

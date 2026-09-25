@@ -30,7 +30,8 @@ import (
 // MeterProvider — instruments are bound at package init and delegate to
 // the provider set by main, so a pre-Setup call would pre-warm a no-op.
 // The call site in cmd/peeringdb-plus/main.go runs after the syncWorker
-// is constructed but before StartScheduler spawns its goroutine.
+// is constructed but before StartScheduler spawns its goroutine, and only
+// on a node that LiteFS can elect as primary.
 func PrewarmCounters(ctx context.Context) {
 	for _, t := range pdbtypes.Names() {
 		typeAttr := metric.WithAttributes(attribute.String("type", t))
