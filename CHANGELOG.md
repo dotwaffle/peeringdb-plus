@@ -25,6 +25,10 @@ are in the Git history at their tags.
   push of more than one commit fails the publish. The tag run still
   builds and pushes its own image, so the image carries the tag as its
   version. See `docs/DEPLOYMENT.md` § Release tags.
+- Only a push to `main` publishes `sha-<commit>`. Before, the tag run
+  and the `main` run for the same commit both pushed it, and the later
+  push set the image. For v1.32.0, `sha-8236a67` is the image of the
+  `main` run, not the `1.32.0` image.
 
 ## [1.32.0] - 2026-09-25
 

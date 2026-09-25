@@ -71,7 +71,7 @@ The image does not use LiteFS.
 | `X.Y` | The most recent release tag `vX.Y.*` that CI published. |
 | `latest` | The most recent release tag that CI published. |
 | `main` | The most recent commit on the `main` branch. |
-| `sha-<commit>` | One commit, by its short hash. |
+| `sha-<commit>` | One commit on `main`, by its short hash. |
 
 Use a release tag or `latest` for a stable deployment.
 `main` changes with each merge.
@@ -182,6 +182,9 @@ If you tag a commit from the middle of a push of more than one commit,
 The tag run builds and pushes its own image.
 The image of the `main` run can have a Go pseudo-version,
 but `go build` stamps the tag as the version of the tag image.
+The tag run pushes only `X.Y.Z`, `X.Y` and `latest`.
+The `main` run pushes `sha-<commit>` for the same commit,
+so each tag has one image.
 
 ### Production image: accepted risks
 

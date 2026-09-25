@@ -273,7 +273,9 @@ jobs:
 
       # A release tag vX.Y.Z gives X.Y.Z, X.Y and latest (flavor
       # latest=auto adds latest through the semver rules, and skips it for
-      # a pre-release). A main push gives main. Every push gives sha-<short>.
+      # a pre-release). A main push gives main and sha-<short>. A tag run
+      # does not push sha-<short>: the main run for the same commit pushes
+      # it, and two pushes of one tag leave the digest of the later one.
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -285,7 +287,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=main,enable={{is_default_branch}}
-            type=sha
+            type=sha,enable={{is_default_branch}}
 
       # docker-build does not run on a push, so this job is the only writer
       # of the dev scope on main. Pull request builds read it.
