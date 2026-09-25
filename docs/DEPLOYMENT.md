@@ -448,6 +448,8 @@ On the 1 GB volume, the check fails at about 45 percent use.
 Auto-extend acts only at 80 percent use,
 so it does not stop the fallback.
 When the WARN repeats, extend the volume with `fly volumes extend`.
+The gauge `pdbplus_scratch_free_bytes` shows the free space,
+and the alert `PdbPlusPrimaryVolumeLow` fires after 30 minutes below 512 MiB.
 The span attribute `pdbplus.sync.scratch_dir` names the directory that
 the cycle used.
 The `[env]` block applies to both groups.

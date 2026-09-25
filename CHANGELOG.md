@@ -24,6 +24,13 @@ are in the Git history at their tags.
   than 1 hour old for 99.5% of 28 days (no SLO alerts;
   `PdbPlusSyncFreshnessHigh` stays). Dashboard panel Error Rate (5xx)
   uses the request selector of the availability SLO.
+- Alert rules `PdbPlusProbeFailing` (critical: the Synthetic Monitoring
+  check of `/api` fails more than half of its executions in 10 minutes
+  from at least 2 locations), `PdbPlusReplicaLagHigh` (warning: a replica
+  has received no LiteFS frame for more than 10 minutes) and
+  `PdbPlusPrimaryVolumeLow` (warning: less than 512 MiB free on the
+  primary volume for 30 minutes). A stalled replica showed only in the
+  freshness alert after 2 hours, and a filling volume only in a WARN log.
 - Gauge `pdbplus.scratch.free` (`pdbplus_scratch_free_bytes`): the free
   space of the file system of `PDBPLUS_SCRATCH_DIR`, which on Fly.io is
   the LiteFS volume of the primary. Before, only the WARN of the scratch

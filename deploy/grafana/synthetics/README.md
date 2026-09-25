@@ -28,6 +28,15 @@ ready machine: London to the primary in `lhr`, Sydney to the replica in
 `syd`, and a US location to the replica in `iad` (east) or `lax` (west).
 Load and health checks can move a request to another region.
 
+## Alert
+
+The alert rule `PdbPlusProbeFailing` (critical,
+`deploy/grafana/alerts/pdbplus-alerts.yaml`) fires when the check fails
+more than half of its executions in 10 minutes from at least 2 of the 3
+locations, for 5 minutes. It selects the check by its job name, so keep
+the job name `peeringdb-plus-api`. Do not also turn on the per-check
+alerts of the Synthetic Monitoring app, or a failure notifies twice.
+
 ## Usage
 
 The Grafana Cloud free plan includes 100,000 API check executions per

@@ -75,12 +75,16 @@ default policy, they go to the same contact point.
 
 | Tier       | Meaning                    | Used for                                                          |
 |------------|----------------------------|-------------------------------------------------------------------|
-| `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, primary absent. |
-| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, 2 failed sync attempts in 3h. |
+| `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, primary absent, /api check failing from 2+ probe locations. |
+| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, replica LiteFS lag >10 min, primary volume <512 MiB free, 2 failed sync attempts in 3h. |
 
 The 5xx responses have no rule in this file. The burn-rate alert rules of
 the availability SLO (`deploy/grafana/slos/`) alert on them, with the same
 two tiers: fast burn is `critical`, slow burn is `warning`.
+
+`PdbPlusProbeFailing` reads the metrics of the Synthetic Monitoring check
+in `deploy/grafana/synthetics/README.md`. Until the check exists, the rule
+has no data and stays `OK`.
 
 Note on absence coverage: all metric-presence rules key on
 `go_memory_used_bytes`, which ticks on every machine via the OTel
