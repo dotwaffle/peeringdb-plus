@@ -104,6 +104,7 @@ func TestDashboard_HasRequiredRows(t *testing.T) {
 		"Upstream PeeringDB",
 		"Sync Sweep & Backfill",
 		"External Probes",
+		"Fly Platform",
 	}
 
 	rowTitles := make(map[string]bool)
@@ -142,8 +143,9 @@ func TestDashboard_NoHardcodedDatasourceUIDs(t *testing.T) {
 
 	for _, p := range allPanels(d) {
 		for _, tgt := range p.Targets {
-			if tgt.Datasource.UID != "" && tgt.Datasource.UID != "${datasource}" {
-				t.Errorf("panel %q target has hardcoded datasource UID %q (want ${datasource})",
+			if tgt.Datasource.UID != "" && tgt.Datasource.UID != "${datasource}" &&
+				tgt.Datasource.UID != "${fly_datasource}" {
+				t.Errorf("panel %q target has hardcoded datasource UID %q (want ${datasource} or ${fly_datasource})",
 					p.Title, tgt.Datasource.UID)
 			}
 		}
@@ -232,6 +234,9 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"pdbplus_sync_type_orphans_total", "FK orphan rows"},
 		{"probe_all_success_sum", "Synthetic Monitoring executions that passed"},
 		{"probe_duration_seconds", "Synthetic Monitoring execution time"},
+		{"fly_instance_cpu_throttle", "Fly.io CPU throttling"},
+		{"fly_instance_memory_mem_available", "Fly.io VM memory"},
+		{"fly_edge_http_responses_count", "Fly.io edge responses"},
 	}
 
 	for _, m := range requiredMetrics {
@@ -281,6 +286,55 @@ func TestDashboard_DeployAnnotation(t *testing.T) {
 		return
 	}
 	t.Error("dashboard has no Deploys annotation")
+}
+
+// TestDashboard_FlyMetricsUseFlyDatasource checks that each query of a
+// Fly.io metric (fly_*) reads the fly.io data source, and every other
+// query reads the stack data source: the two Prometheus data sources
+// hold disjoint metrics.
+func TestDashboard_FlyMetricsUseFlyDatasource(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(dashboardPath)
+	if err != nil {
+		t.Fatalf("reading dashboard JSON: %v", err)
+	}
+	var d struct {
+		dashboard
+		Annotations struct {
+			List []struct {
+				Name       string     `json:"name"`
+				Expr       string     `json:"expr"`
+				Datasource datasource `json:"datasource"`
+			} `json:"list"`
+		} `json:"annotations"`
+	}
+	if err := json.Unmarshal(data, &d); err != nil {
+		t.Fatalf("parsing dashboard JSON: %v", err)
+	}
+
+	flyMetricRe := regexp.MustCompile(`\bfly_[a-z_]+`)
+	check := func(where, expr, uid string) {
+		t.Helper()
+		want := "${datasource}"
+		if flyMetricRe.MatchString(expr) {
+			want = "${fly_datasource}"
+		}
+		if uid != want {
+			t.Errorf("%s: datasource UID %q, want %s for %s", where, uid, want, expr)
+		}
+	}
+	for _, p := range allPanels(d.dashboard) {
+		for _, tgt := range p.Targets {
+			if tgt.Expr != "" {
+				check("panel "+p.Title, tgt.Expr, tgt.Datasource.UID)
+			}
+		}
+	}
+	for _, a := range d.Annotations.List {
+		if a.Expr != "" {
+			check("annotation "+a.Name, a.Expr, a.Datasource.UID)
+		}
+	}
 }
 
 func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {

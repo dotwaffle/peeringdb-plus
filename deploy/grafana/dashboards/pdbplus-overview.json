@@ -97,6 +97,20 @@
         "type": "datasource"
       },
       {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Fly.io data source",
+        "multi": false,
+        "name": "fly_datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "/^fly\\.io$/",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
         "current": {
           "selected": false,
           "text": "peeringdb-plus",
@@ -197,6 +211,21 @@
         "tagKeys": "service_version",
         "textFormat": "First report of a new version",
         "titleFormat": "Deploy {{service_version}}",
+        "useValueForTime": false
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${fly_datasource}"
+        },
+        "enable": true,
+        "expr": "max by (region) (resets(fly_instance_cpu{app=\"peeringdb-plus\"}[2m])) > 0",
+        "iconColor": "rgba(242, 73, 92, 1)",
+        "name": "Machine restarts",
+        "step": "1m",
+        "tagKeys": "region",
+        "textFormat": "The VM restarted (its fly_instance_cpu counters reset)",
+        "titleFormat": "Restart {{region}}",
         "useValueForTime": false
       }
     ]
@@ -3126,6 +3155,468 @@
               },
               "expr": "max by (probe) (last_over_time(probe_duration_seconds{job=\"peeringdb-plus-api\"}[10m]))",
               "legendFormat": "{{probe}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "type": "row",
+      "title": "Fly Platform",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
+      "panels": [
+        {
+          "id": 56,
+          "type": "timeseries",
+          "title": "CPU Throttled",
+          "description": "Share of time that the cgroup of each machine was throttled after it used its CPU quota (Fly.io metric fly_instance_cpu_throttle: the throttled_time of the cgroup cpu.stat, in centiseconds). A shared-CPU machine runs at a baseline (1/16 of a vCPU on a replica, 1/8 on the primary) and bursts above it from a balance; with no balance left, the kernel throttles it. The alert PdbPlusMachineCPUThrottled fires above 1% for 15 minutes. Needs the fly.io data source.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 59
+          },
+          "datasource": {
+            "uid": "${fly_datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${fly_datasource}"
+              },
+              "expr": "sum by (region) (rate(fly_instance_cpu_throttle{app=\"peeringdb-plus\"}[$__rate_interval])) / 100",
+              "legendFormat": "{{region}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [],
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 57,
+          "type": "timeseries",
+          "title": "CPU Use vs Baseline",
+          "description": "CPU time that each machine used, as a share of its baseline quota (fly_instance_cpu without the idle, iowait, steal and guest modes, divided by fly_instance_cpu_baseline). Above 100% the machine spends its burst balance (CPU Burst Balance panel). Needs the fly.io data source.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 59
+          },
+          "datasource": {
+            "uid": "${fly_datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${fly_datasource}"
+              },
+              "expr": "sum by (region) (rate(fly_instance_cpu{app=\"peeringdb-plus\", mode!~\"idle|iowait|steal|guest|guest_nice\"}[$__rate_interval])) / 100 / on (region) max by (region) (fly_instance_cpu_baseline{app=\"peeringdb-plus\"})",
+              "legendFormat": "{{region}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [],
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 58,
+          "type": "timeseries",
+          "title": "CPU Burst Balance",
+          "description": "Burst balance of each machine, in seconds of CPU time (fly_instance_cpu_balance, in centiseconds). A machine adds to the balance while it uses less than its baseline and spends it above the baseline. At 0 it runs at the baseline and the kernel throttles it (CPU Throttled panel). Needs the fly.io data source.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 59
+          },
+          "datasource": {
+            "uid": "${fly_datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${fly_datasource}"
+              },
+              "expr": "min by (region) (fly_instance_cpu_balance{app=\"peeringdb-plus\"}) / 100",
+              "legendFormat": "{{region}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [],
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 59,
+          "type": "timeseries",
+          "title": "VM Memory Available",
+          "description": "MemAvailable of the VM of each machine (fly_instance_memory_mem_available): the memory that the kernel can give to processes, for the whole VM, that is the app, LiteFS and the page cache. The Go memory panels see the app only. A replica has 256 MB and the primary 512 MB. Near 0 the kernel stops the largest process (alert PdbPlusMachineOOMKilled). Needs the fly.io data source.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 67
+          },
+          "datasource": {
+            "uid": "${fly_datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${fly_datasource}"
+              },
+              "expr": "min by (region) (fly_instance_memory_mem_available{app=\"peeringdb-plus\"})",
+              "legendFormat": "{{region}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [],
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 60,
+          "type": "timeseries",
+          "title": "Edge Error Responses",
+          "description": "Responses with a status of 400 or higher at the Fly.io edge, by status code (fly_edge_http_responses_count). The edge counts every request from the internet, including the Synthetic Monitoring probes, and also the 502 and 503 responses that the Fly proxy sends when it cannot reach a machine. The HTTP metrics of the app do not see those. Needs the fly.io data source.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 67
+          },
+          "datasource": {
+            "uid": "${fly_datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${fly_datasource}"
+              },
+              "expr": "sum by (status) (increase(fly_edge_http_responses_count{app=\"peeringdb-plus\", status!~\"[123]..\"}[$__rate_interval]))",
+              "legendFormat": "{{status}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 61,
+          "type": "timeseries",
+          "title": "Edge Response Time p95",
+          "description": "95th percentile response time that the Fly.io edge measures, by the region of the edge where the request entered the Fly network (fly_edge_http_response_time_seconds), for all requests including the Synthetic Monitoring probes. The server time of the app is in the Latency panel; the difference is the path from the edge to the machine. Needs the fly.io data source.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 67
+          },
+          "datasource": {
+            "uid": "${fly_datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${fly_datasource}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le, region) (rate(fly_edge_http_response_time_seconds_bucket{app=\"peeringdb-plus\"}[$__rate_interval])))",
+              "legendFormat": "{{region}}",
               "refId": "A"
             }
           ],

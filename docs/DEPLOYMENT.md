@@ -586,6 +586,16 @@ Set the OTLP endpoint and headers as Fly secrets:
 Fly.io's built-in machine metrics
 (CPU, memory, network, disk)
 are available through the Fly dashboard without additional configuration.
+Grafana can also read them from the Fly.io managed Prometheus
+through a Prometheus data source named `fly.io`
+(setup in `deploy/grafana/alerts/README.md`, "Fly.io rules").
+The dashboard's collapsed `Fly Platform` row
+(CPU throttling, CPU use against the baseline quota, burst balance,
+VM memory, edge errors and edge response time),
+its `Machine restarts` annotation
+and the alert rules of the group `pdbplus-fly`
+(`PdbPlusMachineOOMKilled`, `PdbPlusMachineCPUThrottled`)
+use that data source.
 
 Runtime health:
 
