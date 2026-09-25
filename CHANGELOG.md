@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.32.2] - 2026-09-25
+
 ### Fixed
 
 - Sync no longer fails on an ixpfx tombstone with a null prefix.
@@ -1510,7 +1512,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.1...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.2...HEAD
+[1.32.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.1...v1.32.2
 [1.32.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.0...v1.32.1
 [1.32.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.1...v1.32.0
 [1.31.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.0...v1.31.1
