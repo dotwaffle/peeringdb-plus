@@ -33,6 +33,14 @@ are in the Git history at their tags.
   high peak `PdbPlusRssHigh` stayed firing until the next restart. The
   worker now resets VmHWM (`/proc/self/clear_refs`) at the start of each
   cycle.
+- A replica outside `PRIMARY_REGION` no longer acts as the primary while
+  the primary restarts. LiteFS shows no `/litefs/.primary` file on a
+  replica while no node holds the lease, and the role check read that as
+  "primary". During three deploys in one week a replica logged
+  `promoted to primary`. One of them also started a sync cycle and
+  failed to write (`disk I/O error (778)`).
+  With LiteFS mounted, a node is now primary only if LiteFS can elect it
+  (`FLY_REGION` equals `PRIMARY_REGION`, the `litefs.yml` rule).
 
 ## [1.32.2] - 2026-09-25
 

@@ -576,8 +576,9 @@ When the last attempt fails, the caller logs its usual failure line.
   Two-phase sync orchestrator with scheduler, retry backoff, primary gating,
   and memory guardrail.
 - **`litefs.IsPrimaryWithFallback`** (`internal/litefs/primary.go`) —
-  Primary detection with inverted-lease-file semantics and env var fallback
-  for local dev.
+  Primary detection with inverted-lease-file semantics,
+  a lease-candidate check (`litefs.IsCandidate`),
+  and env var fallback for local dev.
 - **`grpcserver.ListEntities[E, P]`** (`internal/grpcserver/generic.go`):
   Generic paginated list helper parameterized over ent entity
   and proto message types;

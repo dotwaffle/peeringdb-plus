@@ -365,7 +365,11 @@ so the project continues to use it.
   and **absent on the primary** (the primary holds the lease).
   The detection logic in `internal/litefs/primary.go` is:
   1. If `/litefs/.primary` exists → replica.
-  2. If `/litefs/` exists but `.primary` does not → primary.
+  2. If `/litefs/` exists but `.primary` does not → primary,
+     but only on a lease candidate
+     (`FLY_REGION` equals `PRIMARY_REGION`; both empty also match).
+     A replica also sees no `.primary` file while no node holds the lease,
+     for example while the primary restarts during a deploy.
   3. If `/litefs/` does not exist (LiteFS not mounted) → fall back to the
      `PDBPLUS_IS_PRIMARY` env var (default `true` for local dev).
 - **Write forwarding via `fly-replay`.**

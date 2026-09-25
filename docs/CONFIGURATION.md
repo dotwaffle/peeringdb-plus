@@ -135,7 +135,7 @@ logged.
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
-| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary; (4) otherwise parse this variable (default `true` when unset). An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role. Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`. |
+| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary, if the node is a lease candidate (`FLY_REGION` equals `PRIMARY_REGION`; both empty also match), else replica; (4) otherwise parse this variable (default `true` when unset). An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role. Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`. |
 | `PDBPLUS_LITEFS_METRICS_URL` | No | empty (off) | URL | LiteFS Prometheus metrics endpoint. When it is set, the app reads the endpoint at each OTel metric collection and exports the values as `pdbplus.litefs.*` instruments (see `docs/ARCHITECTURE.md` § OpenTelemetry instrumentation). LiteFS runs only in the Fly.io deployment, so the default is empty and the app registers no LiteFS instruments. `fly.toml` sets `http://localhost:20202/metrics`. A set value must be an `http://` or `https://` URL with a host. When a read fails, the app logs a WARN and exports no LiteFS values until a read succeeds. |
 
 ### Fly.io Resource Attribution (read-only)
@@ -162,7 +162,7 @@ attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom
 | `FLY_APP_NAME` | `fly.app_name` (custom key) | dropped by Grafana Cloud allowlist | yes (human grep) | OTel resource; `litefs.yml` substitution. |
 | (constant) | `cloud.provider="fly_io"` (`semconv.CloudProviderKey`) | yes | yes | Always-on, 1-cardinality. |
 | (constant) | `cloud.platform="fly_io_apps"` (`semconv.CloudPlatformKey`) | yes | yes | Always-on, 1-cardinality. |
-| `PRIMARY_REGION` | (not a resource attr) | n/a | n/a | `POST /sync` handler; `litefs.yml` lease candidacy. Three-letter Fly region designated as the LiteFS primary candidate. `fly.toml` sets `lhr`. If you change it, the LiteFS lease candidates move to the new region. |
+| `PRIMARY_REGION` | (not a resource attr) | n/a | n/a | `POST /sync` handler; `litefs.yml` lease candidacy; primary detection (`litefs.IsCandidate`: with LiteFS mounted and no `.primary` file, a node whose `FLY_REGION` differs is a replica). Three-letter Fly region designated as the LiteFS primary candidate. `fly.toml` sets `lhr`. If you change it, the LiteFS lease candidates move to the new region. |
 | `FLY_CONSUL_URL` | (not a resource attr) | n/a | n/a | `litefs.yml` Consul lease backend. `fly consul attach` sets it as an app secret. Run the command once for each app. |
 | `HOSTNAME` | (not a resource attr) | n/a | n/a | `litefs.yml` advertise URL `http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202`. |
 
