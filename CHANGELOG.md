@@ -30,6 +30,28 @@ are in the Git history at their tags.
   push set the image. For v1.32.0, `sha-8236a67` is the image of the
   `main` run, not the `1.32.0` image.
 
+### Fixed
+
+- Incremental sync no longer loses a delete when FK backfill lands a
+  parent row that upstream changed after the fetch of its type. The
+  cursor of each type was the newest `updated` value in its table, so
+  the backfilled row moved the cursor past the changes between that
+  fetch and the row, and no later `?since=` fetch returned them. The
+  cursor is now a watermark in the new `sync_watermark` table. The sync
+  transaction writes it without the rows that FK backfill landed, so the
+  next cycle fetches the gap again. A cursor that is behind its newest
+  row also keeps its watermark when the worker discards its tombstone
+  window after a failed incremental fetch. A watermark that is not a
+  positive integer fails the cycle before the first request. Without FK
+  backfill, the requests and the data writes do not change. The first
+  cycle after the upgrade uses the newest `updated` values, logs INFO
+  `sync watermark missing, using MAX(updated)` and writes 13 rows. New
+  span attributes `pdbplus.sync.cursor`, `pdbplus.sync.cursor.source`,
+  `pdbplus.sync.cursor.behind_seconds`, `pdbplus.sync.watermarks_written`
+  and `pdbplus.sync.watermarks_held`. This change does not repair the
+  deletes that earlier gaps lost. The history sweep fetches them, and
+  `POST /sync?mode=history` starts a finished sweep again.
+
 ## [1.32.0] - 2026-09-25
 
 ### Added

@@ -24,8 +24,8 @@ type Status struct {
 	ErrorMessage string         // empty on success
 }
 
-// InitStatusTable creates the sync_status and sync_history_sweep tables
-// if they do not exist.
+// InitStatusTable creates the sync_status, sync_history_sweep and
+// sync_watermark tables if they do not exist.
 // These are not ent-managed entities; they store operational metadata via raw SQL.
 //
 // A `mode TEXT NOT NULL DEFAULT 'incremental'` column is added
@@ -77,6 +77,11 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 	// Progress of the history sweep (see history_sweep.go).
 	if _, err := db.ExecContext(ctx, historySweepTableSQL); err != nil {
 		return fmt.Errorf("create sync_history_sweep table: %w", err)
+	}
+
+	// The cursor of each type (see watermark.go).
+	if _, err := db.ExecContext(ctx, syncWatermarkTableSQL); err != nil {
+		return fmt.Errorf("create sync_watermark table: %w", err)
 	}
 
 	return nil

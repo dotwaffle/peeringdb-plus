@@ -96,7 +96,7 @@ type cascadeResult struct {
 // Scope: a row changes only when it is live, its network is deleted, and
 // its updated is not later than the network's. A later row was saved
 // after the network's delete. The function does not change updated: the
-// incremental cursor is MAX(updated), and the upsert gate keeps the
+// next cursor reads it (see watermark.go), and the upsert gate keeps the
 // tombstone against a stale re-list with the same updated (see
 // netIxLanUpsertPredicate). When no row matches, the UPDATE writes no
 // page.

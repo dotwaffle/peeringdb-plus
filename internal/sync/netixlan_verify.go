@@ -102,9 +102,10 @@ type netIxLanVerifyInput struct {
 	// Scratch is the cycle's scratch DB, where upstream tombstones are
 	// staged. Nil at startup.
 	Scratch *scratchDB
-	// NixCursor is the netixlan MAX(updated) before the cycle. Only an
-	// upstream tombstone at or before it is staged, so staging never
-	// moves the cursor.
+	// NixCursor is the netixlan MAX(updated) before the cycle, not the
+	// netixlan watermark (see watermark.go). Only an upstream tombstone
+	// at or before it is staged, so staging never moves the next
+	// watermark.
 	NixCursor time.Time
 	// CursorKnown is false when the cursor read failed.
 	CursorKnown bool

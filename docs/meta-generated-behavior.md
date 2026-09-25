@@ -41,9 +41,11 @@ The sync does not use `meta.generated` for its cursor
 or for the start of any fetch.
 Incremental fetches send `?since=` and `?limit=250`,
 so they never get the value.
-The sync cursor is the newest `updated` value in each local table
+The sync cursor of each type is its stored watermark
+(`internal/sync/watermark.go`),
+which is never later than the newest `updated` value in the local table
 (`GetMaxUpdated`, `internal/sync/cursor.go`).
-See [ARCHITECTURE.md § Data flow](ARCHITECTURE.md#data-flow).
+See [ARCHITECTURE.md § Incremental cursor](ARCHITECTURE.md#incremental-cursor).
 
 `streamDecodeResponse` (`internal/peeringdb/stream.go`)
 parses the value into `FetchMeta.Generated`,

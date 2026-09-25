@@ -251,10 +251,14 @@ func (s *historySweep) next() (string, int) {
 // logs a WARN. No window error fails the cycle, except a fault of the
 // scratch DB (errScratchDB).
 //
-// A window stages only the rows whose updated is not later than the
-// cursor of their type (MAX(updated) before the cycle). A later row may
-// have changed after the normal ?since= fetch of this cycle. Committing it
-// would move the cursor past the other rows that changed in that gap.
+// A window stages only the rows whose updated is not later than
+// MAX(updated) of their type before the cycle. A later row may have
+// changed after the normal ?since= fetch of this cycle. Committing it
+// would move the next watermark past the other rows that changed in that
+// gap. A row at or before that MAX(updated) cannot move the watermark
+// (see watermark.go). The gate is not the watermark cursor of the type:
+// a held cursor is below MAX(updated), and the normal fetch of the cycle
+// already covers the rows between the two.
 //
 // now stamps the memo entries (see Worker.historyMemo).
 func (w *Worker) sweepHistory(ctx context.Context, scratch *scratchDB, mode config.SyncMode, now time.Time) (*historySweep, error) {

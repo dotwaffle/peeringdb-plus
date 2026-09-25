@@ -241,10 +241,11 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 		}
 		if err := json.Unmarshal(raw, &idHolder); err != nil || idHolder.ID <= 0 {
 			// Best-effort: skip rows we can't identify. The original
-			// id__in still consumed its cap slot; the unrecoverable row
-			// is re-tried by the next full-mode cycle's bare list
-			// re-fetch (an incremental's MAX(updated) cursor has
-			// typically advanced past it by then).
+			// id__in still consumed its cap slot. A backfilled row never
+			// moves the cursor of its type (see watermark.go), so when
+			// its updated is later than that cursor, the next ?since=
+			// fetch returns it. The next full-mode cycle's bare list
+			// re-fetch returns it if it is live.
 			continue
 		}
 		rows = append(rows, rawWithID{id: idHolder.ID, raw: raw})
@@ -291,13 +292,13 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 	//    SQLITE_CONSTRAINT_FOREIGNKEY (787), and again on every cycle.
 	//    Withholding the dangling parent here mirrors the fkFilter
 	//    drop-on-miss contract: the orphan is recorded and the commit
-	//    succeeds. Recovery comes from the next FULL-mode cycle,
-	//    which re-fetches every row,
-	//    stages the tombstone window, and relaxes the upsert skip gate
-	//    (reconcile-all) — an incremental cycle does NOT retry the
-	//    withheld row, because its MAX(updated) cursor has typically
-	//    advanced past the row's updated by the time the cycle commits.
-	//    Only REQUIRED FKs gate the upsert. Nullable FKs are not in
+	//    succeeds. A withheld or backfilled parent does not move the
+	//    cursor of its type (see watermark.go), so when its updated is
+	//    later than that cursor, the next ?since= fetch of the type
+	//    returns it again. Otherwise recovery comes from the next
+	//    FULL-mode cycle, which re-fetches every row, stages the
+	//    tombstone window, and relaxes the upsert skip gate
+	//    (reconcile-all). Only REQUIRED FKs gate the upsert. Nullable FKs are not in
 	//    parentFKSpec and never block here: nullMissingOptionalFKs sets
 	//    a missing fac campus_id to NULL before the upsert, and backfill
 	//    never lands a netixlan (the side FKs).
@@ -327,6 +328,10 @@ func (w *Worker) fkBackfillBatch(ctx context.Context, tx *ent.Tx, parentType str
 			continue
 		}
 		inserted = append(inserted, r.id)
+		// Upstream can have changed this row after the fetch of its
+		// type, so writeSyncWatermarks leaves it out of the next
+		// watermark (see watermark.go).
+		w.fkBackfilled[parentType] = append(w.fkBackfilled[parentType], r.id)
 		w.recordBackfill(ctx, childType, parentType, fkBackfillHit)
 		w.logger.LogAttrs(ctx, slog.LevelInfo, "fk backfill: parent inserted",
 			slog.String("child_type", childType),

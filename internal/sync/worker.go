@@ -140,8 +140,9 @@ type WorkerConfig struct {
 	// the sync (bulk fetches + upserts) can commit. Dropped rows are
 	// recovered by the next FULL-mode cycle (which re-fetches every
 	// row, stages the tombstone window, and relaxes the upsert skip
-	// gate) — NOT by the next incremental, whose MAX(updated) cursor
-	// typically advances past the dropped rows. Default 5 minutes
+	// gate) -- NOT by the next incremental, whose cursor (the watermark,
+	// see watermark.go) typically advances past the dropped rows when a
+	// newer row of the same type lands. Default 5 minutes
 	// (PDBPLUS_FK_BACKFILL_TIMEOUT). Zero or negative disables the
 	// deadline (only the cap applies).
 	FKBackfillTimeout time.Duration
@@ -160,13 +161,13 @@ type WorkerConfig struct {
 
 	// FullSyncInterval is the interval after which a sync cycle forces
 	// a full bare-list refetch of every type, regardless of the
-	// per-table MAX(updated) cursor. Defends against pathological
+	// per-type cursor. Defends against pathological
 	// upstream cross-row inconsistency where a `?since=` response
 	// includes row R' (updated=M) but is missing earlier row R
 	// (updated < M); R is permanently missed under any since-based
 	// design without periodic full refetch. Wired from
 	// PDBPLUS_FULL_SYNC_INTERVAL (default 24h). Zero disables the
-	// escape hatch (only the per-cycle MAX(updated) cursor applies).
+	// escape hatch (only the per-type cursor applies).
 	FullSyncInterval time.Duration
 
 	// ScratchDir is the directory of the scratch database of each sync
@@ -244,6 +245,14 @@ type Worker struct {
 	// same ID, which the dedup cache prevents from re-running. Reset
 	// alongside fkRegistry in resetFKState.
 	fkMissing map[fkBackfillKey]struct{}
+	// fkBackfilled holds the ids that fkBackfillBatch upserted in the
+	// current cycle, by type. writeSyncWatermarks leaves these rows out
+	// of the next watermark: upstream can have changed them after the
+	// fetch of their type, so their updated is not a safe cursor.
+	// upsertSingleRaw has no other caller, so this covers every backfill
+	// path (TestUpsertSingleRaw_SingleCaller). Reset alongside fkRegistry
+	// in resetFKState.
+	fkBackfilled map[string][]int
 	// fkBackfillRequestCount is the per-cycle counter of underlying HTTP
 	// requests issued by FK-backfill, compared against fkBackfillRequestCap.
 	// Bumped by ⌈len(idsToFetch)/peeringdb.FetchByIDsBatchSize⌉ in
@@ -361,6 +370,7 @@ func (w *Worker) resetFKState() {
 	w.fkBackfillTried = make(map[fkBackfillKey]struct{}, 64)
 	w.fkPresence = make(map[fkBackfillKey]struct{}, 64)
 	w.fkMissing = make(map[fkBackfillKey]struct{}, 64)
+	w.fkBackfilled = make(map[string][]int)
 	w.fkBackfillRequestCount = 0
 	// v1.18.3: per-cycle deadline for backfill HTTP activity. Zero
 	// timeout → zero deadline → fkBackfillParent's deadline check
@@ -850,7 +860,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 
 	// === Phase A — NO TX HELD ===
 	// HTTP + JSON decode stream into the scratch DB; Go heap stays bounded.
-	snapshotCutoffs, err := w.syncFetchPass(ctx, scratch, effectiveMode)
+	fetched, err := w.syncFetchPass(ctx, scratch, effectiveMode)
 	if err != nil {
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
@@ -878,7 +888,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	// version and the snapshot's newest row is still skipped (see
 	// skipUnchangedPredicate).
 	if effectiveMode == config.SyncModeFull {
-		ctx = withReconcileAll(ctx, snapshotCutoffs)
+		ctx = withReconcileAll(ctx, fetched.snapshotCutoffs)
 	}
 	// Memory guardrail: see checkMemoryLimit godoc (defense-in-depth).
 	var ms runtime.MemStats
@@ -901,9 +911,8 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		return err
 	}
 
-	// === Phase B — SINGLE REAL TX === (no delete pass.
-	// Cursor writes are gone — cursor is derived from
-	// MAX(updated) per table on the next cycle.)
+	// === Phase B -- SINGLE REAL TX === (no delete pass. The watermarks,
+	// the cursors of the next cycle, are written at the end of this tx.)
 	objectCounts, err := w.syncUpsertPass(ctx, tx, scratch)
 	if err != nil {
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
@@ -928,6 +937,17 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
+	// The cursors of the next cycle commit with the rows of this one.
+	// Rows that FK backfill landed do not move them (see watermark.go).
+	marks, err := writeSyncWatermarks(ctx, tx, watermarkInput{
+		cursors:    fetched.cursors,
+		discarded:  fetched.windowDiscarded,
+		backfilled: w.fkBackfilled,
+	}, start)
+	if err != nil {
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
+		return err
+	}
 	if commitErr := commitWithSpan(ctx, tx); commitErr != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", commitErr)
 		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
@@ -936,6 +956,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	logScrubbedPocContacts(ctx, w.logger, scrubbed)
 	recordCascadeCommitted(ctx, w.logger, cascade.Mode, cascaded)
 	logHistoryCommitted(ctx, w.logger, history)
+	logWatermarksCommitted(ctx, w.logger, marks)
 
 	w.recordSuccess(ctx, effectiveMode, statusID, start, objectCounts)
 	return nil
@@ -1177,10 +1198,11 @@ func (w *Worker) rollbackAndRecord(ctx context.Context, mode config.SyncMode, tx
 	w.recordFailure(ctx, mode, statusID, start, syncErr)
 }
 
-// recordSuccess runs all post-commit bookkeeping: per-type cursor updates,
-// sync-level metrics, sync_status row update, first-success flag, and the
-// OnSyncComplete callback. Extracted from Sync so the orchestrator body
-// stays under the line budget.
+// recordSuccess runs all post-commit bookkeeping: sync-level metrics,
+// sync_status row update, first-success flag, and the OnSyncComplete
+// callback. The per-type cursors are not here: the watermarks commit in
+// the sync transaction (writeSyncWatermarks). Extracted from Sync so the
+// orchestrator body stays under the line budget.
 func (w *Worker) recordSuccess(
 	ctx context.Context,
 	mode config.SyncMode,
@@ -1191,10 +1213,6 @@ func (w *Worker) recordSuccess(
 	// Wrap the post-commit bookkeeping in a
 	// sync-finalize span and ctx-reassign so the sub-spans below parent
 	// under sync-finalize rather than the root.
-	//
-	// The prior sync-cursor-updates loop is fully gone —
-	// cursor advancement is now implicit via MAX(updated) on the entity
-	// tables themselves (see internal/sync/cursor.go GetMaxUpdated).
 	ctx, finalizeSpan := otel.Tracer("sync").Start(ctx, "sync-finalize")
 	defer finalizeSpan.End()
 
@@ -1287,6 +1305,20 @@ func sumCounts(m map[string]int) int {
 	return total
 }
 
+// fetchPassResult is what syncFetchPass returns to syncCycle.
+type fetchPassResult struct {
+	// snapshotCutoffs holds the newest updated of each full snapshot, by
+	// entity table, for the full-mode upsert gate (see
+	// skipUnchangedPredicate).
+	snapshotCutoffs map[string]time.Time
+	// cursors holds the cursor of each type, in step order, for
+	// writeSyncWatermarks.
+	cursors []syncCursor
+	// windowDiscarded holds the types whose tombstone window failed and
+	// was tolerated (see stageOneTypeToScratch).
+	windowDiscarded map[string]bool
+}
+
 // syncFetchPass runs Phase A against the scratch DB: for each of the 13
 // PeeringDB types, stream the HTTP response body into an on-disk SQLite
 // staging table via StreamAll's callback. Go heap stays bounded to one
@@ -1295,40 +1327,39 @@ func sumCounts(m map[string]int) int {
 // absence of *ent.Tx from the signature is a compile-time guard against
 // accidental tx-in-fetch drift.
 //
-// Returns a map flagging which types came from an incremental fetch
-// (those skip the Phase B delete pass because incremental sync does not
-// compute a complete remote-ID set). On error, no ent.Tx has been opened
-// yet; the caller records failure and returns without touching the real
-// database. The scratch file is unlinked by the caller's
-// `defer closeScratchDB(...)`.
+// On error, no ent.Tx has been opened yet; the caller records failure
+// and returns without touching the real database. The scratch file is
+// unlinked by the caller's `defer closeScratchDB(...)`.
 //
 // Fallback-to-full-on-incremental-error semantics preserved: if the
 // incremental stage fails mid-way, stageType rolls back its rows and
-// the full-mode stage is retried. The final batch for that type is
-// flagged as full so the delete pass runs.
+// the full-mode stage is retried.
 //
-// The cursor is derived from MAX(updated) on the entity
-// table instead of reading a sync_cursors row keyed on meta.generated.
-// PeeringDB does not include meta.generated on ?since= responses (see
+// The cursor of each type is its watermark, clamped to MAX(updated) of
+// its table (see readSyncCursors and watermark.go). An earlier design
+// read a sync_cursors row keyed on meta.generated. PeeringDB does not
+// include meta.generated on ?since= responses (see
 // internal/peeringdb/client_live_test.go TestMetaGeneratedLive/
-// paginated_incremental); the prior design stored the absent zero-time,
-// which alternated every cycle into a full bare-list re-fetch. The new
-// derivation reads MAX(updated) once per type via the indexed query in
-// internal/sync/cursor.go GetMaxUpdated.
+// paginated_incremental), so that design stored zero time, and every
+// other cycle ran a full bare-list fetch.
 //
 // This helper is the fetch-outside-tx pass that
 // splits fetch from upsert. It routes Phase A
 // through an isolated scratch SQLite DB so the Go heap stays bounded.
 //
-// It returns the newest updated of each full snapshot it staged, keyed by
-// entity table, for the full-mode upsert gate (see skipUnchangedPredicate).
-func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) (map[string]time.Time, error) {
+// Each sync-fetch-<type> span gets the cursor attributes of its type
+// (syncCursor.attributes).
+func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode config.SyncMode) (fetchPassResult, error) {
 	steps := w.syncSteps()
 	cursors, err := w.readSyncCursors(ctx, steps)
 	if err != nil {
-		return nil, err
+		return fetchPassResult{}, err
 	}
-	snapshotCutoffs := make(map[string]time.Time, len(steps))
+	res := fetchPassResult{
+		snapshotCutoffs: make(map[string]time.Time, len(steps)),
+		cursors:         cursors,
+		windowDiscarded: make(map[string]bool),
+	}
 
 	for i, step := range steps {
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "fetching",
@@ -1336,44 +1367,68 @@ func (w *Worker) syncFetchPass(ctx context.Context, scratch *scratchDB, mode con
 			slog.String("mode", string(mode)),
 		)
 
-		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
-		snapshotMax, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursors[i], stepSpan)
+		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name,
+			trace.WithAttributes(cursors[i].attributes()...))
+		out, stepErr := w.stageOneTypeToScratch(ctx, scratch, step.name, mode, cursors[i].effective, stepSpan)
 		if stepErr != nil {
-			return nil, failFetchStep(ctx, stepSpan, step.name, stepErr)
+			return fetchPassResult{}, failFetchStep(ctx, stepSpan, step.name, stepErr)
 		}
 		stepSpan.End()
-		if !snapshotMax.IsZero() {
-			snapshotCutoffs[entityTables[step.name]] = snapshotMax
+		if !out.snapshotMax.IsZero() {
+			res.snapshotCutoffs[entityTables[step.name]] = out.snapshotMax
+		}
+		if out.windowDiscarded {
+			res.windowDiscarded[step.name] = true
 		}
 	}
 
-	return snapshotCutoffs, nil
+	return res, nil
 }
 
-// readSyncCursors returns the cursor of each step, in step order: the
-// newest updated value of its entity table, or zero for an empty table
-// (see GetMaxUpdated). It reads all cursors before the first upstream
-// request, so a local read fault costs no upstream requests.
+// readSyncCursors returns the cursor of each step, in step order (see
+// newSyncCursor): the stored watermark of the type, clamped to the newest
+// updated value of its entity table, or zero for an empty table. It reads
+// all cursors before the first upstream request, so a local read fault
+// costs no upstream requests. It logs the held cursors and the types with
+// no watermark (logSyncCursors).
 //
-// A cursor read error fails the type and the cycle, and the next cycle
-// retries. A zero cursor in its place starts the tombstone window at the
-// newest row of the bare snapshot (see snapshotWindowStart). Over a
-// populated table, that window misses the deletes between the real cursor
-// and that row, and the commit moves the cursor past them.
-func (w *Worker) readSyncCursors(ctx context.Context, steps []syncStep) ([]time.Time, error) {
-	cursors := make([]time.Time, len(steps))
+// A read error fails the type and the cycle, and the next cycle retries.
+// A watermark read error goes to the step of the type of a bad row, or to
+// the first step. Two fallbacks are not safe:
+//   - A zero cursor starts the tombstone window at the newest row of the
+//     bare snapshot (see snapshotWindowStart). Over a populated table,
+//     that window misses the deletes between the real cursor and that
+//     row, and the commit moves the cursor past them.
+//   - MAX(updated) in place of a watermark can be past rows that the
+//     mirror never fetched (see watermark.go).
+func (w *Worker) readSyncCursors(ctx context.Context, steps []syncStep) ([]syncCursor, error) {
+	if len(steps) == 0 {
+		return nil, nil
+	}
+	marks, err := readSyncWatermarks(ctx, w.db)
+	if err != nil {
+		name := steps[0].name
+		if bad, ok := errors.AsType[*badWatermarkError](err); ok {
+			name = bad.objectType
+		}
+		_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+name)
+		return nil, failFetchStep(ctx, stepSpan, name, err)
+	}
+	cursors := make([]syncCursor, len(steps))
 	for i, step := range steps {
 		table, ok := entityTables[step.name]
 		if !ok {
 			return nil, fmt.Errorf("syncFetchPass: no entity table mapping for %q", step.name)
 		}
-		cursor, err := GetMaxUpdated(ctx, w.db, table)
+		maxUpdated, err := GetMaxUpdated(ctx, w.db, table)
 		if err != nil {
 			_, stepSpan := otel.Tracer("sync").Start(ctx, "sync-fetch-"+step.name)
 			return nil, failFetchStep(ctx, stepSpan, step.name, err)
 		}
-		cursors[i] = cursor
+		mark, hasMark := marks[step.name]
+		cursors[i] = newSyncCursor(step.name, maxUpdated, mark, hasMark)
 	}
+	logSyncCursors(ctx, w.logger, cursors)
 	return cursors, nil
 }
 
@@ -1389,20 +1444,29 @@ func failFetchStep(ctx context.Context, stepSpan trace.Span, name string, err er
 	return fmt.Errorf("fetch %s: %w", name, err)
 }
 
+// stageOutcome is what stageOneTypeToScratch returns for one type.
+type stageOutcome struct {
+	// snapshotMax is the newest updated among the rows of the full
+	// snapshot. It is zero when the incremental fetch succeeded or the
+	// snapshot had no such row.
+	snapshotMax time.Time
+	// windowDiscarded reports that the tombstone window failed and the
+	// failure was tolerated. writeSyncWatermarks then keeps a held
+	// watermark (see nextWatermark).
+	windowDiscarded bool
+}
+
 // stageOneTypeToScratch streams a single PeeringDB type into its scratch
 // staging table, handling the incremental-with-fallback-to-full
 // semantics. On incremental error stageType rolls back its rows, so the
 // scratch table for this type stays empty, and a full stage is retried.
-// Returns the newest updated among the rows of the full snapshot, or zero
-// when the incremental fetch succeeded or the snapshot had no such row.
 //
-// The cursor is derived from MAX(updated) by the caller
-// (syncFetchPass). The previous design returned a per-call cursor
-// update derived from meta.generated; with that field absent on
-// ?since= responses it stored zero, which then alternated every cycle
-// into a full bare-list re-fetch. Cursor advancement is now implicit:
-// once the upsert tx commits the new rows, the next cycle's
-// GetMaxUpdated picks up the boundary automatically.
+// cursor is the cursor of the type (syncCursor.effective, see
+// readSyncCursors). An earlier design returned a cursor update derived
+// from meta.generated. That field is absent on ?since= responses, so it
+// stored zero, and every other cycle ran a full bare-list fetch. The
+// next cursor is now the watermark that writeSyncWatermarks computes in
+// the sync transaction.
 //
 // Bootstrap reversal (v1.18.3): the v1.18.2 bootstrap path that used
 // time.Unix(1,0) to fetch ?since=1 on a zero cursor was reverted because
@@ -1418,20 +1482,20 @@ func failFetchStep(ctx context.Context, stepSpan trace.Span, name string, err er
 // is deferred to a proper multi-cycle bootstrap design (v1.19+);
 // FK backfill catches the orphans that matter on
 // demand, including via recursive grandparent backfill (v1.18.3).
-func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (time.Time, error) {
+func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, name string, mode config.SyncMode, cursor time.Time, stepSpan trace.Span) (stageOutcome, error) {
 	fellBack := false
 	// Incremental attempt requires a populated cursor. Zero cursor falls
 	// through to the full-sync path below (bare list, then the window).
 	if mode == config.SyncModeIncremental && !cursor.IsZero() {
 		_, incErr := scratch.stageType(ctx, w.pdbClient, name, cursor, discardRows)
 		if incErr == nil {
-			return time.Time{}, nil
+			return stageOutcome{}, nil
 		}
 		// The fallback is for a failed ?since= request, and it makes a
 		// window failure tolerated (windowFailureTolerated). A scratch
 		// DB fault says nothing about the endpoint, so it fails the type.
 		if errors.Is(incErr, errScratchDB) {
-			return time.Time{}, incErr
+			return stageOutcome{}, incErr
 		}
 		fellBack = true
 		// Fallback: retry as full. The failed stage rolled back its rows.
@@ -1451,7 +1515,7 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	// Full sync (default, first sync, no cursor, or incremental-fallback).
 	snapshot, err := scratch.stageType(ctx, w.pdbClient, name, time.Time{}, discardRows)
 	if err != nil {
-		return time.Time{}, err
+		return stageOutcome{}, err
 	}
 	// Window capture: stage a ?since= fetch on top of the snapshot. The
 	// scratch INSERT OR REPLACE is keyed on id, so window rows (including
@@ -1460,8 +1524,8 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	//
 	//   - Deletes. A bare list contains only live rows (ok, plus
 	//     not-operational on netixlan; upstream filters bare lists per
-	//     rest.py), and committing the snapshot advances the derived
-	//     cursor (MAX(updated)) past the pre-cycle window. Without the
+	//     rest.py), and committing the snapshot advances the cursor (the
+	//     next watermark) past the pre-cycle window. Without the
 	//     window, deletes since the last cycle would be permanently
 	//     lost: served live by all surfaces and absent from our own
 	//     ?since= exports.
@@ -1472,14 +1536,14 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	since := snapshotWindowStart(cursor, snapshot.maxUpdated)
 	w.recordSnapshotWindow(ctx, stepSpan, name, cursor, snapshot, since)
 	if since.IsZero() {
-		return snapshot.maxUpdated, nil
+		return stageOutcome{snapshotMax: snapshot.maxUpdated}, nil
 	}
 	// A window failure fails the type only when committing without the
 	// window could lose data: in explicit full mode over a populated
 	// table, the commit would advance the cursor past deletes we never
 	// saw, so the cycle retries instead. The failure is tolerated in two
 	// cases. On a zero cursor the table is empty, and the next cycle's
-	// ?since=MAX(updated) fetch is this same window. On the
+	// ?since=<cursor> fetch is this same window. On the
 	// incremental-fallback path the window is the same request shape that
 	// just failed; it is retried once best-effort (the earlier failure may
 	// have been transient), and a second failure is logged and tolerated
@@ -1488,11 +1552,14 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 	//
 	// A failed window keeps the rows that it streamed before the error
 	// (keepRows). A tolerated failure then loses only the rest of the
-	// window, the tombstones in it included. A failed write to the
-	// scratch DB is never tolerated (see windowFailureTolerated).
+	// window, the tombstones in it included. A held cursor (see
+	// syncCursor) keeps its watermark after a tolerated failure, so the
+	// next cycle fetches that window again (see nextWatermark). A failed
+	// write to the scratch DB is never tolerated (see
+	// windowFailureTolerated).
 	if _, err := scratch.stageType(ctx, w.pdbClient, name, since, keepRows); err != nil {
 		if !windowFailureTolerated(err, fellBack, cursor) {
-			return time.Time{}, fmt.Errorf("stage tombstone window %s since %s: %w",
+			return stageOutcome{}, fmt.Errorf("stage tombstone window %s since %s: %w",
 				name, since.Format(time.RFC3339), err)
 		}
 		stepSpan.AddEvent("tombstone_window.discarded",
@@ -1507,8 +1574,9 @@ func (w *Worker) stageOneTypeToScratch(ctx context.Context, scratch *scratchDB, 
 			slog.Bool("incremental_fallback", fellBack),
 			slog.Any("error", err),
 		)
+		return stageOutcome{snapshotMax: snapshot.maxUpdated, windowDiscarded: true}, nil
 	}
-	return snapshot.maxUpdated, nil
+	return stageOutcome{snapshotMax: snapshot.maxUpdated}, nil
 }
 
 // windowFailureTolerated reports whether a failed tombstone window stage
@@ -1527,8 +1595,9 @@ func windowFailureTolerated(err error, fellBack bool, cursor time.Time) bool {
 // snapshotWindowStart returns the ?since= start of the window fetch that
 // follows a full snapshot, or zero for no window.
 //
-// cursor is the pre-cycle MAX(updated); a window from there captures the
-// deletes since the last cycle. snapshotMax is the newest updated among
+// cursor is the cursor of the type (its watermark, clamped to the
+// pre-cycle MAX(updated)); a window from there captures the deletes since
+// the last cycle. snapshotMax is the newest updated among
 // the snapshot's rows. Upstream builds its API cache with
 // ?updated__lte=<build start>, so a row that changed after the snapshot
 // was taken carries an updated later than snapshotMax. A window from
@@ -1625,14 +1694,9 @@ const gcHintMinRows = 1000
 // Atomicity is preserved: all real-DB writes run inside the same
 // ent.Tx, and any upsert error triggers a rollback via the orchestrator.
 //
-// The per-type sync_cursors writes that were once
-// folded into this tx have been removed. The cursor is now a derived
-// quantity (MAX(updated) per table — see internal/sync/cursor.go); once
-// the tx commits the new rows, the next cycle's GetMaxUpdated picks up
-// the boundary automatically. The atomicity guarantee is unchanged: the
-// data state IS the cursor, so the row-and-cursor divergence the prior
-// in-tx-cursor-write protected against is now impossible by
-// construction (no separate row to lag).
+// The cursors of the next cycle are not written here. syncCycle calls
+// writeSyncWatermarks in the same tx after the cascade, so the
+// watermarks commit and roll back with the rows (see watermark.go).
 func (w *Worker) syncUpsertPass(
 	ctx context.Context,
 	tx *ent.Tx,
@@ -1690,13 +1754,6 @@ func (w *Worker) syncUpsertPass(
 		)
 	}
 
-	// The per-type sync_cursors writes are gone. Cursor
-	// advancement is implicit — once this tx commits the new rows, the
-	// next cycle's syncFetchPass derives the cursor from MAX(updated) on
-	// each entity table (internal/sync/cursor.go GetMaxUpdated). The
-	// sync-cursor-updates span name no longer applies; the
-	// pdbplus.sync.cursor_write_caused_rollback OTel attribute is also
-	// retired (the failure mode it surfaced is no longer reachable).
 	return objectCounts, nil
 }
 

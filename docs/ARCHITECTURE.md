@@ -147,21 +147,21 @@ default `1h` unauthenticated / `15m` authenticated):
 
 ### Incremental cursor
 
-Each cycle reads one cursor per type:
-the newest `updated` value in the local table
+Each cycle reads one cursor per type before the first upstream request.
+The cursor is the watermark of the type,
+a row of the `sync_watermark` table (`internal/sync/watermark.go`).
+The worker clamps it to the newest `updated` value in the local table
 (`GetMaxUpdated`, `internal/sync/cursor.go`).
-No cursor table exists.
+A table with rows and no watermark row uses that newest `updated` value.
+This occurs once, in the first cycle after the upgrade,
+and the worker logs INFO `sync watermark missing, using MAX(updated)`.
+An empty table has no cursor, whatever its watermark row holds.
+
 In incremental mode, a type with rows fetches `?since=<cursor>`
 in pages of 250.
 An empty table fetches the bare list, which holds only live rows.
 When that list is not empty, the worker then fetches a `?since=` window
 from the newest `updated` value in the list.
-The worker reads all cursors before the first upstream request.
-When a cursor read fails, the cycle fails before it sends a request
-and commits no synced rows. The next cycle retries.
-A zero cursor would start the window at the newest row of the bare list,
-and a populated table would lose the deletes between the real cursor
-and that row.
 If an incremental fetch fails, the worker deletes the rows of that type
 from the scratch staging database and fetches the bare list.
 Then it tries the `?since=` window once more
@@ -169,6 +169,62 @@ Then it tries the `?since=` window once more
 The `pdbplus.sync.type.fallback` counter records this.
 [meta-generated-behavior.md](./meta-generated-behavior.md) explains why the
 cursor does not use the `meta.generated` value of upstream responses.
+
+The sync transaction writes the next watermark of each type
+before it commits, so a watermark commits and rolls back with the rows:
+
+- The next watermark is the newest `updated` value in the table
+  without the rows that FK backfill landed in the cycle.
+  It is never earlier than the cursor of the cycle.
+- A table that is still empty gets no watermark row.
+  A table that was empty before the cycle and holds only rows
+  that FK backfill landed gets the oldest `updated` value of those rows.
+  Two backfill requests of one cycle can land rows at different times,
+  so the newest of these rows can be later than a delete of an older one.
+- A held cursor, one that is earlier than the newest row,
+  keeps its watermark when the worker discarded the tombstone window
+  of the type after a failed incremental fetch.
+
+FK backfill can land a parent row that upstream changed
+after the fetch of the parent type in the same cycle.
+Before the `sync_watermark` table, the cursor was the newest `updated` value,
+so it moved past the changes between that fetch and the backfilled row.
+No later `?since=` fetch returned them, and a delete in that gap was lost.
+
+The watermark leaves out the backfilled rows,
+so it is never later than the time of the fetch of the type.
+The next cycle fetches the type from the watermark
+and gets the gap and the backfilled rows again.
+The upsert of an unchanged row writes nothing.
+The watermark then moves past them.
+Without FK backfill, the watermark is the newest `updated` value,
+so the requests do not change.
+
+When a cursor read fails, or a watermark is not a positive integer,
+the cycle fails before it sends a request and commits no synced rows.
+The next cycle retries.
+The worker never uses a different cursor after a read error.
+The newest `updated` value would bring back the backfill gap.
+A zero cursor would start the window at the newest row of the bare list,
+and a populated table would lose the deletes between the real cursor
+and that row.
+A missing `sync_watermark` table is not an error:
+the worker uses the newest `updated` values,
+and the sync transaction creates the table.
+
+Observability:
+
+- The `sync-fetch-<type>` span has `pdbplus.sync.cursor` (RFC 3339),
+  `pdbplus.sync.cursor.source` (`watermark`, `max_updated` or `empty`),
+  and `pdbplus.sync.cursor.behind_seconds` for a held cursor.
+- The root span has `pdbplus.sync.watermarks_written` and
+  `pdbplus.sync.watermarks_held`, counted in the transaction.
+- A held cursor logs INFO `sync cursor held behind newest row`
+  before the first request.
+- After the commit, a type whose watermark is earlier than its newest row
+  logs INFO `sync watermark behind backfilled rows`,
+  or WARN `sync watermark kept, tombstone window discarded`.
+  When the WARN repeats for a type, the `?since=` requests of that type fail.
 
 ### Upstream requests
 
@@ -198,6 +254,8 @@ the worker fetches the missing parents with `?since=1&id__in=<ids>`,
 100 IDs per request, and also the missing parents of those parents
 (`internal/sync/fk_backfill.go`).
 These calls run inside the open transaction.
+A row that the backfill lands does not move the cursor of its type
+(see [Incremental cursor](#incremental-cursor)).
 `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` (default 20, `0` disables
 backfill) and `PDBPLUS_FK_BACKFILL_TIMEOUT` (default `5m`) limit them.
 The same cap setting also limits the netixlan cascade verification
@@ -289,11 +347,11 @@ It never deletes a row:
   a stored row changes only when the window row has a later `updated`.
 - In scratch, a window row does not replace a row of the normal fetch
   that has a later `updated`.
-- The sweep drops a window row whose `updated` is later than the cursor of its
-  type (`MAX(updated)` before the cycle).
+- The sweep drops a window row whose `updated` is later than
+  the newest `updated` value of its table before the cycle.
   Such a row can have changed after the normal fetch of the cycle,
-  and its commit would move the cursor past the other rows that changed in
-  that gap.
+  and its commit would move the next watermark past the other rows
+  that changed in that gap.
   The next `?since=` fetch gets the row.
 - A stored live row becomes a tombstone when upstream has a tombstone
   for it with a later `updated`.
@@ -1184,7 +1242,7 @@ Full-mode fetches capture the tombstone window.
 A bare `/api/<type>` list contains only live rows
 (`status='ok'`, plus `not-operational` on netixlan, because upstream filters
 bare lists).
-A committed full snapshot moves the derived `MAX(updated)` cursor past
+A committed full snapshot moves the next watermark past
 the pre-cycle window.
 So a full-mode fetch (the daily escalation, or the per-type fallback after a
 failed incremental fetch) would otherwise lose the deletes in that window.
@@ -1201,12 +1259,16 @@ the type, and the cycle retries:
 committing the snapshot without the window would advance the cursor past
 deletes that were never seen.
 On an empty table, the worker logs the failure and commits the snapshot,
-because the next cycle's `?since=MAX(updated)` fetch is the same window.
+because the `?since=<cursor>` fetch of the next cycle is the same window.
 On the per-type fallback path, the window uses the request shape that just
 failed, and the worker tries it once.
 If that also fails, it logs a WARN, adds a `tombstone_window.discarded` span
 event, and commits the snapshot without the window.
-The deletes in that window are then lost.
+The deletes in that window are then lost,
+unless the cursor of the type was earlier than its newest row.
+Such a cursor keeps its watermark,
+so the next cycle fetches the window again
+(see [Incremental cursor](#incremental-cursor)).
 
 The pdbcompat list path (`internal/pdbcompat/registry_funcs.go`) appends
 `applyStatusMatrix(live, isCampus, opts.Since != nil)` to the predicate chain
@@ -1345,8 +1407,8 @@ The worker classifies each requested id:
   The memo keeps no entry for a staged row,
   because a retry of the cycle has a new scratch database
   and must ask upstream and stage the row again.
-  When that `updated` value is later than the netixlan cursor,
-  the worker does not stage the row.
+  When that `updated` value is later than the newest netixlan `updated`
+  value before the cycle, the worker does not stage the row.
   The cascade marks it, and the next `?since=` fetch stores the upstream
   tombstone.
   A staging error leaves the row live, and the next cycle tries again.
