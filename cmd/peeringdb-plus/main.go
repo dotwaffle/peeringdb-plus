@@ -304,10 +304,11 @@ func main() {
 		slog.Int("type_count", len(seededCounts)))
 
 	// Initialize per-type object count gauges for business metrics dashboard.
-	// Reads from atomic cache instead of live COUNT queries.
+	// Reads from atomic cache instead of live COUNT queries. Only the
+	// primary reports: the sync worker updates the cache there only.
 	if err := pdbotel.InitObjectCountGauges(func() map[string]int64 {
 		return *objectCountCache.Load()
-	}); err != nil {
+	}, isPrimaryFn); err != nil {
 		logger.Error("failed to init object count gauges", slog.Any("error", err))
 		os.Exit(1)
 	}

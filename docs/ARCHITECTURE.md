@@ -1911,6 +1911,7 @@ vars.
   - `pdbplus.data.type.count` (gauge, `InitObjectCountGauges`): object count
     per type, from an atomic cache that each successful sync updates,
     so no request runs a live `COUNT(*)`.
+    Only the primary reports it: the cache of a replica is never updated.
   - `pdbplus.sync.freshness` (gauge, seconds, `InitFreshnessGauge`):
     time since the last successful sync, read from the `sync_status` table.
   - `pdbplus.scratch.free` (gauge, bytes, `InitScratchFreeGauge`): the free

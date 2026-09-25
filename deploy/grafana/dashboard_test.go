@@ -412,7 +412,7 @@ func TestDashboard_GaugesUseAggregation(t *testing.T) {
 		desc     string
 	}{
 		{"Data Freshness", "max(", "should use max() for worst-case freshness"},
-		{"Total Objects", "max by", "should use max by(type) to deduplicate replicas"},
+		{"Total Objects", "max by", "should use max by(type) for one value per type"},
 		// The instance label is empty (service.instance.id is stripped
 		// from metric resources), so sum by(instance) summed the fleet.
 		{"Goroutines", "sum by (service_namespace, cloud_region)", "should show one line per machine"},

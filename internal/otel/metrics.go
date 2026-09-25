@@ -334,13 +334,19 @@ func InitScratchFreeGauge(dir string, free func(dir string) (uint64, error)) err
 // InitObjectCountGauges registers an observable Int64Gauge that reports the
 // number of objects stored per PeeringDB type. Reads from a cache function
 // that returns pre-computed counts updated at sync completion time.
+// A collection observes nothing while isPrimary returns false: only the
+// primary runs the sync worker that updates the cache, so the counts of a
+// replica stay at their values from process start.
 // Must be called after OTel Setup().
-func InitObjectCountGauges(countsFn func() map[string]int64) error {
+func InitObjectCountGauges(countsFn func() map[string]int64, isPrimary func() bool) error {
 	meter := otel.Meter("peeringdb-plus")
 	_, err := meter.Int64ObservableGauge("pdbplus.data.type.count",
 		metric.WithDescription("Number of objects stored per PeeringDB type"),
 		metric.WithUnit("{object}"),
 		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			if !isPrimary() {
+				return nil
+			}
 			counts := countsFn()
 			for typeName, count := range counts {
 				o.Observe(count, metric.WithAttributes(
