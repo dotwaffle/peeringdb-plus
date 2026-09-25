@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-09-25
+
 ### Added
 
 - Alert rule `PdbPlusReplicaMemoryHigh` (warning): the Go runtime
@@ -78,6 +80,10 @@ are in the Git history at their tags.
   as not positive, but the mirror stores upstream tombstones with ASN 0
   since v1.32.2 (net 21510). Negative values still return
   `INVALID_ARGUMENT`.
+- `mise.toml` tracks every tool by major version, or by minor version
+  for a 0.x release and Go. `mise.lock` still fixes the exact versions.
+  The Go generator CLIs (gqlgen, templ, protoc-gen-go,
+  protoc-gen-connect-go) must stay at their module versions in `go.mod`.
 
 ### Fixed
 
@@ -1611,7 +1617,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.2...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.33.0...HEAD
+[1.33.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.2...v1.33.0
 [1.32.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.1...v1.32.2
 [1.32.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.0...v1.32.1
 [1.32.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.1...v1.32.0
