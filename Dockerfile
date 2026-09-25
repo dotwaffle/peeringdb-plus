@@ -19,24 +19,21 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-# Compute version from git: tagged release → `v1.17`, post-tag dev →
-# `v1.17-3-gabc1234`. An explicit VERSION build argument takes precedence.
-# The intentionally filtered Docker context omits tracked files, so asking
-# git for a dirty suffix here would mark every image dirty. Falls back to
-# "unknown" if .git is missing entirely (defensive: .git IS in the build
-# context because .dockerignore deliberately retains it for this step).
-#
-# Injected into internal/buildinfo via `-ldflags -X` so both the OTel
-# resource (service.version) and the PeeringDB User-Agent emit the
-# same string. internal/buildinfo is the single source of truth.
+# `go build` stamps the main module version from git (Go 1.24 and
+# later): the tag on a tagged commit, a pseudo-version between tags, and
+# a +dirty suffix when the context differs from the commit. .dockerignore
+# keeps .git and every tracked file in the context for this.
+# internal/buildinfo reads the stamp, so the OTel resource
+# (service.version) and the PeeringDB User-Agent emit the same string.
+# An explicit VERSION build argument overrides the stamp, for a context
+# without .git. `go version -m` prints the stamp into the build log.
 RUN \
     --mount=type=cache,target=/root/.cache/go-build \
-    VERSION=${VERSION:-$(git describe --tags --always 2>/dev/null || echo unknown)} && \
-    echo "Building peeringdb-plus version=$VERSION for $TARGETOS/$TARGETARCH" && \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
         -trimpath \
-        -ldflags="-s -w -X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION" \
-        -o /bin/peeringdb-plus ./cmd/peeringdb-plus
+        -ldflags="-s -w ${VERSION:+-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION}" \
+        -o /bin/peeringdb-plus ./cmd/peeringdb-plus && \
+    go version -m /bin/peeringdb-plus | grep -E '^[[:space:]]+(mod|build[[:space:]]+vcs)'
 
 # Skeleton for the runtime /data dir: the static runtime image has no
 # shell, so the directory is COPY'd in with ownership instead of RUN
