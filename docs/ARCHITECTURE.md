@@ -1927,35 +1927,15 @@ vars.
     `InitMemoryGauges`): sync-cycle peaks.
     Prometheus names: `pdbplus_sync_peak_heap_bytes`,
     `pdbplus_sync_peak_rss_bytes`.
-  - `pdbplus.litefs.*` (`InitLiteFSGauges`): the values of the local LiteFS
-    metrics endpoint. The app registers these instruments only when
-    `PDBPLUS_LITEFS_METRICS_URL` is set. One collection reads the endpoint
-    once. A failed read exports no LiteFS values, so a dashboard shows a gap.
-    A read fails when the `litefs_db_txid`, `litefs_lag_seconds` or
-    `litefs_subscriber_count` sample is missing, when a value is not finite
-    or a count is not an integer, and when the body is larger than 1 MiB.
-    LiteFS creates the other series only at the first commit, LTX apply or
-    retention pass after it starts. Until then, `commits` is 0 and
-    `ltx.size`, `ltx.files` and `ltx.lag` have no value.
-    A replica does not commit, so `commits` does not grow on a replica.
-    - `txid` (gauge): the current LiteFS transaction ID of the database.
-    - `commits` (counter): database commits on the node since LiteFS started.
-      It does not grow while the node is a replica.
-    - `ltx.size` (gauge, bytes): `litefs_db_ltx_bytes` as LiteFS 0.5 sets it.
-      A commit sets it to the size of the new LTX file.
-      Each retention pass (once a minute) sets it to the size of the LTX files
-      on disk. A large commit shows in both values.
-      Do not use it as a disk-usage signal.
-    - `ltx.files` (gauge): the number of LTX files on disk.
-    - `ltx.lag` (gauge, seconds): the time from the creation of the last
-      LTX file that the node applied to its apply. A commit on the primary
-      sets it to 0.
-    - `lag` (gauge, seconds): the time since the node last received a frame
-      (LTX file or heartbeat) from the primary. It is 0 on the primary.
-    - `subscribers` (gauge): the replicas connected to the node.
-
-    The app does not export `litefs_http_frame_send_count`:
-    LiteFS 0.5 never increments it.
+  - The LiteFS metrics are not app instruments. Fly.io scrapes the LiteFS
+    metrics endpoint of each machine (`[[metrics]]` in `fly.toml`, port
+    20202) into the Fly.io managed Prometheus, as `litefs_*` series with
+    the labels `app`, `instance`, `region` and `host`; `litefs_is_primary`
+    tells the primary from the replicas. LiteFS 0.5 creates
+    `litefs_db_commit_count`, `litefs_db_ltx_bytes`, `litefs_db_ltx_count`
+    and `litefs_db_lag_seconds` only at the first commit, LTX apply or
+    retention pass after it starts, and never increments
+    `litefs_http_frame_send_count`.
   - Per-request response heap-delta histogram
     (`pdbplus.response.heap_delta`, exported to Prometheus as
     `pdbplus_response_heap_delta_bytes`).

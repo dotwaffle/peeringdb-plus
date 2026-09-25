@@ -37,6 +37,14 @@ are in the Git history at their tags.
   Update the Grafana-managed rules: create the rule in `pdbplus-fly` and
   delete the one in `pdbplus-warning`.
 
+### Removed
+
+- `PDBPLUS_LITEFS_METRICS_URL` and the `pdbplus.litefs.*` instruments
+  that the app copied from the LiteFS metrics endpoint. Fly.io scrapes
+  that endpoint now. A deployment that still sets the variable gets no
+  error; the app ignores it. A self-hosted LiteFS deployment can scrape
+  LiteFS port 20202 with its own Prometheus.
+
 ### Fixed
 
 - Dashboard: the `datasource` variable now defaults to the default data

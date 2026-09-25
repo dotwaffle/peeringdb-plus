@@ -303,8 +303,6 @@ Non-secret configuration lives in `fly.toml`'s `[env]` block:
   FUSE-mounted LiteFS directory.
 - `PRIMARY_REGION=lhr` — consumed by both `litefs.yml` for lease candidacy
   and the `POST /sync` handler for `fly-replay` forwarding.
-- `PDBPLUS_LITEFS_METRICS_URL=http://localhost:20202/metrics`: the LiteFS
-  metrics endpoint, which the app exports as `pdbplus.litefs.*` over OTLP.
 - `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`: the directory of the sync
   scratch database, on the primary volume
   (see [Asymmetric fleet](#asymmetric-fleet)).
