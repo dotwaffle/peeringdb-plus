@@ -227,7 +227,8 @@ Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
 ### Middleware
 - Response writer wrappers MUST implement `http.Flusher` (delegate to underlying writer) — gRPC streaming requires it.
 - Add `Unwrap() http.ResponseWriter` for middleware-aware interface detection.
-- Full chain (outermost first): `Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux`
+- Full chain (outermost first): `Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux`
+- Recovery wraps twice: the inner one MUST stay inside OTel HTTP and RouteTag MUST tag in a defer (otelhttp records the request metric only when its inner handler returns, so otherwise a recovered panic leaves no 500 sample and the 5xx error rate misses it); the outer one keeps the 500 for a panic in CORS/MaxBytesBody/otelhttp. A panic after the response started records the status already sent, and a panic before mux dispatch has no route. Locked by `TestRecoveredPanicRecordsRequestMetric` + `TestMiddlewareChain_Order`.
 - **ETag (v1.28.3):** `Caching` sends a weak ETag of the local database version. `startETagWatcher` (`cmd/peeringdb-plus/etag.go`) runs on every node and polls once a second. It reads the LiteFS `<db>-pos` file, or `PRAGMA data_version` on a pinned connection when LiteFS is absent. A node sends no caching headers until it has seen a successful sync, and a read error clears the ETag. Each committed write changes the ETag, so one sync cycle can change it more than once. Do not set the ETag from the sync worker: replicas never run it. Before v1.28.3, replicas kept the ETag from process start and answered 304 with old bodies.
 
 ### ConnectRPC / gRPC

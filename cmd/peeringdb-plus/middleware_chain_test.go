@@ -13,7 +13,7 @@ import (
 // reorder or accidental removal of any middleware in the production
 // chain. It parses the body of buildMiddlewareChain directly from
 // server.go and asserts that every expected middleware appears exactly
-// once, in the innermost-first order.
+// once (Recovery twice), in the innermost-first order.
 //
 // This is deliberately structural, not runtime: spinning up the real
 // stack in-process would pull in the sync worker, the ent client, and
@@ -44,8 +44,8 @@ func TestMiddlewareChain_Order(t *testing.T) {
 	body := string(before)
 
 	// wantOrder is innermost-first (the order lines are wrapped in the
-	// code). The runtime order a request traverses is the reverse:
-	// Recovery runs first, Gzip runs last.
+	// code). The runtime order a request traverses is the reverse: the
+	// outer Recovery runs first, RouteTag runs last.
 	//
 	// Each entry includes the trailing "(" so that the match is guaranteed
 	// to be a call site, not a substring of a type name (e.g. "middleware.CSP"
@@ -64,24 +64,40 @@ func TestMiddlewareChain_Order(t *testing.T) {
 		"middleware.Readiness(",
 		"middleware.PrivacyTier(",
 		"middleware.Logging(",
+		"middleware.Recovery(",
 		"otelhttp.NewMiddleware(",
 		"middleware.CORS(",
 		"middleware.MaxBytesBody(",
 		"middleware.Recovery(",
 	}
 
+	// Collect every call site of each name, so a name that wantOrder
+	// lists twice (Recovery) must appear twice, and an extra call fails
+	// the count check below.
 	type hit struct {
 		name string
 		pos  int
 	}
 	hits := make([]hit, 0, len(wantOrder))
+	seen := make(map[string]bool)
 	for _, name := range wantOrder {
-		idx := strings.Index(body, name)
-		if idx < 0 {
-			t.Errorf("middleware %q not found in buildMiddlewareChain body", name)
+		if seen[name] {
 			continue
 		}
-		hits = append(hits, hit{name: name, pos: idx})
+		seen[name] = true
+		found := false
+		for off := 0; ; {
+			idx := strings.Index(body[off:], name)
+			if idx < 0 {
+				break
+			}
+			found = true
+			hits = append(hits, hit{name: name, pos: off + idx})
+			off += idx + len(name)
+		}
+		if !found {
+			t.Errorf("middleware %q not found in buildMiddlewareChain body", name)
+		}
 	}
 	// Sort by source position to compare against wantOrder.
 	slices.SortFunc(hits, func(a, b hit) int { return cmp.Compare(a.pos, b.pos) })

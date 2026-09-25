@@ -12,8 +12,9 @@ All routes are registered in `cmd/peeringdb-plus/main.go`
 and pass through the production middleware chain:
 
 ```text
-Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier ->
-Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
+Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery -> Logging ->
+PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip ->
+RouteTag -> mux
 ```
 
 The server speaks HTTP/1.1 and h2c

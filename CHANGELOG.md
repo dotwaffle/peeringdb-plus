@@ -78,6 +78,13 @@ are in the Git history at their tags.
   failed to write (`disk I/O error (778)`).
   With LiteFS mounted, a node is now primary only if LiteFS can elect it
   (`FLY_REGION` equals `PRIMARY_REGION`, the `litefs.yml` rule).
+- A request whose handler panics now counts in
+  `http_server_request_duration_seconds` as a 500 with its `http_route`.
+  The Recovery middleware wrapped otelhttp, so the panic unwound past the
+  metric record, and the 5xx error rate did not count it. A second
+  Recovery now sits inside otelhttp, and the route tag runs in a defer.
+  A panic after the response started still records the status already
+  sent.
 
 ## [1.32.2] - 2026-09-25
 

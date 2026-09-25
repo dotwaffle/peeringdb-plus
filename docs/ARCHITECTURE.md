@@ -80,7 +80,7 @@ A typical read request flows as follows:
 2. The Go HTTP server (`cmd/peeringdb-plus/main.go`) accepts the connection on
    `:8080` with HTTP/1.1 and h2c (cleartext HTTP/2 for gRPC) enabled.
 3. The middleware chain runs
-   (`Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag`)
+   (`Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag`)
    before dispatching to the mux (`buildMiddlewareChain` in
    `cmd/peeringdb-plus/server.go`).
 4. The request is dispatched to one of the six API surfaces based on URL path.
@@ -761,8 +761,8 @@ The HTTP middleware stack is assembled by `buildMiddlewareChain`
 (`cmd/peeringdb-plus/server.go`).
 Outermost first:
 
-1. **Recovery** (`internal/middleware/recovery.go`) — Catches panics, logs them,
-   and returns a 500.
+1. **Recovery** (outer, `internal/middleware/recovery.go`):
+   returns a 500 for a panic in MaxBytesBody, CORS or OTel HTTP.
 2. **MaxBytesBody** (`internal/middleware/maxbody.go`) —
    Caps non-gRPC request bodies at 1 MB (`maxRequestBodySize`).
    ConnectRPC and gRPC paths are skipped via a hardcoded prefix list to preserve
@@ -775,22 +775,30 @@ Outermost first:
    so each request starts a new root span.
    A `traceparent` from the client becomes a span link,
    so a client cannot set the trace ID or the sampling decision.
-5. **Logging** (`internal/middleware/logging.go`):
+5. **Recovery** (inner, `internal/middleware/recovery.go`): catches panics,
+   logs them, and returns a 500.
+   It sits inside OTel HTTP because otelhttp records the request metric
+   only when its inner handler returns:
+   the 500 of a recovered panic is then counted, with its route.
+   A panic after the handler started the response records the status
+   already sent.
+   A panic in a middleware before the mux dispatch has no `http_route`.
+6. **Logging** (`internal/middleware/logging.go`):
    structured slog access log.
    Each line has `trace_id` and `span_id` when the span is valid.
-6. **PrivacyTier** (`internal/middleware/privacy_tier.go`) —
-   Stamps the resolved `PDBPLUS_PUBLIC_TIER` value onto every inbound request
+7. **PrivacyTier** (`internal/middleware/privacy_tier.go`):
+   stamps the resolved `PDBPLUS_PUBLIC_TIER` value onto every inbound request
    context via `privctx.WithTier`.
    Sits between Logging and Readiness
    so even the Readiness 503 path carries the tier;
    downstream ent privacy policies
    and `privfield.Redact` callers consume it via `privctx.TierFrom(ctx)`.
-7. **Readiness** — Returns 503 for all routes except `/sync`, `/healthz`,
+8. **Readiness**: returns 503 for all routes except `/sync`, `/healthz`,
    `/readyz`, `/`, `/favicon.ico`, `/static/*`,
    and `/grpc.health.v1.Health/*` until the first sync completes.
    Browser clients get a styled HTML syncing page;
    terminal clients get plain text; everything else gets JSON.
-8. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers
+9. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers
    on every response:
    `Strict-Transport-Security: max-age=31536000; includeSubDomains` (365 days),
    `X-Content-Type-Options: nosniff`,
@@ -799,11 +807,11 @@ Outermost first:
    `Cross-Origin-Resource-Policy: same-origin`.
    It sets `X-Frame-Options: DENY` only on browser paths:
    `/`, `/ui`, `/graphql`, and the paths below `/ui/` and `/graphql/`.
-9. **CSP** (`internal/middleware/csp.go`) —
-   Different policies for `/ui/` and `/graphql`.
+10. **CSP** (`internal/middleware/csp.go`):
+   different policies for `/ui/` and `/graphql`.
    Served as `Report-Only` by default;
    switched to enforcing via `PDBPLUS_CSP_ENFORCE=true`.
-10. **Caching** (`internal/middleware/caching.go`) handles GET and HEAD only:
+11. **Caching** (`internal/middleware/caching.go`) handles GET and HEAD only:
     - `/skills/*`: no change. The skill handlers set their own ETags.
     - `/static/*`: `Cache-Control: public, max-age=86400`.
     - `/ui/about`, `/healthz` and `/readyz`: `Cache-Control: no-store`.
@@ -852,14 +860,14 @@ Outermost first:
     and the ETag change keeps its old body for one more `max-age`.
     A deploy that changes the rendered output without a database write
     keeps the ETag until the next commit.
-11. **Gzip / Compression** (`internal/middleware/compression.go`) —
-    Response compression.
-12. **RouteTag** (`cmd/peeringdb-plus/route_tag.go` `routeTagMiddleware`):
+12. **Gzip / Compression** (`internal/middleware/compression.go`):
+    response compression.
+13. **RouteTag** (`cmd/peeringdb-plus/route_tag.go` `routeTagMiddleware`):
     Innermost wrap; injects `http.route` into the otelhttp labeler
     AFTER mux dispatch so `r.Pattern` is populated.
     Empty `r.Pattern` (404 traffic) is skipped to avoid `http.route=""`
     cardinality bloat.
-13. **mux** — The `net/http` ServeMux dispatches to the specific handler.
+14. **mux**: the `net/http` ServeMux dispatches to the specific handler.
 
 Response-writer wrappers in every middleware must implement `http.Flusher`
 (for gRPC streaming)
