@@ -18,11 +18,14 @@ go = "1.27"
 golangci-lint = "2"
 gotestsum = "1"
 govulncheck = "1"
-gqlgen = "0.17.95"
-protoc-gen-connect-go = "1.21.0"
-protoc-gen-go = "1.36.12"
-tailwindcss = { version = "4.3.3", bin = "tailwindcss" }
-templ = "0.3.1020"
+# gqlgen, protoc-gen-connect-go, protoc-gen-go and templ must use the same
+# version as their module in go.mod. Bump both in one commit, then run
+# `mise run generate`.
+gqlgen = "0.17"
+protoc-gen-connect-go = "1"
+protoc-gen-go = "1"
+tailwindcss = { version = "4", bin = "tailwindcss" }
+templ = "0.3"
 
 [tasks.format]
 description = "Format Go sources"
