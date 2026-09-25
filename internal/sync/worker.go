@@ -306,6 +306,10 @@ type Worker struct {
 	// the top of each Sync; single-writer because Worker.running
 	// serializes cycles.
 	cyclePeakHeapBytes int64
+	// rssResetWarned is set by the first failed resetPeakRSS, so the
+	// WARN is logged once per process. Single-writer like
+	// cyclePeakHeapBytes.
+	rssResetWarned bool
 	// scratchLock is the lock of this process on WorkerConfig.ScratchDir
 	// (see scratchDirLock). The startup sweep and scratchDirForCycle
 	// take it. The process keeps it until it exits.
@@ -723,6 +727,7 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	}
 	defer w.running.Store(false)
 	w.cyclePeakHeapBytes = 0 // fresh peak-heap high-water mark per cycle
+	w.resetPeakRSS(ctx)      // and a fresh VmHWM
 
 	// Watchdog: bound this attempt's wall clock. The upstream client has
 	// no whole-request timeout by design (see peeringdb.NewClient), so this
@@ -1037,10 +1042,10 @@ func (w *Worker) samplePeakHeap() {
 // slog.Warn("heap threshold crossed") when either value exceeds its
 // configured threshold.
 //
-// Note the two values have different lifetimes: peak_heap_bytes is
-// per-cycle (reset at the top of Sync), while peak_rss_bytes (VmHWM)
-// is a process-lifetime high-water mark that includes API-serving load
-// and only resets on restart.
+// Both values are per-cycle: Sync resets peak_heap_bytes and, through
+// resetPeakRSS, VmHWM at its start. peak_rss_bytes includes the
+// API-serving load during the cycle. When the reset fails, VmHWM stays
+// the peak of the process lifetime.
 //
 // Attribute naming follows the pdbplus.* convention (e.g.
 // pdbplus.privacy.tier): pdbplus.sync.peak_heap_bytes and
@@ -1111,10 +1116,9 @@ func (w *Worker) emitMemoryTelemetry(ctx context.Context, heapWarnBytes, rssWarn
 // kB (base 1024 on Linux). Multiply by 1024 to get bytes.
 //
 // VmHWM is the peak-RSS high-water mark, not the instantaneous RSS;
-// it only decreases when an operator resets it via
-// `echo 5 > /proc/self/clear_refs` or the process restarts. This is
-// the correct signal for the sustained-high-heap escalation — a single
-// burst is what matters, not the steady-state value.
+// it only decreases when resetLinuxVMHWM runs or the process restarts.
+// This is the correct signal for the sustained-high-heap escalation: a
+// single burst is what matters, not the steady-state value.
 func readLinuxVMHWM() (int64, bool) {
 	data, err := os.ReadFile("/proc/self/status")
 	if err != nil {
@@ -1138,6 +1142,44 @@ func readLinuxVMHWM() (int64, bool) {
 		return kb * 1024, true
 	}
 	return 0, false
+}
+
+// procClearRefsPath is the file that resetPeakRSS writes.
+const procClearRefsPath = "/proc/self/clear_refs"
+
+// resetPeakRSS resets VmHWM on Linux, so the peak_rss_bytes that
+// emitMemoryTelemetry reads at the end of the cycle is the peak since
+// the start of the cycle. Without the reset, the value is the peak of
+// the process lifetime, and PdbPlusRssHigh stays firing until a
+// restart. The first failure logs a WARN; later failures log nothing.
+func (w *Worker) resetPeakRSS(ctx context.Context) {
+	if runtime.GOOS != "linux" {
+		return
+	}
+	err := resetLinuxVMHWM(procClearRefsPath)
+	if err == nil || w.rssResetWarned {
+		return
+	}
+	w.rssResetWarned = true
+	w.logger.LogAttrs(ctx, slog.LevelWarn,
+		"failed to reset peak RSS, peak_rss_bytes is the process peak",
+		slog.Any("error", err),
+	)
+}
+
+// resetLinuxVMHWM writes "5" to path (/proc/self/clear_refs), which sets
+// VmHWM to the current RSS (Linux 4.0 and later). It does not create
+// the file.
+func resetLinuxVMHWM(path string) error {
+	f, err := os.OpenFile(filepath.Clean(path), os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("reset VmHWM: %w", err)
+	}
+	_, writeErr := f.WriteString("5")
+	if err := errors.Join(writeErr, f.Close()); err != nil {
+		return fmt.Errorf("reset VmHWM: %w", err)
+	}
+	return nil
 }
 
 // commitWithSpan commits tx inside a named OTel span so the LiteFS-

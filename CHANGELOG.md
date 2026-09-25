@@ -19,6 +19,11 @@ are in the Git history at their tags.
   adds 0 to each status and mode series when it starts or is promoted.
   A failure before the first metric export (one interval after start)
   is still not counted.
+- `pdbplus_sync_peak_rss_bytes` is now the peak RSS of the last sync
+  cycle. It was VmHWM, the peak since the process started, so after one
+  high peak `PdbPlusRssHigh` stayed firing until the next restart. The
+  worker now resets VmHWM (`/proc/self/clear_refs`) at the start of each
+  cycle.
 
 ## [1.32.2] - 2026-09-25
 

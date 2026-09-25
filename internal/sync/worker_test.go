@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"runtime"
+	"runtime/debug"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -3810,6 +3811,100 @@ func TestReadLinuxVmHWM(t *testing.T) {
 	if b <= 0 {
 		t.Errorf("readLinuxVMHWM returned %d bytes, want > 0", b)
 	}
+}
+
+// TestResetLinuxVMHWM verifies that resetLinuxVMHWM writes "5" to an
+// existing file and does not create a missing one, and that on Linux
+// the reset of the test process succeeds and does not raise VmHWM.
+func TestResetLinuxVMHWM(t *testing.T) {
+	t.Run("writes 5", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "clear_refs")
+		if err := os.WriteFile(path, nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := resetLinuxVMHWM(path); err != nil {
+			t.Fatalf("reset: %v", err)
+		}
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != "5" {
+			t.Errorf("file content = %q, want %q", got, "5")
+		}
+	})
+
+	t.Run("missing file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "clear_refs")
+		if err := resetLinuxVMHWM(path); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("reset error = %v, want os.ErrNotExist", err)
+		}
+		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("reset created %s (stat error %v)", path, err)
+		}
+	})
+
+	// Not parallel: another test could change the RSS between the reset
+	// and the read.
+	t.Run("proc", func(t *testing.T) {
+		if runtime.GOOS != "linux" {
+			t.Skipf("skipping on %s (no %s)", runtime.GOOS, procClearRefsPath)
+		}
+		// Touch a 64 MiB spike and return it to the OS, so VmHWM is above
+		// the RSS. With GODEBUG=madvdontneed=0 the RSS can stay high; the
+		// assertion below holds in that case too.
+		const spikeBytes = 64 << 20
+		func() {
+			spike := make([]byte, spikeBytes)
+			for i := 0; i < len(spike); i += os.Getpagesize() {
+				spike[i] = 1
+			}
+			runtime.KeepAlive(spike)
+		}()
+		debug.FreeOSMemory()
+
+		if err := resetLinuxVMHWM(procClearRefsPath); err != nil {
+			t.Fatalf("reset: %v", err)
+		}
+		// The reset sets VmHWM to the RSS. Read both from one snapshot of
+		// /proc/self/status.
+		status := procStatusBytes(t)
+		hwm, rss := status["VmHWM:"], status["VmRSS:"]
+		if hwm == 0 || rss == 0 {
+			t.Fatalf("VmHWM = %d, VmRSS = %d, want both in /proc/self/status", hwm, rss)
+		}
+		// Half the spike: memory that the kernel reclaims between the
+		// reset and the read lowers VmRSS only. Without the reset, VmHWM
+		// stays at least one spike above VmRSS.
+		const tolerance = spikeBytes / 2
+		if hwm > rss+tolerance {
+			t.Errorf("VmHWM after the reset = %d, VmRSS = %d, want VmHWM within %d of VmRSS",
+				hwm, rss, tolerance)
+		}
+	})
+}
+
+// procStatusBytes returns the kB fields of /proc/self/status in bytes,
+// keyed by the field name with its colon ("VmRSS:").
+func procStatusBytes(t *testing.T) map[string]int64 {
+	t.Helper()
+	data, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := make(map[string]int64)
+	for line := range strings.SplitSeq(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 3 || fields[2] != "kB" {
+			continue
+		}
+		kb, err := strconv.ParseInt(fields[1], 10, 64)
+		if err != nil {
+			t.Fatalf("parse %s: %v", fields[0], err)
+		}
+		out[fields[0]] = kb * 1024
+	}
+	return out
 }
 
 // TestSyncFetchPass_UsesMaxUpdatedAsCursor asserts the MAX(updated)

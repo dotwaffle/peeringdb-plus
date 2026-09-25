@@ -1896,7 +1896,7 @@
       "id": 34,
       "type": "timeseries",
       "title": "Peak RSS",
-      "description": "Sync-cycle peak RSS on the primary (VmHWM from /proc/self/status). Threshold line at 384 MiB.",
+      "description": "Sync-cycle peak RSS on the primary (VmHWM from /proc/self/status, reset at the start of each cycle). Threshold line at 384 MiB.",
       "gridPos": {
         "h": 8,
         "w": 8,

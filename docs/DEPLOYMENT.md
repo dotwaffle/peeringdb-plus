@@ -611,10 +611,13 @@ and reads (on Linux)
 on the `sync-full` / `sync-incremental` span,
 and fires `slog.Warn("heap threshold crossed", ...)`
 when either breaches its configured threshold.
-Lifetimes differ:
-the heap peak resets every cycle,
-while VmHWM is a process-lifetime high-water mark
-that includes API-serving load and only resets on restart.
+Both values are per-cycle:
+the worker resets the heap peak at the start of each cycle,
+and resets VmHWM by writing `5` to `/proc/self/clear_refs`.
+The RSS peak includes the API-serving load during the cycle.
+When the reset fails, the worker logs
+`failed to reset peak RSS, peak_rss_bytes is the process peak` once,
+and VmHWM stays the peak since the process started.
 The same values are exported as Prometheus gauges
 (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`)
 for dashboard timeseries.
