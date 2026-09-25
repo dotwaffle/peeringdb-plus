@@ -377,10 +377,10 @@ func generateEntSchema(apiPath string, ot ObjectType, schema *Schema) ([]byte, e
 //     required, non-nullable, non-FK, AND not on the tombstone-scrub
 //     list get NotEmpty(). Upstream ?since= responses emit
 //     status='deleted' tombstones with PII-scrubbed empty strings
-//     (observed live 2026-04-26), so NotEmpty() on "name"/"role" would
-//     abort incremental sync at the upsert builder — "prefix" keeps it
-//     (an IP prefix is row identity, not PII). See
-//     isTombstoneVulnerableField for the drop list.
+//     (observed live 2026-04-26) and with a null prefix (2026-09-25),
+//     so NotEmpty() on "name"/"role"/"prefix" would abort the sync
+//     cycle at the upsert builder. See isTombstoneVulnerableField for
+//     the drop list.
 //   - optional: for a read-only mirror, Django form-validation
 //     Required does not translate to a storage constraint — every
 //     non-name string field is Optional, as is any nullable or
@@ -988,11 +988,11 @@ func isNameField(name string) bool {
 //     that already shipped tombstones in the spike; surfacing now
 //     prevents the next "incremental sync silently aborted on first
 //     poc tombstone" incident.
-//
-// Keeps (NotEmpty stays — these fields are NOT tombstone-vulnerable):
-//   - "prefix" (ixprefix.prefix) — IP prefixes are structural row
-//     identity, not PII; upstream retains the prefix value on tombstones
-//     because the prefix IS the row's natural key.
+//   - "prefix": added 2026-09-25. Upstream ixpfx tombstone 4185
+//     (deleted 2024-09-10) has "prefix": null, which decodes to "". The
+//     history sweep fetched it, and every cycle that fetched its window
+//     failed at the upsert. The mirror stores "" and /api renders it as
+//     null.
 func isTombstoneVulnerableField(name string) bool {
-	return name == "name" || name == "role"
+	return name == "name" || name == "role" || name == "prefix"
 }

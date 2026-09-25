@@ -10,6 +10,19 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- Sync no longer fails on an ixpfx tombstone with a null prefix.
+  Upstream sends `"prefix": null` for ixpfx 4185 (deleted 2024-09-10).
+  The value decoded to an empty string, and the ent validator of the
+  `prefix` field rejected it, so each cycle that fetched the row failed.
+  The history sweep fetched it, and in production one cycle failed about
+  every 78 minutes. The retry 30 seconds later passed, because the sweep
+  did not send the window again for 65 minutes. The sweep did not get
+  past ixpfx. The mirror now stores the empty prefix, and `/api/`
+  renders it as `null`, as upstream does. REST, GraphQL and ConnectRPC
+  send an empty string. The web UI and MCP show only live prefixes.
+
 ## [1.32.1] - 2026-09-25
 
 ### Changed

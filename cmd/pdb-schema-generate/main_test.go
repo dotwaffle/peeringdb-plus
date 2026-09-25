@@ -412,10 +412,9 @@ func TestGenerateFieldCode(t *testing.T) {
 			// because upstream PeeringDB ?since= emits status='deleted'
 			// tombstones with PII-scrubbed name="". A NotEmpty() validator
 			// would reject those tombstones at upsert and break incremental
-			// sync. NotEmpty() is preserved for "prefix" (ixprefix —
-			// structurally meaningful row identity, not PII). "role" is
-			// likewise dropped from NotEmpty() emission (symmetric drop for
-			// the next likely PII-scrub target on poc rows).
+			// sync. "role" is likewise dropped from NotEmpty() emission
+			// (symmetric drop for the next likely PII-scrub target on poc
+			// rows), and so is "prefix" (null on an ixpfx tombstone).
 			name: "name",
 			field: FieldDef{
 				Type:      "string",
@@ -466,11 +465,10 @@ func TestGenerateFieldCode(t *testing.T) {
 			},
 		},
 		{
-			// Regression guard for ixprefix.prefix: it MUST retain its
-			// NotEmpty() validator. IP prefixes are structural row identity,
-			// not PII; upstream retains the prefix value on tombstones
-			// because the prefix IS the row's natural key. Out of scope:
-			// ixprefix.prefix retains its validator.
+			// ixprefix.prefix is emitted WITHOUT NotEmpty(). Upstream
+			// ixpfx tombstone 4185 has "prefix": null, which decodes to
+			// "". The validator rejected it at the sync upsert builder
+			// and failed every cycle that fetched the row (2026-09-25).
 			name: "prefix",
 			field: FieldDef{
 				Type:     "string",
@@ -480,6 +478,8 @@ func TestGenerateFieldCode(t *testing.T) {
 			},
 			wantSub: []string{
 				`field.String("prefix")`,
+			},
+			notWantSub: []string{
 				// Match the literal emission shape produced by
 				// generateFieldCode for the validator chain.
 				".\n\t\t\tNotEmpty()",

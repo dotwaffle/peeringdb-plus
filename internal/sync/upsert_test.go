@@ -14,6 +14,7 @@ package sync
 import (
 	"context"
 	stdsql "database/sql"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
@@ -450,6 +451,43 @@ func TestUpsert_BlanksDeletedPocContact(t *testing.T) {
 		if got.Role != "NOC" || got.Visible != "Public" || got.NetID == nil || *got.NetID != 1 {
 			t.Errorf("poc %d: role=%q visible=%q net_id=%v, want NOC, Public, 1", tc.id, got.Role, got.Visible, got.NetID)
 		}
+	}
+}
+
+// TestUpsertIxPrefixes_NullPrefixTombstone upserts an ixpfx tombstone
+// whose prefix is null, as upstream sends for ixpfx 4185 (deleted
+// 2024-09-10). The null decodes to "". The NotEmpty validator of the ent
+// field rejected it, and each sync cycle that fetched the row failed.
+func TestUpsertIxPrefixes_NullPrefixTombstone(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client := testutil.SetupClient(t)
+	seedNetIxLanGateParents(t, client, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	var pfx peeringdb.IxPrefix
+	if err := json.Unmarshal([]byte(`{"id":4185,"ixlan_id":1,"protocol":"IPv4","prefix":null,"in_dfz":true,`+
+		`"created":"2024-04-15T09:23:10Z","updated":"2024-09-10T08:05:42Z","status":"deleted"}`), &pfx); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx: %v", err)
+	}
+	if _, err := upsertIxPrefixes(ctx, tx, []peeringdb.IxPrefix{pfx}); err != nil {
+		_ = tx.Rollback()
+		t.Fatalf("upsert: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	got, err := client.IxPrefix.Get(ctx, 4185)
+	if err != nil {
+		t.Fatalf("read back ixpfx 4185: %v", err)
+	}
+	if got.Prefix != "" || got.Status != "deleted" || got.Protocol != "IPv4" {
+		t.Errorf("ixpfx 4185: prefix=%q status=%q protocol=%q, want \"\", deleted, IPv4",
+			got.Prefix, got.Status, got.Protocol)
 	}
 }
 

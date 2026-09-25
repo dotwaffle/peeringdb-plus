@@ -444,10 +444,6 @@ func init() {
 	ixprefixDescInDfz := ixprefixFields[2].Descriptor()
 	// ixprefix.DefaultInDfz holds the default value on creation for the in_dfz field.
 	ixprefix.DefaultInDfz = ixprefixDescInDfz.Default.(bool)
-	// ixprefixDescPrefix is the schema descriptor for prefix field.
-	ixprefixDescPrefix := ixprefixFields[3].Descriptor()
-	// ixprefix.PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
-	ixprefix.PrefixValidator = ixprefixDescPrefix.Validators[0].(func(string) error)
 	// ixprefixDescProtocol is the schema descriptor for protocol field.
 	ixprefixDescProtocol := ixprefixFields[4].Descriptor()
 	// ixprefix.DefaultProtocol holds the default value on creation for the protocol field.

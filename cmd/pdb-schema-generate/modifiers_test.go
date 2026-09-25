@@ -5,9 +5,10 @@ import "testing"
 // TestStringFieldModifiers locks the interlocking NotEmpty / Optional /
 // Default("") derivation across the interesting (name, required,
 // nullable, references) tuples. The tombstone-scrub cases are
-// load-bearing: NotEmpty() on "name"/"role" would reject upstream
-// PII-scrubbed tombstones at the upsert builder and abort incremental
-// sync (observed live 2026-04-26).
+// load-bearing: NotEmpty() on "name"/"role"/"prefix" would reject
+// upstream tombstones with an empty value at the upsert builder and
+// abort the sync cycle (observed live 2026-04-26 and, for a null
+// ixpfx prefix, 2026-09-25).
 func TestStringFieldModifiers(t *testing.T) {
 	t.Parallel()
 
@@ -18,9 +19,8 @@ func TestStringFieldModifiers(t *testing.T) {
 		notEmpty, optional, defaultEmpty bool
 	}{
 		{
-			desc: "prefix required non-null keeps NotEmpty, no Optional, no default",
+			desc: "prefix required non-null drops NotEmpty (null on a tombstone) but stays required-shaped",
 			name: "prefix", fd: FieldDef{Type: "string", Required: true},
-			notEmpty: true,
 		},
 		{
 			desc: "name required non-null drops NotEmpty (tombstone scrub) but stays required-shaped",

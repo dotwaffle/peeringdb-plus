@@ -282,27 +282,32 @@ func TestSerializerNetworkJSON_OrgIDFieldName(t *testing.T) {
 
 // TestIxPrefixFromEnt_NoNotesKey asserts that the serialized IxPrefix wire
 // shape does NOT contain a "notes" key — the field is dropped
-// from the ent schema AND from the peeringdb.IxPrefix wire struct to match
+// from the ent schema AND from the ixpfx wire structs to match
 // upstream PeeringDB's /api/ixpfx response shape exactly.
 //
-// The test marshals the peeringdb.IxPrefix wire struct (zero value) and
-// confirms the emitted JSON has no "notes" key. This is the output path
-// that the pdbcompat handler funnels through, so a green test here means
-// the /api/ixpfx response is shape-parity with upstream.
+// The test marshals the ixPrefixFromEnt output of a zero ent row (the
+// output path that the pdbcompat handler funnels through) and the
+// peeringdb.IxPrefix sync struct, and confirms that neither JSON has a
+// "notes" key. A green test here means the /api/ixpfx response is
+// shape-parity with upstream.
 func TestIxPrefixFromEnt_NoNotesKey(t *testing.T) {
 	t.Parallel()
 
-	got := peeringdb.IxPrefix{}
-	data, err := json.Marshal(got)
-	if err != nil {
-		t.Fatalf("json.Marshal: %v", err)
-	}
-	var m map[string]json.RawMessage
-	if err := json.Unmarshal(data, &m); err != nil {
-		t.Fatalf("json.Unmarshal: %v", err)
-	}
-	if _, ok := m["notes"]; ok {
-		t.Errorf("peeringdb.IxPrefix JSON output must NOT contain \"notes\" key; got keys=%v", keys(m))
+	for name, v := range map[string]any{
+		"ixPrefixFromEnt":    ixPrefixFromEnt(&ent.IxPrefix{}),
+		"peeringdb.IxPrefix": peeringdb.IxPrefix{},
+	} {
+		data, err := json.Marshal(v)
+		if err != nil {
+			t.Fatalf("%s: json.Marshal: %v", name, err)
+		}
+		var m map[string]json.RawMessage
+		if err := json.Unmarshal(data, &m); err != nil {
+			t.Fatalf("%s: json.Unmarshal: %v", name, err)
+		}
+		if _, ok := m["notes"]; ok {
+			t.Errorf("%s JSON output must NOT contain \"notes\" key; got keys=%v", name, keys(m))
+		}
 	}
 }
 

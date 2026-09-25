@@ -375,17 +375,38 @@ func ixLansFromEnt(ctx context.Context, lans []*ent.IxLan) []ixLanResponse {
 	return out
 }
 
-// ixPrefixFromEnt maps an ent IxPrefix to a peeringdb IxPrefix.
+// ixPrefixResponse is the /api wire shape of an ixpfx. It has the same
+// keys in the same order as peeringdb.IxPrefix. The one difference is
+// Prefix: a pointer, so an empty stored prefix is sent as null. An
+// upstream tombstone can have a null prefix (ixpfx 4185), which the
+// mirror stores as "". peeringdb.IxPrefix also decodes the upstream
+// input in sync, so it keeps a plain string.
+type ixPrefixResponse struct {
+	ID       int       `json:"id"`
+	IXLanID  int       `json:"ixlan_id"`
+	Protocol string    `json:"protocol"`
+	Prefix   *string   `json:"prefix"`
+	InDFZ    bool      `json:"in_dfz"`
+	Created  time.Time `json:"created"`
+	Updated  time.Time `json:"updated"`
+	Status   string    `json:"status"`
+}
+
+// ixPrefixFromEnt maps an ent IxPrefix to its /api wire shape.
 //
 // Matches upstream: PeeringDB's live API omits "notes" from ixpfx responses,
 // and as of v1.15 the field is dropped from our ent schema too.
 // See the project history
-func ixPrefixFromEnt(p *ent.IxPrefix) peeringdb.IxPrefix {
-	return peeringdb.IxPrefix{
+func ixPrefixFromEnt(p *ent.IxPrefix) ixPrefixResponse {
+	var prefix *string
+	if p.Prefix != "" {
+		prefix = &p.Prefix
+	}
+	return ixPrefixResponse{
 		ID:       p.ID,
 		IXLanID:  derefInt(p.IxlanID),
 		Protocol: p.Protocol,
-		Prefix:   p.Prefix,
+		Prefix:   prefix,
 		InDFZ:    p.InDfz,
 		Created:  p.Created,
 		Updated:  p.Updated,
@@ -393,9 +414,9 @@ func ixPrefixFromEnt(p *ent.IxPrefix) peeringdb.IxPrefix {
 	}
 }
 
-// ixPrefixesFromEnt maps a slice of ent IxPrefixes to peeringdb IxPrefixes.
-func ixPrefixesFromEnt(pfxs []*ent.IxPrefix) []peeringdb.IxPrefix {
-	out := make([]peeringdb.IxPrefix, len(pfxs))
+// ixPrefixesFromEnt maps a slice of ent IxPrefixes to their /api wire shape.
+func ixPrefixesFromEnt(pfxs []*ent.IxPrefix) []ixPrefixResponse {
+	out := make([]ixPrefixResponse, len(pfxs))
 	for i, p := range pfxs {
 		out[i] = ixPrefixFromEnt(p)
 	}

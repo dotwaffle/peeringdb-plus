@@ -237,6 +237,65 @@ func TestParity_Serializer(t *testing.T) {
 		checkLan("ixpfx.ixlan", nestedLan)
 	})
 
+	t.Run("ixpfx_tombstone_null_prefix", func(t *testing.T) {
+		t.Parallel()
+		// synthesised: upstream /api/ixpfx?since=1&status=deleted returns
+		// tombstone 4185 with "prefix": null (live, 2026-09-25). Sync
+		// decodes the null to "" and stores it. /api renders a stored ""
+		// as null, with and without ?fields= projection. A live prefix is
+		// unchanged.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "Pfx Org", t0)
+		mustIX(ctx, t, c, 1, "Pfx IX", 1, t0)
+		mustIxLan(ctx, t, c, 1, "Pfx Lan", 1, t0)
+		mustIxPfx(ctx, t, c, 1, "192.0.2.0/24", 1, t0)
+		c.IxPrefix.Create().
+			SetID(2).SetPrefix("").SetProtocol("IPv4").SetIxlanID(1).
+			SetStatus("deleted").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+
+		for _, path := range []string{
+			fmt.Sprintf("/api/ixpfx?since=%d", t0.Unix()),
+			fmt.Sprintf("/api/ixpfx?since=%d&fields=id,prefix", t0.Unix()),
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d; body=%s", path, status, body)
+			}
+			byID := make(map[int]map[string]any)
+			for _, row := range decodeDataArray(t, body) {
+				if id, ok := row["id"].(float64); ok {
+					byID[int(id)] = row
+				}
+			}
+			if len(byID) != 2 {
+				t.Fatalf("GET %s: got %d rows, want 2; body=%s", path, len(byID), body)
+			}
+			if got, ok := byID[2]["prefix"]; !ok || got != nil {
+				t.Errorf("GET %s: tombstone prefix = %#v (present %v), want null", path, got, ok)
+			}
+			if got := byID[1]["prefix"]; got != "192.0.2.0/24" {
+				t.Errorf("GET %s: live prefix = %#v, want \"192.0.2.0/24\"", path, got)
+			}
+		}
+
+		// Upstream returns tombstone 4185 for each of these filters with an
+		// empty value (live, 2026-09-25), so the stored "" must match them.
+		for _, filter := range []string{
+			"prefix=", "prefix__contains=", "prefix__startswith=", "prefix__in=,192.0.2.0/24",
+		} {
+			path := fmt.Sprintf("/api/ixpfx?since=%d&%s", t0.Unix(), filter)
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Fatalf("GET %s: status = %d; body=%s", path, status, body)
+			}
+			if ids := extractIDs(t, body); !slices.Contains(ids, 2) {
+				t.Errorf("GET %s: ids = %v, want the tombstone (2) included", path, ids)
+			}
+		}
+	})
+
 	t.Run("facility_link_sets_sort_by_facility_id", func(t *testing.T) {
 		t.Parallel()
 		// upstream: serializers.py:1140-1148 at 2.83.0 (the nested
