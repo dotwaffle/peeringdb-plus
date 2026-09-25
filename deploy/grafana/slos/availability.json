@@ -23,10 +23,10 @@
     "type": "ratio",
     "ratio": {
       "successMetric": {
-        "prometheusMetric": "http_server_request_duration_seconds_count{service_name=\"peeringdb-plus\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\", http_response_status_code!~\"5..\"}"
+        "prometheusMetric": "http_server_request_duration_seconds_count{service_name=\"peeringdb-plus\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\", user_agent_synthetic_type!=\"test\", http_response_status_code!~\"5..\"}"
       },
       "totalMetric": {
-        "prometheusMetric": "http_server_request_duration_seconds_count{service_name=\"peeringdb-plus\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\"}"
+        "prometheusMetric": "http_server_request_duration_seconds_count{service_name=\"peeringdb-plus\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\", user_agent_synthetic_type!=\"test\"}"
       }
     }
   },

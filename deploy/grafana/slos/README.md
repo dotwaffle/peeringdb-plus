@@ -43,6 +43,10 @@ every machine. The selector leaves out these requests:
   responses to paths that no route matches, and the 503 of the readiness
   gate on a machine that has not synced yet. The Fly proxy sends no
   traffic to a machine that fails `/readyz`.
+- Synthetic Monitoring probe requests
+  (`user_agent_synthetic_type="test"`, see
+  `deploy/grafana/synthetics/README.md`): the probe has its own alert,
+  `PdbPlusProbeFailing`.
 
 A 404 under a matched route counts as good, for example
 `/api/<unknown type>` or a unique query with no row: 935 of the 62,500
