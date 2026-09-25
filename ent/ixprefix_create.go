@@ -179,11 +179,6 @@ func (_c *IxPrefixCreate) check() error {
 	if _, ok := _c.mutation.Prefix(); !ok {
 		return &ValidationError{Name: "prefix", err: errors.New(`ent: missing required field "IxPrefix.prefix"`)}
 	}
-	if v, ok := _c.mutation.Prefix(); ok {
-		if err := ixprefix.PrefixValidator(v); err != nil {
-			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Created(); !ok {
 		return &ValidationError{Name: "created", err: errors.New(`ent: missing required field "IxPrefix.created"`)}
 	}

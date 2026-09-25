@@ -346,11 +346,6 @@ func (_c *NetworkIxLanCreate) check() error {
 	if _, ok := _c.mutation.Asn(); !ok {
 		return &ValidationError{Name: "asn", err: errors.New(`ent: missing required field "NetworkIxLan.asn"`)}
 	}
-	if v, ok := _c.mutation.Asn(); ok {
-		if err := networkixlan.AsnValidator(v); err != nil {
-			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.BfdSupport(); !ok {
 		return &ValidationError{Name: "bfd_support", err: errors.New(`ent: missing required field "NetworkIxLan.bfd_support"`)}
 	}

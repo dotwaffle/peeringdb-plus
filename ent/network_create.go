@@ -816,11 +816,6 @@ func (_c *NetworkCreate) check() error {
 	if _, ok := _c.mutation.Asn(); !ok {
 		return &ValidationError{Name: "asn", err: errors.New(`ent: missing required field "Network.asn"`)}
 	}
-	if v, ok := _c.mutation.Asn(); ok {
-		if err := network.AsnValidator(v); err != nil {
-			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "Network.asn": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.InfoIpv6(); !ok {
 		return &ValidationError{Name: "info_ipv6", err: errors.New(`ent: missing required field "Network.info_ipv6"`)}
 	}

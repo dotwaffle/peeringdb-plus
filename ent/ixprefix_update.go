@@ -182,20 +182,7 @@ func (_u *IxPrefixUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *IxPrefixUpdate) check() error {
-	if v, ok := _u.mutation.Prefix(); ok {
-		if err := ixprefix.PrefixValidator(v); err != nil {
-			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *IxPrefixUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(ixprefix.Table, ixprefix.Columns, sqlgraph.NewFieldSpec(ixprefix.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -437,20 +424,7 @@ func (_u *IxPrefixUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *IxPrefixUpdateOne) check() error {
-	if v, ok := _u.mutation.Prefix(); ok {
-		if err := ixprefix.PrefixValidator(v); err != nil {
-			return &ValidationError{Name: "prefix", err: fmt.Errorf(`ent: validator failed for field "IxPrefix.prefix": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *IxPrefixUpdateOne) sqlSave(ctx context.Context) (_node *IxPrefix, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(ixprefix.Table, ixprefix.Columns, sqlgraph.NewFieldSpec(ixprefix.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {

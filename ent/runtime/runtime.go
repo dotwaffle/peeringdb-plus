@@ -444,10 +444,6 @@ func init() {
 	ixprefixDescInDfz := ixprefixFields[2].Descriptor()
 	// ixprefix.DefaultInDfz holds the default value on creation for the in_dfz field.
 	ixprefix.DefaultInDfz = ixprefixDescInDfz.Default.(bool)
-	// ixprefixDescPrefix is the schema descriptor for prefix field.
-	ixprefixDescPrefix := ixprefixFields[3].Descriptor()
-	// ixprefix.PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
-	ixprefix.PrefixValidator = ixprefixDescPrefix.Validators[0].(func(string) error)
 	// ixprefixDescProtocol is the schema descriptor for protocol field.
 	ixprefixDescProtocol := ixprefixFields[4].Descriptor()
 	// ixprefix.DefaultProtocol holds the default value on creation for the protocol field.
@@ -485,10 +481,6 @@ func init() {
 	networkDescAllowIxpUpdate := networkFields[3].Descriptor()
 	// network.DefaultAllowIxpUpdate holds the default value on creation for the allow_ixp_update field.
 	network.DefaultAllowIxpUpdate = networkDescAllowIxpUpdate.Default.(bool)
-	// networkDescAsn is the schema descriptor for asn field.
-	networkDescAsn := networkFields[4].Descriptor()
-	// network.AsnValidator is a validator for the "asn" field. It is called by the builders before save.
-	network.AsnValidator = networkDescAsn.Validators[0].(func(int) error)
 	// networkDescInfoIpv6 is the schema descriptor for info_ipv6 field.
 	networkDescInfoIpv6 := networkFields[5].Descriptor()
 	// network.DefaultInfoIpv6 holds the default value on creation for the info_ipv6 field.
@@ -605,10 +597,6 @@ func init() {
 	networkfacility.IDValidator = networkfacilityDescID.Validators[0].(func(int) error)
 	networkixlanFields := schema.NetworkIxLan{}.Fields()
 	_ = networkixlanFields
-	// networkixlanDescAsn is the schema descriptor for asn field.
-	networkixlanDescAsn := networkixlanFields[5].Descriptor()
-	// networkixlan.AsnValidator is a validator for the "asn" field. It is called by the builders before save.
-	networkixlan.AsnValidator = networkixlanDescAsn.Validators[0].(func(int) error)
 	// networkixlanDescBfdSupport is the schema descriptor for bfd_support field.
 	networkixlanDescBfdSupport := networkixlanFields[6].Descriptor()
 	// networkixlan.DefaultBfdSupport holds the default value on creation for the bfd_support field.

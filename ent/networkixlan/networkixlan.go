@@ -104,8 +104,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// AsnValidator is a validator for the "asn" field. It is called by the builders before save.
-	AsnValidator func(int) error
 	// DefaultBfdSupport holds the default value on creation for the "bfd_support" field.
 	DefaultBfdSupport bool
 	// DefaultIsRsPeer holds the default value on creation for the "is_rs_peer" field.

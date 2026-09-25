@@ -40,7 +40,6 @@ func (Network) Fields() []ent.Field {
 			Comment("Allow IXP update"),
 		field.Int("asn").
 			Unique().
-			Positive().
 			Annotations(entrest.WithFilter(entrest.FilterEQ | entrest.FilterNEQ | entrest.FilterGT | entrest.FilterGTE | entrest.FilterLT | entrest.FilterLTE | entrest.FilterIn | entrest.FilterNotIn)).
 			Comment("Autonomous System Number"),
 		field.Bool("info_ipv6").

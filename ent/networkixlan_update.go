@@ -437,20 +437,7 @@ func (_u *NetworkIxLanUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *NetworkIxLanUpdate) check() error {
-	if v, ok := _u.mutation.Asn(); ok {
-		if err := networkixlan.AsnValidator(v); err != nil {
-			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *NetworkIxLanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(networkixlan.Table, networkixlan.Columns, sqlgraph.NewFieldSpec(networkixlan.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -1041,20 +1028,7 @@ func (_u *NetworkIxLanUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// check runs all checks and user-defined validators on the builder.
-func (_u *NetworkIxLanUpdateOne) check() error {
-	if v, ok := _u.mutation.Asn(); ok {
-		if err := networkixlan.AsnValidator(v); err != nil {
-			return &ValidationError{Name: "asn", err: fmt.Errorf(`ent: validator failed for field "NetworkIxLan.asn": %w`, err)}
-		}
-	}
-	return nil
-}
-
 func (_u *NetworkIxLanUpdateOne) sqlSave(ctx context.Context) (_node *NetworkIxLan, err error) {
-	if err := _u.check(); err != nil {
-		return _node, err
-	}
 	_spec := sqlgraph.NewUpdateSpec(networkixlan.Table, networkixlan.Columns, sqlgraph.NewFieldSpec(networkixlan.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {

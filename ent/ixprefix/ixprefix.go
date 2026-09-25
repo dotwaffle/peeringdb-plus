@@ -64,8 +64,6 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultInDfz holds the default value on creation for the "in_dfz" field.
 	DefaultInDfz bool
-	// PrefixValidator is a validator for the "prefix" field. It is called by the builders before save.
-	PrefixValidator func(string) error
 	// DefaultProtocol holds the default value on creation for the "protocol" field.
 	DefaultProtocol string
 	// DefaultStatus holds the default value on creation for the "status" field.
