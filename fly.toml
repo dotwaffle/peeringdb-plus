@@ -35,6 +35,15 @@ kill_timeout = 30
 [consul]
   enable = true
 
+# Fly.io scrapes the Prometheus metrics of LiteFS (its HTTP port, 20202 by
+# default, on all interfaces) on every machine, over the private network,
+# every 15 seconds. It stores them in the Fly.io managed Prometheus with
+# the labels app, instance, region and host. The LiteFS Replication row
+# of the dashboard and the pdbplus-fly alert rules read them there.
+[[metrics]]
+  port = 20202
+  path = "/metrics"
+
 # Always restart crashed machines. Fly's default on-failure policy gives
 # a bounded retry count, after which the machine is stopped and only
 # traffic-driven auto_start might revive it — a transient crash loop on
