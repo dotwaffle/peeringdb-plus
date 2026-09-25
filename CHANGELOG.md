@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.32.1] - 2026-09-25
+
 ### Changed
 
 - A push of a `v*` tag no longer runs the `ci` job. Before, pushing
@@ -1489,7 +1491,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.1...HEAD
+[1.32.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.0...v1.32.1
 [1.32.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.1...v1.32.0
 [1.31.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.0...v1.31.1
 [1.31.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.30.0...v1.31.0
