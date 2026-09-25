@@ -340,8 +340,8 @@ func (w *Worker) sweepScratchDir(ctx context.Context) {
 // onFailure sets what a failed call does with the rows that it streamed
 // before the error (see stageFailure).
 //
-// Errors wrap the objectType for operator diagnostics. Cursors derive
-// from MAX(updated) per entity table (see cursor.go); the returned
+// Errors wrap the objectType for operator diagnostics. The cursor of
+// each type is its watermark (see watermark.go); the returned
 // stageStats bound the follow-up window fetch after a full snapshot.
 func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, objectType string, since time.Time, onFailure stageFailure) (stageStats, error) {
 	// #nosec G201 — objectType is validated against the closed-set scratchTypes list

@@ -29,12 +29,11 @@ type apiResponse struct {
 //   - empty_result: GET /api/{type}?depth=0&since=future (empty data, meta.generated absent)
 //
 // Confirms parseMeta returns zero time for paginated responses.
-// Sync no longer relies on meta.generated for cursor advancement —
-// cursors are derived from MAX(updated) per table (see
-// internal/sync/cursor.go).
+// Sync no longer relies on meta.generated for cursor advancement: the
+// cursor of each type is its watermark (see internal/sync/watermark.go).
 // parseMeta extracts the generated epoch from a PeeringDB API response
 // meta field. Test-only: the production sync path no longer reads
-// meta.generated (cursors derive from MAX(updated) per table); this
+// meta.generated (the cursor is the watermark of each type); this
 // helper survives solely for the live conformance assertions below.
 func parseMeta(raw json.RawMessage) time.Time {
 	if len(raw) == 0 {

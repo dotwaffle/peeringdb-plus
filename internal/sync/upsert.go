@@ -843,6 +843,12 @@ func upsertNetworkFacilities(ctx context.Context, tx *ent.Tx, items []peeringdb.
 // (validators, fold setters, nullable wiring) centralised in the bulk
 // upsert closures.
 //
+// fkBackfillBatch must stay the only caller. It records each landed id
+// in Worker.fkBackfilled, and writeSyncWatermarks leaves those rows out
+// of the next watermark (see watermark.go). A row that another caller
+// lands could move the cursor of its type past rows that the cycle never
+// fetched. TestUpsertSingleRaw_SingleCaller locks this.
+//
 // Returns the inserted ID (per upstream contract — the parent we just
 // landed) so callers can fkRegisterIDs without a separate query, or 0
 // + error on dispatch / decode / upsert failure.

@@ -265,8 +265,7 @@ type Config struct {
 	// R' (updated=M) present but earlier row R (updated < M) missing →
 	// R is permanently missed without periodic full refetch). Configured
 	// via PDBPLUS_FULL_SYNC_INTERVAL (Go duration). Default 24h. Zero
-	// disables the escape hatch (only the per-cycle MAX(updated) cursor
-	// applies).
+	// disables the escape hatch (only the per-cycle cursor applies).
 	FullSyncInterval time.Duration
 
 	// LiteFSMetricsURL is the LiteFS Prometheus metrics endpoint (for

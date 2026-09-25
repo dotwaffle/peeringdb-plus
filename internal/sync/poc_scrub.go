@@ -35,8 +35,8 @@ import (
 // Cost: the status index limits the read to the deleted pocs. When no
 // row matches, the UPDATE writes no page, so LiteFS has nothing to ship.
 //
-// The function does not change updated. The incremental cursor is
-// MAX(updated), and the upstream content of the row has not changed.
+// The function does not change updated. The next cursor reads it (see
+// watermark.go), and the upstream content of the row has not changed.
 //
 // Observability: the pdbplus.sync.poc_contacts_scrubbed attribute on the
 // sync-scrub-poc-contacts span counts the rows that the UPDATE changed in

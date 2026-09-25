@@ -41,6 +41,51 @@ func TestInitStatusTable_CreatesStatusTable(t *testing.T) {
 	}
 }
 
+// TestInitStatusTable_CreatesWatermarkTable asserts that InitStatusTable
+// creates the sync_watermark table, and that a second call keeps its
+// rows.
+func TestInitStatusTable_CreatesWatermarkTable(t *testing.T) {
+	t.Parallel()
+	_, db := testutil.SetupClientWithDB(t)
+	ctx := t.Context()
+
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("InitStatusTable: %v", err)
+	}
+	rows, err := db.QueryContext(ctx, `SELECT name FROM pragma_table_info('sync_watermark') ORDER BY cid`)
+	if err != nil {
+		t.Fatalf("read sync_watermark columns: %v", err)
+	}
+	var cols []string
+	for rows.Next() {
+		var col string
+		if err := rows.Scan(&col); err != nil {
+			t.Fatalf("scan column: %v", err)
+		}
+		cols = append(cols, col)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate columns: %v", err)
+	}
+	_ = rows.Close()
+	if want := []string{"type", "max_updated", "updated_at"}; !slices.Equal(cols, want) {
+		t.Fatalf("sync_watermark columns = %v, want %v", cols, want)
+	}
+
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO sync_watermark (type, max_updated, updated_at) VALUES ('org', 1000, 'x')`); err != nil {
+		t.Fatalf("insert watermark: %v", err)
+	}
+	if err := sync.InitStatusTable(ctx, db); err != nil {
+		t.Fatalf("second InitStatusTable: %v", err)
+	}
+	var mark int64
+	if err := db.QueryRowContext(ctx,
+		`SELECT max_updated FROM sync_watermark WHERE type = 'org'`).Scan(&mark); err != nil || mark != 1000 {
+		t.Errorf("org watermark after a second InitStatusTable = %d (err %v), want 1000", mark, err)
+	}
+}
+
 func TestInitStatusTable_DBError(t *testing.T) {
 	t.Parallel()
 	_, db := testutil.SetupClientWithDB(t)
