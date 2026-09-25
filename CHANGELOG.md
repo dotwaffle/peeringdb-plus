@@ -22,6 +22,12 @@ are in the Git history at their tags.
   past ixpfx. The mirror now stores the empty prefix, and `/api/`
   renders it as `null`, as upstream does. REST, GraphQL and ConnectRPC
   send an empty string. The web UI and MCP show only live prefixes.
+- Sync no longer fails on a net tombstone with ASN 0. Upstream sends
+  `"asn": 0` for net 21510 (deleted 2019-11-22), and the ent validator
+  of the `asn` field accepted only positive values. The history sweep
+  would have failed in the same way when it got to net. The mirror now
+  stores the value as upstream sends it, on net and netixlan. The web
+  UI and MCP look up only live networks by ASN.
 
 ## [1.32.1] - 2026-09-25
 

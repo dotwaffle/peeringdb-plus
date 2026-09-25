@@ -427,9 +427,9 @@ func generateFieldCode(name string, fd FieldDef) string {
 		if fd.Unique {
 			b.WriteString(".\n\t\t\tUnique()")
 		}
-		if name == "asn" {
-			b.WriteString(".\n\t\t\tPositive()")
-		}
+		// No Positive() on asn: upstream net tombstone 21510 (deleted
+		// 2019-11-22) has asn 0, and the validator would fail every sync
+		// cycle that fetched it.
 		if !fd.Required || fd.Nullable || fd.References != "" {
 			b.WriteString(".\n\t\t\tOptional()")
 		}

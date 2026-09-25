@@ -491,6 +491,45 @@ func TestUpsertIxPrefixes_NullPrefixTombstone(t *testing.T) {
 	}
 }
 
+// TestUpsertNetworks_ZeroASNTombstone upserts a net tombstone with asn 0,
+// as upstream sends for net 21510 (deleted 2019-11-22). The Positive
+// validator of the ent asn field rejected it, which would fail each sync
+// cycle that fetched the row.
+func TestUpsertNetworks_ZeroASNTombstone(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	client := testutil.SetupClient(t)
+	at := time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)
+	client.Organization.Create().SetID(1).SetName("Org").SetNameFold("org").
+		SetStatus("ok").SetCreated(at).SetUpdated(at).SaveX(ctx)
+
+	var net peeringdb.Network
+	if err := json.Unmarshal([]byte(`{"id":21510,"org_id":1,"name":"Nathan Sales0","asn":0,`+
+		`"created":"2019-11-22T15:54:02Z","updated":"2019-11-22T16:12:03Z","status":"deleted"}`), &net); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("open tx: %v", err)
+	}
+	if _, err := upsertNetworks(ctx, tx, []peeringdb.Network{net}); err != nil {
+		_ = tx.Rollback()
+		t.Fatalf("upsert: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	got, err := client.Network.Get(ctx, 21510)
+	if err != nil {
+		t.Fatalf("read back net 21510: %v", err)
+	}
+	if got.Asn != 0 || got.Status != "deleted" || got.Name != "Nathan Sales0" {
+		t.Errorf("net 21510: asn=%d status=%q name=%q, want 0, deleted, Nathan Sales0",
+			got.Asn, got.Status, got.Name)
+	}
+}
+
 // TestUpsertNetworkIxLans_TombstoneGate locks netIxLanUpsertPredicate. A
 // stored netixlan tombstone is not rewritten by a live row that carries
 // the same updated, which only a stale full-mode bare list sends. Every

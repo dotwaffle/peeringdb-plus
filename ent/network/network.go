@@ -213,8 +213,6 @@ var (
 	DefaultAka string
 	// DefaultAllowIxpUpdate holds the default value on creation for the "allow_ixp_update" field.
 	DefaultAllowIxpUpdate bool
-	// AsnValidator is a validator for the "asn" field. It is called by the builders before save.
-	AsnValidator func(int) error
 	// DefaultInfoIpv6 holds the default value on creation for the "info_ipv6" field.
 	DefaultInfoIpv6 bool
 	// DefaultInfoMulticast holds the default value on creation for the "info_multicast" field.

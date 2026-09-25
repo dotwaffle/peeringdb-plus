@@ -537,9 +537,13 @@ func TestGenerateFieldCode(t *testing.T) {
 			},
 			wantSub: []string{
 				`field.Int("asn")`,
-				`Positive()`,
 				`Unique()`,
 				`entrest.WithFilter(entrest.FilterEQ`,
+			},
+			notWantSub: []string{
+				// Upstream net tombstone 21510 has asn 0, so a Positive()
+				// validator fails the sync cycle that fetches it.
+				`Positive()`,
 			},
 		},
 		{
