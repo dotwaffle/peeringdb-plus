@@ -8,6 +8,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Changed
+
+- Dashboard: the Sync Operations panel has a minimum interval of 15 minutes, the sync interval with an API key, so each bar holds at most about one sync cycle.
+
 ## [1.35.1] - 2026-09-25
 
 ### Fixed
