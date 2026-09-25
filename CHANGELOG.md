@@ -45,6 +45,13 @@ are in the Git history at their tags.
 
 ### Changed
 
+- CI builds the standalone image once per push. A push to `main` or a
+  `v*` tag no longer runs the `docker-build` job, and `docker-publish`
+  runs after the `ci` job alone. Before, `docker-publish` built the
+  image a second time from scratch: its full-history checkout gives a
+  different build context and version string, so it could not use the
+  layers of `docker-build`. `docker-publish` now writes the build cache
+  of `main`, which pull request builds read.
 - CI runs the race test suite without coverage and posts no coverage
   comment on pull requests. The `k1LoW/octocov-action` step,
   `.octocov.yml`, the `pull-requests: write` permission of the `ci` job
