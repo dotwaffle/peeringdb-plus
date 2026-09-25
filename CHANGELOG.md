@@ -24,6 +24,13 @@ are in the Git history at their tags.
   1% of the time for 15 minutes), in the group `pdbplus-fly`, on the
   `fly.io` data source.
 
+### Fixed
+
+- Dashboard: the `datasource` variable now defaults to the default data
+  source of the Grafana organization. Before, Grafana selected the first
+  Prometheus data source by name, so a second one (such as `fly.io`)
+  made every panel show no data.
+
 ## [1.34.0] - 2026-09-25
 
 ### Added

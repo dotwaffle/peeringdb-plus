@@ -46,9 +46,10 @@ type templating struct {
 }
 
 type templateVar struct {
-	Name  string          `json:"name"`
-	Type  string          `json:"type"`
-	Query json.RawMessage `json:"query"`
+	Name    string          `json:"name"`
+	Type    string          `json:"type"`
+	Query   json.RawMessage `json:"query"`
+	Current json.RawMessage `json:"current"`
 }
 
 const dashboardPath = "dashboards/pdbplus-overview.json"
@@ -125,15 +126,30 @@ func TestDashboard_DatasourceTemplateVariable(t *testing.T) {
 	t.Parallel()
 	d := loadDashboard(t)
 
-	found := false
-	for _, v := range d.Templating.List {
+	var ds *templateVar
+	for i, v := range d.Templating.List {
 		if v.Name == "datasource" && v.Type == "datasource" && string(v.Query) == `"prometheus"` {
-			found = true
+			ds = &d.Templating.List[i]
 			break
 		}
 	}
-	if !found {
-		t.Error("dashboard missing datasource template variable")
+	if ds == nil {
+		t.Fatal("dashboard missing datasource template variable")
+	}
+
+	// With no saved value, Grafana selects the first matching datasource
+	// by name, so a second Prometheus datasource (fly.io) took over every
+	// ${datasource} panel. The saved value "default" selects the org
+	// default datasource.
+	var cur struct {
+		Text  string `json:"text"`
+		Value string `json:"value"`
+	}
+	if err := json.Unmarshal(ds.Current, &cur); err != nil {
+		t.Fatalf("parsing datasource current value: %v", err)
+	}
+	if cur.Text != "default" || cur.Value != "default" {
+		t.Errorf("datasource current = %+v, want text and value \"default\"", cur)
 	}
 }
 
