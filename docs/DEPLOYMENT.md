@@ -47,8 +47,9 @@ that cold-sync from the primary on boot.
   Runs the binary directly
   as `ENTRYPOINT ["/usr/local/bin/peeringdb-plus"]` with
   `PDBPLUS_DB_PATH=/data/peeringdb-plus.db` and `EXPOSE 8080`.
-  The `Docker Build` CI job builds it for `linux/amd64` and `linux/arm64`.
-  The `Docker Publish` job pushes it to GHCR.
+  On a pull request, the `Docker Build` CI job builds it
+  for `linux/amd64` and `linux/arm64`.
+  On a push, the `Docker Publish` job builds it and pushes it to GHCR.
 
 Both images use `cgr.dev/chainguard/go` as the build stage.
 `Dockerfile.litefs` uses `cgr.dev/chainguard/glibc-dynamic:latest-dev`
@@ -123,15 +124,15 @@ It has three jobs:
       Advisory (`continue-on-error`):
       a flagged vulnerability surfaces as a workflow warning
       but does **not** block the merge.
-2. **`docker-build`**: a separate parallel job
+2. **`docker-build`**: runs only on pull requests, as a separate parallel job
    that uses `docker/build-push-action@v7` with BuildKit's `type=gha` cache.
    It builds `Dockerfile` for `linux/amd64` and `linux/arm64`
    and `Dockerfile.litefs` for `linux/amd64`.
    Each Dockerfile has its own cache scope.
    This job pushes nothing.
 3. **`docker-publish`**: runs only on pushes to `main` and `v*` tags,
-   after `ci` and `docker-build` pass.
-   It builds `Dockerfile` again for both platforms,
+   after `ci` passes.
+   It builds `Dockerfile` for both platforms,
    pushes it to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM
    and BuildKit provenance, and adds a GitHub artifact attestation.
    See [Published image](#published-image) for the tags.
@@ -141,6 +142,12 @@ It has three jobs:
 
 `docker-build` is a separate job
 because its BuildKit `type=gha` cache is separate from the Go build cache.
+A push does not run it.
+`docker-publish` checks out the full history for `git describe`,
+so its build context and version string differ from a shallow checkout,
+and a second build could not share its compile layers.
+`docker-publish` writes the `dev` cache on `main`,
+and pull request builds read it.
 
 There is no automated deploy step.
 Deployment to Fly.io is a manual action run from a developer workstation,

@@ -277,8 +277,8 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 ### CI
 - Triggers: PR, push to main, push of `v*` tags. 3 jobs:
   - `ci`: one cached mise/Go job running, in order: generated-code drift check, build, gotestsum race tests, lint, advisory vulnerability scan.
-  - `docker-build` (parallel, pushes nothing): `Dockerfile` for amd64+arm64 (gha cache `scope=dev`), `Dockerfile.litefs` for amd64 (`scope=prod`).
-  - `docker-publish` (push events only, `needs: [ci, docker-build]`): pushes `Dockerfile` (amd64+arm64) to `ghcr.io/dotwaffle/peeringdb-plus` with SBOM + `provenance: mode=max`, then `actions/attest` (pushed to the registry). Tags: `X.Y.Z`/`X.Y`/`latest` on `v*` tags, `main` on main, `sha-<short>` always. Reads the `dev` cache, never writes it. `Dockerfile.litefs` is never published (needs the Fly LiteFS lease).
+  - `docker-build` (PR events only, parallel, pushes nothing): `Dockerfile` for amd64+arm64 (gha cache `scope=dev`), `Dockerfile.litefs` for amd64 (`scope=prod`).
+  - `docker-publish` (push events only, `needs: [ci]`, the only Docker job on a push): pushes `Dockerfile` (amd64+arm64) to `ghcr.io/dotwaffle/peeringdb-plus` with SBOM + `provenance: mode=max`, then `actions/attest` (pushed to the registry). Tags: `X.Y.Z`/`X.Y`/`latest` on `v*` tags, `main` on main, `sha-<short>` always. Writes the main `dev` cache (PR builds read it). Before v1.32.0 a push also ran `docker-build`, and publish recompiled anyway: its full-history checkout (for `git describe`) changes the `COPY . .` context (`.git`) and the version ldflag. `Dockerfile.litefs` is never published (needs the Fly LiteFS lease).
 - **Generated code drift check**: first step of the `ci` job — runs `mise run generate` then fails if `ent/`, `gen/`, `graph/`, `internal/web/templates/`, Tailwind output, or the pdbcompat allowlist differ from committed files.
 - govulncheck is advisory (`continue-on-error`): a flagged vuln warns but does not block merge.
 - Linters: contextcheck, exhaustive, gocritic, gosec, misspell, modernize, nolintlint, revive (see `.golangci.yml`).

@@ -5,18 +5,22 @@ name: CI
 # supplies every tool from the committed manifest and lockfile, so local
 # and CI versions cannot drift.
 #
-# `docker-build` stays a separate parallel job: it uses BuildKit's
-# `type=gha` cache (a different cache system from the Go build cache), so
-# folding it into the Go job would only serialize it onto the critical
-# path for zero cache benefit. It builds the standalone `Dockerfile` for
-# linux/amd64 and linux/arm64 and the Fly-only `Dockerfile.litefs` for
-# linux/amd64, and pushes nothing.
+# `docker-build` runs on pull requests only, as a separate job in parallel
+# with `ci`: it uses BuildKit's `type=gha` cache (a different cache system
+# from the Go build cache), so folding it into the Go job would only
+# serialize it onto the critical path. It builds the standalone
+# `Dockerfile` for linux/amd64 and linux/arm64 and the Fly-only
+# `Dockerfile.litefs` for linux/amd64, and pushes nothing.
 #
 # `docker-publish` runs on pushes only (main and `v*` tags), after `ci`
-# and `docker-build` pass. It pushes the standalone image to
+# passes. It builds the standalone image once and pushes it to
 # ghcr.io/dotwaffle/peeringdb-plus with an SBOM, BuildKit provenance and
-# a GitHub artifact attestation. `Dockerfile.litefs` is never published:
-# it needs the LiteFS lease of the Fly deployment.
+# a GitHub artifact attestation. A push does not also run `docker-build`:
+# publish checks out the full history for `git describe`, so its build
+# context and version string differ from a shallow checkout, and it could
+# not reuse the layers of a second build. `Dockerfile.litefs` is never
+# published: it needs the LiteFS lease of the Fly deployment, and `fly
+# deploy` builds it.
 
 on:
   pull_request:
@@ -110,6 +114,7 @@ jobs:
 
   docker-build:
     name: Docker Build
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-26.04
     # Least privilege: the job only checks out and builds (push: false).
     # Without this it inherits the repository default token scope.
@@ -123,8 +128,10 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       # One gha cache scope per Dockerfile, so the two builds stop
-      # overwriting one cache entry. The build stage cross-compiles, so the
-      # arm64 build needs no QEMU.
+      # overwriting one cache entry. A pull request run reads the caches of
+      # its own ref and of main, and writes only its own. On main,
+      # docker-publish writes the dev scope. The build stage cross-compiles,
+      # so the arm64 build needs no QEMU.
       - name: Build standalone image
         uses: docker/build-push-action@v7
         with:
@@ -148,7 +155,7 @@ jobs:
   docker-publish:
     name: Docker Publish
     if: github.event_name == 'push'
-    needs: [ci, docker-build]
+    needs: [ci]
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -189,8 +196,8 @@ jobs:
             type=raw,value=main,enable={{is_default_branch}}
             type=sha
 
-      # cache-from only: docker-build owns the dev scope, and a second
-      # writer would race it.
+      # docker-build does not run on a push, so this job is the only writer
+      # of the dev scope on main. Pull request builds read it.
       - name: Build and push standalone image
         id: build
         uses: docker/build-push-action@v7
@@ -205,6 +212,7 @@ jobs:
           sbom: true
           provenance: mode=max
           cache-from: type=gha,scope=dev
+          cache-to: type=gha,mode=max,scope=dev
 
       # With no predicate or SBOM input, actions/attest makes a SLSA build
       # provenance attestation. Storage records need artifact-metadata:
