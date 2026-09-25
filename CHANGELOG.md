@@ -24,6 +24,10 @@ are in the Git history at their tags.
   than 1 hour old for 99.5% of 28 days (no SLO alerts;
   `PdbPlusSyncFreshnessHigh` stays). Dashboard panel Error Rate (5xx)
   uses the request selector of the availability SLO.
+- Synthetic Monitoring check definition in
+  `deploy/grafana/synthetics/README.md`: an HTTP check of `/api` through
+  the Fly proxy from London, Sydney and the US every 3 minutes (43,200
+  executions per month, inside the 100,000 of the free plan).
 - Dashboard `pdbplus-overview`: two collapsed rows. "Upstream PeeringDB"
   shows the requests to PeeringDB by status class, retries by cause, and
   the p95 wait for the local rate limiter. "Sync Sweep & Backfill" shows

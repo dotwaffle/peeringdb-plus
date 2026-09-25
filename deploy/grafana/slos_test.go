@@ -236,11 +236,21 @@ func TestSLOs_BurnRateAlerts(t *testing.T) {
 
 func TestSLOs_NoForbiddenContent(t *testing.T) {
 	t.Parallel()
+	assertNoForbiddenContent(t, append(sloFiles(t), filepath.Join(slosDir, "README.md")))
+}
+
+func TestSynthetics_NoForbiddenContent(t *testing.T) {
+	t.Parallel()
+	assertNoForbiddenContent(t, []string{"synthetics/README.md"})
+}
+
+// assertNoForbiddenContent fails the test when a file contains an email
+// address domain or the hosted Grafana Cloud stack host.
+func assertNoForbiddenContent(t *testing.T, paths []string) {
+	t.Helper()
 	// Split so that this file does not match the check.
 	const grafanaCloudHost = ".grafana" + ".net"
 	forbidden := []string{"@gmail.com", "@anthropic.com", grafanaCloudHost}
-
-	paths := append(sloFiles(t), filepath.Join(slosDir, "README.md"))
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {

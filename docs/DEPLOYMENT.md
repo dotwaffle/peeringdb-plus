@@ -572,6 +572,8 @@ The SLOs (availability and data freshness) live in `deploy/grafana/slos/`
 and are applied through the Grafana SLO API
 (see `deploy/grafana/slos/README.md`).
 The burn-rate rules of the availability SLO are the alerts for 5xx responses.
+`deploy/grafana/synthetics/README.md` defines the Synthetic Monitoring check,
+which requests `/api` through the Fly proxy from three locations.
 
 The OTLP endpoint, the Grafana host, and the Mimir tenant are deployment
 values.
