@@ -290,7 +290,9 @@ jobs:
             type=sha,enable={{is_default_branch}}
 
       # docker-build does not run on a push, so this job is the only writer
-      # of the dev scope on main. Pull request builds read it.
+      # of the dev scope on main. Pull request builds read it. A tag run
+      # reads it too but writes nothing: a cache saved on a tag ref can be
+      # restored only by that same tag, so no later run could use it.
       - name: Build and push standalone image
         id: build
         uses: docker/build-push-action@v7
@@ -305,7 +307,7 @@ jobs:
           sbom: true
           provenance: mode=max
           cache-from: type=gha,scope=dev
-          cache-to: type=gha,mode=max,scope=dev
+          cache-to: ${{ github.ref_type == 'branch' && 'type=gha,mode=max,scope=dev' || '' }}
 
       # With no predicate or SBOM input, actions/attest makes a SLSA build
       # provenance attestation. Storage records need artifact-metadata:

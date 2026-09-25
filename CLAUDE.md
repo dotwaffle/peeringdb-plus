@@ -529,7 +529,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
   - `docker-build` (PR events only, parallel, pushes nothing): `Dockerfile` for amd64+arm64 (gha cache `scope=dev`), `Dockerfile.litefs` for amd64 (`scope=prod`).
   - `docker-publish` (push events only, `needs: [ci]`, the only Docker job on a push): pushes `Dockerfile` (amd64+arm64) to `ghcr.io/dotwaffle/peeringdb-plus` with SBOM + `provenance: mode=max`, then `actions/attest` (pushed to the registry).
     Tags: `X.Y.Z`/`X.Y`/`latest` on `v*` tags, `main` + `sha-<short>` on main (`type=sha,enable={{is_default_branch}}`: until v1.32.0 the tag run also pushed `sha-<short>`, and the later of the two pushes won).
-    Writes the main `dev` cache (PR builds read it).
+    Writes the main `dev` cache (PR builds read it). A tag run reads it and writes none (`cache-to` is empty on tags): a cache saved on a tag ref can be restored only by that tag.
     Before v1.32.0 a push also ran `docker-build`, and publish recompiled anyway: its full-history checkout (for the version stamp) changes the `COPY . .` context (`.git`) and the stamped version.
     `Dockerfile.litefs` is never published (needs the Fly LiteFS lease).
     Job `if` = `!cancelled()` + push + (`ci` success, or tag AND `ci` skipped): a skipped need skips the job unless the `if` calls a status function.
