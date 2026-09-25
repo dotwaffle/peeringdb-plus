@@ -565,8 +565,8 @@ Its `LiteFS Replication` row reads the `pdbplus.litefs.*` instruments,
 so it has data only when `PDBPLUS_LITEFS_METRICS_URL` is set.
 The row shows replica stream lag, LTX apply lag, transactions behind the
 primary, commits on the primary, the raw LTX size and connected replicas.
-Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`
-and are applied via `mimirtool rules sync`
+Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`.
+Production runs them as Grafana-managed rules
 (see `deploy/grafana/alerts/README.md` for the workflow).
 
 The OTLP endpoint, the Grafana host, and the Mimir tenant are deployment

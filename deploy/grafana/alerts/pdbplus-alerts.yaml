@@ -1,9 +1,9 @@
-# PeeringDB Plus — Grafana Cloud alert rules.
-# Apply with: mimirtool rules sync deploy/grafana/alerts/pdbplus-alerts.yaml
-# See deploy/grafana/alerts/README.md for the full apply / lint workflow.
+# PeeringDB Plus: Grafana Cloud alert rules.
+# Production runs these as Grafana-managed rules with the same names and
+# expressions. See deploy/grafana/alerts/README.md for the apply and lint
+# workflow. Do not also load this file into the Mimir ruler.
 #
-# Receiver routing is configured out-of-band in the Grafana Cloud notifications UI.
-# Both severity tiers bind the canonical default contact point name.
+# Grafana notification policies route the alerts by the severity label.
 #
 # DO NOT add email addresses, hosted Grafana Cloud stack URLs, or tenant
 # identifiers to this file. See README.md "Forbidden content" for the rationale.
@@ -17,7 +17,6 @@ groups:
         for: 5m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus sync data is stale (>2h)"
           description: |
@@ -35,13 +34,16 @@ groups:
         for: 15m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
-          summary: "PeeringDB Plus sync failure rate >50% over 15m"
+          summary: "PeeringDB Plus sync keeps failing (retries exhausted)"
           description: |
-            More than half of pdbplus_sync_operations_total samples in the
-            last 15 minutes carry status=failed. Check sync worker logs on
-            the primary VM. The clamp_min guards divide-by-zero on quiet
+            More than half of the sync attempts in the last 15 minutes
+            failed, for 15 minutes. A failure that the 30s retry recovers
+            gives a ratio of 0.5 and does not fire, so in practice this
+            fires when the 30s/2m/8m retries of a cycle all fail and the
+            failures continue into the next window. Check "sync cycle
+            failed" in the primary logs and PeeringDB upstream
+            availability. The clamp_min guards divide-by-zero on quiet
             windows.
 
       - alert: PdbPlusFleetMachineCountLow
@@ -54,7 +56,6 @@ groups:
         for: 10m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus fleet machine count <6 (expected 8)"
           description: |
@@ -68,7 +69,6 @@ groups:
         for: 10m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus telemetry has stopped arriving entirely"
           description: |
@@ -87,7 +87,6 @@ groups:
         for: 10m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus primary machine is not reporting"
           description: |
@@ -110,7 +109,6 @@ groups:
         for: 30m
         labels:
           severity: warning
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus peak Go heap >400 MiB sustained 30m"
           description: |
@@ -125,13 +123,14 @@ groups:
         for: 30m
         labels:
           severity: warning
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus peak OS RSS >384 MiB sustained 30m"
           description: |
             max(pdbplus_sync_peak_rss_bytes) has been above 402653184 bytes
-            (384 MiB) for 30m. Approaching the Fly 512 MB VM cap; expected
-            failure order is log → app crash → Fly OOM-kill.
+            (384 MiB) for 30m. The gauge is the peak RSS of the last sync
+            cycle (VmHWM, reset at the start of each cycle), so 30m is at
+            least two cycles. Approaching the Fly 512 MB VM cap; expected
+            failure order is log, then app crash, then Fly OOM-kill.
 
       - alert: PdbPlusSyncOperationFailed
         expr: sum(increase(pdbplus_sync_operations_total{status="failed"}[3h])) > 1.5
@@ -139,7 +138,6 @@ groups:
         keep_firing_for: 1h
         labels:
           severity: warning
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus had at least 2 failed sync attempts in 3h"
           description: |

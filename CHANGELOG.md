@@ -18,6 +18,12 @@ are in the Git history at their tags.
   every few hours. It fired on every failed attempt, also when the retry
   30 seconds later passed, and a failure every 78 minutes made it fire
   and resolve each time.
+- The alert rules no longer carry the `receiver: grafana-default-email`
+  label: Grafana notification policies route by `severity`, and the
+  label had no effect. `deploy/grafana/alerts/README.md` now describes
+  the Grafana-managed rules that production runs, and no longer caps the
+  rule count at 8. The `PdbPlusSyncFailureRateHigh` and `PdbPlusRssHigh`
+  annotations say when the rules fire.
 - A failed sync attempt no longer makes `/readyz` return 503 by itself.
   The check now uses the age of the newest successful sync, as it does
   while a sync runs. Replicas read the same `sync_status` rows, so each
