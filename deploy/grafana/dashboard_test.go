@@ -168,6 +168,25 @@ func TestDashboard_NoHardcodedDatasourceUIDs(t *testing.T) {
 	}
 }
 
+// TestDashboard_RangeSelectorsUseRateInterval rejects [$__interval]
+// range selectors. At short time ranges $__interval falls below the
+// metric export interval, so the window holds fewer than two samples
+// and rate() or increase() returns no data. $__rate_interval is at
+// least four scrape intervals.
+func TestDashboard_RangeSelectorsUseRateInterval(t *testing.T) {
+	t.Parallel()
+	d := loadDashboard(t)
+
+	for _, p := range allPanels(d) {
+		for _, tgt := range p.Targets {
+			if strings.Contains(tgt.Expr, "[$__interval]") {
+				t.Errorf("panel %q query uses [$__interval] (want [$__rate_interval]): %s",
+					p.Title, tgt.Expr)
+			}
+		}
+	}
+}
+
 // TestDashboard_EachMetricPanelHasDescription enforces that every
 // metric panel (timeseries, stat, bargauge, gauge) carries a
 // non-empty description field. Documentation moved out of standalone

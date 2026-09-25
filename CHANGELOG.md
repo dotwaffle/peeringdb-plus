@@ -30,6 +30,10 @@ are in the Git history at their tags.
   source of the Grafana organization. Before, Grafana selected the first
   Prometheus data source by name, so a second one (such as `fly.io`)
   made every panel show no data.
+- Dashboard: the Sync Operations panel showed no data at short time
+  ranges. Its query used `[$__interval]`, which there is shorter than
+  the metric export interval; it now uses `[$__rate_interval]`, like the
+  other counter panels.
 
 ## [1.34.0] - 2026-09-25
 
