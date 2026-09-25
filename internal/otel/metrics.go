@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 )
@@ -327,6 +328,30 @@ func InitScratchFreeGauge(dir string, free func(dir string) (uint64, error)) err
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.scratch.free gauge: %w", err)
+	}
+	return nil
+}
+
+// InitBuildInfoGauge registers the pdbplus.build.info gauge: the value 1
+// with the attribute service.version set to version. The metric resource
+// has no service.version (buildMetricResource), so this one series per
+// machine carries the version on the metrics path, and a deploy does not
+// start a new copy of every other series.
+// Must be called after OTel Setup().
+func InitBuildInfoGauge(version string) error {
+	meter := otel.Meter("peeringdb-plus")
+	attrs := metric.WithAttributeSet(attribute.NewSet(semconv.ServiceVersion(version)))
+	// No unit: the Prometheus translation would add a suffix to the
+	// name (unit "1" on a gauge gives pdbplus_build_info_ratio).
+	_, err := meter.Int64ObservableGauge("pdbplus.build.info",
+		metric.WithDescription("Build of the running process; the value is always 1"),
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			o.Observe(1, attrs)
+			return nil
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.build.info gauge: %w", err)
 	}
 	return nil
 }

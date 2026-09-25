@@ -158,7 +158,8 @@ attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom
 |---------|-------------------------|-------------|-----------------|----------|
 | `FLY_REGION` | `cloud.region` (`semconv.CloudRegion`) | yes | yes | OTel resource. Region shown on `/ui/about` and in the MCP `peeringdb-plus://service` resource. `POST /sync` handler: on a replica, returns HTTP 307 with `fly-replay: region=${PRIMARY_REGION}`. |
 | `FLY_PROCESS_GROUP` | `service.namespace` (`semconv.ServiceNamespace`) | yes | yes | OTel resource. 2-cardinality: `primary` / `replica`. The dashboard `process_group` variable takes its values from `pdbplus_sync_peak_heap_bytes`, which only the primary sends, so it lists only `primary`. Select `All` to include replicas. |
-| `FLY_MACHINE_ID` | `service.instance.id` (`semconv.ServiceInstanceID`) | **no** (per-VM cardinality stripped) | yes | OTel resource (traces and logs only). Deliberately omitted from the metric resource via the `includeInstanceID` gate to keep cardinality low. |
+| `FLY_MACHINE_ID` | `service.instance.id` (`semconv.ServiceInstanceID`) | **no** (per-VM cardinality stripped) | yes | OTel resource (traces and logs only). Deliberately omitted from the metric resource via the `forMetrics` gate to keep cardinality low. |
+| (build info) | `service.version` (`semconv.ServiceVersion`) | **no** (per-deploy cardinality stripped) | yes | OTel resource (traces and logs only). On metrics the `pdbplus_build_info` gauge carries it as a label, one series per machine. |
 | `FLY_APP_NAME` | `fly.app_name` (custom key) | dropped by Grafana Cloud allowlist | yes (human grep) | OTel resource; `litefs.yml` substitution. |
 | (constant) | `cloud.provider="fly_io"` (`semconv.CloudProviderKey`) | yes | yes | Always-on, 1-cardinality. |
 | (constant) | `cloud.platform="fly_io_apps"` (`semconv.CloudPlatformKey`) | yes | yes | Always-on, 1-cardinality. |
@@ -182,7 +183,7 @@ Commonly used variables:
 | Variable | Purpose |
 |----------|---------|
 | `OTEL_SERVICE_NAME` | Has no effect. The application always sets `service.name=peeringdb-plus`, and that value replaces the value from the environment. |
-| `OTEL_RESOURCE_ATTRIBUTES` | Adds resource attributes. When the application sets one of these keys, its value replaces the environment value: `service.name`, `service.version`, `service.namespace`, `service.instance.id`, `cloud.provider`, `cloud.platform`, `cloud.region`, `fly.app_name`. |
+| `OTEL_RESOURCE_ATTRIBUTES` | Adds resource attributes. When the application sets one of these keys, its value replaces the environment value: `service.name`, `service.version`, `service.namespace`, `service.instance.id`, `cloud.provider`, `cloud.platform`, `cloud.region`, `fly.app_name`. The application does not set `service.version` or `service.instance.id` on the metric resource, so there the environment value applies. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Base OTLP endpoint (affects traces, metrics, and logs unless overridden per-signal). |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`, `http/protobuf`, or `http/json`. |
 | `OTEL_EXPORTER_OTLP_HEADERS` | Comma-separated list of headers for OTLP requests (e.g., auth tokens). |

@@ -178,6 +178,11 @@ func main() {
 		logger.Error("failed to init memory gauges", slog.Any("error", err))
 		os.Exit(1)
 	}
+	// The metric resource has no service.version: this gauge carries it.
+	if err := pdbotel.InitBuildInfoGauge(buildinfo.Version()); err != nil {
+		logger.Error("failed to init build info gauge", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	// Open database.
 	entClient, db, err := database.Open(cfg.DBPath, cfg.OTelSQL)

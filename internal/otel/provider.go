@@ -102,9 +102,9 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	// interceptor is built with otelconnect.WithoutMetrics
 	// (cmd/peeringdb-plus connectOTelOpts), so it never records them.
 	//
-	// Metric resource omits service.instance.id (buildMetricResource) to
-	// prevent per-VM fan-out across the same axes; traces and logs keep it
-	// for per-VM debugging.
+	// Metric resource omits service.instance.id and service.version
+	// (buildMetricResource) to prevent per-VM and per-deploy fan-out across
+	// the same axes; traces and logs keep them for per-VM debugging.
 	metricReader, err := autoexport.NewMetricReader(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("creating metric reader: %w", err)
@@ -249,20 +249,22 @@ func defaultSamplerInput(in SetupInput) PerRouteSamplerInput {
 // and LoggerProvider so traces and logs keep per-VM attribution via
 // service.instance.id.
 func buildResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
-	return buildResourceFiltered(ctx, serviceName, true)
-}
-
-// buildMetricResource is like buildResource but omits service.instance.id
-// to prevent per-VM metric fan-out. Use for MeterProvider only;
-// TracerProvider/LoggerProvider keep the full resource for per-VM
-// debugging.
-func buildMetricResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
 	return buildResourceFiltered(ctx, serviceName, false)
 }
 
-// buildResourceFiltered builds the OTel resource, optionally including the
-// per-VM service.instance.id attribute. Shared implementation backing
-// buildResource (trace/log) and buildMetricResource (metrics).
+// buildMetricResource is like buildResource but omits service.instance.id
+// and service.version to prevent per-VM and per-deploy metric fan-out. Use
+// for MeterProvider only; TracerProvider/LoggerProvider keep the full
+// resource for per-VM debugging. The pdbplus.build.info gauge
+// (InitBuildInfoGauge) carries the version on the metrics path.
+func buildMetricResource(ctx context.Context, serviceName string) (*resource.Resource, error) {
+	return buildResourceFiltered(ctx, serviceName, true)
+}
+
+// buildResourceFiltered builds the OTel resource. With forMetrics it omits
+// the per-VM service.instance.id and the per-deploy service.version
+// attributes. Shared implementation backing buildResource (trace/log) and
+// buildMetricResource (metrics).
 //
 // Naming follows GC-allowlisted OTel semconv keys (service.*, cloud.*) so
 // Grafana Cloud's hosted OTLP receiver promotes them to Prometheus labels.
@@ -277,17 +279,21 @@ func buildMetricResource(ctx context.Context, serviceName string) (*resource.Res
 // Why the metric resource strips service.instance.id:
 // per-VM = high cardinality, low value — the operator does not want 8
 // machine-id-prefixed series per metric. This is the same per-VM strip
-// that previously gated fly.machine_id; the includeInstanceID flag name
-// matches the new attr key.
+// that previously gated fly.machine_id.
+//
+// Why the metric resource strips service.version:
+// Grafana Cloud promotes it to a label on every series, so each deploy
+// started a new copy of every series of the fleet (about 1,400), and
+// the copies of the last versions all counted as active series.
 //
 // Why cloud.provider + cloud.platform are unconditional:
 // they are 1-cardinality semconv resource attrs that GC allowlists for
 // free. Emitting them on every signal lets dashboards filter by provider
 // without coupling to a Fly-specific env var.
-func buildResourceFiltered(_ context.Context, serviceName string, includeInstanceID bool) (*resource.Resource, error) {
-	attrs := []attribute.KeyValue{
-		semconv.ServiceName(serviceName),
-		semconv.ServiceVersion(buildinfo.Version()),
+func buildResourceFiltered(_ context.Context, serviceName string, forMetrics bool) (*resource.Resource, error) {
+	attrs := []attribute.KeyValue{semconv.ServiceName(serviceName)}
+	if !forMetrics {
+		attrs = append(attrs, semconv.ServiceVersion(buildinfo.Version()))
 	}
 
 	// Always-on: cloud provider / platform constants (1-cardinality, GC-allowlisted).
@@ -309,9 +315,8 @@ func buildResourceFiltered(_ context.Context, serviceName string, includeInstanc
 	}
 	// Per-VM identity: stripped from metric resource to prevent per-VM
 	// metric fan-out (8 machines × N metrics × M label combos). Traces
-	// and logs keep it for per-VM debugging — that's the includeInstanceID
-	// gate.
-	if includeInstanceID {
+	// and logs keep it for per-VM debugging.
+	if !forMetrics {
 		if v := os.Getenv("FLY_MACHINE_ID"); v != "" {
 			attrs = append(attrs, semconv.ServiceInstanceID(v))
 		}
