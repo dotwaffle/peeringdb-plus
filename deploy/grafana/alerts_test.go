@@ -1,7 +1,7 @@
-// Package grafana_test validates the Grafana Cloud alert rule YAML and
-// dashboard JSON checked into deploy/grafana/. The alert tests live here
-// alongside dashboard_test.go so a single `go test ./deploy/grafana/...`
-// invocation covers both surfaces.
+// Package grafana_test validates the Grafana Cloud alert rule YAML,
+// dashboard JSON and SLO JSON checked into deploy/grafana/. The tests
+// live side by side so a single `go test ./deploy/grafana/...`
+// invocation covers all three.
 package grafana_test
 
 import (

@@ -78,6 +78,10 @@ default policy, they go to the same contact point.
 | `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, primary absent. |
 | `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, 2 failed sync attempts in 3h. |
 
+The 5xx responses have no rule in this file. The burn-rate alert rules of
+the availability SLO (`deploy/grafana/slos/`) alert on them, with the same
+two tiers: fast burn is `critical`, slow burn is `warning`.
+
 Note on absence coverage: all metric-presence rules key on
 `go_memory_used_bytes`, which ticks on every machine via the OTel
 runtime meter. `PdbPlusTelemetryAbsent` is the meta-rule that fires

@@ -16,6 +16,14 @@ are in the Git history at their tags.
   memory of a replica above 180 MiB for 15 minutes. The heap and RSS
   rules read gauges that only the primary sets, so the 256 MB replicas
   had no memory alert.
+- SLO definitions in `deploy/grafana/slos/` for the Grafana SLO app.
+  Availability: 99.9% of routed HTTP requests over 28 days return a
+  status below 500 (health probes, `POST /sync` and unrouted requests
+  left out), with fast and slow burn-rate alerts that need at least 5
+  failed requests. Data freshness: the newest successful sync is less
+  than 1 hour old for 99.5% of 28 days (no SLO alerts;
+  `PdbPlusSyncFreshnessHigh` stays). Dashboard panel Error Rate (5xx)
+  uses the request selector of the availability SLO.
 - Dashboard `pdbplus-overview`: two collapsed rows. "Upstream PeeringDB"
   shows the requests to PeeringDB by status class, retries by cause, and
   the p95 wait for the local rate limiter. "Sync Sweep & Backfill" shows

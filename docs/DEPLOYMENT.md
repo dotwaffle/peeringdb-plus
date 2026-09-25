@@ -568,6 +568,10 @@ primary, commits on the primary, the raw LTX size and connected replicas.
 Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`.
 Production runs them as Grafana-managed rules
 (see `deploy/grafana/alerts/README.md` for the workflow).
+The SLOs (availability and data freshness) live in `deploy/grafana/slos/`
+and are applied through the Grafana SLO API
+(see `deploy/grafana/slos/README.md`).
+The burn-rate rules of the availability SLO are the alerts for 5xx responses.
 
 The OTLP endpoint, the Grafana host, and the Mimir tenant are deployment
 values.
