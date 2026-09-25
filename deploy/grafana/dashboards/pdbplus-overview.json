@@ -183,6 +183,21 @@
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
         "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "enable": true,
+        "expr": "count by (service_version) (pdbplus_build_info{service_name=\"$service\"}) unless count by (service_version) (pdbplus_build_info{service_name=\"$service\"} offset 10m)",
+        "iconColor": "rgba(255, 152, 48, 1)",
+        "name": "Deploys",
+        "step": "1m",
+        "tagKeys": "service_version",
+        "textFormat": "First report of a new version",
+        "titleFormat": "Deploy {{service_version}}",
+        "useValueForTime": false
       }
     ]
   },
@@ -2953,6 +2968,170 @@
           "fieldConfig": {
             "defaults": {
               "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "type": "row",
+      "title": "External Probes",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "panels": [
+        {
+          "id": 53,
+          "type": "timeseries",
+          "title": "Probe Success by Location",
+          "description": "Share of the executions of the Synthetic Monitoring check peeringdb-plus-api (GET /api/net?asn=15169 through the public hostname) that passed in the last 15 minutes, by probe location. The check runs every 5 minutes, so the window holds 3 executions. The alert PdbPlusProbeFailing fires when 2 or more locations are below 50% for 5 minutes. Settings: deploy/grafana/synthetics/README.md.",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 58
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (probe) (increase(probe_all_success_sum{job=\"peeringdb-plus-api\"}[15m])) / sum by (probe) (increase(probe_all_success_count{job=\"peeringdb-plus-api\"}[15m]))",
+              "legendFormat": "{{probe}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": [],
+              "min": 0,
+              "max": 1
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 54,
+          "type": "timeseries",
+          "title": "Probe Duration by Location",
+          "description": "Total time of the last execution of the Synthetic Monitoring check peeringdb-plus-api, by probe location: DNS, connect, TLS and the response through the Fly edge and proxy. The server time of the same request is a few milliseconds (HTTP RED Metrics row); the rest is the network path from the probe. max by (probe) joins the series of each check version (config_version label).",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 58
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "max by (probe) (last_over_time(probe_duration_seconds{job=\"peeringdb-plus-api\"}[10m]))",
+              "legendFormat": "{{probe}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
               "color": {
                 "mode": "palette-classic"
               },

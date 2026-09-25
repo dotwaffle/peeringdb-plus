@@ -103,6 +103,7 @@ func TestDashboard_HasRequiredRows(t *testing.T) {
 		"LiteFS Replication",
 		"Upstream PeeringDB",
 		"Sync Sweep & Backfill",
+		"External Probes",
 	}
 
 	rowTitles := make(map[string]bool)
@@ -229,6 +230,8 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"pdbplus_sync_history_requests_total", "history sweep windows"},
 		{"pdbplus_sync_fk_backfill_total", "FK backfill attempts"},
 		{"pdbplus_sync_type_orphans_total", "FK orphan rows"},
+		{"probe_all_success_sum", "Synthetic Monitoring executions that passed"},
+		{"probe_duration_seconds", "Synthetic Monitoring execution time"},
 	}
 
 	for _, m := range requiredMetrics {
@@ -237,6 +240,47 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 				m.prometheusName, m.description)
 		}
 	}
+}
+
+// TestDashboard_DeployAnnotation checks that the dashboard marks deploys
+// from pdbplus_build_info through the datasource variable. The metric
+// resource has no service.version, so the gauge is the only version
+// signal on metrics.
+func TestDashboard_DeployAnnotation(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(dashboardPath)
+	if err != nil {
+		t.Fatalf("reading dashboard JSON: %v", err)
+	}
+	var d struct {
+		Annotations struct {
+			List []struct {
+				Name       string     `json:"name"`
+				Enable     bool       `json:"enable"`
+				Expr       string     `json:"expr"`
+				Datasource datasource `json:"datasource"`
+			} `json:"list"`
+		} `json:"annotations"`
+	}
+	if err := json.Unmarshal(data, &d); err != nil {
+		t.Fatalf("parsing dashboard JSON: %v", err)
+	}
+	for _, a := range d.Annotations.List {
+		if a.Name != "Deploys" {
+			continue
+		}
+		if !a.Enable {
+			t.Error("Deploys annotation is not enabled")
+		}
+		if !strings.Contains(a.Expr, "pdbplus_build_info") {
+			t.Errorf("Deploys annotation expr %q does not read pdbplus_build_info", a.Expr)
+		}
+		if a.Datasource.UID != "${datasource}" {
+			t.Errorf("Deploys annotation datasource UID = %q, want ${datasource}", a.Datasource.UID)
+		}
+		return
+	}
+	t.Error("dashboard has no Deploys annotation")
 }
 
 func TestDashboard_FreshnessGaugeThresholds(t *testing.T) {
