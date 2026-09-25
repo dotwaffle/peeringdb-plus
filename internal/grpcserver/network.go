@@ -34,7 +34,7 @@ var networkListFilters = []filterFn[pb.ListNetworksRequest]{
 		positiveInt64(), fieldEQInt(network.FieldID)),
 	validatingFilter("asn",
 		func(r *pb.ListNetworksRequest) *int64 { return r.Asn },
-		positiveInt64(), fieldEQInt(network.FieldAsn)),
+		nonNegativeInt64(), fieldEQInt(network.FieldAsn)),
 	validatingFilter("org_id",
 		func(r *pb.ListNetworksRequest) *int64 { return r.OrgId },
 		positiveInt64(), fieldEQInt(network.FieldOrgID)),
@@ -101,7 +101,7 @@ var networkListFilters = []filterFn[pb.ListNetworksRequest]{
 var networkStreamFilters = []filterFn[pb.StreamNetworksRequest]{
 	validatingFilter("asn",
 		func(r *pb.StreamNetworksRequest) *int64 { return r.Asn },
-		positiveInt64(), fieldEQInt(network.FieldAsn)),
+		nonNegativeInt64(), fieldEQInt(network.FieldAsn)),
 	validatingFilter("org_id",
 		func(r *pb.StreamNetworksRequest) *int64 { return r.OrgId },
 		positiveInt64(), fieldEQInt(network.FieldOrgID)),

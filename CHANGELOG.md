@@ -18,6 +18,11 @@ are in the Git history at their tags.
   failed attempt failed the Fly health check of every machine until the
   retry passed, while all of them served the data of the last success.
   The `readyz sync marked failed` log is now DEBUG.
+- The ConnectRPC `asn` filter of `ListNetworks`, `StreamNetworks`,
+  `ListNetworkIxLans` and `StreamNetworkIxLans` accepts 0. It rejected 0
+  as not positive, but the mirror stores upstream tombstones with ASN 0
+  since v1.32.2 (net 21510). Negative values still return
+  `INVALID_ARGUMENT`.
 
 ### Fixed
 

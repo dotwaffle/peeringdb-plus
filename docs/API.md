@@ -1205,8 +1205,11 @@ and ignore case (`ContainsFold`).
 They do not ignore diacritics.
 The other string filters, `status` included, must match the full value,
 and they are case-sensitive.
-Integer filters such as `asn` and `org_id` are validated to be positive;
-invalid values return `INVALID_ARGUMENT`.
+Integer filters such as `org_id` must be positive.
+The `asn` filter of `ListNetworks`, `StreamNetworks`,
+`ListNetworkIxLans` and `StreamNetworkIxLans` must not be negative:
+upstream keeps tombstones with ASN 0.
+Invalid values return `INVALID_ARGUMENT`.
 
 ### Pagination (List)
 
