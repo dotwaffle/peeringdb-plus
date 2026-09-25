@@ -424,7 +424,13 @@ func main() {
 	// starts" startup ordering established by the Init* calls above).
 	//
 	// Total baseline series introduced: 4 per-type × 13 types + 1 direction × 2 = 54.
-	pdbotel.PrewarmCounters(ctx)
+	// Only a node that LiteFS can elect as primary pre-warms: the sync
+	// worker and the role transitions run there only, so on a replica
+	// the 54 series would stay at 0 for the life of the process. A
+	// counter that a replica increments still exports its series.
+	if litefs.IsCandidate(os.Getenv("FLY_REGION"), os.Getenv("PRIMARY_REGION")) {
+		pdbotel.PrewarmCounters(ctx)
+	}
 
 	// Start scheduler on all instances.
 	// The scheduler gates sync on live IsPrimary() checks per tick.
