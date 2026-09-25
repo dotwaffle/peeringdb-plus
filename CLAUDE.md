@@ -526,7 +526,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 - Triggers: PR, push to main, push of `v*` tags.
   3 jobs:
   - `ci` (PR + main push, `if: github.ref_type != 'tag'`, never on a `v*` tag push): one cached mise/Go job running, in order: generated-code drift check, build, gotestsum race tests, lint, advisory vulnerability scan.
-  - `docker-build` (PR events only, parallel, pushes nothing): `Dockerfile` for amd64+arm64 (gha cache `scope=dev`), `Dockerfile.litefs` for amd64 (`scope=prod`).
+  - `docker-build` (PR events only, parallel, pushes nothing, reads the gha cache of main and exports none): `Dockerfile` for amd64+arm64 (gha cache `scope=dev`), `Dockerfile.litefs` for amd64 (`scope=prod`).
   - `docker-publish` (push events only, `needs: [ci]`, the only Docker job on a push): pushes `Dockerfile` (amd64+arm64) to `ghcr.io/dotwaffle/peeringdb-plus` with SBOM + `provenance: mode=max`, then `actions/attest` (pushed to the registry).
     Tags: `X.Y.Z`/`X.Y`/`latest` on `v*` tags, `main` + `sha-<short>` on main (`type=sha,enable={{is_default_branch}}`: until v1.32.0 the tag run also pushed `sha-<short>`, and the later of the two pushes won).
     Writes the main `dev` cache (PR builds read it).

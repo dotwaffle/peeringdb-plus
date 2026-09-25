@@ -151,11 +151,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      # One gha cache scope per Dockerfile, so the two builds stop
-      # overwriting one cache entry. A pull request run reads the caches of
-      # its own ref and of main, and writes only its own. On main,
-      # docker-publish writes the dev scope. The build stage cross-compiles,
-      # so the arm64 build needs no QEMU.
+      # One gha cache scope per Dockerfile. A pull request run reads the
+      # caches of main and writes none: a cache saved on a pull request ref
+      # can be restored only by later runs of that pull request, and every
+      # pull request left hundreds of MB that no run read after the merge.
+      # On main, docker-publish writes the dev scope; nothing writes the
+      # prod scope any more, so the production image build reads only the
+      # prod entries main already holds. The build stage cross-compiles, so
+      # the arm64 build needs no QEMU.
       - name: Build standalone image
         uses: docker/build-push-action@v7
         with:
@@ -164,7 +167,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: false
           cache-from: type=gha,scope=dev
-          cache-to: type=gha,mode=max,scope=dev
 
       - name: Build production image
         uses: docker/build-push-action@v7
@@ -174,7 +176,6 @@ jobs:
           platforms: linux/amd64
           push: false
           cache-from: type=gha,scope=prod
-          cache-to: type=gha,mode=max,scope=prod
 
   docker-publish:
     name: Docker Publish
