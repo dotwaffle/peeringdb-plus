@@ -1,4 +1,4 @@
-# PeeringDB Plus — Grafana Cloud Alert Rules
+# PeeringDB Plus: Grafana Cloud Alert Rules
 
 Source-of-truth Prometheus rule groups for the PeeringDB Plus production
 deployment. The repository holds the rule definitions; apply is a manual
@@ -11,35 +11,42 @@ https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
 
 Each rule has:
 
-- `alert:` — PascalCase name with `PdbPlus` prefix.
-- `expr:` — PromQL expression.
-- `for:` — sustained-breach window before the alert fires.
-- `labels.severity:` — one of `critical` (page tier) or `warning`
-  (notify-only tier).
-- `labels.receiver:` — always the literal string `grafana-default-email`.
-  This is the canonical default contact-point name in every Grafana Cloud
-  stack; it is **not** an email address.
-- `annotations.summary:` — one-line operator summary.
-- `annotations.description:` — multi-line operator-actionable detail
-  including the threshold value and the contributing metric name.
+- `alert:`: PascalCase name with the `PdbPlus` prefix.
+- `expr:`: PromQL expression.
+- `for:`: sustained-breach window before the alert fires.
+- `keep_firing_for:` (optional): how long the alert stays firing after
+  the expression stops matching.
+- `labels.severity:`: `critical` or `warning` (see the tier table below).
+- `annotations.summary:`: one-line operator summary.
+- `annotations.description:`: operator-actionable detail, including the
+  threshold value and the metric name.
+
+Rules have no receiver label. Grafana notification policies route the
+alerts.
 
 ## Apply
 
-The repository is the source of truth. Sync to Grafana Cloud Mimir with
-`mimirtool` (install: https://grafana.com/docs/mimir/latest/manage/tools/mimirtool/):
+In production, the rules are Grafana-managed alert rules in the folder
+"PeeringDB Plus", in the groups `pdbplus-critical` and `pdbplus-warning`
+(evaluated every minute). The UID of each rule is `pdbplus-` followed by
+the alert name without the prefix, in kebab case: `PdbPlusSyncOperationFailed`
+is `pdbplus-sync-operation-failed`. Each rule has two queries:
 
-```bash
-# Replace placeholder env vars with your stack credentials before running.
-# DO NOT commit real credentials or stack URLs into examples.
-export MIMIR_ADDRESS="$YOUR_MIMIR_RULER_URL"
-export MIMIR_TENANT_ID="$YOUR_TENANT_ID"
-export MIMIR_API_KEY="$YOUR_API_KEY"
+- `A`: the `expr` as an instant query on the Prometheus data source.
+- `B`: a threshold expression, `A > 0`. `B` is the condition.
 
-mimirtool rules sync deploy/grafana/alerts/pdbplus-alerts.yaml
-```
+No data is `OK`. An evaluation error is `Alerting`.
 
-Use `mimirtool rules load` if you prefer load-and-replace semantics over
-diff-and-sync.
+When you change this file, update the Grafana-managed rule with the same
+UID to match it, in the Grafana UI or through the alerting provisioning
+API.
+
+Do not also load this file into the Mimir ruler with `mimirtool rules
+sync`. That makes a second copy of each rule, and each alert then
+notifies twice. A deployment without Grafana-managed alerting can use
+`mimirtool rules sync` instead (install:
+https://grafana.com/docs/mimir/latest/manage/tools/mimirtool/), with the
+stack credentials in environment variables.
 
 ## Lint locally
 
@@ -60,30 +67,29 @@ go test -race ./deploy/grafana/...
 
 ## Notification routing
 
-The `severity` label is the routing knob. Configure tier behaviour in your
-Grafana Cloud notifications UI (the receiver `grafana-default-email` is
-where both tiers land at the receiver level; separate routes can fan out
-based on `severity=critical` vs `severity=warning`).
+The `severity` label is the routing key. The notification policies of
+the Grafana stack decide where each tier goes. When both tiers use the
+default policy, they go to the same contact point.
 
 ## Severity tier policy
 
-| Tier       | Behaviour       | Used for                                                          |
-|------------|-----------------|-------------------------------------------------------------------|
-| `critical` | Page on-call    | Sync stalls (>2h freshness), sync-failure rate >50%, fleet drop, telemetry absent, primary absent. |
-| `warning`  | Notify only     | Heap/RSS sustained breach, single sync failure.                   |
+| Tier       | Meaning                    | Used for                                                          |
+|------------|----------------------------|-------------------------------------------------------------------|
+| `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, primary absent, /api check failing from 2+ probe locations. |
+| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, replica LiteFS lag >10 min, primary volume <512 MiB free, 2 failed sync attempts in 3h. |
 
-Total rule count is capped at 8 to stay below Grafana Cloud free-tier
-alertmanager limits. Current count: 8 rules across both groups — the
-cap is full. Next rule in line if the cap ever rises (paid tier or a
-raised limit): a serving-path 5xx-rate alert on
-`http_server_request_duration_seconds_count{http_response_status_code=~"5.."}`
-— today a fleet returning errors while processes stay alive never
-alerts (the closest proxies are the freshness and absence rules).
+The 5xx responses have no rule in this file. The burn-rate alert rules of
+the availability SLO (`deploy/grafana/slos/`) alert on them, with the same
+two tiers: fast burn is `critical`, slow burn is `warning`.
+
+`PdbPlusProbeFailing` reads the metrics of the Synthetic Monitoring check
+in `deploy/grafana/synthetics/README.md`. Until the check exists, the rule
+has no data and stays `OK`.
 
 Note on absence coverage: all metric-presence rules key on
 `go_memory_used_bytes`, which ticks on every machine via the OTel
 runtime meter. `PdbPlusTelemetryAbsent` is the meta-rule that fires
-when the export pipeline itself dies — every other rule evaluates to
+when the export pipeline itself dies; every other rule evaluates to
 an empty vector (and stays silent) in that state.
 
 ## Forbidden content
@@ -95,6 +101,5 @@ The following MUST NOT appear in any file in `deploy/grafana/alerts/`:
   subdomain) or any other stack-specific URL.
 - Tenant identifiers, API keys, or any credential value.
 
-The repository is a public-style source of truth; tenant-specific
-configuration lives in operator-managed environment variables passed to
-`mimirtool` at apply time.
+The repository is a public-style source of truth. Contact points,
+notification policies and stack credentials stay in the Grafana stack.

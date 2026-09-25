@@ -116,17 +116,30 @@ func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, lo
 	case "success":
 		return evaluateSyncAge(ctx, status.LastSyncAt, staleThreshold, logger)
 
-	case "running":
-		// A currently-running sync; fall back to the most recent
-		// SUCCESSFUL sync via the shared internal/sync helper. We must NOT
-		// fall back to GetLastCompletedStatus here: that returns the most
+	case "running", "failed":
+		// The newest attempt is in flight or failed. A failed attempt
+		// rolls back, so the database holds the data of the most recent
+		// SUCCESSFUL sync: judge the age of that sync. We must NOT fall
+		// back to GetLastCompletedStatus here: that returns the most
 		// recent non-running row, which can be a FAILED row (failed rows
 		// get completed_at set, so a fresh failure would pass the age
-		// check and report 200 even though the last sync failed). Using
-		// GetLastSuccessfulStatus skips past both running AND failed rows,
-		// so /readyz only reports healthy when there is genuinely recent
-		// known-good data — consistent with the top-level "failed" branch
-		// below which returns 503.
+		// check). GetLastSuccessfulStatus skips past both running AND
+		// failed rows, so /readyz only reports healthy when there is
+		// recent known-good data.
+		//
+		// A failed attempt alone does not make the node unready: replicas
+		// read the same sync_status rows, so a 503 here fails the Fly
+		// check of every machine until the retry passes, while all of
+		// them serve fresh data. Data that stops updating fails the age
+		// check (and PdbPlusSyncFreshnessHigh fires).
+		if status.Status == "failed" {
+			logger.LogAttrs(ctx, slog.LevelDebug,
+				"readyz sync marked failed",
+				slog.String("component", "sync"),
+				slog.String("error", status.ErrorMessage),
+				slog.Time("last_sync_at", status.LastSyncAt),
+			)
+		}
 		lastSuccess, lookupErr := sync.GetLastSuccessfulStatus(ctx, db)
 		if lookupErr != nil {
 			logger.LogAttrs(ctx, slog.LevelError,
@@ -144,15 +157,6 @@ func checkSync(ctx context.Context, db *sql.DB, staleThreshold time.Duration, lo
 			return false
 		}
 		return evaluateSyncAge(ctx, lastSuccess.LastSyncAt, staleThreshold, logger)
-
-	case "failed":
-		logger.LogAttrs(ctx, slog.LevelWarn,
-			"readyz sync marked failed",
-			slog.String("component", "sync"),
-			slog.String("error", status.ErrorMessage),
-			slog.Time("last_sync_at", status.LastSyncAt),
-		)
-		return false
 
 	default:
 		logger.LogAttrs(ctx, slog.LevelWarn,

@@ -101,6 +101,8 @@ func TestDashboard_HasRequiredRows(t *testing.T) {
 		"Go Runtime",
 		"Business Metrics",
 		"LiteFS Replication",
+		"Upstream PeeringDB",
+		"Sync Sweep & Backfill",
 	}
 
 	rowTitles := make(map[string]bool)
@@ -221,6 +223,12 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"pdbplus_litefs_commits_total", "LiteFS commits on the primary"},
 		{"pdbplus_litefs_ltx_size_bytes", "LiteFS LTX size"},
 		{"pdbplus_litefs_subscribers", "LiteFS connected replicas"},
+		{"pdbplus_peeringdb_requests_total", "upstream requests by status class"},
+		{"pdbplus_peeringdb_retries_total", "upstream retries by cause"},
+		{"pdbplus_peeringdb_rate_limit_wait_ms_milliseconds_bucket", "upstream rate-limiter wait"},
+		{"pdbplus_sync_history_requests_total", "history sweep windows"},
+		{"pdbplus_sync_fk_backfill_total", "FK backfill attempts"},
+		{"pdbplus_sync_type_orphans_total", "FK orphan rows"},
 	}
 
 	for _, m := range requiredMetrics {
@@ -405,10 +413,12 @@ func TestDashboard_GaugesUseAggregation(t *testing.T) {
 	}{
 		{"Data Freshness", "max(", "should use max() for worst-case freshness"},
 		{"Total Objects", "max by", "should use max by(type) to deduplicate replicas"},
-		{"Goroutines", "sum by(instance)", "should show per-instance lines"},
-		{"Heap Memory", "sum by(instance)", "should show per-instance lines"},
-		{"Allocation Rate", "sum by(instance)", "should show per-instance lines"},
-		{"GC Goal", "sum by(instance)", "should show per-instance lines"},
+		// The instance label is empty (service.instance.id is stripped
+		// from metric resources), so sum by(instance) summed the fleet.
+		{"Goroutines", "sum by (service_namespace, cloud_region)", "should show one line per machine"},
+		{"Heap Memory", "sum by (service_namespace, cloud_region)", "should show one line per machine"},
+		{"Allocation Rate", "sum by (service_namespace, cloud_region)", "should show one line per machine"},
+		{"GC Goal", "sum by (service_namespace, cloud_region)", "should show one line per machine"},
 	}
 
 	for _, tc := range cases {

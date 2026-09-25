@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"runtime"
+	"runtime/debug"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -1259,6 +1260,95 @@ func TestSync_ObjectsCounterAfterCommit(t *testing.T) {
 	if got := objectsCounterValues(t, reader); !maps.Equal(got, want) {
 		t.Errorf("counter after the commit = %v, want %v", got, want)
 	}
+}
+
+// operationsCounterValues returns the pdbplus.sync.operations data points
+// keyed by "status/mode".
+func operationsCounterValues(t *testing.T, reader *sdkmetric.ManualReader) map[string]int64 {
+	t.Helper()
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+	out := map[string]int64{}
+	m := findMetric(rm, "pdbplus.sync.operations")
+	if m == nil {
+		return out
+	}
+	sum, ok := m.Data.(metricdata.Sum[int64])
+	if !ok {
+		t.Fatalf("pdbplus.sync.operations is %T, want Sum[int64]", m.Data)
+	}
+	for _, dp := range sum.DataPoints {
+		status, _ := dp.Attributes.Value("status")
+		mode, _ := dp.Attributes.Value("mode")
+		out[status.AsString()+"/"+mode.AsString()] = dp.Value
+	}
+	return out
+}
+
+// TestStartScheduler_SeedsOperationCounters verifies that a primary
+// scheduler adds a 0 data point for each status and mode of
+// pdbplus.sync.operations before its first cycle, and that a replica
+// adds none. Not parallel: rebinds the package-level metric instruments.
+func TestStartScheduler_SeedsOperationCounters(t *testing.T) {
+	seeded := map[string]int64{
+		"success/full": 0, "success/incremental": 0,
+		"failed/full": 0, "failed/incremental": 0,
+	}
+
+	t.Run("primary", func(t *testing.T) {
+		reader := setupMetricTest(t)
+		w, db := newTestWorker(t, newFixture(t))
+		// A recent success: the first cycle is an interval away.
+		now := time.Now()
+		id, err := RecordSyncStart(t.Context(), db, now.Add(-time.Minute), "incremental")
+		if err != nil {
+			t.Fatalf("record sync start: %v", err)
+		}
+		if err := RecordSyncComplete(t.Context(), db, id, Status{
+			LastSyncAt: now.Add(-time.Minute), Duration: time.Second, Status: "success",
+		}); err != nil {
+			t.Fatalf("record sync complete: %v", err)
+		}
+
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan struct{})
+		go func() {
+			w.StartScheduler(ctx, time.Hour)
+			close(done)
+		}()
+		defer func() {
+			cancel()
+			<-done
+		}()
+
+		// The seed sends no event. The deadline only bounds a missing seed.
+		deadline := time.Now().Add(10 * time.Second)
+		got := operationsCounterValues(t, reader)
+		for len(got) < len(seeded) && time.Now().Before(deadline) {
+			time.Sleep(10 * time.Millisecond)
+			got = operationsCounterValues(t, reader)
+		}
+		if !maps.Equal(got, seeded) {
+			t.Errorf("operations counter = %v, want %v", got, seeded)
+		}
+	})
+
+	t.Run("replica", func(t *testing.T) {
+		reader := setupMetricTest(t)
+		w, _ := newTestWorker(t, newFixture(t))
+		w.config.IsPrimary = func() bool { return false }
+
+		// A replica runs no startup work, so a cancelled scheduler
+		// returns after the point where a primary seeds.
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		w.StartScheduler(ctx, time.Hour)
+		if got := operationsCounterValues(t, reader); len(got) != 0 {
+			t.Errorf("operations counter on a replica = %v, want no data points", got)
+		}
+	})
 }
 
 // TestSync_PrunesSyncStatus verifies that a sync cycle prunes sync_status
@@ -3721,6 +3811,100 @@ func TestReadLinuxVmHWM(t *testing.T) {
 	if b <= 0 {
 		t.Errorf("readLinuxVMHWM returned %d bytes, want > 0", b)
 	}
+}
+
+// TestResetLinuxVMHWM verifies that resetLinuxVMHWM writes "5" to an
+// existing file and does not create a missing one, and that on Linux
+// the reset of the test process succeeds and does not raise VmHWM.
+func TestResetLinuxVMHWM(t *testing.T) {
+	t.Run("writes 5", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "clear_refs")
+		if err := os.WriteFile(path, nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := resetLinuxVMHWM(path); err != nil {
+			t.Fatalf("reset: %v", err)
+		}
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != "5" {
+			t.Errorf("file content = %q, want %q", got, "5")
+		}
+	})
+
+	t.Run("missing file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "clear_refs")
+		if err := resetLinuxVMHWM(path); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("reset error = %v, want os.ErrNotExist", err)
+		}
+		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("reset created %s (stat error %v)", path, err)
+		}
+	})
+
+	// Not parallel: another test could change the RSS between the reset
+	// and the read.
+	t.Run("proc", func(t *testing.T) {
+		if runtime.GOOS != "linux" {
+			t.Skipf("skipping on %s (no %s)", runtime.GOOS, procClearRefsPath)
+		}
+		// Touch a 64 MiB spike and return it to the OS, so VmHWM is above
+		// the RSS. With GODEBUG=madvdontneed=0 the RSS can stay high; the
+		// assertion below holds in that case too.
+		const spikeBytes = 64 << 20
+		func() {
+			spike := make([]byte, spikeBytes)
+			for i := 0; i < len(spike); i += os.Getpagesize() {
+				spike[i] = 1
+			}
+			runtime.KeepAlive(spike)
+		}()
+		debug.FreeOSMemory()
+
+		if err := resetLinuxVMHWM(procClearRefsPath); err != nil {
+			t.Fatalf("reset: %v", err)
+		}
+		// The reset sets VmHWM to the RSS. Read both from one snapshot of
+		// /proc/self/status.
+		status := procStatusBytes(t)
+		hwm, rss := status["VmHWM:"], status["VmRSS:"]
+		if hwm == 0 || rss == 0 {
+			t.Fatalf("VmHWM = %d, VmRSS = %d, want both in /proc/self/status", hwm, rss)
+		}
+		// Half the spike: memory that the kernel reclaims between the
+		// reset and the read lowers VmRSS only. Without the reset, VmHWM
+		// stays at least one spike above VmRSS.
+		const tolerance = spikeBytes / 2
+		if hwm > rss+tolerance {
+			t.Errorf("VmHWM after the reset = %d, VmRSS = %d, want VmHWM within %d of VmRSS",
+				hwm, rss, tolerance)
+		}
+	})
+}
+
+// procStatusBytes returns the kB fields of /proc/self/status in bytes,
+// keyed by the field name with its colon ("VmRSS:").
+func procStatusBytes(t *testing.T) map[string]int64 {
+	t.Helper()
+	data, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := make(map[string]int64)
+	for line := range strings.SplitSeq(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 3 || fields[2] != "kB" {
+			continue
+		}
+		kb, err := strconv.ParseInt(fields[1], 10, 64)
+		if err != nil {
+			t.Fatalf("parse %s: %v", fields[0], err)
+		}
+		out[fields[0]] = kb * 1024
+	}
+	return out
 }
 
 // TestSyncFetchPass_UsesMaxUpdatedAsCursor asserts the MAX(updated)

@@ -200,6 +200,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 			},
 		},
 		{
+			// A failed row with no earlier success: no known-good data.
 			name: "sync_marked_failed",
 			setupDB: func(t *testing.T) *sql.DB {
 				db := openTestDB(t)
@@ -211,12 +212,15 @@ func TestHealth_GenericResponse(t *testing.T) {
 			wantBody:   `{"status":"unhealthy"}`,
 			logAssert: func(_ *testing.T, records []slog.Record) string {
 				for _, r := range records {
-					if r.Level != slog.LevelWarn {
+					if r.Message != "readyz sync marked failed" {
 						continue
+					}
+					if r.Level != slog.LevelDebug {
+						return "sync failed record must be DEBUG"
 					}
 					comp, ok := findAttr(r, "component")
 					if !ok || comp.Value.String() != "sync" {
-						continue
+						return "sync failed record must carry component=sync"
 					}
 					errAttr, ok := findAttr(r, "error")
 					if !ok || errAttr.Value.String() != "connection timeout to upstream" {
@@ -227,7 +231,7 @@ func TestHealth_GenericResponse(t *testing.T) {
 					}
 					return ""
 				}
-				return "expected a component=sync warn record for failed sync"
+				return "expected a readyz sync marked failed record"
 			},
 		},
 		{
@@ -380,6 +384,58 @@ func TestHealth_RunningFallback_LastSyncFailed(t *testing.T) {
 			// completed_at NULL. This is what GetLastStatus returns, so
 			// checkSync enters the "running" branch.
 			insertRunningSync(t, db, time.Now())
+
+			status, body, _ := collectReadinessResponse(t, health.ReadinessInput{
+				DB:             db,
+				StaleThreshold: staleThreshold,
+			})
+
+			if status != tt.wantStatus {
+				t.Errorf("status = %d, want %d", status, tt.wantStatus)
+			}
+			wantBody := `{"status":"unhealthy"}`
+			if tt.wantStatus == http.StatusOK {
+				wantBody = `{"status":"ok"}`
+			}
+			if body != wantBody {
+				t.Errorf("body = %q, want %q", body, wantBody)
+			}
+		})
+	}
+}
+
+// TestHealth_FailedFallback verifies that a failed newest sync row does
+// not make /readyz unhealthy by itself: the verdict is the age of the
+// most recent successful sync, as for a running row. Replicas read the
+// same rows, so a 503 on each failed attempt failed the Fly check of
+// the whole fleet while it served fresh data.
+func TestHealth_FailedFallback(t *testing.T) {
+	t.Parallel()
+
+	staleThreshold := 24 * time.Hour
+
+	tests := []struct {
+		name string
+		// successAge is the age of the success row before the failed
+		// row; 0 seeds no success row.
+		successAge time.Duration
+		wantStatus int
+	}{
+		{name: "recent_success_then_failed_is_healthy", successAge: time.Hour, wantStatus: http.StatusOK},
+		{name: "stale_success_then_failed_is_unhealthy", successAge: 48 * time.Hour, wantStatus: http.StatusServiceUnavailable},
+		{name: "failed_without_success_is_unhealthy", wantStatus: http.StatusServiceUnavailable},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			db := openTestDB(t)
+			initSyncTable(t, db)
+			if tt.successAge > 0 {
+				insertSync(t, db, time.Now().Add(-tt.successAge), "success", "")
+			}
+			// The newest row (highest id) is the failed attempt.
+			insertSync(t, db, time.Now(), "failed", "connection timeout to upstream")
 
 			status, body, _ := collectReadinessResponse(t, health.ReadinessInput{
 				DB:             db,

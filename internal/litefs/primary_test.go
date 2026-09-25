@@ -85,10 +85,47 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 			name: "no file but litefs directory exists means primary",
 			setup: func(t *testing.T) (string, string) {
 				// Simulate LiteFS directory existing but no .primary file
+				t.Setenv("FLY_REGION", "")
+				t.Setenv("PRIMARY_REGION", "")
 				dir := t.TempDir() // acts as the litefs mount dir
 				path := filepath.Join(dir, ".primary")
 				// dir exists but .primary file does not
 				return path, "TEST_IS_PRIMARY_2"
+			},
+			wantPrimary: true,
+		},
+		{
+			name: "no file in the primary region means primary",
+			setup: func(t *testing.T) (string, string) {
+				t.Setenv("FLY_REGION", "lhr")
+				t.Setenv("PRIMARY_REGION", "lhr")
+				return filepath.Join(t.TempDir(), ".primary"), "TEST_IS_PRIMARY_7"
+			},
+			wantPrimary: true,
+		},
+		{
+			// LiteFS shows no .primary file on a replica while no node
+			// holds the lease (the primary restarts during a deploy). A
+			// node outside PRIMARY_REGION can never hold it.
+			name: "no file outside the primary region means replica",
+			setup: func(t *testing.T) (string, string) {
+				t.Setenv("FLY_REGION", "gru")
+				t.Setenv("PRIMARY_REGION", "lhr")
+				return filepath.Join(t.TempDir(), ".primary"), "TEST_IS_PRIMARY_8"
+			},
+			wantPrimary: false,
+		},
+		{
+			// Without LiteFS there is no lease, so the regions do not
+			// select the role.
+			name: "no litefs directory ignores the regions",
+			setup: func(t *testing.T) (string, string) {
+				t.Setenv("FLY_REGION", "gru")
+				t.Setenv("PRIMARY_REGION", "lhr")
+				dir := filepath.Join(t.TempDir(), "nonexistent-litefs")
+				envKey := "TEST_IS_PRIMARY_9"
+				t.Setenv(envKey, "true")
+				return filepath.Join(dir, ".primary"), envKey
 			},
 			wantPrimary: true,
 		},
@@ -173,6 +210,27 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 				t.Errorf("IsPrimaryWithFallback(%q, %q) = %v, want %v", path, envKey, got, tt.wantPrimary)
 			}
 		})
+	}
+}
+
+// TestIsCandidate locks the mirror of the litefs.yml lease rule
+// `candidate: ${FLY_REGION == PRIMARY_REGION}`.
+func TestIsCandidate(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		region, primaryRegion string
+		want                  bool
+	}{
+		{"lhr", "lhr", true},
+		{"gru", "lhr", false},
+		{"", "lhr", false},
+		{"gru", "", false},
+		{"", "", true},
+	}
+	for _, tt := range tests {
+		if got := litefs.IsCandidate(tt.region, tt.primaryRegion); got != tt.want {
+			t.Errorf("IsCandidate(%q, %q) = %v, want %v", tt.region, tt.primaryRegion, got, tt.want)
+		}
 	}
 }
 

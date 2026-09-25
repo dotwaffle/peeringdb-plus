@@ -12,8 +12,9 @@ All routes are registered in `cmd/peeringdb-plus/main.go`
 and pass through the production middleware chain:
 
 ```text
-Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier ->
-Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
+Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery -> Logging ->
+PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip ->
+RouteTag -> mux
 ```
 
 The server speaks HTTP/1.1 and h2c
@@ -45,7 +46,7 @@ or return `503 not primary` when running outside Fly.io.
 |--------|------|---------|-------------|
 | `GET` | `/` | Root | Content-negotiated service discovery (terminal / browser / JSON) |
 | `GET` | `/healthz` | Health | Liveness probe (always `200`) |
-| `GET` | `/readyz` | Health | Readiness probe (checks the DB, the last sync result and sync freshness) |
+| `GET` | `/readyz` | Health | Readiness probe (checks the DB and the age of the last successful sync) |
 | `POST` | `/sync` | Admin | On-demand sync trigger (primary only, token-gated) |
 | `GET` | `/favicon.ico` | Static | Favicon served from embedded `internal/web/static/` |
 | `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/` |
@@ -1205,8 +1206,11 @@ and ignore case (`ContainsFold`).
 They do not ignore diacritics.
 The other string filters, `status` included, must match the full value,
 and they are case-sensitive.
-Integer filters such as `asn` and `org_id` are validated to be positive;
-invalid values return `INVALID_ARGUMENT`.
+Integer filters such as `org_id` must be positive.
+The `asn` filter of `ListNetworks`, `StreamNetworks`,
+`ListNetworkIxLans` and `StreamNetworkIxLans` must not be negative:
+upstream keeps tombstones with ASN 0.
+Invalid values return `INVALID_ARGUMENT`.
 
 ### Pagination (List)
 

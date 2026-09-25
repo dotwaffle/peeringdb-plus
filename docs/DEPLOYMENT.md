@@ -365,7 +365,11 @@ so the project continues to use it.
   and **absent on the primary** (the primary holds the lease).
   The detection logic in `internal/litefs/primary.go` is:
   1. If `/litefs/.primary` exists → replica.
-  2. If `/litefs/` exists but `.primary` does not → primary.
+  2. If `/litefs/` exists but `.primary` does not → primary,
+     but only on a lease candidate
+     (`FLY_REGION` equals `PRIMARY_REGION`; both empty also match).
+     A replica also sees no `.primary` file while no node holds the lease,
+     for example while the primary restarts during a deploy.
   3. If `/litefs/` does not exist (LiteFS not mounted) → fall back to the
      `PDBPLUS_IS_PRIMARY` env var (default `true` for local dev).
 - **Write forwarding via `fly-replay`.**
@@ -444,6 +448,8 @@ On the 1 GB volume, the check fails at about 45 percent use.
 Auto-extend acts only at 80 percent use,
 so it does not stop the fallback.
 When the WARN repeats, extend the volume with `fly volumes extend`.
+The gauge `pdbplus_scratch_free_bytes` shows the free space,
+and the alert `PdbPlusPrimaryVolumeLow` fires after 30 minutes below 512 MiB.
 The span attribute `pdbplus.sync.scratch_dir` names the directory that
 the cycle used.
 The `[env]` block applies to both groups.
@@ -477,10 +483,12 @@ To replace a damaged replica, do these steps:
 Typical hydration window is 5-45 seconds per region.
 
 If a replica returns 503 for more than 5 minutes,
-look for `readyz sync marked failed` or `readyz sync stale` in its logs.
-Both conditions come from the `sync_status` rows
+look for `readyz sync stale` in its logs,
+and for `sync cycle failed` in the logs of the primary.
+The stale check reads the `sync_status` rows
 that LiteFS replicates from the primary.
-To clear them, send `POST /sync` with the `PDBPLUS_SYNC_TOKEN`.
+To clear them, correct the cause of the failed syncs on the primary,
+then send `POST /sync` with the `PDBPLUS_SYNC_TOKEN`.
 The new cycle on the primary writes a new `sync_status` row,
 and LTX replication copies it to the replicas within seconds.
 
@@ -559,9 +567,15 @@ Its `LiteFS Replication` row reads the `pdbplus.litefs.*` instruments,
 so it has data only when `PDBPLUS_LITEFS_METRICS_URL` is set.
 The row shows replica stream lag, LTX apply lag, transactions behind the
 primary, commits on the primary, the raw LTX size and connected replicas.
-Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`
-and are applied via `mimirtool rules sync`
+Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`.
+Production runs them as Grafana-managed rules
 (see `deploy/grafana/alerts/README.md` for the workflow).
+The SLOs (availability and data freshness) live in `deploy/grafana/slos/`
+and are applied through the Grafana SLO API
+(see `deploy/grafana/slos/README.md`).
+The burn-rate rules of the availability SLO are the alerts for 5xx responses.
+`deploy/grafana/synthetics/README.md` defines the Synthetic Monitoring check,
+which requests `/api` through the Fly proxy from three locations.
 
 The OTLP endpoint, the Grafana host, and the Mimir tenant are deployment
 values.
@@ -583,13 +597,16 @@ Runtime health:
   - The database ping fails or takes more than 2 seconds
     (log: `readyz db probe failed`).
   - The `sync_status` query fails (log: `readyz sync lookup failed`).
-  - No sync has completed.
-  - The newest `sync_status` row has the status `failed`
-    (log: `readyz sync marked failed`).
-    Replicas read the same replicated row,
-    so all machines return 503 until a new sync cycle starts.
+  - No sync has completed successfully (log: `readyz no sync completed`).
   - The newest successful sync is older than `PDBPLUS_SYNC_STALE_THRESHOLD`,
     default `24h` (log: `readyz sync stale`).
+
+  A failed or running sync does not cause a 503 by itself:
+  the check uses the age of the newest successful sync.
+  A failed cycle rolls back, so the data of that sync stays in place.
+  Replicas read the same replicated `sync_status` rows,
+  so a 503 for each failed attempt would fail the Fly check
+  of every machine until the retry passed.
 
   While a replica cold-syncs at boot,
   LiteFS does not start the application yet,
@@ -611,10 +628,13 @@ and reads (on Linux)
 on the `sync-full` / `sync-incremental` span,
 and fires `slog.Warn("heap threshold crossed", ...)`
 when either breaches its configured threshold.
-Lifetimes differ:
-the heap peak resets every cycle,
-while VmHWM is a process-lifetime high-water mark
-that includes API-serving load and only resets on restart.
+Both values are per-cycle:
+the worker resets the heap peak at the start of each cycle,
+and resets VmHWM by writing `5` to `/proc/self/clear_refs`.
+The RSS peak includes the API-serving load during the cycle.
+When the reset fails, the worker logs
+`failed to reset peak RSS, peak_rss_bytes is the process peak` once,
+and VmHWM stays the peak since the process started.
 The same values are exported as Prometheus gauges
 (`pdbplus_sync_peak_heap_bytes`, `pdbplus_sync_peak_rss_bytes`)
 for dashboard timeseries.

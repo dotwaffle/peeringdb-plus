@@ -2,6 +2,8 @@ package otel
 
 import (
 	"context"
+	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -192,6 +194,65 @@ func TestInitFreshnessGauge_RecordsValue(t *testing.T) {
 	val := gauge.DataPoints[0].Value
 	if val < 290 || val > 310 {
 		t.Errorf("expected freshness ~300s, got %f", val)
+	}
+}
+
+// TestInitScratchFreeGauge asserts that pdbplus.scratch.free reports
+// the free space of the scratch dir, and nothing when the free space is
+// not known.
+func TestInitScratchFreeGauge(t *testing.T) {
+	tests := []struct {
+		name   string
+		free   uint64
+		err    error
+		want   int64
+		wantOK bool
+	}{
+		{name: "value", free: 3 << 30, want: 3 << 30, wantOK: true},
+		{name: "statfs error", err: errors.New("statfs failed")},
+		{name: "not known", free: math.MaxUint64},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := sdkmetric.NewManualReader()
+			mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+			otel.SetMeterProvider(mp)
+			t.Cleanup(func() { _ = mp.Shutdown(context.Background()) })
+
+			var asked []string
+			err := InitScratchFreeGauge("/var/lib/litefs/scratch", func(dir string) (uint64, error) {
+				asked = append(asked, dir)
+				return tt.free, tt.err
+			})
+			if err != nil {
+				t.Fatalf("InitScratchFreeGauge: %v", err)
+			}
+
+			var rm metricdata.ResourceMetrics
+			if err := reader.Collect(t.Context(), &rm); err != nil {
+				t.Fatalf("Collect: %v", err)
+			}
+			if len(asked) != 1 || asked[0] != "/var/lib/litefs/scratch" {
+				t.Errorf("free called with %q, want one call with the scratch dir", asked)
+			}
+			var points []metricdata.DataPoint[int64]
+			if found := findMetric(rm, "pdbplus.scratch.free"); found != nil {
+				gauge, ok := found.Data.(metricdata.Gauge[int64])
+				if !ok {
+					t.Fatalf("expected Gauge[int64], got %T", found.Data)
+				}
+				points = gauge.DataPoints
+			}
+			if !tt.wantOK {
+				if len(points) != 0 {
+					t.Errorf("got %d data points, want none", len(points))
+				}
+				return
+			}
+			if len(points) != 1 || points[0].Value != tt.want {
+				t.Errorf("data points = %v, want one with value %d", points, tt.want)
+			}
+		})
 	}
 }
 

@@ -357,6 +357,12 @@ func TestListNetworksFilters(t *testing.T) {
 			wantErr: connect.CodeInvalidArgument,
 		},
 		{
+			// Upstream keeps tombstones with ASN 0 (net 21510).
+			name:    "ASN zero accepted",
+			req:     &pb.ListNetworksRequest{Asn: proto.Int64(0)},
+			wantLen: 0,
+		},
+		{
 			name:    "invalid org_id zero",
 			req:     &pb.ListNetworksRequest{OrgId: proto.Int64(0)},
 			wantErr: connect.CodeInvalidArgument,
@@ -931,6 +937,11 @@ func TestListNetworkIxLansFilters(t *testing.T) {
 			name:    "invalid asn negative",
 			req:     &pb.ListNetworkIxLansRequest{Asn: proto.Int64(-1)},
 			wantErr: connect.CodeInvalidArgument,
+		},
+		{
+			name:    "asn zero accepted",
+			req:     &pb.ListNetworkIxLansRequest{Asn: proto.Int64(0)},
+			wantLen: 0,
 		},
 	}
 
@@ -3448,7 +3459,7 @@ func TestFilterValidationErrors(t *testing.T) {
 			{name: "ix_side_id zero", req: &pb.ListNetworkIxLansRequest{IxSideId: proto.Int64(0)}, wantMsg: "ix_side_id must be positive"},
 			{name: "net_id negative", req: &pb.ListNetworkIxLansRequest{NetId: proto.Int64(-1)}, wantMsg: "net_id must be positive"},
 			{name: "ixlan_id zero", req: &pb.ListNetworkIxLansRequest{IxlanId: proto.Int64(0)}, wantMsg: "ixlan_id must be positive"},
-			{name: "asn negative", req: &pb.ListNetworkIxLansRequest{Asn: proto.Int64(-1)}, wantMsg: "asn must be positive"},
+			{name: "asn negative", req: &pb.ListNetworkIxLansRequest{Asn: proto.Int64(-1)}, wantMsg: "asn must not be negative"},
 			{name: "ix_id zero", req: &pb.ListNetworkIxLansRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
 		}
 		for _, tt := range tests {
@@ -3479,7 +3490,7 @@ func TestFilterValidationErrors(t *testing.T) {
 			{name: "ix_side_id zero", req: &pb.StreamNetworkIxLansRequest{IxSideId: proto.Int64(0)}, wantMsg: "ix_side_id must be positive"},
 			{name: "net_id negative", req: &pb.StreamNetworkIxLansRequest{NetId: proto.Int64(-1)}, wantMsg: "net_id must be positive"},
 			{name: "ixlan_id zero", req: &pb.StreamNetworkIxLansRequest{IxlanId: proto.Int64(0)}, wantMsg: "ixlan_id must be positive"},
-			{name: "asn negative", req: &pb.StreamNetworkIxLansRequest{Asn: proto.Int64(-1)}, wantMsg: "asn must be positive"},
+			{name: "asn negative", req: &pb.StreamNetworkIxLansRequest{Asn: proto.Int64(-1)}, wantMsg: "asn must not be negative"},
 			{name: "ix_id zero", req: &pb.StreamNetworkIxLansRequest{IxId: proto.Int64(0)}, wantMsg: "ix_id must be positive"},
 		}
 		for _, tt := range tests {

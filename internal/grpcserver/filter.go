@@ -152,6 +152,19 @@ func positiveInt64() func(int64) error {
 	}
 }
 
+// nonNegativeInt64 returns a validator that rejects negative int64
+// values. The ASN filters of net and netixlan use it: upstream keeps
+// tombstones with ASN 0 (net 21510), and sync stores them as sent. See
+// positiveInt64 for error-format rationale.
+func nonNegativeInt64() func(int64) error {
+	return func(v int64) error {
+		if v < 0 {
+			return fmt.Errorf("must not be negative")
+		}
+		return nil
+	}
+}
+
 // nonEmptyString returns a validator that rejects zero-length strings.
 // See positiveInt64 for error-format rationale.
 func nonEmptyString() func(string) error {

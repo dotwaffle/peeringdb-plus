@@ -799,7 +799,8 @@ Before you open a PR:
 - **Sync never completes / `/readyz` stays unhealthy:** the sync worker only
   writes on the LiteFS primary.
   Check `internal/litefs/primary.go` —
-  `.primary` file **absent** = this node is primary (inverted semantics).
+  `.primary` file **absent** = this node is primary (inverted semantics),
+  if it is a lease candidate (`FLY_REGION` equals `PRIMARY_REGION`).
   For local dev without LiteFS, `PDBPLUS_IS_PRIMARY=true` is the default.
 - **Generated code drift in CI:** run `mise run generate` locally
   and commit the resulting diff.

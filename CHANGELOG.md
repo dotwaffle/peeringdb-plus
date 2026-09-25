@@ -10,6 +10,105 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- Alert rule `PdbPlusReplicaMemoryHigh` (warning): the Go runtime
+  memory of a replica above 180 MiB for 15 minutes. The heap and RSS
+  rules read gauges that only the primary sets, so the 256 MB replicas
+  had no memory alert.
+- SLO definitions in `deploy/grafana/slos/` for the Grafana SLO app.
+  Availability: 99.9% of routed HTTP requests over 28 days return a
+  status below 500 (health probes, `POST /sync` and unrouted requests
+  left out), with fast and slow burn-rate alerts that need at least 5
+  failed requests. Data freshness: the newest successful sync is less
+  than 1 hour old for 99.5% of 28 days (no SLO alerts;
+  `PdbPlusSyncFreshnessHigh` stays). Dashboard panel Error Rate (5xx)
+  uses the request selector of the availability SLO.
+- Alert rules `PdbPlusProbeFailing` (critical: the Synthetic Monitoring
+  check of `/api` fails more than half of its executions in 10 minutes
+  from at least 2 locations), `PdbPlusReplicaLagHigh` (warning: a replica
+  has received no LiteFS frame for more than 10 minutes) and
+  `PdbPlusPrimaryVolumeLow` (warning: less than 512 MiB free on the
+  primary volume for 30 minutes). A stalled replica showed only in the
+  freshness alert after 2 hours, and a filling volume only in a WARN log.
+- Gauge `pdbplus.scratch.free` (`pdbplus_scratch_free_bytes`): the free
+  space of the file system of `PDBPLUS_SCRATCH_DIR`, which on Fly.io is
+  the LiteFS volume of the primary. Before, only the WARN of the scratch
+  free-space guard showed a filling volume.
+- Synthetic Monitoring check definition in
+  `deploy/grafana/synthetics/README.md`: an HTTP check of `/api` through
+  the Fly proxy from London, Sydney and the US every 3 minutes (43,200
+  executions per month, inside the 100,000 of the free plan).
+- Dashboard `pdbplus-overview`: two collapsed rows. "Upstream PeeringDB"
+  shows the requests to PeeringDB by status class, retries by cause, and
+  the p95 wait for the local rate limiter. "Sync Sweep & Backfill" shows
+  the history sweep windows by type and result, FK backfill attempts,
+  and FK orphan rows.
+
+### Changed
+
+- `PdbPlusSyncOperationFailed` now fires after at least 2 failed sync
+  attempts in 3 hours (`sum(increase(...[3h])) > 1.5`), and
+  `keep_firing_for: 1h` keeps it firing between failures that recur
+  every few hours. It fired on every failed attempt, also when the retry
+  30 seconds later passed, and a failure every 78 minutes made it fire
+  and resolve each time.
+- The alert rules no longer carry the `receiver: grafana-default-email`
+  label: Grafana notification policies route by `severity`, and the
+  label had no effect. `deploy/grafana/alerts/README.md` now describes
+  the Grafana-managed rules that production runs, and no longer caps the
+  rule count at 8. The `PdbPlusSyncFailureRateHigh` and `PdbPlusRssHigh`
+  annotations say when the rules fire.
+- Dashboard `pdbplus-overview`: the Go Runtime panels show one line per
+  machine (`sum by (service_namespace, cloud_region)`); `sum by
+  (instance)` summed the fleet, because the `instance` label is empty.
+  Sync Success Rate and Fallback Events count over the dashboard range,
+  as their 4-minute window was empty between 15-minute cycles. Sync
+  Duration (p95) aggregates the buckets per mode over 1 hour. Error Rate
+  (5xx) leaves out the health probes, which caused every 5xx of the last
+  week.
+- A failed sync attempt no longer makes `/readyz` return 503 by itself.
+  The check now uses the age of the newest successful sync, as it does
+  while a sync runs. Replicas read the same `sync_status` rows, so each
+  failed attempt failed the Fly health check of every machine until the
+  retry passed, while all of them served the data of the last success.
+  The `readyz sync marked failed` log is now DEBUG.
+- The ConnectRPC `asn` filter of `ListNetworks`, `StreamNetworks`,
+  `ListNetworkIxLans` and `StreamNetworkIxLans` accepts 0. It rejected 0
+  as not positive, but the mirror stores upstream tombstones with ASN 0
+  since v1.32.2 (net 21510). Negative values still return
+  `INVALID_ARGUMENT`.
+
+### Fixed
+
+- The first failed sync attempt after a restart now reaches
+  `PdbPlusSyncOperationFailed` and `PdbPlusSyncFailureRateHigh`. The
+  `pdbplus_sync_operations_total` series of a new process started at 1,
+  so PromQL `increase()` read 0 for its first increment. The primary now
+  adds 0 to each status and mode series when it starts or is promoted.
+  A failure before the first metric export (one interval after start)
+  is still not counted.
+- `pdbplus_sync_peak_rss_bytes` is now the peak RSS of the last sync
+  cycle. It was VmHWM, the peak since the process started, so after one
+  high peak `PdbPlusRssHigh` stayed firing until the next restart. The
+  worker now resets VmHWM (`/proc/self/clear_refs`) at the start of each
+  cycle.
+- A replica outside `PRIMARY_REGION` no longer acts as the primary while
+  the primary restarts. LiteFS shows no `/litefs/.primary` file on a
+  replica while no node holds the lease, and the role check read that as
+  "primary". During three deploys in one week a replica logged
+  `promoted to primary`. One of them also started a sync cycle and
+  failed to write (`disk I/O error (778)`).
+  With LiteFS mounted, a node is now primary only if LiteFS can elect it
+  (`FLY_REGION` equals `PRIMARY_REGION`, the `litefs.yml` rule).
+- A request whose handler panics now counts in
+  `http_server_request_duration_seconds` as a 500 with its `http_route`.
+  The Recovery middleware wrapped otelhttp, so the panic unwound past the
+  metric record, and the 5xx error rate did not count it. A second
+  Recovery now sits inside otelhttp, and the route tag runs in a defer.
+  A panic after the response started still records the status already
+  sent.
+
 ## [1.32.2] - 2026-09-25
 
 ### Fixed

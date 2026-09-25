@@ -60,15 +60,22 @@ type chainConfig struct {
 // buildMiddlewareChain wraps the innermost handler in the full production
 // middleware stack, returning the outermost handler. The chain order is:
 //
-//	Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging ->
-//	PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching ->
-//	Gzip -> RouteTag -> innermost
+//	Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery ->
+//	Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP ->
+//	Caching -> Gzip -> RouteTag -> innermost
 //
 // The code below wraps innermost-first (RouteTag is wrapped first so it
-// sits closest to the handler; Recovery is wrapped last so it sits
-// outermost). This ordering is regression-locked by
+// sits closest to the handler; the outer Recovery is wrapped last so it
+// sits outermost). This ordering is regression-locked by
 // TestMiddlewareChain_Order, which source-scans this function body and
 // asserts the literal wrap order.
+//
+// Recovery wraps the chain twice. The inner Recovery sits inside OTel
+// HTTP: otelhttp records the request metric only when its inner handler
+// returns, so a panic that unwound through it left no
+// http.server.request.duration sample, and the 5xx error rate did not
+// count the 500. The outer Recovery keeps the 500 response for a panic in
+// CORS, MaxBytesBody or otelhttp, which the inner one cannot catch.
 //
 // RouteTag must be the innermost wrap so its `next.ServeHTTP(mux)` is the
 // real mux dispatch — only then does r.Pattern get populated, which
@@ -103,6 +110,7 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 	h = middleware.Readiness(cc.SyncWorker, h)
 	h = middleware.PrivacyTier(middleware.PrivacyTierInput{DefaultTier: cc.DefaultTier})(h)
 	h = middleware.Logging(cc.Logger)(h)
+	h = middleware.Recovery(cc.Logger)(h)
 	// Public endpoint: start a fresh root span per request instead of joining
 	// any client-supplied traceparent. We serve arbitrary external callers, so
 	// inheriting their trace context would let them pick our trace-ids and —

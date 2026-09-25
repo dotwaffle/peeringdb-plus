@@ -41,26 +41,36 @@ import (
 // Empty r.Pattern (unmatched routes / NotFound) is skipped so we do not
 // emit an http.route="" label that would balloon Prometheus cardinality
 // for 404 traffic.
+//
+// The tag runs in a defer, so a request whose handler panics keeps its
+// route: the inner middleware.Recovery, inside otelhttp, turns the panic
+// into a 500 that otelhttp records with the route.
 func routeTagMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer tagRoute(r)
 		next.ServeHTTP(w, r)
-		if r.Pattern == "" {
-			return
-		}
-		// Rename the otelhttp server span from the static "peeringdb-plus"
-		// operation to the matched route so every HTTP surface is
-		// distinguishable in trace search and span-name TraceQL filters.
-		// Same rationale as the labeler below: otelhttp's native Pattern read
-		// returns empty because middleware re-derives the request, but the
-		// span lives in ctx and is still recording here (routeTagMiddleware
-		// runs inside the otelhttp span), so SetName after dispatch is valid.
-		// r.Pattern carries the method ("GET /api/net/{id}") under method
-		// routing, matching the OTel "{method} {route}" span-name convention.
-		trace.SpanFromContext(r.Context()).SetName(r.Pattern)
-		labeler, ok := otelhttp.LabelerFromContext(r.Context())
-		if !ok {
-			return
-		}
-		labeler.Add(attribute.String("http.route", r.Pattern))
 	})
+}
+
+// tagRoute names the otelhttp span and adds http.route to the otelhttp
+// labeler, from the pattern that the mux set on r.
+func tagRoute(r *http.Request) {
+	if r.Pattern == "" {
+		return
+	}
+	// Rename the otelhttp server span from the static "peeringdb-plus"
+	// operation to the matched route so every HTTP surface is
+	// distinguishable in trace search and span-name TraceQL filters.
+	// Same rationale as the labeler below: otelhttp's native Pattern read
+	// returns empty because middleware re-derives the request, but the
+	// span lives in ctx and is still recording here (routeTagMiddleware
+	// runs inside the otelhttp span), so SetName after dispatch is valid.
+	// r.Pattern carries the method ("GET /api/net/{id}") under method
+	// routing, matching the OTel "{method} {route}" span-name convention.
+	trace.SpanFromContext(r.Context()).SetName(r.Pattern)
+	labeler, ok := otelhttp.LabelerFromContext(r.Context())
+	if !ok {
+		return
+	}
+	labeler.Add(attribute.String("http.route", r.Pattern))
 }

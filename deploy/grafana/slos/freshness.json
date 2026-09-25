@@ -1,0 +1,28 @@
+{
+  "name": "PeeringDB Plus data freshness",
+  "description": "Share of time, over 28 days, in which the newest successful sync is less than 1 hour old on every machine that reports it.",
+  "folder": {
+    "uid": "peeringdb-plus"
+  },
+  "destinationDatasource": {
+    "uid": "grafanacloud-prom"
+  },
+  "labels": [
+    {
+      "key": "service",
+      "value": "peeringdb-plus"
+    }
+  ],
+  "objectives": [
+    {
+      "value": 0.995,
+      "window": "28d"
+    }
+  ],
+  "query": {
+    "type": "freeform",
+    "freeform": {
+      "query": "min_over_time((max(pdbplus_sync_freshness_seconds{service_name=\"peeringdb-plus\"}) < bool 3600)[$__interval:])"
+    }
+  }
+}

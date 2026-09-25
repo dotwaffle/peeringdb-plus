@@ -270,7 +270,7 @@
       "id": 4,
       "type": "stat",
       "title": "Sync Success Rate",
-      "description": "Should be near 100%. Drops indicate PeeringDB API issues or database write failures.",
+      "description": "Share of sync attempts that succeeded over the dashboard time range. Should be near 100%. A failed attempt counts even when the retry 30s later passes. Drops indicate PeeringDB API issues or database write failures.",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -285,9 +285,10 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(pdbplus_sync_operations_total{status=\"success\"}[$__rate_interval])) / sum(rate(pdbplus_sync_operations_total[$__rate_interval]))",
+          "expr": "sum(increase(pdbplus_sync_operations_total{status=\"success\"}[$__range])) / sum(increase(pdbplus_sync_operations_total[$__range]))",
           "legendFormat": "Success Rate",
-          "refId": "A"
+          "refId": "A",
+          "instant": true
         }
       ],
       "fieldConfig": {
@@ -338,7 +339,7 @@
       "id": 5,
       "type": "timeseries",
       "title": "Sync Duration (p95)",
-      "description": "95th percentile sync cycle time. Normal range is 30-120s depending on data volume and mode (incremental vs full).",
+      "description": "95th percentile sync cycle time over the attempts of the last hour, by mode (incremental or full), failed attempts included. Normal range is 30-120s depending on data volume and mode. A 1h window holds about 4 cycles at the 15m cadence; a shorter window is empty between cycles.",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -353,8 +354,8 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, rate(pdbplus_sync_duration_seconds_bucket[$__rate_interval]))",
-          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum by (le, mode) (increase(pdbplus_sync_duration_seconds_bucket[1h])))",
+          "legendFormat": "{{mode}}",
           "refId": "A"
         }
       ],
@@ -412,7 +413,7 @@
       "id": 6,
       "type": "stat",
       "title": "Fallback Events",
-      "description": "Count of incremental-to-full sync fallbacks. Should be 0 under normal operation. Non-zero means incremental sync failed and a full re-fetch was triggered.",
+      "description": "Count of incremental-to-full sync fallbacks over the dashboard time range. Should be 0 under normal operation. Non-zero means incremental sync failed and a full re-fetch was triggered.",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -427,9 +428,10 @@
           "datasource": {
             "uid": "${datasource}"
           },
-          "expr": "sum(increase(pdbplus_sync_type_fallback_total[$__rate_interval]))",
+          "expr": "sum(increase(pdbplus_sync_type_fallback_total[$__range]))",
           "legendFormat": "Fallbacks",
-          "refId": "A"
+          "refId": "A",
+          "instant": true
         }
       ],
       "fieldConfig": {
@@ -770,7 +772,7 @@
           "id": 11,
           "type": "stat",
           "title": "Error Rate (5xx)",
-          "description": "Ratio of 5xx server errors to total HTTP requests",
+          "description": "Ratio of 5xx server errors to routed HTTP requests. It uses the request selector of the availability SLO (deploy/grafana/slos/), whose burn-rate rules alert on this ratio. Health probes and POST /sync are left out: a /readyz 503 is a readiness verdict, not a failed request. Requests with no http_route (404 scans, the readiness gate 503 before the first sync) are left out too.",
           "gridPos": {
             "h": 6,
             "w": 6,
@@ -785,7 +787,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[$__rate_interval])) / sum(rate(http_server_request_duration_seconds_count[$__rate_interval]))",
+              "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\", http_response_status_code=~\"5..\"}[$__rate_interval])) / sum(rate(http_server_request_duration_seconds_count{service_name=\"$service\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\"}[$__rate_interval]))",
               "legendFormat": "Error Rate",
               "refId": "A"
             }
@@ -1310,7 +1312,7 @@
           "id": 22,
           "type": "timeseries",
           "title": "Goroutines",
-          "description": "Live goroutine count. Sustained growth is a leak signal.",
+          "description": "Live goroutine count. Sustained growth is a leak signal. One line per machine (process group and region).",
           "gridPos": {
             "h": 6,
             "w": 12,
@@ -1325,8 +1327,8 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_goroutine_count{service_name=\"$service\"})",
-              "legendFormat": "{{instance}}",
+              "expr": "sum by (service_namespace, cloud_region) (go_goroutine_count{service_name=\"$service\"})",
+              "legendFormat": "{{service_namespace}}/{{cloud_region}}",
               "refId": "A"
             }
           ],
@@ -1384,7 +1386,7 @@
           "id": 23,
           "type": "timeseries",
           "title": "Heap Memory",
-          "description": "Go heap memory currently in use",
+          "description": "Go heap memory currently in use. One line per machine (process group and region).",
           "gridPos": {
             "h": 6,
             "w": 12,
@@ -1399,8 +1401,8 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_memory_used_bytes{service_name=\"$service\"})",
-              "legendFormat": "{{instance}}",
+              "expr": "sum by (service_namespace, cloud_region) (go_memory_used_bytes{service_name=\"$service\"})",
+              "legendFormat": "{{service_namespace}}/{{cloud_region}}",
               "refId": "A"
             }
           ],
@@ -1458,7 +1460,7 @@
           "id": 24,
           "type": "timeseries",
           "title": "Allocation Rate",
-          "description": "Bytes allocated per second by the Go runtime",
+          "description": "Bytes allocated per second by the Go runtime. One line per machine (process group and region).",
           "gridPos": {
             "h": 6,
             "w": 12,
@@ -1473,8 +1475,8 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(rate(go_memory_allocated_bytes_total{service_name=\"$service\"}[$__rate_interval]))",
-              "legendFormat": "{{instance}}",
+              "expr": "sum by (service_namespace, cloud_region) (rate(go_memory_allocated_bytes_total{service_name=\"$service\"}[$__rate_interval]))",
+              "legendFormat": "{{service_namespace}}/{{cloud_region}}",
               "refId": "A"
             }
           ],
@@ -1532,7 +1534,7 @@
           "id": 25,
           "type": "timeseries",
           "title": "GC Goal",
-          "description": "Target heap size for the Go garbage collector",
+          "description": "Target heap size for the Go garbage collector. One line per machine (process group and region).",
           "gridPos": {
             "h": 6,
             "w": 12,
@@ -1547,8 +1549,8 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "sum by(instance)(go_memory_gc_goal_bytes{service_name=\"$service\"})",
-              "legendFormat": "{{instance}}",
+              "expr": "sum by (service_namespace, cloud_region) (go_memory_gc_goal_bytes{service_name=\"$service\"})",
+              "legendFormat": "{{service_namespace}}/{{cloud_region}}",
               "refId": "A"
             }
           ],
@@ -1896,7 +1898,7 @@
       "id": 34,
       "type": "timeseries",
       "title": "Peak RSS",
-      "description": "Sync-cycle peak RSS on the primary (VmHWM from /proc/self/status). Threshold line at 384 MiB.",
+      "description": "Sync-cycle peak RSS on the primary (VmHWM from /proc/self/status, reset at the start of each cycle). Threshold line at 384 MiB.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2527,6 +2529,478 @@
           "calcs": []
         }
       }
+    },
+    {
+      "id": 44,
+      "type": "row",
+      "title": "Upstream PeeringDB",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 55
+      },
+      "panels": [
+        {
+          "id": 45,
+          "type": "timeseries",
+          "title": "Upstream Requests by Status Class",
+          "description": "Requests to the PeeringDB API per window, by status class (2xx, 3xx, 4xx, 5xx, other, network_error). Sync, FK backfill, netixlan cascade verification and the history sweep share one rate limiter. 4xx includes 429 rate limits and 403 WAF blocks; each is also logged as a WARN.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 56
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (status_class) (increase(pdbplus_peeringdb_requests_total[$__rate_interval]))",
+              "legendFormat": "{{status_class}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 46,
+          "type": "timeseries",
+          "title": "Upstream Retries by Cause",
+          "description": "Retries of PeeringDB requests by cause: 429 (after the Retry-After delay) and 5xx. Empty when no request was retried.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 56
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (cause) (increase(pdbplus_peeringdb_retries_total[$__rate_interval]))",
+              "legendFormat": "{{cause}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 47,
+          "type": "timeseries",
+          "title": "Rate-Limit Wait (p95)",
+          "description": "95th percentile time that a PeeringDB request waited for the local rate limiter (PDBPLUS_PEERINGDB_RPS, burst 1). Waits of seconds are normal during a sync cycle; the limiter keeps requests under the upstream quota.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 56
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(pdbplus_peeringdb_rate_limit_wait_ms_milliseconds_bucket[$__rate_interval])))",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "type": "row",
+      "title": "Sync Sweep & Backfill",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      },
+      "panels": [
+        {
+          "id": 49,
+          "type": "timeseries",
+          "title": "History Sweep Requests",
+          "description": "Tombstone history sweep windows per type and result (ok, rate_limited, error). An incremental cycle sends up to PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE windows. ok counts a fetched window even when the cycle fails later and rolls back, so a type that repeats ok without moving on points at a failure after the fetch (see Sync Operations).",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 0,
+            "y": 57
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (type, result) (increase(pdbplus_sync_history_requests_total{type=~\"$type\"}[$__rate_interval]))",
+              "legendFormat": "{{type}} {{result}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 50,
+          "type": "timeseries",
+          "title": "FK Backfill",
+          "description": "Backfill attempts for missing FK parents, by parent type and result (hit, miss, ratelimited, error, deadline_exceeded). PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE caps the requests per cycle.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 8,
+            "y": 57
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (parent_type, result) (increase(pdbplus_sync_fk_backfill_total{type=~\"$type\"}[$__rate_interval]))",
+              "legendFormat": "{{parent_type}} {{result}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        },
+        {
+          "id": 51,
+          "type": "timeseries",
+          "title": "FK Orphans",
+          "description": "Rows whose FK parent was still missing after backfill, by child type, parent type and action (drop: row skipped; null: optional FK set to NULL). The per-cycle WARN \"fk orphans summary\" has the detail.",
+          "gridPos": {
+            "h": 8,
+            "w": 8,
+            "x": 16,
+            "y": 57
+          },
+          "datasource": {
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (type, parent_type, action) (increase(pdbplus_sync_type_orphans_total{type=~\"$type\"}[$__rate_interval]))",
+              "legendFormat": "{{type}} to {{parent_type}}: {{action}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "drawStyle": "line",
+                "gradientMode": "none",
+                "barAlignment": 0,
+                "lineInterpolation": "linear",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "mappings": []
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          }
+        }
+      ]
     }
   ]
 }

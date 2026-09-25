@@ -1,7 +1,7 @@
-// Package grafana_test validates the Grafana Cloud alert rule YAML and
-// dashboard JSON checked into deploy/grafana/. The alert tests live here
-// alongside dashboard_test.go so a single `go test ./deploy/grafana/...`
-// invocation covers both surfaces.
+// Package grafana_test validates the Grafana Cloud alert rule YAML,
+// dashboard JSON and SLO JSON checked into deploy/grafana/. The tests
+// live side by side so a single `go test ./deploy/grafana/...`
+// invocation covers all three.
 package grafana_test
 
 import (
@@ -40,8 +40,6 @@ type alertRule struct {
 const (
 	alertsPath       = "alerts/pdbplus-alerts.yaml"
 	alertsReadmePath = "alerts/README.md"
-	maxRules         = 8 // Stay under Grafana Cloud free-tier alertmanager limits.
-	receiverName     = "grafana-default-email"
 )
 
 // loadAlerts reads and parses the alert YAML. testing.TB lets benchmarks
@@ -90,9 +88,11 @@ func TestAlerts_RequiredFields(t *testing.T) {
 				t.Errorf("rule %q: severity=%q, want critical|warning",
 					r.Alert, r.Labels["severity"])
 			}
-			if got := r.Labels["receiver"]; got != receiverName {
-				t.Errorf("rule %q: receiver=%q, want %q",
-					r.Alert, got, receiverName)
+			// Notification policies route by severity; a receiver
+			// label has no effect on Grafana-managed rules.
+			if got, ok := r.Labels["receiver"]; ok {
+				t.Errorf("rule %q: receiver=%q, want no receiver label",
+					r.Alert, got)
 			}
 			if r.Annotations["summary"] == "" {
 				t.Errorf("rule %q: missing %s annotation", r.Alert, "summary")
@@ -104,16 +104,13 @@ func TestAlerts_RequiredFields(t *testing.T) {
 	}
 }
 
-func TestAlerts_RuleCountUnderCap(t *testing.T) {
+func TestAlerts_HasRules(t *testing.T) {
 	t.Parallel()
 	f := loadAlerts(t)
 
 	total := 0
 	for _, g := range f.Groups {
 		total += len(g.Rules)
-	}
-	if total > maxRules {
-		t.Errorf("alert rule count %d exceeds cap of %d", total, maxRules)
 	}
 	if total == 0 {
 		t.Error("alert rule count is 0; expected at least one rule")

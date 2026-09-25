@@ -3,6 +3,7 @@ package otel
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync/atomic"
 	"time"
 
@@ -301,6 +302,31 @@ func InitMemoryGauges() error {
 	)
 	if err != nil {
 		return fmt.Errorf("registering pdbplus.sync.peak_rss gauge: %w", err)
+	}
+	return nil
+}
+
+// InitScratchFreeGauge registers the pdbplus.scratch.free gauge: the free
+// space of the file system of dir (PDBPLUS_SCRATCH_DIR), in bytes, as
+// free reports it. On Fly.io the dir of the primary is on its LiteFS
+// volume. Each collection calls free once. An error, or a value above
+// math.MaxInt64 (free space not known), observes nothing.
+func InitScratchFreeGauge(dir string, free func(dir string) (uint64, error)) error {
+	meter := otel.Meter("peeringdb-plus")
+	_, err := meter.Int64ObservableGauge("pdbplus.scratch.free",
+		metric.WithDescription("Free space of the file system of PDBPLUS_SCRATCH_DIR, in bytes"),
+		metric.WithUnit("By"),
+		metric.WithInt64Callback(func(_ context.Context, o metric.Int64Observer) error {
+			v, err := free(dir)
+			if err != nil || v > math.MaxInt64 {
+				return nil
+			}
+			o.Observe(int64(v))
+			return nil
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("registering pdbplus.scratch.free gauge: %w", err)
 	}
 	return nil
 }

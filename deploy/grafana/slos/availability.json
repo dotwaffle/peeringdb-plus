@@ -1,0 +1,74 @@
+{
+  "name": "PeeringDB Plus availability",
+  "description": "Share of routed HTTP requests that return a status below 500, over 28 days. Health probes, POST /sync and unrouted requests (no http_route) are left out.",
+  "folder": {
+    "uid": "peeringdb-plus"
+  },
+  "destinationDatasource": {
+    "uid": "grafanacloud-prom"
+  },
+  "labels": [
+    {
+      "key": "service",
+      "value": "peeringdb-plus"
+    }
+  ],
+  "objectives": [
+    {
+      "value": 0.999,
+      "window": "28d"
+    }
+  ],
+  "query": {
+    "type": "ratio",
+    "ratio": {
+      "successMetric": {
+        "prometheusMetric": "http_server_request_duration_seconds_count{service_name=\"peeringdb-plus\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\", http_response_status_code!~\"5..\"}"
+      },
+      "totalMetric": {
+        "prometheusMetric": "http_server_request_duration_seconds_count{service_name=\"peeringdb-plus\", http_route!=\"\", http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync\"}"
+      }
+    }
+  },
+  "alerting": {
+    "advancedOptions": {
+      "minFailures": 5
+    },
+    "fastBurn": {
+      "labels": [
+        {
+          "key": "severity",
+          "value": "critical"
+        }
+      ],
+      "annotations": [
+        {
+          "key": "summary",
+          "value": "PeeringDB Plus burns its availability error budget fast"
+        },
+        {
+          "key": "description",
+          "value": "5xx responses on routed requests burn the 28-day error budget of the availability SLO (99.9%) at 14.4 times the sustainable rate over 1h and 5m, or 6 times over 6h and 30m. Break the errors down by http_route and cloud_region (dashboard pdbplus-overview, Error Rate (5xx)), then read the ERROR logs of those machines."
+        }
+      ]
+    },
+    "slowBurn": {
+      "labels": [
+        {
+          "key": "severity",
+          "value": "warning"
+        }
+      ],
+      "annotations": [
+        {
+          "key": "summary",
+          "value": "PeeringDB Plus burns its availability error budget"
+        },
+        {
+          "key": "description",
+          "value": "5xx responses on routed requests burn the 28-day error budget of the availability SLO (99.9%) at 3 times the sustainable rate over 24h and 2h, or 1 time over 72h and 6h. Break the errors down by http_route and cloud_region (dashboard pdbplus-overview, Error Rate (5xx)), then read the ERROR logs of those machines."
+        }
+      ]
+    }
+  }
+}

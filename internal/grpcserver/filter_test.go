@@ -407,6 +407,41 @@ func TestPositiveInt64(t *testing.T) {
 	}
 }
 
+func TestNonNegativeInt64(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		v       int64
+		wantErr bool
+	}{
+		{name: "negative rejected", v: -1, wantErr: true},
+		{name: "min int64 rejected", v: math.MinInt64, wantErr: true},
+		{name: "zero accepted", v: 0, wantErr: false},
+		{name: "max int64 accepted", v: math.MaxInt64, wantErr: false},
+	}
+
+	v := nonNegativeInt64()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := v(tc.v)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("nonNegativeInt64(%d) = nil, want error", tc.v)
+				}
+				if !strings.Contains(err.Error(), "must not be negative") {
+					t.Errorf("error %q does not contain 'must not be negative'", err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("nonNegativeInt64(%d) = %v, want nil", tc.v, err)
+			}
+		})
+	}
+}
+
 func TestNonEmptyString(t *testing.T) {
 	t.Parallel()
 

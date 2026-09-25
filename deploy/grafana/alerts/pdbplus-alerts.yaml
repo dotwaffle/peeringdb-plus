@@ -1,9 +1,9 @@
-# PeeringDB Plus — Grafana Cloud alert rules.
-# Apply with: mimirtool rules sync deploy/grafana/alerts/pdbplus-alerts.yaml
-# See deploy/grafana/alerts/README.md for the full apply / lint workflow.
+# PeeringDB Plus: Grafana Cloud alert rules.
+# Production runs these as Grafana-managed rules with the same names and
+# expressions. See deploy/grafana/alerts/README.md for the apply and lint
+# workflow. Do not also load this file into the Mimir ruler.
 #
-# Receiver routing is configured out-of-band in the Grafana Cloud notifications UI.
-# Both severity tiers bind the canonical default contact point name.
+# Grafana notification policies route the alerts by the severity label.
 #
 # DO NOT add email addresses, hosted Grafana Cloud stack URLs, or tenant
 # identifiers to this file. See README.md "Forbidden content" for the rationale.
@@ -17,7 +17,6 @@ groups:
         for: 5m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus sync data is stale (>2h)"
           description: |
@@ -35,13 +34,16 @@ groups:
         for: 15m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
-          summary: "PeeringDB Plus sync failure rate >50% over 15m"
+          summary: "PeeringDB Plus sync keeps failing (retries exhausted)"
           description: |
-            More than half of pdbplus_sync_operations_total samples in the
-            last 15 minutes carry status=failed. Check sync worker logs on
-            the primary VM. The clamp_min guards divide-by-zero on quiet
+            More than half of the sync attempts in the last 15 minutes
+            failed, for 15 minutes. A failure that the 30s retry recovers
+            gives a ratio of 0.5 and does not fire, so in practice this
+            fires when the 30s/2m/8m retries of a cycle all fail and the
+            failures continue into the next window. Check "sync cycle
+            failed" in the primary logs and PeeringDB upstream
+            availability. The clamp_min guards divide-by-zero on quiet
             windows.
 
       - alert: PdbPlusFleetMachineCountLow
@@ -54,7 +56,6 @@ groups:
         for: 10m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus fleet machine count <6 (expected 8)"
           description: |
@@ -68,7 +69,6 @@ groups:
         for: 10m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus telemetry has stopped arriving entirely"
           description: |
@@ -87,7 +87,6 @@ groups:
         for: 10m
         labels:
           severity: critical
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus primary machine is not reporting"
           description: |
@@ -102,6 +101,31 @@ groups:
             pipeline rather than the machine. Check:
             fly status -a peeringdb-plus.
 
+      - alert: PdbPlusProbeFailing
+        expr: |
+          count(
+            sum by (probe) (increase(probe_all_success_sum{job="peeringdb-plus-api"}[10m]))
+              /
+            sum by (probe) (increase(probe_all_success_count{job="peeringdb-plus-api"}[10m]))
+              < 0.5
+          ) >= 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PeeringDB Plus /api check fails from 2 or more probe locations"
+          description: |
+            The Synthetic Monitoring check peeringdb-plus-api
+            (deploy/grafana/synthetics/README.md) failed more than half of
+            its executions in the last 10m from at least 2 probe locations,
+            for 5m (probe_all_success_sum / probe_all_success_count). The
+            check requests /api through the public hostname, so this covers
+            DNS, TLS and the Fly proxy, which the fleet metrics cannot see.
+            One failing location does not fire. Open the check in the
+            Synthetic Monitoring app for the failing phase, then run
+            fly status -a peeringdb-plus. No data (the check does not exist)
+            is OK.
+
   - name: pdbplus-warning
     interval: 1m
     rules:
@@ -110,7 +134,6 @@ groups:
         for: 30m
         labels:
           severity: warning
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus peak Go heap >400 MiB sustained 30m"
           description: |
@@ -125,23 +148,83 @@ groups:
         for: 30m
         labels:
           severity: warning
-          receiver: grafana-default-email
         annotations:
           summary: "PeeringDB Plus peak OS RSS >384 MiB sustained 30m"
           description: |
             max(pdbplus_sync_peak_rss_bytes) has been above 402653184 bytes
-            (384 MiB) for 30m. Approaching the Fly 512 MB VM cap; expected
-            failure order is log → app crash → Fly OOM-kill.
+            (384 MiB) for 30m. The gauge is the peak RSS of the last sync
+            cycle (VmHWM, reset at the start of each cycle), so 30m is at
+            least two cycles. Approaching the Fly 512 MB VM cap; expected
+            failure order is log, then app crash, then Fly OOM-kill.
 
-      - alert: PdbPlusSyncOperationFailed
-        expr: increase(pdbplus_sync_operations_total{status="failed"}[1h]) > 0
-        for: 5m
+      - alert: PdbPlusReplicaMemoryHigh
+        expr: sum by (cloud_region) (go_memory_used_bytes{service_name="peeringdb-plus", service_namespace="replica"}) > 188743680
+        for: 15m
         labels:
           severity: warning
-          receiver: grafana-default-email
         annotations:
-          summary: "PeeringDB Plus had at least one failed sync in the last hour"
+          summary: "PeeringDB Plus replica Go memory >180 MiB sustained 15m"
           description: |
-            increase(pdbplus_sync_operations_total{status=failed}[1h]) > 0.
-            Single failure is non-paging but worth a notify; investigate
-            primary sync worker logs for transient PeeringDB upstream issues.
+            The Go runtime memory of the replica in {{ $labels.cloud_region }}
+            has been above 188743680 bytes (180 MiB) for 15m. Replicas run
+            on 256 MB VMs and do not sync, so the heap and RSS rules (which
+            read the sync-cycle gauges of the primary) do not cover them.
+            Baseline in the week to 2026-09-25: about 20 MB at rest, peaks
+            near 105 MB. A sustained rise points at large API responses
+            (Response Heap Delta panel) or a leak. An OOM kill restarts the
+            machine, which then copies the whole database from the primary
+            again.
+
+      - alert: PdbPlusReplicaLagHigh
+        expr: max by (cloud_region) (pdbplus_litefs_lag_seconds{service_name="peeringdb-plus", service_namespace="replica"}) > 600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus replica gets no LiteFS frames for >10 min"
+          description: |
+            The replica in {{ $labels.cloud_region }} has received no LiteFS
+            frame (LTX file or heartbeat) from the primary for more than 600
+            seconds (pdbplus_litefs_lag_seconds), for 10m. It serves the data
+            of its last applied transaction. The 7-day maximum to 2026-09-25
+            was 30 seconds. If PdbPlusPrimaryAbsent fires too, fix the
+            primary first. Else read the LiteFS lines of that machine in
+            fly logs; a replica is recovered by destroying and recreating
+            it.
+
+      - alert: PdbPlusPrimaryVolumeLow
+        expr: min(pdbplus_scratch_free_bytes{service_name="peeringdb-plus", service_namespace="primary"}) < 536870912
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus primary volume has <512 MiB free for 30m"
+          description: |
+            pdbplus_scratch_free_bytes on the primary has been below
+            536870912 bytes (512 MiB) for 30m. It is the free space of the
+            file system of PDBPLUS_SCRATCH_DIR, the LiteFS volume that also
+            holds the database and its LTX files. Below 512 MiB each sync
+            cycle stages its scratch file in the temp dir of the rootfs
+            (WARN "scratch dir low on free space, staging in the temp
+            dir"), and a full volume stops the LiteFS writes. Extend the
+            volume: fly volumes list -a peeringdb-plus, then
+            fly volumes extend <id> -s <GB> -a peeringdb-plus.
+
+      - alert: PdbPlusSyncOperationFailed
+        expr: sum(increase(pdbplus_sync_operations_total{status="failed"}[3h])) > 1.5
+        for: 5m
+        keep_firing_for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus had at least 2 failed sync attempts in 3h"
+          description: |
+            sum(increase(pdbplus_sync_operations_total{status="failed"}[3h]))
+            > 1.5: at least two sync attempts failed in the last 3 hours.
+            The counter counts attempts, so a failure that the 30s retry
+            recovered counts once, and a single upstream blip does not
+            fire. The failures do not need to be consecutive. keep_firing_for
+            holds the alert for 1h after the count drops below 2, so
+            failures that recur every few hours stay one alert. Check
+            "sync cycle failed" and "sync failed, retrying" in the primary
+            logs.

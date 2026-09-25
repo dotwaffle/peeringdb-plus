@@ -20,6 +20,14 @@ import (
 // and the scratch file must not take the space that LiteFS needs then.
 const scratchDirMinFreeBytes = 512 << 20
 
+// DirFreeBytes returns the free space of the file system of dir, in
+// bytes, as the free-space guard of the scratch dir reads it. On a
+// system other than Linux it returns math.MaxUint64: the free space is
+// not known there.
+func DirFreeBytes(dir string) (uint64, error) {
+	return dirFreeBytes(dir)
+}
+
 // scratchDirForCycle returns the directory of the scratch database of the
 // next cycle: ScratchDir, or "" for os.TempDir(). The caller holds the
 // running latch.
