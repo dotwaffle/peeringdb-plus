@@ -1,20 +1,30 @@
-# rumdl configuration — https://rumdl.dev
+# rumdl configuration: https://rumdl.dev
 #
-# Prose in docs/, README.md, and CONTRIBUTING.md uses Semantic Line
-# Breaks (https://sembr.org): MD013's reflow rewraps at sentence and
-# clause boundaries so prose edits produce line-scoped diffs.
+# Prose uses one sentence per source line: MD013's reflow rewraps at
+# sentence boundaries so a prose edit produces a line-scoped diff.
 
 [global]
-# CHANGELOG.md is append-only history; CLAUDE.md is agent memory kept
-# in its own terse format; testdata markdown is golden fixtures that
-# must stay byte-exact.
+# .claude holds local agent settings that the repository does not track.
 exclude = [
-  "CHANGELOG.md",
-  "CLAUDE.md",
-  "testdata/",
-  "internal/visbaseline/testdata/",
+  ".claude",
+  # Golden fixtures compared byte-for-byte by tests; reflow would break
+  # the comparison.
+  "internal/visbaseline/testdata/diff_golden",
+  "testdata/visibility-baseline",
 ]
+respect-gitignore = true
+# Do not write a cache directory into the repository.
+cache = false
 
 [MD013]
 reflow = true
-reflow-mode = "semantic-line-breaks"
+reflow-mode = "sentence-per-line"
+# A large limit turns off wrapping at a column width. Only sentence ends
+# break lines, and a long sentence stays on one line.
+line-length = 100000
+
+[per-file-ignores]
+# CLAUDE.md is Claude's own project memory, not user-facing prose: it
+# has no top-level heading (MD041) and opens with an emphasis line used
+# as a de facto title (MD036) by convention.
+"CLAUDE.md" = ["MD041", "MD036"]

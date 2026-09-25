@@ -1,16 +1,9 @@
 # PeeringDB Plus
 
-[![CI](https://github.com/dotwaffle/peeringdb-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/dotwaffle/peeringdb-plus/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/dotwaffle/peeringdb-plus.svg)](https://pkg.go.dev/github.com/dotwaffle/peeringdb-plus)
-[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
+[![CI](https://github.com/dotwaffle/peeringdb-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/dotwaffle/peeringdb-plus/actions/workflows/ci.yml) [![Go Reference](https://pkg.go.dev/badge/github.com/dotwaffle/peeringdb-plus.svg)](https://pkg.go.dev/github.com/dotwaffle/peeringdb-plus) [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
-A globally distributed,
-read-only mirror of [PeeringDB](https://www.peeringdb.com) data.
-PeeringDB Plus incrementally syncs PeeringDB objects on a regular schedule
-(escalating to a periodic full re-fetch as a safety net),
-stores the result in SQLite with edge replication via
-[LiteFS](https://fly.io/docs/litefs/) on [Fly.io](https://fly.io), and serves
-the same dataset through six coexisting API surfaces.
+A globally distributed, read-only mirror of [PeeringDB](https://www.peeringdb.com) data.
+PeeringDB Plus incrementally syncs PeeringDB objects on a regular schedule (escalating to a periodic full re-fetch as a safety net), stores the result in SQLite with edge replication via [LiteFS](https://fly.io/docs/litefs/) on [Fly.io](https://fly.io), and serves the same dataset through six coexisting API surfaces.
 
 **Live instance:** <https://peeringdb-plus.fly.dev>
 
@@ -18,8 +11,7 @@ the same dataset through six coexisting API surfaces.
 
 ## Why
 
-The upstream PeeringDB API is the canonical source
-for peering coordination data, but it is single-region and rate-limited.
+The upstream PeeringDB API is the canonical source for peering coordination data, but it is single-region and rate-limited.
 PeeringDB Plus offers:
 
 - **Low-latency reads** from the nearest Fly.io region (LiteFS replicates
@@ -34,8 +26,7 @@ PeeringDB Plus offers:
 
 ## API surfaces
 
-All six surfaces are mounted on the same HTTP server
-and read from the same SQLite database.
+All six surfaces are mounted on the same HTTP server and read from the same SQLite database.
 
 | Surface | Path | Description |
 |---|---|---|
@@ -47,17 +38,14 @@ and read from the same SQLite database.
 | MCP | `/mcp` | Read-only tools, resources, and prompts for network research agents |
 
 `GET /` returns a JSON service-discovery document to API clients.
-It redirects browsers to the Web UI
-and sends ANSI-colored help text to terminal clients such as curl.
+It redirects browsers to the Web UI and sends ANSI-colored help text to terminal clients such as curl.
 Each response has an HTTP `Link` header that points to the agent documents.
 
 Most responses carry a weak `ETag` that changes when the database changes.
 All nodes send the same `ETag` for the same database version.
 A client that sends `If-None-Match` gets `304 Not Modified` while the data stays the same.
 
-See [`docs/API.md`](docs/API.md) for each API,
-with filter semantics, ordering, divergences,
-and the response memory budget for `/api` lists.
+See [`docs/API.md`](docs/API.md) for each API, with filter semantics, ordering, divergences, and the response memory budget for `/api` lists.
 
 ## Quick start
 
@@ -75,9 +63,7 @@ go build -o peeringdb-plus ./cmd/peeringdb-plus
 ```
 
 The first sync takes 30-60 seconds against the public PeeringDB API.
-While it runs, `/healthz` returns 200 and `/readyz` returns 503;
-once the database is populated,
-`/readyz` flips to 200 and every API surface is usable.
+While it runs, `/healthz` returns 200 and `/readyz` returns 503; once the database is populated, `/readyz` flips to 200 and every API surface is usable.
 
 ### Local (Docker)
 
@@ -89,11 +75,9 @@ docker run -p 8080:8080 -v pdbdata:/data peeringdb-plus
 ```
 
 CI publishes the image for `linux/amd64` and `linux/arm64`.
-For the tags and for how to verify an image,
-see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#published-image).
+For the tags and for how to verify an image, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#published-image).
 
-The image stores the database at `/data/peeringdb-plus.db`;
-mount a volume to persist data across container restarts.
+The image stores the database at `/data/peeringdb-plus.db`; mount a volume to persist data across container restarts.
 
 ### Verify it's working
 
@@ -104,11 +88,9 @@ curl -s http://localhost:8080/api/net/1 | head -c 500    # PeeringDB-compatible 
 curl -sO http://localhost:8080/skills/peeringdb-plus.zip # Origin-aware Agent Skill
 ```
 
-Open `http://localhost:8080/ui/` (Web UI)
-and `http://localhost:8080/graphql` (GraphQL playground) in a browser.
+Open `http://localhost:8080/ui/` (Web UI) and `http://localhost:8080/graphql` (GraphQL playground) in a browser.
 
-For the full first-30-minutes walkthrough, see
-[`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md).
+For the full first-30-minutes walkthrough, see [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md).
 
 ## Usage examples
 
@@ -129,9 +111,7 @@ curl 'https://peeringdb-plus.fly.dev/api/net?q=cloudflare&limit=5'
 ### ConnectRPC / gRPC
 
 ConnectRPC, gRPC, and gRPC-Web all share the same endpoints.
-Reflection (`grpcreflect.NewHandlerV1` / `V1Alpha`)
-and the standard gRPC health check service are enabled,
-so `grpcurl` and gRPC-aware load balancers work out-of-the-box.
+Reflection (`grpcreflect.NewHandlerV1` / `V1Alpha`) and the standard gRPC health check service are enabled, so `grpcurl` and gRPC-aware load balancers work out-of-the-box.
 
 ```bash
 # List all services
@@ -148,14 +128,10 @@ buf curl --protocol grpc --http2-prior-knowledge \
   -d '{"asn": 15169}'
 ```
 
-Streams accept the `List*` filters except `id`,
-and also `since_id` and `updated_since`.
-If you do not set `since_id` or `updated_since`,
-the `pdbplus-total-count` response header gives the number of matching rows.
-The server also sends this value as `grpc-total-count`,
-which is a deprecated name.
-By default, the server stops a stream after 60 seconds
-(`PDBPLUS_STREAM_TIMEOUT`).
+Streams accept the `List*` filters except `id`, and also `since_id` and `updated_since`.
+If you do not set `since_id` or `updated_since`, the `pdbplus-total-count` response header gives the number of matching rows.
+The server also sends this value as `grpc-total-count`, which is a deprecated name.
+By default, the server stops a stream after 60 seconds (`PDBPLUS_STREAM_TIMEOUT`).
 A client can cancel a stream at any time.
 See [`docs/API.md` § Streaming semantics](docs/API.md#streaming-semantics).
 
@@ -170,10 +146,8 @@ curl -X POST http://localhost:8080/graphql \
 ### MCP and Agent Skill
 
 The Streamable HTTP MCP endpoint is available at `/mcp`.
-It supports MCP 2026-07-28 sessionless discovery and older clients that use
-the `initialize` handshake.
-It provides bounded directory search, detail, comparison, IP lookup, and sync
-freshness tools plus reusable resources and prompts.
+It supports MCP 2026-07-28 sessionless discovery and older clients that use the `initialize` handshake.
+It provides bounded directory search, detail, comparison, IP lookup, and sync freshness tools plus reusable resources and prompts.
 
 Discover the agent interfaces:
 
@@ -190,14 +164,12 @@ curl -fLO http://localhost:8080/skills/peeringdb-plus.zip
 curl -fsS http://localhost:8080/skills/peeringdb-plus/SKILL.md
 ```
 
-The generated server card, skill index, `llms.txt`, and ZIP metadata use the
-request origin. Set `PDBPLUS_PUBLIC_URL` only when a reverse proxy does not
-preserve the requested `Host`.
+The generated server card, skill index, `llms.txt`, and ZIP metadata use the request origin.
+Set `PDBPLUS_PUBLIC_URL` only when a reverse proxy does not preserve the requested `Host`.
 
 ## Configuration
 
-PeeringDB Plus is configured exclusively via environment variables,
-validated at startup with fail-fast diagnostics.
+PeeringDB Plus is configured exclusively via environment variables, validated at startup with fail-fast diagnostics.
 Operationally-relevant defaults:
 
 | Variable | Default | Purpose |
@@ -213,11 +185,8 @@ Operationally-relevant defaults:
 | `PDBPLUS_PUBLIC_TIER` | `public` | Anonymous-caller tier; set `users` only for private deployments |
 | `PDBPLUS_PUBLIC_URL` | _(unset)_ | Optional public-origin override for generated Agent Skill metadata |
 
-The full list (sync, observability, LiteFS, Fly.io, CSP, map tiles,
-and privacy tiers) is in
-[`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
-The server also reads the standard `OTEL_*` environment variables
-through OpenTelemetry autoexport.
+The full list (sync, observability, LiteFS, Fly.io, CSP, map tiles, and privacy tiers) is in [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
+The server also reads the standard `OTEL_*` environment variables through OpenTelemetry autoexport.
 
 ## Documentation
 
@@ -238,11 +207,8 @@ through OpenTelemetry autoexport.
 
 - **Language:** Go 1.27.1
 - **ORM / codegen:** [entgo](https://entgo.io/).
-  `cmd/pdb-schema-generate` generates the ent schemas from
-  `schema/peeringdb.json`.
-  entgql and entrest generate the GraphQL and REST layers.
-  The protobuf definitions in `proto/peeringdb/v1/` are hand-maintained,
-  and `buf generate` makes the Go code from them.
+  `cmd/pdb-schema-generate` generates the ent schemas from `schema/peeringdb.json`. entgql and entrest generate the GraphQL and REST layers.
+  The protobuf definitions in `proto/peeringdb/v1/` are hand-maintained, and `buf generate` makes the Go code from them.
   All six APIs read data through the same ent client.
 - **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)
   (pure Go, no cgo) plus [LiteFS](https://fly.io/docs/litefs/) for edge
@@ -269,19 +235,14 @@ mise run generate                 # Full codegen pipeline
 mise run check                    # Generate, tidy, build, test, lint, scan
 ```
 
-Mise supplies Go, code generators, Tailwind, gotestsum, linters, and security
-tools from the committed cross-platform lockfile.
+Mise supplies Go, code generators, Tailwind, gotestsum, linters, and security tools from the committed cross-platform lockfile.
 CI runs the same tools plus generated-code and module-tidiness checks on every PR.
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the conventions,
-including the sibling-file pattern
-that protects hand-edited schema methods from being overwritten by
-`cmd/pdb-schema-generate`.
+See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the conventions, including the sibling-file pattern that protects hand-edited schema methods from being overwritten by `cmd/pdb-schema-generate`.
 
 ## Contributing
 
 PeeringDB Plus is open source.
-Bug reports, feature suggestions, and pull requests are welcome —
-please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a PR.
+Bug reports, feature suggestions, and pull requests are welcome — please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a PR.
 
 ## License
 

@@ -2,8 +2,7 @@
 
 This guide is for contributors making code changes to PeeringDB Plus.
 For a high-level overview of the system, see [ARCHITECTURE.md](ARCHITECTURE.md).
-For environment variables and runtime configuration, see
-[CONFIGURATION.md](CONFIGURATION.md).
+For environment variables and runtime configuration, see [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Prerequisites
 
@@ -15,12 +14,10 @@ For environment variables and runtime configuration, see
   `mise run check` runs `mise run test`.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
-Mise installs Go 1.27.1 and all contributor tools from the committed
-cross-platform lockfile.
+Mise installs Go 1.27.1 and all contributor tools from the committed cross-platform lockfile.
 
 The SQLite driver (`modernc.org/sqlite`) is pure Go.
-The server binary does not need cgo,
-and the Docker images build with `CGO_ENABLED=0`.
+The server binary does not need cgo, and the Docker images build with `CGO_ENABLED=0`.
 
 ## Local setup
 
@@ -43,8 +40,7 @@ The server serves all six API surfaces on a single port (`:8080` by default).
 
 ## Project layout
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full component diagram
-and package rationale.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full component diagram and package rationale.
 Code-change-relevant directories:
 
 | Path | Purpose |
@@ -81,7 +77,7 @@ Code-change-relevant directories:
 | `mise run build` | Build all packages with `-trimpath` |
 | `mise run test` | Run all tests through gotestsum with compact failure-focused output and the race detector |
 | `mise run generate` | Run the full codegen pipeline in order |
-| `mise run lint` | Run actionlint and golangci-lint |
+| `mise run lint` | Run actionlint, golangci-lint, and rumdl |
 | `mise run format` | Format Go sources with `golangci-lint fmt` (`gofmt -s`) |
 | `mise run vulncheck` | Check the Go vulnerability database |
 | `mise run check` | Run the canonical local validation sweep |
@@ -89,14 +85,8 @@ Code-change-relevant directories:
 ## Toolchain updates
 
 `mise.toml` is the version policy.
-For the binary tools
-(actionlint, buf, go, golangci-lint, gotestsum, tailwindcss),
-`mise.lock` records release URLs and checksums for Linux and macOS
-on amd64 and arm64.
-The `go:` tools
-(gqlgen, govulncheck, protoc-gen-go, protoc-gen-connect-go, templ)
-have a version only in the lock.
-mise builds them from source.
+For the binary tools (actionlint, buf, go, golangci-lint, gotestsum, rumdl, tailwindcss), `mise.lock` records release URLs and checksums for Linux and macOS on amd64 and arm64.
+The `go:` tools (gqlgen, govulncheck, protoc-gen-go, protoc-gen-connect-go, templ) have a version only in the lock. mise builds them from source.
 After changing a tool pin, refresh and verify the lock:
 
 ```bash
@@ -106,11 +96,9 @@ mise run check
 ```
 
 Keep runtime Go modules in `go.mod`.
-Generator-only binaries belong in mise so their dependency graphs
-do not inflate application module metadata or vulnerability reports.
+Generator-only binaries belong in mise so their dependency graphs do not inflate application module metadata or vulnerability reports.
 
-These generator pins must match a module version in `go.mod`,
-because the generated code compiles against that module:
+These generator pins must match a module version in `go.mod`, because the generated code compiles against that module:
 
 | mise tool | `go.mod` module |
 |---|---|
@@ -125,60 +113,42 @@ Then run `mise run generate` and commit the regenerated files.
 ## Code generation pipeline
 
 PeeringDB Plus is heavily code-generated.
-A single `go generate ./...` invocation runs every stage in the correct order
-and converges in a single pass.
+A single `go generate ./...` invocation runs every stage in the correct order and converges in a single pass.
 `mise run generate` runs this command.
-The `go:generate` directives are in four files,
-and `go generate ./...` runs them in this order:
+The `go:generate` directives are in four files, and `go generate ./...` runs them in this order:
 
 1. `ent/generate.go` has four directives:
-   1. `cd ../schema && go run ../cmd/pdb-schema-generate/main.go peeringdb.json ../ent/schema`
-      writes `ent/schema/{type}.go` and `ent/schema/types.go`
-      from `schema/peeringdb.json`.
+   1. `cd ../schema && go run ../cmd/pdb-schema-generate/main.go peeringdb.json ../ent/schema` writes `ent/schema/{type}.go` and `ent/schema/types.go` from `schema/peeringdb.json`.
       It runs **first**, before entc reads those schemas.
    2. `go run -mod=mod entc.go` runs ent with the entgql and entrest extensions.
-      It writes `ent/`, `graph/schema.graphqls`, and the REST OpenAPI spec
-      (`ent/rest/openapi.json`).
-      The entproto extension is also configured,
-      but it writes no file, because no ent schema has an entproto annotation.
+      It writes `ent/`, `graph/schema.graphqls`, and the REST OpenAPI spec (`ent/rest/openapi.json`).
+      The entproto extension is also configured, but it writes no file, because no ent schema has an entproto annotation.
    3. `cd .. && go run ./cmd/pdb-compat-allowlist` writes
       `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
    4. `cd .. && buf generate` writes the protobuf Go types and the ConnectRPC
       handler interfaces from the proto sources.
 2. `graph/generate.go` runs `gqlgen generate`.
-   It reads `graph/schema.graphqls` (from entgql),
-   the hand-written `graph/custom.graphql`, and `graph/gqlgen.yml`.
+   It reads `graph/schema.graphqls` (from entgql), the hand-written `graph/custom.graphql`, and `graph/gqlgen.yml`.
    It writes `graph/generated.go` and updates the resolver files.
 3. `internal/web/static.go` runs the mise-managed `tailwindcss` CLI.
-   It compiles `internal/web/tailwind.input.css`
-   into `internal/web/static/tailwind.css`.
-   It reads class names only from `internal/web/templates/`
-   and `internal/web/static/ui.js`.
+   It compiles `internal/web/tailwind.input.css` into `internal/web/static/tailwind.css`.
+   It reads class names only from `internal/web/templates/` and `internal/web/static/ui.js`.
 4. `internal/web/templates/generate.go` runs `templ generate`.
    It writes `*_templ.go` from the `.templ` sources.
 
 `schema/generate.go` has no `go:generate` directive.
-It is the package documentation for the manual drift check
-(see [Check for upstream schema drift](#check-for-upstream-schema-drift)).
-`pdb-schema-generate` runs first in `ent/generate.go`, not in `schema/`,
-because `go generate ./...` visits `ent/` before `schema/`.
-This order runs the schema producer before entc, its consumer,
-so a single pass converges.
+It is the package documentation for the manual drift check (see [Check for upstream schema drift](#check-for-upstream-schema-drift)).
+`pdb-schema-generate` runs first in `ent/generate.go`, not in `schema/`, because `go generate ./...` visits `ent/` before `schema/`.
+This order runs the schema producer before entc, its consumer, so a single pass converges.
 
 A clean tree must produce zero drift after `go generate ./...`.
-CI checks this
-(see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
+CI checks this (see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
 
 ### Sibling-file convention (load-bearing)
 
-`cmd/pdb-schema-generate` rewrites `ent/schema/{type}.go`
-and `ent/schema/types.go` from `schema/peeringdb.json`
-on every `go generate ./...` run.
+`cmd/pdb-schema-generate` rewrites `ent/schema/{type}.go` and `ent/schema/types.go` from `schema/peeringdb.json` on every `go generate ./...` run.
 **It removes any hand edit in those files.**
-Keep hand-written schema code
-in **sibling files that the generator does not write**.
-ent's codegen finds the methods of a schema type through reflection,
-so the file split does not change the ent output.
+Keep hand-written schema code in **sibling files that the generator does not write**. ent's codegen finds the methods of a schema type through reflection, so the file split does not change the ent output.
 
 Today's sibling files:
 
@@ -192,20 +162,13 @@ Today's sibling files:
 | `ent/schema/hooks.go` | Package documentation only. It records why the per-mutation OTel hook was removed and contains no code. |
 
 **Put a new hand-written method in a sibling file named `{type}_{method}.go`.**
-The generated `{type}.go` already declares `Fields`, `Edges`, `Indexes`,
-`Annotations`, and `Hooks`,
-so a sibling can declare only other methods, for example `Policy` or `Mixin`.
-To add fields, edges, annotations, or hooks,
-declare a mixin in a sibling file
-and return it from the `Mixin()` method of the type,
-as `fold_mixin.go` and `campus_annotations.go` do.
+The generated `{type}.go` already declares `Fields`, `Edges`, `Indexes`, `Annotations`, and `Hooks`, so a sibling can declare only other methods, for example `Policy` or `Mixin`.
+To add fields, edges, annotations, or hooks, declare a mixin in a sibling file and return it from the `Mixin()` method of the type, as `fold_mixin.go` and `campus_annotations.go` do.
 
 ### The `campus` inflection patch
 
-`go-openapi/inflect` singularizes `campus` → `campu`
-(and plural handling is equally broken).
-Without a fix, ent generates `Campu`-themed code
-and entrest produces `/campu` URL paths.
+`go-openapi/inflect` singularizes `campus` → `campu` (and plural handling is equally broken).
+Without a fix, ent generates `Campu`-themed code and entrest produces `/campu` URL paths.
 
 `ent/entc.go` patches this in two places via `go:linkname`:
 
@@ -215,16 +178,10 @@ and entrest produces `/campu` URL paths.
    `Edge.MutationAdd`/`Remove`, graph column naming, and template funcs that
    feed both Go code and templates.
 
-`AddIrregular("campus", "campuses")` alone is not enough —
-it only adds the plural→singular mapping,
-so the bare word `campus` still falls through to the default `s` → `∅` rule.
-The patch explicitly calls `AddSingular("campus", "campus")` plus PascalCase
-`AddSingularExact`/`AddPluralExact` entries for entrest (which passes type names
-directly without case folding).
+`AddIrregular("campus", "campuses")` alone is not enough — it only adds the plural→singular mapping, so the bare word `campus` still falls through to the default `s` → `∅` rule.
+The patch explicitly calls `AddSingular("campus", "campus")` plus PascalCase `AddSingularExact`/`AddPluralExact` entries for entrest (which passes type names directly without case folding).
 
-If you see `Campu`, `campue`,
-or `/campuses/campu/` anywhere in generated output, the patch is broken —
-check `ent/entc.go`.
+If you see `Campu`, `campue`, or `/campuses/campu/` anywhere in generated output, the patch is broken — check `ent/entc.go`.
 
 ### ent schema flow
 
@@ -249,25 +206,20 @@ internal/pdbcompat/allowlist_gen.go
 ### Check for upstream schema drift
 
 `schema/peeringdb.json` is curated by hand.
-`cmd/pdb-schema-extract` shows what upstream declares,
-so that you can find fields that upstream added, changed, or removed.
+`cmd/pdb-schema-extract` shows what upstream declares, so that you can find fields that upstream added, changed, or removed.
 
 1. Clone `peeringdb/peeringdb`.
-2. Clone `peeringdb/django-peeringdb`
-   into `<peeringdb-checkout>/django-peeringdb`.
+2. Clone `peeringdb/django-peeringdb` into `<peeringdb-checkout>/django-peeringdb`.
    Check out the revision that the upstream `pyproject.toml` names.
-   The tool reads `<peeringdb-checkout>/src/peeringdb_server/`
-   and `<peeringdb-checkout>/django-peeringdb/src/django_peeringdb/`.
+   The tool reads `<peeringdb-checkout>/src/peeringdb_server/` and `<peeringdb-checkout>/django-peeringdb/src/django_peeringdb/`.
 3. Run the tool on the `src/` directory of the checkout:
 
    ```bash
    go run ./cmd/pdb-schema-extract <peeringdb-checkout>/src > "${TMPDIR:-/tmp}/extracted.json"
    ```
 
-4. Compare the fields of each type in `extracted.json`
-   with `schema/peeringdb.json`.
-   The tool does not find all fields of some types
-   (see the comment at the top of `cmd/pdb-schema-extract/main.go`).
+4. Compare the fields of each type in `extracted.json` with `schema/peeringdb.json`.
+   The tool does not find all fields of some types (see the comment at the top of `cmd/pdb-schema-extract/main.go`).
    Check an unexpected removal against the upstream source.
 5. Apply real drift to `schema/peeringdb.json` by hand.
    Do not copy the tool output over the file.
@@ -275,17 +227,14 @@ so that you can find fields that upstream added, changed, or removed.
 
 ### proto / buf workflow
 
-- `proto/peeringdb/v1/v1.proto` — message definitions.
-  entproto generated it up to v1.6.
+- `proto/peeringdb/v1/v1.proto` — message definitions. entproto generated it up to v1.6.
   Since then it is **hand-maintained** (see the note below).
 - `proto/peeringdb/v1/services.proto` — **hand-written**.
-  Defines the `Get*` / `List*` / `Stream*` RPCs
-  and their request/response messages.
+  Defines the `Get*` / `List*` / `Stream*` RPCs and their request/response messages.
 - `proto/peeringdb/v1/common.proto` — **hand-written**.
   Manual types like `SocialMedia` that don't map cleanly to an ent field.
 
-`buf generate` (invoked by `ent/generate.go`) reads
-`buf.gen.yaml` and produces:
+`buf generate` (invoked by `ent/generate.go`) reads `buf.gen.yaml` and produces:
 
 - `gen/peeringdb/v1/*.pb.go` (protobuf Go types via `protoc-gen-go`).
 - `gen/peeringdb/v1/peeringdbv1connect/*.go` (handler interfaces via
@@ -294,9 +243,7 @@ so that you can find fields that upstream added, changed, or removed.
 Proto `optional` fields generate Go pointer types (`*int64`, `*string`).
 Always check `!= nil` for presence before dereferencing.
 
-Note: `v1.proto` is **hand-maintained** since v1.6.
-entproto stays configured in `ent/entc.go` (`entproto.SkipGenFile`),
-but no ent schema carries an entproto annotation, so it writes nothing.
+Note: `v1.proto` is **hand-maintained** since v1.6. entproto stays configured in `ent/entc.go` (`entproto.SkipGenFile`), but no ent schema carries an entproto annotation, so it writes nothing.
 A new ent field does not reach gRPC by itself.
 To expose one, edit `v1.proto` by hand:
 
@@ -307,8 +254,7 @@ To expose one, edit `v1.proto` by hand:
 
 `meta` on `Network` and `NetworkIxLan` (PeeringDB 2.83.0) is such an edit.
 It is a `google.protobuf.Struct`.
-Dropped ent fields whose proto wrappers still exist remain declared in
-`v1.proto` but serialize as zero-value pointers (absent on the wire).
+Dropped ent fields whose proto wrappers still exist remain declared in `v1.proto` but serialize as zero-value pointers (absent on the wire).
 
 ## Common dev loop
 
@@ -321,9 +267,7 @@ mise run test
 mise run lint
 ```
 
-**Edited `schema/peeringdb.json` or a hand-edited sibling file in `ent/schema/`
-(for example `pdb_allowlists.go`, `fold_mixin.go`, `poc_policy.go`,
-or a `{type}_fold.go` file):**
+**Edited `schema/peeringdb.json` or a hand-edited sibling file in `ent/schema/` (for example `pdb_allowlists.go`, `fold_mixin.go`, `poc_policy.go`, or a `{type}_fold.go` file):**
 
 ```bash
 mise run generate
@@ -331,8 +275,7 @@ mise run test
 mise run lint
 ```
 
-**Edited a file in `proto/peeringdb/v1/`
-(`v1.proto`, `services.proto`, or `common.proto`):**
+**Edited a file in `proto/peeringdb/v1/` (`v1.proto`, `services.proto`, or `common.proto`):**
 
 ```bash
 mise run generate
@@ -353,56 +296,34 @@ CGO_ENABLED=1 mise exec -- go test -race ./internal/web/...
 mise run check
 ```
 
-Commit the generated files with the source change that produced them:
-`ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`,
-`internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
-CI checks this
-(see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
+Commit the generated files with the source change that produced them: `ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`, `internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
+CI checks this (see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
 
 ## Adding a new ent field
 
-Do **NOT** add the field to the `Fields()` slice in `ent/schema/{type}.go` —
-those files are regenerated wholesale from `schema/peeringdb.json` by
-`cmd/pdb-schema-generate` on every `go generate ./...` run, so a hand-added
-field is silently stripped before entc ever sees it (see "Sibling-file
-convention" above).
+Do **NOT** add the field to the `Fields()` slice in `ent/schema/{type}.go` — those files are regenerated wholesale from `schema/peeringdb.json` by `cmd/pdb-schema-generate` on every `go generate ./...` run, so a hand-added field is silently stripped before entc ever sees it (see "Sibling-file convention" above).
 Add the field at its source instead:
 
 1. Pick the source that matches the origin of the field:
-   - For a field that PeeringDB serves,
-     add an entry to the `fields` map of the type in `schema/peeringdb.json`.
-     Copy the shape of an existing entry,
-     for example `type`, `required`, `nullable`, `help_text`, and `default`.
+   - For a field that PeeringDB serves, add an entry to the `fields` map of the type in `schema/peeringdb.json`.
+     Copy the shape of an existing entry, for example `type`, `required`, `nullable`, `help_text`, and `default`.
      The generator turns it into the ent field definition.
-   - For a field that only this server uses (for example a `_fold` column),
-     declare it in a sibling-file `Mixin()`.
-     Use `ent/schema/{type}_fold.go` and `ent/schema/fold_mixin.go`
-     as the pattern.
-     Give it ``StructTag(`json:"-"`)`` so that it stays off `/rest/v1/`
-     (see [Adding a new searchable text field on a folded entity](#adding-a-new-searchable-text-field-on-a-folded-entity)).
+   - For a field that only this server uses (for example a `_fold` column), declare it in a sibling-file `Mixin()`.
+     Use `ent/schema/{type}_fold.go` and `ent/schema/fold_mixin.go` as the pattern.
+     Give it ``StructTag(`json:"-"`)`` so that it stays off `/rest/v1/` (see [Adding a new searchable text field on a folded entity](#adding-a-new-searchable-text-field-on-a-folded-entity)).
 2. Run `mise run generate`.
-   This updates `ent/`, `graph/`, the REST OpenAPI spec,
-   and `internal/pdbcompat/allowlist_gen.go`.
+   This updates `ent/`, `graph/`, the REST OpenAPI spec, and `internal/pdbcompat/allowlist_gen.go`.
    It does not change `proto/peeringdb/v1/v1.proto`.
 3. Add the field to the struct of the type in `internal/peeringdb/types.go`.
    Sync decodes the upstream response into this struct.
 4. Set the field in the `upsert*` function of the type
    in `internal/sync/upsert.go` (for example `upsertNetworks`).
-5. Set the field in the `/api/` serializer
-   in `internal/pdbcompat/serializer.go`.
-   Add it to the `Fields` map of the type in `internal/pdbcompat/registry.go`
-   so that `/api/` can filter on it.
-6. To send the field on ConnectRPC, add it to the message in `v1.proto` by hand
-   (see [proto / buf workflow](#proto--buf-workflow)).
+5. Set the field in the `/api/` serializer in `internal/pdbcompat/serializer.go`.
+   Add it to the `Fields` map of the type in `internal/pdbcompat/registry.go` so that `/api/` can filter on it.
+6. To send the field on ConnectRPC, add it to the message in `v1.proto` by hand (see [proto / buf workflow](#proto--buf-workflow)).
    Then set it in the converter in `internal/grpcserver/{type}.go`.
-7. To filter on the field in ConnectRPC,
-   add an `optional` field of the matching scalar type
-   to both the `List*Request` and the `Stream*Request` message of the type
-   in `services.proto`,
-   for example `ListNetworksRequest` and `StreamNetworksRequest`.
-   Then add an entry to both filter tables of the type
-   in `internal/grpcserver/{type}.go`,
-   for example `networkListFilters` and `networkStreamFilters`.
+7. To filter on the field in ConnectRPC, add an `optional` field of the matching scalar type to both the `List*Request` and the `Stream*Request` message of the type in `services.proto`, for example `ListNetworksRequest` and `StreamNetworksRequest`.
+   Then add an entry to both filter tables of the type in `internal/grpcserver/{type}.go`, for example `networkListFilters` and `networkStreamFilters`.
    `TestAllFilterFieldsExercised` fails if one table does not have the field.
 8. Run `mise run generate` again after proto edits.
 9. Regenerate the golden files
@@ -413,9 +334,7 @@ Add the field at its source instead:
 
 ## Schema hygiene drop procedure
 
-`migrate.WithDropColumn(true)`
-and `migrate.WithDropIndex(true)` are permanently on
-(`cmd/peeringdb-plus/main.go`).
+`migrate.WithDropColumn(true)` and `migrate.WithDropIndex(true)` are permanently on (`cmd/peeringdb-plus/main.go`).
 Dropping a field is therefore a checklist, not a migration script:
 
 1. Edit `schema/peeringdb.json` (remove the field from the upstream-derived
@@ -426,13 +345,9 @@ Dropping a field is therefore a checklist, not a migration script:
 3. Remove references in:
    - `internal/peeringdb/types.go` (PeeringDB API client types)
    - `internal/pdbcompat/*` (compat-layer serializer, registry, filters)
-   - `internal/grpcserver/*`: stop setting the field in the converter
-     and remove its filter entries.
-     Keep the field in `v1.proto` and `services.proto`,
-     and never reuse its number.
-     If `services.proto` has a filter for it, add `"<entity>/<field>"`
-     (for example `"ixprefix/notes"`)
-     to `deprecatedFilterFields` in `internal/grpcserver/filter_test.go`.
+   - `internal/grpcserver/*`: stop setting the field in the converter and remove its filter entries.
+     Keep the field in `v1.proto` and `services.proto`, and never reuse its number.
+     If `services.proto` has a filter for it, add `"<entity>/<field>"` (for example `"ixprefix/notes"`) to `deprecatedFilterFields` in `internal/grpcserver/filter_test.go`.
    - `internal/sync/upsert.go` (sync mapping)
 4. Regenerate the golden files.
    Put `-update` after the package path.
@@ -444,72 +359,54 @@ Dropping a field is therefore a checklist, not a migration script:
    ```
 
 5. Deploy.
-   Primary emits `ALTER TABLE DROP COLUMN`;
-   LiteFS replicates the schema change to all replicas.
+   Primary emits `ALTER TABLE DROP COLUMN`; LiteFS replicates the schema change to all replicas.
 
 ## Adding a new ConnectRPC service
 
-The 13 PeeringDB entity types already each have their own ConnectRPC service,
-so the common case is **adding a new RPC** to an existing service rather than a
-whole new service.
+The 13 PeeringDB entity types already each have their own ConnectRPC service, so the common case is **adding a new RPC** to an existing service rather than a whole new service.
 
 **New RPC on an existing service:**
 
 1. Edit `proto/peeringdb/v1/services.proto` — add the `rpc` line inside the
    service block and any new request/response messages.
 2. Run `buf generate` (or `go generate ./ent`).
-3. Implement the method on the corresponding struct in
-   `internal/grpcserver/<entity>.go`.
-   The handler interface it must satisfy is regenerated in
-   `gen/peeringdb/v1/peeringdbv1connect/`.
-   Return a failed database query through `queryError(ctx, op, err)`
-   from `internal/grpcserver/errors.go`.
-   Do not return `connect.NewError(connect.CodeInternal, err)`,
-   because that sends the database error text to the client.
-   `queryError` also maps a canceled or expired context
-   to `CodeCanceled` or `CodeDeadlineExceeded`.
-4. Add tests in `internal/grpcserver/grpcserver_test.go` (or a new
-   `<entity>_test.go` file).
-   Use `testutil.SetupClient(t)` and rows that the test creates inline,
-   as `grpcserver_test.go` does.
+3. Implement the method on the corresponding struct in `internal/grpcserver/<entity>.go`.
+   The handler interface it must satisfy is regenerated in `gen/peeringdb/v1/peeringdbv1connect/`.
+   Return a failed database query through `queryError(ctx, op, err)` from `internal/grpcserver/errors.go`.
+   Do not return `connect.NewError(connect.CodeInternal, err)`, because that sends the database error text to the client.
+   `queryError` also maps a canceled or expired context to `CodeCanceled` or `CodeDeadlineExceeded`.
+4. Add tests in `internal/grpcserver/grpcserver_test.go` (or a new `<entity>_test.go` file).
+   Use `testutil.SetupClient(t)` and rows that the test creates inline, as `grpcserver_test.go` does.
 
 **Brand-new service:**
 
 1. Add a new `service` block to `services.proto`.
 2. Regenerate.
-3. Create `internal/grpcserver/<newentity>.go` with a struct that holds
-   `Client *ent.Client` and `StreamTimeout time.Duration`, and implements the
-   generated handler interface.
+3. Create `internal/grpcserver/<newentity>.go` with a struct that holds `Client *ent.Client` and `StreamTimeout time.Duration`, and implements the generated handler interface.
    Return failed database queries through `queryError`, as for a new RPC.
 4. Register it in `cmd/peeringdb-plus/main.go` — add it to the `serviceNames`
    slice and add a `registerService(...)` call alongside the existing 13.
 5. Add the service to `TestQueryError_GetAllServices`
    in `internal/grpcserver/errors_test.go`.
 
-All handlers are wrapped with `otelconnect` interceptors automatically via
-`handlerOpts`; no extra wiring needed.
+All handlers are wrapped with `otelconnect` interceptors automatically via `handlerOpts`; no extra wiring needed.
 
 ## Adding a new web handler
 
-The web UI uses a single wildcard `GET /ui/{rest...}` route
-that internally dispatches by path
-(see `internal/web/handler.go` `Handler.dispatch`).
+The web UI uses a single wildcard `GET /ui/{rest...}` route that internally dispatches by path (see `internal/web/handler.go` `Handler.dispatch`).
 
 1. Add a `.templ` file to `internal/web/templates/` for the new page.
    Follow the pattern of `detail_net.templ`, `compare.templ`, etc.
 2. Run `mise run generate`.
-   This regenerates the `*_templ.go` files
-   and `internal/web/static/tailwind.css`.
+   This regenerates the `*_templ.go` files and `internal/web/static/tailwind.css`.
    Do not run `templ generate` from the repository root.
-   From the root, templ writes path-qualified file names
-   into every `*_templ.go` file, and the CI drift check fails.
+   From the root, templ writes path-qualified file names into every `*_templ.go` file, and the CI drift check fails.
 3. Add a handler method to `internal/web/`
    (e.g. `handleNewPage` in `internal/web/handler.go`,
    or in a new file as `about.go` does).
 4. Add a `case` arm to the `switch` in `Handler.dispatch` routing the new URL
    sub-path to your handler.
-5. If the page needs database queries, add them to `internal/catalog/`
-   (for example in a `query_<type>.go` file).
+5. If the page needs database queries, add them to `internal/catalog/` (for example in a `query_<type>.go` file).
    Then the MCP server can use them too.
 6. Write a test with `httptest`, `testutil.SetupClient(t)`,
    and the seed helpers in `internal/web/detail_test.go`.
@@ -521,90 +418,59 @@ Do not edit it by hand.
 
 ## Adding a new field-level-privacy gated field
 
-When a new PeeringDB field gains a `<field>_visible` companion
-(or you introduce a new auth-gated column),
-redaction must be applied at **every** serializer surface
-or you have a privacy leak.
-`internal/privfield.Redact` is the single source of truth —
-never hand-roll a tier check.
+When a new PeeringDB field gains a `<field>_visible` companion (or you introduce a new auth-gated column), redaction must be applied at **every** serializer surface or you have a privacy leak.
+`internal/privfield.Redact` is the single source of truth — never hand-roll a tier check.
 
 **Developer checklist:**
 
-1. **Schema:** add the value field and its `_visible` field
-   to the type in `schema/peeringdb.json`
-   (see [Adding a new ent field](#adding-a-new-ent-field)).
+1. **Schema:** add the value field and its `_visible` field to the type in `schema/peeringdb.json` (see [Adding a new ent field](#adding-a-new-ent-field)).
    Give the `_visible` field `"type": "string"`, not an enum.
 2. **Sync mapping:** populate both fields in `internal/sync/upsert.go`.
 3. **Call `privfield.Redact` on all six surfaces.**
    If you miss one, that surface leaks the field:
-   - **pdbcompat:** `internal/pdbcompat/serializer.go` in the relevant
-     `<entity>FromEnt(ctx, e)` function.
-     On `/api`, the permission decides the key, not the value
-     (upstream 2.83.0 `permissions.py:344-353`).
+   - **pdbcompat:** `internal/pdbcompat/serializer.go` in the relevant `<entity>FromEnt(ctx, e)` function.
+     On `/api`, the permission decides the key, not the value (upstream 2.83.0 `permissions.py:344-353`).
      Render a pdbcompat-local output struct.
      Give its value field the type `*string` and the `,omitempty` JSON tag.
      Set the field to `nil` when `Redact` returns `omit=true`.
-     Also set it to `nil` when the value is empty
-     and `_visible` is not `Public`.
-     An anonymous sync stores `""` for every gated row,
-     so `""` there does not mean that the value is empty.
+     Also set it to `nil` when the value is empty and `_visible` is not `Public`.
+     An anonymous sync stores `""` for every gated row, so `""` there does not mean that the value is empty.
      In all other cases, emit the stored value, also when it is `""`.
      Do not use a plain `string` with `,omitempty`.
      That drops the key for an empty value that the caller may see.
-     The `peeringdb.<Type>` decode struct keeps its plain `string`,
-     because sync decodes upstream input into it.
+     The `peeringdb.<Type>` decode struct keeps its plain `string`, because sync decodes upstream input into it.
      `ixLanResponse` and `ixfMemberListURLOut` are the worked example.
-   - **ConnectRPC:** `internal/grpcserver/<entity>.go` in the proto conversion
-     function.
-     Wrap the closure passed to the generic pagination helper
-     so `ctx` is captured (the helper signature stays `Convert func(*E) *P`).
+   - **ConnectRPC:** `internal/grpcserver/<entity>.go` in the proto conversion function.
+     Wrap the closure passed to the generic pagination helper so `ctx` is captured (the helper signature stays `Convert func(*E) *P`).
    - **GraphQL:** opt the field into a custom resolver via `graph/gqlgen.yml`,
      then return `nil` from the resolver in `graph/schema.resolvers.go` when
      `omit=true`.
-   - **entrest:** add the new key pair to `redactGatedFields`
-     in `internal/middleware/rest_redact.go`.
-     `middleware.RESTFieldRedact` already buffers
-     and parses every `/rest/v1/` body.
-     Keep it wrapped **inside** `middleware.RESTError`
-     so that `application/problem+json` error bodies pass through unchanged.
+   - **entrest:** add the new key pair to `redactGatedFields` in `internal/middleware/rest_redact.go`.
+     `middleware.RESTFieldRedact` already buffers and parses every `/rest/v1/` body.
+     Keep it wrapped **inside** `middleware.RESTError` so that `application/problem+json` error bodies pass through unchanged.
    - **Web UI and MCP:** neither shows a gated field today.
-     If the new field reaches them, call `privfield.Redact`
-     in the code that builds the row data.
+     If the new field reaches them, call `privfield.Redact` in the code that builds the row data.
      Both read rows through `internal/catalog`.
-     The fragment handlers in `internal/web/detail.go`
-     and the MCP `lookup_ip` tool in `internal/mcpserver/server.go`
-     also query ent directly.
+     The fragment handlers in `internal/web/detail.go` and the MCP `lookup_ip` tool in `internal/mcpserver/server.go` also query ent directly.
 4. **Seed both rows:** extend `internal/testutil/seed.Full` to seed BOTH a
    gated row (`_visible=Users`) AND a `Public` row, so E2E tests can assert
    the helper does not over-redact.
-5. **E2E tests:** extend the `TestE2E_FieldLevel_IxlanURL_*` functions
-   in `cmd/peeringdb-plus/field_privacy_e2e_test.go`, or add a set like them.
-   `TestE2E_FieldLevel_IxlanURL_RedactedAnon`
-   and `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier`
-   have sub-tests for `/api`, `/rest/v1/`, ConnectRPC, and GraphQL,
-   and a skipped `webui` sub-test.
-   `RedactedAnon` also has the `fail-closed-bypass-middleware` check
-   against the ConnectRPC handler.
-   `TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey` locks the `/api` key rule
-   for an empty value.
+5. **E2E tests:** extend the `TestE2E_FieldLevel_IxlanURL_*` functions in `cmd/peeringdb-plus/field_privacy_e2e_test.go`, or add a set like them.
+   `TestE2E_FieldLevel_IxlanURL_RedactedAnon` and `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` have sub-tests for `/api`, `/rest/v1/`, ConnectRPC, and GraphQL, and a skipped `webui` sub-test.
+   `RedactedAnon` also has the `fail-closed-bypass-middleware` check against the ConnectRPC handler.
+   `TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey` locks the `/api` key rule for an empty value.
    If the Web UI shows the field, make the `webui` sub-tests check the page.
    If MCP shows the field, add an MCP sub-test.
 
-The surfaces that serve the gated field
-(`/api`, `/rest/v1/`, ConnectRPC, and GraphQL)
-emit its `_visible` field to every caller, including anonymous callers.
+The surfaces that serve the gated field (`/api`, `/rest/v1/`, ConnectRPC, and GraphQL) emit its `_visible` field to every caller, including anonymous callers.
 Upstream PeeringDB does the same.
 Do not remove it.
 
 ## Adding a new searchable text field on a folded entity
 
-The 6 folded entities (`organization`, `network`, `facility`,
-`internetexchange`, `carrier`, `campus`) carry `<field>_fold` shadow columns
-populated by `internal/unifold.Fold` to give pdbcompat diacritic-insensitive
-filtering parity with upstream's `unidecode.unidecode(v)`.
+The 6 folded entities (`organization`, `network`, `facility`, `internetexchange`, `carrier`, `campus`) carry `<field>_fold` shadow columns populated by `internal/unifold.Fold` to give pdbcompat diacritic-insensitive filtering parity with upstream's `unidecode.unidecode(v)`.
 
-To add a new searchable text field on one of these entities
-(e.g. a future `network.tagline_fold`):
+To add a new searchable text field on one of these entities (e.g. a future `network.tagline_fold`):
 
 1. **Sibling file** — extend the `fields` slice in `ent/schema/{type}_fold.go`:
 
@@ -622,58 +488,36 @@ To add a new searchable text field on one of these entities
    ``StructTag(`json:"-"`)`` keeps it out of `/rest/v1/` bodies.
    `entrest.WithSkip(true)` keeps it out of the REST spec and filters.
    Any other server-only field needs all three.
-3. **Sync upsert** — extend `internal/sync/upsert.go` `upsertNetworks` builder
-   chain with `.SetTaglineFold(unifold.Fold(n.Tagline))`.
-   Place the new setter in the trailing `_fold` block per the existing
-   convention.
-4. **Filter routing** — add `"tagline": true` to `network`'s `FoldedFields` map
-   in `internal/pdbcompat/registry.go`.
-   The filter layer reads this map to decide
-   whether to route to the shadow column.
+3. **Sync upsert** — extend `internal/sync/upsert.go` `upsertNetworks` builder chain with `.SetTaglineFold(unifold.Fold(n.Tagline))`.
+   Place the new setter in the trailing `_fold` block per the existing convention.
+4. **Filter routing** — add `"tagline": true` to `network`'s `FoldedFields` map in `internal/pdbcompat/registry.go`.
+   The filter layer reads this map to decide whether to route to the shadow column.
 5. **Round-trip test** — extend `internal/pdbcompat/fold_filter_test.go`
    with a test proving `?tagline__contains=<ascii>` matches a
    `tagline="<diacritic>"` row.
 
-To add shadow columns on a 7th entity,
-create a new sibling `ent/schema/{type}_fold.go` with the `foldMixin` wiring,
-then steps 3-5 above plus add the `FoldedFields` map
-for the entity in `registry.go`.
-The other 6 upsert functions stay untouched —
-per-entity surgery is the convention.
+To add shadow columns on a 7th entity, create a new sibling `ent/schema/{type}_fold.go` with the `foldMixin` wiring, then steps 3-5 above plus add the `FoldedFields` map for the entity in `registry.go`.
+The other 6 upsert functions stay untouched — per-entity surgery is the convention.
 
 ## Adding a pdbcompat 1-hop or 2-hop traversal filter
 
-Cross-entity filter keys
-(e.g. `?net__asn=64500`)
-are gated by an allowlist codegened from `ent/schema/pdb_allowlists.go`.
+Cross-entity filter keys (e.g. `?net__asn=64500`) are gated by an allowlist codegened from `ent/schema/pdb_allowlists.go`.
 Two-step:
 
-1. Edit `ent/schema/pdb_allowlists.go`
-   and add the new key to the relevant entry's `Fields` slice.
+1. Edit `ent/schema/pdb_allowlists.go` and add the new key to the relevant entry's `Fields` slice.
    Carry a `// Source: serializers.py:<line>` comment for audit.
-   The sibling-file location is load-bearing —
-   `cmd/pdb-schema-generate` does not touch sibling files.
-2. `go generate ./...` — regenerates `internal/pdbcompat/allowlist_gen.go` via
-   `cmd/pdb-compat-allowlist`.
-   Codegen routes 3-segment keys
-   (e.g. `first__second__field`) into `AllowlistEntry.Via` automatically.
+   The sibling-file location is load-bearing — `cmd/pdb-schema-generate` does not touch sibling files.
+2. `go generate ./...` — regenerates `internal/pdbcompat/allowlist_gen.go` via `cmd/pdb-compat-allowlist`.
+   Codegen routes 3-segment keys (e.g. `first__second__field`) into `AllowlistEntry.Via` automatically.
 
-To exclude an edge from Path B traversal,
-the edge needs the `schemaannot.WithFilterExcludeFromTraversal()` annotation
-(package `internal/pdbcompat/schemaannot`).
-Do not import `internal/pdbcompat` from `ent/schema`,
-because that causes an import cycle.
-Edges are in the generated `ent/schema/{type}.go` files,
-and the schema generator removes hand edits there.
+To exclude an edge from Path B traversal, the edge needs the `schemaannot.WithFilterExcludeFromTraversal()` annotation (package `internal/pdbcompat/schemaannot`).
+Do not import `internal/pdbcompat` from `ent/schema`, because that causes an import cycle.
+Edges are in the generated `ent/schema/{type}.go` files, and the schema generator removes hand edits there.
 No edge uses this annotation today.
 To add one, first add support for it to `cmd/pdb-schema-generate`.
 
-A key that an upstream `prepare_query` handles through
-`get_relation_filters` is not an allowlist key.
-Add it to `relationSeeds` in `internal/pdbcompat/relation_filter.go`
-with its path and the row that upstream pins to status `ok`,
-and add a case to
-`TestParity_Traversal/prepare_query_relation_keys_pin_join_status_ok`.
+A key that an upstream `prepare_query` handles through `get_relation_filters` is not an allowlist key.
+Add it to `relationSeeds` in `internal/pdbcompat/relation_filter.go` with its path and the row that upstream pins to status `ok`, and add a case to `TestParity_Traversal/prepare_query_relation_keys_pin_join_status_ok`.
 See `docs/API.md § Relation filters`.
 
 **Do NOT:**
@@ -687,32 +531,20 @@ See `docs/API.md § Relation filters`.
 
 ## Adding a new pdbcompat entity (response memory budget)
 
-The pdbcompat list path enforces a `PDBPLUS_RESPONSE_MEMORY_LIMIT` budget
-(default 128 MiB)
-via a pre-flight `count × typicalRowBytes` check that short-circuits to HTTP 413
-when the request would exceed the budget.
+The pdbcompat list path enforces a `PDBPLUS_RESPONSE_MEMORY_LIMIT` budget (default 128 MiB) via a pre-flight `count × typicalRowBytes` check that short-circuits to HTTP 413 when the request would exceed the budget.
 Any new entity wired into `/api/` must integrate with this budget:
 
-1. **Row-size table** — add a `typicalRowBytes` entry in
-   `internal/pdbcompat/rowsize.go` with `Depth0` + `Depth2` numbers.
+1. **Row-size table** — add a `typicalRowBytes` entry in `internal/pdbcompat/rowsize.go` with `Depth0` + `Depth2` numbers.
    Compute them by running:
 
    ```bash
    go test -run=NONE -bench=BenchmarkRowSize ./internal/pdbcompat -benchtime=20x -count=3
    ```
 
-   against a seeded fixture, doubling the measured mean,
-   and rounding **up** to the nearest 64 bytes.
-2. **wireEntity registration** — in `internal/pdbcompat/registry_funcs.go`,
-   add a `wireEntity(entityWiring[...]{...})` entry to `init()` naming the
-   entity's ent query constructor, serializer, and depth getter.
-   The generic helper derives the List and Count closures from a single
-   shared predicate builder — they cannot diverge, which is what upholds
-   the 413 guarantee — and preserves the
-   `applyStatusMatrix(live, isCampus, opts.Since != nil)` last-predicate invariant
-   and the `EmptyResult` short-circuit.
-   `live` comes from `pdbtypes.LiveStatuses`; extend it if upstream
-   `live_statuses()` gives the new type a live status other than `ok`.
+   against a seeded fixture, doubling the measured mean, and rounding **up** to the nearest 64 bytes.
+2. **wireEntity registration** — in `internal/pdbcompat/registry_funcs.go`, add a `wireEntity(entityWiring[...]{...})` entry to `init()` naming the entity's ent query constructor, serializer, and depth getter.
+   The generic helper derives the List and Count closures from a single shared predicate builder — they cannot diverge, which is what upholds the 413 guarantee — and preserves the `applyStatusMatrix(live, isCampus, opts.Since != nil)` last-predicate invariant and the `EmptyResult` short-circuit.
+   `live` comes from `pdbtypes.LiveStatuses`; extend it if upstream `live_statuses()` gives the new type a live status other than `ok`.
 3. **Architecture doc** — add a row to the per-entity sizing table in
    `docs/ARCHITECTURE.md § Response Memory Envelope` with the computed
    `max_rows @ 128 MiB`.
@@ -720,53 +552,36 @@ Any new entity wired into `/api/` must integrate with this budget:
    `internal/pdbcompat/stream_integration_test.go`) with an under-budget
    smoke test and an over-budget 413 assertion mirroring
    `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
-5. **Detail fan-out:**
-   if the depth-2 detail of the type embeds `_set` collections,
-   add them to `detailChildSets` in `internal/pdbcompat/detail_budget.go`.
-   The list must match the eager-loads in `get<Type>WithDepth`
-   in `internal/pdbcompat/depth.go`.
-   Add the type and its set count to `wantParents`
-   in `TestDetailChildSets_CoverRegistryParents`
-   (`internal/pdbcompat/detail_budget_test.go`).
+5. **Detail fan-out:** if the depth-2 detail of the type embeds `_set` collections, add them to `detailChildSets` in `internal/pdbcompat/detail_budget.go`.
+   The list must match the eager-loads in `get<Type>WithDepth` in `internal/pdbcompat/depth.go`.
+   Add the type and its set count to `wantParents` in `TestDetailChildSets_CoverRegistryParents` (`internal/pdbcompat/detail_budget_test.go`).
 
-`memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the
-**single call site** for `runtime.ReadMemStats`.
-Do not call it elsewhere — STW cost compounds,
-and the single-call-site invariant is grep-enforceable.
+`memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the **single call site** for `runtime.ReadMemStats`.
+Do not call it elsewhere — STW cost compounds, and the single-call-site invariant is grep-enforceable.
 
 ## Testing
 
-See [TESTING.md](TESTING.md) for test helpers, fixtures, golden files,
-live tests, benchmarks, and the parity-test procedure.
+See [TESTING.md](TESTING.md) for test helpers, fixtures, golden files, live tests, benchmarks, and the parity-test procedure.
 Run the full suite with `mise run test`.
 
 ## Code style
 
 - `golangci-lint run` reads `.golangci.yml`:
-  - The linter set is `standard`
-    (errcheck, govet, ineffassign, staticcheck, unused)
-    plus `contextcheck`, `exhaustive`, `gocritic`, `gosec`, `misspell`,
-    `modernize`, `nolintlint`, and `revive`.
+  - The linter set is `standard` (errcheck, govet, ineffassign, staticcheck, unused) plus `contextcheck`, `exhaustive`, `gocritic`, `gosec`, `misspell`, `modernize`, `nolintlint`, and `revive`.
     Because govet is in the set, a separate `go vet ./...` run is not necessary.
   - The `gofmt` formatter is on with `simplify: true`.
     `golangci-lint run` reports files that are not formatted.
     Run `mise run format` to fix them.
   - The `comments` and `std-error-handling` exclusion presets are on.
   - Generated code is excluded (`exclusions.generated: strict`).
-  - `gosec` does not run on `_test.go` files
-    or on `cmd/pdb-schema-extract`, `cmd/pdb-schema-generate`,
-    and `cmd/pdbcompat-check`.
+  - `gosec` does not run on `_test.go` files or on `cmd/pdb-schema-extract`, `cmd/pdb-schema-generate`, and `cmd/pdbcompat-check`.
     These tools read and write files and send HTTP requests by design.
-- Prose in `docs/`, `README.md`, and `CONTRIBUTING.md`
-  uses semantic line breaks:
-  start a new line at each sentence and at long clause boundaries.
-  `.rumdl.toml` configures the `rumdl` Markdown linter for this rule.
-  mise and CI do not run `rumdl`, so run it by hand if you have it installed.
+- Markdown prose uses one sentence per source line, so an edit's diff stays scoped to the lines that changed.
+  `.rumdl.toml` configures `rumdl`'s MD013 reflow for this rule; `mise run lint` runs `rumdl check .`, and `rumdl fmt .` rewraps a file that drifts from it.
 
 ## PR process
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md#branch-and-pr-workflow)
-for branches, commit messages, and the PR workflow.
+See [CONTRIBUTING.md](../CONTRIBUTING.md#branch-and-pr-workflow) for branches, commit messages, and the PR workflow.
 Before you open a PR:
 
 1. Run the full local check:
@@ -776,10 +591,7 @@ Before you open a PR:
    mise run check
    ```
 
-2. Commit the regenerated files with the changes that produced them:
-   `ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`,
-   `internal/web/static/tailwind.css`,
-   and `internal/pdbcompat/allowlist_gen.go`.
+2. Commit the regenerated files with the changes that produced them: `ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`, `internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
    Otherwise the CI drift check fails.
 3. Open a PR against `main`.
    CI runs the jobs in [TESTING.md § CI Integration](TESTING.md#ci-integration).
@@ -787,47 +599,26 @@ Before you open a PR:
 ## Debugging tips
 
 - **Server won't start:** config validation is fail-fast.
-  Check the first `slog.Error("failed to load config", ...)` line in stderr —
-  invalid durations, missing required files,
-  and unparseable memory limits all print a clear error here.
-- **gRPC / streaming breaks under a custom middleware:** response writer
-  wrappers **must** implement `http.Flusher` (delegate to the underlying
-  writer).
+  Check the first `slog.Error("failed to load config", ...)` line in stderr — invalid durations, missing required files, and unparseable memory limits all print a clear error here.
+- **gRPC / streaming breaks under a custom middleware:** response writer wrappers **must** implement `http.Flusher` (delegate to the underlying writer).
   Streaming RPCs will hang or buffer without it.
-  Also add `Unwrap() http.ResponseWriter`
-  so nested middleware can unwrap to the inner writer.
-- **Sync never completes / `/readyz` stays unhealthy:** the sync worker only
-  writes on the LiteFS primary.
-  Check `internal/litefs/primary.go` —
-  `.primary` file **absent** = this node is primary (inverted semantics),
-  if it is a lease candidate (`FLY_REGION` equals `PRIMARY_REGION`).
+  Also add `Unwrap() http.ResponseWriter` so nested middleware can unwrap to the inner writer.
+- **Sync never completes / `/readyz` stays unhealthy:** the sync worker only writes on the LiteFS primary.
+  Check `internal/litefs/primary.go` — `.primary` file **absent** = this node is primary (inverted semantics), if it is a lease candidate (`FLY_REGION` equals `PRIMARY_REGION`).
   For local dev without LiteFS, `PDBPLUS_IS_PRIMARY=true` is the default.
-- **Generated code drift in CI:** run `mise run generate` locally
-  and commit the resulting diff.
-  The drift check compares tracked files and separately rejects untracked
-  output under `ent/`, `gen/`, `graph/`, `internal/web/templates/`,
-  `internal/web/static/tailwind.css`,
-  and `internal/pdbcompat/allowlist_gen.go`.
-- **Schema hand-edits keep disappearing:** you almost certainly added them to
-  the generated `ent/schema/{type}.go` file.
-  Move the code to a sibling file
-  (see [Sibling-file convention](#sibling-file-convention-load-bearing)).
-- **`campus` shows up as `campu` somewhere:** the inflection patch in
-  `ent/entc.go` is not applying.
+- **Generated code drift in CI:** run `mise run generate` locally and commit the resulting diff.
+  The drift check compares tracked files and separately rejects untracked output under `ent/`, `gen/`, `graph/`, `internal/web/templates/`, `internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
+- **Schema hand-edits keep disappearing:** you almost certainly added them to the generated `ent/schema/{type}.go` file.
+  Move the code to a sibling file (see [Sibling-file convention](#sibling-file-convention-load-bearing)).
+- **`campus` shows up as `campu` somewhere:** the inflection patch in `ent/entc.go` is not applying.
   Rebuild and re-run `go generate ./ent`.
-- **Trace and log noise in local runs:** set `OTEL_TRACES_EXPORTER=none`,
-  `OTEL_METRICS_EXPORTER=none`, and `OTEL_LOGS_EXPORTER=none` to stop export.
-  `PDBPLUS_OTEL_SAMPLE_RATE=0` stops traces only for `/api/`, `/rest/v1/`,
-  `/peeringdb.v1.`, and `/graphql`.
-  `PDBPLUS_OTEL_SYNC_SAMPLE_RATE=0` stops the traces of scheduled sync
-  cycles.
-  Other paths keep their fixed ratios
-  (see [ARCHITECTURE.md § Sampling Matrix](ARCHITECTURE.md#sampling-matrix)).
-- **An ent schema change did not reach an API:** run `mise run generate`,
-  not only `go generate ./ent`.
+- **Trace and log noise in local runs:** set `OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none`, and `OTEL_LOGS_EXPORTER=none` to stop export.
+  `PDBPLUS_OTEL_SAMPLE_RATE=0` stops traces only for `/api/`, `/rest/v1/`, `/peeringdb.v1.`, and `/graphql`.
+  `PDBPLUS_OTEL_SYNC_SAMPLE_RATE=0` stops the traces of scheduled sync cycles.
+  Other paths keep their fixed ratios (see [ARCHITECTURE.md § Sampling Matrix](ARCHITECTURE.md#sampling-matrix)).
+- **An ent schema change did not reach an API:** run `mise run generate`, not only `go generate ./ent`.
   `go generate ./ent` does not run gqlgen, Tailwind, or templ.
-  `ent/`, `graph/schema.graphqls`, the REST OpenAPI spec,
-  and `internal/pdbcompat/allowlist_gen.go` come from `ent/schema/`.
+  `ent/`, `graph/schema.graphqls`, the REST OpenAPI spec, and `internal/pdbcompat/allowlist_gen.go` come from `ent/schema/`.
   The proto files in `proto/peeringdb/v1/` do not.
   Edit them by hand (see [proto / buf workflow](#proto--buf-workflow)).
 

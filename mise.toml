@@ -18,6 +18,7 @@ go = "1.27"
 golangci-lint = "2"
 gotestsum = "1"
 govulncheck = "1"
+rumdl = "0.2"
 # gqlgen, protoc-gen-connect-go, protoc-gen-go and templ must use the same
 # version as their module in go.mod. Bump both in one commit, then run
 # `mise run generate`.
@@ -45,10 +46,11 @@ env = { CGO_ENABLED = "1" }
 run = "gotestsum --format pkgname-and-test-fails --format-hide-empty-pkg --hide-summary=skipped -- -race ./..."
 
 [tasks.lint]
-description = "Run workflow and Go static analysis"
+description = "Run workflow, Go, and Markdown static analysis"
 run = """
 actionlint
 golangci-lint run
+rumdl check .
 """
 
 [tasks.vulncheck]
