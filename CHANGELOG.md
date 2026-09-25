@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-09-25
+
 ### Added
 
 - CI publishes the standalone image (`Dockerfile`) to
@@ -19,8 +21,7 @@ are in the Git history at their tags.
   commit also gets `sha-<commit>`. Each image has an SBOM, BuildKit
   provenance and a GitHub artifact attestation, which
   `gh attestation verify` checks. The new `docker-publish` job runs only
-  on pushes, after the `ci` and `docker-build` jobs pass. Pull requests
-  publish nothing. The Fly image (`Dockerfile.litefs`) is not published.
+  on pushes, after the `ci` job passes. Pull requests publish nothing. The Fly image (`Dockerfile.litefs`) is not published.
   See `docs/DEPLOYMENT.md` § Published image.
 - A history sweep fetches the tombstones that upstream made before the
   mirror's first sync. A bare list holds only live rows, so these rows
@@ -57,12 +58,10 @@ are in the Git history at their tags.
   appears in the PeeringDB User-Agent, the OTel `service.version` and the
   JSON discovery document. The image build log prints it.
 - CI builds the standalone image once per push. A push to `main` or a
-  `v*` tag no longer runs the `docker-build` job, and `docker-publish`
-  runs after the `ci` job alone. Before, `docker-publish` built the
-  image a second time from scratch: its full-history checkout gives a
-  different build context and version string, so it could not use the
-  layers of `docker-build`. `docker-publish` now writes the build cache
-  of `main`, which pull request builds read.
+  `v*` tag no longer runs the `docker-build` job. `docker-publish` builds
+  and pushes the image, and writes the build cache of `main`, which pull
+  request builds read. Pull requests still run `docker-build`, which
+  pushes nothing.
 - CI runs the race test suite without coverage and posts no coverage
   comment on pull requests. The `k1LoW/octocov-action` step,
   `.octocov.yml`, the `pull-requests: write` permission of the `ci` job
@@ -80,11 +79,10 @@ are in the Git history at their tags.
   value.
 - The standalone image (`Dockerfile`) uses the `cgr.dev/chainguard/static`
   runtime base in place of `cgr.dev/chainguard/glibc-dynamic`. The binary
-  is `CGO_ENABLED=0` and needs no libc. The image also stamps the binary
-  with its version, as `Dockerfile.litefs` does: the `VERSION` build
-  argument, else `git describe --tags --always`. Before this release the
-  standalone image reported only a short commit hash. The build stage
-  cross-compiles, so an arm64 build needs no QEMU.
+  is `CGO_ENABLED=0` and needs no libc. The image reports the same
+  version as `Dockerfile.litefs`, from the VCS stamp above. Before this
+  release the standalone image reported only a short commit hash. The
+  build stage cross-compiles, so an arm64 build needs no QEMU.
 - `Dockerfile.prod` is renamed to `Dockerfile.litefs`. The file builds
   the LiteFS image for the Fly deployment. `fly.toml` builds from the new
   name, so a plain `fly deploy` needs no change. Operators who run
@@ -1449,7 +1447,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.1...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.0...HEAD
+[1.32.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.1...v1.32.0
 [1.31.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.31.0...v1.31.1
 [1.31.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.30.0...v1.31.0
 [1.30.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.29.0...v1.30.0
