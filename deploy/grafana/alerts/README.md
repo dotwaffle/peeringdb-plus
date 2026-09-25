@@ -70,7 +70,7 @@ based on `severity=critical` vs `severity=warning`).
 | Tier       | Behaviour       | Used for                                                          |
 |------------|-----------------|-------------------------------------------------------------------|
 | `critical` | Page on-call    | Sync stalls (>2h freshness), sync-failure rate >50%, fleet drop, telemetry absent, primary absent. |
-| `warning`  | Notify only     | Heap/RSS sustained breach, single sync failure.                   |
+| `warning`  | Notify only     | Heap/RSS sustained breach, 2 failed sync attempts in 3h.          |
 
 Total rule count is capped at 8 to stay below Grafana Cloud free-tier
 alertmanager limits. Current count: 8 rules across both groups — the

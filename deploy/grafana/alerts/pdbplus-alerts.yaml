@@ -134,14 +134,21 @@ groups:
             failure order is log → app crash → Fly OOM-kill.
 
       - alert: PdbPlusSyncOperationFailed
-        expr: increase(pdbplus_sync_operations_total{status="failed"}[1h]) > 0
+        expr: sum(increase(pdbplus_sync_operations_total{status="failed"}[3h])) > 1.5
         for: 5m
+        keep_firing_for: 1h
         labels:
           severity: warning
           receiver: grafana-default-email
         annotations:
-          summary: "PeeringDB Plus had at least one failed sync in the last hour"
+          summary: "PeeringDB Plus had at least 2 failed sync attempts in 3h"
           description: |
-            increase(pdbplus_sync_operations_total{status=failed}[1h]) > 0.
-            Single failure is non-paging but worth a notify; investigate
-            primary sync worker logs for transient PeeringDB upstream issues.
+            sum(increase(pdbplus_sync_operations_total{status="failed"}[3h]))
+            > 1.5: at least two sync attempts failed in the last 3 hours.
+            The counter counts attempts, so a failure that the 30s retry
+            recovered counts once, and a single upstream blip does not
+            fire. The failures do not need to be consecutive. keep_firing_for
+            holds the alert for 1h after the count drops below 2, so
+            failures that recur every few hours stay one alert. Check
+            "sync cycle failed" and "sync failed, retrying" in the primary
+            logs.

@@ -12,6 +12,12 @@ are in the Git history at their tags.
 
 ### Changed
 
+- `PdbPlusSyncOperationFailed` now fires after at least 2 failed sync
+  attempts in 3 hours (`sum(increase(...[3h])) > 1.5`), and
+  `keep_firing_for: 1h` keeps it firing between failures that recur
+  every few hours. It fired on every failed attempt, also when the retry
+  30 seconds later passed, and a failure every 78 minutes made it fire
+  and resolve each time.
 - A failed sync attempt no longer makes `/readyz` return 503 by itself.
   The check now uses the age of the newest successful sync, as it does
   while a sync runs. Replicas read the same `sync_status` rows, so each
