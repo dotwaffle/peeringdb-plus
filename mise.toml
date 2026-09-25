@@ -18,6 +18,7 @@ go = "1.27"
 golangci-lint = "2"
 gotestsum = "1"
 govulncheck = "1"
+rumdl = "0.2"
 # gqlgen, protoc-gen-connect-go, protoc-gen-go and templ must use the same
 # version as their module in go.mod. Bump both in one commit, then run
 # `mise run generate`.
