@@ -524,7 +524,8 @@
       "id": 7,
       "type": "timeseries",
       "title": "Sync Operations",
-      "description": "Count of completed sync cycles by status (success/failed) per time bucket. Red bars are failures. If freshness is red, check here for errors.",
+      "description": "Count of completed sync cycles by status (success/failed) per time bucket. The minimum bucket is 15 minutes, the sync interval with an API key, so a bar holds at most about one cycle. The window is a little longer than the bucket, so a cycle near a bucket edge can count in two bars. Red bars are failures. If freshness is red, check here for errors.",
+      "interval": "15m",
       "gridPos": {
         "h": 6,
         "w": 24,
