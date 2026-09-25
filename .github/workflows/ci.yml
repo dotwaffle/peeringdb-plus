@@ -59,6 +59,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      # The cache is restored before mise installs the tools, because mise
+      # builds the go: tools (gqlgen, templ, protoc plugins) with it. So the
+      # Go version comes from mise.lock, not from the installed toolchain.
+      - name: Read Go version
+        id: go
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("mise.lock", "rb"))["tools"]["go"][0]["version"])')
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Restore Go cache
         uses: actions/cache@v6
         with:
@@ -66,11 +76,12 @@ jobs:
             ~/.cache/go-build
             ~/.cache/golangci-lint
             ~/go/pkg/mod
-          # mise.lock carries the exact Go version; go.sum carries the module
-          # graph. Either changing invalidates the compiled cache.
-          key: ${{ runner.os }}-go-${{ hashFiles('mise.lock') }}-${{ hashFiles('**/go.sum') }}
+          # The build cache belongs to one Go version, and go.sum carries the
+          # module graph. Other tool versions in mise.lock stay out of the
+          # key: golangci-lint salts its cache with its own version.
+          key: ${{ runner.os }}-go${{ steps.go.outputs.version }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-${{ hashFiles('mise.lock') }}-
+            ${{ runner.os }}-go${{ steps.go.outputs.version }}-
 
       - name: Set up tools
         uses: jdx/mise-action@v4
