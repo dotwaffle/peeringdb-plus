@@ -31,6 +31,14 @@ are in the Git history at their tags.
   the Grafana-managed rules that production runs, and no longer caps the
   rule count at 8. The `PdbPlusSyncFailureRateHigh` and `PdbPlusRssHigh`
   annotations say when the rules fire.
+- Dashboard `pdbplus-overview`: the Go Runtime panels show one line per
+  machine (`sum by (service_namespace, cloud_region)`); `sum by
+  (instance)` summed the fleet, because the `instance` label is empty.
+  Sync Success Rate and Fallback Events count over the dashboard range,
+  as their 4-minute window was empty between 15-minute cycles. Sync
+  Duration (p95) aggregates the buckets per mode over 1 hour. Error Rate
+  (5xx) leaves out the health probes, which caused every 5xx of the last
+  week.
 - A failed sync attempt no longer makes `/readyz` return 503 by itself.
   The check now uses the age of the newest successful sync, as it does
   while a sync runs. Replicas read the same `sync_status` rows, so each
