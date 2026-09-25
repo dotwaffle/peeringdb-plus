@@ -1,15 +1,9 @@
 # API Reference
 
-PeeringDB Plus exposes the mirrored PeeringDB dataset through
-**six coexisting API surfaces** served from the same process on the same port,
-plus a small set of infrastructure endpoints for health, on-demand sync, and
-service discovery.
-This document is the comprehensive reference;
-see `README.md` for a one-page overview and `docs/ARCHITECTURE.md`
-for the rationale behind each surface.
+PeeringDB Plus exposes the mirrored PeeringDB dataset through **six coexisting API surfaces** served from the same process on the same port, plus a small set of infrastructure endpoints for health, on-demand sync, and service discovery.
+This document is the comprehensive reference; see `README.md` for a one-page overview and `docs/ARCHITECTURE.md` for the rationale behind each surface.
 
-All routes are registered in `cmd/peeringdb-plus/main.go`
-and pass through the production middleware chain:
+All routes are registered in `cmd/peeringdb-plus/main.go` and pass through the production middleware chain:
 
 ```text
 Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery -> Logging ->
@@ -17,15 +11,11 @@ PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip ->
 RouteTag -> mux
 ```
 
-The server speaks HTTP/1.1 and h2c
-(HTTP/2 cleartext)
-on the same listener so that Connect, gRPC,
-and gRPC-Web clients can use the same base URL as browser and CLI clients.
+The server speaks HTTP/1.1 and h2c (HTTP/2 cleartext) on the same listener so that Connect, gRPC, and gRPC-Web clients can use the same base URL as browser and CLI clients.
 
 ## Authentication
 
-Most endpoints are **unauthenticated and read-only** —
-they expose the same public data that PeeringDB itself publishes.
+Most endpoints are **unauthenticated and read-only** — they expose the same public data that PeeringDB itself publishes.
 
 | Endpoint | Authentication |
 |----------|----------------|
@@ -33,12 +23,8 @@ they expose the same public data that PeeringDB itself publishes.
 | `POST /sync` | `X-Sync-Token` header must match `PDBPLUS_SYNC_TOKEN` (constant-time compare) |
 | Upstream fetch from `api.peeringdb.com` | Optional — set `PDBPLUS_PEERINGDB_API_KEY` to use an authenticated client with higher rate limits |
 
-If `PDBPLUS_SYNC_TOKEN` is empty at startup the sync endpoint logs a warning
-and rejects every request as `401 unauthorized` —
-there is no "accept anything" mode.
-Replica instances reject the request with a `fly-replay` header
-that routes the request to the primary region on Fly.io,
-or return `503 not primary` when running outside Fly.io.
+If `PDBPLUS_SYNC_TOKEN` is empty at startup the sync endpoint logs a warning and rejects every request as `401 unauthorized` — there is no "accept anything" mode.
+Replica instances reject the request with a `fly-replay` header that routes the request to the primary region on Fly.io, or return `503 not primary` when running outside Fly.io.
 
 ## Endpoints overview
 
@@ -88,24 +74,16 @@ or return `503 not primary` when running outside Fly.io.
 | `GET` / `HEAD` | `/.well-known/agent-skills/peeringdb-plus/SKILL.md` | Agent Skill | Standard well-known alias for the raw skill |
 | `GET` / `HEAD` | `/llms.txt` | Agent discovery | Curated Markdown index of agent and API interfaces |
 
-The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`,
-`carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`,
-`netixlan`, `org`, `poc`.
+The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`, `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`, `netixlan`, `org`, `poc`.
 
 The application server has no `/metrics` route.
 By default, the process sends metrics through OTLP to the configured collector.
-If you set `OTEL_METRICS_EXPORTER=prometheus`,
-the OpenTelemetry autoexport library starts a separate listener
-that serves `/metrics` on
-`OTEL_EXPORTER_PROMETHEUS_HOST`:`OTEL_EXPORTER_PROMETHEUS_PORT`
-(default `localhost:9464`).
+If you set `OTEL_METRICS_EXPORTER=prometheus`, the OpenTelemetry autoexport library starts a separate listener that serves `/metrics` on `OTEL_EXPORTER_PROMETHEUS_HOST`:`OTEL_EXPORTER_PROMETHEUS_PORT` (default `localhost:9464`).
 See [CONFIGURATION.md](CONFIGURATION.md#standard-opentelemetry-variables-autoexport).
 
 ### Before the first sync
 
-Until the first sync completes, every route returns
-`503 Service Unavailable`, except `/`, `/healthz`, `/readyz`, `/sync`,
-`/favicon.ico`, `/static/*` and `/grpc.health.v1.Health/*`.
+Until the first sync completes, every route returns `503 Service Unavailable`, except `/`, `/healthz`, `/readyz`, `/sync`, `/favicon.ico`, `/static/*` and `/grpc.health.v1.Health/*`.
 This includes `/mcp` and the agent discovery files that `GET /` lists.
 A browser gets a syncing page.
 A terminal client gets text.
@@ -115,23 +93,16 @@ To know when the server is ready, poll `/readyz` or the gRPC health service.
 
 ## Row status on each surface
 
-The mirror stores rows of every status that upstream sends:
-`ok`, `pending`, `deleted`, and `not-operational` on netixlan.
+The mirror stores rows of every status that upstream sends: `ok`, `pending`, `deleted`, and `not-operational` on netixlan.
 
 - `/api/` applies the upstream status matrix.
   See § Soft-delete tombstones.
 - GraphQL, REST and ConnectRPC apply no status filter.
-  Their lists, streams and single-object lookups also return
-  `deleted` and `pending` rows.
-- To get only live rows from a list, filter on `status`:
-  GraphQL `where: {status: "ok"}`, REST `?status.eq=ok`,
-  or ConnectRPC `"status": "ok"`.
-  On netixlan, use GraphQL `where: {statusIn: ["ok", "not-operational"]}`
-  or REST `?status.in=ok&status.in=not-operational`.
-  The ConnectRPC `status` filter takes one value,
-  so send one request for each status.
-- Single-object lookups take no status filter:
-  GraphQL `node`, REST `/rest/v1/{collection}/{id}` and ConnectRPC `Get{Type}`.
+  Their lists, streams and single-object lookups also return `deleted` and `pending` rows.
+- To get only live rows from a list, filter on `status`: GraphQL `where: {status: "ok"}`, REST `?status.eq=ok`, or ConnectRPC `"status": "ok"`.
+  On netixlan, use GraphQL `where: {statusIn: ["ok", "not-operational"]}` or REST `?status.in=ok&status.in=not-operational`.
+  The ConnectRPC `status` filter takes one value, so send one request for each status.
+- Single-object lookups take no status filter: GraphQL `node`, REST `/rest/v1/{collection}/{id}` and ConnectRPC `Get{Type}`.
   Read `status` in the response.
 - GraphQL `networkByAsn` returns only `ok` and `pending` networks.
 - The Web UI and the MCP tools do not show `deleted` rows.
@@ -140,32 +111,24 @@ The mirror stores rows of every status that upstream sends:
 
 PeeringDB 2.83.0 adds the netixlan status `not-operational`.
 A connection that was `ok` with `operational=false` now has this status.
-Upstream derives `operational` from the status (`status == 'ok'`),
-and it treats `ok` and `not-operational` as live statuses
-(`models.py:109-122`).
+Upstream derives `operational` from the status (`status == 'ok'`), and it treats `ok` and `not-operational` as live statuses (`models.py:109-122`).
 
-- The Web UI, the ASN comparison and the MCP tools list a
-  `not-operational` connection the same as an `ok` one.
+- The Web UI, the ASN comparison and the MCP tools list a `not-operational` connection the same as an `ok` one.
   Its speed counts toward the aggregate bandwidth of the network or exchange.
   The Web UI marks it `not operational`; see § IX connection markers.
-- GraphQL, REST and ConnectRPC apply no status filter
-  (see § Row status on each surface).
+- GraphQL, REST and ConnectRPC apply no status filter (see § Row status on each surface).
   They return the stored `status` and `operational` values unchanged.
   A `status` filter for `ok` does not return these connections.
 - For `/api/`, see § Soft-delete tombstones.
 
 ## 1. Web UI (`/ui/`)
 
-The Web UI is implemented in `internal/web/` using [templ](https://templ.guide)
-for type-safe HTML templates and [htmx](https://htmx.org)
-for interactive behavior without a JavaScript build pipeline.
-The same URL space can render HTML, ANSI-colored terminal text, plain text,
-or JSON depending on client characteristics.
+The Web UI is implemented in `internal/web/` using [templ](https://templ.guide) for type-safe HTML templates and [htmx](https://htmx.org) for interactive behavior without a JavaScript build pipeline.
+The same URL space can render HTML, ANSI-colored terminal text, plain text, or JSON depending on client characteristics.
 
 ### Content negotiation
 
-The server inspects each request through `internal/web/termrender.Detect`
-(`internal/web/termrender/detect.go`) and picks a render mode based on:
+The server inspects each request through `internal/web/termrender.Detect` (`internal/web/termrender/detect.go`) and picks a render mode based on:
 
 1. `?T` or `?format=plain|json|whois|short` query parameter (highest priority)
 2. `Accept` header (`text/plain` → rich terminal, `application/json` → JSON)
@@ -178,12 +141,8 @@ The server inspects each request through `internal/web/termrender.Detect`
 
 ### The curl gotcha
 
-Because `curl` and `wget` are detected by User-Agent,
-running `curl https://peeringdb-plus.fly.dev/ui/asn/15169` returns
-**ANSI-colored text intended for a terminal**.
-If you pipe this output to a file, a logger,
-or a tool that does not render ANSI codes,
-you will see escape sequences like `\x1b[38;5;...`.
+Because `curl` and `wget` are detected by User-Agent, running `curl https://peeringdb-plus.fly.dev/ui/asn/15169` returns **ANSI-colored text intended for a terminal**.
+If you pipe this output to a file, a logger, or a tool that does not render ANSI codes, you will see escape sequences like `\x1b[38;5;...`.
 
 Four ways to get clean output:
 
@@ -201,8 +160,7 @@ curl -H "User-Agent: Mozilla/5.0" https://peeringdb-plus.fly.dev/ui/asn/15169
 curl https://peeringdb-plus.fly.dev/ui/asn/15169 | sed 's/\x1b\[[0-9;]*m//g'
 ```
 
-For machine-readable output, use one of the structured API surfaces
-(`/api/`, `/rest/v1/`, `/graphql`, or ConnectRPC) instead of scraping `/ui/`.
+For machine-readable output, use one of the structured API surfaces (`/api/`, `/rest/v1/`, `/graphql`, or ConnectRPC) instead of scraping `/ui/`.
 
 ### Routes
 
@@ -230,8 +188,7 @@ Unknown `/ui/*` paths render the themed 404 page via `handleNotFound`.
 
 ### IX connection markers
 
-The network IX list, the exchange participant list and the ASN comparison
-mark a connection as the upstream PeeringDB 2.83.0 network and exchange views do:
+The network IX list, the exchange participant list and the ASN comparison mark a connection as the upstream PeeringDB 2.83.0 network and exchange views do:
 
 | Marker | Shown when |
 |--------|------------|
@@ -242,18 +199,14 @@ mark a connection as the upstream PeeringDB 2.83.0 network and exchange views do
 
 HTML shows each marker as a badge with the upstream tooltip.
 In the ASN comparison, the badges are in the speed column of each network.
-Terminal output shows each marker in brackets, for example `[not operational]`,
-at every width.
+Terminal output shows each marker in brackets, for example `[not operational]`, at every width.
 WHOIS output lists only exchange names and shows no markers.
-JSON output (`?format=json`) and the MCP relation and comparison rows
-carry the same data as a `Markers` object
-(`NotOperational`, `PlannedStatus`, `PlannedDate`, `RFC8950`).
+JSON output (`?format=json`) and the MCP relation and comparison rows carry the same data as a `Markers` object (`NotOperational`, `PlannedStatus`, `PlannedDate`, `RFC8950`).
 The object is left out when no marker is set.
 
 ## 2. GraphQL (`/graphql`)
 
-GraphQL is served by [gqlgen](https://gqlgen.com) wired through
-[entgql](https://entgo.io/docs/graphql/).
+GraphQL is served by [gqlgen](https://gqlgen.com) wired through [entgql](https://entgo.io/docs/graphql/).
 The handler lives in `internal/graphql/handler.go`.
 
 | Method | Behavior |
@@ -272,15 +225,12 @@ The handler lives in `internal/graphql/handler.go`.
 
 ### Queries and pagination
 
-- Relay connections, for example
-  `networks(first: 10, after: $cursor, where: {...})`.
+- Relay connections, for example `networks(first: 10, after: $cursor, where: {...})`.
   Without `first` or `last`, a connection returns the first 100 rows.
   A `first` or `last` value above 1000 returns an error.
   The default order is `id` ascending.
-  `campuses`, `carriers`, `facilities`, `internetExchanges`, `networks`
-  and `organizations` also accept `orderBy: {field: NAME}`.
-- Offset lists, for example
-  `networksList(offset: 0, limit: 100, where: {...})`.
+  `campuses`, `carriers`, `facilities`, `internetExchanges`, `networks` and `organizations` also accept `orderBy: {field: NAME}`.
+- Offset lists, for example `networksList(offset: 0, limit: 100, where: {...})`.
   `limit` defaults to 100 and must be 1 to 1000.
   `offset` must be 0 or more.
   These queries set no order, so use a connection for stable paging.
@@ -291,8 +241,7 @@ The handler lives in `internal/graphql/handler.go`.
 
 ### Error envelope
 
-Errors are returned in standard GraphQL format with an `extensions.code` field
-populated by `classifyError` in `internal/graphql/handler.go`:
+Errors are returned in standard GraphQL format with an `extensions.code` field populated by `classifyError` in `internal/graphql/handler.go`:
 
 | Code | Trigger |
 |------|---------|
@@ -302,8 +251,7 @@ populated by `classifyError` in `internal/graphql/handler.go`:
 | `INTERNAL_ERROR` | Any other error. This includes a query that does not parse or validate, a query over the complexity or depth limit, and a page-size argument out of range (for example `first: 5000` or `limit: 0`) |
 
 An error from a resolver includes `path`, which points to the field.
-An error for the full request, for example a parse error or a complexity-limit
-error, has no `path`.
+An error for the full request, for example a parse error or a complexity-limit error, has no `path`.
 
 ### Example
 
@@ -320,20 +268,15 @@ error, has no `path`.
 ```
 
 Schema browsing is easiest through the GraphiQL playground.
-The schema comes from `ent/schema/` (`graph/schema.graphqls`)
-and the hand-written `graph/custom.graphql`.
+The schema comes from `ent/schema/` (`graph/schema.graphqls`) and the hand-written `graph/custom.graphql`.
 
-`Network.meta` and `NetworkIxLan.meta` carry the PeeringDB metadata
-document (added upstream in 2.83.0) as the `Map` scalar.
-The key set is open: upstream can add keys,
-and the mirror stores the document as is, with no schema change.
+`Network.meta` and `NetworkIxLan.meta` carry the PeeringDB metadata document (added upstream in 2.83.0) as the `Map` scalar.
+The key set is open: upstream can add keys, and the mirror stores the document as is, with no schema change.
 The field is `null` when no document is stored for the row.
 
 ## 3. REST (`/rest/v1/`)
 
-The REST surface is generated by [entrest](https://github.com/lrstanley/entrest)
-directly from the ent schemas with read-only operations only (`OperationRead` +
-`OperationList`).
+The REST surface is generated by [entrest](https://github.com/lrstanley/entrest) directly from the ent schemas with read-only operations only (`OperationRead` + `OperationList`).
 
 | Path | Description |
 |------|-------------|
@@ -344,51 +287,37 @@ directly from the ent schemas with read-only operations only (`OperationRead` +
 
 A list takes `page` (default 1) and `per_page` (default 10, maximum 100).
 A `per_page` value above 100 returns `400`.
-`sort` names the field (default `updated`),
-and `order` is `asc` or `desc` (default `desc`).
+`sort` names the field (default `updated`), and `order` is `asc` or `desc` (default `desc`).
 The default sort adds `created` and `id` as tiebreakers.
-A filter has the form `<field>.<op>=<value>`,
-for example `asn.eq=13335`, `name.ihas=cloud` or `status.eq=ok`.
-For an operator that takes a list, repeat the key:
-`status.in=ok&status.in=pending`.
+A filter has the form `<field>.<op>=<value>`, for example `asn.eq=13335`, `name.ihas=cloud` or `status.eq=ok`.
+For an operator that takes a list, repeat the key: `status.in=ok&status.in=pending`.
 The response is `{"page", "total_count", "last_page", "is_last_page", "content"}`.
 Each item includes an `edges` object with its related rows.
-For each edge that holds a list, the server loads at most 1000 rows
-for the full response, newest `updated` first.
-In a list response, all items share this limit,
-so an item can show only part of its related rows.
+For each edge that holds a list, the server loads at most 1000 rows for the full response, newest `updated` first.
+In a list response, all items share this limit, so an item can show only part of its related rows.
 To get every related row, use the edge route, which pages like a list.
-The collection paths and the filters come from entrest annotations
-in `ent/schema/`.
+The collection paths and the filters come from entrest annotations in `ent/schema/`.
 The OpenAPI spec lists every filter.
 
-`meta` on `networks` and `network-ix-lans` is the PeeringDB metadata
-document, an open JSON object (added upstream in 2.83.0).
+`meta` on `networks` and `network-ix-lans` is the PeeringDB metadata document, an open JSON object (added upstream in 2.83.0).
 A row without a stored document returns `{}`, the same as upstream.
 `meta` is not filterable on this surface.
 
 ### Error format
 
-Non-2xx responses are rewritten to
-[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) by
-`RESTError` in `internal/middleware/rest_error.go`.
+Non-2xx responses are rewritten to [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) by `RESTError` in `internal/middleware/rest_error.go`.
 The response `Content-Type` is `application/problem+json`.
 The body always has `type` (`about:blank`), `title`, `status` and `instance`.
-For a `4xx` response, `detail` gives the entrest error message,
-for example `bad request: per_page 0 is out of bounds, must be >= 1`.
-A `5xx` response has no `detail`,
-so database error text does not reach the client.
+For a `4xx` response, `detail` gives the entrest error message, for example `bad request: per_page 0 is out of bounds, must be >= 1`.
+A `5xx` response has no `detail`, so database error text does not reach the client.
 
 ## 4. PeeringDB Compatibility API (`/api/`)
 
-This surface, in `internal/pdbcompat/`,
-serves the read operations of the PeeringDB REST API.
+This surface, in `internal/pdbcompat/`, serves the read operations of the PeeringDB REST API.
 It serves only `GET` and `HEAD` requests.
 Other methods get `405`.
-The URL structure, the success envelope, the filter operators
-and the single object in a `data` array match upstream.
-A client that only reads can switch to PeeringDB Plus
-with a change of base URL.
+The URL structure, the success envelope, the filter operators and the single object in a `data` array match upstream.
+A client that only reads can switch to PeeringDB Plus with a change of base URL.
 Error bodies and some filters differ.
 See § Known Divergences.
 
@@ -400,9 +329,7 @@ See § Known Divergences.
 | `GET /api/{type}` | List endpoint |
 | `GET /api/{type}/{id}` | Single object by numeric ID, wrapped in `data: [ ... ]` (intentional parity with upstream) |
 
-Valid `{type}` values are the same 13 constants defined in
-`internal/peeringdb/types.go`: `org`, `net`, `fac`, `ix`, `poc`, `ixlan`,
-`ixpfx`, `netixlan`, `netfac`, `ixfac`, `carrier`, `carrierfac`, `campus`.
+Valid `{type}` values are the same 13 constants defined in `internal/peeringdb/types.go`: `org`, `net`, `fac`, `ix`, `poc`, `ixlan`, `ixpfx`, `netixlan`, `netfac`, `ixfac`, `carrier`, `carrierfac`, `campus`.
 
 ### Query parameters
 
@@ -416,90 +343,60 @@ Valid `{type}` values are the same 13 constants defined in
 | `since` | List | The value is Unix seconds as an integer. The list holds the rows with `updated` at or after that second, in `updated` order, then `id` order (see § List order). It also admits `deleted` rows, and `pending` rows on `/api/campus` (see § Soft-delete tombstones). `since=0` or a negative value is ignored. A value that is not an integer returns `400`. Upstream stores `updated` with microseconds and compares it with `N.000000` (2.83.0 `rest.py:736-744`). It shows the value truncated to the second (`serializers.py:1920-1924`), so it also returns almost every row shown as `updated=N`. The mirror stores only the second and includes it |
 | `{field}`, `{field}__{op}` | List | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream 2.83.0 `rest.py:657-662`. Upstream ignores a key with the `__iexact`, `__icontains` or `__istartswith` suffix; the mirror applies them (see § Known Divergences). Typed against the field; invalid types (e.g. `asn__contains`) return `400`. A key that names a forward FK by its upstream model name filters the FK column: `?org=1` is the same filter as `?org_id=1`. `net` and `network` are names for `net_id`, and `fac` and `facility` are names for `fac_id` (`?network__in=1,2`, `?facility_id=2`). The operators compare the FK id, and `__contains` or `__startswith` on a FK name returns `400`, as upstream (2.83.0 `rest.py:608-631`, `:670-677`, `serializers.py:403-441`). If a request gives one FK in two spellings, the mirror applies both filters. Upstream keeps only the last one |
 
-The server reads every query parameter outside `limit`, `skip`, `depth`,
-`since`, `q` and `fields` as a filter key.
-A key that names no field, or that has an unknown operator suffix,
-is ignored, and the response is `200` without that filter.
+The server reads every query parameter outside `limit`, `skip`, `depth`, `since`, `q` and `fields` as a filter key.
+A key that names no field, or that has an unknown operator suffix, is ignored, and the response is `200` without that filter.
 For example, `/api/net?name__foo=x` returns the unfiltered list.
 Some relation keys are an exception.
-For example, `/api/netfac?name__foo=x` filters on the facility name
-(see § Relation filters).
+For example, `/api/netfac?name__foo=x` filters on the facility name (see § Relation filters).
 A known key with a value that does not parse for the field type returns `400`.
 The server records each ignored key (see § Unknown-field diagnostics).
-See § Cross-entity traversal for the 2-hop cap and § Validation Notes
-for the rationale.
+See § Cross-entity traversal for the 2-hop cap and § Validation Notes for the rationale.
 
 Filter values follow these rules:
 
 - An exact match on a string field ignores case.
-- A bare `address1`, `city` or `state` filter matches a substring,
-  as upstream does (2.83.0 `rest.py:583-595`).
+- A bare `address1`, `city` or `state` filter matches a substring, as upstream does (2.83.0 `rest.py:583-595`).
   For example, `?city=Frankfurt` also matches `Frankfurt am Main`.
-  With an operator suffix or a relation prefix, the key uses the normal
-  match rules.
+  With an operator suffix or a relation prefix, the key uses the normal match rules.
 - A bare `country` filter with a 2-letter value is an exact match.
   A longer value matches a substring.
 - If a query repeats a filter key, the last value applies.
-  A relation key of a `prepare_query` uses the first value
-  (see § Relation filters).
-- A time field, for example `created` or `updated`,
-  accepts Unix seconds or ISO 8601:
-  `2024-01-01`, `2024-01-01T12:00:00`, `2024-01-01 12:00:00`,
-  or RFC 3339 with an offset.
+  A relation key of a `prepare_query` uses the first value (see § Relation filters).
+- A time field, for example `created` or `updated`, accepts Unix seconds or ISO 8601: `2024-01-01`, `2024-01-01T12:00:00`, `2024-01-01 12:00:00`, or RFC 3339 with an offset.
   A value without an offset is UTC.
 - A date without a time applies to the full day.
-  `?updated=2024-01-01` matches every row updated on that day,
-  `__gt` means after that day, and `__lte` includes that day.
-  In an `__in` list, a date means the start of that day
-  (00:00:00 UTC).
+  `?updated=2024-01-01` matches every row updated on that day, `__gt` means after that day, and `__lte` includes that day.
+  In an `__in` list, a date means the start of that day (00:00:00 UTC).
   `since` accepts only Unix seconds.
 
-Some keys name a column that the mirror stores but upstream does not filter.
-pdbcompat ignores these keys the same way, for every operator:
+Some keys name a column that the mirror stores but upstream does not filter. pdbcompat ignores these keys the same way, for every operator:
 
-- Keys that `queryable_field_xl` renames to a name that matches no field
-  (2.83.0 `serializers.py:428-438`).
+- Keys that `queryable_field_xl` renames to a name that matches no field (2.83.0 `serializers.py:428-438`).
   `net_side` and `net_side_id` on `netixlan` become `network_side`.
   `fac_count` on `carrier` becomes `facility_count`.
-  The `fac_count` and `net_count` keys of `fac`, `net` and `ix` still filter,
-  because their `prepare_query` handles them.
+  The `fac_count` and `net_count` keys of `fac`, `net` and `ix` still filter, because their `prepare_query` handles them.
 - Serializer fields and model properties that no `prepare_query` handles:
   `org_name` on `carrier` and `campus`,
   `city`, `country`, `state` and `zipcode` on `campus`,
   `name` on `carrierfac`, and `local_asn` on `netfac`
   (`rest.py:525-528`, `:633`, `:670`).
-- Relation keys whose last segment is a FK column,
-  for example `netixlan?net__org_id=`.
-  Upstream strips `_id` from the key and gets `network__org`,
-  and `queryable_relations()` leaves FK fields out
-  (`serializers.py:991-995`).
+- Relation keys whose last segment is a FK column, for example `netixlan?net__org_id=`.
+  Upstream strips `_id` from the key and gets `network__org`, and `queryable_relations()` leaves FK fields out (`serializers.py:991-995`).
   `<fk>__id` keeps its suffix and filters.
-  A `prepare_query` relation key also filters,
-  for example `netixlan?ix__org_id=` (`serializers.py:643-654`).
+  A `prepare_query` relation key also filters, for example `netixlan?ix__org_id=` (`serializers.py:643-654`).
 
-`__in` accepts a CSV value and binds
-as a single JSON array via SQLite's `json_each()`,
-sidestepping the variable-binding limit.
-An empty `__in` (`?asn__in=`) short-circuits the request to an empty `data: []`
-envelope without running SQL
-(a `404` if the request is a lookup by `id` or `asn`, see § Lookup by `id` or `asn`).
-The `net` keys `info_type__in` and `info_types__in` are an exception:
-an empty value returns all networks, as upstream
-(see § Multi-value choice filters).
-Malformed `__in` values for typed fields
-(e.g. non-integer in `asn__in=`) return `400`.
+`__in` accepts a CSV value and binds as a single JSON array via SQLite's `json_each()`, sidestepping the variable-binding limit.
+An empty `__in` (`?asn__in=`) short-circuits the request to an empty `data: []` envelope without running SQL (a `404` if the request is a lookup by `id` or `asn`, see § Lookup by `id` or `asn`).
+The `net` keys `info_type__in` and `info_types__in` are an exception: an empty value returns all networks, as upstream (see § Multi-value choice filters).
+Malformed `__in` values for typed fields (e.g. non-integer in `asn__in=`) return `400`.
 
 ### Multi-value choice filters
 
-Two fields hold a list of choices:
-`info_types` on `net` and `available_voltage_services` on `fac`.
-Upstream stores such a field as one string:
-the choices in the order of the upstream choice list, joined with commas
-(django-peeringdb `fields.py:61-71`, `const.py:114-125` and `:203-208`).
+Two fields hold a list of choices: `info_types` on `net` and `available_voltage_services` on `fac`.
+Upstream stores such a field as one string: the choices in the order of the upstream choice list, joined with commas (django-peeringdb `fields.py:61-71`, `const.py:114-125` and `:203-208`).
 For example, a network with the types `Content` and `NSP` stores `NSP,Content`.
 The API returns the list in no fixed order.
-The filters compare the stored string,
-and the mirror builds the same string from the list that it stores.
+The filters compare the stored string, and the mirror builds the same string from the list that it stores.
 
 | Key | Match |
 |-----|-------|
@@ -509,9 +406,7 @@ and the mirror builds the same string from the list that it stores.
 | `<field>__lt=`, `__lte=`, `__gt=`, `__gte=` | The value is converted to the stored form, and the two strings are compared |
 
 `net` also accepts the legacy `info_type` keys.
-Upstream `NetworkSerializer.finalize_query_params` rewrites these keys,
-and two `info_types` keys, onto `info_types`
-(2.83.0 `serializers.py:3765-3813`):
+Upstream `NetworkSerializer.finalize_query_params` rewrites these keys, and two `info_types` keys, onto `info_types` (2.83.0 `serializers.py:3765-3813`):
 
 | Key | Match |
 |-----|-------|
@@ -520,60 +415,42 @@ and two `info_types` keys, onto `info_types`
 | `info_type__in=`, `info_types__in=` | An item is a substring of the stored string. Spaces at the ends of an item are removed. An empty item matches every network |
 | `info_type__startswith=X`, `info_types__startswith=X` | The stored string starts with `X` or contains `,X` |
 
-An `__in` list costs one `LIKE` test per item on each network,
-as the `OR` of `icontains` terms that upstream runs.
-`BenchmarkMultiChoice_InfoTypesIn`
-(`internal/pdbcompat/multichoice_bench_test.go`, `go test -tags=bench`)
-measures the cost per item.
+An `__in` list costs one `LIKE` test per item on each network, as the `OR` of `icontains` terms that upstream runs.
+`BenchmarkMultiChoice_InfoTypesIn` (`internal/pdbcompat/multichoice_bench_test.go`, `go test -tags=bench`) measures the cost per item.
 
-Upstream ignores every other `info_type` key,
-because `info_type` is a model property (`models.py:5812-5816`).
+Upstream ignores every other `info_type` key, because `info_type` is a model property (`models.py:5812-5816`).
 This includes relation keys such as `netixlan?net__info_type=`.
-A relation key on a multi-value field,
-for example `netixlan?net__info_types=`, uses the rules of the first table.
-A `prepare_query` relation key without an operator,
-for example `ix?fac__available_voltage_services=`,
-converts the value to the stored form first (`models.py:221-234`).
+A relation key on a multi-value field, for example `netixlan?net__info_types=`, uses the rules of the first table.
+A `prepare_query` relation key without an operator, for example `ix?fac__available_voltage_services=`, converts the value to the stored form first (`models.py:221-234`).
 The comparison operators compare lower case text in byte order.
-Upstream compares under the MySQL collation,
-which can put punctuation in a different order.
+Upstream compares under the MySQL collation, which can put punctuation in a different order.
 
 ### List order
 
 A list without `?since` returns rows in `id` order, ascending.
-Upstream adds no `ORDER BY` to this query (2.83.0 `rest.py:747-748`),
-and none of the 13 models declares a default ordering,
-so MySQL returns the rows in primary-key order.
-A `?since` list returns rows in `updated` order, ascending,
-as upstream orders it (`rest.py:744`).
+Upstream adds no `ORDER BY` to this query (2.83.0 `rest.py:747-748`), and none of the 13 models declares a default ordering, so MySQL returns the rows in primary-key order.
+A `?since` list returns rows in `updated` order, ascending, as upstream orders it (`rest.py:744`).
 Rows with the same `updated` value come back in `id` order.
 Upstream leaves the order of these rows to the database.
 `skip` and `limit` apply after the sort, so each page continues the same order.
-An upstream netixlan list can return its rows in a different order
-(see § Known Divergences).
+An upstream netixlan list can return its rows in a different order (see § Known Divergences).
 
 ### Lookup by `id` or `asn`
 
-A list request with the `id` key on any type,
-or with the `asn` key on `/api/net`, is a lookup of one object.
-If the list is empty, the response is `404` with the detail `Entity not found`,
-as upstream (2.83.0 `rest.py:809-815`, `serializers.py:962-967` and `:3815-3820`).
+A list request with the `id` key on any type, or with the `asn` key on `/api/net`, is a lookup of one object.
+If the list is empty, the response is `404` with the detail `Entity not found`, as upstream (2.83.0 `rest.py:809-815`, `serializers.py:962-967` and `:3815-3820`).
 Only the key counts.
 Any other filter, `skip`, `limit` or `since` that empties the list also causes the `404`.
-`id__in`, `asn__in`, and `asn` on other types are ordinary filters,
-and an empty result is `200` with an empty `data` array.
+`id__in`, `asn__in`, and `asn` on other types are ordinary filters, and an empty result is `200` with an empty `data` array.
 A request with `?page=` does not get the `404`, as upstream.
 The body is problem+json, like every other error (see § Known Divergences).
 A value that is not an integer, for example `?id=abc`, returns `400` (see § Known Divergences).
 
 ### Diacritic-insensitive matching
 
-On the 16 fields below, these operators ignore diacritics and case:
-exact match, `__iexact`, `__contains`, `__icontains`, `__startswith`,
-`__istartswith` and `__in`.
+On the 16 fields below, these operators ignore diacritics and case: exact match, `__iexact`, `__contains`, `__icontains`, `__startswith`, `__istartswith` and `__in`.
 For example, `?name=Koln` and `?name__contains=koln` both match `Köln`.
-`__lt`, `__lte`, `__gt` and `__gte` compare the stored value
-and do not ignore diacritics.
+`__lt`, `__lte`, `__gt` and `__gte` compare the stored value and do not ignore diacritics.
 `?q=` does not ignore diacritics (see § Known Divergences).
 
 | Entity | Folded fields |
@@ -585,31 +462,20 @@ and do not ignore diacritics.
 | `carrier` | `name`, `aka` |
 | `campus` | `name` |
 
-Implementation: each row carries a sibling `<field>_fold` shadow column
-populated at sync time via `internal/unifold.Fold` (NFKD decomposition + a
-ligature map).
+Implementation: each row carries a sibling `<field>_fold` shadow column populated at sync time via `internal/unifold.Fold` (NFKD decomposition + a ligature map).
 Filter routing happens in `internal/pdbcompat/filter.go`.
-When `tc.FoldedFields[<field>]` is `true`, `buildExact`, `buildContains`,
-`buildStartsWith` and `buildIn` run the predicate against `<field>_fold`
-with `unifold.Fold(value)` on the right-hand side.
-The shadow columns carry `entgql.Skip(SkipAll)` and `entrest.WithSkip(true)`
-so they are invisible to GraphQL, REST, and proto wire surfaces —
-they exist only to power pdbcompat folding.
-See § Known Divergences for the upstream-parity comparison
-and § Validation Notes for why MySQL collation is *not* the upstream mechanism.
+When `tc.FoldedFields[<field>]` is `true`, `buildExact`, `buildContains`, `buildStartsWith` and `buildIn` run the predicate against `<field>_fold` with `unifold.Fold(value)` on the right-hand side.
+The shadow columns carry `entgql.Skip(SkipAll)` and `entrest.WithSkip(true)` so they are invisible to GraphQL, REST, and proto wire surfaces — they exist only to power pdbcompat folding.
+See § Known Divergences for the upstream-parity comparison and § Validation Notes for why MySQL collation is *not* the upstream mechanism.
 
 ### Soft-delete tombstones
 
 Sync never deletes a stored row.
-When upstream deletes an object, the next `?since=` fetch returns the row
-with `status='deleted'`, and sync stores that status.
-Sync does not mark a row as deleted when the row is missing from a list
-response.
+When upstream deletes an object, the next `?since=` fetch returns the row with `status='deleted'`, and sync stores that status.
+Sync does not mark a row as deleted when the row is missing from a list response.
 The one exception is a connection of a deleted network (see below).
-The list path applies the upstream PeeringDB 2.83.0 `rest.py:719-750`
-status matrix as the final predicate via `applyStatusMatrix`.
-The matrix starts from the live statuses of the type
-(upstream `live_statuses()`, `models.py:109-122`):
+The list path applies the upstream PeeringDB 2.83.0 `rest.py:719-750` status matrix as the final predicate via `applyStatusMatrix`.
+The matrix starts from the live statuses of the type (upstream `live_statuses()`, `models.py:109-122`):
 
 - `netixlan`: `ok` and `not-operational`.
 - All other types: `ok`.
@@ -621,72 +487,42 @@ The matrix starts from the live statuses of the type
 | Single-object GET `/api/<type>/<id>` | live statuses and `pending` — tombstones return `404` |
 | Nested `_set` lists, `?depth=1` and higher | live statuses only |
 
-Most relation keys of a `prepare_query` also require status `ok`
-on one row of their path (see § Relation filters).
-For `ixpfx?ix=`, `netfac?name=`, `ixfac?city=` and `campus?facility=`,
-that row is the listed row.
-A `?since=N` list with one of these keys does not return the deleted rows,
-or the pending campuses.
+Most relation keys of a `prepare_query` also require status `ok` on one row of their path (see § Relation filters).
+For `ixpfx?ix=`, `netfac?name=`, `ixfac?city=` and `campus?facility=`, that row is the listed row.
+A `?since=N` list with one of these keys does not return the deleted rows, or the pending campuses.
 
-The nested sets follow the upstream nested prefetch
-(`serializers.py:1140-1148`), which admits only the live statuses of the
-child type.
-A pending child is fetchable by its own ID,
-but it does not appear in the `_set` lists of its parent.
-In practice this affects only campuses:
-a campus is pending while it has fewer than two facilities,
-and campus is the only type whose pending rows reach the mirror.
-A pending campus reaches the mirror in a `?since=` window when it changes,
-or through the FK backfill of a facility that points to it.
-For `ix.fac_set` and `ixlan.net_set`, the status of the ixfac or netixlan
-join row decides membership.
+The nested sets follow the upstream nested prefetch (`serializers.py:1140-1148`), which admits only the live statuses of the child type.
+A pending child is fetchable by its own ID, but it does not appear in the `_set` lists of its parent.
+In practice this affects only campuses: a campus is pending while it has fewer than two facilities, and campus is the only type whose pending rows reach the mirror.
+A pending campus reaches the mirror in a `?since=` window when it changes, or through the FK backfill of a facility that points to it.
+For `ix.fac_set` and `ixlan.net_set`, the status of the ixfac or netixlan join row decides membership.
 The facility or network that the row points to is not filtered.
 
-A network that upstream deletes because the RIR reclaimed its ASN loses its
-live connections without a tombstone
-(2.83.0 `management/commands/pdb_rir_status.py:440-443`).
-The mirror marks such a connection `deleted`, sets `operational` to `false`,
-and keeps its `updated` value.
-It does this when the network was deleted in that sync,
-or when upstream no longer returns the connection live for an uncached
-`?since=1&id__in=` request.
-A connection that upstream still serves, or that it changed after it deleted
-the network, stays live.
-Lists without `?since`, the depth sets, relation keys, `/api/netixlan/<id>`
-and `?id=<id>` leave the marked connections out, as upstream does.
-A `?since=N` list, with N not later than their `updated` value,
-returns them as tombstones, and so does `?id=<id>&since=N`.
-Upstream returns nothing, or `404` for the `id` query
-(see § Known Divergences).
-Because `updated` does not change, a client that syncs by `updated`
-does not see the change on any API.
+A network that upstream deletes because the RIR reclaimed its ASN loses its live connections without a tombstone (2.83.0 `management/commands/pdb_rir_status.py:440-443`).
+The mirror marks such a connection `deleted`, sets `operational` to `false`, and keeps its `updated` value.
+It does this when the network was deleted in that sync, or when upstream no longer returns the connection live for an uncached `?since=1&id__in=` request.
+A connection that upstream still serves, or that it changed after it deleted the network, stays live.
+Lists without `?since`, the depth sets, relation keys, `/api/netixlan/<id>` and `?id=<id>` leave the marked connections out, as upstream does.
+A `?since=N` list, with N not later than their `updated` value, returns them as tombstones, and so does `?id=<id>&since=N`.
+Upstream returns nothing, or `404` for the `id` query (see § Known Divergences).
+Because `updated` does not change, a client that syncs by `updated` does not see the change on any API.
 
 A deleted `poc` is served with `name`, `phone`, `email` and `url` set to `""`.
-Upstream applies this rule when `status` is among the rendered fields
-(2.83.0 `serializers.py:2941-2954`, `pdb_api_test.py:3120-3127`),
-so a tombstone shows the deletion but not the contact details.
-The mirror also applies it when `?fields=` leaves out `status`
-(see § Known Divergences).
+Upstream applies this rule when `status` is among the rendered fields (2.83.0 `serializers.py:2941-2954`, `pdb_api_test.py:3120-3127`), so a tombstone shows the deletion but not the contact details.
+The mirror also applies it when `?fields=` leaves out `status` (see § Known Divergences).
 `role`, `visible`, `net_id` and the timestamps are not changed.
 Sync stores each deleted `poc` with these fields blank.
-The primary also blanks them on older stored tombstones,
-when it starts and in each sync cycle.
-GraphQL, REST and ConnectRPC serve the stored values,
-so they do not serve these fields of a deleted `poc` either.
+The primary also blanks them on older stored tombstones, when it starts and in each sync cycle.
+GraphQL, REST and ConnectRPC serve the stored values, so they do not serve these fields of a deleted `poc` either.
 
-A `not-operational` netixlan is a published connection that its network
-declares not operational.
-Upstream 2.83.0 moved every row with `status='ok'` and `operational=false`
-to this status, and now derives `operational` as `status == 'ok'`.
-The row is served like an `ok` row: on lists, in `?since` windows,
-on direct GETs, and in the `netixlan_set` and `net_set` depth sets.
+A `not-operational` netixlan is a published connection that its network declares not operational.
+Upstream 2.83.0 moved every row with `status='ok'` and `operational=false` to this status, and now derives `operational` as `status == 'ok'`.
+The row is served like an `ok` row: on lists, in `?since` windows, on direct GETs, and in the `netixlan_set` and `net_set` depth sets.
 `?operational=false` returns it, and `?status=ok` does not.
-To select every live connection, use `?status__in=ok,not-operational`
-or leave out the status filter.
+To select every live connection, use `?status__in=ok,not-operational` or leave out the status filter.
 
 `?status=<value>` is an ordinary filter on all 13 types.
-Exact match is case-insensitive, and `__in`, `__contains` and `__startswith`
-also work.
+Exact match is case-insensitive, and `__in`, `__contains` and `__startswith` also work.
 The filter ANDs with the matrix, so it can only narrow the result:
 
 - `/api/net?status=deleted` returns `[]`, because the list without `?since`
@@ -695,27 +531,19 @@ The filter ANDs with the matrix, so it can only narrow the result:
 - `/api/campus?since=N&status=pending` returns only the pending campuses.
 
 This matches upstream PeeringDB 2.83.0.
-`rest.py:683` turns `?status=` into `status__iexact`,
-and the matrix filter at `rest.py:745-750` is applied after it.
-Upstream tests lock the result
-(`pdb_api_test.py:4022-4028` and `:4032-4044`).
+`rest.py:683` turns `?status=` into `status__iexact`, and the matrix filter at `rest.py:745-750` is applied after it.
+Upstream tests lock the result (`pdb_api_test.py:4022-4028` and `:4032-4044`).
 
 ### Metadata document (`meta`)
 
-Every `net` and `netixlan` object carries `meta`,
-the PeeringDB metadata document that upstream added in 2.83.0
-(migration 0159; `serializers.py:3117` and `:3684`).
+Every `net` and `netixlan` object carries `meta`, the PeeringDB metadata document that upstream added in 2.83.0 (migration 0159; `serializers.py:3117` and `:3684`).
 The key follows `logo` on `net` and `ix_side_id` on `netixlan`.
 
 - `meta` is an open JSON object.
-  Upstream registers its keys in server code and can add keys
-  without a new release of its client model library
-  (`docs/api/object_metadata.md:22-23`).
+  Upstream registers its keys in server code and can add keys without a new release of its client model library (`docs/api/object_metadata.md:22-23`).
   The mirror stores the document as is, so a new key needs no change here.
-  At 2.83.0 the keys are `preferred_ip_mtu` and `rtbh_community` on `net`,
-  and `planned_status_change` (`status`, `date`) and `rfc8950` on `netixlan`.
-- Sync stores the document that upstream sends,
-  and pdbcompat serves it unchanged.
+  At 2.83.0 the keys are `preferred_ip_mtu` and `rtbh_community` on `net`, and `planned_status_change` (`status`, `date`) and `rfc8950` on `netixlan`.
+- Sync stores the document that upstream sends, and pdbcompat serves it unchanged.
   Key order inside the document can differ from upstream.
 - A row without a stored document returns `{}`, the same as upstream.
 - `meta` appears in every shape: lists, detail responses, depth `_set` objects,
@@ -723,17 +551,14 @@ The key follows `logo` on `net` and `ix_side_id` on `netixlan`.
 - Upstream applies no read restriction to `meta`,
   so the mirror applies no privacy filter to it.
 
-A document that upstream set before the mirror stored `meta` arrives with the
-next full sync.
+A document that upstream set before the mirror stored `meta` arrives with the next full sync.
 With the default `PDBPLUS_FULL_SYNC_INTERVAL` of `24h`, this is within a day.
-Incremental sync cannot repair such a row,
-because it does not rewrite a row whose `updated` value it already has.
+Incremental sync cannot repair such a row, because it does not rewrite a row whose `updated` value it already has.
 If the interval is `0`, run one full sync (`POST /sync?mode=full`).
 
 #### Metadata filters
 
-`/api/netixlan` filters on the metadata keys that upstream marks as filterable
-(`meta_registry.py:277-313`, `docs/api/object_metadata.md:165-182`):
+`/api/netixlan` filters on the metadata keys that upstream marks as filterable (`meta_registry.py:277-313`, `docs/api/object_metadata.md:165-182`):
 
 | Filter key | Upstream column name | Type |
 |------------|----------------------|------|
@@ -747,8 +572,7 @@ If the interval is `0`, run one full sync (`POST /sync?mode=full`).
 - Text: exact match, `__contains` and `__startswith` ignore case.
   `__in`, `__lt`, `__lte`, `__gt` and `__gte` also work.
 - Date: the document stores the date as `YYYY-MM-DD`.
-  Exact match is a prefix match, the same as upstream,
-  so `2026-10` matches every day in October 2026.
+  Exact match is a prefix match, the same as upstream, so `2026-10` matches every day in October 2026.
   `__lt`, `__lte`, `__gt` and `__gte` compare dates.
   `__in` matches whole dates.
   Upstream returns an error for `__in` on a date (see § Known Divergences).
@@ -758,95 +582,49 @@ If the interval is `0`, run one full sync (`POST /sync?mode=full`).
   `__in` parses each value like the other boolean filters.
   Other operators return `400`.
 - A row without the key never matches, for any operator.
-  So `?meta__rfc8950=false` returns only the rows that declare `false`,
-  not the rows that never set the key.
-- On these keys, upstream knows only the operators
-  `__lt`, `__lte`, `__gt`, `__gte`, `__contains`, `__startswith` and `__in`.
-  pdbcompat ignores a key with any other suffix, as upstream does,
-  for example `meta__rfc8950__foo` or `meta__rfc8950__iexact`.
-  The `__iexact`, `__icontains` and `__istartswith` names
-  that the ordinary filters accept do not apply to these keys.
+  So `?meta__rfc8950=false` returns only the rows that declare `false`, not the rows that never set the key.
+- On these keys, upstream knows only the operators `__lt`, `__lte`, `__gt`, `__gte`, `__contains`, `__startswith` and `__in`. pdbcompat ignores a key with any other suffix, as upstream does, for example `meta__rfc8950__foo` or `meta__rfc8950__iexact`.
+  The `__iexact`, `__icontains` and `__istartswith` names that the ordinary filters accept do not apply to these keys.
 - `net` has no filterable metadata keys.
-  Upstream ignores `?meta__rtbh_community=` and `?meta__preferred_ip_mtu=`
-  and returns the full list. The mirror does the same.
+  Upstream ignores `?meta__rtbh_community=` and `?meta__preferred_ip_mtu=` and returns the full list.
+  The mirror does the same.
 
-Upstream rewrites these keys onto typed, indexed columns
-before it applies the filters (`serializers.py:3129-3149`).
-pdbcompat resolves them before it splits a key for traversal,
-so the 2-hop cap does not apply to them.
+Upstream rewrites these keys onto typed, indexed columns before it applies the filters (`serializers.py:3129-3149`). pdbcompat resolves them before it splits a key for traversal, so the 2-hop cap does not apply to them.
 The mirror has no such columns.
-It reads the key from the stored document with SQLite `json_extract`
-(`json_type` for the boolean).
+It reads the key from the stored document with SQLite `json_extract` (`json_type` for the boolean).
 A filter on a metadata key alone therefore scans the netixlan table.
 The budget count and the served list use the same predicates.
 
 ### Cross-entity traversal
 
-pdbcompat resolves `<fk>__<field>`
-and `<fk>__<fk>__<field>` filter paths through two mechanisms,
-both driven by codegen from ent schema annotations at `go generate` time:
+pdbcompat resolves `<fk>__<field>` and `<fk>__<fk>__<field>` filter paths through two mechanisms, both driven by codegen from ent schema annotations at `go generate` time:
 
 - **Path A: per-serializer allowlists.**
-  Derived from the upstream `peeringdb_server/serializers.py`
-  `prepare_query(...)` / `get_relation_filters(...)` seed lists and from
-  `queryable_relations()`.
-  The keys are the mirror's choice of aliases, not a copy of an upstream
-  list: some resolve keys that upstream ignores, and some do not resolve
-  here.
-  The relation keys that a `prepare_query` handles are not in Path A:
-  they resolve first, as relation filters (see § Relation filters).
-  Generated from ent schema `pdbcompat.WithPrepareQueryAllow(...)` annotations
-  via `cmd/pdb-compat-allowlist`; emitted into
-  `internal/pdbcompat/allowlist_gen.go`.
+  Derived from the upstream `peeringdb_server/serializers.py` `prepare_query(...)` / `get_relation_filters(...)` seed lists and from `queryable_relations()`.
+  The keys are the mirror's choice of aliases, not a copy of an upstream list: some resolve keys that upstream ignores, and some do not resolve here.
+  The relation keys that a `prepare_query` handles are not in Path A: they resolve first, as relation filters (see § Relation filters).
+  Generated from ent schema `pdbcompat.WithPrepareQueryAllow(...)` annotations via `cmd/pdb-compat-allowlist`; emitted into `internal/pdbcompat/allowlist_gen.go`.
   This is the "explicitly blessed" set of filter keys.
-  Every entry carries a `// serializers.py:<line>` comment that anchors it to
-  upstream 2.83.0.
+  Every entry carries a `// serializers.py:<line>` comment that anchors it to upstream 2.83.0.
 - **Path B: ent edge introspection.**
-  When a filter key does not match Path A,
-  the parser consults the generated `Edges` map
-  (also emitted into `allowlist_gen.go`).
-  Every non-excluded FK edge auto-exposes `<fk>__<field>`
-  for any filterable field on the target entity
-  that is a model field upstream.
-  A serializer field or a model property that the mirror stores,
-  such as `org_name` on `fac` or `city` on `campus`,
-  is not a target (`TypeConfig.NonModelFields`):
-  `queryable_relations()` offers only model fields,
-  so upstream ignores `netfac?fac__org_name=` and `fac?campus__city=`,
-  and so does pdbcompat.
-  A forward edge also accepts the upstream model name of its FK
-  as the first segment (`network__asn`, `facility__name`).
-  This is close to upstream `queryable_relations()`, which exposes
-  `<fk>__<field>` for the forward FKs and `<related_name>__<field>`
-  for the reverse relations.
-  The mirror also follows reverse edges and second hops,
-  names a reverse edge by its traversal key (`org?ix__name=`)
-  instead of the upstream `_set` name (`org?ix_set__name=`),
-  and has no field-level exclusions.
+  When a filter key does not match Path A, the parser consults the generated `Edges` map (also emitted into `allowlist_gen.go`).
+  Every non-excluded FK edge auto-exposes `<fk>__<field>` for any filterable field on the target entity that is a model field upstream.
+  A serializer field or a model property that the mirror stores, such as `org_name` on `fac` or `city` on `campus`, is not a target (`TypeConfig.NonModelFields`): `queryable_relations()` offers only model fields, so upstream ignores `netfac?fac__org_name=` and `fac?campus__city=`, and so does pdbcompat.
+  A forward edge also accepts the upstream model name of its FK as the first segment (`network__asn`, `facility__name`).
+  This is close to upstream `queryable_relations()`, which exposes `<fk>__<field>` for the forward FKs and `<related_name>__<field>` for the reverse relations.
+  The mirror also follows reverse edges and second hops, names a reverse edge by its traversal key (`org?ix__name=`) instead of the upstream `_set` name (`org?ix_set__name=`), and has no field-level exclusions.
   See § Known Divergences.
-  A relation key filters `status` only through a forward edge
-  one hop away (`net?org__status=`).
+  A relation key filters `status` only through a forward edge one hop away (`net?org__status=`).
   Upstream ignores `status` on the mirror's reverse and 2-hop keys too.
   Resolution uses a static map that codegen emits.
-  There is no runtime ent-client introspection, `sync.Once` or init-order
-  coupling.
+  There is no runtime ent-client introspection, `sync.Once` or init-order coupling.
 
-The resolution order is implemented in `internal/pdbcompat/filter.go`
-`ParseFiltersCtx` and `buildTraversalPredicate`:
-relation filters first, then Path A; on a soft miss (allowlist hit but
-downstream introspection unavailable) the parser falls through to Path B rather
-than suppressing the key.
-`parseFieldOp` returns the 3-tuple `(relationSegments, finalField, op)`
-so the same machinery serves 1-hop and 2-hop paths with a single split.
+The resolution order is implemented in `internal/pdbcompat/filter.go` `ParseFiltersCtx` and `buildTraversalPredicate`: relation filters first, then Path A; on a soft miss (allowlist hit but downstream introspection unavailable) the parser falls through to Path B rather than suppressing the key.
+`parseFieldOp` returns the 3-tuple `(relationSegments, finalField, op)` so the same machinery serves 1-hop and 2-hop paths with a single split.
 
 #### Relation filters
 
-Upstream handles some relation keys in the `prepare_query` method of a
-serializer, apart from its model-field filters
-(2.83.0 `serializers.py:614-656`).
-pdbcompat resolves these keys before Path A and Path B,
-with the same paths and status rules
-(`relationSeeds` in `internal/pdbcompat/relation_filter.go`).
+Upstream handles some relation keys in the `prepare_query` method of a serializer, apart from its model-field filters (2.83.0 `serializers.py:614-656`). pdbcompat resolves these keys before Path A and Path B, with the same paths and status rules (`relationSeeds` in `internal/pdbcompat/relation_filter.go`).
 
 | Type | Relation keys | Path from the listed row | Row that must have status `ok` |
 |------|---------------|--------------------------|--------------------------------|
@@ -866,58 +644,35 @@ with the same paths and status rules
 | `org` | `asn` | net, field `asn` | the net row |
 | `carrier` | `carrierfac_set__facility_id` | carrierfac, field `fac_id` | none |
 
-The relation keys of `fac`, `ix`, `net`, `netixlan` and `ixpfx`
-also accept the spelling `<rel>_id`, except `org_name` and `name`.
+The relation keys of `fac`, `ix`, `net`, `netixlan` and `ixpfx` also accept the spelling `<rel>_id`, except `org_name` and `name`.
 The key forms follow `get_relation_filters`:
 
 - `<rel>=V` compares the id of the related row, and `<rel>__<op>=V`
   compares that id with the operator.
-- `<rel>__<field>=V` filters a field of the related row,
-  and `<rel>__<field>__<op>=V` adds an operator.
-  A field that ends in `_id` names a FK of that row
-  (`ix?ixfac__fac_id=`).
-  A field that is not a model field upstream is ignored,
-  for example the serializer field in `net?netfac__name=`
-  (upstream returns `400`, see § Known Divergences).
+- `<rel>__<field>=V` filters a field of the related row, and `<rel>__<field>__<op>=V` adds an operator.
+  A field that ends in `_id` names a FK of that row (`ix?ixfac__fac_id=`).
+  A field that is not a model field upstream is ignored, for example the serializer field in `net?netfac__name=` (upstream returns `400`, see § Known Divergences).
 - `<rel>__<field>__<other>=V` drops the third segment:
   `net?netfac__fac__name=X` compares the facility id with `X`,
   which returns `400` for a non-numeric `X`.
 - A key with four or more segments is ignored.
-- `netixlan?name=V` compares the exchange name,
-  not the stored `name` of the netixlan
-  (`serializers.py:3166-3167`).
-  `get_relation_filters` does not parse the suffixes `__iexact`,
-  `__icontains` and `__istartswith` (`serializers.py:614-656`),
-  so `related_to_name` applies them to the name of the ixlan:
-  `netixlan?name__iexact=V` compares the ixlan name, not the exchange name.
-- `fac?org_name=V` is a substring match on the name of the organization
-  (`serializers.py:2115-2117`),
-  not an exact match on the stored `org_name` of the facility.
-  It accepts only an operator that `get_relation_filters` parses
-  after the key.
-  Upstream ignores `fac?org_name__iexact=`, `__icontains=` and
-  `__istartswith=`, and so does pdbcompat.
-- The `netfac` and `ixfac` keys `name`, `country` and `city`
-  filter the field of the same name on the facility
-  (`serializers.py:3417-3424`).
-  One or two segments after the key name have no effect,
-  but an operator at the end applies.
-  `city` and `country` are exact matches:
-  the substring rewrite of the location keys applies only to model fields
-  (`rest.py:583-595`).
-- `org?asn=V` and `carrier?carrierfac_set__facility_id=V`
-  accept no operator.
-  Upstream ignores `org?asn__in=` and the operator forms of the carrier key,
-  and so does pdbcompat.
+- `netixlan?name=V` compares the exchange name, not the stored `name` of the netixlan (`serializers.py:3166-3167`).
+  `get_relation_filters` does not parse the suffixes `__iexact`, `__icontains` and `__istartswith` (`serializers.py:614-656`), so `related_to_name` applies them to the name of the ixlan: `netixlan?name__iexact=V` compares the ixlan name, not the exchange name.
+- `fac?org_name=V` is a substring match on the name of the organization (`serializers.py:2115-2117`), not an exact match on the stored `org_name` of the facility.
+  It accepts only an operator that `get_relation_filters` parses after the key.
+  Upstream ignores `fac?org_name__iexact=`, `__icontains=` and `__istartswith=`, and so does pdbcompat.
+- The `netfac` and `ixfac` keys `name`, `country` and `city` filter the field of the same name on the facility (`serializers.py:3417-3424`).
+  One or two segments after the key name have no effect, but an operator at the end applies.
+  `city` and `country` are exact matches: the substring rewrite of the location keys applies only to model fields (`rest.py:583-595`).
+- `org?asn=V` and `carrier?carrierfac_set__facility_id=V` accept no operator.
+  Upstream ignores `org?asn__in=` and the operator forms of the carrier key, and so does pdbcompat.
 
 The status rules follow `make_relation_filter` (`models.py:221-234`):
 
 - The row in the table must have status `ok`.
   The other rows have no status check.
   For example, `net?ix=` does not check the ixlan.
-- If the key filters `status` of that row without an operator,
-  upstream replaces the value with `ok`:
-  `net?netixlan__status=deleted` returns the nets that have an `ok` netixlan.
+- If the key filters `status` of that row without an operator, upstream replaces the value with `ok`: `net?netixlan__status=deleted` returns the nets that have an `ok` netixlan.
   With an operator, both filters apply.
 - A repeated relation key uses its first value, not the last
   (`serializers.py:618-619`).
@@ -940,39 +695,24 @@ Path A and Path B both resolve 1-hop and 2-hop keys:
 | `?<fk>__<fk>__<field>=X` through any two non-excluded edges, for example `netixlan?net__org__name=X` | 2 | B | Mirror extension (see § Known Divergences) |
 | `?<fk>__<field>=X` for any non-excluded edge | 1 | B | 2.83.0 `serializers.py:970` (`queryable_relations()`) |
 
-1-hop Path B fallthrough means the explicit Path A allowlists are
-**additive, not restrictive**: a key that is not in Path A but is a valid ent FK
-edge still resolves via Path B. The exclusion list (below) is the only way to
-block a Path B key.
+1-hop Path B fallthrough means the explicit Path A allowlists are **additive, not restrictive**: a key that is not in Path A but is a valid ent FK edge still resolves via Path B. The exclusion list (below) is the only way to block a Path B key.
 
 An allowlisted key can resolve nothing.
 The server then ignores it.
-For example, the `fac` allowlist has `ixlan__ix__fac_count`,
-but `fac` has no `ixlan` edge, so `fac?ixlan__ix__fac_count__gt=0`
-returns the unfiltered list.
-Upstream also ignores this key, because it is not a `fac` filter
-(2.83.0 `rest.py:525-528`, `serializers.py:970-996`).
+For example, the `fac` allowlist has `ixlan__ix__fac_count`, but `fac` has no `ixlan` edge, so `fac?ixlan__ix__fac_count__gt=0` returns the unfiltered list.
+Upstream also ignores this key, because it is not a `fac` filter (2.83.0 `rest.py:525-528`, `serializers.py:970-996`).
 
 #### FILTER_EXCLUDE list
 
-The `pdbcompat.WithFilterExcludeFromTraversal()` ent edge annotation hides
-specific edges from Path B traversal.
-It is the edge-level counterpart of upstream 2.83.0 `FILTER_EXCLUDE`
-(`serializers.py:136-166`).
-The upstream entries that name one field of a relation have no
-counterpart.
-The private-field entries need none: the mirror does not filter on those
-fields.
-Of the unused-field entries, `org__latitude`, `org__longitude` and
-`ixlan__descr` resolve on the mirror.
-Upstream ignores them, except where a `prepare_query` handles the key
-(for example `ix?ixlan__descr=`).
+The `pdbcompat.WithFilterExcludeFromTraversal()` ent edge annotation hides specific edges from Path B traversal.
+It is the edge-level counterpart of upstream 2.83.0 `FILTER_EXCLUDE` (`serializers.py:136-166`).
+The upstream entries that name one field of a relation have no counterpart.
+The private-field entries need none: the mirror does not filter on those fields.
+Of the unused-field entries, `org__latitude`, `org__longitude` and `ixlan__descr` resolve on the mirror.
+Upstream ignores them, except where a `prepare_query` handles the key (for example `ix?ixlan__descr=`).
 See § Known Divergences.
-Upstream 2.83.0 adds the `ixf_import_request_user` relation to the list
-(`serializers.py:147`), so upstream now ignores
-`ix?ixf_import_request_user__<field>=`.
-The mirror does not model that relation and always ignored these keys,
-so the new entry needs no annotation.
+Upstream 2.83.0 adds the `ixf_import_request_user` relation to the list (`serializers.py:147`), so upstream now ignores `ix?ixf_import_request_user__<field>=`.
+The mirror does not model that relation and always ignored these keys, so the new entry needs no annotation.
 
 | Entity | Edge | Reason |
 |--------|------|--------|
@@ -980,65 +720,45 @@ so the new entry needs no annotation.
 
 #### 2-hop cap
 
-Filter keys with more than 2 `__`-separated relation segments are silently
-ignored.
+Filter keys with more than 2 `__`-separated relation segments are silently ignored.
 Examples:
 
 - `?org__name=X`: 1 hop, resolves via Path A (every primary entity).
-- `?ixlan__ix__id=N` on `ixpfx`: 2 hops, resolves via Path A
-  (`TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`).
-  Upstream ignores this key: it is a mirror extension
-  (see § Known Divergences).
+- `?ixlan__ix__id=N` on `ixpfx`: 2 hops, resolves via Path A (`TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`).
+  Upstream ignores this key: it is a mirror extension (see § Known Divergences).
 - `?ixlan__ix__org__name=X`: 3 hops, SILENTLY IGNORED (HTTP 200,
   result set is unfiltered).
 
-A relation key of a `prepare_query` also has at most two segments
-before its operator, but its path can reach three tables:
-`net?ix__name=` walks netixlan, ixlan and ix
-(see § Relation filters).
+A relation key of a `prepare_query` also has at most two segments before its operator, but its path can reach three tables: `net?ix__name=` walks netixlan, ixlan and ix (see § Relation filters).
 
-The netixlan metadata filter keys, such as
-`meta__planned_status_change__date__lt`, are not relation paths.
-pdbcompat resolves them before the split.
+The netixlan metadata filter keys, such as `meta__planned_status_change__date__lt`, are not relation paths. pdbcompat resolves them before the split.
 See § Metadata filters.
 
 Upstream resolves at most one relation hop.
-`queryable_relations()` adds `<fk>__<field>` for each FK of the model
-(2.83.0 `serializers.py:970-996`).
-`get_relation_filters` passes a serializer's `prepare_query` only the keys
-whose first segment is in its seed list (`serializers.py:614-656`).
+`queryable_relations()` adds `<fk>__<field>` for each FK of the model (2.83.0 `serializers.py:970-996`).
+`get_relation_filters` passes a serializer's `prepare_query` only the keys whose first segment is in its seed list (`serializers.py:614-656`).
 Upstream ignores every other multi-hop key, so it ignores 3+-hop keys too.
-The mirror's 2-hop keys go one hop further than upstream
-(see § Known Divergences).
-The cap keeps a predictable cost ceiling of `<50ms/op @ 10k rows`,
-checked locally via the build-tagged gate
-`internal/pdbcompat/bench_traversal_test.go` (`go test -tags=bench`, without
-`-race`); CI does not run it.
-If a legitimate 3-hop use case emerges,
-raise the cap together with a fresh benchstat run and a docs update here.
+The mirror's 2-hop keys go one hop further than upstream (see § Known Divergences).
+The cap keeps a predictable cost ceiling of `<50ms/op @ 10k rows`, checked locally via the build-tagged gate `internal/pdbcompat/bench_traversal_test.go` (`go test -tags=bench`, without `-race`); CI does not run it.
+If a legitimate 3-hop use case emerges, raise the cap together with a fresh benchstat run and a docs update here.
 
 #### Unknown-field diagnostics
 
-When the server ignores one or more filter keys of a list request,
-it records them in two places:
+When the server ignores one or more filter keys of a list request, it records them in two places:
 
 - A DEBUG log record `pdbcompat: unknown filter fields silently ignored`
   with `endpoint`, `type` and `unknown_fields` (a comma-separated list).
 - The span attribute `pdbplus.filter.unknown_fields`, with the same list.
 
 This applies to every ignored key, not only to traversal keys.
-INFO logs do not include these keys,
-so clients that test field names do not fill the logs.
-To see them, set `PDBPLUS_LOG_LEVEL=DEBUG`
-or query the span attribute in Grafana Tempo.
+INFO logs do not include these keys, so clients that test field names do not fill the logs.
+To see them, set `PDBPLUS_LOG_LEVEL=DEBUG` or query the span attribute in Grafana Tempo.
 
 ### Response memory budget
 
-Before the server runs a list query, it counts the matching rows
-with `SELECT COUNT(*)` (`serveList` in `internal/pdbcompat/handler.go`).
+Before the server runs a list query, it counts the matching rows with `SELECT COUNT(*)` (`serveList` in `internal/pdbcompat/handler.go`).
 It multiplies the count by a typical row size for the type.
-If the result is larger than `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MiB`),
-the server returns `413` and does not run the list query.
+If the result is larger than `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MiB`), the server returns `413` and does not run the list query.
 `0` turns the check off.
 Use `0` only for local development.
 
@@ -1050,23 +770,16 @@ A budget-exceeded request returns:
 - Body extension fields `max_rows` (the largest result set that *would* fit)
   and `budget_bytes` (the configured ceiling)
 
-The estimate depends on the request and the stored rows,
-not on the server load,
-so a retry of the same request gets the same `413`.
-A client that gets `413` must add filters,
-or read the list in pages with `limit` and `skip`.
+The estimate depends on the request and the stored rows, not on the server load, so a retry of the same request gets the same `413`.
+A client that gets `413` must add filters, or read the list in pages with `limit` and `skip`.
 
-The server also limits the total estimated size of the responses in progress
-to `PDBPLUS_RESPONSE_MEMORY_LIMIT`.
-If a new response does not fit, the server returns `503 Service Unavailable`
-with `Retry-After: 1`.
+The server also limits the total estimated size of the responses in progress to `PDBPLUS_RESPONSE_MEMORY_LIMIT`.
+If a new response does not fit, the server returns `503 Service Unavailable` with `Retry-After: 1`.
 A retry can succeed.
 Detail requests go through both checks.
-For the second check, a detail request at depth 2 or more also counts
-the rows in its `_set` lists.
+For the second check, a detail request at depth 2 or more also counts the rows in its `_set` lists.
 The budget applies only to `/api/`.
-For the other surfaces, see
-[ARCHITECTURE.md § Response Memory Envelope](ARCHITECTURE.md#response-memory-envelope).
+For the other surfaces, see [ARCHITECTURE.md § Response Memory Envelope](ARCHITECTURE.md#response-memory-envelope).
 
 ### Examples
 
@@ -1116,14 +829,11 @@ Every successful response uses the PeeringDB envelope:
 }
 ```
 
-Detail endpoints return a single-element `data` array, not a bare object,
-to preserve parity with upstream PeeringDB clients.
+Detail endpoints return a single-element `data` array, not a bare object, to preserve parity with upstream PeeringDB clients.
 
 ### Errors
 
-Errors use
-[RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) with
-`Content-Type: application/problem+json`.
+Errors use [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457.html) with `Content-Type: application/problem+json`.
 Typical status codes:
 
 | Status | Cause |
@@ -1134,14 +844,11 @@ Typical status codes:
 | `500` | Database error (details redacted from response body, full error logged) |
 | `503` | The in-flight response pool is full (transient, `Retry-After: 1`), or the first sync has not completed (see § Before the first sync) |
 
-Responses include an `X-Powered-By` header identifying the server
-as PeeringDB Plus.
+Responses include an `X-Powered-By` header identifying the server as PeeringDB Plus.
 
 ## 5. ConnectRPC / gRPC (`/peeringdb.v1.*`)
 
-Implemented in `internal/grpcserver/` using
-[ConnectRPC](https://connectrpc.com/) — a gRPC-compatible framework that speaks
-three protocols on the same endpoint:
+Implemented in `internal/grpcserver/` using [ConnectRPC](https://connectrpc.com/) — a gRPC-compatible framework that speaks three protocols on the same endpoint:
 
 | Protocol | Typical client | Content types |
 |----------|----------------|---------------|
@@ -1149,14 +856,11 @@ three protocols on the same endpoint:
 | gRPC (HTTP/2) | `grpc-go`, `grpcurl`, any gRPC stub | `application/grpc`, `application/grpc+proto`, `application/grpc+json` |
 | gRPC-Web | Browser gRPC-Web clients | `application/grpc-web`, `application/grpc-web-text` |
 
-The server listens on a single port with h2c enabled
-(`buildServer` in `cmd/peeringdb-plus/main.go`),
-so there is no separate port for gRPC.
+The server listens on a single port with h2c enabled (`buildServer` in `cmd/peeringdb-plus/main.go`), so there is no separate port for gRPC.
 
 ### Services
 
-All 13 entity types expose the same three RPCs
-(`proto/peeringdb/v1/services.proto`):
+All 13 entity types expose the same three RPCs (`proto/peeringdb/v1/services.proto`):
 
 | Service | Get | List | Stream |
 |---------|-----|------|--------|
@@ -1174,42 +878,31 @@ All 13 entity types expose the same three RPCs
 | `peeringdb.v1.OrganizationService` | `GetOrganization` | `ListOrganizations` | `StreamOrganizations` |
 | `peeringdb.v1.PocService` | `GetPoc` | `ListPocs` | `StreamPocs` |
 
-The URL path for every RPC is `/{fully.qualified.ServiceName}/{MethodName}` —
-e.g. `/peeringdb.v1.NetworkService/GetNetwork`.
+The URL path for every RPC is `/{fully.qualified.ServiceName}/{MethodName}` — e.g. `/peeringdb.v1.NetworkService/GetNetwork`.
 
 ### Messages
 
-The messages in `proto/peeringdb/v1/v1.proto` are hand-maintained.
-entproto generated them at v1.6.
-A later ent field reaches this surface only when it is added by hand,
-so some fields (for example `Network.ixp_update_exclude`) are not present.
+The messages in `proto/peeringdb/v1/v1.proto` are hand-maintained. entproto generated them at v1.6.
+A later ent field reaches this surface only when it is added by hand, so some fields (for example `Network.ixp_update_exclude`) are not present.
 
-`Network.meta` (field 41) and `NetworkIxLan.meta` (field 19) carry the
-PeeringDB metadata document (added upstream in 2.83.0)
-as a `google.protobuf.Struct`:
+`Network.meta` (field 41) and `NetworkIxLan.meta` (field 19) carry the PeeringDB metadata document (added upstream in 2.83.0) as a `google.protobuf.Struct`:
 
-- A row without a stored document gets an empty `Struct`,
-  the same as upstream's `{}`. The field is always present.
-- If the server cannot convert a stored document to a `Struct`,
-  it logs a warning and omits the field for that row.
+- A row without a stored document gets an empty `Struct`, the same as upstream's `{}`.
+  The field is always present.
+- If the server cannot convert a stored document to a `Struct`, it logs a warning and omits the field for that row.
   The RPC does not fail.
 - Connect and gRPC JSON clients see `meta` as a plain JSON object.
   All numbers in a `Struct` are doubles.
 
 ### Filtering
 
-List and Stream requests accept type-specific optional filter fields
-(see `proto/peeringdb/v1/services.proto`).
+List and Stream requests accept type-specific optional filter fields (see `proto/peeringdb/v1/services.proto`).
 All filters AND together.
-The `name`, `aka`, `name_long` and `city` filters match a substring
-and ignore case (`ContainsFold`).
+The `name`, `aka`, `name_long` and `city` filters match a substring and ignore case (`ContainsFold`).
 They do not ignore diacritics.
-The other string filters, `status` included, must match the full value,
-and they are case-sensitive.
+The other string filters, `status` included, must match the full value, and they are case-sensitive.
 Integer filters such as `org_id` must be positive.
-The `asn` filter of `ListNetworks`, `StreamNetworks`,
-`ListNetworkIxLans` and `StreamNetworkIxLans` must not be negative:
-upstream keeps tombstones with ASN 0.
+The `asn` filter of `ListNetworks`, `StreamNetworks`, `ListNetworkIxLans` and `StreamNetworkIxLans` must not be negative: upstream keeps tombstones with ASN 0.
 Invalid values return `INVALID_ARGUMENT`.
 
 ### Pagination (List)
@@ -1219,17 +912,12 @@ Invalid values return `INVALID_ARGUMENT`.
 | `page_size` | Requested page size. Defaults to `100`, clamped to `1000`. See `normalizePageSize` in `internal/grpcserver/pagination.go` |
 | `page_token` | The `next_page_token` from the previous response. The token holds a row offset. If a sync runs between two pages, rows can move, and a page can skip or repeat rows. A token that does not decode returns `INVALID_ARGUMENT` |
 
-List RPCs return rows in `(-updated, -created, -id)` order:
-the newest `updated` value first.
+List RPCs return rows in `(-updated, -created, -id)` order: the newest `updated` value first.
 
 ### Streaming semantics
 
-`Stream{Type}` RPCs use **batched compound keyset pagination** under the hood
-(`StreamEntities` in `internal/grpcserver/generic.go`),
-fetching `streamBatchSize` (`500`) rows per database round-trip
-and emitting one proto message per row.
-The cursor is the compound `(updated, created, id)` triple;
-under the default `(-updated, -created, -id)` order each batch resumes via:
+`Stream{Type}` RPCs use **batched compound keyset pagination** under the hood (`StreamEntities` in `internal/grpcserver/generic.go`), fetching `streamBatchSize` (`500`) rows per database round-trip and emitting one proto message per row.
+The cursor is the compound `(updated, created, id)` triple; under the default `(-updated, -created, -id)` order each batch resumes via:
 
 ```sql
 WHERE (updated < cursor.updated)
@@ -1237,38 +925,24 @@ WHERE (updated < cursor.updated)
    OR (updated = cursor.updated AND created = cursor.created AND id < cursor.id)
 ```
 
-The keyset carries every sort key, so it matches the three-key ordering exactly:
-progress stays monotonic and no row is skipped or repeated even
-when many rows share an `updated` timestamp (or an `updated`+`created` pair).
+The keyset carries every sort key, so it matches the three-key ordering exactly: progress stays monotonic and no row is skipped or repeated even when many rows share an `updated` timestamp (or an `updated`+`created` pair).
 
 | Field | Semantics |
 |-------|-----------|
 | `since_id` | Filter — emits only rows with `id > since_id`. Applied as a `WHERE` predicate; **does not seed the keyset cursor** |
 | `updated_since` | Filter — emits only rows with `updated > updated_since`. Applied as a `WHERE` predicate; **does not seed the keyset cursor** |
 
-Every stream is capped by `PDBPLUS_STREAM_TIMEOUT`
-(default `60s`) enforced via `context.WithTimeout` at the handler.
+Every stream is capped by `PDBPLUS_STREAM_TIMEOUT` (default `60s`) enforced via `context.WithTimeout` at the handler.
 Exceeding the timeout closes the stream with `DEADLINE_EXCEEDED`.
 
 ### `pdbplus-total-count` response header
 
-On **full streams** (both `since_id` and `updated_since` unset),
-the handler runs a `SELECT COUNT(*)` preflight
-and sets the `pdbplus-total-count` response header
-to the total matching row count.
-On **delta streams** (either `since_id` or `updated_since` set),
-the COUNT preflight is skipped entirely
-and the `pdbplus-total-count` header is **absent** —
-not "present with 0" and not "present with -1".
-Clients of delta streams have no use for a full-table total
-and the skip avoids a needless full-table scan.
+On **full streams** (both `since_id` and `updated_since` unset), the handler runs a `SELECT COUNT(*)` preflight and sets the `pdbplus-total-count` response header to the total matching row count.
+On **delta streams** (either `since_id` or `updated_since` set), the COUNT preflight is skipped entirely and the `pdbplus-total-count` header is **absent** — not "present with 0" and not "present with -1".
+Clients of delta streams have no use for a full-table total and the skip avoids a needless full-table scan.
 
-The header was named `grpc-total-count` before v1.23;
-the `Grpc-` prefix is reserved for protocol metadata by connect-go/gRPC,
-so the application header moved to the `pdbplus-` prefix.
-The legacy `grpc-total-count` name is still dual-emitted
-for a deprecation window and will be removed in a future release —
-migrate clients to `pdbplus-total-count`.
+The header was named `grpc-total-count` before v1.23; the `Grpc-` prefix is reserved for protocol metadata by connect-go/gRPC, so the application header moved to the `pdbplus-` prefix.
+The legacy `grpc-total-count` name is still dual-emitted for a deprecation window and will be removed in a future release — migrate clients to `pdbplus-total-count`.
 
 ### Errors
 
@@ -1290,15 +964,9 @@ migrate clients to `pdbplus-total-count`.
 | gRPC reflection v1alpha | `/grpc.reflection.v1alpha.ServerReflection/*` |
 | gRPC health check | `/grpc.health.v1.Health/*` |
 
-Reflection serves all 13 service descriptors,
-enabling `grpcurl` and `grpcui` to discover the API with no additional wiring.
-The health checker reports `NOT_SERVING` until the first sync completes
-(`HasCompletedSync` in the sync worker),
-then flips to `SERVING` for the empty service name and
-for every `peeringdb.v1.*` service.
-The health handler bypasses the readiness middleware so
-that health checks can poll the service during sync-in-progress state without
-being intercepted by the 503 syncing page.
+Reflection serves all 13 service descriptors, enabling `grpcurl` and `grpcui` to discover the API with no additional wiring.
+The health checker reports `NOT_SERVING` until the first sync completes (`HasCompletedSync` in the sync worker), then flips to `SERVING` for the empty service name and for every `peeringdb.v1.*` service.
+The health handler bypasses the readiness middleware so that health checks can poll the service during sync-in-progress state without being intercepted by the 503 syncing page.
 
 ### Example clients
 
@@ -1323,20 +991,13 @@ curl -X POST https://peeringdb-plus.fly.dev/peeringdb.v1.NetworkService/GetNetwo
 
 ## 6. MCP (`/mcp`)
 
-`POST /mcp` serves the
-[Model Context Protocol](https://modelcontextprotocol.io/)
-over stateless Streamable HTTP.
-Responses use JSON rather than server-sent events,
-so requests can be handled by any healthy replica without session affinity.
-MCP 2026-07-28 requests use `server/discover` and include the protocol version
-with every request.
+`POST /mcp` serves the [Model Context Protocol](https://modelcontextprotocol.io/) over stateless Streamable HTTP.
+Responses use JSON rather than server-sent events, so requests can be handled by any healthy replica without session affinity.
+MCP 2026-07-28 requests use `server/discover` and include the protocol version with every request.
 Clients on an older revision use the `initialize` handshake.
-The server also supports the revisions 2025-11-25, 2025-06-18, 2025-03-26
-and 2024-11-05.
-All tools are read-only and query the same local ent client as the other
-surfaces.
-Each tool declares input and output schemas, read-only and idempotent hints,
-and closed-corpus behavior.
+The server also supports the revisions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05.
+All tools are read-only and query the same local ent client as the other surfaces.
+Each tool declares input and output schemas, read-only and idempotent hints, and closed-corpus behavior.
 
 | Tool | Purpose |
 |------|---------|
@@ -1352,10 +1013,8 @@ and closed-corpus behavior.
 | `get_sync_status` | Return the latest mirror synchronization status and freshness |
 
 Related collections default to 20 rows and are capped at 100 rows.
-Opaque cursors are bound to the entity, relation, and successful-sync
-watermark.
-A cursor is rejected after the mirror synchronizes,
-preventing rows from being skipped or repeated across snapshots.
+Opaque cursors are bound to the entity, relation, and successful-sync watermark.
+A cursor is rejected after the mirror synchronizes, preventing rows from being skipped or repeated across snapshots.
 Free-text queries are capped at 4 KiB.
 
 The server also exposes:
@@ -1371,50 +1030,31 @@ The server also exposes:
 - `GET /llms.txt` for a curated Markdown index.
 
 The archive and origin-specific discovery files are generated on demand.
-Their URLs point to the request's own origin,
-or to the operator's `PDBPLUS_PUBLIC_URL` override.
-This keeps self-hosted deployments local and avoids embedding a production
-hostname in the binary.
+Their URLs point to the request's own origin, or to the operator's `PDBPLUS_PUBLIC_URL` override.
+This keeps self-hosted deployments local and avoids embedding a production hostname in the binary.
 
 Browser clients use `PDBPLUS_CORS_ORIGINS`.
-The `/mcp` handler also checks the `Origin` header against
-`PDBPLUS_CORS_ORIGINS`.
-It rejects a malformed origin, or an origin that is not in the list,
-with `403`.
-With the default `*`, it accepts every well-formed origin,
-so this check gives no DNS-rebinding defense.
+The `/mcp` handler also checks the `Origin` header against `PDBPLUS_CORS_ORIGINS`.
+It rejects a malformed origin, or an origin that is not in the list, with `403`.
+With the default `*`, it accepts every well-formed origin, so this check gives no DNS-rebinding defense.
 To get that defense, set `PDBPLUS_CORS_ORIGINS` to the exact browser origins.
-Separately, the MCP SDK rejects a request that arrives on a loopback address
-with a `Host` header that is not a loopback name.
-Clients that are not browsers send no `Origin`,
-so the origin check does not apply to them.
+Separately, the MCP SDK rejects a request that arrives on a loopback address with a `Host` header that is not a loopback name.
+Clients that are not browsers send no `Origin`, so the origin check does not apply to them.
 
 ## Field-level privacy
 
-PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker
-for the IX-F member list URL:
-`ixlan.ixf_ixp_member_list_url` is gated by the sibling string field
-`ixlan.ixf_ixp_member_list_url_visible`, which carries one of `Public` / `Users`
-/ `Private` (the schema default is `Private`, and a NULL/empty or unknown value
-fails closed to redacted).
-Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public` deployment) receive
-the value only when `_visible = Public`; for `Users` or `Private` the value is
-omitted across all six surfaces while the `_visible` companion field is
-**still emitted** (upstream parity).
+PeeringDB Plus mirrors upstream PeeringDB's per-field visibility marker for the IX-F member list URL: `ixlan.ixf_ixp_member_list_url` is gated by the sibling string field `ixlan.ixf_ixp_member_list_url_visible`, which carries one of `Public` / `Users` / `Private` (the schema default is `Private`, and a NULL/empty or unknown value fails closed to redacted).
+Anonymous callers (the default `PDBPLUS_PUBLIC_TIER=public` deployment) receive the value only when `_visible = Public`; for `Users` or `Private` the value is omitted across all six surfaces while the `_visible` companion field is **still emitted** (upstream parity).
 
 On `/api/`, the permission decides the key, not the value.
 A caller that may see the URL gets the key, also when the stored value is empty.
-Upstream does the same: it deletes the key only when the caller
-does not have the permission (2.83.0 `permissions.py:344-353`).
+Upstream does the same: it deletes the key only when the caller does not have the permission (2.83.0 `permissions.py:344-353`).
 An empty `Users` value is the exception.
 An anonymous sync does not get the URL of a `Users` row, and it stores `""`.
-Thus `/api/` omits the key for an empty `Users` value at every tier
-(see § Known Divergences).
+Thus `/api/` omits the key for an empty `Users` value at every tier (see § Known Divergences).
 
 The single source of truth is `internal/privfield.Redact(ctx, visible, value)`.
-Every serializer calls it,
-and `internal/middleware.PrivacyTier` stamps the resolved tier on the request
-context — unstamped contexts fail-closed to `TierPublic`.
+Every serializer calls it, and `internal/middleware.PrivacyTier` stamps the resolved tier on the request context — unstamped contexts fail-closed to `TierPublic`.
 
 | Surface | Mechanism |
 |---------|-----------|
@@ -1425,30 +1065,22 @@ context — unstamped contexts fail-closed to `TierPublic`.
 | `/ui/` | No render path renders the URL today; future templates must call `privfield.Redact` in the data-prep step |
 | `/mcp` | No tool returns the URL |
 
-Operators who run a private deployment can flip `PDBPLUS_PUBLIC_TIER=users` to
-make anonymous callers behave as authenticated users — the startup logger emits
-a `WARN` with `public_tier=users` so the override is visible in deploy logs.
-The Users tier gets what upstream gives an authenticated user who is not a
-member of the owning organization:
-`Public` and `Users` values and `poc` rows, but not `Private` ones.
+Operators who run a private deployment can flip `PDBPLUS_PUBLIC_TIER=users` to make anonymous callers behave as authenticated users — the startup logger emits a `WARN` with `public_tier=users` so the override is visible in deploy logs.
+The Users tier gets what upstream gives an authenticated user who is not a member of the owning organization: `Public` and `Users` values and `poc` rows, but not `Private` ones.
 The mirror has no organization membership, so no tier sees `Private` data.
 
 ### Contact visibility
 
 Each `poc` row has `visible`: `Public`, `Users` or `Private`.
-With the default `PDBPLUS_PUBLIC_TIER=public`,
-a caller sees only `Public` contacts on every surface.
+With the default `PDBPLUS_PUBLIC_TIER=public`, a caller sees only `Public` contacts on every surface.
 A row with no value counts as `Public`.
 With `PDBPLUS_PUBLIC_TIER=users`, callers also see `Users` contacts.
 No caller sees `Private` contacts.
-Filters through a relation apply the same rule,
-for example `/api/net?poc__email__contains=`.
+Filters through a relation apply the same rule, for example `/api/net?poc__email__contains=`.
 
 The GraphQL `NetworkWhereInput` has no `hasPocs` or `hasPocsWith` predicate.
-Such a predicate tests the `poc` rows in an SQL subquery,
-and the privacy policy does not apply to it.
-A caller could thus match networks on the `name`, `phone` or `email`
-of a contact that the tier hides, and read the value one prefix at a time.
+Such a predicate tests the `poc` rows in an SQL subquery, and the privacy policy does not apply to it.
+A caller could thus match networks on the `name`, `phone` or `email` of a contact that the tier hides, and read the value one prefix at a time.
 To filter on contact data, query `pocs` or `pocsList` with a `PocWhereInput`.
 The policy applies to that query.
 
@@ -1488,18 +1120,14 @@ Service discovery JSON body:
 }
 ```
 
-`GET /` and `HEAD /` include `Link` headers for `llms.txt`, the MCP server
-card, and the Agent Skills index.
-The root bypasses the readiness middleware so service discovery still works
-while the first sync is in progress.
+`GET /` and `HEAD /` include `Link` headers for `llms.txt`, the MCP server card, and the Agent Skills index.
+The root bypasses the readiness middleware so service discovery still works while the first sync is in progress.
 
 ### `GET /healthz`
 
 Liveness probe.
-Always returns `200 OK` with a fixed JSON body as long
-as the process can serve HTTP.
-It does **not** check database connectivity or sync state —
-a failing `/healthz` means the process itself is wedged and should be restarted.
+Always returns `200 OK` with a fixed JSON body as long as the process can serve HTTP.
+It does **not** check database connectivity or sync state — a failing `/healthz` means the process itself is wedged and should be restarted.
 
 Bypasses the readiness middleware.
 
@@ -1516,20 +1144,12 @@ Returns `200 OK` only when all of these conditions are true:
    (default `24h`).
 
 Otherwise it returns `503 Service Unavailable`.
-After a failed sync, `/readyz` returns `503` until the next sync attempt
-starts: a retry or the next scheduled cycle.
-Replicas read the same replicated `sync_status` table,
-so every machine returns `503` during that time.
-The Fly.io health check uses `/readyz`,
-so Fly Proxy stops routing to these machines until then.
-The response body is the opaque shape `{"status":"ok"}`
-or `{"status":"unhealthy"}` —
-detailed error strings are written to structured logs only
-(security hardening: the wire body does not leak internal failure detail).
+After a failed sync, `/readyz` returns `503` until the next sync attempt starts: a retry or the next scheduled cycle.
+Replicas read the same replicated `sync_status` table, so every machine returns `503` during that time.
+The Fly.io health check uses `/readyz`, so Fly Proxy stops routing to these machines until then.
+The response body is the opaque shape `{"status":"ok"}` or `{"status":"unhealthy"}` — detailed error strings are written to structured logs only (security hardening: the wire body does not leak internal failure detail).
 
-Bypasses the readiness-gate middleware itself
-(so a probe can observe the unready state rather than being redirected to the
-syncing page).
+Bypasses the readiness-gate middleware itself (so a probe can observe the unready state rather than being redirected to the syncing page).
 
 ### `POST /sync`
 
@@ -1554,8 +1174,7 @@ Only served by the LiteFS primary.
 
 Request body is capped at 1 MB.
 
-Bypasses the readiness middleware so an operator can kick off the first sync
-before any sync has completed.
+Bypasses the readiness middleware so an operator can kick off the first sync before any sync has completed.
 
 ## Limits
 
@@ -1579,35 +1198,24 @@ It enforces these limits:
 | ConnectRPC `page_size` | List RPCs | `100`, maximum `1000` (a larger value is clamped) | `internal/grpcserver/pagination.go` (hardcoded) |
 | MCP `page_size` | Search and relation pages | `20`, maximum `100` | `internal/mcpserver` (hardcoded) |
 
-Upstream PeeringDB rate limits apply to the sync worker's outbound requests —
-setting `PDBPLUS_PEERINGDB_API_KEY` raises that ceiling.
+Upstream PeeringDB rate limits apply to the sync worker's outbound requests — setting `PDBPLUS_PEERINGDB_API_KEY` raises that ceiling.
 
-Deployment-level rate limiting
-(e.g., Fly.io edge, Cloudflare, or a load balancer)
-is not configured in this repository.
+Deployment-level rate limiting (e.g., Fly.io edge, Cloudflare, or a load balancer) is not configured in this repository.
 
 ## CORS
 
-All surfaces pass through the shared `middleware.CORS` configured by
-`PDBPLUS_CORS_ORIGINS` (default `*`).
-The middleware allows the full set of headers required by Connect / gRPC /
-gRPC-Web and MCP Streamable HTTP in addition to standard application headers;
-see
-`internal/middleware/cors.go`.
-The MCP handler also checks browser `Origin` values against
-`PDBPLUS_CORS_ORIGINS`.
-With the default `*`, it rejects only malformed values (see § 6. MCP).
-The REST subtree relies on this same outer middleware;
-it is not wrapped a second time.
+All surfaces pass through the shared `middleware.CORS` configured by `PDBPLUS_CORS_ORIGINS` (default `*`).
+The middleware allows the full set of headers required by Connect / gRPC / gRPC-Web and MCP Streamable HTTP in addition to standard application headers; see `internal/middleware/cors.go`.
+The MCP handler also checks browser `Origin` values against `PDBPLUS_CORS_ORIGINS`.
+With the default `*`, it rejects only malformed values (see § 6.
+MCP).
+The REST subtree relies on this same outer middleware; it is not wrapped a second time.
 
 ## Known Divergences
 
-PeeringDB Plus strives for behavioural parity with the upstream PeeringDB API
-(`peeringdb/peeringdb`) at the `/api/` surface.
-The remaining divergences are listed below,
-each with an upstream citation and a guarding test.
-The shape of detail responses at `?depth=0`, `1` and `2` matches upstream,
-including `_set` ID lists, `net_set`, back-reference removal and `campus: null`.
+PeeringDB Plus strives for behavioural parity with the upstream PeeringDB API (`peeringdb/peeringdb`) at the `/api/` surface.
+The remaining divergences are listed below, each with an upstream citation and a guarding test.
+The shape of detail responses at `?depth=0`, `1` and `2` matches upstream, including `_set` ID lists, `net_set`, back-reference removal and `campus: null`.
 `internal/pdbcompat/depth_test.go` locks this.
 
 | Request | Upstream behaviour | peeringdb-plus behaviour | Rationale | Since |
@@ -1642,16 +1250,9 @@ including `_set` ID lists, `net_set`, back-reference removal and `campus: null`.
 
 ## Validation Notes
 
-Future conformance auditors reading third-party gotchas documentation
-(notably pdbfe's upstream-behaviour claims)
-against the PeeringDB Plus codebase may encounter assertions about upstream
-behaviour that turn out to be wrong.
-This section documents 4 such invalid claims from the v1.16 audit,
-each with a pinned `peeringdb/peeringdb@<sha>` reference
-so the authoritative upstream source can be re-read without re-research.
-All 4 were re-confirmed against commit
-`peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516` (PeeringDB
-2.83.0), the parity anchor as of 2026-09-23.
+Future conformance auditors reading third-party gotchas documentation (notably pdbfe's upstream-behaviour claims) against the PeeringDB Plus codebase may encounter assertions about upstream behaviour that turn out to be wrong.
+This section documents 4 such invalid claims from the v1.16 audit, each with a pinned `peeringdb/peeringdb@<sha>` reference so the authoritative upstream source can be re-read without re-research.
+All 4 were re-confirmed against commit `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516` (PeeringDB 2.83.0), the parity anchor as of 2026-09-23.
 
 | Claim | Verdict | Upstream truth | Our implementation |
 |-------|---------|----------------|--------------------|
@@ -1660,33 +1261,20 @@ All 4 were re-confirmed against commit
 | Unicode folding uses MySQL collation (`utf8_general_ci` or similar) | **WRONG** | Folding is Python-side via `unidecode.unidecode(v)` at query time. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/rest.py:597` — the call happens in the Python filter construction layer before any SQL is emitted, so the database collation is irrelevant. | peeringdb-plus uses shadow `<field>_fold` columns populated at sync time via `internal/unifold.Fold` (`golang.org/x/text/unicode/norm` NFKD decomposition + a hand-rolled ligature map for `ß`/`æ`/`œ`/`ø`/`ł`/`þ`/`đ`/`ð`/dotless `ı`). `__contains` / `__startswith` route to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS. Not byte-compatible with Python `unidecode` for every input (e.g. the two libraries handle rare CJK edge cases differently); any specific gap that surfaces will be logged as a new § Known Divergences row. Parity-locked by `TestParity_Unicode/net_name_contains_diacritic_matches_ascii`, `fac_city_cjk_roundtrip`, and `combining_mark_NFKD_equivalent`. |
 | Filter surface is a DRF `filterset_class` per ViewSet | **WRONG** | Filter surface is a per-serializer `prepare_query(...)` method plus an auto-`queryable_relations()` mechanism with a `FILTER_EXCLUDE` denylist. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/serializers.py:970` (`queryable_relations()`) and `:136-166` (`FILTER_EXCLUDE`). No `django_filters.FilterSet` subclass exists anywhere in the upstream codebase. | Path A = `pdbcompat.WithPrepareQueryAllow` ent-schema annotations → `allowlist_gen.go` `Allowlists` map (13 entries derived from upstream `prepare_query` seed lists and `queryable_relations()`); Path B = ent edge introspection via the generated `Edges` map. The `WithFilterExcludeFromTraversal` edge annotation is the edge-level counterpart of upstream's `FILTER_EXCLUDE` — currently empty across all 13 schemas (every FK edge exposed in v1.16). Upstream's field-level entries have no counterpart (see § Known Divergences). Parity-locked by `TestParity_Traversal/path_a_1hop_org_name` and `path_b_1hop_org_city`. |
 
-An earlier revision of this section also listed one claim from the
-2026-05-30 audit as wrong: that `org_flags` is a valid filter on `/api/org`.
+An earlier revision of this section also listed one claim from the 2026-05-30 audit as wrong: that `org_flags` is a valid filter on `/api/org`.
 The claim is correct.
 `org_flags` is an upstream model column (2.83.0 `models.py:1259-1264`).
-Upstream filters on it but does not serialize it,
-so the mirror ignores the key.
+Upstream filters on it but does not serialize it, so the mirror ignores the key.
 See § Known Divergences.
 
-An earlier revision also listed the claim that the default list order is
-`id ASC` as wrong.
+An earlier revision also listed the claim that the default list order is `id ASC` as wrong.
 It cited the `django-handleref` base `Meta.ordering = ('-updated', '-created')`.
 The claim is correct.
-The django-peeringdb abstract bases declare their own `class Meta`
-without subclassing the handleref `Meta`,
-so the 13 models do not inherit that ordering.
-The upstream migrations record no `ordering` option for them
-(2.83.0 `migrations/0001_initial.py`).
-A list without `?since` has no `ORDER BY` (`rest.py:747-748`),
-and MySQL returns primary-key order.
-A live capture on 2026-09-23 returned the lowest ids first on every type
-except netixlan.
+The django-peeringdb abstract bases declare their own `class Meta` without subclassing the handleref `Meta`, so the 13 models do not inherit that ordering.
+The upstream migrations record no `ordering` option for them (2.83.0 `migrations/0001_initial.py`).
+A list without `?since` has no `ORDER BY` (`rest.py:747-748`), and MySQL returns primary-key order.
+A live capture on 2026-09-23 returned the lowest ids first on every type except netixlan.
 See § List order and § Known Divergences.
 
-Quarterly re-validation against upstream is a manual review against the pinned
-commit above — it does not block merges.
-Drift that invalidates a Validation Note row should be surfaced
-as a GitHub issue and reviewed against the parity test suite;
-if upstream has changed semantics,
-update the row here and flip or retain the matching parity assertion
-as a new § Known Divergences row.
+Quarterly re-validation against upstream is a manual review against the pinned commit above — it does not block merges.
+Drift that invalidates a Validation Note row should be surfaced as a GitHub issue and reviewed against the parity test suite; if upstream has changed semantics, update the row here and flip or retain the matching parity assertion as a new § Known Divergences row.

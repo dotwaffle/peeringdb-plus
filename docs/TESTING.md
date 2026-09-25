@@ -1,18 +1,13 @@
 # Testing
 
 PeeringDB Plus tests use the Go `testing` package.
-Some tests also use `github.com/google/go-cmp/cmp` for diffs,
-and the `internal/mcpserver` tests use `github.com/stretchr/testify`.
-Tests follow the Go convention of living next to the code they exercise
-as `*_test.go` files in the same package
-(or a `_test` sibling package for black-box tests).
-The project targets Go 1.27.1
-and all tests must pass with the race detector enabled.
+Some tests also use `github.com/google/go-cmp/cmp` for diffs, and the `internal/mcpserver` tests use `github.com/stretchr/testify`.
+Tests follow the Go convention of living next to the code they exercise as `*_test.go` files in the same package (or a `_test` sibling package for black-box tests).
+The project targets Go 1.27.1 and all tests must pass with the race detector enabled.
 
 ## Test Layout
 
-Tests are co-located with source files: for any `foo.go`,
-tests live in `foo_test.go` in the same directory.
+Tests are co-located with source files: for any `foo.go`, tests live in `foo_test.go` in the same directory.
 Test helpers shared across packages live under `internal/testutil/`.
 
 Key test locations:
@@ -57,10 +52,8 @@ Run a single test by name:
 go test -race -run TestFullSyncWithFixtures ./internal/sync/
 ```
 
-Update the golden files after an intentional serializer, handler,
-or sync-mapping change.
-`internal/pdbcompat/golden_test.go` and `internal/sync/worker_test.go`
-each define an `-update` flag.
+Update the golden files after an intentional serializer, handler, or sync-mapping change.
+`internal/pdbcompat/golden_test.go` and `internal/sync/worker_test.go` each define an `-update` flag.
 Put `-update` after the package path.
 If it comes first, `go test` tests the current directory and fails.
 
@@ -79,8 +72,7 @@ go test -run='^$' -bench=BenchmarkApplyFieldProjection -benchmem ./internal/pdbc
 go test -run='^$' -bench=BenchmarkParity -benchtime=5x -count=6 ./internal/pdbcompat/parity/
 ```
 
-The quotes around `^$` stop zsh with `extendedglob`
-from reading it as a glob pattern.
+The quotes around `^$` stop zsh with `extendedglob` from reading it as a glob pattern.
 
 Run fuzz tests (stops on first panic; run explicitly per package):
 
@@ -105,16 +97,10 @@ go test ./...
 
 ### `internal/testutil`
 
-`SetupClient(tb)` and `SetupClientWithDB(tb)` in `internal/testutil/testutil.go`
-construct an isolated ent client backed by an in-memory SQLite database
-(shared-cache mode with foreign keys enabled).
-Each call gets a unique DSN
-(`file:test_N?mode=memory&cache=shared&_pragma=foreign_keys(1)`) so tests that
-call `t.Parallel()` do not see each other's data.
-Both helpers accept `testing.TB` so they work under `*testing.T`
-and `*testing.B` (the widening supports the parity benchmarks).
-The ent client and, when returned, the raw `*sql.DB`,
-are closed automatically via `t.Cleanup`.
+`SetupClient(tb)` and `SetupClientWithDB(tb)` in `internal/testutil/testutil.go` construct an isolated ent client backed by an in-memory SQLite database (shared-cache mode with foreign keys enabled).
+Each call gets a unique DSN (`file:test_N?mode=memory&cache=shared&_pragma=foreign_keys(1)`) so tests that call `t.Parallel()` do not see each other's data.
+Both helpers accept `testing.TB` so they work under `*testing.T` and `*testing.B` (the widening supports the parity benchmarks).
+The ent client and, when returned, the raw `*sql.DB`, are closed automatically via `t.Cleanup`.
 
 ```go
 import "github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -136,18 +122,14 @@ func TestSyncStatus(t *testing.T) {
 
 ### `internal/testutil/seed`
 
-`seed.Full(tb, client)` in `internal/testutil/seed/seed.go` creates one row
-of each of the 13 types with fixed IDs
-(org 1, net 10, ix 20, fac 30, campus 40, carrier 50).
+`seed.Full(tb, client)` in `internal/testutil/seed/seed.go` creates one row of each of the 13 types with fixed IDs (org 1, net 10, ix 20, fac 30, campus 40, carrier 50).
 It also creates these rows:
 
 - a second network (ID 11) and a campus facility (ID 31)
-- a second ixlan with a `Public` member-list URL
-  (`seed.IxLanPublicID` = 101).
+- a second ixlan with a `Public` member-list URL (`seed.IxLanPublicID` = 101).
   The gated ixlan is `seed.IxLanGatedID` = 100.
 - two POCs with `visible=Users` (IDs 9000 and 9001)
-- a separate tenant in the 8001 ID band
-  (org, campus, ix, ixlan, fac, and networks 8001-8003).
+- a separate tenant in the 8001 ID band (org, campus, ix, ixlan, fac, and networks 8001-8003).
   Network 8003 has `status=deleted`.
   Traversal, fold, and status tests use this tenant.
 
@@ -173,21 +155,15 @@ func TestNetworkLookup(t *testing.T) {
 }
 ```
 
-Tests in `cmd/peeringdb-plus`, `graph`, `internal/pdbcompat`,
-and `internal/sync` use the IDs and names that `seed.Full` creates.
+Tests in `cmd/peeringdb-plus`, `graph`, `internal/pdbcompat`, and `internal/sync` use the IDs and names that `seed.Full` creates.
 If you need a different shape, add a new helper.
 Do not change `Full`.
-The golden tests (`setupGoldenTestData`), the `internal/grpcserver` tests,
-and the `internal/web` tests seed their own rows.
-Parity tests deliberately do **not** use `seed.Full` —
-each sub-test seeds the clean rows it needs inline via the ent client to avoid
-cross-test contamination (see [Parity Tests](#parity-tests) below).
+The golden tests (`setupGoldenTestData`), the `internal/grpcserver` tests, and the `internal/web` tests seed their own rows.
+Parity tests deliberately do **not** use `seed.Full` — each sub-test seeds the clean rows it needs inline via the ent client to avoid cross-test contamination (see [Parity Tests](#parity-tests) below).
 
 ## Fixtures (`testdata/fixtures/`)
 
-The `testdata/fixtures/` directory contains 13 JSON files —
-one per PeeringDB object type — that match the actual PeeringDB API envelope
-(`{"meta": {...}, "data": [...]}`).
+The `testdata/fixtures/` directory contains 13 JSON files — one per PeeringDB object type — that match the actual PeeringDB API envelope (`{"meta": {...}, "data": [...]}`).
 The full list:
 
 ```text
@@ -197,23 +173,16 @@ net.json        netfac.json     netixlan.json    org.json
 poc.json
 ```
 
-These drive sync integration tests:
-`internal/sync/integration_test.go` spins up an `httptest.Server`
-that serves each fixture
-when the sync worker requests the corresponding `/api/{type}` path,
-then asserts on the resulting database state.
-The mock server returns the fixture data on the first page (`skip=0`)
-and an empty array on subsequent pages to terminate pagination.
+These drive sync integration tests: `internal/sync/integration_test.go` spins up an `httptest.Server` that serves each fixture when the sync worker requests the corresponding `/api/{type}` path, then asserts on the resulting database state.
+The mock server returns the fixture data on the first page (`skip=0`) and an empty array on subsequent pages to terminate pagination.
 
 ### Writing a new sync integration test using a fixture
 
 1. If the scenario needs a new record shape,
    edit the relevant JSON file in `testdata/fixtures/`
    (keep it matching the real PeeringDB envelope).
-2. Write your test in `internal/sync/integration_test.go`
-   (or a sibling `_test.go` in `package sync_test`).
-   Re-use the existing `newFixtureServer(t)` helper to get a mock API server
-   plus `testutil.SetupClientWithDB(t)` for an isolated database.
+2. Write your test in `internal/sync/integration_test.go` (or a sibling `_test.go` in `package sync_test`).
+   Re-use the existing `newFixtureServer(t)` helper to get a mock API server plus `testutil.SetupClientWithDB(t)` for an isolated database.
 3. Build a `sync.Worker` with the mock server URL as the PeeringDB base:
 
     ```go
@@ -234,53 +203,35 @@ and an empty array on subsequent pages to terminate pagination.
     }
     ```
 
-4. Assert on the resulting database state with the ent client: row counts,
-   specific field values, or join traversals.
-   For per-fixture overrides,
-   call `fs.setFixtureData(type, rawJSON)` before running the sync.
+4. Assert on the resulting database state with the ent client: row counts, specific field values, or join traversals.
+   For per-fixture overrides, call `fs.setFixtureData(type, rawJSON)` before running the sync.
 
 ## Conformance Tests (`internal/conformance`)
 
-`internal/conformance/` validates
-that PeeringDB Plus's JSON output is structurally compatible with the real
-PeeringDB API.
-`conformance.CompareResponses`
-(and the lower-level `CompareStructure`)
-compares field names, value types, null/array/object shapes, and nesting depth —
-not actual values.
-The per-object `meta` document on net and netixlan (PeeringDB 2.83.0) is opaque:
-the comparer checks only its JSON type, not its keys,
-because its keys differ per row.
+`internal/conformance/` validates that PeeringDB Plus's JSON output is structurally compatible with the real PeeringDB API.
+`conformance.CompareResponses` (and the lower-level `CompareStructure`) compares field names, value types, null/array/object shapes, and nesting depth — not actual values.
+The per-object `meta` document on net and netixlan (PeeringDB 2.83.0) is opaque: the comparer checks only its JSON type, not its keys, because its keys differ per row.
 The top-level envelope `meta` is compared in full.
-`internal/conformance/compare_test.go` exercises the comparer itself;
-`live_test.go` compares a live fetch against the golden files in
-`internal/pdbcompat/testdata/golden/`.
+`internal/conformance/compare_test.go` exercises the comparer itself; `live_test.go` compares a live fetch against the golden files in `internal/pdbcompat/testdata/golden/`.
 
 ## Response Budget Tests
 
 The pdbcompat list path carries a 128 MiB pre-flight memory budget.
-Two integration tests in `internal/pdbcompat/stream_integration_test.go` lock
-the contract:
+Two integration tests in `internal/pdbcompat/stream_integration_test.go` lock the contract:
 
 | Test | Asserts |
 |------|---------|
 | `TestServeList_UnderBudgetStreams` | An under-budget list streams a complete response with the expected row count and content type |
 | `TestServeList_OverBudget413` | An over-budget request returns HTTP 413 (Payload Too Large) before any row is emitted |
 
-When adding a new entity type to `internal/pdbcompat/registry_funcs.go`,
-extend `internal/pdbcompat/budget_test.go`
-and the streaming integration tests with under-budget
-and over-budget assertions mirroring the existing pattern.
-See [DEVELOPMENT.md § Adding a new pdbcompat entity](DEVELOPMENT.md#adding-a-new-pdbcompat-entity-response-memory-budget)
-for the full checklist.
+When adding a new entity type to `internal/pdbcompat/registry_funcs.go`, extend `internal/pdbcompat/budget_test.go` and the streaming integration tests with under-budget and over-budget assertions mirroring the existing pattern.
+See [DEVELOPMENT.md § Adding a new pdbcompat entity](DEVELOPMENT.md#adding-a-new-pdbcompat-entity-response-memory-budget) for the full checklist.
 
 ## Parity Tests
 
-`internal/pdbcompat/parity/` locks the `/api/` behavior
-that matches upstream PeeringDB.
+`internal/pdbcompat/parity/` locks the `/api/` behavior that matches upstream PeeringDB.
 A test fails when that behavior changes.
-The package is split into 9 category-specific test files plus shared
-infrastructure:
+The package is split into 9 category-specific test files plus shared infrastructure:
 
 | File | Entry test | Covers |
 |------|------------|--------|
@@ -300,40 +251,26 @@ infrastructure:
 
 ### Seeding
 
-Each parity sub-test seeds the clean rows it needs inline via the ent client
-(`c.Network.Create()...`) and cites the upstream source line it mirrors in a
-comment.
-There is no generated fixtures package and no per-category seeder —
-the upstream test cases in `pdb_api_test.py` are transcribed directly into the
-relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
+Each parity sub-test seeds the clean rows it needs inline via the ent client (`c.Network.Create()...`) and cites the upstream source line it mirrors in a comment.
+There is no generated fixtures package and no per-category seeder — the upstream test cases in `pdb_api_test.py` are transcribed directly into the relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
 
 ### Conventions for parity tests
 
-- **Isolation**: every parity test calls `testutil.SetupClient(tb)`
-  for a fresh in-memory ent client.
-  Do **not** reach into `internal/testutil/seed.Full` —
-  it seeds a different shape and causes cross-test contamination.
+- **Isolation**: every parity test calls `testutil.SetupClient(tb)` for a fresh in-memory ent client.
+  Do **not** reach into `internal/testutil/seed.Full` — it seeds a different shape and causes cross-test contamination.
 - **Seeding**: seed clean rows inline via the ent client
   (`c.Network.Create()...`), seeding only the rows a single sub-test needs.
 - **Parallelism**: every sub-test calls `t.Parallel()`.
 - **Citation comments**: every sub-test carries one of:
-  - `// upstream: pdb_api_test.py:<line>` —
-    when the assertion mirrors an upstream test case.
-    A case from another upstream test file names that file,
-    for example `// upstream: tests/test_meta_registry.py:<line>`.
+  - `// upstream: pdb_api_test.py:<line>` — when the assertion mirrors an upstream test case.
+    A case from another upstream test file names that file, for example `// upstream: tests/test_meta_registry.py:<line>`.
   - `// synthesised: <context>` marks a behavior that no upstream test covers
     (for example tombstones, folding, traversal, or budgets).
-- **Divergence prefix**: sub-tests whose names begin with `DIVERGENCE_` mark
-  intentional non-parity outcomes.
-  A divergence test that is its own top-level function ends its name
-  with `_DIVERGENCE` (for example `TestParity_Unicode_FoldWindow_DIVERGENCE`).
-  Each such test must have a matching row in `docs/API.md § Known Divergences`
-  cross-referencing it.
-- **TB widening**: parity helpers accept `testing.TB`
-  (not `*testing.T`) so the same code paths run under benchmarks.
-  Applied across the 7 helper functions in `harness_helpers_test.go`
-  (`newTestServer`, `newTestServerWithBudget`, `newTestServerWithTier`,
-  `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`).
+- **Divergence prefix**: sub-tests whose names begin with `DIVERGENCE_` mark intentional non-parity outcomes.
+  A divergence test that is its own top-level function ends its name with `_DIVERGENCE` (for example `TestParity_Unicode_FoldWindow_DIVERGENCE`).
+  Each such test must have a matching row in `docs/API.md § Known Divergences` cross-referencing it.
+- **TB widening**: parity helpers accept `testing.TB` (not `*testing.T`) so the same code paths run under benchmarks.
+  Applied across the 7 helper functions in `harness_helpers_test.go` (`newTestServer`, `newTestServerWithBudget`, `newTestServerWithTier`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`).
 
 ### Adding a parity test
 
@@ -351,12 +288,9 @@ relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
    ```
 
 3. Seed the rows inline through the ent client (`c.Network.Create()...`).
-   Use the helpers in `harness_helpers_test.go`
-   to start the server and decode the response.
-4. For an intentional divergence from upstream,
-   start the sub-test name with `DIVERGENCE_`.
-   Then add a row that names the sub-test to
-   [API.md § Known Divergences](API.md#known-divergences).
+   Use the helpers in `harness_helpers_test.go` to start the server and decode the response.
+4. For an intentional divergence from upstream, start the sub-test name with `DIVERGENCE_`.
+   Then add a row that names the sub-test to [API.md § Known Divergences](API.md#known-divergences).
 
 ### Benchmarks
 
@@ -383,13 +317,9 @@ They exist to detect order-of-magnitude regressions during local development.
 
 ## Fuzz Tests
 
-`internal/pdbcompat/fuzz_test.go` defines `FuzzFilterParser`,
-which feeds arbitrary `(key, value)` pairs to `ParseFilters` to assert
-that the filter parser never panics on untrusted input.
+`internal/pdbcompat/fuzz_test.go` defines `FuzzFilterParser`, which feeds arbitrary `(key, value)` pairs to `ParseFilters` to assert that the filter parser never panics on untrusted input.
 Errors are acceptable; panics are failures.
-The seed corpus covers all six `FieldType` values
-(string, int, bool, time, float, multichoice)
-and known edge cases (empty key, unsupported operator, type conversion error).
+The seed corpus covers all six `FieldType` values (string, int, bool, time, float, multichoice) and known edge cases (empty key, unsupported operator, type conversion error).
 
 Run it with:
 
@@ -399,9 +329,7 @@ go test -run='^$' -fuzz=FuzzFilterParser -fuzztime=30s ./internal/pdbcompat/
 
 ## Live Tests (`-peeringdb-live` gate)
 
-Tests that hit `https://beta.peeringdb.com` are gated behind a package-level
-`-peeringdb-live` boolean flag and `t.Skip()` when it is not set, so they never
-run in CI.
+Tests that hit `https://beta.peeringdb.com` are gated behind a package-level `-peeringdb-live` boolean flag and `t.Skip()` when it is not set, so they never run in CI.
 Two such tests exist:
 
 | Test | File | Purpose |
@@ -411,8 +339,7 @@ Two such tests exist:
 
 The tests wait between requests to stay under the PeeringDB rate limits.
 `TestLiveConformance` always runs anonymously and waits 3 s between requests.
-`TestMetaGeneratedLive` waits 3 s,
-or 1 s when `PDBPLUS_PEERINGDB_API_KEY` is set.
+`TestMetaGeneratedLive` waits 3 s, or 1 s when `PDBPLUS_PEERINGDB_API_KEY` is set.
 Put `-peeringdb-live` after the package path:
 
 ```bash
@@ -468,58 +395,39 @@ func TestParseBool(t *testing.T) {
 ### Parallelism
 
 Call `t.Parallel()` at the top of every test and subtest where safe.
-`SetupClient` constructs per-test isolated databases specifically to make
-`t.Parallel()` safe.
-The live conformance test is deliberately **not** parallel
-because it must sequence requests to respect upstream rate limits.
+`SetupClient` constructs per-test isolated databases specifically to make `t.Parallel()` safe.
+The live conformance test is deliberately **not** parallel because it must sequence requests to respect upstream rate limits.
 
 ### `t.Cleanup`
 
-Prefer `t.Cleanup(func() { ... })` over `defer` in helpers
-so teardown runs in the correct LIFO order regardless of
-which test function the helper is called from.
-`testutil.SetupClient` already registers cleanups for the ent client
-and raw `*sql.DB`.
+Prefer `t.Cleanup(func() { ... })` over `defer` in helpers so teardown runs in the correct LIFO order regardless of which test function the helper is called from.
+`testutil.SetupClient` already registers cleanups for the ent client and raw `*sql.DB`.
 
 ### Context
 
 Use `t.Context()` instead of `context.Background()` in tests.
-The testing package cancels this context
-just before it runs the cleanup functions of the test,
-so goroutines that handlers or workers start do not leak between tests.
+The testing package cancels this context just before it runs the cleanup functions of the test, so goroutines that handlers or workers start do not leak between tests.
 
 ### Naming
 
 - Test files: `foo_test.go` (co-located).
-- Test files in `graph/`:
-  gqlgen takes the package name from the first `.go` file in `graph/`
-  in alphabetical order (today `complexity.go`).
-  A `package graph_test` file that sorts before it
-  makes `gqlgen generate` fail
-  with "exec and model define the same import path".
+- Test files in `graph/`: gqlgen takes the package name from the first `.go` file in `graph/` in alphabetical order (today `complexity.go`).
+  A `package graph_test` file that sorts before it makes `gqlgen generate` fail with "exec and model define the same import path".
   Give such files names that sort after it, for example `resolver_*_test.go`.
 - Test functions: `TestFoo`, `TestFoo_Subcase` or `TestFooSubcase`.
 - Benchmarks: `BenchmarkFoo`.
 - Fuzz tests: `FuzzFoo`.
 - Live tests: gate them with the package-level `-peeringdb-live` flag
   and call `t.Skip` when the flag is not set.
-- Parity tests: one `TestParity_<Category>` entry function for each category
-  (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`,
-  `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`,
-  `TestParity_Meta`, `TestParity_Serializer`, `TestParity_MultiChoice`).
-  Give each `t.Run` sub-test a descriptive snake_case name
-  (e.g. `list_no_since_status_ok_only`).
-  Start the name of an intentional non-parity sub-test with `DIVERGENCE_`
-  (e.g. `DIVERGENCE_negative_limit_returns_400`).
-  A divergence test that is its own top-level function ends its name
-  with `_DIVERGENCE` (e.g. `TestParity_Unicode_FoldWindow_DIVERGENCE`).
+- Parity tests: one `TestParity_<Category>` entry function for each category (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`, `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`, `TestParity_Meta`, `TestParity_Serializer`, `TestParity_MultiChoice`).
+  Give each `t.Run` sub-test a descriptive snake_case name (e.g. `list_no_since_status_ok_only`).
+  Start the name of an intentional non-parity sub-test with `DIVERGENCE_` (e.g. `DIVERGENCE_negative_limit_returns_400`).
+  A divergence test that is its own top-level function ends its name with `_DIVERGENCE` (e.g. `TestParity_Unicode_FoldWindow_DIVERGENCE`).
 
 ## CI Integration
 
-The `.github/workflows/ci.yml` workflow runs on every pull request
-and on every push to `main` or a `v*` tag.
-The `ci` job is a single cached Go job whose steps run in order,
-each reusing the prior compile.
+The `.github/workflows/ci.yml` workflow runs on every pull request and on every push to `main` or a `v*` tag.
+The `ci` job is a single cached Go job whose steps run in order, each reusing the prior compile.
 On a pull request, `docker-build` runs in parallel.
 On a push, `docker-publish` runs after `ci` passes, and `docker-build` does not run:
 
@@ -535,7 +443,6 @@ On a push, `docker-publish` runs after `ci` passes, and `docker-build` does not 
 | `docker-build` | Standalone and prod image builds (pull requests only) | `docker build` using `./Dockerfile` (amd64 and arm64) and `./Dockerfile.litefs` (amd64) |
 | `docker-publish` | Publish the standalone image (push events only) | `docker buildx build --push` of `./Dockerfile` to GHCR, then an artifact attestation |
 
-A failed drift check, tidiness check, build, test, race check, or lint run
-fails the workflow.
+A failed drift check, tidiness check, build, test, race check, or lint run fails the workflow.
 `govulncheck` is advisory.
 A flagged vulnerability shows a warning but does not block the merge.

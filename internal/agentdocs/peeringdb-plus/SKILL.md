@@ -11,9 +11,9 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 
 1. Read `peeringdb-plus://service` for the server version and serving region.
 2. Read `peeringdb-plus://guide` before you page through related records.
-3. When data age affects the answer, read the `freshness` field of a record
-   lookup or a typed search. It is the time of the last successful sync. Use
-   `get_sync_status` for the latest sync attempt.
+3. When data age affects the answer, read the `freshness` field of a record lookup or a typed search.
+   It is the time of the last successful sync.
+   Use `get_sync_status` for the latest sync attempt.
 
 ## Choose a tool
 
@@ -21,9 +21,8 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 - Use `get_network`, `get_exchange`, `get_facility`, `get_organization`,
   `get_campus`, or `get_carrier` for a known record.
 - Use `compare_networks` to compare network footprints.
-- Use `lookup_ip` to find the network that holds an IX peering address and
-  the exchange prefix that contains it. It does not map other IP addresses to
-  networks.
+- Use `lookup_ip` to find the network that holds an IX peering address and the exchange prefix that contains it.
+  It does not map other IP addresses to networks.
 - Use the `research_network` prompt for a structured network investigation.
 - Use the `compare_networks` prompt for a guided comparison.
 
@@ -32,9 +31,8 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 - Set `relation` to fetch one related collection, and set `page_size` to limit
   the rows.
 - Follow relation cursors when a response indicates more related records.
-- IX connection rows include connections that are not operational. Check
-  `Markers.NotOperational` or `status` before you describe a connection as
-  active.
+- IX connection rows include connections that are not operational.
+  Check `Markers.NotOperational` or `status` before you describe a connection as active.
 - Treat the data as a mirror snapshot and report its freshness when material.
 - Distinguish returned facts from inferences, and preserve source record IDs in
   the answer.

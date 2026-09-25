@@ -1,17 +1,11 @@
 # Configuration
 
 All PeeringDB Plus configuration is supplied via environment variables.
-The application follows a fail-fast initialization model:
-invalid or out-of-range values cause startup to abort with a descriptive error,
-and configuration is treated as immutable after `config.Load()` returns.
+The application follows a fail-fast initialization model: invalid or out-of-range values cause startup to abort with a descriptive error, and configuration is treated as immutable after `config.Load()` returns.
 
-The authoritative loader is `internal/config/config.go`
-(function `Load`, struct `Config`).
-Other variables are read directly by `internal/otel/provider.go`,
-`internal/otel/logger.go`, `internal/litefs/primary.go`, `cmd/peeringdb-plus`,
-or the `autoexport` SDK package.
-These include the OpenTelemetry exporter selection, the `PDBPLUS_LOG_LEVEL`
-filter, and the LiteFS and Fly.io variables.
+The authoritative loader is `internal/config/config.go` (function `Load`, struct `Config`).
+Other variables are read directly by `internal/otel/provider.go`, `internal/otel/logger.go`, `internal/litefs/primary.go`, `cmd/peeringdb-plus`, or the `autoexport` SDK package.
+These include the OpenTelemetry exporter selection, the `PDBPLUS_LOG_LEVEL` filter, and the LiteFS and Fly.io variables.
 Their own sections below describe them.
 
 ## Environment Variables
@@ -72,11 +66,8 @@ Apply provider-supported domain and usage restrictions to that key.
 
 #### WAF behavior
 
-On HTTP 403 responses the transport (`internal/peeringdb/transport.go`) sniffs
-the response body (first 4 KiB) for WAF signatures: `AWS WAF`,
-`Request blocked`, `Access Denied`, `<title>403 Forbidden</title>`.
-On match the client logs WARN with full response headers attached
-and returns the `errWAFBlocked` sentinel without retrying.
+On HTTP 403 responses the transport (`internal/peeringdb/transport.go`) sniffs the response body (first 4 KiB) for WAF signatures: `AWS WAF`, `Request blocked`, `Access Denied`, `<title>403 Forbidden</title>`.
+On match the client logs WARN with full response headers attached and returns the `errWAFBlocked` sentinel without retrying.
 Retrying within the same source IP is futile against an IP-level block.
 Non-WAF 403 responses fall through to the existing API-key auth-error path.
 
@@ -85,34 +76,20 @@ The sync skips its retry ladder, and the next scheduled cycle tries again.
 
 #### Rate limits (HTTP 429)
 
-When `Retry-After` is 60 seconds or less,
-the transport waits and tries again, up to 3 attempts.
+When `Retry-After` is 60 seconds or less, the transport waits and tries again, up to 3 attempts.
 Each retry increments `pdbplus.peeringdb.retries{cause="429"}`.
-When `Retry-After` is missing or longer than 60 seconds,
-the fetch stops at once and logs
-`PeeringDB rate-limited, aborting (retry-after exceeds cap)`.
+When `Retry-After` is missing or longer than 60 seconds, the fetch stops at once and logs `PeeringDB rate-limited, aborting (retry-after exceeds cap)`.
 The sync skips its retry ladder, and the next scheduled cycle tries again.
 
 #### Sync cadence
 
-`PDBPLUS_SYNC_INTERVAL` defaults to **15 minutes**
-when `PDBPLUS_PEERINGDB_API_KEY` is non-empty and **1 hour** otherwise.
-Authenticated callers have twice the PeeringDB request budget
-(40 per minute per user or organization, against 20 per minute per IP),
-so the tighter cadence keeps the mirror fresher without risking throttling;
-unauthenticated deployments stay on the conservative 1h default to avoid burning
-the shared anonymous ceiling.
+`PDBPLUS_SYNC_INTERVAL` defaults to **15 minutes** when `PDBPLUS_PEERINGDB_API_KEY` is non-empty and **1 hour** otherwise.
+Authenticated callers have twice the PeeringDB request budget (40 per minute per user or organization, against 20 per minute per IP), so the tighter cadence keeps the mirror fresher without risking throttling; unauthenticated deployments stay on the conservative 1h default to avoid burning the shared anonymous ceiling.
 
-Override precedence is explicit-wins:
-setting `PDBPLUS_SYNC_INTERVAL=5m` forces 5-minute syncs regardless of
-whether an API key is configured.
+Override precedence is explicit-wins: setting `PDBPLUS_SYNC_INTERVAL=5m` forces 5-minute syncs regardless of whether an API key is configured.
 An unset or empty `PDBPLUS_SYNC_INTERVAL` selects the auth-conditional default.
-With an empty value (`PDBPLUS_SYNC_INTERVAL=`),
-the startup log still shows `explicit_override=true`.
-On startup the effective interval, authentication state,
-and whether the operator supplied an explicit override are announced in a single
-structured log line (`sync interval configured`) — the API key itself is never
-logged.
+With an empty value (`PDBPLUS_SYNC_INTERVAL=`), the startup log still shows `explicit_override=true`.
+On startup the effective interval, authentication state, and whether the operator supplied an explicit override are announced in a single structured log line (`sync interval configured`) — the API key itself is never logged.
 
 ### Removed in v1.16
 
@@ -141,17 +118,11 @@ logged.
 
 These variables are injected by the Fly.io runtime and Fly Consul.
 `internal/otel/provider.go` reads the resource variables at startup.
-`cmd/peeringdb-plus/main.go` reads `FLY_REGION` at startup
-for the Web UI and the MCP server.
-The `POST /sync` handler (`cmd/peeringdb-plus/sync_handler.go`)
-reads `FLY_REGION` and `PRIMARY_REGION` on each request.
+`cmd/peeringdb-plus/main.go` reads `FLY_REGION` at startup for the Web UI and the MCP server.
+The `POST /sync` handler (`cmd/peeringdb-plus/sync_handler.go`) reads `FLY_REGION` and `PRIMARY_REGION` on each request.
 `internal/config` never loads them, and the application never sets them.
 
-The OTel resource attributes emitted by `buildResourceFiltered` use OTel semconv
-keys (not custom `fly.*` keys) for everything except `fly.app_name`, because
-Grafana Cloud's hosted OTLP receiver only promotes a small allowlist of resource
-attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom
-`fly.*` keys are silently dropped on the metrics path.
+The OTel resource attributes emitted by `buildResourceFiltered` use OTel semconv keys (not custom `fly.*` keys) for everything except `fly.app_name`, because Grafana Cloud's hosted OTLP receiver only promotes a small allowlist of resource attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom `fly.*` keys are silently dropped on the metrics path.
 
 | Env var | Resource attr (semconv) | On metrics? | On traces/logs? | Consumer |
 |---------|-------------------------|-------------|-----------------|----------|
@@ -168,13 +139,8 @@ attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom
 
 ### Standard OpenTelemetry Variables (autoexport)
 
-All signals are initialized through
-`go.opentelemetry.io/contrib/exporters/autoexport`, which honors the standard
-`OTEL_*` environment variables.
-The exporter for each signal can be selected independently
-(for example, `OTEL_TRACES_EXPORTER=otlp` with
-`OTEL_METRICS_EXPORTER=prometheus` and `OTEL_LOGS_EXPORTER=none`) and any signal
-can be disabled by setting its `OTEL_*_EXPORTER` variable to `none`.
+All signals are initialized through `go.opentelemetry.io/contrib/exporters/autoexport`, which honors the standard `OTEL_*` environment variables.
+The exporter for each signal can be selected independently (for example, `OTEL_TRACES_EXPORTER=otlp` with `OTEL_METRICS_EXPORTER=prometheus` and `OTEL_LOGS_EXPORTER=none`) and any signal can be disabled by setting its `OTEL_*_EXPORTER` variable to `none`.
 Supported values follow the OpenTelemetry SDK specification.
 
 Commonly used variables:
@@ -195,108 +161,71 @@ Commonly used variables:
 | `OTEL_EXPORTER_PROMETHEUS_HOST` | Prometheus exporter bind host when `OTEL_METRICS_EXPORTER=prometheus`. |
 | `OTEL_EXPORTER_PROMETHEUS_PORT` | Prometheus exporter port when `OTEL_METRICS_EXPORTER=prometheus`. |
 
-The full list of variables honored by autoexport is documented in the upstream
-SDK: see `go.opentelemetry.io/contrib/exporters/autoexport`.
+The full list of variables honored by autoexport is documented in the upstream SDK: see `go.opentelemetry.io/contrib/exporters/autoexport`.
 
-These signal-specific details are enforced by `internal/otel/provider.go`
-regardless of exporter selection:
+These signal-specific details are enforced by `internal/otel/provider.go` regardless of exporter selection:
 
 - W3C Trace Context and Baggage are installed as the global text-map
   propagators.
 - `http.server.request.body.size` and `http.server.response.body.size`
   instruments are dropped via a metric view (low debugging value, high
   cardinality).
-- `http.server.request.duration` uses an explicit-bucket histogram with
-  boundaries `[0.01, 0.05, 0.25, 1, 5]` seconds. It keeps only the
-  `http.route`, `http.response.status_code`, `network.protocol.version`
-  and `user_agent.synthetic.type` attributes. The last one is `test` on
-  requests from Grafana Synthetic Monitoring probes (User-Agent
-  `synthetic-monitoring-agent/...`), which the dashboard and the
-  availability SLO leave out.
+- `http.server.request.duration` uses an explicit-bucket histogram with boundaries `[0.01, 0.05, 0.25, 1, 5]` seconds.
+  It keeps only the `http.route`, `http.response.status_code`, `network.protocol.version` and `user_agent.synthetic.type` attributes.
+  The last one is `test` on requests from Grafana Synthetic Monitoring probes (User-Agent `synthetic-monitoring-agent/...`), which the dashboard and the availability SLO leave out.
 - Go runtime metrics (goroutines, heap, GC) are started unconditionally via
   `runtime.Start(runtime.WithMeterProvider(mp))`.
 
-The ConnectRPC interceptor records spans but no `rpc.server.*` metrics
-(`otelconnect.WithoutMetrics()` in `cmd/peeringdb-plus/main.go`).
-`http.server.request.duration` covers ConnectRPC latency,
-with one `http.route` value per service.
+The ConnectRPC interceptor records spans but no `rpc.server.*` metrics (`otelconnect.WithoutMetrics()` in `cmd/peeringdb-plus/main.go`).
+`http.server.request.duration` covers ConnectRPC latency, with one `http.route` value per service.
 
 ## Privacy & Tiers
 
-PeeringDB tags per-row visibility on some entities
-(most notably `poc.visible` with values `Public`, `Users`, `Private`).
-PeeringDB Plus honors this upstream visibility via an
-[ent Privacy policy](./ARCHITECTURE.md#privacy-layer) on the read path.
+PeeringDB tags per-row visibility on some entities (most notably `poc.visible` with values `Public`, `Users`, `Private`).
+PeeringDB Plus honors this upstream visibility via an [ent Privacy policy](./ARCHITECTURE.md#privacy-layer) on the read path.
 Two environment variables control the resulting behavior.
 
 ### Default behavior: anonymous callers see Public only
 
-With `PDBPLUS_PUBLIC_TIER=public`
-(the default),
-anonymous callers receive only rows whose upstream visibility is `Public`.
-`Users`-tier rows are absent from the response,
-not present-with-redacted-fields —
-this matches upstream's own anonymous API shape.
+With `PDBPLUS_PUBLIC_TIER=public` (the default), anonymous callers receive only rows whose upstream visibility is `Public`.
+`Users`-tier rows are absent from the response, not present-with-redacted-fields — this matches upstream's own anonymous API shape.
 
 ### Authenticated sync — Users-tier rows present in DB, filtered on read
 
-When `PDBPLUS_PEERINGDB_API_KEY` is set,
-the sync worker fetches both `Public` and `Users`-tier rows from PeeringDB
-and writes them into the local database.
-If the key belongs to a member of an organization,
-upstream also sends that organization's `Private` contacts,
-and the sync worker writes them too.
-The sync worker bypasses the privacy policy
-(via `privacy.DecisionContext(ctx, privacy.Allow)`), so all rows land in the DB.
-On the read path the policy still filters `Users`-tier rows out of anonymous
-responses, so the anonymous API surface remains `Public`-only.
-This is the recommended production configuration (see
-[DEPLOYMENT.md](./DEPLOYMENT.md#authenticated-peeringdb-sync-recommended)).
+When `PDBPLUS_PEERINGDB_API_KEY` is set, the sync worker fetches both `Public` and `Users`-tier rows from PeeringDB and writes them into the local database.
+If the key belongs to a member of an organization, upstream also sends that organization's `Private` contacts, and the sync worker writes them too.
+The sync worker bypasses the privacy policy (via `privacy.DecisionContext(ctx, privacy.Allow)`), so all rows land in the DB.
+On the read path the policy still filters `Users`-tier rows out of anonymous responses, so the anonymous API surface remains `Public`-only.
+This is the recommended production configuration (see [DEPLOYMENT.md](./DEPLOYMENT.md#authenticated-peeringdb-sync-recommended)).
 
 ### `PDBPLUS_PUBLIC_TIER=users` — private-instance override
 
-Setting `PDBPLUS_PUBLIC_TIER=users` elevates anonymous callers to Users-tier
-for private-instance deployments
-where the mirror is not reachable from the public internet.
+Setting `PDBPLUS_PUBLIC_TIER=users` elevates anonymous callers to Users-tier for private-instance deployments where the mirror is not reachable from the public internet.
 In this mode the privacy policy admits `Users`-tier rows for anonymous callers.
 It never admits `Private` rows.
-Upstream shows a `Private` contact only to members of the owning organization
-(2.83.0 `permissions.py:336-339`, `signals.py:343-347`),
-and the mirror has no organization membership.
-A Users-tier caller thus sees the rows that an authenticated PeeringDB user
-sees when that user is not a member of the owning organization.
-Startup logs `slog.Warn("public tier override active", …)` naming the override
-so the elevated default is never silent;
-the OTel attribute `pdbplus.privacy.tier=users` also appears on read spans.
+Upstream shows a `Private` contact only to members of the owning organization (2.83.0 `permissions.py:336-339`, `signals.py:343-347`), and the mirror has no organization membership.
+A Users-tier caller thus sees the rows that an authenticated PeeringDB user sees when that user is not a member of the owning organization.
+Startup logs `slog.Warn("public tier override active", …)` naming the override so the elevated default is never silent; the OTel attribute `pdbplus.privacy.tier=users` also appears on read spans.
 
 Only use this for deployments you would not want indexed by a search engine.
 It does not affect the sync worker (which has always had full access).
 
 ## Configuration File Format
 
-PeeringDB Plus does not use a configuration file for application settings —
-every runtime option is an environment variable.
+PeeringDB Plus does not use a configuration file for application settings — every runtime option is an environment variable.
 
 Two deployment-adjacent files exist in the repository:
 
 - `fly.toml`: the Fly.io deployment manifest.
-  It sets `PDBPLUS_LISTEN_ADDR` (`:8080`),
-  `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`),
-  `PDBPLUS_SCRATCH_DIR` (`/var/lib/litefs/scratch`), and `PRIMARY_REGION` (`lhr`).
-  It defines the `primary` process group
-  (`shared-cpu-2x`, 512 MB, `litefs_data` volume)
-  and the `replica` process group (`shared-cpu-1x`, 256 MB, no volume).
-  It also sets the rolling deploy (`max_unavailable = 0.5`),
-  `kill_timeout = 30`, the `always` restart policy, and the `/readyz` HTTP check.
+  It sets `PDBPLUS_LISTEN_ADDR` (`:8080`), `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`), `PDBPLUS_SCRATCH_DIR` (`/var/lib/litefs/scratch`), and `PRIMARY_REGION` (`lhr`).
+  It defines the `primary` process group (`shared-cpu-2x`, 512 MB, `litefs_data` volume) and the `replica` process group (`shared-cpu-1x`, 256 MB, no volume).
+  It also sets the rolling deploy (`max_unavailable = 0.5`), `kill_timeout = 30`, the `always` restart policy, and the `/readyz` HTTP check.
 - `litefs.yml` — LiteFS FUSE and lease configuration.
-  Uses `${FLY_REGION}`, `${PRIMARY_REGION}`, `${FLY_APP_NAME}`, `${HOSTNAME}`,
-  and `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
+  Uses `${FLY_REGION}`, `${PRIMARY_REGION}`, `${FLY_APP_NAME}`, `${HOSTNAME}`, and `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
 
 ## Required vs Optional Settings
 
-All variables are optional,
-except `PDBPLUS_MAP_TILE_ATTRIBUTION` when `PDBPLUS_MAP_TILE_URL` is not the
-default.
+All variables are optional, except `PDBPLUS_MAP_TILE_ATTRIBUTION` when `PDBPLUS_MAP_TILE_URL` is not the default.
 `internal/config/config.go` holds the defaults.
 
 These validation errors stop startup:
@@ -329,79 +258,45 @@ These validation errors stop startup:
 | `PDBPLUS_IS_PRIMARY` | Empty, or a value that `strconv.ParseBool` accepts | `PDBPLUS_IS_PRIMARY="<v>" is not a boolean (use true/false/1/0)` |
 | Any duration, bool, float, or integer variable | Must parse | `invalid duration "<v>" for <VAR>`, and the same form for `bool`, `float`, and `integer` |
 
-`PDBPLUS_LOG_LEVEL` is **not** in this table by design —
-invalid values fall back to `INFO` rather than aborting startup,
-because a malformed log-level string is operator-friendly
-and should not take production down
-(an explicit deviation from the fail-fast rule).
+`PDBPLUS_LOG_LEVEL` is **not** in this table by design — invalid values fall back to `INFO` rather than aborting startup, because a malformed log-level string is operator-friendly and should not take production down (an explicit deviation from the fail-fast rule).
 
-Duration-typed variables accept any value parseable by
-[`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) (e.g., `500ms`,
-`90s`, `2h30m`).
-Bool-typed variables accept the values recognized by
-[`strconv.ParseBool`](https://pkg.go.dev/strconv#ParseBool)
-(`1`/`0`, `t`/`f`, `T`/`F`, `true`/`false`, `TRUE`/`FALSE`, `True`/`False`).
+Duration-typed variables accept any value parseable by [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) (e.g., `500ms`, `90s`, `2h30m`).
+Bool-typed variables accept the values recognized by [`strconv.ParseBool`](https://pkg.go.dev/strconv#ParseBool) (`1`/`0`, `t`/`f`, `T`/`F`, `true`/`false`, `TRUE`/`FALSE`, `True`/`False`).
 
 ## Runtime Fallbacks
 
 Most validation is fail-fast at startup.
 The following values have runtime fallbacks rather than startup validation:
 
-- **`PDBPLUS_IS_PRIMARY`**:
-  the role check uses this variable only when `/litefs/` does not exist,
-  so on Fly.io the variable does not select the role.
-  At each start, also on Fly.io, `litefs.ValidateEnvFallback` stops the
-  process when `strconv.ParseBool` cannot parse the value,
-  so a typo cannot select a cluster role.
-  `litefs.IsPrimaryWithFallback()` reads the variable at each role check:
-  at startup, on each `POST /sync`, at each scheduler wakeup,
-  and once per second while a sync cycle runs (scheduled or on-demand).
+- **`PDBPLUS_IS_PRIMARY`**: the role check uses this variable only when `/litefs/` does not exist, so on Fly.io the variable does not select the role.
+  At each start, also on Fly.io, `litefs.ValidateEnvFallback` stops the process when `strconv.ParseBool` cannot parse the value, so a typo cannot select a cluster role.
+  `litefs.IsPrimaryWithFallback()` reads the variable at each role check: at startup, on each `POST /sync`, at each scheduler wakeup, and once per second while a sync cycle runs (scheduled or on-demand).
   If a check cannot parse the value, the node acts as a replica.
   The startup check makes this branch unreachable in practice.
-- **`PDBPLUS_LOG_LEVEL`** —
-  Parsed once at logger construction by `internal/otel/logger.go`
-  `otelLevelFromEnv()`.
-  Invalid values silently default to `INFO`
-  (operator-friendly fallback, intentional deviation from the fail-fast rule).
+- **`PDBPLUS_LOG_LEVEL`** — Parsed once at logger construction by `internal/otel/logger.go` `otelLevelFromEnv()`.
+  Invalid values silently default to `INFO` (operator-friendly fallback, intentional deviation from the fail-fast rule).
   Changes take effect only on next startup.
-- **`FLY_REGION` / `PRIMARY_REGION`** —
-  Read per-request inside the `POST /sync` handler.
-  Empty `FLY_REGION` indicates local development;
-  an empty `PRIMARY_REGION` produces a `fly-replay: region=` header
-  (behavior undefined on Fly.io, intentional for local testing).
-- **OTel `autoexport` variables** —
-  Changes take effect only on the next startup.
+- **`FLY_REGION` / `PRIMARY_REGION`** — Read per-request inside the `POST /sync` handler.
+  Empty `FLY_REGION` indicates local development; an empty `PRIMARY_REGION` produces a `fly-replay: region=` header (behavior undefined on Fly.io, intentional for local testing).
+- **OTel `autoexport` variables** — Changes take effect only on the next startup.
   The SDK providers are constructed once and shut down on termination.
 
 ## Per-Environment Overrides
 
-The repository does not ship `.env.development`, `.env.production`,
-or any language-level environment manager.
+The repository does not ship `.env.development`, `.env.production`, or any language-level environment manager.
 Environment values are supplied by:
 
 - **Local Go execution**: the developer's shell.
-  Defaults in `internal/config/config.go` are chosen
-  so `./peeringdb-plus` runs with no exports set: listens on `:8080`,
-  reads/writes `./peeringdb-plus.db`,
-  syncs hourly from `https://api.peeringdb.com`,
-  assumes the single process is the primary.
-- **Local Docker**: image defaults plus `-e` or `--env-file` flags on
-  `docker run`.
+  Defaults in `internal/config/config.go` are chosen so `./peeringdb-plus` runs with no exports set: listens on `:8080`, reads/writes `./peeringdb-plus.db`, syncs hourly from `https://api.peeringdb.com`, assumes the single process is the primary.
+- **Local Docker**: image defaults plus `-e` or `--env-file` flags on `docker run`.
   `Dockerfile` sets `PDBPLUS_DB_PATH=/data/peeringdb-plus.db`.
   `Dockerfile.litefs` sets no `PDBPLUS_*` variable.
-- **Fly.io production**:
-  the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`,
-  `PDBPLUS_SCRATCH_DIR`, and `PRIMARY_REGION`.
-  The Fly.io runtime injects `FLY_REGION`, `FLY_PROCESS_GROUP`,
-  `FLY_MACHINE_ID`, and `FLY_APP_NAME`.
+- **Fly.io production**: the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`, `PDBPLUS_SCRATCH_DIR`, and `PRIMARY_REGION`.
+  The Fly.io runtime injects `FLY_REGION`, `FLY_PROCESS_GROUP`, `FLY_MACHINE_ID`, and `FLY_APP_NAME`.
   `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
-  Set other secrets, such as `PDBPLUS_SYNC_TOKEN`
-  and `PDBPLUS_PEERINGDB_API_KEY`, with `fly secrets set`.
-  To see the configured secret names,
-  run `fly secrets list --app peeringdb-plus`.
-- **OpenTelemetry collector endpoint**:
-  set at deploy time with `fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=...`
-  (or the individual signal endpoints).
+  Set other secrets, such as `PDBPLUS_SYNC_TOKEN` and `PDBPLUS_PEERINGDB_API_KEY`, with `fly secrets set`.
+  To see the configured secret names, run `fly secrets list --app peeringdb-plus`.
+- **OpenTelemetry collector endpoint**: set at deploy time with `fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=...` (or the individual signal endpoints).
   The endpoint is a deployment value and is not in the repository.
 
 ## Related Documentation
@@ -416,8 +311,7 @@ Environment values are supplied by:
 
 ## Upstream sync threat model and mitigations
 
-This section lists the risks of upstream fetches,
-the signal for each risk, and the variable that controls it.
+This section lists the risks of upstream fetches, the signal for each risk, and the variable that controls it.
 
 - **Rate-limit amplification (HTTP 429):** anonymous traffic can get long
   `Retry-After` windows from upstream.
@@ -425,8 +319,7 @@ the signal for each risk, and the variable that controls it.
     `PeeringDB rate-limited, aborting (retry-after exceeds cap)`.
   - Action: set `PDBPLUS_PEERINGDB_API_KEY`.
     Without a key, lower `PDBPLUS_PEERINGDB_RPS`.
-    With a key, the client uses 30 requests per minute and ignores this
-    variable.
+    With a key, the client uses 30 requests per minute and ignores this variable.
 - **Credential leakage (API key):** a leaked key can use your upstream quota,
   and upstream abuse handling then sees your identity.
   - Signal: 429 responses while a key is set,
@@ -437,12 +330,10 @@ the signal for each risk, and the variable that controls it.
     The startup logs show only whether a key is set.
     To rotate the key, run `fly secrets set PDBPLUS_PEERINGDB_API_KEY=<key>`.
     This command restarts the machines.
-- **Unset sync token (fail-closed):** an empty `PDBPLUS_SYNC_TOKEN` does not
-  leave `/sync` open.
+- **Unset sync token (fail-closed):** an empty `PDBPLUS_SYNC_TOKEN` does not leave `/sync` open.
   The handler rejects every request with 401, so on-demand sync is disabled.
   The scheduled sync worker is unaffected.
-  The risk is availability:
-  operators cannot start a recovery sync until a token is set.
+  The risk is availability: operators cannot start a recovery sync until a token is set.
   - Signal: the startup WARN log that starts with
     `PDBPLUS_SYNC_TOKEN not set`.
   - Action: set `PDBPLUS_SYNC_TOKEN` in every persistent environment
