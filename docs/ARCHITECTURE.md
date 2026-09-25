@@ -1815,6 +1815,8 @@ which reads standard `OTEL_*` env vars to select exporters (OTLP, stdout, none):
   and by the sync worker for sync cycles.
   With `PDBPLUS_OTEL_SQL=true` (the default), `otelsql` adds one span
   for each SQL statement (`internal/database/database.go`).
+  It records no metrics (a no-op MeterProvider):
+  its `db.client.operation.duration` histogram had no reader.
   These spans are children of the request span,
   so the same sampling decision applies.
   A sync cycle emits no DB spans:
