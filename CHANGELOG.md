@@ -45,6 +45,17 @@ are in the Git history at their tags.
 
 ### Changed
 
+- The binary version comes from the Go toolchain's VCS stamp in place of
+  `git describe`. A release tag still gives `v1.32.0`. Between tags the
+  version is a Go pseudo-version such as
+  `v1.32.1-0.20260925001332-10674814d276` (was `v1.32.0-3-g1067481`).
+  A build from a tree with an uncommitted change, or with an untracked
+  file that `.dockerignore` does not exclude, gets a `+dirty` suffix. So
+  the Docker build context now holds every tracked file, and
+  `.dockerignore` excludes only local state that git does not track. An
+  explicit `VERSION` build argument still sets the version. The version
+  appears in the PeeringDB User-Agent, the OTel `service.version` and the
+  JSON discovery document. The image build log prints it.
 - CI builds the standalone image once per push. A push to `main` or a
   `v*` tag no longer runs the `docker-build` job, and `docker-publish`
   runs after the `ci` job alone. Before, `docker-publish` built the

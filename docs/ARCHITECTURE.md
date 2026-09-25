@@ -592,7 +592,7 @@ schema/
 scripts/                  # Upstream comparison scripts
 internal/
   agentdocs/              # Agent skill, well-known files, llms.txt
-  buildinfo/              # Build version string (ldflags, module or VCS)
+  buildinfo/              # Build version string (Go VCS stamp or VERSION override)
   catalog/                # Shared queries for Web UI and MCP
   config/                 # Env-var config loading, validation, fail-fast
   database/               # SQLite open + ent client setup (WAL, FKs, busy timeout)

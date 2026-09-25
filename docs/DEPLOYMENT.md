@@ -33,15 +33,17 @@ that cold-sync from the primary on boot.
   and sets `ENTRYPOINT ["litefs", "mount"]`.
   The application binary is built with `CGO_ENABLED=0`
   (pure Go via `modernc.org/sqlite`)
-  and `-trimpath -ldflags="-s -w …"`
-  (the version string is injected via
-  `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
+  and `-trimpath -ldflags="-s -w …"`.
+  `go build` stamps the version from git (Go 1.24 and later),
+  so the build context holds `.git` and every tracked file.
+  An explicit `VERSION` build argument overrides the stamp
+  (`-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
 - `Dockerfile`: standalone image.
   Chainguard `static` runtime
   (no libc, no shell), `CGO_ENABLED=0` with `-trimpath -ldflags="-s -w …"`.
   The build stage runs on the build platform and cross-compiles
   for the target platform, so an arm64 image builds without QEMU.
-  Like the prod image, it injects the version string from `git describe`
+  Like the prod image, it takes the version from the Go VCS stamp
   or the `VERSION` build argument.
   No LiteFS.
   Runs the binary directly
@@ -143,7 +145,7 @@ It has three jobs:
 `docker-build` is a separate job
 because its BuildKit `type=gha` cache is separate from the Go build cache.
 A push does not run it.
-`docker-publish` checks out the full history for `git describe`,
+`docker-publish` checks out the full history for the version stamp,
 so its build context and version string differ from a shallow checkout,
 and a second build could not share its compile layers.
 `docker-publish` writes the `dev` cache on `main`,
@@ -680,7 +682,11 @@ To deploy an earlier image again, do these steps:
    ```
 
 This procedure does not build a new image.
-To build from an earlier commit, check out that commit and run `fly deploy`:
+To build from an earlier commit, check out that commit and run `fly deploy`.
+`fly deploy` sends the working tree, and `go build` stamps the version from it:
+the tag on a tagged commit, a Go pseudo-version between tags,
+and a `+dirty` suffix for an uncommitted change
+or for an untracked file that `.dockerignore` does not exclude:
 
 ```bash
 git checkout <previous-sha>

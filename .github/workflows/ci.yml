@@ -16,9 +16,10 @@ name: CI
 # passes. It builds the standalone image once and pushes it to
 # ghcr.io/dotwaffle/peeringdb-plus with an SBOM, BuildKit provenance and
 # a GitHub artifact attestation. A push does not also run `docker-build`:
-# publish checks out the full history for `git describe`, so its build
-# context and version string differ from a shallow checkout, and it could
-# not reuse the layers of a second build. `Dockerfile.litefs` is never
+# publish checks out the full history, so that `go build` can stamp the
+# version from the tags. Its build context and version string thus differ
+# from a shallow checkout, and it could not reuse the layers of a second
+# build. `Dockerfile.litefs` is never
 # published: it needs the LiteFS lease of the Fly deployment, and `fly
 # deploy` builds it.
 
@@ -163,8 +164,8 @@ jobs:
       id-token: write # Sigstore signing certificate for the attestation
       attestations: write # store the attestation
     steps:
-      # Full history and tags: the Dockerfile stamps the binary with
-      # `git describe --tags`.
+      # Full history and tags: `go build` stamps the version from the
+      # nearest tag (Go 1.24 and later).
       - name: Checkout code
         uses: actions/checkout@v7
         with:

@@ -1,46 +1,28 @@
-# Keep the build context to what the image build actually consumes:
-# Go sources (go build ./cmd/peeringdb-plus), go.mod/go.sum, litefs.yml
-# (COPY'd into the LiteFS image), and .git: Dockerfile and
-# Dockerfile.litefs derive the injected version from `git describe`, so
-# .git MUST stay in context.
+# The build context is every tracked file plus .git. `go build` stamps
+# the main module version from git (Go 1.24 and later): the tag on a
+# tagged commit (v1.32.0), a pseudo-version between tags
+# (v1.32.1-0.20260925001332-10674814d276), and a +dirty suffix when the
+# context differs from the commit. A tracked file that is left out of the
+# context counts as a deleted file, and an untracked file that is not
+# ignored counts as a new one. Either stamps +dirty.
 #
-# Everything below is either operator/CI tooling, documentation, test
-# fixtures, or local editor/agent state. Excluding it shrinks the
-# context upload, stops local-only files leaking into the build stage,
-# and keeps the compile layer's cache key stable across doc-only edits.
+# So this file excludes only local state that git does not track. The
+# repository .gitignore and .git/info/exclude travel with .git and apply
+# in the build. A global excludes file (core.excludesFile) does not, so a
+# path that only it ignores must also be listed here.
 
-# Test fixtures and docs
-testdata/
-docs/
-*.md
-!internal/agentdocs/peeringdb-plus/SKILL.md
-LICENSE
-
-# Deploy/CI/operator tooling (not consumed by the image build)
-deploy/
-scripts/
-.github/
-.golangci.yml
-fly.toml
-Dockerfile
-Dockerfile.litefs
-.dockerignore
-buf.yaml
-buf.gen.yaml
-proto/
-
-# Local editor / shell / agent state
-.claude/
+# Local editor, shell and agent state
+**/.claude/
+.serena/
 .idea
 .vscode/
 .mcp.json
 .gitconfig
 .gitmodules
-.gitignore
-.git-blame-ignore-revs
 .bash_profile
 .bashrc
 .profile
+.zprofile
+.zshrc
 .ripgreprc
 .rumdl_cache/
-.rumdl.toml

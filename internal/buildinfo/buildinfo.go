@@ -3,19 +3,23 @@
 //
 // Resolution order:
 //
-//  1. injected — set via ldflags `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=<value>`
-//     at Docker build time (computed from `git describe --tags --always`).
-//     This is the production path: tagged releases emit `v1.17`, post-tag
-//     dev builds emit `v1.17-3-gabc1234`.
-//  2. Main.Version from runtime/debug.ReadBuildInfo — populated for
-//     `go install` of a tagged module path (the module-proxy path).
-//  3. vcs.revision (first 7 chars) from build settings — `go build` from
-//     a local checkout with `.git` present.
-//  4. Literal "unknown" — last resort.
+//  1. injected: set with ldflags `-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=<value>`
+//     only when a Docker build gets an explicit VERSION build argument,
+//     for a build context without .git.
+//  2. Main.Version from runtime/debug.ReadBuildInfo. `go build` in a git
+//     checkout stamps it (Go 1.24 and later): the tag on a tagged commit
+//     (v1.32.0), a pseudo-version between tags
+//     (v1.32.1-0.20260925001332-10674814d276), and a +dirty suffix when
+//     the tree differs from the commit. This is the production path: both
+//     Dockerfiles keep .git and every tracked file in the build context.
+//     `go install` of a tagged module path also sets it.
+//  3. vcs.revision (first 7 chars) from build settings, for a build that
+//     recorded the commit but no module version.
+//  4. Literal "unknown": last resort.
 //
-// Without injection (e.g. under `go test`), the test-mode binaries fall
-// through to (3) or (4); the peeringdb User-Agent test asserts the
-// surrounding shape, not the version literal, so test runs stay stable.
+// A `go test` binary has no version stamp and falls through to (3) or
+// (4). The peeringdb User-Agent test asserts the surrounding shape, not
+// the version literal, so test runs stay stable.
 package buildinfo
 
 import (
@@ -23,9 +27,9 @@ import (
 	"time"
 )
 
-// injected is set via -ldflags at Docker build time. Empty by default so
-// non-Docker builds (go test, go run, local go build) fall through to
-// runtime build info.
+// injected is set via -ldflags only by a Docker build with an explicit
+// VERSION build argument. Empty by default, so every other build falls
+// through to runtime build info.
 var injected = ""
 
 // Version returns the resolved build version. See package doc for the

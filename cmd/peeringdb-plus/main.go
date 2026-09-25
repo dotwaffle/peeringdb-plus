@@ -628,10 +628,8 @@ func main() {
 	// Terminal clients (curl, wget, HTTPie) receive help text.
 	// Browsers (Accept: text/html) redirect to /ui/.
 	// API clients (Accept: application/json) get JSON discovery. The version
-	// comes from internal/buildinfo (injected via -ldflags from `git describe`
-	// in Dockerfile and Dockerfile.litefs: Go's debug.ReadBuildInfo records
-	// only the commit, never the tag, so it must be injected). Built once per
-	// process.
+	// comes from internal/buildinfo, which reads the Go toolchain's VCS
+	// stamp (see that package). Built once per process.
 	discoveryJSON := discoveryBody(buildinfo.Version())
 	rootHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Link", agentdocs.DiscoveryLinkHeader)
