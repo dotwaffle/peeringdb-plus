@@ -10,6 +10,8 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.35.0] - 2026-09-25
+
 ### Added
 
 - Dashboard: collapsed row Fly Platform and a Machine restarts
@@ -1713,7 +1715,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.34.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.0...HEAD
+[1.35.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.34.0...v1.35.0
 [1.34.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.33.0...v1.34.0
 [1.33.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.2...v1.33.0
 [1.32.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.1...v1.32.2
