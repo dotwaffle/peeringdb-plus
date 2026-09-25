@@ -77,7 +77,8 @@ const (
 	slosDir                   = "slos"
 	availabilitySLOPath       = "slos/availability.json"
 	errorRatePanelID          = 11
-	availabilityRouteMatchers = `http_route!="", http_route!~"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync"`
+	availabilityRouteMatchers = `http_route!="", http_route!~"GET /(healthz|readyz)|/grpc[.]health[.].*|POST /sync", ` +
+		`user_agent_synthetic_type!="test"`
 )
 
 func loadSLO(t *testing.T, path string) slo {

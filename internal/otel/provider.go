@@ -93,8 +93,10 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 	//      5-boundary set (10ms / 50ms / 250ms / 1s / 5s) and strip the
 	//      method/scheme/server.address/network.protocol.* attribute axes,
 	//      keeping only http.route + http.response.status_code +
-	//      network.protocol.version. This histogram also covers ConnectRPC,
-	//      one http.route per service.
+	//      network.protocol.version + user_agent.synthetic.type (set by
+	//      cmd/peeringdb-plus tagSynthetic for Synthetic Monitoring
+	//      probes). This histogram also covers ConnectRPC, one http.route
+	//      per service.
 	//
 	// The otelconnect rpc.server.* family needs no View: the ConnectRPC
 	// interceptor is built with otelconnect.WithoutMetrics
@@ -137,6 +139,7 @@ func Setup(ctx context.Context, in SetupInput) (*SetupOutput, error) {
 						"http.route",
 						"http.response.status_code",
 						"network.protocol.version",
+						"user_agent.synthetic.type",
 					),
 				},
 			),

@@ -867,6 +867,10 @@ Outermost first:
     AFTER mux dispatch so `r.Pattern` is populated.
     Empty `r.Pattern` (404 traffic) is skipped to avoid `http.route=""`
     cardinality bloat.
+    A request whose User-Agent starts with `synthetic-monitoring-agent/`
+    (Grafana Synthetic Monitoring) also gets
+    `user_agent.synthetic.type=test`,
+    so the dashboard and the availability SLO can leave the probes out.
 14. **mux**: the `net/http` ServeMux dispatches to the specific handler.
 
 Response-writer wrappers in every middleware must implement `http.Flusher`
@@ -1955,8 +1959,8 @@ vars.
   `http.server.request.body.size` and `http.server.response.body.size`
   are dropped (low debugging value, high cardinality),
   and `http.server.request.duration` is capped at a 5-boundary bucket set
-  and keeps only the `http.route`, `http.response.status_code` and
-  `network.protocol.version` attributes.
+  and keeps only the `http.route`, `http.response.status_code`,
+  `network.protocol.version` and `user_agent.synthetic.type` attributes.
   The ConnectRPC interceptor records no `rpc.server.*` metrics
   (`otelconnect.WithoutMetrics()`);
   `http.server.request.duration` covers ConnectRPC latency,

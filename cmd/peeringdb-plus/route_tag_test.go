@@ -96,3 +96,54 @@ func TestRouteTagMiddleware(t *testing.T) {
 		})
 	}
 }
+
+func TestRouteTagMiddleware_SyntheticUserAgent(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name      string
+		userAgent string
+		want      bool
+	}{
+		{"synthetic_monitoring_agent", "synthetic-monitoring-agent/v0.66.0 (linux amd64; 5ce829a; +https://github.com/grafana/synthetic-monitoring-agent)", true},
+		{"mixed_case", "Synthetic-Monitoring-Agent/v0.53.0", true},
+		{"curl", "curl/8.14.1", false},
+		{"browser_mentioning_agent", "Mozilla/5.0 synthetic-monitoring-agent/v1", false},
+		{"prefix_without_slash", "synthetic-monitoring-agent", false},
+		{"empty", "", false},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			mux := http.NewServeMux()
+			mux.HandleFunc("GET /api/{rest...}", func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+
+			var captured *otelhttp.Labeler
+			handler := captureLabelerMW(&captured)(routeTagMiddleware(mux))
+
+			req := httptest.NewRequest(http.MethodGet, "/api/net?asn=15169", nil)
+			req.Header.Set("User-Agent", c.userAgent)
+			handler.ServeHTTP(httptest.NewRecorder(), req)
+
+			if captured == nil {
+				t.Fatal("labeler not captured by setup middleware")
+			}
+			var got bool
+			for _, a := range captured.Get() {
+				if a.Key == attribute.Key("user_agent.synthetic.type") {
+					if a.Value.AsString() != "test" {
+						t.Errorf("user_agent.synthetic.type = %q, want %q", a.Value.AsString(), "test")
+					}
+					got = true
+				}
+			}
+			if got != c.want {
+				t.Errorf("user_agent.synthetic.type present = %v, want %v (attrs %v)", got, c.want, captured.Get())
+			}
+		})
+	}
+}

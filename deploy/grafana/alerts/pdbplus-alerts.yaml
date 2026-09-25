@@ -104,9 +104,9 @@ groups:
       - alert: PdbPlusProbeFailing
         expr: |
           count(
-            sum by (probe) (increase(probe_all_success_sum{job="peeringdb-plus-api"}[10m]))
+            sum by (probe) (increase(probe_all_success_sum{job="peeringdb-plus-api"}[15m]))
               /
-            sum by (probe) (increase(probe_all_success_count{job="peeringdb-plus-api"}[10m]))
+            sum by (probe) (increase(probe_all_success_count{job="peeringdb-plus-api"}[15m]))
               < 0.5
           ) >= 2
         for: 5m
@@ -117,8 +117,9 @@ groups:
           description: |
             The Synthetic Monitoring check peeringdb-plus-api
             (deploy/grafana/synthetics/README.md) failed more than half of
-            its executions in the last 10m from at least 2 probe locations,
-            for 5m (probe_all_success_sum / probe_all_success_count). The
+            its executions in the last 15m (3 executions at the 5m
+            frequency) from at least 2 probe locations, for 5m
+            (probe_all_success_sum / probe_all_success_count). The
             check requests /api through the public hostname, so this covers
             DNS, TLS and the Fly proxy, which the fleet metrics cannot see.
             One failing location does not fire. Open the check in the
