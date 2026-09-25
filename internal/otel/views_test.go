@@ -43,6 +43,7 @@ func trimViews() []sdkmetric.View {
 				"http.route",
 				"http.response.status_code",
 				"network.protocol.version",
+				"user_agent.synthetic.type",
 			),
 		},
 	))
@@ -206,6 +207,39 @@ func TestViews_HTTPDurationDropsMethodAttribute(t *testing.T) {
 	}
 	for k := range wantKeys {
 		t.Errorf("allow-listed attribute %q missing from data point", k)
+	}
+}
+
+// TestViews_HTTPDurationKeepsSyntheticType checks that the attribute
+// filter keeps user_agent.synthetic.type, so the dashboard and the
+// availability SLO can leave Synthetic Monitoring requests out.
+func TestViews_HTTPDurationKeepsSyntheticType(t *testing.T) {
+	t.Parallel()
+	mp, reader := newTestProvider(t)
+	meter := mp.Meter("test")
+
+	h, err := meter.Float64Histogram("http.server.request.duration")
+	if err != nil {
+		t.Fatalf("create histogram: %v", err)
+	}
+	route := attribute.String("http.route", "GET /api/{rest...}")
+	h.Record(context.Background(), 0.1, metric.WithAttributes(route))
+	h.Record(context.Background(), 0.2, metric.WithAttributes(route,
+		attribute.String("user_agent.synthetic.type", "test")))
+
+	rm := collect(t, reader)
+	hist := findFloat64Histogram(t, rm, "http.server.request.duration")
+	if len(hist.DataPoints) != 2 {
+		t.Fatalf("expected 2 data points (synthetic and not), got %d", len(hist.DataPoints))
+	}
+	var synthetic int
+	for _, dp := range hist.DataPoints {
+		if v, ok := dp.Attributes.Value("user_agent.synthetic.type"); ok && v.AsString() == "test" {
+			synthetic++
+		}
+	}
+	if synthetic != 1 {
+		t.Errorf("data points with user_agent.synthetic.type=test = %d, want 1", synthetic)
 	}
 }
 

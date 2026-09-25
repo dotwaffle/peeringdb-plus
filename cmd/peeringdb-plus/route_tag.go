@@ -2,11 +2,18 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// syntheticUserAgentPrefix starts the User-Agent of Grafana Synthetic
+// Monitoring checks, e.g. "synthetic-monitoring-agent/v0.66.0 (linux
+// amd64; ...)".
+const syntheticUserAgentPrefix = "synthetic-monitoring-agent/"
 
 // routeTagMiddleware injects http.route into the otelhttp labeler AFTER
 // the mux dispatches a request. otelhttp.NewMiddleware reads the labeler
@@ -45,11 +52,35 @@ import (
 // The tag runs in a defer, so a request whose handler panics keeps its
 // route: the inner middleware.Recovery, inside otelhttp, turns the panic
 // into a 500 that otelhttp records with the route.
+//
+// A request from a Synthetic Monitoring probe also gets
+// user_agent.synthetic.type=test (see tagSynthetic).
 func routeTagMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tagSynthetic(r)
 		defer tagRoute(r)
 		next.ServeHTTP(w, r)
 	})
+}
+
+// tagSynthetic adds user_agent.synthetic.type=test to the otelhttp
+// labeler when the User-Agent is that of a Grafana Synthetic Monitoring
+// probe. The dashboard and the availability SLO leave these requests
+// out: the check sends one small /api request per location every few
+// minutes, a large part of the /api traffic, and it would pull the
+// latency percentiles toward that one fast query. A client that sends
+// the same User-Agent only hides its own requests.
+func tagSynthetic(r *http.Request) {
+	ua := r.UserAgent()
+	if len(ua) < len(syntheticUserAgentPrefix) ||
+		!strings.EqualFold(ua[:len(syntheticUserAgentPrefix)], syntheticUserAgentPrefix) {
+		return
+	}
+	labeler, ok := otelhttp.LabelerFromContext(r.Context())
+	if !ok {
+		return
+	}
+	labeler.Add(semconv.UserAgentSyntheticTypeTest)
 }
 
 // tagRoute names the otelhttp span and adds http.route to the otelhttp

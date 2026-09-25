@@ -208,8 +208,11 @@ regardless of exporter selection:
   cardinality).
 - `http.server.request.duration` uses an explicit-bucket histogram with
   boundaries `[0.01, 0.05, 0.25, 1, 5]` seconds. It keeps only the
-  `http.route`, `http.response.status_code` and `network.protocol.version`
-  attributes.
+  `http.route`, `http.response.status_code`, `network.protocol.version`
+  and `user_agent.synthetic.type` attributes. The last one is `test` on
+  requests from Grafana Synthetic Monitoring probes (User-Agent
+  `synthetic-monitoring-agent/...`), which the dashboard and the
+  availability SLO leave out.
 - Go runtime metrics (goroutines, heap, GC) are started unconditionally via
   `runtime.Start(runtime.WithMeterProvider(mp))`.
 
