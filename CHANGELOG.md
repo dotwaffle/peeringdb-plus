@@ -22,6 +22,26 @@ are in the Git history at their tags.
   on pushes, after the `ci` and `docker-build` jobs pass. Pull requests
   publish nothing. The Fly image (`Dockerfile.litefs`) is not published.
   See `docs/DEPLOYMENT.md` § Published image.
+- A history sweep fetches the tombstones that upstream made before the
+  mirror's first sync. A bare list holds only live rows, so these rows
+  never reached the mirror. Each incremental cycle sends up to
+  `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` (default 15, `0` turns the
+  sweep off) requests of the form
+  `/api/<type>?since=1&status=deleted&id__gte=<from>&id__lt=<to>&depth=0`,
+  one type after the other in sync order, and merges the rows in the
+  sync transaction. A cycle stops the sweep after the last window of a
+  type, so the parents of a type are stored before its children. It
+  never deletes a row. It skips `poc`. For `campus` it also fetches the
+  pending campuses. A full cycle does not run it. The progress is in the
+  new `sync_history_sweep` table. When every type is done, the sweep
+  stops. `POST /sync?mode=history` starts it again. With the id ranges
+  of 2026-09-24, one sweep is 184 requests (21 cycles at the default)
+  and adds at most about 115,000 tombstones. A live row for which
+  upstream has a later tombstone becomes a tombstone. This repairs the
+  rows that full cycles before v1.28.1 turned back into live rows. A 429
+  or WAF block stops the sweep for the cycle with a WARN and does not
+  fail the cycle. New span `sync-history-sweep` and counter
+  `pdbplus.sync.history.requests`.
 
 ### Changed
 

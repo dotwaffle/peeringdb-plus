@@ -394,8 +394,27 @@ func (c *Client) StreamByIDs(ctx context.Context, objectType string, ids []int, 
 	}
 	params.Set("since", "1")
 	params.Set("id__in", strings.Join(parts, ","))
-	u := fmt.Sprintf("%s/api/%s?%s", c.baseURL, objectType, params.Encode())
+	return c.StreamWithParams(ctx, objectType, params, handler)
+}
 
+// StreamWithParams issues ONE request to /api/<objectType> with params as
+// the query string and invokes handler for each element of the "data"
+// array. url.Values.Encode sorts the keys, so equal params give an equal
+// URL. It sends no paging params of its own: the caller sets limit and
+// skip when it wants them. Without limit, upstream returns every
+// matching row at depth=0.
+//
+// It returns errNoDataArray for a 2xx body without a "data" array, and
+// an error for a "data" value that is not an array. The raw message
+// passed to handler is valid only until handler returns, as in
+// StreamAll. The request goes through doWithRetry, so it observes the
+// rate limiter, the WAF detector, the bounded 429 ladder and the 5xx
+// ladder.
+func (c *Client) StreamWithParams(ctx context.Context, objectType string, params url.Values, handler func(raw json.RawMessage) error) error {
+	u := fmt.Sprintf("%s/api/%s", c.baseURL, objectType)
+	if len(params) > 0 {
+		u += "?" + params.Encode()
+	}
 	resp, err := c.doWithRetry(ctx, u)
 	if err != nil {
 		return err

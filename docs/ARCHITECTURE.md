@@ -231,6 +231,140 @@ and does not try a backfill (`nullMissingOptionalFKs`).
 The `pdbplus.sync.type.orphans` counter records each dropped row
 or `NULL` FK.
 
+### History sweep
+
+A bare list holds only live rows.
+A `?since=<cursor>` window holds only the rows that changed after the cursor.
+So a mirror that starts from bare lists never gets a row that upstream deleted
+before the first sync.
+It also misses a pending campus that did not change after the first sync.
+The history sweep (`internal/sync/history_sweep.go`) fetches these rows over
+many incremental cycles.
+Each request is one id window:
+
+```text
+/api/<type>?since=1&status=deleted&id__gte=<from>&id__lt=<to>&depth=0
+```
+
+- The sweep does the types in sync step order,
+  so parents land before their children.
+  A cycle stops the sweep after the last window of a type,
+  so the next type starts in a later cycle.
+  By then the parent windows are committed,
+  and the normal fetch of that cycle gets the parent rows
+  that the cursor rule (below) dropped.
+  So a swept row finds each parent that upstream returns in a `?since=` list,
+  with no FK backfill request, unless the parent table is empty
+  (see the limits below).
+  It does the ids of each type in fixed-width windows (`historySpecs`).
+- The widths keep each window of tombstones below about 0.9 MB.
+  Upstream limits a repeated URL only after that URL returned 1 MB or more,
+  and each window is a new URL.
+- The last window of a type has no `id__lt`.
+  It starts where a window would reach the largest stored id,
+  so it also gets the ids above that id.
+- `ix`, `ixlan`, `net` and `netixlan` windows add `hide_ix_no_fac=0`.
+  This turns off the upstream filter that hides exchanges without a facility
+  for a user who set that preference (2.83.0 `rest.py:1267-1297`).
+- `campus` takes one request without `status=deleted`,
+  so it also gets the pending campuses.
+- `poc` is not swept.
+  Upstream removes poc tombstones after 30 days,
+  and the `?since=` windows of the normal cycles get them before that.
+
+With the widths and id ranges of 2026-09-24, one sweep is 184 windows.
+At the default of 15 windows per cycle, and with a stop at the end of each type,
+that is 21 incremental cycles:
+about 5.25 hours at the 15-minute authenticated interval.
+The id gaps of 2026-09-24 give an upper bound of about 115,000 new tombstones.
+The gaps also hold ids that upstream hard-deleted, so the real number is lower.
+Before the sweep, the mirror held about 7,400 tombstones.
+
+The sweep merges.
+It never deletes a row:
+
+- The windows stage into the scratch database after the normal fetch.
+  Phase B upserts them in the same transaction as the rest of the cycle,
+  with the incremental gate:
+  a stored row changes only when the window row has a later `updated`.
+- In scratch, a window row does not replace a row of the normal fetch
+  that has a later `updated`.
+- The sweep drops a window row whose `updated` is later than the cursor of its
+  type (`MAX(updated)` before the cycle).
+  Such a row can have changed after the normal fetch of the cycle,
+  and its commit would move the cursor past the other rows that changed in
+  that gap.
+  The next `?since=` fetch gets the row.
+- A stored live row becomes a tombstone when upstream has a tombstone
+  for it with a later `updated`.
+  This repairs the rows that full cycles
+  before v1.28.1 turned back into live rows.
+  A bare list holds no tombstones, so the daily full cycle cannot repair them.
+- A swept network tombstone with the RIR reclaim signature,
+  for a network that the mirror does not have as deleted,
+  starts class A of the netixlan cascade in the same cycle (see
+  [Class A: RIR reclaim in this cycle](#class-a-rir-reclaim-in-this-cycle)).
+- FK backfill applies to swept rows.
+  A tombstone whose parent is missing uses the
+  `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` cap that the rest of the cycle
+  also uses.
+
+Limits:
+
+- `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` (default 15, `0` turns the sweep
+  off) caps the windows of one cycle.
+- The sweep runs only in incremental cycles.
+  A full cycle skips it.
+- The sweep skips a type whose table is empty,
+  as in the first cycle of a new install, and does not mark it done.
+  The later types go on.
+  A later cycle sweeps the type after its table has rows.
+  A required FK to an empty type means an empty child table.
+  So only the nullable fac `campus_id` can point into an empty type,
+  when upstream has no live campus.
+  FK backfill fetches the campus of a swept fac, as for any fac,
+  and the stored campus lets a later cycle sweep `campus`.
+  With FK backfill off, the fac keeps a null `campus_id`,
+  as on the normal fetch path.
+- The worker does not send a window again within 65 minutes (`historyMemoTTL`).
+  So the retries of a failed cycle
+  (30 s, 2 m and 8 m) and a restart send no repeated URL.
+  A window that is in the memo stops the sweep for that cycle.
+- The first failed window stops the sweep.
+  The windows before it keep their rows and their progress.
+  A 429 or a WAF block logs WARN `history sweep stopped by upstream rate limit`.
+  Another error logs WARN `history sweep stopped: window failed`.
+  Neither fails the cycle.
+  A fault of the scratch database fails the cycle.
+
+Progress:
+
+- The `sync_history_sweep` table has one row for each type
+  that the sweep started: `type`, `next_id`
+  (the first id of the next window), `done` and `updated_at`.
+  `InitStatusTable` creates it.
+- The sync transaction writes the progress,
+  so a cycle that rolls back also rolls back its progress.
+  A cycle that changes no progress writes nothing.
+- When every type is done, the sweep sends no request.
+  `POST /sync?mode=history` deletes the progress and runs an incremental cycle
+  (never a full one) that starts again at the first window.
+  Within 65 minutes of the first window,
+  the memo holds the restart until the window expires.
+
+Observability:
+
+- Span `sync-history-sweep` with the attributes
+  `pdbplus.sync.history.{restart,requests,rows,dropped,stop}`.
+  `stop` is `budget`, `type_done`, `complete`, `memo`, `zero_cursor`
+  (only types with an empty table are left), `rate_limited` or `error`.
+- Counter `pdbplus.sync.history.requests{type,result}`,
+  where `result` is `ok`, `rate_limited` or `error`.
+- After the commit: INFO `history sweep progress`
+  (`requests`, `rows`, `dropped`, `stop`, `next_type`, `next_id`)
+  when the cycle sent a window, INFO `history sweep complete`
+  when the last type is done, and INFO `history sweep restarted` (`stop`).
+
 ### Daily full reconcile
 
 An incremental cycle fetches `?since=<cursor>` in pages of 250 rows,
@@ -992,6 +1126,8 @@ a deleted row is just an ordinary upsert whose `status` column is `deleted`,
 carrying upstream's own `updated` timestamp.
 There is **no inference-by-absence**:
 rows missing from a partial response are left untouched, never tombstoned.
+The tombstones of rows that upstream deleted before the first sync
+come from the [history sweep](#history-sweep).
 (The earlier `markStaleDeleted*` family and `internal/sync/delete.go` were
 removed for exactly this reason — absence-based inference mis-classified rows
 omitted from partial responses and dropped children whose upstream-deleted

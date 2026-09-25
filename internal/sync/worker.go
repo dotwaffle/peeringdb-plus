@@ -125,6 +125,12 @@ type WorkerConfig struct {
 	// verifyNetIxLanCandidates).
 	FKBackfillMaxRequestsPerCycle int
 
+	// HistoryMaxRequestsPerCycle caps the upstream requests of the
+	// history sweep in one incremental cycle (see sweepHistory). Zero,
+	// the zero value, turns the sweep off. Wired from
+	// PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE (default 15).
+	HistoryMaxRequestsPerCycle int
+
 	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
 	// backfill HTTP activity. v1.18.3: added because backfill calls
 	// happen inside the sync transaction; without a deadline a cascade
@@ -274,6 +280,11 @@ type Worker struct {
 	// clear it. Single writer: only code that holds the running latch
 	// (Sync, cascadeNetIxLansAtStartup) touches it.
 	netIxLanVerifyMemo map[int]netIxLanVerifyEntry
+	// historyMemo holds the time at which the history sweep sent each
+	// window, so that no window URL goes out again within
+	// historyMemoTTL (see sweepHistory). It outlives the cycle. Single
+	// writer: only Sync, under the running latch, touches it.
+	historyMemo map[historyWindow]time.Time
 	// cyclePeakHeapBytes is the running per-cycle maximum of HeapInuse,
 	// folded in by foldPeakHeap at the points where the cycle's heap
 	// actually peaks: after the Phase A fetch and after each type's
@@ -327,6 +338,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		fkBackfillRequestCap: cfg.FKBackfillMaxRequestsPerCycle,
 		fkBackfillTimeout:    cfg.FKBackfillTimeout,
 		netIxLanVerifyMemo:   make(map[int]netIxLanVerifyEntry),
+		historyMemo:          make(map[historyWindow]time.Time),
 		scratchFreeBytes:     dirFreeBytes,
 	}
 }
@@ -616,6 +628,11 @@ func (w *Worker) syncSteps() []syncStep {
 // configured mode (zero is the documented "disabled" sentinel, mirroring
 // PDBPLUS_FK_BACKFILL_TIMEOUT semantics).
 func (w *Worker) resolveEffectiveMode(ctx context.Context, configured config.SyncMode) config.SyncMode {
+	if configured == config.SyncModeHistory {
+		// POST /sync?mode=history: the history sweep runs only in an
+		// incremental cycle, so this cycle is never escalated to full.
+		return config.SyncModeIncremental
+	}
 	if configured != config.SyncModeIncremental {
 		return configured
 	}
@@ -683,6 +700,9 @@ func (w *Worker) Sync(ctx context.Context, mode config.SyncMode) (err error) {
 	// lookups), and with their spans its trace is larger than the per-trace
 	// limit of Grafana Cloud Tempo. The step spans stay.
 	ctx = pdbotel.WithoutDBSpans(ctx)
+	if mode == config.SyncModeHistory {
+		ctx = withHistoryRestart(ctx) // POST /sync?mode=history (see sweepHistory)
+	}
 	if !w.running.CompareAndSwap(false, true) {
 		// The trigger (and its requested mode — possibly the operator's
 		// ?mode=full escape hatch) is dropped, not queued. Return the
@@ -835,6 +855,15 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.recordFailure(ctx, effectiveMode, statusID, start, err)
 		return err
 	}
+	// Stage the next windows of the history sweep after the normal
+	// fetch, so that its rows never replace a newer row of this cycle,
+	// and before the cascade plan, so that class A sees the RIR network
+	// deletes that it stages (see sweepHistory).
+	history, err := w.sweepHistory(ctx, scratch, effectiveMode, time.Now())
+	if err != nil {
+		w.recordFailure(ctx, effectiveMode, statusID, start, err)
+		return err
+	}
 	// Plan the netixlan cascade now, while no tx is held: verify its
 	// candidates against upstream and read the RIR network deletes of
 	// this cycle from scratch (see prepareNetIxLanCascade).
@@ -894,6 +923,11 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
+	// The sweep progress commits with the rows that it staged.
+	if err := writeHistoryProgress(ctx, tx, history, start); err != nil {
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
+		return err
+	}
 	if commitErr := commitWithSpan(ctx, tx); commitErr != nil {
 		syncErr := fmt.Errorf("commit sync transaction: %w", commitErr)
 		w.recordFailure(ctx, effectiveMode, statusID, start, syncErr)
@@ -901,6 +935,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 	}
 	logScrubbedPocContacts(ctx, w.logger, scrubbed)
 	recordCascadeCommitted(ctx, w.logger, cascade.Mode, cascaded)
+	logHistoryCommitted(ctx, w.logger, history)
 
 	w.recordSuccess(ctx, effectiveMode, statusID, start, objectCounts)
 	return nil

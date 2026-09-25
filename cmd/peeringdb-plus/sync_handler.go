@@ -116,10 +116,12 @@ func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFun
 		mode := in.DefaultMode
 		if qm := r.URL.Query().Get("mode"); qm != "" {
 			switch config.SyncMode(qm) {
-			case config.SyncModeFull, config.SyncModeIncremental:
+			case config.SyncModeFull, config.SyncModeIncremental, config.SyncModeHistory:
+				// history restarts the history sweep and runs an
+				// incremental cycle (see pdbsync.Worker.Sync).
 				mode = config.SyncMode(qm)
 			default:
-				http.Error(w, fmt.Sprintf("invalid mode %q: must be full or incremental", qm), http.StatusBadRequest)
+				http.Error(w, fmt.Sprintf("invalid mode %q: must be full, incremental or history", qm), http.StatusBadRequest)
 				return
 			}
 		}

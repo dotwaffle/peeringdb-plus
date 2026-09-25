@@ -27,6 +27,10 @@ const (
 	SyncModeFull SyncMode = "full"
 	// SyncModeIncremental fetches only objects modified since the last sync.
 	SyncModeIncremental SyncMode = "incremental"
+	// SyncModeHistory is valid only as the mode of POST /sync. It runs an
+	// incremental cycle that first restarts the history sweep (see
+	// HistoryMaxRequestsPerCycle). PDBPLUS_SYNC_MODE does not accept it.
+	SyncModeHistory SyncMode = "history"
 )
 
 // privateIPNets are the RFC 1918 private-use IPv4 ranges that may appear in
@@ -224,6 +228,14 @@ type Config struct {
 	// count, not row count. The cap now directly bounds the surface
 	// it's meant to protect.
 	FKBackfillMaxRequestsPerCycle int
+
+	// HistoryMaxRequestsPerCycle caps the upstream requests that the
+	// history sweep sends in one incremental cycle. The sweep fetches
+	// the old tombstones that a bare list omits, in id windows, until it
+	// has covered every type once. Configured via
+	// PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE (non-negative integer).
+	// Default 15. 0 turns the sweep off.
+	HistoryMaxRequestsPerCycle int
 
 	// FKBackfillTimeout is the per-cycle wall-clock budget for FK
 	// backfill HTTP activity. v1.18.3: backfill calls happen inside the
@@ -431,6 +443,12 @@ func Load() (*Config, error) {
 	}
 	cfg.FKBackfillMaxRequestsPerCycle = fkCap
 
+	historyCap, err := parseNonNegativeInt("PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE", 15)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE: %w", err)
+	}
+	cfg.HistoryMaxRequestsPerCycle = historyCap
+
 	fkTimeout, err := parseDuration("PDBPLUS_FK_BACKFILL_TIMEOUT", 5*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("parsing PDBPLUS_FK_BACKFILL_TIMEOUT: %w", err)
@@ -527,6 +545,9 @@ func (c *Config) validate() error {
 	}
 	if c.FKBackfillMaxRequestsPerCycle < 0 {
 		return errors.New("PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE must be non-negative (0 = disabled)")
+	}
+	if c.HistoryMaxRequestsPerCycle < 0 {
+		return errors.New("PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE must be non-negative (0 = disabled)")
 	}
 	if c.SyncTimeout < 0 {
 		return errors.New("PDBPLUS_SYNC_TIMEOUT must be non-negative (0 = disabled)")
@@ -680,6 +701,8 @@ func parseSyncMode(key string, defaultVal SyncMode) (SyncMode, error) {
 	switch SyncMode(v) {
 	case SyncModeFull, SyncModeIncremental:
 		return SyncMode(v), nil
+	case SyncModeHistory:
+		return "", fmt.Errorf("invalid sync mode %q for %s: history is a POST /sync mode only; use 'full' or 'incremental'", v, key)
 	default:
 		return "", fmt.Errorf("invalid sync mode %q for %s: must be 'full' or 'incremental'", v, key)
 	}

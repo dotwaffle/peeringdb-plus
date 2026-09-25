@@ -88,6 +88,11 @@ var SyncFKBackfill metric.Int64Counter
 // op values.
 var SyncLockRetries metric.Int64Counter
 
+// SyncHistoryRequests counts the upstream requests of the history sweep
+// (internal/sync/history_sweep.go), by type and result: ok, rate_limited
+// (429 or WAF block) or error. Cardinality: 12 type values x 3 results.
+var SyncHistoryRequests metric.Int64Counter
+
 // PeeringDBRequests counts outbound HTTP requests to the PeeringDB API by
 // status_class ∈ {2xx, 3xx, 4xx, 5xx, network_error}.
 // The sync-level fk_backfill counter only sees post-decision events;
@@ -173,6 +178,10 @@ func BindInstruments() {
 	SyncLockRetries = mustInt64Counter("pdbplus.sync.lock_retries",
 		metric.WithDescription("Retries of short primary writes after a transient SQLite lock error, by op"),
 		metric.WithUnit("{retry}"),
+	)
+	SyncHistoryRequests = mustInt64Counter("pdbplus.sync.history.requests",
+		metric.WithDescription("Upstream requests of the history sweep, by type/result"),
+		metric.WithUnit("{request}"),
 	)
 	PeeringDBRequests = mustInt64Counter("pdbplus.peeringdb.requests",
 		metric.WithDescription("Outbound HTTP requests to PeeringDB API, by status_class"),
