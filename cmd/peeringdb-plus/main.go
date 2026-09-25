@@ -269,6 +269,15 @@ func main() {
 		}
 	}
 
+	// Free space of the file system of the scratch dir: on Fly.io, the
+	// LiteFS volume of the primary (fly.toml sets the dir).
+	if cfg.ScratchDir != "" {
+		if err := pdbotel.InitScratchFreeGauge(cfg.ScratchDir, pdbsync.DirFreeBytes); err != nil {
+			logger.Error("failed to init scratch free gauge", slog.Any("error", err))
+			os.Exit(1)
+		}
+	}
+
 	// Cached object counts for metrics gauge.
 	// Updated by sync worker after each successful sync via OnSyncComplete.
 	//

@@ -24,6 +24,10 @@ are in the Git history at their tags.
   than 1 hour old for 99.5% of 28 days (no SLO alerts;
   `PdbPlusSyncFreshnessHigh` stays). Dashboard panel Error Rate (5xx)
   uses the request selector of the availability SLO.
+- Gauge `pdbplus.scratch.free` (`pdbplus_scratch_free_bytes`): the free
+  space of the file system of `PDBPLUS_SCRATCH_DIR`, which on Fly.io is
+  the LiteFS volume of the primary. Before, only the WARN of the scratch
+  free-space guard showed a filling volume.
 - Synthetic Monitoring check definition in
   `deploy/grafana/synthetics/README.md`: an HTTP check of `/api` through
   the Fly proxy from London, Sydney and the US every 3 minutes (43,200

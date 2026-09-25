@@ -1907,6 +1907,13 @@ vars.
     so no request runs a live `COUNT(*)`.
   - `pdbplus.sync.freshness` (gauge, seconds, `InitFreshnessGauge`):
     time since the last successful sync, read from the `sync_status` table.
+  - `pdbplus.scratch.free` (gauge, bytes, `InitScratchFreeGauge`): the free
+    space of the file system of `PDBPLUS_SCRATCH_DIR` (statfs at each
+    collection; registered only when the setting is not empty).
+    On Fly.io the directory of the primary is on its LiteFS volume.
+    No value when statfs fails, for example on a machine where the
+    directory does not exist yet.
+    Prometheus name: `pdbplus_scratch_free_bytes`.
   - `pdbplus.sync.peak_heap` and `pdbplus.sync.peak_rss` (gauges, bytes,
     `InitMemoryGauges`): sync-cycle peaks.
     Prometheus names: `pdbplus_sync_peak_heap_bytes`,
