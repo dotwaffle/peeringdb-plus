@@ -303,8 +303,6 @@ Non-secret configuration lives in `fly.toml`'s `[env]` block:
   FUSE-mounted LiteFS directory.
 - `PRIMARY_REGION=lhr` — consumed by both `litefs.yml` for lease candidacy
   and the `POST /sync` handler for `fly-replay` forwarding.
-- `PDBPLUS_LITEFS_METRICS_URL=http://localhost:20202/metrics`: the LiteFS
-  metrics endpoint, which the app exports as `pdbplus.litefs.*` over OTLP.
 - `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`: the directory of the sync
   scratch database, on the primary volume
   (see [Asymmetric fleet](#asymmetric-fleet)).
@@ -563,8 +561,10 @@ A Grafana dashboard is provided in
 `deploy/grafana/dashboards/pdbplus-overview.json` with a provisioning manifest
 at `deploy/grafana/provisioning/dashboards.yaml` for self-hosted Grafana
 instances.
-Its `LiteFS Replication` row reads the `pdbplus.litefs.*` instruments,
-so it has data only when `PDBPLUS_LITEFS_METRICS_URL` is set.
+Its `LiteFS Replication` row reads the LiteFS metrics (`litefs_*`)
+that Fly.io scrapes from each machine (`[[metrics]]` in `fly.toml`)
+through the `fly.io` data source (see below),
+so it has data only in the Fly.io deployment.
 The row shows replica stream lag, LTX apply lag, transactions behind the
 primary, commits on the primary, the raw LTX size and connected replicas.
 Production alert rules live in `deploy/grafana/alerts/pdbplus-alerts.yaml`.
@@ -586,15 +586,19 @@ Set the OTLP endpoint and headers as Fly secrets:
 Fly.io's built-in machine metrics
 (CPU, memory, network, disk)
 are available through the Fly dashboard without additional configuration.
-Grafana can also read them from the Fly.io managed Prometheus
+Fly.io also scrapes the LiteFS metrics endpoint of each machine
+(port 20202, `[[metrics]]` in `fly.toml`) every 15 seconds.
+Grafana can read both from the Fly.io managed Prometheus
 through a Prometheus data source named `fly.io`
 (setup in `deploy/grafana/alerts/README.md`, "Fly.io rules").
 The dashboard's collapsed `Fly Platform` row
 (CPU throttling, CPU use against the baseline quota, burst balance,
 VM memory, edge errors and edge response time),
+its `LiteFS Replication` row,
 its `Machine restarts` annotation
 and the alert rules of the group `pdbplus-fly`
-(`PdbPlusMachineOOMKilled`, `PdbPlusMachineCPUThrottled`)
+(`PdbPlusMachineOOMKilled`, `PdbPlusMachineCPUThrottled`,
+`PdbPlusReplicaLagHigh`, `PdbPlusLiteFSMetricsAbsent`)
 use that data source.
 
 Runtime health:

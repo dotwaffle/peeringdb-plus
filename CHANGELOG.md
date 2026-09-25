@@ -23,6 +23,27 @@ are in the Git history at their tags.
   `PdbPlusMachineCPUThrottled` (warning: a machine throttled for more than
   1% of the time for 15 minutes), in the group `pdbplus-fly`, on the
   `fly.io` data source.
+- Alert rule `PdbPlusLiteFSMetricsAbsent` (warning, group `pdbplus-fly`):
+  Fly.io reports a machine but has no LiteFS metrics for it for 10
+  minutes, so `PdbPlusReplicaLagHigh` cannot fire for that machine.
+
+### Changed
+
+- Fly.io now scrapes the LiteFS metrics of each machine (`[[metrics]]` in
+  `fly.toml`, port 20202). The LiteFS Replication row of the dashboard
+  reads the native `litefs_*` metrics through the `fly.io` data source,
+  and `PdbPlusReplicaLagHigh` moves to the group `pdbplus-fly` with the
+  query `max by (region) (litefs_lag_seconds{app="peeringdb-plus"})`.
+  Update the Grafana-managed rules: create the rule in `pdbplus-fly` and
+  delete the one in `pdbplus-warning`.
+
+### Removed
+
+- `PDBPLUS_LITEFS_METRICS_URL` and the `pdbplus.litefs.*` instruments
+  that the app copied from the LiteFS metrics endpoint. Fly.io scrapes
+  that endpoint now. A deployment that still sets the variable gets no
+  error; the app ignores it. A self-hosted LiteFS deployment can scrape
+  LiteFS port 20202 with its own Prometheus.
 
 ### Fixed
 

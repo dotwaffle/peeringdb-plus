@@ -40,7 +40,9 @@ No data is `OK`. An evaluation error is `Alerting`.
 ### Fly.io rules
 
 The rules of the group `pdbplus-fly` read the metrics that Fly.io
-collects for each machine and for its edge. Query `A` of these rules
+collects for each machine and for its edge, and the LiteFS metrics that
+Fly.io scrapes from each machine (`[[metrics]]` in `fly.toml`, port
+20202). Query `A` of these rules
 uses the Grafana Prometheus data source `fly.io`, not the Prometheus of
 the stack:
 
@@ -52,7 +54,8 @@ the stack:
 Fly.io keeps these metrics for about 15 days, at no charge, and they
 use none of the active series of the stack. When the token expires,
 the rules cannot evaluate, and an evaluation error is `Alerting`.
-The Fly Platform row of the dashboard uses the same data source.
+The Fly Platform and LiteFS Replication rows of the dashboard use the
+same data source.
 
 When you change this file, update the Grafana-managed rule with the same
 UID to match it, in the Grafana UI or through the alerting provisioning
@@ -93,7 +96,7 @@ default policy, they go to the same contact point.
 | Tier       | Meaning                    | Used for                                                          |
 |------------|----------------------------|-------------------------------------------------------------------|
 | `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, primary absent, /api check failing from 2+ probe locations. |
-| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, replica LiteFS lag >10 min, primary volume <512 MiB free, 2 failed sync attempts in 3h. |
+| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, replica LiteFS lag >10 min, LiteFS metrics absent, machine OOM kill, CPU throttled, primary volume <512 MiB free, 2 failed sync attempts in 3h. |
 
 The 5xx responses have no rule in this file. The burn-rate alert rules of
 the availability SLO (`deploy/grafana/slos/`) alert on them, with the same

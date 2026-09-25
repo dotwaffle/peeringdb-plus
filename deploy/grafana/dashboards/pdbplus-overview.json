@@ -2180,7 +2180,7 @@
       "id": 38,
       "type": "timeseries",
       "title": "Replica Lag",
-      "description": "Seconds since each replica last received a frame (an LTX file or a heartbeat) from the LiteFS primary (litefs_lag_seconds). It stays near 0 between commits because the primary sends heartbeats. A rising line means that the replica lost its stream.",
+      "description": "Seconds since each replica last received a frame (an LTX file or a heartbeat) from the LiteFS primary (litefs_lag_seconds). It stays near 0 between commits because the primary sends heartbeats. A rising line means that the replica lost its stream. Fly.io scrapes the LiteFS metrics endpoint of each machine every 15 seconds (fly.toml [[metrics]]). Needs the fly.io data source.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2188,15 +2188,15 @@
         "y": 39
       },
       "datasource": {
-        "uid": "${datasource}"
+        "uid": "${fly_datasource}"
       },
       "targets": [
         {
           "datasource": {
-            "uid": "${datasource}"
+            "uid": "${fly_datasource}"
           },
-          "expr": "max by (cloud_region) (pdbplus_litefs_lag_seconds{service_name=\"$service\", service_namespace=\"replica\"})",
-          "legendFormat": "{{cloud_region}}",
+          "expr": "max by (region) (litefs_lag_seconds{app=\"peeringdb-plus\"} unless on (instance) (litefs_is_primary{app=\"peeringdb-plus\"} == 1))",
+          "legendFormat": "{{region}}",
           "refId": "A"
         }
       ],
@@ -2247,7 +2247,7 @@
       "id": 39,
       "type": "timeseries",
       "title": "LTX Apply Lag",
-      "description": "Time from the creation of the last LTX file that each replica applied to its apply (litefs_db_lag_seconds). LiteFS sets it at each apply, so it keeps its last value between commits. No value until the replica applies an LTX file after a restart.",
+      "description": "Time from the creation of the last LTX file that each replica applied to its apply (litefs_db_lag_seconds). LiteFS sets it at each apply, so it keeps its last value between commits. No value until the replica applies an LTX file after a restart. The primary is left out: after a restart it reports the age of its last LTX file. Fly.io scrapes the LiteFS metrics endpoint of each machine every 15 seconds (fly.toml [[metrics]]). Needs the fly.io data source.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2255,15 +2255,15 @@
         "y": 39
       },
       "datasource": {
-        "uid": "${datasource}"
+        "uid": "${fly_datasource}"
       },
       "targets": [
         {
           "datasource": {
-            "uid": "${datasource}"
+            "uid": "${fly_datasource}"
           },
-          "expr": "max by (cloud_region) (pdbplus_litefs_ltx_lag_seconds{service_name=\"$service\", service_namespace=\"replica\"})",
-          "legendFormat": "{{cloud_region}}",
+          "expr": "max by (region) (litefs_db_lag_seconds{app=\"peeringdb-plus\"} unless on (instance) (litefs_is_primary{app=\"peeringdb-plus\"} == 1))",
+          "legendFormat": "{{region}}",
           "refId": "A"
         }
       ],
@@ -2314,7 +2314,7 @@
       "id": 40,
       "type": "timeseries",
       "title": "Transactions Behind Primary",
-      "description": "LiteFS transactions that each replica is behind the primary (litefs_db_txid). 0 when the replica is up to date. The nodes read their values up to one collection interval apart, so a commit can show as 1 or more for one interval.",
+      "description": "LiteFS transactions that each replica is behind the primary (litefs_db_txid). 0 when the replica is up to date. Fly.io scrapes the machines at different moments, so a commit can show as 1 or more for one interval. Fly.io scrapes the LiteFS metrics endpoint of each machine every 15 seconds (fly.toml [[metrics]]). Needs the fly.io data source.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2322,15 +2322,15 @@
         "y": 39
       },
       "datasource": {
-        "uid": "${datasource}"
+        "uid": "${fly_datasource}"
       },
       "targets": [
         {
           "datasource": {
-            "uid": "${datasource}"
+            "uid": "${fly_datasource}"
           },
-          "expr": "scalar(max(pdbplus_litefs_txid{service_name=\"$service\", service_namespace=\"primary\"})) - min by (cloud_region) (pdbplus_litefs_txid{service_name=\"$service\", service_namespace=\"replica\"})",
-          "legendFormat": "{{cloud_region}}",
+          "expr": "scalar(max(litefs_db_txid{app=\"peeringdb-plus\"} and on (instance) (litefs_is_primary{app=\"peeringdb-plus\"} == 1))) - min by (region) (litefs_db_txid{app=\"peeringdb-plus\"} unless on (instance) (litefs_is_primary{app=\"peeringdb-plus\"} == 1))",
+          "legendFormat": "{{region}}",
           "refId": "A"
         }
       ],
@@ -2381,7 +2381,7 @@
       "id": 41,
       "type": "timeseries",
       "title": "Primary Commits",
-      "description": "Database commits on the primary per interval (litefs_db_commit_count). A sync cycle commits more than once: the sync_status writes and the sync transaction. Replicas never commit, so this panel reads the primary only.",
+      "description": "Database commits on the primary per interval (litefs_db_commit_count). A sync cycle commits more than once: the sync_status writes and the sync transaction. Replicas never commit and have no series. Fly.io scrapes the LiteFS metrics endpoint of each machine every 15 seconds (fly.toml [[metrics]]). Needs the fly.io data source.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2389,14 +2389,14 @@
         "y": 47
       },
       "datasource": {
-        "uid": "${datasource}"
+        "uid": "${fly_datasource}"
       },
       "targets": [
         {
           "datasource": {
-            "uid": "${datasource}"
+            "uid": "${fly_datasource}"
           },
-          "expr": "sum(increase(pdbplus_litefs_commits_total{service_name=\"$service\", service_namespace=\"primary\"}[$__rate_interval]))",
+          "expr": "sum(increase(litefs_db_commit_count{app=\"peeringdb-plus\"}[$__rate_interval]))",
           "legendFormat": "commits",
           "refId": "A"
         }
@@ -2448,7 +2448,7 @@
       "id": 42,
       "type": "timeseries",
       "title": "Primary LTX Size (raw)",
-      "description": "litefs_db_ltx_bytes on the primary as LiteFS 0.5 sets it. A commit sets it to the size of the new LTX file. Each retention pass (once a minute) sets it to the size of the LTX files on disk. A large commit shows in both values. Do not use it as a disk-usage signal.",
+      "description": "litefs_db_ltx_bytes on the primary as LiteFS 0.5 sets it. A commit sets it to the size of the new LTX file. Each retention pass (once a minute) sets it to the size of the LTX files on disk. A large commit shows in both values. Do not use it as a disk-usage signal. Fly.io scrapes the LiteFS metrics endpoint of each machine every 15 seconds (fly.toml [[metrics]]). Needs the fly.io data source.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2456,14 +2456,14 @@
         "y": 47
       },
       "datasource": {
-        "uid": "${datasource}"
+        "uid": "${fly_datasource}"
       },
       "targets": [
         {
           "datasource": {
-            "uid": "${datasource}"
+            "uid": "${fly_datasource}"
           },
-          "expr": "max(pdbplus_litefs_ltx_size_bytes{service_name=\"$service\", service_namespace=\"primary\"})",
+          "expr": "max(litefs_db_ltx_bytes{app=\"peeringdb-plus\"} and on (instance) (litefs_is_primary{app=\"peeringdb-plus\"} == 1))",
           "legendFormat": "ltx bytes",
           "refId": "A"
         }
@@ -2515,7 +2515,7 @@
       "id": 43,
       "type": "timeseries",
       "title": "Connected Replicas",
-      "description": "Replicas with an open LiteFS stream to the primary (litefs_subscriber_count). It equals the number of replica machines when every replica is connected.",
+      "description": "Replicas with an open LiteFS stream to the primary (litefs_subscriber_count). It equals the number of replica machines when every replica is connected. It is 0 on a replica. Fly.io scrapes the LiteFS metrics endpoint of each machine every 15 seconds (fly.toml [[metrics]]). Needs the fly.io data source.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -2523,14 +2523,14 @@
         "y": 47
       },
       "datasource": {
-        "uid": "${datasource}"
+        "uid": "${fly_datasource}"
       },
       "targets": [
         {
           "datasource": {
-            "uid": "${datasource}"
+            "uid": "${fly_datasource}"
           },
-          "expr": "max(pdbplus_litefs_subscribers{service_name=\"$service\", service_namespace=\"primary\"})",
+          "expr": "max(litefs_subscriber_count{app=\"peeringdb-plus\"})",
           "legendFormat": "replicas",
           "refId": "A"
         }

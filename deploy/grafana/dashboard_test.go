@@ -255,12 +255,13 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"go_memory_allocated_bytes_total", "Go allocation rate"},
 		{"pdbplus_data_type_count", "business metrics object count"},
 		{"pdbplus_role_transitions_total", "role transition events"},
-		{"pdbplus_litefs_lag_seconds", "LiteFS replica stream lag"},
-		{"pdbplus_litefs_ltx_lag_seconds", "LiteFS LTX apply lag"},
-		{"pdbplus_litefs_txid", "LiteFS transaction ID"},
-		{"pdbplus_litefs_commits_total", "LiteFS commits on the primary"},
-		{"pdbplus_litefs_ltx_size_bytes", "LiteFS LTX size"},
-		{"pdbplus_litefs_subscribers", "LiteFS connected replicas"},
+		{"litefs_lag_seconds", "LiteFS replica stream lag"},
+		{"litefs_db_lag_seconds", "LiteFS LTX apply lag"},
+		{"litefs_db_txid", "LiteFS transaction ID"},
+		{"litefs_db_commit_count", "LiteFS commits on the primary"},
+		{"litefs_db_ltx_bytes", "LiteFS LTX size"},
+		{"litefs_subscriber_count", "LiteFS connected replicas"},
+		{"litefs_is_primary", "LiteFS role, to split the primary from the replicas"},
 		{"pdbplus_peeringdb_requests_total", "upstream requests by status class"},
 		{"pdbplus_peeringdb_retries_total", "upstream retries by cause"},
 		{"pdbplus_peeringdb_rate_limit_wait_ms_milliseconds_bucket", "upstream rate-limiter wait"},
@@ -324,9 +325,10 @@ func TestDashboard_DeployAnnotation(t *testing.T) {
 }
 
 // TestDashboard_FlyMetricsUseFlyDatasource checks that each query of a
-// Fly.io metric (fly_*) reads the fly.io data source, and every other
-// query reads the stack data source: the two Prometheus data sources
-// hold disjoint metrics.
+// Fly.io metric (fly_*) or of a LiteFS metric that Fly.io scrapes
+// (litefs_*) reads the fly.io data source, and every other query reads
+// the stack data source: the two Prometheus data sources hold disjoint
+// metrics.
 func TestDashboard_FlyMetricsUseFlyDatasource(t *testing.T) {
 	t.Parallel()
 	data, err := os.ReadFile(dashboardPath)
@@ -347,7 +349,7 @@ func TestDashboard_FlyMetricsUseFlyDatasource(t *testing.T) {
 		t.Fatalf("parsing dashboard JSON: %v", err)
 	}
 
-	flyMetricRe := regexp.MustCompile(`\bfly_[a-z_]+`)
+	flyMetricRe := regexp.MustCompile(`\b(fly|litefs)_[a-z_]+`)
 	check := func(where, expr, uid string) {
 		t.Helper()
 		want := "${datasource}"

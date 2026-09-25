@@ -176,23 +176,6 @@ groups:
             machine, which then copies the whole database from the primary
             again.
 
-      - alert: PdbPlusReplicaLagHigh
-        expr: max by (cloud_region) (pdbplus_litefs_lag_seconds{service_name="peeringdb-plus", service_namespace="replica"}) > 600
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "PeeringDB Plus replica gets no LiteFS frames for >10 min"
-          description: |
-            The replica in {{ $labels.cloud_region }} has received no LiteFS
-            frame (LTX file or heartbeat) from the primary for more than 600
-            seconds (pdbplus_litefs_lag_seconds), for 10m. It serves the data
-            of its last applied transaction. The 7-day maximum to 2026-09-25
-            was 30 seconds. If PdbPlusPrimaryAbsent fires too, fix the
-            primary first. Else read the LiteFS lines of that machine in
-            fly logs; a replica is recovered by destroying and recreating
-            it.
-
       - alert: PdbPlusPrimaryVolumeLow
         expr: min(pdbplus_scratch_free_bytes{service_name="peeringdb-plus", service_namespace="primary"}) < 536870912
         for: 30m
@@ -272,3 +255,40 @@ groups:
             CPU. Check the CPU panels of the Fly Platform row of the
             dashboard. A machine that stays throttled needs a larger CPU kind
             (fly.toml [[vm]]).
+
+      - alert: PdbPlusReplicaLagHigh
+        expr: max by (region) (litefs_lag_seconds{app="peeringdb-plus"}) > 600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus replica gets no LiteFS frames for >10 min"
+          description: |
+            The replica in {{ $labels.region }} has received no LiteFS
+            frame (LTX file or heartbeat) from the primary for more than 600
+            seconds (litefs_lag_seconds), for 10m. It serves the data of its
+            last applied transaction. The 7-day maximum to 2026-09-25 was 30
+            seconds. The value is 0 on the primary. If PdbPlusPrimaryAbsent
+            fires too, fix the primary first. Else read the LiteFS lines of
+            that machine in fly logs; a replica is recovered by destroying
+            and recreating it.
+
+      - alert: PdbPlusLiteFSMetricsAbsent
+        expr: |
+          max by (region, instance) (fly_instance_memory_mem_available{app="peeringdb-plus"})
+            unless on (instance)
+          litefs_is_primary{app="peeringdb-plus"}
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus machine has no LiteFS metrics for 10m"
+          description: |
+            Fly.io reports the machine {{ $labels.instance }} in
+            {{ $labels.region }}, but has no LiteFS metrics for it
+            (litefs_is_primary), for 10m. Fly.io scrapes the LiteFS metrics
+            endpoint (port 20202, fly.toml [[metrics]]) every 15 seconds.
+            Without these metrics, PdbPlusReplicaLagHigh cannot fire for the
+            machine. Check that LiteFS runs on the machine (fly logs -a
+            peeringdb-plus) and that fly.toml still has the [[metrics]]
+            section.
