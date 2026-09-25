@@ -37,6 +37,23 @@ is `pdbplus-sync-operation-failed`. Each rule has two queries:
 
 No data is `OK`. An evaluation error is `Alerting`.
 
+### Fly.io rules
+
+The rules of the group `pdbplus-fly` read the metrics that Fly.io
+collects for each machine and for its edge. Query `A` of these rules
+uses the Grafana Prometheus data source `fly.io`, not the Prometheus of
+the stack:
+
+- URL: `https://api.fly.io/prometheus/<org>/`, where `<org>` is the
+  slug of the Fly.io organization of the app.
+- HTTP header `Authorization`: the output of
+  `fly tokens create readonly -o <org>` (it starts with `FlyV1`).
+
+Fly.io keeps these metrics for about 15 days, at no charge, and they
+use none of the active series of the stack. When the token expires,
+the rules cannot evaluate, and an evaluation error is `Alerting`.
+The Fly Platform row of the dashboard uses the same data source.
+
 When you change this file, update the Grafana-managed rule with the same
 UID to match it, in the Grafana UI or through the alerting provisioning
 API.

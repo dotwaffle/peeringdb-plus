@@ -10,6 +10,31 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- Dashboard: collapsed row Fly Platform and a Machine restarts
+  annotation, from the metrics that Fly.io collects for each machine and
+  its edge (Grafana data source `fly.io`, variable `fly_datasource`):
+  CPU throttling, CPU use against the baseline quota, burst balance, VM
+  memory, edge error responses (including Fly proxy errors that never
+  reach the app) and edge response time.
+- Alert rules `PdbPlusMachineOOMKilled` (warning: a machine restarted
+  after an out-of-memory kill, which the app cannot report) and
+  `PdbPlusMachineCPUThrottled` (warning: a machine throttled for more than
+  1% of the time for 15 minutes), in the group `pdbplus-fly`, on the
+  `fly.io` data source.
+
+### Fixed
+
+- Dashboard: the `datasource` variable now defaults to the default data
+  source of the Grafana organization. Before, Grafana selected the first
+  Prometheus data source by name, so a second one (such as `fly.io`)
+  made every panel show no data.
+- Dashboard: the Sync Operations panel showed no data at short time
+  ranges. Its query used `[$__interval]`, which there is shorter than
+  the metric export interval; it now uses `[$__rate_interval]`, like the
+  other counter panels.
+
 ## [1.34.0] - 2026-09-25
 
 ### Added

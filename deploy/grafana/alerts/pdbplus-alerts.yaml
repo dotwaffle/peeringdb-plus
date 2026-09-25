@@ -229,3 +229,46 @@ groups:
             failures that recur every few hours stay one alert. Check
             "sync cycle failed" and "sync failed, retrying" in the primary
             logs.
+
+  # The rules of this group query the Fly.io managed Prometheus (the
+  # Grafana data source "fly.io"), not the Prometheus of the stack. See
+  # README.md "Fly.io rules".
+  - name: pdbplus-fly
+    interval: 1m
+    rules:
+      - alert: PdbPlusMachineOOMKilled
+        expr: |
+          max by (region, instance) (fly_instance_exit_oom{app="peeringdb-plus"})
+            and on (region, instance)
+          max by (region, instance) (resets(fly_instance_cpu{app="peeringdb-plus"}[15m])) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus machine restarted after an out-of-memory kill"
+          description: |
+            The machine {{ $labels.instance }} in {{ $labels.region }}
+            restarted in the last 15m (its fly_instance_cpu counters reset),
+            and Fly.io reports that its last exit was an out-of-memory kill
+            (fly_instance_exit_oom = 1). The app cannot report its own OOM
+            kill. After a restart a replica copies the whole database from
+            the primary again. Check the VM Memory Available panel and
+            fly logs -a peeringdb-plus for the machine. The alert resolves
+            15m after the restart.
+
+      - alert: PdbPlusMachineCPUThrottled
+        expr: max by (region) (rate(fly_instance_cpu_throttle{app="peeringdb-plus"}[5m])) / 100 > 0.01
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus machine CPU throttled >1% for 15m"
+          description: |
+            The cgroup of the machine in {{ $labels.region }} was throttled
+            for more than 1% of the time in each 5m window, for 15m
+            (fly_instance_cpu_throttle, in centiseconds). A shared-CPU machine
+            that has spent its burst balance runs at its baseline (1/16 of a
+            vCPU on a replica, 1/8 on the primary), and requests wait for
+            CPU. Check the CPU panels of the Fly Platform row of the
+            dashboard. A machine that stays throttled needs a larger CPU kind
+            (fly.toml [[vm]]).
