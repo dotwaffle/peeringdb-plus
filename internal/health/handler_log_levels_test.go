@@ -18,16 +18,18 @@ import (
 //
 //   - L123 "readyz no sync completed" (default branch)  WARN → DEBUG
 //   - L148 "readyz no sync completed" (running branch)  WARN → DEBUG
+//   - "readyz sync marked failed" (running/failed branch)  WARN → DEBUG
 //
 // Rationale: Fly hits /readyz every ~15s × 8 machines during the
 // pre-first-sync window (5–15 min cold start). The 503 response already
 // drives Fly proxy failover — the WARN log is non-actionable noise that
-// masked real WARNs in operator-grep windows.
+// masked real WARNs in operator-grep windows. A failed sync attempt no
+// longer makes /readyz unhealthy by itself, and the sync worker logs the
+// failure, so its readyz record is DEBUG too.
 //
 // Security-signal rows explicitly KEPT at WARN/ERROR:
 //
 //   - L90, L114, L140 "readyz db probe failed" / "readyz sync lookup failed" — ERROR
-//   - L157 "readyz sync marked failed" — WARN
 //   - L166 "readyz unknown sync status" — WARN
 //   - L181 "readyz sync stale" — WARN
 

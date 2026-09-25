@@ -477,10 +477,12 @@ To replace a damaged replica, do these steps:
 Typical hydration window is 5-45 seconds per region.
 
 If a replica returns 503 for more than 5 minutes,
-look for `readyz sync marked failed` or `readyz sync stale` in its logs.
-Both conditions come from the `sync_status` rows
+look for `readyz sync stale` in its logs,
+and for `sync cycle failed` in the logs of the primary.
+The stale check reads the `sync_status` rows
 that LiteFS replicates from the primary.
-To clear them, send `POST /sync` with the `PDBPLUS_SYNC_TOKEN`.
+To clear them, correct the cause of the failed syncs on the primary,
+then send `POST /sync` with the `PDBPLUS_SYNC_TOKEN`.
 The new cycle on the primary writes a new `sync_status` row,
 and LTX replication copies it to the replicas within seconds.
 
@@ -583,13 +585,16 @@ Runtime health:
   - The database ping fails or takes more than 2 seconds
     (log: `readyz db probe failed`).
   - The `sync_status` query fails (log: `readyz sync lookup failed`).
-  - No sync has completed.
-  - The newest `sync_status` row has the status `failed`
-    (log: `readyz sync marked failed`).
-    Replicas read the same replicated row,
-    so all machines return 503 until a new sync cycle starts.
+  - No sync has completed successfully (log: `readyz no sync completed`).
   - The newest successful sync is older than `PDBPLUS_SYNC_STALE_THRESHOLD`,
     default `24h` (log: `readyz sync stale`).
+
+  A failed or running sync does not cause a 503 by itself:
+  the check uses the age of the newest successful sync.
+  A failed cycle rolls back, so the data of that sync stays in place.
+  Replicas read the same replicated `sync_status` rows,
+  so a 503 for each failed attempt would fail the Fly check
+  of every machine until the retry passed.
 
   While a replica cold-syncs at boot,
   LiteFS does not start the application yet,

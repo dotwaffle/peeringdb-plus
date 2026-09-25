@@ -10,6 +10,15 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Changed
+
+- A failed sync attempt no longer makes `/readyz` return 503 by itself.
+  The check now uses the age of the newest successful sync, as it does
+  while a sync runs. Replicas read the same `sync_status` rows, so each
+  failed attempt failed the Fly health check of every machine until the
+  retry passed, while all of them served the data of the last success.
+  The `readyz sync marked failed` log is now DEBUG.
+
 ### Fixed
 
 - The first failed sync attempt after a restart now reaches

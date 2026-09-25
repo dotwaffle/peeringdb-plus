@@ -45,7 +45,7 @@ or return `503 not primary` when running outside Fly.io.
 |--------|------|---------|-------------|
 | `GET` | `/` | Root | Content-negotiated service discovery (terminal / browser / JSON) |
 | `GET` | `/healthz` | Health | Liveness probe (always `200`) |
-| `GET` | `/readyz` | Health | Readiness probe (checks the DB, the last sync result and sync freshness) |
+| `GET` | `/readyz` | Health | Readiness probe (checks the DB and the age of the last successful sync) |
 | `POST` | `/sync` | Admin | On-demand sync trigger (primary only, token-gated) |
 | `GET` | `/favicon.ico` | Static | Favicon served from embedded `internal/web/static/` |
 | `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/` |
