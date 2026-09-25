@@ -101,6 +101,8 @@ func TestDashboard_HasRequiredRows(t *testing.T) {
 		"Go Runtime",
 		"Business Metrics",
 		"LiteFS Replication",
+		"Upstream PeeringDB",
+		"Sync Sweep & Backfill",
 	}
 
 	rowTitles := make(map[string]bool)
@@ -221,6 +223,12 @@ func TestDashboard_MetricNameReferences(t *testing.T) {
 		{"pdbplus_litefs_commits_total", "LiteFS commits on the primary"},
 		{"pdbplus_litefs_ltx_size_bytes", "LiteFS LTX size"},
 		{"pdbplus_litefs_subscribers", "LiteFS connected replicas"},
+		{"pdbplus_peeringdb_requests_total", "upstream requests by status class"},
+		{"pdbplus_peeringdb_retries_total", "upstream retries by cause"},
+		{"pdbplus_peeringdb_rate_limit_wait_ms_milliseconds_bucket", "upstream rate-limiter wait"},
+		{"pdbplus_sync_history_requests_total", "history sweep windows"},
+		{"pdbplus_sync_fk_backfill_total", "FK backfill attempts"},
+		{"pdbplus_sync_type_orphans_total", "FK orphan rows"},
 	}
 
 	for _, m := range requiredMetrics {

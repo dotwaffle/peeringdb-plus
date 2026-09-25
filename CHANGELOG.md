@@ -16,6 +16,11 @@ are in the Git history at their tags.
   memory of a replica above 180 MiB for 15 minutes. The heap and RSS
   rules read gauges that only the primary sets, so the 256 MB replicas
   had no memory alert.
+- Dashboard `pdbplus-overview`: two collapsed rows. "Upstream PeeringDB"
+  shows the requests to PeeringDB by status class, retries by cause, and
+  the p95 wait for the local rate limiter. "Sync Sweep & Backfill" shows
+  the history sweep windows by type and result, FK backfill attempts,
+  and FK orphan rows.
 
 ### Changed
 
