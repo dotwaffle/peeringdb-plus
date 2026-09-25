@@ -2217,12 +2217,33 @@ func (w *Worker) runSyncCycle(ctx context.Context, mode config.SyncMode) {
 	<-done        // wait for clean exit
 }
 
+// seedOperationCounters adds 0 to each status and mode series of
+// pdbplus.sync.operations. The series then start at 0 before the first
+// cycle of this process. A series whose first export is already 1 hides
+// that increment from PromQL increase(), so the first failed attempt
+// after a restart did not reach PdbPlusSyncOperationFailed. The zero
+// reaches the backend at the next metric export: a failure before that
+// export (a cycle that starts at once and fails within one export
+// interval) is still hidden, but the retries of SyncWithRetry add
+// failures that increase() counts.
+func seedOperationCounters(ctx context.Context) {
+	for _, status := range []string{"success", "failed"} {
+		for _, mode := range []config.SyncMode{config.SyncModeFull, config.SyncModeIncremental} {
+			pdbotel.SyncOperations.Add(ctx, 0, metric.WithAttributes(
+				attribute.String("status", status),
+				attribute.String("mode", string(mode)),
+			))
+		}
+	}
+}
+
 // StartScheduler runs the sync scheduler on all instances.
 // On primary nodes it executes sync cycles; on replicas it waits for promotion.
 // Role changes are detected dynamically at each scheduler wakeup via
 // w.config.IsPrimary(). The scheduler stops when ctx is cancelled.
-// On a primary, it first runs sweepScratchDirAtStartup,
-// scrubPocContactsAtStartup and cascadeNetIxLansAtStartup.
+// On a primary, it first runs seedOperationCounters,
+// sweepScratchDirAtStartup, scrubPocContactsAtStartup and
+// cascadeNetIxLansAtStartup. A promotion also runs seedOperationCounters.
 //
 // Scheduling anchor: the next sync is scheduled at lastCompletion + interval,
 // not at processStart + N*interval. This matters across restarts — a rolling
@@ -2263,6 +2284,7 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 	// cycle can be up to one interval away (see sweepScratchDirAtStartup,
 	// scrubPocContactsAtStartup and cascadeNetIxLansAtStartup).
 	if wasPrimary {
+		seedOperationCounters(ctx)
 		w.sweepScratchDirAtStartup(ctx)
 		w.scrubPocContactsAtStartup(ctx)
 		w.cascadeNetIxLansAtStartup(ctx)
@@ -2317,6 +2339,7 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 				metric.WithAttributes(attribute.String("direction", "promoted")),
 			)
 			wasPrimary = true
+			seedOperationCounters(ctx)
 			// Re-read from the DB: replication may have advanced the
 			// last-sync timestamp while we were a replica.
 			ls, _ := GetLastSuccessfulSyncTime(ctx, w.db)

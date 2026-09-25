@@ -1261,6 +1261,95 @@ func TestSync_ObjectsCounterAfterCommit(t *testing.T) {
 	}
 }
 
+// operationsCounterValues returns the pdbplus.sync.operations data points
+// keyed by "status/mode".
+func operationsCounterValues(t *testing.T, reader *sdkmetric.ManualReader) map[string]int64 {
+	t.Helper()
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatalf("collect: %v", err)
+	}
+	out := map[string]int64{}
+	m := findMetric(rm, "pdbplus.sync.operations")
+	if m == nil {
+		return out
+	}
+	sum, ok := m.Data.(metricdata.Sum[int64])
+	if !ok {
+		t.Fatalf("pdbplus.sync.operations is %T, want Sum[int64]", m.Data)
+	}
+	for _, dp := range sum.DataPoints {
+		status, _ := dp.Attributes.Value("status")
+		mode, _ := dp.Attributes.Value("mode")
+		out[status.AsString()+"/"+mode.AsString()] = dp.Value
+	}
+	return out
+}
+
+// TestStartScheduler_SeedsOperationCounters verifies that a primary
+// scheduler adds a 0 data point for each status and mode of
+// pdbplus.sync.operations before its first cycle, and that a replica
+// adds none. Not parallel: rebinds the package-level metric instruments.
+func TestStartScheduler_SeedsOperationCounters(t *testing.T) {
+	seeded := map[string]int64{
+		"success/full": 0, "success/incremental": 0,
+		"failed/full": 0, "failed/incremental": 0,
+	}
+
+	t.Run("primary", func(t *testing.T) {
+		reader := setupMetricTest(t)
+		w, db := newTestWorker(t, newFixture(t))
+		// A recent success: the first cycle is an interval away.
+		now := time.Now()
+		id, err := RecordSyncStart(t.Context(), db, now.Add(-time.Minute), "incremental")
+		if err != nil {
+			t.Fatalf("record sync start: %v", err)
+		}
+		if err := RecordSyncComplete(t.Context(), db, id, Status{
+			LastSyncAt: now.Add(-time.Minute), Duration: time.Second, Status: "success",
+		}); err != nil {
+			t.Fatalf("record sync complete: %v", err)
+		}
+
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan struct{})
+		go func() {
+			w.StartScheduler(ctx, time.Hour)
+			close(done)
+		}()
+		defer func() {
+			cancel()
+			<-done
+		}()
+
+		// The seed sends no event. The deadline only bounds a missing seed.
+		deadline := time.Now().Add(10 * time.Second)
+		got := operationsCounterValues(t, reader)
+		for len(got) < len(seeded) && time.Now().Before(deadline) {
+			time.Sleep(10 * time.Millisecond)
+			got = operationsCounterValues(t, reader)
+		}
+		if !maps.Equal(got, seeded) {
+			t.Errorf("operations counter = %v, want %v", got, seeded)
+		}
+	})
+
+	t.Run("replica", func(t *testing.T) {
+		reader := setupMetricTest(t)
+		w, _ := newTestWorker(t, newFixture(t))
+		w.config.IsPrimary = func() bool { return false }
+
+		// A replica runs no startup work, so a cancelled scheduler
+		// returns after the point where a primary seeds.
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		w.StartScheduler(ctx, time.Hour)
+		if got := operationsCounterValues(t, reader); len(got) != 0 {
+			t.Errorf("operations counter on a replica = %v, want no data points", got)
+		}
+	})
+}
+
 // TestSync_PrunesSyncStatus verifies that a sync cycle prunes sync_status
 // with the production limits, after the INSERT of its own running row.
 // The seed is a full success row (id 1) and 3049 failed rows. The cycle

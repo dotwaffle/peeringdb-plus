@@ -10,6 +10,16 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Fixed
+
+- The first failed sync attempt after a restart now reaches
+  `PdbPlusSyncOperationFailed` and `PdbPlusSyncFailureRateHigh`. The
+  `pdbplus_sync_operations_total` series of a new process started at 1,
+  so PromQL `increase()` read 0 for its first increment. The primary now
+  adds 0 to each status and mode series when it starts or is promoted.
+  A failure before the first metric export (one interval after start)
+  is still not counted.
+
 ## [1.32.2] - 2026-09-25
 
 ### Fixed
