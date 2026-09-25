@@ -698,7 +698,7 @@
           "id": 10,
           "type": "timeseries",
           "title": "Request Rate by Route",
-          "description": "HTTP requests per second grouped by route",
+          "description": "HTTP requests per second grouped by route. Health checks (/healthz, /readyz, gRPC health) are left out: they are about 90% of all requests and hide the other routes.",
           "gridPos": {
             "h": 6,
             "w": 12,
@@ -713,7 +713,7 @@
               "datasource": {
                 "uid": "${datasource}"
               },
-              "expr": "label_replace(sum by(http_route)(rate(http_server_request_duration_seconds_count[$__rate_interval])), \"http_route\", \"(unrouted)\", \"http_route\", \"^$\")",
+              "expr": "label_replace(sum by(http_route)(rate(http_server_request_duration_seconds_count{http_route!~\"GET /(healthz|readyz)|/grpc[.]health[.].*\"}[$__rate_interval])), \"http_route\", \"(unrouted)\", \"http_route\", \"^$\")",
               "legendFormat": "{{http_route}}",
               "refId": "A"
             }
