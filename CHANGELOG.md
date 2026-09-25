@@ -10,6 +10,13 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+### Added
+
+- Alert rule `PdbPlusReplicaMemoryHigh` (warning): the Go runtime
+  memory of a replica above 180 MiB for 15 minutes. The heap and RSS
+  rules read gauges that only the primary sets, so the 256 MB replicas
+  had no memory alert.
+
 ### Changed
 
 - `PdbPlusSyncOperationFailed` now fires after at least 2 failed sync

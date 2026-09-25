@@ -76,7 +76,7 @@ default policy, they go to the same contact point.
 | Tier       | Meaning                    | Used for                                                          |
 |------------|----------------------------|-------------------------------------------------------------------|
 | `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, primary absent. |
-| `warning`  | Look during working hours  | Heap/RSS sustained breach, 2 failed sync attempts in 3h.          |
+| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, 2 failed sync attempts in 3h. |
 
 Note on absence coverage: all metric-presence rules key on
 `go_memory_used_bytes`, which ticks on every machine via the OTel

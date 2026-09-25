@@ -132,6 +132,24 @@ groups:
             least two cycles. Approaching the Fly 512 MB VM cap; expected
             failure order is log, then app crash, then Fly OOM-kill.
 
+      - alert: PdbPlusReplicaMemoryHigh
+        expr: sum by (cloud_region) (go_memory_used_bytes{service_name="peeringdb-plus", service_namespace="replica"}) > 188743680
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus replica Go memory >180 MiB sustained 15m"
+          description: |
+            The Go runtime memory of the replica in {{ $labels.cloud_region }}
+            has been above 188743680 bytes (180 MiB) for 15m. Replicas run
+            on 256 MB VMs and do not sync, so the heap and RSS rules (which
+            read the sync-cycle gauges of the primary) do not cover them.
+            Baseline in the week to 2026-09-25: about 20 MB at rest, peaks
+            near 105 MB. A sustained rise points at large API responses
+            (Response Heap Delta panel) or a leak. An OOM kill restarts the
+            machine, which then copies the whole database from the primary
+            again.
+
       - alert: PdbPlusSyncOperationFailed
         expr: sum(increase(pdbplus_sync_operations_total{status="failed"}[3h])) > 1.5
         for: 5m
