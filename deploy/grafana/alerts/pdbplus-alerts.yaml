@@ -290,5 +290,6 @@ groups:
             endpoint (port 20202, fly.toml [[metrics]]) every 15 seconds.
             Without these metrics, PdbPlusReplicaLagHigh cannot fire for the
             machine. Check that LiteFS runs on the machine (fly logs -a
-            peeringdb-plus) and that fly.toml still has the [[metrics]]
-            section.
+            peeringdb-plus), that fly.toml still has the [[metrics]]
+            section, and that its processes key lists the process group of
+            the machine (fly machine status -d shows the metrics config).
