@@ -37,9 +37,12 @@ kill_timeout = 30
 # every 15 seconds. It stores them in the Fly.io managed Prometheus with
 # the labels app, instance, region and host. The LiteFS Replication row
 # of the dashboard and the pdbplus-fly alert rules read them there.
+# Keep `processes`: without it, flyctl applies the section to the default
+# process group only (here primary), and the replicas are not scraped.
 [[metrics]]
   port = 20202
   path = "/metrics"
+  processes = ["primary", "replica"]
 
 # Always restart crashed machines. Fly's default on-failure policy gives
 # a bounded retry count, after which the machine is stopped and only

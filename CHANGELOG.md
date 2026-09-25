@@ -8,6 +8,11 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Fixed
+
+- Fly.io now scrapes the LiteFS metrics of the replicas too.
+  In v1.35.0 the `[[metrics]]` section of `fly.toml` had no `processes` key, so flyctl set it on the default process group only (primary), and the LiteFS Replication row and the replica lag alert had no replica data.
+
 ## [1.35.0] - 2026-09-25
 
 ### Added
