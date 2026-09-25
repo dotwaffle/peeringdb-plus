@@ -10,6 +10,56 @@ are in the Git history at their tags.
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-09-25
+
+### Added
+
+- Attribute `user_agent.synthetic.type` on the HTTP duration metric
+  (`user_agent_synthetic_type` in Prometheus): `test` on requests whose
+  User-Agent starts with `synthetic-monitoring-agent/` (Grafana
+  Synthetic Monitoring).
+- Gauge `pdbplus.build.info` (`pdbplus_build_info`): the value 1 with the
+  label `service_version`, one series per machine. Find the version of
+  each machine with
+  `count by (service_version) (pdbplus_build_info{service_name="peeringdb-plus"})`.
+- Dashboard: collapsed row External Probes (share of passed executions
+  in 15 minutes and time of the last execution, by probe location) and
+  a Deploys annotation from the first report of a new version on
+  `pdbplus_build_info`.
+
+### Changed
+
+- The metric resource no longer carries `service.version`, so the
+  metrics have no `service_version` label (use `pdbplus_build_info`).
+  Grafana Cloud promotes the attribute to a label on every series, so
+  each deploy started a new copy of every series (about 1,400), which
+  stayed active until it aged out. Traces and logs keep
+  `service.version`. To compare a metric between versions, join it to
+  the newest `pdbplus_build_info` series of each machine (query in
+  `docs/ARCHITECTURE.md`).
+- Replicas no longer export `pdbplus_data_type_count` (they reported the
+  counts that they read at process start, because only the primary
+  syncs) or the 54 pre-warmed zero series of the sync and role
+  transition counters (only nodes that LiteFS can elect as primary
+  pre-warm them).
+- otelsql records no metrics: `db_client_operation_duration_seconds`
+  (about 350 series, not read by any dashboard or alert) is gone. The
+  DB spans are unchanged.
+- The availability SLO and the dashboard panels Request Rate by Route,
+  Error Rate (5xx) and Latency leave out Synthetic Monitoring requests
+  (`user_agent_synthetic_type!="test"`). The check sends about 1,400
+  small requests a day; as user traffic they diluted the error ratio and
+  pulled the latency percentiles toward one fast query.
+- Dashboard panel Request Rate by Route leaves out health checks. They
+  are about 90% of all requests and set the scale of the y axis.
+- The Synthetic Monitoring check runs from 5 locations (London, North
+  Virginia, North California, São Paulo, Sydney) every 5 minutes: 43,200
+  executions per month, as before. `PdbPlusProbeFailing` reads a
+  15-minute window (3 executions per location): at a 5-minute frequency
+  a 10-minute window can hold a single sample. The README records that
+  the London probe, which runs in AWS, reaches the Fly edge in
+  Frankfurt, and why there is no Singapore probe.
+
 ## [1.33.0] - 2026-09-25
 
 ### Added
@@ -1617,7 +1667,8 @@ response paths that bound that behaviour ship alongside it.
   generic 2-hop mechanism works for entity pairs with direct edges
   (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.33.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.34.0...HEAD
+[1.34.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.33.0...v1.34.0
 [1.33.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.2...v1.33.0
 [1.32.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.1...v1.32.2
 [1.32.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.32.0...v1.32.1
