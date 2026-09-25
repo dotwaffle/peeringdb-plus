@@ -107,7 +107,7 @@ A push does not run `docker-build`:
 
 | Job | What it runs |
 |---|---|
-| **`ci`** | Pull requests and pushes to `main`. In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests, lint (actionlint and golangci-lint), advisory vulnerability scan |
+| **`ci`** | Pull requests and pushes to `main`. In order: locked mise install, generated-code drift check, `go.mod`/`go.sum` tidiness check, build, race tests, lint (actionlint, golangci-lint, and rumdl), advisory vulnerability scan |
 | **`docker-build`** | Pull requests only: builds `Dockerfile` (standalone, `linux/amd64` and `linux/arm64`) and `Dockerfile.litefs` (Fly, `linux/amd64`). Pushes nothing |
 | **`docker-publish`** | Push events only: builds and pushes the standalone image to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM, provenance, and an artifact attestation. On a push to `main`, it runs after `ci` passes. On a `v*` tag push, it first requires that the tagged commit passed `ci` in a push to `main` |
 

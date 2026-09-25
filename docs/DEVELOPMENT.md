@@ -77,7 +77,7 @@ Code-change-relevant directories:
 | `mise run build` | Build all packages with `-trimpath` |
 | `mise run test` | Run all tests through gotestsum with compact failure-focused output and the race detector |
 | `mise run generate` | Run the full codegen pipeline in order |
-| `mise run lint` | Run actionlint and golangci-lint |
+| `mise run lint` | Run actionlint, golangci-lint, and rumdl |
 | `mise run format` | Format Go sources with `golangci-lint fmt` (`gofmt -s`) |
 | `mise run vulncheck` | Check the Go vulnerability database |
 | `mise run check` | Run the canonical local validation sweep |
@@ -85,7 +85,7 @@ Code-change-relevant directories:
 ## Toolchain updates
 
 `mise.toml` is the version policy.
-For the binary tools (actionlint, buf, go, golangci-lint, gotestsum, tailwindcss), `mise.lock` records release URLs and checksums for Linux and macOS on amd64 and arm64.
+For the binary tools (actionlint, buf, go, golangci-lint, gotestsum, rumdl, tailwindcss), `mise.lock` records release URLs and checksums for Linux and macOS on amd64 and arm64.
 The `go:` tools (gqlgen, govulncheck, protoc-gen-go, protoc-gen-connect-go, templ) have a version only in the lock. mise builds them from source.
 After changing a tool pin, refresh and verify the lock:
 
@@ -576,8 +576,8 @@ Run the full suite with `mise run test`.
   - Generated code is excluded (`exclusions.generated: strict`).
   - `gosec` does not run on `_test.go` files or on `cmd/pdb-schema-extract`, `cmd/pdb-schema-generate`, and `cmd/pdbcompat-check`.
     These tools read and write files and send HTTP requests by design.
-- Prose in `docs/`, `README.md`, and `CONTRIBUTING.md` uses semantic line breaks: start a new line at each sentence and at long clause boundaries.
-  `.rumdl.toml` configures the `rumdl` Markdown linter for this rule. mise and CI do not run `rumdl`, so run it by hand if you have it installed.
+- Markdown prose uses one sentence per source line, so an edit's diff stays scoped to the lines that changed.
+  `.rumdl.toml` configures `rumdl`'s MD013 reflow for this rule; `mise run lint` runs `rumdl check .`, and `rumdl fmt .` rewraps a file that drifts from it.
 
 ## PR process
 
