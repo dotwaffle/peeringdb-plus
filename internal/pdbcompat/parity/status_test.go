@@ -1865,6 +1865,17 @@ func TestParity_Status(t *testing.T) {
 			// not decimal (search_v2.py:385, :619), and get_queryset
 			// runs it outside the prepare_query handler (rest.py:546).
 			{path: "/api/net/1?name_search=%C2%B2", want: http.StatusBadRequest, wantErr: "filter error: filter name_search: "},
+			// Upstream: the API cache loader runs int() on since after
+			// the filter loop (rest.py:707, api_cache.py:80), and
+			// retrieve does not catch the ValueError. A list returns it
+			// as a 400 (rest.py:824-827).
+			{path: "/api/net/1?since=1.5", want: http.StatusBadRequest, wantErr: "invalid literal for int() with base 10: '1.5'"},
+			// Upstream: int(float("inf")) raises OverflowError, which
+			// get_queryset does not catch (rest.py:505-510), on a list
+			// too.
+			{path: "/api/net/1?since=inf", want: http.StatusBadRequest, wantErr: "'since' needs to be a unix timestamp (epoch seconds)"},
+			{path: "/api/net?since=-Infinity", want: http.StatusBadRequest, wantErr: "'since' needs to be a unix timestamp (epoch seconds)"},
+			{path: "/api/net?since=1e999", want: http.StatusBadRequest, wantErr: "'since' needs to be a unix timestamp (epoch seconds)"},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)

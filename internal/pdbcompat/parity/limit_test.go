@@ -1004,6 +1004,63 @@ func TestParity_Limit(t *testing.T) {
 		}
 	})
 
+	t.Run("since_float_forms_400_after_filters", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:505-510 parses since with
+		// int(float(v)), so 1.5 and 1e3 pass. The API cache loader then
+		// runs int(v) after the filter loop (rest.py:707,
+		// api_cache.py:80), and list() returns the ValueError as a 400
+		// with the Python message (rest.py:824-827). A filter error comes
+		// first; a negative skip comes later (the slice, :757-760). A
+		// name_search that matches no row returns qset.none() before the
+		// loader (:550-553). nan fails the first parse.
+		c := testutil.SetupClient(t)
+		if _, err := c.Network.Create().
+			SetID(1).SetName("SinceNet").SetNameFold(unifold.Fold("SinceNet")).
+			SetAsn(64500).SetStatus("ok").
+			SetCreated(t0).SetUpdated(t0).
+			Save(t.Context()); err != nil {
+			t.Fatalf("seed net: %v", err)
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			path    string
+			want    int
+			wantErr string
+		}{
+			{"/api/net?since=1.5", http.StatusBadRequest, "invalid literal for int() with base 10: '1.5'"},
+			{"/api/net?since=1e3", http.StatusBadRequest, "invalid literal for int() with base 10: '1e3'"},
+			{"/api/net?since=%201.5", http.StatusBadRequest, "invalid literal for int() with base 10: ' 1.5'"},
+			{"/api/net?since=1.5&skip=-1", http.StatusBadRequest, "invalid literal for int() with base 10: '1.5'"},
+			{"/api/net?since=1.5&asn__lt=x", http.StatusBadRequest, "filter error: "},
+			{"/api/net?since=1.5&depth=abc", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net?since=nan", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=1.5&name_search=zzzz", http.StatusOK, ""},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != tc.want {
+				t.Errorf("%s: status = %d, want %d; body=%s", tc.path, status, tc.want, headBody(body, 300))
+				continue
+			}
+			if tc.want == http.StatusOK {
+				if ids := extractIDs(t, body); len(ids) != 0 {
+					t.Errorf("%s: ids = %v, want none", tc.path, ids)
+				}
+				continue
+			}
+			got := mustDecodeMetaError(t, body).Error
+			if strings.HasSuffix(tc.wantErr, ": ") {
+				if !strings.HasPrefix(got, tc.wantErr) {
+					t.Errorf("%s: meta.error = %q, want prefix %q", tc.path, got, tc.wantErr)
+				}
+				continue
+			}
+			if got != tc.wantErr {
+				t.Errorf("%s: meta.error = %q, want %q", tc.path, got, tc.wantErr)
+			}
+		}
+	})
+
 	t.Run("since_last_value_wins", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 rest.py:505 reads since with QueryDict.get

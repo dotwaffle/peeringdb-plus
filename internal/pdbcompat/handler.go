@@ -235,14 +235,17 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	depth, depthText := rp.depth, rp.depthText
 	var err error
 
-	// A negative skip is a 400. Upstream raises it at the slice (2.83.0
-	// rest.py:757-760, Django query.py:403-417), after the filters and
-	// since, and before the serializer. So a filter error wins, and the
+	// Two errors come after the filters, in this order. A since that
+	// float() accepts and int() does not is a 400 with the Python
+	// message: upstream parses since again with int() when it builds its
+	// API cache loader (2.83.0 rest.py:707, api_cache.py:80). A negative
+	// skip is a 400 at the slice (rest.py:757-760, Django
+	// query.py:403-417). So a filter error wins over both, and the
 	// unique-query 404 never fires.
 	// A name_search that matches no row is the exception: upstream
-	// returns qset.none() before the slice (rest.py:550-553), so the
-	// result is empty.
-	if skip < 0 {
+	// returns qset.none() before both (rest.py:550-553), so the result
+	// is empty.
+	if rp.sinceInt != nil || skip < 0 {
 		miss, err := h.nameSearchMisses(r.Context(), tc, lf)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "pdbcompat: list name_search query failed",
@@ -257,9 +260,13 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if !miss {
+			detail := errNegativeSkip.Error()
+			if rp.sinceInt != nil {
+				detail = rp.sinceInt.Error()
+			}
 			writeError(w, r, apiError{
 				Status: http.StatusBadRequest,
-				Detail: errNegativeSkip.Error(),
+				Detail: detail,
 			})
 			return
 		}
@@ -985,7 +992,7 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	// slice or a negative skip needs the query of nameSearchMisses:
 	// without them, Match applies the search.
 	miss := lf.none
-	if sliced || negativeSkip {
+	if sliced || negativeSkip || rp.sinceInt != nil {
 		miss, err = h.nameSearchMisses(r.Context(), tc, lf)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "pdbcompat: detail name_search query failed",
@@ -999,6 +1006,16 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 			})
 			return
 		}
+	}
+	// A since that int() does not accept, then a negative skip, as on a
+	// list (upstream: 500 for both, see docs/API.md § Known
+	// Divergences).
+	if rp.sinceInt != nil && !miss {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: rp.sinceInt.Error(),
+		})
+		return
 	}
 	if negativeSkip && !miss {
 		writeError(w, r, apiError{

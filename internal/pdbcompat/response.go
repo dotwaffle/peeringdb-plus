@@ -156,21 +156,44 @@ func ParsePaginationParams(params url.Values) (limit, skip int, err error) {
 	return limit, skip, nil
 }
 
+// sinceIntError is the error of a since value that Python float()
+// accepts and int() does not, for example 1.5 or 1e3. Upstream first
+// parses since with int(float(v)) (2.83.0 rest.py:505-510), so the
+// value passes, and then parses it again with int(v) when it builds its
+// API cache loader after the filter loop (rest.py:707,
+// api_cache.py:80). list() returns that ValueError as a 400 with the
+// Python message (rest.py:824-827).
+type sinceIntError struct {
+	value string
+}
+
+func (e *sinceIntError) Error() string {
+	return pyIntValueError(e.value)
+}
+
 // parseSince returns the raw ?since= value: the last value, Python
 // int() rules (2.83.0 rest.py:505-510, api_cache.py:80). present is
-// false when the key is absent. An empty or non-integer value is
-// errSinceNotTimestamp. Every reader of since calls this function, so
-// the value is parsed one way only.
+// false when the key is absent. An empty value, or a value that
+// float() rejects or that is nan, is errSinceNotTimestamp (int(float())
+// raises ValueError). An infinite value is errSinceNotTimestamp too:
+// upstream int(float()) raises OverflowError, which it does not catch
+// (a 500, see docs/API.md § Known Divergences). A finite value that
+// int() rejects is a *sinceIntError, which the caller reports after the
+// filters. Every reader of since calls this function, so the value is
+// parsed one way only.
 func parseSince(params url.Values) (n int, present bool, err error) {
 	v, ok := lastParam(params, "since")
 	if !ok {
 		return 0, false, nil
 	}
 	n, _, err = pyInt(v)
-	if err != nil {
-		return 0, true, errSinceNotTimestamp
+	if err == nil {
+		return n, true, nil
 	}
-	return n, true, nil
+	if classifyPyFloat(v) == pyFloatFinite {
+		return 0, true, &sinceIntError{value: v}
+	}
+	return 0, true, errSinceNotTimestamp
 }
 
 // ParseDepthParam returns the ?depth= value as upstream parses it
@@ -223,6 +246,9 @@ type requestParams struct {
 	// since is nil when the key is absent or its value is 0 or less
 	// (ParseSinceParam).
 	since *time.Time
+	// sinceInt is set when the since value is a *sinceIntError. since
+	// is then nil. The caller returns it as a 400 after the filters.
+	sinceInt error
 	// depth is the raw depth value and depthText its decimal form
 	// (ParseDepthParam). depthPresent is false when the key is absent:
 	// the caller applies its own default.
@@ -240,7 +266,12 @@ type requestParams struct {
 func parseRequestParams(params url.Values) (requestParams, error) {
 	var p requestParams
 	var err error
-	if p.since, err = ParseSinceParam(params); err != nil {
+	var sie *sinceIntError
+	p.since, err = ParseSinceParam(params)
+	switch {
+	case errors.As(err, &sie):
+		p.sinceInt = err
+	case err != nil:
 		return requestParams{}, err
 	}
 	if p.limit, p.skip, err = ParsePaginationParams(params); err != nil {

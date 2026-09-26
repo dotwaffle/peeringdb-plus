@@ -2,6 +2,9 @@ package pdbcompat
 
 import (
 	"errors"
+	"fmt"
+	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -130,4 +133,117 @@ func pyInt(v string) (n int, text string, err error) {
 	// error it can return for canonical digits.
 	parsed, _ := strconv.ParseInt(text, 10, strconv.IntSize)
 	return int(parsed), text, nil
+}
+
+// pyFloatKind classifies a str for Python float().
+type pyFloatKind int
+
+const (
+	// pyFloatInvalid is a value that float() rejects with ValueError.
+	pyFloatInvalid pyFloatKind = iota
+	// pyFloatFinite is a finite value.
+	pyFloatFinite
+	// pyFloatInf is an infinite value: inf, infinity, or a number too
+	// large for a float, such as 1e999.
+	pyFloatInf
+	// pyFloatNaN is nan.
+	pyFloatNaN
+)
+
+// pyFloatLiteral is the Python float literal grammar without the sign:
+// digits with single underscores between them, an optional fraction and
+// an optional exponent (Python doc behavior, "Floating-point literals").
+// A value with no digit before the point needs one after it.
+var pyFloatLiteral = regexp.MustCompile(`^(?:[0-9](?:_?[0-9])*(?:\.(?:[0-9](?:_?[0-9])*)?)?|\.[0-9](?:_?[0-9])*)(?:[eE][+-]?[0-9](?:_?[0-9])*)?$`)
+
+// classifyPyFloat returns the pyFloatKind of float(s). float() strips
+// white space as int() does, reads any Unicode Nd digit, and accepts
+// inf, infinity and nan in any case, with a sign.
+func classifyPyFloat(s string) pyFloatKind {
+	s = strings.TrimFunc(s, unicode.IsSpace)
+	var b strings.Builder
+	for _, r := range s {
+		if d := ndValue(r); d >= 0 {
+			b.WriteByte(asciiDigits[d])
+			continue
+		}
+		b.WriteRune(r)
+	}
+	t := b.String()
+	body := t
+	if body != "" && (body[0] == '+' || body[0] == '-') {
+		body = body[1:]
+	}
+	switch strings.ToLower(body) {
+	case "inf", "infinity":
+		return pyFloatInf
+	case "nan":
+		return pyFloatNaN
+	}
+	if !pyFloatLiteral.MatchString(body) {
+		return pyFloatInvalid
+	}
+	// The grammar check leaves only values that ParseFloat reads. A
+	// value out of range is +Inf or -Inf with ErrRange.
+	f, _ := strconv.ParseFloat(strings.ReplaceAll(t, "_", ""), 64)
+	if math.IsInf(f, 0) {
+		return pyFloatInf
+	}
+	return pyFloatFinite
+}
+
+// pyIntValueError returns the message of the ValueError that Python
+// int(s) raises in base 10: invalid literal for int() with base 10:
+// followed by repr(s).
+func pyIntValueError(s string) string {
+	return "invalid literal for int() with base 10: " + pyRepr(s)
+}
+
+// pyRepr returns the Python repr of the str s: single quotes, or double
+// quotes when s holds a single quote and no double quote. A backslash,
+// the quote character, \t, \n, \r and every rune that Python does not
+// print are escaped.
+func pyRepr(s string) string {
+	quote := byte('\'')
+	if strings.ContainsRune(s, '\'') && !strings.ContainsRune(s, '"') {
+		quote = '"'
+	}
+	var b strings.Builder
+	b.WriteByte(quote)
+	for _, r := range s {
+		switch {
+		case r == '\\' || r == rune(quote):
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case r == '\t':
+			b.WriteString(`\t`)
+		case r == '\n':
+			b.WriteString(`\n`)
+		case r == '\r':
+			b.WriteString(`\r`)
+		case !pyPrintable(r):
+			switch {
+			case r < 0x100:
+				fmt.Fprintf(&b, `\x%02x`, r)
+			case r < 0x10000:
+				fmt.Fprintf(&b, `\u%04x`, r)
+			default:
+				fmt.Fprintf(&b, `\U%08x`, r)
+			}
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte(quote)
+	return b.String()
+}
+
+// pyPrintable reports whether Python str.isprintable is true for r: a
+// rune in the Unicode categories other than Other and Separator, or the
+// ASCII space.
+func pyPrintable(r rune) bool {
+	if r == ' ' {
+		return true
+	}
+	return !unicode.In(r, unicode.C, unicode.Z)
 }
