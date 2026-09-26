@@ -174,6 +174,12 @@ type relationSeed struct {
 	// (models.py:2723, :2740, :5629, :5644). Empty for every other
 	// seed.
 	prefix string
+	// tailSeed, when not nil, returns the seed of a key tail that the
+	// shape does not accept (ixLanNameLookup).
+	tailSeed func(tail []string) (relationSeed, bool)
+	// lookup marks a shapeWholeKey seed whose bareOp is a Django lookup
+	// on a string field (charFieldLookup).
+	lookup bool
 }
 
 // facilityFieldSeeds returns the netfac and ixfac seeds name, country
@@ -231,18 +237,15 @@ var relationSeeds = map[string]map[string]relationSeed{
 	// NetworkIXLanSerializer.prepare_query (serializers.py:3152-3169):
 	// related_to_ix and related_to_name filter the ixlan rows
 	// (models.py:6172-6197). A bare name, and name with an operator that
-	// get_relation_filters parses, becomes ix__name. get_relation_filters
-	// does not parse iexact, icontains or istartswith, so it keeps the
-	// whole key (serializers.py:643-654), and related_to_name applies
-	// the lookup to the name of the ixlan.
+	// get_relation_filters parses, becomes ix__name. With another
+	// suffix, get_relation_filters keeps the key (serializers.py:641-654),
+	// and related_to_name applies it as a Django lookup to the name of
+	// the ixlan (ixLanNameLookup).
 	peeringdb.TypeNetIXLan: func() map[string]relationSeed {
 		m := withIDSpellings(map[string]relationSeed{
 			"ix": {hops: []string{"ixlan", "ix"}, pinAt: 1},
 		})
-		m["name"] = relationSeed{hops: []string{"ixlan", "ix"}, pinAt: 1, shape: shapeFixedField, field: "name"}
-		for _, op := range []string{"iexact", "icontains", "istartswith"} {
-			m["name__"+op] = relationSeed{hops: []string{"ixlan"}, pinAt: 1, shape: shapeWholeKey, field: "name", bareOp: op}
-		}
+		m["name"] = relationSeed{hops: []string{"ixlan", "ix"}, pinAt: 1, shape: shapeFixedField, field: "name", tailSeed: ixLanNameLookup}
 		return m
 	}(),
 	// IXLanPrefixSerializer.prepare_query (serializers.py:4154-4163):
@@ -295,6 +298,11 @@ func lookupRelationSeed(typ, key string) (relationSeed, []string, bool) {
 	}
 	segs := strings.Split(key, "__")
 	sd, ok := relationSeeds[typ][segs[0]]
+	if ok && sd.tailSeed != nil {
+		if tsd, ok := sd.tailSeed(segs[1:]); ok {
+			return tsd, nil, true
+		}
+	}
 	return sd, segs[1:], ok
 }
 
@@ -442,7 +450,13 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 	}
 	var leaf func(*sql.Selector)
 	if col != "status" || op != "" || sd.pinAt != n {
-		p, err := buildPredicate(col, op, value, ft, folded)
+		var p func(*sql.Selector)
+		var err error
+		if sd.lookup {
+			p, err = charFieldLookup(col, op, value)
+		} else {
+			p, err = buildPredicate(col, op, value, ft, folded)
+		}
 		if err != nil {
 			if errors.Is(err, errEmptyIn) {
 				return nil, false, true, nil

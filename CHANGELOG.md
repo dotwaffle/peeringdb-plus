@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat applies every Django lookup of `netixlan?name__<lookup>=` and `name__<lookup>__<x>=` to the ixlan name, as upstream `related_to_name` does, for example `?name__endswith=`, `?name__exact=` and `?name__contains__x=` (case-sensitive).
+  An unknown lookup, an operator after the lookup and `isnull` return `400`.
+  `regex`, `iregex` and a `range` value that is not two characters long return `400` (registered divergence).
+  Before, pdbcompat ignored every lookup except `iexact`, `icontains` and `istartswith`.
 - pdbcompat reads a Unicode decimal digit as its ASCII digit in a key without an operator on an integer or boolean field and in `__contains` and `__startswith` on a numeric field, as upstream `unidecode` does, for example `?asn=٤٢`.
   Before, only the digits that NFKD folds (such as full-width digits) matched.
 - pdbcompat compares a string field with `__lt`, `__lte`, `__gt` and `__gte` without case, as the MySQL collation of upstream does, and without diacritics on a folded field.

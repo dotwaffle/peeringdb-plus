@@ -1568,7 +1568,8 @@ func TestParity_Traversal(t *testing.T) {
 			// get_relation_filters does not parse iexact, icontains or
 			// istartswith, so it keeps the whole key, and related_to_name
 			// applies the lookup to the name of the ixlan, not of the
-			// exchange (serializers.py:643-654, :3161-3169).
+			// exchange (serializers.py:643-654, :3161-3169). See
+			// netixlan_name_lookups_like_upstream for the other lookups.
 			{path: "/api/netixlan?name__iexact=lana", want: []int{500, 501}},
 			{path: "/api/netixlan?name__iexact=RelSeedIX20", want: []int{}},
 			{path: "/api/netixlan?name__icontains=AN", want: []int{500, 501}},
@@ -1593,6 +1594,83 @@ func TestParity_Traversal(t *testing.T) {
 			"/api/net?netfac__fac__name=RelSeedFac400",
 			"/api/net?ix=abc",
 			"/api/fac?net__contains=1",
+		} {
+			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+			}
+		}
+	})
+
+	t.Run("netixlan_name_lookups_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:641-654 keeps netixlan
+		// name__X, where X is not an operator of get_relation_filters,
+		// and name__X__Y as a Django lookup X, with an "_id" suffix of
+		// X stripped (:411-414). related_to_name filters the ixlan rows
+		// with it and status "ok" (models.py:6172-6197). On MySQL
+		// (utf8_unicode_ci), exact ignores case and trailing spaces,
+		// contains/startswith/endswith are LIKE BINARY, iendswith is
+		// LIKE, and in and range iterate the characters of the value.
+		// A Y that is an operator follows the lookup, and Django raises
+		// FieldError (400 Invalid query, rest.py:499-500), as it does
+		// for an unknown lookup. isnull needs a bool (ValueError, 400).
+		srv := newTestServer(t, seedIXLanNameLookups(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?name__exact=lana", want: []int{900}},
+			{path: "/api/netixlan?name__exact=LAN*B", want: []int{901}},
+			{path: "/api/netixlan?name__exact_id=LanA", want: []int{900}},
+			{path: "/api/netixlan?name__exact__x=lana", want: []int{900}},
+			{path: "/api/netixlan?name__iexact__x=LANA", want: []int{900}},
+			{path: "/api/netixlan?name__contains__x=an", want: []int{900, 901}},
+			{path: "/api/netixlan?name__contains__x=AN", want: []int{}},
+			{path: "/api/netixlan?name__contains__x=*", want: []int{901}},
+			{path: "/api/netixlan?name__startswith__x=Lan", want: []int{900}},
+			{path: "/api/netixlan?name__endswith=A", want: []int{900}},
+			{path: "/api/netixlan?name__endswith=a", want: []int{}},
+			{path: "/api/netixlan?name__endswith=*B%20", want: []int{901}},
+			{path: "/api/netixlan?name__iendswith=a", want: []int{900}},
+			{path: "/api/netixlan?name__gt__x=m", want: []int{902, 904}},
+			{path: "/api/netixlan?name__in__x=yx", want: []int{904}},
+			{path: "/api/netixlan?name__in__x=", want: []int{}},
+			{path: "/api/netixlan?name__range=mz", want: []int{902, 904}},
+			// The pending ixlan 13 is also named LanA.
+			{path: "/api/netixlan?name__iexact=LanA", want: []int{900}},
+		})
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?name__a__b__c=1", want: []int{900, 901, 902, 903, 904}},
+		})
+		for _, tc := range []struct{ path, msg string }{
+			{"/api/netixlan?name__bogus=1", "Invalid query"},
+			{"/api/netixlan?name__exact__gt=1", "Invalid query"},
+			{"/api/netixlan?name__x__in=1", "Invalid query"},
+			{"/api/netixlan?name__isnull=true", "isnull lookup must be True or False"},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", tc.path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, tc.msg) {
+				t.Errorf("%s: meta.error = %q, want it to contain %q", tc.path, msg, tc.msg)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_netixlan_name_regex_and_range_lookups", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream runs netixlan name__regex and
+		// name__iregex as MySQL REGEXP (2.83.0 serializers.py:641-654,
+		// models.py:6172-6197), and a name__range value that is not two
+		// characters long fails as Django builds the SQL (500). The
+		// mirror returns 400 for all of them: SQLite has no REGEXP
+		// function, and the two regular expression dialects differ.
+		// See docs/API.md § Known Divergences.
+		srv := newTestServer(t, seedIXLanNameLookups(t, t0))
+		for _, path := range []string{
+			"/api/netixlan?name__regex=^Lan",
+			"/api/netixlan?name__iregex=^lan",
+			"/api/netixlan?name__range=m",
+			"/api/netixlan?name__range=mnz",
 		} {
 			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
 				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
@@ -2933,6 +3011,38 @@ func seedRelationSeedKeys(t *testing.T, t0 time.Time) *ent.Client {
 		c.IxFacility.Create().
 			SetID(id).SetIxID(id - 680).SetFacID(400).
 			SetStatus(st).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	return c
+}
+
+// seedIXLanNameLookups seeds rows for the netixlan name lookups:
+//   - ixlans 10 (LanA), 11 ("lan*B ", with a trailing space), 12
+//     (Other), 13 (LanA, pending) and 14 (x) on exchange 20.
+//   - netixlans 900 to 904 on ixlans 10 to 14, all ok.
+func seedIXLanNameLookups(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "NameLookupOrg", t0)
+	mustNet(ctx, t, c, 100, "NameLookupNet", 64500, 1, t0)
+	mustIX(ctx, t, c, 20, "NameLookupIX", 1, t0)
+	for _, l := range []struct {
+		id           int
+		name, status string
+	}{
+		{10, "LanA", "ok"},
+		{11, "lan*B ", "ok"},
+		{12, "Other", "ok"},
+		{13, "LanA", "pending"},
+		{14, "x", "ok"},
+	} {
+		c.IxLan.Create().
+			SetID(l.id).SetIxID(20).SetName(l.name).
+			SetStatus(l.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.NetworkIxLan.Create().
+			SetID(890 + l.id).SetNetID(100).SetIxlanID(l.id).SetIxID(20).
+			SetName("NameLookupIX").SetAsn(64500).SetSpeed(1000).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	return c
 }

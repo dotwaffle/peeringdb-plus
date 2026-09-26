@@ -400,7 +400,7 @@ Traversal predicates compose with the status matrix (`wireEntity` appends `apply
 Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_LikeUpstream` in `internal/pdbcompat/handler_test.go`.
 
 **Relation filters (`internal/pdbcompat/relation_filter.go`).**
-The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__iexact`/`__icontains`/`__istartswith` filter the ixlan name), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B.
+The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__<Django lookup>`, e.g. `__iexact`/`__endswith`, filters the ixlan name; `charFieldLookup`), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B.
 Most seeds pin ONE row of their path to `status='ok'` (`make_relation_filter`, 2.83.0 `models.py:221-234`; `pinAt`, `noPin` for fac `org_name` and carrier); a bare `status` filter on that row is replaced by the pin.
 The tail field of a `shapeRelation` seed resolves as a Django name (`resolveModelName`, no second xl).
 On the 4 prefix seeds (`relationSeed.prefix`), `stripRelationPrefix` first removes `<prefix>_` and maps the prefix to `id` (`models.py:224-227`).
