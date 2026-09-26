@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat reads boolean filter values as upstream.
+  A key without an operator selects `false` for any value other than `true` (in any case) or `1`, for example `?info_unicast=yes`.
+  `__in`, `__lt`, `__lte`, `__gt` and `__gte` accept only `t`, `True`, `1`, `f`, `False` and `0` (Django `BooleanField.to_python`) and return `400` for another value, for example `?info_unicast__in=true` or an empty `__in`.
+  Before, pdbcompat returned `400` for a key without an operator and a value other than `true`, `false`, `1` or `0`, and the operators accepted `true` and `false` in any case.
 - pdbcompat reads `in` as the field of a relation key through a FK, for example `fac?net__in__x=34`, as upstream: it compares the id with each character of the value (the networks 3 and 4).
   Before, pdbcompat returned `400` (`Invalid query`).
 - pdbcompat reads a `since` that is a number but not an integer, for example `1.5` or `1e3`, as upstream: it returns `400` with the Python message (`invalid literal for int() with base 10: '1.5'`) after the filter checks, and a `name_search` that matches no row returns an empty list.

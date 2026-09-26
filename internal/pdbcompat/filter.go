@@ -1082,7 +1082,88 @@ func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exact
 			return intTextMatch(col, value), nil
 		}
 	}
+	if ft == FieldBool {
+		switch op {
+		case "":
+			// upstream rest.py:680-681: v.lower() == "true" or v == "1",
+			// any other value selects false.
+			f := unifold.Fold(value)
+			return sql.FieldEQ(col, f == "true" || f == "1"), nil
+		case "lt", "lte", "gt", "gte", "in":
+			return buildBoolOperator(col, op, value)
+		}
+	}
 	return buildPredicate(col, op, value, ft, folded)
+}
+
+// nullableBoolFields lists the boolean model fields that allow NULL
+// upstream (django-peeringdb models/abstract.py:259). Django converts an
+// empty value on these fields to None.
+var nullableBoolFields = map[string]bool{"diverse_serving_substations": true}
+
+// buildBoolOperator builds an operator predicate on a boolean model
+// field. Upstream passes the value to the lookup as is (rest.py:664-669),
+// and Django converts it with BooleanField.to_python
+// (django/db/models/fields/__init__.py BooleanField.to_python): only t,
+// True, 1, f, False and 0 are valid, and the case counts. __in splits the
+// value on commas and does not strip the items. On a nullable field an
+// empty value is None: the comparisons reject it, and __in drops it (In
+// discards None, and a list with no other item matches no row).
+func buildBoolOperator(col, op, value string) (func(*sql.Selector), error) {
+	nullable := nullableBoolFields[col]
+	if op != "in" {
+		v, err := djangoBool(value, nullable)
+		if err != nil {
+			return nil, err
+		}
+		if v == nil {
+			return nil, fmt.Errorf("convert %q to bool: cannot use None as a query value", value)
+		}
+		switch op {
+		case "lt":
+			return sql.FieldLT(col, *v), nil
+		case "lte":
+			return sql.FieldLTE(col, *v), nil
+		case "gt":
+			return sql.FieldGT(col, *v), nil
+		default:
+			return sql.FieldGTE(col, *v), nil
+		}
+	}
+	var items []any
+	for p := range strings.SplitSeq(value, ",") {
+		v, err := djangoBool(p, nullable)
+		if err != nil {
+			return nil, fmt.Errorf("convert %q to bool for IN: %w", p, err)
+		}
+		if v != nil {
+			items = append(items, *v)
+		}
+	}
+	if len(items) == 0 {
+		return nil, errEmptyIn
+	}
+	return sql.FieldIn(col, items...), nil
+}
+
+// djangoBool converts s as Django BooleanField.to_python does. It
+// returns nil for an empty value on a nullable field.
+func djangoBool(s string, nullable bool) (*bool, error) {
+	var v bool
+	switch s {
+	case "t", "True", "1":
+		v = true
+	case "f", "False", "0":
+		v = false
+	case "":
+		if nullable {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("invalid bool value %q: use t, True, 1, f, False or 0", s)
+	default:
+		return nil, fmt.Errorf("invalid bool value %q: use t, True, 1, f, False or 0", s)
+	}
+	return &v, nil
 }
 
 // intTextMatch returns the predicate col = n when value is the decimal

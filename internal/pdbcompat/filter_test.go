@@ -704,9 +704,11 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			wantMsg: "filter asn__lt",
 		},
 		{
+			// A plain bool key selects false for any other value
+			// (TestParseFilters_BoolValues). An operator converts.
 			name:    "bool conversion error propagated",
-			params:  url.Values{"info_unicast": {"maybe"}},
-			wantMsg: "filter info_unicast",
+			params:  url.Values{"info_unicast__lt": {"maybe"}},
+			wantMsg: "filter info_unicast__lt",
 		},
 		{
 			name:    "time conversion error propagated",

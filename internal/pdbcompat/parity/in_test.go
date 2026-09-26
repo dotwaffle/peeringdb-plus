@@ -2,6 +2,7 @@ package parity
 
 import (
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -149,6 +150,86 @@ func TestParity_In(t *testing.T) {
 		}
 		if ids := extractIDs(t, body); len(ids) != 1 || ids[0] != 2 {
 			t.Errorf("fold-routed __in: got %v, want [2]", ids)
+		}
+	})
+
+	t.Run("bool_values_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:680-681 (a plain key selects true
+		// for "true" in any case or "1", false for any other value),
+		// :664-669 (an operator passes the value to Django, and
+		// BooleanField.to_python accepts only t, True, 1, f, False and
+		// 0; __in splits on commas and does not strip). An invalid value
+		// raises ValidationError, and the list handler returns 400
+		// (rest.py:693-701, :828-831). diverse_serving_substations is
+		// nullable (django-peeringdb abstract.py:259): an empty __in
+		// item is None, which In drops.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "BoolOrg", t0)
+		for _, n := range []struct {
+			id      int
+			unicast bool
+		}{{1, true}, {2, false}} {
+			name := "BoolNet" + strconv.Itoa(n.id)
+			c.Network.Create().
+				SetID(n.id).SetName(name).SetNameFold(unifold.Fold(name)).
+				SetAsn(64500 + n.id).SetOrgID(1).SetInfoUnicast(n.unicast).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		for _, f := range []struct {
+			id  int
+			dss *bool
+		}{{400, new(true)}, {401, new(false)}, {402, nil}} {
+			name := "BoolFac" + strconv.Itoa(f.id)
+			c.Facility.Create().
+				SetID(f.id).SetName(name).SetNameFold(unifold.Fold(name)).
+				SetOrgID(1).SetCity("C").SetCityFold("c").SetCountry("DE").
+				SetNillableDiverseServingSubstations(f.dss).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		srv := newTestServer(t, c)
+
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/net?info_unicast=TRUE", []int{1}},
+			{"/api/net?info_unicast=1", []int{1}},
+			{"/api/net?info_unicast=t", []int{2}},
+			{"/api/net?info_unicast=yes", []int{2}},
+			{"/api/net?info_unicast=", []int{2}},
+			{"/api/net?info_unicast__in=t,False", []int{1, 2}},
+			{"/api/net?info_unicast__in=True", []int{1}},
+			{"/api/net?info_unicast__in=0", []int{2}},
+			{"/api/net?info_unicast__lt=True", []int{2}},
+			{"/api/net?info_unicast__gte=t", []int{1}},
+			{"/api/fac?diverse_serving_substations=0", []int{401}},
+			{"/api/fac?diverse_serving_substations__in=,1", []int{400}},
+			{"/api/fac?diverse_serving_substations__in=", []int{}},
+			{"/api/fac?diverse_serving_substations__gt=f", []int{400}},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status %d, want 200; body=%s", tc.path, status, body)
+				continue
+			}
+			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
+				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
+			}
+		}
+		for _, path := range []string{
+			"/api/net?info_unicast__in=true",
+			"/api/net?info_unicast__in=T",
+			"/api/net?info_unicast__in=1,%201",
+			"/api/net?info_unicast__in=",
+			"/api/net?info_unicast__in=1,",
+			"/api/net?info_unicast__lt=false",
+			"/api/fac?diverse_serving_substations__lt=",
+		} {
+			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+				t.Errorf("%s: status %d, want 400; body=%s", path, status, body)
+			}
 		}
 	})
 

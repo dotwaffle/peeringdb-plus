@@ -234,9 +234,9 @@ func TestListEndpoint_InBoolAndTime(t *testing.T) {
 		query string
 		want  int
 	}{
-		{"/api/net?info_unicast__in=true", 2},
-		{"/api/net?info_unicast__in=false", 1},
-		{"/api/net?info_unicast__in=true,false", 3},
+		{"/api/net?info_unicast__in=True", 2},
+		{"/api/net?info_unicast__in=0", 1},
+		{"/api/net?info_unicast__in=t,False", 3},
 		{"/api/net?created__in=1700000000,1700000200", 2},
 		{"/api/net?created__in=1700000100", 1},
 	}
