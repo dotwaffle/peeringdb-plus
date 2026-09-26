@@ -2,6 +2,7 @@ package web
 
 import (
 	"cmp"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -328,8 +329,20 @@ func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleServerError renders a styled 500 error page.
+// statusClientClosedRequest is the nginx status for a request that the
+// client closed before the response. net/http has no constant for it.
+const statusClientClosedRequest = 499
+
+// handleServerError renders a styled 500 error page. When the client
+// canceled the request (htmx aborts a search that a new keystroke
+// replaces), the query error is a result of the cancellation, so the
+// status is 499 with no body: a 500 would count as a server error in the
+// request metrics and traces.
 func (h *Handler) handleServerError(w http.ResponseWriter, r *http.Request) {
+	if errors.Is(r.Context().Err(), context.Canceled) {
+		w.WriteHeader(statusClientClosedRequest)
+		return
+	}
 	page := PageContent{Title: "Server Error", Kind: KindServerError, Content: templates.ServerErrorPage(), Status: http.StatusInternalServerError}
 	if err := renderPage(r.Context(), w, r, page); err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
