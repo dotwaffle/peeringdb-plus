@@ -539,6 +539,36 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
+	t.Run("DIVERGENCE_ixlan_ixf_url_filter_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: ixf_ixp_member_list_url is an ixlan model field
+		// (django-peeringdb abstract.py:819), so the upstream filter
+		// loop filters it for any caller (2.83.0 rest.py:525-528),
+		// also on rows whose URL the caller cannot see: the permission
+		// check removes the value from the output only
+		// (permissions.py:344-353). Only the <fk>__ forms are left out
+		// (FILTER_EXCLUDE, serializers.py:136-145). The mirror ignores
+		// every form, so a filter cannot show a hidden URL one match at
+		// a time. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "IxfURLOrg", t0)
+		mustIX(ctx, t, c, 20, "IxfURLIX", 1, t0)
+		mustIxLan(ctx, t, c, 200, "Public", 20, t0)
+		mustIxLan(ctx, t, c, 201, "Private", 20, t0)
+		c.IxLan.UpdateOneID(200).SetIxfIxpMemberListURL("https://public.example/ixf.json").
+			SetIxfIxpMemberListURLVisible("Public").ExecX(ctx)
+		c.IxLan.UpdateOneID(201).SetIxfIxpMemberListURL("https://private.example/ixf.json").
+			SetIxfIxpMemberListURLVisible("Private").ExecX(ctx)
+		srv := newTestServer(t, c)
+		// Upstream: [200] for the first two, [201] for the third.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/ixlan?ixf_ixp_member_list_url=https://public.example/ixf.json", want: []int{200, 201}},
+			{path: "/api/ixlan?ixf_ixp_member_list_url__contains=public", want: []int{200, 201}},
+			{path: "/api/ixlan?ixf_ixp_member_list_url__startswith=https://private", want: []int{200, 201}},
+		})
+	})
+
 	t.Run("DIVERGENCE_hide_ix_no_fac_silent_ignore", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream handles hide_ix_no_fac in Python after the
