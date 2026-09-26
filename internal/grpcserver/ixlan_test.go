@@ -26,14 +26,14 @@ func TestIxLanToProto_FieldPrivacy(t *testing.T) {
 	usersGated := &ent.IxLan{
 		ID:                         100,
 		IxfIxpMemberListURLVisible: "Users",
-		IxfIxpMemberListURL:        url,
+		IxfIxpMemberListURL:        new(url),
 		Created:                    now,
 		Updated:                    now,
 	}
 	publicRow := &ent.IxLan{
 		ID:                         101,
 		IxfIxpMemberListURLVisible: "Public",
-		IxfIxpMemberListURL:        url,
+		IxfIxpMemberListURL:        new(url),
 		Created:                    now,
 		Updated:                    now,
 	}
@@ -63,6 +63,19 @@ func TestIxLanToProto_FieldPrivacy(t *testing.T) {
 		if got.IxfIxpMemberListUrl.GetValue() != url {
 			t.Errorf("%s tier + _visible=Public: URL = %q, want %q",
 				name, got.IxfIxpMemberListUrl.GetValue(), url)
+		}
+	}
+
+	// A Public row with a NULL or "" value sends no wrapper at any tier
+	// (v1.proto: absent when the URL is empty).
+	for _, row := range []*ent.IxLan{
+		{ID: 102, IxfIxpMemberListURLVisible: "Public", Created: now, Updated: now},
+		{ID: 103, IxfIxpMemberListURLVisible: "Public", IxfIxpMemberListURL: new(""), Created: now, Updated: now},
+	} {
+		for name, ctx := range map[string]context.Context{"anon": anon, "users": users} {
+			if got := ixLanToProto(ctx, row); got.IxfIxpMemberListUrl != nil {
+				t.Errorf("%s tier + ixlan %d: IxfIxpMemberListUrl = %v, want nil", name, row.ID, got.IxfIxpMemberListUrl)
+			}
 		}
 	}
 

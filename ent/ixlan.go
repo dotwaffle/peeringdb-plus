@@ -30,7 +30,7 @@ type IxLan struct {
 	// IXF import enabled
 	IxfIxpImportEnabled bool `json:"ixf_ixp_import_enabled"`
 	// IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.
-	IxfIxpMemberListURL string `json:"ixf_ixp_member_list_url"`
+	IxfIxpMemberListURL *string `json:"ixf_ixp_member_list_url"`
 	// IXF member list URL visibility
 	IxfIxpMemberListURLVisible string `json:"ixf_ixp_member_list_url_visible"`
 	// Maximum transmission unit offered on this LAN, in bytes
@@ -168,7 +168,8 @@ func (_m *IxLan) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field ixf_ixp_member_list_url", values[i])
 			} else if value.Valid {
-				_m.IxfIxpMemberListURL = value.String
+				_m.IxfIxpMemberListURL = new(string)
+				*_m.IxfIxpMemberListURL = value.String
 			}
 		case ixlan.FieldIxfIxpMemberListURLVisible:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -283,8 +284,10 @@ func (_m *IxLan) String() string {
 	builder.WriteString("ixf_ixp_import_enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IxfIxpImportEnabled))
 	builder.WriteString(", ")
-	builder.WriteString("ixf_ixp_member_list_url=")
-	builder.WriteString(_m.IxfIxpMemberListURL)
+	if v := _m.IxfIxpMemberListURL; v != nil {
+		builder.WriteString("ixf_ixp_member_list_url=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("ixf_ixp_member_list_url_visible=")
 	builder.WriteString(_m.IxfIxpMemberListURLVisible)

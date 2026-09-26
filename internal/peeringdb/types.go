@@ -217,6 +217,10 @@ func (p Poc) BlankDeletedContact() Poc {
 }
 
 // IxLan represents a PeeringDB IX LAN (ixlan).
+//
+// IXFIXPMemberListURL is nil when upstream sends null or leaves the key
+// out (the caller has no permission for the row's visibility), and
+// non-nil for a string, also for "".
 type IxLan struct {
 	ID                         int       `json:"id"`
 	IXID                       int       `json:"ix_id"`
@@ -227,7 +231,7 @@ type IxLan struct {
 	RSASN                      *int      `json:"rs_asn"`
 	ARPSponge                  *string   `json:"arp_sponge"`
 	IXFIXPMemberListURLVisible string    `json:"ixf_ixp_member_list_url_visible"`
-	IXFIXPMemberListURL        string    `json:"ixf_ixp_member_list_url,omitempty"`
+	IXFIXPMemberListURL        *string   `json:"ixf_ixp_member_list_url,omitempty"`
 	IXFIXPImportEnabled        bool      `json:"ixf_ixp_import_enabled"`
 	Created                    time.Time `json:"created"`
 	Updated                    time.Time `json:"updated"`

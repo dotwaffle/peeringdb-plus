@@ -559,18 +559,25 @@ func TestListDepth_LoadsInChunks(t *testing.T) {
 // TestListDepth_IxlanURLRedacted checks that an ixlan element of
 // ix.ixlan_set at list depth 2 goes through privfield.Redact: for an
 // anonymous caller the Users ixlan has no ixf_ixp_member_list_url key,
-// and the Public ixlan keeps it. The Users tier sees both.
+// and the Public ixlans keep it. The Users tier sees all three. The
+// Public ixlan with a NULL URL keeps the key with null at both tiers
+// (upstream DRF renders None as null).
 func TestListDepth_IxlanURLRedacted(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
 	seed.Full(t, client)
+	const publicNullID = 102
+	client.IxLan.Create().SetID(publicNullID).SetIxID(20).
+		SetIxfIxpMemberListURLVisible("Public").
+		SetStatus("ok").SetCreated(seed.Timestamp).SetUpdated(seed.Timestamp).
+		SaveX(t.Context())
 	_, mux := newListDepthMux(client, 0, defaultListDepthChunk)
 	for _, tc := range []struct {
 		tier     privctx.Tier
 		wantURLs map[int]bool
 	}{
-		{privctx.TierPublic, map[int]bool{seed.IxLanGatedID: false, seed.IxLanPublicID: true}},
-		{privctx.TierUsers, map[int]bool{seed.IxLanGatedID: true, seed.IxLanPublicID: true}},
+		{privctx.TierPublic, map[int]bool{seed.IxLanGatedID: false, seed.IxLanPublicID: true, publicNullID: true}},
+		{privctx.TierUsers, map[int]bool{seed.IxLanGatedID: true, seed.IxLanPublicID: true, publicNullID: true}},
 	} {
 		req := httptest.NewRequest(http.MethodGet, "/api/ix?id=20&depth=2", nil)
 		req = req.WithContext(privctx.WithTier(req.Context(), tc.tier))
@@ -590,17 +597,20 @@ func TestListDepth_IxlanURLRedacted(t *testing.T) {
 		seen := map[int]bool{}
 		for _, l := range env.Data[0].IxlanSet {
 			id := int(l["id"].(float64))
-			_, has := l["ixf_ixp_member_list_url"]
+			url, has := l["ixf_ixp_member_list_url"]
 			seen[id] = true
 			if has != tc.wantURLs[id] {
 				t.Errorf("tier %v: ixlan %d has URL key = %v, want %v", tc.tier, id, has, tc.wantURLs[id])
+			}
+			if id == publicNullID && url != nil {
+				t.Errorf("tier %v: ixlan %d URL = %#v, want null", tc.tier, id, url)
 			}
 			if _, ok := l["ixf_ixp_member_list_url_visible"]; !ok {
 				t.Errorf("tier %v: ixlan %d lost its _visible companion", tc.tier, id)
 			}
 		}
-		if len(seen) != 2 {
-			t.Errorf("tier %v: ixlan_set ids = %v, want both seed ixlans", tc.tier, seen)
+		if len(seen) != 3 {
+			t.Errorf("tier %v: ixlan_set ids = %v, want the 3 ixlans of ix 20", tc.tier, seen)
 		}
 	}
 }

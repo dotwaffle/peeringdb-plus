@@ -205,6 +205,7 @@ In this mode the privacy policy admits `Users`-tier rows for anonymous callers.
 It never admits `Private` rows.
 Upstream shows a `Private` contact only to members of the owning organization (2.83.0 `permissions.py:336-339`, `signals.py:343-347`), and the mirror has no organization membership.
 A Users-tier caller thus sees the rows that an authenticated PeeringDB user sees when that user is not a member of the owning organization.
+Without `PDBPLUS_PEERINGDB_API_KEY`, the sync worker does not receive `Users` contacts or the IX-F member list URL of `Users` ixlans, so a Users-tier caller does not see them (the URL is `null`).
 Startup logs `slog.Warn("public tier override active", …)` naming the override so the elevated default is never silent; the OTel attribute `pdbplus.privacy.tier=users` also appears on read spans.
 
 Only use this for deployments you would not want indexed by a search engine.

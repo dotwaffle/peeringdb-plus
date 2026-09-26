@@ -1692,13 +1692,19 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 		{"ixlan public url keeps key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN",
 			IXFIXPMemberListURLVisible: "Public",
-			IXFIXPMemberListURL:        new("https://example.com/members"),
+			IXFIXPMemberListURL:        new(new("https://example.com/members")),
 			Created:                    now, Updated: now, Status: "ok",
 		}},
 		{"ixlan admitted empty url keeps key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN",
 			IXFIXPMemberListURLVisible: "Public",
-			IXFIXPMemberListURL:        new(""),
+			IXFIXPMemberListURL:        new(new("")),
+			Created:                    now, Updated: now, Status: "ok",
+		}},
+		{"ixlan admitted null url keeps key with null", ixLanResponse{
+			ID: 1, IXID: 2, Name: "LAN",
+			IXFIXPMemberListURLVisible: "Public",
+			IXFIXPMemberListURL:        new((*string)(nil)),
 			Created:                    now, Updated: now, Status: "ok",
 		}},
 		{"organization with nil and set pointers", peeringdb.Organization{

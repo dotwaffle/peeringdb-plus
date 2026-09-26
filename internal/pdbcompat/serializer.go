@@ -297,9 +297,10 @@ func pocsFromEnt(pocs []*ent.Poc) []peeringdb.Poc {
 
 // ixLanResponse is the /api wire shape of an ixlan. It has the same keys
 // in the same order as peeringdb.IxLan. The one difference is
-// IXFIXPMemberListURL: a pointer, so the key is present or absent
-// independently of the value. peeringdb.IxLan also decodes the upstream
-// input in sync, so it keeps a plain string.
+// IXFIXPMemberListURL: a pointer to the stored *string, so the key is
+// present or absent independently of the value. A nil outer pointer
+// omits the key. A nil inner pointer renders null, as upstream renders a
+// NULL column.
 type ixLanResponse struct {
 	ID                         int       `json:"id"`
 	IXID                       int       `json:"ix_id"`
@@ -310,7 +311,7 @@ type ixLanResponse struct {
 	RSASN                      *int      `json:"rs_asn"`
 	ARPSponge                  *string   `json:"arp_sponge"`
 	IXFIXPMemberListURLVisible string    `json:"ixf_ixp_member_list_url_visible"`
-	IXFIXPMemberListURL        *string   `json:"ixf_ixp_member_list_url,omitempty"`
+	IXFIXPMemberListURL        **string  `json:"ixf_ixp_member_list_url,omitempty"`
 	IXFIXPImportEnabled        bool      `json:"ixf_ixp_import_enabled"`
 	Created                    time.Time `json:"created"`
 	Updated                    time.Time `json:"updated"`
@@ -349,19 +350,15 @@ func ixLanFromEnt(ctx context.Context, l *ent.IxLan) ixLanResponse {
 //
 // Upstream deletes the key only when the caller does not have the
 // permission for the visibility (2.83.0 permissions.py:344-353). A caller
-// that has the permission gets the stored value, also when it is empty.
-// Thus the omit flag of privfield.Redact decides the key, not the value.
-//
-// One exception applies: a Users row with an empty value. An anonymous
-// sync does not receive the value of a Users row, and it stores "" for
-// it. For such a row, "" does not mean that the URL is empty, so the key
-// stays out.
-func ixfMemberListURLOut(ctx context.Context, l *ent.IxLan) *string {
+// that has the permission gets the stored value: the URL, "" or null
+// (DRF renders a None attribute as null). Thus the omit flag of
+// privfield.Redact decides the key, not the value.
+func ixfMemberListURLOut(ctx context.Context, l *ent.IxLan) **string {
 	url, omit := privfield.Redact(ctx, l.IxfIxpMemberListURLVisible, l.IxfIxpMemberListURL)
-	if omit || (url == "" && l.IxfIxpMemberListURLVisible != "Public") {
+	if omit {
 		return nil
 	}
-	return new(url)
+	return &url
 }
 
 // ixLansFromEnt maps a slice of ent IxLans to their /api wire shape. It

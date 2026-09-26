@@ -112,6 +112,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   The id is parsed with the Python `int()` rules of `limit`, so `/api/net/+1` returns net `1`.
   A bad `since`, `skip`, `limit`, `depth` or filter still returns its `400` first, as upstream.
   An id with a `.` or a `/` returns the `404` before these checks.
+- `ixlan.ixf_ixp_member_list_url` keeps a `null` value apart from `""`, as upstream stores and renders it.
+  Sync stores upstream `null`, and a key that upstream leaves out, as NULL.
+  `/api/`, `/rest/v1/` and GraphQL send `null` for such a row; ConnectRPC sends no wrapper, as before.
+  On `/api/`, a Users-tier caller now gets the key of an empty `Users` row (`""` or `null`), as upstream gives it to an authenticated user.
+  The first start after the upgrade rebuilds the `ix_lans` table on the primary to remove the `''` default of the column.
+  Stored rows keep `""` until the next full sync cycle (daily by default, or `POST /sync?mode=full`).
 
 ### Fixed
 

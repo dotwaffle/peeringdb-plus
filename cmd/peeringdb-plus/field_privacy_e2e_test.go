@@ -41,19 +41,21 @@ import (
 )
 
 // =============================================================================
-// Admitted empty URL: the /api key follows the omit flag of
+// Admitted empty or NULL URL: the /api key follows the omit flag of
 // privfield.Redact, not the value.
 // =============================================================================
 
+// e2eKeyAbsent in a want map means "the key is not in the object". A nil
+// want means the key is present with JSON null.
+type e2eKeyAbsent struct{}
+
 // TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey locks the pdbcompat
-// key presence for an ixlan whose stored URL is empty. Upstream deletes
-// the key only when the caller does not have the permission for the
-// visibility (2.83.0 permissions.py:344-353). A caller that has the
-// permission gets the key with the stored value, also when it is empty.
-// The exception is a Users row: an anonymous sync stores "" for every
-// Users row, so an empty Users value keeps the key out at every tier.
-// The test covers the list, the depth=0 detail and the ixlan_set of the
-// parent ix at the default detail depth.
+// key and value for an ixlan whose stored URL is empty or NULL. Upstream
+// deletes the key only when the caller does not have the permission for
+// the visibility (2.83.0 permissions.py:344-353). A caller that has the
+// permission gets the key with the stored value: "" for "", and null for
+// NULL (DRF renders None as null). The test covers the list, the depth=0
+// detail and the ixlan_set of the parent ix at the default detail depth.
 func TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey(t *testing.T) {
 	t.Parallel()
 
@@ -61,30 +63,45 @@ func TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey(t *testing.T) {
 		publicEmptyID  = 102
 		usersEmptyID   = 103
 		privateEmptyID = 104
+		publicNullID   = 105
+		usersNullID    = 106
 	)
+	absent := e2eKeyAbsent{}
 	tiers := []struct {
 		name string
 		tier privctx.Tier
-		want map[int]bool // ixlan id -> url key present
+		want map[int]any // ixlan id -> url value, or e2eKeyAbsent
 	}{
-		{"anon", privctx.TierPublic, map[int]bool{publicEmptyID: true, usersEmptyID: false, privateEmptyID: false}},
-		{"users", privctx.TierUsers, map[int]bool{publicEmptyID: true, usersEmptyID: false, privateEmptyID: false}},
+		{"anon", privctx.TierPublic, map[int]any{
+			publicEmptyID: "", usersEmptyID: absent, privateEmptyID: absent,
+			publicNullID: nil, usersNullID: absent,
+		}},
+		{"users", privctx.TierUsers, map[int]any{
+			publicEmptyID: "", usersEmptyID: "", privateEmptyID: absent,
+			publicNullID: nil, usersNullID: nil,
+		}},
 	}
 	for _, tc := range tiers {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			fix := buildE2EFixture(t, tc.tier)
 			now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-			for id, visible := range map[int]string{
-				publicEmptyID:  "Public",
-				usersEmptyID:   "Users",
-				privateEmptyID: "Private",
+			for _, r := range []struct {
+				id      int
+				visible string
+				url     *string
+			}{
+				{publicEmptyID, "Public", new("")},
+				{usersEmptyID, "Users", new("")},
+				{privateEmptyID, "Private", new("")},
+				{publicNullID, "Public", nil},
+				{usersNullID, "Users", nil},
 			} {
 				fix.client.IxLan.Create().
-					SetID(id).
+					SetID(r.id).
 					SetIxID(e2eIxID).
-					SetIxfIxpMemberListURL("").
-					SetIxfIxpMemberListURLVisible(visible).
+					SetNillableIxfIxpMemberListURL(r.url).
+					SetIxfIxpMemberListURLVisible(r.visible).
 					SetCreated(now).
 					SetUpdated(now).
 					SetStatus("ok").
@@ -101,11 +118,14 @@ func TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey(t *testing.T) {
 				}
 				assertHasKey(t, row, "ixf_ixp_member_list_url_visible")
 				got, present := row["ixf_ixp_member_list_url"]
-				if present != want {
-					t.Errorf("%s ixlan %d: url key present = %v, want %v", where, id, present, want)
-				}
-				if present && got != "" {
-					t.Errorf("%s ixlan %d: url = %#v, want \"\"", where, id, got)
+				_, wantAbsent := want.(e2eKeyAbsent)
+				switch {
+				case wantAbsent && present:
+					t.Errorf("%s ixlan %d: url key present (%#v), want absent", where, id, got)
+				case !wantAbsent && !present:
+					t.Errorf("%s ixlan %d: url key absent, want %#v", where, id, want)
+				case !wantAbsent && got != want:
+					t.Errorf("%s ixlan %d: url = %#v, want %#v", where, id, got, want)
 				}
 			}
 
@@ -150,6 +170,125 @@ func TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestE2E_FieldLevel_IxlanURL_NullStored locks each surface for a Public
+// ixlan with a NULL URL at TierPublic: /api, /rest/v1/ and GraphQL send
+// the key with null, and ConnectRPC sends no wrapper. A Users ixlan with
+// a NULL URL stays redacted at the raw ConnectRPC handler (fail-closed).
+func TestE2E_FieldLevel_IxlanURL_NullStored(t *testing.T) {
+	t.Parallel()
+
+	const (
+		publicNullID = 105
+		usersNullID  = 106
+	)
+	fix := buildE2EFixture(t, privctx.TierPublic)
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	for id, visible := range map[int]string{publicNullID: "Public", usersNullID: "Users"} {
+		fix.client.IxLan.Create().
+			SetID(id).
+			SetIxID(e2eIxID).
+			SetIxfIxpMemberListURLVisible(visible).
+			SetCreated(now).
+			SetUpdated(now).
+			SetStatus("ok").
+			SaveX(t.Context())
+	}
+	idStr := strconv.Itoa(publicNullID)
+
+	assertNullURL := func(t *testing.T, where string, obj map[string]any) {
+		t.Helper()
+		got, present := obj["ixf_ixp_member_list_url"]
+		if !present || got != nil {
+			t.Errorf("%s: url = %#v (present=%v), want null", where, got, present)
+		}
+		assertStringValue(t, obj, "ixf_ixp_member_list_url_visible", "Public")
+	}
+
+	t.Run("pdbcompat", func(t *testing.T) {
+		body, status := mustGet(t, fix.server.URL+"/api/ixlan/"+idStr)
+		if status != http.StatusOK {
+			t.Fatalf("GET /api/ixlan/%d: status=%d; body=%s", publicNullID, status, body)
+		}
+		assertNullURL(t, "/api", extractPdbcompatFirst(t, body))
+	})
+
+	t.Run("entrest", func(t *testing.T) {
+		body, status := mustGet(t, fix.server.URL+"/rest/v1/ix-lans/"+idStr)
+		if status != http.StatusOK {
+			t.Fatalf("GET /rest/v1/ix-lans/%d: status=%d; body=%s", publicNullID, status, body)
+		}
+		var obj map[string]any
+		if err := json.Unmarshal(body, &obj); err != nil {
+			t.Fatalf("decode detail: %v\nbody=%s", err, body)
+		}
+		assertNullURL(t, "/rest/v1", obj)
+	})
+
+	t.Run("graphql", func(t *testing.T) {
+		q := fmt.Sprintf(
+			`{"query":"{ ixLans(where:{id: %d}) { edges { node { id ixfIxpMemberListURL ixfIxpMemberListURLVisible } } } }"}`,
+			publicNullID,
+		)
+		body, status := mustPostJSON(t, fix.server.URL+"/graphql", q)
+		if status != http.StatusOK {
+			t.Fatalf("POST /graphql: status=%d; body=%s", status, body)
+		}
+		node := extractGraphQLFirstIxLan(t, body)
+		if got, present := node["ixfIxpMemberListURL"]; !present || got != nil {
+			t.Errorf("url = %#v (present=%v), want null", got, present)
+		}
+		if v, _ := node["ixfIxpMemberListURLVisible"].(string); v != "Public" {
+			t.Errorf("_visible = %q, want %q", v, "Public")
+		}
+	})
+
+	t.Run("connectrpc", func(t *testing.T) {
+		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		resp, err := cl.GetIxLan(t.Context(), &pbv1.GetIxLanRequest{Id: publicNullID})
+		if err != nil {
+			t.Fatalf("GetIxLan: %v", err)
+		}
+		if resp.IxLan.IxfIxpMemberListUrl != nil {
+			t.Errorf("NULL url sent a wrapper = %v, want nil", resp.IxLan.IxfIxpMemberListUrl)
+		}
+		if got := resp.IxLan.IxfIxpMemberListUrlVisible.GetValue(); got != "Public" {
+			t.Errorf("_visible = %q, want %q", got, "Public")
+		}
+	})
+
+	// The raw ConnectRPC handler gets a context with no tier stamp.
+	// privfield.Redact must fail closed for the Users row.
+	t.Run("fail-closed-bypass-middleware", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req, err := http.NewRequestWithContext(
+			context.Background(), // deliberate: no tier stamp on ctx
+			http.MethodPost,
+			fix.rawIxLanPath+"GetIxLan",
+			strings.NewReader(`{"id":`+strconv.Itoa(usersNullID)+`}`),
+		)
+		if err != nil {
+			t.Fatalf("build request: %v", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		fix.rawIxLanHandler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("handler status = %d (body=%s), want 200", rec.Code, rec.Body.String())
+		}
+		var resp struct {
+			IxLan map[string]any `json:"ixLan"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("decode: %v\nbody=%s", err, rec.Body.String())
+		}
+		if got, present := resp.IxLan["ixfIxpMemberListUrl"]; present {
+			t.Errorf("unstamped ctx sent url = %#v; want no wrapper", got)
+		}
+		if v, _ := resp.IxLan["ixfIxpMemberListUrlVisible"].(string); v != "Users" {
+			t.Errorf("_visible = %q, want %q\nbody=%s", v, "Users", rec.Body.String())
+		}
+	})
 }
 
 // =============================================================================

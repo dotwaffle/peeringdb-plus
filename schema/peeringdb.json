@@ -1269,11 +1269,11 @@
           "type": "string",
           "max_length": 255,
           "required": false,
-          "nullable": false,
+          "nullable": true,
           "read_only": false,
           "deprecated": false,
           "help_text": "IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.",
-          "default": ""
+          "default": null
         },
         "ixf_ixp_import_enabled": {
           "type": "boolean",

@@ -293,10 +293,6 @@ func (_c *IxLanCreate) defaults() {
 		v := ixlan.DefaultIxfIxpImportEnabled
 		_c.mutation.SetIxfIxpImportEnabled(v)
 	}
-	if _, ok := _c.mutation.IxfIxpMemberListURL(); !ok {
-		v := ixlan.DefaultIxfIxpMemberListURL
-		_c.mutation.SetIxfIxpMemberListURL(v)
-	}
 	if _, ok := _c.mutation.IxfIxpMemberListURLVisible(); !ok {
 		v := ixlan.DefaultIxfIxpMemberListURLVisible
 		_c.mutation.SetIxfIxpMemberListURLVisible(v)
@@ -392,7 +388,7 @@ func (_c *IxLanCreate) createSpec() (*IxLan, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := _c.mutation.IxfIxpMemberListURL(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpMemberListURL, field.TypeString, value)
-		_node.IxfIxpMemberListURL = value
+		_node.IxfIxpMemberListURL = &value
 	}
 	if value, ok := _c.mutation.IxfIxpMemberListURLVisible(); ok {
 		_spec.SetField(ixlan.FieldIxfIxpMemberListURLVisible, field.TypeString, value)

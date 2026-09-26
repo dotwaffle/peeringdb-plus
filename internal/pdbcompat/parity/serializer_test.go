@@ -16,6 +16,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
@@ -32,14 +33,18 @@ func TestParity_Serializer(t *testing.T) {
 
 	t0 := time.Date(2026, 9, 23, 12, 0, 0, 0, time.UTC)
 
-	// seedIxfURLRows seeds one ix with four ixlans that differ only in
-	// the IX-F member list URL and its visibility, and one ixpfx on the
-	// empty Public ixlan.
+	// seedIxfURLRows seeds one ix with seven ixlans that differ only in
+	// the IX-F member list URL and its visibility, one ixpfx on the empty
+	// Public ixlan and one ixpfx on the NULL Public ixlan. A nil url
+	// leaves the setter out, which stores NULL.
 	const (
 		publicEmpty  = 1
 		usersEmpty   = 2
 		privateEmpty = 3
 		publicURL    = 4
+		publicNull   = 5
+		usersNull    = 6
+		privateNull  = 7
 		urlValue     = "https://ixf.example.test/members.json"
 	)
 	seedIxfURLRows := func(t *testing.T) *ent.Client {
@@ -51,60 +56,71 @@ func TestParity_Serializer(t *testing.T) {
 		for _, r := range []struct {
 			id      int
 			visible string
-			url     string
+			url     *string
 		}{
-			{publicEmpty, "Public", ""},
-			{usersEmpty, "Users", ""},
-			{privateEmpty, "Private", ""},
-			{publicURL, "Public", urlValue},
+			{publicEmpty, "Public", new("")},
+			{usersEmpty, "Users", new("")},
+			{privateEmpty, "Private", new("")},
+			{publicURL, "Public", new(urlValue)},
+			{publicNull, "Public", nil},
+			{usersNull, "Users", nil},
+			{privateNull, "Private", nil},
 		} {
 			c.IxLan.Create().
 				SetID(r.id).SetIxID(1).
 				SetIxfIxpMemberListURLVisible(r.visible).
-				SetIxfIxpMemberListURL(r.url).
+				SetNillableIxfIxpMemberListURL(r.url).
 				SetStatus("ok").SetCreated(t0).SetUpdated(t0).
 				SaveX(ctx)
 		}
 		mustIxPfx(ctx, t, c, 1, "192.0.2.0/24", publicEmpty, t0)
+		mustIxPfx(ctx, t, c, 2, "198.51.100.0/24", publicNull, t0)
 		return c
+	}
+
+	// keyAbsent in a want map means "the key is not in the object". A
+	// nil want means the key is present with JSON null.
+	type keyAbsent struct{}
+	checkIxfURL := func(t *testing.T, where string, want map[int]any, row map[string]any, needVisible bool) {
+		t.Helper()
+		id := int(row["id"].(float64))
+		w, tracked := want[id]
+		if !tracked {
+			t.Errorf("%s: unexpected ixlan id %d", where, id)
+			return
+		}
+		if _, ok := row["ixf_ixp_member_list_url_visible"]; needVisible && !ok {
+			t.Errorf("%s ixlan %d: _visible key missing", where, id)
+		}
+		got, present := row["ixf_ixp_member_list_url"]
+		_, wantAbsent := w.(keyAbsent)
+		switch {
+		case wantAbsent && present:
+			t.Errorf("%s ixlan %d: url key present (%#v), want absent", where, id, got)
+		case !wantAbsent && !present:
+			t.Errorf("%s ixlan %d: url key absent, want %#v", where, id, w)
+		case !wantAbsent && got != w:
+			t.Errorf("%s ixlan %d: url = %#v, want %#v", where, id, got, w)
+		}
 	}
 
 	t.Run("ixlan_ixf_url_key_follows_permission", func(t *testing.T) {
 		t.Parallel()
-		// upstream: permissions.py:344-353 at 2.83.0 (handle_ixlan deletes
-		// ixf_ixp_member_list_url only when the caller does not have the
-		// permission for its visibility). The captured beta anon response
-		// has a Public ixlan with "ixf_ixp_member_list_url": "".
+		// upstream: permissions.py:344-353 (key deleted only without
+		// permission); DRF serializers.py:548-550 (None renders null).
+		// The captured beta anon response has a Public ixlan with
+		// "ixf_ixp_member_list_url": "".
 		c := seedIxfURLRows(t)
 		srv := newTestServer(t, c)
 
-		// want: ixlan id -> the URL value, or nil for "key absent".
 		want := map[int]any{
 			publicEmpty:  "",
-			usersEmpty:   nil,
-			privateEmpty: nil,
+			usersEmpty:   keyAbsent{},
+			privateEmpty: keyAbsent{},
 			publicURL:    urlValue,
-		}
-		check := func(t *testing.T, where string, row map[string]any) {
-			t.Helper()
-			id := int(row["id"].(float64))
-			w, tracked := want[id]
-			if !tracked {
-				t.Errorf("%s: unexpected ixlan id %d", where, id)
-				return
-			}
-			if _, ok := row["ixf_ixp_member_list_url_visible"]; !ok {
-				t.Errorf("%s ixlan %d: _visible key missing", where, id)
-			}
-			got, present := row["ixf_ixp_member_list_url"]
-			switch {
-			case w == nil && present:
-				t.Errorf("%s ixlan %d: url key present (%#v), want absent", where, id, got)
-			case w != nil && !present:
-				t.Errorf("%s ixlan %d: url key absent, want %#v", where, id, w)
-			case w != nil && got != w:
-				t.Errorf("%s ixlan %d: url = %#v, want %#v", where, id, got, w)
-			}
+			publicNull:   nil,
+			usersNull:    keyAbsent{},
+			privateNull:  keyAbsent{},
 		}
 
 		status, body := httpGet(t, srv, "/api/ixlan")
@@ -116,7 +132,7 @@ func TestParity_Serializer(t *testing.T) {
 			t.Fatalf("list returned %d rows, want %d", len(rows), len(want))
 		}
 		for _, row := range rows {
-			check(t, "list", row)
+			checkIxfURL(t, "list", want, row, true)
 		}
 
 		for id := range want {
@@ -124,7 +140,7 @@ func TestParity_Serializer(t *testing.T) {
 			if status != http.StatusOK {
 				t.Fatalf("detail %d status = %d; body=%s", id, status, body)
 			}
-			check(t, "detail", decodeDataArray(t, body)[0])
+			checkIxfURL(t, "detail", want, decodeDataArray(t, body)[0], true)
 		}
 
 		status, body = httpGet(t, srv, "/api/ix/1?depth=2")
@@ -136,48 +152,107 @@ func TestParity_Serializer(t *testing.T) {
 			t.Fatalf("ix.ixlan_set has %d rows, want %d", len(set), len(want))
 		}
 		for _, e := range set {
-			check(t, "ix.ixlan_set", e.(map[string]any))
+			checkIxfURL(t, "ix.ixlan_set", want, e.(map[string]any), true)
 		}
 
-		status, body = httpGet(t, srv, "/api/ixpfx/1?depth=2")
+		for _, pfx := range []int{1, 2} {
+			path := fmt.Sprintf("/api/ixpfx/%d?depth=2", pfx)
+			status, body = httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Fatalf("%s: status = %d; body=%s", path, status, body)
+			}
+			lan, ok := decodeDataArray(t, body)[0]["ixlan"].(map[string]any)
+			if !ok {
+				t.Fatalf("%s: no ixlan object; body=%s", path, body)
+			}
+			checkIxfURL(t, "ixpfx.ixlan", want, lan, true)
+		}
+
+		// ?fields= keeps the URL key and its value. Only the URL key is
+		// checked: upstream also re-adds _visible here (row N5).
+		status, body = httpGet(t, srv, "/api/ixlan?fields=id,ixf_ixp_member_list_url")
 		if status != http.StatusOK {
-			t.Fatalf("ixpfx detail status = %d; body=%s", status, body)
+			t.Fatalf("fields list status = %d; body=%s", status, body)
 		}
-		lan, ok := decodeDataArray(t, body)[0]["ixlan"].(map[string]any)
-		if !ok {
-			t.Fatalf("ixpfx detail has no ixlan object; body=%s", body)
+		for _, row := range decodeDataArray(t, body) {
+			checkIxfURL(t, "fields list", want, row, false)
 		}
-		check(t, "ixpfx.ixlan", lan)
 	})
 
-	t.Run("DIVERGENCE_ixf_url_empty_value", func(t *testing.T) {
+	t.Run("ixf_url_users_tier_renders_stored_value", func(t *testing.T) {
 		t.Parallel()
-		// upstream: permissions.py:344-353 at 2.83.0 keeps the key for a
-		// caller with the permission. The model column is nullable
-		// (django-peeringdb abstract.py:819-824), so an empty URL renders
-		// as null or "" as stored. The mirror stores both as "": a Public
-		// row renders "", and an empty Users row omits the key at every
-		// tier, because an anonymous sync stores "" for every Users row.
+		// upstream: pdb_api_test.py:1442-1449 (a user sees Public and
+		// Users URLs); permissions.py:344-353. The stored value renders
+		// as is: "" stays "" and NULL renders null.
 		c := seedIxfURLRows(t)
 		srv := newTierTestServer(t, c, privctx.TierUsers)
 
+		want := map[int]any{
+			publicEmpty:  "",
+			usersEmpty:   "",
+			privateEmpty: keyAbsent{},
+			publicURL:    urlValue,
+			publicNull:   nil,
+			usersNull:    nil,
+			privateNull:  keyAbsent{},
+		}
 		status, body := httpGet(t, srv, "/api/ixlan")
 		if status != http.StatusOK {
 			t.Fatalf("list status = %d, want 200; body=%s", status, body)
 		}
-		for _, row := range decodeDataArray(t, body) {
-			id := int(row["id"].(float64))
-			got, present := row["ixf_ixp_member_list_url"]
-			switch id {
-			case publicEmpty:
-				if got != "" {
-					t.Errorf("Public empty row: url = %#v (present=%v), want \"\"", got, present)
-				}
-			case usersEmpty:
-				if present {
-					t.Errorf("Users empty row at TierUsers: url key present (%#v), want absent", got)
-				}
-			}
+		rows := decodeDataArray(t, body)
+		if len(rows) != len(want) {
+			t.Fatalf("list returned %d rows, want %d", len(rows), len(want))
+		}
+		for _, row := range rows {
+			checkIxfURL(t, "list", want, row, true)
+		}
+
+		status, body = httpGet(t, srv, "/api/ix/1?depth=2")
+		if status != http.StatusOK {
+			t.Fatalf("ix detail status = %d; body=%s", status, body)
+		}
+		set, _ := decodeDataArray(t, body)[0]["ixlan_set"].([]any)
+		if len(set) != len(want) {
+			t.Fatalf("ix.ixlan_set has %d rows, want %d", len(set), len(want))
+		}
+		for _, e := range set {
+			checkIxfURL(t, "ix.ixlan_set", want, e.(map[string]any), true)
+		}
+	})
+
+	t.Run("DIVERGENCE_ixf_url_users_row_null_after_anonymous_sync", func(t *testing.T) {
+		t.Parallel()
+		// upstream: an authenticated caller gets the stored value
+		// (permissions.py:344-353); an anonymous sync never receives it,
+		// so the mirror renders null. Registered in docs/API.md § Known
+		// Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "IXF Org", t0)
+		mustIX(ctx, t, c, 1, "IXF IX", 1, t0)
+
+		// An anonymous sync receives a Users row without the URL key.
+		raw := `{"id":10,"ix_id":1,"name":"","descr":"","mtu":1500,` +
+			`"ixf_ixp_member_list_url_visible":"Users",` +
+			`"created":"2026-09-23T12:00:00Z","updated":"2026-09-23T12:00:00Z","status":"ok"}`
+		var il peeringdb.IxLan
+		if err := json.Unmarshal([]byte(raw), &il); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		c.IxLan.Create().
+			SetID(il.ID).SetIxID(il.IXID).
+			SetIxfIxpMemberListURLVisible(il.IXFIXPMemberListURLVisible).
+			SetNillableIxfIxpMemberListURL(il.IXFIXPMemberListURL).
+			SetStatus(il.Status).SetCreated(il.Created).SetUpdated(il.Updated).
+			SaveX(ctx)
+
+		srv := newTierTestServer(t, c, privctx.TierUsers)
+		row := listDepthRow(t, srv, "/api/ixlan/10")
+		got, present := row["ixf_ixp_member_list_url"]
+		if !present || got != nil {
+			t.Errorf("Users row after an anonymous sync: url = %#v (present=%v), want null (divergence canary)", got, present)
 		}
 	})
 
@@ -563,8 +638,22 @@ func TestParity_Serializer(t *testing.T) {
 		// ends in _set and every nested object on a detail, and a plain
 		// field that ends in _set (net irr_as_set) on a list. See
 		// docs/API.md § Known Divergences.
+		// For an ixlan, upstream IXLanSerializer.to_representation adds
+		// ixf_ixp_member_list_url_visible back whenever the URL is in the
+		// output (serializers.py:4319-4337), and handle_ixlan removes it
+		// again only when the URL and _visible are the only keys left
+		// (permissions.py:355-372). The mirror never adds _visible back.
 		// This test ASSERTS the divergence (it is NOT a parity match).
-		srv := newTestServer(t, seedListDepthShapes(t, t0))
+		c := seedListDepthShapes(t, t0)
+		ctx := t.Context()
+		c.IxLan.Create().SetID(20).SetIxID(1).
+			SetIxfIxpMemberListURLVisible("Public").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.IxLan.Create().SetID(21).SetIxID(1).
+			SetIxfIxpMemberListURLVisible("Users").
+			SetIxfIxpMemberListURL("https://ixf.example.test/21.json").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
 		for _, tc := range []struct {
 			path string
 			want []string
@@ -574,6 +663,13 @@ func TestParity_Serializer(t *testing.T) {
 			{"/api/net?id=1&fields=name", []string{"id", "irr_as_set", "name"}},
 			// Upstream: [name]. Detail defaults to depth 2.
 			{"/api/net/1?fields=name", []string{"id", "irr_as_set", "name", "netfac_set", "netixlan_set", "org", "poc_set"}},
+			// Upstream: [ixf_ixp_member_list_url].
+			{"/api/ixlan?id=20&fields=ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url"}},
+			// Upstream: [id, ixf_ixp_member_list_url, ixf_ixp_member_list_url_visible].
+			{"/api/ixlan?id=20&fields=id,ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url"}},
+			// Anonymous caller, Users row. Upstream:
+			// [ixf_ixp_member_list_url_visible].
+			{"/api/ixlan?id=21&fields=ixf_ixp_member_list_url", []string{"id"}},
 		} {
 			if got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path))); !slices.Equal(got, tc.want) {
 				t.Errorf("%s: keys = %v, want %v (divergence canary)", tc.path, got, tc.want)

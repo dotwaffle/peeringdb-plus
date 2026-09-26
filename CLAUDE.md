@@ -67,18 +67,19 @@ Two ent fields carry upstream PeeringDB visibility signals:
 
 ### Field-level privacy
 
-`internal/privfield.Redact[T any](ctx, visible string, value T) (out T, omit bool)` is the single source of truth (T is the stored type of the gated value).
+`internal/privfield.Redact[T any](ctx, visible string, value T) (out T, omit bool)` is the single source of truth (T is the stored type of the gated value, `*string` for the nullable ixlan URL).
 Every API serializer calls it for each gated field; `privctx.TierFrom(ctx)` reads the tier stamped by `middleware.PrivacyTier`, and unstamped contexts fail-closed to `TierPublic`.
 Serializer surfaces that must call `Redact` today:
 
-- **pdbcompat** — `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)` → `ixfMemberListURLOut`; the pdbcompat-local `ixLanResponse` carries the URL as `*string` + `,omitempty`, so Redact's `omit` flag (not the value) decides the key: an admitted empty value keeps the key with `""` (upstream `permissions.py:344-353`).
-  Exception: an empty `Users` value omits the key at every tier (an anonymous sync stores `""` for every `Users` row).
-  `peeringdb.IxLan` stays a plain string: it decodes sync input.
-- **ConnectRPC** — `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)`; nil `*wrapperspb.StringValue` → wire omission.
+- **pdbcompat**: `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)` → `ixfMemberListURLOut`; the pdbcompat-local `ixLanResponse` carries the URL as `**string` + `,omitempty`, so Redact's `omit` flag (not the value) decides the key: an admitted value renders as stored, NULL as `null` and `""` as `""` (upstream `permissions.py:344-353`; DRF renders None as null).
+  The column is nillable (`schema/peeringdb.json` `"nullable": true, "default": null`): sync stores JSON `null` and an absent key as NULL (`peeringdb.IxLan` decodes into `*string`), so without an API key every `Users` row is NULL (`DIVERGENCE_ixf_url_users_row_null_after_anonymous_sync`).
+  Legacy `""` rows turn NULL on the next full cycle (`NULL IS NOT ''` in `writeRowDiffers`).
+- **ConnectRPC**: `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)`; nil `*wrapperspb.StringValue` → wire omission; NULL and `""` send no wrapper (proto comment in `v1.proto`).
   Convert closures at `ListIxLans` / `StreamIxLans` capture `ctx` via an adapter so the generic pagination helper's `Convert func(*E) *P` signature stays intact.
-- **GraphQL** — `graph/gqlgen.yml` opts `IxLan.ixfIxpMemberListURL` into a custom resolver; `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns `nil` (GraphQL `null`) when `omit=true`.
+- **GraphQL**: `graph/gqlgen.yml` opts `IxLan.ixfIxpMemberListURL` into a custom resolver; `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns `nil` (GraphQL `null`) when `omit=true`; an admitted NULL value is also `null`.
 - **entrest**: `internal/middleware` `RESTFieldRedact` buffers ALL `/rest/v1/` responses except `/rest/v1/openapi.json` and walks the JSON recursively; in every object carrying the `_visible` companion it deletes the gated key when `Redact` returns `omit=true` (entrest eager-loads the ixlan edge unconditionally, so the gated field also appears under `edges.ix_lans`/`edges.ix_lan` on internet-exchange, ix-prefix, and network-ix-lan responses; path-scoping to `/rest/v1/ix-lans*` leaked it, fixed 2026-06-10).
   Wraps INSIDE `middleware.RESTError` so `application/problem+json` error bodies pass through untouched.
+  A NULL value renders `null`.
 - **Web UI** — no current render path for the URL; when/if one is added, call `privfield.Redact` in the template data preparation step.
 - **MCP**: no current path.
   Most tools return `internal/catalog` DTOs; `lookup_ip` (`internal/mcpserver/server.go`) returns raw ent `NetworkIxLan`/`IxPrefix` rows via their ent JSON tags, so a gated field added to those entities leaks there even if no DTO carries it.
@@ -95,6 +96,7 @@ New auth-gated fields use `field.String` (not `Enum`); `internal/visbaseline/sch
 
 **Schema hygiene drop procedure.**
 `migrate.WithDropColumn(true)` + `migrate.WithDropIndex(true)` are permanently on.
+A column change that SQLite cannot ALTER (default, nullability) rebuilds the table; the children's `ON DELETE SET NULL` FKs stay intact only because ent turns `foreign_keys` off on the pooled connection that then runs the migration tx, so nothing may use the pool before `Schema.Create` at startup (`TestSchemaCreate_IxLanRebuildKeepsChildFKs`).
 To drop an ent field, edit `schema/peeringdb.json`, run `go generate ./...`, remove references across `internal/{peeringdb,pdbcompat,grpcserver,sync}`, regenerate goldens (`go test -update ./internal/pdbcompat ./internal/sync`), deploy.
 See `docs/DEVELOPMENT.md` for the full step list.
 

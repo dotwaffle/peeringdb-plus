@@ -431,14 +431,12 @@ When a new PeeringDB field gains a `<field>_visible` companion (or you introduce
    - **pdbcompat:** `internal/pdbcompat/serializer.go` in the relevant `<entity>FromEnt(ctx, e)` function.
      On `/api`, the permission decides the key, not the value (upstream 2.83.0 `permissions.py:344-353`).
      Render a pdbcompat-local output struct.
-     Give its value field the type `*string` and the `,omitempty` JSON tag.
+     For a nullable value, give its field the type `**string` and the `,omitempty` JSON tag (`*string` for a non-nullable one).
      Set the field to `nil` when `Redact` returns `omit=true`.
-     Also set it to `nil` when the value is empty and `_visible` is not `Public`.
-     An anonymous sync stores `""` for every gated row, so `""` there does not mean that the value is empty.
-     In all other cases, emit the stored value, also when it is `""`.
+     Otherwise emit the stored value: `null` for NULL, and `""` for `""`.
      Do not use a plain `string` with `,omitempty`.
      That drops the key for an empty value that the caller may see.
-     The `peeringdb.<Type>` decode struct keeps its plain `string`, because sync decodes upstream input into it.
+     If upstream can send `null`, mark the field `"nullable": true, "default": null` in `schema/peeringdb.json` and decode it into a `*string` in `peeringdb.<Type>`: sync then stores `null` and an absent key as NULL.
      `ixLanResponse` and `ixfMemberListURLOut` are the worked example.
    - **ConnectRPC:** `internal/grpcserver/<entity>.go` in the proto conversion function.
      Wrap the closure passed to the generic pagination helper so `ctx` is captured (the helper signature stays `Convert func(*E) *P`).
@@ -458,7 +456,8 @@ When a new PeeringDB field gains a `<field>_visible` companion (or you introduce
 5. **E2E tests:** extend the `TestE2E_FieldLevel_IxlanURL_*` functions in `cmd/peeringdb-plus/field_privacy_e2e_test.go`, or add a set like them.
    `TestE2E_FieldLevel_IxlanURL_RedactedAnon` and `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` have sub-tests for `/api`, `/rest/v1/`, ConnectRPC, and GraphQL, and a skipped `webui` sub-test.
    `RedactedAnon` also has the `fail-closed-bypass-middleware` check against the ConnectRPC handler.
-   `TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey` locks the `/api` key rule for an empty value.
+   `TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey` locks the `/api` key rule for an empty or NULL value.
+   `TestE2E_FieldLevel_IxlanURL_NullStored` locks a NULL value on each surface.
    If the Web UI shows the field, make the `webui` sub-tests check the page.
    If MCP shows the field, add an MCP sub-test.
 

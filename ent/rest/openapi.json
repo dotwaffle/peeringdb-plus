@@ -8188,8 +8188,8 @@
 						"type": "boolean"
 					},
 					"ixf_ixp_member_list_url": {
-						"default": "",
 						"description": "IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it.",
+						"nullable": true,
 						"type": "string"
 					},
 					"ixf_ixp_member_list_url_visible": {
