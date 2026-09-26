@@ -200,6 +200,10 @@ var reservedParams = map[string]bool{
 	"format": true,
 	// _ctf applies a date filter to the rows of every _set (ctf.go).
 	ctfParam: true,
+	// page and per_page select a page of the list (page.go). They name
+	// no field, so the upstream filter loop ignores them.
+	pageParam:    true,
+	perPageParam: true,
 }
 
 // Registry maps PeeringDB type name strings to their TypeConfig.

@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -333,6 +334,143 @@ func TestParity_Limit(t *testing.T) {
 		if _, body := httpGet(t, newTestServer(t, c), "/api/net"); bytes.Contains(body, []byte(`"generated"`)) {
 			t.Errorf("no clock: body has meta.generated: %s", headBody(body, 300))
 		}
+	})
+
+	t.Run("page_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:790-806 paginates the list when the
+		// query has the page key (UnlimitedIfNoPagePagination,
+		// pagination.py:20-40), after get_queryset has sliced by skip
+		// and limit. per_page is DRF page_size_query_param, capped at
+		// 250 (PAGE_SIZE). meta.pagination is build_pagination_meta
+		// (pagination.py:87-99), and the links are DRF
+		// replace_query_param / remove_query_param. A page that does
+		// not exist is DRF NotFound "Invalid page." (DRF
+		// pagination.py:186-207). The API cache path paginates only a
+		// page value that is not empty (api_cache.py:146).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "PageNet", 7)
+		clock := &pdbcompat.SyncClock{}
+		clock.Set(time.Date(2026, 9, 27, 6, 0, 0, 0, time.UTC))
+		h := pdbcompat.NewHandler(c, 0)
+		h.SetSyncClock(clock)
+		mux := http.NewServeMux()
+		h.Register(mux)
+		srv := httptest.NewServer(mux)
+		t.Cleanup(srv.Close)
+		link := func(q string) any { return srv.URL + "/api/net" + q }
+		for _, tc := range []struct {
+			path       string
+			ids        []int
+			pagination map[string]any // nil: no meta.pagination
+			generated  bool
+		}{
+			{"/api/net?name=PageNet&page=1&per_page=3", []int{1, 2, 3}, map[string]any{
+				"count": 7.0, "has_next": true, "has_previous": false,
+				"next": link("?name=PageNet&page=2&per_page=3"), "previous": nil,
+				"page": 1.0, "per_page": 3.0, "total_pages": 3.0,
+			}, false},
+			{"/api/net?per_page=3&page=2", []int{4, 5, 6}, map[string]any{
+				"count": 7.0, "has_next": true, "has_previous": true,
+				"next": link("?page=3&per_page=3"), "previous": link("?per_page=3"),
+				"page": 2.0, "per_page": 3.0, "total_pages": 3.0,
+			}, true},
+			{"/api/net?page=last&per_page=3", []int{7}, map[string]any{
+				"count": 7.0, "has_next": false, "has_previous": true,
+				"next": nil, "previous": link("?page=2&per_page=3"),
+				"page": 3.0, "per_page": 3.0, "total_pages": 3.0,
+			}, true},
+			// per_page 0, a negative or a non-integer value is 250.
+			{"/api/net?page=1&per_page=0", []int{1, 2, 3, 4, 5, 6, 7}, map[string]any{
+				"count": 7.0, "has_next": false, "has_previous": false,
+				"next": nil, "previous": nil,
+				"page": 1.0, "per_page": 250.0, "total_pages": 1.0,
+			}, true},
+			// The page applies to the rows after skip and limit.
+			{"/api/net?name=PageNet&skip=2&limit=4&page=2&per_page=3", []int{6}, map[string]any{
+				"count": 4.0, "has_next": false, "has_previous": true,
+				"next": nil, "previous": link("?limit=4&name=PageNet&per_page=3&skip=2"),
+				"page": 2.0, "per_page": 3.0, "total_pages": 2.0,
+			}, false},
+			// An empty page value is page 1 on the live path, and no
+			// pagination on the API cache path.
+			{"/api/net?name=PageNet&page=", []int{1, 2, 3, 4, 5, 6, 7}, map[string]any{
+				"count": 7.0, "has_next": false, "has_previous": false,
+				"next": nil, "previous": nil,
+				"page": 1.0, "per_page": 250.0, "total_pages": 1.0,
+			}, false},
+			{"/api/net?page=", []int{1, 2, 3, 4, 5, 6, 7}, nil, true},
+			// An empty list has one page. The unique-query 404 does not
+			// apply.
+			{"/api/net?asn=1&page=1", []int{}, map[string]any{
+				"count": 0.0, "has_next": false, "has_previous": false,
+				"next": nil, "previous": nil,
+				"page": 1.0, "per_page": 250.0, "total_pages": 1.0,
+			}, false},
+		} {
+			ids, meta := getDepthList(t, srv, tc.path)
+			if !slices.Equal(ids, tc.ids) {
+				t.Errorf("%s: ids = %v, want %v", tc.path, ids, tc.ids)
+			}
+			got, has := meta["pagination"]
+			switch {
+			case tc.pagination == nil && has:
+				t.Errorf("%s: meta.pagination = %v, want none", tc.path, got)
+			case tc.pagination != nil && !reflect.DeepEqual(got, tc.pagination):
+				t.Errorf("%s: meta.pagination = %v, want %v", tc.path, got, tc.pagination)
+			}
+			if _, has := meta["generated"]; has != tc.generated {
+				t.Errorf("%s: meta.generated present = %v, want %v", tc.path, has, tc.generated)
+			}
+		}
+		for _, path := range []string{
+			"/api/net?page=4&per_page=3",
+			"/api/net?page=0",
+			"/api/net?page=-1",
+			"/api/net?page=abc",
+			"/api/net?page=1.0",
+			"/api/net?asn=1&page=2",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusNotFound {
+				t.Errorf("%s: status = %d, want 404; body=%s", path, status, headBody(body, 300))
+				continue
+			}
+			if m := mustDecodeMetaError(t, body); m.Error != "Invalid page." {
+				t.Errorf("%s: meta.error = %q, want %q", path, m.Error, "Invalid page.")
+			}
+			if bytes.Contains(body, []byte(`"data"`)) || bytes.Contains(body, []byte(`"generated"`)) {
+				t.Errorf("%s: body = %s, want meta.error only", path, headBody(body, 300))
+			}
+		}
+	})
+
+	t.Run("page_after_depth_truncation", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:757-772 cuts a live depth list to 250
+		// rows in get_queryset, so the page count is 250 and
+		// meta.truncated stays next to meta.pagination, also on the 404
+		// (the NotFound comes after get_queryset, renderers.py:111-118).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "PageDepth", 260)
+		srv := newTestServer(t, c)
+		ids, meta := getDepthList(t, srv, "/api/net?name=PageDepth&depth=1&page=2&per_page=200")
+		if len(ids) != 50 || ids[0] != 201 || ids[49] != 250 {
+			t.Errorf("ids = %d rows [%v..], want ids 201..250", len(ids), ids[:min(len(ids), 3)])
+		}
+		assertTruncated(t, meta, "1")
+		pg, _ := meta["pagination"].(map[string]any)
+		if pg["count"] != 250.0 || pg["total_pages"] != 2.0 {
+			t.Errorf("meta.pagination = %v, want count 250, total_pages 2", pg)
+		}
+		status, body := httpGet(t, srv, "/api/net?name=PageDepth&depth=1&page=3&per_page=200")
+		if status != http.StatusNotFound {
+			t.Fatalf("page 3: status = %d, want 404", status)
+		}
+		if m := mustDecodeMetaError(t, body); m.Error != "Invalid page." {
+			t.Errorf("page 3: meta.error = %q", m.Error)
+		}
+		assertTruncated(t, decodeListMeta(t, body), "1")
 	})
 
 	t.Run("list_depth_ignored_keys_not_truncated", func(t *testing.T) {

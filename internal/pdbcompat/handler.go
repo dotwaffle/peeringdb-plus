@@ -356,13 +356,7 @@ func formatAccepted(suffix string, params url.Values) bool {
 // Upstream lists as_set last in router order (rest.py:1598); the Go map
 // encodes the keys in sorted order, and JSON object order has no meaning.
 func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
-	scheme := "https"
-	if xfp := r.Header.Get("X-Forwarded-Proto"); xfp != "" {
-		scheme = xfp
-	} else if r.TLS == nil {
-		scheme = "http"
-	}
-	base := scheme + "://" + r.Host + "/api/"
+	base := requestScheme(r) + "://" + r.Host + "/api/"
 
 	types := make(map[string]string, len(Registry)+1)
 	for name := range Registry {
@@ -481,7 +475,18 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	live := depth > 0 && depthListIsLive(lf, params, q, suffixed)
 	// A list that upstream serves from its API cache carries
 	// meta.generated (servedFromCache).
-	baseMeta := h.listMeta(servedFromCache(lf, params, q, suffixed, depth, limit))
+	cached := servedFromCache(lf, params, q, suffixed, depth, limit)
+	baseMeta := h.listMeta(cached)
+	// ?page= narrows opts to the rows of the page and applies the depth
+	// cut first, so the paths below serve the page as a list that is
+	// not live.
+	if value, ok := pageValue(params, cached); ok {
+		baseMeta, ok = h.paginateList(w, r, tc, &opts, value, live, depthText, baseMeta)
+		if !ok {
+			return
+		}
+		live = false
+	}
 	if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() && depth != 0 {
 		span.SetAttributes(attribute.Int("pdbplus.list.depth", depth))
 	}
@@ -700,7 +705,13 @@ func setListDepthAttrs(ctx context.Context, meta any) {
 	if !span.SpanContext().IsValid() {
 		return
 	}
-	_, truncated := meta.(map[string]string)
+	var truncated bool
+	switch m := meta.(type) {
+	case map[string]string:
+		_, truncated = m["truncated"]
+	case map[string]any:
+		_, truncated = m["truncated"]
+	}
 	span.SetAttributes(attribute.Bool("pdbplus.list.truncated", truncated))
 }
 
@@ -1018,11 +1029,10 @@ func parseRequest(w http.ResponseWriter, r *http.Request, params url.Values, tc 
 // (serializers.py:3815-3820). Only the key counts, whatever its value
 // and whatever the other filters, skip, limit and since are.
 //
-// Upstream skips the 404 when ?page= applies, because the response
-// data is then the pagination object and never empty (rest.py:799-815,
-// pagination.py:35-50). The mirror does not implement ?page=, but it
-// keeps this exception so that a request with ?page= gets the same
-// status as upstream.
+// Upstream skips the 404 when the query has the page key, because the
+// response data is then the pagination object and never empty
+// (rest.py:799-815, pagination.py:35-50). An empty page is a 200 with
+// meta.pagination (paginateList).
 func isUniqueQuery(typeName string, params url.Values) bool {
 	if params.Has("page") {
 		return false

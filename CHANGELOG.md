@@ -10,6 +10,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Added
 
+- pdbcompat lists support `?page=` and `?per_page=` as upstream does: one page of up to 250 rows, `meta.pagination` with the `next` and `previous` links, and `404` `Invalid page.` for a page that does not exist.
+  Before, pdbcompat ignored both keys and served the whole list.
 - pdbcompat sends `meta.generated` on the lists that upstream serves from its API cache, as upstream does: no filter, no `since`, no format suffix, and at depth 0 no limit from 1 to 250.
   The value is the completion time of the newest successful sync of the node, in Unix seconds.
   Before, `meta` was always empty on these lists.
