@@ -16,7 +16,9 @@ import (
 // The sampler is called exactly TWICE per request:
 //  1. In dispatch, right after the Registry lookup (via
 //     memStatsHeapInuseBytes), to capture the baseline HeapInuse — this
-//     covers both the list and detail paths.
+//     covers both the list and detail paths. dispatch routes
+//     /api/as_set before the Registry lookup, so serveASSet takes the
+//     sample for that path.
 //  2. At the terminal path (via defer recordResponseHeapDelta) to capture
 //     the exit HeapInuse and compute delta.
 //
@@ -66,7 +68,8 @@ func memStatsHeapInuseBytes() int64 {
 //
 // Intended usage: `defer recordResponseHeapDelta(ctx, endpoint, entity,
 // startBytes)` in dispatch after the Registry lookup (after startBytes :=
-// memStatsHeapInuseBytes()). Every terminal path of the list and detail
+// memStatsHeapInuseBytes()), and in serveASSet for /api/as_set, which
+// dispatch routes before the Registry lookup. Every terminal path of the list and detail
 // handlers (200 success, 400 bad parameter or filter error, 404, 413
 // budget-exceeded, 500 query-error, 503 pool-exhausted) triggers exactly
 // one observation via the defer.

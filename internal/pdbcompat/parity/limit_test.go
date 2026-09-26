@@ -145,6 +145,39 @@ func TestParity_Limit(t *testing.T) {
 		}
 	})
 
+	t.Run("as_set_list_over_budget_413", func(t *testing.T) {
+		t.Parallel()
+		// synthesised: response memory budget. The as_set list bills 640
+		// bytes for each entry and ignores limit and skip, so the 413
+		// depends only on the number of entries.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		for i, asn := range []int{64500, 64501} {
+			if _, err := c.Network.Create().
+				SetID(i + 1).SetName("ASSetNet").SetNameFold(unifold.Fold("ASSetNet")).
+				SetAsn(asn).SetIrrAsSet("AS-SET").SetStatus("ok").
+				SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed net %d: %v", i+1, err)
+			}
+		}
+
+		srv := newTestServerWithBudget(t, c, 640)
+		status, body := httpGet(t, srv, "/api/as_set?limit=1")
+		if status != http.StatusRequestEntityTooLarge {
+			t.Fatalf("budget 640: status = %d, want 413; body=%s", status, body)
+		}
+		m := mustDecodeMetaError(t, body)
+		if m.MaxRows != 1 || m.BudgetBytes != 640 {
+			t.Errorf("budget 640: meta max_rows = %d, budget_bytes = %d, want 1 and 640", m.MaxRows, m.BudgetBytes)
+		}
+
+		srv = newTestServerWithBudget(t, c, 1280)
+		if status, body := httpGet(t, srv, "/api/as_set"); status != http.StatusOK {
+			t.Errorf("budget 1280: status = %d, want 200; body=%s", status, body)
+		}
+	})
+
 	t.Run("depth_on_list_silently_dropped_DIVERGENCE", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream rest.py accepts ?depth on list

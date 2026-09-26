@@ -70,9 +70,14 @@ func (h *Handler) Register(mux *http.ServeMux) {
 // (views.py:167-172, exceptions.py:194-196). Upstream lists its write
 // methods in Allow and runs the write handlers (docs/API.md § Known
 // Divergences). The mux sets no Allow header for this pattern, so the
-// handler sets it.
+// handler sets it. The as_set lookup serves only GET upstream (2.83.0
+// rest.py:1399), so its paths get Allow: GET.
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Allow", "GET, HEAD")
+	allow := "GET, HEAD"
+	if typeName, _ := splitTypeID(r.PathValue("rest")); typeName == asSetPath {
+		allow = "GET"
+	}
+	w.Header().Set("Allow", allow)
 	// Concatenate: %q would escape the method a second time.
 	writeError(w, r, apiError{
 		Status: http.StatusMethodNotAllowed,
@@ -96,7 +101,12 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 
 	// A route that is not a Registry type and reads the raw idStr must
 	// branch here, before the Registry lookup: the Registry detail path
-	// below turns an id that is not an integer into a 404.
+	// below turns an id that is not an integer into a 404. The as_set
+	// lookup parses its own ASN and takes its own heap-delta sample.
+	if typeName == asSetPath {
+		h.serveASSet(w, r, idStr)
+		return
+	}
 
 	// Validate type name against Registry.
 	tc, ok := Registry[typeName]
@@ -160,11 +170,10 @@ func splitTypeID(rest string) (typeName, id string) {
 //
 //	{"data": [{"<type>": "<absolute-url>", ...}], "meta": {}}
 //
-// a single object mapping every mirrored type to its absolute list-endpoint
-// URL, built from the request scheme + host. Upstream additionally lists
-// `as_set`, a network-derived AS-SET lookup this mirror does not serve (see
-// docs/API.md § Known Divergences); listing only the 13 served types keeps the
-// index from advertising a dead link.
+// a single object mapping every mirrored type, and the as_set lookup, to
+// its absolute list-endpoint URL, built from the request scheme + host.
+// Upstream lists as_set last in router order (rest.py:1598); the Go map
+// encodes the keys in sorted order, and JSON object order has no meaning.
 func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 	scheme := "https"
 	if xfp := r.Header.Get("X-Forwarded-Proto"); xfp != "" {
@@ -174,10 +183,11 @@ func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	base := scheme + "://" + r.Host + "/api/"
 
-	types := make(map[string]string, len(Registry))
+	types := make(map[string]string, len(Registry)+1)
 	for name := range Registry {
 		types[name] = base + name
 	}
+	types[asSetPath] = base + asSetPath
 	body := struct {
 		Data []map[string]string `json:"data"`
 		Meta map[string]any      `json:"meta"`

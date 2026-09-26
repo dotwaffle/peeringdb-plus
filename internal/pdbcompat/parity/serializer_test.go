@@ -1,10 +1,15 @@
 package parity
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +17,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
+	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
 // TestParity_Serializer locks the field values and keys that the /api
@@ -386,6 +392,227 @@ func TestParity_Serializer(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("as_set_list_maps_ok_networks_with_a_set", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1405-1412, models.py:5699-5705,
+		// renderers.py:123-130 at 2.83.0. The list maps the ASN of each
+		// ok network with a set that is not empty. The mirror sorts by
+		// asn; upstream sends database order, and JSON object order has
+		// no meaning.
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		status, body := httpGet(t, srv, "/api/as_set")
+		if status != http.StatusOK {
+			t.Fatalf("GET /api/as_set: status = %d; body=%s", status, body)
+		}
+		want := map[string]string{"9": "RIPE::AS-NINE", "64500": "AS-ONE", "64504": "AS-ÜNI"}
+		if got := decodeASSetMap(t, body); !maps.Equal(got, want) {
+			t.Errorf("GET /api/as_set: data = %v, want %v", got, want)
+		}
+		assertTopLevelKeys(t, body, "data", "meta")
+		assertMetaKeys(t, body)
+		// Lock the mirror order: asn ascending, not string order.
+		i9 := bytes.Index(body, []byte(`"9":`))
+		i64500 := bytes.Index(body, []byte(`"64500":`))
+		i64504 := bytes.Index(body, []byte(`"64504":`))
+		if i9 < 0 || i64500 < i9 || i64504 < i64500 {
+			t.Errorf("GET /api/as_set: key order is not 9, 64500, 64504: %s", body)
+		}
+	})
+
+	t.Run("as_set_list_empty_is_empty_data_array", func(t *testing.T) {
+		t.Parallel()
+		// upstream: renderers.py:131-132 at 2.83.0. An empty dict is
+		// falsy, so the renderer writes "data": [].
+		c := testutil.SetupClient(t)
+		seedASSetNet(t, c, 2, 64501, "ok", "", t0)
+		seedASSetNet(t, c, 3, 64502, "deleted", "AS-GONE", t0)
+		srv := newTestServer(t, c)
+
+		status, body := httpGet(t, srv, "/api/as_set")
+		if status != http.StatusOK {
+			t.Fatalf("GET /api/as_set: status = %d; body=%s", status, body)
+		}
+		if got := decodeDataArray(t, body); len(got) != 0 {
+			t.Errorf("GET /api/as_set: data = %v, want []", got)
+		}
+	})
+
+	t.Run("as_set_list_ignores_query_parameters", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1411-1412 at 2.83.0. list() does not call
+		// filter_queryset or the pagination, so it reads no parameter.
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		_, bare := httpGet(t, srv, "/api/as_set")
+		path := "/api/as_set?limit=1&skip=5&depth=2&fields=x&since=1&asn=64500&status=deleted&limit=abc&skip=-1&q=zzz"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusOK {
+			t.Fatalf("GET %s: status = %d; body=%s", path, status, body)
+		}
+		if !bytes.Equal(body, bare) {
+			t.Errorf("GET %s: body = %s, want the bare list %s", path, body, bare)
+		}
+	})
+
+	t.Run("as_set_detail_returns_one_pair", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1414-1423 at 2.83.0.
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		for path, want := range map[string]map[string]string{
+			"/api/as_set/64500": {"64500": "AS-ONE"},
+			"/api/as_set/64501": {"64501": ""},
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Errorf("GET %s: status = %d; body=%s", path, status, body)
+				continue
+			}
+			if got := decodeASSetMap(t, body); !maps.Equal(got, want) {
+				t.Errorf("GET %s: data = %v, want %v", path, got, want)
+			}
+		}
+	})
+
+	t.Run("as_set_detail_parses_like_python_int", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1416 at 2.83.0 (int(asn)).
+		// synthesised: CPython int() grammar.
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		want := map[string]string{"64500": "AS-ONE"}
+		for _, v := range []string{
+			"+64500",
+			"064500",
+			"64_500",
+			"%2064500%20",
+			"%0964500",
+			url.PathEscape("٦٤٥٠٠"), // Arabic-Indic digits
+			url.PathEscape("６４５００"), // fullwidth digits
+		} {
+			path := "/api/as_set/" + v
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Errorf("GET %s: status = %d, want 200; body=%s", path, status, body)
+				continue
+			}
+			if got := decodeASSetMap(t, body); !maps.Equal(got, want) {
+				t.Errorf("GET %s: data = %v, want %v", path, got, want)
+			}
+		}
+	})
+
+	t.Run("as_set_detail_invalid_asn_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1417-1420 at 2.83.0. int() raises
+		// ValueError, and the renderer moves detail to meta.error
+		// (renderers.py:134-140).
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		for _, v := range []string{
+			"abc", "AS64500", "64__500", "_64500", "64500_", "%20", "-%2064500",
+			strings.Repeat("1", 4301),
+		} {
+			path := "/api/as_set/" + v
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", path, status, body)
+				continue
+			}
+			assertTopLevelKeys(t, body, "meta")
+			if got := mustDecodeMetaError(t, body).Error; got != "Invalid ASN" {
+				t.Errorf("GET %s: meta.error = %q, want %q", path, got, "Invalid ASN")
+			}
+		}
+	})
+
+	t.Run("as_set_detail_missing_404_empty_body", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1421-1422, renderers.py:106-107 at 2.83.0,
+		// drf response.py:82-83. Response(status=404) has no data, so
+		// the body is empty and DRF drops Content-Type. A negative or
+		// out-of-range ASN finds no row (Django IntegerFieldExact raises
+		// EmptyResultSet).
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		for _, v := range []string{"1", "-64500", "0", "-0", "99999999999999999999999"} {
+			path := "/api/as_set/" + v
+			status, hdr, body := httpDo(t, srv, http.MethodGet, path, nil)
+			if status != http.StatusNotFound {
+				t.Errorf("GET %s: status = %d, want 404; body=%s", path, status, body)
+				continue
+			}
+			if len(body) != 0 {
+				t.Errorf("GET %s: body = %q, want empty", path, body)
+			}
+			if ct := hdr.Get("Content-Type"); ct != "" {
+				t.Errorf("GET %s: Content-Type = %q, want none", path, ct)
+			}
+		}
+	})
+}
+
+// seedASSetNet creates one network for the as_set sub-tests. A network
+// needs no org.
+func seedASSetNet(t *testing.T, c *ent.Client, id, asn int, status, irrAsSet string, ts time.Time) {
+	t.Helper()
+	if _, err := c.Network.Create().
+		SetID(id).SetName("ASSetNet").SetNameFold(unifold.Fold("ASSetNet")).
+		SetAsn(asn).SetIrrAsSet(irrAsSet).SetStatus(status).
+		SetCreated(ts).SetUpdated(ts).
+		Save(t.Context()); err != nil {
+		t.Fatalf("seed net id=%d: %v", id, err)
+	}
+}
+
+// seedASSetNets seeds the common as_set rows: three listable networks
+// (asn 9, 64500, 64504), an ok network with an empty set (64501), a
+// deleted one (64502) and a pending one (64503).
+func seedASSetNets(t *testing.T, c *ent.Client, ts time.Time) {
+	t.Helper()
+	for _, n := range []struct {
+		id, asn          int
+		status, irrAsSet string
+	}{
+		{1, 64500, "ok", "AS-ONE"},
+		{2, 64501, "ok", ""},
+		{3, 64502, "deleted", "AS-GONE"},
+		{4, 64503, "pending", "AS-PEND"},
+		{5, 9, "ok", "RIPE::AS-NINE"},
+		{6, 64504, "ok", "AS-ÜNI"},
+	} {
+		seedASSetNet(t, c, n.id, n.asn, n.status, n.irrAsSet, ts)
+	}
+}
+
+// decodeASSetMap decodes the one object in the data array of an as_set
+// response.
+func decodeASSetMap(t *testing.T, body []byte) map[string]string {
+	t.Helper()
+	var env struct {
+		Data []map[string]string `json:"data"`
+	}
+	if err := json.Unmarshal(body, &env); err != nil {
+		t.Fatalf("decode as_set body: %v; body=%s", err, body)
+	}
+	if len(env.Data) != 1 {
+		t.Fatalf("as_set data has %d objects, want 1; body=%s", len(env.Data), body)
+	}
+	return env.Data[0]
 }
 
 // newTierTestServer is newTestServer with the privacy tier stamped on

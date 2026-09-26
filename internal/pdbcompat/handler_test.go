@@ -702,8 +702,10 @@ func TestIndex(t *testing.T) {
 		t.Fatalf("data must hold exactly one object, got %d", len(env.Data))
 	}
 	types := env.Data[0]
-	if len(types) != 13 {
-		t.Errorf("expected 13 types in index, got %d", len(types))
+	// The 13 types and the as_set lookup, as upstream (2.83.0
+	// rest.py:1341, :1598).
+	if len(types) != 14 {
+		t.Errorf("expected 14 keys in index, got %d: %v", len(types), types)
 	}
 	// The legacy {"<type>":{"list_endpoint":...}} shape must be gone.
 	if _, has := types["list_endpoint"]; has {
@@ -711,7 +713,9 @@ func TestIndex(t *testing.T) {
 	}
 	// Each entry is an absolute URL built from the request host, matching
 	// upstream's full-URL form (httptest defaults to http://example.com).
-	for _, typeName := range []string{"net", "ix", "fac", "org", "poc", "campus", "carrierfac"} {
+	names := slices.Sorted(maps.Keys(Registry))
+	names = append(names, "as_set")
+	for _, typeName := range names {
 		got, ok := types[typeName]
 		if !ok {
 			t.Errorf("missing type %q in index", typeName)

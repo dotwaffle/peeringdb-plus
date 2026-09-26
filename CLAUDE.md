@@ -433,13 +433,19 @@ Invariants:
 `Match` shares the predicate builder, so a detail filter and a list filter are the same SQL.
 `applyStatusMatrix` LAST and the `opts.EmptyResult` short-circuit both live in exactly one place inside `wireEntity` — do not add per-entity closures outside it.
 
-**Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer` in `dispatch` (covers list + detail terminal paths).
+**Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer`: in `dispatch` for the Registry list + detail terminal paths, and in `serveASSet` for `/api/as_set` (routed before the Registry lookup).
 
 **Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (child `COUNT(*)` × child `Depth0` per embedded `_set`, table in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads).
 Changing a depth expansion's set list means updating `detailChildSets` too.
 The 413 check stays flat (`CheckBudget(1, type, depth, …)`) — fan-out feeds only the pool.
 
 **Adding an entity type:** add a `typicalRowBytes` entry to `internal/pdbcompat/rowsize.go` (bench via `BenchmarkRowSize`, double the mean, round to 64 bytes), add a `wireEntity(entityWiring[...]{...})` entry in `registry_funcs.go` `init()`, extend the sizing table in `docs/ARCHITECTURE.md`, add under-/over-budget E2E cases mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+
+**`/api/as_set`** (`internal/pdbcompat/asset.go`) is not a Registry type: keep it out of `Registry`, `typicalRowBytes` and `pdbtypes` (13-type tables with count tests).
+Its list bills `asSetEntryBytes` per entry through `checkBudgetBytes` and the shared in-flight pool; its count and select share `asSetPredicates()`.
+`/api/as_set/<asn>` has no status filter (upstream `Network.objects.get`, 2.83.0 `rest.py:1416`): the inline `StatusIn` rule is for the PK detail path only.
+Its `dispatch` branch sees the raw id: keep it ahead of any id parsing or suffix handling.
+`methodNotAllowed` sends `Allow: GET` on its paths, and `serveASSet` answers `HEAD` with `405`.
 
 **Do NOT:**
 

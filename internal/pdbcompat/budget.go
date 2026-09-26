@@ -58,12 +58,22 @@ func CheckBudget(count int, entity string, depth int, budgetBytes int64) (Budget
 	if budgetBytes <= 0 {
 		return BudgetExceeded{}, true
 	}
-	perRow := TypicalRowBytes(entity, depth)
+	return checkBudgetBytes(count, TypicalRowBytes(entity, depth), entity, depth, budgetBytes)
+}
+
+// checkBudgetBytes is CheckBudget with an explicit size per row. It is
+// for a response that is not a Registry type (the as_set lookup bills
+// asSetEntryBytes for each entry). entity and depth are diagnostics
+// only.
+func checkBudgetBytes(count, perRow int, entity string, depth int, budgetBytes int64) (BudgetExceeded, bool) {
+	if budgetBytes <= 0 {
+		return BudgetExceeded{}, true
+	}
 	if perRow <= 0 {
 		// Defensive: TypicalRowBytes returns defaultRowSize (>0) for
-		// unknown entities, so this branch is unreachable under the
-		// current map. Guards against a future map mutation that
-		// zeroes a value without also updating this check.
+		// unknown entities, and asSetEntryBytes is a positive constant,
+		// so this branch is unreachable today. Guards against a future
+		// change that zeroes a size without also updating this check.
 		perRow = defaultRowSize
 	}
 	estimated := int64(count) * int64(perRow)

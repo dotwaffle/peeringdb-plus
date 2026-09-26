@@ -949,29 +949,110 @@ func TestParity_Status(t *testing.T) {
 		// DELETE a 204, 403 or 400 (:978-1020), and OPTIONS a 200 with
 		// DRF metadata (DRF views.py:531-538). Every upstream response
 		// lists the methods of the route in Allow (DRF views.py:157-164).
+		// The as_set lookup (rest.py:1396-1399) maps only GET, so
+		// upstream sends Allow: GET there, and an anonymous write fails
+		// the permission check first: 401 (drf views.py:174-180,
+		// permissions.py:191-199; tests/test_api_cache_keys.py:222-245).
 		// The mirror is read-only: every method other than GET and HEAD
-		// gets 405 and Allow: GET, HEAD. See docs/API.md § Known
-		// Divergences.
+		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. See
+		// docs/API.md § Known Divergences.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		srv := newTestServer(t, c)
-		for _, tc := range []struct{ method, path string }{
-			{http.MethodPost, "/api/net"},
-			{http.MethodPatch, "/api/net/1"},
-			{http.MethodDelete, "/api/net/1"},
-			{http.MethodOptions, "/api/net"},
+		for _, tc := range []struct{ method, path, wantAllow string }{
+			{http.MethodPost, "/api/net", "GET, HEAD"},
+			{http.MethodPatch, "/api/net/1", "GET, HEAD"},
+			{http.MethodDelete, "/api/net/1", "GET, HEAD"},
+			{http.MethodOptions, "/api/net", "GET, HEAD"},
+			{http.MethodPost, "/api/as_set", "GET"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != http.StatusMethodNotAllowed {
 				t.Errorf("%s %s: status = %d, want 405; body=%s", tc.method, tc.path, status, string(body))
 				continue
 			}
-			if got := hdr.Get("Allow"); got != "GET, HEAD" {
-				t.Errorf("%s %s: Allow = %q, want %q", tc.method, tc.path, got, "GET, HEAD")
+			if got := hdr.Get("Allow"); got != tc.wantAllow {
+				t.Errorf("%s %s: Allow = %q, want %q", tc.method, tc.path, got, tc.wantAllow)
 			}
 			want := "Method \"" + tc.method + "\" not allowed."
 			if got := mustDecodeMetaError(t, body).Error; got != want {
 				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
+			}
+		}
+	})
+
+	t.Run("as_set_head_and_options_405_allow_get", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1399 at 2.83.0 (http_method_names =
+		// ["get"]). DRF compares the method with that list after the
+		// permission check, which a read method passes, so HEAD and
+		// OPTIONS get 405 (drf views.py:513-521, :167-172) with
+		// Allow: GET (views.py:158-164, :448-449). net/http sends no
+		// body for HEAD.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ method, path string }{
+			{http.MethodHead, "/api/as_set"},
+			{http.MethodHead, "/api/as_set/64501"},
+			{http.MethodOptions, "/api/as_set"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != http.StatusMethodNotAllowed {
+				t.Errorf("%s %s: status = %d, want 405; body=%s", tc.method, tc.path, status, string(body))
+				continue
+			}
+			if got := hdr.Get("Allow"); got != "GET" {
+				t.Errorf("%s %s: Allow = %q, want GET", tc.method, tc.path, got)
+			}
+			if tc.method == http.MethodHead {
+				continue
+			}
+			want := "Method \"" + tc.method + "\" not allowed."
+			if got := mustDecodeMetaError(t, body).Error; got != want {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
+			}
+		}
+	})
+
+	t.Run("as_set_detail_ignores_status", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1405-1406, :1416 at 2.83.0, handleref
+		// models.py:92-93. retrieve() uses Network.objects with no status
+		// filter, so a deleted or pending network returns its set. The
+		// list takes only status ok.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		for _, n := range []struct {
+			id, asn          int
+			status, irrAsSet string
+		}{
+			{1, 64500, "ok", "AS-ONE"},
+			{3, 64502, "deleted", "AS-GONE"},
+			{4, 64503, "pending", "AS-PEND"},
+		} {
+			if _, err := c.Network.Create().
+				SetID(n.id).SetName("StatusNet").SetNameFold(unifold.Fold("StatusNet")).
+				SetAsn(n.asn).SetIrrAsSet(n.irrAsSet).SetStatus(n.status).
+				SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed net id=%d: %v", n.id, err)
+			}
+		}
+		srv := newTestServer(t, c)
+
+		for path, want := range map[string]string{
+			"/api/as_set/64502": `{"meta":{},"data":[{"64502":"AS-GONE"}]}`,
+			"/api/as_set/64503": `{"meta":{},"data":[{"64503":"AS-PEND"}]}`,
+			"/api/as_set":       `{"meta":{},"data":[{"64500":"AS-ONE"}]}`,
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Errorf("GET %s: status = %d, want 200; body=%s", path, status, body)
+				continue
+			}
+			if string(body) != want {
+				t.Errorf("GET %s: body = %s, want %s", path, body, want)
 			}
 		}
 	})

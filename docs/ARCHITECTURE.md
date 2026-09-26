@@ -1350,6 +1350,10 @@ The D=2 `max_rows` column is thus not a trip point for any request.
 The leaf join entities (netixlan, netfac, ixfac) also have large Depth=2 rows, because each one embeds the ID-list sets of its FK objects.
 Full table lives in `internal/pdbcompat/rowsize.go`.
 
+`/api/as_set` is not an entity type and is not in the table.
+It bills `asSetEntryBytes` (640 bytes, `internal/pdbcompat/asset.go`) for each ASN that it returns, through the same 413 check and in-flight pool.
+At 128 MiB, that is 209,715 entries.
+
 ### Request lifecycle
 
 1. Client sends `GET /api/<type>?<filters>&limit=0` (or any other

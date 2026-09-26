@@ -8,6 +8,15 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Added
+
+- pdbcompat serves the upstream AS-SET lookup: `GET /api/as_set` maps the ASN of each `ok` network to its `irr_as_set`, and `GET /api/as_set/<asn>` returns the value of one network in any status.
+  The ASN is read with Python `int()` rules; a value that is not an integer returns `400` (`Invalid ASN`), and an ASN that no network has returns `404` with an empty body.
+  The `/api/` index lists `as_set`, as upstream.
+  `HEAD` and the other methods on these paths return `405` with `Allow: GET`.
+  Before, both paths returned `404`.
+  See `docs/API.md` § AS-SET lookup.
+
 ### Changed
 
 - `/api/` errors use the upstream form `{"meta":{"error":"<message>"}}` with `Content-Type: application/json`.
