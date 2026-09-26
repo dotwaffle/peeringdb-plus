@@ -156,8 +156,8 @@ func TestErrorResponsesSanitized(t *testing.T) {
 			if rec.Code != http.StatusInternalServerError {
 				t.Fatalf("status = %d, want 500; body=%s", rec.Code, rec.Body.String())
 			}
-			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-				t.Errorf("Content-Type = %q, want application/json", ct)
+			if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 			}
 			msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta")
 			if msg == "" {
@@ -297,8 +297,8 @@ func TestServeDetail_BudgetCheck(t *testing.T) {
 				t.Errorf("%s: status %d, want %d; body %s", c.query, rec.Code, c.want, rec.Body.String())
 			}
 			if c.want == http.StatusRequestEntityTooLarge {
-				if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-					t.Errorf("413 Content-Type = %q, want application/json", ct)
+				if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+					t.Errorf("413 Content-Type = %q, want application/json; charset=utf-8", ct)
 				}
 			}
 		})
@@ -534,8 +534,8 @@ func TestDetailNotFound(t *testing.T) {
 	// Errors use the upstream form {"meta": {"error": ...}} with no data
 	// key (2.83.0 renderers.py:134-148).
 	ct := rec.Header().Get("Content-Type")
-	if ct != "application/json" {
-		t.Errorf("Content-Type = %q, want application/json", ct)
+	if ct != "application/json; charset=utf-8" {
+		t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 	}
 	// The Django text with the upstream model name
 	// (django/shortcuts.py:90-93).
@@ -581,8 +581,8 @@ func TestMethodNotAllowed(t *testing.T) {
 			if got := rec.Header().Get("Allow"); got != "GET, HEAD" {
 				t.Errorf("%s %s: Allow = %q, want %q", method, path, got, "GET, HEAD")
 			}
-			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-				t.Errorf("%s %s: Content-Type = %q, want application/json", method, path, ct)
+			if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("%s %s: Content-Type = %q, want application/json; charset=utf-8", method, path, ct)
 			}
 			want := "Method \"" + method + "\" not allowed."
 			if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); msg != want {
@@ -862,8 +862,8 @@ func TestResponseHeaders(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-		t.Errorf("Content-Type = %q, want application/json", ct)
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+		t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 	}
 	if pb := rec.Header().Get("X-Powered-By"); pb == "" {
 		t.Error("missing X-Powered-By header")

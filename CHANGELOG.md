@@ -8,6 +8,11 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Changed
+
+- pdbcompat sends `Content-Type: application/json; charset=utf-8` on every `/api/` JSON response, success and error, as the upstream renderer does.
+  Before, it sent `application/json` without a charset, except on the `/api/` index.
+
 ## [1.37.0] - 2026-09-26
 
 ### Added

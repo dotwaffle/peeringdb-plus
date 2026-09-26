@@ -73,8 +73,8 @@ func TestStreamListResponse_Envelope(t *testing.T) {
 	if got := rec.Body.String(); got != want {
 		t.Fatalf("body mismatch\n got: %s\nwant: %s", got, want)
 	}
-	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-		t.Errorf("Content-Type = %q, want application/json", ct)
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+		t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 	}
 	if pb := rec.Header().Get("X-Powered-By"); pb != poweredByHeader {
 		t.Errorf("X-Powered-By = %q, want %q", pb, poweredByHeader)

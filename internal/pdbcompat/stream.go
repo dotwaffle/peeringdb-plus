@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 )
 
 // RowsIter is a pull-style row iterator driving StreamListResponse.
@@ -29,7 +31,8 @@ const FlushEvery = 100
 // token-by-token without materialising the full result slice.
 //
 // Write sequence:
-//  1. Set Content-Type: application/json and X-Powered-By headers.
+//  1. Set the Content-Type (httperr.MetaJSONContentType) and X-Powered-By
+//     headers.
 //  2. Write `{"meta":` + json.Marshal(meta) + `,"data":[`.
 //  3. For each row yielded by rowsIter: emit a leading `,` (when not first),
 //     then json.Marshal(row) written directly to w.
@@ -56,7 +59,7 @@ func StreamListResponse(ctx context.Context, w http.ResponseWriter, meta any, ro
 		return fmt.Errorf("marshal meta: %w", err)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
 	w.Header().Set("X-Powered-By", poweredByHeader)
 
 	if _, err := w.Write([]byte(`{"meta":`)); err != nil {

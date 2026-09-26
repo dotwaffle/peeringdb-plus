@@ -90,7 +90,7 @@ This includes `/mcp` and the agent discovery files that `GET /` lists.
 A browser gets a syncing page.
 A terminal client gets text.
 Other clients get `{"error":"sync not yet completed"}` as `application/json`.
-On `/api/`, every client gets `{"meta":{"error":"sync not yet completed"}}` as `application/json`, the error form of that API (see § Errors in section 4).
+On `/api/`, every client gets `{"meta":{"error":"sync not yet completed"}}` as `application/json; charset=utf-8`, the error form of that API (see § Errors in section 4).
 ConnectRPC and gRPC clients get `UNAVAILABLE`.
 To know when the server is ready, poll `/readyz` or the gRPC health service.
 
@@ -1061,7 +1061,7 @@ It ignores `limit` and `skip`, so a `413` on it comes only from a `PDBPLUS_RESPO
 A budget-exceeded request returns:
 
 - `413 Request Entity Too Large`
-- `Content-Type: application/json`
+- `Content-Type: application/json; charset=utf-8`
 - A body in the error form of § Errors, with two more `meta` keys: `max_rows` (the largest result set that fits) and `budget_bytes` (the configured limit).
   For example: `{"meta":{"error":"Request would return ~50 rows totaling ~80000 bytes; limit is 100 bytes","max_rows":0,"budget_bytes":100}}`.
 
@@ -1131,7 +1131,8 @@ A `?depth=` list that is cut to 250 rows carries `meta.truncated` (see § List d
 
 ### Errors
 
-Errors use the upstream form: `{"meta": {"error": "<message>"}}` with `Content-Type: application/json`, as 2.83.0 `renderers.py:134-148` writes them.
+Errors use the upstream form: `{"meta": {"error": "<message>"}}` with `Content-Type: application/json; charset=utf-8`, as 2.83.0 `renderers.py:134-148` writes them.
+Every other `/api/` JSON response has the same `Content-Type`: the upstream renderer sets the `utf-8` charset (`renderers.py:44-47`, `:76-85`).
 The body has no `data` key, except for the `404` of a lookup by `id` or `asn` (see § Lookup by `id` or `asn`).
 An error from the `/api/` handler, and the `503` before the first sync, has `Vary: Accept`.
 

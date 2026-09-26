@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 )
 
@@ -40,7 +41,7 @@ func TestReadiness_APIErrorForm(t *testing.T) {
 			path:       "/api/net",
 			header:     http.Header{"User-Agent": {"curl/8.5.0"}},
 			wantStatus: http.StatusServiceUnavailable,
-			wantCT:     "application/json",
+			wantCT:     httperr.MetaJSONContentType,
 			wantBody:   assertMetaError,
 		},
 		{
@@ -48,21 +49,21 @@ func TestReadiness_APIErrorForm(t *testing.T) {
 			path:       "/api/net",
 			header:     http.Header{"Accept": {"text/html,application/xhtml+xml"}, "User-Agent": {"Mozilla/5.0"}},
 			wantStatus: http.StatusServiceUnavailable,
-			wantCT:     "application/json",
+			wantCT:     httperr.MetaJSONContentType,
 			wantBody:   assertMetaError,
 		},
 		{
 			name:       "api no headers gets meta envelope",
 			path:       "/api/net",
 			wantStatus: http.StatusServiceUnavailable,
-			wantCT:     "application/json",
+			wantCT:     httperr.MetaJSONContentType,
 			wantBody:   assertMetaError,
 		},
 		{
 			name:       "api exact path gets meta envelope",
 			path:       "/api",
 			wantStatus: http.StatusServiceUnavailable,
-			wantCT:     "application/json",
+			wantCT:     httperr.MetaJSONContentType,
 			wantBody:   assertMetaError,
 		},
 		{

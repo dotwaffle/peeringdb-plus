@@ -748,8 +748,8 @@ func TestParity_Limit(t *testing.T) {
 		if status != http.StatusOK {
 			t.Fatalf("success: status = %d, want 200; body=%s", status, string(body))
 		}
-		if ct := hdr.Get("Content-Type"); ct != "application/json" {
-			t.Errorf("success: Content-Type = %q, want application/json", ct)
+		if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+			t.Errorf("success: Content-Type = %q, want application/json; charset=utf-8", ct)
 		}
 		if ids := extractIDs(t, body); len(ids) != 50 {
 			t.Errorf("success: %d rows, want 50", len(ids))
@@ -1069,11 +1069,11 @@ func seedLimitNets(t *testing.T, c *ent.Client, ts time.Time, n int) {
 }
 
 // assertErrorHeaders checks the headers of an upstream-form /api/ error:
-// Content-Type application/json and Vary with the Accept token.
+// Content-Type application/json; charset=utf-8 and Vary with the Accept token.
 func assertErrorHeaders(t *testing.T, label string, hdr http.Header) {
 	t.Helper()
-	if ct := hdr.Get("Content-Type"); ct != "application/json" {
-		t.Errorf("%s: Content-Type = %q, want application/json", label, ct)
+	if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+		t.Errorf("%s: Content-Type = %q, want application/json; charset=utf-8", label, ct)
 	}
 	if !headerHasToken(hdr, "Vary", "Accept") {
 		t.Errorf("%s: Vary = %q, want the Accept token", label, hdr.Values("Vary"))

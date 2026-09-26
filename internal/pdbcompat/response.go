@@ -41,7 +41,7 @@ type envelope struct {
 // WriteResponse writes a successful PeeringDB-compatible JSON response with
 // the standard envelope format. Data must be a slice.
 func WriteResponse(w http.ResponseWriter, data any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
 	w.Header().Set("X-Powered-By", poweredByHeader)
 
 	resp := envelope{

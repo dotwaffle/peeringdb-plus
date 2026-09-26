@@ -82,8 +82,8 @@ func TestServeList_OverBudget413(t *testing.T) {
 	t.Run("meta envelope", func(t *testing.T) {
 		t.Parallel()
 		resp, body := get(t, "")
-		if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
-			t.Errorf("expected Content-Type application/json, got %q", ct)
+		if ct := resp.Header.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+			t.Errorf("expected Content-Type application/json; charset=utf-8, got %q", ct)
 		}
 		var env map[string]json.RawMessage
 		if err := json.Unmarshal(body, &env); err != nil {
@@ -167,8 +167,8 @@ func TestServeList_UnderBudgetStreams(t *testing.T) {
 		body, _ := io.ReadAll(resp.Body)
 		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, string(body))
 	}
-	if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
-		t.Errorf("expected Content-Type application/json, got %q", ct)
+	if ct := resp.Header.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+		t.Errorf("expected Content-Type application/json; charset=utf-8, got %q", ct)
 	}
 
 	body, err := io.ReadAll(resp.Body)

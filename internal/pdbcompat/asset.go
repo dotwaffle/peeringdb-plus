@@ -12,6 +12,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 )
 
 // The as_set lookup (upstream 2.83.0 rest.py:1396-1423, registered at
@@ -234,7 +235,7 @@ func writeASSetList(ctx context.Context, w http.ResponseWriter, rows []asSetRow)
 		b.WriteByte('}')
 	}
 	b.WriteString("]}")
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
 	w.Header().Set("X-Powered-By", poweredByHeader)
 	if _, err := io.WriteString(w, b.String()); err != nil {
 		slog.ErrorContext(ctx, "pdbcompat: stream encode failed mid-response",

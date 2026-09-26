@@ -15,6 +15,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
@@ -209,7 +210,7 @@ func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	b, _ := json.Marshal(body)
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
 	w.Header().Set("X-Powered-By", poweredByHeader)
 	_, _ = w.Write(b)
 }

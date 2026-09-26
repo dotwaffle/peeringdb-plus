@@ -968,8 +968,8 @@ func TestParity_Status(t *testing.T) {
 		if status != http.StatusNotFound {
 			t.Fatalf("GET /api/foo: status = %d, want 404; body=%s", status, string(body))
 		}
-		if ct := hdr.Get("Content-Type"); ct != "application/json" {
-			t.Errorf("GET /api/foo: Content-Type = %q, want application/json", ct)
+		if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+			t.Errorf("GET /api/foo: Content-Type = %q, want application/json; charset=utf-8", ct)
 		}
 		if got := mustDecodeMetaError(t, body).Error; got == "" {
 			t.Errorf("GET /api/foo: meta.error is empty")
