@@ -577,7 +577,7 @@ A relation key that checks the status of the listed row, for example `/api/campu
 `?q=` is ignored.
 `?since=`, `?limit=` and `?skip=` must be integers, and `skip` must not be negative, or the response is `400`, as on a list (for a negative `skip`, a `name_search` that matches no row is the exception, see below).
 `?depth=` must also be an integer, or the response is `400`, as upstream.
-The mirror checks `skip`, `limit`, `since` and `depth` in that order, and then the filters.
+The mirror checks the values in the same order as on a list (see § Errors): the `prepare_query` keys, then `since`, `skip`, `limit` and `depth`, then `name_search` and the other filters.
 The `{id}` is parsed as `limit` is, so `/api/net/%D9%A1` and `/api/net/+1` return net `1`, as upstream.
 An `{id}` that is not an integer returns `404` (`Not found.`) after these checks, also when a filter excludes every object, as upstream: `get_object_or_404` converts the id after `get_queryset` has checked the parameters and filters (DRF `generics.py:13-21`, `:87-100`).
 An `{id}` with a `.` or a `/` returns the `404` before these checks.
