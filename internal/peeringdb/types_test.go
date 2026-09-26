@@ -285,104 +285,78 @@ func TestTypeConstants(t *testing.T) {
 	}
 }
 
-// TestIxLan_URLField_JSONRoundTrip locks the contract for
-// the ixf_ixp_member_list_url field on peeringdb.IxLan:
-//   - decoding upstream JSON populates IXFIXPMemberListURL when the key is
-//     present,
-//   - encoding with a populated value emits the key,
-//   - encoding with an empty value OMITS the key entirely (,omitempty) to
-//     match upstream anonymous parity.
+// TestIxLan_URLField_JSONRoundTrip locks the contract for the
+// ixf_ixp_member_list_url field on peeringdb.IxLan. Sync must keep a null
+// value apart from "": upstream stores both (django-peeringdb
+// abstract.py:819-824, null=True, blank=True) and renders NULL as null.
+//   - decode: an absent key and null give nil; "" gives a non-nil "".
+//   - encode: nil omits the key (,omitempty); a non-nil "" emits it.
 func TestIxLan_URLField_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 
-	t.Run("decode populates URL when key present", func(t *testing.T) {
-		t.Parallel()
-		raw := `{"id":1,"name":"test","ixf_ixp_member_list_url":"https://example.test/members.json"}`
-		var il IxLan
-		if err := json.Unmarshal([]byte(raw), &il); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if got, want := il.IXFIXPMemberListURL, "https://example.test/members.json"; got != want {
-			t.Fatalf("IXFIXPMemberListURL = %q, want %q", got, want)
-		}
-	})
-
-	t.Run("decode leaves URL empty when key absent", func(t *testing.T) {
-		t.Parallel()
-		raw := `{"id":1,"name":"test"}`
-		var il IxLan
-		if err := json.Unmarshal([]byte(raw), &il); err != nil {
-			t.Fatalf("unmarshal: %v", err)
-		}
-		if il.IXFIXPMemberListURL != "" {
-			t.Fatalf("IXFIXPMemberListURL = %q, want empty", il.IXFIXPMemberListURL)
-		}
-	})
-
-	t.Run("encode emits key when URL non-empty", func(t *testing.T) {
-		t.Parallel()
-		il := IxLan{ID: 1, IXFIXPMemberListURL: "https://example.test/m.json"}
-		b, err := json.Marshal(il)
-		if err != nil {
-			t.Fatalf("marshal: %v", err)
-		}
-		if !contains(string(b), `"ixf_ixp_member_list_url":"https://example.test/m.json"`) {
-			t.Fatalf("marshal output missing populated URL: %s", string(b))
-		}
-	})
-
-	t.Run("encode omits key when URL empty (omitempty)", func(t *testing.T) {
-		t.Parallel()
-		il := IxLan{ID: 1, IXFIXPMemberListURL: ""}
-		b, err := json.Marshal(il)
-		if err != nil {
-			t.Fatalf("marshal: %v", err)
-		}
-		if contains(string(b), `"ixf_ixp_member_list_url"`) && !contains(string(b), `"ixf_ixp_member_list_url_visible"`) {
-			t.Fatalf("marshal output unexpectedly includes ixf_ixp_member_list_url key: %s", string(b))
-		}
-		// Double-check: the ONLY ixf_ixp_member_list_url* key in the output
-		// should be the _visible companion (which has no omitempty).
-		if countSubstr(string(b), `"ixf_ixp_member_list_url"`) != 0 {
-			t.Fatalf("expected zero occurrences of bare ixf_ixp_member_list_url key; got: %s", string(b))
-		}
-	})
-}
-
-// contains is a small helper to avoid importing strings just for this test.
-func contains(s, sub string) bool {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
+	const url = "https://example.test/members.json"
+	decodes := []struct {
+		name string
+		raw  string
+		want *string
+	}{
+		{"absent key", `{"id":1,"name":"test"}`, nil},
+		{"null", `{"id":1,"ixf_ixp_member_list_url":null}`, nil},
+		{"empty string", `{"id":1,"ixf_ixp_member_list_url":""}`, new("")},
+		{"url", `{"id":1,"ixf_ixp_member_list_url":"` + url + `"}`, new(url)},
 	}
-	return false
-}
-
-// countSubstr counts non-overlapping occurrences of sub in s. For the
-// omitempty assertion we need to distinguish "ixf_ixp_member_list_url" from
-// its "_visible" suffix companion; a simple contains() match conflates them.
-func countSubstr(s, sub string) int {
-	if sub == "" {
-		return 0
-	}
-	n := 0
-	for i := 0; i+len(sub) <= len(s); {
-		if s[i:i+len(sub)] == sub {
-			// Ensure this match is not a prefix of a longer key like
-			// "ixf_ixp_member_list_url_visible" — the next char after the
-			// match must not be an underscore.
-			if i+len(sub) < len(s) && s[i+len(sub)] == '_' {
-				i++
-				continue
+	for _, tc := range decodes {
+		t.Run("decode "+tc.name, func(t *testing.T) {
+			t.Parallel()
+			var il IxLan
+			if err := json.Unmarshal([]byte(tc.raw), &il); err != nil {
+				t.Fatalf("unmarshal: %v", err)
 			}
-			n++
-			i += len(sub)
-			continue
-		}
-		i++
+			got := il.IXFIXPMemberListURL
+			switch {
+			case tc.want == nil && got != nil:
+				t.Fatalf("IXFIXPMemberListURL = %q, want nil", *got)
+			case tc.want != nil && got == nil:
+				t.Fatalf("IXFIXPMemberListURL = nil, want %q", *tc.want)
+			case tc.want != nil && *got != *tc.want:
+				t.Fatalf("IXFIXPMemberListURL = %q, want %q", *got, *tc.want)
+			}
+		})
 	}
-	return n
+
+	encodes := []struct {
+		name      string
+		value     *string
+		wantKey   bool
+		wantValue string
+	}{
+		{"nil omits the key", nil, false, ""},
+		{"empty string keeps the key", new(""), true, ""},
+		{"url keeps the key", new(url), true, url},
+	}
+	for _, tc := range encodes {
+		t.Run("encode "+tc.name, func(t *testing.T) {
+			t.Parallel()
+			b, err := json.Marshal(IxLan{ID: 1, IXFIXPMemberListURL: tc.value})
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			var m map[string]any
+			if err := json.Unmarshal(b, &m); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			got, ok := m["ixf_ixp_member_list_url"]
+			if ok != tc.wantKey {
+				t.Fatalf("key present = %v, want %v: %s", ok, tc.wantKey, b)
+			}
+			if ok && got != tc.wantValue {
+				t.Fatalf("value = %v, want %q", got, tc.wantValue)
+			}
+			if _, vis := m["ixf_ixp_member_list_url_visible"]; !vis {
+				t.Fatalf("_visible companion missing: %s", b)
+			}
+		})
+	}
 }
 
 // TestPoc_BlankDeletedContact locks the upstream tombstone rule: a

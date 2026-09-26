@@ -2,6 +2,7 @@ package pdbcompat
 
 import (
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -26,6 +27,27 @@ type testProblemDetail struct {
 	Status   int    `json:"status"`
 	Detail   string `json:"detail"`
 	Instance string `json:"instance"`
+}
+
+// decodeTestMetaError decodes an upstream-form /api/ error body and
+// returns meta.error. It fails unless the top-level keys are exactly
+// wantKeys.
+func decodeTestMetaError(t *testing.T, body []byte, wantKeys ...string) string {
+	t.Helper()
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(body, &top); err != nil {
+		t.Fatalf("decode error body: %v; body=%s", err, body)
+	}
+	if got := slices.Sorted(maps.Keys(top)); !slices.Equal(got, wantKeys) {
+		t.Errorf("top-level keys = %v, want %v; body=%s", got, wantKeys, body)
+	}
+	var meta struct {
+		Error *string `json:"error"`
+	}
+	if err := json.Unmarshal(top["meta"], &meta); err != nil || meta.Error == nil {
+		t.Fatalf("meta.error missing (err %v); body=%s", err, body)
+	}
+	return *meta.Error
 }
 
 // setupTestHandler creates a Handler with 3 test networks for use in tests.
@@ -134,19 +156,16 @@ func TestErrorResponsesSanitized(t *testing.T) {
 			if rec.Code != http.StatusInternalServerError {
 				t.Fatalf("status = %d, want 500; body=%s", rec.Code, rec.Body.String())
 			}
-			if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
-				t.Errorf("Content-Type = %q, want application/problem+json", ct)
+			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+				t.Errorf("Content-Type = %q, want application/json", ct)
 			}
-			var pd testProblemDetail
-			if err := json.Unmarshal(rec.Body.Bytes(), &pd); err != nil {
-				t.Fatalf("decode problem: %v; body=%s", err, rec.Body.String())
-			}
-			if pd.Detail == "" {
-				t.Errorf("Detail is empty; want a generic operator-safe message")
+			msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta")
+			if msg == "" {
+				t.Errorf("meta.error is empty; want a generic operator-safe message")
 			}
 			for _, leak := range internalErrorLeaks {
-				if strings.Contains(pd.Detail, leak) {
-					t.Errorf("Detail %q leaks internal substring %q", pd.Detail, leak)
+				if strings.Contains(msg, leak) {
+					t.Errorf("meta.error %q leaks internal substring %q", msg, leak)
 				}
 			}
 		})
@@ -278,8 +297,8 @@ func TestServeDetail_BudgetCheck(t *testing.T) {
 				t.Errorf("%s: status %d, want %d; body %s", c.query, rec.Code, c.want, rec.Body.String())
 			}
 			if c.want == http.StatusRequestEntityTooLarge {
-				if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
-					t.Errorf("413 Content-Type = %q, want application/problem+json", ct)
+				if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+					t.Errorf("413 Content-Type = %q, want application/json", ct)
 				}
 			}
 		})
@@ -512,27 +531,16 @@ func TestDetailNotFound(t *testing.T) {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	// Error responses use RFC 9457 Problem Details.
+	// Errors use the upstream form {"meta": {"error": ...}} with no data
+	// key (2.83.0 renderers.py:134-148).
 	ct := rec.Header().Get("Content-Type")
-	if ct != "application/problem+json" {
-		t.Errorf("Content-Type = %q, want application/problem+json", ct)
+	if ct != "application/json" {
+		t.Errorf("Content-Type = %q, want application/json", ct)
 	}
-
-	var problem testProblemDetail
-	if err := json.Unmarshal(rec.Body.Bytes(), &problem); err != nil {
-		t.Fatalf("unmarshal problem detail: %v", err)
-	}
-	if problem.Type != "about:blank" {
-		t.Errorf("type = %q, want about:blank", problem.Type)
-	}
-	if problem.Status != http.StatusNotFound {
-		t.Errorf("status = %d, want %d", problem.Status, http.StatusNotFound)
-	}
-	if problem.Detail == "" {
-		t.Error("expected non-empty detail field")
-	}
-	if problem.Instance != "/api/net/99999" {
-		t.Errorf("instance = %q, want /api/net/99999", problem.Instance)
+	// The Django text with the upstream model name
+	// (django/shortcuts.py:90-93).
+	if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); msg != "No Network matches the given query." {
+		t.Errorf("meta.error = %q, want %q", msg, "No Network matches the given query.")
 	}
 }
 
@@ -548,17 +556,123 @@ func TestUnknownType(t *testing.T) {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	// Verify RFC 9457 format.
-	var problem testProblemDetail
-	if err := json.Unmarshal(rec.Body.Bytes(), &problem); err != nil {
-		t.Fatalf("unmarshal problem detail: %v", err)
+	if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); msg != `unknown type "badtype"` {
+		t.Errorf("meta.error = %q, want %q", msg, `unknown type "badtype"`)
 	}
-	if problem.Type != "about:blank" {
-		t.Errorf("type = %q, want about:blank", problem.Type)
+}
+
+// TestMethodNotAllowed verifies that every method other than GET and
+// HEAD gets a 405 in the /api/ error form, with Allow: GET, HEAD and the
+// DRF text, and that GET and HEAD still reach the handler.
+func TestMethodNotAllowed(t *testing.T) {
+	t.Parallel()
+	_, mux := setupTestHandler(t)
+
+	for _, path := range []string{"/api/", "/api/net", "/api/net/1"} {
+		for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions} {
+			req := httptest.NewRequest(method, path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusMethodNotAllowed {
+				t.Errorf("%s %s: status %d, want 405; body=%s", method, path, rec.Code, rec.Body.String())
+				continue
+			}
+			if got := rec.Header().Get("Allow"); got != "GET, HEAD" {
+				t.Errorf("%s %s: Allow = %q, want %q", method, path, got, "GET, HEAD")
+			}
+			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+				t.Errorf("%s %s: Content-Type = %q, want application/json", method, path, ct)
+			}
+			want := "Method \"" + method + "\" not allowed."
+			if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); msg != want {
+				t.Errorf("%s %s: meta.error = %q, want %q", method, path, msg, want)
+			}
+		}
+		for _, method := range []string{http.MethodGet, http.MethodHead} {
+			req := httptest.NewRequest(method, path, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Errorf("%s %s: status %d, want 200", method, path, rec.Code)
+			}
+		}
 	}
-	if problem.Status != http.StatusNotFound {
-		t.Errorf("status = %d, want %d", problem.Status, http.StatusNotFound)
-	}
+}
+
+// TestWriteError_ProblemOptIn verifies both forms of writeError: the
+// upstream meta envelope by default, and RFC 9457 when the Accept header
+// names application/problem+json. A 413 keeps ResponseTooLargeType in
+// the problem form.
+func TestWriteError_ProblemOptIn(t *testing.T) {
+	t.Parallel()
+	info := BudgetExceeded{MaxRows: 2, BudgetBytes: 100, EstimatedBytes: 500, Count: 10}
+
+	t.Run("budget meta", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodGet, "/api/net", nil)
+		rec := httptest.NewRecorder()
+		writeBudgetError(rec, req, info)
+		if rec.Code != http.StatusRequestEntityTooLarge {
+			t.Fatalf("status %d, want 413", rec.Code)
+		}
+		var body struct {
+			Meta struct {
+				Error       string `json:"error"`
+				MaxRows     int    `json:"max_rows"`
+				BudgetBytes int64  `json:"budget_bytes"`
+			} `json:"meta"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if body.Meta.Error != budgetDetail(info) || body.Meta.MaxRows != 2 || body.Meta.BudgetBytes != 100 {
+			t.Errorf("meta = %+v, want error %q, max_rows 2, budget_bytes 100", body.Meta, budgetDetail(info))
+		}
+		if got := rec.Header().Values("Vary"); !slices.Contains(got, "Accept") {
+			t.Errorf("Vary = %q, want Accept", got)
+		}
+		if got := rec.Header().Get("X-Powered-By"); got != poweredByHeader {
+			t.Errorf("X-Powered-By = %q, want %q", got, poweredByHeader)
+		}
+	})
+
+	t.Run("budget problem", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodGet, "/api/net", nil)
+		req.Header.Set("Accept", "application/problem+json")
+		rec := httptest.NewRecorder()
+		writeBudgetError(rec, req, info)
+		if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
+			t.Errorf("Content-Type = %q, want application/problem+json", ct)
+		}
+		var p struct {
+			Type        string `json:"type"`
+			Status      int    `json:"status"`
+			BudgetBytes int64  `json:"budget_bytes"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &p); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if p.Type != ResponseTooLargeType || p.Status != http.StatusRequestEntityTooLarge || p.BudgetBytes != 100 {
+			t.Errorf("problem = %+v, want type %q, status 413, budget_bytes 100", p, ResponseTooLargeType)
+		}
+	})
+
+	t.Run("plain problem", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodGet, "/api/net?limit=abc", nil)
+		req.Header.Set("Accept", "application/problem+json")
+		rec := httptest.NewRecorder()
+		writeError(rec, req, apiError{Status: http.StatusBadRequest, Detail: "bad", EmptyData: true})
+		var p testProblemDetail
+		if err := json.Unmarshal(rec.Body.Bytes(), &p); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if p.Type != "about:blank" || p.Status != http.StatusBadRequest || p.Detail != "bad" || p.Instance != "/api/net" {
+			t.Errorf("problem = %+v, want about:blank/400/bad//api/net", p)
+		}
+	})
 }
 
 func TestIndex(t *testing.T) {
@@ -588,8 +702,10 @@ func TestIndex(t *testing.T) {
 		t.Fatalf("data must hold exactly one object, got %d", len(env.Data))
 	}
 	types := env.Data[0]
-	if len(types) != 13 {
-		t.Errorf("expected 13 types in index, got %d", len(types))
+	// The 13 types and the as_set lookup, as upstream (2.83.0
+	// rest.py:1341, :1598).
+	if len(types) != 14 {
+		t.Errorf("expected 14 keys in index, got %d: %v", len(types), types)
 	}
 	// The legacy {"<type>":{"list_endpoint":...}} shape must be gone.
 	if _, has := types["list_endpoint"]; has {
@@ -597,7 +713,9 @@ func TestIndex(t *testing.T) {
 	}
 	// Each entry is an absolute URL built from the request host, matching
 	// upstream's full-URL form (httptest defaults to http://example.com).
-	for _, typeName := range []string{"net", "ix", "fac", "org", "poc", "campus", "carrierfac"} {
+	names := slices.Sorted(maps.Keys(Registry))
+	names = append(names, "as_set")
+	for _, typeName := range names {
 		got, ok := types[typeName]
 		if !ok {
 			t.Errorf("missing type %q in index", typeName)
@@ -817,6 +935,31 @@ func TestServeList_UniqueQueryEmptyExits(t *testing.T) {
 				t.Errorf("budget=%d %s %s: status = %d, want %d; body=%s",
 					budget, tc.method, tc.path, rec.Code, tc.want, rec.Body.String())
 			}
+		}
+	}
+}
+
+// TestServeList_FilterErrorBeatsEmptyIn checks that a filter error wins
+// over an empty __in at the handler: upstream runs prepare_query before
+// its filter loop (2.83.0 rest.py:488-500), so the request is 400 in
+// every key order. url.Values ranges in random order, so the request
+// runs 50 times.
+func TestServeList_FilterErrorBeatsEmptyIn(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	mux := http.NewServeMux()
+	NewHandler(client, 0).Register(mux)
+	const path = "/api/fac?all_net=x&id__in="
+	for i := range 50 {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("iteration %d: GET %s: status = %d, want 400; body=%s",
+				i, path, rec.Code, rec.Body.String())
+		}
+		if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); !strings.Contains(msg, "all_net") {
+			t.Fatalf("iteration %d: meta.error = %q, want the all_net error", i, msg)
 		}
 	}
 }

@@ -166,8 +166,8 @@ type Config struct {
 	// Before streaming a pdbcompat list response, the handler runs a
 	// pre-flight SELECT COUNT(*) and multiplies by a conservative
 	// per-row byte estimate; if the product exceeds this budget, the
-	// request is rejected with an RFC 9457 413 problem-detail BEFORE
-	// any row data is materialised.
+	// request is rejected with a 413 BEFORE any row data is
+	// materialized.
 	//
 	// Configured via PDBPLUS_RESPONSE_MEMORY_LIMIT. Default is 128 MiB
 	// (134217728 bytes) — sized against the 256 MB replica total minus

@@ -19,7 +19,7 @@ import (
 //   - empty `__in` value short-circuits to an empty result set
 //     (matches Django ORM Model.objects.filter(id__in=[])).
 //   - (control): malformed CSV (`?asn__in=13335,abc`) returns
-//     HTTP 400 application/problem+json. This is the v1.16
+//     HTTP 400. This is the v1.16
 //     behaviour locked by filter_test.go:632; the parity test
 //     records it here so a future move toward upstream's
 //     silent-skip semantics on int-coercion failures is a
@@ -152,7 +152,7 @@ func TestParity_In(t *testing.T) {
 		}
 	})
 
-	t.Run("malformed_int_csv_returns_400_problem_json", func(t *testing.T) {
+	t.Run("malformed_int_csv_returns_400", func(t *testing.T) {
 		t.Parallel()
 		// v1.16 behaviour lock: malformed values in a typed-int
 		// __in list propagate as a 400 (filter_test.go:632 covers

@@ -3,6 +3,7 @@ package pdbcompat
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -32,6 +33,7 @@ func init() {
 		query:   func(c *ent.Client) *ent.OrganizationQuery { return c.Organization.Query() },
 		convert: func(_ context.Context, o *ent.Organization) any { return organizationFromEnt(o) },
 		get:     getOrgWithDepth,
+		id:      func(o *ent.Organization) int { return o.ID },
 	})
 	wireEntity(entityWiring[*ent.NetworkQuery, predicate.Network, network.OrderOption, *ent.Network]{
 		name:    peeringdb.TypeNet,
@@ -39,6 +41,7 @@ func init() {
 		query:   func(c *ent.Client) *ent.NetworkQuery { return c.Network.Query() },
 		convert: func(_ context.Context, n *ent.Network) any { return networkFromEnt(n) },
 		get:     getNetWithDepth,
+		id:      func(n *ent.Network) int { return n.ID },
 	})
 	wireEntity(entityWiring[*ent.FacilityQuery, predicate.Facility, facility.OrderOption, *ent.Facility]{
 		name:    peeringdb.TypeFac,
@@ -53,6 +56,7 @@ func init() {
 		query:   func(c *ent.Client) *ent.InternetExchangeQuery { return c.InternetExchange.Query() },
 		convert: func(_ context.Context, ix *ent.InternetExchange) any { return internetExchangeFromEnt(ix) },
 		get:     getIXWithDepth,
+		id:      func(ix *ent.InternetExchange) int { return ix.ID },
 	})
 	wireEntity(entityWiring[*ent.PocQuery, predicate.Poc, poc.OrderOption, *ent.Poc]{
 		name:    peeringdb.TypePoc,
@@ -69,6 +73,7 @@ func init() {
 		// ixf_ixp_member_list_url per the caller's privacy tier.
 		convert: func(ctx context.Context, l *ent.IxLan) any { return ixLanFromEnt(ctx, l) },
 		get:     getIXLanWithDepth,
+		id:      func(l *ent.IxLan) int { return l.ID },
 	})
 	wireEntity(entityWiring[*ent.IxPrefixQuery, predicate.IxPrefix, ixprefix.OrderOption, *ent.IxPrefix]{
 		name:    peeringdb.TypeIXPfx,
@@ -104,6 +109,7 @@ func init() {
 		query:   func(c *ent.Client) *ent.CarrierQuery { return c.Carrier.Query() },
 		convert: func(_ context.Context, cr *ent.Carrier) any { return carrierFromEnt(cr) },
 		get:     getCarrierWithDepth,
+		id:      func(cr *ent.Carrier) int { return cr.ID },
 	})
 	wireEntity(entityWiring[*ent.CarrierFacilityQuery, predicate.CarrierFacility, carrierfacility.OrderOption, *ent.CarrierFacility]{
 		name:    peeringdb.TypeCarrierFac,
@@ -121,6 +127,7 @@ func init() {
 		query:    func(c *ent.Client) *ent.CampusQuery { return c.Campus.Query() },
 		convert:  func(_ context.Context, cp *ent.Campus) any { return campusFromEnt(cp) },
 		get:      getCampusWithDepth,
+		id:       func(cp *ent.Campus) int { return cp.ID },
 	})
 
 	// List/count pairing invariant: every entity that exposes a List closure
@@ -145,6 +152,33 @@ func init() {
 	if len(missing) > 0 {
 		panic(fmt.Sprintf("pdbcompat: Registry entries have List without CountFunc: %v", missing))
 	}
+
+	// Get/Match pairing: serveDetail applies the filters of a request
+	// through Match. A Get without a Match would serve the object and
+	// ignore every filter.
+	missing = nil
+	for name, tc := range Registry {
+		if tc.Get != nil && tc.Match == nil {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		panic(fmt.Sprintf("pdbcompat: Registry entries have Get without MatchFunc: %v", missing))
+	}
+
+	// List depth: every type has ListIDs, and a type has ListDepth if
+	// and only if childSets lists sets for it. A set type without
+	// ListDepth would serve depth-0 rows at list depth > 0, and a
+	// ListDepth without sets would render nothing extra.
+	missing = nil
+	for name, tc := range Registry {
+		if tc.ListIDs == nil || (tc.ListDepth != nil) != (len(childSets[name]) > 0) {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		panic(fmt.Sprintf("pdbcompat: Registry entries have ListIDs or ListDepth out of step with childSets: %v", missing))
+	}
 }
 
 // listQuery is the builder shape every generated ent query type shares.
@@ -158,6 +192,8 @@ type listQuery[Q any, P, O ~func(*sql.Selector), E any] interface {
 	Limit(int) Q
 	All(context.Context) ([]E, error)
 	Count(context.Context) (int, error)
+	Exist(context.Context) (bool, error)
+	IDs(context.Context) ([]int, error)
 }
 
 // entityWiring declares one entity's list/count/get registration for
@@ -171,13 +207,18 @@ type entityWiring[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any] str
 	query    func(*ent.Client) Q
 	convert  func(context.Context, E) any
 	get      GetFunc
+	// id returns the id of a row. Required for the types with reverse
+	// sets (childSets), whose list at depth > 0 loads rows by id.
+	id func(E) int
 }
 
-// wireEntity registers one entity's List, Count, and Get functions in
-// the Registry. List and Count are built from a SINGLE shared predicate
-// builder, so the pre-flight budget count and the served response can
-// never disagree — predicate divergence (which would break the 413
-// guarantee) is unrepresentable by construction.
+// wireEntity registers one entity's List, Count, Get and Match
+// functions in the Registry. List and Count are built from a SINGLE
+// shared predicate builder, so the pre-flight budget count and the
+// served response can never disagree: predicate divergence (which
+// would break the 413 guarantee) is unrepresentable by construction.
+// Match takes the same filter predicates, so a detail request and a
+// list request apply a filter with the same SQL.
 func wireEntity[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any](w entityWiring[Q, P, O, E]) {
 	// The live status set is fixed per type (netixlan: ok and
 	// not-operational; all others: ok), so resolve it once at wiring.
@@ -222,15 +263,99 @@ func wireEntity[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any](w ent
 		}
 		return servedRowCount(total, opts), nil
 	}
-	setFuncs(w.name, list, count, w.get)
+	// match sends SELECT id ... WHERE <filters> AND id = ? LIMIT 1. It
+	// adds no status matrix: the detail status set is the inline
+	// StatusIn of the PK lookup (w.get). The query runs with the
+	// request ctx, so the poc privacy policy applies.
+	match := func(ctx context.Context, client *ent.Client, id int, filters []func(*sql.Selector)) (bool, error) {
+		preds := append(castPredicates[P](filters), P(sql.FieldEQ("id", id)))
+		ok, err := w.query(client).Where(preds...).Exist(ctx)
+		if err != nil {
+			return false, fmt.Errorf("match %s: %w", w.plural, err)
+		}
+		return ok, nil
+	}
+	// listIDs sends the list query with the same predicates, order, skip
+	// and limit as list, and reads only the ids.
+	listIDs := func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]int, error) {
+		if opts.EmptyResult {
+			return nil, nil
+		}
+		q := w.query(client).Where(predicates(opts)...).Order(listOrder[O](opts)...).Offset(opts.Skip)
+		if opts.Limit > 0 {
+			q = q.Limit(opts.Limit)
+		}
+		ids, err := q.IDs(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list %s ids: %w", w.plural, err)
+		}
+		return ids, nil
+	}
+	var listDepth ListDepthFunc
+	if len(childSets[w.name]) > 0 {
+		if w.id == nil {
+			panic(fmt.Sprintf("pdbcompat: %s has reverse sets but no id accessor", w.name))
+		}
+		// listDepth loads one chunk of rows by id. The id predicate goes
+		// into a copy of opts.Filters, so predicates keeps the status
+		// matrix last and opts.Filters is not changed. The chunk query
+		// needs no ORDER BY: the rows are put in the order of ids.
+		listDepth = func(ctx context.Context, client *ent.Client, opts QueryOptions, ids []int, depth int, sets []childSet) ([]func() any, error) {
+			if len(ids) == 0 {
+				return nil, nil
+			}
+			chunk := opts
+			chunk.Filters = append(slices.Clone(opts.Filters), idInJSON("id", ids))
+			chunk.Skip, chunk.Limit = 0, 0
+			rows, err := w.query(client).Where(predicates(chunk)...).All(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("list %s chunk: %w", w.plural, err)
+			}
+			byID := make(map[int]E, len(rows))
+			for _, row := range rows {
+				byID[w.id(row)] = row
+			}
+			parents := make([]E, 0, len(rows))
+			parentIDs := make([]int, 0, len(rows))
+			for _, id := range ids {
+				if row, ok := byID[id]; ok {
+					parents = append(parents, row)
+					parentIDs = append(parentIDs, id)
+				}
+			}
+			renders, err := renderListDepthChunk(ctx, client, parents, parentIDs, depth, sets,
+				func(row E) any { return w.convert(ctx, row) })
+			if err != nil {
+				return nil, fmt.Errorf("list %s sets: %w", w.plural, err)
+			}
+			return renders, nil
+		}
+	}
+	setFuncs(w.name, entityFuncs{
+		list: list, count: count, get: w.get, match: match,
+		listIDs: listIDs, listDepth: listDepth,
+	})
 }
 
-// setFuncs updates a Registry entry's List, Count, and Get functions.
-func setFuncs(name string, list ListFunc, count CountFunc, get GetFunc) {
+// entityFuncs holds the query functions of one Registry entry.
+type entityFuncs struct {
+	list      ListFunc
+	count     CountFunc
+	get       GetFunc
+	match     MatchFunc
+	listIDs   ListIDsFunc
+	listDepth ListDepthFunc
+}
+
+// setFuncs updates the query functions of a Registry entry.
+func setFuncs(name string, f entityFuncs) {
 	tc := Registry[name]
-	tc.List = list
-	tc.Count = count
-	tc.Get = get
+	tc.List = f.list
+	tc.Count = f.count
+	tc.Get = f.get
+	tc.Match = f.match
+	tc.ListIDs = f.listIDs
+	tc.ListDepth = f.listDepth
 	Registry[name] = tc
 }
 
@@ -276,9 +401,19 @@ func applySince(opts QueryOptions) func(*sql.Selector) {
 // A ?since= list is ordered by updated ascending, as upstream orders it
 // (rest.py:738-745). The id tiebreak keeps the order of rows with the
 // same updated value stable across pages.
+//
+// A plain list with opts.OrderBy (a fac or org distance search) is
+// ordered by that key, then by id. Upstream orders by distance only
+// (serializers.py:1897) and leaves ties to the database. A ?since= list
+// keeps the updated order: upstream order_by("updated") replaces the
+// distance order (rest.py:744; Django order_by clears the earlier
+// ordering, django/db/models/query.py:1721-1728).
 func listOrder[T ~func(*sql.Selector)](opts QueryOptions) []T {
 	if opts.Since != nil {
 		return []T{T(ent.Asc("updated")), T(ent.Asc("id"))}
+	}
+	if opts.OrderBy != nil {
+		return []T{T(opts.OrderBy), T(ent.Asc("id"))}
 	}
 	return []T{T(ent.Asc("id"))}
 }

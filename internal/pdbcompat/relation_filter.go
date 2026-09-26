@@ -18,6 +18,114 @@ import (
 // one table with status "ok", whatever the key asks for. The mirror
 // walks the same rows through the generated Edges.
 
+var (
+	// errInvalidQuery is the 400 that upstream returns when the Django
+	// filter of a prepare_query raises FieldError (2.83.0
+	// rest.py:499-500): a relation key names a field that the related
+	// model does not have.
+	errInvalidQuery = errors.New("Invalid query") //nolint:staticcheck // exact upstream message text
+	// errIsNullValue is the 400 that upstream returns for isnull as the
+	// field of a relation key. Django rejects the string value when it
+	// compiles the query (django/db/models/lookups.py:677-680), and
+	// list() returns the text (rest.py:824-827).
+	errIsNullValue = errors.New("The QuerySet value for an isnull lookup must be True or False.") //nolint:revive,staticcheck // exact upstream message text
+)
+
+// unservedModelNames lists, per leaf type of a shapeRelation seed, the
+// upstream model names that Django resolves and that the mirror does
+// not filter: model columns that the API does not serialize or that the
+// mirror does not keep, the stored meta document (no plain filter key),
+// and reverse related names. Upstream filters on them. The mirror does
+// not, so a relation key with such a field is ignored (see docs/API.md
+// § Known Divergences). Every other field that the related model does
+// not have returns errInvalidQuery.
+//
+// Sources: django-handleref models.py:86-90 (version on every model),
+// django-peeringdb models/abstract.py (abstract.py below), the mixins
+// in models.py:533-599, and the related_name of each FK in models.py
+// (PeeringDB 2.83.0). ixf_ixp_member_list_url is
+// privacy-gated in the mirror, so a filter on it must never apply.
+var unservedModelNames = map[string]map[string]bool{
+	// Network (models.py:5310).
+	peeringdb.TypeNet: {
+		"version":                          true,
+		"social_media":                     true,
+		"meta":                             true, // abstract.py:417
+		"notes_private":                    true, // abstract.py:436
+		"ixp_update_exclude":               true, // models.py:5332
+		"rir_status_notified":              true, // :5345
+		"irr_as_set_auto_prefix_candidate": true, // :5350
+		"irr_as_set_auto_prefix_checked":   true, // :5353
+		"irr_as_set_notified":              true, // :5360
+		"irr_as_set_cap_notified":          true, // :5364
+		"irr_as_set_status":                true, // :5374
+		"irr_as_set_verified":              true, // :5383
+		"irr_as_set_missing_since":         true, // :5389
+		"irr_as_set_verify_notified":       true, // :5396
+		"poc_set":                          true, // :5883
+		"netfac_set":                       true, // :5988
+		"netixlan_set":                     true, // :6083
+		"network_email_set":                true, // :7296
+	},
+	// InternetExchange (models.py:2580).
+	peeringdb.TypeIX: {
+		"version":                 true,
+		"social_media":            true,
+		"ixf_import_request_user": true, // models.py:2612
+		"ixfac_set":               true, // :3230
+		"ixlan_set":               true, // :3308
+		"ix_email_set":            true, // :7303
+	},
+	// IXLan (models.py:3297).
+	peeringdb.TypeIXLan: {
+		"version":                          true,
+		"vlan":                             true, // abstract.py:791
+		"ixf_ixp_member_list_url":          true, // abstract.py:819
+		"ixf_ixp_import_error":             true, // models.py:3319
+		"ixf_ixp_import_error_notified":    true, // :3325
+		"ixf_ixp_import_protocol_conflict": true, // :3331
+		"ixf_import_attempt":               true, // :3723
+		"ixf_import_log_set":               true, // :3736
+		"ixf_set":                          true, // :3903
+		"ixpfx_set":                        true, // :5149
+		"netixlan_set":                     true, // :6086
+	},
+	// InternetExchangeFacility (models.py:3222).
+	peeringdb.TypeIXFac: {
+		"version": true,
+	},
+	// Facility (models.py:2194). net_side_set is not here:
+	// queryable_field_xl renames it to network_side_set, which names no
+	// relation.
+	peeringdb.TypeFac: {
+		"version":                true,
+		"social_media":           true,
+		"location_method":        true, // models.py:2207
+		"location_place_id":      true, // :2214
+		"notified_for_geocoords": true, // :2257
+		"geocode_status":         true, // :591
+		"geocode_date":           true, // :597
+		"ixfac_set":              true, // :3233
+		"netfac_set":             true, // :5991
+		"carrierfac_set":         true, // :6598
+		"ix_side_set":            true, // :6100
+		"ixf_member_data_set":    true, // :3888
+	},
+	// NetworkIXLan (models.py:6075).
+	peeringdb.TypeNetIXLan: {
+		"version":                true,
+		"meta":                   true, // abstract.py:953
+		"ixf_import_log_entries": true, // models.py:3786
+	},
+	// NetworkFacility (models.py:5980).
+	peeringdb.TypeNetFac: {
+		"version":        true,
+		"avail_sonet":    true, // abstract.py:879-889
+		"avail_ethernet": true,
+		"avail_atm":      true,
+	},
+}
+
 // seedShape selects the key forms that a relation seed accepts.
 type seedShape int
 
@@ -61,6 +169,11 @@ type relationSeed struct {
 	// bareOp is the operator of the seed name without an operator
 	// suffix, and of a shapeWholeKey seed. Empty means an exact match.
 	bareOp string
+	// prefix is the prefix= argument of make_relation_filter for a
+	// shapeRelation seed that filters the pinned row itself
+	// (models.py:2723, :2740, :5629, :5644). Empty for every other
+	// seed.
+	prefix string
 }
 
 // facilityFieldSeeds returns the netfac and ixfac seeds name, country
@@ -101,8 +214,8 @@ var relationSeeds = map[string]map[string]relationSeed{
 	// and models.py:2712-2774. related_to_net pins the netixlan row, and
 	// the ixlan row between it and the exchange has no status check.
 	peeringdb.TypeIX: withIDSpellings(map[string]relationSeed{
-		"ixlan": {hops: []string{"ixlan"}, pinAt: 1},
-		"ixfac": {hops: []string{"ixfac"}, pinAt: 1},
+		"ixlan": {hops: []string{"ixlan"}, pinAt: 1, prefix: "ixlan"},
+		"ixfac": {hops: []string{"ixfac"}, pinAt: 1, prefix: "ixfac"},
 		"fac":   {hops: []string{"ixfac", "fac"}, pinAt: 1},
 		"net":   {hops: []string{"ixlan", "netixlan", "net"}, pinAt: 2},
 	}),
@@ -111,8 +224,8 @@ var relationSeeds = map[string]map[string]relationSeed{
 	peeringdb.TypeNet: withIDSpellings(map[string]relationSeed{
 		"ix":       {hops: []string{"netixlan", "ixlan", "ix"}, pinAt: 1},
 		"ixlan":    {hops: []string{"netixlan", "ixlan"}, pinAt: 1},
-		"netixlan": {hops: []string{"netixlan"}, pinAt: 1},
-		"netfac":   {hops: []string{"netfac"}, pinAt: 1},
+		"netixlan": {hops: []string{"netixlan"}, pinAt: 1, prefix: "netixlan"},
+		"netfac":   {hops: []string{"netfac"}, pinAt: 1, prefix: "netfac"},
 		"fac":      {hops: []string{"netfac", "fac"}, pinAt: 1},
 	}),
 	// NetworkIXLanSerializer.prepare_query (serializers.py:3152-3169):
@@ -247,23 +360,42 @@ func parseRelationTail(tail []string) (field, op string, ok bool) {
 }
 
 // buildRelationSeedPredicate builds the filter of a relation seed key.
-// It returns ok=false when the key form or its field is unknown, as
-// upstream then filters nothing or raises an error that the mirror does
-// not copy.
+// It returns ok=false when upstream does not match the key form, or
+// when the field is an upstream model name that the mirror does not
+// store (unservedModelNames). It returns errInvalidQuery when the
+// related model has no such field: the Django filter of the
+// prepare_query raises FieldError, and upstream returns 400 (2.83.0
+// rest.py:488-500).
+//
+// On a shapeRelation seed, the field resolves as a Django name
+// (resolveModelName): a field that is not a model field upstream
+// (TypeConfig.NonModelFields) is unknown. A prefix seed first applies
+// the prefix rules of make_relation_filter (stripRelationPrefix), and
+// the Django lookup names as the field follow relationLookupName.
 //
 // The predicate walks sd.hops with nested IN subqueries and pins the
 // row at sd.pinAt, if any, to status "ok". When the key filters the status of the
 // pinned row without an operator, make_relation_filter replaces the
 // value with "ok", so only the pin applies. A key that compares the id
 // of a row reached through a forward FK compares the FK column instead,
-// unless that row is the pinned row. A field that is not a model field
-// upstream (TypeConfig.NonModelFields) is unknown: the upstream filter
-// raises FieldError. A multi-value field without an operator compares
-// the value in its stored form (opCanonicalExact).
+// unless that row is the pinned row. A multi-value field without an
+// operator compares the value in its stored form (opCanonicalExact).
 func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, value string, tier privctx.Tier) (func(*sql.Selector), bool, bool, error) {
 	field, op, ok := sd.parseTail(tail)
 	if !ok {
 		return nil, false, false, nil
+	}
+	if sd.shape == shapeRelation {
+		// Only a field segment can repeat the prefix. The seed name
+		// alone, or with an operator alone, already compares the id.
+		if sd.prefix != "" && len(tail) > 0 && !isKnownOperator(tail[0]) {
+			field = stripRelationPrefix(sd.prefix, field)
+		}
+		var err error
+		field, op, err = relationLookupName(sd, field, op)
+		if err != nil {
+			return nil, false, false, err
+		}
 	}
 	edges := make([]EdgeMetadata, len(sd.hops))
 	rowType := tc.Name
@@ -279,8 +411,18 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 	if !ok {
 		return nil, false, false, nil
 	}
-	col, ft, ok := resolveLocalField(leafTC, field)
-	if !ok || leafTC.NonModelFields[col] {
+	var col string
+	var ft FieldType
+	if sd.shape == shapeRelation {
+		col, ft, ok = resolveModelName(leafTC, field)
+	} else {
+		col, ft, ok = resolveLocalField(leafTC, field)
+		ok = ok && !leafTC.NonModelFields[col]
+	}
+	if !ok {
+		if sd.shape == shapeRelation && !unservedModelNames[rowType][field] {
+			return nil, false, false, errInvalidQuery
+		}
 		return nil, false, false, nil
 	}
 	folded := leafTC.FoldedFields[col]
@@ -304,6 +446,63 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 		leaf = p
 	}
 	return relationPathPredicate(edges[:n], sd.pinAt, leaf, tier), true, false, nil
+}
+
+// stripRelationPrefix applies the prefix rules of make_relation_filter
+// (models.py:224-227) to the field segment of a relation key: it
+// removes "<prefix>_" once, and changes a result equal to the prefix to
+// "id". A segment holds no "__", so the "<prefix>__" rule of upstream,
+// which removes the seed name from the whole key, has no equivalent
+// here.
+func stripRelationPrefix(prefix, field string) string {
+	field = strings.TrimPrefix(field, prefix+"_")
+	if field == prefix {
+		return "id"
+	}
+	return field
+}
+
+// relationLookupName handles a Django lookup name as the field segment
+// of a shapeRelation seed key, and returns the field and operator to
+// filter. A relation through a FK accepts the lookups exact, lt, lte,
+// gt, gte, in and isnull (django/db/models/fields/related.py:949-955):
+// exact, lt, lte, gt and gte compare the id, as the seed name with an
+// operator does. pk names the id on every seed. Any other field passes
+// unchanged.
+func relationLookupName(sd relationSeed, field, op string) (string, string, error) {
+	switch field {
+	case "pk":
+		return "id", op, nil
+	case "exact", "lt", "lte", "gt", "gte", "in", "isnull":
+	default:
+		return field, op, nil
+	}
+	if sd.prefix != "" {
+		// A prefix seed filters the pinned model itself, which has no
+		// field of that name.
+		return "", "", errInvalidQuery
+	}
+	if op == "iexact" || op == "icontains" || op == "istartswith" {
+		// get_relation_filters drops a third segment that it does not
+		// parse (serializers.py:643-654).
+		op = ""
+	}
+	if op != "" {
+		// A lookup after a lookup (django/db/models/sql/query.py:1461).
+		return "", "", errInvalidQuery
+	}
+	switch field {
+	case "isnull":
+		return "", "", errIsNullValue
+	case "in":
+		// Upstream iterates the characters of the value (RelatedIn,
+		// django/db/models/fields/related_lookups.py:48-68), so 34
+		// means the ids 3 and 4. The mirror does not copy this.
+		return "", "", errInvalidQuery
+	case "exact":
+		return "id", "", nil
+	}
+	return "id", field, nil
 }
 
 // relationPathPredicate returns the predicate on the listed row that

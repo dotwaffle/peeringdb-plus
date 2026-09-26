@@ -16,7 +16,9 @@ import (
 // IxfIxpMemberListURL is the field-level privacy resolver for
 // ixlan.ixf_ixp_member_list_url. It redacts the URL via
 // internal/privfield.Redact against the caller's ctx tier; returns nil
-// (GraphQL null) when the tier doesn't admit the field.
+// (GraphQL null) when the tier doesn't admit the field. An admitted
+// NULL value is also null, and "" stays "". Read
+// ixfIxpMemberListURLVisible to tell a redacted value from a NULL one.
 //
 // The accompanying `ixfIxpMemberListURLVisible` field is served by the
 // autobind (ent's IxfIxpMemberListURLVisible accessor) so it remains
@@ -26,7 +28,7 @@ func (r *ixLanResolver) IxfIxpMemberListURL(ctx context.Context, obj *ent.IxLan)
 	if omit {
 		return nil, nil
 	}
-	return &url, nil
+	return url, nil
 }
 
 // Node is the resolver for the node field.

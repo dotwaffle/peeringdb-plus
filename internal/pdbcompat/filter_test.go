@@ -3,10 +3,14 @@ package pdbcompat
 import (
 	"context"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 )
 
 func TestParseFieldOp(t *testing.T) {
@@ -656,35 +660,6 @@ func TestParseBoolErrors(t *testing.T) {
 	}
 }
 
-// TestParseTimeErrors tests error paths in parseEpoch (the strict
-// integer parser used by ?since=).
-func TestParseTimeErrors(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		input   string
-		wantMsg string
-	}{
-		{name: "non-numeric", input: "not-a-timestamp", wantMsg: "invalid unix timestamp"},
-		{name: "float value", input: "123.456", wantMsg: "invalid unix timestamp"},
-		{name: "empty string", input: "", wantMsg: "invalid unix timestamp"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			_, err := parseEpoch(tt.input)
-			if err == nil {
-				t.Fatal("expected error, got nil")
-			}
-			if !strings.Contains(err.Error(), tt.wantMsg) {
-				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
-			}
-		})
-	}
-}
-
 // TestParseTime_ReturnsUTC checks that every parsed time is in UTC. The
 // SQLite driver binds a time as text in its own zone, and the stored
 // timestamps are UTC text, so a time in another zone compares wrongly.
@@ -693,10 +668,6 @@ func TestParseTime_ReturnsUTC(t *testing.T) {
 	t.Parallel()
 	want := time.Date(2026, 4, 1, 10, 0, 0, 0, time.UTC)
 	epoch := strconv.FormatInt(want.Unix(), 10)
-	got, err := parseEpoch(epoch)
-	if err != nil || got.Location() != time.UTC || !got.Equal(want) {
-		t.Errorf("parseEpoch(%s) = %v, %v; want %v in UTC", epoch, got, err, want)
-	}
 	for _, in := range []string{epoch, "2026-04-01T10:00:00Z", "2026-04-01T11:00:00+01:00", "2026-04-01T05:00:00-05:00", "2026-04-01 10:00:00"} {
 		got, _, err := parseTimeValue(in)
 		if err != nil || got.Location() != time.UTC || !got.Equal(want) {
@@ -726,9 +697,11 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 		wantMsg string
 	}{
 		{
+			// A plain int key matches the decimal text and never fails
+			// (TestParseFilters_PlainIntKey). An operator converts.
 			name:    "int conversion error propagated",
-			params:  url.Values{"asn": {"not-a-number"}},
-			wantMsg: "filter asn",
+			params:  url.Values{"asn__lt": {"not-a-number"}},
+			wantMsg: "filter asn__lt",
 		},
 		{
 			name:    "bool conversion error propagated",
@@ -780,6 +753,102 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
 			}
 		})
+	}
+}
+
+// TestParseFilters_PlainIntKey locks the two integer rules of the
+// filter loop keys. A plain key on an integer model field is an
+// __iexact filter upstream, which does not convert the value (2.83.0
+// rest.py:670-683, django/db/models/lookups.py:430-438): it matches the
+// decimal text or no row, with no error. A FK key and a count seed of a
+// prepare_query convert the value with int() (rest.py:676-677,
+// serializers.py:2119-2124), so a bad value is an error.
+func TestParseFilters_PlainIntKey(t *testing.T) {
+	t.Parallel()
+
+	render := func(t *testing.T, typ string, params url.Values) (string, []any) {
+		t.Helper()
+		preds, empty, err := ParseFilters(params, Registry[typ])
+		if err != nil {
+			t.Fatalf("ParseFilters(%v): %v", params, err)
+		}
+		if empty || len(preds) != 1 {
+			t.Fatalf("ParseFilters(%v): empty=%v, %d predicates, want one predicate", params, empty, len(preds))
+		}
+		s := sql.Dialect(dialect.SQLite).Select("*").From(sql.Table("t"))
+		preds[0](s)
+		return s.Query()
+	}
+
+	for _, tt := range []struct {
+		typ, key, value string
+		wantSQL         string
+		wantArgs        []any
+	}{
+		{"net", "asn", "abc", "FALSE", nil},
+		{"net", "asn", "", "FALSE", nil},
+		{"net", "asn", "042", "FALSE", nil},
+		{"net", "asn", "+42", "FALSE", nil},
+		{"net", "asn", " 42", "FALSE", nil},
+		{"net", "asn", "4_2", "FALSE", nil},
+		{"net", "asn__iexact", "abc", "FALSE", nil},
+		{"net", "id", "abc", "FALSE", nil},
+		{"net", "asn", "42", "`t`.`asn` = ?", []any{42}},
+		// unidecode folds full-width digits (rest.py:597).
+		{"net", "asn", "\uff14\uff12", "`t`.`asn` = ?", []any{42}},
+		{"net", "asn__iexact", "42", "`t`.`asn` = ?", []any{42}},
+		// A FK key converts with int().
+		{"net", "org_id", " 5", "`t`.`org_id` = ?", []any{5}},
+		{"net", "org", "05", "`t`.`org_id` = ?", []any{5}},
+		// A count seed of a prepare_query converts with int().
+		{"fac", "net_count", "1_0", "`t`.`net_count` = ?", []any{10}},
+	} {
+		t.Run(tt.typ+"?"+tt.key+"="+tt.value, func(t *testing.T) {
+			t.Parallel()
+			query, args := render(t, tt.typ, url.Values{tt.key: {tt.value}})
+			if !strings.Contains(query, "WHERE "+tt.wantSQL) {
+				t.Errorf("query = %q, want WHERE %s", query, tt.wantSQL)
+			}
+			if len(args) != len(tt.wantArgs) || (len(args) == 1 && args[0] != tt.wantArgs[0]) {
+				t.Errorf("args = %v, want %v", args, tt.wantArgs)
+			}
+		})
+	}
+
+	for _, tt := range []struct{ typ, key, value string }{
+		{"net", "org_id", "abc"},
+		{"net", "org", "abc"},
+		{"net", "org", ""},
+		{"fac", "net_count", "abc"},
+		{"net", "fac_count", "abc"},
+		{"ix", "fac_count", "abc"},
+		{"ix", "net_count__gt", "abc"},
+		{"net", "asn__lt", "abc"},
+		{"net", "asn__in", "1,x"},
+	} {
+		t.Run(tt.typ+"?"+tt.key+"="+tt.value+"_error", func(t *testing.T) {
+			t.Parallel()
+			if _, _, err := ParseFilters(url.Values{tt.key: {tt.value}}, Registry[tt.typ]); err == nil {
+				t.Errorf("ParseFilters(%s?%s=%s): no error, want an int conversion error", tt.typ, tt.key, tt.value)
+			}
+		})
+	}
+}
+
+// TestParseFilters_CountSeedFirstValue locks the first-value rule of a
+// count seed: a prepare_query reads v[0] (2.83.0 serializers.py:618-619),
+// while the filter loop keys take the last value.
+func TestParseFilters_CountSeedFirstValue(t *testing.T) {
+	t.Parallel()
+	preds, _, err := ParseFilters(url.Values{"net_count": {"1", "abc"}}, Registry["fac"])
+	if err != nil {
+		t.Fatalf("fac?net_count=1&net_count=abc: %v, want the first value", err)
+	}
+	if len(preds) != 1 {
+		t.Fatalf("got %d predicates, want 1", len(preds))
+	}
+	if _, _, err := ParseFilters(url.Values{"net_count": {"abc", "1"}}, Registry["fac"]); err == nil {
+		t.Errorf("fac?net_count=abc&net_count=1: no error, want the first value to fail")
 	}
 }
 
@@ -902,5 +971,144 @@ func TestParseFilters_UnknownFieldsAppendToCtx(t *testing.T) {
 	}
 	if len(wantSet) > 0 {
 		t.Errorf("missing unknown fields in accumulator: %v", wantSet)
+	}
+}
+
+// TestCoerceIPAddr locks coerceIPAddr to upstream coerce_ipaddr (2.83.0
+// util.py:61-73). The want values are the output of CPython 3.13
+// str(ipaddress.ip_address(v)), or the input when CPython raises
+// ValueError.
+func TestCoerceIPAddr(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct{ in, want string }{
+		{"2001:7F8:0:0::1", "2001:7f8::1"},
+		{"2001:0db8:0000:0000:0000:0000:0000:0001", "2001:db8::1"},
+		{"2001:db8:0:0:1:0:0:1", "2001:db8::1:0:0:1"},
+		{"::1:2:3:4:5:6:7", "0:1:2:3:4:5:6:7"},
+		{"1:2:3:4:5:6:7::", "1:2:3:4:5:6:7:0"},
+		{"1:0:0:0:0:0:0:0", "1::"},
+		{"0::0", "::"},
+		{"::ffff:1.2.3.4", "::ffff:1.2.3.4"},
+		{"::FFFF:1.2.3.4", "::ffff:1.2.3.4"},
+		{"::ffff:102:304", "::ffff:1.2.3.4"},
+		{"0:0:0:0:0:ffff:102:304", "::ffff:1.2.3.4"},
+		{"::1.2.3.4", "::102:304"},
+		{"2001:db8::1.2.3.4", "2001:db8::102:304"},
+		{"1.2.3.4", "1.2.3.4"},
+		{"fe80::1%eth0", "fe80::1%eth0"},
+		{"fe80::1%ETH0", "fe80::1%ETH0"},
+		// Not parsed by CPython: the value stays as given.
+		{"fe80::1%a%b", "fe80::1%a%b"},     // Go alone accepts this zone
+		{"fe80::1%eth0%", "fe80::1%eth0%"}, // same
+		// Without the zone guard, Go would print "fe80::1%a%b"; CPython
+		// raises ValueError and keeps the value as given.
+		{"FE80:0::1%a%b", "FE80:0::1%a%b"},
+		{"fe80::1%", "fe80::1%"},
+		{"01.2.3.4", "01.2.3.4"},
+		{"::ffff:01.2.3.4", "::ffff:01.2.3.4"},
+		{" 2001:db8::1", " 2001:db8::1"},
+		{"2001:db8::1 ", "2001:db8::1 "},
+		{"2001:db8::1/64", "2001:db8::1/64"},
+		{"[2001:db8::1]", "[2001:db8::1]"},
+		{"2001:db8::00001", "2001:db8::00001"},
+		{"1::2::3", "1::2::3"},
+		{"1:2:3:4:5:6::7:8", "1:2:3:4:5:6::7:8"},
+		{"", ""},
+	} {
+		if got := coerceIPAddr(tt.in); got != tt.want {
+			t.Errorf("coerceIPAddr(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+// TestParseFilters_IPAddr6KeyNotUnknown checks that the bare ipaddr6
+// key filters netixlan on the canonical, folded text of the address and
+// is not recorded as an unknown field there. On another type the key
+// stays unknown: no other type has the field.
+func TestParseFilters_IPAddr6KeyNotUnknown(t *testing.T) {
+	t.Parallel()
+
+	ctx := WithUnknownFields(context.Background())
+	// Fullwidth digits and upper case: Fold gives 2001:7f8:0:0::1.
+	params := url.Values{"ipaddr6": {"\uff12\uff10\uff10\uff11:7F8:0:0::1"}}
+	preds, empty, err := ParseFiltersCtx(ctx, params, Registry["netixlan"])
+	if err != nil || empty || len(preds) != 1 {
+		t.Fatalf("netixlan: preds=%d empty=%v err=%v, want one predicate", len(preds), empty, err)
+	}
+	s := sql.Dialect(dialect.SQLite).Select("*").From(sql.Table("t"))
+	preds[0](s)
+	query, args := s.Query()
+	if want := "SELECT * FROM `t` WHERE `t`.`ipaddr6` = ?"; query != want {
+		t.Errorf("netixlan SQL = %q, want %q", query, want)
+	}
+	if len(args) != 1 || args[0] != "2001:7f8::1" {
+		t.Errorf("netixlan args = %v, want [2001:7f8::1]", args)
+	}
+	if got := UnknownFieldsFromCtx(ctx); slices.Contains(got, "ipaddr6") {
+		t.Errorf("netixlan: unknown fields %v hold ipaddr6", got)
+	}
+
+	ctx = WithUnknownFields(context.Background())
+	preds, _, err = ParseFiltersCtx(ctx, params, Registry["net"])
+	if err != nil || len(preds) != 0 {
+		t.Fatalf("net: preds=%d err=%v, want no predicate", len(preds), err)
+	}
+	if got := UnknownFieldsFromCtx(ctx); !slices.Contains(got, "ipaddr6") {
+		t.Errorf("net: unknown fields %v, want ipaddr6", got)
+	}
+}
+
+// TestParseFiltersCtx_ErrorWinsOverEmptyResult checks that a filter
+// error wins over an empty __in in any key order. Upstream runs
+// prepare_query before its filter loop (2.83.0 rest.py:488-500), so
+// fac?all_net=x&id__in= is always 400. url.Values ranges in random
+// order, so each case runs 50 times. There is one case for each branch
+// that finds an empty __in: meta key, relation seed, local field and
+// traversal.
+func TestParseFiltersCtx_ErrorWinsOverEmptyResult(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		typ      string
+		emptyKey string
+		errKey   string
+		errValue string
+	}{
+		{"meta", "netixlan", "meta__rfc8950__in", "ix", "abc"},
+		{"relation_seed", "fac", "net__in", "all_net", "x"},
+		{"local", "fac", "id__in", "all_net", "x"},
+		{"traversal", "net", "org__name__in", "not_ix", "x"},
+		{"relation_key_bad_field_beats_empty_in", "fac", "id__in", "net__bogus", "1"},
+		{"whereis_bad_address_beats_empty_in", "ixpfx", "id__in", "whereis", "abc"},
+		{"whereis_in_beats_empty_in", "ixpfx", "prefix__in", "whereis__in", ""},
+		{"capacity_bad_value_beats_empty_in", "ix", "id__in", "capacity", "abc"},
+		{"capacity_in_beats_empty_in", "ix", "name__in", "capacity__in", ""},
+		{"asn_overlap_one_asn_beats_empty_in", "fac", "id__in", "asn_overlap", "64500"},
+		{"asn_overlap_bad_item_beats_empty_in", "ix", "name__in", "asn_overlap", "64500,abc"},
+		{"distance_bad_value_beats_empty_in", "fac", "id__in", "distance", "abc"},
+		{"distance_nan_beats_empty_in", "org", "name__in", "distance", "nan"},
+		{"name_search_bad_digit_beats_empty_in", "net", "name__in", "name_search", "²"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tc := Registry[tt.typ]
+			// The empty key alone gives an empty result and the error
+			// key alone gives an error, so the pair tests the order.
+			preds, empty, err := ParseFiltersCtx(t.Context(), url.Values{tt.emptyKey: {""}}, tc)
+			if err != nil || !empty || preds != nil {
+				t.Fatalf("%s=: preds=%d empty=%v err=%v, want empty result", tt.emptyKey, len(preds), empty, err)
+			}
+			if _, _, err := ParseFiltersCtx(t.Context(), url.Values{tt.errKey: {tt.errValue}}, tc); err == nil {
+				t.Fatalf("%s=%s: err = nil, want an error", tt.errKey, tt.errValue)
+			}
+			params := url.Values{tt.emptyKey: {""}, tt.errKey: {tt.errValue}}
+			for i := range 50 {
+				preds, empty, err := ParseFiltersCtx(t.Context(), params, tc)
+				if err == nil || !strings.Contains(err.Error(), "filter "+tt.errKey) {
+					t.Fatalf("iteration %d: preds=%d empty=%v err=%v, want the %s error", i, len(preds), empty, err, tt.errKey)
+				}
+			}
+		})
 	}
 }

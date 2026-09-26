@@ -39,7 +39,7 @@ func TestIxLan_FixtureRoundTrip_HasURLField(t *testing.T) {
 
 	var populated int
 	for _, il := range env.Data {
-		if il.IXFIXPMemberListURL != "" {
+		if il.IXFIXPMemberListURL != nil && *il.IXFIXPMemberListURL != "" {
 			populated++
 		}
 	}

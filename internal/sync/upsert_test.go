@@ -842,6 +842,40 @@ func TestUpsert_NilValueClearsStoredValue(t *testing.T) {
 				got.CampusID, got.Latitude, got.Longitude)
 		}
 	})
+
+	// A nil IX-F member list URL clears a stored URL to NULL, and ""
+	// stores "", not NULL.
+	t.Run("ixlan", func(t *testing.T) {
+		t.Parallel()
+		client := testutil.SetupClient(t)
+		seedNetIxLanGateParents(t, client, u)
+		row := func(updated time.Time, url *string) peeringdb.IxLan {
+			return peeringdb.IxLan{
+				ID: 1, IXID: 1, MTU: 1500, IXFIXPMemberListURLVisible: "Public",
+				IXFIXPMemberListURL: url, Created: u, Updated: updated, Status: "ok",
+			}
+		}
+		for i, tc := range []struct {
+			in   *string
+			want *string
+		}{
+			{new("https://ixf.example.test/members.json"), new("https://ixf.example.test/members.json")},
+			{nil, nil},
+			{new(""), new("")},
+		} {
+			upsert(t, client, func(ctx context.Context, tx *ent.Tx) error {
+				_, err := upsertIxLans(ctx, tx, []peeringdb.IxLan{row(later.Add(time.Duration(i)*time.Second), tc.in)})
+				return err
+			})
+			got := client.IxLan.GetX(t.Context(), 1).IxfIxpMemberListURL
+			switch {
+			case tc.want == nil && got != nil:
+				t.Errorf("step %d: url = %q, want NULL", i, *got)
+			case tc.want != nil && (got == nil || *got != *tc.want):
+				t.Errorf("step %d: url = %v, want %q", i, got, *tc.want)
+			}
+		}
+	})
 }
 
 // TestUpsert_ConflictSetsEveryColumn runs each entity upsert with one row

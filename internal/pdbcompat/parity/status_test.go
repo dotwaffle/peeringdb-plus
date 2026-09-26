@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -40,6 +41,9 @@ import (
 // (:665-666), and the matrix filter applied after it ANDs with it
 // (:745-750). It can only narrow the admitted set. The explicit_status_*
 // subtests lock this.
+//
+// A single-object GET applies the same filters, and ANDs them with the
+// PK status set (rest.py:849-855). The detail_* subtests lock this.
 //
 // upstream: 2.83.0 peeringdb_server/rest.py:719-750 (status × since matrix)
 // upstream: 2.83.0 pdb_api_test.py:4022-4044 (the two since tests;
@@ -571,8 +575,8 @@ func TestParity_Status(t *testing.T) {
 	})
 
 	// assertEntityNotFound checks the 404 that upstream returns for a
-	// unique list query with an empty result. The body is problem+json
-	// under the registered error-envelope divergence.
+	// unique list query with an empty result: {"data": [], "meta":
+	// {"error": "Entity not found"}} (2.83.0 rest.py:809-815).
 	assertEntityNotFound := func(t *testing.T, srv *httptest.Server, path string) {
 		t.Helper()
 		status, body := httpGet(t, srv, path)
@@ -580,8 +584,8 @@ func TestParity_Status(t *testing.T) {
 			t.Errorf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
 			return
 		}
-		if p := mustDecodeProblem(t, body); p.Detail != "Entity not found" {
-			t.Errorf("GET %s: detail = %q, want %q", path, p.Detail, "Entity not found")
+		if got := mustDecodeMetaError(t, body).Error; got != "Entity not found" {
+			t.Errorf("GET %s: meta.error = %q, want %q", path, got, "Entity not found")
 		}
 	}
 	// assertEmptyList checks a 200 with an empty data array.
@@ -734,32 +738,357 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_unique_key_non_integer_returns_400", func(t *testing.T) {
+	t.Run("unique_key_non_integer_returns_404", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream turns a plain id or asn key into an
-		// __iexact filter (2.83.0 rest.py:670-683). Django does not
-		// convert an iexact value to an integer, so a non-integer or
-		// empty value matches no row, and the unique query then gets
-		// the 404 (rest.py:809-815). The mirror rejects the value with
-		// a 400, as for every other integer filter. See docs/API.md
-		// § Known Divergences.
+		// upstream: 2.83.0 rest.py:670-683 (a plain key on a field that
+		// is not a relation, a date or a boolean is an __iexact filter),
+		// :809-815 (unique-query 404); Django lookups.py:430-438
+		// (IExact.prepare_rhs=False: the value is not converted, so
+		// MySQL compares the integer as decimal text);
+		// pdb_api_test.py:3904-3910. rest.py:597 folds the value with
+		// unidecode first, so full-width digits match.
 		c := testutil.SetupClient(t)
+		ctx := t.Context()
 		seedNet(t, c, 1, 64501, "ok", t0)
+		mustOrg(ctx, t, c, 1, "IntKeyOrg", t0)
+		mustFac(ctx, t, c, 1, "IntKeyFac", 1, t0)
+		// A contact that the anonymous tier cannot read: a value that is
+		// not an integer must not tell it apart from a missing id.
+		if _, err := c.Poc.Create().
+			SetID(1).SetNetID(1).SetRole("NOC").SetVisible("Users").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed poc: %v", err)
+		}
 		srv := newTestServer(t, c)
 		for _, path := range []string{
 			"/api/net?id=abc",
 			"/api/net?id=",
+			"/api/net?id=01",
 			"/api/net?asn=abc",
 			"/api/net?asn=",
+			"/api/net?asn=064501",
+			"/api/net?asn=%2B64501",
+			"/api/net?asn=%2064501",
+			"/api/net?asn=64_501",
 			"/api/fac?id=abc",
+			"/api/ixlan?id=abc",
+			"/api/poc?id=abc",
+			"/api/poc?id=999",
+		} {
+			assertEntityNotFound(t, srv, path)
+		}
+		for _, path := range []string{
+			"/api/net?asn=64501",
+			"/api/net?id=1",
+			"/api/net?asn=" + url.QueryEscape("\uff16\uff14\uff15\uff10\uff11"),
+		} {
+			status, body := httpGet(t, srv, path)
+			if got := extractIDs(t, body); status != http.StatusOK || !equalIntSlice(got, []int{1}) {
+				t.Errorf("GET %s: status %d ids %v, want 200 [1]", path, status, got)
+			}
+		}
+	})
+
+	t.Run("plain_int_key_non_integer_matches_nothing", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:670-683 (__iexact on an integer model
+		// field, also through queryable_relations for org__id and
+		// net__asn); Django lookups.py:430-438. The value is not
+		// converted, so it matches no row and raises no error. These
+		// keys are not unique queries, so the list is empty.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "PlainIntOrg", t0)
+		mustNet(ctx, t, c, 10, "PlainIntNet", 64510, 1, t0)
+		mustIX(ctx, t, c, 20, "PlainIntIX", 1, t0)
+		mustIxLan(ctx, t, c, 20, "PlainIntLan", 20, t0)
+		c.NetworkIxLan.Create().
+			SetID(30).SetNetID(10).SetIxlanID(20).SetIxID(20).
+			SetAsn(64510).SetSpeed(1000).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustFac(ctx, t, c, 40, "PlainIntFac", 1, t0)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/netixlan?asn=abc",
+			"/api/netixlan?asn=064510",
+			"/api/netixlan?speed=1_000",
+			"/api/net?info_prefixes4=abc",
+			"/api/net?org__id=abc",
+			"/api/net?org__id=01",
+			"/api/netixlan?net__asn=abc",
+			// fac ix_count and carrier_count are relation seeds that
+			// fac prepare_query never reads (serializers.py:2092-2124:
+			// it acts only on network_count), so they reach the filter
+			// loop as plain keys. Only the count seeds convert.
+			"/api/fac?ix_count=abc",
+			"/api/fac?carrier_count=abc",
+		} {
+			assertEmptyList(t, srv, path)
+		}
+		// Control: the decimal text matches.
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?ix_count=0", want: []int{40}},
+			{path: "/api/fac?carrier_count=0", want: []int{40}},
+			{path: "/api/netixlan?asn=64510", want: []int{30}},
+			{path: "/api/netixlan?speed=1000", want: []int{30}},
+			{path: "/api/net?org__id=1", want: []int{10}},
+			{path: "/api/netixlan?net__asn=64510", want: []int{30}},
+		})
+	})
+
+	t.Run("int_key_with_operator_or_fk_stays_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:676-677 (a FK key is an exact lookup
+		// on <fk>_id, which converts the value), :693-703 and
+		// :824-831 (the ValueError of an operator lookup is a 400);
+		// serializers.py:2119-2124, :3743-3748, :4531-4543 (the count
+		// seeds are exact lookups in prepare_query, rest.py:494-495).
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/net?asn__lt=abc",
+			"/api/net?asn__in=a",
+			"/api/net?asn__in=1,x",
+			"/api/net?org=abc",
+			"/api/net?org=",
+			"/api/net?org_id=abc",
+			"/api/fac?net_count=abc",
+			"/api/fac?net_count__gt=abc",
+			"/api/ix?fac_count=abc",
+			"/api/ix?net_count=abc",
+			"/api/net?fac_count=abc",
 		} {
 			status, body := httpGet(t, srv, path)
 			if status != http.StatusBadRequest {
 				t.Errorf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
 				continue
 			}
-			if p := mustDecodeProblem(t, body); !strings.Contains(p.Detail, "to int") {
-				t.Errorf("GET %s: detail = %q, want an int conversion error", path, p.Detail)
+			if got := mustDecodeMetaError(t, body).Error; !strings.Contains(got, "to int") {
+				t.Errorf("GET %s: meta.error = %q, want an int conversion error", path, got)
+			}
+		}
+	})
+
+	t.Run("strict_int_values_use_python_int", func(t *testing.T) {
+		t.Parallel()
+		// upstream: Django fields/__init__.py:2123-2131
+		// (IntegerField.get_prep_value is int(value)), rest.py:597
+		// (unidecode on the filter loop values); serializers.py:618-619
+		// (get_relation_filters passes the raw value), :2188-2190 (fac
+		// all_net: int() on each item), :4560-4562 (ix all_net),
+		// :3750-3753 (net not_ix). Python int() accepts white space at
+		// the ends, a sign, underscores between digits and Unicode Nd
+		// digits. See seedPresenceKeys for the rows.
+		c := seedPresenceKeys(t, t0)
+		c.Facility.UpdateOneID(400).SetNetCount(2).SaveX(t.Context())
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ path, canonical string }{
+			{"/api/net?org_id=%201", "/api/net?org_id=1"},
+			{"/api/net?org=01", "/api/net?org=1"},
+			{"/api/net?asn__in=%2064500,064501", "/api/net?asn__in=64500,64501"},
+			{"/api/net?asn__lt=64_502", "/api/net?asn__lt=64502"},
+			{"/api/net?asn__gte=%2B64501", "/api/net?asn__gte=64501"},
+			{"/api/fac?net=%EF%BC%91%EF%BC%90%EF%BC%90", "/api/fac?net=100"},
+			{"/api/fac?net_count=%202", "/api/fac?net_count=2"},
+			{"/api/org?asn=%2064500", "/api/org?asn=64500"},
+			{"/api/net?not_ix=%2020", "/api/net?not_ix=20"},
+			{"/api/fac?all_net=1_00", "/api/fac?all_net=100"},
+			{"/api/ix?all_net=%D9%A1%D9%A0%D9%A0", "/api/ix?all_net=100"},
+			{"/api/fac?org_present=%203", "/api/fac?org_present=3"},
+			// asn_overlap compares network__asn, an integer lookup
+			// (models.py:2464-2471, :2875-2881). The canonical requests
+			// keep fac 400 and ix 20.
+			{"/api/fac?asn_overlap=64500,64_501", "/api/fac?asn_overlap=64500,64501"},
+			{"/api/ix?asn_overlap=%D9%A6%D9%A4%D9%A5%D9%A0%D9%A0,%2064501", "/api/ix?asn_overlap=64500,64501"},
+		} {
+			wantStatus, wantBody := httpGet(t, srv, tc.canonical)
+			want := extractIDs(t, wantBody)
+			if wantStatus != http.StatusOK || len(want) == 0 {
+				t.Fatalf("GET %s: status %d ids %v, want 200 and a row", tc.canonical, wantStatus, want)
+			}
+			assertKeysResolve(t, srv, []silentIgnoreCase{{path: tc.path, want: want}})
+		}
+		// The asn_overlap pairs above compare two filtered lists.
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?asn_overlap=64500,64501", want: []int{400}},
+			{path: "/api/ix?asn_overlap=64500,64501", want: []int{20}},
+		})
+		// A count seed of a prepare_query uses the first value of a
+		// repeated key (serializers.py:618-619).
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?net_count=2&net_count=0", want: []int{400}},
+		})
+		// The ix capacity key converts its value with int() too
+		// (serializers.py:4545-4546, models.py:2927-2931). See
+		// seedCapacity for the rows.
+		capSrv := newTestServer(t, seedCapacity(t, t0))
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/ix?capacity=11_000", []int{20}},
+			{"/api/ix?capacity__gte=1_000", []int{20}},
+			{"/api/ix?capacity__gte=1000", []int{20}},
+			{"/api/ix?capacity=%D9%A5%D9%A0%D9%A0", []int{21}},
+			{"/api/ix?capacity=500", []int{21}},
+			{"/api/ix?capacity__in=%D9%A5%D9%A0%D9%A0,0_0", []int{21, 22}},
+		} {
+			assertKeysResolve(t, capSrv, []silentIgnoreCase{{path: tc.path, want: tc.want}})
+		}
+	})
+
+	t.Run("unique_key_non_integer_with_bad_operator_is_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:693-703 runs every filter in one
+		// qset.filter() call, so the ValueError of asn__lt is a 400
+		// even though id=abc matches no row. The mirror parses the keys
+		// in map order, so run the request many times.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for range 20 {
+			status, body := httpGet(t, srv, "/api/net?id=abc&asn__lt=x")
+			if status != http.StatusBadRequest {
+				t.Fatalf("GET /api/net?id=abc&asn__lt=x: status = %d, want 400; body=%s", status, string(body))
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_unknown_path_json_404", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream has no route for an unknown type, so
+		// Django serves the 404 HTML page of the web site (2.83.0
+		// mainsite/urls.py:111, views.py:336-340). The mirror sends a
+		// JSON 404 in the /api/ error form, with the same status. See
+		// docs/API.md § Known Divergences.
+		srv := newTestServer(t, testutil.SetupClient(t))
+		status, hdr, body := httpDo(t, srv, http.MethodGet, "/api/foo", nil)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET /api/foo: status = %d, want 404; body=%s", status, string(body))
+		}
+		if ct := hdr.Get("Content-Type"); ct != "application/json" {
+			t.Errorf("GET /api/foo: Content-Type = %q, want application/json", ct)
+		}
+		if got := mustDecodeMetaError(t, body).Error; got == "" {
+			t.Errorf("GET /api/foo: meta.error is empty")
+		}
+	})
+
+	t.Run("DIVERGENCE_non_get_method_405_read_only", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream admits an anonymous write through its
+		// permission classes (2.83.0 rest.py:396-405, :438-451,
+		// permissions.py:282-302) and runs the handler: POST with no
+		// body is a 400 (rest.py:867-924), PATCH a 403 (:970-974),
+		// DELETE a 204, 403 or 400 (:978-1020), and OPTIONS a 200 with
+		// DRF metadata (DRF views.py:531-538). Every upstream response
+		// lists the methods of the route in Allow (DRF views.py:157-164).
+		// The as_set lookup (rest.py:1396-1399) maps only GET, so
+		// upstream sends Allow: GET there, and an anonymous write fails
+		// the permission check first: 401 (drf views.py:174-180,
+		// permissions.py:191-199; tests/test_api_cache_keys.py:222-245).
+		// The mirror is read-only: every method other than GET and HEAD
+		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. See
+		// docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ method, path, wantAllow string }{
+			{http.MethodPost, "/api/net", "GET, HEAD"},
+			{http.MethodPatch, "/api/net/1", "GET, HEAD"},
+			{http.MethodDelete, "/api/net/1", "GET, HEAD"},
+			{http.MethodOptions, "/api/net", "GET, HEAD"},
+			{http.MethodPost, "/api/as_set", "GET"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != http.StatusMethodNotAllowed {
+				t.Errorf("%s %s: status = %d, want 405; body=%s", tc.method, tc.path, status, string(body))
+				continue
+			}
+			if got := hdr.Get("Allow"); got != tc.wantAllow {
+				t.Errorf("%s %s: Allow = %q, want %q", tc.method, tc.path, got, tc.wantAllow)
+			}
+			want := "Method \"" + tc.method + "\" not allowed."
+			if got := mustDecodeMetaError(t, body).Error; got != want {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
+			}
+		}
+	})
+
+	t.Run("as_set_head_and_options_405_allow_get", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1399 at 2.83.0 (http_method_names =
+		// ["get"]). DRF compares the method with that list after the
+		// permission check, which a read method passes, so HEAD and
+		// OPTIONS get 405 (drf views.py:513-521, :167-172) with
+		// Allow: GET (views.py:158-164, :448-449). net/http sends no
+		// body for HEAD.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ method, path string }{
+			{http.MethodHead, "/api/as_set"},
+			{http.MethodHead, "/api/as_set/64501"},
+			{http.MethodOptions, "/api/as_set"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != http.StatusMethodNotAllowed {
+				t.Errorf("%s %s: status = %d, want 405; body=%s", tc.method, tc.path, status, string(body))
+				continue
+			}
+			if got := hdr.Get("Allow"); got != "GET" {
+				t.Errorf("%s %s: Allow = %q, want GET", tc.method, tc.path, got)
+			}
+			if tc.method == http.MethodHead {
+				continue
+			}
+			want := "Method \"" + tc.method + "\" not allowed."
+			if got := mustDecodeMetaError(t, body).Error; got != want {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
+			}
+		}
+	})
+
+	t.Run("as_set_detail_ignores_status", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:1405-1406, :1416 at 2.83.0, handleref
+		// models.py:92-93. retrieve() uses Network.objects with no status
+		// filter, so a deleted or pending network returns its set. The
+		// list takes only status ok.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		for _, n := range []struct {
+			id, asn          int
+			status, irrAsSet string
+		}{
+			{1, 64500, "ok", "AS-ONE"},
+			{3, 64502, "deleted", "AS-GONE"},
+			{4, 64503, "pending", "AS-PEND"},
+		} {
+			if _, err := c.Network.Create().
+				SetID(n.id).SetName("StatusNet").SetNameFold(unifold.Fold("StatusNet")).
+				SetAsn(n.asn).SetIrrAsSet(n.irrAsSet).SetStatus(n.status).
+				SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed net id=%d: %v", n.id, err)
+			}
+		}
+		srv := newTestServer(t, c)
+
+		for path, want := range map[string]string{
+			"/api/as_set/64502": `{"meta":{},"data":[{"64502":"AS-GONE"}]}`,
+			"/api/as_set/64503": `{"meta":{},"data":[{"64503":"AS-PEND"}]}`,
+			"/api/as_set":       `{"meta":{},"data":[{"64500":"AS-ONE"}]}`,
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusOK {
+				t.Errorf("GET %s: status = %d, want 200; body=%s", path, status, body)
+				continue
+			}
+			if string(body) != want {
+				t.Errorf("GET %s: body = %s, want %s", path, body, want)
 			}
 		}
 	})
@@ -996,6 +1325,59 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
+	t.Run("detail_filter_on_hidden_poc_no_oracle", func(t *testing.T) {
+		t.Parallel()
+		// A filter on a detail request for a contact that the caller's
+		// tier cannot read gives the same 404 as no filter, whether or
+		// not the filter matches the hidden row. Upstream runs the
+		// filters before the permission check and answers 404 for a
+		// miss and 403 for a match, which tells a guest whether a
+		// guessed value is right. The mirror applies the poc privacy
+		// policy in the filter query too.
+		// synthesised: mirror privacy invariant; upstream
+		// rest.py:855-865 answers 403/404.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seedNet(t, c, 1, 64501, "ok", t0)
+		for id, row := range map[int]struct{ visible, name string }{
+			10: {"Users", "Hidden"},
+			11: {"Public", "Shown"},
+		} {
+			if _, err := c.Poc.Create().
+				SetID(id).SetNetID(1).SetRole("NOC").SetVisible(row.visible).
+				SetName(row.name).SetEmail("poc@example.invalid").
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+				Save(ctx); err != nil {
+				t.Fatalf("seed poc id=%d: %v", id, err)
+			}
+		}
+
+		public := newTestServerWithTier(t, c, privctx.TierPublic)
+		_, bare := httpGet(t, public, "/api/poc/10")
+		for _, path := range []string{"/api/poc/10?name=Hidden", "/api/poc/10?name=Other"} {
+			status, body := httpGet(t, public, path)
+			if status != http.StatusNotFound {
+				t.Errorf("public GET %s: status = %d, want 404; body=%s", path, status, string(body))
+			}
+			if string(body) != string(bare) {
+				t.Errorf("public GET %s: body %s differs from /api/poc/10 %s", path, body, bare)
+			}
+		}
+		if status, body := httpGet(t, public, "/api/poc/11?name=Shown"); status != http.StatusOK {
+			t.Errorf("public GET /api/poc/11?name=Shown: status = %d, want 200; body=%s", status, string(body))
+		}
+
+		users := newTestServerWithTier(t, c, privctx.TierUsers)
+		for path, want := range map[string]int{
+			"/api/poc/10?name=Hidden": http.StatusOK,
+			"/api/poc/10?name=Other":  http.StatusNotFound,
+		} {
+			if status, body := httpGet(t, users, path); status != want {
+				t.Errorf("users GET %s: status = %d, want %d; body=%s", path, status, want, string(body))
+			}
+		}
+	})
+
 	t.Run("DIVERGENCE_i_operator_suffixes_filter", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream's operator regex (2.83.0 rest.py:616)
@@ -1029,13 +1411,18 @@ func TestParity_Status(t *testing.T) {
 			}
 		}
 
-		// On an int field, and on a key that names a FK, __iexact is an
-		// exact id match and __icontains is a 400 (the int column has no
-		// substring match). Upstream ignores both keys and returns every
-		// net.
+		// On an int field, __iexact matches the decimal text of the
+		// value, as a key without an operator does, so a value that is
+		// not an integer matches no row. On a key that names a FK,
+		// __iexact is an exact id match. __icontains is a 400 (the int
+		// column has no substring match). Upstream ignores these keys
+		// and returns every net [100 101 102].
 		fk := newTestServer(t, seedFKKeys(t, t0))
 		assertKeysResolve(t, fk, []silentIgnoreCase{
 			{path: "/api/net?org__iexact=1", want: []int{100}},
+			{path: "/api/net?asn__iexact=64501", want: []int{101}},
+			{path: "/api/net?asn__iexact=abc", want: []int{}},
+			{path: "/api/net?asn__iexact=064501", want: []int{}},
 		})
 		if status, body := httpGet(t, fk, "/api/net?org__icontains=1"); status != http.StatusBadRequest {
 			t.Errorf("?org__icontains=1: status = %d, want 400; body=%s", status, string(body))
@@ -1146,36 +1533,353 @@ func TestParity_Status(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_detail_ignores_filters", func(t *testing.T) {
+	t.Run("detail_applies_list_filters", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream applies the query-parameter filters to a
-		// single-object GET too. retrieve (2.83.0 rest.py:849-855) calls
-		// DRF get_object, which filters get_queryset(): the same filters
-		// as a list (:565-703) plus the live-or-pending PK status set
-		// (:750). A filter that excludes the object returns 404. The
-		// mirror reads only ?depth= and ?fields= on a detail request.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// A single-object GET applies the filters of a list. retrieve
+		// calls DRF get_object, which filters get_queryset() and then
+		// looks up the pk. A filter that excludes the object gives the
+		// same 404 as an id that does not exist. The detail status set
+		// (live + pending) ANDs with a ?status= filter, and ?since= does
+		// not widen it. ?q= is ignored.
+		// upstream: 2.83.0 rest.py:849-855 (retrieve -> get_object),
+		// :477-703 (filters), :718-750 (detail status set), :566 (q);
+		// drf generics.py:79-105; django/shortcuts.py:90-93
 		c := testutil.SetupClient(t)
 		seedNetIXLanMix(t, c)
-
+		if err := c.NetworkIxLan.UpdateOneID(1).SetIpaddr6("2001:7f8::1").Exec(t.Context()); err != nil {
+			t.Fatalf("set netixlan 1 ipaddr6: %v", err)
+		}
+		mustIxPfx(t.Context(), t, c, 1, "10.0.0.0/24", 1, t0)
+		// Fac 1 has a netfac of net 1 (asn 64500).
+		mustFac(t.Context(), t, c, 1, "StatusFac", 1, t0)
+		// Fac 2 is an ok row that name_search can match.
+		mustFac(t.Context(), t, c, 2, "OtherFac", 1, t0)
+		c.NetworkFacility.Create().
+			SetID(1).SetNetID(1).SetFacID(1).SetLocalAsn(64500).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(t.Context())
+		// Fac 1 and org 1 are in Frankfurt (50.1109, 8.6821).
+		c.Facility.UpdateOneID(1).SetLatitude(50.1109).SetLongitude(8.6821).ExecX(t.Context())
+		c.Organization.UpdateOneID(1).SetLatitude(50.1109).SetLongitude(8.6821).ExecX(t.Context())
 		srv := newTestServer(t, c)
+		// The PK miss of each path, sent to a server with no rows.
+		empty := newTestServer(t, testutil.SetupClient(t))
+
 		cases := []struct {
-			path string
-			want []int
+			path    string
+			want    int
+			wantIDs []int
+			wantErr string
 		}{
-			// netixlan 2 is not-operational. Upstream: 404.
-			{"/api/netixlan/2?status=ok", []int{2}},
-			// net 1 is named NetIXLanNet. Upstream: 404.
-			{"/api/net/1?name=nomatch", []int{1}},
+			{path: "/api/net/1?name=nomatch", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			{path: "/api/net/1?name=NetIXLanNet", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/net/1?name__contains=ixlan", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/net/1?asn=64500", want: http.StatusOK, wantIDs: []int{1}},
+			// netixlan 2 is not-operational, 3 pending, 4 deleted.
+			{path: "/api/netixlan/2?status=ok", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
+			{path: "/api/netixlan/2?status=not-operational", want: http.StatusOK, wantIDs: []int{2}},
+			{path: "/api/netixlan/3?status=pending", want: http.StatusOK, wantIDs: []int{3}},
+			{path: "/api/netixlan/4?status=deleted", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
+			// since is checked, then ignored: the detail status set
+			// never admits deleted (rest.py:718).
+			{path: "/api/netixlan/1?since=1", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/netixlan/4?since=1", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
+			{path: "/api/net/1?q=nomatch", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/net/1?id=2", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			{path: "/api/net/1?id=1", want: http.StatusOK, wantIDs: []int{1}},
+			// A plain key on an integer field is __iexact upstream: the
+			// value is not converted and matches nothing
+			// (rest.py:670-683, django/db/models/lookups.py:430-432).
+			{path: "/api/net/1?id=abc", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			// name IN ('') matches only an empty name.
+			{path: "/api/net/1?name__in=", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			{path: "/api/net/1?depth=0&name=nomatch", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			{path: "/api/net/1?fields=id&name=NetIXLanNet", want: http.StatusOK, wantIDs: []int{1}},
+			// The bare ipaddr6 value is canonicalized before it filters
+			// (rest.py:605-606, util.py:61-73).
+			{path: "/api/netixlan/1?ipaddr6=2001:7F8:0:0::1", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/netixlan/1?ipaddr6=2001:7f8:0:0::2", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
+			// ipblock is a text prefix match on the ixpfx prefix of the
+			// exchange (serializers.py:4548-4552, models.py:2830-2843).
+			{path: "/api/ix/1?ipblock=10.0.0.0", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/ix/1?ipblock=10.0.0.5", want: http.StatusNotFound, wantErr: "No InternetExchange matches the given query."},
+			// whereis keeps the prefixes that contain the address
+			// (serializers.py:4154-4168, models.py:5179-5197).
+			{path: "/api/ixpfx/1?whereis=10.0.0.5", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/ixpfx/1?whereis=10.1.0.5", want: http.StatusNotFound, wantErr: "No IXLanPrefix matches the given query."},
+			// capacity is the sum of the speed of the netixlans that
+			// are not deleted: 1, 2 and 3 on ixlan 1, 10000 each
+			// (serializers.py:4545-4546, models.py:2895-2942).
+			{path: "/api/ix/1?capacity=30000", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/ix/1?capacity__gt=30000", want: http.StatusNotFound, wantErr: "No InternetExchange matches the given query."},
+			// asn_overlap keeps the facilities that the network of
+			// every listed ASN reaches (serializers.py:2126-2129,
+			// models.py:2436-2483). Two items for one ASN count as one.
+			{path: "/api/fac/1?asn_overlap=64500,%2064500", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/fac/1?asn_overlap=64500,64501", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			// distance keeps the rows within that many kilometers of
+			// the point (serializers.py:1837-1905, :2203-2208,
+			// :4985-4990). Amsterdam is 363 km from Frankfurt.
+			{path: "/api/fac/1?latitude=50.110900&longitude=8.682100&distance=10", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/fac/1?latitude=52.367600&longitude=4.904100&distance=10", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			{path: "/api/org/1?latitude=50.110900&longitude=8.682100&distance=10", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/org/1?latitude=52.367600&longitude=4.904100&distance=10", want: http.StatusNotFound, wantErr: "No Organization matches the given query."},
+			// A distance of 0 or less is a no-op (:1839-1840).
+			{path: "/api/fac/1?distance=0", want: http.StatusOK, wantIDs: []int{1}},
+			// name_search filters a detail request too
+			// (rest.py:532-553). A search with no hit returns
+			// qset.none() before the slice (:755-760), so it is the
+			// miss 404 also with a limit.
+			{path: "/api/fac/1?name_search=statusfac", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/fac/1?name_search=zzz", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			// The search has a hit (fac 2), but not the object.
+			{path: "/api/fac/1?name_search=otherfac", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			{path: "/api/fac/1?name_search=zzz&limit=1", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			// netixlan has no search index: no row matches.
+			{path: "/api/netixlan/1?name_search=x&limit=1", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)
-			if status != http.StatusOK {
-				t.Fatalf("GET %s: status = %d, want 200 (divergence canary); body=%s", tc.path, status, string(body))
+			if status != tc.want {
+				t.Errorf("GET %s: status = %d, want %d; body=%s", tc.path, status, tc.want, string(body))
+				continue
 			}
-			if ids := extractIDs(t, body); !equalIntSlice(ids, tc.want) {
-				t.Errorf("GET %s: got %v, want %v", tc.path, ids, tc.want)
+			if tc.want == http.StatusOK {
+				if ids := extractIDs(t, body); !equalIntSlice(ids, tc.wantIDs) {
+					t.Errorf("GET %s: got %v, want %v", tc.path, ids, tc.wantIDs)
+				}
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != tc.wantErr {
+				t.Errorf("GET %s: meta.error = %q, want %q", tc.path, got, tc.wantErr)
+			}
+			pk, _, _ := strings.Cut(tc.path, "?")
+			if missStatus, missBody := httpGet(t, empty, pk); missStatus != http.StatusNotFound || string(missBody) != string(body) {
+				t.Errorf("GET %s: body %s differs from the PK miss %s (status %d)", tc.path, body, missBody, missStatus)
+			}
+		}
+		// A prepare_query error is a 400 on a single-object GET too
+		// (rest.py:493-500): get_object filters get_queryset().
+		for _, tc := range []struct{ path, wantErr string }{
+			{"/api/ixpfx/1?whereis=abc", "does not appear to be an IPv4 or IPv6 address"},
+			{"/api/ix/1?capacity=abc", "is not an integer"},
+			// One ASN (models.py:2457-2458).
+			{"/api/fac/1?asn_overlap=64500", "Need to specify at least two asns"},
+			// A value that float() rejects, and a distance without
+			// coordinates, city and country (serializers.py:443-460,
+			// :1856-1865).
+			{"/api/fac/1?distance=abc", "filter distance: Invalid value"},
+			{"/api/org/1?distance=10", "country: Required for distance filtering; city: Required for distance filtering"},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", tc.path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, tc.wantErr) {
+				t.Errorf("GET %s: meta.error = %q, want it to contain %q", tc.path, msg, tc.wantErr)
+			}
+		}
+	})
+
+	t.Run("detail_validates_pagination_and_since", func(t *testing.T) {
+		t.Parallel()
+		// A single-object GET parses since, skip, limit and depth as a
+		// list does (rest.py:505-523). The query is sliced before get()
+		// (:755-760), and Django cannot filter a sliced query, so a
+		// limit or skip above 0 is a 404 with the DRF default text,
+		// whether or not the object exists. A negative limit does not
+		// slice (limit > 0 is false).
+		// upstream: 2.83.0 rest.py:505-523, :755-760; drf
+		// generics.py:13-21, exceptions.py:188-191;
+		// django/db/models/query.py:1505-1507
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64500, "ok", t0)
+		srv := newTestServer(t, c)
+
+		cases := []struct {
+			path    string
+			want    int
+			wantErr string
+		}{
+			{"/api/net/1?since=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net/1?since=", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net/1?limit=abc", http.StatusBadRequest, "'limit' needs to be a number"},
+			{"/api/net/1?limit=", http.StatusBadRequest, "'limit' needs to be a number"},
+			{"/api/net/1?skip=abc", http.StatusBadRequest, "'skip' needs to be a number"},
+			{"/api/net/1?skip=", http.StatusBadRequest, "'skip' needs to be a number"},
+			// The list order: skip before since.
+			{"/api/net/1?since=abc&skip=abc", http.StatusBadRequest, "'skip' needs to be a number"},
+			{"/api/net/1?limit=1", http.StatusNotFound, "Not found."},
+			{"/api/net/1?skip=1", http.StatusNotFound, "Not found."},
+			{"/api/net/999?limit=1", http.StatusNotFound, "Not found."},
+			{"/api/net/1?limit=-1&skip=1", http.StatusNotFound, "Not found."},
+			{"/api/net/1?limit=0&skip=0", http.StatusOK, ""},
+			{"/api/net/1?limit=-1", http.StatusOK, ""},
+			// depth is parsed after since and before the model-field
+			// filters (rest.py:520-523); upstream reads its
+			// prepare_query keys first (:488-500). The serializer
+			// clamps a number.
+			{"/api/net/1?depth=abc", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net/1?depth=", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net/1?depth=abc&since=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net/1?depth=abc&name=nomatch", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net/1?depth=abc&depth=0", http.StatusOK, ""},
+			{"/api/net/1?depth=%D9%A1", http.StatusOK, ""},
+			{"/api/net/1?depth=99", http.StatusOK, ""},
+			// A name_search with no hit is qset.none() before the
+			// slice (rest.py:550-553, :755-760), whatever the id. With
+			// a hit, the slice gives the 404.
+			{"/api/net/1?name_search=zzz&limit=1", http.StatusNotFound, "No Network matches the given query."},
+			{"/api/net/999?name_search=zzz&skip=1", http.StatusNotFound, "No Network matches the given query."},
+			{"/api/net/1?name_search=64500&limit=1", http.StatusNotFound, "Not found."},
+			{"/api/net/999?name_search=64500&limit=1", http.StatusNotFound, "Not found."},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, tc.path)
+			if status != tc.want {
+				t.Errorf("GET %s: status = %d, want %d; body=%s", tc.path, status, tc.want, string(body))
+				continue
+			}
+			if tc.want == http.StatusOK {
+				if ids := extractIDs(t, body); !equalIntSlice(ids, []int{1}) {
+					t.Errorf("GET %s: got %v, want [1]", tc.path, ids)
+				}
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != tc.wantErr {
+				t.Errorf("GET %s: meta.error = %q, want %q", tc.path, got, tc.wantErr)
+			}
+		}
+	})
+
+	t.Run("detail_non_integer_id_404", func(t *testing.T) {
+		t.Parallel()
+		// Upstream converts the pk with int() in get_object_or_404,
+		// after get_queryset has checked the parameters and filters. A
+		// ValueError becomes a bare Http404 with the DRF default text.
+		// An id with a "." takes the format-suffix route, and the
+		// renderer negotiation raises Http404 in initial(), before any
+		// parameter check. A value that int() accepts is the pk, and a
+		// value out of the integer range is an empty result.
+		// upstream: drf generics.py:13-21, :87-100, routers.py:143,
+		// urlpatterns.py:109, negotiation.py:80-88, views.py:408-411,
+		// exceptions.py:188-191; django/db/models/fields/__init__.py:2123-2131,
+		// django/db/models/lookups.py:461-494; 2.83.0 rest.py:505-523
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64500, "ok", t0)
+		srv := newTestServer(t, c)
+
+		cases := []struct {
+			path    string
+			want    int
+			wantErr string
+		}{
+			{"/api/net/abc", http.StatusNotFound, "Not found."},
+			{"/api/net/1.5", http.StatusNotFound, "Not found."},
+			{"/api/net/1_", http.StatusNotFound, "Not found."},
+			// Upstream has no route for this path and sends its HTML
+			// 404 page; only the status is parity.
+			{"/api/net/1/extra", http.StatusNotFound, "Not found."},
+			// A parameter error wins over an id without a ".".
+			{"/api/net/abc?since=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net/abc?depth=abc", http.StatusBadRequest, "'depth' needs to be a number"},
+			// The format-suffix route wins over a parameter error.
+			{"/api/net/1.5?since=abc", http.StatusNotFound, "Not found."},
+			// The id wins over a filter that empties the result and
+			// over a filter that excludes the object.
+			{"/api/net/abc?name__in=", http.StatusNotFound, "Not found."},
+			{"/api/net/abc?name=nomatch", http.StatusNotFound, "Not found."},
+			// Also over a name_search with no hit (rest.py:550-553).
+			{"/api/net/abc?name_search=zzz", http.StatusNotFound, "Not found."},
+			{"/api/net/%D9%A1", http.StatusOK, ""},
+			{"/api/net/+1", http.StatusOK, ""},
+			{"/api/net/%201%20", http.StatusOK, ""},
+			{"/api/net/0_1", http.StatusOK, ""},
+			{"/api/net/-1", http.StatusNotFound, "No Network matches the given query."},
+			{"/api/net/99999999999999999999", http.StatusNotFound, "No Network matches the given query."},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, tc.path)
+			if status != tc.want {
+				t.Errorf("GET %s: status = %d, want %d; body=%s", tc.path, status, tc.want, string(body))
+				continue
+			}
+			if tc.want == http.StatusOK {
+				if ids := extractIDs(t, body); !equalIntSlice(ids, []int{1}) {
+					t.Errorf("GET %s: got %v, want [1]", tc.path, ids)
+				}
+				continue
+			}
+			assertTopLevelKeys(t, body, "meta")
+			if got := mustDecodeMetaError(t, body).Error; got != tc.wantErr {
+				t.Errorf("GET %s: meta.error = %q, want %q", tc.path, got, tc.wantErr)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_detail_upstream_server_errors", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream answers these single-object GETs with a
+		// server error (500). retrieve has no error handler (2.83.0
+		// rest.py:849-865), and DRF runs get_queryset outside its 404
+		// wrapper (drf generics.py:87, :100). The mirror answers as a
+		// list request does.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seedNet(t, c, 1, 64500, "ok", t0)
+		seedCampus(t, c, 50, "ok", t0)
+		for _, id := range []int{400, 401} {
+			mustFac(ctx, t, c, id, fmt.Sprintf("ServerErrFac%d", id), 1, t0)
+			c.Facility.UpdateOneID(id).SetCampusID(50).ExecX(ctx)
+		}
+		srv := newTestServer(t, c)
+
+		cases := []struct {
+			path    string
+			want    int
+			wantIDs []int
+			wantErr string
+		}{
+			// Upstream: the negative slice raises ValueError in
+			// get_queryset (rest.py:755-760,
+			// django/db/models/query.py:410-417).
+			{path: "/api/net/1?skip=-1", want: http.StatusBadRequest, wantErr: "Negative indexing is not supported."},
+			// Upstream: the fac_set join returns the campus once for
+			// each facility and no distinct() runs, so get() raises
+			// MultipleObjectsReturned (rest.py:711-716,
+			// django/db/models/query.py:638-641).
+			{path: "/api/campus/50?facility__in=400,401", want: http.StatusOK, wantIDs: []int{50}},
+			// Upstream: the filter error handler reads inst[0], which
+			// raises TypeError (rest.py:693-701).
+			{path: "/api/net/1?asn__lt=abc", want: http.StatusBadRequest, wantErr: "filter error: "},
+			// Upstream: the same in the date branch (rest.py:647-651).
+			{path: "/api/net/1?created__lt=x", want: http.StatusBadRequest, wantErr: "filter error: "},
+			// Upstream: the filter runs before the slice, so the same.
+			{path: "/api/net/1?limit=1&asn__lt=abc", want: http.StatusBadRequest, wantErr: "filter error: "},
+			// Upstream: int("") raises ValueError, then inst[0] raises
+			// TypeError (rest.py:665-666, :697).
+			{path: "/api/net/1?asn__in=", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			// Upstream: search_v2 calls int() on a digit value that is
+			// not decimal (search_v2.py:385, :619), and get_queryset
+			// runs it outside the prepare_query handler (rest.py:546).
+			{path: "/api/net/1?name_search=%C2%B2", want: http.StatusBadRequest, wantErr: "filter error: filter name_search: "},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, tc.path)
+			if status != tc.want {
+				t.Errorf("GET %s: status = %d, want %d (divergence canary); body=%s", tc.path, status, tc.want, string(body))
+				continue
+			}
+			if tc.want == http.StatusOK {
+				if ids := extractIDs(t, body); !equalIntSlice(ids, tc.wantIDs) {
+					t.Errorf("GET %s: got %v, want %v", tc.path, ids, tc.wantIDs)
+				}
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; !strings.HasPrefix(got, tc.wantErr) {
+				t.Errorf("GET %s: meta.error = %q, want prefix %q", tc.path, got, tc.wantErr)
 			}
 		}
 	})

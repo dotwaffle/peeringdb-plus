@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"net/netip"
 	"net/url"
 	"slices"
 	"strconv"
@@ -13,6 +15,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -127,8 +130,8 @@ func likelyStatusIn(statuses []string) func(*sql.Selector) {
 }
 
 // likelyOK is likely(status IN ('ok')). It is the filter of a depth set
-// whose child type has the one live status "ok", of the detailChildSets
-// count for that set, and of a relation-key status pin. Each of these
+// whose child type has the one live status "ok", of the childSets count
+// for that set, and of a relation-key status pin. Each of these
 // queries selects the rows of one parent through an FK column. Without
 // ANALYZE statistics, SQLite scores status = ? as selective as the FK
 // equality. For pocs and ixlans it then reads every "ok" row through
@@ -137,6 +140,16 @@ func likelyStatusIn(statuses []string) func(*sql.Selector) {
 // instead of 0.2 ms. The likely() hint keeps these plans on the FK
 // index.
 var likelyOK = likelyStatusIn([]string{"ok"})
+
+// likelyNetIXLanSet is likely(status IN ('ok', 'not-operational')), the
+// netixlan live statuses. It is the filter of the childSets counts of the
+// two sets of netixlan rows (net.netixlan_set and the join rows of
+// ixlan.net_set). These counts select the rows of many parents with an
+// FK IN json_each list. With a plain status IN, SQLite reads the netixlan
+// status index, and then sorts the rows in a temp B-tree for the GROUP
+// BY. The likely() hint keeps the plan on the FK index, which also gives
+// the group order.
+var likelyNetIXLanSet = likelyStatusIn([]string{"ok", "not-operational"})
 
 // coerceToCaseInsensitive maps the subset of operators that upstream
 // (2.83.0 rest.py:657-662) forces to case-insensitive variants. Non-matching operators
@@ -182,6 +195,33 @@ func coerceLocationFilterOp(field, op, value string) string {
 		}
 	}
 	return op
+}
+
+// coerceIPAddr ports upstream coerce_ipaddr (2.83.0 util.py:61-73). It
+// returns the canonical text of an IP address, or the value as given
+// when it is not one. netip.Addr.String gives the same text as CPython
+// 3.13+ str(ipaddress.ip_address(v)): compressed, lower case, and an
+// IPv4-mapped address in dotted form. CPython rejects a zone that
+// contains "%" and Go accepts it, so such a value stays as given.
+func coerceIPAddr(v string) string {
+	a, err := netip.ParseAddr(v)
+	if err != nil || strings.Contains(a.Zone(), "%") {
+		return v
+	}
+	return a.String()
+}
+
+// ipaddr6Predicate filters netixlan ipaddr6 for the bare key. Upstream
+// runs unidecode on every value before coerce_ipaddr (2.83.0
+// rest.py:597, :605-606), so the value is folded first; Fold also
+// lower-cases it. Sync stores the address text of the upstream API,
+// which is the CPython canonical form and always lower case (django-inet
+// get_prep_value, DRF CharField.to_representation). So a plain = gives
+// the same match as upstream's __iexact, and SQLite can read the
+// networkixlan_ipaddr6 index. A value that is not an address matches no
+// stored row either way.
+func ipaddr6Predicate(value string) func(*sql.Selector) {
+	return sql.FieldEQ("ipaddr6", coerceIPAddr(unifold.Fold(value)))
 }
 
 // unknownFieldsCtxKey is an unexported context key used by ParseFiltersCtx
@@ -262,21 +302,138 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // Keys with len(relSegs) > 2 are silently rejected.
 //
-// The filterable meta keys of the type (netixlan meta__<path> and the
-// upstream meta_* column names, see lookupMetaFilter) resolve first,
+// Before the key loop, the pre-passes of parseListFilters resolve the
+// fac and org distance key (parseDistanceSearch) and then the
+// name_search key (resolveNameSearch).
+//
+// In the loop, the filterable meta keys of the type (netixlan
+// meta__<path> and the upstream meta_* column names, see
+// lookupMetaFilter) resolve first,
 // before the key is split for traversal. The presence keys of an
 // upstream prepare_query (presenceKeys, for example net?not_ix= and
-// fac?all_net=) resolve next, then its relation keys (relationSeeds,
-// for example fac?net= and net?ix__name=), with their own path and
-// status rules (buildPresencePredicate, buildRelationSeedPredicate).
+// fac?all_net=) resolve next, then the ix ipblock key
+// (lookupIPBlockKey, a text prefix match on the ixpfx prefix), then the
+// ixpfx whereis key (lookupWhereisKey, the prefixes that contain an
+// address), then the ix capacity key (lookupCapacityFilter, the sum of
+// the netixlan speeds), then the relation keys (relationSeeds, for
+// example fac?net= and net?ix__name=), with their own path and status
+// rules (buildPresencePredicate, buildRelationSeedPredicate).
+// The bare netixlan ipaddr6 key resolves next and compares the
+// canonical text of the address (ipaddr6Predicate).
 //
 // The status matrix and the _fold-routing / empty-__in invariants
 // are preserved: traversal predicates wrap around buildPredicate which still
 // consults FoldedFields on the target TypeConfig, and the empty-__in
 // emptyResult sentinel bubbles back up from subquery construction.
+//
+// An empty result (an empty __in) is returned after every key is
+// parsed, so an error of any key wins, as upstream runs prepare_query
+// before its filter loop (2.83.0 rest.py:488-500).
+//
+// ParseFiltersCtx wraps parseListFilters and drops the sort key of a
+// distance search: see parseListFilters for the pre-pass.
 func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
+	lf, err := parseListFilters(ctx, params, tc)
+	if err != nil {
+		return nil, false, err
+	}
+	return lf.preds, lf.emptyResult, nil
+}
+
+// listFilters is the parsed filter set of a list or detail request.
+type listFilters struct {
+	// preds are the filter predicates. nil when emptyResult is set.
+	preds []func(*sql.Selector)
+	// emptyResult is set when a filter matches no row without a query
+	// (an empty __in). The request returns an empty result.
+	emptyResult bool
+	// orderBy is the primary sort key that a filter asks for: the
+	// distance of a fac or org distance search. nil otherwise. A detail
+	// request does not use it.
+	orderBy func(*sql.Selector)
+	// none is set with emptyResult when name_search matches no row
+	// without a query (upstream qset.none(), 2.83.0 rest.py:550-553).
+	// Upstream returns it before the slice, so it wins over the slice
+	// 404 of a detail request and over a negative skip
+	// (nameSearchMisses).
+	none bool
+	// searchHit is set when name_search runs a search: it keeps the
+	// ok rows that the search matches. Whether the search has a hit is
+	// known only when a query runs. nameSearchMisses runs it for a
+	// detail request with a limit or skip that is not 0 and for a list
+	// with a negative skip, as a search with no hit is upstream
+	// qset.none() before the slice.
+	searchHit func(*sql.Selector)
+	// upstreamFilter is set when the request has a key that upstream
+	// counts in the gate of its API cache (2.83.0 rest.py:705-709,
+	// api_cache.py:109-110): a key that adds a predicate or an empty
+	// result, a legacy net info_type key (query_adjusted,
+	// serializers.py:3775-3810), and a relation key of a prepare_query
+	// with at most 3 segments, also when the mirror ignores its form
+	// (get_relation_filters puts it in p_filters, :614-654). It is set
+	// even when the key matches every row. A list at depth > 0 with
+	// such a key is cut to 250 rows, as upstream (rest.py:766-772).
+	upstreamFilter bool
+}
+
+// parseListFilters parses the filter keys of a request (see
+// ParseFiltersCtx for the key rules).
+//
+// Before the key loop, a pre-pass resolves the fac and org distance
+// search (parseDistanceSearch), because the params map has no order and
+// a distance search changes how the loop reads other keys: it skips the
+// location keys of spatialSkipKeys and matches a bare country exactly
+// (2.83.0 rest.py:569-597). The pre-pass adds its keys to the consumed
+// set, which the loop skips. The pre-passes run in upstream order: the
+// prepare_query keys (rest.py:488-500) before name_search (:532-553).
+// A distance error wins over an error in another prepare_query key,
+// although upstream fac checks its presence keys first
+// (serializers.py:2126-2208); the status is 400 on both sides, only
+// the message differs.
+// The name_search pre-pass (resolveNameSearch) consumes name_search,
+// and id__in when it unions the two. When name_search can match no
+// row, or its value is not valid, the loop reads only the keys of
+// isPrepareQueryKey, as upstream returns before its filter loop.
+//
+// The one empty-result exit is after the loop.
+func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (listFilters, error) {
 	tier := privctx.TierFrom(ctx)
 	var predicates []func(*sql.Selector)
+	var orderBy func(*sql.Selector)
+	consumed := map[string]bool{}
+	ds, err := parseDistanceSearch(tc.Name, params)
+	if err != nil {
+		return listFilters{}, fmt.Errorf("filter %w", err)
+	}
+	if distanceTypes[tc.Name] {
+		// A known key also when it is a no-op (a value of 0 or less).
+		consumed["distance"] = true
+	}
+	spatial := ds != nil
+	if spatial {
+		predicates = append(predicates, ds.predicate())
+		orderBy = ds.order()
+		for k := range spatialSkipKeys {
+			consumed[k] = true
+		}
+	}
+	// The name_search pre-pass runs after the distance pre-pass, as
+	// upstream runs name_search after prepare_query (2.83.0
+	// rest.py:488-500, :532-553). A name_search error is returned
+	// after the loop, so that a prepare_query error wins over it.
+	ns, nsErr := resolveNameSearch(tc, params)
+	if nsErr != nil {
+		ns = nameSearchResult{consumed: map[string]bool{"name_search": true}}
+	}
+	prepareOnly := ns.none || nsErr != nil
+	maps.Copy(consumed, ns.consumed)
+	if ns.pred != nil {
+		predicates = append(predicates, ns.pred)
+	}
+	emptyResult := ns.empty || ns.none
+	// adjusted records a key that upstream counts in its API cache gate
+	// but that adds no predicate (see listFilters.upstreamFilter).
+	adjusted := false
 	for key, vals := range params {
 		if len(vals) == 0 {
 			continue
@@ -286,8 +443,18 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// layer). url.Values preserves insertion order, so vals[len-1] is
 		// the last value seen on the wire.
 		value := vals[len(vals)-1]
-		// Skip reserved pagination/control parameters.
-		if reservedParams[key] {
+		// Skip reserved pagination/control parameters and the keys that
+		// a pre-pass handled.
+		if reservedParams[key] || consumed[key] {
+			continue
+		}
+		// Upstream returns qset.none() for a name_search that matches
+		// nothing before finalize_query_params and the filter loop
+		// (rest.py:550-553), so only the prepare_query keys can still
+		// fail the request. The other keys are not read, so they are
+		// not unknown either. A name_search error also stops upstream
+		// before the loop.
+		if prepareOnly && !isPrepareQueryKey(tc, key) {
 			continue
 		}
 		// Meta keys resolve before the key is split, as upstream
@@ -296,12 +463,13 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// would read meta__planned_status_change__date__lt as a 2-hop
 		// path and ignore it.
 		if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
-			p, emptyResult, ok, err := buildMetaPredicate(col, suffix, value)
+			p, empty, ok, err := buildMetaPredicate(col, suffix, value)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
-			if emptyResult {
-				return nil, true, nil
+			if empty {
+				emptyResult = true
+				continue
 			}
 			if !ok {
 				appendUnknown(ctx, key)
@@ -316,12 +484,14 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// serializers.py:3768-3813, rest.py:559-563).
 		if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
 			if patterns == nil {
-				// A pattern matches every network.
+				// A pattern matches every network. Upstream still sets
+				// query_adjusted, so the key counts as a filter.
+				adjusted = true
 				continue
 			}
 			p, err := multiChoiceLikeAny("info_types", patterns)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			predicates = append(predicates, p)
 			continue
@@ -332,7 +502,39 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if pk, isPresence := lookupPresenceKey(tc.Name, key); isPresence {
 			p, err := buildPresencePredicate(tc, pk, vals[0], tier)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
+			}
+			predicates = append(predicates, p)
+			continue
+		}
+		// The ix ipblock key of an upstream prepare_query uses the first
+		// value of a repeated key, as prepare_query reads
+		// kwargs.get(key)[0] (2.83.0 serializers.py:4548-4552). No value
+		// is an error, and an empty value is not an empty result.
+		if lookupIPBlockKey(tc.Name, key) {
+			predicates = append(predicates, buildIPBlockPredicate(vals[0]))
+			continue
+		}
+		// The ixpfx whereis key of an upstream prepare_query and its
+		// operator forms use the first value of a repeated key
+		// (2.83.0 serializers.py:618-619). A value that is not an
+		// address, and the __in form, are an error.
+		if inList, isWhereis := lookupWhereisKey(tc.Name, key); isWhereis {
+			p, err := buildWhereisPredicate(vals[0], inList)
+			if err != nil {
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
+			}
+			predicates = append(predicates, p)
+			continue
+		}
+		// The ix capacity key of an upstream prepare_query and its
+		// operator forms use the first value of a repeated key (2.83.0
+		// serializers.py:618-619). A value that is not an integer is an
+		// error, also as an item of __in.
+		if op, isCapacity := lookupCapacityFilter(tc.Name, key); isCapacity {
+			p, err := buildCapacityPredicate(op, vals[0])
+			if err != nil {
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			predicates = append(predicates, p)
 			continue
@@ -343,18 +545,33 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// key, as get_relation_filters does (2.83.0
 		// serializers.py:618-619).
 		if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
-			p, ok, emptyResult, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
+			p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
-			if emptyResult {
-				return nil, true, nil
+			if empty {
+				emptyResult = true
+				continue
 			}
 			if !ok {
+				// Upstream puts a key of up to 3 segments in p_filters,
+				// also when prepare_query does not apply it (2.83.0
+				// serializers.py:641-654).
+				if len(tail) <= 2 {
+					adjusted = true
+				}
 				appendUnknown(ctx, key)
 				continue
 			}
 			predicates = append(predicates, p)
+			continue
+		}
+		// A bare ipaddr6 key on netixlan compares the canonical text of
+		// the address, as upstream does (2.83.0 rest.py:605-606,
+		// util.py:61-73). Only the exact key: the value of ipaddr6__in,
+		// of the other suffixes and of ipaddr4 is not canonicalized.
+		if tc.Name == peeringdb.TypeNetIXLan && key == "ipaddr6" {
+			predicates = append(predicates, ipaddr6Predicate(value))
 			continue
 		}
 		relSegs, field, op := parseFieldOp(key)
@@ -385,12 +602,18 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 
 		if len(relSegs) == 0 {
 			// Direct local field path — the original local-field behaviour.
-			p, emptyResult, ok, err := buildLocalPredicate(field, op, value, tc)
-			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			// A count seed is a prepare_query key: it uses the first
+			// value of a repeated key (2.83.0 serializers.py:618-619).
+			if tc.ExactCounts[field] {
+				value = vals[0]
 			}
-			if emptyResult {
-				return nil, true, nil
+			p, empty, ok, err := buildLocalPredicate(field, op, value, tc, spatial)
+			if err != nil {
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
+			}
+			if empty {
+				emptyResult = true
+				continue
 			}
 			if !ok {
 				appendUnknown(ctx, key)
@@ -403,12 +626,13 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// Traversal path (1-hop or 2-hop). An upstream FK name as the
 		// first segment (network__asn) walks the matching mirror edge.
 		relSegs[0] = traversalKeyFor(tc, relSegs[0])
-		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
+		p, ok, empty, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
 		if err != nil {
-			return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 		}
-		if emptyResult {
-			return nil, true, nil
+		if empty {
+			emptyResult = true
+			continue
 		}
 		if !ok {
 			appendUnknown(ctx, key)
@@ -416,23 +640,80 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		}
 		predicates = append(predicates, p)
 	}
-	return predicates, false, nil
+	if nsErr != nil {
+		return listFilters{}, nsErr
+	}
+	if emptyResult {
+		return listFilters{emptyResult: true, none: ns.none, searchHit: ns.hit, upstreamFilter: true}, nil
+	}
+	return listFilters{
+		preds:          predicates,
+		orderBy:        orderBy,
+		searchHit:      ns.hit,
+		upstreamFilter: adjusted || len(predicates) > 0,
+	}, nil
+}
+
+// isPrepareQueryKey reports whether an upstream prepare_query of typ
+// handles key. prepare_query runs before name_search (2.83.0
+// rest.py:488-500, :532-553), so its errors still return 400 when
+// name_search matches no row. Every resolver of a prepare_query key
+// must be listed here: the presence keys (asn_overlap included), the
+// ix ipblock and capacity keys, the ixpfx whereis key, the relation
+// keys, and the count seeds (TypeConfig.ExactCounts, with or without
+// an operator). The bare netixlan ipaddr6 key, the meta keys and the
+// legacy info_type keys are not: upstream handles them after
+// name_search.
+func isPrepareQueryKey(tc TypeConfig, key string) bool {
+	typ := tc.Name
+	if _, ok := lookupPresenceKey(typ, key); ok {
+		return true
+	}
+	if lookupIPBlockKey(typ, key) {
+		return true
+	}
+	if _, ok := lookupWhereisKey(typ, key); ok {
+		return true
+	}
+	if _, ok := lookupCapacityFilter(typ, key); ok {
+		return true
+	}
+	if _, _, ok := lookupRelationSeed(typ, key); ok {
+		return true
+	}
+	relSegs, field, _ := parseFieldOp(key)
+	return len(relSegs) == 0 && tc.ExactCounts[field]
 }
 
 // buildLocalPredicate extracts the original local-field behaviour into a
 // helper returning a uniform (predicate, emptyResult, ok, err) shape so
 // ParseFiltersCtx can treat local and traversal paths symmetrically.
 //
+// spatial is set in a distance search. Upstream then skips the location
+// rules of its non-spatial branch (2.83.0 rest.py:582-595), so a bare
+// country is an exact match for a value of any length. The other
+// location keys of that branch do not reach this function in a
+// distance search (spatialSkipKeys).
+//
 // ok=false => the field is unknown on tc; caller silently ignores.
 // emptyResult=true => empty __in sentinel; caller short-circuits.
-func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Selector), bool, bool, error) {
+func buildLocalPredicate(field, op, value string, tc TypeConfig, spatial bool) (func(*sql.Selector), bool, bool, error) {
 	col, ft, exists := resolveLocalField(tc, field)
 	if !exists {
 		return nil, false, false, nil
 	}
 	folded := tc.FoldedFields[col]
-	op = coerceLocationFilterOp(col, op, value)
-	p, err := buildPredicate(col, op, value, ft, folded)
+	if !spatial {
+		op = coerceLocationFilterOp(col, op, value)
+	}
+	var p func(*sql.Selector)
+	var err error
+	if tc.ExactCounts[col] {
+		// A prepare_query key: the raw value, converted with int().
+		p, err = buildPredicate(col, op, value, ft, folded)
+	} else {
+		p, err = buildModelFieldPredicate(col, op, value, ft, folded, isFKColumn(tc, col))
+	}
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, true, false, nil
@@ -599,7 +880,7 @@ func buildSinglHop(entityType, fk, field, op, value string, tier privctx.Tier) (
 		return nil, false, false, nil
 	}
 	folded := targetTC.FoldedFields[field]
-	innerPred, err := buildPredicate(field, op, value, ft, folded)
+	innerPred, err := buildModelFieldPredicate(field, op, value, ft, folded, false)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, false, true, nil
@@ -693,7 +974,7 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 		return nil, false, false, nil
 	}
 	folded := leafTC.FoldedFields[field]
-	innerPred, err := buildPredicate(field, op, value, ft, folded)
+	innerPred, err := buildModelFieldPredicate(field, op, value, ft, folded, false)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, false, true, nil
@@ -753,6 +1034,38 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 	}, true, false, nil
 }
 
+// buildModelFieldPredicate builds the predicate of a key that the
+// upstream filter loop resolves as a model field (2.83.0
+// rest.py:670-683). The loop folds every value with unidecode first
+// (rest.py:597). A plain key on an integer field is an __iexact filter
+// upstream, and Django does not convert an iexact value
+// (IExact.prepare_rhs=False, django/db/models/lookups.py:430-438):
+// MySQL compares the integer as decimal text, so only the decimal form
+// of the stored value matches. A FK column (exactInt) and the operators
+// convert the value with int() (pyInt), so a bad value is a 400.
+func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exactInt bool) (func(*sql.Selector), error) {
+	if ft == FieldInt {
+		value = unifold.Fold(value)
+		if !exactInt && (op == "" || op == "iexact") {
+			return intTextMatch(col, value), nil
+		}
+	}
+	return buildPredicate(col, op, value, ft, folded)
+}
+
+// intTextMatch returns the predicate col = n when value is the decimal
+// text of the int n (ASCII digits, an optional '-', no leading zeros),
+// and a predicate that matches no row otherwise. It never returns the
+// empty-result sentinel: upstream runs every filter in one
+// qset.filter() call, so an error of another key must still win.
+func intTextMatch(col, value string) func(*sql.Selector) {
+	n, err := strconv.Atoi(value)
+	if err != nil || strconv.Itoa(n) != value {
+		return func(s *sql.Selector) { s.Where(sql.False()) }
+	}
+	return sql.FieldEQ(col, n)
+}
+
 // buildPredicate maps a field, operator, raw value, and field type to an ent
 // sql.Selector predicate function. folded=true indicates the field has a
 // sibling <field>_fold column — string predicates route to it with a
@@ -800,7 +1113,7 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 		}
 		return sql.FieldEqualFold(field, value), nil
 	case FieldInt:
-		v, err := strconv.Atoi(value)
+		v, _, err := pyInt(value)
 		if err != nil {
 			return nil, fmt.Errorf("convert %q to int: %w", value, err)
 		}
@@ -918,7 +1231,7 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 		for _, p := range parts {
 			// Use parseErr here so a future refactor that introduces an
 			// outer `err` can't silently shadow the loop error (W1 fix).
-			v, parseErr := strconv.Atoi(strings.TrimSpace(p))
+			v, _, parseErr := pyInt(p)
 			if parseErr != nil {
 				return nil, fmt.Errorf("convert %q to int for IN: %w", p, parseErr)
 			}
@@ -1015,7 +1328,11 @@ func convertValue(s string, ft FieldType) (any, error) {
 	case FieldString:
 		return s, nil
 	case FieldInt:
-		return strconv.Atoi(s)
+		v, _, err := pyInt(s)
+		if err != nil {
+			return nil, fmt.Errorf("convert %q to int: %w", s, err)
+		}
+		return v, nil
 	case FieldBool:
 		return parseBool(s)
 	case FieldTime:
@@ -1045,22 +1362,6 @@ func parseBool(s string) (bool, error) {
 	}
 }
 
-// parseEpoch converts a strict integer Unix-seconds string. ?since= uses
-// this directly: upstream coerces since with int() (rest.py:696), so ISO
-// strings must keep failing there.
-//
-// The time is in UTC. The SQLite driver binds a time.Time as text in the
-// zone of the value, and the stored timestamps are UTC text, so the
-// comparison is only correct when both sides are UTC. time.Unix returns
-// the process zone, which is UTC in production but not on every host.
-func parseEpoch(s string) (time.Time, error) {
-	epoch, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid unix timestamp %q: %w", s, err)
-	}
-	return time.Unix(epoch, 0).UTC(), nil
-}
-
 // parseTimeValue converts a time-filter value. Accepts Unix epoch seconds
 // plus the ISO 8601 layouts DRF's DateTimeField().to_python accepts
 // upstream (2.83.0 rest.py:647-653): date-only, datetime with 'T' or
@@ -1068,9 +1369,11 @@ func parseEpoch(s string) (time.Time, error) {
 // 10-char date, which carries day-window semantics upstream
 // (rest.py:640-679).
 // Layouts without an explicit offset are interpreted as UTC, matching
-// the stored timestamps. Every result is converted to UTC, for the
-// reason given at parseEpoch: a value with an offset such as +01:00
-// otherwise binds as text in that offset and compares wrongly.
+// the stored timestamps. Every result is converted to UTC: the SQLite
+// driver binds a time.Time as text in the zone of the value, and the
+// stored timestamps are UTC text, so a value with an offset such as
+// +01:00 (or an epoch value in a process zone that is not UTC) would
+// compare wrongly.
 func parseTimeValue(s string) (t time.Time, dateOnly bool, err error) {
 	if epoch, perr := strconv.ParseInt(s, 10, 64); perr == nil {
 		return time.Unix(epoch, 0).UTC(), false, nil

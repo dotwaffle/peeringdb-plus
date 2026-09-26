@@ -14,7 +14,7 @@ const ResponseTooLargeType = "https://peeringdb-plus.fly.dev/errors/response-too
 
 // BudgetExceeded describes a request whose estimated response size
 // exceeds the configured PDBPLUS_RESPONSE_MEMORY_LIMIT. Populated by
-// CheckBudget; consumed by WriteBudgetProblem (413 writer) and
+// CheckBudget; consumed by writeBudgetError (413 writer) and
 // structured-log emission in the handler + OTel span
 // attributes for the memory-budget counter.
 //
@@ -58,12 +58,22 @@ func CheckBudget(count int, entity string, depth int, budgetBytes int64) (Budget
 	if budgetBytes <= 0 {
 		return BudgetExceeded{}, true
 	}
-	perRow := TypicalRowBytes(entity, depth)
+	return checkBudgetBytes(count, TypicalRowBytes(entity, depth), entity, depth, budgetBytes)
+}
+
+// checkBudgetBytes is CheckBudget with an explicit size per row. It is
+// for a response that is not a Registry type (the as_set lookup bills
+// asSetEntryBytes for each entry). entity and depth are diagnostics
+// only.
+func checkBudgetBytes(count, perRow int, entity string, depth int, budgetBytes int64) (BudgetExceeded, bool) {
+	if budgetBytes <= 0 {
+		return BudgetExceeded{}, true
+	}
 	if perRow <= 0 {
 		// Defensive: TypicalRowBytes returns defaultRowSize (>0) for
-		// unknown entities, so this branch is unreachable under the
-		// current map. Guards against a future map mutation that
-		// zeroes a value without also updating this check.
+		// unknown entities, and asSetEntryBytes is a positive constant,
+		// so this branch is unreachable today. Guards against a future
+		// change that zeroes a size without also updating this check.
 		perRow = defaultRowSize
 	}
 	estimated := int64(count) * int64(perRow)
@@ -94,7 +104,8 @@ type budgetProblemBody struct {
 }
 
 // WriteBudgetProblem writes the RFC 9457 413 response described
-// above. Does not set Retry-After — the failure is
+// above. writeBudgetError calls it when the request Accept header names
+// application/problem+json. Does not set Retry-After: the failure is
 // request-shape (wrong filters / too-large page), not transient
 // resource pressure; retrying the same request would produce the same
 // 413. Operators who want to retrieve more rows must narrow their
@@ -105,13 +116,10 @@ type budgetProblemBody struct {
 // r.URL.Path.
 func WriteBudgetProblem(w http.ResponseWriter, instance string, info BudgetExceeded) {
 	body := budgetProblemBody{
-		Type:   ResponseTooLargeType,
-		Title:  "Response exceeds memory budget",
-		Status: http.StatusRequestEntityTooLarge,
-		Detail: fmt.Sprintf(
-			"Request would return ~%d rows totaling ~%d bytes; limit is %d bytes",
-			info.Count, info.EstimatedBytes, info.BudgetBytes,
-		),
+		Type:        ResponseTooLargeType,
+		Title:       "Response exceeds memory budget",
+		Status:      http.StatusRequestEntityTooLarge,
+		Detail:      budgetDetail(info),
 		Instance:    instance,
 		MaxRows:     info.MaxRows,
 		BudgetBytes: info.BudgetBytes,
@@ -120,4 +128,30 @@ func WriteBudgetProblem(w http.ResponseWriter, instance string, info BudgetExcee
 	w.Header().Set("X-Powered-By", poweredByHeader)
 	w.WriteHeader(http.StatusRequestEntityTooLarge)
 	_ = json.NewEncoder(w).Encode(body)
+}
+
+// budgetDetail is the human-readable text of a 413: the problem+json
+// detail and the meta.error of the upstream form.
+func budgetDetail(info BudgetExceeded) string {
+	return fmt.Sprintf(
+		"Request would return ~%d rows totaling ~%d bytes; limit is %d bytes",
+		info.Count, info.EstimatedBytes, info.BudgetBytes,
+	)
+}
+
+// writeBudgetError writes the 413 of a request over the response memory
+// budget. The upstream-form body carries max_rows and budget_bytes in
+// meta, next to error (meta is where upstream puts truncated and
+// pagination). A request that asks for problem+json gets the
+// WriteBudgetProblem body.
+func writeBudgetError(w http.ResponseWriter, r *http.Request, info BudgetExceeded) {
+	writeError(w, r, apiError{
+		Status: http.StatusRequestEntityTooLarge,
+		Detail: budgetDetail(info),
+		Meta: map[string]any{
+			"max_rows":     info.MaxRows,
+			"budget_bytes": info.BudgetBytes,
+		},
+		budget: &info,
+	})
 }

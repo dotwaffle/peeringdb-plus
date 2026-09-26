@@ -67,18 +67,19 @@ Two ent fields carry upstream PeeringDB visibility signals:
 
 ### Field-level privacy
 
-`internal/privfield.Redact(ctx, visible, value) (out string, omit bool)` is the single source of truth.
+`internal/privfield.Redact[T any](ctx, visible string, value T) (out T, omit bool)` is the single source of truth (T is the stored type of the gated value, `*string` for the nullable ixlan URL).
 Every API serializer calls it for each gated field; `privctx.TierFrom(ctx)` reads the tier stamped by `middleware.PrivacyTier`, and unstamped contexts fail-closed to `TierPublic`.
 Serializer surfaces that must call `Redact` today:
 
-- **pdbcompat** — `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)` → `ixfMemberListURLOut`; the pdbcompat-local `ixLanResponse` carries the URL as `*string` + `,omitempty`, so Redact's `omit` flag (not the value) decides the key: an admitted empty value keeps the key with `""` (upstream `permissions.py:344-353`).
-  Exception: an empty `Users` value omits the key at every tier (an anonymous sync stores `""` for every `Users` row).
-  `peeringdb.IxLan` stays a plain string: it decodes sync input.
-- **ConnectRPC** — `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)`; nil `*wrapperspb.StringValue` → wire omission.
+- **pdbcompat**: `internal/pdbcompat/serializer.go` `ixLanFromEnt(ctx, l)` → `ixfMemberListURLOut`; the pdbcompat-local `ixLanResponse` carries the URL as `**string` + `,omitempty`, so Redact's `omit` flag (not the value) decides the key: an admitted value renders as stored, NULL as `null` and `""` as `""` (upstream `permissions.py:344-353`; DRF renders None as null).
+  The column is nillable (`schema/peeringdb.json` `"nullable": true, "default": null`): sync stores JSON `null` and an absent key as NULL (`peeringdb.IxLan` decodes into `*string`), so without an API key every `Users` row is NULL (`DIVERGENCE_ixf_url_users_row_null_after_anonymous_sync`).
+  Legacy `""` rows turn NULL on the next full cycle (`NULL IS NOT ''` in `writeRowDiffers`).
+- **ConnectRPC**: `internal/grpcserver/ixlan.go` `ixLanToProto(ctx, il)`; nil `*wrapperspb.StringValue` → wire omission; NULL and `""` send no wrapper (proto comment in `v1.proto`).
   Convert closures at `ListIxLans` / `StreamIxLans` capture `ctx` via an adapter so the generic pagination helper's `Convert func(*E) *P` signature stays intact.
-- **GraphQL** — `graph/gqlgen.yml` opts `IxLan.ixfIxpMemberListURL` into a custom resolver; `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns `nil` (GraphQL `null`) when `omit=true`.
+- **GraphQL**: `graph/gqlgen.yml` opts `IxLan.ixfIxpMemberListURL` into a custom resolver; `graph/schema.resolvers.go` `ixLanResolver.IxfIxpMemberListURL` returns `nil` (GraphQL `null`) when `omit=true`; an admitted NULL value is also `null`.
 - **entrest**: `internal/middleware` `RESTFieldRedact` buffers ALL `/rest/v1/` responses except `/rest/v1/openapi.json` and walks the JSON recursively; in every object carrying the `_visible` companion it deletes the gated key when `Redact` returns `omit=true` (entrest eager-loads the ixlan edge unconditionally, so the gated field also appears under `edges.ix_lans`/`edges.ix_lan` on internet-exchange, ix-prefix, and network-ix-lan responses; path-scoping to `/rest/v1/ix-lans*` leaked it, fixed 2026-06-10).
   Wraps INSIDE `middleware.RESTError` so `application/problem+json` error bodies pass through untouched.
+  A NULL value renders `null`.
 - **Web UI** — no current render path for the URL; when/if one is added, call `privfield.Redact` in the template data preparation step.
 - **MCP**: no current path.
   Most tools return `internal/catalog` DTOs; `lookup_ip` (`internal/mcpserver/server.go`) returns raw ent `NetworkIxLan`/`IxPrefix` rows via their ent JSON tags, so a gated field added to those entities leaks there even if no DTO carries it.
@@ -95,6 +96,7 @@ New auth-gated fields use `field.String` (not `Enum`); `internal/visbaseline/sch
 
 **Schema hygiene drop procedure.**
 `migrate.WithDropColumn(true)` + `migrate.WithDropIndex(true)` are permanently on.
+A column change that SQLite cannot ALTER (default, nullability) rebuilds the table; the children's `ON DELETE SET NULL` FKs stay intact only because ent turns `foreign_keys` off on the pooled connection that then runs the migration tx, so nothing may use the pool before `Schema.Create` at startup (`TestSchemaCreate_IxLanRebuildKeepsChildFKs`).
 To drop an ent field, edit `schema/peeringdb.json`, run `go generate ./...`, remove references across `internal/{peeringdb,pdbcompat,grpcserver,sync}`, regenerate goldens (`go test -update ./internal/pdbcompat ./internal/sync`), deploy.
 See `docs/DEVELOPMENT.md` for the full step list.
 
@@ -103,7 +105,7 @@ Today's siblings:
 
 - `ent/schema/poc_policy.go` — `(Poc).Policy()` privacy rule.
 - `ent/schema/fold_mixin.go` + `ent/schema/{type}_fold.go` — `Mixin()` wiring for the 6 folded entities.
-- `ent/schema/pdb_allowlists.go` — `schema.PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist`.
+- `ent/schema/pdb_allowlists.go`: `schema.PrepareQueryAllows` and `schema.ColumnEdges` maps consumed by `cmd/pdb-compat-allowlist`.
 
 When adding new hand-edited methods (Hooks, Policy, Annotations, Edges, Mixin), MOVE them to a sibling named `{type}_{method}.go`. ent's codegen discovers methods via reflection on the schema type — the file split is transparent.
 
@@ -277,23 +279,47 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   `status` is an ordinary `Fields` key on all 13 types (upstream `status__iexact`, ANDed with the matrix; locked by `TestRegistryFields_AlignWithEntColumns`); LAST is what keeps `?status=` narrow-only.
 - List order (`listOrder` in `registry_funcs.go`): plain list `id ASC` (upstream has no `ORDER BY` and no model `Meta.ordering`; live-verified 2026-09-23), `?since` list `updated ASC, id ASC` (`rest.py:744`). entrest/ConnectRPC keep their own `(-updated, -created, -id)`.
   `applySince` is `updated >= N`: upstream compares microsecond `updated` with `N.000000` and we store only the shown second (locked by `TestParity_Status/since_boundary_includes_same_second`).
+  A fac/org `?distance=` list orders by distance, then `id` (`QueryOptions.OrderBy`, set from `listFilters.orderBy`).
+  A `?since` list keeps `updated, id` (upstream `order_by("updated")` replaces the distance order).
+  The distance sort uses a temp B-tree: no index can serve it (`TestPdbcompatListPlan_Distance`).
+- `pyInt` (`internal/pdbcompat/pyint.go`) is the one integer parser of the request path: Python `int()` rules (Unicode space and `Nd` digits, sign, single `_`, at most 4300 digits), saturating to `math.MinInt`/`math.MaxInt`.
+  It also parses the detail `{id}`.
+  `limit`, `skip`, `since` and `depth` take the last value (`lastParam`), and an empty value is a 400 with the upstream text; `since` is read only through `parseSince`, `depth` only through `ParseDepthParam`.
+  `ParsePaginationParams` returns signed values: `serveList` sends 400 `Negative indexing is not supported.` for a negative `skip` (after the filters, before every exit) and serves every row for a negative `limit`.
+  A negative `skip` on a list that upstream serves from its API cache is a registered divergence (`DIVERGENCE_negative_skip_on_cacheable_list_returns_400`).
 - Unique-query 404 (`isUniqueQuery` in `handler.go`): a list with the `id` key (any type) or `asn` key (net), no `page` key, and zero served rows returns 404 `Entity not found` (upstream `rest.py:809-815`).
   It fires on all three empty exits of `serveList` (empty `__in`, budget `count == 0`, empty `List`) and runs after privacy filtering, so a hidden poc id is a 404 (registered divergence).
-  A non-integer or empty `id`/`asn` value is still a 400 from `buildExact` (upstream `__iexact` matches nothing → 404; registered divergence `DIVERGENCE_unique_key_non_integer_returns_400`).
+- A plain key (or `__iexact`) on a non-FK integer model field matches the decimal text of the folded value (`intTextMatch`, `sql.False()` otherwise, never the `EmptyResult` sentinel): upstream `__iexact` does not convert the value (`rest.py:670-683`).
+  FK keys, operators, relation seeds, presence keys and the count seeds (`TypeConfig.ExactCounts`, first value) convert with `pyInt` (400 on a bad value).
+- Bare `netixlan?ipaddr6=` (`ipaddr6Predicate` in `filter.go`) canonicalizes the folded value with `netip` (upstream `coerce_ipaddr`, 2.83.0 `rest.py:605-606`) and compares with a plain `=` so the `networkixlan_ipaddr6` index serves it.
+  This needs the stored `ipaddr6` to be upstream's lower-case canonical text: sync stores the API string as given, so never normalize or re-case it there.
+  MCP `lookup_ip` (`internal/mcpserver/server.go`) already depends on the same fact (`netip` canonical text compared with a plain `=` on `ipaddr4`/`ipaddr6`), so a sync change that alters the stored text breaks both paths.
+  Locked by `TestCoerceIPAddr`, `TestParseFilters_IPAddr6KeyNotUnknown`, `TestParity_Unicode/ipaddr6_*`, `TestPdbcompatIPAddr6Plan_UsesIndex`.
 - PK-lookup (`internal/pdbcompat/depth.go`) MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare; netixlan uses `StatusIn("ok", "not-operational", "pending")` (live + pending, `rest.py:750`).
   Inline the `StatusIn` literal at each of the 27 call sites; grep-ability trumps DRY here.
+- Detail filters: `serveDetail` parses the same filter keys as a list (`parseRequestFilters`, the list parser) and checks the row with `TypeConfig.Match` (built in `wireEntity`: `id = ? AND <filters>`, `Exist`, request ctx, so the poc policy applies) before the budget admission and the PK lookup; no filter key = no extra query.
+  A miss is the same `404` as a missing id (`writeDetailNotFound`, `missMessage`: `No <DjangoModel> matches the given query.` via `pdbtypes.DjangoModelOf`); `limit`/`skip` above 0 is `404` `Not found.` (upstream slices before `get()`, `parseDetailSlice`; a negative `limit` is accepted); `since` is checked and ignored; `q` is ignored.
+  Parse order is the list order (skip, limit, since, depth, filters, negative skip 400).
+  A request with a slice or a negative skip first runs `nameSearchMisses` (`listFilters.none`, or one `searchHit` query): a `name_search` without a match skips the negative skip `400` (upstream `qset.none()` comes before the slice).
+  Then the `{id}` (`pyInt`): a bad one is `404` `Not found.`, before the slice and empty-result 404s (upstream converts the pk after `get_queryset`); `dispatch` sends that 404 at once for an id with `.` or `/` (DRF format suffix, `initial()`).
+  Then a `name_search` without a match is the miss `404`, then the slice `404`, then the empty-result `404`.
+  A new detail-path exit must keep this order; a route outside the Registry that reads the raw id branches before the Registry lookup.
+  `Match` adds no status: the inline `StatusIn` of the PK lookup stays the detail status set (a relation seed may still pin `ok`, as upstream).
+  Locked by `TestParity_Status/detail_applies_list_filters` and `TestParity_Status/detail_non_integer_id_404`.
+- Errors on `/api/` go through `writeError` (`internal/pdbcompat/response.go`): upstream `{"meta":{"error":...}}` by default, RFC 9457 only when `Accept` names `application/problem+json` (`httperr.WantsProblemJSON`).
+  Never call `httperr.WriteProblem` from pdbcompat directly.
 
 **Native netixlan listings** (web fragments `internal/web/detail.go`, `internal/catalog` network/IX/compare, MCP `lookup_ip`) inline `networkixlan.StatusIn("ok", "not-operational", "pending")`: upstream 2.83.0 lists not-operational connections in its views and counts them in IX stats.
 REST/GraphQL/gRPC have no default status filter.
 Row markers (not operational, planned removal/activation `<date>`, RFC8950) come from `catalog.ConnectionMarkersFor` only: HTML badges via templ `connectionMarkers`, terminal via `writeConnectionMarkers`; not-operational = status `not-operational` OR (`ok` AND `operational=false`), i.e. upstream's `not x.operational` before and after its migration.
 
-**Depth expansion** (`internal/pdbcompat/depth.go`, brought to full upstream parity in v1.20.5 — validated live 2026-06-08, locked by `depth_test.go`): `serveDetail` clamps `?depth=` to `[0,4]` (`handler.go`); each `getXWithDepth` branches bare (≤0) / `depth==1` (forward FK objects flat + reverse `_set` as bare ID lists) / `depth>=2` (full).
+**Depth expansion** (`internal/pdbcompat/depth.go`, brought to full upstream parity in v1.20.5 and validated live 2026-06-08, locked by `depth_test.go`): `serveDetail` rejects a non-integer `?depth=` with 400 (`rest.py:520-523`) and clamps it to `[0,4]` (`handler.go`); lists: see List depth under § Response memory envelope; each `getXWithDepth` branches bare (≤0) / `depth==1` (forward FK objects flat + reverse `_set` as bare ID lists) / `depth>=2` (full).
 The `nested<Type>Map` builders (`nestedOrg/Net/Fac/Ix/IxLan/Carrier/CampusMap`) render a singular FK object one level down — full object + its own reverse sets as ID lists + a FLAT sub-FK — and ARE the `depth==1` top-level shape, so parent getters reuse them.
 Direct reverse sets sort ascending (`sortedIDsOrEmpty`), EXCEPT the three facility-link sets (`net.netfac_set`, `ix.fac_set` via ixfac, `carrier.carrierfac_set`), which order by `(fac_id, id)` at depth 1 AND 2 (`intsOrEmpty` + query `Order`): upstream's prefetch has no ORDER BY and MySQL reads them through the unique `(<parent>, facility)` index (`models.py:3284/5998/6603`), confirmed live 2026-09-23 (net 20, ix 26).
 `ixlan.net_set` via netixlan keeps join order WITH duplicates (`intsOrEmpty`).
 `ixlan` exposes `net_set` (Networks resolved through the netixlan join, `getter="network"`), NOT `netixlan_set`.
-Sets are live-only at every depth: `likelyOK` (`likely(status IN ('ok'))`, which keeps the set query on the FK index; plans locked by `TestDetailPlan_KeepsFKIndex`), netixlan `StatusIn("ok", "not-operational")` (upstream nested prefetch, 2.83.0 `serializers.py:1140-1148`).
-A pending child (in practice a campus) is left out of its parent's set while its own PK lookup still returns it; through-relation sets filter the join row only (the resolved fac/net is unfiltered, `serializers.py:1678-1681`); `detailChildSets` repeats the set filters.
+Sets are live-only at every depth: `likelyOK` (`likely(status IN ('ok'))`, which keeps the set query on the FK index; plans locked by `TestDetailPlan_KeepsFKIndex`), netixlan `StatusIn("ok", "not-operational")` (upstream nested prefetch, 2.83.0 `serializers.py:1140-1148`; `childSets` and the list-depth loaders use the same set as `likelyNetIXLanSet`).
+A pending child (in practice a campus) is left out of its parent's set while its own PK lookup still returns it; through-relation sets filter the join row only (the resolved fac/net is unfiltered, `serializers.py:1678-1681`); `childSets` repeats the set filters.
 Campus-less facilities emit `campus:null` at detail depth.
 Per-serializer back-ref strips differ (campus.fac_set drops `org_id`/keeps `campus_id`; carrier.carrierfac_set keeps `carrier_id`).
 Intentional non-parity: `poc_set` ID lists apply `poc.visible` privacy (omit non-Public ids upstream leaks); depths 3-4 render the depth-2 shape.
@@ -343,12 +369,14 @@ For a new (7th+) entity, also create the sibling file declaring `Mixin()`.
 See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent-edge introspection), 2-hop cap, `parseFieldOp` 3-tuple, and unknown-field diagnostics.
 
 **Non-model targets.**
-`TypeConfig.NonModelFields` (serializer fields / properties upstream, e.g. fac `org_name`, campus `city`) are never a traversal target (`traversalTargetField`) nor a relation-seed tail: upstream `queryable_relations` offers model fields only.
+`TypeConfig.NonModelFields` (serializer fields / properties upstream, e.g. fac `org_name`, campus `city`) are never a traversal target (`traversalTargetField`) nor a relation-seed tail (such a tail is a 400 `Invalid query`, see Relation filters): upstream `queryable_relations` offers model fields only.
 Do NOT key this on `UpstreamIgnored`: it also holds renamed MODEL fields (carrier `fac_count`) that stay valid targets (`carrierfac?carrier__fac_count=`).
 
 **Codegen invariants.**
 Static map emission, NOT runtime `client.Schema.Tables` walk.
 `cmd/pdb-compat-allowlist` reads `schema.PrepareQueryAllows` from `ent/schema/pdb_allowlists.go` → emits `internal/pdbcompat/allowlist_gen.go`.
+It also reads `schema.ColumnEdges` (same file): pdbcompat-only forward edges over a FK column with no ent edge (today netixlan `ix_side` → fac on `ix_side_id`), checked against the ent graph (fatal on error) and emitted into `Edges` with `OwnFK: true`; no FK constraint, no other surface.
+Never add `net_side` (upstream renames it to `network_side` and ignores it).
 Each entry's block comment cites the upstream `peeringdb_server/serializers.py:<line>` it derives from (usually `<Serializer>.prepare_query`, else `related_fields` / `queryable_relations`); audit-required.
 There is no `// Source:` tag.
 Path B introspection: `internal/pdbcompat/introspect.go` (`LookupEdge` / `ResolveEdges` / `TargetFields`).
@@ -374,16 +402,61 @@ Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_Fol
 **Relation filters (`internal/pdbcompat/relation_filter.go`).**
 The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__iexact`/`__icontains`/`__istartswith` filter the ixlan name), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B.
 Most seeds pin ONE row of their path to `status='ok'` (`make_relation_filter`, 2.83.0 `models.py:221-234`; `pinAt`, `noPin` for fac `org_name` and carrier); a bare `status` filter on that row is replaced by the pin.
-A tail field in `TypeConfig.NonModelFields` (serializer field or property upstream) is ignored.
-They read `vals[0]` (upstream `v[0]`), not the last value.
+The tail field of a `shapeRelation` seed resolves as a Django name (`resolveModelName`, no second xl).
+On the 4 prefix seeds (`relationSeed.prefix`), `stripRelationPrefix` first removes `<prefix>_` and maps the prefix to `id` (`models.py:224-227`).
+`pk` -> id.
+On an FK-path seed, `exact`/`lt`/`lte`/`gt`/`gte` -> id with that lookup, `isnull` -> 400 isnull text, `in` -> 400 (residual: upstream iterates the characters).
+A field that the model does not have (including `NonModelFields` and names that `queryable_field_xl` renames to nothing) is a 400 `Invalid query` (upstream `FieldError`, `rest.py:499-500`).
+An upstream model name that the mirror does not store (`unservedModelNames` in `relation_filter.go`, with citations) stays ignored.
+Relation keys read `vals[0]` (upstream `v[0]`), not the last value.
 Do not re-add these keys to `pdb_allowlists.go`: Path A never sees them.
 Semantics table: `docs/API.md § Relation filters`.
 
 **Presence keys (`internal/pdbcompat/presence_filter.go`).**
-The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`org_present`/`org_not_present` (upstream `prepare_query`) resolve in `ParseFiltersCtx` BEFORE the relation seeds, exact key only, first value.
+The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`asn_overlap`/`org_present`/`org_not_present` (upstream `prepare_query`) resolve in `ParseFiltersCtx` BEFORE the relation seeds, exact key only, first value.
 `not_*` = `sql.NotPredicates` over the relation seed of the same target (same `ok` pin); `all_net` = one `GROUP BY ... HAVING COUNT(DISTINCT net_id) = <distinct ids>` subquery (no SQL term per id); `org_present` checks no status on any row (upstream `.objects`), ix path compares `ix.id` with `netixlan.ixlan_id` as upstream does.
 A non-integer item is a 400.
-Locked by `TestParity_Traversal/prepare_query_presence_keys`.
+`asn_overlap` (fac/ix) is a presence key with its own `parse` (`parseASNOverlap`): 1 item or more than 25 is a 400 before any int parse; a repeated raw item matches nothing through `sql.False()` (upstream keys by the raw string; the opposite of the `all_net` `distinctCount`), not `emptyResult`; it matches `net.asn` through `networks_asn_key`, never `local_asn`/netixlan `asn`; ix counts `LiveStatuses("netixlan")` through `ixlan.ix_id`; `likely()` on the link status keeps the plan on the `_net_id` index (`TestPresencePlan_KeepsNetIndex`).
+Locked by `TestParity_Traversal/prepare_query_presence_keys` + `prepare_query_asn_overlap`.
+
+**ix `ipblock` (`internal/pdbcompat/ipblock_filter.go`).**
+`ParseFiltersCtx` resolves `ix?ipblock=` after the presence keys and before the relation seeds, exact key only, first value, never a 400.
+It is a TEXT prefix match (`substr(prefix, 1, length(?)) = ?`: case-sensitive, `%`/`_` literal, like upstream `LIKE BINARY`), NOT containment (`whereis` is), through `ix_lans.ix_id` (upstream `ixlan__ix_id`), with no status on ixpfx or ixlan (upstream `.objects`); an empty value matches every prefix, the stored `""` of a tombstone included.
+Locked by `TestParity_Traversal/prepare_query_ipblock` + `TestIPBlockPlan_SubqueryRunsOnce`.
+
+**ixpfx `whereis` (`internal/pdbcompat/whereis_filter.go`).**
+`ParseFiltersCtx` resolves `whereis` and its operator forms after the ix ipblock key, first value; `whereis__in` is always a 400 (upstream passes a list to `ip_address`).
+The predicate is `prefix IN json_each(<every prefix of the address, /0../32 or /0../128>)`, built with `netip.Addr.Prefix(bits).String()`: it relies on stored prefixes being canonical (upstream `str(ip_network)`, strict), so never scan rows in Go and never `Unmap()` (Python keeps a mapped address IPv6).
+Rows with an empty prefix (tombstone 4185) never match; upstream returns 400 for every lookup while such a row exists (`DIVERGENCE_whereis_ignores_empty_prefix_row`).
+Locked by `TestParity_Traversal/prepare_query_whereis` + `TestWhereisCandidates`.
+
+**ix `capacity` (`internal/pdbcompat/capacity_filter.go`).**
+`ix?capacity[__lt|lte|gt|gte|in|contains|startswith]=` resolves in `ParseFiltersCtx` after the ixpfx whereis key, first value: `id IN (SELECT ixlan_id FROM network_ix_lans WHERE status <> 'deleted' GROUP BY ixlan_id HAVING SUM(speed) <op> ?)` (upstream `filter_capacity`, `models.py:2895-2942`, takes `ixlan_id` as the ix id; do not join `ixlan` or use `netixlan.ix_id`).
+Values parse with `pyInt` (saturated, bound as integers; `__in` as ONE JSON array); `capacity__in=` is a 400 (upstream int-converts every item), not `errEmptyIn`; contains/startswith match `CAST(SUM AS TEXT)` and never 400.
+Two different capacity keys AND (upstream applies only the form whose first occurrence is last): `DIVERGENCE_relation_filter_forms_all_apply`.
+Locked by `TestParity_Traversal/prepare_query_capacity` + `TestCapacityPlan` (uncorrelated `LIST SUBQUERY` on `networkixlan_ixlan_id`).
+
+**Distance filter (`internal/pdbcompat/distance_filter.go`).**
+The fac/org `?distance=` key resolves in a pre-pass of `parseListFilters` (`ParseFiltersCtx` and `parseRequestFilters` wrap it), because the params map has no order.
+Pre-passes run in upstream order: `prepare_query` keys (distance) before `name_search`, and they share one `consumed` skip set.
+The `listFilters` fields are `preds`, `emptyResult` (still one exit, after the loop), `orderBy` (the distance sort; `serveList` sets `QueryOptions.OrderBy`, `serveDetail` ignores it, and `Match` applies the predicate), and `none`/`searchHit` (name_search, below).
+The key takes the first value with Python `float()` rules (`parsePyFloat`: overflow is ±Inf, not an error; hex rejected); a value `<= 0` is a no-op; the key is known on fac/org and unknown on the other 11 types.
+A positive value needs `latitude` and `longitude`, else `400` (the mirror has no geocoder).
+While spatial, the loop skips `latitude`/`longitude`/`address1`/`city`/`city__in`/`state`/`zipcode`, and a bare `country` is iexact (`buildLocalPredicate(..., spatial)`, `rest.py:569-597`).
+SQLite has no `greatest`/`least`: use `min`/`max`, and keep the clamp (`acos(1+ε)` is NULL).
+The `nan`, `inf`, first-value coordinates and coordinate `400` rules are mirror choices (`DIVERGENCE_distance_value_handling`).
+Locked by `TestParity_Traversal/prepare_query_distance_*` + `TestDistanceSearch_ListAndCountAgree`.
+
+**Name search (`internal/pdbcompat/name_search.go`).**
+`resolveNameSearch` resolves `name_search` in a pre-pass of `parseListFilters` after the distance pre-pass (upstream: `prepare_query`, then `name_search`, 2.83.0 `rest.py:488-553`), exact key, last value; its keys go in the `consumed` set.
+On the 6 indexed types it matches words (substring of the index fields per type, `nameSearchFields`), digits (net ASN prefix + text) or a partial IP (live netixlan address range), `ok` rows only; words bind as ONE JSON array and every column goes through `coalesce` (else a NULL column passes `NOT EXISTS`).
+It owns `id__in` when both are present: upstream unions the search ids into `id__in` (`rest.py:685-690`); an `EXISTS (... LIMIT 1)` gate keeps the empty result when nothing matches (without `LIMIT 1` SQLite sorts the page in a temp B-tree).
+`none` (7 types without an index, or a value such as `AND` that can match nothing) sets `emptyResult` before the loop, and the loop then reads only `isPrepareQueryKey` keys (`rest.py:550-553` returns before the filter loop, after `prepare_query`); they are not unknown keys either.
+A `name_search` value error does the same and is returned after the loop, so a `prepare_query` error wins (`TestParity_NameSearch/prepare_query_errors_win`).
+Every new `prepare_query` key resolver MUST be added to `isPrepareQueryKey` (`filter.go`), else its `400` is lost when `name_search` matches nothing; bare `ipaddr6`, meta and `info_type` stay out.
+Detail and negative skip: upstream's `qset.none()` comes before the slice, so `nameSearchMisses` (`none`, or `searchHit` once via `tc.List`, limit 1) runs for a sliced detail or a negative `skip` (list or detail); a miss is the miss `404` (detail) or the empty result (list), not the slice `404` or the negative skip `400`.
+The digit test follows Python `isdigit` + `int` (`pyDigitNotDecimal`, `ndValue`, `pyIntMaxStrDigits`): a value that `int()` rejects is `400`, as upstream.
+Locked by `TestParity_NameSearch`, `TestNameSearchPlan`, `TestParseListFilters_NameSearchNone`.
 
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
@@ -409,16 +482,33 @@ The `entc.LoadGraph` runtime patch in `ent/entc.go` (`fixCampusInflection`) rema
 See `docs/ARCHITECTURE.md § Response Memory Envelope` for budget, sizing table, lifecycle, telemetry.
 Invariants:
 
-**Closure pairing:** the 13 List/Count pairs in `internal/pdbcompat/registry_funcs.go` are built by one generic `wireEntity` helper from a single shared predicate builder (v1.23.0), so budget pre-check and served response cannot disagree (the 413 guarantee).
+**Closure pairing:** the 13 List/Count/Match sets in `internal/pdbcompat/registry_funcs.go` are built by one generic `wireEntity` helper from a single shared predicate builder (v1.23.0), so budget pre-check and served response cannot disagree (the 413 guarantee).
+`Match` shares the predicate builder, so a detail filter and a list filter are the same SQL.
 `applyStatusMatrix` LAST and the `opts.EmptyResult` short-circuit both live in exactly one place inside `wireEntity` — do not add per-entity closures outside it.
+`ListIDs` and `ListDepth` are built in the same helper from the same predicate builder; `ListDepth` adds its chunk `id IN json_each` predicate to a copy of `opts.Filters`, so `applyStatusMatrix` stays last.
 
-**Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer` in `dispatch` (covers list + detail terminal paths).
+**Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer`: in `dispatch` for the Registry list + detail terminal paths, and in `serveASSet` for `/api/as_set` (routed before the Registry lookup).
 
-**Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (child `COUNT(*)` × child `Depth0` per embedded `_set`, table in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads).
-Changing a depth expansion's set list means updating `detailChildSets` too.
-The 413 check stays flat (`CheckBudget(1, type, depth, …)`) — fan-out feeds only the pool.
+**Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (per embedded `_set`, the child count from one `GROUP BY` query per set × child `Depth0`, table `childSets` in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads and the `list_depth.go` loaders).
+Changing a depth expansion's set list means updating `childSets` too.
+The detail 413 check stays flat (`CheckBudget(1, type, depth, …)`); fan-out feeds only the pool.
+
+**List depth (`internal/pdbcompat/list_depth.go`):** a `?depth=` list of org/net/ix/ixlan/carrier/campus fetches the served ids first (`TypeConfig.ListIDs`: the same predicates, order, skip and limit as `List`), loads 250 ids at a time (`TypeConfig.ListDepth`: one query per set with `<fk> IN json_each`, no ent `With*`), and renders one row at a time as the stream pulls it.
+It prices its most expensive 250-id chunk (`listDepthEstimate`: `childSets` `GROUP BY` counts, child Depth0 per element at depth 2 or 16 bytes at depth 1, plus `listDepthRenderFactor` 4 × the largest row, plus 16 bytes per id) and feeds that to BOTH the 413 and the pool, after a flat Depth0 `CheckBudget` over the served count.
+Only the `_set` fields that `?fields=` names are loaded (`selectSets`).
+List rows never carry the forward FK object (upstream `list_exclude`), so the 7 types without sets render depth-0 rows (`ListDepth` nil); depth 3 renders the depth-2 shape (registered divergence).
+A list with depth > 0, more than 250 served rows and a key that upstream counts in its API cache gate (`listFilters.upstreamFilter`, incl. no-op keys such as `net?info_type__in=,x`), a non-zero `since` (`sinceIsNonZero`) or `?q` is cut to 250 with `meta.truncated` (2.83.0 `rest.py:766-772`); an unfiltered one is not (upstream API cache).
+Poc privacy holds in `poc_set` (the loader queries through the ent policy) and ixlan URL redaction in `ixlan_set` (`ixLansFromEnt(ctx)`).
+Set status filters on this path MUST use `likely()` (`likelyOK`, netixlan `likelyNetIXLanSet`): with a json_each FK list, a bare `status IN (?, ?)` reads the status index.
+Locked by `TestListDepthPlan_KeepsFKIndex`, `TestListDepth_CountsMatchRender`, `TestListDepth_MatchesDetail`, `TestListDepthRenderFactor`.
 
 **Adding an entity type:** add a `typicalRowBytes` entry to `internal/pdbcompat/rowsize.go` (bench via `BenchmarkRowSize`, double the mean, round to 64 bytes), add a `wireEntity(entityWiring[...]{...})` entry in `registry_funcs.go` `init()`, extend the sizing table in `docs/ARCHITECTURE.md`, add under-/over-budget E2E cases mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+
+**`/api/as_set`** (`internal/pdbcompat/asset.go`) is not a Registry type: keep it out of `Registry`, `typicalRowBytes` and `pdbtypes` (13-type tables with count tests).
+Its list bills `asSetEntryBytes` per entry through `checkBudgetBytes` and the shared in-flight pool; its count and select share `asSetPredicates()`.
+`/api/as_set/<asn>` has no status filter (upstream `Network.objects.get`, 2.83.0 `rest.py:1416`): the inline `StatusIn` rule is for the PK detail path only.
+Its `dispatch` branch sees the raw id: keep it ahead of any id parsing or suffix handling.
+`methodNotAllowed` sends `Allow: GET` on its paths, and `serveASSet` answers `HEAD` with `405`.
 
 **Do NOT:**
 
@@ -430,12 +520,12 @@ The 413 check stays flat (`CheckBudget(1, type, depth, …)`) — fan-out feeds 
 
 ### Upstream parity regression
 
-`internal/pdbcompat/parity/` locks pdbcompat semantics via 9 category-split test files (`{ordering,status,limit,unicode,in,traversal,meta,serializer,multichoice}_test.go`) + `harness_helpers_test.go`.
+`internal/pdbcompat/parity/` locks pdbcompat semantics via 10 category-split test files (`{ordering,status,limit,unicode,in,traversal,meta,serializer,multichoice,name_search}_test.go`) + `harness_helpers_test.go`.
 Each test seeds its own clean rows **inline** via the ent client and cites the upstream source line in a comment.
 The earlier ported-fixture pipeline (`internal/testutil/parity` + `cmd/pdb-fixture-port`) was removed: the ports carried unseedable Python-source artefacts (`**kwargs` splats, `SHARED[...]` refs) and 5 of 6 slices had zero behavioural consumers, while the `--check` drift gate was wired into nothing.
 
 **Adding a parity test:** pick the category file matching the behaviour under test, add a sub-test under `TestParity_<Category>` with `t.Parallel()` and a citation comment (`// upstream: pdb_api_test.py:<line>` or `// synthesised: <context>`).
-Seed clean rows inline via `c.<Entity>.Create()` and the shared `harness_helpers_test.go` request/decode helpers (`newTestServer`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`) — do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
+Seed clean rows inline via `c.<Entity>.Create()` and the shared `harness_helpers_test.go` request/decode helpers (`newTestServer`, `httpGet`, `httpDo`, `decodeDataArray`, `extractIDs`, `mustDecodeMetaError`; `mustDecodeProblem` only for the problem+json opt-in); do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
 
 **Divergence registry:** `docs/API.md § Known Divergences` is the SoT for intentional non-parity.
 Every entry has a matching `DIVERGENCE_<…>` sub-test.
@@ -689,7 +779,7 @@ Single-source-of-truth packages:
   `LiveStatuses(name)` mirrors upstream `live_statuses()` (feeds the pdbcompat status matrix).
   Exception: `internal/sync` keeps its own ordered step list — loadtest's ordering parity test cross-checks the two.
 - `internal/pdbcompat/` — PeeringDB-compatible `/api` layer (filter routing, allowlist, status matrix, response budget)
-- `internal/privfield/` `Redact(ctx, visible, value)`: field-level redaction across all 6 surfaces
+- `internal/privfield/` `Redact[T](ctx, visible, value)`: field-level redaction across all 6 surfaces
 - `internal/privctx/` `TierFrom(ctx)` — privacy tier reader
 - `internal/unifold/` `Fold(s string) string` — diacritic-insensitive folding (mirrors upstream `unidecode`)
 - `internal/visbaseline/` — visibility baseline + schema-alignment regression test

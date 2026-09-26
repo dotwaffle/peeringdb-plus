@@ -633,9 +633,11 @@ func TestDepth(t *testing.T) {
 		}
 	})
 
-	t.Run("list_ignores_depth", func(t *testing.T) {
+	t.Run("list_depth2_embeds_sets_without_fk_objects", func(t *testing.T) {
 		t.Parallel()
-		// List endpoint should NOT have _set fields even with depth=2.
+		// A list row at depth 2 carries every reverse set as an array
+		// and no forward FK object (upstream list_exclude, 2.83.0
+		// serializers.py:1286-1290).
 		req := httptest.NewRequest(http.MethodGet, "/api/org?depth=2", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
@@ -651,10 +653,28 @@ func TestDepth(t *testing.T) {
 			t.Fatal("expected at least 1 org in list")
 		}
 
-		obj := items[0]
-		for _, setField := range []string{"net_set", "fac_set", "ix_set"} {
-			if _, ok := obj[setField]; ok {
-				t.Errorf("list_ignores_depth: %q should not be present on list endpoint", setField)
+		for _, obj := range items {
+			for _, setField := range []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"} {
+				if _, ok := obj[setField].([]any); !ok {
+					t.Errorf("org %v: %q is %T, want an array", obj["id"], setField, obj[setField])
+				}
+			}
+		}
+		req = httptest.NewRequest(http.MethodGet, "/api/net?depth=2", nil)
+		rec = httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		_ = json.Unmarshal(rec.Body.Bytes(), &env)
+		items = nil
+		_ = json.Unmarshal(env.Data, &items)
+		if len(items) == 0 {
+			t.Fatal("expected at least 1 net in list")
+		}
+		for _, obj := range items {
+			if _, ok := obj["org"]; ok {
+				t.Errorf("net %v: list row has the org object", obj["id"])
+			}
+			if _, ok := obj["netixlan_set"].([]any); !ok {
+				t.Errorf("net %v: netixlan_set is %T, want an array", obj["id"], obj["netixlan_set"])
 			}
 		}
 	})
@@ -1461,10 +1481,18 @@ func TestDepth_DepthOne(t *testing.T) {
 		if _, has := get(t, "org", orgID, "?depth=-1")["net_set"]; has {
 			t.Error("org depth=-1 must clamp to 0 (no net_set)")
 		}
-		// non-numeric keeps the default detail depth (2).
-		if arr, _ := get(t, "org", orgID, "?depth=foo")["net_set"].([]any); len(arr) > 0 {
-			if _, isObj := arr[0].(map[string]any); !isObj {
-				t.Error("org depth=foo must fall back to default depth=2")
+		// A value that is not an integer is a 400, as upstream
+		// (2.83.0 rest.py:520-523), empty included.
+		for _, q := range []string{"?depth=foo", "?depth=", "?depth=2&depth=1.5"} {
+			req := httptest.NewRequest(http.MethodGet, "/api/org/"+itoa(orgID)+q, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("org %s: status = %d, want 400", q, rec.Code)
+				continue
+			}
+			if got := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); got != "'depth' needs to be a number" {
+				t.Errorf("org %s: meta.error = %q", q, got)
 			}
 		}
 	})
@@ -1664,13 +1692,19 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 		{"ixlan public url keeps key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN",
 			IXFIXPMemberListURLVisible: "Public",
-			IXFIXPMemberListURL:        new("https://example.com/members"),
+			IXFIXPMemberListURL:        new(new("https://example.com/members")),
 			Created:                    now, Updated: now, Status: "ok",
 		}},
 		{"ixlan admitted empty url keeps key", ixLanResponse{
 			ID: 1, IXID: 2, Name: "LAN",
 			IXFIXPMemberListURLVisible: "Public",
-			IXFIXPMemberListURL:        new(""),
+			IXFIXPMemberListURL:        new(new("")),
+			Created:                    now, Updated: now, Status: "ok",
+		}},
+		{"ixlan admitted null url keeps key with null", ixLanResponse{
+			ID: 1, IXID: 2, Name: "LAN",
+			IXFIXPMemberListURLVisible: "Public",
+			IXFIXPMemberListURL:        new((*string)(nil)),
 			Created:                    now, Updated: now, Status: "ok",
 		}},
 		{"organization with nil and set pointers", peeringdb.Organization{
@@ -1723,7 +1757,8 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 // visibility (filtering non-Public POCs only when expanded to objects at
 // depth=2), while this mirror applies the row-level poc.visible privacy
 // policy uniformly: a poc_set ID list never holds the id of a POC that the
-// caller's tier cannot read. Anonymous callers get Public ids only; the
+// caller's tier cannot read, on a detail response and on a list response
+// at ?depth=1 or 2. Anonymous callers get Public ids only; the
 // Users tier gets Public and Users ids, never Private ones. Stricter than
 // upstream by design; if this test fails the way upstream behaves, that is
 // a privacy leak, not a parity win.
@@ -1765,9 +1800,11 @@ func TestDepth_PocSetPrivacy_DIVERGENCE(t *testing.T) {
 	mux := http.NewServeMux()
 	h.Register(mux)
 
-	// pocSet returns the depth=1 poc_set of net. A nil tier leaves the
-	// request context unstamped, which fails closed to TierPublic.
-	pocSet := func(t *testing.T, tier *privctx.Tier) []int {
+	// pocSet returns the poc ids of the poc_set of net at path: the ids
+	// of an id list, or the ids of the objects at depth 2. A nil tier
+	// leaves the request context unstamped, which fails closed to
+	// TierPublic.
+	pocSet := func(t *testing.T, tier *privctx.Tier, path string) []int {
 		t.Helper()
 		var handler http.Handler = mux
 		if tier != nil {
@@ -1777,33 +1814,55 @@ func TestDepth_PocSetPrivacy_DIVERGENCE(t *testing.T) {
 		}
 		srv := httptest.NewServer(handler)
 		t.Cleanup(srv.Close)
-		resp, err := http.Get(srv.URL + "/api/net/" + itoa(net.ID) + "?depth=1") //nolint:noctx // test code, local httptest server
+		resp, err := http.Get(srv.URL + path) //nolint:noctx // test code, local httptest server
 		if err != nil {
-			t.Fatalf("GET net depth=1: %v", err)
+			t.Fatalf("GET %s: %v", path, err)
 		}
 		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("GET net depth=1: status %d", resp.StatusCode)
+			t.Fatalf("GET %s: status %d", path, resp.StatusCode)
 		}
 		var env struct {
 			Data []struct {
-				PocSet []int `json:"poc_set"`
+				PocSet []json.RawMessage `json:"poc_set"`
 			} `json:"data"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
 			t.Fatalf("decode envelope: %v", err)
 		}
 		if len(env.Data) != 1 {
-			t.Fatalf("got %d data rows, want 1", len(env.Data))
+			t.Fatalf("GET %s: got %d data rows, want 1", path, len(env.Data))
 		}
-		return env.Data[0].PocSet
+		ids := make([]int, 0, len(env.Data[0].PocSet))
+		for _, raw := range env.Data[0].PocSet {
+			var id int
+			if err := json.Unmarshal(raw, &id); err != nil {
+				var obj struct {
+					ID int `json:"id"`
+				}
+				if err := json.Unmarshal(raw, &obj); err != nil {
+					t.Fatalf("GET %s: poc_set element %s: %v", path, raw, err)
+				}
+				id = obj.ID
+			}
+			ids = append(ids, id)
+		}
+		return ids
 	}
 
-	if got, want := pocSet(t, nil), []int{pocIDs["Public"]}; !slices.Equal(got, want) {
-		t.Errorf("anonymous depth=1 poc_set = %v, want %v (Public poc only)", got, want)
-	}
 	users := privctx.TierUsers
-	if got, want := pocSet(t, &users), []int{pocIDs["Public"], pocIDs["Users"]}; !slices.Equal(got, want) {
-		t.Errorf("users-tier depth=1 poc_set = %v, want %v (Public and Users pocs, never Private)", got, want)
+	// The detail at depth 1, and a list at depth 1 and 2: a list at
+	// depth 1 renders the same id list as the detail.
+	for _, path := range []string{
+		"/api/net/" + itoa(net.ID) + "?depth=1",
+		"/api/net?id=" + itoa(net.ID) + "&depth=1",
+		"/api/net?id=" + itoa(net.ID) + "&depth=2",
+	} {
+		if got, want := pocSet(t, nil, path), []int{pocIDs["Public"]}; !slices.Equal(got, want) {
+			t.Errorf("anonymous %s poc_set = %v, want %v (Public poc only)", path, got, want)
+		}
+		if got, want := pocSet(t, &users, path), []int{pocIDs["Public"], pocIDs["Users"]}; !slices.Equal(got, want) {
+			t.Errorf("users-tier %s poc_set = %v, want %v (Public and Users pocs, never Private)", path, got, want)
+		}
 	}
 }

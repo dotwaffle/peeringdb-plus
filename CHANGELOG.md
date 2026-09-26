@@ -8,11 +8,129 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-09-26
+
+### Added
+
+- pdbcompat serves the upstream AS-SET lookup: `GET /api/as_set` maps the ASN of each `ok` network to its `irr_as_set`, and `GET /api/as_set/<asn>` returns the value of one network in any status.
+  The ASN is read with Python `int()` rules; a value that is not an integer returns `400` (`Invalid ASN`), and an ASN that no network has returns `404` with an empty body.
+  The `/api/` index lists `as_set`, as upstream.
+  `HEAD` and the other methods on these paths return `405` with `Allow: GET`.
+  Before, both paths returned `404`.
+  See `docs/API.md` § AS-SET lookup.
+- pdbcompat filters `netixlan` on the facility of the exchange side: `?ix_side__<field>=`, for example `?ix_side__name=` or `?ix_side__city__contains=`, as upstream.
+  Before, pdbcompat ignored these keys and returned the unfiltered list (a registered divergence, now removed).
+  The `net_side` keys stay ignored, as upstream ignores them.
+  See `docs/API.md` § Cross-entity traversal.
+- pdbcompat implements `ix?ipblock=`: it keeps the exchanges that have a prefix whose text starts with the value, as upstream does.
+  Before, pdbcompat ignored the key and returned every exchange.
+  The match compares text, not addresses: `ipblock=10.0.0.0` matches `10.0.0.0/24`, but `ipblock=10.0.0.5` does not.
+  A single-object GET applies the key too: `/api/ix/<id>?ipblock=` returns `404` when the exchange has no matching prefix.
+  See `docs/API.md` § IP block filter.
+- pdbcompat implements `ixpfx?whereis=<address>`: the list holds the prefixes that contain the IPv4 or IPv6 address.
+  Before, pdbcompat ignored the key and returned every prefix.
+  A value that is not an address returns `400`, as upstream, and so does `whereis__in=`.
+  A single-object GET applies the key too: `/api/ixpfx/<id>?whereis=` returns `404` when the prefix does not contain the address.
+  A prefix row with an empty prefix never matches; the upstream source shows a `400` for every lookup while such a row exists (not verified on the live API; a registered divergence).
+  See `docs/API.md` § IP address lookup.
+- pdbcompat implements the upstream `ix` key `capacity`: `ix?capacity=N`, and the operators `__lt`, `__lte`, `__gt`, `__gte`, `__in`, `__contains` and `__startswith`.
+  The capacity of an exchange is the sum of the port speeds (Mbit/s) of its netixlans that are not deleted.
+  Before, pdbcompat ignored the key and returned every exchange.
+  A value that is not an integer returns `400`, as upstream, and so does `capacity__in=`.
+  A single-object GET applies the key too: `/api/ix/<id>?capacity=` returns `404` when the capacity does not match.
+  See `docs/API.md` § Capacity filter.
+- pdbcompat implements `asn_overlap` on `fac` and `ix`: `fac?asn_overlap=64500,64501` returns the facilities where the network of every listed ASN has a netfac with status `ok`, and `ix?asn_overlap=` the exchanges where it has a netixlan with status `ok` or `not-operational`.
+  Before, pdbcompat ignored the key and returned the unfiltered list.
+  One ASN, an empty value, more than 25 ASNs or an item that is not an integer returns `400`, as upstream.
+  An item that occurs two times in the list, for example `64500,64500`, matches no row, as upstream.
+  A single-object GET applies the key too: `/api/fac/<id>?asn_overlap=` returns `404` when the facility does not match, and `400` for one ASN.
+  See `docs/API.md` § Presence filters.
+- pdbcompat implements `?distance=` with `latitude` and `longitude` on `fac` and `org`: the list holds the rows within that many kilometers of the point, nearest first, as upstream.
+  Before, pdbcompat ignored the key and returned the unfiltered list.
+  While the filter applies, `city`, `state`, `zipcode`, `address1`, `city__in`, `latitude` and `longitude` do not filter, as upstream.
+  A value of 0 or less has no effect; a value that is not a number, or a request without coordinates, returns `400`.
+  A single-object GET applies the key too: `/api/fac/<id>?distance=` returns `404` when the facility is farther.
+  Upstream allows the filter only to verified users and finds coordinates for a city and country; the mirror allows it to all callers and returns `400` without coordinates.
+  See `docs/API.md` § Distance filter.
+- pdbcompat implements `?name_search=`.
+  On `org`, `fac`, `ix`, `net`, `campus` and `carrier` it matches the words of the value in the name fields of the type, a partial IP address in the netixlan addresses of `net` and `ix`, and digits in the ASN of `net` and in the name fields.
+  On the other 7 types a non-empty value returns no rows, as upstream; a bad value in a model-field filter of the request then does not return `400`.
+  A search that matches no row also returns an empty result with a negative `skip`, as upstream.
+  Before, pdbcompat ignored the key and returned the unfiltered list.
+  A single-object GET applies the key too: `/api/fac/<id>?name_search=` returns `404` when the search does not match the facility.
+  The match is an approximation of upstream's search index (see `docs/API.md` § Name search and § Known Divergences).
+- pdbcompat lists accept `?depth=`.
+  At depth 1, each row of `org`, `net`, `ix`, `ixlan`, `carrier` and `campus` carries its `_set` fields as ID lists; at depth 2 or higher, as objects.
+  A list row does not carry the parent object (`org`, `net`, `ixlan` and so on), as upstream, so the other 7 types return the same rows at every depth.
+  A list with a filter, a non-zero `?since` or `?q` and more than 250 rows returns the first 250 rows and a `meta.truncated` message, as upstream.
+  A list without a filter is not truncated; the response memory budget applies to its most expensive group of 250 rows.
+  A `?depth=` value that is not an integer, or is empty, returns `400` on a list too.
+  Before, lists ignored `?depth=` (a registered divergence, now removed for depths 1 and 2).
+  See `docs/API.md` § List depth.
+
+### Changed
+
+- The four alert rules of the group `pdbplus-fly` send a `DatasourceError` alert when they cannot evaluate, not a firing alert of the rule.
+  An expired `fly.io` data source token now shows as a data source error, apart from a real replica, memory or CPU problem.
+- `/api/` errors use the upstream form `{"meta":{"error":"<message>"}}` with `Content-Type: application/json`.
+  The `404` of a lookup by `id` or `asn` also has `"data":[]`, as upstream.
+  The `413` body has `max_rows` and `budget_bytes` in `meta`.
+  A client that sends `Accept: application/problem+json` still gets RFC 9457 bodies.
+- `/api/` answers a method other than GET or HEAD with a JSON `405` and `Allow: GET, HEAD`, not a plain-text body.
+  Upstream runs its write handlers for the methods it maps; see Known Divergences.
+- Before the first sync, `/api/` returns `{"meta":{"error":"sync not yet completed"}}` to every client, also to browsers and curl.
+- `/api/` serves every row for a negative `limit`, as upstream serves `limit=0`.
+  Before, a negative `limit` returned `400`.
+- `/api/` parses `limit`, `skip` and `since` as upstream does: Python `int()` rules (spaces at the ends, a sign, Unicode digits, underscores between digits) and the last value of a repeated key.
+  An empty value returns `400`; before, it was ignored.
+  The error messages are now the upstream texts `'limit' needs to be a number`, `'skip' needs to be a number`, `'since' needs to be a unix timestamp (epoch seconds)` and `Negative indexing is not supported.`.
+  When `since` and a key of the upstream filter loop are both bad, the message is now the `since` message, as upstream.
+- `/api/` treats a key without an operator, or with `__iexact`, on an integer field as upstream does: the value must be the decimal text of the stored integer, and any other value matches no row.
+  `?id=abc` and `?asn=` (on `net`) now return `404` `Entity not found`, and `?asn=abc` on other types returns an empty list.
+  Before, these returned `400`.
+  Values such as `?asn=042` and `?asn=+42` no longer match.
+  A FK key, an operator and the `fac_count` and `net_count` keys still return `400` for a value that is not an integer.
+- `/api/` converts the other integer filter values with Python `int()` rules, as upstream does: `?org_id=%205`, `?asn__lt=1_000`, `fac?net=５` and `fac?all_net=1_00` now filter.
+  This includes the relation keys and the presence keys (`not_ix`, `all_net` and the others).
+  A value too large for a 64-bit integer matches as a very large number.
+  The `fac_count` and `net_count` keys use the first value of a repeated key, as upstream.
+- `/api/` returns `400` (`Invalid query`) for a relation key of a `prepare_query` whose field the related model does not have, as upstream.
+  Examples: `fac?net__bogus=1`, `net?ix__fac_count=1` and `net?netfac__name=x`.
+  Before, these keys were ignored.
+  A model field that upstream has and the mirror does not store stays ignored.
+- `/api/` accepts the other relation-key forms that upstream accepts: `pk` names the id, `exact`, `lt`, `lte`, `gt` and `gte` as the field of a relation through a FK compare the id, and the field of `ix?ixlan`, `ix?ixfac`, `net?netfac` and `net?netixlan` can repeat the relation name (`ix?ixlan__ixlan_id=`).
+  `isnull` as the field returns `400`.
+- `/api/` applies the filter keys of a list to a single-object GET, as upstream does.
+  For example, `/api/netixlan/<id>?status=ok` for a `not-operational` connection and `/api/net/<id>?name=<other>` return `404`.
+  Before, a single-object GET read only `?depth=` and `?fields=` and returned the object (a registered divergence, now removed).
+  `?since=`, `?limit=` and `?skip=` are now checked on a single-object GET, and a `limit` or `skip` above `0` returns `404` (`Not found.`), as upstream.
+  The `404` message of a single-object GET is now the upstream text, for example `No Network matches the given query.`.
+  See `docs/API.md` § Filters on a single-object GET.
+- A single-object GET with a `?depth=` that is empty or not an integer returns `400` (`'depth' needs to be a number`), as upstream.
+  Before, the mirror used the default depth.
+  The value is parsed with the Python `int()` rules of `limit`, and the last value of a repeated key applies.
+- A single-object GET with an id that is not an integer, for example `/api/net/abc` or `/api/net/1.5`, returns `404` (`Not found.`), as upstream.
+  Before, it returned `400`.
+  The id is parsed with the Python `int()` rules of `limit`, so `/api/net/+1` returns net `1`.
+  A bad `since`, `skip`, `limit`, `depth` or filter still returns its `400` first, as upstream.
+  An id with a `.` or a `/` returns the `404` before these checks.
+- `ixlan.ixf_ixp_member_list_url` keeps a `null` value apart from `""`, as upstream stores and renders it.
+  Sync stores upstream `null`, and a key that upstream leaves out, as NULL.
+  `/api/`, `/rest/v1/` and GraphQL send `null` for such a row; ConnectRPC sends no wrapper, as before.
+  On `/api/`, a Users-tier caller now gets the key of an empty `Users` row (`""` or `null`), as upstream gives it to an authenticated user.
+  The first start after the upgrade rebuilds the `ix_lans` table on the primary to remove the `''` default of the column.
+  Stored rows keep `""` until the next full sync cycle (daily by default, or `POST /sync?mode=full`).
+
 ### Fixed
 
+- A request with a filter error and an empty `__in` filter, for example `fac?all_net=x&id__in=`, always returns `400`, as upstream.
+  Before, it returned `400` or an empty list, depending on the order of the keys.
 - Alert rule `PdbPlusMachineOOMKilled` reads the `fly_instance_exit_oom` samples of the last 15 minutes and no longer needs a CPU counter reset.
   Fly.io writes one sample at each exit of a machine, so the rule saw an out-of-memory exit for only about 5 minutes, and never saw one of a machine that did not start again.
   Each deploy also moved the rule from Normal (NoData) to Normal and back, which the alert history showed as state changes.
+- pdbcompat `netixlan?ipaddr6=` compares the canonical text of the address, as upstream does.
+  Before, a value in another valid form, for example `2001:7F8:0:0::1`, matched no row, so the list was empty where upstream returns the row stored as `2001:7f8::1`.
+  The filter now also reads the `ipaddr6` index, so the query no longer reads every netixlan row.
 
 ## [1.36.0] - 2026-09-26
 
@@ -1272,7 +1390,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.36.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...HEAD
+[1.37.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.36.0...v1.37.0
 [1.36.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.2...v1.36.0
 [1.35.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.1...v1.35.2
 [1.35.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.0...v1.35.1

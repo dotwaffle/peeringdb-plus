@@ -441,8 +441,8 @@ func TestSerializerSocialMediaConversion(t *testing.T) {
 // The omit flag of privfield.Redact decides if the key is present. A
 // caller that has the permission gets the key also when the stored value
 // is empty, as upstream does: its applicator deletes the key only when
-// the permission is missing (2.83.0 permissions.py:344-353). The one
-// exception is an empty Users value (see ixfMemberListURLOut).
+// the permission is missing (2.83.0 permissions.py:344-353). An admitted
+// NULL value renders null (DRF renders None as null), and "" renders "".
 //
 // The full 5-surface E2E lives in cmd/peeringdb-plus/field_privacy_e2e_test.go
 // (TestE2E_FieldLevel_IxlanURL_*); this test is the fast per-package gate.
@@ -459,21 +459,23 @@ func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
 		name    string
 		ctx     context.Context
 		visible string
-		stored  string
+		stored  *string
 		wantKey bool
 	}{
-		{"public anon url", anon, "Public", url, true},
-		{"public anon empty", anon, "Public", "", true},
-		{"public users empty", users, "Public", "", true},
-		{"users anon url", anon, "Users", url, false},
-		{"users anon empty", anon, "Users", "", false},
-		{"users users url", users, "Users", url, true},
-		// An anonymous sync stores "" for every Users row, so an empty
-		// Users value does not mean "no URL": the key stays out.
-		{"users users empty", users, "Users", "", false},
-		{"private users url", users, "Private", url, false},
-		{"private anon empty", anon, "Private", "", false},
-		{"unknown visible fails closed", users, "", url, false},
+		{"public anon url", anon, "Public", new(url), true},
+		{"public anon empty", anon, "Public", new(""), true},
+		{"public anon null", anon, "Public", nil, true},
+		{"public users empty", users, "Public", new(""), true},
+		{"users anon url", anon, "Users", new(url), false},
+		{"users anon empty", anon, "Users", new(""), false},
+		{"users anon null", anon, "Users", nil, false},
+		{"users users url", users, "Users", new(url), true},
+		{"users users empty", users, "Users", new(""), true},
+		{"users users null", users, "Users", nil, true},
+		{"private users url", users, "Private", new(url), false},
+		{"private anon empty", anon, "Private", new(""), false},
+		{"private users null", users, "Private", nil, false},
+		{"unknown visible fails closed", users, "", new(url), false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -505,8 +507,15 @@ func TestIxLanFromEnt_FieldPrivacy(t *testing.T) {
 			if present != tc.wantKey {
 				t.Fatalf("url key present = %v, want %v; body=%s", present, tc.wantKey, b)
 			}
-			if tc.wantKey && got != tc.stored {
-				t.Errorf("url = %#v, want %q", got, tc.stored)
+			if !tc.wantKey {
+				return
+			}
+			if tc.stored == nil {
+				if got != nil {
+					t.Errorf("url = %#v, want null", got)
+				}
+			} else if got != *tc.stored {
+				t.Errorf("url = %#v, want %q", got, *tc.stored)
 			}
 		})
 	}

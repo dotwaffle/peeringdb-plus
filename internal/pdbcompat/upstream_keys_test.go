@@ -48,12 +48,11 @@ func TestUpstreamFieldName(t *testing.T) {
 // TestRegistryForeignKeys_AlignWithEdges checks the ForeignKeys tables
 // against the generated Edges map. Every value must be an int column in
 // Fields. Every forward (OwnFK) edge must appear under its upstream
-// name, which is the traversal key after the net/fac renames. The only
-// FK without an edge is netixlan.ix_side: the mirror stores the column
-// but models no edge to the facility.
+// name, which is the traversal key after the net/fac renames. The
+// netixlan ix_side FK has a column edge (schema.ColumnEdges), so every
+// FK has a forward edge.
 func TestRegistryForeignKeys_AlignWithEdges(t *testing.T) {
 	t.Parallel()
-	noEdge := map[string]bool{peeringdb.TypeNetIXLan + ".ix_side": true}
 	for typ, tc := range Registry {
 		byCol := make(map[string]string, len(tc.ForeignKeys))
 		for name, col := range tc.ForeignKeys {
@@ -81,7 +80,7 @@ func TestRegistryForeignKeys_AlignWithEdges(t *testing.T) {
 			seen[name] = true
 		}
 		for name := range tc.ForeignKeys {
-			if !seen[name] && !noEdge[typ+"."+name] {
+			if !seen[name] {
 				t.Errorf("%s.ForeignKeys[%q] matches no forward edge", typ, name)
 			}
 		}

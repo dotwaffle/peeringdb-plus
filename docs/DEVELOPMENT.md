@@ -157,7 +157,7 @@ Today's sibling files:
 | `ent/schema/poc_policy.go` | `(Poc).Policy()` privacy rule |
 | `ent/schema/fold_mixin.go` | The `foldMixin` Mixin implementation |
 | `ent/schema/{type}_fold.go` | Per-entity `Mixin()` wiring for the 6 folded types: `campus`, `carrier`, `facility`, `internetexchange`, `network`, `organization` |
-| `ent/schema/pdb_allowlists.go` | `PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist` |
+| `ent/schema/pdb_allowlists.go` | `PrepareQueryAllows` and `ColumnEdges` maps consumed by `cmd/pdb-compat-allowlist` |
 | `ent/schema/campus_annotations.go` | `campusTableAnnotationMixin` with `entsql.Annotation{Table: "campuses"}`. `campus_fold.go` mixes it in. |
 | `ent/schema/hooks.go` | Package documentation only. It records why the per-mutation OTel hook was removed and contains no code. |
 
@@ -431,14 +431,12 @@ When a new PeeringDB field gains a `<field>_visible` companion (or you introduce
    - **pdbcompat:** `internal/pdbcompat/serializer.go` in the relevant `<entity>FromEnt(ctx, e)` function.
      On `/api`, the permission decides the key, not the value (upstream 2.83.0 `permissions.py:344-353`).
      Render a pdbcompat-local output struct.
-     Give its value field the type `*string` and the `,omitempty` JSON tag.
+     For a nullable value, give its field the type `**string` and the `,omitempty` JSON tag (`*string` for a non-nullable one).
      Set the field to `nil` when `Redact` returns `omit=true`.
-     Also set it to `nil` when the value is empty and `_visible` is not `Public`.
-     An anonymous sync stores `""` for every gated row, so `""` there does not mean that the value is empty.
-     In all other cases, emit the stored value, also when it is `""`.
+     Otherwise emit the stored value: `null` for NULL, and `""` for `""`.
      Do not use a plain `string` with `,omitempty`.
      That drops the key for an empty value that the caller may see.
-     The `peeringdb.<Type>` decode struct keeps its plain `string`, because sync decodes upstream input into it.
+     If upstream can send `null`, mark the field `"nullable": true, "default": null` in `schema/peeringdb.json` and decode it into a `*string` in `peeringdb.<Type>`: sync then stores `null` and an absent key as NULL.
      `ixLanResponse` and `ixfMemberListURLOut` are the worked example.
    - **ConnectRPC:** `internal/grpcserver/<entity>.go` in the proto conversion function.
      Wrap the closure passed to the generic pagination helper so `ctx` is captured (the helper signature stays `Convert func(*E) *P`).
@@ -458,7 +456,8 @@ When a new PeeringDB field gains a `<field>_visible` companion (or you introduce
 5. **E2E tests:** extend the `TestE2E_FieldLevel_IxlanURL_*` functions in `cmd/peeringdb-plus/field_privacy_e2e_test.go`, or add a set like them.
    `TestE2E_FieldLevel_IxlanURL_RedactedAnon` and `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` have sub-tests for `/api`, `/rest/v1/`, ConnectRPC, and GraphQL, and a skipped `webui` sub-test.
    `RedactedAnon` also has the `fail-closed-bypass-middleware` check against the ConnectRPC handler.
-   `TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey` locks the `/api` key rule for an empty value.
+   `TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey` locks the `/api` key rule for an empty or NULL value.
+   `TestE2E_FieldLevel_IxlanURL_NullStored` locks a NULL value on each surface.
    If the Web UI shows the field, make the `webui` sub-tests check the page.
    If MCP shows the field, add an MCP sub-test.
 
@@ -516,6 +515,14 @@ Edges are in the generated `ent/schema/{type}.go` files, and the schema generato
 No edge uses this annotation today.
 To add one, first add support for it to `cmd/pdb-schema-generate`.
 
+A FK column that has no ent edge, for example netixlan `ix_side_id`, can get a pdbcompat-only edge.
+Add an entry to `ColumnEdges` in `ent/schema/pdb_allowlists.go` with the upstream FK name as `TraversalKey`, the column, and the target type, and cite the upstream model line.
+`go generate ./...` checks the entry against the ent graph and adds the edge to `Edges`.
+The column must be a nillable integer column, and an index of the table must start with it.
+A bad entry stops `go generate`.
+The edge adds no FK constraint and does not change the other API surfaces.
+Add an entry only where upstream `queryable_relations()` exposes the FK under that name: `queryable_field_xl` renames `net_side`, so upstream ignores its keys.
+
 A key that an upstream `prepare_query` handles through `get_relation_filters` is not an allowlist key.
 Add it to `relationSeeds` in `internal/pdbcompat/relation_filter.go` with its path and the row that upstream pins to status `ok`, and add a case to `TestParity_Traversal/prepare_query_relation_keys_pin_join_status_ok`.
 See `docs/API.md § Relation filters`.
@@ -552,9 +559,11 @@ Any new entity wired into `/api/` must integrate with this budget:
    `internal/pdbcompat/stream_integration_test.go`) with an under-budget
    smoke test and an over-budget 413 assertion mirroring
    `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
-5. **Detail fan-out:** if the depth-2 detail of the type embeds `_set` collections, add them to `detailChildSets` in `internal/pdbcompat/detail_budget.go`.
+5. **Detail fan-out:** if the depth-2 detail of the type embeds `_set` collections, add them to `childSets` in `internal/pdbcompat/detail_budget.go`.
    The list must match the eager-loads in `get<Type>WithDepth` in `internal/pdbcompat/depth.go`.
-   Add the type and its set count to `wantParents` in `TestDetailChildSets_CoverRegistryParents` (`internal/pdbcompat/detail_budget_test.go`).
+   Add the type and its set count to `wantParents` in `TestChildSets_CoverRegistryParents` (`internal/pdbcompat/detail_budget_test.go`).
+   Each `childSets` entry also names its list loader (the `load` field): add a loader in `internal/pdbcompat/list_depth.go`, and set the `id` field of the `wireEntity` entry, so that `?depth=` lists expand the sets.
+   `TestListDepth_CountsMatchRender` checks each loader against the count of its `childSets` entry.
 
 `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the **single call site** for `runtime.ReadMemStats`.
 Do not call it elsewhere — STW cost compounds, and the single-call-site invariant is grep-enforceable.

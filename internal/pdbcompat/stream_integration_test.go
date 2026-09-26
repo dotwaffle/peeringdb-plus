@@ -43,10 +43,11 @@ func newHandlerForStream(t *testing.T, budget int64) (*httptest.Server, *ent.Cli
 }
 
 // TestServeList_OverBudget413 asserts the pre-flight budget check
-// triggers a 413 with an RFC 9457 problem-detail body BEFORE any row
-// data is streamed. A 1-byte budget is guaranteed to trip on any
-// non-empty result (the smallest row in rowsize.go is 320 bytes for
-// carrierfac at depth=0).
+// triggers a 413 BEFORE any row data is streamed. The default body has
+// the upstream error form with max_rows and budget_bytes in meta; a
+// request with Accept: application/problem+json gets the RFC 9457 body.
+// A 1-byte budget is guaranteed to trip on any non-empty result (the
+// smallest row in rowsize.go is 320 bytes for carrierfac at depth=0).
 func TestServeList_OverBudget413(t *testing.T) {
 	t.Parallel()
 
@@ -54,61 +55,96 @@ func TestServeList_OverBudget413(t *testing.T) {
 	srv, client := newHandlerForStream(t, 1)
 	_ = seed.Full(t, client)
 
-	resp, err := http.Get(srv.URL + "/api/net")
-	if err != nil {
-		t.Fatalf("GET /api/net: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusRequestEntityTooLarge {
-		body, _ := io.ReadAll(resp.Body)
-		t.Fatalf("expected status 413, got %d: %s", resp.StatusCode, string(body))
-	}
-	if ct := resp.Header.Get("Content-Type"); ct != "application/problem+json" {
-		t.Errorf("expected Content-Type application/problem+json, got %q", ct)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("read body: %v", err)
-	}
-
-	// Budget-problem body shape.
-	var problem struct {
-		Type        string `json:"type"`
-		Title       string `json:"title"`
-		Status      int    `json:"status"`
-		Detail      string `json:"detail"`
-		Instance    string `json:"instance"`
-		MaxRows     int    `json:"max_rows"`
-		BudgetBytes int64  `json:"budget_bytes"`
-	}
-	if err := json.Unmarshal(body, &problem); err != nil {
-		t.Fatalf("unmarshal body: %v\nbody: %s", err, string(body))
+	get := func(t *testing.T, accept string) (*http.Response, []byte) {
+		t.Helper()
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/api/net", nil)
+		if err != nil {
+			t.Fatalf("build request: %v", err)
+		}
+		if accept != "" {
+			req.Header.Set("Accept", accept)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("GET /api/net: %v", err)
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		if resp.StatusCode != http.StatusRequestEntityTooLarge {
+			t.Fatalf("expected status 413, got %d: %s", resp.StatusCode, string(body))
+		}
+		return resp, body
 	}
 
-	if problem.Type != pdbcompat.ResponseTooLargeType {
-		t.Errorf("problem.type: got %q, want %q", problem.Type, pdbcompat.ResponseTooLargeType)
-	}
-	if problem.Status != http.StatusRequestEntityTooLarge {
-		t.Errorf("problem.status: got %d, want 413", problem.Status)
-	}
-	if problem.BudgetBytes != 1 {
-		t.Errorf("problem.budget_bytes: got %d, want 1", problem.BudgetBytes)
-	}
-	if problem.MaxRows < 0 {
-		t.Errorf("problem.max_rows: got %d, want >= 0", problem.MaxRows)
-	}
-	if problem.Instance != "/api/net" {
-		t.Errorf("problem.instance: got %q, want /api/net", problem.Instance)
-	}
+	t.Run("meta envelope", func(t *testing.T) {
+		t.Parallel()
+		resp, body := get(t, "")
+		if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
+			t.Errorf("expected Content-Type application/json, got %q", ct)
+		}
+		var env map[string]json.RawMessage
+		if err := json.Unmarshal(body, &env); err != nil {
+			t.Fatalf("unmarshal body: %v\nbody: %s", err, string(body))
+		}
+		// No row data leaks into the body: the upstream error form has
+		// no data key (only the unique-query 404 has one).
+		if _, ok := env["data"]; ok || len(env) != 1 {
+			t.Errorf("top-level keys: got %s, want only meta", string(body))
+		}
+		var meta struct {
+			Error       string `json:"error"`
+			MaxRows     int    `json:"max_rows"`
+			BudgetBytes int64  `json:"budget_bytes"`
+		}
+		if err := json.Unmarshal(env["meta"], &meta); err != nil {
+			t.Fatalf("unmarshal meta: %v\nbody: %s", err, string(body))
+		}
+		if meta.Error == "" {
+			t.Errorf("meta.error is empty")
+		}
+		if meta.BudgetBytes != 1 {
+			t.Errorf("meta.budget_bytes: got %d, want 1", meta.BudgetBytes)
+		}
+		if meta.MaxRows < 0 {
+			t.Errorf("meta.max_rows: got %d, want >= 0", meta.MaxRows)
+		}
+	})
 
-	// Assert NO row data leaks into the body — if the streaming path
-	// had started and been aborted, we'd see partial JSON. The body
-	// must be strictly the problem-detail envelope.
-	if bytes.Contains(body, []byte(`"data":[`)) {
-		t.Errorf("body leaked row envelope (contains \"data\":[): %s", string(body))
-	}
+	t.Run("problem opt-in", func(t *testing.T) {
+		t.Parallel()
+		resp, body := get(t, "application/problem+json")
+		if ct := resp.Header.Get("Content-Type"); ct != "application/problem+json" {
+			t.Errorf("expected Content-Type application/problem+json, got %q", ct)
+		}
+		var problem struct {
+			Type        string `json:"type"`
+			Status      int    `json:"status"`
+			Instance    string `json:"instance"`
+			MaxRows     int    `json:"max_rows"`
+			BudgetBytes int64  `json:"budget_bytes"`
+		}
+		if err := json.Unmarshal(body, &problem); err != nil {
+			t.Fatalf("unmarshal body: %v\nbody: %s", err, string(body))
+		}
+		if problem.Type != pdbcompat.ResponseTooLargeType {
+			t.Errorf("problem.type: got %q, want %q", problem.Type, pdbcompat.ResponseTooLargeType)
+		}
+		if problem.Status != http.StatusRequestEntityTooLarge {
+			t.Errorf("problem.status: got %d, want 413", problem.Status)
+		}
+		if problem.BudgetBytes != 1 {
+			t.Errorf("problem.budget_bytes: got %d, want 1", problem.BudgetBytes)
+		}
+		if problem.Instance != "/api/net" {
+			t.Errorf("problem.instance: got %q, want /api/net", problem.Instance)
+		}
+		if bytes.Contains(body, []byte(`"data":[`)) {
+			t.Errorf("body leaked row envelope (contains \"data\":[): %s", string(body))
+		}
+	})
 }
 
 // TestServeList_UnderBudgetStreams asserts that an under-budget list

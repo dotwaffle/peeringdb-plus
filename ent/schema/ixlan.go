@@ -44,7 +44,7 @@ func (IxLan) Fields() []ent.Field {
 			Comment("IXF import enabled"),
 		field.String("ixf_ixp_member_list_url").
 			Optional().
-			Default("").
+			Nillable().
 			Annotations(entgql.Skip(entgql.SkipWhereInput)).
 			Comment("IX-F member list URL. Hidden unless ixf_ixp_member_list_url_visible lets the caller's tier see it."),
 		field.String("ixf_ixp_member_list_url_visible").

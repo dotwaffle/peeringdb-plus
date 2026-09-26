@@ -186,13 +186,14 @@ func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansReq
 //
 // Proto3 wrapper field semantics: a nil *wrapperspb.StringValue is omitted
 // on the wire (matches upstream behaviour of omitting the JSON key for
-// un-authenticated callers). The _visible companion is always
+// un-authenticated callers). A NULL or empty stored value also sends no
+// wrapper (v1.proto contract). The _visible companion is always
 // emitted via stringVal (upstream parity).
 func ixLanToProto(ctx context.Context, il *ent.IxLan) *pb.IxLan {
 	url, omit := privfield.Redact(ctx, il.IxfIxpMemberListURLVisible, il.IxfIxpMemberListURL)
 	var urlProto *wrapperspb.StringValue
-	if !omit && url != "" {
-		urlProto = wrapperspb.String(url)
+	if !omit && url != nil && *url != "" {
+		urlProto = wrapperspb.String(*url)
 	}
 	return &pb.IxLan{
 		Id:                         int64(il.ID),

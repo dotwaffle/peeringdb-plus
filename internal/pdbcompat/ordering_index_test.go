@@ -3,6 +3,7 @@ package pdbcompat
 import (
 	"context"
 	"database/sql"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -93,6 +94,99 @@ func TestPdbcompatListPlan_NoTempBTree(t *testing.T) {
 				t.Errorf("count plan = %q, want it to contain %q", count, tc.wantCount)
 			}
 		})
+	}
+}
+
+// TestPdbcompatIPAddr6Plan_UsesIndex checks that the bare netixlan
+// ipaddr6 filter reads the networkixlan_ipaddr6 index in the List and
+// the Count query. The filter compares the canonical text with a plain
+// =; a LOWER(ipaddr6) comparison read every row.
+func TestPdbcompatIPAddr6Plan_UsesIndex(t *testing.T) {
+	t.Parallel()
+	preds, empty, err := ParseFilters(url.Values{"ipaddr6": {"2001:7F8:0:0::1"}}, Registry["netixlan"])
+	if err != nil || empty || len(preds) != 1 {
+		t.Fatalf("ParseFilters: preds=%d empty=%v err=%v, want one predicate", len(preds), empty, err)
+	}
+	const want = "USING INDEX networkixlan_ipaddr6 (ipaddr6=?)"
+	list, count := listPlans(t, "netixlan", QueryOptions{Filters: preds, Limit: 250})
+	if !strings.Contains(list, want) {
+		t.Errorf("list plan = %q, want it to contain %q", list, want)
+	}
+	if !strings.Contains(count, want) {
+		t.Errorf("count plan = %q, want it to contain %q", count, want)
+	}
+}
+
+// TestIPBlockPlan_SubqueryRunsOnce checks that the ix ipblock filter is
+// a non-correlated IN subquery, so SQLite builds the list of exchange
+// ids once per statement. The prefix test is substr() = ?, not LIKE, so
+// % and _ are literal and the match is case-sensitive.
+func TestIPBlockPlan_SubqueryRunsOnce(t *testing.T) {
+	t.Parallel()
+	preds, empty, err := ParseFiltersCtx(t.Context(), url.Values{"ipblock": {"10.0"}}, Registry["ix"])
+	if err != nil || empty || len(preds) != 1 {
+		t.Fatalf("ParseFiltersCtx: preds=%d empty=%v err=%v, want one predicate", len(preds), empty, err)
+	}
+	_, db := testutil.SetupClientWithDB(t)
+	rec := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+	client := ent.NewClient(ent.Driver(rec))
+	opts := QueryOptions{Filters: preds, Limit: 250}
+	if _, err := Registry["ix"].List(t.Context(), client, opts); err != nil {
+		t.Fatalf("list ix: %v", err)
+	}
+	q, args := rec.lastQuery(t)
+	if !strings.Contains(q, "substr(") || strings.Contains(q, "LIKE") {
+		t.Errorf("list SQL = %q, want substr( and no LIKE", q)
+	}
+	if want := []any{"10.0", "10.0", "ok"}; !slices.Equal(args, want) {
+		t.Errorf("list args = %v, want %v", args, want)
+	}
+	list, count := listPlans(t, "ix", opts)
+	for name, plan := range map[string]string{"list": list, "count": count} {
+		if !strings.Contains(plan, "LIST SUBQUERY") || strings.Contains(plan, "CORRELATED") {
+			t.Errorf("%s plan = %q, want a LIST SUBQUERY that is not CORRELATED", name, plan)
+		}
+	}
+}
+
+// TestPdbcompatListPlan_Distance checks the plans of an org distance
+// search. It is not a case of TestPdbcompatListPlan_NoTempBTree: no
+// index can serve the distance order, so the list sorts the rows that
+// pass the distance filter in a temp B-tree. The list still reads the
+// status index, and the count needs no sort. The binds are scalars in
+// text order: the point and the distance in WHERE, the status, then
+// the point again in ORDER BY.
+func TestPdbcompatListPlan_Distance(t *testing.T) {
+	t.Parallel()
+	params := url.Values{"distance": {"700"}, "latitude": {"50.1109"}, "longitude": {"8.6821"}}
+	lf, err := parseListFilters(t.Context(), params, Registry["org"])
+	if err != nil || lf.orderBy == nil || len(lf.preds) != 1 {
+		t.Fatalf("parseListFilters: preds=%d orderBy=%v err=%v, want a distance search", len(lf.preds), lf.orderBy != nil, err)
+	}
+	opts := QueryOptions{Filters: lf.preds, OrderBy: lf.orderBy, Limit: 250}
+
+	_, db := testutil.SetupClientWithDB(t)
+	rec := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+	client := ent.NewClient(ent.Driver(rec))
+	if _, err := Registry["org"].List(t.Context(), client, opts); err != nil {
+		t.Fatalf("list org: %v", err)
+	}
+	q, args := rec.lastQuery(t)
+	if !strings.Contains(q, "6371 * acos(min(max(") {
+		t.Errorf("list SQL = %q, want the clamped great-circle formula", q)
+	}
+	if want := []any{50.1109, 8.6821, 50.1109, 700.0, "ok", 50.1109, 8.6821, 50.1109}; !slices.Equal(args[:len(want)], want) {
+		t.Errorf("list args = %v, want %v first", args, want)
+	}
+
+	list, count := listPlans(t, "org", opts)
+	for _, want := range []string{"USING INDEX organization_status (status=?)", "USE TEMP B-TREE FOR ORDER BY"} {
+		if !strings.Contains(list, want) {
+			t.Errorf("list plan = %q, want it to contain %q", list, want)
+		}
+	}
+	if strings.Contains(count, "TEMP B-TREE") {
+		t.Errorf("count plan sorts in a temp B-tree: %s", count)
 	}
 }
 

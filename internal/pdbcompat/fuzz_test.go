@@ -35,7 +35,7 @@ func FuzzFilterParser(f *testing.F) {
 	f.Add("latitude", "37.7749")        // float exact
 	f.Add("info_types", "NSP,Content")  // multi-value exact
 	f.Add("name__regex", ".*")          // unsupported operator
-	f.Add("asn", "not-a-number")        // type conversion error
+	f.Add("asn", "not-a-number")        // plain int key: decimal text match, no error
 	f.Add("", "")                       // empty key
 	f.Add("__", "val")                  // empty field name with operator separator
 

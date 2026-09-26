@@ -410,10 +410,6 @@ func init() {
 	ixlanDescIxfIxpImportEnabled := ixlanFields[5].Descriptor()
 	// ixlan.DefaultIxfIxpImportEnabled holds the default value on creation for the ixf_ixp_import_enabled field.
 	ixlan.DefaultIxfIxpImportEnabled = ixlanDescIxfIxpImportEnabled.Default.(bool)
-	// ixlanDescIxfIxpMemberListURL is the schema descriptor for ixf_ixp_member_list_url field.
-	ixlanDescIxfIxpMemberListURL := ixlanFields[6].Descriptor()
-	// ixlan.DefaultIxfIxpMemberListURL holds the default value on creation for the ixf_ixp_member_list_url field.
-	ixlan.DefaultIxfIxpMemberListURL = ixlanDescIxfIxpMemberListURL.Default.(string)
 	// ixlanDescIxfIxpMemberListURLVisible is the schema descriptor for ixf_ixp_member_list_url_visible field.
 	ixlanDescIxfIxpMemberListURLVisible := ixlanFields[7].Descriptor()
 	// ixlan.DefaultIxfIxpMemberListURLVisible holds the default value on creation for the ixf_ixp_member_list_url_visible field.

@@ -421,7 +421,7 @@ When the last attempt fails, the caller logs its usual failure line.
   the wrap order is regression-locked by `TestMiddlewareChain_Order` in
   `middleware_chain_test.go`.
 - **`privfield.Redact`** (`internal/privfield/`) — Single source of truth for field-level redaction.
-  Every API serializer that exposes a gated field (e.g. `ixlan.ixf_ixp_member_list_url`) calls `Redact(ctx, visible, value) (out string, omit bool)`; unstamped contexts fail-closed to `TierPublic`.
+  Every API serializer that exposes a gated field (e.g. `ixlan.ixf_ixp_member_list_url`) calls `Redact[T any](ctx, visible string, value T) (out T, omit bool)`; unstamped contexts fail-closed to `TierPublic`.
 - **`unifold.Fold`** (`internal/unifold/unifold.go`) — Diacritic-insensitive folding (NFKD + ligature map) used to populate the 16 `<field>_fold` shadow columns spread across 6 entity types.
   The pdbcompat filter layer routes `__contains` / `__startswith` predicates to these shadow columns for parity with upstream PeeringDB's `unidecode` behaviour.
 
@@ -482,7 +482,7 @@ internal/
   visbaseline/            # Visibility baseline + schema-alignment regression test
   web/                    # templ + htmx Web UI (handlers, templates, termrender)
   health/                 # /healthz and /readyz probes
-  httperr/                # RFC 9457 Problem Details responses
+  httperr/                # RFC 9457 Problem Details and the /api/ meta.error body
   conformance/            # JSON structure comparison for compatibility checks
   testutil/               # Test helpers + deterministic seed data (seed/)
 testdata/
@@ -656,7 +656,8 @@ pdbcompat `/api/<type>` lists use the upstream PeeringDB order.
 A list without `?since` is ordered by `id`, ascending, because upstream adds no `ORDER BY` and MySQL returns primary-key order. netixlan is the exception: its upstream order depends on the MySQL query plan (see [API.md § Known Divergences](./API.md#known-divergences)).
 A `?since` list is ordered by `updated`, ascending, as upstream orders it.
 The mirror adds `id`, ascending, as the tiebreak.
-`listOrder` in `internal/pdbcompat/registry_funcs.go` sets both orders.
+A distance search on `fac` or `org` is ordered by distance, then `id`; with `?since`, it keeps the `updated` order, as upstream.
+`listOrder` in `internal/pdbcompat/registry_funcs.go` sets these orders.
 See [API.md § List order](./API.md#list-order).
 
 entrest `/rest/v1/<type>` and the ConnectRPC `List*`/`Stream*` RPCs return rows in compound `(-updated, -created, -id)` order by default.
@@ -709,7 +710,7 @@ The pieces:
    `/rest/v1/networks?sort=pocs.count` returns 400, and the OpenAPI enum does not list the field.
    A new filter or sort that reads `pocs` in a subquery must apply `AdmittedVisibilities()`, or the API must not offer it.
 3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
-   `Redact(ctx, visible, value) (out string, omit bool)` is the single source of truth for per-field redaction.
+   `Redact[T any](ctx, visible string, value T) (out T, omit bool)` is the single source of truth for per-field redaction.
    It admits the same visibility values as the row policy (`privctx.Tier.AdmittedVisibilities()`), so the row gate and the field gate cannot disagree.
    Every API serializer that exposes a gated field calls `Redact`; unstamped contexts fail-closed to `TierPublic`.
    The current gated field is `ixlan.ixf_ixp_member_list_url` (gated by sibling `ixf_ixp_member_list_url_visible`).
@@ -863,12 +864,14 @@ Without `ANALYZE` statistics, SQLite otherwise reads a plain `IN` through a stat
 With the hint, SQLite reads the rowid table for `id` order and the `updated` index for the `?since` order, and does not sort.
 `COUNT` queries still read a covering status index.
 `TestPdbcompatListPlan_NoTempBTree` locks these plans.
+A distance search sorts the kept rows in a temp B-tree, because no index can serve the distance order (`TestPdbcompatListPlan_Distance`).
 The pk-lookup path (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site (`StatusIn("ok", "not-operational", "pending")` for netixlan) so direct-ID GETs return 404 for tombstones.
 The nested `_set` collections of the depth expansion admit only the live statuses of the child (`likelyOK`, `StatusIn("ok", "not-operational")` for netixlan), the same as the upstream nested prefetch.
 `likelyOK` is `likely(status IN ('ok'))`.
 Without the hint, SQLite can read every `ok` row of the child table through its status index instead of the parent's rows through the FK index.
 The relation-key status pin (`withStatusPin`) uses the same filter.
-`TestDetailPlan_KeepsFKIndex` and `TestRelationFilterPlan_KeepsFKIndex` lock these plans.
+The link-status test of the presence keys `all_net` and `asn_overlap` uses `likely()` too (on `ix`, `asn_overlap` admits `ok` and `not-operational`).
+`TestDetailPlan_KeepsFKIndex`, `TestRelationFilterPlan_KeepsFKIndex` and `TestPresencePlan_KeepsNetIndex` lock these plans.
 A pending child, in practice a campus, is fetchable by ID but is left out of the sets of its parent.
 The sets `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are ordered by facility id, then by link id.
 The upstream prefetch has no `ORDER BY`, and MySQL reads these sets through the unique `(<parent>, facility)` index.
@@ -1109,6 +1112,9 @@ Two paths resolve the target field:
   as Path A, avoiding init-order coupling.
 
 The presence keys of an upstream `prepare_query` (`net?not_ix=`, `fac?all_net=`, `ix?org_present=`) resolve first, through `presenceKeys` in `internal/pdbcompat/presence_filter.go` ([API.md § Presence filters](./API.md#presence-filters)).
+The `ix` key `ipblock` (`ix?ipblock=`) resolves next, through `lookupIPBlockKey` in `internal/pdbcompat/ipblock_filter.go`: a text prefix match on the ixpfx prefix through `ix_lans.ix_id` ([API.md § IP block filter](./API.md#ip-block-filter)).
+The `ixpfx` key `whereis` (`ixpfx?whereis=`) resolves next, through `lookupWhereisKey` in `internal/pdbcompat/whereis_filter.go`: the stored `prefix` must equal one of the prefixes that contain the address, bound as one JSON array ([API.md § IP address lookup](./API.md#ip-address-lookup)).
+The `ix` key `capacity` (`ix?capacity__gte=`) resolves next, through `lookupCapacityFilter` in `internal/pdbcompat/capacity_filter.go`: one `GROUP BY ixlan_id HAVING SUM(speed)` subquery over the netixlans that are not deleted ([API.md § Capacity filter](./API.md#capacity-filter)).
 The relation keys that an upstream `prepare_query` handles (`net?ix=`, `fac?net__name=`, `netixlan?ix_id=`) resolve before both paths, through `relationSeeds` in `internal/pdbcompat/relation_filter.go`.
 Each key walks a fixed path of up to three tables with nested `IN` subqueries and requires status `ok` on the one row that upstream pins ([API.md § Relation filters](./API.md#relation-filters)).
 
@@ -1296,7 +1302,7 @@ All providers are shut down on SIGINT/SIGTERM via the `SetupOutput.Shutdown` clo
 ## Response Memory Envelope
 
 pdbcompat list and detail responses are gated by a per-request memory budget, so the 256 MB Fly replicas do not run out of memory under `limit=0` lists, depth-2 detail requests, or 2-hop traversal filters.
-The ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic that returns RFC 9457 `application/problem+json` 413 BEFORE any row data is fetched, and bytes are streamed through the response writer once the budget check passes.
+The ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic that returns `413` BEFORE any row data is fetched, and bytes are streamed through the response writer once the budget check passes.
 
 ### The envelope
 
@@ -1317,7 +1323,7 @@ The default sits under the 256 MB replica cap with margin so the order under pre
 |---|---|
 | `internal/pdbcompat/stream.go` | Hand-rolled JSON token writer. `StreamListResponse(ctx, w, meta, rowsIter)` emits `{"meta":…,"data":[…]}` with per-row `json.Marshal` and periodic `http.Flusher.Flush()` (every 100 rows). No full-result `[]any` materialisation on the wire. |
 | `internal/pdbcompat/rowsize.go` | Hardcoded `map[string]RowSize{Depth0, Depth2}` calibrated from `bench_row_size_test.go` then doubled. Conservative by design — false-positive 413s are preferred over OOM. Recalibrated every major release; drift >20% triggers a refresh. |
-| `internal/pdbcompat/budget.go` | `CheckBudget(count, entity, depth, budgetBytes) (BudgetExceeded, bool)` multiplies `count × TypicalRowBytes(entity, depth)`. Over-budget requests get 413 via `WriteBudgetProblem` BEFORE the row data is fetched; the RFC 9457 body carries `max_rows = budget / per_row` and `budget_bytes` so clients can re-slice their request. |
+| `internal/pdbcompat/budget.go` | `CheckBudget(count, entity, depth, budgetBytes) (BudgetExceeded, bool)` multiplies `count × TypicalRowBytes(entity, depth)`. Over-budget requests get 413 via `writeBudgetError` BEFORE the row data is fetched; the body carries `max_rows = budget / per_row` and `budget_bytes` so clients can re-slice their request. |
 
 ### Per-entity worst-case sizing
 
@@ -1342,13 +1348,22 @@ Unknown entities fall back to `defaultRowSize = 4096` (fail-closed).
 | carrierfac | 320 | 419,430 | 3,520 | 38,130 |
 | campus | 576 | 233,016 | 2,688 | 49,932 |
 
-Lists ignore `?depth=` and always bill the Depth=0 figure.
+A list bills the Depth=0 figure per row.
+A `?depth=` list of `org`, `net`, `ix`, `ixlan`, `carrier` or `campus` loads and renders its rows in chunks of 250 ids and bills its most expensive chunk.
+Per row, that is the Depth=0 figure plus, per set element, the child Depth=0 figure at depth 2 or 16 bytes at depth 1 (element counts from one `GROUP BY` per set).
+The chunk adds 4 × its most expensive row (its rendered maps and JSON), and the list adds 16 bytes per served id.
+This figure feeds the 413 check and the in-flight pool.
+A flat Depth=0 check over all served rows runs first.
 A detail request bills one row: the Depth=2 figure at `?depth=1` or higher, which is the flat 413 check.
 At depth 2 or higher, the in-flight pool charge also counts the child rows (see Global admission below).
 The D=2 `max_rows` column is thus not a trip point for any request.
 `org` has the largest Depth=2 row (about 8.4 KiB), because it expands every `net_set`, `fac_set`, `ix_set`, `carrier_set` and `campus_set`.
 The leaf join entities (netixlan, netfac, ixfac) also have large Depth=2 rows, because each one embeds the ID-list sets of its FK objects.
 Full table lives in `internal/pdbcompat/rowsize.go`.
+
+`/api/as_set` is not an entity type and is not in the table.
+It bills `asSetEntryBytes` (640 bytes, `internal/pdbcompat/asset.go`) for each ASN that it returns, through the same 413 check and in-flight pool.
+At 128 MiB, that is 209,715 entries.
 
 ### Request lifecycle
 
@@ -1359,9 +1374,12 @@ Full table lives in `internal/pdbcompat/rowsize.go`.
    Both closures are produced by the generic `wireEntity` helper from a single shared predicate builder, so the budget check and the served response can never disagree on filter semantics.
 4. **Budget check:** `CheckBudget(count, tc.Name, 0, cfg.ResponseMemoryLimit)`.
    - Under budget → step 5.
-   - Over budget → `WriteBudgetProblem(w, r.URL.Path, info)` emits 413 `application/problem+json` with `max_rows`, `budget_bytes`, and a human-readable `detail` string.
+   - Over budget → `writeBudgetError(w, r, info)` emits 413 with `max_rows`, `budget_bytes`, and a human-readable `detail` string.
      NO row data is fetched; no `Retry-After` header (413 is request-shape, not transient).
+   - For a `?depth=` list of a type with sets: `tc.ListIDs` fetches the served ids, `listDepthEstimate` prices the most expensive chunk, and the figure is checked against the budget (413) and charged to the pool.
 5. `tc.List` loads the result rows.
+   A `?depth=` list of a type with sets loads its rows in chunks of 250 ids (`tc.ListDepth`) and renders one row at a time as the stream pulls it.
+   The first chunk loads before the first byte is sent.
 6. `StreamListResponse` emits the envelope token-by-token with
    `http.Flusher.Flush()` every 100 rows, bounding intermediate
    allocations.
@@ -1370,7 +1388,10 @@ Full table lives in `internal/pdbcompat/rowsize.go`.
 The per-request check treats each request in isolation, so two concurrent near-budget responses could jointly materialise ~2× the budget.
 Every admitted request therefore also charges its estimate into a process-wide `inflightBytes` pool and gets 503 + `Retry-After: 1` when the pool would overflow; the charge releases when the handler returns.
 Lists charge the `CheckBudget` figure directly.
+`?depth=` lists charge the largest-chunk estimate (`listDepthEstimate`, `internal/pdbcompat/detail_budget.go`), which uses the same `childSets` table as the detail estimate.
+The render factor `listDepthRenderFactor` (4) is measured by `TestListDepthRenderFactor`.
 Detail requests participate too: the flat 413 check bills only the typical expanded row, but at depth ≥ 2 the pool charge is count-based — child `COUNT(*)` × child Depth0 per embedded `_set` (`internal/pdbcompat/detail_budget.go`) — so a hub-organisation detail (thousands of embedded networks) cannot stack with other large responses.
+A detail request with filter keys checks the row first (one primary-key query); a filter miss returns `404` before the 413 check and charges nothing.
 
 ### Telemetry
 

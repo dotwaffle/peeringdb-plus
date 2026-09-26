@@ -75,7 +75,7 @@ func TestNames_CanonicalOrder(t *testing.T) {
 	}
 }
 
-// TestLookups_RoundTrip exercises the three lookup helpers over every
+// TestLookups_RoundTrip exercises the lookup helpers over every
 // entry plus the unknown-input contract.
 func TestLookups_RoundTrip(t *testing.T) {
 	t.Parallel()
@@ -89,6 +89,9 @@ func TestLookups_RoundTrip(t *testing.T) {
 		if got, ok := FromDjangoModel(ty.DjangoModel); !ok || got != ty.Name {
 			t.Errorf("FromDjangoModel(%q) = %q, %v; want %q, true", ty.DjangoModel, got, ok, ty.Name)
 		}
+		if got, ok := DjangoModelOf(ty.Name); !ok || got != ty.DjangoModel {
+			t.Errorf("DjangoModelOf(%q) = %q, %v; want %q, true", ty.Name, got, ok, ty.DjangoModel)
+		}
 		if !Valid(ty.Name) {
 			t.Errorf("Valid(%q) = false, want true", ty.Name)
 		}
@@ -101,6 +104,9 @@ func TestLookups_RoundTrip(t *testing.T) {
 	}
 	if _, ok := FromDjangoModel("Nonesuch"); ok {
 		t.Error("FromDjangoModel(Nonesuch) ok = true, want false")
+	}
+	if _, ok := DjangoModelOf("nonesuch"); ok {
+		t.Error("DjangoModelOf(nonesuch) ok = true, want false")
 	}
 	if Valid("nonesuch") {
 		t.Error("Valid(nonesuch) = true, want false")

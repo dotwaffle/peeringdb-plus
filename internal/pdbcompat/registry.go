@@ -71,6 +71,11 @@ type QueryOptions struct {
 	// result set without issuing any SQL — matches Django ORM
 	// Model.objects.filter(id__in=[]).
 	EmptyResult bool
+
+	// OrderBy is a primary sort key that a filter asks for: the distance
+	// of a fac or org distance search. listOrder puts it before the id
+	// tiebreak on a plain list. A ?since= list ignores it.
+	OrderBy func(*sql.Selector)
 }
 
 // ListFunc queries entities and returns their serialized objects.
@@ -89,6 +94,28 @@ type CountFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) 
 // GetFunc queries a single entity by ID and returns its serialized form.
 type GetFunc func(ctx context.Context, client *ent.Client, id int, depth int) (any, error)
 
+// MatchFunc reports whether the row with the given id matches filters.
+// A detail request uses it to apply the list filters: upstream
+// get_object filters get_queryset(), which runs the same filters as a
+// list (2.83.0 rest.py:849-855, :477-703). It adds no status of its
+// own. The inline StatusIn of the get<Type>WithDepth PK lookup stays
+// the detail status set. A filter can pin a status, as upstream does
+// (a relation seed, make_relation_filter).
+type MatchFunc func(ctx context.Context, client *ent.Client, id int, filters []func(*sql.Selector)) (bool, error)
+
+// ListIDsFunc returns the ids that a list request serves, in list
+// order: the same predicates, order, skip and limit as ListFunc. A list
+// at depth > 0 of a type with reverse sets reads the ids first and then
+// loads the rows in chunks (ListDepthFunc).
+type ListIDsFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]int, error)
+
+// ListDepthFunc loads the rows with the given ids (one chunk) and the
+// given sets of each row at list depth 1 or 2 (list_depth.go). It
+// returns one render closure per loaded row, in the order of ids. It
+// applies the list predicates again, so a row that stopped matching after
+// ListIDs is left out. A closure builds the row map when it is called.
+type ListDepthFunc func(ctx context.Context, client *ent.Client, opts QueryOptions, ids []int, depth int, sets []childSet) ([]func() any, error)
+
 // TypeConfig describes a PeeringDB object type for the compatibility layer.
 type TypeConfig struct {
 	Name         string
@@ -97,6 +124,11 @@ type TypeConfig struct {
 	List         ListFunc
 	Count        CountFunc
 	Get          GetFunc
+	Match        MatchFunc
+	ListIDs      ListIDsFunc
+	// ListDepth is nil for the 7 types without reverse sets (childSets):
+	// their list rows are the same at every depth.
+	ListDepth ListDepthFunc
 
 	// FoldedFields lists the string fields on this type that have a sibling
 	// <field>_fold column populated by the sync worker.
@@ -134,15 +166,24 @@ type TypeConfig struct {
 	// upstream filter loop filters only model fields and
 	// queryable_relations (2.83.0 rest.py:525-528, :633, :670), so each
 	// of these keys is a prepare_query key or in UpstreamIgnored. No
-	// relation key filters one of these fields on the related row, and
-	// the mirror ignores such a key. queryable_relations offers only
-	// model fields (serializers.py:970-996), so upstream ignores a
-	// traversal key such as fac?campus__city=. In a relation key of a
-	// prepare_query, the Django filter raises FieldError, and upstream
-	// returns 400 (rest.py:488-500). UpstreamIgnored is not the same
-	// set: it also holds model fields that queryable_field_xl renames
-	// (carrier fac_count).
+	// relation key filters one of these fields on the related row.
+	// queryable_relations offers only model fields
+	// (serializers.py:970-996), so upstream ignores a traversal key such
+	// as fac?campus__city=, and so does the mirror. In a relation key of
+	// a prepare_query, the Django filter raises FieldError, and the key
+	// returns 400 (Invalid query), as upstream (rest.py:488-500).
+	// UpstreamIgnored is not the same set: it also holds model fields
+	// that queryable_field_xl renames (carrier fac_count).
 	NonModelFields map[string]bool
+
+	// ExactCounts lists the Fields keys that a prepare_query filters with
+	// an exact lookup or a get_relation_filters operator (the count
+	// seeds), with the first value of the key. The filter loop ignores
+	// them (queryable_field_xl renames them). A value that int() does not
+	// accept is a 400, as upstream (2.83.0 serializers.py:2119-2124,
+	// :3743-3748, :4531-4543). Every other plain integer key matches the
+	// decimal text of the value (buildModelFieldPredicate).
+	ExactCounts map[string]bool
 }
 
 // reservedParams lists query parameter names that are not filter fields.
@@ -237,6 +278,8 @@ var Registry = map[string]TypeConfig{
 		SearchFields: []string{"name", "aka", "name_long", "irr_as_set"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true},
 		ForeignKeys:  map[string]string{"org": "org_id"},
+		// serializers.py:3743-3748.
+		ExactCounts: map[string]bool{"fac_count": true},
 	},
 	peeringdb.TypeFac: {
 		Name: peeringdb.TypeFac,
@@ -285,6 +328,8 @@ var Registry = map[string]TypeConfig{
 		ForeignKeys:  map[string]string{"org": "org_id", "campus": "campus_id"},
 		// org_name is a serializer field (serializers.py:1947).
 		NonModelFields: map[string]bool{"org_name": true},
+		// serializers.py:2119-2124.
+		ExactCounts: map[string]bool{"net_count": true},
 	},
 	peeringdb.TypeIX: {
 		Name: peeringdb.TypeIX,
@@ -327,6 +372,8 @@ var Registry = map[string]TypeConfig{
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true, "city": true},
 		ForeignKeys:  map[string]string{"org": "org_id"},
+		// serializers.py:4531-4543.
+		ExactCounts: map[string]bool{"net_count": true, "fac_count": true},
 	},
 	peeringdb.TypePoc: {
 		Name: peeringdb.TypePoc,

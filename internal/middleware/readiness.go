@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	webtemplates "github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/termrender"
 )
@@ -16,7 +17,8 @@ type SyncReadiness interface {
 
 // Readiness returns 503 for all routes except infrastructure paths
 // until the first sync has completed.
-// Browser requests receive a styled HTML syncing page instead of JSON.
+// Browser requests receive a styled HTML syncing page instead of JSON,
+// except on /api/, which always answers in its JSON error form.
 func Readiness(sr SyncReadiness, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Infrastructure, static, and gRPC health paths bypass readiness.
@@ -31,6 +33,15 @@ func Readiness(sr SyncReadiness, next http.Handler) http.Handler {
 			return
 		}
 		if !sr.HasCompletedSync() {
+			// The PeeringDB-compatible API answers every client in its own
+			// error form, as upstream does for its maintenance-mode 503
+			// (2.83.0 maintenance.py:73-78): browsers and curl get JSON on
+			// /api/ as they do for every /api/ success.
+			if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
+				writeAPINotReady(w, r)
+				return
+			}
+
 			accept := r.Header.Get("Accept")
 			if strings.Contains(accept, "text/html") {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -61,5 +72,25 @@ func Readiness(sr SyncReadiness, next http.Handler) http.Handler {
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// writeAPINotReady writes the pre-sync 503 of an /api/ path in the
+// error form of that API: {"meta":{"error":"sync not yet completed"}},
+// or RFC 9457 when the Accept header names application/problem+json.
+func writeAPINotReady(w http.ResponseWriter, r *http.Request) {
+	const detail = "sync not yet completed"
+	w.Header().Add("Vary", "Accept")
+	if httperr.WantsProblemJSON(r.Header) {
+		httperr.WriteProblem(w, httperr.WriteProblemInput{
+			Status:   http.StatusServiceUnavailable,
+			Detail:   detail,
+			Instance: r.URL.Path,
+		})
+		return
+	}
+	httperr.WriteMetaError(w, httperr.MetaErrorInput{
+		Status: http.StatusServiceUnavailable,
+		Error:  detail,
 	})
 }

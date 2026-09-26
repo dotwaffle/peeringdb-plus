@@ -118,6 +118,39 @@ func TestCheckBudget_UnknownEntity(t *testing.T) {
 	}
 }
 
+// TestCheckBudgetBytes checks the budget arithmetic with an explicit
+// size per row, and that CheckBudget gives the same result with the
+// Registry row size.
+func TestCheckBudgetBytes(t *testing.T) {
+	t.Parallel()
+
+	// The explicit size per row is used, not the Registry table.
+	info, ok := checkBudgetBytes(3, 640, "as_set", 0, 1280)
+	if ok {
+		t.Errorf("3 x 640 over 1280: ok = true, want false")
+	}
+	if info.MaxRows != 2 || info.EstimatedBytes != 1920 || info.BudgetBytes != 1280 || info.Count != 3 || info.Entity != "as_set" {
+		t.Errorf("info = %+v, want MaxRows 2, EstimatedBytes 1920, BudgetBytes 1280, Count 3, Entity as_set", info)
+	}
+	if _, ok := checkBudgetBytes(2, 640, "as_set", 0, 1280); !ok {
+		t.Errorf("2 x 640 in 1280: ok = false, want true")
+	}
+	if _, ok := checkBudgetBytes(1<<20, 640, "as_set", 0, 0); !ok {
+		t.Errorf("budget 0: ok = false, want true (check disabled)")
+	}
+
+	// CheckBudget gives the same result as checkBudgetBytes with the
+	// Registry row size.
+	perRow := TypicalRowBytes(peeringdb.TypeNet, 0)
+	for _, count := range []int{0, 1, 1000, 100000} {
+		gotInfo, gotOK := CheckBudget(count, peeringdb.TypeNet, 0, 1<<20)
+		wantInfo, wantOK := checkBudgetBytes(count, perRow, peeringdb.TypeNet, 0, 1<<20)
+		if gotInfo != wantInfo || gotOK != wantOK {
+			t.Errorf("count %d: CheckBudget = (%+v, %v), checkBudgetBytes = (%+v, %v)", count, gotInfo, gotOK, wantInfo, wantOK)
+		}
+	}
+}
+
 // TestWriteBudgetProblem_Body asserts the 413 response shape:
 // status, Content-Type, and all six required JSON fields plus
 // optional instance.

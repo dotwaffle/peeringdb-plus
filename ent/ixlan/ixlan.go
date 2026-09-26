@@ -104,8 +104,6 @@ var (
 	DefaultDot1qSupport bool
 	// DefaultIxfIxpImportEnabled holds the default value on creation for the "ixf_ixp_import_enabled" field.
 	DefaultIxfIxpImportEnabled bool
-	// DefaultIxfIxpMemberListURL holds the default value on creation for the "ixf_ixp_member_list_url" field.
-	DefaultIxfIxpMemberListURL string
 	// DefaultIxfIxpMemberListURLVisible holds the default value on creation for the "ixf_ixp_member_list_url_visible" field.
 	DefaultIxfIxpMemberListURLVisible string
 	// DefaultMtu holds the default value on creation for the "mtu" field.

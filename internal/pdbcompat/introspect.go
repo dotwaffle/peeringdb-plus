@@ -1,6 +1,8 @@
 package pdbcompat
 
-// EdgeMetadata describes one ent edge for Path B traversal lookup.
+// EdgeMetadata describes one edge for Path B traversal lookup: an ent
+// edge, or a column edge declared in schema.ColumnEdges
+// (ent/schema/pdb_allowlists.go) over a FK column that has no ent edge.
 // Emitted into allowlist_gen.go Edges by cmd/pdb-compat-allowlist at
 // `go generate` time. The codegen-emitted static map is used instead of
 // a runtime client.Schema.Tables walk: it is deterministic, testable,
@@ -9,11 +11,13 @@ package pdbcompat
 // gate.
 //
 // Parser-facing fields:
-//   - Name: local ent edge name (e.g. "organization", "network_facilities")
+//   - Name: local ent edge name (e.g. "organization", "network_facilities"),
+//     or the traversal key of a column edge declared in schema.ColumnEdges.
 //   - TargetType: PeeringDB type string of the edge target (e.g. "org")
 //   - TraversalKey: the <fk> token used in filter params
-//     ("?org__name=foo" → TraversalKey "org"). Equals TargetType for all
-//     edges today; kept separate for future aliasing.
+//     ("?org__name=foo" → TraversalKey "org"). Equals TargetType for ent
+//     edges; a column edge carries its upstream FK name (e.g. "ix_side").
+//     A column edge always has OwnFK true.
 //   - Excluded: true when the edge has WithFilterExcludeFromTraversal.
 //     LookupEdge returns (zero, false) for excluded edges.
 //

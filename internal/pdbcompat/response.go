@@ -2,10 +2,9 @@ package pdbcompat
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
@@ -24,9 +23,9 @@ const (
 	// vs 250 on the mirror). The response-memory budget
 	// (PDBPLUS_RESPONSE_MEMORY_LIMIT, default 128 MiB) is the real DoS
 	// safeguard — it gates the precount × TypicalRowBytes before
-	// materialising any result set, returning 413 application/problem+json
-	// when the would-be payload exceeds the budget. The 250 default
-	// added nothing on top of that, only divergence.
+	// materialising any result set, returning 413 when the would-be
+	// payload exceeds the budget. The 250 default added nothing on top
+	// of that, only divergence.
 	DefaultLimit = 0
 
 	// poweredByHeader identifies this server in responses.
@@ -52,82 +51,185 @@ func WriteResponse(w http.ResponseWriter, data any) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// WriteProblem writes an RFC 9457 problem detail error response with the
-// X-Powered-By header. This replaces the former PeeringDB error envelope
-// with a standards-based format.
-func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
-	w.Header().Set("X-Powered-By", poweredByHeader)
-	httperr.WriteProblem(w, input)
+// apiError describes one /api/ error response.
+type apiError struct {
+	// Status is the HTTP status code.
+	Status int
+	// Detail is the error text: meta.error in the upstream form, detail
+	// in the problem+json form.
+	Detail string
+	// EmptyData adds "data": [] to the upstream form (the unique-query
+	// 404, upstream 2.83.0 rest.py:809-815).
+	EmptyData bool
+	// Meta holds more meta keys for the upstream form.
+	Meta map[string]any
+	// budget selects the WriteBudgetProblem body in problem+json mode.
+	budget *BudgetExceeded
 }
 
-// ParsePaginationParams extracts limit and skip from query parameters
-// with defaults and validation.
+// writeError writes an /api/ error. The default is the upstream form
+// {"meta": {"error": "<detail>"}} (2.83.0 renderers.py:134-148). A
+// request whose Accept header names application/problem+json gets an
+// RFC 9457 body instead. Every error path of the /api/ surface goes
+// through this function, so both forms stay in step.
+func writeError(w http.ResponseWriter, r *http.Request, e apiError) {
+	w.Header().Set("X-Powered-By", poweredByHeader)
+	w.Header().Add("Vary", "Accept")
+
+	if httperr.WantsProblemJSON(r.Header) {
+		if e.budget != nil {
+			WriteBudgetProblem(w, r.URL.Path, *e.budget)
+			return
+		}
+		httperr.WriteProblem(w, httperr.WriteProblemInput{
+			Status:   e.Status,
+			Detail:   e.Detail,
+			Instance: r.URL.Path,
+		})
+		return
+	}
+	httperr.WriteMetaError(w, httperr.MetaErrorInput{
+		Status:    e.Status,
+		Error:     e.Detail,
+		Meta:      e.Meta,
+		EmptyData: e.EmptyData,
+	})
+}
+
+// Upstream error texts of the list parameters.
+var (
+	// errSkipNotNumber is upstream 2.83.0 rest.py:511-514.
+	errSkipNotNumber = errors.New("'skip' needs to be a number")
+	// errLimitNotNumber is upstream 2.83.0 rest.py:515-518.
+	errLimitNotNumber = errors.New("'limit' needs to be a number")
+	// errSinceNotTimestamp is upstream 2.83.0 rest.py:505-510.
+	errSinceNotTimestamp = errors.New("'since' needs to be a unix timestamp (epoch seconds)")
+	// errDepthNotNumber is upstream 2.83.0 rest.py:520-523.
+	errDepthNotNumber = errors.New("'depth' needs to be a number")
+	// errNegativeSkip is the Django text for a negative slice
+	// (db/models/query.py:403-417), which list() returns as a 400
+	// (2.83.0 rest.py:757-760, :824-827). The text is the upstream
+	// message, so it keeps its capital letter and period.
+	errNegativeSkip = errors.New("Negative indexing is not supported.") //nolint:revive,staticcheck // exact upstream message text
+)
+
+// lastParam returns the last value of key and whether the key is
+// present, as Django QueryDict.get does. A present key with an empty
+// value returns ("", true).
+func lastParam(params url.Values, key string) (string, bool) {
+	vals, ok := params[key]
+	if !ok || len(vals) == 0 {
+		return "", false
+	}
+	return vals[len(vals)-1], true
+}
+
+// ParsePaginationParams returns limit and skip as upstream parses them
+// (2.83.0 rest.py:511-518): the last value of each key, Python int()
+// rules (pyInt), skip first. An empty or non-integer value is an error
+// with the upstream text.
 //
-// Bare URL (no `limit=`): returns DefaultLimit (0 = unlimited),
-// matching upstream 2.83.0 `rest.py:516`, which defaults `limit` to 0,
-// and `rest.py:760`, which slices `qset[skip:]` (no upper bound).
-// All-rows responses are gated by the response-memory
-// budget; if the precount × TypicalRowBytes exceeds the budget, the
-// handler returns 413 application/problem+json before materialising
-// anything.
+// The values keep their sign, and the caller decides what a negative
+// value does. serveList serves every row for a negative limit, as
+// upstream slices only when limit > 0 (rest.py:757-760), and returns
+// 400 for a negative skip (errNegativeSkip).
 //
-// Explicit `limit=N`: positive N is honoured unmodified — upstream
-// applies qset[skip:skip+limit] with no upper cap (rest.py:757-758),
-// and the response-memory budget is the real cost bound. (An earlier
-// revision clamped to 1000, which silently truncated pages for
-// clients paginating with larger windows — rows past the clamp were
-// permanently skipped with nothing in the envelope to signal it.)
-// limit=0 is the explicit "unlimited" sentinel and is passed through
-// unchanged; the list closures' `if opts.Limit > 0 { .Limit(...) }`
-// gate omits the SQL LIMIT clause when limit is 0.
-//
-// Non-numeric values are a 400 — upstream raises RestValidationError
-// "'limit' needs to be a number" (rest.py:511-518). Silently treating
-// a typo'd limit as absent turned a bounded page request into a
-// full-table dump. Negative values get the same 400. For skip this
-// matches upstream: Django rejects the negative slice with ValueError,
-// which list() turns into a 400 (rest.py:757-760, :824-827). For limit
-// it is a mirror choice: upstream's `limit > 0` gate (rest.py:757-760)
-// serves a negative limit as unlimited. See docs/API.md § Known
-// Divergences.
+// Without a limit key the limit is DefaultLimit (0 = every row), as
+// upstream (rest.py:516). A positive limit has no upper cap
+// (rest.py:757-758). The response memory budget bounds the response:
+// when the count × TypicalRowBytes is over the budget, the handler
+// returns 413 before it reads any row. A value too large for an int
+// saturates: a huge limit serves every row and a huge skip serves no
+// row.
 func ParsePaginationParams(params url.Values) (limit, skip int, err error) {
 	limit = DefaultLimit
-	if v := params.Get("limit"); v != "" {
-		parsed, perr := strconv.Atoi(v)
-		if perr != nil || parsed < 0 {
-			return 0, 0, fmt.Errorf("'limit' needs to be a non-negative number, got %q", v)
+	if v, ok := lastParam(params, "skip"); ok {
+		if skip, _, err = pyInt(v); err != nil {
+			return 0, 0, errSkipNotNumber
 		}
-		limit = parsed
 	}
-
-	if v := params.Get("skip"); v != "" {
-		parsed, perr := strconv.Atoi(v)
-		if perr != nil || parsed < 0 {
-			return 0, 0, fmt.Errorf("'skip' needs to be a non-negative number, got %q", v)
+	if v, ok := lastParam(params, "limit"); ok {
+		if limit, _, err = pyInt(v); err != nil {
+			return 0, 0, errLimitNotNumber
 		}
-		skip = parsed
 	}
 	return limit, skip, nil
 }
 
-// ParseSinceParam parses the ?since= query parameter as a Unix timestamp.
-// Returns nil if the parameter is absent or empty.
-//
-// since<=0 is also treated as absent: upstream activates the since
-// matrix only `if since > 0` (2.83.0 rest.py:719), so ?since=0 falls
-// through to the plain live-status list there. Honouring a zero boundary
-// here would flip the status matrix and serve the entire tombstone corpus.
-func ParseSinceParam(params url.Values) (*time.Time, error) {
-	v := params.Get("since")
-	if v == "" {
-		return nil, nil
+// parseSince returns the raw ?since= value: the last value, Python
+// int() rules (2.83.0 rest.py:505-510, api_cache.py:80). present is
+// false when the key is absent. An empty or non-integer value is
+// errSinceNotTimestamp. Every reader of since calls this function, so
+// the value is parsed one way only.
+func parseSince(params url.Values) (n int, present bool, err error) {
+	v, ok := lastParam(params, "since")
+	if !ok {
+		return 0, false, nil
 	}
-	t, err := parseEpoch(v)
+	n, _, err = pyInt(v)
+	if err != nil {
+		return 0, true, errSinceNotTimestamp
+	}
+	return n, true, nil
+}
+
+// ParseDepthParam returns the ?depth= value as upstream parses it
+// (2.83.0 rest.py:520-523): the last value, Python int() rules (pyInt).
+// raw is the value, saturated to the int range. text is its canonical
+// decimal form, for messages that print the value. present is false
+// when the key is absent, and the caller then applies its own default.
+// An empty or non-integer value is errDepthNotNumber. The caller clamps
+// raw to its depth range.
+func ParseDepthParam(params url.Values) (raw int, text string, present bool, err error) {
+	v, ok := lastParam(params, "depth")
+	if !ok {
+		return 0, "0", false, nil
+	}
+	raw, text, err = pyInt(v)
+	if err != nil {
+		return 0, "", true, errDepthNotNumber
+	}
+	return raw, text, true, nil
+}
+
+// ParseSinceParam parses ?since= as a Unix timestamp (see parseSince).
+// It returns nil when the key is absent and when the value is 0 or
+// less: upstream activates the since matrix only if since > 0 (2.83.0
+// rest.py:719), so ?since=0 gives the plain live-status list. A zero
+// boundary here would flip the status matrix and serve every
+// tombstone.
+//
+// The time is in UTC. The SQLite driver binds a time.Time as text in
+// the zone of the value, and the stored timestamps are UTC text, so the
+// comparison is only correct when both sides are UTC. time.Unix returns
+// the process zone, which is UTC in production but not on every host.
+func ParseSinceParam(params url.Values) (*time.Time, error) {
+	n, present, err := parseSince(params)
 	if err != nil {
 		return nil, err
 	}
-	if t.Unix() <= 0 {
+	if !present || n <= 0 {
 		return nil, nil
 	}
+	t := time.Unix(int64(n), 0).UTC()
 	return &t, nil
+}
+
+// parseDetailSlice reads limit and skip of a single-object GET with the
+// list parser, so the error texts and their order are the list ones.
+// Upstream parses both for a detail too and slices the query before
+// get() (2.83.0 rest.py:511-518, :755-760). Django cannot filter a
+// sliced query, so get() fails and DRF answers 404 Not found. (Django
+// query.py:1505-1507, DRF generics.py:13-21). sliced is true for a limit
+// above 0 or a skip above 0. A negative limit does not slice (upstream
+// slices only when limit > 0), so the object is returned. negativeSkip
+// is true for a skip below 0. The caller returns 400 errNegativeSkip
+// after the filters, as serveList does (upstream: 500, see docs/API.md
+// § Known Divergences).
+func parseDetailSlice(params url.Values) (sliced, negativeSkip bool, err error) {
+	limit, skip, err := ParsePaginationParams(params)
+	if err != nil {
+		return false, false, err
+	}
+	return limit > 0 || skip > 0, skip < 0, nil
 }
