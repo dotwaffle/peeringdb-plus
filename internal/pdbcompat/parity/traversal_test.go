@@ -76,10 +76,9 @@ import (
 //     fac or org is a substring match, not a geocoded search; nan,
 //     inf, non-ASCII digits and the coordinate values are handled by
 //     the mirror's own rules.
-//   - DIVERGENCE: the custom key that upstream handles in Python
-//     (hide_ix_no_fac) is silent-ignored, also on a single-object GET
-//     (`ix/<id>?hide_ix_no_fac=1`). name_search filters as upstream:
-//     see TestParity_NameSearch.
+//   - DIVERGENCE: the hide_ix_no_fac mixin is silent-ignored, also on
+//     a single-object GET (`ix/<id>?hide_ix_no_fac=1`). name_search
+//     filters as upstream: see TestParity_NameSearch.
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
 //   - DIVERGENCE: a relation key, ixpfx whereis or ix capacity given in
@@ -475,19 +474,13 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_prepare_query_keys_silent_ignore", func(t *testing.T) {
+	t.Run("DIVERGENCE_hide_ix_no_fac_silent_ignore", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream handles this key in Python before its
-		// model-field filters: the hide_ix_no_fac mixin. It is not a
-		// model field, and the mirror does not implement it, so it is
-		// silent-ignored and the list is unfiltered. name_search is
-		// parity: see TestParity_NameSearch. The presence keys (not_ix,
-		// all_net, org_present and the others) are parity: see
-		// prepare_query_presence_keys. So are ix ipblock, ixpfx whereis,
-		// ix capacity, fac and ix asn_overlap and fac and org distance:
-		// see prepare_query_ipblock, prepare_query_whereis,
-		// prepare_query_capacity, prepare_query_asn_overlap and
-		// prepare_query_distance_filter.
+		// DIVERGENCE: upstream handles hide_ix_no_fac in Python after the
+		// status filter: the IXFilterMixin of the ix, ixlan, net and
+		// netixlan views. It is not a model field, and the mirror does
+		// not implement it, so it is silent-ignored and the list is
+		// unfiltered.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 rest.py:1267-1297 (hide_ix_no_fac)
@@ -495,31 +488,13 @@ func TestParity_Traversal(t *testing.T) {
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "QueryOrgA", t0)
 		mustOrg(ctx, t, c, 2, "QueryOrgB", t0)
-		mustNet(ctx, t, c, 100, "QueryNetA", 64500, 1, t0)
-		mustNet(ctx, t, c, 101, "QueryNetB", 64501, 2, t0)
-		mustFac(ctx, t, c, 200, "QueryFacA", 1, t0)
-		mustFac(ctx, t, c, 201, "QueryFacB", 2, t0)
 		mustIX(ctx, t, c, 300, "QueryIXA", 1, t0)
 		mustIX(ctx, t, c, 301, "QueryIXB", 2, t0)
-		// Net 100 connects to IX 300 through one netixlan.
-		mustIxLan(ctx, t, c, 3000, "QueryLanA", 300, t0)
-		if _, err := c.NetworkIxLan.Create().
-			SetID(5000).SetNetID(100).SetIxlanID(3000).SetIxID(300).
-			SetAsn(64500).SetSpeed(1000).
-			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
-			Save(ctx); err != nil {
-			t.Fatalf("seed netixlan: %v", err)
-		}
 
 		srv := newTestServer(t, c)
-		// No netfac or ixfac rows exist. Upstream returns a narrower
-		// list for each request below.
-		// The relation keys of a prepare_query (net?ix_id=,
-		// fac?net_id=, org?asn=) resolve: see
-		// prepare_query_relation_keys_pin_join_status_ok and
-		// prepare_query_relation_keys_on_listed_row.
+		// No ixfac rows exist, so neither IX has a facility. Upstream
+		// returns [] for the list.
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			// hide_ix_no_fac: neither IX has a facility.
 			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
 			// A single-object GET ignores it too. Upstream: 404, the
 			// mixin filters the detail query (rest.py:752-753,
