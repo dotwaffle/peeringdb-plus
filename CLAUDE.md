@@ -409,7 +409,8 @@ Semantics table: `docs/API.md § Relation filters`.
 The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`org_present`/`org_not_present` (upstream `prepare_query`) resolve in `ParseFiltersCtx` BEFORE the relation seeds, exact key only, first value.
 `not_*` = `sql.NotPredicates` over the relation seed of the same target (same `ok` pin); `all_net` = one `GROUP BY ... HAVING COUNT(DISTINCT net_id) = <distinct ids>` subquery (no SQL term per id); `org_present` checks no status on any row (upstream `.objects`), ix path compares `ix.id` with `netixlan.ixlan_id` as upstream does.
 A non-integer item is a 400.
-Locked by `TestParity_Traversal/prepare_query_presence_keys`.
+`asn_overlap` (fac/ix) is a presence key with its own `parse` (`parseASNOverlap`): 1 item or more than 25 is a 400 before any int parse; a repeated raw item matches nothing through `sql.False()` (upstream keys by the raw string; the opposite of the `all_net` `distinctCount`), not `emptyResult`; it matches `net.asn` through `networks_asn_key`, never `local_asn`/netixlan `asn`; ix counts `LiveStatuses("netixlan")` through `ixlan.ix_id`; `likely()` on the link status keeps the plan on the `_net_id` index (`TestPresencePlan_KeepsNetIndex`).
+Locked by `TestParity_Traversal/prepare_query_presence_keys` + `prepare_query_asn_overlap`.
 
 **ix `ipblock` (`internal/pdbcompat/ipblock_filter.go`).**
 `ParseFiltersCtx` resolves `ix?ipblock=` after the presence keys and before the relation seeds, exact key only, first value, never a 400.

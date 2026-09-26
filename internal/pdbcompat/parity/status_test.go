@@ -888,6 +888,11 @@ func TestParity_Status(t *testing.T) {
 			{"/api/fac?all_net=1_00", "/api/fac?all_net=100"},
 			{"/api/ix?all_net=%D9%A1%D9%A0%D9%A0", "/api/ix?all_net=100"},
 			{"/api/fac?org_present=%203", "/api/fac?org_present=3"},
+			// asn_overlap compares network__asn, an integer lookup
+			// (models.py:2464-2471, :2875-2881). The canonical requests
+			// keep fac 400 and ix 20.
+			{"/api/fac?asn_overlap=64500,64_501", "/api/fac?asn_overlap=64500,64501"},
+			{"/api/ix?asn_overlap=%D9%A6%D9%A4%D9%A5%D9%A0%D9%A0,%2064501", "/api/ix?asn_overlap=64500,64501"},
 		} {
 			wantStatus, wantBody := httpGet(t, srv, tc.canonical)
 			want := extractIDs(t, wantBody)
@@ -1530,6 +1535,11 @@ func TestParity_Status(t *testing.T) {
 			t.Fatalf("set netixlan 1 ipaddr6: %v", err)
 		}
 		mustIxPfx(t.Context(), t, c, 1, "10.0.0.0/24", 1, t0)
+		// Fac 1 has a netfac of net 1 (asn 64500).
+		mustFac(t.Context(), t, c, 1, "StatusFac", 1, t0)
+		c.NetworkFacility.Create().
+			SetID(1).SetNetID(1).SetFacID(1).SetLocalAsn(64500).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(t.Context())
 		srv := newTestServer(t, c)
 		// The PK miss of each path, sent to a server with no rows.
 		empty := newTestServer(t, testutil.SetupClient(t))
@@ -1581,6 +1591,11 @@ func TestParity_Status(t *testing.T) {
 			// (serializers.py:4545-4546, models.py:2895-2942).
 			{path: "/api/ix/1?capacity=30000", want: http.StatusOK, wantIDs: []int{1}},
 			{path: "/api/ix/1?capacity__gt=30000", want: http.StatusNotFound, wantErr: "No InternetExchange matches the given query."},
+			// asn_overlap keeps the facilities that the network of
+			// every listed ASN reaches (serializers.py:2126-2129,
+			// models.py:2436-2483). Two items for one ASN count as one.
+			{path: "/api/fac/1?asn_overlap=64500,%2064500", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/fac/1?asn_overlap=64500,64501", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)
@@ -1607,6 +1622,8 @@ func TestParity_Status(t *testing.T) {
 		for _, tc := range []struct{ path, wantErr string }{
 			{"/api/ixpfx/1?whereis=abc", "does not appear to be an IPv4 or IPv6 address"},
 			{"/api/ix/1?capacity=abc", "is not an integer"},
+			// One ASN (models.py:2457-2458).
+			{"/api/fac/1?asn_overlap=64500", "Need to specify at least two asns"},
 		} {
 			status, body := httpGet(t, srv, tc.path)
 			if status != http.StatusBadRequest {

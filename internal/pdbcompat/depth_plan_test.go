@@ -150,3 +150,45 @@ func TestRelationFilterPlan_KeepsFKIndex(t *testing.T) {
 		})
 	}
 }
+
+// TestPresencePlan_KeepsNetIndex checks the plan of the presence keys
+// that count the networks of each listed row (all_net, asn_overlap).
+// The subquery must read the net_id index of the link table, and
+// asn_overlap must find the networks through the unique asn index. A
+// link status test without likely() reads every link row with that
+// status through a status index.
+func TestPresencePlan_KeepsNetIndex(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		typ, key, value string
+		want            []string // indexes that the plan must read
+	}{
+		{peeringdb.TypeFac, "asn_overlap", "64500,64501", []string{"networks_asn_key", "networkfacility_net_id"}},
+		{peeringdb.TypeIX, "asn_overlap", "64500,64501", []string{"networks_asn_key", "networkixlan_net_id"}},
+		{peeringdb.TypeFac, "all_net", "1,2", []string{"networkfacility_net_id"}},
+		{peeringdb.TypeIX, "all_net", "1,2", []string{"networkixlan_net_id"}},
+	} {
+		t.Run(tc.typ+"_"+tc.key, func(t *testing.T) {
+			t.Parallel()
+			tcfg := Registry[tc.typ]
+			preds, empty, err := ParseFiltersCtx(t.Context(), url.Values{tc.key: {tc.value}}, tcfg)
+			if err != nil || empty {
+				t.Fatalf("ParseFiltersCtx(%s=%s): empty=%v err=%v", tc.key, tc.value, empty, err)
+			}
+			list, count := listPlans(t, tc.typ, QueryOptions{Filters: preds, Limit: 250})
+			listed := " " + tableFor(t, tc.typ) + " "
+			for name, plan := range map[string]string{"list": list, "count": count} {
+				for _, idx := range tc.want {
+					if !strings.Contains(plan, idx) {
+						t.Errorf("%s plan = %q, want it to read %s", name, plan, idx)
+					}
+				}
+				for step := range strings.SplitSeq(plan, " | ") {
+					if statusIndexUse.MatchString(step) && !strings.Contains(step, listed) {
+						t.Errorf("%s subquery reads a status index: %q (plan %q)", name, step, plan)
+					}
+				}
+			}
+		})
+	}
+}

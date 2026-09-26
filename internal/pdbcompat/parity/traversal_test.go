@@ -61,10 +61,14 @@ import (
 //     netixlans that are not deleted have a sum of speed that matches,
 //     grouped by ixlan_id, as upstream; a value that is not an integer
 //     is a 400.
+//   - `fac?asn_overlap=` and `ix?asn_overlap=` keep the rows that the
+//     network of every listed ASN reaches through an ok netfac, or an
+//     ok or not-operational netixlan, as upstream; one ASN, more than
+//     25 or an item that is not an integer is a 400.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
-//     (prepare_query keys such as asn_overlap and distance,
-//     hide_ix_no_fac, name_search) are silent-ignored, also on a
-//     single-object GET (`ix/<id>?hide_ix_no_fac=1`).
+//     (prepare_query keys such as distance, hide_ix_no_fac,
+//     name_search) are silent-ignored, also on a single-object GET
+//     (`ix/<id>?hide_ix_no_fac=1`).
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
 //   - DIVERGENCE: a relation key, ixpfx whereis or ix capacity given in
@@ -469,14 +473,14 @@ func TestParity_Traversal(t *testing.T) {
 		// not implement them, so they are silent-ignored and the list is
 		// unfiltered. The presence keys (not_ix, all_net, org_present and
 		// the others) are parity: see prepare_query_presence_keys. So
-		// are ix ipblock, ixpfx whereis and ix capacity: see
-		// prepare_query_ipblock, prepare_query_whereis and
-		// prepare_query_capacity.
+		// are ix ipblock, ixpfx whereis, ix capacity and fac and ix
+		// asn_overlap: see prepare_query_ipblock, prepare_query_whereis,
+		// prepare_query_capacity and prepare_query_asn_overlap.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 serializers.py:2092-2210
 		// (FacilitySerializer.prepare_query), :3708-3762 (Network),
-		// :4503-4631 (InternetExchange), :4970-4992 (Organization);
+		// :4970-4992 (Organization);
 		// rest.py:1267-1297 (hide_ix_no_fac),
 		// :532-553 (name_search)
 		c := testutil.SetupClient(t)
@@ -501,20 +505,15 @@ func TestParity_Traversal(t *testing.T) {
 
 		srv := newTestServer(t, c)
 		// No netfac or ixfac rows exist. Upstream returns a narrower
-		// list for each request below (for example [] for
-		// asn_overlap),
-		// or 400 (see asn_overlap and distance).
+		// list for each request below (for example [100] for
+		// name_search), or 400 (see distance).
 		// The relation keys of a prepare_query (net?ix_id=,
 		// fac?net_id=, org?asn=) resolve: see
 		// prepare_query_relation_keys_pin_join_status_ok and
 		// prepare_query_relation_keys_on_listed_row.
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			// prepare_query keys.
-			{path: "/api/fac?asn_overlap=64500,64501", want: []int{200, 201}},
 			{path: "/api/org?distance=10", want: []int{1, 2}},
-			// Upstream returns 400 for a single ASN
-			// (models.py:2867-2868).
-			{path: "/api/ix?asn_overlap=64500", want: []int{300, 301}},
 			// hide_ix_no_fac: neither IX has a facility.
 			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
 			// A single-object GET ignores it too. Upstream: 404, the
@@ -913,6 +912,137 @@ func TestParity_Traversal(t *testing.T) {
 		}
 		// A lookup by id that the key excludes is the unique-query 404.
 		path := "/api/ix?id=23&capacity=0"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
+		}
+		if msg := mustDecodeMetaError(t, body).Error; msg != "Entity not found" {
+			t.Errorf("GET %s: meta.error = %q, want %q", path, msg, "Entity not found")
+		}
+	})
+
+	t.Run("prepare_query_asn_overlap", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 management/commands/pdb_api_test.py:4483-4540
+		// (ix), :4995-5050 (fac): 3 ASNs keep the row with all three, 2
+		// ASNs keep both rows, 1 ASN and 30 ASNs are 400.
+		// serializers.py:2126-2129, :4554-4557 (exact key, first value,
+		// split at commas); models.py:2436-2483, :2846-2893
+		// (overlapping_asns: the count checks, network__asn, netfac
+		// status ok, netixlan live_statuses through netixlan.ixlan.ix_id,
+		// the ASNs of a row keyed by the raw item), :109-122
+		// (live_statuses); rest.py:488-500 (ValidationError and
+		// ValueError -> 400), :719-750 (status matrix), :809-815
+		// (unique-query 404); tests/test_netixlan_live_status_counts.py:101-125.
+		// synthesised: repeated items, a deleted net, local_asn and the
+		// netixlan asn column, an ixlan id that is not its exchange id,
+		// not-operational and pending links, since, the error order and
+		// the error precedence against all_net. See seedASNOverlap for
+		// the rows.
+		srv := newTestServer(t, seedASNOverlap(t, t0))
+		asns := func(n int) string {
+			items := make([]string, n)
+			for i := range items {
+				items[i] = strconv.Itoa(64500 + i)
+			}
+			return strings.Join(items, ",")
+		}
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// Only the fac of all three nets (upstream query #1).
+			{path: "/api/fac?asn_overlap=64500,64501,64502", want: []int{405}},
+			// 401: netfac 604 is deleted. 403: the local_asn of netfac
+			// 607 does not count. 404: the fac is deleted.
+			{path: "/api/fac?asn_overlap=64500,64501", want: []int{400, 405}},
+			{path: "/api/fac?asn_overlap=64501,64500", want: []int{400, 405}},
+			// The ASN of the deleted net 103 counts.
+			{path: "/api/fac?asn_overlap=64500,64503", want: []int{400}},
+			{path: "/api/fac?asn_overlap=64500,64502", want: []int{402, 405}},
+			// An item that occurs two times matches no row: upstream
+			// compares the number of distinct items of a row with the
+			// number of items.
+			{path: "/api/fac?asn_overlap=64500,64500", want: []int{}},
+			{path: "/api/fac?asn_overlap=64500,64501,64500", want: []int{}},
+			// Two different items for the same ASN count as one ASN.
+			{path: "/api/fac?asn_overlap=64500,%2064500", want: []int{400, 401, 402, 405}},
+			{path: "/api/fac?asn_overlap=64500,064500", want: []int{400, 401, 402, 405}},
+			// Python int() forms ('+' is a space in a query string).
+			{path: "/api/fac?asn_overlap=64500,+64501", want: []int{400, 405}},
+			{path: "/api/fac?asn_overlap=64500,%2B64501", want: []int{400, 405}},
+			{path: "/api/fac?asn_overlap=64500,64_501", want: []int{400, 405}},
+			// An ASN that no network has matches no row. Upstream: an
+			// ASN outside the integer range of the column matches no
+			// row (Django lookups.py:461-476).
+			{path: "/api/fac?asn_overlap=64500,99999", want: []int{}},
+			{path: "/api/fac?asn_overlap=64500,-1", want: []int{}},
+			{path: "/api/fac?asn_overlap=64500,99999999999999999999", want: []int{}},
+			// 25 items are allowed.
+			{path: "/api/fac?asn_overlap=" + asns(25), want: []int{}},
+			// A repeated key uses its first value.
+			{path: "/api/fac?asn_overlap=64500,64501&asn_overlap=64500", want: []int{400, 405}},
+			// The status matrix applies to the fac, and ?status= ANDs
+			// with it.
+			{path: "/api/fac?asn_overlap=64500,64501&since=1", want: []int{400, 404, 405}},
+			{path: "/api/fac?asn_overlap=64500,64501&status=deleted&since=1", want: []int{404}},
+			// The key ANDs with the other filters.
+			{path: "/api/fac?asn_overlap=64500,64501&name=ASNOverlapFac405", want: []int{405}},
+			// Upstream query #1 on ix. Ix 20: netixlan 502 is pending.
+			{path: "/api/ix?asn_overlap=64500,64501,64502", want: []int{22}},
+			// A not-operational netixlan counts (ix 20).
+			{path: "/api/ix?asn_overlap=64500,64501", want: []int{20, 22}},
+			// all_net pins the link to ok, so ix 20 drops out.
+			{path: "/api/ix?all_net=100,101", want: []int{22}},
+			{path: "/api/ix?asn_overlap=64500,64502", want: []int{22}},
+			// Through ixlan 31 of ix 21; the deleted net 103 counts.
+			{path: "/api/ix?asn_overlap=64500,64503", want: []int{21}},
+			// The asn column of netixlan 505 does not count.
+			{path: "/api/ix?asn_overlap=64500,64599", want: []int{}},
+			{path: "/api/ix?asn_overlap=64500,64500", want: []int{}},
+		})
+		// Upstream ignores the other forms, and the key on other types.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?asn_overlap__in=64500,64501", want: []int{400, 401, 402, 403, 405}},
+			{path: "/api/ix?asn_overlap__contains=64500,64501", want: []int{20, 21, 22}},
+			{path: "/api/net?asn_overlap=64500,64501", want: []int{100, 101, 102}},
+		})
+		// The item count is checked before any item is converted, then
+		// every item is converted: ValidationError and ValueError are
+		// 400 (rest.py:488-500). The error wins over an empty __in.
+		for _, tc := range []struct{ path, wantErr string }{
+			{"/api/fac?asn_overlap=64500", "Need to specify at least two asns"},
+			{"/api/fac?asn_overlap=", "Need to specify at least two asns"},
+			{"/api/ix?asn_overlap=abc", "Need to specify at least two asns"},
+			{"/api/fac?asn_overlap=" + asns(25) + ",x", "Can only compare a maximum of 25 asns"},
+			{"/api/ix?asn_overlap=" + asns(26), "Can only compare a maximum of 25 asns"},
+			{"/api/fac?asn_overlap=64500,abc", `"abc" is not an integer`},
+			{"/api/fac?asn_overlap=64500,", `"" is not an integer`},
+			{"/api/ix?asn_overlap=,", `"" is not an integer`},
+			{"/api/fac?asn_overlap=64500,64500,abc", `"abc" is not an integer`},
+			{"/api/fac?asn_overlap=64500&id__in=", "Need to specify at least two asns"},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", tc.path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, tc.wantErr) {
+				t.Errorf("GET %s: meta.error = %q, want it to contain %q", tc.path, msg, tc.wantErr)
+			}
+		}
+		// A repeated item is a constant false predicate, not an early
+		// empty result, so the all_net error is a 400 in every key
+		// order (url.Values is a map).
+		for range 20 {
+			path := "/api/fac?asn_overlap=64500,64500&all_net=x"
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Fatalf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "is not an integer") {
+				t.Fatalf("GET %s: meta.error = %q, want the all_net error", path, msg)
+			}
+		}
+		// A lookup by id that the key excludes is the unique-query 404.
+		path := "/api/fac?id=400&asn_overlap=64500,64502"
 		status, body := httpGet(t, srv, path)
 		if status != http.StatusNotFound {
 			t.Fatalf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
@@ -2255,6 +2385,91 @@ func addCapacityRows(t *testing.T, c *ent.Client, t0 time.Time) {
 			t.Fatalf("seed netixlan id=%d: %v", r.id, err)
 		}
 	}
+}
+
+// seedASNOverlap seeds rows for the fac and ix asn_overlap key:
+//   - org 1; nets 100 (asn 64500), 101 (64501), 102 (64502) and 103
+//     (64503, deleted).
+//   - facs 400 to 403 and 405, and 404 (deleted).
+//   - netfacs (net, fac): 600 (100, 400), 601 (101, 400), 602 (103,
+//     400), 603 (100, 401), 604 (101, 401, deleted), 605 (100, 402),
+//     606 (102, 402), 607 (102, 403, local_asn 64500), 608 (101, 403),
+//     609 (100, 404), 610 (101, 404), 611 (100, 405), 612 (101, 405)
+//     and 613 (102, 405).
+//   - ixes 20, 21 and 22, with ixlans 20 (ix 20), 31 (ix 21) and 22
+//     (ix 22).
+//   - netixlans (net, ixlan): 500 (100, 20), 501 (101, 20,
+//     not-operational), 502 (102, 20, pending), 503 (100, 31), 504
+//     (101, 31, deleted), 505 (103, 31, asn column 64599), 506 (100,
+//     22), 507 (101, 22) and 508 (102, 22).
+//
+// Fac 405 and ix 22 have the shape of the upstream tests: the three
+// nets 100 to 102 on one row, next to rows that only two of them reach.
+func seedASNOverlap(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "ASNOverlapOrg", t0)
+	for id, asn := range map[int]int{100: 64500, 101: 64501, 102: 64502} {
+		mustNet(ctx, t, c, id, fmt.Sprintf("ASNOverlapNet%d", id), asn, 1, t0)
+	}
+	c.Network.Create().
+		SetID(103).SetName("ASNOverlapNet103").SetNameFold("asnoverlapnet103").
+		SetAsn(64503).SetOrgID(1).
+		SetStatus("deleted").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	for _, id := range []int{400, 401, 402, 403, 404, 405} {
+		mustFac(ctx, t, c, id, fmt.Sprintf("ASNOverlapFac%d", id), 1, t0)
+	}
+	if err := c.Facility.UpdateOneID(404).SetStatus("deleted").Exec(ctx); err != nil {
+		t.Fatalf("delete fac 404: %v", err)
+	}
+	for _, n := range []struct {
+		id, net, fac, localASN int
+		status                 string
+	}{
+		{600, 100, 400, 64500, "ok"},
+		{601, 101, 400, 64501, "ok"},
+		{602, 103, 400, 64503, "ok"},
+		{603, 100, 401, 64500, "ok"},
+		{604, 101, 401, 64501, "deleted"},
+		{605, 100, 402, 64500, "ok"},
+		{606, 102, 402, 64502, "ok"},
+		{607, 102, 403, 64500, "ok"},
+		{608, 101, 403, 64501, "ok"},
+		{609, 100, 404, 64500, "ok"},
+		{610, 101, 404, 64501, "ok"},
+		{611, 100, 405, 64500, "ok"},
+		{612, 101, 405, 64501, "ok"},
+		{613, 102, 405, 64502, "ok"},
+	} {
+		c.NetworkFacility.Create().
+			SetID(n.id).SetNetID(n.net).SetFacID(n.fac).SetLocalAsn(n.localASN).
+			SetStatus(n.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for ix, lan := range map[int]int{20: 20, 21: 31, 22: 22} {
+		mustIX(ctx, t, c, ix, fmt.Sprintf("ASNOverlapIX%d", ix), 1, t0)
+		mustIxLan(ctx, t, c, lan, fmt.Sprintf("ASNOverlapLan%d", lan), ix, t0)
+	}
+	for _, n := range []struct {
+		id, net, lan, ix, asn int
+		status                string
+	}{
+		{500, 100, 20, 20, 64500, "ok"},
+		{501, 101, 20, 20, 64501, "not-operational"},
+		{502, 102, 20, 20, 64502, "pending"},
+		{503, 100, 31, 21, 64500, "ok"},
+		{504, 101, 31, 21, 64501, "deleted"},
+		{505, 103, 31, 21, 64599, "ok"},
+		{506, 100, 22, 22, 64500, "ok"},
+		{507, 101, 22, 22, 64501, "ok"},
+		{508, 102, 22, 22, 64502, "ok"},
+	} {
+		c.NetworkIxLan.Create().
+			SetID(n.id).SetNetID(n.net).SetIxlanID(n.lan).SetIxID(n.ix).
+			SetAsn(n.asn).SetSpeed(1000).SetOperational(n.status == "ok").
+			SetStatus(n.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	return c
 }
 
 // seedIxSideKeys seeds netixlan rows for the ix_side__<field> keys: orgs

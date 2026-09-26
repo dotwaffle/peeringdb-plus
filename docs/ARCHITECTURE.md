@@ -868,7 +868,8 @@ The nested `_set` collections of the depth expansion admit only the live statuse
 `likelyOK` is `likely(status IN ('ok'))`.
 Without the hint, SQLite can read every `ok` row of the child table through its status index instead of the parent's rows through the FK index.
 The relation-key status pin (`withStatusPin`) uses the same filter.
-`TestDetailPlan_KeepsFKIndex` and `TestRelationFilterPlan_KeepsFKIndex` lock these plans.
+The link-status test of the presence keys `all_net` and `asn_overlap` uses `likely()` too (on `ix`, `asn_overlap` admits `ok` and `not-operational`).
+`TestDetailPlan_KeepsFKIndex`, `TestRelationFilterPlan_KeepsFKIndex` and `TestPresencePlan_KeepsNetIndex` lock these plans.
 A pending child, in practice a campus, is fetchable by ID but is left out of the sets of its parent.
 The sets `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are ordered by facility id, then by link id.
 The upstream prefetch has no `ORDER BY`, and MySQL reads these sets through the unique `(<parent>, facility)` index.

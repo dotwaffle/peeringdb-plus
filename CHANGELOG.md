@@ -37,6 +37,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   A value that is not an integer returns `400`, as upstream, and so does `capacity__in=`.
   A single-object GET applies the key too: `/api/ix/<id>?capacity=` returns `404` when the capacity does not match.
   See `docs/API.md` § Capacity filter.
+- pdbcompat implements `asn_overlap` on `fac` and `ix`: `fac?asn_overlap=64500,64501` returns the facilities where the network of every listed ASN has a netfac with status `ok`, and `ix?asn_overlap=` the exchanges where it has a netixlan with status `ok` or `not-operational`.
+  Before, pdbcompat ignored the key and returned the unfiltered list.
+  One ASN, an empty value, more than 25 ASNs or an item that is not an integer returns `400`, as upstream.
+  An ASN that occurs two times in the list matches no row, as upstream.
+  A single-object GET applies the key too: `/api/fac/<id>?asn_overlap=` returns `404` when the facility does not match, and `400` for one ASN.
+  See `docs/API.md` § Presence filters.
 
 ### Changed
 

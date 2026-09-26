@@ -1,6 +1,7 @@
 package pdbcompat
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,17 +9,20 @@ import (
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
 // This file ports the presence keys that an upstream serializer handles
 // in prepare_query (PeeringDB 2.83.0): net not_ix and not_fac, and fac
-// and ix not_net, all_net, org_present and org_not_present. Each key
-// keeps or excludes the listed rows by their links to the networks,
-// exchanges, facilities or organizations whose ids the value gives.
+// and ix not_net, all_net, asn_overlap, org_present and org_not_present.
+// Each key keeps or excludes the listed rows by their links to the
+// networks, exchanges, facilities or organizations whose ids (for
+// asn_overlap: ASNs) the value gives.
 // Only the exact key is a presence key: upstream tests `"not_ix" in
 // kwargs`, so not_ix__in is an unknown key.
 
@@ -27,6 +31,10 @@ type presenceKey struct {
 	// list is true when upstream splits the value at commas. Otherwise
 	// the value is one id.
 	list bool
+	// parse, when set, replaces parseItems. It gets the items of the
+	// value and returns the ids for build, or none = true when no row
+	// can match.
+	parse func(items []string) (ids []int, none bool, err error)
 	// build returns the predicate on the listed row for the ids of the
 	// value.
 	build func(tc TypeConfig, ids []int, tier privctx.Tier) (func(*sql.Selector), error)
@@ -41,15 +49,17 @@ var presenceKeys = map[string]map[string]presenceKey{
 		"not_ix":  {build: notRelated("ix")},
 		"not_fac": {build: notRelated("fac")},
 	},
-	// FacilitySerializer.prepare_query (serializers.py:2131-2201).
+	// FacilitySerializer.prepare_query (serializers.py:2126-2201).
 	peeringdb.TypeFac: {
+		"asn_overlap":     {list: true, parse: parseASNOverlap, build: asnOverlapFac},
 		"org_present":     {list: true, build: orgPresence(false, facOrgPaths)},
 		"org_not_present": {list: true, build: orgPresence(true, facOrgPaths)},
 		"all_net":         {list: true, build: allFacNets},
 		"not_net":         {list: true, build: notRelated("net")},
 	},
-	// InternetExchangeSerializer.prepare_query (serializers.py:4559-4629).
+	// InternetExchangeSerializer.prepare_query (serializers.py:4554-4629).
 	peeringdb.TypeIX: {
+		"asn_overlap":     {list: true, parse: parseASNOverlap, build: asnOverlapIX},
 		"all_net":         {list: true, build: allIXNets},
 		"not_net":         {list: true, build: notRelated("net")},
 		"org_present":     {list: true, build: orgPresence(false, ixOrgPaths)},
@@ -64,25 +74,89 @@ func lookupPresenceKey(typ, key string) (presenceKey, bool) {
 }
 
 // buildPresencePredicate parses value and builds the predicate of pk.
-// Every item must be an integer: upstream converts the items with int()
-// or passes them to an integer lookup, and the ValueError of any other
-// item is a 400 (2.83.0 rest.py:488-500). pyInt accepts the forms that
-// int() accepts, for example "1_00" and Unicode digits. An empty value
-// is not an integer either.
+// A list value splits at every comma, as Python str.split(",") does: an
+// empty item stays. The parse hook of pk, or parseItems, reads the
+// items. When no row can match, the predicate is a constant false, not
+// an empty result, so that the other keys of the request are still
+// parsed and their errors still return 400.
 func buildPresencePredicate(tc TypeConfig, pk presenceKey, value string, tier privctx.Tier) (func(*sql.Selector), error) {
 	items := []string{value}
 	if pk.list {
 		items = strings.Split(value, ",")
 	}
+	parse := pk.parse
+	if parse == nil {
+		parse = parseItems
+	}
+	ids, none, err := parse(items)
+	if err != nil {
+		return nil, err
+	}
+	if none {
+		return matchNone, nil
+	}
+	return pk.build(tc, ids, tier)
+}
+
+// parseItems converts every item to an integer. Upstream converts the
+// items with int() or passes them to an integer lookup, and the
+// ValueError of any other item is a 400 (2.83.0 rest.py:488-500). pyInt
+// accepts the forms that int() accepts, for example "1_00" and Unicode
+// digits. An empty item is not an integer either.
+func parseItems(items []string) ([]int, bool, error) {
 	ids := make([]int, len(items))
 	for i, item := range items {
 		id, _, err := pyInt(item)
 		if err != nil {
-			return nil, fmt.Errorf("%q is not an integer", item)
+			return nil, false, fmt.Errorf("%q is not an integer", item)
 		}
 		ids[i] = id
 	}
-	return pk.build(tc, ids, tier)
+	return ids, false, nil
+}
+
+// matchNone is the predicate of a presence key that no row can match.
+func matchNone(s *sql.Selector) { s.Where(sql.False()) }
+
+// maxASNOverlap is the largest ASN list that overlapping_asns accepts
+// (2.83.0 models.py:2460-2461, :2870-2871).
+const maxASNOverlap = 25
+
+// The errors of overlapping_asns (2.83.0 models.py:2457-2461,
+// :2867-2871).
+var (
+	errASNOverlapTooFew  = errors.New("Need to specify at least two asns")     //nolint:staticcheck // exact upstream message text
+	errASNOverlapTooMany = errors.New("Can only compare a maximum of 25 asns") //nolint:staticcheck // exact upstream message text
+)
+
+// parseASNOverlap parses the items of asn_overlap as overlapping_asns
+// does (2.83.0 models.py:2436-2483, :2846-2893). The item count is
+// checked before any item is converted, so asn_overlap=abc is the
+// too-few error. Upstream keys the ASNs of each row by the raw item and
+// compares the key count with the item count, so an item that occurs
+// two times matches no row. Two different items for the same ASN (for
+// example "64500" and " 64500") count as one ASN. An ASN above the
+// integer range saturates and matches no network, as the Django
+// IntegerFieldOverflow lookup matches no row upstream.
+func parseASNOverlap(items []string) ([]int, bool, error) {
+	switch {
+	case len(items) == 1:
+		return nil, false, errASNOverlapTooFew
+	case len(items) > maxASNOverlap:
+		return nil, false, errASNOverlapTooMany
+	}
+	asns, _, err := parseItems(items)
+	if err != nil {
+		return nil, false, err
+	}
+	seen := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		if _, dup := seen[item]; dup {
+			return nil, true, nil
+		}
+		seen[item] = struct{}{}
+	}
+	return asns, false, nil
 }
 
 // joinIDs returns ids as a comma-separated list, the value form of an
@@ -127,16 +201,7 @@ func allFacNets(_ TypeConfig, ids []int, _ privctx.Tier) (func(*sql.Selector), e
 	if err != nil {
 		return nil, err
 	}
-	want := distinctCount(ids)
-	return func(s *sql.Selector) {
-		nf := sql.Table(networkfacility.Table)
-		sub := sql.Select(nf.C(networkfacility.FieldFacID)).From(nf)
-		inNets(sub)
-		likelyOK(sub)
-		sub.GroupBy(nf.C(networkfacility.FieldFacID)).
-			Having(sql.ExprP("COUNT(DISTINCT "+nf.C(networkfacility.FieldNetID)+") = ?", want))
-		s.Where(sql.In(s.C(parentPKColumn), sub))
-	}, nil
+	return facsWithEveryNet(inNets, likelyOK, distinctCount(ids)), nil
 }
 
 // allIXNets keeps the exchanges that have a netixlan with status "ok"
@@ -147,7 +212,73 @@ func allIXNets(_ TypeConfig, ids []int, _ privctx.Tier) (func(*sql.Selector), er
 	if err != nil {
 		return nil, err
 	}
-	want := distinctCount(ids)
+	return ixsWithEveryNet(inNets, likelyOK, distinctCount(ids)), nil
+}
+
+// asnOverlapFac keeps the facilities that have a netfac with status
+// "ok" for the network of every listed ASN (models.py:2464-2471).
+func asnOverlapFac(_ TypeConfig, asns []int, _ privctx.Tier) (func(*sql.Selector), error) {
+	inNets, err := netsWithASN(asns)
+	if err != nil {
+		return nil, err
+	}
+	return facsWithEveryNet(inNets, likelyOK, distinctCount(asns)), nil
+}
+
+// asnOverlapIX keeps the exchanges that have a netixlan with a live
+// status, "ok" or "not-operational", for the network of every listed
+// ASN, through the ixlan of the netixlan (models.py:2875-2881,
+// live_statuses :109-122).
+func asnOverlapIX(_ TypeConfig, asns []int, _ privctx.Tier) (func(*sql.Selector), error) {
+	inNets, err := netsWithASN(asns)
+	if err != nil {
+		return nil, err
+	}
+	live := likelyStatusIn(pdbtypes.LiveStatuses(peeringdb.TypeNetIXLan))
+	return ixsWithEveryNet(inNets, live, distinctCount(asns)), nil
+}
+
+// linkNetIDColumn is the network FK column of netfac and netixlan.
+const linkNetIDColumn = "net_id"
+
+// netsWithASN selects the link rows whose network has one of asns:
+// net_id IN (SELECT id FROM networks WHERE asn IN json_each(?)).
+// Upstream matches network__asn, not the netfac local_asn or the
+// netixlan asn, and checks no status on the network. asn is unique, so
+// each ASN names at most one network, and COUNT(DISTINCT net_id) counts
+// the matched ASNs.
+func netsWithASN(asns []int) (func(*sql.Selector), error) {
+	asnIn, err := buildPredicate(network.FieldAsn, "in", joinIDs(asns), FieldInt, false)
+	if err != nil {
+		return nil, err
+	}
+	return func(s *sql.Selector) {
+		n := sql.Table(network.Table)
+		nets := sql.Select(n.C(network.FieldID)).From(n)
+		asnIn(nets)
+		s.Where(sql.In(s.C(linkNetIDColumn), nets))
+	}, nil
+}
+
+// facsWithEveryNet keeps the facilities that have a netfac, with a
+// status that status admits, for each of the want networks that inNets
+// selects. The status test must use likely(), or SQLite reads every
+// such netfac through a status index (TestPresencePlan_KeepsNetIndex).
+func facsWithEveryNet(inNets, status func(*sql.Selector), want int) func(*sql.Selector) {
+	return func(s *sql.Selector) {
+		nf := sql.Table(networkfacility.Table)
+		sub := sql.Select(nf.C(networkfacility.FieldFacID)).From(nf)
+		inNets(sub)
+		status(sub)
+		sub.GroupBy(nf.C(networkfacility.FieldFacID)).
+			Having(sql.ExprP("COUNT(DISTINCT "+nf.C(networkfacility.FieldNetID)+") = ?", want))
+		s.Where(sql.In(s.C(parentPKColumn), sub))
+	}
+}
+
+// ixsWithEveryNet is facsWithEveryNet for exchanges, through the ixlan
+// of each netixlan. The ixlan row has no status check.
+func ixsWithEveryNet(inNets, status func(*sql.Selector), want int) func(*sql.Selector) {
 	return func(s *sql.Selector) {
 		nixl := sql.Table(networkixlan.Table)
 		lan := sql.Table(ixlan.Table)
@@ -156,11 +287,11 @@ func allIXNets(_ TypeConfig, ids []int, _ privctx.Tier) (func(*sql.Selector), er
 		sub.Join(lan).On(nixl.C(networkixlan.FieldIxlanID), lan.C(ixlan.FieldID))
 		sub.Select(lan.C(ixlan.FieldIxID))
 		inNets(sub)
-		likelyOK(sub)
+		status(sub)
 		sub.GroupBy(lan.C(ixlan.FieldIxID)).
 			Having(sql.ExprP("COUNT(DISTINCT "+nixl.C(networkixlan.FieldNetID)+") = ?", want))
 		s.Where(sql.In(s.C(parentPKColumn), sub))
-	}, nil
+	}
 }
 
 // distinctCount returns the number of distinct values in ids.
