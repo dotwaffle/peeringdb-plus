@@ -117,6 +117,38 @@ func TestPdbcompatIPAddr6Plan_UsesIndex(t *testing.T) {
 	}
 }
 
+// TestIPBlockPlan_SubqueryRunsOnce checks that the ix ipblock filter is
+// a non-correlated IN subquery, so SQLite builds the list of exchange
+// ids once per statement. The prefix test is substr() = ?, not LIKE, so
+// % and _ are literal and the match is case-sensitive.
+func TestIPBlockPlan_SubqueryRunsOnce(t *testing.T) {
+	t.Parallel()
+	preds, empty, err := ParseFiltersCtx(t.Context(), url.Values{"ipblock": {"10.0"}}, Registry["ix"])
+	if err != nil || empty || len(preds) != 1 {
+		t.Fatalf("ParseFiltersCtx: preds=%d empty=%v err=%v, want one predicate", len(preds), empty, err)
+	}
+	_, db := testutil.SetupClientWithDB(t)
+	rec := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+	client := ent.NewClient(ent.Driver(rec))
+	opts := QueryOptions{Filters: preds, Limit: 250}
+	if _, err := Registry["ix"].List(t.Context(), client, opts); err != nil {
+		t.Fatalf("list ix: %v", err)
+	}
+	q, args := rec.lastQuery(t)
+	if !strings.Contains(q, "substr(") || strings.Contains(q, "LIKE") {
+		t.Errorf("list SQL = %q, want substr( and no LIKE", q)
+	}
+	if want := []any{"10.0", "10.0", "ok"}; !slices.Equal(args, want) {
+		t.Errorf("list args = %v, want %v", args, want)
+	}
+	list, count := listPlans(t, "ix", opts)
+	for name, plan := range map[string]string{"list": list, "count": count} {
+		if !strings.Contains(plan, "LIST SUBQUERY") || strings.Contains(plan, "CORRELATED") {
+			t.Errorf("%s plan = %q, want a LIST SUBQUERY that is not CORRELATED", name, plan)
+		}
+	}
+}
+
 // listPlans runs the Registry List and Count closures for typ against
 // an empty database and returns the EXPLAIN QUERY PLAN output of the
 // SQL each one sent.

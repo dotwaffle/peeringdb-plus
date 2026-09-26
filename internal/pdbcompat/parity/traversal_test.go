@@ -51,6 +51,8 @@ import (
 //     silent-ignored, also as the field of a prepare_query relation
 //     key (`fac?net__notes_private=`). The mirror never receives these
 //     values.
+//   - `ix?ipblock=` keeps the exchanges with a prefix whose text
+//     starts with the value (not containment), as upstream.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
 //     (prepare_query keys such as asn_overlap and whereis,
 //     hide_ix_no_fac, name_search) are silent-ignored, also on a
@@ -456,7 +458,8 @@ func TestParity_Traversal(t *testing.T) {
 		// name_search. They are not model fields, and the mirror does
 		// not implement them, so they are silent-ignored and the list is
 		// unfiltered. The presence keys (not_ix, all_net, org_present and
-		// the others) are parity: see prepare_query_presence_keys.
+		// the others) are parity: see prepare_query_presence_keys. So is
+		// ix ipblock: see prepare_query_ipblock.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 serializers.py:2092-2210
@@ -498,7 +501,6 @@ func TestParity_Traversal(t *testing.T) {
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			// prepare_query keys.
 			{path: "/api/fac?asn_overlap=64500,64501", want: []int{200, 201}},
-			{path: "/api/ix?ipblock=10.0.0.0/24", want: []int{300, 301}},
 			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4001}},
 			{path: "/api/ix?capacity__gte=1000", want: []int{300, 301}},
 			{path: "/api/org?distance=10", want: []int{1, 2}},
@@ -598,6 +600,93 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ix?all_net=" + long, want: []int{}},
 			{path: "/api/fac?org_present=" + long, want: []int{}},
 		})
+	})
+
+	t.Run("prepare_query_ipblock", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:4548-4552 (exact key, first value),
+		// models.py:2830-2843 (IXLanPrefix.objects.filter(prefix__startswith=)
+		// -> ixlan__ix_id; no status on ixpfx or ixlan), rest.py:719-750
+		// (status matrix on the ix row); pdb_api_test.py:4401-4406
+		// (value = the prefix text without its "/24").
+		// Django 5.2.17 db/backends/mysql/base.py:171 (startswith is
+		// LIKE BINARY: case-sensitive), db/backends/base/operations.py:516-518
+		// (% and _ are escaped, so they are literal).
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "IPBlockOrg", t0)
+		for _, id := range []int{20, 21, 22, 23, 24, 25} {
+			mustIX(ctx, t, c, id, fmt.Sprintf("IPBlockIX%d", id), 1, t0)
+		}
+		// The id of ixlan 30 differs from the id of its exchange 20:
+		// the exchange id comes from ixlan.ix_id.
+		mustIxLan(ctx, t, c, 30, "IPBlockLan30", 20, t0)
+		mustIxLan(ctx, t, c, 21, "IPBlockLan21", 21, t0)
+		mustIxLan(ctx, t, c, 22, "IPBlockLan22", 22, t0)
+		mustIxLan(ctx, t, c, 23, "IPBlockLan23", 23, t0)
+		mustIxLan(ctx, t, c, 24, "IPBlockLan24", 24, t0)
+		mustIxLan(ctx, t, c, 25, "IPBlockLan25", 25, t0)
+		mustIxPfx(ctx, t, c, 400, "10.0.0.0/24", 30, t0)
+		mustIxPfx(ctx, t, c, 401, "2001:db8:1::/64", 21, t0)
+		mustIxPfx(ctx, t, c, 402, "10.10.0.0/24", 21, t0)
+		mustIxPfx(ctx, t, c, 403, "192.0.2.0/24", 22, t0)
+		mustIxPfx(ctx, t, c, 404, "10.0.1.0/24", 24, t0)
+		// The shape of a tombstone whose prefix upstream renders as
+		// null: the stored text is empty.
+		mustIxPfx(ctx, t, c, 405, "", 25, t0)
+		if err := c.InternetExchange.UpdateOneID(24).SetStatus("deleted").Exec(ctx); err != nil {
+			t.Fatalf("delete ix 24: %v", err)
+		}
+		if err := c.IxLan.UpdateOneID(22).SetStatus("deleted").Exec(ctx); err != nil {
+			t.Fatalf("delete ixlan 22: %v", err)
+		}
+		for _, id := range []int{402, 404, 405} {
+			if err := c.IxPrefix.UpdateOneID(id).SetStatus("deleted").Exec(ctx); err != nil {
+				t.Fatalf("delete ixpfx %d: %v", id, err)
+			}
+		}
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?ipblock=10.0.0.0/24", want: []int{20}},
+			// A text prefix, not containment.
+			{path: "/api/ix?ipblock=10.0.0.0", want: []int{20}},
+			{path: "/api/ix?ipblock=10.0.0.0/2", want: []int{20}},
+			{path: "/api/ix?ipblock=10.0.0.5", want: []int{}},
+			{path: "/api/ix?ipblock=10.0.0.0/24x", want: []int{}},
+			// No status check on the ixpfx (402) or the ixlan (22).
+			{path: "/api/ix?ipblock=10.1", want: []int{21}},
+			{path: "/api/ix?ipblock=192.0.2", want: []int{22}},
+			// The status matrix applies to the exchange.
+			{path: "/api/ix?ipblock=10.0.1", want: []int{}},
+			{path: "/api/ix?ipblock=10.0.1&since=1", want: []int{24}},
+			// Case-sensitive, and % and _ are literal.
+			{path: "/api/ix?ipblock=2001:db8", want: []int{21}},
+			{path: "/api/ix?ipblock=2001:DB8", want: []int{}},
+			{path: "/api/ix?ipblock=10%25", want: []int{}},
+			{path: "/api/ix?ipblock=10.0.0._", want: []int{}},
+			{path: "/api/ix?ipblock=%20", want: []int{}},
+			// An empty value matches every prefix, the empty prefix of
+			// the tombstone 405 included. Exchange 23 has no prefix.
+			{path: "/api/ix?ipblock=", want: []int{20, 21, 22, 25}},
+			{path: "/api/ix?ipblock", want: []int{20, 21, 22, 25}},
+			// A repeated key uses its first value.
+			{path: "/api/ix?ipblock=10.0&ipblock=192", want: []int{20}},
+			{path: "/api/ix?ipblock=192&ipblock=10.0", want: []int{22}},
+			// The key ANDs with the other filters.
+			{path: "/api/ix?ipblock=10.&name=IPBlockIX21", want: []int{21}},
+		})
+		// Only the exact key on ix applies. Upstream ignores the other
+		// forms and the key on other types too.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?ipblock__in=10.0.0.0/24", want: []int{20, 21, 22, 23, 25}},
+			{path: "/api/ix?ipblock__startswith=10.0", want: []int{20, 21, 22, 23, 25}},
+			{path: "/api/ixpfx?ipblock=10.0", want: []int{400, 401, 403}},
+		})
+		// A lookup by id that the key excludes is the unique-query 404
+		// (rest.py:809-815).
+		if status, body := httpGet(t, srv, "/api/ix?id=20&ipblock=10.0.0.5"); status != http.StatusNotFound {
+			t.Errorf("GET /api/ix?id=20&ipblock=10.0.0.5: status = %d, want 404; body=%s", status, string(body))
+		}
 	})
 
 	t.Run("netixlan_ix_side_facility_keys_filter_like_upstream", func(t *testing.T) {

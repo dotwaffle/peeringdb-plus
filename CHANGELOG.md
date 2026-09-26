@@ -20,6 +20,11 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   Before, pdbcompat ignored these keys and returned the unfiltered list (a registered divergence, now removed).
   The `net_side` keys stay ignored, as upstream ignores them.
   See `docs/API.md` § Cross-entity traversal.
+- pdbcompat implements `ix?ipblock=`: it keeps the exchanges that have a prefix whose text starts with the value, as upstream does.
+  Before, pdbcompat ignored the key and returned every exchange.
+  The match compares text, not addresses: `ipblock=10.0.0.0` matches `10.0.0.0/24`, but `ipblock=10.0.0.5` does not.
+  A single-object GET applies the key too: `/api/ix/<id>?ipblock=` returns `404` when the exchange has no matching prefix.
+  See `docs/API.md` § IP block filter.
 
 ### Changed
 

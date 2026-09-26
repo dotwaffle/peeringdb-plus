@@ -1513,6 +1513,7 @@ func TestParity_Status(t *testing.T) {
 		if err := c.NetworkIxLan.UpdateOneID(1).SetIpaddr6("2001:7f8::1").Exec(t.Context()); err != nil {
 			t.Fatalf("set netixlan 1 ipaddr6: %v", err)
 		}
+		mustIxPfx(t.Context(), t, c, 1, "10.0.0.0/24", 1, t0)
 		srv := newTestServer(t, c)
 		// The PK miss of each path, sent to a server with no rows.
 		empty := newTestServer(t, testutil.SetupClient(t))
@@ -1551,6 +1552,10 @@ func TestParity_Status(t *testing.T) {
 			// (rest.py:605-606, util.py:61-73).
 			{path: "/api/netixlan/1?ipaddr6=2001:7F8:0:0::1", want: http.StatusOK, wantIDs: []int{1}},
 			{path: "/api/netixlan/1?ipaddr6=2001:7f8:0:0::2", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
+			// ipblock is a text prefix match on the ixpfx prefix of the
+			// exchange (serializers.py:4548-4552, models.py:2830-2843).
+			{path: "/api/ix/1?ipblock=10.0.0.0", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/ix/1?ipblock=10.0.0.5", want: http.StatusNotFound, wantErr: "No InternetExchange matches the given query."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)

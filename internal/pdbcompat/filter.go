@@ -295,9 +295,11 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // upstream meta_* column names, see lookupMetaFilter) resolve first,
 // before the key is split for traversal. The presence keys of an
 // upstream prepare_query (presenceKeys, for example net?not_ix= and
-// fac?all_net=) resolve next, then its relation keys (relationSeeds,
-// for example fac?net= and net?ix__name=), with their own path and
-// status rules (buildPresencePredicate, buildRelationSeedPredicate).
+// fac?all_net=) resolve next, then the ix ipblock key
+// (lookupIPBlockKey, a text prefix match on the ixpfx prefix), then the
+// relation keys (relationSeeds, for example fac?net= and
+// net?ix__name=), with their own path and status rules
+// (buildPresencePredicate, buildRelationSeedPredicate).
 // The bare netixlan ipaddr6 key resolves next and compares the
 // canonical text of the address (ipaddr6Predicate).
 //
@@ -372,6 +374,14 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
 			}
 			predicates = append(predicates, p)
+			continue
+		}
+		// The ix ipblock key of an upstream prepare_query uses the first
+		// value of a repeated key, as prepare_query reads
+		// kwargs.get(key)[0] (2.83.0 serializers.py:4548-4552). No value
+		// is an error, and an empty value is not an empty result.
+		if lookupIPBlockKey(tc.Name, key) {
+			predicates = append(predicates, buildIPBlockPredicate(vals[0]))
 			continue
 		}
 		// The relation keys of an upstream prepare_query resolve before

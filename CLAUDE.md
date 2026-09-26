@@ -411,6 +411,11 @@ The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`org_pre
 A non-integer item is a 400.
 Locked by `TestParity_Traversal/prepare_query_presence_keys`.
 
+**ix `ipblock` (`internal/pdbcompat/ipblock_filter.go`).**
+`ParseFiltersCtx` resolves `ix?ipblock=` after the presence keys and before the relation seeds, exact key only, first value, never a 400.
+It is a TEXT prefix match (`substr(prefix, 1, length(?)) = ?`: case-sensitive, `%`/`_` literal, like upstream `LIKE BINARY`), NOT containment (`whereis` is), through `ix_lans.ix_id` (upstream `ixlan__ix_id`), with no status on ixpfx or ixlan (upstream `.objects`); an empty value matches every prefix, the stored `""` of a tombstone included.
+Locked by `TestParity_Traversal/prepare_query_ipblock` + `TestIPBlockPlan_SubqueryRunsOnce`.
+
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
 Keys come from `metaFilterColumns` (upstream `meta_registry.py:277-313`; the raw `meta_*` column names are aliases).
