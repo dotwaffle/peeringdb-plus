@@ -904,3 +904,48 @@ func TestParseFilters_UnknownFieldsAppendToCtx(t *testing.T) {
 		t.Errorf("missing unknown fields in accumulator: %v", wantSet)
 	}
 }
+
+// TestParseFiltersCtx_ErrorWinsOverEmptyResult checks that a filter
+// error wins over an empty __in in any key order. Upstream runs
+// prepare_query before its filter loop (2.83.0 rest.py:488-500), so
+// fac?all_net=x&id__in= is always 400. url.Values ranges in random
+// order, so each case runs 50 times. There is one case for each branch
+// that finds an empty __in: meta key, relation seed, local field and
+// traversal.
+func TestParseFiltersCtx_ErrorWinsOverEmptyResult(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		typ      string
+		emptyKey string
+		errKey   string
+		errValue string
+	}{
+		{"meta", "netixlan", "meta__rfc8950__in", "ix", "abc"},
+		{"relation_seed", "fac", "net__in", "all_net", "x"},
+		{"local", "fac", "id__in", "all_net", "x"},
+		{"traversal", "net", "org__name__in", "not_ix", "x"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tc := Registry[tt.typ]
+			// The empty key alone gives an empty result and the error
+			// key alone gives an error, so the pair tests the order.
+			preds, empty, err := ParseFiltersCtx(t.Context(), url.Values{tt.emptyKey: {""}}, tc)
+			if err != nil || !empty || preds != nil {
+				t.Fatalf("%s=: preds=%d empty=%v err=%v, want empty result", tt.emptyKey, len(preds), empty, err)
+			}
+			if _, _, err := ParseFiltersCtx(t.Context(), url.Values{tt.errKey: {tt.errValue}}, tc); err == nil {
+				t.Fatalf("%s=%s: err = nil, want an error", tt.errKey, tt.errValue)
+			}
+			params := url.Values{tt.emptyKey: {""}, tt.errKey: {tt.errValue}}
+			for i := range 50 {
+				preds, empty, err := ParseFiltersCtx(t.Context(), params, tc)
+				if err == nil || !strings.Contains(err.Error(), "filter "+tt.errKey) {
+					t.Fatalf("iteration %d: preds=%d empty=%v err=%v, want the %s error", i, len(preds), empty, err, tt.errKey)
+				}
+			}
+		})
+	}
+}

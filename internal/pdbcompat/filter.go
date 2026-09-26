@@ -274,9 +274,14 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // are preserved: traversal predicates wrap around buildPredicate which still
 // consults FoldedFields on the target TypeConfig, and the empty-__in
 // emptyResult sentinel bubbles back up from subquery construction.
+//
+// An empty result (an empty __in) is returned after every key is
+// parsed, so an error of any key wins, as upstream runs prepare_query
+// before its filter loop (2.83.0 rest.py:488-500).
 func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
 	tier := privctx.TierFrom(ctx)
 	var predicates []func(*sql.Selector)
+	emptyResult := false
 	for key, vals := range params {
 		if len(vals) == 0 {
 			continue
@@ -296,12 +301,13 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// would read meta__planned_status_change__date__lt as a 2-hop
 		// path and ignore it.
 		if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
-			p, emptyResult, ok, err := buildMetaPredicate(col, suffix, value)
+			p, empty, ok, err := buildMetaPredicate(col, suffix, value)
 			if err != nil {
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
 			}
-			if emptyResult {
-				return nil, true, nil
+			if empty {
+				emptyResult = true
+				continue
 			}
 			if !ok {
 				appendUnknown(ctx, key)
@@ -343,12 +349,13 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// key, as get_relation_filters does (2.83.0
 		// serializers.py:618-619).
 		if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
-			p, ok, emptyResult, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
+			p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
 			if err != nil {
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
 			}
-			if emptyResult {
-				return nil, true, nil
+			if empty {
+				emptyResult = true
+				continue
 			}
 			if !ok {
 				appendUnknown(ctx, key)
@@ -385,12 +392,13 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 
 		if len(relSegs) == 0 {
 			// Direct local field path — the original local-field behaviour.
-			p, emptyResult, ok, err := buildLocalPredicate(field, op, value, tc)
+			p, empty, ok, err := buildLocalPredicate(field, op, value, tc)
 			if err != nil {
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
 			}
-			if emptyResult {
-				return nil, true, nil
+			if empty {
+				emptyResult = true
+				continue
 			}
 			if !ok {
 				appendUnknown(ctx, key)
@@ -403,18 +411,22 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// Traversal path (1-hop or 2-hop). An upstream FK name as the
 		// first segment (network__asn) walks the matching mirror edge.
 		relSegs[0] = traversalKeyFor(tc, relSegs[0])
-		p, ok, emptyResult, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
+		p, ok, empty, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
 		if err != nil {
 			return nil, false, fmt.Errorf("filter %s: %w", key, err)
 		}
-		if emptyResult {
-			return nil, true, nil
+		if empty {
+			emptyResult = true
+			continue
 		}
 		if !ok {
 			appendUnknown(ctx, key)
 			continue
 		}
 		predicates = append(predicates, p)
+	}
+	if emptyResult {
+		return nil, true, nil
 	}
 	return predicates, false, nil
 }

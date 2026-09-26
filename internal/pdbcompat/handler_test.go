@@ -933,6 +933,31 @@ func TestServeList_UniqueQueryEmptyExits(t *testing.T) {
 	}
 }
 
+// TestServeList_FilterErrorBeatsEmptyIn checks that a filter error wins
+// over an empty __in at the handler: upstream runs prepare_query before
+// its filter loop (2.83.0 rest.py:488-500), so the request is 400 in
+// every key order. url.Values ranges in random order, so the request
+// runs 50 times.
+func TestServeList_FilterErrorBeatsEmptyIn(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	mux := http.NewServeMux()
+	NewHandler(client, 0).Register(mux)
+	const path = "/api/fac?all_net=x&id__in="
+	for i := range 50 {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("iteration %d: GET %s: status = %d, want 400; body=%s",
+				i, path, rec.Code, rec.Body.String())
+		}
+		if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); !strings.Contains(msg, "all_net") {
+			t.Fatalf("iteration %d: meta.error = %q, want the all_net error", i, msg)
+		}
+	}
+}
+
 func TestSearch(t *testing.T) {
 	t.Parallel()
 	_, mux := setupTestHandler(t)
