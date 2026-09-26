@@ -482,6 +482,10 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/netixlan?ix_side__location_method=google", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__version=-1", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__notified_for_geocoords=true", want: []int{5000, 5001, 5002}},
+			// The unserialized version and the unfiltered meta column of
+			// the netixlans through the ix_side_set reverse relation.
+			{path: "/api/fac?ix_side_set__version=-1", want: []int{200, 202}},
+			{path: "/api/fac?ix_side_set__meta=x", want: []int{200, 202}},
 		})
 	})
 
@@ -1750,6 +1754,62 @@ func TestParity_Traversal(t *testing.T) {
 		}
 	})
 
+	t.Run("reverse_ix_side_set_keys_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: NetworkIXLan.ix_side has related_name ix_side_set
+		// (2.83.0 models.py:6095-6101). The reverse relation reports the
+		// ForeignKey type, so field_names holds ix_side_set and
+		// queryable_relations adds ix_side_set__<field> for each netixlan
+		// field that is not a ForeignKey (serializers.py:970-996). The
+		// filter loop strips "_id" (rest.py:608-610, :620-632), filters
+		// ix_side_set__<field> as a model field of the netixlan, and
+		// compares the netixlan id for ix_side_set__in, __lt, __lte,
+		// __gt and __gte (:633-669). The netixlans get no status filter.
+		// A bare ix_side_set is an exact lookup on ix_side_set_id
+		// (:676-677), and contains/startswith become icontains/
+		// istartswith (:657-662), which a relation does not have: both
+		// are a FieldError, 400 Invalid query (:702-703).
+		srv := newTestServer(t, seedIxSideSetKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?ix_side_set__asn=64500", want: []int{200, 201}},
+			// The deleted netixlan 5001 matches.
+			{path: "/api/fac?ix_side_set__asn=64501", want: []int{201}},
+			{path: "/api/fac?ix_side_set__status=deleted", want: []int{201}},
+			{path: "/api/fac?ix_side_set__speed__gte=10000", want: []int{201}},
+			{path: "/api/fac?ix_side_set__asn__in=64501,64502", want: []int{201}},
+			{path: "/api/fac?ix_side_set__asn_id=64500", want: []int{200, 201}},
+			{path: "/api/fac?ix_side_set__in=5000", want: []int{200}},
+			{path: "/api/fac?ix_side_set_id__in=5000,5003", want: []int{200}},
+			{path: "/api/fac?ix_side_set__lt=5001", want: []int{200}},
+			{path: "/api/fac?ix_side_set__gte=5001", want: []int{201}},
+		})
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			// A ForeignKey of the netixlan, an unknown lookup and a
+			// second relation name no field (serializers.py:991-995).
+			{path: "/api/fac?ix_side_set__net_id=100", want: []int{200, 201, 202}},
+			{path: "/api/fac?ix_side_set__isnull=true", want: []int{200, 201, 202}},
+			{path: "/api/fac?ix_side_set__net__name=SideNet", want: []int{200, 201, 202}},
+		})
+		for _, path := range []string{
+			"/api/fac?ix_side_set=5000",
+			"/api/fac?ix_side_set_id=5000",
+			"/api/fac?ix_side_set__contains=5",
+			"/api/fac?ix_side_set__startswith=5",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "Invalid query") {
+				t.Errorf("%s: meta.error = %q, want it to contain %q", path, msg, "Invalid query")
+			}
+		}
+		if status, body := httpGet(t, srv, "/api/fac?ix_side_set__in=abc"); status != http.StatusBadRequest {
+			t.Errorf("ix_side_set__in=abc: status = %d, want 400; body=%s", status, string(body))
+		}
+	})
+
 	t.Run("DIVERGENCE_netixlan_name_regex_and_range_lookups", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream runs netixlan name__regex and
@@ -2254,14 +2314,6 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/net?ix__ixlan_set=5", want: []int{100, 200, 301}},
 			{path: "/api/fac?net__poc_set=1", want: []int{400, 401}},
 			{path: "/api/ix?fac__netfac_set=1", want: []int{20, 21}},
-		})
-		srv2 := newTestServer(t, seedIxSideKeys(t, t0))
-		assertKeysSilentlyIgnored(t, srv2, []silentIgnoreCase{
-			// Upstream: [200]. The reverse relation of NetworkIXLan.ix_side
-			// (models.py:6095-6101); fac 201 also has a matching netixlan
-			// but is deleted, so the status matrix drops it on both sides.
-			// The mirror has no fac -> netixlan edge through ix_side.
-			{path: "/api/fac?ix_side_set__asn=64500", want: []int{200, 202}},
 		})
 	})
 
@@ -2988,6 +3040,38 @@ func seedIxSideKeys(t *testing.T, t0 time.Time) *ent.Client {
 			Save(ctx); err != nil {
 			t.Fatalf("seed netixlan id=%d: %v", row.id, err)
 		}
+	}
+	return c
+}
+
+// seedIxSideSetKeys seeds three live facilities and four netixlans:
+// 5000 on the IX side of fac 200, 5001 (deleted, speed 10000) and 5002
+// on the IX side of fac 201, and 5003 with no IX side. Fac 202 has none.
+func seedIxSideSetKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "SetOrg", t0)
+	mustNet(ctx, t, c, 100, "SideNet", 64500, 1, t0)
+	mustIX(ctx, t, c, 300, "SetIX", 1, t0)
+	mustIxLan(ctx, t, c, 3000, "SetLan", 300, t0)
+	for _, fac := range []int{200, 201, 202} {
+		mustFac(ctx, t, c, fac, fmt.Sprintf("SetFac%d", fac), 1, t0)
+	}
+	for _, row := range []struct {
+		id, asn, speed int
+		fac            *int
+		status         string
+	}{
+		{5000, 64500, 1000, new(200), "ok"},
+		{5001, 64501, 10000, new(201), "deleted"},
+		{5002, 64500, 1000, new(201), "ok"},
+		{5003, 64502, 1000, nil, "ok"},
+	} {
+		c.NetworkIxLan.Create().
+			SetID(row.id).SetNetID(100).SetIxlanID(3000).SetIxID(300).
+			SetAsn(row.asn).SetSpeed(row.speed).SetNillableIxSideID(row.fac).
+			SetStatus(row.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	return c
 }

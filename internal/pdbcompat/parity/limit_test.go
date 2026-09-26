@@ -267,7 +267,7 @@ func TestParity_Limit(t *testing.T) {
 	t.Run("list_depth_ignored_keys_not_truncated", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 models.py:1259-1264 (org_flags) and
-		// models.py:6095-6101 (the ix_side_set reverse relation) are
+		// models.py:2621-2622 (the ix_set reverse relation of org) are
 		// filters upstream, so upstream answers from its live query and
 		// truncates. The mirror ignores these keys (registered rows
 		// DIVERGENCE_unserialized_model_columns_silent_ignore and
@@ -277,21 +277,16 @@ func TestParity_Limit(t *testing.T) {
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		orgs := make([]*ent.OrganizationCreate, 0, 260)
-		facs := make([]*ent.FacilityCreate, 0, 260)
 		for i := 1; i <= 260; i++ {
 			orgs = append(orgs, c.Organization.Create().
 				SetID(i).SetName(fmt.Sprintf("FlagOrg %d", i)).SetNameFold(unifold.Fold(fmt.Sprintf("FlagOrg %d", i))).
 				SetStatus("ok").SetCreated(t0).SetUpdated(t0))
-			facs = append(facs, c.Facility.Create().
-				SetID(i).SetName(fmt.Sprintf("SideFac %d", i)).SetNameFold(unifold.Fold(fmt.Sprintf("SideFac %d", i))).
-				SetOrgID(1).SetStatus("ok").SetCreated(t0).SetUpdated(t0))
 		}
 		c.Organization.CreateBulk(orgs...).ExecX(ctx)
-		c.Facility.CreateBulk(facs...).ExecX(ctx)
 		srv := newTestServer(t, c)
 		for _, path := range []string{
 			"/api/org?org_flags=1&depth=1",
-			"/api/fac?ix_side_set__asn=64500&depth=1",
+			"/api/org?ix_set__name=x&depth=1",
 		} {
 			ids, meta := getDepthList(t, srv, path)
 			if len(ids) != 260 {

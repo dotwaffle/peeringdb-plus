@@ -619,6 +619,24 @@ func (st *filterState) addKey(key string, vals []string) error {
 		st.preds = append(st.preds, ipaddr6Predicate(value))
 		return nil
 	}
+	// A reverse relation key in upstream spelling (fac?ix_side_set__asn=)
+	// where no traversal key reaches the related rows.
+	if rs, relField, relOp, isSet := lookupReverseSetKey(tc.Name, key); isSet {
+		p, ok, empty, err := buildReverseSetPredicate(rs, relField, relOp, value)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
 	relSegs, field, op := parseFieldOp(key)
 	// Also check if the raw final field is a reserved name
 	// (e.g. "fields" on a top-level single-segment key).

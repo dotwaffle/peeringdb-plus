@@ -16,6 +16,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat filters `fac?ix_side_set__<field>=` on the netixlans whose IX side is at the facility, and `fac?ix_side_set__in=` (with `__lt`, `__lte`, `__gt` and `__gte`) on their ids, as upstream does.
+  A bare `ix_side_set`, and `ix_side_set__contains` or `__startswith`, return `400` `Invalid query`.
+  Before, pdbcompat ignored these keys (a registered divergence, now closed).
 - `docs/API.md` § Known Divergences now lists `ixlan?ixf_ixp_member_list_url=`: upstream filters the gated URL for any caller, and pdbcompat ignores the key so that a filter cannot show a hidden URL.
   Behavior is unchanged.
 - `docs/API.md` § Known Divergences now lists the plain filter keys on upstream model columns that pdbcompat does not filter: `social_media` (stored, but no filter key), `net?notes_private=` (upstream filters private data for any caller), and the `netfac` `avail_sonet`, `avail_ethernet` and `avail_atm` columns.

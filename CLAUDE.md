@@ -458,6 +458,10 @@ Detail and negative skip: upstream's `qset.none()` comes before the slice, so `n
 The digit test follows Python `isdigit` + `int` (`pyDigitNotDecimal`, `ndValue`, `pyIntMaxStrDigits`): a value that `int()` rejects is `400`, as upstream.
 Locked by `TestParity_NameSearch`, `TestNameSearchPlan`, `TestParseListFilters_NameSearchNone`.
 
+**Reverse relation keys (`internal/pdbcompat/reverse_set_filter.go`).**
+`reverseSets` holds the upstream `<related_name>` keys that no traversal key reaches: today only fac `ix_side_set` (netixlan `ix_side`).
+They resolve in `addKey` before `parseFieldOp`, one hop only, with upstream's `_id` strips and no status filter on the related rows; the other `_set` names stay ignored (registered row).
+
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
 Keys come from `metaFilterColumns` (upstream `meta_registry.py:277-313`; the raw `meta_*` column names are aliases).

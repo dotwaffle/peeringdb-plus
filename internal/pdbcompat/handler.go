@@ -671,7 +671,7 @@ func truncatedMeta(depthText string) map[string]string {
 // :766-772, api_cache.py:90-124). The cache path needs no filter, no
 // non-zero since and no query adjustment (lf.upstreamFilter). A key that
 // the mirror ignores and upstream filters (for example org_flags or
-// fac?ix_side_set__asn=) does not count, so the mirror serves such a
+// org?ix_set__name=) does not count, so the mirror serves such a
 // list whole (see docs/API.md § Known Divergences). ?q= is a mirror
 // extension that filters, so it counts. The cache also needs no URL
 // kwarg (api_cache.py:120-122), and a format suffix is one (suffixed).
