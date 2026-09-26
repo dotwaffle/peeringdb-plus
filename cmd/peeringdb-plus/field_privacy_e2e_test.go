@@ -175,7 +175,7 @@ func TestE2E_FieldLevel_IxlanURL_AdmittedEmptyKeepsKey(t *testing.T) {
 // TestE2E_FieldLevel_IxlanURL_NullStored locks each surface for a Public
 // ixlan with a NULL URL at TierPublic: /api, /rest/v1/ and GraphQL send
 // the key with null, and ConnectRPC sends no wrapper. A Users ixlan with
-// a NULL URL stays redacted at the raw ConnectRPC handler (fail-closed).
+// a NULL URL sends no wrapper at the raw ConnectRPC handler either.
 func TestE2E_FieldLevel_IxlanURL_NullStored(t *testing.T) {
 	t.Parallel()
 
@@ -258,8 +258,11 @@ func TestE2E_FieldLevel_IxlanURL_NullStored(t *testing.T) {
 		}
 	})
 
-	// The raw ConnectRPC handler gets a context with no tier stamp.
-	// privfield.Redact must fail closed for the Users row.
+	// The raw ConnectRPC handler gets a context with no tier stamp. A
+	// NULL URL sends no wrapper at every tier, so this sub-test cannot
+	// see whether Redact fails closed: the fail-closed-bypass-middleware
+	// sub-test of TestE2E_FieldLevel_IxlanURL_RedactedAnon locks that
+	// with a stored URL. This one locks the NULL row on that path.
 	t.Run("fail-closed-bypass-middleware", func(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req, err := http.NewRequestWithContext(
