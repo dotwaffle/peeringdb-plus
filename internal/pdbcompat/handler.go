@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -95,6 +94,10 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A route that is not a Registry type and reads the raw idStr must
+	// branch here, before the Registry lookup: the Registry detail path
+	// below turns an id that is not an integer into a 404.
+
 	// Validate type name against Registry.
 	tc, ok := Registry[typeName]
 	if !ok {
@@ -113,11 +116,12 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// observation (pdbplus.response.heap_delta). runtime.ReadMemStats is
 	// STW but acceptable once per request. MUST NOT be called per-row.
 	//
-	// Fires on EVERY terminal path (200 success, 400 bad-id/filter, 404,
-	// 413 budget-exceeded, 500 query-error, 503 pool-exhausted) — that's
-	// the point of a defer; observing the small delta of a cheap error
-	// path gives us a noise floor reference. The index path above is not
-	// sampled: it has no entity label and serves a constant-size body.
+	// Fires on EVERY terminal path (200 success, 400 bad parameter or
+	// filter, 404, 413 budget-exceeded, 500 query-error, 503
+	// pool-exhausted): that's the point of a defer; observing the small
+	// delta of a cheap error path gives us a noise floor reference. The
+	// index path above is not sampled: it has no entity label and serves
+	// a constant-size body.
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
 
@@ -127,16 +131,18 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Detail endpoint: /api/{type}/{id}
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: fmt.Sprintf("invalid id %q: not an integer", idStr),
-		})
+	// Detail endpoint: /api/{type}/{id}. An id with a "." or a "/" is
+	// a 404 before any parameter check. Upstream routes "1.5" as pk "1"
+	// with format suffix "5", and the renderer negotiation raises Http404
+	// in initial(), before get_queryset (drf routers.py:143,
+	// urlpatterns.py:109, negotiation.py:80-88, views.py:408-411).
+	// Upstream has no route for a path with more segments. serveDetail
+	// parses any other id after the parameter checks.
+	if strings.ContainsAny(idStr, "./") {
+		writeDetailNotFound(w, r, detailSliceNotFound)
 		return
 	}
-	h.serveDetail(tc, id, w, r)
+	h.serveDetail(tc, idStr, w, r)
 }
 
 // splitTypeID splits a rest path like "net", "net/", "net/42" into type name
@@ -521,9 +527,12 @@ func missMessage(tc TypeConfig) string {
 }
 
 // detailSliceNotFound is the 404 detail of a detail request with a
-// limit or skip above 0: DRF turns the TypeError of the sliced get()
-// into a bare Http404 (generics.py:13-21), which renders the NotFound
-// default text (exceptions.py:188-191).
+// limit or skip above 0, or with an id that is not an integer. DRF turns
+// the TypeError of the sliced get(), and the ValueError of int() on the
+// pk (django/db/models/fields/__init__.py:2123-2131), into a bare Http404
+// (generics.py:13-21), which renders the NotFound default text
+// (exceptions.py:188-191). The format-suffix route of an id with a "."
+// raises the same Http404 (negotiation.py:80-88).
 const detailSliceNotFound = "Not found."
 
 // serveDetail handles detail requests for a single object by ID.
@@ -548,10 +557,15 @@ const detailSliceNotFound = "Not found."
 // rest.py:849-855, :477-703). The parameters are parsed in the list
 // order (skip, limit, since, depth, filters, negative skip), so a
 // request with two bad parameters gets the same 400 on both paths.
+// rawID is parsed after them, as upstream: get_object builds the
+// filtered queryset before get_object_or_404 converts the pk with int()
+// (drf generics.py:87-100). An id that int() rejects is a 404 (Not
+// found.), also when a filter already emptied the result: Django
+// converts the pk when it builds the lookup, on a none() queryset too.
 // since is checked and then ignored (rest.py:718), and ?q= is ignored
 // (rest.py:566). The filter check runs before the budget admission, so
 // a filter miss costs one primary-key query and charges nothing.
-func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *http.Request) {
+func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
 	sliced, negativeSkip, err := parseDetailSlice(params)
@@ -606,6 +620,14 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 			Status: http.StatusBadRequest,
 			Detail: errNegativeSkip.Error(),
 		})
+		return
+	}
+	// A saturated id is a PK miss, as upstream: Django answers an
+	// out-of-range integer lookup with an empty result
+	// (django/db/models/lookups.py:461-494).
+	id, _, err := pyInt(rawID)
+	if err != nil {
+		writeDetailNotFound(w, r, detailSliceNotFound)
 		return
 	}
 	if sliced {

@@ -328,7 +328,7 @@ See § Known Divergences.
 |-------|-------------|
 | `GET /api/` | JSON index mapping each of the 13 type names to its list endpoint |
 | `GET /api/{type}` | List endpoint |
-| `GET /api/{type}/{id}` | Single object by numeric ID, wrapped in `data: [ ... ]` (intentional parity with upstream) |
+| `GET /api/{type}/{id}` | Single object by numeric ID, wrapped in `data: [ ... ]` (intentional parity with upstream). An `{id}` that is not an integer returns `404`, see § Filters on a single-object GET |
 
 Valid `{type}` values are the same 13 constants defined in `internal/peeringdb/types.go`: `org`, `net`, `fac`, `ix`, `poc`, `ixlan`, `ixpfx`, `netixlan`, `netfac`, `ixfac`, `carrier`, `carrierfac`, `campus`.
 
@@ -458,6 +458,10 @@ A relation key that checks the status of the listed row, for example `/api/campu
 `?since=`, `?limit=` and `?skip=` must be integers, and `skip` must not be negative, or the response is `400`, as on a list.
 `?depth=` must also be an integer, or the response is `400`, as upstream (a list ignores `?depth=`).
 The mirror checks `skip`, `limit`, `since` and `depth` in that order, and then the filters.
+The `{id}` is parsed as `limit` is, so `/api/net/%D9%A1` and `/api/net/+1` return net `1`, as upstream.
+An `{id}` that is not an integer returns `404` (`Not found.`) after these checks, also when a filter excludes every object, as upstream: `get_object_or_404` converts the id after `get_queryset` has checked the parameters and filters (DRF `generics.py:13-21`, `:87-100`).
+An `{id}` with a `.` or a `/` returns the `404` before these checks.
+Upstream reads the part after the `.` as a format suffix, so `/api/net/1.5?since=abc` is also a `404` there: it rejects the format before the parameter checks (DRF `negotiation.py:80-88`, `views.py:408-411`).
 A `limit` or `skip` above `0` returns `404` (`Not found.`), as upstream: upstream slices the query before it looks up the object.
 A negative `limit` is accepted and returns the object, as upstream.
 A filter that the caller's tier cannot see does not change the result: a hidden contact is `404` whatever the filters are.
@@ -898,7 +902,7 @@ Typical status codes:
 | Status | Cause |
 |--------|-------|
 | `400` | An operator that the field type does not support (for example `asn__contains`), a value that does not parse for the field type, a malformed `__in` value, a `since` or a FK id that is not an integer, a `limit` or `skip` that is not an integer, a `depth` on a single-object GET that is not an integer, a negative `skip`, or a relation key of a `prepare_query` whose field the related model does not have (`Invalid query`, see § Relation filters) |
-| `404` | Unknown `{type}`, missing `{id}`, detail GET on a tombstoned row, an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn`, or a single-object GET whose filters exclude the object or that has a `limit` or `skip` above `0` (see § Filters on a single-object GET) |
+| `404` | Unknown `{type}`, missing `{id}`, an `{id}` that is not an integer, detail GET on a tombstoned row, an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn`, or a single-object GET whose filters exclude the object or that has a `limit` or `skip` above `0` (see § Filters on a single-object GET) |
 | `405` | A method other than `GET` or `HEAD`. The `Allow` header is `GET, HEAD` |
 | `413` | The estimated response is larger than the response memory budget (see § Response memory budget) |
 | `500` | Database error (details redacted from response body, full error logged) |
@@ -908,7 +912,7 @@ The message is the upstream text for these errors:
 
 - A lookup by `id` or `asn` with no match: `Entity not found`.
 - A single-object GET for an object that does not exist, that the detail status set or the caller's tier excludes, or that a filter excludes: `No <Model> matches the given query.`, with the upstream model name, for example `No Network matches the given query.` or `No NetworkContact matches the given query.`.
-- A single-object GET with a `limit` or `skip` above `0`: `Not found.`.
+- A single-object GET with a `limit` or `skip` above `0`, or with an `{id}` that is not an integer: `Not found.`.
 - A method that upstream does not map to a handler: `Method "PUT" not allowed.`.
 - A `limit`, `skip` or `since` that is empty or not an integer: `'limit' needs to be a number`, `'skip' needs to be a number` or `'since' needs to be a unix timestamp (epoch seconds)`.
   Upstream checks `since` before `skip` and `limit`, and the mirror checks `skip` and `limit` first, so `?since=abc&skip=abc` gets the `skip` message.

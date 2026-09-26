@@ -1548,6 +1548,69 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
+	t.Run("detail_non_integer_id_404", func(t *testing.T) {
+		t.Parallel()
+		// Upstream converts the pk with int() in get_object_or_404,
+		// after get_queryset has checked the parameters and filters. A
+		// ValueError becomes a bare Http404 with the DRF default text.
+		// An id with a "." takes the format-suffix route, and the
+		// renderer negotiation raises Http404 in initial(), before any
+		// parameter check. A value that int() accepts is the pk, and a
+		// value out of the integer range is an empty result.
+		// upstream: drf generics.py:13-21, :87-100, routers.py:143,
+		// urlpatterns.py:109, negotiation.py:80-88, views.py:408-411,
+		// exceptions.py:188-191; django/db/models/fields/__init__.py:2123-2131,
+		// django/db/models/lookups.py:461-494; 2.83.0 rest.py:505-523
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64500, "ok", t0)
+		srv := newTestServer(t, c)
+
+		cases := []struct {
+			path    string
+			want    int
+			wantErr string
+		}{
+			{"/api/net/abc", http.StatusNotFound, "Not found."},
+			{"/api/net/1.5", http.StatusNotFound, "Not found."},
+			{"/api/net/1_", http.StatusNotFound, "Not found."},
+			// Upstream has no route for this path (HTML 404, see the
+			// unknown-path row); only the status is parity.
+			{"/api/net/1/extra", http.StatusNotFound, "Not found."},
+			// A parameter error wins over an id without a ".".
+			{"/api/net/abc?since=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net/abc?depth=abc", http.StatusBadRequest, "'depth' needs to be a number"},
+			// The format-suffix route wins over a parameter error.
+			{"/api/net/1.5?since=abc", http.StatusNotFound, "Not found."},
+			// The id wins over a filter that empties the result and
+			// over a filter that excludes the object.
+			{"/api/net/abc?name__in=", http.StatusNotFound, "Not found."},
+			{"/api/net/abc?name=nomatch", http.StatusNotFound, "Not found."},
+			{"/api/net/%D9%A1", http.StatusOK, ""},
+			{"/api/net/+1", http.StatusOK, ""},
+			{"/api/net/%201%20", http.StatusOK, ""},
+			{"/api/net/0_1", http.StatusOK, ""},
+			{"/api/net/-1", http.StatusNotFound, "No Network matches the given query."},
+			{"/api/net/99999999999999999999", http.StatusNotFound, "No Network matches the given query."},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, tc.path)
+			if status != tc.want {
+				t.Errorf("GET %s: status = %d, want %d; body=%s", tc.path, status, tc.want, string(body))
+				continue
+			}
+			if tc.want == http.StatusOK {
+				if ids := extractIDs(t, body); !equalIntSlice(ids, []int{1}) {
+					t.Errorf("GET %s: got %v, want [1]", tc.path, ids)
+				}
+				continue
+			}
+			assertTopLevelKeys(t, body, "meta")
+			if got := mustDecodeMetaError(t, body).Error; got != tc.wantErr {
+				t.Errorf("GET %s: meta.error = %q, want %q", tc.path, got, tc.wantErr)
+			}
+		}
+	})
+
 	t.Run("DIVERGENCE_detail_upstream_server_errors", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream answers these single-object GETs with a

@@ -278,6 +278,7 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
 - List order (`listOrder` in `registry_funcs.go`): plain list `id ASC` (upstream has no `ORDER BY` and no model `Meta.ordering`; live-verified 2026-09-23), `?since` list `updated ASC, id ASC` (`rest.py:744`). entrest/ConnectRPC keep their own `(-updated, -created, -id)`.
   `applySince` is `updated >= N`: upstream compares microsecond `updated` with `N.000000` and we store only the shown second (locked by `TestParity_Status/since_boundary_includes_same_second`).
 - `pyInt` (`internal/pdbcompat/pyint.go`) is the one integer parser of the request path: Python `int()` rules (Unicode space and `Nd` digits, sign, single `_`, at most 4300 digits), saturating to `math.MinInt`/`math.MaxInt`.
+  It also parses the detail `{id}`.
   `limit`, `skip`, `since` and detail `depth` take the last value (`lastParam`), and an empty value is a 400 with the upstream text; `since` is read only through `parseSince`, `depth` only through `ParseDepthParam`.
   `ParsePaginationParams` returns signed values: `serveList` sends 400 `Negative indexing is not supported.` for a negative `skip` (after the filters, before every exit) and serves every row for a negative `limit`.
   A negative `skip` on a list that upstream serves from its API cache is a registered divergence (`DIVERGENCE_negative_skip_on_cacheable_list_returns_400`).
@@ -290,8 +291,10 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
 - Detail filters: `serveDetail` parses the same filter keys as a list (`parseRequestFilters`, the list parser) and checks the row with `TypeConfig.Match` (built in `wireEntity`: `id = ? AND <filters>`, `Exist`, request ctx, so the poc policy applies) before the budget admission and the PK lookup; no filter key = no extra query.
   A miss is the same `404` as a missing id (`writeDetailNotFound`, `missMessage`: `No <DjangoModel> matches the given query.` via `pdbtypes.DjangoModelOf`); `limit`/`skip` above 0 is `404` `Not found.` (upstream slices before `get()`, `parseDetailSlice`; a negative `limit` is accepted); `since` is checked and ignored; `q` is ignored.
   Parse order is the list order (skip, limit, since, depth, filters, negative skip 400).
+  Then the `{id}` (`pyInt`): a bad one is `404` `Not found.`, before the slice and empty-result 404s (upstream converts the pk after `get_queryset`); `dispatch` sends that 404 at once for an id with `.` or `/` (DRF format suffix, `initial()`).
+  A new detail-path exit must keep this order; a route outside the Registry that reads the raw id branches before the Registry lookup.
   `Match` adds no status: the inline `StatusIn` of the PK lookup stays the detail status set (a relation seed may still pin `ok`, as upstream).
-  Locked by `TestParity_Status/detail_applies_list_filters`.
+  Locked by `TestParity_Status/detail_applies_list_filters` and `TestParity_Status/detail_non_integer_id_404`.
 - Errors on `/api/` go through `writeError` (`internal/pdbcompat/response.go`): upstream `{"meta":{"error":...}}` by default, RFC 9457 only when `Accept` names `application/problem+json` (`httperr.WantsProblemJSON`).
   Never call `httperr.WriteProblem` from pdbcompat directly.
 

@@ -47,6 +47,11 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - A single-object GET with a `?depth=` that is empty or not an integer returns `400` (`'depth' needs to be a number`), as upstream.
   Before, the mirror used the default depth.
   The value is parsed with the Python `int()` rules of `limit`, and the last value of a repeated key applies.
+- A single-object GET with an id that is not an integer, for example `/api/net/abc` or `/api/net/1.5`, returns `404` (`Not found.`), as upstream.
+  Before, it returned `400`.
+  The id is parsed with the Python `int()` rules of `limit`, so `/api/net/+1` returns net `1`.
+  A bad `since`, `skip`, `limit`, `depth` or filter still returns its `400` first, as upstream.
+  An id with a `.` or a `/` returns the `404` before these checks.
 
 ### Fixed
 
