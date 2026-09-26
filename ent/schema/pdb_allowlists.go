@@ -237,3 +237,30 @@ var PrepareQueryAllows = map[string]schemaannot.PrepareQueryAllowAnnotation{
 		},
 	},
 }
+
+// ColumnEdge declares a forward traversal edge that pdbcompat resolves
+// over a nullable FK column that has no ent edge. Path B walks it like
+// an ent edge: <TraversalKey>__<field> filters the rows of TargetType
+// whose id is in Column. The edge exists only in the pdbcompat Edges
+// map. It adds no FK constraint and nothing to the ent client, REST,
+// GraphQL or ConnectRPC.
+type ColumnEdge struct {
+	// TraversalKey is the first key segment, in upstream spelling.
+	TraversalKey string
+	// Column is the FK column on the table of the declaring type.
+	Column string
+	// TargetType is the PeeringDB type of the referenced rows.
+	TargetType string
+}
+
+// ColumnEdges maps a PeeringDB type to its column edges. Consumed by
+// cmd/pdb-compat-allowlist, which checks each entry against the ent
+// graph and emits it into internal/pdbcompat/allowlist_gen.go Edges.
+// A bad entry (unknown type, column that is not a nillable int with an
+// index, or a clash with an existing edge) fails codegen.
+//
+// Add an entry only where upstream queryable_relations exposes the FK
+// (a model ForeignKey whose name xl does not rename, serializers.py:
+// 403-441, :970-996). net_side is left out on purpose: xl renames it
+// to network_side, which names no field, so upstream ignores its keys.
+var ColumnEdges = map[string][]ColumnEdge{}

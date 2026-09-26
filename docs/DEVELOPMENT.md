@@ -157,7 +157,7 @@ Today's sibling files:
 | `ent/schema/poc_policy.go` | `(Poc).Policy()` privacy rule |
 | `ent/schema/fold_mixin.go` | The `foldMixin` Mixin implementation |
 | `ent/schema/{type}_fold.go` | Per-entity `Mixin()` wiring for the 6 folded types: `campus`, `carrier`, `facility`, `internetexchange`, `network`, `organization` |
-| `ent/schema/pdb_allowlists.go` | `PrepareQueryAllows` map consumed by `cmd/pdb-compat-allowlist` |
+| `ent/schema/pdb_allowlists.go` | `PrepareQueryAllows` and `ColumnEdges` maps consumed by `cmd/pdb-compat-allowlist` |
 | `ent/schema/campus_annotations.go` | `campusTableAnnotationMixin` with `entsql.Annotation{Table: "campuses"}`. `campus_fold.go` mixes it in. |
 | `ent/schema/hooks.go` | Package documentation only. It records why the per-mutation OTel hook was removed and contains no code. |
 
@@ -515,6 +515,14 @@ Do not import `internal/pdbcompat` from `ent/schema`, because that causes an imp
 Edges are in the generated `ent/schema/{type}.go` files, and the schema generator removes hand edits there.
 No edge uses this annotation today.
 To add one, first add support for it to `cmd/pdb-schema-generate`.
+
+A FK column that has no ent edge, for example netixlan `ix_side_id`, can get a pdbcompat-only edge.
+Add an entry to `ColumnEdges` in `ent/schema/pdb_allowlists.go` with the upstream FK name as `TraversalKey`, the column, and the target type, and cite the upstream model line.
+`go generate ./...` checks the entry against the ent graph and adds the edge to `Edges`.
+The column must be a nillable integer column, and an index of the table must start with it.
+A bad entry stops `go generate`.
+The edge adds no FK constraint and does not change the other API surfaces.
+Add an entry only where upstream `queryable_relations()` exposes the FK under that name: `queryable_field_xl` renames `net_side`, so upstream ignores its keys.
 
 A key that an upstream `prepare_query` handles through `get_relation_filters` is not an allowlist key.
 Add it to `relationSeeds` in `internal/pdbcompat/relation_filter.go` with its path and the row that upstream pins to status `ok`, and add a case to `TestParity_Traversal/prepare_query_relation_keys_pin_join_status_ok`.

@@ -4,9 +4,12 @@
 // schema.PrepareQueryAllows in ent/schema/pdb_allowlists.go. It loads the
 // ent schema graph from ./ent/schema to build FilterExcludes (upstream
 // FILTER_EXCLUDE parity) and the Path B edge map, keyed by PeeringDB type
-// string. The edge map is emitted at codegen time, so the server does not
-// walk client.Schema.Tables at runtime, and the go generate drift check
-// covers the output.
+// string. The edge map holds the outgoing ent edges of each type plus
+// the column edges declared in schema.ColumnEdges (same file as
+// PrepareQueryAllows). A column edge that does not match the ent graph
+// stops codegen. The edge map is emitted at codegen time, so the server
+// does not walk client.Schema.Tables at runtime, and the go generate
+// drift check covers the output.
 //
 // Invoked from ent/generate.go after ent codegen so the gen.Graph
 // reflects the latest schema annotations.
@@ -26,6 +29,7 @@ import (
 	"fmt"
 	"go/format"
 	"log"
+	"maps"
 	"os"
 	"slices"
 	"sort"
@@ -34,6 +38,7 @@ import (
 
 	"entgo.io/ent/entc"
 	"entgo.io/ent/entc/gen"
+	"entgo.io/ent/schema/field"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/schema"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
@@ -119,7 +124,7 @@ type EdgeMapEntry struct {
 // Kept as a separate type in this cmd/ tool so the tool has zero import
 // dependency on the runtime package it generates.
 //
-// Source fields (from gen.Edge / gen.Type):
+// Source fields of an ent edge (from gen.Edge / gen.Type):
 //   - Name           = edge.Name
 //   - TargetType     = pdbTypeFor(edge.Type.Name)
 //   - TraversalKey   = TargetType (parser lookup key is the target PeeringDB type)
@@ -131,6 +136,11 @@ type EdgeMapEntry struct {
 //     lives on the PARENT table, false when it lives on
 //     the CHILD table. Used by the runtime subquery
 //     builder to pick the correct WHERE/IN pairing.
+//
+// A column edge of schema.ColumnEdges (see addColumnEdges) sets Name and
+// TraversalKey to its declared TraversalKey, ParentFKColumn to its
+// declared Column, and OwnFK to true. Its other fields come from the
+// target gen.Type, as for an ent edge.
 //
 // This map is emitted once at `go generate`
 // time and read-only at runtime. No sync.Once, no init-order coupling.
@@ -178,6 +188,14 @@ func main() {
 		}
 	}
 	data.FilterExcludes = groupExcludes(excludeEntries)
+
+	// Column edges are declared by hand, so a bad entry is fatal. A
+	// logged skip would drop the edge with no signal, and the keys it
+	// serves would go back to being ignored.
+	data.EdgeEntries, err = addColumnEdges(graph.Nodes, data.EdgeEntries, schema.ColumnEdges)
+	if err != nil {
+		log.Fatalf("pdb-compat-allowlist: column edges: %v", err)
+	}
 
 	// Deterministic ordering for byte-stable output across runs.
 	slices.SortFunc(data.Entries, func(a, b NodeEntry) int {
@@ -334,6 +352,111 @@ func extractEdges(node *gen.Type) *EdgeMapEntry {
 	return entry
 }
 
+// addColumnEdges adds the column edges declared in decl to entries and
+// returns the result. decl is keyed by PeeringDB type. For each type it
+// finds the EdgeMapEntry of that type, or appends a new one when the
+// type has no usable ent edge (extractEdges returns nil for it). Each
+// new row is checked against the ent graph in nodes (see
+// columnEdgeRow) and against the rows already in the entry, and the
+// rows of the entry are sorted by Name again.
+//
+// The types are visited in sorted order, so the first error is the
+// same on every run. On error the result is nil: codegen must not emit
+// part of a declaration. entries is not modified.
+func addColumnEdges(nodes []*gen.Type, entries []EdgeMapEntry, decl map[string][]schema.ColumnEdge) ([]EdgeMapEntry, error) {
+	if len(decl) == 0 {
+		return entries, nil
+	}
+	byName := make(map[string]*gen.Type, len(nodes))
+	for _, n := range nodes {
+		byName[n.Name] = n
+	}
+	out := slices.Clone(entries)
+	for _, pdbType := range slices.Sorted(maps.Keys(decl)) {
+		src := byName[goNameFor(pdbType)]
+		if src == nil {
+			return nil, fmt.Errorf("%s: unknown source type", pdbType)
+		}
+		i := slices.IndexFunc(out, func(e EdgeMapEntry) bool { return e.PDBType == pdbType })
+		if i < 0 {
+			out = append(out, EdgeMapEntry{PDBType: pdbType})
+			i = len(out) - 1
+		}
+		// Clip so that append copies the rows and never writes into
+		// the backing array of the caller's slice.
+		rows := slices.Clip(out[i].Edges)
+		for _, ce := range decl[pdbType] {
+			row, err := columnEdgeRow(src, byName, ce)
+			if err != nil {
+				return nil, fmt.Errorf("%s.%s: %w", pdbType, ce.TraversalKey, err)
+			}
+			for _, r := range rows {
+				if r.TraversalKey == row.TraversalKey || r.ParentFKColumn == row.ParentFKColumn {
+					return nil, fmt.Errorf("%s.%s: clashes with edge %q (traversal key %q, column %q)",
+						pdbType, ce.TraversalKey, r.Name, r.TraversalKey, r.ParentFKColumn)
+				}
+			}
+			rows = append(rows, row)
+		}
+		slices.SortFunc(rows, func(a, b EdgeMapRow) int {
+			return cmp.Compare(a.Name, b.Name)
+		})
+		out[i].Edges = rows
+	}
+	return out, nil
+}
+
+// columnEdgeRow checks one column edge of the type src against the ent
+// graph and returns its EdgeMapRow. The column must be a nillable int
+// field of src and the first column of an index of src, so that the
+// traversal subquery reads the index. The target type must be in the
+// graph (byName is keyed by ent Go name).
+func columnEdgeRow(src *gen.Type, byName map[string]*gen.Type, ce schema.ColumnEdge) (EdgeMapRow, error) {
+	if ce.TraversalKey == "" || ce.Column == "" {
+		return EdgeMapRow{}, fmt.Errorf("empty traversal key or column")
+	}
+	i := slices.IndexFunc(src.Fields, func(f *gen.Field) bool { return f.StorageKey() == ce.Column })
+	if i < 0 {
+		return EdgeMapRow{}, fmt.Errorf("%s has no column %q", src.Name, ce.Column)
+	}
+	f := src.Fields[i]
+	if f.Type == nil || (f.Type.Type != field.TypeInt && f.Type.Type != field.TypeInt64) {
+		return EdgeMapRow{}, fmt.Errorf("column %q is not an int column", ce.Column)
+	}
+	if !f.Nillable {
+		return EdgeMapRow{}, fmt.Errorf("column %q is not nillable", ce.Column)
+	}
+	indexed := slices.ContainsFunc(src.Indexes, func(ix *gen.Index) bool {
+		return len(ix.Columns) > 0 && ix.Columns[0] == ce.Column
+	})
+	if !indexed {
+		return EdgeMapRow{}, fmt.Errorf("no index of %s starts with column %q", src.Name, ce.Column)
+	}
+	target := byName[goNameFor(ce.TargetType)]
+	if target == nil {
+		return EdgeMapRow{}, fmt.Errorf("unknown target type %q", ce.TargetType)
+	}
+	targetTable := target.Table()
+	if targetTable == "" {
+		return EdgeMapRow{}, fmt.Errorf("target type %q has an empty table name", ce.TargetType)
+	}
+	targetID := "id"
+	if target.ID != nil {
+		if k := target.ID.StorageKey(); k != "" {
+			targetID = k
+		}
+	}
+	return EdgeMapRow{
+		Name:           ce.TraversalKey,
+		TargetType:     ce.TargetType,
+		TraversalKey:   ce.TraversalKey,
+		ParentFKColumn: ce.Column,
+		TargetTable:    targetTable,
+		TargetIDColumn: targetID,
+		OwnFK:          true,
+	}, nil
+}
+
 // resolveParentFKColumn returns the FK column name for a gen.Edge. For
 // O2O, O2M, and M2O edges, gen.Relation.Columns has a single entry —
 // we return Columns[0]. For M2M edges the slice has two entries (join
@@ -388,9 +511,11 @@ func goNameFor(pdbType string) string {
 // injection through crafted names.
 const outputTemplate = `// Code generated by cmd/pdb-compat-allowlist; DO NOT EDIT.
 //
-// Source: ent/schema/*.go PrepareQueryAllow and FilterExcludeFromTraversal
-// annotations. Regenerate via ` + "`go generate ./...`" + ` (runs
-// cmd/pdb-compat-allowlist after ent codegen per ent/generate.go).
+// Source: schema.PrepareQueryAllows and schema.ColumnEdges
+// (ent/schema/pdb_allowlists.go), and the ent schema graph with its
+// FilterExcludeFromTraversal annotations. Regenerate via
+// ` + "`go generate ./...`" + ` (runs cmd/pdb-compat-allowlist after ent
+// codegen per ent/generate.go).
 //
 // The allowlists and FilterExcludes mirror upstream PeeringDB parity.
 
@@ -442,8 +567,10 @@ var FilterExcludes = map[string]map[string]bool{
 }
 
 // Edges maps a PeeringDB type name (e.g. "net") to a slice of
-// EdgeMetadata describing its outgoing ent edges. Consumed at request
-// time by internal/pdbcompat.LookupEdge for Path B traversal.
+// EdgeMetadata describing its outgoing ent edges, plus the column edges
+// declared in schema.ColumnEdges (ent/schema/pdb_allowlists.go).
+// Consumed at request time by internal/pdbcompat.LookupEdge for Path B
+// traversal.
 //
 // The map is emitted at
 // ` + "`go generate`" + ` time from gen.Graph — no runtime client.Schema walk,
@@ -452,14 +579,16 @@ var FilterExcludes = map[string]map[string]bool{
 // v1.15 schema hygiene drops).
 //
 // TraversalKey is the <fk> token in filter params (equals TargetType
-// today). Excluded edges (WithFilterExcludeFromTraversal annotation)
-// are emitted with Excluded=true; LookupEdge hides them from its
-// callers so consumers see them as missing.
+// for ent edges; a column edge carries its upstream FK name). Excluded
+// edges (WithFilterExcludeFromTraversal annotation) are emitted with
+// Excluded=true; LookupEdge hides them from its callers so consumers
+// see them as missing.
 //
 // ParentFKColumn, TargetTable, TargetIDColumn carry SQL-level metadata
-// for the runtime subquery construction. Edges whose FK column or
-// target table could not be resolved at codegen time are logged and
-// skipped entirely (never emitted with blank metadata).
+// for the runtime subquery construction. An ent edge whose FK column or
+// target table could not be resolved at codegen time is logged and
+// skipped entirely (never emitted with blank metadata). A column edge
+// that does not resolve stops codegen.
 var Edges = map[string][]EdgeMetadata{
 {{- range .EdgeEntries }}
 	{{ printf "%q" .PDBType }}: {

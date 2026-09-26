@@ -3,9 +3,14 @@ package main
 import (
 	"go/format"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
+	"entgo.io/ent/entc/gen"
+	"entgo.io/ent/schema/field"
+
+	"github.com/dotwaffle/peeringdb-plus/ent/schema"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
@@ -202,5 +207,186 @@ func TestRender_TwoExcludedEdgesCompiles(t *testing.T) {
 	}
 	if strings.Count(string(src), `"Network": {`) != 1 {
 		t.Errorf("Network must appear exactly once in FilterExcludes:\n%s", src)
+	}
+}
+
+// columnEdgeFixture returns literal ent graph nodes for TestAddColumnEdges:
+// NetworkIxLan with one indexed nillable int column (ix_side_id), one
+// nillable int column with no index (net_side_id), one int column that
+// is not nillable (asn) and one string column (name), and Facility as
+// the target. No graph is loaded.
+func columnEdgeFixture() []*gen.Type {
+	intT := &field.TypeInfo{Type: field.TypeInt}
+	nix := &gen.Type{
+		Name: "NetworkIxLan",
+		ID:   &gen.Field{Name: "id", Type: intT},
+		Fields: []*gen.Field{
+			{Name: "ix_side_id", Type: intT, Nillable: true, Optional: true},
+			{Name: "net_side_id", Type: intT, Nillable: true, Optional: true},
+			{Name: "asn", Type: intT},
+			{Name: "name", Type: &field.TypeInfo{Type: field.TypeString}, Nillable: true},
+		},
+		Indexes: []*gen.Index{{Columns: []string{"ix_side_id"}}},
+	}
+	fac := &gen.Type{Name: "Facility", ID: &gen.Field{Name: "id", Type: intT}}
+	return []*gen.Type{nix, fac}
+}
+
+// netixlanEntEdges returns the rows that extractEdges emits for the ent
+// edges of netixlan.
+func netixlanEntEdges() []EdgeMapRow {
+	return []EdgeMapRow{
+		{Name: "ix_lan", TargetType: "ixlan", TraversalKey: "ixlan", ParentFKColumn: "ixlan_id", TargetTable: "ix_lans", TargetIDColumn: "id", OwnFK: true},
+		{Name: "network", TargetType: "net", TraversalKey: "net", ParentFKColumn: "net_id", TargetTable: "networks", TargetIDColumn: "id", OwnFK: true},
+	}
+}
+
+// cloneEntries copies entries and their row slices, so that a test can
+// check that addColumnEdges leaves its input unchanged.
+func cloneEntries(entries []EdgeMapEntry) []EdgeMapEntry {
+	out := slices.Clone(entries)
+	for i := range out {
+		out[i].Edges = slices.Clone(out[i].Edges)
+	}
+	return out
+}
+
+// TestAddColumnEdges locks the checks and the output of the column edges
+// that cmd/pdb-compat-allowlist adds from schema.ColumnEdges to the
+// Path B edge map. A bad declaration must return an error (codegen
+// stops) and never a partial map.
+func TestAddColumnEdges(t *testing.T) {
+	t.Parallel()
+
+	ixSide := EdgeMapRow{Name: "ix_side", TargetType: "fac", TraversalKey: "ix_side", ParentFKColumn: "ix_side_id", TargetTable: "facilities", TargetIDColumn: "id", OwnFK: true}
+	ixlanEntry := EdgeMapEntry{PDBType: "ixlan", Edges: []EdgeMapRow{
+		{Name: "ix", TargetType: "ix", TraversalKey: "ix", ParentFKColumn: "ix_id", TargetTable: "internet_exchanges", TargetIDColumn: "id", OwnFK: true},
+	}}
+	nixEntry := EdgeMapEntry{PDBType: "netixlan", Edges: netixlanEntEdges()}
+	decl := func(edges ...schema.ColumnEdge) map[string][]schema.ColumnEdge {
+		return map[string][]schema.ColumnEdge{"netixlan": edges}
+	}
+	good := schema.ColumnEdge{TraversalKey: "ix_side", Column: "ix_side_id", TargetType: "fac"}
+
+	tests := []struct {
+		name    string
+		entries []EdgeMapEntry
+		decl    map[string][]schema.ColumnEdge
+		want    []EdgeMapEntry
+		wantErr string
+	}{
+		{
+			name:    "valid_edge_sorted_between_ent_edges",
+			entries: []EdgeMapEntry{ixlanEntry, nixEntry},
+			decl:    decl(good),
+			want: []EdgeMapEntry{ixlanEntry, {PDBType: "netixlan", Edges: []EdgeMapRow{
+				netixlanEntEdges()[0], ixSide, netixlanEntEdges()[1],
+			}}},
+		},
+		{
+			name:    "source_without_entry_gets_new_entry",
+			entries: []EdgeMapEntry{ixlanEntry},
+			decl:    decl(good),
+			want:    []EdgeMapEntry{ixlanEntry, {PDBType: "netixlan", Edges: []EdgeMapRow{ixSide}}},
+		},
+		{
+			name:    "empty_decl_leaves_entries_unchanged",
+			entries: []EdgeMapEntry{ixlanEntry, nixEntry},
+			decl:    map[string][]schema.ColumnEdge{},
+			want:    []EdgeMapEntry{ixlanEntry, nixEntry},
+		},
+		{
+			name:    "unknown_column",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{TraversalKey: "ix_side", Column: "bogus_id", TargetType: "fac"}),
+			wantErr: `no column "bogus_id"`,
+		},
+		{
+			name:    "int_column_not_nillable",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{TraversalKey: "asn", Column: "asn", TargetType: "fac"}),
+			wantErr: `column "asn" is not nillable`,
+		},
+		{
+			name:    "string_column",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{TraversalKey: "name", Column: "name", TargetType: "fac"}),
+			wantErr: `column "name" is not an int column`,
+		},
+		{
+			name:    "column_without_index",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{TraversalKey: "net_side", Column: "net_side_id", TargetType: "fac"}),
+			wantErr: `no index of NetworkIxLan starts with column "net_side_id"`,
+		},
+		{
+			name:    "empty_traversal_key",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{Column: "ix_side_id", TargetType: "fac"}),
+			wantErr: "empty traversal key or column",
+		},
+		{
+			name:    "unknown_target_type",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{TraversalKey: "ix_side", Column: "ix_side_id", TargetType: "bogus"}),
+			wantErr: `unknown target type "bogus"`,
+		},
+		{
+			name:    "target_type_not_in_graph",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{TraversalKey: "ix_side", Column: "ix_side_id", TargetType: "org"}),
+			wantErr: `unknown target type "org"`,
+		},
+		{
+			name:    "source_type_not_in_graph",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    map[string][]schema.ColumnEdge{"org": {good}},
+			wantErr: "org: unknown source type",
+		},
+		{
+			name:    "clash_by_traversal_key",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(schema.ColumnEdge{TraversalKey: "net", Column: "ix_side_id", TargetType: "fac"}),
+			wantErr: `clashes with edge "network"`,
+		},
+		{
+			name: "clash_by_column",
+			entries: []EdgeMapEntry{{PDBType: "netixlan", Edges: []EdgeMapRow{
+				{Name: "other", TargetType: "fac", TraversalKey: "other", ParentFKColumn: "ix_side_id", TargetTable: "facilities", TargetIDColumn: "id", OwnFK: true},
+			}}},
+			decl:    decl(good),
+			wantErr: `clashes with edge "other"`,
+		},
+		{
+			name:    "clash_with_earlier_column_edge",
+			entries: []EdgeMapEntry{nixEntry},
+			decl:    decl(good, good),
+			wantErr: `clashes with edge "ix_side"`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			before := cloneEntries(tc.entries)
+			got, err := addColumnEdges(columnEdgeFixture(), tc.entries, tc.decl)
+			if !reflect.DeepEqual(tc.entries, before) {
+				t.Errorf("addColumnEdges modified its input entries:\n  %+v\nwant\n  %+v", tc.entries, before)
+			}
+			if tc.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+					t.Fatalf("addColumnEdges error = %v, want it to contain %q", err, tc.wantErr)
+				}
+				if got != nil {
+					t.Errorf("addColumnEdges returned %+v with an error, want nil", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("addColumnEdges: %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("addColumnEdges =\n  %+v\nwant\n  %+v", got, tc.want)
+			}
+		})
 	}
 }
