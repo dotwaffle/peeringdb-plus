@@ -2,10 +2,9 @@ package pdbcompat
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
@@ -97,73 +96,100 @@ func writeError(w http.ResponseWriter, r *http.Request, e apiError) {
 	})
 }
 
-// ParsePaginationParams extracts limit and skip from query parameters
-// with defaults and validation.
+// Upstream error texts of the list parameters.
+var (
+	// errSkipNotNumber is upstream 2.83.0 rest.py:511-514.
+	errSkipNotNumber = errors.New("'skip' needs to be a number")
+	// errLimitNotNumber is upstream 2.83.0 rest.py:515-518.
+	errLimitNotNumber = errors.New("'limit' needs to be a number")
+	// errSinceNotTimestamp is upstream 2.83.0 rest.py:505-510.
+	errSinceNotTimestamp = errors.New("'since' needs to be a unix timestamp (epoch seconds)")
+	// errNegativeSkip is the Django text for a negative slice
+	// (db/models/query.py:403-417), which list() returns as a 400
+	// (2.83.0 rest.py:757-760, :824-827). The text is the upstream
+	// message, so it keeps its capital letter and period.
+	errNegativeSkip = errors.New("Negative indexing is not supported.") //nolint:revive,staticcheck // exact upstream message text
+)
+
+// lastParam returns the last value of key and whether the key is
+// present, as Django QueryDict.get does. A present key with an empty
+// value returns ("", true).
+func lastParam(params url.Values, key string) (string, bool) {
+	vals, ok := params[key]
+	if !ok || len(vals) == 0 {
+		return "", false
+	}
+	return vals[len(vals)-1], true
+}
+
+// ParsePaginationParams returns limit and skip as upstream parses them
+// (2.83.0 rest.py:511-518): the last value of each key, Python int()
+// rules (pyInt), skip first. An empty or non-integer value is an error
+// with the upstream text.
 //
-// Bare URL (no `limit=`): returns DefaultLimit (0 = unlimited),
-// matching upstream 2.83.0 `rest.py:516`, which defaults `limit` to 0,
-// and `rest.py:760`, which slices `qset[skip:]` (no upper bound).
-// All-rows responses are gated by the response-memory
-// budget; if the precount × TypicalRowBytes exceeds the budget, the
-// handler returns 413 before materialising anything.
+// The values keep their sign, and the caller decides what a negative
+// value does. serveList serves every row for a negative limit, as
+// upstream slices only when limit > 0 (rest.py:757-760), and returns
+// 400 for a negative skip (errNegativeSkip).
 //
-// Explicit `limit=N`: positive N is honoured unmodified — upstream
-// applies qset[skip:skip+limit] with no upper cap (rest.py:757-758),
-// and the response-memory budget is the real cost bound. (An earlier
-// revision clamped to 1000, which silently truncated pages for
-// clients paginating with larger windows — rows past the clamp were
-// permanently skipped with nothing in the envelope to signal it.)
-// limit=0 is the explicit "unlimited" sentinel and is passed through
-// unchanged; the list closures' `if opts.Limit > 0 { .Limit(...) }`
-// gate omits the SQL LIMIT clause when limit is 0.
-//
-// Non-numeric values are a 400 — upstream raises RestValidationError
-// "'limit' needs to be a number" (rest.py:511-518). Silently treating
-// a typo'd limit as absent turned a bounded page request into a
-// full-table dump. Negative values get the same 400. For skip this
-// matches upstream: Django rejects the negative slice with ValueError,
-// which list() turns into a 400 (rest.py:757-760, :824-827). For limit
-// it is a mirror choice: upstream's `limit > 0` gate (rest.py:757-760)
-// serves a negative limit as unlimited. See docs/API.md § Known
-// Divergences.
+// Without a limit key the limit is DefaultLimit (0 = every row), as
+// upstream (rest.py:516). A positive limit has no upper cap
+// (rest.py:757-758). The response memory budget bounds the response:
+// when the count × TypicalRowBytes is over the budget, the handler
+// returns 413 before it reads any row. A value too large for an int
+// saturates: a huge limit serves every row and a huge skip serves no
+// row.
 func ParsePaginationParams(params url.Values) (limit, skip int, err error) {
 	limit = DefaultLimit
-	if v := params.Get("limit"); v != "" {
-		parsed, perr := strconv.Atoi(v)
-		if perr != nil || parsed < 0 {
-			return 0, 0, fmt.Errorf("'limit' needs to be a non-negative number, got %q", v)
+	if v, ok := lastParam(params, "skip"); ok {
+		if skip, _, err = pyInt(v); err != nil {
+			return 0, 0, errSkipNotNumber
 		}
-		limit = parsed
 	}
-
-	if v := params.Get("skip"); v != "" {
-		parsed, perr := strconv.Atoi(v)
-		if perr != nil || parsed < 0 {
-			return 0, 0, fmt.Errorf("'skip' needs to be a non-negative number, got %q", v)
+	if v, ok := lastParam(params, "limit"); ok {
+		if limit, _, err = pyInt(v); err != nil {
+			return 0, 0, errLimitNotNumber
 		}
-		skip = parsed
 	}
 	return limit, skip, nil
 }
 
-// ParseSinceParam parses the ?since= query parameter as a Unix timestamp.
-// Returns nil if the parameter is absent or empty.
-//
-// since<=0 is also treated as absent: upstream activates the since
-// matrix only `if since > 0` (2.83.0 rest.py:719), so ?since=0 falls
-// through to the plain live-status list there. Honouring a zero boundary
-// here would flip the status matrix and serve the entire tombstone corpus.
-func ParseSinceParam(params url.Values) (*time.Time, error) {
-	v := params.Get("since")
-	if v == "" {
-		return nil, nil
+// parseSince returns the raw ?since= value: the last value, Python
+// int() rules (2.83.0 rest.py:505-510, api_cache.py:80). present is
+// false when the key is absent. An empty or non-integer value is
+// errSinceNotTimestamp. Every reader of since calls this function, so
+// the value is parsed one way only.
+func parseSince(params url.Values) (n int, present bool, err error) {
+	v, ok := lastParam(params, "since")
+	if !ok {
+		return 0, false, nil
 	}
-	t, err := parseEpoch(v)
+	n, _, err = pyInt(v)
+	if err != nil {
+		return 0, true, errSinceNotTimestamp
+	}
+	return n, true, nil
+}
+
+// ParseSinceParam parses ?since= as a Unix timestamp (see parseSince).
+// It returns nil when the key is absent and when the value is 0 or
+// less: upstream activates the since matrix only if since > 0 (2.83.0
+// rest.py:719), so ?since=0 gives the plain live-status list. A zero
+// boundary here would flip the status matrix and serve every
+// tombstone.
+//
+// The time is in UTC. The SQLite driver binds a time.Time as text in
+// the zone of the value, and the stored timestamps are UTC text, so the
+// comparison is only correct when both sides are UTC. time.Unix returns
+// the process zone, which is UTC in production but not on every host.
+func ParseSinceParam(params url.Values) (*time.Time, error) {
+	n, present, err := parseSince(params)
 	if err != nil {
 		return nil, err
 	}
-	if t.Unix() <= 0 {
+	if !present || n <= 0 {
 		return nil, nil
 	}
+	t := time.Unix(int64(n), 0).UTC()
 	return &t, nil
 }

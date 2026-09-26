@@ -421,7 +421,7 @@ The testing package cancels this context just before it runs the cleanup functio
   and call `t.Skip` when the flag is not set.
 - Parity tests: one `TestParity_<Category>` entry function for each category (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`, `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`, `TestParity_Meta`, `TestParity_Serializer`, `TestParity_MultiChoice`).
   Give each `t.Run` sub-test a descriptive snake_case name (e.g. `list_no_since_status_ok_only`).
-  Start the name of an intentional non-parity sub-test with `DIVERGENCE_` (e.g. `DIVERGENCE_negative_limit_returns_400`).
+  Start the name of an intentional non-parity sub-test with `DIVERGENCE_` (e.g. `DIVERGENCE_i_operator_suffixes_filter`).
   A divergence test that is its own top-level function ends its name with `_DIVERGENCE` (e.g. `TestParity_Unicode_FoldWindow_DIVERGENCE`).
 
 ## CI Integration

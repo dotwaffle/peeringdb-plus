@@ -1057,22 +1057,6 @@ func parseBool(s string) (bool, error) {
 	}
 }
 
-// parseEpoch converts a strict integer Unix-seconds string. ?since= uses
-// this directly: upstream coerces since with int() (rest.py:696), so ISO
-// strings must keep failing there.
-//
-// The time is in UTC. The SQLite driver binds a time.Time as text in the
-// zone of the value, and the stored timestamps are UTC text, so the
-// comparison is only correct when both sides are UTC. time.Unix returns
-// the process zone, which is UTC in production but not on every host.
-func parseEpoch(s string) (time.Time, error) {
-	epoch, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid unix timestamp %q: %w", s, err)
-	}
-	return time.Unix(epoch, 0).UTC(), nil
-}
-
 // parseTimeValue converts a time-filter value. Accepts Unix epoch seconds
 // plus the ISO 8601 layouts DRF's DateTimeField().to_python accepts
 // upstream (2.83.0 rest.py:647-653): date-only, datetime with 'T' or
@@ -1080,9 +1064,11 @@ func parseEpoch(s string) (time.Time, error) {
 // 10-char date, which carries day-window semantics upstream
 // (rest.py:640-679).
 // Layouts without an explicit offset are interpreted as UTC, matching
-// the stored timestamps. Every result is converted to UTC, for the
-// reason given at parseEpoch: a value with an offset such as +01:00
-// otherwise binds as text in that offset and compares wrongly.
+// the stored timestamps. Every result is converted to UTC: the SQLite
+// driver binds a time.Time as text in the zone of the value, and the
+// stored timestamps are UTC text, so a value with an offset such as
+// +01:00 (or an epoch value in a process zone that is not UTC) would
+// compare wrongly.
 func parseTimeValue(s string) (t time.Time, dateOnly bool, err error) {
 	if epoch, perr := strconv.ParseInt(s, 10, 64); perr == nil {
 		return time.Unix(epoch, 0).UTC(), false, nil

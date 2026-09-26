@@ -277,6 +277,10 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   `status` is an ordinary `Fields` key on all 13 types (upstream `status__iexact`, ANDed with the matrix; locked by `TestRegistryFields_AlignWithEntColumns`); LAST is what keeps `?status=` narrow-only.
 - List order (`listOrder` in `registry_funcs.go`): plain list `id ASC` (upstream has no `ORDER BY` and no model `Meta.ordering`; live-verified 2026-09-23), `?since` list `updated ASC, id ASC` (`rest.py:744`). entrest/ConnectRPC keep their own `(-updated, -created, -id)`.
   `applySince` is `updated >= N`: upstream compares microsecond `updated` with `N.000000` and we store only the shown second (locked by `TestParity_Status/since_boundary_includes_same_second`).
+- `pyInt` (`internal/pdbcompat/pyint.go`) is the one integer parser of the request path: Python `int()` rules (Unicode space and `Nd` digits, sign, single `_`, at most 4300 digits), saturating to `math.MinInt`/`math.MaxInt`.
+  `limit`, `skip` and `since` take the last value (`lastParam`), and an empty value is a 400 with the upstream text; `since` is read only through `parseSince`.
+  `ParsePaginationParams` returns signed values: `serveList` sends 400 `Negative indexing is not supported.` for a negative `skip` (after the filters, before every exit) and serves every row for a negative `limit`.
+  A negative `skip` on a list that upstream serves from its API cache is a registered divergence (`DIVERGENCE_negative_skip_on_cacheable_list_returns_400`).
 - Unique-query 404 (`isUniqueQuery` in `handler.go`): a list with the `id` key (any type) or `asn` key (net), no `page` key, and zero served rows returns 404 `Entity not found` (upstream `rest.py:809-815`).
   It fires on all three empty exits of `serveList` (empty `__in`, budget `count == 0`, empty `List`) and runs after privacy filtering, so a hidden poc id is a 404 (registered divergence).
   A non-integer or empty `id`/`asn` value is still a 400 from `buildExact` (upstream `__iexact` matches nothing → 404; registered divergence `DIVERGENCE_unique_key_non_integer_returns_400`).

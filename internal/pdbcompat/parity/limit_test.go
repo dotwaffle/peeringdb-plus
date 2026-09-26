@@ -2,6 +2,7 @@ package parity
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"net/http"
 	"slices"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
@@ -24,6 +26,11 @@ import (
 //   - ?depth=N on a list endpoint is silently dropped by the
 //     guardrail. DIVERGENCE from upstream which accepts depth on
 //     list. See docs/API.md § Known Divergences.
+//   - limit, skip and since are parsed as upstream parses them: the
+//     last value, Python int() rules, the upstream error texts, and an
+//     empty value is a 400. A negative limit serves every row. A
+//     negative skip is a 400; DIVERGENCE on a list that upstream
+//     serves from its API cache file.
 //
 // upstream: 2.83.0 peeringdb_server/rest.py:515-518, :757-760 (limit=0 =
 // unlimited)
@@ -386,34 +393,230 @@ func TestParity_Limit(t *testing.T) {
 	t.Run("non_numeric_limit_and_skip_return_400", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 rest.py:511-518 raises RestValidationError
-		// ("'limit' needs to be a number") for non-numeric limit/skip.
+		// ("'limit' needs to be a number") for a limit or skip that
+		// int() does not parse. An empty value fails too: QueryDict.get
+		// returns "", and int("") raises. skip is checked before limit.
 		// Silently ignoring a typo'd limit turned a bounded page
-		// request into a full-table dump. A negative skip fails too:
-		// Django rejects the negative slice (:757-760) with ValueError,
-		// which list() turns into a 400 (:824-827).
+		// request into a full-table dump.
 		c := testutil.SetupClient(t)
 		srv := newTestServer(t, c)
-		for _, q := range []string{"limit=abc", "skip=abc", "skip=-1"} {
-			status, body := httpGet(t, srv, "/api/net?"+q)
+		const (
+			limitText = "'limit' needs to be a number"
+			skipText  = "'skip' needs to be a number"
+		)
+		for _, tc := range []struct{ query, want string }{
+			{"limit=abc", limitText},
+			{"limit=", limitText},
+			{"limit=1.5", limitText},
+			{"skip=abc", skipText},
+			{"skip=", skipText},
+			{"skip=abc&limit=abc", skipText},
+			{"limit=abc&skip=abc", skipText},
+		} {
+			status, body := httpGet(t, srv, "/api/net?"+tc.query)
 			if status != http.StatusBadRequest {
-				t.Errorf("?%s: status = %d, want 400; body=%s", q, status, string(body))
+				t.Errorf("?%s: status = %d, want 400; body=%s", tc.query, status, string(body))
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != tc.want {
+				t.Errorf("?%s: meta.error = %q, want %q", tc.query, got, tc.want)
 			}
 		}
 	})
 
-	t.Run("DIVERGENCE_negative_limit_returns_400", func(t *testing.T) {
+	t.Run("negative_limit_serves_all_rows", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream parses a negative limit (2.83.0
-		// rest.py:515-518) and then slices only when limit > 0
-		// (:757-760), so ?limit=-5 returns every row. The mirror
-		// rejects a negative limit with 400, like a non-numeric one.
-		// See docs/API.md § Known Divergences.
+		// upstream: 2.83.0 rest.py:515-518 parses a negative limit, and
+		// :757-760 slices only when limit > 0, so ?limit=-5 serves
+		// qset[skip:], every row after skip.
+		c := testutil.SetupClient(t)
+		seedLimitNets(t, c, t0, 3)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			query string
+			want  []int
+		}{
+			{"limit=-5", []int{1, 2, 3}},
+			{"limit=-1&skip=1", []int{2, 3}},
+		} {
+			status, body := httpGet(t, srv, "/api/net?"+tc.query)
+			if status != http.StatusOK {
+				t.Errorf("?%s: status = %d, want 200; body=%s", tc.query, status, string(body))
+				continue
+			}
+			if got := extractIDs(t, body); !equalIntSlice(got, tc.want) {
+				t.Errorf("?%s: ids = %v, want %v", tc.query, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("negative_skip_on_filtered_list_returns_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: Django db/models/query.py:403-417 raises ValueError
+		// for a negative slice (via 2.83.0 rest.py:757-760), and list()
+		// returns it as a 400 (:824-827). A list with a filter key, or
+		// with a limit of 1 to 250, does not qualify for the API cache
+		// (api_cache.py:100-110), so upstream takes this path. The error
+		// comes before the serializer, so the unique-query 404 does not
+		// fire.
+		c := testutil.SetupClient(t)
+		seedLimitNets(t, c, t0, 2)
+		srv := newTestServer(t, c)
+		for _, q := range []string{
+			"name=x&skip=-1",
+			"skip=-1&limit=10",
+			"id=1&skip=-1",
+			"id=999&skip=-1",
+		} {
+			status, body := httpGet(t, srv, "/api/net?"+q)
+			if status != http.StatusBadRequest {
+				t.Errorf("?%s: status = %d, want 400; body=%s", q, status, string(body))
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != "Negative indexing is not supported." {
+				t.Errorf("?%s: meta.error = %q, want %q", q, got, "Negative indexing is not supported.")
+			}
+		}
+		// A filter error wins over the negative skip: upstream builds the
+		// filters before it slices.
+		status, body := httpGet(t, srv, "/api/net?asn__lt=abc&skip=-1")
+		if status != http.StatusBadRequest {
+			t.Fatalf("?asn__lt=abc&skip=-1: status = %d, want 400; body=%s", status, string(body))
+		}
+		if got := mustDecodeMetaError(t, body).Error; !strings.Contains(got, "asn__lt") {
+			t.Errorf("?asn__lt=abc&skip=-1: meta.error = %q, want the filter error", got)
+		}
+	})
+
+	t.Run("DIVERGENCE_negative_skip_on_cacheable_list_returns_400", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream serves a list with no filter key, no
+		// since and a limit of 0 or more than 250 from its API cache
+		// file (2.83.0 api_cache.py:90-124, settings/__init__.py:399
+		// API_CACHE_ENABLED) and slices the rows with Python slices
+		// (api_cache.py:136-142), so ?skip=-2 returns the last 2 rows.
+		// The mirror returns 400 for every negative skip, as the
+		// upstream DB path does. See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		c := testutil.SetupClient(t)
+		seedLimitNets(t, c, t0, 3)
 		srv := newTestServer(t, c)
-		status, body := httpGet(t, srv, "/api/net?limit=-5")
-		if status != http.StatusBadRequest {
-			t.Errorf("?limit=-5: status = %d, want 400 (divergence canary); body=%s", status, string(body))
+		for _, q := range []string{"skip=-2", "skip=-2&limit=300", "skip=-2&limit=0"} {
+			status, body := httpGet(t, srv, "/api/net?"+q)
+			if status != http.StatusBadRequest {
+				t.Errorf("?%s: status = %d, want 400 (divergence canary); body=%s", q, status, string(body))
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != "Negative indexing is not supported." {
+				t.Errorf("?%s: meta.error = %q, want %q", q, got, "Negative indexing is not supported.")
+			}
+		}
+	})
+
+	t.Run("limit_python_int_forms", func(t *testing.T) {
+		t.Parallel()
+		// synthesised: upstream parses limit and skip with Python int()
+		// (2.83.0 rest.py:511-518), which accepts white space at both
+		// ends, a sign, single underscores between digits and Unicode
+		// decimal digits. A "+" in a query string decodes to a space,
+		// so the sign is sent as %2B.
+		c := testutil.SetupClient(t)
+		seedLimitNets(t, c, t0, 12)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			query string
+			want  int
+		}{
+			{"limit=%202", 2},
+			{"limit=%2B2", 2},
+			{"limit=1_0", 10},
+			{"limit=%EF%BC%92", 2}, // fullwidth digit two
+			{"limit=02", 2},
+			{"limit=99999999999999999999", 12},
+			{"limit=2&skip=%2010", 2},
+		} {
+			status, body := httpGet(t, srv, "/api/net?"+tc.query)
+			if status != http.StatusOK {
+				t.Errorf("?%s: status = %d, want 200; body=%s", tc.query, status, string(body))
+				continue
+			}
+			if got := len(extractIDs(t, body)); got != tc.want {
+				t.Errorf("?%s: %d rows, want %d", tc.query, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("limit_last_value_wins", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:511-518 reads the value with
+		// QueryDict.get, which returns the last value of a repeated key.
+		c := testutil.SetupClient(t)
+		seedLimitNets(t, c, t0, 3)
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?limit=1&limit=2")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", status, string(body))
+		}
+		if got := extractIDs(t, body); !equalIntSlice(got, []int{1, 2}) {
+			t.Errorf("?limit=1&limit=2: ids = %v, want [1 2]", got)
+		}
+	})
+
+	t.Run("empty_since_returns_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:505-510: int(float(since)) raises for
+		// an empty or non-numeric value, and the view returns this text.
+		c := testutil.SetupClient(t)
+		srv := newTestServer(t, c)
+		const want = "'since' needs to be a unix timestamp (epoch seconds)"
+		for _, q := range []string{"since=", "since=abc", "since=1&since="} {
+			status, body := httpGet(t, srv, "/api/net?"+q)
+			if status != http.StatusBadRequest {
+				t.Errorf("?%s: status = %d, want 400; body=%s", q, status, string(body))
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != want {
+				t.Errorf("?%s: meta.error = %q, want %q", q, got, want)
+			}
+		}
+	})
+
+	t.Run("since_last_value_wins", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:505 reads since with QueryDict.get
+		// (the last value) and parses it with int(); :736-744 then keeps
+		// the rows updated after it.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		t1 := t0.Add(time.Hour)
+		t2 := t0.Add(2 * time.Hour)
+		for i, ts := range []time.Time{t1, t2} {
+			id := i + 1
+			if _, err := c.Network.Create().
+				SetID(id).SetName("SinceNet").SetNameFold(unifold.Fold("SinceNet")).
+				SetAsn(70000 + id).SetStatus("ok").
+				SetCreated(ts).SetUpdated(ts).
+				Save(ctx); err != nil {
+				t.Fatalf("seed net %d: %v", id, err)
+			}
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			query string
+			want  []int
+		}{
+			{fmt.Sprintf("since=%d&since=%d", t1.Unix(), t2.Unix()), []int{2}},
+			{fmt.Sprintf("since=%d&since=%d", t2.Unix(), t1.Unix()), []int{1, 2}},
+			{fmt.Sprintf("since=%%20%d_0", t2.Unix()/10), []int{2}},
+		} {
+			status, body := httpGet(t, srv, "/api/net?"+tc.query)
+			if status != http.StatusOK {
+				t.Errorf("?%s: status = %d, want 200; body=%s", tc.query, status, string(body))
+				continue
+			}
+			if got := extractIDs(t, body); !equalIntSlice(got, tc.want) {
+				t.Errorf("?%s: ids = %v, want %v", tc.query, got, tc.want)
+			}
 		}
 	})
 
@@ -443,6 +646,20 @@ func TestParity_Limit(t *testing.T) {
 			t.Errorf("explicit limit=200: got %d, want 200", len(rows))
 		}
 	})
+}
+
+// seedLimitNets seeds n ok networks with ids 1..n.
+func seedLimitNets(t *testing.T, c *ent.Client, ts time.Time, n int) {
+	t.Helper()
+	for i := 1; i <= n; i++ {
+		if _, err := c.Network.Create().
+			SetID(i).SetName("LimitParseNet").SetNameFold(unifold.Fold("LimitParseNet")).
+			SetAsn(80000 + i).SetStatus("ok").
+			SetCreated(ts).SetUpdated(ts).
+			Save(t.Context()); err != nil {
+			t.Fatalf("seed net %d: %v", i, err)
+		}
+	}
 }
 
 // assertErrorHeaders checks the headers of an upstream-form /api/ error:

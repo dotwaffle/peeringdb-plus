@@ -205,12 +205,21 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		)
 	}
 
-	// Parse pagination.
+	// Parse skip, limit (2.83.0 rest.py:511-518) and since
+	// (:505-510) before the filters, as upstream runs its filter loop
+	// after them (:564-683). Upstream checks since before skip, so for
+	// ?since=abc&skip=abc it names since and the mirror names skip.
+	// Both are 400.
 	limit, skip, err := ParsePaginationParams(params)
 	if err != nil {
-		// upstream 2.83.0 rest.py:511-518 raises a 400 for non-numeric
-		// limit/skip; silently ignoring a typo'd limit would turn a
-		// bounded page request into a full-table dump.
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: err.Error(),
+		})
+		return
+	}
+	since, err := ParseSinceParam(params)
+	if err != nil {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
 			Detail: err.Error(),
@@ -252,12 +261,14 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	// Parse since.
-	since, err := ParseSinceParam(params)
-	if err != nil {
+	// A negative skip is a 400. Upstream raises it at the slice (2.83.0
+	// rest.py:757-760, Django query.py:403-417), after the filters and
+	// since, and before the serializer. So a filter error wins, and the
+	// unique-query 404 never fires.
+	if skip < 0 {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
-			Detail: fmt.Sprintf("invalid since parameter: %v", err),
+			Detail: errNegativeSkip.Error(),
 		})
 		return
 	}
@@ -281,9 +292,12 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		fields = strings.Split(f, ",")
 	}
 
+	// A negative limit serves every row, as limit=0 does: upstream
+	// slices only when limit > 0 (2.83.0 rest.py:757-760). The budget
+	// check below prices the full count.
 	opts := QueryOptions{
 		Filters:     filters,
-		Limit:       limit,
+		Limit:       max(limit, 0),
 		Skip:        skip,
 		Since:       since,
 		EmptyResult: emptyResult,

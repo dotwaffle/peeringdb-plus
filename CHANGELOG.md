@@ -17,6 +17,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - `/api/` answers a method other than GET or HEAD with a JSON `405` and `Allow: GET, HEAD`, not a plain-text body.
   Upstream runs its write handlers for the methods it maps; see Known Divergences.
 - Before the first sync, `/api/` returns `{"meta":{"error":"sync not yet completed"}}` to every client, also to browsers and curl.
+- `/api/` serves every row for a negative `limit`, as upstream serves `limit=0`.
+  Before, a negative `limit` returned `400`.
+- `/api/` parses `limit`, `skip` and `since` as upstream does: Python `int()` rules (spaces at the ends, a sign, Unicode digits, underscores between digits) and the last value of a repeated key.
+  An empty value returns `400`; before, it was ignored.
+  The error messages are now the upstream texts `'limit' needs to be a number`, `'skip' needs to be a number`, `'since' needs to be a unix timestamp (epoch seconds)` and `Negative indexing is not supported.`.
+  When `since` and a filter key are both bad, the message is now the `since` message, as upstream.
 
 ### Fixed
 
