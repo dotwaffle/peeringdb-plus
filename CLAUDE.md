@@ -119,7 +119,14 @@ Dropped ent fields whose proto wrappers still exist (e.g. `IxPrefix.notes`, `Org
 Tombstones (`status='deleted'`) come from upstream's explicit signal, plus one derived case, the netixlan cascade of a deleted net (below).
 The `?since=N` matrix returns the live statuses plus `deleted` (`ok`, plus `not-operational` on netixlan; per 2.83.0 `peeringdb_server/rest.py:719-750`).
 Inference-by-absence (the prior `markStaleDeleted*` family + `internal/sync/delete.go`) was removed: it mis-classified rows missing from partial responses and dropped children whose upstream-deleted parents we never synced.
-The dormant tombstone-GC work stays dormant.
+The dormant tombstone-GC work stays dormant, except for poc (below).
+
+**Poc tombstone purge (`internal/sync/poc_purge.go`):** each sync tx runs `purgeDeletedPocs` after the poc scrub: `DELETE FROM pocs WHERE status='deleted' AND updated <= <cycle start> - 30 days` (upstream `pdb_delete_pocs`, `POC_DELETION_PERIOD` 30, 2.83.0 `pdb_delete_pocs.py:34-38,58`).
+The only hard delete in sync; a purged row never comes back (`?since` gets newer rows only, bare lists are live-only, the history sweep skips poc, backfill never fetches poc).
+The cutoff is bound as UTC whole seconds (`updated` is stored as text, so a non-UTC zone would compare wrong).
+INFO `purged deleted pocs` {count} (DEBUG at 0) after commit only; span attr `pdbplus.sync.pocs_purged`.
+Test fixtures with deleted pocs need an `updated` within 30 days of now, or the cycle purges them.
+Locked by `TestPurgeDeletedPocs`, `TestSync_PurgesDeletedPocs`.
 
 **Bootstrap (zero-cursor handling):** v1.18.2's `?since=1` bootstrap was reverted in v1.18.3: the full-historical fetch tripped upstream's `API_THROTTLE_REPEATED_REQUEST` cap.
 Current behavior: zero cursor → bare `/api/<type>` (live statuses only), then a `?since=<newest updated in the snapshot>` window when the snapshot is non-empty (`snapshotWindowStart`; small, never `?since=1`; failure tolerated).
@@ -292,7 +299,7 @@ Per-serializer back-ref strips differ (campus.fac_set drops `org_id`/keeps `camp
 Intentional non-parity: `poc_set` ID lists apply `poc.visible` privacy (omit non-Public ids upstream leaks); depths 3-4 render the depth-2 shape.
 Second-level FK objects stay flat.
 
-Tombstone GC is dormant deferred work (triggers: storage >5% MoM, tombstone ratio >10%, operator request).
+Tombstone GC of the other 12 types is dormant deferred work (triggers: storage >5% MoM, tombstone ratio >10%, operator request).
 
 ### Shadow-column folding
 
@@ -371,6 +378,12 @@ A tail field in `TypeConfig.NonModelFields` (serializer field or property upstre
 They read `vals[0]` (upstream `v[0]`), not the last value.
 Do not re-add these keys to `pdb_allowlists.go`: Path A never sees them.
 Semantics table: `docs/API.md § Relation filters`.
+
+**Presence keys (`internal/pdbcompat/presence_filter.go`).**
+The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`org_present`/`org_not_present` (upstream `prepare_query`) resolve in `ParseFiltersCtx` BEFORE the relation seeds, exact key only, first value.
+`not_*` = `sql.NotPredicates` over the relation seed of the same target (same `ok` pin); `all_net` = one `GROUP BY ... HAVING COUNT(DISTINCT net_id) = <distinct ids>` subquery (no SQL term per id); `org_present` checks no status on any row (upstream `.objects`), ix path compares `ix.id` with `netixlan.ixlan_id` as upstream does.
+A non-integer item is a 400.
+Locked by `TestParity_Traversal/prepare_query_presence_keys`.
 
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.

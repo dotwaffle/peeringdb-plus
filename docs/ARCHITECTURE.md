@@ -794,7 +794,7 @@ See [CONFIGURATION.md](./CONFIGURATION.md#privacy--tiers) and [DEPLOYMENT.md](./
 
 ## Soft-delete tombstones
 
-Sync uses soft-delete rather than hard-delete across all 13 entity types.
+Sync uses soft-delete rather than hard-delete across all 13 entity types, with one exception: it deletes a `poc` tombstone after 30 days, as upstream does (see below).
 Tombstones (`status='deleted'`) come from upstream PeeringDB's explicit signal, with one derived exception (see [Netixlan cascade of deleted networks](#netixlan-cascade-of-deleted-networks)).
 The `?since=N` matrix returns the live rows and the `deleted` rows (per 2.83.0 `peeringdb_server/rest.py:719-750`).
 `internal/sync/upsert.go` lands the upstream-supplied status verbatim — a deleted row is just an ordinary upsert whose `status` column is `deleted`, carrying upstream's own `updated` timestamp.
@@ -828,6 +828,16 @@ Later runs log the same message at DEBUG with `count=0`.
 The line comes only after the transaction commits.
 When the commit fails, the startup run logs only `WARN "startup poc contact scrub failed, the next sync cycle retries it"`, after the retry WARNs of a lock error, and a sync cycle records a failed sync.
 The `sync-scrub-poc-contacts` span carries the count in the `pdbplus.sync.poc_contacts_scrubbed` attribute.
+
+Upstream hard-deletes a `poc` with `status='deleted'` when its `updated` value is 30 days old (`POC_DELETION_PERIOD`, 2.83.0 `management/commands/pdb_delete_pocs.py:34-38,58`, `mainsite/settings/__init__.py:684`).
+After that, an upstream `?since=` window does not return the tombstone.
+Each sync transaction runs `purgeDeletedPocs` (`internal/sync/poc_purge.go`) after the scrub, with the same rule and the cycle start time.
+This is the only hard delete in sync.
+A purged row does not come back: a `?since=` fetch gets only rows that changed after the cursor, a bare list holds only live rows, the history sweep skips `poc`, and FK backfill never fetches a `poc`.
+A cycle that lands a tombstone older than 30 days deletes it in the same transaction.
+The `status` index limits the read to the deleted pocs.
+After the commit, the cycle logs `INFO "purged deleted pocs"` with the row `count` (DEBUG when the count is 0).
+The `sync-purge-deleted-pocs` span carries the count in the `pdbplus.sync.pocs_purged` attribute.
 The attribute counts the rows that the `UPDATE` changed in the transaction.
 The span ends before the commit.
 
@@ -866,7 +876,7 @@ The upstream prefetch has no `ORDER BY`, and MySQL reads these sets through the 
 The Web UI fragments, `internal/catalog` (network, IX and compare queries) and the MCP `lookup_ip` tool read netixlan with the inline literal `StatusIn("ok", "not-operational", "pending")`, so a not-operational connection stays listed and counts toward the aggregate bandwidth.
 GraphQL, REST and ConnectRPC apply no default status filter.
 
-Tombstone GC is dormant work; triggers are storage growth >5% MoM, tombstone ratio >10%, or operator request.
+Tombstone GC of the other 12 types is dormant work; triggers are storage growth >5% MoM, tombstone ratio >10%, or operator request.
 
 ### Netixlan cascade of deleted networks
 
@@ -1098,6 +1108,7 @@ Two paths resolve the target field:
   the `cmd/pdb-compat-allowlist` step emits the maps from the same schema source
   as Path A, avoiding init-order coupling.
 
+The presence keys of an upstream `prepare_query` (`net?not_ix=`, `fac?all_net=`, `ix?org_present=`) resolve first, through `presenceKeys` in `internal/pdbcompat/presence_filter.go` ([API.md § Presence filters](./API.md#presence-filters)).
 The relation keys that an upstream `prepare_query` handles (`net?ix=`, `fac?net__name=`, `netixlan?ix_id=`) resolve before both paths, through `relationSeeds` in `internal/pdbcompat/relation_filter.go`.
 Each key walks a fixed path of up to three tables with nested `IN` subqueries and requires status `ok` on the one row that upstream pins ([API.md § Relation filters](./API.md#relation-filters)).
 

@@ -877,55 +877,6 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_poc_tombstone_outlives_upstream_retention", func(t *testing.T) {
-		t.Parallel()
-		// DIVERGENCE: upstream hard deletes a soft-deleted poc when its
-		// updated value is POC_DELETION_PERIOD (default 30 days) old.
-		// After that, a ?since= window that covers the deletion no longer
-		// returns the tombstone. The mirror keeps every tombstone, so the
-		// window still returns it. Upstream documents the poc purge as its
-		// only hard delete; pdb_rir_status is another
-		// (DIVERGENCE_deleted_net_netixlan_tombstone_in_since_window).
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: 2.83.0 management/commands/pdb_delete_pocs.py:34-38,58
-		// + mainsite/settings/__init__.py:684 (30 days)
-		// + docs/api/obj_poc.md:14-17
-		c := testutil.SetupClient(t)
-		ctx := t.Context()
-		deletedAt := time.Now().UTC().Add(-90 * 24 * time.Hour).Truncate(time.Second)
-		seedNet(t, c, 1, 64501, "ok", t0)
-		// The tombstone holds contact data, like the rows that the
-		// removed inference-by-absence sync code marked deleted. The
-		// retained tombstone must still show it blanked
-		// (serializers.py:2941-2954).
-		if _, err := c.Poc.Create().
-			SetID(10).SetNetID(1).SetRole("NOC").SetVisible("Public").
-			SetName("Jane Doe").SetPhone("+1 555 0100").
-			SetEmail("jane@example.invalid").SetURL("https://example.invalid/jane").
-			SetStatus("deleted").SetCreated(t0).SetUpdated(deletedAt).
-			Save(ctx); err != nil {
-			t.Fatalf("seed poc tombstone: %v", err)
-		}
-
-		srv := newTestServer(t, c)
-		path := fmt.Sprintf("/api/poc?since=%d", deletedAt.Add(-24*time.Hour).Unix())
-		status, body := httpGet(t, srv, path)
-		if status != http.StatusOK {
-			t.Fatalf("GET %s: status = %d; body=%s", path, status, string(body))
-		}
-		// Upstream returns [] here: the tombstone is 90 days old.
-		rows := decodeDataArray(t, body)
-		if len(rows) != 1 || rows[0]["id"] != float64(10) {
-			t.Fatalf("GET %s: got %v, want one row with id 10 (retained tombstone; divergence canary)", path, rows)
-		}
-		for _, key := range []string{"name", "phone", "email", "url"} {
-			if got := rows[0][key]; got != "" {
-				t.Errorf("retained tombstone %s = %v, want \"\"", key, got)
-			}
-		}
-	})
-
 	t.Run("DIVERGENCE_deleted_net_netixlan_tombstone_in_since_window", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: when the RIR reclaims the ASN of a network,

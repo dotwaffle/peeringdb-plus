@@ -264,10 +264,11 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // The filterable meta keys of the type (netixlan meta__<path> and the
 // upstream meta_* column names, see lookupMetaFilter) resolve first,
-// before the key is split for traversal. The relation keys of an
-// upstream prepare_query (relationSeeds, for example fac?net= and
-// net?ix__name=) resolve next, with their own path and status rules
-// (buildRelationSeedPredicate).
+// before the key is split for traversal. The presence keys of an
+// upstream prepare_query (presenceKeys, for example net?not_ix= and
+// fac?all_net=) resolve next, then its relation keys (relationSeeds,
+// for example fac?net= and net?ix__name=), with their own path and
+// status rules (buildPresencePredicate, buildRelationSeedPredicate).
 //
 // The status matrix and the _fold-routing / empty-__in invariants
 // are preserved: traversal predicates wrap around buildPredicate which still
@@ -319,6 +320,17 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 				continue
 			}
 			p, err := multiChoiceLikeAny("info_types", patterns)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			predicates = append(predicates, p)
+			continue
+		}
+		// The presence keys of an upstream prepare_query (not_ix,
+		// all_net, org_present and the others) use the first value of a
+		// repeated key, as prepare_query reads kwargs.get(key)[0].
+		if pk, isPresence := lookupPresenceKey(tc.Name, key); isPresence {
+			p, err := buildPresencePredicate(tc, pk, vals[0], tier)
 			if err != nil {
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
 			}

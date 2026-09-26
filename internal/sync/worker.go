@@ -930,6 +930,13 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
 		return err
 	}
+	// Delete the poc tombstones that upstream no longer has (see
+	// purgeDeletedPocs).
+	purged, err := purgeDeletedPocs(ctx, tx, start)
+	if err != nil {
+		w.rollbackAndRecord(ctx, effectiveMode, tx, statusID, start, err)
+		return err
+	}
 	// Mark deleted the live netixlans of deleted networks that upstream
 	// removed without a tombstone (see cascadeDeletedNetIxLans).
 	cascaded, err := cascadeDeletedNetIxLans(ctx, tx, cascade)
@@ -959,6 +966,7 @@ func (w *Worker) syncCycle(ctx context.Context, effectiveMode config.SyncMode, s
 		return syncErr
 	}
 	logScrubbedPocContacts(ctx, w.logger, scrubbed)
+	logPurgedPocs(ctx, w.logger, purged)
 	recordCascadeCommitted(ctx, w.logger, cascade.Mode, cascaded)
 	logHistoryCommitted(ctx, w.logger, history)
 	logWatermarksCommitted(ctx, w.logger, marks)

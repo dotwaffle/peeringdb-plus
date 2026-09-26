@@ -543,11 +543,12 @@ func TestSync_TombstonePersistedFromExplicitPayload(t *testing.T) {
 // cycle that includes explicit status='deleted' tombstones leaves the
 // DB without FK violations. Previously the
 // inference-by-absence delete pass meant the test had to verify that
-// the post-delete row set was internally consistent. Now no rows
-// are removed and no FKs change as a result of the sync, so the
-// invariant is necessarily preserved — but the foreign_key_check is
-// kept as a regression lock against any future schema change that
-// might re-introduce hard-delete semantics.
+// the post-delete row set was internally consistent. Now the only
+// rows that sync removes are old poc tombstones (purgeDeletedPocs),
+// which no row references, and no FKs change as a result of the sync,
+// so the invariant is necessarily preserved, but the
+// foreign_key_check is kept as a regression lock against any future
+// schema change that might re-introduce hard-delete semantics.
 func TestSyncFKIntegrity_AfterTombstoneCycle(t *testing.T) {
 	t.Parallel()
 	fs := newFixtureServer(t)

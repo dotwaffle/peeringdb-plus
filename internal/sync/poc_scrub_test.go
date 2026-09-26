@@ -22,7 +22,9 @@ const scrubLogMsg = "scrubbed contact fields of deleted pocs"
 
 // legacyPocTime is the created/updated time of the seeded legacy rows.
 // No test fixture sends these pocs, so a sync cycle never rewrites them.
-var legacyPocTime = time.Date(2026, 4, 20, 0, 0, 0, 0, time.UTC)
+// It is within pocDeletionPeriod of now, so purgeDeletedPocs keeps the
+// deleted rows.
+var legacyPocTime = time.Now().UTC().Add(-7 * 24 * time.Hour).Truncate(time.Second)
 
 // seedLegacyPocs writes pocs straight to the table, the way the removed
 // inference-by-absence code left them: status "deleted" with contact

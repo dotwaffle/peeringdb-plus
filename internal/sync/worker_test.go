@@ -2036,12 +2036,14 @@ func TestSync_IncrementalRoleTombstone(t *testing.T) {
 	// Cycle 2: upstream returns Alice unchanged + Bob as a PII-scrubbed
 	// tombstone (status="deleted", role=""). Bump generated so the cursor
 	// can advance. Bump Bob's `updated` past cycle 1
-	// so the skip-on-unchanged predicate admits the status flip.
+	// so the skip-on-unchanged predicate admits the status flip. The
+	// value is recent, so purgeDeletedPocs keeps the tombstone.
 	t2 := t1 + 3600
 	f.generated = t2
+	bobDeleted := time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)
 	f.responses["poc"] = []any{
 		makePoc(10, 50, "Alice", "Technical", "ok"),
-		bumpUpdated(makePoc(11, 50, "", "", "deleted"), "2024-01-02T00:00:00Z"),
+		bumpUpdated(makePoc(11, 50, "", "", "deleted"), bobDeleted),
 	}
 
 	if err := w.Sync(ctx, config.SyncModeIncremental); err != nil {
