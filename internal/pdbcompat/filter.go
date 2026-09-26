@@ -1082,6 +1082,19 @@ func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exact
 			return intTextMatch(col, value), nil
 		}
 	}
+	if expr := numericText(ft); expr != "" && !exactInt {
+		text := likeEscape(unifold.Fold(value))
+		switch coerceToCaseInsensitive(op) {
+		case "icontains":
+			return textLike(col, expr, "%"+text+"%"), nil
+		case "istartswith":
+			return textLike(col, expr, text+"%"), nil
+		case "", "iexact":
+			if ft == FieldFloat {
+				return textLike(col, expr, text), nil
+			}
+		}
+	}
 	if ft == FieldBool {
 		switch op {
 		case "":
@@ -1094,6 +1107,37 @@ func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exact
 		}
 	}
 	return buildPredicate(col, op, value, ft, folded)
+}
+
+// numericText returns the SQL expression, with one %s for the column,
+// that renders a column of type ft as MySQL renders it as text, or ""
+// for a type that is not numeric. Upstream does not convert the value of
+// __icontains, __istartswith and __iexact (PatternLookup and IExact set
+// prepare_rhs=False, django/db/models/lookups.py), so MySQL compares
+// the column as text with LIKE: an integer as decimal text, a boolean
+// (tinyint) as 1 or 0, and a DecimalField(max_digits=9,
+// decimal_places=6) as its text with 6 decimals, for example 52.500000.
+// printf renders NULL as 0.000000, so the decimal form keeps NULL.
+func numericText(ft FieldType) string {
+	switch ft {
+	case FieldInt, FieldBool:
+		return "CAST(%s AS TEXT)"
+	case FieldFloat:
+		return "CASE WHEN %[1]s IS NULL THEN NULL ELSE printf('%%.6f', %[1]s) END"
+	case FieldString, FieldTime, FieldMultiChoice:
+		return ""
+	default:
+		return ""
+	}
+}
+
+// textLike returns the predicate expr LIKE pattern, where expr holds one
+// %s for col and pattern is escaped for ESCAPE '\'. SQLite LIKE ignores
+// ASCII case, as the MySQL collation does.
+func textLike(col, expr, pattern string) func(*sql.Selector) {
+	return func(s *sql.Selector) {
+		s.Where(sql.ExprP(fmt.Sprintf(expr, s.C(col))+` LIKE ? ESCAPE '\'`, pattern))
+	}
 }
 
 // nullableBoolFields lists the boolean model fields that allow NULL

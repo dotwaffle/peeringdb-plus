@@ -688,7 +688,9 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			"created":      FieldTime,
 			"latitude":     FieldFloat,
 			"name":         FieldString,
+			"org_id":       FieldInt,
 		},
+		ForeignKeys: map[string]string{"org": "org_id"},
 	}
 
 	tests := []struct {
@@ -716,19 +718,21 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			wantMsg: "filter created",
 		},
 		{
-			name:    "float conversion error propagated",
-			params:  url.Values{"latitude": {"not-a-float"}},
-			wantMsg: "filter latitude",
+			name: "float conversion error propagated",
+			// A plain decimal key matches the text (TestParseFilters_NumericText).
+			params:  url.Values{"latitude__lt": {"not-a-float"}},
+			wantMsg: "filter latitude__lt",
 		},
 		{
-			name:    "contains on int field error propagated",
-			params:  url.Values{"asn__contains": {"123"}},
-			wantMsg: "filter asn__contains",
+			// A FK has no text form upstream: Django raises FieldError.
+			name:    "contains on FK field error propagated",
+			params:  url.Values{"org_id__contains": {"123"}},
+			wantMsg: "filter org_id__contains",
 		},
 		{
-			name:    "startswith on int field error propagated",
-			params:  url.Values{"asn__startswith": {"123"}},
-			wantMsg: "filter asn__startswith",
+			name:    "startswith on FK field error propagated",
+			params:  url.Values{"org__startswith": {"123"}},
+			wantMsg: "filter org__startswith",
 		},
 		{
 			name:    "in with non-numeric int values error propagated",
@@ -1110,6 +1114,40 @@ func TestParseFiltersCtx_ErrorWinsOverEmptyResult(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), "filter "+tt.errKey) {
 					t.Fatalf("iteration %d: preds=%d empty=%v err=%v, want the %s error", i, len(preds), empty, err, tt.errKey)
 				}
+			}
+		})
+	}
+}
+
+func TestParseFilters_NumericText(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		typ, key, value string
+		wantSQL         string
+		wantArg         string
+	}{
+		{"net", "asn__contains", "33", "CAST(`t`.`asn` AS TEXT) LIKE ?", "%33%"},
+		{"net", "asn__startswith", "1_", "CAST(`t`.`asn` AS TEXT) LIKE ?", `1\_%`},
+		{"net", "id__contains", "%", "CAST(`t`.`id` AS TEXT) LIKE ?", `%\%%`},
+		{"net", "info_unicast__contains", "1", "CAST(`t`.`info_unicast` AS TEXT) LIKE ?", "%1%"},
+		{"fac", "latitude", "52.5", "printf('%.6f', `t`.`latitude`) END LIKE ?", "52.5"},
+		{"fac", "latitude__iexact", "52.500000", "printf('%.6f', `t`.`latitude`) END LIKE ?", "52.500000"},
+		{"org", "longitude__startswith", "-0.1", "printf('%.6f', `t`.`longitude`) END LIKE ?", "-0.1%"},
+	} {
+		t.Run(tt.typ+"?"+tt.key+"="+tt.value, func(t *testing.T) {
+			t.Parallel()
+			preds, empty, err := ParseFilters(url.Values{tt.key: {tt.value}}, Registry[tt.typ])
+			if err != nil || empty || len(preds) != 1 {
+				t.Fatalf("ParseFilters: %d predicates, empty=%v, err=%v", len(preds), empty, err)
+			}
+			s := sql.Dialect(dialect.SQLite).Select("*").From(sql.Table("t"))
+			preds[0](s)
+			query, args := s.Query()
+			if !strings.Contains(query, tt.wantSQL) {
+				t.Errorf("query = %q, want %s", query, tt.wantSQL)
+			}
+			if len(args) != 1 || args[0] != tt.wantArg {
+				t.Errorf("args = %v, want [%s]", args, tt.wantArg)
 			}
 		})
 	}

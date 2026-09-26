@@ -16,6 +16,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat matches `__contains` and `__startswith` on an integer, boolean or decimal field against the text of the stored value, as MySQL does upstream, for example `?asn__contains=33`.
+  A key without an operator and `__iexact` on `latitude` or `longitude` match the text with 6 decimals, so `?latitude=52.5` matches no row and `?latitude=52.500000` matches.
+  Before, pdbcompat returned `400` for `__contains` and `__startswith` on these fields and compared `latitude` and `longitude` as numbers.
 - pdbcompat reads boolean filter values as upstream.
   A key without an operator selects `false` for any value other than `true` (in any case) or `1`, for example `?info_unicast=yes`.
   `__in`, `__lt`, `__lte`, `__gt` and `__gte` accept only `t`, `True`, `1`, `f`, `False` and `0` (Django `BooleanField.to_python`) and return `400` for another value, for example `?info_unicast__in=true` or an empty `__in`.

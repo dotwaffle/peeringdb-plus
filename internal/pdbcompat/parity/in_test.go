@@ -233,6 +233,62 @@ func TestParity_In(t *testing.T) {
 		}
 	})
 
+	t.Run("numeric_text_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:659-662 turns contains and startswith
+		// into icontains and istartswith, and :683 makes a plain key
+		// __iexact. These lookups do not convert the value
+		// (prepare_rhs=False, django/db/models/lookups.py), so MySQL
+		// compares the column as text with LIKE: an integer as decimal
+		// text, a boolean as 1 or 0, and latitude/longitude
+		// (DecimalField, 6 decimals, django-peeringdb abstract.py:94-113)
+		// as for example 52.500000.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "NumOrg", t0)
+		mustNet(ctx, t, c, 1, "NumNet1", 64512, 1, t0)
+		mustNet(ctx, t, c, 2, "NumNet2", 13335, 1, t0)
+		for _, f := range []struct {
+			id  int
+			lat *float64
+		}{{400, new(52.5)}, {401, new(-0.25)}, {402, nil}} {
+			name := "NumFac" + strconv.Itoa(f.id)
+			c.Facility.Create().
+				SetID(f.id).SetName(name).SetNameFold(unifold.Fold(name)).
+				SetOrgID(1).SetCity("C").SetCityFold("c").SetCountry("DE").
+				SetNillableLatitude(f.lat).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/net?asn__contains=451", []int{1}},
+			{"/api/net?asn__startswith=1333", []int{2}},
+			{"/api/net?asn__contains=x", []int{}},
+			{"/api/net?id__startswith=2", []int{2}},
+			{"/api/net?info_unicast__contains=0", []int{1, 2}},
+			{"/api/net?info_unicast__startswith=false", []int{}},
+			{"/api/fac?latitude=52.5", []int{}},
+			{"/api/fac?latitude=52.500000", []int{400}},
+			{"/api/fac?latitude=-0.250000", []int{401}},
+			{"/api/fac?latitude__contains=.5", []int{400}},
+			{"/api/fac?latitude__startswith=-0.2", []int{401}},
+			{"/api/fac?latitude__startswith=0", []int{}},
+			{"/api/fac?latitude=abc", []int{}},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status %d, want 200; body=%s", tc.path, status, body)
+				continue
+			}
+			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
+				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
+			}
+		}
+	})
+
 	t.Run("malformed_int_csv_returns_400", func(t *testing.T) {
 		t.Parallel()
 		// v1.16 behaviour lock: malformed values in a typed-int
