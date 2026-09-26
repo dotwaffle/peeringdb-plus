@@ -2,6 +2,7 @@ package parity
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1013,6 +1014,38 @@ func TestParity_Status(t *testing.T) {
 			want := "Method \"" + tc.method + "\" not allowed."
 			if got := mustDecodeMetaError(t, body).Error; got != want {
 				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
+			}
+		}
+	})
+
+	t.Run("api_root_without_slash_redirects_301", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 middleware.py:175-190 (PDBCommonMiddleware,
+		// a Django CommonMiddleware with APPEND_SLASH) redirects /api to
+		// /api/ with a 301 for every method, before any view runs, and
+		// keeps the query string. The body is empty.
+		srv := newTestServer(t, testutil.SetupClient(t))
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodOptions} {
+			req, err := http.NewRequestWithContext(t.Context(), method, srv.URL+"/api?depth=x&pretty", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("%s /api: %v", method, err)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusMovedPermanently {
+				t.Errorf("%s /api: status = %d, want 301", method, resp.StatusCode)
+			}
+			if got := resp.Header.Get("Location"); got != "/api/?depth=x&pretty" {
+				t.Errorf("%s /api: Location = %q, want %q", method, got, "/api/?depth=x&pretty")
+			}
+			if len(body) != 0 {
+				t.Errorf("%s /api: body = %q, want empty", method, body)
 			}
 		}
 	})

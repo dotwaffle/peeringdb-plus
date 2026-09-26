@@ -335,6 +335,8 @@ See § Known Divergences.
 | `GET /api/as_set` | Map of ASN to `irr_as_set` (see § AS-SET lookup) |
 | `GET /api/as_set/{asn}` | One ASN to `irr_as_set` pair (see § AS-SET lookup) |
 
+`/api` without the `/` returns `301` with `Location: /api/` and the same query string, for every method, as upstream (Django `APPEND_SLASH`).
+
 Each route also accepts the format suffix `.json`, with or without a `/` after it, as upstream: `/api/.json`, `/api/net.json` and `/api/net/1.json` return the same body as `/api/`, `/api/net` and `/api/net/1`.
 Another suffix of lowercase letters and digits, for example `/api/net.xml`, returns `404` (`Not found.`), as upstream.
 The upstream API cache serves no path with a suffix, so a `?depth=` list with a suffix is cut to 250 rows also without a filter (see § List depth).

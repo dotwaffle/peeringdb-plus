@@ -75,6 +75,24 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	// Every other method reaches the method-less pattern: GET (and HEAD,
 	// which the mux serves with the GET pattern) is more specific.
 	mux.Handle("/api/{rest...}", prettyJSON(http.HandlerFunc(h.methodNotAllowed)))
+	// The mux would send a 307 for /api, so the path has its own route.
+	mux.HandleFunc("/api", redirectAPIRoot)
+}
+
+// redirectAPIRoot answers /api with the redirect of the upstream
+// PDBCommonMiddleware (2.83.0 middleware.py:175-190), a Django
+// CommonMiddleware with APPEND_SLASH: a 301 for every method to the
+// path with a "/" and the same query string, with an empty HTML body
+// (Django HttpResponsePermanentRedirect). The Location is relative, as
+// upstream sends it for its www host.
+func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
+	target := "/api/"
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	w.Header().Set("Location", target)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusMovedPermanently)
 }
 
 // methodNotAllowed answers a method other than GET and HEAD. The mirror
@@ -127,7 +145,8 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))
 
 	if typeName == "" {
-		// /api/, /api or /api/.json -- serve the index.
+		// /api/ or /api/.json -- serve the index. /api has its own route
+		// (redirectAPIRoot).
 		if !formatAccepted(format, r.URL.Query()) {
 			writeDetailNotFound(w, r, detailSliceNotFound)
 			return
