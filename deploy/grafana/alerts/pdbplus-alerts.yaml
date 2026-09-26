@@ -277,7 +277,7 @@ groups:
         expr: |
           max by (region, instance) (fly_instance_memory_mem_available{app="peeringdb-plus"})
             unless on (instance)
-          litefs_is_primary{app="peeringdb-plus"}
+          max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])
         for: 10m
         labels:
           severity: warning
@@ -287,7 +287,9 @@ groups:
             Fly.io reports the machine {{ $labels.instance }} in
             {{ $labels.region }}, but has no LiteFS metrics for it
             (litefs_is_primary), for 10m. Fly.io scrapes the LiteFS metrics
-            endpoint (port 20202, fly.toml [[metrics]]) every 15 seconds.
+            endpoint (port 20202, fly.toml [[metrics]]) every 15 seconds. It
+            misses some scrapes (about 3% in gru), so the rule looks back
+            2m: a single missed scrape does not make the metrics absent.
             Without these metrics, PdbPlusReplicaLagHigh cannot fire for the
             machine. Check that LiteFS runs on the machine (fly logs -a
             peeringdb-plus), that fly.toml still has the [[metrics]]
