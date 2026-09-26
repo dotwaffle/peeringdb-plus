@@ -78,8 +78,8 @@ kill_timeout = 30
   auto_extend_size_limit = "10G"
 
 # HTTP service serves traffic from BOTH groups (routed by Fly Proxy per region).
-# Without `processes = [...]`, the service applies to all groups — explicit here
-# for documentation.
+# Keep `processes`: without it, flyctl applies the section to the default
+# process group only (here primary), and the replicas get no traffic.
 [http_service]
   internal_port = 8080
   force_https = true

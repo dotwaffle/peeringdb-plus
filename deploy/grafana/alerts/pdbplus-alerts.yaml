@@ -257,7 +257,7 @@ groups:
             (fly.toml [[vm]]).
 
       - alert: PdbPlusReplicaLagHigh
-        expr: max by (region) (litefs_lag_seconds{app="peeringdb-plus"}) > 600
+        expr: max by (region) (last_over_time(litefs_lag_seconds{app="peeringdb-plus"}[2m])) > 600
         for: 10m
         labels:
           severity: warning
@@ -268,16 +268,17 @@ groups:
             frame (LTX file or heartbeat) from the primary for more than 600
             seconds (litefs_lag_seconds), for 10m. It serves the data of its
             last applied transaction. The 7-day maximum to 2026-09-25 was 30
-            seconds. The value is 0 on the primary. If PdbPlusPrimaryAbsent
-            fires too, fix the primary first. Else read the LiteFS lines of
-            that machine in fly logs; a replica is recovered by destroying
-            and recreating it.
+            seconds. The value is 0 on the primary. The rule uses the last
+            sample of the last 2m, so a missed scrape does not restart the
+            10m. If PdbPlusPrimaryAbsent fires too, fix the primary first.
+            Else read the LiteFS lines of that machine in fly logs; a
+            replica is recovered by destroying and recreating it.
 
       - alert: PdbPlusLiteFSMetricsAbsent
         expr: |
           max by (region, instance) (fly_instance_memory_mem_available{app="peeringdb-plus"})
             unless on (instance)
-          litefs_is_primary{app="peeringdb-plus"}
+          max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])
         for: 10m
         labels:
           severity: warning
@@ -287,7 +288,9 @@ groups:
             Fly.io reports the machine {{ $labels.instance }} in
             {{ $labels.region }}, but has no LiteFS metrics for it
             (litefs_is_primary), for 10m. Fly.io scrapes the LiteFS metrics
-            endpoint (port 20202, fly.toml [[metrics]]) every 15 seconds.
+            endpoint (port 20202, fly.toml [[metrics]]) every 15 seconds. It
+            misses some scrapes (about 3% in gru), so the rule looks back
+            2m: a single missed scrape does not make the metrics absent.
             Without these metrics, PdbPlusReplicaLagHigh cannot fire for the
             machine. Check that LiteFS runs on the machine (fly logs -a
             peeringdb-plus), that fly.toml still has the [[metrics]]

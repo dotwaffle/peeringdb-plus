@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"io/fs"
 	"net/http"
@@ -1671,17 +1672,59 @@ func TestHandleServerError(t *testing.T) {
 	client := testutil.SetupClient(t)
 	h := NewHandler(NewHandlerInput{Client: client})
 
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/ui/500", nil)
-
-	h.handleServerError(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, rec.Code)
+	tests := []struct {
+		name     string
+		canceled bool
+		wantCode int
+		wantBody string
+	}{
+		{name: "live request", wantCode: http.StatusInternalServerError, wantBody: "Server Error"},
+		{name: "client canceled", canceled: true, wantCode: statusClientClosedRequest},
 	}
-	body := rec.Body.String()
-	if !strings.Contains(body, "Server Error") {
-		t.Errorf("response body missing %q, got %q", "Server Error", body)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			if tt.canceled {
+				cancel()
+			}
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/ui/500", nil)
+
+			h.handleServerError(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.wantCode)
+			}
+			body := rec.Body.String()
+			if tt.wantBody == "" && body != "" {
+				t.Errorf("body = %q, want empty", body)
+			}
+			if !strings.Contains(body, tt.wantBody) {
+				t.Errorf("response body missing %q, got %q", tt.wantBody, body)
+			}
+		})
+	}
+}
+
+// TestSearchEndpoint_ClientCanceled checks that a search whose client
+// went away (htmx aborts a search that a new keystroke replaces) gets
+// 499, not 500: the query fails only because the request context is
+// canceled.
+func TestSearchEndpoint_ClientCanceled(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/ui/search?q=sni", nil)
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != statusClientClosedRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, statusClientClosedRequest)
 	}
 }
 
