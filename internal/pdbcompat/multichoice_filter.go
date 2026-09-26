@@ -136,9 +136,8 @@ func buildMultiChoicePredicate(col, op, value string) (func(*sql.Selector), erro
 	case "istartswith":
 		return multiChoiceLikeAny(col, []string{likeEscape(lower) + "%"})
 	case "in":
-		if value == "" {
-			return nil, errEmptyIn
-		}
+		// An empty item is the empty string: get_prep_value picks no
+		// choice from it (django-peeringdb fields.py:61-71).
 		parts := strings.Split(value, ",")
 		for i, part := range parts {
 			parts[i] = strings.ToLower(canonicalChoices(choices, part))

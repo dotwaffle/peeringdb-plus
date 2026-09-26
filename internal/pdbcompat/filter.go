@@ -475,7 +475,7 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, aft
 			}
 		}
 	}
-	if st.empty || ns.empty || ns.none {
+	if st.empty || ns.none {
 		return listFilters{emptyResult: true, none: ns.none, searchHit: ns.hit, upstreamFilter: true}, nil
 	}
 	return listFilters{
@@ -1408,17 +1408,13 @@ func buildStartsWith(field, value string, ft FieldType, folded bool) (func(*sql.
 // (modernc.org/sqlite v1.48.2 = 32766) and keeps the query plan stable
 // at any list size.
 //
-// An empty value (?asn__in=) returns errEmptyIn which ParseFilters
-// translates to QueryOptions.EmptyResult=true.
+// Upstream splits the value with str.split(","), which keeps empty
+// items, and Django converts each item for the field (2.83.0
+// rest.py:664-666). So an empty item of a string field matches an empty
+// value, and on the other types it is a value that does not convert
+// (400): ?asn__in= and ?asn__in=1, return 400.
 func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
-	if value == "" {
-		return nil, errEmptyIn
-	}
 	parts := strings.Split(value, ",")
-	if len(parts) == 0 {
-		// Defensive — strings.Split never returns []; "" is handled above.
-		return nil, errEmptyIn
-	}
 	// Bool, float, and time IN lists bind each value as a parameter via
 	// ent's converter (sql.FieldIn), exactly like buildExact's FieldEQ.
 	// This keeps IN comparison semantics identical to single-value
@@ -1439,9 +1435,11 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 		// the <field>_fold shadow column), keeping __in consistent
 		// with the exact/contains/startswith operators on the same
 		// field.
+		// The MySQL collations pad with spaces (PAD SPACE), so trailing
+		// spaces do not count and leading spaces do.
 		trimmed := make([]string, len(parts))
 		for i, p := range parts {
-			v := strings.TrimSpace(p)
+			v := strings.TrimRight(p, " ")
 			if folded {
 				v = unifold.Fold(v)
 			}

@@ -98,13 +98,13 @@ func TestParseFilters_Traversal_Table(t *testing.T) {
 			wantUnknown: []string{"a__b__c__d__e"},
 		},
 		{
-			// Empty-__in preservation: empty __in on a traversal key
-			// also short-circuits (same as local field).
-			name:      "empty __in on traversal key short-circuits",
+			// An empty __in on a string traversal key is one empty
+			// item (str.split), which matches the empty string, as on a
+			// local field.
+			name:      "empty __in on traversal string key matches empty string",
 			tc:        netTC,
-			params:    url.Values{"org__id__in": {""}},
-			wantPreds: 0,
-			wantEmpty: true,
+			params:    url.Values{"org__name__in": {""}},
+			wantPreds: 1,
 		},
 		{
 			// Fold-routing preservation on local field — the

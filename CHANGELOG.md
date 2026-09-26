@@ -16,6 +16,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat splits an `__in` value as upstream does, keeping empty items: an empty item that does not convert for the field type returns `400`, for example `?asn__in=` or `?asn__in=1,`, and on a string field it matches the empty string.
+  A space at the start of a string item now counts, a space at the end does not.
+  Before, an empty `__in` returned an empty list and every item lost its spaces.
 - pdbcompat matches a time key without an operator, for example `?updated=2024-01`, as a prefix of the upstream database text of the column (`YYYY-MM-DD HH:MM:SS.ffffff`), as upstream does.
   A value with a `T`, a zone or Unix seconds matches no row, and a value that is not a time matches no row instead of returning `400`.
   Before, pdbcompat matched a date as the whole day and any other value as one instant.

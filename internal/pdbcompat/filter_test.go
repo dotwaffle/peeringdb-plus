@@ -289,12 +289,18 @@ func TestParseFilters(t *testing.T) {
 			wantCount: 1,
 		},
 		{
-			// Empty __in short-circuits with emptyResult=true
-			// and no predicates are emitted (caller returns []).
-			name:         "empty __in triggers emptyResult sentinel",
-			params:       url.Values{"asn__in": {""}},
-			wantCount:    0,
-			wantEmptyRes: true,
+			// An empty __in is one empty item (str.split), which an
+			// integer field cannot convert.
+			name:    "empty __in on int field is an error",
+			params:  url.Values{"asn__in": {""}},
+			wantErr: true,
+		},
+		{
+			// On a string field the empty item matches the empty
+			// string.
+			name:      "empty __in on string field is a predicate",
+			params:    url.Values{"status__in": {""}},
+			wantCount: 1,
 		},
 	}
 
@@ -1081,20 +1087,16 @@ func TestParseFiltersCtx_ErrorWinsOverEmptyResult(t *testing.T) {
 		errKey   string
 		errValue string
 	}{
+		// Only an empty __in on a nullable boolean (fac
+		// diverse_serving_substations) and the metadata __in keys give
+		// an empty result: on the other fields an empty __in is one
+		// empty item, a 400 or a match of the empty string.
 		{"meta", "netixlan", "meta__rfc8950__in", "ix", "abc"},
-		{"relation_seed", "fac", "net__in", "all_net", "x"},
-		{"local", "fac", "id__in", "all_net", "x"},
-		{"traversal", "net", "org__name__in", "not_ix", "x"},
-		{"relation_key_bad_field_beats_empty_in", "fac", "id__in", "net__bogus", "1"},
-		{"whereis_bad_address_beats_empty_in", "ixpfx", "id__in", "whereis", "abc"},
-		{"whereis_in_beats_empty_in", "ixpfx", "prefix__in", "whereis__in", ""},
-		{"capacity_bad_value_beats_empty_in", "ix", "id__in", "capacity", "abc"},
-		{"capacity_in_beats_empty_in", "ix", "name__in", "capacity__in", ""},
-		{"asn_overlap_one_asn_beats_empty_in", "fac", "id__in", "asn_overlap", "64500"},
-		{"asn_overlap_bad_item_beats_empty_in", "ix", "name__in", "asn_overlap", "64500,abc"},
-		{"distance_bad_value_beats_empty_in", "fac", "id__in", "distance", "abc"},
-		{"distance_nan_beats_empty_in", "org", "name__in", "distance", "nan"},
-		{"name_search_bad_digit_beats_empty_in", "net", "name__in", "name_search", "²"},
+		{"local", "fac", "diverse_serving_substations__in", "all_net", "x"},
+		{"relation_key_bad_field_beats_empty_in", "fac", "diverse_serving_substations__in", "net__bogus", "1"},
+		{"asn_overlap_one_asn_beats_empty_in", "fac", "diverse_serving_substations__in", "asn_overlap", "64500"},
+		{"distance_bad_value_beats_empty_in", "fac", "diverse_serving_substations__in", "distance", "abc"},
+		{"distance_nan_beats_empty_in", "fac", "diverse_serving_substations__in", "distance", "nan"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

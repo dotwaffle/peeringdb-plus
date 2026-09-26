@@ -921,7 +921,7 @@ func TestServeList_UniqueQueryEmptyExits(t *testing.T) {
 			path   string
 			want   int
 		}{
-			{http.MethodGet, "/api/net?id=1&asn__in=", http.StatusNotFound},
+			{http.MethodGet, "/api/fac?id=1&diverse_serving_substations__in=", http.StatusNotFound},
 			{http.MethodGet, "/api/net?id=1", http.StatusNotFound},
 			{http.MethodGet, "/api/net?asn=1", http.StatusNotFound},
 			{http.MethodHead, "/api/net?id=1", http.StatusNotFound},
@@ -1320,24 +1320,39 @@ func TestTraversal_FoldRouting_Preserved(t *testing.T) {
 	}
 }
 
-// TestTraversal_EmptyIn_ShortCircuits guards the empty-__in sentinel under
-// the traversal parser. An empty __in parameter short-circuits the
-// handler to return 200 with an empty data array — no SQL is executed.
-// seed.Full has multiple networks; without the short-circuit a naive
-// IN(empty) would either error or return all rows.
-func TestTraversal_EmptyIn_ShortCircuits(t *testing.T) {
+// TestTraversal_EmptyIn_LikeUpstream locks the empty __in value on a
+// local and a traversal key. Upstream splits the value with
+// str.split(","), so an empty value is one empty item (2.83.0
+// rest.py:664-666): an integer field cannot convert it (400), and a
+// string field matches the empty string. Only a nullable boolean field,
+// where Django reads the empty item as None and In drops it, gives the
+// empty result that short-circuits the handler with no SQL.
+func TestTraversal_EmptyIn_LikeUpstream(t *testing.T) {
 	t.Parallel()
 	mux := setupTraversalHandler(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/net?asn__in=", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
-	}
-	ids := extractIDs(t, rec.Body.Bytes())
-	if len(ids) != 0 {
-		t.Errorf("empty __in short-circuit regression: got %d rows (ids=%v), want 0", len(ids), ids)
+	for _, tc := range []struct {
+		path string
+		want int
+	}{
+		{"/api/net?asn__in=", http.StatusBadRequest},
+		{"/api/net?org__id__in=", http.StatusBadRequest},
+		// Matches the empty string; the seed has no fold values, so
+		// the status is what counts here.
+		{"/api/net?org__name__in=", http.StatusOK},
+		{"/api/fac?diverse_serving_substations__in=", http.StatusOK},
+	} {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != tc.want {
+			t.Errorf("%s: status = %d, want %d: %s", tc.path, rec.Code, tc.want, rec.Body.String())
+			continue
+		}
+		if rec.Code == http.StatusOK && !strings.Contains(tc.path, "name") {
+			if ids := extractIDs(t, rec.Body.Bytes()); len(ids) != 0 {
+				t.Errorf("%s: got ids %v, want none", tc.path, ids)
+			}
+		}
 	}
 }

@@ -255,7 +255,7 @@ func TestParseListFilters_UpstreamFilter(t *testing.T) {
 		wantPreds        bool
 	}{
 		{"model_field", peeringdb.TypeNet, "name=x", true, true},
-		{"empty_in", peeringdb.TypeNet, "id__in=", true, false},
+		{"empty_in", peeringdb.TypeFac, "diverse_serving_substations__in=", true, false},
 		// upstream sets query_adjusted (serializers.py:3775-3810).
 		{"info_type_matches_all", peeringdb.TypeNet, "info_type=", true, false},
 		{"info_type_in_matches_all", peeringdb.TypeNet, "info_type__in=,x", true, false},

@@ -391,10 +391,16 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 		if sd.prefix != "" && len(tail) > 0 && !isKnownOperator(tail[0]) {
 			field = stripRelationPrefix(sd.prefix, field)
 		}
+		lookup := field
 		var err error
 		field, op, value, err = relationLookupName(sd, field, op, value)
 		if err != nil {
 			return nil, false, false, err
+		}
+		if lookup == "in" && value == "" {
+			// Django iterates the characters of the string: an empty
+			// value is an empty list, which matches no row.
+			return nil, false, true, nil
 		}
 	}
 	edges := make([]EdgeMetadata, len(sd.hops))

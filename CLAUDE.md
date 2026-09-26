@@ -288,7 +288,7 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   `ParsePaginationParams` returns signed values: `serveList` sends 400 `Negative indexing is not supported.` for a negative `skip` (after the filters, before every exit) and serves every row for a negative `limit`.
   A negative `skip` on a list that upstream serves from its API cache is a registered divergence (`DIVERGENCE_negative_skip_on_cacheable_list_returns_400`).
 - Unique-query 404 (`isUniqueQuery` in `handler.go`): a list with the `id` key (any type) or `asn` key (net), no `page` key, and zero served rows returns 404 `Entity not found` (upstream `rest.py:809-815`).
-  It fires on all three empty exits of `serveList` (empty `__in`, budget `count == 0`, empty `List`) and runs after privacy filtering, so a hidden poc id is a 404 (registered divergence).
+  It fires on all three empty exits of `serveList` (empty result: a nullable-bool or metadata `__in` with no item left, a relation `in` field with an empty value; budget `count == 0`; empty `List`) and runs after privacy filtering, so a hidden poc id is a 404 (registered divergence).
 - A plain key (or `__iexact`) on a non-FK integer model field matches the decimal text of the folded value (`intTextMatch`, `sql.False()` otherwise, never the `EmptyResult` sentinel): upstream `__iexact` does not convert the value (`rest.py:670-683`).
   FK keys, operators, relation seeds, presence keys and the count seeds (`TypeConfig.ExactCounts`, first value) convert with `pyInt` (400 on a bad value).
 - Bare `netixlan?ipaddr6=` (`ipaddr6Predicate` in `filter.go`) canonicalizes the folded value with `netip` (upstream `coerce_ipaddr`, 2.83.0 `rest.py:605-606`) and compares with a plain `=` so the `networkixlan_ipaddr6` index serves it.
@@ -397,7 +397,7 @@ For a 14th entity, add the mapping in `cmd/pdb-compat-allowlist/main.go` `pdbTyp
 
 **Status-matrix and fold composition.**
 Traversal predicates compose with the status matrix (`wireEntity` appends `applyStatusMatrix` LAST for all 13 types) and with the `_fold` routing (a folded traversal target uses `<field>_fold` with `unifold.Fold(value)` even when reached via `<fk>__<field>`).
-Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_ShortCircuits` in `internal/pdbcompat/handler_test.go`.
+Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_FoldRouting_Preserved`, `TestTraversal_EmptyIn_LikeUpstream` in `internal/pdbcompat/handler_test.go`.
 
 **Relation filters (`internal/pdbcompat/relation_filter.go`).**
 The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__iexact`/`__icontains`/`__istartswith` filter the ixlan name), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B.

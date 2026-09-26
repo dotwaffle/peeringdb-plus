@@ -222,15 +222,15 @@ func TestInJsonEach_Large_Bypasses_SQLite_Limit(t *testing.T) {
 	}
 }
 
-// TestInJsonEach_EmptyString_ReturnsEmpty — ?asn__in= (empty value) must
-// return an empty data array without running SQL.
-func TestInJsonEach_EmptyString_ReturnsEmpty(t *testing.T) {
+// TestInJsonEach_EmptyValue: upstream splits an empty __in value into
+// one empty item (2.83.0 rest.py:664-666), which an integer field
+// cannot convert, so ?asn__in= is a 400, not an empty list.
+func TestInJsonEach_EmptyValue(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
 	ctx := t.Context()
 	now := time.Now().UTC()
 
-	// Seed some data that MUST be excluded by the empty __in.
 	for i := 1; i <= 3; i++ {
 		_, err := client.Network.Create().
 			SetID(i).SetName(fmt.Sprintf("Net%d", i)).SetAsn(64500 + i).
@@ -243,9 +243,13 @@ func TestInJsonEach_EmptyString_ReturnsEmpty(t *testing.T) {
 	srv := httptest.NewServer(newFoldFilterMux(client))
 	t.Cleanup(srv.Close)
 
-	ids := foldFetchIDs(t, srv.URL+"/api/net?asn__in=")
-	if len(ids) != 0 {
-		t.Errorf("empty __in: got ids %v, want [] (Django id__in=[] semantics)", ids)
+	resp, err := http.Get(srv.URL + "/api/net?asn__in=")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("empty __in: status %d, want 400", resp.StatusCode)
 	}
 }
 

@@ -1860,7 +1860,7 @@ func TestParity_Status(t *testing.T) {
 			{path: "/api/net/1?limit=1&asn__lt=abc", want: http.StatusBadRequest, wantErr: "filter error: "},
 			// Upstream: int("") raises ValueError, then inst[0] raises
 			// TypeError (rest.py:665-666, :697).
-			{path: "/api/net/1?asn__in=", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			{path: "/api/net/1?asn__in=", want: http.StatusBadRequest, wantErr: "filter error: "},
 			// Upstream: search_v2 calls int() on a digit value that is
 			// not decimal (search_v2.py:385, :619), and get_queryset
 			// runs it outside the prepare_query handler (rest.py:546).

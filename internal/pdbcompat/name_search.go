@@ -369,8 +369,6 @@ type nameSearchResult struct {
 	// none is upstream qset.none(): no row can match, and upstream
 	// returns before its filter loop (rest.py:550-553).
 	none bool
-	// empty is set for an empty id__in together with name_search.
-	empty bool
 	// hit is the search part of pred alone: the ok rows that match,
 	// without the id__in union. It is nil when no search runs: the key
 	// is absent or empty, or none is set. A request with a slice or a
@@ -424,15 +422,11 @@ func resolveNameSearch(tc TypeConfig, params url.Values) (nameSearchResult, erro
 		res.pred = res.hit
 		return res, nil
 	}
-	pIn, empty, _, err := buildLocalPredicate("id", "in", ids[len(ids)-1], tc, false)
+	pIn, _, _, err := buildLocalPredicate("id", "in", ids[len(ids)-1], tc, false)
 	if err != nil {
 		return nameSearchResult{}, fmt.Errorf("filter id__in: %w", err)
 	}
 	res.consumed["id__in"] = true
-	if empty {
-		res.empty = true
-		return res, nil
-	}
 	res.pred = func(s *sql.Selector) {
 		table := s.TableName()
 		u := sql.Table(table).As("u")

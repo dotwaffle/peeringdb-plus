@@ -289,7 +289,8 @@ func TestServeList_ByteExactParityWithLegacy(t *testing.T) {
 }
 
 // TestServeList_EmptyResultShortCircuitsBeforeBudget asserts that the
-// empty-result short-circuit (?asn__in= with no values)
+// empty-result short-circuit (an empty __in on a nullable boolean,
+// which Django reads as None and drops)
 // bypasses the pre-flight budget check entirely. A 1-byte budget would
 // 413 any non-empty result; an empty-result request must 200 through.
 func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
@@ -298,10 +299,9 @@ func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
 	srv, client := newHandlerForStream(t, 1)
 	_ = seed.Full(t, client)
 
-	// ?asn__in= — empty IN list.
-	resp, err := http.Get(srv.URL + "/api/net?asn__in=")
+	resp, err := http.Get(srv.URL + "/api/fac?diverse_serving_substations__in=")
 	if err != nil {
-		t.Fatalf("GET /api/net?asn__in=: %v", err)
+		t.Fatalf("GET /api/fac?diverse_serving_substations__in=: %v", err)
 	}
 	defer resp.Body.Close()
 

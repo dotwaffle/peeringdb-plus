@@ -18,8 +18,9 @@ import (
 //   - 5001-element id list returns all 5001 rows. Exercises the
 //     json_each rewrite that bypasses SQLite's 999-variable limit.
 //     Implementations without the rewrite would 500 or truncate.
-//   - empty `__in` value short-circuits to an empty result set
-//     (matches Django ORM Model.objects.filter(id__in=[])).
+//   - an empty `__in` value is one empty item, as upstream splits it
+//     with str.split(","): 400 on an integer field, the empty string
+//     on a string field.
 //   - (control): malformed CSV (`?asn__in=13335,abc`) returns
 //     HTTP 400. This is the v1.16
 //     behaviour locked by filter_test.go:632; the parity test
@@ -82,31 +83,53 @@ func TestParity_In(t *testing.T) {
 		}
 	})
 
-	t.Run("empty_returns_empty_data", func(t *testing.T) {
+	t.Run("empty_items_like_upstream", func(t *testing.T) {
 		t.Parallel()
-		// upstream: Django ORM Model.objects.filter(id__in=[])
-		// returns an empty queryset without issuing SQL.
-		// pdbcompat short-circuits via opts.EmptyResult in handler.go
-		// before any predicate runs.
+		// upstream: 2.83.0 rest.py:664-666 splits the value with
+		// str.split(","), which keeps empty items and strips nothing, so
+		// an empty value is the list [""]. Django converts each item for
+		// the field: int("") raises ValueError, and the list returns 400
+		// (rest.py:693-701, :828-831). A string field compares the item
+		// under the MySQL collation, which pads with spaces (PAD SPACE):
+		// a trailing space does not count, a leading space does.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
-		// Seed a row that WOULD match the open query — proves the
-		// short-circuit, not just an empty corpus.
-		if _, err := c.Network.Create().
-			SetID(1).SetName("InEmptyProbe").SetNameFold(unifold.Fold("InEmptyProbe")).
-			SetAsn(4_300_005_001).SetStatus("ok").
-			SetCreated(t0).SetUpdated(t0).
-			Save(ctx); err != nil {
-			t.Fatalf("seed net: %v", err)
+		for id, aka := range map[int]string{1: "", 2: "DECIX"} {
+			name := "InEmptyProbe" + strconv.Itoa(id)
+			c.Network.Create().
+				SetID(id).SetName(name).SetNameFold(unifold.Fold(name)).
+				SetAka(aka).SetAkaFold(unifold.Fold(aka)).
+				SetAsn(4_300_005_000 + id).SetStatus("ok").
+				SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 		}
 		srv := newTestServer(t, c)
-		status, body := httpGet(t, srv, "/api/net?id__in=")
-		if status != http.StatusOK {
-			t.Fatalf("status = %d; body=%s", status, string(body))
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/net?aka__in=", []int{1}},
+			{"/api/net?aka__in=decix,", []int{1, 2}},
+			{"/api/net?aka__in=decix%20%20", []int{2}},
+			{"/api/net?aka__in=%20decix", []int{}},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status %d, want 200; body=%s", tc.path, status, body)
+				continue
+			}
+			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
+				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
+			}
 		}
-		got := decodeDataArray(t, body)
-		if len(got) != 0 {
-			t.Errorf("empty __in: got %d rows, want 0", len(got))
+		for _, path := range []string{
+			"/api/net?id__in=",
+			"/api/net?asn__in=4300005001,",
+			"/api/net?org__in=",
+			"/api/fac?latitude__in=",
+		} {
+			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+				t.Errorf("%s: status %d, want 400; body=%s", path, status, body)
+			}
 		}
 	})
 
