@@ -2,6 +2,7 @@ package parity
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strconv"
 	"strings"
@@ -286,6 +287,120 @@ func TestParity_In(t *testing.T) {
 			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
 				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
 			}
+		}
+	})
+
+	// seedDateNets seeds net 1 created 2024-01-01 12:30:45 and net 2
+	// created 2024-01-02 00:00:00, both UTC.
+	seedDateNets := func(t *testing.T) *httptest.Server {
+		t.Helper()
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "DateOrg", t0)
+		for id, created := range map[int]time.Time{
+			1: time.Date(2024, 1, 1, 12, 30, 45, 0, time.UTC),
+			2: time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
+		} {
+			name := "DateNet" + strconv.Itoa(id)
+			c.Network.Create().
+				SetID(id).SetName(name).SetNameFold(unifold.Fold(name)).
+				SetAsn(64500 + id).SetOrgID(1).
+				SetStatus("ok").SetCreated(created).SetUpdated(t0).SaveX(ctx)
+		}
+		return newTestServer(t, c)
+	}
+
+	t.Run("date_operators_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:640-662. For gt and lte, a value of
+		// 10 characters gets " 23:59:59.999". Django
+		// DateTimeField.to_python converts the value (fromisoformat,
+		// then datetime_re, then parse_date), a naive value is UTC
+		// (settings TIME_ZONE), and a value that it rejects raises
+		// ValidationError, which the list returns as 400 (rest.py:647-651,
+		// :828-831). contains and startswith compare str(datetime), which
+		// ends in "+00:00", with the MySQL text of the column, so they
+		// match no row.
+		srv := seedDateNets(t)
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/net?created__lt=2024-01-02", []int{1}},
+			{"/api/net?created__lte=2024-01-01", []int{1}},
+			{"/api/net?created__gt=2024-01-01", []int{2}},
+			{"/api/net?created__gte=2024-01-01T12:30:45Z", []int{1, 2}},
+			{"/api/net?created__gt=2024-01-01T13:30:45%2B01:00", []int{2}},
+			{"/api/net?created__lt=2024-01-01T12:30:45.5", []int{1}},
+			{"/api/net?created__lt=2024W011", []int{}},
+			{"/api/net?created__gte=2024-1-1%201:2", []int{1, 2}},
+			{"/api/net?created__lt=2024-01-01T24:00", []int{1}},
+			{"/api/net?created__contains=2024-01-01", []int{}},
+			{"/api/net?created__startswith=2024-01-01%2012:30:45", []int{}},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status %d, want 200; body=%s", tc.path, status, body)
+				continue
+			}
+			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
+				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
+			}
+		}
+		for _, path := range []string{
+			"/api/net?created__gt=1700000000",
+			"/api/net?created__lt=2024",
+			"/api/net?created__lt=2024-01-01T12:30z",
+			"/api/net?created__startswith=2024",
+			"/api/net?created__contains=x",
+			"/api/net?created__lte=2024-02-30",
+		} {
+			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+				t.Errorf("%s: status %d, want 400; body=%s", path, status, body)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_date_compare_whole_seconds", func(t *testing.T) {
+		t.Parallel()
+		// upstream: created and updated are DATETIME(6), so a row
+		// created at 12:30:45.5 is later than 12:30:45 and matches
+		// created__gt=2024-01-01T12:30:45 (rest.py:640-669). The API
+		// shows whole seconds, and the mirror stores the second it
+		// shows, so the row matches __lte instead.
+		srv := seedDateNets(t)
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/net?created__gt=2024-01-01T12:30:45", []int{2}},
+			{"/api/net?created__lte=2024-01-01T12:30:45", []int{1}},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status %d, want 200; body=%s", tc.path, status, body)
+				continue
+			}
+			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
+				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_date_in_filters", func(t *testing.T) {
+		t.Parallel()
+		// upstream: the date branch converts the whole __in value with
+		// to_python (rest.py:647-653). A list of two or more values
+		// fails it (400), and for one value v.split(",") then raises
+		// AttributeError on the datetime (rest.py:666), a 500. The
+		// mirror returns the rows at one of the listed times.
+		srv := seedDateNets(t)
+		status, body := httpGet(t, srv, "/api/net?created__in=2024-01-01T12:30:45Z,2024-01-02T00:00:00Z")
+		if status != http.StatusOK {
+			t.Fatalf("status %d, want 200; body=%s", status, body)
+		}
+		if ids := extractIDs(t, body); !slices.Equal(ids, []int{1, 2}) {
+			t.Errorf("ids %v, want [1 2]", ids)
 		}
 	})
 

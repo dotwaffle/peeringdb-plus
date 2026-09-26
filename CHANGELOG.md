@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat converts the value of `__lt`, `__lte`, `__gt`, `__gte`, `__contains` and `__startswith` on a time field as Django `DateTimeField.to_python` does upstream (Django 5.2 on CPython 3.14): the ISO 8601 forms of `datetime.fromisoformat`, for example `20240101` or `2024-W01-1`, and the Django forms, for example `2024-1-1 1:2`.
+  Unix seconds and other values return `400`.
+  `__contains` and `__startswith` on a time field match no row for a valid value, as upstream.
+  Before, these operators accepted Unix seconds and four ISO 8601 layouts, and `__contains` and `__startswith` returned `400`.
 - pdbcompat matches `__contains` and `__startswith` on an integer, boolean or decimal field against the text of the stored value, as MySQL does upstream, for example `?asn__contains=33`.
   A key without an operator and `__iexact` on `latitude` or `longitude` match the text with 6 decimals, so `?latitude=52.5` matches no row and `?latitude=52.500000` matches.
   Before, pdbcompat returned `400` for `__contains` and `__startswith` on these fields and compared `latitude` and `longitude` as numbers.

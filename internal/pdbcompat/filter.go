@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -1095,6 +1096,12 @@ func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exact
 			}
 		}
 	}
+	if ft == FieldTime {
+		switch op := coerceToCaseInsensitive(op); op {
+		case "lt", "lte", "gt", "gte", "icontains", "istartswith":
+			return buildDateOperator(col, op, value)
+		}
+	}
 	if ft == FieldBool {
 		switch op {
 		case "":
@@ -1137,6 +1144,36 @@ func numericText(ft FieldType) string {
 func textLike(col, expr, pattern string) func(*sql.Selector) {
 	return func(s *sql.Selector) {
 		s.Where(sql.ExprP(fmt.Sprintf(expr, s.C(col))+` LIKE ? ESCAPE '\'`, pattern))
+	}
+}
+
+// buildDateOperator builds an operator predicate on a date model field,
+// as upstream does (2.83.0 rest.py:640-662): for gt and lte, a value of
+// 10 characters (a date) gets " 23:59:59.999", so the whole day counts.
+// Then Django DateTimeField.to_python converts the value
+// (djangoDateTime), and a value that it rejects is a 400. icontains and
+// istartswith compare the text of the converted value, which ends in a
+// zone ("+00:00"), with the MySQL text of the column, which has none, so
+// they match no row.
+func buildDateOperator(col, op, value string) (func(*sql.Selector), error) {
+	if (op == "gt" || op == "lte") && utf8.RuneCountInString(value) == 10 {
+		value += " 23:59:59.999"
+	}
+	t, err := djangoDateTime(value)
+	if err != nil {
+		return nil, fmt.Errorf("convert %q to time: %w", value, err)
+	}
+	switch op {
+	case "lt":
+		return sql.FieldLT(col, t), nil
+	case "lte":
+		return sql.FieldLTE(col, t), nil
+	case "gt":
+		return sql.FieldGT(col, t), nil
+	case "gte":
+		return sql.FieldGTE(col, t), nil
+	default:
+		return func(s *sql.Selector) { s.Where(sql.False()) }, nil
 	}
 }
 
