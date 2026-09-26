@@ -44,6 +44,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   `?since=`, `?limit=` and `?skip=` are now checked on a single-object GET, and a `limit` or `skip` above `0` returns `404` (`Not found.`), as upstream.
   The `404` message of a single-object GET is now the upstream text, for example `No Network matches the given query.`.
   See `docs/API.md` § Filters on a single-object GET.
+- A single-object GET with a `?depth=` that is empty or not an integer returns `400` (`'depth' needs to be a number`), as upstream.
+  Before, the mirror used the default depth.
+  The value is parsed with the Python `int()` rules of `limit`, and the last value of a repeated key applies.
 
 ### Fixed
 

@@ -578,12 +578,19 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 	// 1 expands forward FKs flat with
 	// reverse sets as ID lists, 2 fully expands. Depths >2 render the depth=2
 	// shape (the deeper sub-level nesting they add is not reproduced). A
-	// non-numeric value keeps the default; negatives floor to 0.
+	// value that is not an integer is a 400, as upstream (rest.py:520-523);
+	// negatives floor to 0.
 	depth := 2
-	if v := params.Get("depth"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil {
-			depth = min(max(parsed, 0), 4)
-		}
+	rawDepth, _, depthPresent, err := ParseDepthParam(params)
+	if err != nil {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: err.Error(),
+		})
+		return
+	}
+	if depthPresent {
+		depth = min(max(rawDepth, 0), 4)
 	}
 
 	filters, emptyResult, err := parseRequestFilters(r, params, tc)

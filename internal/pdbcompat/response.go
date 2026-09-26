@@ -104,6 +104,8 @@ var (
 	errLimitNotNumber = errors.New("'limit' needs to be a number")
 	// errSinceNotTimestamp is upstream 2.83.0 rest.py:505-510.
 	errSinceNotTimestamp = errors.New("'since' needs to be a unix timestamp (epoch seconds)")
+	// errDepthNotNumber is upstream 2.83.0 rest.py:520-523.
+	errDepthNotNumber = errors.New("'depth' needs to be a number")
 	// errNegativeSkip is the Django text for a negative slice
 	// (db/models/query.py:403-417), which list() returns as a 400
 	// (2.83.0 rest.py:757-760, :824-827). The text is the upstream
@@ -169,6 +171,25 @@ func parseSince(params url.Values) (n int, present bool, err error) {
 		return 0, true, errSinceNotTimestamp
 	}
 	return n, true, nil
+}
+
+// ParseDepthParam returns the ?depth= value as upstream parses it
+// (2.83.0 rest.py:520-523): the last value, Python int() rules (pyInt).
+// raw is the value, saturated to the int range. text is its canonical
+// decimal form, for messages that print the value. present is false
+// when the key is absent, and the caller then applies its own default.
+// An empty or non-integer value is errDepthNotNumber. The caller clamps
+// raw to its depth range.
+func ParseDepthParam(params url.Values) (raw int, text string, present bool, err error) {
+	v, ok := lastParam(params, "depth")
+	if !ok {
+		return 0, "0", false, nil
+	}
+	raw, text, err = pyInt(v)
+	if err != nil {
+		return 0, "", true, errDepthNotNumber
+	}
+	return raw, text, true, nil
 }
 
 // ParseSinceParam parses ?since= as a Unix timestamp (see parseSince).

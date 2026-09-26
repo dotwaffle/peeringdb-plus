@@ -1488,13 +1488,13 @@ func TestParity_Status(t *testing.T) {
 
 	t.Run("detail_validates_pagination_and_since", func(t *testing.T) {
 		t.Parallel()
-		// A single-object GET parses since, skip and limit as a list
-		// does (rest.py:505-518). The query is sliced before get()
+		// A single-object GET parses since, skip, limit and depth as a
+		// list does (rest.py:505-523). The query is sliced before get()
 		// (:755-760), and Django cannot filter a sliced query, so a
 		// limit or skip above 0 is a 404 with the DRF default text,
 		// whether or not the object exists. A negative limit does not
 		// slice (limit > 0 is false).
-		// upstream: 2.83.0 rest.py:505-518, :755-760; drf
+		// upstream: 2.83.0 rest.py:505-523, :755-760; drf
 		// generics.py:13-21, exceptions.py:188-191;
 		// django/db/models/query.py:1505-1507
 		c := testutil.SetupClient(t)
@@ -1520,6 +1520,15 @@ func TestParity_Status(t *testing.T) {
 			{"/api/net/1?limit=-1&skip=1", http.StatusNotFound, "Not found."},
 			{"/api/net/1?limit=0&skip=0", http.StatusOK, ""},
 			{"/api/net/1?limit=-1", http.StatusOK, ""},
+			// depth is parsed after since and before the filters
+			// (rest.py:520-523). The serializer clamps a number.
+			{"/api/net/1?depth=abc", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net/1?depth=", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net/1?depth=abc&since=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net/1?depth=abc&name=nomatch", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net/1?depth=abc&depth=0", http.StatusOK, ""},
+			{"/api/net/1?depth=%D9%A1", http.StatusOK, ""},
+			{"/api/net/1?depth=99", http.StatusOK, ""},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)

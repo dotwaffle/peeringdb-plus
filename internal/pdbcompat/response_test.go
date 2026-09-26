@@ -2,7 +2,9 @@ package pdbcompat
 
 import (
 	"errors"
+	"math"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -115,6 +117,58 @@ func TestParseSince(t *testing.T) {
 		n, present, err := parseSince(params)
 		if !errors.Is(err, tc.wantErr) || n != tc.want || present != tc.wantPresent {
 			t.Errorf("%q: (%d, %v, %v), want (%d, %v, %v)", tc.query, n, present, err, tc.want, tc.wantPresent, tc.wantErr)
+		}
+	}
+}
+
+// TestParseDepthParam locks the upstream parse of depth (2.83.0
+// rest.py:520-523): last value, Python int() rules, empty = 400.
+func TestParseDepthParam(t *testing.T) {
+	t.Parallel()
+
+	big := "99999999999999999999"
+	max4300 := "1" + strings.Repeat("0", 4299)
+	for _, tc := range []struct {
+		name        string
+		vals        []string // nil = key absent
+		want        int
+		wantText    string
+		wantPresent bool
+		wantErr     error
+	}{
+		{"absent", nil, 0, "0", false, nil},
+		{"zero", []string{"0"}, 0, "0", true, nil},
+		{"two", []string{"2"}, 2, "2", true, nil},
+		{"negative", []string{"-3"}, -3, "-3", true, nil},
+		{"white_space", []string{" 2 "}, 2, "2", true, nil},
+		{"plus_sign", []string{"+2"}, 2, "2", true, nil},
+		{"underscore", []string{"0_2"}, 2, "2", true, nil},
+		{"double_underscore", []string{"1__2"}, 0, "", true, errDepthNotNumber},
+		{"leading_underscore", []string{"_1"}, 0, "", true, errDepthNotNumber},
+		{"trailing_underscore", []string{"1_"}, 0, "", true, errDepthNotNumber},
+		{"letters", []string{"abc"}, 0, "", true, errDepthNotNumber},
+		{"empty", []string{""}, 0, "", true, errDepthNotNumber},
+		{"float", []string{"1.5"}, 0, "", true, errDepthNotNumber},
+		{"hex", []string{"0x1"}, 0, "", true, errDepthNotNumber},
+		{"arabic_indic_digit", []string{"\u0662"}, 2, "2", true, nil},
+		{"file_separator_not_space", []string{"\x1c2"}, 0, "", true, errDepthNotNumber},
+		{"ideographic_space", []string{"\u30002\u3000"}, 2, "2", true, nil},
+		{"saturated", []string{big}, math.MaxInt, big, true, nil},
+		{"negative_saturated", []string{"-" + big}, math.MinInt, "-" + big, true, nil},
+		{"max_digits", []string{max4300}, math.MaxInt, max4300, true, nil},
+		{"over_max_digits", []string{max4300 + "0"}, 0, "", true, errDepthNotNumber},
+		{"leading_zeros_count", []string{strings.Repeat("0", 4301)}, 0, "", true, errDepthNotNumber},
+		{"last_value_wins", []string{"abc", "1"}, 1, "1", true, nil},
+		{"last_value_bad", []string{"1", "abc"}, 0, "", true, errDepthNotNumber},
+	} {
+		params := url.Values{}
+		if tc.vals != nil {
+			params["depth"] = tc.vals
+		}
+		raw, text, present, err := ParseDepthParam(params)
+		if !errors.Is(err, tc.wantErr) || raw != tc.want || text != tc.wantText || present != tc.wantPresent {
+			t.Errorf("%s: (%d, %q, %v, %v), want (%d, %q, %v, %v)",
+				tc.name, raw, text, present, err, tc.want, tc.wantText, tc.wantPresent, tc.wantErr)
 		}
 	}
 }

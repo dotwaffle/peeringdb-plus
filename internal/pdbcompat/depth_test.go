@@ -1461,10 +1461,18 @@ func TestDepth_DepthOne(t *testing.T) {
 		if _, has := get(t, "org", orgID, "?depth=-1")["net_set"]; has {
 			t.Error("org depth=-1 must clamp to 0 (no net_set)")
 		}
-		// non-numeric keeps the default detail depth (2).
-		if arr, _ := get(t, "org", orgID, "?depth=foo")["net_set"].([]any); len(arr) > 0 {
-			if _, isObj := arr[0].(map[string]any); !isObj {
-				t.Error("org depth=foo must fall back to default depth=2")
+		// A value that is not an integer is a 400, as upstream
+		// (2.83.0 rest.py:520-523), empty included.
+		for _, q := range []string{"?depth=foo", "?depth=", "?depth=2&depth=1.5"} {
+			req := httptest.NewRequest(http.MethodGet, "/api/org/"+itoa(orgID)+q, nil)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("org %s: status = %d, want 400", q, rec.Code)
+				continue
+			}
+			if got := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); got != "'depth' needs to be a number" {
+				t.Errorf("org %s: meta.error = %q", q, got)
 			}
 		}
 	})
