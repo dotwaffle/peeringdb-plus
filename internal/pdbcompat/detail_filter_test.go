@@ -18,6 +18,7 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -116,6 +117,41 @@ func TestMatch_AddsNoStatus(t *testing.T) {
 	}
 	if got {
 		t.Error("Match(pending campus, facility=400) = true, want false (the relation seed pins ok)")
+	}
+}
+
+// TestMatch_AppliesPocPolicy checks that Match runs under the request
+// ctx, so the poc privacy policy applies: a Users contact does not
+// match for an anonymous caller, with or without a filter that matches
+// its name. The wire tests cannot see a bypass here, because Get also
+// applies the policy and both paths send the same 404.
+func TestMatch_AppliesPocPolicy(t *testing.T) {
+	t.Parallel()
+	c := testutil.SetupClient(t)
+	ts := time.Date(2026, 4, 1, 12, 0, 0, 0, time.UTC)
+	seedDetailNet(t, c, 10, "PocNet", "ok")
+	c.Poc.Create().SetID(20).SetNetID(10).SetName("Hidden").SetRole("NOC").
+		SetVisible("Users").SetStatus("ok").SetCreated(ts).SetUpdated(ts).
+		SaveX(t.Context())
+
+	for _, tc := range []struct {
+		tier  privctx.Tier
+		query string
+		want  bool
+	}{
+		{privctx.TierPublic, "", false},
+		{privctx.TierPublic, "name=Hidden", false},
+		{privctx.TierUsers, "", true},
+		{privctx.TierUsers, "name=Hidden", true},
+	} {
+		ctx := privctx.WithTier(t.Context(), tc.tier)
+		got, err := Registry[peeringdb.TypePoc].Match(ctx, c, 20, mustParseFilters(t, peeringdb.TypePoc, tc.query))
+		if err != nil {
+			t.Fatalf("tier %v, %q: Match: %v", tc.tier, tc.query, err)
+		}
+		if got != tc.want {
+			t.Errorf("tier %v, %q: Match(Users poc) = %v, want %v", tc.tier, tc.query, got, tc.want)
+		}
 	}
 }
 

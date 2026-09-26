@@ -16,6 +16,9 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"go.opentelemetry.io/otel/attribute"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/privacy"
@@ -553,6 +556,138 @@ func TestListDepth_LoadsInChunks(t *testing.T) {
 	}
 	if chunks != 3 {
 		t.Errorf("chunk queries = %d, want 3 (5 rows in chunks of 2)", chunks)
+	}
+}
+
+// snapshotWriter records, at each Write, the bytes and the counters
+// that snap returns.
+type snapshotWriter struct {
+	*httptest.ResponseRecorder
+	snap   func() [2]int
+	writes []string
+	snaps  [][2]int
+}
+
+func (w *snapshotWriter) Write(b []byte) (int, error) {
+	w.writes = append(w.writes, string(b))
+	w.snaps = append(w.snaps, w.snap())
+	return w.ResponseRecorder.Write(b)
+}
+
+// TestListDepth_RendersLazily checks that a list at depth > 0 loads one
+// chunk before the first row is written and builds each row map only
+// when the stream pulls the row. listDepthEstimate prices one rendered
+// row per chunk (listDepthRenderFactor), so a render of a whole chunk
+// at once would break the estimate.
+func TestListDepth_RendersLazily(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedOrgsWithNets(t, client, []int{0, 1, 2, 0, 1})
+	h := NewHandler(client, 0)
+	h.listDepthChunk = 2
+
+	tc := Registry[peeringdb.TypeOrg]
+	inner := tc.ListDepth
+	var loads, renders int
+	tc.ListDepth = func(ctx context.Context, c *ent.Client, opts QueryOptions, ids []int, depth int, sets []childSet) ([]func() any, error) {
+		loads++
+		rows, err := inner(ctx, c, opts, ids, depth, sets)
+		for i, render := range rows {
+			rows[i] = func() any {
+				renders++
+				return render()
+			}
+		}
+		return rows, err
+	}
+	w := &snapshotWriter{
+		ResponseRecorder: httptest.NewRecorder(),
+		snap:             func() [2]int { return [2]int{loads, renders} },
+	}
+	h.serveList(tc, w, httptest.NewRequest(http.MethodGet, "/api/org?depth=1", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", w.Code, w.Body.String())
+	}
+	if got := listIDs(t, w.Body.Bytes()); !slices.Equal(got, []int{1, 2, 3, 4, 5}) {
+		t.Fatalf("ids = %v, want [1 2 3 4 5]", got)
+	}
+
+	// The rows follow the data-open write, with a "," write between two
+	// rows.
+	open := slices.Index(w.writes, `,"data":[`)
+	if open < 0 {
+		t.Fatalf("no data-open write in %q", w.writes)
+	}
+	want := [][2]int{{1, 1}, {1, 2}, {2, 3}, {2, 4}, {3, 5}} // {loads, renders} at rows 1-5
+	for i, wantSnap := range want {
+		idx := open + 1 + 2*i
+		if idx >= len(w.snaps) {
+			t.Fatalf("row %d: no write", i+1)
+		}
+		if got := w.snaps[idx]; got != wantSnap {
+			t.Errorf("row %d written after %d chunk loads and %d renders, want %d and %d",
+				i+1, got[0], got[1], wantSnap[0], wantSnap[1])
+		}
+	}
+
+	// A closure of renderListDepthChunk builds its row only when called.
+	orgs := client.Organization.Query().Order(ent.Asc("id")).Limit(2).AllX(t.Context())
+	converts := 0
+	convert := func(o *ent.Organization) any {
+		converts++
+		return organizationFromEnt(o)
+	}
+	rows, err := renderListDepthChunk(t.Context(), client, orgs, []int{orgs[0].ID, orgs[1].ID}, 1,
+		selectSets(peeringdb.TypeOrg, nil), convert)
+	if err != nil {
+		t.Fatalf("renderListDepthChunk: %v", err)
+	}
+	if converts != 0 {
+		t.Errorf("renderListDepthChunk converted %d rows before a pull, want 0", converts)
+	}
+	rows[0]()
+	if converts != 1 {
+		t.Errorf("one pull converted %d rows, want 1", converts)
+	}
+}
+
+// TestServeList_DepthSpanAttributes checks the span attributes of a
+// list at depth > 0 under a budget: the depth, the truncation flag, the
+// estimate and the number of chunks.
+func TestServeList_DepthSpanAttributes(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	seedOrgsWithNets(t, client, []int{0, 1, 2, 0, 1})
+	_, mux := newListDepthMux(client, 1<<30, 2)
+
+	exporter := tracetest.NewInMemoryExporter()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	ctx, span := tp.Tracer("test").Start(context.Background(), "test-list-depth")
+	req := httptest.NewRequest(http.MethodGet, "/api/org?depth=1&name__startswith=Org", nil).WithContext(ctx)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	span.End()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+
+	attrs := map[attribute.Key]attribute.Value{}
+	for _, s := range exporter.GetSpans() {
+		for _, a := range s.Attributes {
+			attrs[a.Key] = a.Value
+		}
+	}
+	if v, ok := attrs["pdbplus.list.depth"]; !ok || v.AsInt64() != 1 {
+		t.Errorf("pdbplus.list.depth = %v (present=%v), want 1", v.String(), ok)
+	}
+	if v, ok := attrs["pdbplus.list.truncated"]; !ok || v.AsBool() {
+		t.Errorf("pdbplus.list.truncated = %v (present=%v), want false", v.String(), ok)
+	}
+	if v, ok := attrs["pdbplus.list.estimated_bytes"]; !ok || v.AsInt64() <= 0 {
+		t.Errorf("pdbplus.list.estimated_bytes = %v (present=%v), want > 0", v.String(), ok)
+	}
+	if v, ok := attrs["pdbplus.list.chunks"]; !ok || v.AsInt64() != 3 {
+		t.Errorf("pdbplus.list.chunks = %v (present=%v), want 3 (5 rows in chunks of 2)", v.String(), ok)
 	}
 }
 

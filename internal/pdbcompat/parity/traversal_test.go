@@ -461,6 +461,7 @@ func TestParity_Traversal(t *testing.T) {
 			// Upstream: []. version starts at 0 and only grows
 			// (django-handleref models.py:9-16, :90).
 			{path: "/api/org?version=-1", want: []int{1, 2}},
+			{path: "/api/fac?version=-1", want: []int{200, 201}},
 			// Upstream: []. notified_for_geocoords defaults to False.
 			{path: "/api/fac?notified_for_geocoords=true", want: []int{200, 201}},
 		})
@@ -670,8 +671,13 @@ func TestParity_Traversal(t *testing.T) {
 		})
 		// A lookup by id that the key excludes is the unique-query 404
 		// (rest.py:809-815).
-		if status, body := httpGet(t, srv, "/api/ix?id=20&ipblock=10.0.0.5"); status != http.StatusNotFound {
-			t.Errorf("GET /api/ix?id=20&ipblock=10.0.0.5: status = %d, want 404; body=%s", status, string(body))
+		path := "/api/ix?id=20&ipblock=10.0.0.5"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
+		}
+		if msg := mustDecodeMetaError(t, body).Error; msg != "Entity not found" {
+			t.Errorf("GET %s: meta.error = %q, want %q", path, msg, "Entity not found")
 		}
 	})
 
@@ -787,6 +793,10 @@ func TestParity_Traversal(t *testing.T) {
 			// Upstream: 400.
 			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4002}},
 			{path: "/api/ixpfx?whereis=10.0.0.5&since=1", want: []int{4000, 4002}},
+			// Upstream: 400 too. retrieve runs get_queryset, and so
+			// prepare_query, before it looks up the object
+			// (rest.py:849-855, drf generics.py:79-105).
+			{path: "/api/ixpfx/4000?whereis=10.0.0.5", want: []int{4000}},
 		})
 	})
 

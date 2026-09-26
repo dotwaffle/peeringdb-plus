@@ -509,6 +509,11 @@ func TestParity_Limit(t *testing.T) {
 			{"since=abc&depth=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
 			{"depth=abc&skip=abc", "'skip' needs to be a number"},
 			{"depth=abc&asn__lt=x", "'depth' needs to be a number"},
+			// since is parsed before the filter loop and before the
+			// negative-skip check (Django raises that one at the slice,
+			// rest.py:757-760).
+			{"since=abc&asn__lt=x", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"since=abc&skip=-1", "'since' needs to be a unix timestamp (epoch seconds)"},
 		} {
 			status, body := httpGet(t, srv, "/api/net?"+tc.query)
 			if status != http.StatusBadRequest {

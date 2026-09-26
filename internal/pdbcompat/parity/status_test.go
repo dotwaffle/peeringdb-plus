@@ -807,6 +807,7 @@ func TestParity_Status(t *testing.T) {
 			SetID(30).SetNetID(10).SetIxlanID(20).SetIxID(20).
 			SetAsn(64510).SetSpeed(1000).
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustFac(ctx, t, c, 40, "PlainIntFac", 1, t0)
 		srv := newTestServer(t, c)
 		for _, path := range []string{
 			"/api/netixlan?asn=abc",
@@ -816,11 +817,19 @@ func TestParity_Status(t *testing.T) {
 			"/api/net?org__id=abc",
 			"/api/net?org__id=01",
 			"/api/netixlan?net__asn=abc",
+			// fac ix_count and carrier_count are relation seeds that
+			// fac prepare_query never reads (serializers.py:2092-2124:
+			// it acts only on network_count), so they reach the filter
+			// loop as plain keys. Only the count seeds convert.
+			"/api/fac?ix_count=abc",
+			"/api/fac?carrier_count=abc",
 		} {
 			assertEmptyList(t, srv, path)
 		}
 		// Control: the decimal text matches.
 		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?ix_count=0", want: []int{40}},
+			{path: "/api/fac?carrier_count=0", want: []int{40}},
 			{path: "/api/netixlan?asn=64510", want: []int{30}},
 			{path: "/api/netixlan?speed=1000", want: []int{30}},
 			{path: "/api/net?org__id=1", want: []int{10}},
@@ -901,6 +910,11 @@ func TestParity_Status(t *testing.T) {
 			}
 			assertKeysResolve(t, srv, []silentIgnoreCase{{path: tc.path, want: want}})
 		}
+		// The asn_overlap pairs above compare two filtered lists.
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?asn_overlap=64500,64501", want: []int{400}},
+			{path: "/api/ix?asn_overlap=64500,64501", want: []int{20}},
+		})
 		// A count seed of a prepare_query uses the first value of a
 		// repeated key (serializers.py:618-619).
 		assertKeysResolve(t, srv, []silentIgnoreCase{
@@ -914,6 +928,7 @@ func TestParity_Status(t *testing.T) {
 			path string
 			want []int
 		}{
+			{"/api/ix?capacity=11_000", []int{20}},
 			{"/api/ix?capacity__gte=1_000", []int{20}},
 			{"/api/ix?capacity__gte=1000", []int{20}},
 			{"/api/ix?capacity=%D9%A5%D9%A0%D9%A0", []int{21}},

@@ -1000,6 +1000,9 @@ func TestCoerceIPAddr(t *testing.T) {
 		// Not parsed by CPython: the value stays as given.
 		{"fe80::1%a%b", "fe80::1%a%b"},     // Go alone accepts this zone
 		{"fe80::1%eth0%", "fe80::1%eth0%"}, // same
+		// Without the zone guard, Go would print "fe80::1%a%b"; CPython
+		// raises ValueError and keeps the value as given.
+		{"FE80:0::1%a%b", "FE80:0::1%a%b"},
 		{"fe80::1%", "fe80::1%"},
 		{"01.2.3.4", "01.2.3.4"},
 		{"::ffff:01.2.3.4", "::ffff:01.2.3.4"},

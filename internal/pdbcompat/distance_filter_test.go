@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
+
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
@@ -119,7 +121,11 @@ func TestParseDistanceSearch(t *testing.T) {
 				if err == nil || !strings.HasPrefix(err.Error(), tt.wantErr) {
 					t.Fatalf("err = %v, want prefix %q", err, tt.wantErr)
 				}
-				if tt.wantErr == "distance: Invalid value" && err.Error() != tt.wantErr {
+				// The missing-key message names only the missing keys
+				// (serializers.py:1856-1865), so it must match in full.
+				exact := tt.wantErr == "distance: Invalid value" ||
+					strings.HasSuffix(tt.wantErr, "Required for distance filtering")
+				if exact && err.Error() != tt.wantErr {
 					t.Fatalf("err = %q, want %q", err, tt.wantErr)
 				}
 				return
@@ -182,6 +188,47 @@ var (
 	pointOffenbach = [2]float64{50.0956, 8.7761}
 	pointAmsterdam = [2]float64{52.3676, 4.9041}
 )
+
+// TestDistanceSearch_ClampsAcosArgument checks that a row at the search
+// point is kept when rounding puts the acos argument above 1. At
+// latitude 0.015 the unclamped argument is 1.0000000000000002 in SQLite,
+// and acos returns NULL for it, so without the clamp the row would drop
+// out of every search around its own point.
+func TestDistanceSearch_ClampsAcosArgument(t *testing.T) {
+	t.Parallel()
+	point := [2]float64{0.015, 8.6821}
+	c := seedDistanceFacs(t, &point)
+
+	// Precondition: the unclamped expression is NULL for this row.
+	unclamped, err := c.Facility.Query().Where(func(s *entsql.Selector) {
+		lat, lng := s.C("latitude"), s.C("longitude")
+		s.Where(entsql.ExprP("acos(cos(radians(?)) * cos(radians("+lat+")) * cos(radians("+lng+
+			") - radians(?)) + sin(radians(?)) * sin(radians("+lat+"))) IS NULL", point[0], point[1], point[0]))
+	}).Count(t.Context())
+	if err != nil {
+		t.Fatalf("unclamped query: %v", err)
+	}
+	if unclamped != 1 {
+		t.Fatalf("the SQLite math at latitude %v no longer rounds above 1 (unclamped NULL rows = %d); pick another point", point[0], unclamped)
+	}
+
+	tc := Registry["fac"]
+	params, err := url.ParseQuery("distance=1&latitude=0.015&longitude=8.6821")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lf, err := parseListFilters(t.Context(), params, tc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := tc.List(t.Context(), c, QueryOptions{Filters: lf.preds, OrderBy: lf.orderBy})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if got := rowIDs(t, rows); !slices.Equal(got, []int{1}) {
+		t.Errorf("list = %v, want [1] (the row at the search point)", got)
+	}
+}
 
 // seedDistanceFacs seeds org 1 and one ok fac per entry of points, with
 // ids from 1. A nil entry has no coordinates.

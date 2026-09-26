@@ -25,6 +25,16 @@ var upstreamQueryKeys = map[string]string{
 	"ixfac.country":  "prepare_query seed (serializers.py:2840)",
 }
 
+// upstreamCountSeeds lists the upstreamQueryKeys entries that a
+// prepare_query filters as an exact lookup on the count column, so the
+// value is converted with int() (TypeConfig.ExactCounts).
+var upstreamCountSeeds = map[string]bool{
+	"fac.net_count": true,
+	"net.fac_count": true,
+	"ix.net_count":  true,
+	"ix.fac_count":  true,
+}
+
 // TestRegistryFields_UpstreamKeyClass puts every Registry Fields key in
 // one class and checks that the parser treats it to match upstream:
 //   - A FK column (a TypeConfig.ForeignKeys value) filters as the FK.
@@ -86,8 +96,11 @@ func TestRegistryFields_UpstreamKeyClass(t *testing.T) {
 		if _, ok := Registry[typ].Fields[field]; !ok {
 			t.Errorf("stale entry %q: not a Registry field", key)
 		}
-		// The count seeds are the entries that name a count rename.
-		if strings.HasSuffix(field, "_count") != Registry[typ].ExactCounts[field] {
+		// Only these seeds convert their value. Upstream fac also
+		// seeds ix_count and carrier_count, but its prepare_query never
+		// reads them (serializers.py:2092-2124), so a name suffix is not
+		// the rule.
+		if upstreamCountSeeds[key] != Registry[typ].ExactCounts[field] {
 			t.Errorf("%s (%s): count seed and ExactCounts disagree", key, why)
 		}
 	}

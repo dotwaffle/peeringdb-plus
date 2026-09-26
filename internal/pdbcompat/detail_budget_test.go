@@ -227,9 +227,10 @@ func TestChildSets_CoverRegistryParents(t *testing.T) {
 // have no entry for a parent with no element or for an id outside ids,
 // and the count of each live parent must equal the number of elements in
 // the rendered set with the same key. The extra rows add a second org with
-// a live and a deleted network, and netixlans in each status (two live
-// rows of one network make a duplicate in ixlan.net_set). The seed has a
-// Users poc, which the unstamped (Public) context must not count.
+// a live and a deleted network, netixlans in each status (two live rows
+// of one network make a duplicate in ixlan.net_set), and one row that is
+// not live in each other child type. The seed has a Users poc, which the
+// unstamped (Public) context must not count.
 func TestChildSets_CountOverIDs(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
@@ -251,6 +252,37 @@ func TestChildSets_CountOverIDs(t *testing.T) {
 			SetID(id).SetNetID(9100).SetIxLan(r.IxLan).SetAsn(73100).SetSpeed(1000).
 			SetCreated(now).SetUpdated(now).SetStatus(status).SaveX(ctx)
 	}
+	// One row that is not live in each other child type, under a live
+	// parent, so that the count-versus-render check covers the status
+	// filter of every set.
+	client.Facility.Create().SetID(9300).SetName("DeletedFac").SetNameFold("deletedfac").
+		SetOrganization(r.Org).SetCampus(r.Campus).
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.Campus.Create().SetID(9301).SetName("PendingCampus").SetNameFold("pendingcampus").
+		SetOrganization(r.Org).
+		SetCreated(now).SetUpdated(now).SetStatus("pending").SaveX(ctx)
+	client.InternetExchange.Create().SetID(9302).SetName("DeletedIX").SetNameFold("deletedix").
+		SetOrganization(r.Org).SetCity("Frankfurt").SetCountry("DE").
+		SetRegionContinent("Europe").SetMedia("Ethernet").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.Carrier.Create().SetID(9303).SetName("DeletedCarrier").SetNameFold("deletedcarrier").
+		SetOrganization(r.Org).
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.Poc.Create().SetID(9304).SetNetwork(r.Network).SetName("DeletedPoc").SetRole("NOC").
+		SetVisible("Public").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.NetworkFacility.Create().SetID(9305).SetNetwork(r.Network2).SetFacility(r.Facility).
+		SetLocalAsn(6939).
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.IxFacility.Create().SetID(9306).SetInternetExchange(r.IX).SetFacility(r.Facility2).
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.IxLan.Create().SetID(9307).SetInternetExchange(r.IX).
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.IxPrefix.Create().SetID(9308).SetIxLan(r.IxLan).
+		SetPrefix("80.81.200.0/22").SetProtocol("IPv4").
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
+	client.CarrierFacility.Create().SetID(9309).SetCarrier(r.Carrier).SetFacility(r.Facility2).
+		SetCreated(now).SetUpdated(now).SetStatus("deleted").SaveX(ctx)
 
 	parentIDs := map[string]func() ([]int, error){
 		peeringdb.TypeOrg:     func() ([]int, error) { return client.Organization.Query().IDs(ctx) },
@@ -297,8 +329,11 @@ func TestChildSets_CountOverIDs(t *testing.T) {
 		}
 		for _, id := range ids {
 			got, err := Registry[typ].Get(ctx, client, id, 2)
-			if err != nil {
+			if ent.IsNotFound(err) {
 				continue // a deleted parent has no detail response
+			}
+			if err != nil {
+				t.Fatalf("%s/%d depth 2: %v", typ, id, err)
 			}
 			m, ok := got.(map[string]any)
 			if !ok {

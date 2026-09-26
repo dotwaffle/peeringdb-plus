@@ -39,6 +39,8 @@ func TestPyInt(t *testing.T) {
 		{"-99999999999999999999", math.MinInt, "-99999999999999999999"},
 		{max4300, math.MaxInt, max4300},
 		{"0" + strings.Repeat("0", pyIntMaxStrDigits-2) + "7", 7, "7"},
+		// Underscores do not count toward the digit limit.
+		{strings.Repeat("1_", 2200) + "1", math.MaxInt, strings.Repeat("1", 2201)},
 	}
 	for _, tc := range ok {
 		n, text, err := pyInt(tc.in)
