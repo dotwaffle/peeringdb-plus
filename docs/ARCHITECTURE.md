@@ -482,7 +482,7 @@ internal/
   visbaseline/            # Visibility baseline + schema-alignment regression test
   web/                    # templ + htmx Web UI (handlers, templates, termrender)
   health/                 # /healthz and /readyz probes
-  httperr/                # RFC 9457 Problem Details responses
+  httperr/                # RFC 9457 Problem Details and the /api/ meta.error body
   conformance/            # JSON structure comparison for compatibility checks
   testutil/               # Test helpers + deterministic seed data (seed/)
 testdata/
@@ -1296,7 +1296,7 @@ All providers are shut down on SIGINT/SIGTERM via the `SetupOutput.Shutdown` clo
 ## Response Memory Envelope
 
 pdbcompat list and detail responses are gated by a per-request memory budget, so the 256 MB Fly replicas do not run out of memory under `limit=0` lists, depth-2 detail requests, or 2-hop traversal filters.
-The ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic that returns RFC 9457 `application/problem+json` 413 BEFORE any row data is fetched, and bytes are streamed through the response writer once the budget check passes.
+The ceiling is enforced by a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic that returns `413` BEFORE any row data is fetched, and bytes are streamed through the response writer once the budget check passes.
 
 ### The envelope
 
@@ -1317,7 +1317,7 @@ The default sits under the 256 MB replica cap with margin so the order under pre
 |---|---|
 | `internal/pdbcompat/stream.go` | Hand-rolled JSON token writer. `StreamListResponse(ctx, w, meta, rowsIter)` emits `{"meta":…,"data":[…]}` with per-row `json.Marshal` and periodic `http.Flusher.Flush()` (every 100 rows). No full-result `[]any` materialisation on the wire. |
 | `internal/pdbcompat/rowsize.go` | Hardcoded `map[string]RowSize{Depth0, Depth2}` calibrated from `bench_row_size_test.go` then doubled. Conservative by design — false-positive 413s are preferred over OOM. Recalibrated every major release; drift >20% triggers a refresh. |
-| `internal/pdbcompat/budget.go` | `CheckBudget(count, entity, depth, budgetBytes) (BudgetExceeded, bool)` multiplies `count × TypicalRowBytes(entity, depth)`. Over-budget requests get 413 via `WriteBudgetProblem` BEFORE the row data is fetched; the RFC 9457 body carries `max_rows = budget / per_row` and `budget_bytes` so clients can re-slice their request. |
+| `internal/pdbcompat/budget.go` | `CheckBudget(count, entity, depth, budgetBytes) (BudgetExceeded, bool)` multiplies `count × TypicalRowBytes(entity, depth)`. Over-budget requests get 413 via `writeBudgetError` BEFORE the row data is fetched; the body carries `max_rows = budget / per_row` and `budget_bytes` so clients can re-slice their request. |
 
 ### Per-entity worst-case sizing
 
@@ -1359,7 +1359,7 @@ Full table lives in `internal/pdbcompat/rowsize.go`.
    Both closures are produced by the generic `wireEntity` helper from a single shared predicate builder, so the budget check and the served response can never disagree on filter semantics.
 4. **Budget check:** `CheckBudget(count, tc.Name, 0, cfg.ResponseMemoryLimit)`.
    - Under budget → step 5.
-   - Over budget → `WriteBudgetProblem(w, r.URL.Path, info)` emits 413 `application/problem+json` with `max_rows`, `budget_bytes`, and a human-readable `detail` string.
+   - Over budget → `writeBudgetError(w, r, info)` emits 413 with `max_rows`, `budget_bytes`, and a human-readable `detail` string.
      NO row data is fetched; no `Retry-After` header (413 is request-shape, not transient).
 5. `tc.List` loads the result rows.
 6. `StreamListResponse` emits the envelope token-by-token with

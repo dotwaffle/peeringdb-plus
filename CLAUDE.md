@@ -282,6 +282,8 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   A non-integer or empty `id`/`asn` value is still a 400 from `buildExact` (upstream `__iexact` matches nothing → 404; registered divergence `DIVERGENCE_unique_key_non_integer_returns_400`).
 - PK-lookup (`internal/pdbcompat/depth.go`) MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare; netixlan uses `StatusIn("ok", "not-operational", "pending")` (live + pending, `rest.py:750`).
   Inline the `StatusIn` literal at each of the 27 call sites; grep-ability trumps DRY here.
+- Errors on `/api/` go through `writeError` (`internal/pdbcompat/response.go`): upstream `{"meta":{"error":...}}` by default, RFC 9457 only when `Accept` names `application/problem+json` (`httperr.WantsProblemJSON`).
+  Never call `httperr.WriteProblem` from pdbcompat directly.
 
 **Native netixlan listings** (web fragments `internal/web/detail.go`, `internal/catalog` network/IX/compare, MCP `lookup_ip`) inline `networkixlan.StatusIn("ok", "not-operational", "pending")`: upstream 2.83.0 lists not-operational connections in its views and counts them in IX stats.
 REST/GraphQL/gRPC have no default status filter.
@@ -435,7 +437,7 @@ Each test seeds its own clean rows **inline** via the ent client and cites the u
 The earlier ported-fixture pipeline (`internal/testutil/parity` + `cmd/pdb-fixture-port`) was removed: the ports carried unseedable Python-source artefacts (`**kwargs` splats, `SHARED[...]` refs) and 5 of 6 slices had zero behavioural consumers, while the `--check` drift gate was wired into nothing.
 
 **Adding a parity test:** pick the category file matching the behaviour under test, add a sub-test under `TestParity_<Category>` with `t.Parallel()` and a citation comment (`// upstream: pdb_api_test.py:<line>` or `// synthesised: <context>`).
-Seed clean rows inline via `c.<Entity>.Create()` and the shared `harness_helpers_test.go` request/decode helpers (`newTestServer`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`) — do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
+Seed clean rows inline via `c.<Entity>.Create()` and the shared `harness_helpers_test.go` request/decode helpers (`newTestServer`, `httpGet`, `httpDo`, `decodeDataArray`, `extractIDs`, `mustDecodeMetaError`; `mustDecodeProblem` only for the problem+json opt-in); do NOT reach into `internal/testutil/seed.Full` (cross-test contamination).
 
 **Divergence registry:** `docs/API.md § Known Divergences` is the SoT for intentional non-parity.
 Every entry has a matching `DIVERGENCE_<…>` sub-test.

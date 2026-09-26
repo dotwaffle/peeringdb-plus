@@ -24,9 +24,9 @@ const (
 	// vs 250 on the mirror). The response-memory budget
 	// (PDBPLUS_RESPONSE_MEMORY_LIMIT, default 128 MiB) is the real DoS
 	// safeguard — it gates the precount × TypicalRowBytes before
-	// materialising any result set, returning 413 application/problem+json
-	// when the would-be payload exceeds the budget. The 250 default
-	// added nothing on top of that, only divergence.
+	// materialising any result set, returning 413 when the would-be
+	// payload exceeds the budget. The 250 default added nothing on top
+	// of that, only divergence.
 	DefaultLimit = 0
 
 	// poweredByHeader identifies this server in responses.
@@ -52,12 +52,49 @@ func WriteResponse(w http.ResponseWriter, data any) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// WriteProblem writes an RFC 9457 problem detail error response with the
-// X-Powered-By header. This replaces the former PeeringDB error envelope
-// with a standards-based format.
-func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
+// apiError describes one /api/ error response.
+type apiError struct {
+	// Status is the HTTP status code.
+	Status int
+	// Detail is the error text: meta.error in the upstream form, detail
+	// in the problem+json form.
+	Detail string
+	// EmptyData adds "data": [] to the upstream form (the unique-query
+	// 404, upstream 2.83.0 rest.py:809-815).
+	EmptyData bool
+	// Meta holds more meta keys for the upstream form.
+	Meta map[string]any
+	// budget selects the WriteBudgetProblem body in problem+json mode.
+	budget *BudgetExceeded
+}
+
+// writeError writes an /api/ error. The default is the upstream form
+// {"meta": {"error": "<detail>"}} (2.83.0 renderers.py:134-148). A
+// request whose Accept header names application/problem+json gets an
+// RFC 9457 body instead. Every error path of the /api/ surface goes
+// through this function, so both forms stay in step.
+func writeError(w http.ResponseWriter, r *http.Request, e apiError) {
 	w.Header().Set("X-Powered-By", poweredByHeader)
-	httperr.WriteProblem(w, input)
+	w.Header().Add("Vary", "Accept")
+
+	if httperr.WantsProblemJSON(r.Header) {
+		if e.budget != nil {
+			WriteBudgetProblem(w, r.URL.Path, *e.budget)
+			return
+		}
+		httperr.WriteProblem(w, httperr.WriteProblemInput{
+			Status:   e.Status,
+			Detail:   e.Detail,
+			Instance: r.URL.Path,
+		})
+		return
+	}
+	httperr.WriteMetaError(w, httperr.MetaErrorInput{
+		Status:    e.Status,
+		Error:     e.Detail,
+		Meta:      e.Meta,
+		EmptyData: e.EmptyData,
+	})
 }
 
 // ParsePaginationParams extracts limit and skip from query parameters
@@ -68,8 +105,7 @@ func WriteProblem(w http.ResponseWriter, input httperr.WriteProblemInput) {
 // and `rest.py:760`, which slices `qset[skip:]` (no upper bound).
 // All-rows responses are gated by the response-memory
 // budget; if the precount × TypicalRowBytes exceeds the budget, the
-// handler returns 413 application/problem+json before materialising
-// anything.
+// handler returns 413 before materialising anything.
 //
 // Explicit `limit=N`: positive N is honoured unmodified — upstream
 // applies qset[skip:skip+limit] with no upper cap (rest.py:757-758),

@@ -8,6 +8,16 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Changed
+
+- `/api/` errors use the upstream form `{"meta":{"error":"<message>"}}` with `Content-Type: application/json`.
+  The `404` of a lookup by `id` or `asn` also has `"data":[]`, as upstream.
+  The `413` body has `max_rows` and `budget_bytes` in `meta`.
+  A client that sends `Accept: application/problem+json` still gets RFC 9457 bodies.
+- `/api/` answers a method other than GET or HEAD with a JSON `405` and `Allow: GET, HEAD`, not a plain-text body.
+  Upstream runs its write handlers for the methods it maps; see Known Divergences.
+- Before the first sync, `/api/` returns `{"meta":{"error":"sync not yet completed"}}` to every client, also to browsers and curl.
+
 ### Fixed
 
 - Alert rule `PdbPlusMachineOOMKilled` reads the `fly_instance_exit_oom` samples of the last 15 minutes and no longer needs a CPU counter reset.

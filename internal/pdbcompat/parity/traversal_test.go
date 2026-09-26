@@ -1221,8 +1221,8 @@ func TestParity_Traversal(t *testing.T) {
 				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
 				continue
 			}
-			if p := mustDecodeProblem(t, body); p.Status != http.StatusBadRequest {
-				t.Errorf("%s: problem status = %d, want 400", path, p.Status)
+			if got := mustDecodeMetaError(t, body).Error; got == "" {
+				t.Errorf("%s: meta.error is empty", path)
 			}
 		}
 	})

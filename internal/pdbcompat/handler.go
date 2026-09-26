@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
-	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -61,6 +60,24 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	// for /api/ requests, so index, list, and detail are all dispatched
 	// from one registration point.
 	mux.HandleFunc("GET /api/{rest...}", h.dispatch)
+	// Every other method reaches the method-less pattern: GET (and HEAD,
+	// which the mux serves with the GET pattern) is more specific.
+	mux.HandleFunc("/api/{rest...}", h.methodNotAllowed)
+}
+
+// methodNotAllowed answers a method other than GET and HEAD. The mirror
+// is read-only, so every such method gets 405 with the DRF text
+// (views.py:167-172, exceptions.py:194-196). Upstream lists its write
+// methods in Allow and runs the write handlers (docs/API.md § Known
+// Divergences). The mux sets no Allow header for this pattern, so the
+// handler sets it.
+func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Allow", "GET, HEAD")
+	// Concatenate: %q would escape the method a second time.
+	writeError(w, r, apiError{
+		Status: http.StatusMethodNotAllowed,
+		Detail: "Method \"" + r.Method + "\" not allowed.",
+	})
 }
 
 // dispatch routes requests under /api/ to index, list, or detail handlers
@@ -80,10 +97,9 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// Validate type name against Registry.
 	tc, ok := Registry[typeName]
 	if !ok {
-		WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusNotFound,
-			Detail:   fmt.Sprintf("unknown type %q", typeName),
-			Instance: r.URL.Path,
+		writeError(w, r, apiError{
+			Status: http.StatusNotFound,
+			Detail: fmt.Sprintf("unknown type %q", typeName),
 		})
 		return
 	}
@@ -113,10 +129,9 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// Detail endpoint: /api/{type}/{id}
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid id %q: not an integer", idStr),
-			Instance: r.URL.Path,
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: fmt.Sprintf("invalid id %q: not an integer", idStr),
 		})
 		return
 	}
@@ -196,10 +211,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		// upstream 2.83.0 rest.py:511-518 raises a 400 for non-numeric
 		// limit/skip; silently ignoring a typo'd limit would turn a
 		// bounded page request into a full-table dump.
-		WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   err.Error(),
-			Instance: r.URL.Path,
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: err.Error(),
 		})
 		return
 	}
@@ -216,10 +230,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	ctx := WithUnknownFields(r.Context())
 	filters, emptyResult, err := ParseFiltersCtx(ctx, params, tc)
 	if err != nil {
-		WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("filter error: %v", err),
-			Instance: r.URL.Path,
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: fmt.Sprintf("filter error: %v", err),
 		})
 		return
 	}
@@ -242,10 +255,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// Parse since.
 	since, err := ParseSinceParam(params)
 	if err != nil {
-		WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid since parameter: %v", err),
-			Instance: r.URL.Path,
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: fmt.Sprintf("invalid since parameter: %v", err),
 		})
 		return
 	}
@@ -297,17 +309,16 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		count, err := tc.Count(r.Context(), h.client, opts)
 		if err != nil {
 			// Log the raw error for operators; never echo ent/SQL error
-			// strings into the client-facing problem Detail (SEC: avoid
+			// strings into the client-facing error text (SEC: avoid
 			// leaking schema/driver internals on the /api surface).
 			slog.ErrorContext(r.Context(), "pdbcompat: count query failed",
 				slog.String("endpoint", r.URL.Path),
 				slog.String("type", tc.Name),
 				slog.String("error", err.Error()),
 			)
-			WriteProblem(w, httperr.WriteProblemInput{
-				Status:   http.StatusInternalServerError,
-				Detail:   "failed to count matching records",
-				Instance: r.URL.Path,
+			writeError(w, r, apiError{
+				Status: http.StatusInternalServerError,
+				Detail: "failed to count matching records",
 			})
 			return
 		}
@@ -321,7 +332,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 				slog.Int64("budget_bytes", info.BudgetBytes),
 				slog.Int("max_rows", info.MaxRows),
 			)
-			WriteBudgetProblem(w, r.URL.Path, info)
+			writeBudgetError(w, r, info)
 			return
 		}
 
@@ -345,10 +356,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 				slog.Int64("budget_bytes", h.responseMemoryLimit),
 			)
 			w.Header().Set("Retry-After", "1")
-			WriteProblem(w, httperr.WriteProblemInput{
-				Status:   http.StatusServiceUnavailable,
-				Detail:   "server is serving other large responses; retry shortly",
-				Instance: r.URL.Path,
+			writeError(w, r, apiError{
+				Status: http.StatusServiceUnavailable,
+				Detail: "server is serving other large responses; retry shortly",
 			})
 			return
 		}
@@ -386,10 +396,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			slog.String("type", tc.Name),
 			slog.String("error", err.Error()),
 		)
-		WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusInternalServerError,
-			Detail:   "failed to query matching records",
-			Instance: r.URL.Path,
+		writeError(w, r, apiError{
+			Status: http.StatusInternalServerError,
+			Detail: "failed to query matching records",
 		})
 		return
 	}
@@ -413,7 +422,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// pull-iterator and serveList is unaffected.
 	//
 	// If streaming fails mid-response, bytes are already committed to
-	// the wire — no way to issue a 500/problem-detail. Log for operator
+	// the wire, so there is no way to issue a 500 error body. Log for operator
 	// visibility and drop the connection by returning (Go's net/http
 	// closes the response on handler return).
 	iter := iterFromSlice(results)
@@ -447,15 +456,15 @@ func isUniqueQuery(typeName string, params url.Values) bool {
 }
 
 // writeEntityNotFound writes the 404 for a unique list query that
-// matched no row. Upstream sends {"data": [], "meta": {"error": "Entity
-// not found"}} (2.83.0 rest.py:809-815, renderers.py:134-146). The
-// mirror sends the same detail as problem+json, like every other /api
-// error (see docs/API.md § Known Divergences).
+// matched no row: {"data": [], "meta": {"error": "Entity not found"}},
+// as upstream (2.83.0 rest.py:809-815 puts "data": [] in the response
+// data, and renderers.py:134-148 keeps it next to meta.error). It is the
+// only /api/ error body with a "data" key.
 func writeEntityNotFound(w http.ResponseWriter, r *http.Request) {
-	WriteProblem(w, httperr.WriteProblemInput{
-		Status:   http.StatusNotFound,
-		Detail:   "Entity not found",
-		Instance: r.URL.Path,
+	writeError(w, r, apiError{
+		Status:    http.StatusNotFound,
+		Detail:    "Entity not found",
+		EmptyData: true,
 	})
 }
 
@@ -514,7 +523,7 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 				slog.Int64("estimated_bytes", info.EstimatedBytes),
 				slog.Int64("budget_bytes", info.BudgetBytes),
 			)
-			WriteBudgetProblem(w, r.URL.Path, info)
+			writeBudgetError(w, r, info)
 			return
 		}
 
@@ -540,10 +549,9 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 				slog.Int64("budget_bytes", h.responseMemoryLimit),
 			)
 			w.Header().Set("Retry-After", "1")
-			WriteProblem(w, httperr.WriteProblemInput{
-				Status:   http.StatusServiceUnavailable,
-				Detail:   "server is serving other large responses; retry shortly",
-				Instance: r.URL.Path,
+			writeError(w, r, apiError{
+				Status: http.StatusServiceUnavailable,
+				Detail: "server is serving other large responses; retry shortly",
 			})
 			return
 		}
@@ -559,10 +567,9 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 	result, err := tc.Get(r.Context(), h.client, id, depth)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			WriteProblem(w, httperr.WriteProblemInput{
-				Status:   http.StatusNotFound,
-				Detail:   fmt.Sprintf("%s with id %d not found", tc.Name, id),
-				Instance: r.URL.Path,
+			writeError(w, r, apiError{
+				Status: http.StatusNotFound,
+				Detail: fmt.Sprintf("%s with id %d not found", tc.Name, id),
 			})
 			return
 		}
@@ -573,10 +580,9 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 			slog.String("type", tc.Name),
 			slog.String("error", err.Error()),
 		)
-		WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusInternalServerError,
-			Detail:   "failed to query record",
-			Instance: r.URL.Path,
+		writeError(w, r, apiError{
+			Status: http.StatusInternalServerError,
+			Detail: "failed to query record",
 		})
 		return
 	}

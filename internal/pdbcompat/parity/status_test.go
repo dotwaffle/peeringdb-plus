@@ -571,8 +571,8 @@ func TestParity_Status(t *testing.T) {
 	})
 
 	// assertEntityNotFound checks the 404 that upstream returns for a
-	// unique list query with an empty result. The body is problem+json
-	// under the registered error-envelope divergence.
+	// unique list query with an empty result: {"data": [], "meta":
+	// {"error": "Entity not found"}} (2.83.0 rest.py:809-815).
 	assertEntityNotFound := func(t *testing.T, srv *httptest.Server, path string) {
 		t.Helper()
 		status, body := httpGet(t, srv, path)
@@ -580,8 +580,8 @@ func TestParity_Status(t *testing.T) {
 			t.Errorf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
 			return
 		}
-		if p := mustDecodeProblem(t, body); p.Detail != "Entity not found" {
-			t.Errorf("GET %s: detail = %q, want %q", path, p.Detail, "Entity not found")
+		if got := mustDecodeMetaError(t, body).Error; got != "Entity not found" {
+			t.Errorf("GET %s: meta.error = %q, want %q", path, got, "Entity not found")
 		}
 	}
 	// assertEmptyList checks a 200 with an empty data array.
@@ -758,8 +758,64 @@ func TestParity_Status(t *testing.T) {
 				t.Errorf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
 				continue
 			}
-			if p := mustDecodeProblem(t, body); !strings.Contains(p.Detail, "to int") {
-				t.Errorf("GET %s: detail = %q, want an int conversion error", path, p.Detail)
+			if got := mustDecodeMetaError(t, body).Error; !strings.Contains(got, "to int") {
+				t.Errorf("GET %s: meta.error = %q, want an int conversion error", path, got)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_unknown_path_json_404", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream has no route for an unknown type, so
+		// Django serves the 404 HTML page of the web site (2.83.0
+		// mainsite/urls.py:111, views.py:336-340). The mirror sends a
+		// JSON 404 in the /api/ error form, with the same status. See
+		// docs/API.md § Known Divergences.
+		srv := newTestServer(t, testutil.SetupClient(t))
+		status, hdr, body := httpDo(t, srv, http.MethodGet, "/api/foo", nil)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET /api/foo: status = %d, want 404; body=%s", status, string(body))
+		}
+		if ct := hdr.Get("Content-Type"); ct != "application/json" {
+			t.Errorf("GET /api/foo: Content-Type = %q, want application/json", ct)
+		}
+		if got := mustDecodeMetaError(t, body).Error; got == "" {
+			t.Errorf("GET /api/foo: meta.error is empty")
+		}
+	})
+
+	t.Run("DIVERGENCE_non_get_method_405_read_only", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream admits an anonymous write through its
+		// permission classes (2.83.0 rest.py:396-405, :438-451,
+		// permissions.py:282-302) and runs the handler: POST with no
+		// body is a 400 (rest.py:867-924), PATCH a 403 (:970-974),
+		// DELETE a 204, 403 or 400 (:978-1020), and OPTIONS a 200 with
+		// DRF metadata (DRF views.py:531-538). Every upstream response
+		// lists the methods of the route in Allow (DRF views.py:157-164).
+		// The mirror is read-only: every method other than GET and HEAD
+		// gets 405 and Allow: GET, HEAD. See docs/API.md § Known
+		// Divergences.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ method, path string }{
+			{http.MethodPost, "/api/net"},
+			{http.MethodPatch, "/api/net/1"},
+			{http.MethodDelete, "/api/net/1"},
+			{http.MethodOptions, "/api/net"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != http.StatusMethodNotAllowed {
+				t.Errorf("%s %s: status = %d, want 405; body=%s", tc.method, tc.path, status, string(body))
+				continue
+			}
+			if got := hdr.Get("Allow"); got != "GET, HEAD" {
+				t.Errorf("%s %s: Allow = %q, want %q", tc.method, tc.path, got, "GET, HEAD")
+			}
+			want := "Method \"" + tc.method + "\" not allowed."
+			if got := mustDecodeMetaError(t, body).Error; got != want {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
 			}
 		}
 	})

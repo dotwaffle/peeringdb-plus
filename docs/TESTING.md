@@ -244,7 +244,7 @@ The package is split into 9 category-specific test files plus shared infrastruct
 | `meta_test.go` | `TestParity_Meta` | netixlan `meta__*` filters (typed keys, absent key never matches, net keys ignored) |
 | `serializer_test.go` | `TestParity_Serializer` | Serializer values and keys (IX-F URL key for permitted callers, `ix.media`/`ixlan.dot1q_support` constants, `info_types` as a list) |
 | `multichoice_test.go` | `TestParity_MultiChoice` | Multi-value choice filters (net `info_types` and legacy `info_type`, fac `available_voltage_services`) |
-| `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget` / `newTestServerWithTier`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem` (server wiring and response decoding, no seeders) |
+| `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget` / `newTestServerWithTier`, `httpGet`, `httpDo`, `decodeDataArray`, `extractIDs`, `mustDecodeMetaError`, `mustDecodeProblem` (problem+json opt-in only) (server wiring and response decoding, no seeders) |
 | `harness_test.go` | `TestHarness_*` | Self-tests for the helpers |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
 | `doc.go` | (package doc) | Package documentation |
@@ -270,7 +270,7 @@ There is no generated fixtures package and no per-category seeder — the upstre
   A divergence test that is its own top-level function ends its name with `_DIVERGENCE` (for example `TestParity_Unicode_FoldWindow_DIVERGENCE`).
   Each such test must have a matching row in `docs/API.md § Known Divergences` cross-referencing it.
 - **TB widening**: parity helpers accept `testing.TB` (not `*testing.T`) so the same code paths run under benchmarks.
-  Applied across the 7 helper functions in `harness_helpers_test.go` (`newTestServer`, `newTestServerWithBudget`, `newTestServerWithTier`, `httpGet`, `decodeDataArray`, `extractIDs`, `mustDecodeProblem`).
+  Applied across the 9 helper functions in `harness_helpers_test.go` (`newTestServer`, `newTestServerWithBudget`, `newTestServerWithTier`, `httpGet`, `httpDo`, `decodeDataArray`, `extractIDs`, `mustDecodeMetaError`, `mustDecodeProblem`).
 
 ### Adding a parity test
 

@@ -3,6 +3,7 @@ package parity
 import (
 	"encoding/json"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -82,6 +83,29 @@ func httpGet(t testing.TB, srv *httptest.Server, path string) (int, []byte) {
 	return resp.StatusCode, body
 }
 
+// httpDo sends a request with the given method and headers to srv and
+// returns (status, headers, body). It is for the non-GET methods and
+// for requests whose headers matter; httpGet covers a plain GET.
+// Transport errors fail the test.
+func httpDo(t testing.TB, srv *httptest.Server, method, path string, hdr http.Header) (int, http.Header, []byte) {
+	t.Helper()
+	req, err := http.NewRequestWithContext(t.Context(), method, srv.URL+path, nil)
+	if err != nil {
+		t.Fatalf("httpDo: build %s %s: %v", method, path, err)
+	}
+	maps.Copy(req.Header, hdr)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("httpDo: %s %s: %v", method, path, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("httpDo: read body from %s %s: %v", method, path, err)
+	}
+	return resp.StatusCode, resp.Header, body
+}
+
 // envelope is the on-the-wire {"meta": ..., "data": [...]} shape.
 type envelope struct {
 	Meta json.RawMessage   `json:"meta"`
@@ -130,9 +154,51 @@ func extractIDs(t testing.TB, body []byte) []int {
 	return ids
 }
 
-// problem is the budget-exceeded RFC 9457 problem-detail body shape
-// (mirrors pdbcompat.budgetProblemBody / WriteBudgetProblem). Only the
-// fields parity tests assert on are surfaced here.
+// metaError is the meta object of an upstream-form /api/ error body,
+// {"meta": {"error": "<text>", ...}} (2.83.0 renderers.py:134-148). The
+// 413 adds max_rows and budget_bytes.
+type metaError struct {
+	Error       string `json:"error"`
+	MaxRows     int    `json:"max_rows"`
+	BudgetBytes int64  `json:"budget_bytes"`
+}
+
+// mustDecodeMetaError decodes an upstream-form /api/ error body and
+// returns its meta object. It fails when the body is problem+json (a
+// top-level type or title key), or when meta or meta.error is missing.
+func mustDecodeMetaError(t testing.TB, body []byte) metaError {
+	t.Helper()
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(body, &top); err != nil {
+		t.Fatalf("mustDecodeMetaError: %v\nbody=%s", err, string(body))
+	}
+	for _, key := range []string{"type", "title"} {
+		if _, ok := top[key]; ok {
+			t.Fatalf("mustDecodeMetaError: body has top-level %q, it is problem+json\nbody=%s", key, string(body))
+		}
+	}
+	rawMeta, ok := top["meta"]
+	if !ok {
+		t.Fatalf("mustDecodeMetaError: body has no meta key\nbody=%s", string(body))
+	}
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(rawMeta, &keys); err != nil {
+		t.Fatalf("mustDecodeMetaError: meta: %v\nbody=%s", err, string(body))
+	}
+	if _, ok := keys["error"]; !ok {
+		t.Fatalf("mustDecodeMetaError: meta has no error key\nbody=%s", string(body))
+	}
+	var m metaError
+	if err := json.Unmarshal(rawMeta, &m); err != nil {
+		t.Fatalf("mustDecodeMetaError: meta: %v\nbody=%s", err, string(body))
+	}
+	return m
+}
+
+// problem is the RFC 9457 problem-detail body shape, including the
+// budget extension fields (mirrors pdbcompat.budgetProblemBody /
+// WriteBudgetProblem). Only the fields parity tests assert on are
+// surfaced here.
 type problem struct {
 	Type        string `json:"type"`
 	Title       string `json:"title"`
@@ -143,11 +209,20 @@ type problem struct {
 	BudgetBytes int64  `json:"budget_bytes"`
 }
 
-// mustDecodeProblem decodes an application/problem+json body. Used by
-// limit_test's 413 case. Failure to decode is a hard error — it
-// signals a serializer regression, not a behavioural one.
+// mustDecodeProblem decodes an application/problem+json body. Use it
+// only for requests that opt in with Accept: application/problem+json;
+// other /api/ errors have the upstream form (mustDecodeMetaError).
+// Failure to decode is a hard error: it signals a serializer
+// regression, not a behavioural one.
 func mustDecodeProblem(t testing.TB, body []byte) problem {
 	t.Helper()
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(body, &top); err != nil {
+		t.Fatalf("mustDecodeProblem: %v\nbody=%s", err, string(body))
+	}
+	if _, ok := top["meta"]; ok {
+		t.Fatalf("mustDecodeProblem: body is the /api/ meta envelope; use mustDecodeMetaError\nbody=%s", string(body))
+	}
 	var p problem
 	if err := json.Unmarshal(body, &p); err != nil {
 		t.Fatalf("mustDecodeProblem: %v\nbody=%s", err, string(body))
