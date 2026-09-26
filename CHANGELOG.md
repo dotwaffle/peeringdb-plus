@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   `HEAD` and the other methods on these paths return `405` with `Allow: GET`.
   Before, both paths returned `404`.
   See `docs/API.md` § AS-SET lookup.
+- pdbcompat filters `netixlan` on the facility of the exchange side: `?ix_side__<field>=`, for example `?ix_side__name=` or `?ix_side__city__contains=`, as upstream.
+  Before, pdbcompat ignored these keys and returned the unfiltered list (a registered divergence, now removed).
+  The `net_side` keys stay ignored, as upstream ignores them.
+  See `docs/API.md` § Cross-entity traversal.
 
 ### Changed
 

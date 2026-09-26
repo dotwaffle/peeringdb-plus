@@ -195,6 +195,7 @@ var Edges = map[string][]EdgeMetadata{
 	},
 	"netixlan": {
 		{Name: "ix_lan", TargetType: "ixlan", TraversalKey: "ixlan", Excluded: false, ParentFKColumn: "ixlan_id", TargetTable: "ix_lans", TargetIDColumn: "id", OwnFK: true},
+		{Name: "ix_side", TargetType: "fac", TraversalKey: "ix_side", Excluded: false, ParentFKColumn: "ix_side_id", TargetTable: "facilities", TargetIDColumn: "id", OwnFK: true},
 		{Name: "network", TargetType: "net", TraversalKey: "net", Excluded: false, ParentFKColumn: "net_id", TargetTable: "networks", TargetIDColumn: "id", OwnFK: true},
 	},
 	"org": {

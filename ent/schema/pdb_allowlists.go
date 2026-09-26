@@ -263,4 +263,9 @@ type ColumnEdge struct {
 // (a model ForeignKey whose name xl does not rename, serializers.py:
 // 403-441, :970-996). net_side is left out on purpose: xl renames it
 // to network_side, which names no field, so upstream ignores its keys.
-var ColumnEdges = map[string][]ColumnEdge{}
+var ColumnEdges = map[string][]ColumnEdge{
+	// NetworkIXLan.ix_side FK to Facility (2.83.0 models.py:6095-6101):
+	// queryable_relations adds ix_side__<field> for each non-FK field of
+	// Facility (serializers.py:970-996).
+	"netixlan": {{TraversalKey: "ix_side", Column: "ix_side_id", TargetType: "fac"}},
+}

@@ -39,6 +39,12 @@ func TestLookupEdge_KnownHops(t *testing.T) {
 		{entity: "fac", fk: "org", wantFound: true, wantTarget: "org"},
 		// Facility has a campus edge → campus.
 		{entity: "fac", fk: "campus", wantFound: true, wantTarget: "campus"},
+		// NetworkIxLan has a column edge ix_side → fac over ix_side_id
+		// (schema.ColumnEdges). net_side has none: upstream renames it
+		// to network_side and ignores it. No edge is named fac.
+		{entity: "netixlan", fk: "ix_side", wantFound: true, wantTarget: "fac", wantParentFK: "ix_side_id", wantTargetTbl: "facilities"},
+		{entity: "netixlan", fk: "net_side", wantFound: false},
+		{entity: "netixlan", fk: "fac", wantFound: false},
 		// Unknown entity (not in Edges at all).
 		{entity: "bogus", fk: "org", wantFound: false},
 		// Unknown FK on a known entity.

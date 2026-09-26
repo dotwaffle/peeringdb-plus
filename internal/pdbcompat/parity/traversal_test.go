@@ -68,8 +68,8 @@ import (
 //   - DIVERGENCE: a 3-segment relation key with contains or
 //     startswith ignores case, and campus?facility__<field>= returns
 //     each campus once.
-//   - DIVERGENCE: netixlan ix_side__<field> keys are silent-ignored.
-//     The mirror has no edge to that facility.
+//   - netixlan ix_side__<field> filters on the IX-side facility through
+//     the declared column edge (schema.ColumnEdges), as upstream.
 //   - Keys that upstream never filters are ignored on both sides: the
 //     net_ and fac_ names that queryable_field_xl renames (netixlan
 //     net_side*, carrier fac_count*), serializer-only fields (campus
@@ -398,6 +398,11 @@ func TestParity_Traversal(t *testing.T) {
 		// upstream: django-handleref models.py:86-90 (version),
 		// django-peeringdb abstract.py:436 (notes_private), :791 (vlan),
 		// :819 (ixf_ixp_member_list_url), :879-889 (avail_*)
+		// The plain version key filters every type upstream: version is
+		// a HandleRefModel field (django-handleref models.py:90) that
+		// HandleRefSerializer does not serialize (rest/serializers.py:12).
+		// fac notified_for_geocoords (models.py:2257-2260) is a model
+		// field that no serializer names.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "ColumnOrgA", t0)
@@ -427,6 +432,19 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/net?netfac__avail_sonet=true", want: []int{100, 101}},
 			{path: "/api/ix?ixlan__ixf_ixp_member_list_url=x", want: []int{300, 301}},
 			{path: "/api/ix?ixlan__ixlan_vlan=5", want: []int{300, 301}},
+			// Upstream: []. version starts at 0 and only grows
+			// (django-handleref models.py:9-16, :90).
+			{path: "/api/org?version=-1", want: []int{1, 2}},
+			// Upstream: []. notified_for_geocoords defaults to False.
+			{path: "/api/fac?notified_for_geocoords=true", want: []int{200, 201}},
+		})
+		// The same columns of the IX-side facility, through the netixlan
+		// ix_side column edge. Upstream: [] for each request.
+		srv2 := newTestServer(t, seedIxSideKeys(t, t0))
+		assertKeysSilentlyIgnored(t, srv2, []silentIgnoreCase{
+			{path: "/api/netixlan?ix_side__location_method=google", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side__version=-1", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side__notified_for_geocoords=true", want: []int{5000, 5001, 5002}},
 		})
 	})
 
@@ -582,43 +600,62 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_netixlan_ix_side_facility_keys_silent_ignore", func(t *testing.T) {
+	t.Run("netixlan_ix_side_facility_keys_filter_like_upstream", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: ix_side is a FK from netixlan to Facility upstream
-		// (2.83.0 models.py:6095-6101), so queryable_relations adds
-		// ix_side__<field> (serializers.py:970-996) and upstream filters
-		// on the facility. The mirror stores ix_side_id but has no edge
-		// to the facility, so these keys are silent-ignored. The
-		// net_side keys are parity: see
-		// net_fac_renamed_keys_ignored_like_upstream.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
-		c := testutil.SetupClient(t)
-		ctx := t.Context()
-		mustOrg(ctx, t, c, 1, "SideOrg", t0)
-		mustNet(ctx, t, c, 100, "SideNet", 64500, 1, t0)
-		mustFac(ctx, t, c, 200, "SideFacA", 1, t0)
-		mustFac(ctx, t, c, 201, "SideFacB", 1, t0)
-		mustIX(ctx, t, c, 300, "SideIX", 1, t0)
-		mustIxLan(ctx, t, c, 3000, "SideLan", 300, t0)
-		for id, fac := range map[int]int{5000: 200, 5001: 201} {
-			if _, err := c.NetworkIxLan.Create().
-				SetID(id).SetNetID(100).SetIxlanID(3000).SetIxID(300).
-				SetAsn(64500).SetSpeed(1000).
-				SetNetSideID(fac).SetIxSideID(fac).
-				SetStatus("ok").SetCreated(t0).SetUpdated(t0).
-				Save(ctx); err != nil {
-				t.Fatalf("seed netixlan id=%d: %v", id, err)
-			}
-		}
-
-		srv := newTestServer(t, c)
+		// ix_side is a FK from netixlan to Facility upstream (2.83.0
+		// models.py:6095-6101), so queryable_relations adds
+		// ix_side__<field> for each non-FK field of Facility
+		// (serializers.py:970-996). The filter loop unidecodes the value
+		// (rest.py:597), strips _id only from a key such as
+		// ix_side__org_id (:608-631), maps contains and startswith to
+		// their case-insensitive forms (:633-669) and a key without an
+		// operator to iexact (:670-683). The join is on the facility, and
+		// no status check applies to it (:693-703), so a deleted facility
+		// matches. Count columns are model fields (models.py:2238-2255).
+		// The mirror walks the declared column edge (schema.ColumnEdges)
+		// through Path B. net_side is renamed to network_side and ignored
+		// (serializers.py:428-432). ix_side__id=abc matches no row on
+		// both sides: iexact does not prepare the value, and the mirror
+		// compares the decimal text of the id.
+		srv := newTestServer(t, seedIxSideKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?ix_side__name=SideFacA", want: []int{5000}},
+			{path: "/api/netixlan?ix_side__name=sidefaca", want: []int{5000}},
+			{path: "/api/netixlan?ix_side__name__contains=faca", want: []int{5000}},
+			{path: "/api/netixlan?ix_side__name__startswith=SIDEFAC", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__name__in=SideFacA,SideFacB", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__city__contains=nomatch", want: []int{}},
+			{path: "/api/netixlan?ix_side__city=TestCity", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__country=de", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__id=201", want: []int{5001}},
+			{path: "/api/netixlan?ix_side__id=abc", want: []int{}},
+			{path: "/api/netixlan?ix_side__id__in=200,201", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__id__gt=200", want: []int{5001}},
+			{path: "/api/netixlan?ix_side__status=deleted", want: []int{5001}},
+			{path: "/api/netixlan?ix_side__status=ok", want: []int{5000}},
+			// Fac 201 is deleted. The join has no status check.
+			{path: "/api/netixlan?ix_side__name=SideFacB", want: []int{5001}},
+			{path: "/api/netixlan?ix_side__net_count__gt=0", want: []int{5000}},
+			{path: "/api/netixlan?ix_side__updated__gte=2020-01-01", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__name=SideFacA&since=1", want: []int{5000}},
+			{path: "/api/netixlan?ix_side=200", want: []int{5000}},
+			{path: "/api/netixlan?ix_side_id=200", want: []int{5000}},
+			{path: "/api/netixlan?ix_side__in=200", want: []int{5000}},
+		})
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			// Upstream: [5000].
-			{path: "/api/netixlan?ix_side__name=SideFacA", want: []int{5000, 5001}},
-			// Upstream: []. It builds ix_side__city__icontains, and both
-			// facilities are in TestCity.
-			{path: "/api/netixlan?ix_side__city__contains=nomatch", want: []int{5000, 5001}},
+			{path: "/api/netixlan?ix_side__org_name=SideOrg", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side__org_id=1", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side__campus_id=1", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side__bogus=1", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side__isnull=1", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side_id__name=SideFacA", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?ix_side__org__status=ok", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?net_side__name=SideFacA", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?fac__name=SideFacA", want: []int{5000, 5001, 5002}},
+			{path: "/api/netixlan?facility__name=SideFacA", want: []int{5000, 5001, 5002}},
+			// Fac 201 is deleted. A reverse edge from fac through ix_side
+			// would give [200].
+			{path: "/api/fac?netixlan__asn=64500", want: []int{200, 202}},
 		})
 	})
 
@@ -801,8 +838,9 @@ func TestParity_Traversal(t *testing.T) {
 		// serializers.py:970-996), plus the keys that a prepare_query
 		// handles. It ignores the keys below, which the mirror
 		// resolves:
-		//   - 2-hop keys. Path B reaches any second edge, and Path A
-		//     lists ixpfx ixlan__ix__*. A key whose first segment a
+		//   - 2-hop keys. Path B reaches any second edge, including the
+		//     declared column edge netixlan ix_side, and Path A lists
+		//     ixpfx ixlan__ix__*. A key whose first segment a
 		//     prepare_query handles is a relation key instead: see
 		//     prepare_query_relation_keys_pin_join_status_ok.
 		//   - Reverse keys named by the mirror's traversal key, outside
@@ -826,6 +864,13 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/fac?org__latitude__gt=50", want: []int{400}},
 			// Upstream: [1000 1001 2000].
 			{path: "/api/ixpfx?ixlan__descr=secretdescr", want: []int{1000, 1001}},
+		})
+		srv2 := newTestServer(t, seedIxSideKeys(t, t0))
+		assertKeysResolve(t, srv2, []silentIgnoreCase{
+			// Upstream: [5000 5001 5002].
+			{path: "/api/netixlan?ix_side__org__name=SideOrg", want: []int{5000, 5001}},
+			// Upstream: [3000 3001].
+			{path: "/api/ixlan?netixlan__ix_side__name=SideFacA", want: []int{3000}},
 		})
 	})
 
@@ -1223,6 +1268,13 @@ func TestParity_Traversal(t *testing.T) {
 		c.Campus.UpdateOneID(50).SetStatus("pending").ExecX(ctx)
 		mustFac(ctx, t, c, 400, "DetailFac", 1, t0)
 		c.Facility.UpdateOneID(400).SetCampusID(50).ExecX(ctx)
+		mustFac(ctx, t, c, 200, "SideFacA", 1, t0)
+		mustFac(ctx, t, c, 201, "SideFacB", 1, t0)
+		c.NetworkIxLan.Create().
+			SetID(5000).SetNetID(1).SetIxlanID(1).SetIxID(1).
+			SetAsn(64500).SetSpeed(1000).SetIxSideID(200).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+			SaveX(ctx)
 		srv := newTestServer(t, c)
 
 		cases := []struct {
@@ -1239,6 +1291,9 @@ func TestParity_Traversal(t *testing.T) {
 			// Traversal keys (the filter loop).
 			{"/api/netixlan/1?net__name=NetOne", http.StatusOK},
 			{"/api/netixlan/1?net__name=x", http.StatusNotFound},
+			// The ix_side column edge (models.py:6095-6101).
+			{"/api/netixlan/5000?ix_side__name=SideFacA", http.StatusOK},
+			{"/api/netixlan/5000?ix_side__name=SideFacB", http.StatusNotFound},
 			// meta keys (finalize_query_params).
 			{"/api/netixlan/1?meta__rfc8950=true", http.StatusOK},
 			{"/api/netixlan/1?meta__rfc8950=false", http.StatusNotFound},
@@ -1343,6 +1398,14 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/net?ix__ixlan_set=5", want: []int{100, 200, 301}},
 			{path: "/api/fac?net__poc_set=1", want: []int{400, 401}},
 			{path: "/api/ix?fac__netfac_set=1", want: []int{20, 21}},
+		})
+		srv2 := newTestServer(t, seedIxSideKeys(t, t0))
+		assertKeysSilentlyIgnored(t, srv2, []silentIgnoreCase{
+			// Upstream: [200]. The reverse relation of NetworkIXLan.ix_side
+			// (models.py:6095-6101); fac 201 also has a matching netixlan
+			// but is deleted, so the status matrix drops it on both sides.
+			// The mirror has no fac -> netixlan edge through ix_side.
+			{path: "/api/fac?ix_side_set__asn=64500", want: []int{200, 202}},
 		})
 	})
 
@@ -1752,6 +1815,47 @@ func seedFKKeys(t *testing.T, t0 time.Time) *ent.Client {
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	mustNet(ctx, t, c, 102, "FKNet102", 64502, 3, t0)
+	return c
+}
+
+// seedIxSideKeys seeds netixlan rows for the ix_side__<field> keys: orgs
+// 1 SideOrg and 2 SideOrgB, net 100, ix 300 with ixlans 3000 and 3001
+// (3001 has no netixlan), facilities 200 SideFacA (net_count 1), 201
+// SideFacB (deleted) and 202 SideFacC (org 2, no netixlan), and
+// netixlans 5000 (both side FKs 200), 5001 (both side FKs 201) and 5002
+// (no side FKs).
+func seedIxSideKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "SideOrg", t0)
+	mustOrg(ctx, t, c, 2, "SideOrgB", t0)
+	mustNet(ctx, t, c, 100, "SideNet", 64500, 1, t0)
+	mustIX(ctx, t, c, 300, "SideIX", 1, t0)
+	mustIxLan(ctx, t, c, 3000, "SideLan", 300, t0)
+	mustIxLan(ctx, t, c, 3001, "SideLanB", 300, t0)
+	mustFac(ctx, t, c, 200, "SideFacA", 1, t0)
+	mustFac(ctx, t, c, 201, "SideFacB", 1, t0)
+	mustFac(ctx, t, c, 202, "SideFacC", 2, t0)
+	if err := c.Facility.UpdateOneID(200).SetNetCount(1).Exec(ctx); err != nil {
+		t.Fatalf("set fac 200 net_count: %v", err)
+	}
+	if err := c.Facility.UpdateOneID(201).SetStatus("deleted").Exec(ctx); err != nil {
+		t.Fatalf("set fac 201 status: %v", err)
+	}
+	for _, row := range []struct {
+		id  int
+		fac *int
+	}{{5000, new(200)}, {5001, new(201)}, {5002, nil}} {
+		if _, err := c.NetworkIxLan.Create().
+			SetID(row.id).SetNetID(100).SetIxlanID(3000).SetIxID(300).
+			SetAsn(64500).SetSpeed(1000).
+			SetNillableNetSideID(row.fac).SetNillableIxSideID(row.fac).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed netixlan id=%d: %v", row.id, err)
+		}
+	}
 	return c
 }
 

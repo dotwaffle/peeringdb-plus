@@ -364,7 +364,7 @@ Do NOT key this on `UpstreamIgnored`: it also holds renamed MODEL fields (carrie
 **Codegen invariants.**
 Static map emission, NOT runtime `client.Schema.Tables` walk.
 `cmd/pdb-compat-allowlist` reads `schema.PrepareQueryAllows` from `ent/schema/pdb_allowlists.go` → emits `internal/pdbcompat/allowlist_gen.go`.
-It also reads `schema.ColumnEdges` (same file): pdbcompat-only forward edges over a FK column with no ent edge, checked against the ent graph (fatal on error) and emitted into `Edges` with `OwnFK: true`; no FK constraint, no other surface.
+It also reads `schema.ColumnEdges` (same file): pdbcompat-only forward edges over a FK column with no ent edge (today netixlan `ix_side` → fac on `ix_side_id`), checked against the ent graph (fatal on error) and emitted into `Edges` with `OwnFK: true`; no FK constraint, no other surface.
 Never add `net_side` (upstream renames it to `network_side` and ignores it).
 Each entry's block comment cites the upstream `peeringdb_server/serializers.py:<line>` it derives from (usually `<Serializer>.prepare_query`, else `related_fields` / `queryable_relations`); audit-required.
 There is no `// Source:` tag.
