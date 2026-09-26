@@ -16,6 +16,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat returns `406` (`Could not satisfy the request Accept header.`) when no media range of the `Accept` header matches `application/json`, for example `Accept: text/html` or an empty header, as upstream DRF content negotiation does, before the method check and before any parameter is read.
+  A header that names `application/problem+json` still gets the RFC 9457 errors and no `406`.
+  Before, pdbcompat ignored `Accept`.
 - pdbcompat returns `404` for a path with a `/` at the end, for example `/api/net/`, `/api/net/1/` or `/api/as_set/`, for every method, as upstream does: no upstream route has a `/` at the end.
   A write method on a path that no upstream route matches, for example `POST /api/foo`, also returns `404` now, not `405`.
   Before, pdbcompat removed the `/` and served the path.

@@ -104,8 +104,8 @@ func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
 // paths of getOnly types get Allow: GET.
 //
 // A path that no route matches is a 404 for every method, as in
-// dispatch. Content negotiation comes before the method check, so a
-// format other than json is also a 404.
+// dispatch. Content negotiation comes before the method check
+// (negotiate).
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
 	_, known := Registry[typeName]
@@ -114,8 +114,7 @@ func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 		writeDetailNotFound(w, r, detailSliceNotFound)
 	case !known && typeName != "" && typeName != asSetPath:
 		writeUnknownType(w, r, typeName)
-	case !formatAccepted(format, r.URL.Query()):
-		writeDetailNotFound(w, r, detailSliceNotFound)
+	case !negotiate(w, r, format):
 	case getOnly(typeName):
 		writeMethodNotAllowed(w, r, "GET")
 	default:
@@ -171,8 +170,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	if typeName == "" {
 		// /api/ or /api/.json -- serve the index. /api has its own route
 		// (redirectAPIRoot).
-		if !formatAccepted(format, r.URL.Query()) {
-			writeDetailNotFound(w, r, detailSliceNotFound)
+		if !negotiate(w, r, format) {
 			return
 		}
 		h.serveIndex(w, r)
@@ -184,8 +182,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// below turns an id that is not an integer into a 404. The as_set
 	// lookup parses its own ASN and takes its own heap-delta sample.
 	if typeName == asSetPath {
-		if !formatAccepted(format, r.URL.Query()) {
-			writeDetailNotFound(w, r, detailSliceNotFound)
+		if !negotiate(w, r, format) {
 			return
 		}
 		h.serveASSet(w, r, idStr)
@@ -216,12 +213,10 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
 
-	// A format other than json raises Http404 in the content
-	// negotiation of initial(), before get_queryset and before the
-	// method check (drf negotiation.py:80-88, views.py:408-411).
-	// serveDetail parses the id after the parameter checks.
-	if !formatAccepted(format, r.URL.Query()) {
-		writeDetailNotFound(w, r, detailSliceNotFound)
+	// Content negotiation runs in initial(), before get_queryset and
+	// before the method check (negotiate). serveDetail parses the id
+	// after the parameter checks.
+	if !negotiate(w, r, format) {
 		return
 	}
 
@@ -288,6 +283,50 @@ func cutFormatSuffix(seg string) (base, format string, ok bool) {
 		return seg, "", false
 	}
 	return base, format, true
+}
+
+// errNotAcceptable is the DRF NotAcceptable text (exceptions.py:205-208).
+const errNotAcceptable = "Could not satisfy the request Accept header."
+
+// negotiate runs the checks of DRF content negotiation, which initial()
+// runs before the method check and before any parameter is read
+// (views.py:408-411): a format other than json is a 404
+// (formatAccepted, negotiation.py:80-88), and an Accept header with no
+// media range that matches application/json is a 406 (acceptsJSON,
+// negotiation.py:52-78). A header that names application/problem+json
+// gets no 406 (docs/API.md § Known Divergences). negotiate writes the
+// error and returns false when a check fails.
+func negotiate(w http.ResponseWriter, r *http.Request, suffix string) bool {
+	if !formatAccepted(suffix, r.URL.Query()) {
+		writeDetailNotFound(w, r, detailSliceNotFound)
+		return false
+	}
+	if !acceptsJSON(r.Header) && !httperr.WantsProblemJSON(r.Header) {
+		writeError(w, r, apiError{Status: http.StatusNotAcceptable, Detail: errNotAcceptable})
+		return false
+	}
+	return true
+}
+
+// acceptsJSON reports whether a media range of the Accept header
+// matches application/json as DRF matches it (mediatypes.py
+// _MediaType.match): the header is split at each ",", the type and
+// subtype ignore case, "*" matches any type or subtype, and no
+// parameter is read, q=0 included. Without an Accept header, DRF reads
+// */*. An empty header matches nothing.
+func acceptsJSON(h http.Header) bool {
+	vals, ok := h["Accept"]
+	if !ok {
+		return true
+	}
+	for part := range strings.SplitSeq(strings.Join(vals, ","), ",") {
+		full, _, _ := strings.Cut(part, ";")
+		typ, sub, _ := strings.Cut(strings.ToLower(strings.TrimSpace(full)), "/")
+		if (typ == "*" || typ == "application") && (sub == "*" || sub == "json") {
+			return true
+		}
+	}
+	return false
 }
 
 // formatAccepted reports whether DRF content negotiation accepts the

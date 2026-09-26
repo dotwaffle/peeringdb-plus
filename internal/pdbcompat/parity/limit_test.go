@@ -734,18 +734,26 @@ func TestParity_Limit(t *testing.T) {
 			t.Errorf("budget: problem type/budget_bytes = %q/%d, want %q/100", p.Type, p.BudgetBytes, pdbcompat.ResponseTooLargeType)
 		}
 
-		// Accept values that keep the upstream form.
-		for _, accept := range []string{
-			"application/problem+json;q=0",
-			"*/*",
-			"application/*",
-			"application/json",
-			"application/problem+json;q=abc",
-			"application/problem+json;q=NaN",
+		// Accept values that keep the upstream form. A header that
+		// names application/problem+json only with a q of 0 or a q
+		// that is not a number gets the upstream 406, as it does not
+		// name the media type for the mirror.
+		for _, tc := range []struct {
+			accept string
+			want   int
+		}{
+			{"application/problem+json;q=0", http.StatusNotAcceptable},
+			{"*/*", http.StatusBadRequest},
+			{"application/*", http.StatusBadRequest},
+			{"application/json", http.StatusBadRequest},
+			{"application/problem+json;q=abc", http.StatusNotAcceptable},
+			{"application/problem+json;q=NaN", http.StatusNotAcceptable},
+			{"application/problem+json;q=0, application/json", http.StatusBadRequest},
 		} {
+			accept := tc.accept
 			status, _, body := httpDo(t, srv, http.MethodGet, "/api/net?limit=abc", http.Header{"Accept": {accept}})
-			if status != http.StatusBadRequest {
-				t.Errorf("Accept %q: status = %d, want 400", accept, status)
+			if status != tc.want {
+				t.Errorf("Accept %q: status = %d, want %d", accept, status, tc.want)
 				continue
 			}
 			if got := mustDecodeMetaError(t, body).Error; got == "" {

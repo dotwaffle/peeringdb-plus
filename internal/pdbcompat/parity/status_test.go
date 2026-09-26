@@ -1085,6 +1085,67 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
+	t.Run("non_json_accept_406_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: the only renderer is application/json (2.83.0
+		// settings/__init__.py:1459, renderers.py:76-86). DRF content
+		// negotiation compares it with each media range of Accept,
+		// split at ",", with no parameter read, q=0 included
+		// (negotiation.py:52-78, mediatypes.py _MediaType.match), and
+		// raises NotAcceptable (406) when none matches. It runs in
+		// initial(), after the format check (404) and before the
+		// method check (views.py:408-411). A request without Accept
+		// reads */*; an empty header matches nothing.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			method, path, accept string
+			want                 int
+		}{
+			{http.MethodGet, "/api/net", "application/xml", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net/1", "text/html", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/", "text/html", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/as_set", "text/plain", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "*", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "json", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "application/json/x", http.StatusNotAcceptable},
+			// The format check comes first, the method check after.
+			{http.MethodGet, "/api/net.xml", "text/html", http.StatusNotFound},
+			{http.MethodPost, "/api/net", "text/html", http.StatusNotAcceptable},
+			{http.MethodHead, "/api/ixlan", "text/html", http.StatusNotAcceptable},
+			// No route: the HTML 404 page upstream (row B).
+			{http.MethodGet, "/api/foo", "text/html", http.StatusNotFound},
+			{http.MethodGet, "/api/net", "text/html, */*;q=0.8", http.StatusOK},
+			{http.MethodGet, "/api/net", "application/json;q=0", http.StatusOK},
+			{http.MethodGet, "/api/net", "APPLICATION/JSON", http.StatusOK},
+			{http.MethodGet, "/api/net", "application/*", http.StatusOK},
+			{http.MethodGet, "/api/net", "*/json", http.StatusOK},
+			{http.MethodGet, "/api/net", " text/html ; level=1 ,application/json; indent=4", http.StatusOK},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, http.Header{"Accept": {tc.accept}})
+			if status != tc.want {
+				t.Errorf("%s %s (Accept %q): status = %d, want %d; body=%s", tc.method, tc.path, tc.accept, status, tc.want, string(body))
+				continue
+			}
+			if status != http.StatusNotAcceptable || tc.method == http.MethodHead {
+				continue
+			}
+			if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("%s %s (Accept %q): Content-Type = %q, want application/json; charset=utf-8", tc.method, tc.path, tc.accept, ct)
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != "Could not satisfy the request Accept header." {
+				t.Errorf("%s %s (Accept %q): meta.error = %q", tc.method, tc.path, tc.accept, got)
+			}
+		}
+		// Two Accept headers are read as one list.
+		status, _, body := httpDo(t, srv, http.MethodGet, "/api/net", http.Header{"Accept": {"text/html", "application/json"}})
+		if status != http.StatusOK {
+			t.Errorf("two Accept headers: status = %d, want 200; body=%s", status, string(body))
+		}
+	})
+
 	t.Run("format_suffix_and_query_like_upstream", func(t *testing.T) {
 		t.Parallel()
 		// upstream: the viewsets are on a DefaultRouter (2.83.0
