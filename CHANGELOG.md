@@ -18,6 +18,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   htmx cancels a search when a new keystroke replaces it, and each canceled search counted as a server error in the request metrics and traces.
 - Alert rule `PdbPlusLiteFSMetricsAbsent` looks back 2 minutes for `litefs_is_primary`.
   Fly.io misses some scrapes of the LiteFS metrics, and each miss put the rule in Pending for one evaluation (47 times in 16 hours on 2026-09-26; it never fired).
+- Alert rule `PdbPlusReplicaLagHigh` uses the last `litefs_lag_seconds` sample of the last 2 minutes.
+  A missed scrape removed the series for one evaluation and restarted the 10-minute `for`, which could delay the alert.
 
 ## [1.35.1] - 2026-09-25
 
