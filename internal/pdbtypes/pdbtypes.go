@@ -85,6 +85,17 @@ func GoNameOf(name string) (goName string, ok bool) {
 	return "", false
 }
 
+// DjangoModelOf maps a PeeringDB type name ("ixpfx") to its upstream
+// Django model class ("IXLanPrefix"). ok is false for unknown names.
+func DjangoModelOf(name string) (model string, ok bool) {
+	for _, t := range All {
+		if t.Name == name {
+			return t.DjangoModel, true
+		}
+	}
+	return "", false
+}
+
 // FromDjangoModel maps an upstream Django model class ("IXLanPrefix")
 // to its PeeringDB type name ("ixpfx"). ok is false for unknown names.
 func FromDjangoModel(model string) (name string, ok bool) {

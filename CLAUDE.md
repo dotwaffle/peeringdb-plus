@@ -287,6 +287,11 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   FK keys, operators, relation seeds, presence keys and the count seeds (`TypeConfig.ExactCounts`, first value) convert with `pyInt` (400 on a bad value).
 - PK-lookup (`internal/pdbcompat/depth.go`) MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare; netixlan uses `StatusIn("ok", "not-operational", "pending")` (live + pending, `rest.py:750`).
   Inline the `StatusIn` literal at each of the 27 call sites; grep-ability trumps DRY here.
+- Detail filters: `serveDetail` parses the same filter keys as a list (`parseRequestFilters`, the list parser) and checks the row with `TypeConfig.Match` (built in `wireEntity`: `id = ? AND <filters>`, `Exist`, request ctx, so the poc policy applies) before the budget admission and the PK lookup; no filter key = no extra query.
+  A miss is the same `404` as a missing id (`writeDetailNotFound`, `missMessage`: `No <DjangoModel> matches the given query.` via `pdbtypes.DjangoModelOf`); `limit`/`skip` above 0 is `404` `Not found.` (upstream slices before `get()`, `parseDetailSlice`; a negative `limit` is accepted); `since` is checked and ignored; `q` is ignored.
+  Parse order is the list order (skip, limit, since, depth, filters, negative skip 400).
+  `Match` adds no status: the inline `StatusIn` of the PK lookup stays the detail status set (a relation seed may still pin `ok`, as upstream).
+  Locked by `TestParity_Status/detail_applies_list_filters`.
 - Errors on `/api/` go through `writeError` (`internal/pdbcompat/response.go`): upstream `{"meta":{"error":...}}` by default, RFC 9457 only when `Accept` names `application/problem+json` (`httperr.WantsProblemJSON`).
   Never call `httperr.WriteProblem` from pdbcompat directly.
 
@@ -421,7 +426,8 @@ The `entc.LoadGraph` runtime patch in `ent/entc.go` (`fixCampusInflection`) rema
 See `docs/ARCHITECTURE.md § Response Memory Envelope` for budget, sizing table, lifecycle, telemetry.
 Invariants:
 
-**Closure pairing:** the 13 List/Count pairs in `internal/pdbcompat/registry_funcs.go` are built by one generic `wireEntity` helper from a single shared predicate builder (v1.23.0), so budget pre-check and served response cannot disagree (the 413 guarantee).
+**Closure pairing:** the 13 List/Count/Match sets in `internal/pdbcompat/registry_funcs.go` are built by one generic `wireEntity` helper from a single shared predicate builder (v1.23.0), so budget pre-check and served response cannot disagree (the 413 guarantee).
+`Match` shares the predicate builder, so a detail filter and a list filter are the same SQL.
 `applyStatusMatrix` LAST and the `opts.EmptyResult` short-circuit both live in exactly one place inside `wireEntity` — do not add per-entity closures outside it.
 
 **Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer` in `dispatch` (covers list + detail terminal paths).

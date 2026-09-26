@@ -52,8 +52,11 @@ import (
 //     key (`fac?net__notes_private=`). The mirror never receives these
 //     values.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
-//     (prepare_query keys such as asn_overlap, not_ix and whereis,
-//     hide_ix_no_fac, name_search) are silent-ignored.
+//     (prepare_query keys such as asn_overlap and whereis,
+//     hide_ix_no_fac, name_search) are silent-ignored, also on a
+//     single-object GET (`ix/<id>?hide_ix_no_fac=1`).
+//   - A single-object GET applies the relation, presence, traversal
+//     and meta keys; a key that excludes the object is a 404.
 //   - DIVERGENCE: a relation key given in two forms
 //     (`ix?net=1&net__in=2`) applies both forms, where upstream uses
 //     one.
@@ -486,6 +489,10 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ix?asn_overlap=64500", want: []int{300, 301}},
 			// hide_ix_no_fac: neither IX has a facility.
 			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
+			// A single-object GET ignores it too. Upstream: 404, the
+			// mixin filters the detail query (rest.py:752-753,
+			// :1288-1289).
+			{path: "/api/ix/300?hide_ix_no_fac=1", want: []int{300}},
 			// name_search: upstream returns the search-index hits.
 			{path: "/api/net?name_search=QueryNetA", want: []int{100, 101}},
 		})
@@ -1182,6 +1189,74 @@ func TestParity_Traversal(t *testing.T) {
 		} {
 			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
 				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+			}
+		}
+	})
+
+	t.Run("detail_applies_relation_presence_and_traversal_keys", func(t *testing.T) {
+		t.Parallel()
+		// A single-object GET runs prepare_query and the filter loop of
+		// a list, so the relation, presence, traversal and meta keys
+		// filter a detail too. A key that excludes the object is a 404.
+		// A relation key that pins the listed row to status ok
+		// (campus?facility=) excludes a pending object, which the bare
+		// detail returns.
+		// upstream: 2.83.0 rest.py:488-500 (prepare_query on detail),
+		// :849-855 (retrieve); models.py:221-234 (make_relation_filter
+		// pin); serializers.py:614-656 (relation keys),
+		// :4852-4869 (campus facility), :3129-3149 (netixlan meta)
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "DetailOrg", t0)
+		mustNet(ctx, t, c, 1, "NetOne", 64500, 1, t0)
+		mustIX(ctx, t, c, 1, "DetailIX", 1, t0)
+		mustIxLan(ctx, t, c, 1, "DetailLan", 1, t0)
+		if _, err := c.NetworkIxLan.Create().
+			SetID(1).SetNetID(1).SetIxlanID(1).SetIxID(1).
+			SetAsn(64500).SetSpeed(1000).
+			SetMeta(map[string]any{"rfc8950": true}).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed netixlan: %v", err)
+		}
+		mustCampus(ctx, t, c, 50, "DetailCampus", 1, t0)
+		c.Campus.UpdateOneID(50).SetStatus("pending").ExecX(ctx)
+		mustFac(ctx, t, c, 400, "DetailFac", 1, t0)
+		c.Facility.UpdateOneID(400).SetCampusID(50).ExecX(ctx)
+		srv := newTestServer(t, c)
+
+		cases := []struct {
+			path string
+			want int
+		}{
+			// Relation and presence keys (prepare_query).
+			{"/api/net/1?ix=1", http.StatusOK},
+			{"/api/net/1?ix=999", http.StatusNotFound},
+			{"/api/net/1?not_ix=1", http.StatusNotFound},
+			// The relation seed pins the campus row to status ok.
+			{"/api/campus/50", http.StatusOK},
+			{"/api/campus/50?facility=400", http.StatusNotFound},
+			// Traversal keys (the filter loop).
+			{"/api/netixlan/1?net__name=NetOne", http.StatusOK},
+			{"/api/netixlan/1?net__name=x", http.StatusNotFound},
+			// meta keys (finalize_query_params).
+			{"/api/netixlan/1?meta__rfc8950=true", http.StatusOK},
+			{"/api/netixlan/1?meta__rfc8950=false", http.StatusNotFound},
+		}
+		for _, tc := range cases {
+			status, body := httpGet(t, srv, tc.path)
+			if status != tc.want {
+				t.Errorf("GET %s: status = %d, want %d; body=%s", tc.path, status, tc.want, string(body))
+				continue
+			}
+			if status != http.StatusOK {
+				continue
+			}
+			pk, _, _ := strings.Cut(strings.TrimPrefix(tc.path, "/api/"), "?")
+			_, idText, _ := strings.Cut(pk, "/")
+			wantID, _ := strconv.Atoi(idText)
+			if ids := extractIDs(t, body); !slices.Equal(ids, []int{wantID}) {
+				t.Errorf("GET %s: got %v, want [%d]", tc.path, ids, wantID)
 			}
 		}
 	})

@@ -145,6 +145,19 @@ func init() {
 	if len(missing) > 0 {
 		panic(fmt.Sprintf("pdbcompat: Registry entries have List without CountFunc: %v", missing))
 	}
+
+	// Get/Match pairing: serveDetail applies the filters of a request
+	// through Match. A Get without a Match would serve the object and
+	// ignore every filter.
+	missing = nil
+	for name, tc := range Registry {
+		if tc.Get != nil && tc.Match == nil {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		panic(fmt.Sprintf("pdbcompat: Registry entries have Get without MatchFunc: %v", missing))
+	}
 }
 
 // listQuery is the builder shape every generated ent query type shares.
@@ -158,6 +171,7 @@ type listQuery[Q any, P, O ~func(*sql.Selector), E any] interface {
 	Limit(int) Q
 	All(context.Context) ([]E, error)
 	Count(context.Context) (int, error)
+	Exist(context.Context) (bool, error)
 }
 
 // entityWiring declares one entity's list/count/get registration for
@@ -173,11 +187,13 @@ type entityWiring[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any] str
 	get      GetFunc
 }
 
-// wireEntity registers one entity's List, Count, and Get functions in
-// the Registry. List and Count are built from a SINGLE shared predicate
-// builder, so the pre-flight budget count and the served response can
-// never disagree — predicate divergence (which would break the 413
-// guarantee) is unrepresentable by construction.
+// wireEntity registers one entity's List, Count, Get and Match
+// functions in the Registry. List and Count are built from a SINGLE
+// shared predicate builder, so the pre-flight budget count and the
+// served response can never disagree: predicate divergence (which
+// would break the 413 guarantee) is unrepresentable by construction.
+// Match takes the same filter predicates, so a detail request and a
+// list request apply a filter with the same SQL.
 func wireEntity[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any](w entityWiring[Q, P, O, E]) {
 	// The live status set is fixed per type (netixlan: ok and
 	// not-operational; all others: ok), so resolve it once at wiring.
@@ -222,15 +238,29 @@ func wireEntity[Q listQuery[Q, P, O, E], P, O ~func(*sql.Selector), E any](w ent
 		}
 		return servedRowCount(total, opts), nil
 	}
-	setFuncs(w.name, list, count, w.get)
+	// match sends SELECT id ... WHERE <filters> AND id = ? LIMIT 1. It
+	// adds no status matrix: the detail status set is the inline
+	// StatusIn of the PK lookup (w.get). The query runs with the
+	// request ctx, so the poc privacy policy applies.
+	match := func(ctx context.Context, client *ent.Client, id int, filters []func(*sql.Selector)) (bool, error) {
+		preds := append(castPredicates[P](filters), P(sql.FieldEQ("id", id)))
+		ok, err := w.query(client).Where(preds...).Exist(ctx)
+		if err != nil {
+			return false, fmt.Errorf("match %s: %w", w.plural, err)
+		}
+		return ok, nil
+	}
+	setFuncs(w.name, list, count, w.get, match)
 }
 
-// setFuncs updates a Registry entry's List, Count, and Get functions.
-func setFuncs(name string, list ListFunc, count CountFunc, get GetFunc) {
+// setFuncs updates a Registry entry's List, Count, Get and Match
+// functions.
+func setFuncs(name string, list ListFunc, count CountFunc, get GetFunc, match MatchFunc) {
 	tc := Registry[name]
 	tc.List = list
 	tc.Count = count
 	tc.Get = get
+	tc.Match = match
 	Registry[name] = tc
 }
 

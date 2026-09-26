@@ -1371,6 +1371,7 @@ The per-request check treats each request in isolation, so two concurrent near-b
 Every admitted request therefore also charges its estimate into a process-wide `inflightBytes` pool and gets 503 + `Retry-After: 1` when the pool would overflow; the charge releases when the handler returns.
 Lists charge the `CheckBudget` figure directly.
 Detail requests participate too: the flat 413 check bills only the typical expanded row, but at depth ≥ 2 the pool charge is count-based — child `COUNT(*)` × child Depth0 per embedded `_set` (`internal/pdbcompat/detail_budget.go`) — so a hub-organisation detail (thousands of embedded networks) cannot stack with other large responses.
+A detail request with filter keys checks the row first (one primary-key query); a filter miss returns `404` before the 413 check and charges nothing.
 
 ### Telemetry
 

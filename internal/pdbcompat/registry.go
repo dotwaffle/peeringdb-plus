@@ -89,6 +89,15 @@ type CountFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) 
 // GetFunc queries a single entity by ID and returns its serialized form.
 type GetFunc func(ctx context.Context, client *ent.Client, id int, depth int) (any, error)
 
+// MatchFunc reports whether the row with the given id matches filters.
+// A detail request uses it to apply the list filters: upstream
+// get_object filters get_queryset(), which runs the same filters as a
+// list (2.83.0 rest.py:849-855, :477-703). It adds no status of its
+// own. The inline StatusIn of the get<Type>WithDepth PK lookup stays
+// the detail status set. A filter can pin a status, as upstream does
+// (a relation seed, make_relation_filter).
+type MatchFunc func(ctx context.Context, client *ent.Client, id int, filters []func(*sql.Selector)) (bool, error)
+
 // TypeConfig describes a PeeringDB object type for the compatibility layer.
 type TypeConfig struct {
 	Name         string
@@ -97,6 +106,7 @@ type TypeConfig struct {
 	List         ListFunc
 	Count        CountFunc
 	Get          GetFunc
+	Match        MatchFunc
 
 	// FoldedFields lists the string fields on this type that have a sibling
 	// <field>_fold column populated by the sync worker.

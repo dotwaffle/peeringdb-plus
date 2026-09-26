@@ -537,8 +537,10 @@ func TestDetailNotFound(t *testing.T) {
 	if ct != "application/json" {
 		t.Errorf("Content-Type = %q, want application/json", ct)
 	}
-	if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); msg == "" {
-		t.Error("expected non-empty meta.error")
+	// The Django text with the upstream model name
+	// (django/shortcuts.py:90-93).
+	if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); msg != "No Network matches the given query." {
+		t.Errorf("meta.error = %q, want %q", msg, "No Network matches the given query.")
 	}
 }
 

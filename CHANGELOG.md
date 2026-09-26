@@ -38,6 +38,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   A model field that upstream has and the mirror does not store stays ignored.
 - `/api/` accepts the other relation-key forms that upstream accepts: `pk` names the id, `exact`, `lt`, `lte`, `gt` and `gte` as the field of a relation through a FK compare the id, and the field of `ix?ixlan`, `ix?ixfac`, `net?netfac` and `net?netixlan` can repeat the relation name (`ix?ixlan__ixlan_id=`).
   `isnull` as the field returns `400`.
+- `/api/` applies the filter keys of a list to a single-object GET, as upstream does.
+  For example, `/api/netixlan/<id>?status=ok` for a `not-operational` connection and `/api/net/<id>?name=<other>` return `404`.
+  Before, a single-object GET read only `?depth=` and `?fields=` and returned the object (a registered divergence, now removed).
+  `?since=`, `?limit=` and `?skip=` are now checked on a single-object GET, and a `limit` or `skip` above `0` returns `404` (`Not found.`), as upstream.
+  The `404` message of a single-object GET is now the upstream text, for example `No Network matches the given query.`.
+  See `docs/API.md` § Filters on a single-object GET.
 
 ### Fixed
 

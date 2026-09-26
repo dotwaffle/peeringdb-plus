@@ -70,6 +70,46 @@ func TestDetailPlan_KeepsFKIndex(t *testing.T) {
 	}
 }
 
+// TestDetailFilterPlan_PrimaryKeyFirst checks the plan of the Match
+// query of a detail request with filter keys: the listed table is read
+// by its primary key, and no step sorts.
+func TestDetailFilterPlan_PrimaryKeyFirst(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		typ   string
+		query url.Values
+	}{
+		{peeringdb.TypeNet, url.Values{"name": {"x"}}},
+		{peeringdb.TypeNetIXLan, url.Values{"status": {"ok"}}},
+		{peeringdb.TypeNet, url.Values{"ix": {"1"}}},
+	} {
+		t.Run(tc.typ+"_"+tc.query.Encode(), func(t *testing.T) {
+			t.Parallel()
+			_, db := testutil.SetupClientWithDB(t)
+			rec := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+			client := ent.NewClient(ent.Driver(rec))
+			tcfg := Registry[tc.typ]
+			preds, empty, err := ParseFiltersCtx(t.Context(), tc.query, tcfg)
+			if err != nil || empty {
+				t.Fatalf("ParseFiltersCtx: empty=%v err=%v", empty, err)
+			}
+			if _, err := tcfg.Match(t.Context(), client, 1, preds); err != nil {
+				t.Fatalf("Match: %v", err)
+			}
+			q, args := rec.lastQuery(t)
+			plan := explainPlan(t, db, q, args)
+			first, _, _ := strings.Cut(plan, " | ")
+			want := "SEARCH " + tableFor(t, tc.typ) + " USING INTEGER PRIMARY KEY (rowid=?)"
+			if first != want {
+				t.Errorf("first plan step = %q, want %q (plan %q)", first, want, plan)
+			}
+			if strings.Contains(plan, "TEMP B-TREE") {
+				t.Errorf("plan sorts: %q", plan)
+			}
+		})
+	}
+}
+
 // TestRelationFilterPlan_KeepsFKIndex checks the plan of the relation
 // keys whose status pin applies to a row in a subquery. The pinned
 // subquery must read the FK index of the related table, not every

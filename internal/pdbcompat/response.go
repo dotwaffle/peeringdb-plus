@@ -193,3 +193,22 @@ func ParseSinceParam(params url.Values) (*time.Time, error) {
 	t := time.Unix(int64(n), 0).UTC()
 	return &t, nil
 }
+
+// parseDetailSlice reads limit and skip of a single-object GET with the
+// list parser, so the error texts and their order are the list ones.
+// Upstream parses both for a detail too and slices the query before
+// get() (2.83.0 rest.py:511-518, :755-760). Django cannot filter a
+// sliced query, so get() fails and DRF answers 404 Not found. (Django
+// query.py:1505-1507, DRF generics.py:13-21). sliced is true for a limit
+// above 0 or a skip above 0. A negative limit does not slice (upstream
+// slices only when limit > 0), so the object is returned. negativeSkip
+// is true for a skip below 0. The caller returns 400 errNegativeSkip
+// after the filters, as serveList does (upstream: 500, see docs/API.md
+// § Known Divergences).
+func parseDetailSlice(params url.Values) (sliced, negativeSkip bool, err error) {
+	limit, skip, err := ParsePaginationParams(params)
+	if err != nil {
+		return false, false, err
+	}
+	return limit > 0 || skip > 0, skip < 0, nil
+}

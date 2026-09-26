@@ -15,6 +15,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
 
@@ -227,38 +228,14 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Parse filters. The emptyResult short-circuit handles ?field__in=
-	// and TypeConfig is threaded so that shadow-column routing can
-	// consult tc.FoldedFields.
-	//
-	// Thread the ctx through an unknown-field
-	// accumulator so operators can observe silently-ignored filter keys via
-	// slog DEBUG + OTel span attribute. ParseFiltersCtx writes to the
-	// accumulator; we emit the diagnostics AFTER it returns so the request
-	// path sees zero behavioural change (HTTP 200, no 400).
-	ctx := WithUnknownFields(r.Context())
-	filters, emptyResult, err := ParseFiltersCtx(ctx, params, tc)
+	// Parse filters. The emptyResult short-circuit handles ?field__in=.
+	filters, emptyResult, err := parseRequestFilters(r, params, tc)
 	if err != nil {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
 			Detail: fmt.Sprintf("filter error: %v", err),
 		})
 		return
-	}
-	if unknown := UnknownFieldsFromCtx(ctx); len(unknown) > 0 {
-		csv := strings.Join(unknown, ",")
-		slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently ignored",
-			slog.String("endpoint", r.URL.Path),
-			slog.String("type", tc.Name),
-			slog.String("unknown_fields", csv),
-		)
-		// OTel span attribute — no-op when no active span (OTel not
-		// configured in tests) because SpanFromContext returns a noop
-		// span whose SetAttributes is safe and SpanContext().IsValid()
-		// is false.
-		if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
-			span.SetAttributes(attribute.String("pdbplus.filter.unknown_fields", csv))
-		}
 	}
 
 	// A negative skip is a 400. Upstream raises it at the slice (2.83.0
@@ -450,6 +427,42 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// parseRequestFilters parses the filter keys of a list or detail
+// request and records the keys that it ignores. The list and the detail
+// share it, so a detail applies the same filters as a list (upstream
+// get_queryset, 2.83.0 rest.py:477-703). TypeConfig is threaded so that
+// shadow-column routing can consult tc.FoldedFields. The error is not
+// wrapped: each caller writes it as a 400 "filter error: ...".
+//
+// The ctx carries an unknown-field accumulator, so operators can observe
+// the silently ignored filter keys via slog DEBUG and an OTel span
+// attribute. ParseFiltersCtx writes to the accumulator, and the
+// diagnostics are emitted AFTER it returns, so the response does not
+// change (HTTP 200, no 400).
+func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (filters []func(*sql.Selector), emptyResult bool, err error) {
+	ctx := WithUnknownFields(r.Context())
+	filters, emptyResult, err = ParseFiltersCtx(ctx, params, tc)
+	if err != nil {
+		return nil, false, err
+	}
+	if unknown := UnknownFieldsFromCtx(ctx); len(unknown) > 0 {
+		csv := strings.Join(unknown, ",")
+		slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently ignored",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("unknown_fields", csv),
+		)
+		// OTel span attribute: no-op when no active span (OTel not
+		// configured in tests) because SpanFromContext returns a noop
+		// span whose SetAttributes is safe and SpanContext().IsValid()
+		// is false.
+		if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+			span.SetAttributes(attribute.String("pdbplus.filter.unknown_fields", csv))
+		}
+	}
+	return filters, emptyResult, nil
+}
+
 // isUniqueQuery reports whether a list request names one object, so
 // that an empty result is a 404 instead of an empty list. It mirrors
 // upstream is_unique_query: the "id" key on every type (2.83.0
@@ -482,6 +495,37 @@ func writeEntityNotFound(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// writeDetailNotFound writes the 404 of a detail request: no row with
+// the id, a row outside the detail status set, a row that the caller's
+// tier cannot read, a row that a filter excludes, or a sliced request.
+// Upstream sends a 404 for all of them (Django get_object_or_404 and
+// DRF get_object_or_404, 2.83.0 rest.py:849-855). The body has no
+// "data" key.
+func writeDetailNotFound(w http.ResponseWriter, r *http.Request, detail string) {
+	writeError(w, r, apiError{
+		Status: http.StatusNotFound,
+		Detail: detail,
+	})
+}
+
+// missMessage is the 404 detail of a PK miss or a filter miss on a
+// detail request: the Django text with the upstream model name
+// (django/shortcuts.py:90-93), for example "No Network matches the
+// given query.". A hidden poc gets the same text as a missing one.
+func missMessage(tc TypeConfig) string {
+	model, ok := pdbtypes.DjangoModelOf(tc.Name)
+	if !ok {
+		model = tc.Name
+	}
+	return "No " + model + " matches the given query."
+}
+
+// detailSliceNotFound is the 404 detail of a detail request with a
+// limit or skip above 0: DRF turns the TypeError of the sliced get()
+// into a bare Http404 (generics.py:13-21), which renders the NotFound
+// default text (exceptions.py:188-191).
+const detailSliceNotFound = "Not found."
+
 // serveDetail handles detail requests for a single object by ID.
 //
 // Default detail depth is 2 (matches upstream PeeringDB 2.83.0
@@ -498,8 +542,33 @@ func writeEntityNotFound(w http.ResponseWriter, r *http.Request) {
 // `?depth=2`) across all detail endpoints AND extends it to fire at
 // the depth=0 default (which was previously skipping the prefetch
 // chain entirely on bare detail URLs).
+//
+// A detail request applies the filter keys of a list, as upstream:
+// retrieve calls DRF get_object, which filters get_queryset() (2.83.0
+// rest.py:849-855, :477-703). The parameters are parsed in the list
+// order (skip, limit, since, depth, filters, negative skip), so a
+// request with two bad parameters gets the same 400 on both paths.
+// since is checked and then ignored (rest.py:718), and ?q= is ignored
+// (rest.py:566). The filter check runs before the budget admission, so
+// a filter miss costs one primary-key query and charges nothing.
 func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
+
+	sliced, negativeSkip, err := parseDetailSlice(params)
+	if err != nil {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: err.Error(),
+		})
+		return
+	}
+	if _, err := ParseSinceParam(params); err != nil {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: err.Error(),
+		})
+		return
+	}
 
 	// Parse depth. Default = 2 for detail endpoints to match upstream's
 	// `default_depth(is_list=False)` (2.83.0 serializers.py:1032-1039).
@@ -514,6 +583,52 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 	if v := params.Get("depth"); v != "" {
 		if parsed, err := strconv.Atoi(v); err == nil {
 			depth = min(max(parsed, 0), 4)
+		}
+	}
+
+	filters, emptyResult, err := parseRequestFilters(r, params, tc)
+	if err != nil {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: fmt.Sprintf("filter error: %v", err),
+		})
+		return
+	}
+	if negativeSkip {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: errNegativeSkip.Error(),
+		})
+		return
+	}
+	if sliced {
+		writeDetailNotFound(w, r, detailSliceNotFound)
+		return
+	}
+	if emptyResult {
+		writeDetailNotFound(w, r, missMessage(tc))
+		return
+	}
+	// A request without filter keys sends no extra query.
+	if len(filters) > 0 {
+		ok, err := tc.Match(r.Context(), h.client, id, filters)
+		if err != nil {
+			// Log raw error server-side only; the client Detail stays
+			// generic so ent/SQL internals never reach the /api wire.
+			slog.ErrorContext(r.Context(), "pdbcompat: detail filter query failed",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.String("error", err.Error()),
+			)
+			writeError(w, r, apiError{
+				Status: http.StatusInternalServerError,
+				Detail: "failed to query record",
+			})
+			return
+		}
+		if !ok {
+			writeDetailNotFound(w, r, missMessage(tc))
+			return
 		}
 	}
 
@@ -581,10 +696,7 @@ func (h *Handler) serveDetail(tc TypeConfig, id int, w http.ResponseWriter, r *h
 	result, err := tc.Get(r.Context(), h.client, id, depth)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			writeError(w, r, apiError{
-				Status: http.StatusNotFound,
-				Detail: fmt.Sprintf("%s with id %d not found", tc.Name, id),
-			})
+			writeDetailNotFound(w, r, missMessage(tc))
 			return
 		}
 		// Log raw error server-side only; the client Detail stays generic
