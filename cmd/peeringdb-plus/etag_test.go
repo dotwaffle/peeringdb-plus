@@ -20,6 +20,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 )
 
@@ -219,6 +220,49 @@ func TestETagWatcher_VersionErrorClearsAndRecovers(t *testing.T) {
 	w.poll(ctx)
 	if n := countLogs(h, slog.LevelInfo, etagRecoveredMsg); n != 1 {
 		t.Errorf("recovery INFO count after a healthy poll = %d, want 1", n)
+	}
+}
+
+// TestETagWatcher_SetsSyncClock checks that each version change after the
+// first successful sync reads the newest sync time into the clock, and
+// that a failed read clears the ETag and is retried on the next poll.
+func TestETagWatcher_SetsSyncClock(t *testing.T) {
+	t.Parallel()
+	src := &fakeETagSource{version: "A", synced: true}
+	w := newFakeWatcher(src, &captureHandler{})
+	w.clock = &pdbcompat.SyncClock{}
+	t1 := time.Date(2026, 9, 27, 1, 2, 3, 500_000_000, time.UTC)
+	var lastErr error
+	reads := 0
+	w.lastSync = func(context.Context) (time.Time, error) {
+		reads++
+		return t1, lastErr
+	}
+	ctx := t.Context()
+
+	w.poll(ctx)
+	if got := w.clock.Time(); !got.Equal(t1) {
+		t.Fatalf("clock = %v, want %v", got, t1)
+	}
+	w.poll(ctx)
+	if reads != 1 {
+		t.Errorf("reads = %d, want 1 (no read without a version change)", reads)
+	}
+
+	lastErr = errors.New("database is locked")
+	src.set(func(f *fakeETagSource) { f.version = "B" })
+	w.poll(ctx)
+	if got := currentETag(t, w.state); got != "" {
+		t.Errorf("ETag = %q after a failed sync time read, want none", got)
+	}
+	lastErr = nil
+	t1 = t1.Add(time.Hour)
+	w.poll(ctx)
+	if got := w.clock.Time(); !got.Equal(t1) {
+		t.Errorf("clock after the retry = %v, want %v", got, t1)
+	}
+	if got := currentETag(t, w.state); got == "" {
+		t.Error("no ETag after the retry")
 	}
 }
 
@@ -505,7 +549,7 @@ func TestStartETagWatcher_WarmStartAndFollow(t *testing.T) {
 		recordSuccessfulSync(t, db)
 		state := middleware.NewCachingState(time.Hour)
 
-		startETagWatcher(ctx, path, db, state, discardLogger())
+		startETagWatcher(ctx, path, db, state, nil, discardLogger())
 		e1 := currentETag(t, state)
 		if e1 == "" {
 			t.Fatal("no ETag when startETagWatcher returned; the first poll must run before it returns")

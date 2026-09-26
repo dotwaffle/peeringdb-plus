@@ -10,6 +10,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Added
 
+- pdbcompat sends `meta.generated` on the lists that upstream serves from its API cache, as upstream does: no filter, no `since`, no format suffix, and at depth 0 no limit from 1 to 250.
+  The value is the completion time of the newest successful sync of the node, in Unix seconds.
+  Before, `meta` was always empty on these lists.
 - pdbcompat indents the JSON body by 2 spaces when the request has a `pretty` key, with any value, as upstream does.
   This applies to every `/api/` response, including errors.
   Before, pdbcompat ignored `?pretty`.

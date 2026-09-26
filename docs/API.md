@@ -450,6 +450,27 @@ A list without a filter, `?since`, `?q` or a format suffix is not truncated, bec
 The server loads a `?depth=` list of `org`, `net`, `ix`, `ixlan`, `carrier` or `campus` in groups of 250 rows.
 The response memory budget applies to the most expensive group: if one group does not fit, the response is `413` (see [ARCHITECTURE.md § Response Memory Envelope](./ARCHITECTURE.md#response-memory-envelope)).
 
+### Cached lists (`meta.generated`)
+
+Upstream serves some lists from API cache files that it builds about every 20 minutes (2.83.0 `api_cache.py:90-124`).
+Such a response has `meta.generated`, the modification time of the cache file in Unix seconds with a fraction (`api_cache.py:135`).
+The mirror sends `meta.generated` on the same lists, with the completion time of the newest successful sync of the node:
+
+```json
+"meta": {"generated": 1790488800.25}
+```
+
+A list gets `meta.generated` when it has none of these:
+
+- a filter, `?since` other than `0`, `?q` or `?name_search` (a key that the mirror ignores does not count, see § List depth)
+- a format suffix (`/api/net.json`)
+- a negative `?depth`
+- at depth `0`, a `?limit` from `1` to `250`, or a negative `?limit`
+
+A detail response, an error and a truncated list never have it.
+Before the first successful sync, no response has it.
+The value changes with the database version, so the ETag stays valid for the body.
+
 ### Multi-value choice filters
 
 Two fields hold a list of choices: `info_types` on `net` and `available_voltage_services` on `fac`.

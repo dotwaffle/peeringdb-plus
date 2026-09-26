@@ -552,6 +552,7 @@ Bench envelopes in `bench_test.go` run locally — no CI benchstat gate.
   A node sends no caching headers until it has seen a successful sync, and a read error clears the ETag.
   Each committed write changes the ETag, so one sync cycle can change it more than once.
   Do not set the ETag from the sync worker: replicas never run it.
+  On each version change after the first sync, the watcher also sets `pdbcompat.SyncClock` (newest success `completed_at`), sent as `/api` `meta.generated` on lists that upstream serves from its API cache (`servedFromCache`); a read error clears the ETag.
   Before v1.28.3, replicas kept the ETag from process start and answered 304 with old bodies.
 
 ### ConnectRPC / gRPC

@@ -42,6 +42,10 @@ type Handler struct {
 	// release the charge on return.
 	inflightBytes atomic.Int64
 
+	// syncClock is the time of meta.generated (SetSyncClock). nil sends
+	// no meta.generated.
+	syncClock *SyncClock
+
 	// listDepthChunk is the number of rows that a list at depth > 0 of
 	// a type with reverse sets loads and renders at a time
 	// (defaultListDepthChunk). Tests set a smaller value.
@@ -475,6 +479,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// would serve it from its live query, not from its API cache
 	// (depthListIsLive).
 	live := depth > 0 && depthListIsLive(lf, params, q, suffixed)
+	// A list that upstream serves from its API cache carries
+	// meta.generated (servedFromCache).
+	baseMeta := h.listMeta(servedFromCache(lf, params, q, suffixed, depth, limit))
 	if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() && depth != 0 {
 		span.SetAttributes(attribute.Int("pdbplus.list.depth", depth))
 	}
@@ -486,6 +493,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			live:      live,
 			unique:    unique,
 			fields:    fields,
+			meta:      baseMeta,
 		})
 		return
 	}
@@ -493,7 +501,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// The 7 types without reverse sets serve the same rows at every
 	// depth, as upstream (list_exclude, 2.83.0 serializers.py:1286-1290),
 	// so only the truncation applies.
-	meta := any(struct{}{})
+	meta := baseMeta
 	count, counted := 0, false
 	if live {
 		count, err = tc.Count(r.Context(), h.client, opts)
@@ -589,7 +597,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 				writeEntityNotFound(w, r)
 				return
 			}
-			if err := StreamListResponse(r.Context(), w, struct{}{}, iterFromSlice(nil)); err != nil {
+			if err := StreamListResponse(r.Context(), w, meta, iterFromSlice(nil)); err != nil {
 				slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
 					slog.String("endpoint", r.URL.Path),
 					slog.String("type", tc.Name),
@@ -628,9 +636,8 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		results = applyFieldProjection(results, fields)
 	}
 
-	// Stream via Plan 01's StreamListResponse (replaces legacy
-	// WriteResponse). Meta envelope stays as struct{}{} for on-the-wire
-	// parity with the legacy path. iterFromSlice is a half-step toward
+	// Stream via StreamListResponse. meta is an empty object, or holds
+	// meta.truncated or meta.generated. iterFromSlice is a half-step toward
 	// true cursor-based streaming: a future plan flips tc.List to a
 	// pull-iterator and serveList is unaffected.
 	//
@@ -773,6 +780,7 @@ type listDepthRequest struct {
 	live      bool // depthListIsLive
 	unique    bool // isUniqueQuery
 	fields    []string
+	meta      any // meta of a list that is not truncated (listMeta)
 }
 
 // streamEmptyList writes the response of a list that serves no row: the
@@ -819,7 +827,10 @@ func streamEmptyList(w http.ResponseWriter, r *http.Request, tc TypeConfig, uniq
 func (h *Handler) serveListDepth(tc TypeConfig, w http.ResponseWriter, r *http.Request, opts QueryOptions, req listDepthRequest) {
 	ctx := r.Context()
 	budget := h.responseMemoryLimit
-	meta := any(struct{}{})
+	meta := req.meta
+	if meta == nil {
+		meta = struct{}{}
+	}
 	if budget > 0 || req.live {
 		count, err := tc.Count(ctx, h.client, opts)
 		if err != nil {

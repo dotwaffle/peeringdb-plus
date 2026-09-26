@@ -264,6 +264,77 @@ func TestParity_Limit(t *testing.T) {
 		assertNotTruncated(t, meta)
 	})
 
+	t.Run("cached_list_meta_generated_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 api_cache.py:90-124 serves a list from its
+		// cache file when it has no filter, no since, no pk, no URL
+		// kwarg (a format suffix is one) and a cache file for
+		// min(depth, 3), and at depth 0 no limit in 1..250
+		// (API_CACHE_ALL_LIMITS unset); a negative depth has no file.
+		// load() sets meta.generated to the file mtime (:135), which
+		// MetaJSONRenderer sends as the meta object (renderers.py:108-
+		// 116). The mirror sends the completion time of its newest
+		// successful sync.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "GenOrg", t0)
+		mustNet(ctx, t, c, 1, "GenNet", 64500, 1, t0)
+		clock := &pdbcompat.SyncClock{}
+		synced := time.Date(2026, 9, 27, 6, 0, 0, 250_000_000, time.UTC)
+		clock.Set(synced)
+		h := pdbcompat.NewHandler(c, 0)
+		h.SetSyncClock(clock)
+		mux := http.NewServeMux()
+		h.Register(mux)
+		srv := httptest.NewServer(mux)
+		t.Cleanup(srv.Close)
+		want := float64(synced.UnixNano()) / 1e9
+		for _, tc := range []struct {
+			path      string
+			generated bool
+		}{
+			{"/api/net", true},
+			{"/api/net?limit=0", true},
+			{"/api/net?limit=251", true},
+			{"/api/net?limit=-1", false},
+			{"/api/net?limit=10", false},
+			{"/api/net?depth=1&limit=10", true},
+			{"/api/net?depth=9", true},
+			{"/api/net?depth=-1", false},
+			{"/api/net?skip=1", true},
+			{"/api/net?fields=name", true},
+			{"/api/net?asn=64500", false},
+			{"/api/net?since=1", false},
+			{"/api/net?q=Gen", false},
+			{"/api/net?name_search=Gen", false},
+			{"/api/net.json", false},
+			{"/api/org", true},
+			{"/api/poc", true},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status = %d, want 200", tc.path, status)
+				continue
+			}
+			got, has := decodeListMeta(t, body)["generated"]
+			if has != tc.generated {
+				t.Errorf("%s: meta.generated present = %v, want %v", tc.path, has, tc.generated)
+				continue
+			}
+			if has && got != want {
+				t.Errorf("%s: meta.generated = %v, want %v", tc.path, got, want)
+			}
+		}
+		// A detail request is never served from the cache.
+		if _, body := httpGet(t, srv, "/api/net/1"); bytes.Contains(body, []byte(`"generated"`)) {
+			t.Errorf("/api/net/1: body has meta.generated: %s", headBody(body, 300))
+		}
+		// Without a sync time, no response carries it.
+		if _, body := httpGet(t, newTestServer(t, c), "/api/net"); bytes.Contains(body, []byte(`"generated"`)) {
+			t.Errorf("no clock: body has meta.generated: %s", headBody(body, 300))
+		}
+	})
+
 	t.Run("list_depth_ignored_keys_not_truncated", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 models.py:1259-1264 (org_flags) and

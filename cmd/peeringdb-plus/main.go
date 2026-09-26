@@ -357,7 +357,10 @@ func main() {
 	// cache pinning a stale health verdict (or a 304 short-circuit that
 	// skips the readiness probes entirely) defeats their purpose.
 	cachingState := middleware.NewCachingState(cfg.SyncInterval, "/ui/about", "/healthz", "/readyz")
-	startETagWatcher(ctx, cfg.DBPath, db, cachingState, logger)
+	// The watcher also keeps syncClock at the newest successful sync, for
+	// the pdbcompat meta.generated.
+	syncClock := &pdbcompat.SyncClock{}
+	startETagWatcher(ctx, cfg.DBPath, db, cachingState, syncClock, logger)
 
 	// Create sync worker.
 	syncWorker := pdbsync.NewWorker(pdbClient, entClient, db, pdbsync.WorkerConfig{
@@ -518,6 +521,7 @@ func main() {
 	// Mount PeeringDB compatibility API at /api/.
 	// Readiness gating applies automatically (not in bypass list).
 	compatHandler := pdbcompat.NewHandler(entClient, cfg.ResponseMemoryLimit)
+	compatHandler.SetSyncClock(syncClock)
 	compatHandler.Register(mux)
 	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
 
