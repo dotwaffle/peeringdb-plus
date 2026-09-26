@@ -1311,6 +1311,12 @@ func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*s
 		return buildExact(field, value, ft, folded)
 	case "in":
 		return buildIn(field, value, ft, folded)
+	case "lt", "gt", "lte", "gte":
+		if ft == FieldString {
+			return buildStringComparison(field, op, value, folded), nil
+		}
+	}
+	switch op {
 	case "lt":
 		return buildComparison(field, op, value, ft, sql.FieldLT)
 	case "gt":
@@ -1515,6 +1521,28 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 		}
 		s.Where(sql.ExprP(expr+" IN (SELECT value FROM json_each(?))", jsonStr))
 	}, nil
+}
+
+// stringComparisons maps a comparison operator to its SQL operator.
+var stringComparisons = map[string]string{"lt": "<", "lte": "<=", "gt": ">", "gte": ">="}
+
+// buildStringComparison compares a string field as the MySQL collation
+// of upstream does: case does not count, and upstream folds the value
+// with unidecode (2.83.0 rest.py:597), with accents equal to their base
+// letter under the collation. A folded field compares its <field>_fold
+// column with the folded value; another field compares the lower case
+// of both sides. The collation also weighs punctuation differently from
+// the byte order that SQLite uses, which this does not copy.
+func buildStringComparison(field, op, value string, folded bool) func(*sql.Selector) {
+	cmp := stringComparisons[op]
+	if folded {
+		return func(s *sql.Selector) {
+			s.Where(sql.ExprP(s.C(field+"_fold")+" "+cmp+" ?", unifold.Fold(value)))
+		}
+	}
+	return func(s *sql.Selector) {
+		s.Where(sql.ExprP("LOWER("+s.C(field)+") "+cmp+" ?", strings.ToLower(unifold.Fold(value))))
+	}
 }
 
 // buildComparison builds a comparison predicate (lt, gt, lte, gte) with value

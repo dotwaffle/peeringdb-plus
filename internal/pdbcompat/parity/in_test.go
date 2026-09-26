@@ -465,6 +465,47 @@ func TestParity_In(t *testing.T) {
 		}
 	})
 
+	t.Run("string_comparisons_ignore_case", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:664-669 passes __lt, __lte, __gt and
+		// __gte on a string field to MySQL, which compares under the
+		// case-insensitive collation, after rest.py:597 folds the value
+		// with unidecode.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		for id, n := range map[int][2]string{
+			1: {"alpha", "https://alpha.example"},
+			2: {"Beta", "HTTPS://beta.example"},
+			3: {"Émile", "https://emile.example"},
+		} {
+			c.Network.Create().
+				SetID(id).SetName(n[0]).SetNameFold(unifold.Fold(n[0])).
+				SetWebsite(n[1]).
+				SetAsn(64500 + id).SetStatus("ok").
+				SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/net?name__lt=b", []int{1}},
+			{"/api/net?name__gte=BETA", []int{2, 3}},
+			{"/api/net?name__gt=d", []int{3}},
+			{"/api/net?name__lte=%C3%A9mile", []int{1, 2, 3}},
+			{"/api/net?website__lt=https://c", []int{1, 2}},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status %d, want 200; body=%s", tc.path, status, body)
+				continue
+			}
+			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
+				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
+			}
+		}
+	})
+
 	t.Run("malformed_int_csv_returns_400", func(t *testing.T) {
 		t.Parallel()
 		// v1.16 behaviour lock: malformed values in a typed-int

@@ -16,6 +16,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat compares a string field with `__lt`, `__lte`, `__gt` and `__gte` without case, as the MySQL collation of upstream does, and without diacritics on a folded field.
+  Before, the comparison used the byte order, so `?name__lt=b` also returned `Beta`.
 - pdbcompat splits an `__in` value as upstream does, keeping empty items: an empty item that does not convert for the field type returns `400`, for example `?asn__in=` or `?asn__in=1,`, and on a string field it matches the empty string.
   A space at the start of a string item now counts, a space at the end does not.
   Before, an empty `__in` returned an empty list and every item lost its spaces.

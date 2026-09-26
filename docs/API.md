@@ -364,6 +364,8 @@ See § Cross-entity traversal for the 2-hop cap and § Validation Notes for the 
 Filter values follow these rules:
 
 - An exact match on a string field ignores case.
+- `__lt`, `__lte`, `__gt` and `__gte` on a string field ignore case, as the MySQL collation of upstream does, and on a folded field (see § Diacritic-insensitive matching) they also ignore diacritics.
+  pdbcompat does not copy the collation order of punctuation.
 - A bare `address1`, `city` or `state` filter matches a substring, as upstream does when the query is not a distance search (2.83.0 `rest.py:582-595`).
   For example, `?city=Frankfurt` also matches `Frankfurt am Main`.
   With an operator suffix or a relation prefix, the key uses the normal match rules.
