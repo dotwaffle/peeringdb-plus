@@ -381,8 +381,13 @@ Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_Fol
 **Relation filters (`internal/pdbcompat/relation_filter.go`).**
 The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__iexact`/`__icontains`/`__istartswith` filter the ixlan name), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B.
 Most seeds pin ONE row of their path to `status='ok'` (`make_relation_filter`, 2.83.0 `models.py:221-234`; `pinAt`, `noPin` for fac `org_name` and carrier); a bare `status` filter on that row is replaced by the pin.
-A tail field in `TypeConfig.NonModelFields` (serializer field or property upstream) is ignored.
-They read `vals[0]` (upstream `v[0]`), not the last value.
+The tail field of a `shapeRelation` seed resolves as a Django name (`resolveModelName`, no second xl).
+On the 4 prefix seeds (`relationSeed.prefix`), `stripRelationPrefix` first removes `<prefix>_` and maps the prefix to `id` (`models.py:224-227`).
+`pk` -> id.
+On an FK-path seed, `exact`/`lt`/`lte`/`gt`/`gte` -> id with that lookup, `isnull` -> 400 isnull text, `in` -> 400 (residual: upstream iterates the characters).
+A field that the model does not have (including `NonModelFields` and names that `queryable_field_xl` renames to nothing) is a 400 `Invalid query` (upstream `FieldError`, `rest.py:499-500`).
+An upstream model name that the mirror does not store (`unservedModelNames` in `relation_filter.go`, with citations) stays ignored.
+Relation keys read `vals[0]` (upstream `v[0]`), not the last value.
 Do not re-add these keys to `pdb_allowlists.go`: Path A never sees them.
 Semantics table: `docs/API.md § Relation filters`.
 

@@ -32,6 +32,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   This includes the relation keys and the presence keys (`not_ix`, `all_net` and the others).
   A value too large for a 64-bit integer matches as a very large number.
   The `fac_count` and `net_count` keys use the first value of a repeated key, as upstream.
+- `/api/` returns `400` (`Invalid query`) for a relation key of a `prepare_query` whose field the related model does not have, as upstream.
+  Examples: `fac?net__bogus=1`, `net?ix__fac_count=1` and `net?netfac__name=x`.
+  Before, these keys were ignored.
+  A model field that upstream has and the mirror does not store stays ignored.
+- `/api/` accepts the other relation-key forms that upstream accepts: `pk` names the id, `exact`, `lt`, `lte`, `gt` and `gte` as the field of a relation through a FK compare the id, and the field of `ix?ixlan`, `ix?ixfac`, `net?netfac` and `net?netixlan` can repeat the relation name (`ix?ixlan__ixlan_id=`).
+  `isnull` as the field returns `400`.
 
 ### Fixed
 

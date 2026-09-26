@@ -48,13 +48,20 @@ import (
 //     (ent/schema/campus_annotations.go).
 //   - DIVERGENCE: filters on upstream model columns that the API does
 //     not serialize (org_flags, geocode_*, fac location_*) are
-//     silent-ignored. The mirror never receives these values.
+//     silent-ignored, also as the field of a prepare_query relation
+//     key (`fac?net__notes_private=`). The mirror never receives these
+//     values.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
 //     (prepare_query keys such as asn_overlap, not_ix and whereis,
 //     hide_ix_no_fac, name_search) are silent-ignored.
 //   - DIVERGENCE: a relation key given in two forms
 //     (`ix?net=1&net__in=2`) applies both forms, where upstream uses
 //     one.
+//   - A relation key of a prepare_query whose field the related model
+//     does not have (`fac?net__bogus=`, `net?netfac__name=`) returns
+//     400 Invalid query. `pk`, the Django lookup names on a relation
+//     through a FK (`fac?net__exact=`) and the prefix aliases
+//     (`ix?ixlan__ixlan_id=`) filter as upstream.
 //   - DIVERGENCE: a 3-segment relation key with contains or
 //     startswith ignores case, and campus?facility__<field>= returns
 //     each campus once.
@@ -71,7 +78,9 @@ import (
 //     ignores them. Status on a 2-hop or reverse key is ignored on
 //     both sides.
 //   - DIVERGENCE: upstream's reverse `<related_name>` keys
-//     (`ix?ixlan_set__status=`, `org?ix_set__in=`) are silent-ignored.
+//     (`ix?ixlan_set__status=`, `org?ix_set__in=`) are silent-ignored,
+//     also as the field of a prepare_query relation key
+//     (`net?ix__ixlan_set=`).
 //     The net_set and fac_set keys are ignored on both sides: upstream
 //     renames them to network_set and facility_set.
 //
@@ -380,6 +389,12 @@ func TestParity_Traversal(t *testing.T) {
 		// :591-599 (geocode_status, geocode_date on org and fac),
 		// :2207-2217 (fac location_method, location_place_id),
 		// :2612 (ix ixf_import_request_user)
+		// A relation key of a prepare_query filters the same columns,
+		// and the other upstream model names in unservedModelNames, on
+		// the related model (models.py:223-234).
+		// upstream: django-handleref models.py:86-90 (version),
+		// django-peeringdb abstract.py:436 (notes_private), :791 (vlan),
+		// :819 (ixf_ixp_member_list_url), :879-889 (avail_*)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "ColumnOrgA", t0)
@@ -403,6 +418,12 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/fac?location_method=google", want: []int{200, 201}},
 			{path: "/api/fac?location_place_id=ChIJ", want: []int{200, 201}},
 			{path: "/api/ix?ixf_import_request_user=1", want: []int{300, 301}},
+			{path: "/api/fac?net__notes_private=x", want: []int{200, 201}},
+			{path: "/api/fac?net__version=1", want: []int{200, 201}},
+			{path: "/api/net?fac__geocode_status=x", want: []int{100, 101}},
+			{path: "/api/net?netfac__avail_sonet=true", want: []int{100, 101}},
+			{path: "/api/ix?ixlan__ixf_ixp_member_list_url=x", want: []int{300, 301}},
+			{path: "/api/ix?ixlan__ixlan_vlan=5", want: []int{300, 301}},
 		})
 	})
 
@@ -951,29 +972,141 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_relation_key_unknown_field_silent_ignore", func(t *testing.T) {
+	t.Run("relation_key_unknown_field_returns_400", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: a prepare_query relation key filters the related
-		// rows with the Django ORM (2.83.0 serializers.py:614-656,
-		// models.py:221-234). A field that the related model does not
-		// have raises FieldError inside prepare_query, and upstream
-		// returns 400 (rest.py:488-500). Serializer fields and model
-		// properties are not model fields: net?netfac__name= runs
-		// NetworkFacility.filter(name=...) (serializers.py:3372-3380),
-		// and net?netixlan__name= names a property (models.py:6113-6115).
-		// The mirror ignores these keys, as any other unknown key, also
-		// where it stores a copy of the value.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 serializers.py:614-656 (get_relation_filters),
+		// models.py:223-234 (make_relation_filter), rest.py:499-500
+		// (FieldError -> 400 "Invalid query"); Django
+		// db/models/sql/query.py:1450-1463, :1814.
+		// A prepare_query relation key filters the related rows with the
+		// Django ORM. A field that the related model does not have
+		// raises FieldError inside prepare_query:
+		//   - serializer fields and model properties:
+		//     net?netfac__name= runs NetworkFacility.filter(name=...)
+		//     (serializers.py:3372-3380), and netixlan name and ix_id
+		//     are properties (models.py:6113-6115, :6131-6133).
+		//   - names that queryable_field_xl renames to nothing
+		//     (serializers.py:403-441): fac_count -> facility_count,
+		//     net_count -> network_count.
+		//   - an empty field, and a lookup name as the field of a prefix
+		//     seed (IXLan has no field "exact").
+		//   - a lookup after a lookup (query.py:1461).
+		//   - net?netixlan__netixlan_net_id=: the prefix rule
+		//     (models.py:224-227) leaves "net", and NetworkIXLan names
+		//     the FK "network".
+		// isnull as the field sends a string value, which Django rejects
+		// when it compiles the query (lookups.py:677-680), and list()
+		// returns its text (rest.py:824-827).
 		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
-		// Upstream returns 400 for each request.
-		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/fac?net__bogus=1", want: []int{400}},
-			{path: "/api/net?ix__fac_count=1", want: []int{100, 101, 102}},
-			{path: "/api/net?netfac__name=nomatch", want: []int{100, 101, 102}},
-			{path: "/api/net?netfac__city__contains=nomatch", want: []int{100, 101, 102}},
-			{path: "/api/net?netixlan__name=nomatch", want: []int{100, 101, 102}},
-			{path: "/api/ix?ixfac__name=nomatch", want: []int{20, 21, 22}},
+		for _, path := range []string{
+			"/api/fac?net__bogus=1",
+			"/api/net?ix__fac_count=1",
+			"/api/net?netfac__name=nomatch",
+			"/api/net?netfac__city__contains=nomatch",
+			"/api/net?netixlan__name=nomatch",
+			"/api/ix?ixfac__name=nomatch",
+			"/api/net?netixlan__ix_id=1",
+			"/api/ix?fac__net_count=1",
+			"/api/fac?net__=1",
+			"/api/ix?ixlan__exact=10",
+			"/api/fac?net__exact__in=10",
+			"/api/fac?net__lt__in=10",
+			"/api/net?netixlan__netixlan_net_id=1",
+			"/api/net?netixlan__net_side_id=400",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "Invalid query") {
+				t.Errorf("%s: meta.error = %q, want it to contain %q", path, msg, "Invalid query")
+			}
+		}
+		path := "/api/fac?net__isnull=true"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusBadRequest {
+			t.Fatalf("%s: status = %d, want 400; body=%s", path, status, string(body))
+		}
+		want := "The QuerySet value for an isnull lookup must be True or False."
+		if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, want) {
+			t.Errorf("%s: meta.error = %q, want it to contain %q", path, msg, want)
+		}
+	})
+
+	t.Run("relation_key_pk_and_lookup_names_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: Django db/models/fields/related.py:949-955 (a
+		// relation accepts the lookups exact, lt, lte, gt, gte, in and
+		// isnull), 2.83.0 serializers.py:643-654 (get_relation_filters
+		// keeps the first two segments of a 3-segment key and drops a
+		// third segment that it does not parse).
+		// pk names the id. On a relation through a FK, exact, lt, lte,
+		// gt and gte as the field compare the id, as the seed name with
+		// an operator does: fac?net__gte__x= runs network__gte.
+		// Seed: netfac 600 (net 100, fac 400) is ok, netfac 601 (net 101)
+		// is deleted. netixlan 500 is ok, 501 is not-operational.
+		c := seedRelationSeedKeys(t, t0)
+		ctx := t.Context()
+		mustCampus(ctx, t, c, 50, "RelSeedCampus", 1, t0)
+		c.Facility.UpdateOneID(400).SetCampusID(50).ExecX(ctx)
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// Control: the seed name alone and with an operator.
+			{path: "/api/fac?net=100", want: []int{400}},
+			{path: "/api/fac?net__gte=100", want: []int{400}},
+			{path: "/api/fac?net__pk=100", want: []int{400}},
+			{path: "/api/fac?net__pk=101", want: []int{}},
+			{path: "/api/fac?net__exact=100", want: []int{400}},
+			{path: "/api/fac?net__exact=101", want: []int{}},
+			{path: "/api/fac?net__exact__iexact=100", want: []int{400}},
+			{path: "/api/fac?net__gte__x=100", want: []int{400}},
+			{path: "/api/fac?net__lt__x=101", want: []int{400}},
+			{path: "/api/fac?net__gt__x=100", want: []int{}},
+			{path: "/api/campus?facility=400", want: []int{50}},
+			{path: "/api/campus?facility__exact=400", want: []int{50}},
+			{path: "/api/campus?facility__exact=401", want: []int{}},
+			{path: "/api/campus?facility__pk=400", want: []int{50}},
+			{path: "/api/net?netixlan=500", want: []int{100}},
+			{path: "/api/net?netixlan__pk=500", want: []int{100}},
+			{path: "/api/net?netixlan__pk=501", want: []int{}},
+			{path: "/api/ix?ixlan__pk=200", want: []int{20}},
+		})
+	})
+
+	t.Run("relation_key_prefix_aliases", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 models.py:224-227 (make_relation_filter with
+		// prefix=), called by ix related_to_ixlan and related_to_ixfac
+		// (:2723, :2740) and net related_to_netfac and
+		// related_to_netixlan (:5629, :5644).
+		// The prefix rule removes "<prefix>_" from the field and changes
+		// a field equal to the prefix to id, so the field can repeat the
+		// relation name: ix?ixlan__ixlan_id= is ixlan id, and
+		// net?netixlan__netixlan_speed= is the netixlan speed.
+		// netixlan_net_side_id gives net_side, the Django name of the FK
+		// (models.py:6088).
+		// Seed: ixlan 200 (ix 20) is ok, 210 (ix 21) is pending.
+		// netixlan 500 and 503 (net 100) are ok with speed 1000, 504
+		// (net 101) is ok with speed 10000. netfac 600 (net 100) is ok.
+		c := seedRelationSeedKeys(t, t0)
+		ctx := t.Context()
+		c.NetworkIxLan.UpdateOneID(504).SetSpeed(10000).ExecX(ctx)
+		c.NetworkIxLan.UpdateOneID(500).SetNetSideID(400).ExecX(ctx)
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?ixlan=200", want: []int{20}},
+			{path: "/api/ix?ixlan__ixlan_id=200", want: []int{20}},
+			{path: "/api/ix?ixlan__ixlan=200", want: []int{20}},
+			{path: "/api/ix?ixlan__ixlan_id=210", want: []int{}},
+			{path: "/api/ix?ixlan__ixlan_name=LanA", want: []int{20}},
+			{path: "/api/ix?ixfac__ixfac_facility_id=400", want: []int{20}},
+			{path: "/api/net?netixlan__netixlan_speed=10000", want: []int{101}},
+			{path: "/api/net?netixlan__netixlan_speed=1000", want: []int{100}},
+			{path: "/api/net?netfac=600", want: []int{100}},
+			{path: "/api/net?netfac__netfac=600", want: []int{100}},
+			{path: "/api/net?netfac__netfac=601", want: []int{}},
+			{path: "/api/net?netixlan__netixlan_net_side_id=400", want: []int{100}},
 		})
 	})
 
@@ -1128,6 +1261,13 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/org?ix_set__in=20", want: []int{1, 3}},
 			// Upstream: 400.
 			{path: "/api/org?ix_set=20", want: []int{1, 3}},
+			// A related name as the field of a prepare_query relation
+			// key filters the related rows upstream (models.py:223-234;
+			// related names at :3308, :5883, :5988). Upstream: [] for
+			// each request.
+			{path: "/api/net?ix__ixlan_set=5", want: []int{100, 200, 301}},
+			{path: "/api/fac?net__poc_set=1", want: []int{400, 401}},
+			{path: "/api/ix?fac__netfac_set=1", want: []int{20, 21}},
 		})
 	})
 

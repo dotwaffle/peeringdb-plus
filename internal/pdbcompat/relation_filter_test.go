@@ -2,6 +2,7 @@ package pdbcompat
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"slices"
 	"strings"
@@ -206,4 +207,218 @@ func tableFor(t *testing.T, typ string) string {
 	}
 	t.Fatalf("no edge targets %s", typ)
 	return ""
+}
+
+// TestUnservedModelNames checks the list of upstream model names that
+// the mirror ignores in a relation key: every entry is a leaf type of a
+// shapeRelation seed, no entry is a field that the mirror stores (such a
+// field must filter), every leaf type has an entry, and version is in
+// every entry.
+func TestUnservedModelNames(t *testing.T) {
+	t.Parallel()
+	leaves := map[string]bool{}
+	for typ, seeds := range relationSeeds {
+		for _, sd := range seeds {
+			if sd.shape != shapeRelation {
+				continue
+			}
+			rowType := typ
+			for _, hop := range sd.hops {
+				e, ok := LookupEdge(rowType, hop)
+				if !ok {
+					t.Fatalf("%s: no edge %q on %s", typ, hop, rowType)
+				}
+				rowType = e.TargetType
+			}
+			leaves[rowType] = true
+		}
+	}
+	for leaf := range leaves {
+		if _, ok := unservedModelNames[leaf]; !ok {
+			t.Errorf("unservedModelNames: no entry for leaf type %s", leaf)
+		}
+	}
+	for typ, names := range unservedModelNames {
+		tc, ok := Registry[typ]
+		if !ok {
+			t.Errorf("unservedModelNames[%q]: not a Registry type", typ)
+			continue
+		}
+		if !leaves[typ] {
+			t.Errorf("unservedModelNames[%q]: not the leaf type of a relation seed", typ)
+		}
+		if !names["version"] {
+			t.Errorf("unservedModelNames[%q]: version is missing", typ)
+		}
+		for name := range names {
+			if _, _, ok := resolveModelName(tc, name); ok {
+				t.Errorf("unservedModelNames[%q][%q]: the mirror stores it, so it must filter", typ, name)
+			}
+		}
+	}
+}
+
+// TestRelationSeedPrefix checks that a shapeRelation seed has a prefix
+// exactly when make_relation_filter pins the last row, the row that the
+// key filters (2.83.0 models.py:2723, :2740, :5629, :5644). For the
+// four prefix seeds of today, the prefix is also the last hop.
+func TestRelationSeedPrefix(t *testing.T) {
+	t.Parallel()
+	count := 0
+	for typ, seeds := range relationSeeds {
+		for name, sd := range seeds {
+			if sd.shape != shapeRelation {
+				if sd.prefix != "" {
+					t.Errorf("%s?%s: prefix %q on a seed that is not shapeRelation", typ, name, sd.prefix)
+				}
+				continue
+			}
+			if (sd.prefix != "") != (sd.pinAt == len(sd.hops)) {
+				t.Errorf("%s?%s: prefix %q, pinAt %d, %d hops", typ, name, sd.prefix, sd.pinAt, len(sd.hops))
+			}
+			if sd.prefix == "" {
+				continue
+			}
+			count++
+			if last := sd.hops[len(sd.hops)-1]; sd.prefix != last {
+				t.Errorf("%s?%s: prefix %q, last hop %q", typ, name, sd.prefix, last)
+			}
+		}
+	}
+	// ix ixlan, ixfac and net netfac, netixlan, each with its _id
+	// spelling.
+	if count != 8 {
+		t.Errorf("%d prefix seed keys, want 8", count)
+	}
+}
+
+// TestStripRelationPrefix locks the prefix rules of make_relation_filter
+// (2.83.0 models.py:224-227) on the field segment of a relation key.
+func TestStripRelationPrefix(t *testing.T) {
+	t.Parallel()
+	tests := []struct{ prefix, field, want string }{
+		{"ixlan", "ixlan", "id"},
+		{"ixlan", "ixlan_mtu", "mtu"},
+		{"ixlan", "ixlan_ixlan", "id"},
+		{"netixlan", "netixlan_net", "net"},
+		{"ixlan", "mtu", "mtu"},
+		{"ixlan", "id", "id"},
+	}
+	for _, tt := range tests {
+		if got := stripRelationPrefix(tt.prefix, tt.field); got != tt.want {
+			t.Errorf("stripRelationPrefix(%q, %q) = %q, want %q", tt.prefix, tt.field, got, tt.want)
+		}
+	}
+}
+
+// TestRelationLookupName locks the Django lookup names as the field of
+// a relation key (django/db/models/fields/related.py:949-955).
+func TestRelationLookupName(t *testing.T) {
+	t.Parallel()
+	fkPath := relationSeeds[peeringdb.TypeFac]["net"]
+	prefixed := relationSeeds[peeringdb.TypeIX]["ixlan"]
+	tests := []struct {
+		name      string
+		sd        relationSeed
+		field, op string
+		wantField string
+		wantOp    string
+		wantErr   error
+	}{
+		{"pk", fkPath, "pk", "", "id", "", nil},
+		{"pk_with_op", fkPath, "pk", "in", "id", "in", nil},
+		{"pk_on_prefix_seed", prefixed, "pk", "", "id", "", nil},
+		{"field_unchanged", fkPath, "name", "icontains", "name", "icontains", nil},
+		{"exact", fkPath, "exact", "", "id", "", nil},
+		{"exact_drops_iexact", fkPath, "exact", "iexact", "id", "", nil},
+		{"gte", fkPath, "gte", "", "id", "gte", nil},
+		{"lt", fkPath, "lt", "", "id", "lt", nil},
+		{"lookup_after_lookup", fkPath, "lt", "in", "", "", errInvalidQuery},
+		{"exact_then_contains", fkPath, "exact", "contains", "", "", errInvalidQuery},
+		{"isnull", fkPath, "isnull", "", "", "", errIsNullValue},
+		// Residual: upstream iterates the characters of the value.
+		{"in_as_field", fkPath, "in", "", "", "", errInvalidQuery},
+		{"lookup_on_prefix_seed", prefixed, "exact", "", "", "", errInvalidQuery},
+		{"isnull_on_prefix_seed", prefixed, "isnull", "", "", "", errInvalidQuery},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			field, op, err := relationLookupName(tt.sd, tt.field, tt.op)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if field != tt.wantField || op != tt.wantOp {
+				t.Errorf("got (%q, %q), want (%q, %q)", field, op, tt.wantField, tt.wantOp)
+			}
+		})
+	}
+}
+
+// TestResolveModelName locks the Django name resolution of the field of
+// a relation key: no queryable_field_xl rename, NonModelFields miss, and
+// netixlan net_side names the net_side_id FK (2.83.0 models.py:6088).
+func TestResolveModelName(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		typ, name string
+		wantCol   string
+		wantOK    bool
+	}{
+		{peeringdb.TypeNetIXLan, "net_side", "net_side_id", true},
+		{peeringdb.TypeNetIXLan, "net_side_id", "net_side_id", true},
+		{peeringdb.TypeNetIXLan, "net", "", false},
+		{peeringdb.TypeNetIXLan, "network", "net_id", true},
+		{peeringdb.TypeNetIXLan, "ix_id", "", false},
+		{peeringdb.TypeNetIXLan, "name", "", false},
+		{peeringdb.TypeNetFac, "name", "", false},
+		{peeringdb.TypeNetFac, "facility", "fac_id", true},
+		{peeringdb.TypeNetFac, "fac", "", false},
+		{peeringdb.TypeIXLan, "ix_id", "ix_id", true},
+		{peeringdb.TypeIXLan, "ix", "ix_id", true},
+		{peeringdb.TypeIX, "facility_count", "", false},
+		{peeringdb.TypeIX, "fac_count", "fac_count", true},
+		{peeringdb.TypeFac, "net_side", "", false},
+	}
+	for _, tt := range tests {
+		col, _, ok := resolveModelName(Registry[tt.typ], tt.name)
+		if col != tt.wantCol || ok != tt.wantOK {
+			t.Errorf("resolveModelName(%s, %q) = (%q, %v), want (%q, %v)", tt.typ, tt.name, col, ok, tt.wantCol, tt.wantOK)
+		}
+	}
+}
+
+// TestParseFilters_RelationKeyUnknownField checks that a relation key
+// whose field the related model does not have is an error that names
+// the key, and that an unstored upstream model name is ignored.
+func TestParseFilters_RelationKeyUnknownField(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		typ, key string
+		wantErr  error
+	}{
+		{peeringdb.TypeFac, "net__bogus", errInvalidQuery},
+		{peeringdb.TypeNet, "netfac__name", errInvalidQuery},
+		{peeringdb.TypeNet, "netixlan__netixlan_net_id", errInvalidQuery},
+		{peeringdb.TypeFac, "net__isnull", errIsNullValue},
+	} {
+		_, _, err := ParseFiltersCtx(t.Context(), url.Values{tt.key: {"1"}}, Registry[tt.typ])
+		if !errors.Is(err, tt.wantErr) || !strings.Contains(err.Error(), "filter "+tt.key+": ") {
+			t.Errorf("%s?%s: err = %v, want %v for the key", tt.typ, tt.key, err, tt.wantErr)
+		}
+	}
+	for _, tt := range []struct{ typ, key string }{
+		{peeringdb.TypeFac, "net__notes_private"},
+		{peeringdb.TypeIX, "ixlan__ixlan_ixf_ixp_member_list_url"},
+		{peeringdb.TypeNet, "ix__ixlan_set"},
+	} {
+		ctx := WithUnknownFields(t.Context())
+		preds, empty, err := ParseFiltersCtx(ctx, url.Values{tt.key: {"1"}}, Registry[tt.typ])
+		if err != nil || empty || len(preds) != 0 {
+			t.Errorf("%s?%s: preds=%d empty=%v err=%v, want the key ignored", tt.typ, tt.key, len(preds), empty, err)
+		}
+		if got := UnknownFieldsFromCtx(ctx); !slices.Contains(got, tt.key) {
+			t.Errorf("%s?%s: unknown fields = %v, want the key", tt.typ, tt.key, got)
+		}
+	}
 }

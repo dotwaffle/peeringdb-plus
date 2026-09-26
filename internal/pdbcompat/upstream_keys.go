@@ -1,6 +1,10 @@
 package pdbcompat
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+)
 
 // This file ports the key translation of the upstream filter loop
 // (PeeringDB 2.83.0 rest.py:608-631 and serializers.py:403-441). Upstream
@@ -76,6 +80,35 @@ func resolveLocalField(tc TypeConfig, field string) (string, FieldType, bool) {
 		return field, ft, true
 	}
 	col, ok := tc.ForeignKeys[upstreamFieldName(field)]
+	if !ok {
+		return "", 0, false
+	}
+	ft, ok := tc.Fields[col]
+	return col, ft, ok
+}
+
+// resolveModelName returns the column and type that a Django model name
+// filters on tc, as Django resolves the field of a relation key of a
+// prepare_query (make_relation_filter, 2.83.0 models.py:223-234): a
+// model field or FK attname in Fields, or a forward FK name. The key
+// already had queryable_field_xl, so there is no second rename here,
+// and "net" and "fac" name no field. NonModelFields are not model
+// fields. netixlan net_side is the Django name of the net_side_id FK
+// (models.py:6088): only the prefix rule of make_relation_filter can
+// give it, as queryable_field_xl renames net_side to network_side.
+// UpstreamIgnored does not apply: it describes keys without relation
+// segments.
+func resolveModelName(tc TypeConfig, name string) (string, FieldType, bool) {
+	if tc.NonModelFields[name] {
+		return "", 0, false
+	}
+	col, ok := name, false
+	if _, ok = tc.Fields[name]; !ok {
+		col, ok = tc.ForeignKeys[name]
+	}
+	if !ok && tc.Name == peeringdb.TypeNetIXLan && name == "net_side" {
+		col, ok = "net_side_id", true
+	}
 	if !ok {
 		return "", 0, false
 	}
