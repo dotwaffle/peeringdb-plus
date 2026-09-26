@@ -428,7 +428,8 @@ func TestParity_Traversal(t *testing.T) {
 		// a HandleRefModel field (django-handleref models.py:90) that
 		// HandleRefSerializer does not serialize (rest/serializers.py:12).
 		// fac notified_for_geocoords (models.py:2257-2260) is a model
-		// field that no serializer names.
+		// field that no serializer names, and so are the netfac avail_*
+		// columns (abstract.py:879-893, "Not exposed via the API").
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "ColumnOrgA", t0)
@@ -439,6 +440,11 @@ func TestParity_Traversal(t *testing.T) {
 		mustFac(ctx, t, c, 201, "ColumnFacB", 2, t0)
 		mustIX(ctx, t, c, 300, "ColumnIXA", 1, t0)
 		mustIX(ctx, t, c, 301, "ColumnIXB", 2, t0)
+		for id, net := range map[int]int{600: 100, 601: 101} {
+			c.NetworkFacility.Create().
+				SetID(id).SetNetID(net).SetFacID(200).SetLocalAsn(64500).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
 
 		srv := newTestServer(t, c)
 		// Upstream returns [] for each request: no seeded row can carry
@@ -464,6 +470,10 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/fac?version=-1", want: []int{200, 201}},
 			// Upstream: []. notified_for_geocoords defaults to False.
 			{path: "/api/fac?notified_for_geocoords=true", want: []int{200, 201}},
+			// Upstream: []. The avail_* columns default to False.
+			{path: "/api/netfac?avail_sonet=true", want: []int{600, 601}},
+			{path: "/api/netfac?avail_atm=1", want: []int{600, 601}},
+			{path: "/api/netfac?avail_ethernet__in=true", want: []int{600, 601}},
 		})
 		// The same columns of the IX-side facility, through the netixlan
 		// ix_side column edge. Upstream: [] for each request.
@@ -472,6 +482,60 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/netixlan?ix_side__location_method=google", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__version=-1", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__notified_for_geocoords=true", want: []int{5000, 5001, 5002}},
+		})
+	})
+
+	t.Run("DIVERGENCE_social_media_filter_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: social_media is a model JSONField of org, fac,
+		// net, ix, carrier and campus (django-peeringdb abstract.py:146,
+		// :186, :411, :668, :986, :1047), so the upstream filter loop
+		// filters its JSON text: a key without an operator is __iexact,
+		// __contains is __icontains (2.83.0 rest.py:525-528, :633-683),
+		// and queryable_relations adds <fk>__social_media
+		// (serializers.py:970-996). The mirror stores and serves the
+		// column, but pdbcompat has no filter key for it, so every form
+		// is ignored. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "SocialOrg", t0)
+		mustNet(ctx, t, c, 100, "SocialNetA", 64500, 1, t0)
+		mustNet(ctx, t, c, 101, "SocialNetB", 64501, 1, t0)
+		mustFac(ctx, t, c, 200, "SocialFac", 1, t0)
+		srv := newTestServer(t, c)
+		// Upstream: []. No seeded row has a social media entry.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/net?social_media=x", want: []int{100, 101}},
+			{path: "/api/net?social_media__contains=website", want: []int{100, 101}},
+			{path: "/api/org?social_media__startswith=[", want: []int{1}},
+			{path: "/api/fac?social_media=x", want: []int{200}},
+			{path: "/api/net?org__social_media__contains=x", want: []int{100, 101}},
+		})
+	})
+
+	t.Run("DIVERGENCE_notes_private_filter_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: notes_private is a model field of net that the API
+		// does not serialize, "visible only to administrators of the
+		// owning organization" (django-peeringdb abstract.py:436-442).
+		// The upstream filter loop takes its field set from the model
+		// (2.83.0 rest.py:525-528), so net?notes_private= and its
+		// operator forms filter on the private text for any caller.
+		// Only the <fk>__notes_private form is left out
+		// (FILTER_EXCLUDE "network__notes_private",
+		// serializers.py:136-145). The mirror never receives the
+		// column, so it ignores every form. See docs/API.md § Known
+		// Divergences.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "PrivNotesOrg", t0)
+		mustNet(ctx, t, c, 100, "PrivNotesNetA", 64500, 1, t0)
+		mustNet(ctx, t, c, 101, "PrivNotesNetB", 64501, 1, t0)
+		srv := newTestServer(t, c)
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/net?notes_private=x", want: []int{100, 101}},
+			{path: "/api/net?notes_private__contains=a", want: []int{100, 101}},
+			{path: "/api/net?notes_private__startswith=a", want: []int{100, 101}},
 		})
 	})
 

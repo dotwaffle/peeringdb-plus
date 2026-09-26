@@ -16,6 +16,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- `docs/API.md` § Known Divergences now lists the plain filter keys on upstream model columns that pdbcompat does not filter: `social_media` (stored, but no filter key), `net?notes_private=` (upstream filters private data for any caller), and the `netfac` `avail_sonet`, `avail_ethernet` and `avail_atm` columns.
+  Behavior is unchanged: the mirror ignores these keys.
 - pdbcompat returns `406` (`Could not satisfy the request Accept header.`) when no media range of the `Accept` header matches `application/json`, for example `Accept: text/html` or an empty header, as upstream DRF content negotiation does, before the method check and before any parameter is read.
   A header that names `application/problem+json` still gets the RFC 9457 errors and no `406`.
   Before, pdbcompat ignored `Accept`.
