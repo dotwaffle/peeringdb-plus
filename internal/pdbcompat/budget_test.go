@@ -118,9 +118,9 @@ func TestCheckBudget_UnknownEntity(t *testing.T) {
 	}
 }
 
-// TestWriteBudgetProblem_Body asserts the 413 response shape:
-// status, Content-Type, and all six required JSON fields plus
-// optional instance.
+// TestCheckBudgetBytes checks the budget arithmetic with an explicit
+// size per row, and that CheckBudget gives the same result with the
+// Registry row size.
 func TestCheckBudgetBytes(t *testing.T) {
 	t.Parallel()
 
@@ -151,6 +151,9 @@ func TestCheckBudgetBytes(t *testing.T) {
 	}
 }
 
+// TestWriteBudgetProblem_Body asserts the 413 response shape:
+// status, Content-Type, and all six required JSON fields plus
+// optional instance.
 func TestWriteBudgetProblem_Body(t *testing.T) {
 	t.Parallel()
 	info := BudgetExceeded{

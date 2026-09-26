@@ -45,8 +45,8 @@ type childSet struct {
 }
 
 // childSets maps each parent type to the `_set` collections of its depth
-// expansion, in the order of the table in depth.go. The entries mirror the
-// get<Type>WithDepth eager-loads in depth.go. If a set is added there or
+// expansion, in the order that get<Type>WithDepth in depth.go renders
+// them. The entries mirror the get<Type>WithDepth eager-loads. If a set is added there or
 // removed from there, change this table too, or the in-flight pool
 // estimate does not agree with the response.
 //

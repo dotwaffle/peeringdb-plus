@@ -156,8 +156,10 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// with format suffix "5", and the renderer negotiation raises Http404
 	// in initial(), before get_queryset (drf routers.py:143,
 	// urlpatterns.py:109, negotiation.py:80-88, views.py:408-411).
-	// Upstream has no route for a path with more segments. serveDetail
-	// parses any other id after the parameter checks.
+	// Upstream has no GET route for a path with more segments: it sends
+	// its HTML 404 page, or 405 on a POST-only action path such as
+	// /api/ix/<id>/request_ixf_import (rest.py:209-228, :1033-1191).
+	// serveDetail parses any other id after the parameter checks.
 	if strings.ContainsAny(idStr, "./") {
 		writeDetailNotFound(w, r, detailSliceNotFound)
 		return

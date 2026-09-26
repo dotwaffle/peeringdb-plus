@@ -125,8 +125,8 @@ const maxASNOverlap = 25
 // The errors of overlapping_asns (2.83.0 models.py:2457-2461,
 // :2867-2871).
 var (
-	errASNOverlapTooFew  = errors.New("Need to specify at least two asns")     //nolint:staticcheck // exact upstream message text
-	errASNOverlapTooMany = errors.New("Can only compare a maximum of 25 asns") //nolint:staticcheck // exact upstream message text
+	errASNOverlapTooFew  = errors.New("Need to specify at least two asns")     //nolint:staticcheck // upstream wording
+	errASNOverlapTooMany = errors.New("Can only compare a maximum of 25 asns") //nolint:staticcheck // upstream wording
 )
 
 // parseASNOverlap parses the items of asn_overlap as overlapping_asns

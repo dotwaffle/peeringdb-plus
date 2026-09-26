@@ -1700,8 +1700,10 @@ func TestParity_Status(t *testing.T) {
 			{"/api/net/1?limit=-1&skip=1", http.StatusNotFound, "Not found."},
 			{"/api/net/1?limit=0&skip=0", http.StatusOK, ""},
 			{"/api/net/1?limit=-1", http.StatusOK, ""},
-			// depth is parsed after since and before the filters
-			// (rest.py:520-523). The serializer clamps a number.
+			// depth is parsed after since and before the model-field
+			// filters (rest.py:520-523); upstream reads its
+			// prepare_query keys first (:488-500). The serializer
+			// clamps a number.
 			{"/api/net/1?depth=abc", http.StatusBadRequest, "'depth' needs to be a number"},
 			{"/api/net/1?depth=", http.StatusBadRequest, "'depth' needs to be a number"},
 			{"/api/net/1?depth=abc&since=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
@@ -1760,8 +1762,8 @@ func TestParity_Status(t *testing.T) {
 			{"/api/net/abc", http.StatusNotFound, "Not found."},
 			{"/api/net/1.5", http.StatusNotFound, "Not found."},
 			{"/api/net/1_", http.StatusNotFound, "Not found."},
-			// Upstream has no route for this path (HTML 404, see the
-			// unknown-path row); only the status is parity.
+			// Upstream has no route for this path and sends its HTML
+			// 404 page; only the status is parity.
 			{"/api/net/1/extra", http.StatusNotFound, "Not found."},
 			// A parameter error wins over an id without a ".".
 			{"/api/net/abc?since=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},

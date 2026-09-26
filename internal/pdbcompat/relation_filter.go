@@ -36,8 +36,9 @@ var (
 // not filter: model columns that the API does not serialize or that the
 // mirror does not keep, the stored meta document (no plain filter key),
 // and reverse related names. Upstream filters on them. The mirror does
-// not, so a relation key with such a field is ignored (see docs/API.md § Known Divergences). Every other field that
-// the related model does not have returns errInvalidQuery.
+// not, so a relation key with such a field is ignored (see docs/API.md
+// § Known Divergences). Every other field that the related model does
+// not have returns errInvalidQuery.
 //
 // Sources: django-handleref models.py:86-90 (version on every model),
 // django-peeringdb models/abstract.py (abstract.py below), the mixins

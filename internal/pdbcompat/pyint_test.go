@@ -135,10 +135,10 @@ func TestNDValue(t *testing.T) {
 }
 
 // TestPyIntDigitRanges locks the shape of unicode.Nd that ndValue
-// needs: every range has stride 1, a length that is a multiple of ten,
-// and a first rune with the digit value 0 (Unicode assigns each digit
-// set as 0 to 9 in order). A Go release with a new Unicode version that
-// breaks this fails here.
+// needs: every range has stride 1 and a length that is a multiple of
+// ten (Unicode assigns each digit set as 0 to 9 in order; TestNDValue
+// checks the first rune of some sets). A Go release with a new Unicode
+// version that breaks this fails here.
 func TestPyIntDigitRanges(t *testing.T) {
 	t.Parallel()
 

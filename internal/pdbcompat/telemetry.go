@@ -69,10 +69,10 @@ func memStatsHeapInuseBytes() int64 {
 // Intended usage: `defer recordResponseHeapDelta(ctx, endpoint, entity,
 // startBytes)` in dispatch after the Registry lookup (after startBytes :=
 // memStatsHeapInuseBytes()), and in serveASSet for /api/as_set, which
-// dispatch routes before the Registry lookup. Every terminal path of the list and detail
-// handlers (200 success, 400 bad parameter or filter error, 404, 413
-// budget-exceeded, 500 query-error, 503 pool-exhausted) triggers exactly
-// one observation via the defer.
+// dispatch routes before the Registry lookup. Every terminal path of
+// the list and detail handlers (200 success, 400 bad parameter or
+// filter error, 404, 413 budget-exceeded, 500 query-error, 503
+// pool-exhausted) triggers exactly one observation via the defer.
 //
 // Negative deltas (end < start) are clamped to 0. GC cycles between
 // entry and exit can legitimately shrink HeapInuse; a negative histogram

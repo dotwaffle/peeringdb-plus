@@ -234,6 +234,9 @@ func TestParity_Serializer(t *testing.T) {
 		mustIX(ctx, t, c, 1, "IXF IX", 1, t0)
 
 		// An anonymous sync receives a Users row without the URL key.
+		// The row is stored here with the setter that sync uses;
+		// TestSync_IxLanURLKeepsNullApartFromEmpty locks the sync
+		// upsert itself (absent key -> NULL).
 		raw := `{"id":10,"ix_id":1,"name":"","descr":"","mtu":1500,` +
 			`"ixf_ixp_member_list_url_visible":"Users",` +
 			`"created":"2026-09-23T12:00:00Z","updated":"2026-09-23T12:00:00Z","status":"ok"}`

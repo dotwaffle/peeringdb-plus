@@ -386,6 +386,10 @@ type listFilters struct {
 // (2.83.0 rest.py:569-597). The pre-pass adds its keys to the consumed
 // set, which the loop skips. The pre-passes run in upstream order: the
 // prepare_query keys (rest.py:488-500) before name_search (:532-553).
+// A distance error wins over an error in another prepare_query key,
+// although upstream fac checks its presence keys first
+// (serializers.py:2126-2208); the status is 400 on both sides, only
+// the message differs.
 // The name_search pre-pass (resolveNameSearch) consumes name_search,
 // and id__in when it unions the two. When name_search can match no
 // row, or its value is not valid, the loop reads only the keys of

@@ -38,7 +38,7 @@ const FlushEvery = 100
 //
 // Error handling:
 //   - json.Marshal(meta) failure returns the wrapped error BEFORE any bytes
-//     hit the wire, so callers can still emit a 500/problem-detail.
+//     hit the wire, so callers can still emit a 500 error body.
 //   - Any failure after the prelude has been written returns a wrapped error;
 //     previously-written bytes stay on the wire (the response is already
 //     committed). The caller is expected to log and drop the connection.

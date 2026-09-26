@@ -492,8 +492,9 @@ func TestParity_Traversal(t *testing.T) {
 		mustIX(ctx, t, c, 301, "QueryIXB", 2, t0)
 
 		srv := newTestServer(t, c)
-		// No ixfac rows exist, so neither IX has a facility. Upstream
-		// returns [] for the list.
+		// Both IXs have fac_count 0 (the mustIX default), and
+		// IXFilterMixin reads the stored fac_count (rest.py:1288-1289),
+		// so upstream returns [] for the list.
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
 			// A single-object GET ignores it too. Upstream: 404, the
