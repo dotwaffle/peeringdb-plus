@@ -8,6 +8,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Fixed
+
+- Alert rule `PdbPlusMachineOOMKilled` reads the `fly_instance_exit_oom` samples of the last 15 minutes and no longer needs a CPU counter reset.
+  Fly.io writes one sample at each exit of a machine, so the rule saw an out-of-memory exit for only about 5 minutes, and never saw one of a machine that did not start again.
+  Each deploy also moved the rule from Normal (NoData) to Normal and back, which the alert history showed as state changes.
+
 ## [1.36.0] - 2026-09-26
 
 ### Added

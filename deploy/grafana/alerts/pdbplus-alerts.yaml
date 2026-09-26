@@ -220,24 +220,24 @@ groups:
     interval: 1m
     rules:
       - alert: PdbPlusMachineOOMKilled
-        expr: |
-          max by (region, instance) (fly_instance_exit_oom{app="peeringdb-plus"})
-            and on (region, instance)
-          max by (region, instance) (resets(fly_instance_cpu{app="peeringdb-plus"}[15m])) > 0
+        expr: max by (region, instance) (max_over_time(fly_instance_exit_oom{app="peeringdb-plus"}[15m])) > 0
         for: 0m
         labels:
           severity: warning
         annotations:
-          summary: "PeeringDB Plus machine restarted after an out-of-memory kill"
+          summary: "PeeringDB Plus machine exited after an out-of-memory kill"
           description: |
-            The machine {{ $labels.instance }} in {{ $labels.region }}
-            restarted in the last 15m (its fly_instance_cpu counters reset),
-            and Fly.io reports that its last exit was an out-of-memory kill
-            (fly_instance_exit_oom = 1). The app cannot report its own OOM
-            kill. After a restart a replica copies the whole database from
-            the primary again. Check the VM Memory Available panel and
-            fly logs -a peeringdb-plus for the machine. The alert resolves
-            15m after the restart.
+            Fly.io reports that the machine {{ $labels.instance }} in
+            {{ $labels.region }} exited after an out-of-memory kill in the
+            last 15m (fly_instance_exit_oom = 1). The app cannot report its
+            own OOM kill. Fly.io writes one fly_instance_exit_oom sample at
+            each exit of a machine, not a series that stays: a deploy
+            writes 0, an OOM kill writes 1. So the rule reads the samples of
+            the last 15m, and the alert resolves 15m after the exit. It also
+            fires when the machine does not start again. After a restart a
+            replica copies the whole database from the primary again. Check
+            the VM Memory Available panel and fly logs -a peeringdb-plus for
+            the machine.
 
       - alert: PdbPlusMachineCPUThrottled
         expr: max by (region) (rate(fly_instance_cpu_throttle{app="peeringdb-plus"}[5m])) / 100 > 0.01
