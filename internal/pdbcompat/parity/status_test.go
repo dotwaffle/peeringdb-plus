@@ -1017,13 +1017,16 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
-	t.Run("as_set_head_and_options_405_allow_get", func(t *testing.T) {
+	t.Run("get_only_head_and_options_405_allow_get", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:1399 at 2.83.0 (http_method_names =
-		// ["get"]). DRF compares the method with that list after the
-		// permission check, which a read method passes, so HEAD and
-		// OPTIONS get 405 (drf views.py:513-521, :167-172) with
-		// Allow: GET (views.py:158-164, :448-449). net/http sends no
+		// upstream: 2.83.0 rest.py:1404 (as_set, http_method_names =
+		// ["get"]) and rest.py:1358 (ixlan, methods=["get", "put"]).
+		// DRF compares the method with that list after the permission
+		// check, which a read method passes, so HEAD and OPTIONS get
+		// 405 (drf views.py:513-521, :167-172) before any parameter is
+		// read. Allow lists GET (views.py:158-164, :448-449); the
+		// mirror leaves out the write method PUT of ixlan (see
+		// DIVERGENCE_non_get_method_405_read_only). net/http sends no
 		// body for HEAD.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
@@ -1032,6 +1035,14 @@ func TestParity_Status(t *testing.T) {
 			{http.MethodHead, "/api/as_set"},
 			{http.MethodHead, "/api/as_set/64501"},
 			{http.MethodOptions, "/api/as_set"},
+			{http.MethodHead, "/api/ixlan"},
+			{http.MethodHead, "/api/ixlan/1"},
+			{http.MethodHead, "/api/ixlan?depth=x"},
+			{http.MethodHead, "/api/ixlan/999"},
+			{http.MethodOptions, "/api/ixlan"},
+			{http.MethodOptions, "/api/ixlan/1"},
+			{http.MethodPost, "/api/ixlan"},
+			{http.MethodPut, "/api/ixlan/1"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != http.StatusMethodNotAllowed {
@@ -1048,6 +1059,11 @@ func TestParity_Status(t *testing.T) {
 			if got := mustDecodeMetaError(t, body).Error; got != want {
 				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
 			}
+		}
+		// The format-suffix route raises Http404 in initial(), before
+		// the method check (drf negotiation.py:80-88, views.py:408-411).
+		if status, _, body := httpDo(t, srv, http.MethodHead, "/api/ixlan/1.5", nil); status != http.StatusNotFound {
+			t.Errorf("HEAD /api/ixlan/1.5: status = %d, want 404; body=%s", status, string(body))
 		}
 	})
 

@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat answers `HEAD` on `/api/ixlan` and `/api/ixlan/{id}` with `405` and `Allow: GET`, as upstream does: the upstream `ixlan` viewset maps only `GET` and `PUT`.
+  The other `405` responses on these paths also send `Allow: GET`.
+  A CORS preflight still gets its answer from the CORS middleware.
+  Before, `HEAD` returned the `GET` headers.
 - pdbcompat applies every Django lookup of `netixlan?name__<lookup>=` and `name__<lookup>__<x>=` to the ixlan name, as upstream `related_to_name` does, for example `?name__endswith=`, `?name__exact=` and `?name__contains__x=` (case-sensitive).
   An unknown lookup, an operator after the lookup and `isnull` return `400`.
   `regex`, `iregex` and a `range` value that is not two characters long return `400` (registered divergence).

@@ -73,15 +73,10 @@ func (h *Handler) serveASSet(w http.ResponseWriter, r *http.Request, idStr strin
 		return
 	}
 
-	// The viewset sets http_method_names = ["get"] (rest.py:1399), so
-	// DRF answers HEAD with 405 (views.py:517-521). net/http sends no
-	// body for a HEAD response.
+	// DRF answers HEAD with 405 (getOnly). net/http sends no body for a
+	// HEAD response.
 	if r.Method == http.MethodHead {
-		w.Header().Set("Allow", "GET")
-		writeError(w, r, apiError{
-			Status: http.StatusMethodNotAllowed,
-			Detail: "Method \"" + r.Method + "\" not allowed.",
-		})
+		writeMethodNotAllowed(w, r, "GET")
 		return
 	}
 

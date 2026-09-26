@@ -82,13 +82,27 @@ func (h *Handler) Register(mux *http.ServeMux) {
 // (views.py:167-172, exceptions.py:194-196). Upstream lists its write
 // methods in Allow and runs the write handlers (docs/API.md § Known
 // Divergences). The mux sets no Allow header for this pattern, so the
-// handler sets it. The as_set lookup serves only GET upstream (2.83.0
-// rest.py:1399), so its paths get Allow: GET.
+// handler sets it. The paths of getOnly types get Allow: GET.
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	allow := "GET, HEAD"
-	if typeName, _ := splitTypeID(r.PathValue("rest")); typeName == asSetPath {
+	if typeName, _ := splitTypeID(r.PathValue("rest")); getOnly(typeName) {
 		allow = "GET"
 	}
+	writeMethodNotAllowed(w, r, allow)
+}
+
+// getOnly reports whether the upstream viewset of typeName leaves HEAD
+// and OPTIONS out of http_method_names: ixlan maps GET and PUT (2.83.0
+// rest.py:1358), as_set maps GET (:1404). DRF answers HEAD and OPTIONS
+// there with 405 (views.py:513-521). The mirror does not list the
+// write method PUT in Allow.
+func getOnly(typeName string) bool {
+	return typeName == peeringdb.TypeIXLan || typeName == asSetPath
+}
+
+// writeMethodNotAllowed writes the DRF 405 for the request method with
+// the Allow header allow.
+func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string) {
 	w.Header().Set("Allow", allow)
 	// Concatenate: %q would escape the method a second time.
 	writeError(w, r, apiError{
@@ -147,12 +161,6 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
 
-	if idStr == "" {
-		// List endpoint: /api/{type} or /api/{type}/
-		h.serveList(tc, w, r)
-		return
-	}
-
 	// Detail endpoint: /api/{type}/{id}. An id with a "." or a "/" is
 	// a 404 before any parameter check. Upstream routes "1.5" as pk "1"
 	// with format suffix "5", and the renderer negotiation raises Http404
@@ -164,6 +172,20 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// serveDetail parses any other id after the parameter checks.
 	if strings.ContainsAny(idStr, "./") {
 		writeDetailNotFound(w, r, detailSliceNotFound)
+		return
+	}
+
+	// DRF compares the method with http_method_names after initial()
+	// and before the handler, so no parameter is read. net/http sends
+	// no body for a HEAD response.
+	if r.Method == http.MethodHead && getOnly(tc.Name) {
+		writeMethodNotAllowed(w, r, "GET")
+		return
+	}
+
+	if idStr == "" {
+		// List endpoint: /api/{type} or /api/{type}/
+		h.serveList(tc, w, r)
 		return
 	}
 	h.serveDetail(tc, idStr, w, r)
