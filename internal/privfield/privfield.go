@@ -6,7 +6,8 @@
 // pre-existing <field>_visible companion string stored on the ent row.
 // Every surface MUST call Redact for every field guarded by a _visible
 // companion. There is no centralized enforcement. Each serializer calls
-// Redact, and the 5-surface end-to-end test locks this.
+// Redact, and an end-to-end test locks this on 5 of the 6 surfaces (MCP
+// has no path for a gated field today).
 //
 // Design rationale:
 //   - redaction happens at the serializer layer, not via an ent Policy,
@@ -42,7 +43,7 @@ import (
 // Fail-closed semantics:
 // privctx.TierFrom(ctx) already returns TierPublic for un-stamped
 // contexts, so an un-plumbed ctx naturally lands in the most
-// restrictive branch — no extra check needed here.
+// restrictive branch; no extra check is needed here.
 func Redact[T any](ctx context.Context, visible string, value T) (out T, omit bool) {
 	if slices.Contains(privctx.TierFrom(ctx).AdmittedVisibilities(), visible) {
 		return value, false
