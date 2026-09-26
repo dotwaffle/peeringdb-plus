@@ -66,8 +66,9 @@ func lookupPresenceKey(typ, key string) (presenceKey, bool) {
 // buildPresencePredicate parses value and builds the predicate of pk.
 // Every item must be an integer: upstream converts the items with int()
 // or passes them to an integer lookup, and the ValueError of any other
-// item is a 400 (2.83.0 rest.py:488-500). An empty value is not an
-// integer either.
+// item is a 400 (2.83.0 rest.py:488-500). pyInt accepts the forms that
+// int() accepts, for example "1_00" and Unicode digits. An empty value
+// is not an integer either.
 func buildPresencePredicate(tc TypeConfig, pk presenceKey, value string, tier privctx.Tier) (func(*sql.Selector), error) {
 	items := []string{value}
 	if pk.list {
@@ -75,7 +76,7 @@ func buildPresencePredicate(tc TypeConfig, pk presenceKey, value string, tier pr
 	}
 	ids := make([]int, len(items))
 	for i, item := range items {
-		id, err := strconv.Atoi(strings.TrimSpace(item))
+		id, _, err := pyInt(item)
 		if err != nil {
 			return nil, fmt.Errorf("%q is not an integer", item)
 		}

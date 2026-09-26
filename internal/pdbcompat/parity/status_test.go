@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -734,24 +735,118 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_unique_key_non_integer_returns_400", func(t *testing.T) {
+	t.Run("unique_key_non_integer_returns_404", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream turns a plain id or asn key into an
-		// __iexact filter (2.83.0 rest.py:670-683). Django does not
-		// convert an iexact value to an integer, so a non-integer or
-		// empty value matches no row, and the unique query then gets
-		// the 404 (rest.py:809-815). The mirror rejects the value with
-		// a 400, as for every other integer filter. See docs/API.md
-		// § Known Divergences.
+		// upstream: 2.83.0 rest.py:670-683 (a plain key on a field that
+		// is not a relation, a date or a boolean is an __iexact filter),
+		// :809-815 (unique-query 404); Django lookups.py:430-438
+		// (IExact.prepare_rhs=False: the value is not converted, so
+		// MySQL compares the integer as decimal text);
+		// pdb_api_test.py:3904-3910. rest.py:597 folds the value with
+		// unidecode first, so full-width digits match.
 		c := testutil.SetupClient(t)
+		ctx := t.Context()
 		seedNet(t, c, 1, 64501, "ok", t0)
+		mustOrg(ctx, t, c, 1, "IntKeyOrg", t0)
+		mustFac(ctx, t, c, 1, "IntKeyFac", 1, t0)
+		// A contact that the anonymous tier cannot read: a value that is
+		// not an integer must not tell it apart from a missing id.
+		if _, err := c.Poc.Create().
+			SetID(1).SetNetID(1).SetRole("NOC").SetVisible("Users").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed poc: %v", err)
+		}
 		srv := newTestServer(t, c)
 		for _, path := range []string{
 			"/api/net?id=abc",
 			"/api/net?id=",
+			"/api/net?id=01",
 			"/api/net?asn=abc",
 			"/api/net?asn=",
+			"/api/net?asn=064501",
+			"/api/net?asn=%2B64501",
+			"/api/net?asn=%2064501",
+			"/api/net?asn=64_501",
 			"/api/fac?id=abc",
+			"/api/ixlan?id=abc",
+			"/api/poc?id=abc",
+			"/api/poc?id=999",
+		} {
+			assertEntityNotFound(t, srv, path)
+		}
+		for _, path := range []string{
+			"/api/net?asn=64501",
+			"/api/net?id=1",
+			"/api/net?asn=" + url.QueryEscape("\uff16\uff14\uff15\uff10\uff11"),
+		} {
+			status, body := httpGet(t, srv, path)
+			if got := extractIDs(t, body); status != http.StatusOK || !equalIntSlice(got, []int{1}) {
+				t.Errorf("GET %s: status %d ids %v, want 200 [1]", path, status, got)
+			}
+		}
+	})
+
+	t.Run("plain_int_key_non_integer_matches_nothing", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:670-683 (__iexact on an integer model
+		// field, also through queryable_relations for org__id and
+		// net__asn); Django lookups.py:430-438. The value is not
+		// converted, so it matches no row and raises no error. These
+		// keys are not unique queries, so the list is empty.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "PlainIntOrg", t0)
+		mustNet(ctx, t, c, 10, "PlainIntNet", 64510, 1, t0)
+		mustIX(ctx, t, c, 20, "PlainIntIX", 1, t0)
+		mustIxLan(ctx, t, c, 20, "PlainIntLan", 20, t0)
+		c.NetworkIxLan.Create().
+			SetID(30).SetNetID(10).SetIxlanID(20).SetIxID(20).
+			SetAsn(64510).SetSpeed(1000).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/netixlan?asn=abc",
+			"/api/netixlan?asn=064510",
+			"/api/netixlan?speed=1_000",
+			"/api/net?info_prefixes4=abc",
+			"/api/net?org__id=abc",
+			"/api/net?org__id=01",
+			"/api/netixlan?net__asn=abc",
+		} {
+			assertEmptyList(t, srv, path)
+		}
+		// Control: the decimal text matches.
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?asn=64510", want: []int{30}},
+			{path: "/api/netixlan?speed=1000", want: []int{30}},
+			{path: "/api/net?org__id=1", want: []int{10}},
+			{path: "/api/netixlan?net__asn=64510", want: []int{30}},
+		})
+	})
+
+	t.Run("int_key_with_operator_or_fk_stays_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:676-677 (a FK key is an exact lookup
+		// on <fk>_id, which converts the value), :693-703 and
+		// :824-831 (the ValueError of an operator lookup is a 400);
+		// serializers.py:2119-2124, :3743-3748, :4531-4543 (the count
+		// seeds are exact lookups in prepare_query, rest.py:494-495).
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/net?asn__lt=abc",
+			"/api/net?asn__in=a",
+			"/api/net?asn__in=1,x",
+			"/api/net?org=abc",
+			"/api/net?org=",
+			"/api/net?org_id=abc",
+			"/api/fac?net_count=abc",
+			"/api/fac?net_count__gt=abc",
+			"/api/ix?fac_count=abc",
+			"/api/ix?net_count=abc",
+			"/api/net?fac_count=abc",
 		} {
 			status, body := httpGet(t, srv, path)
 			if status != http.StatusBadRequest {
@@ -760,6 +855,64 @@ func TestParity_Status(t *testing.T) {
 			}
 			if got := mustDecodeMetaError(t, body).Error; !strings.Contains(got, "to int") {
 				t.Errorf("GET %s: meta.error = %q, want an int conversion error", path, got)
+			}
+		}
+	})
+
+	t.Run("strict_int_values_use_python_int", func(t *testing.T) {
+		t.Parallel()
+		// upstream: Django fields/__init__.py:2123-2131
+		// (IntegerField.get_prep_value is int(value)), rest.py:597
+		// (unidecode on the filter loop values); serializers.py:618-619
+		// (get_relation_filters passes the raw value), :2188-2190 (fac
+		// all_net: int() on each item), :4560-4562 (ix all_net),
+		// :3750-3753 (net not_ix). Python int() accepts white space at
+		// the ends, a sign, underscores between digits and Unicode Nd
+		// digits. See seedPresenceKeys for the rows.
+		c := seedPresenceKeys(t, t0)
+		c.Facility.UpdateOneID(400).SetNetCount(2).SaveX(t.Context())
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ path, canonical string }{
+			{"/api/net?org_id=%201", "/api/net?org_id=1"},
+			{"/api/net?org=01", "/api/net?org=1"},
+			{"/api/net?asn__in=%2064500,064501", "/api/net?asn__in=64500,64501"},
+			{"/api/net?asn__lt=64_502", "/api/net?asn__lt=64502"},
+			{"/api/net?asn__gte=%2B64501", "/api/net?asn__gte=64501"},
+			{"/api/fac?net=%EF%BC%91%EF%BC%90%EF%BC%90", "/api/fac?net=100"},
+			{"/api/fac?net_count=%202", "/api/fac?net_count=2"},
+			{"/api/org?asn=%2064500", "/api/org?asn=64500"},
+			{"/api/net?not_ix=%2020", "/api/net?not_ix=20"},
+			{"/api/fac?all_net=1_00", "/api/fac?all_net=100"},
+			{"/api/ix?all_net=%D9%A1%D9%A0%D9%A0", "/api/ix?all_net=100"},
+			{"/api/fac?org_present=%203", "/api/fac?org_present=3"},
+		} {
+			wantStatus, wantBody := httpGet(t, srv, tc.canonical)
+			want := extractIDs(t, wantBody)
+			if wantStatus != http.StatusOK || len(want) == 0 {
+				t.Fatalf("GET %s: status %d ids %v, want 200 and a row", tc.canonical, wantStatus, want)
+			}
+			assertKeysResolve(t, srv, []silentIgnoreCase{{path: tc.path, want: want}})
+		}
+		// A count seed of a prepare_query uses the first value of a
+		// repeated key (serializers.py:618-619).
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?net_count=2&net_count=0", want: []int{400}},
+		})
+	})
+
+	t.Run("unique_key_non_integer_with_bad_operator_is_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:693-703 runs every filter in one
+		// qset.filter() call, so the ValueError of asn__lt is a 400
+		// even though id=abc matches no row. The mirror parses the keys
+		// in map order, so run the request many times.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for range 20 {
+			status, body := httpGet(t, srv, "/api/net?id=abc&asn__lt=x")
+			if status != http.StatusBadRequest {
+				t.Fatalf("GET /api/net?id=abc&asn__lt=x: status = %d, want 400; body=%s", status, string(body))
 			}
 		}
 	})
@@ -1085,13 +1238,18 @@ func TestParity_Status(t *testing.T) {
 			}
 		}
 
-		// On an int field, and on a key that names a FK, __iexact is an
-		// exact id match and __icontains is a 400 (the int column has no
-		// substring match). Upstream ignores both keys and returns every
-		// net.
+		// On an int field, __iexact matches the decimal text of the
+		// value, as a key without an operator does, so a value that is
+		// not an integer matches no row. On a key that names a FK,
+		// __iexact is an exact id match. __icontains is a 400 (the int
+		// column has no substring match). Upstream ignores these keys
+		// and returns every net [100 101 102].
 		fk := newTestServer(t, seedFKKeys(t, t0))
 		assertKeysResolve(t, fk, []silentIgnoreCase{
 			{path: "/api/net?org__iexact=1", want: []int{100}},
+			{path: "/api/net?asn__iexact=64501", want: []int{101}},
+			{path: "/api/net?asn__iexact=abc", want: []int{}},
+			{path: "/api/net?asn__iexact=064501", want: []int{}},
 		})
 		if status, body := httpGet(t, fk, "/api/net?org__icontains=1"); status != http.StatusBadRequest {
 			t.Errorf("?org__icontains=1: status = %d, want 400; body=%s", status, string(body))

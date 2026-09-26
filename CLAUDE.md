@@ -283,7 +283,8 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   A negative `skip` on a list that upstream serves from its API cache is a registered divergence (`DIVERGENCE_negative_skip_on_cacheable_list_returns_400`).
 - Unique-query 404 (`isUniqueQuery` in `handler.go`): a list with the `id` key (any type) or `asn` key (net), no `page` key, and zero served rows returns 404 `Entity not found` (upstream `rest.py:809-815`).
   It fires on all three empty exits of `serveList` (empty `__in`, budget `count == 0`, empty `List`) and runs after privacy filtering, so a hidden poc id is a 404 (registered divergence).
-  A non-integer or empty `id`/`asn` value is still a 400 from `buildExact` (upstream `__iexact` matches nothing → 404; registered divergence `DIVERGENCE_unique_key_non_integer_returns_400`).
+- A plain key (or `__iexact`) on a non-FK integer model field matches the decimal text of the folded value (`intTextMatch`, `sql.False()` otherwise, never the `EmptyResult` sentinel): upstream `__iexact` does not convert the value (`rest.py:670-683`).
+  FK keys, operators, relation seeds, presence keys and the count seeds (`TypeConfig.ExactCounts`, first value) convert with `pyInt` (400 on a bad value).
 - PK-lookup (`internal/pdbcompat/depth.go`) MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare; netixlan uses `StatusIn("ok", "not-operational", "pending")` (live + pending, `rest.py:750`).
   Inline the `StatusIn` literal at each of the 27 call sites; grep-ability trumps DRY here.
 - Errors on `/api/` go through `writeError` (`internal/pdbcompat/response.go`): upstream `{"meta":{"error":...}}` by default, RFC 9457 only when `Accept` names `application/problem+json` (`httperr.WantsProblemJSON`).

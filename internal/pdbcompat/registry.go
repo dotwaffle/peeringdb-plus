@@ -143,6 +143,15 @@ type TypeConfig struct {
 	// set: it also holds model fields that queryable_field_xl renames
 	// (carrier fac_count).
 	NonModelFields map[string]bool
+
+	// ExactCounts lists the Fields keys that a prepare_query filters with
+	// an exact lookup or a get_relation_filters operator (the count
+	// seeds), with the first value of the key. The filter loop ignores
+	// them (queryable_field_xl renames them). A value that int() does not
+	// accept is a 400, as upstream (2.83.0 serializers.py:2119-2124,
+	// :3743-3748, :4531-4543). Every other plain integer key matches the
+	// decimal text of the value (buildModelFieldPredicate).
+	ExactCounts map[string]bool
 }
 
 // reservedParams lists query parameter names that are not filter fields.
@@ -237,6 +246,8 @@ var Registry = map[string]TypeConfig{
 		SearchFields: []string{"name", "aka", "name_long", "irr_as_set"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true},
 		ForeignKeys:  map[string]string{"org": "org_id"},
+		// serializers.py:3743-3748.
+		ExactCounts: map[string]bool{"fac_count": true},
 	},
 	peeringdb.TypeFac: {
 		Name: peeringdb.TypeFac,
@@ -285,6 +296,8 @@ var Registry = map[string]TypeConfig{
 		ForeignKeys:  map[string]string{"org": "org_id", "campus": "campus_id"},
 		// org_name is a serializer field (serializers.py:1947).
 		NonModelFields: map[string]bool{"org_name": true},
+		// serializers.py:2119-2124.
+		ExactCounts: map[string]bool{"net_count": true},
 	},
 	peeringdb.TypeIX: {
 		Name: peeringdb.TypeIX,
@@ -327,6 +340,8 @@ var Registry = map[string]TypeConfig{
 		SearchFields: []string{"name", "aka", "name_long", "city", "country"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "name_long": true, "city": true},
 		ForeignKeys:  map[string]string{"org": "org_id"},
+		// serializers.py:4531-4543.
+		ExactCounts: map[string]bool{"net_count": true, "fac_count": true},
 	},
 	peeringdb.TypePoc: {
 		Name: peeringdb.TypePoc,

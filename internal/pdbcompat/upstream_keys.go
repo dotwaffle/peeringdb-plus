@@ -83,6 +83,19 @@ func resolveLocalField(tc TypeConfig, field string) (string, FieldType, bool) {
 	return col, ft, ok
 }
 
+// isFKColumn reports whether col is the local column of a forward FK of
+// tc (a value of tc.ForeignKeys). Upstream filters a key that names a FK
+// as an exact lookup on <fk>_id, which converts the value with int()
+// (2.83.0 rest.py:676-677), so a bad value is a 400.
+func isFKColumn(tc TypeConfig, col string) bool {
+	for _, c := range tc.ForeignKeys {
+		if c == col {
+			return true
+		}
+	}
+	return false
+}
+
 // traversalKeyFor maps the first relation segment of a key onto a
 // traversal key of tc. A traversal key of the mirror passes unchanged.
 // Otherwise the segment gets the upstream net/fac renames, and when the

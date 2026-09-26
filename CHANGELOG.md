@@ -23,6 +23,15 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   An empty value returns `400`; before, it was ignored.
   The error messages are now the upstream texts `'limit' needs to be a number`, `'skip' needs to be a number`, `'since' needs to be a unix timestamp (epoch seconds)` and `Negative indexing is not supported.`.
   When `since` and a filter key are both bad, the message is now the `since` message, as upstream.
+- `/api/` treats a key without an operator, or with `__iexact`, on an integer field as upstream does: the value must be the decimal text of the stored integer, and any other value matches no row.
+  `?id=abc` and `?asn=` (on `net`) now return `404` `Entity not found`, and `?asn=abc` on other types returns an empty list.
+  Before, these returned `400`.
+  Values such as `?asn=042` and `?asn=+42` no longer match.
+  A FK key, an operator and the `fac_count` and `net_count` keys still return `400` for a value that is not an integer.
+- `/api/` converts the other integer filter values with Python `int()` rules, as upstream does: `?org_id=%205`, `?asn__lt=1_000`, `fac?net=５` and `fac?all_net=1_00` now filter.
+  This includes the relation keys and the presence keys (`not_ix`, `all_net` and the others).
+  A value too large for a 64-bit integer matches as a very large number.
+  The `fac_count` and `net_count` keys use the first value of a repeated key, as upstream.
 
 ### Fixed
 

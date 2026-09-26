@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
 )
 
 func TestParseFieldOp(t *testing.T) {
@@ -693,9 +696,11 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 		wantMsg string
 	}{
 		{
+			// A plain int key matches the decimal text and never fails
+			// (TestParseFilters_PlainIntKey). An operator converts.
 			name:    "int conversion error propagated",
-			params:  url.Values{"asn": {"not-a-number"}},
-			wantMsg: "filter asn",
+			params:  url.Values{"asn__lt": {"not-a-number"}},
+			wantMsg: "filter asn__lt",
 		},
 		{
 			name:    "bool conversion error propagated",
@@ -747,6 +752,102 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 				t.Errorf("error %q does not contain %q", err.Error(), tt.wantMsg)
 			}
 		})
+	}
+}
+
+// TestParseFilters_PlainIntKey locks the two integer rules of the
+// filter loop keys. A plain key on an integer model field is an
+// __iexact filter upstream, which does not convert the value (2.83.0
+// rest.py:670-683, django/db/models/lookups.py:430-438): it matches the
+// decimal text or no row, with no error. A FK key and a count seed of a
+// prepare_query convert the value with int() (rest.py:676-677,
+// serializers.py:2119-2124), so a bad value is an error.
+func TestParseFilters_PlainIntKey(t *testing.T) {
+	t.Parallel()
+
+	render := func(t *testing.T, typ string, params url.Values) (string, []any) {
+		t.Helper()
+		preds, empty, err := ParseFilters(params, Registry[typ])
+		if err != nil {
+			t.Fatalf("ParseFilters(%v): %v", params, err)
+		}
+		if empty || len(preds) != 1 {
+			t.Fatalf("ParseFilters(%v): empty=%v, %d predicates, want one predicate", params, empty, len(preds))
+		}
+		s := sql.Dialect(dialect.SQLite).Select("*").From(sql.Table("t"))
+		preds[0](s)
+		return s.Query()
+	}
+
+	for _, tt := range []struct {
+		typ, key, value string
+		wantSQL         string
+		wantArgs        []any
+	}{
+		{"net", "asn", "abc", "FALSE", nil},
+		{"net", "asn", "", "FALSE", nil},
+		{"net", "asn", "042", "FALSE", nil},
+		{"net", "asn", "+42", "FALSE", nil},
+		{"net", "asn", " 42", "FALSE", nil},
+		{"net", "asn", "4_2", "FALSE", nil},
+		{"net", "asn__iexact", "abc", "FALSE", nil},
+		{"net", "id", "abc", "FALSE", nil},
+		{"net", "asn", "42", "`t`.`asn` = ?", []any{42}},
+		// unidecode folds full-width digits (rest.py:597).
+		{"net", "asn", "\uff14\uff12", "`t`.`asn` = ?", []any{42}},
+		{"net", "asn__iexact", "42", "`t`.`asn` = ?", []any{42}},
+		// A FK key converts with int().
+		{"net", "org_id", " 5", "`t`.`org_id` = ?", []any{5}},
+		{"net", "org", "05", "`t`.`org_id` = ?", []any{5}},
+		// A count seed of a prepare_query converts with int().
+		{"fac", "net_count", "1_0", "`t`.`net_count` = ?", []any{10}},
+	} {
+		t.Run(tt.typ+"?"+tt.key+"="+tt.value, func(t *testing.T) {
+			t.Parallel()
+			query, args := render(t, tt.typ, url.Values{tt.key: {tt.value}})
+			if !strings.Contains(query, "WHERE "+tt.wantSQL) {
+				t.Errorf("query = %q, want WHERE %s", query, tt.wantSQL)
+			}
+			if len(args) != len(tt.wantArgs) || (len(args) == 1 && args[0] != tt.wantArgs[0]) {
+				t.Errorf("args = %v, want %v", args, tt.wantArgs)
+			}
+		})
+	}
+
+	for _, tt := range []struct{ typ, key, value string }{
+		{"net", "org_id", "abc"},
+		{"net", "org", "abc"},
+		{"net", "org", ""},
+		{"fac", "net_count", "abc"},
+		{"net", "fac_count", "abc"},
+		{"ix", "fac_count", "abc"},
+		{"ix", "net_count__gt", "abc"},
+		{"net", "asn__lt", "abc"},
+		{"net", "asn__in", "1,x"},
+	} {
+		t.Run(tt.typ+"?"+tt.key+"="+tt.value+"_error", func(t *testing.T) {
+			t.Parallel()
+			if _, _, err := ParseFilters(url.Values{tt.key: {tt.value}}, Registry[tt.typ]); err == nil {
+				t.Errorf("ParseFilters(%s?%s=%s): no error, want an int conversion error", tt.typ, tt.key, tt.value)
+			}
+		})
+	}
+}
+
+// TestParseFilters_CountSeedFirstValue locks the first-value rule of a
+// count seed: a prepare_query reads v[0] (2.83.0 serializers.py:618-619),
+// while the filter loop keys take the last value.
+func TestParseFilters_CountSeedFirstValue(t *testing.T) {
+	t.Parallel()
+	preds, _, err := ParseFilters(url.Values{"net_count": {"1", "abc"}}, Registry["fac"])
+	if err != nil {
+		t.Fatalf("fac?net_count=1&net_count=abc: %v, want the first value", err)
+	}
+	if len(preds) != 1 {
+		t.Fatalf("got %d predicates, want 1", len(preds))
+	}
+	if _, _, err := ParseFilters(url.Values{"net_count": {"abc", "1"}}, Registry["fac"]); err == nil {
+		t.Errorf("fac?net_count=abc&net_count=1: no error, want the first value to fail")
 	}
 }
 

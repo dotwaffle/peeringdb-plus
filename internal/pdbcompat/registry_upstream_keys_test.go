@@ -68,10 +68,27 @@ func TestRegistryFields_UpstreamKeyClass(t *testing.T) {
 			}
 		}
 	}
-	for key := range upstreamQueryKeys {
+	// A count seed (TypeConfig.ExactCounts) is a prepare_query key on
+	// an integer column: upstream converts its value with int().
+	for typ, tc := range Registry {
+		for field := range tc.ExactCounts {
+			key := typ + "." + field
+			if _, ok := upstreamQueryKeys[key]; !ok {
+				t.Errorf("ExactCounts key %s is not in upstreamQueryKeys", key)
+			}
+			if ft, ok := tc.Fields[field]; !ok || ft != FieldInt {
+				t.Errorf("ExactCounts key %s is not a FieldInt field", key)
+			}
+		}
+	}
+	for key, why := range upstreamQueryKeys {
 		typ, field, _ := strings.Cut(key, ".")
 		if _, ok := Registry[typ].Fields[field]; !ok {
 			t.Errorf("stale entry %q: not a Registry field", key)
+		}
+		// The count seeds are the entries that name a count rename.
+		if strings.HasSuffix(field, "_count") != Registry[typ].ExactCounts[field] {
+			t.Errorf("%s (%s): count seed and ExactCounts disagree", key, why)
 		}
 	}
 }

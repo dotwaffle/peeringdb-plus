@@ -392,6 +392,11 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 
 		if len(relSegs) == 0 {
 			// Direct local field path — the original local-field behaviour.
+			// A count seed is a prepare_query key: it uses the first
+			// value of a repeated key (2.83.0 serializers.py:618-619).
+			if tc.ExactCounts[field] {
+				value = vals[0]
+			}
 			p, empty, ok, err := buildLocalPredicate(field, op, value, tc)
 			if err != nil {
 				return nil, false, fmt.Errorf("filter %s: %w", key, err)
@@ -444,7 +449,14 @@ func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Sele
 	}
 	folded := tc.FoldedFields[col]
 	op = coerceLocationFilterOp(col, op, value)
-	p, err := buildPredicate(col, op, value, ft, folded)
+	var p func(*sql.Selector)
+	var err error
+	if tc.ExactCounts[col] {
+		// A prepare_query key: the raw value, converted with int().
+		p, err = buildPredicate(col, op, value, ft, folded)
+	} else {
+		p, err = buildModelFieldPredicate(col, op, value, ft, folded, isFKColumn(tc, col))
+	}
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, true, false, nil
@@ -611,7 +623,7 @@ func buildSinglHop(entityType, fk, field, op, value string, tier privctx.Tier) (
 		return nil, false, false, nil
 	}
 	folded := targetTC.FoldedFields[field]
-	innerPred, err := buildPredicate(field, op, value, ft, folded)
+	innerPred, err := buildModelFieldPredicate(field, op, value, ft, folded, false)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, false, true, nil
@@ -705,7 +717,7 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 		return nil, false, false, nil
 	}
 	folded := leafTC.FoldedFields[field]
-	innerPred, err := buildPredicate(field, op, value, ft, folded)
+	innerPred, err := buildModelFieldPredicate(field, op, value, ft, folded, false)
 	if err != nil {
 		if errors.Is(err, errEmptyIn) {
 			return nil, false, true, nil
@@ -765,6 +777,38 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 	}, true, false, nil
 }
 
+// buildModelFieldPredicate builds the predicate of a key that the
+// upstream filter loop resolves as a model field (2.83.0
+// rest.py:670-683). The loop folds every value with unidecode first
+// (rest.py:597). A plain key on an integer field is an __iexact filter
+// upstream, and Django does not convert an iexact value
+// (IExact.prepare_rhs=False, django/db/models/lookups.py:430-438):
+// MySQL compares the integer as decimal text, so only the decimal form
+// of the stored value matches. A FK column (exactInt) and the operators
+// convert the value with int() (pyInt), so a bad value is a 400.
+func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exactInt bool) (func(*sql.Selector), error) {
+	if ft == FieldInt {
+		value = unifold.Fold(value)
+		if !exactInt && (op == "" || op == "iexact") {
+			return intTextMatch(col, value), nil
+		}
+	}
+	return buildPredicate(col, op, value, ft, folded)
+}
+
+// intTextMatch returns the predicate col = n when value is the decimal
+// text of the int n (ASCII digits, an optional '-', no leading zeros),
+// and a predicate that matches no row otherwise. It never returns the
+// empty-result sentinel: upstream runs every filter in one
+// qset.filter() call, so an error of another key must still win.
+func intTextMatch(col, value string) func(*sql.Selector) {
+	n, err := strconv.Atoi(value)
+	if err != nil || strconv.Itoa(n) != value {
+		return func(s *sql.Selector) { s.Where(sql.False()) }
+	}
+	return sql.FieldEQ(col, n)
+}
+
 // buildPredicate maps a field, operator, raw value, and field type to an ent
 // sql.Selector predicate function. folded=true indicates the field has a
 // sibling <field>_fold column — string predicates route to it with a
@@ -812,7 +856,7 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 		}
 		return sql.FieldEqualFold(field, value), nil
 	case FieldInt:
-		v, err := strconv.Atoi(value)
+		v, _, err := pyInt(value)
 		if err != nil {
 			return nil, fmt.Errorf("convert %q to int: %w", value, err)
 		}
@@ -930,7 +974,7 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 		for _, p := range parts {
 			// Use parseErr here so a future refactor that introduces an
 			// outer `err` can't silently shadow the loop error (W1 fix).
-			v, parseErr := strconv.Atoi(strings.TrimSpace(p))
+			v, _, parseErr := pyInt(p)
 			if parseErr != nil {
 				return nil, fmt.Errorf("convert %q to int for IN: %w", p, parseErr)
 			}
@@ -1027,7 +1071,11 @@ func convertValue(s string, ft FieldType) (any, error) {
 	case FieldString:
 		return s, nil
 	case FieldInt:
-		return strconv.Atoi(s)
+		v, _, err := pyInt(s)
+		if err != nil {
+			return nil, fmt.Errorf("convert %q to int: %w", s, err)
+		}
+		return v, nil
 	case FieldBool:
 		return parseBool(s)
 	case FieldTime:
