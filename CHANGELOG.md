@@ -16,6 +16,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat reads `in` as the field of a relation key through a FK, for example `fac?net__in__x=34`, as upstream: it compares the id with each character of the value (the networks 3 and 4).
+  Before, pdbcompat returned `400` (`Invalid query`).
 - pdbcompat reads a `since` that is a number but not an integer, for example `1.5` or `1e3`, as upstream: it returns `400` with the Python message (`invalid literal for int() with base 10: '1.5'`) after the filter checks, and a `name_search` that matches no row returns an empty list.
   Before, pdbcompat returned `400` with the `'since' needs to be a unix timestamp` message before the filter checks.
 - pdbcompat checks the request values in the upstream order: the `prepare_query` keys (relation, presence and count keys, `whereis`, `ipblock`, `capacity`, `distance`), then `since`, `skip`, `limit` and `depth`, then `name_search`, then the other filter keys.

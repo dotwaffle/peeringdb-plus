@@ -789,6 +789,7 @@ The key forms follow `get_relation_filters`:
   `pk` names the id.
   On a relation through a FK, `exact`, `lt`, `lte`, `gt` and `gte` as the field compare the id, as the key without a field does.
   `isnull` as the field returns `400`.
+  `in` as the field compares the id with each character of the value, as Django `RelatedIn` does (`related_lookups.py:48-68`): `fac?net__in__x=34` keeps the facilities of the networks 3 and 4, a comma in the value returns `400`, and an empty value matches no row.
   A model field that the mirror does not store, for example `fac?net__notes_private=`, is ignored (see § Known Divergences).
 - `<rel>__<field>__<other>=V` drops the third segment:
   `net?netfac__fac__name=X` compares the facility id with `X`,

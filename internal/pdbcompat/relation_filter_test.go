@@ -336,15 +336,15 @@ func TestRelationLookupName(t *testing.T) {
 		{"lookup_after_lookup", fkPath, "lt", "in", "", "", errInvalidQuery},
 		{"exact_then_contains", fkPath, "exact", "contains", "", "", errInvalidQuery},
 		{"isnull", fkPath, "isnull", "", "", "", errIsNullValue},
-		// Residual: upstream iterates the characters of the value.
-		{"in_as_field", fkPath, "in", "", "", "", errInvalidQuery},
+		{"in_as_field", fkPath, "in", "", "id", "in", nil},
+		{"in_after_in", fkPath, "in", "in", "", "", errInvalidQuery},
 		{"lookup_on_prefix_seed", prefixed, "exact", "", "", "", errInvalidQuery},
 		{"isnull_on_prefix_seed", prefixed, "isnull", "", "", "", errInvalidQuery},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			field, op, err := relationLookupName(tt.sd, tt.field, tt.op)
+			field, op, _, err := relationLookupName(tt.sd, tt.field, tt.op, "")
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}

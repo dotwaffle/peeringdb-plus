@@ -392,7 +392,7 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 			field = stripRelationPrefix(sd.prefix, field)
 		}
 		var err error
-		field, op, err = relationLookupName(sd, field, op)
+		field, op, value, err = relationLookupName(sd, field, op, value)
 		if err != nil {
 			return nil, false, false, err
 		}
@@ -463,24 +463,27 @@ func stripRelationPrefix(prefix, field string) string {
 }
 
 // relationLookupName handles a Django lookup name as the field segment
-// of a shapeRelation seed key, and returns the field and operator to
-// filter. A relation through a FK accepts the lookups exact, lt, lte,
+// of a shapeRelation seed key, and returns the field, operator and value
+// to filter. A relation through a FK accepts the lookups exact, lt, lte,
 // gt, gte, in and isnull (django/db/models/fields/related.py:949-955):
 // exact, lt, lte, gt and gte compare the id, as the seed name with an
-// operator does. pk names the id on every seed. Any other field passes
-// unchanged.
-func relationLookupName(sd relationSeed, field, op string) (string, string, error) {
+// operator does. in compares the id with each character of the value:
+// RelatedIn iterates a str (django/db/models/fields/related_lookups.py:
+// 48-68), so 34 means the ids 3 and 4, a comma is not an integer (a
+// 400), and an empty value matches no row. pk names the id on every
+// seed. Any other field passes unchanged.
+func relationLookupName(sd relationSeed, field, op, value string) (string, string, string, error) {
 	switch field {
 	case "pk":
-		return "id", op, nil
+		return "id", op, value, nil
 	case "exact", "lt", "lte", "gt", "gte", "in", "isnull":
 	default:
-		return field, op, nil
+		return field, op, value, nil
 	}
 	if sd.prefix != "" {
 		// A prefix seed filters the pinned model itself, which has no
 		// field of that name.
-		return "", "", errInvalidQuery
+		return "", "", "", errInvalidQuery
 	}
 	if op == "iexact" || op == "icontains" || op == "istartswith" {
 		// get_relation_filters drops a third segment that it does not
@@ -489,20 +492,20 @@ func relationLookupName(sd relationSeed, field, op string) (string, string, erro
 	}
 	if op != "" {
 		// A lookup after a lookup (django/db/models/sql/query.py:1461).
-		return "", "", errInvalidQuery
+		return "", "", "", errInvalidQuery
 	}
 	switch field {
 	case "isnull":
-		return "", "", errIsNullValue
+		return "", "", "", errIsNullValue
 	case "in":
-		// Upstream iterates the characters of the value (RelatedIn,
-		// django/db/models/fields/related_lookups.py:48-68), so 34
-		// means the ids 3 and 4. The mirror does not copy this.
-		return "", "", errInvalidQuery
+		// One item per character, joined for buildIn. strings.Split
+		// with an empty separator splits after each UTF-8 sequence, as
+		// Python iterates the code points of a str.
+		return "id", "in", strings.Join(strings.Split(value, ""), ","), nil
 	case "exact":
-		return "id", "", nil
+		return "id", "", value, nil
 	}
-	return "id", field, nil
+	return "id", field, value, nil
 }
 
 // relationPathPredicate returns the predicate on the listed row that

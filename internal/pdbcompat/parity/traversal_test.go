@@ -1778,6 +1778,38 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
+	t.Run("relation_key_in_as_field_reads_each_character", func(t *testing.T) {
+		t.Parallel()
+		// upstream: Django db/models/fields/related_lookups.py:48-68
+		// (RelatedIn iterates the value; a str gives one item per
+		// character), 2.83.0 serializers.py:643-654 (get_relation_filters
+		// drops the third segment of fac?net__in__x=, so the key runs
+		// network__in with the raw value), models.py:2343-2345.
+		// fac?net__in__x=34 means the nets 3 and 4. A comma is an item
+		// too, and int(",") raises ValueError: 400. An empty value is an
+		// empty list, which matches no row.
+		// Seed: fac 400 has netfac 600 (net 100, ok). Net 3 gets netfac
+		// 610 on fac 401.
+		c := seedRelationSeedKeys(t, t0)
+		ctx := t.Context()
+		mustNet(ctx, t, c, 3, "RelSeedNet3", 64403, 1, t0)
+		mustFac(ctx, t, c, 401, "RelSeedFac401", 1, t0)
+		c.NetworkFacility.Create().
+			SetID(610).SetNetID(3).SetFacID(401).SetLocalAsn(64403).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?net__in__x=34", want: []int{401}},
+			{path: "/api/fac?net__in__x=100", want: []int{}},
+			{path: "/api/fac?net__in__x=", want: []int{}},
+			{path: "/api/fac?net__in__iexact=3", want: []int{401}},
+		})
+		status, body := httpGet(t, srv, "/api/fac?net__in__x=3,4")
+		if status != http.StatusBadRequest {
+			t.Errorf("fac?net__in__x=3,4: status = %d, want 400; body=%s", status, body)
+		}
+	})
+
 	t.Run("relation_key_prefix_aliases", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 models.py:224-227 (make_relation_filter with
