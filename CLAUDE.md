@@ -317,7 +317,7 @@ Direct reverse sets sort ascending (`sortedIDsOrEmpty`), EXCEPT the three facili
 `ixlan.net_set` via netixlan keeps join order WITH duplicates (`intsOrEmpty`).
 `ixlan` exposes `net_set` (Networks resolved through the netixlan join, `getter="network"`), NOT `netixlan_set`.
 Sets are live-only at every depth: `likelyOK` (`likely(status IN ('ok'))`, which keeps the set query on the FK index; plans locked by `TestDetailPlan_KeepsFKIndex`), netixlan `StatusIn("ok", "not-operational")` (upstream nested prefetch, 2.83.0 `serializers.py:1140-1148`).
-A pending child (in practice a campus) is left out of its parent's set while its own PK lookup still returns it; through-relation sets filter the join row only (the resolved fac/net is unfiltered, `serializers.py:1678-1681`); `detailChildSets` repeats the set filters.
+A pending child (in practice a campus) is left out of its parent's set while its own PK lookup still returns it; through-relation sets filter the join row only (the resolved fac/net is unfiltered, `serializers.py:1678-1681`); `childSets` repeats the set filters.
 Campus-less facilities emit `campus:null` at detail depth.
 Per-serializer back-ref strips differ (campus.fac_set drops `org_id`/keeps `campus_id`; carrier.carrierfac_set keeps `carrier_id`).
 Intentional non-parity: `poc_set` ID lists apply `poc.visible` privacy (omit non-Public ids upstream leaks); depths 3-4 render the depth-2 shape.
@@ -487,7 +487,7 @@ Invariants:
 **Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer`: in `dispatch` for the Registry list + detail terminal paths, and in `serveASSet` for `/api/as_set` (routed before the Registry lookup).
 
 **Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (child `COUNT(*)` × child `Depth0` per embedded `_set`, table in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads).
-Changing a depth expansion's set list means updating `detailChildSets` too.
+Changing a depth expansion's set list means updating `childSets` too.
 The 413 check stays flat (`CheckBudget(1, type, depth, …)`) — fan-out feeds only the pool.
 
 **Adding an entity type:** add a `typicalRowBytes` entry to `internal/pdbcompat/rowsize.go` (bench via `BenchmarkRowSize`, double the mean, round to 64 bytes), add a `wireEntity(entityWiring[...]{...})` entry in `registry_funcs.go` `init()`, extend the sizing table in `docs/ARCHITECTURE.md`, add under-/over-budget E2E cases mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.

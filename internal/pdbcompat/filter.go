@@ -130,8 +130,8 @@ func likelyStatusIn(statuses []string) func(*sql.Selector) {
 }
 
 // likelyOK is likely(status IN ('ok')). It is the filter of a depth set
-// whose child type has the one live status "ok", of the detailChildSets
-// count for that set, and of a relation-key status pin. Each of these
+// whose child type has the one live status "ok", of the childSets count
+// for that set, and of a relation-key status pin. Each of these
 // queries selects the rows of one parent through an FK column. Without
 // ANALYZE statistics, SQLite scores status = ? as selective as the FK
 // equality. For pocs and ixlans it then reads every "ok" row through
@@ -140,6 +140,16 @@ func likelyStatusIn(statuses []string) func(*sql.Selector) {
 // instead of 0.2 ms. The likely() hint keeps these plans on the FK
 // index.
 var likelyOK = likelyStatusIn([]string{"ok"})
+
+// likelyNetIXLanSet is likely(status IN ('ok', 'not-operational')), the
+// netixlan live statuses. It is the filter of the childSets counts of the
+// two sets of netixlan rows (net.netixlan_set and the join rows of
+// ixlan.net_set). These counts select the rows of many parents with an
+// FK IN json_each list. With a plain status IN, SQLite reads the netixlan
+// status index, and then sorts the rows in a temp B-tree for the GROUP
+// BY. The likely() hint keeps the plan on the FK index, which also gives
+// the group order.
+var likelyNetIXLanSet = likelyStatusIn([]string{"ok", "not-operational"})
 
 // coerceToCaseInsensitive maps the subset of operators that upstream
 // (2.83.0 rest.py:657-662) forces to case-insensitive variants. Non-matching operators

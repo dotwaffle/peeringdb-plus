@@ -1,14 +1,19 @@
 package pdbcompat
 
 import (
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"slices"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
+	"github.com/dotwaffle/peeringdb-plus/internal/testutil/seed"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
 
@@ -176,12 +181,12 @@ func TestDetailInflightEstimate_CountsLiveNetixlan(t *testing.T) {
 	}
 }
 
-// TestDetailChildSets_CoverRegistryParents locks the depth.go ↔
-// detailChildSets alignment at the type level: exactly the 6 parent types
-// whose depth>=2 expansion embeds full child objects carry an entry, and
-// every childType named in the table has a calibrated row size (an
-// unknown name would silently price at defaultRowSize).
-func TestDetailChildSets_CoverRegistryParents(t *testing.T) {
+// TestChildSets_CoverRegistryParents locks the depth.go and childSets
+// alignment at the type level: exactly the 6 parent types whose depth
+// expansion embeds reverse sets have an entry, the keys of a parent are
+// unique, and every childType in the table has a calibrated row size (an
+// unknown name prices at defaultRowSize with no error).
+func TestChildSets_CoverRegistryParents(t *testing.T) {
 	t.Parallel()
 	wantParents := map[string]int{
 		peeringdb.TypeOrg:     5, // net, fac, ix, carrier, campus
@@ -191,21 +196,127 @@ func TestDetailChildSets_CoverRegistryParents(t *testing.T) {
 		peeringdb.TypeCarrier: 1, // carrierfac
 		peeringdb.TypeCampus:  1, // fac
 	}
-	if len(detailChildSets) != len(wantParents) {
-		t.Errorf("detailChildSets has %d parent types, want %d", len(detailChildSets), len(wantParents))
+	if len(childSets) != len(wantParents) {
+		t.Errorf("childSets has %d parent types, want %d", len(childSets), len(wantParents))
 	}
 	for parent, wantSets := range wantParents {
-		sets, found := detailChildSets[parent]
+		sets, found := childSets[parent]
 		if !found {
-			t.Errorf("detailChildSets missing parent %q", parent)
+			t.Errorf("childSets missing parent %q", parent)
 			continue
 		}
 		if len(sets) != wantSets {
-			t.Errorf("detailChildSets[%q] has %d sets, want %d", parent, len(sets), wantSets)
+			t.Errorf("childSets[%q] has %d sets, want %d", parent, len(sets), wantSets)
 		}
+		keys := map[string]bool{}
 		for _, cs := range sets {
+			if keys[cs.key] {
+				t.Errorf("childSets[%q] has key %q twice", parent, cs.key)
+			}
+			keys[cs.key] = true
 			if _, calibrated := typicalRowBytes[cs.childType]; !calibrated {
-				t.Errorf("detailChildSets[%q] names uncalibrated child type %q", parent, cs.childType)
+				t.Errorf("childSets[%q] names uncalibrated child type %q", parent, cs.childType)
+			}
+		}
+	}
+}
+
+// TestChildSets_CountOverIDs checks each countByParent query against the
+// depth-2 detail render. Over all parent ids of the type plus one missing
+// id, the result must equal the results of the single-id queries, must
+// have no entry for a parent with no element or for an id outside ids,
+// and the count of each live parent must equal the number of elements in
+// the rendered set with the same key. The extra rows add a second org with
+// a live and a deleted network, and netixlans in each status (two live
+// rows of one network make a duplicate in ixlan.net_set). The seed has a
+// Users poc, which the unstamped (Public) context must not count.
+func TestChildSets_CountOverIDs(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	r := seed.Full(t, client)
+	now := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+
+	org2 := client.Organization.Create().
+		SetID(2).SetName("SecondOrg").SetNameFold(unifold.Fold("SecondOrg")).
+		SetCreated(now).SetUpdated(now).SetStatus("ok").SaveX(ctx)
+	for id, status := range map[int]string{9100: "ok", 9101: "deleted"} {
+		client.Network.Create().
+			SetID(id).SetOrganization(org2).SetAsn(64000 + id).
+			SetName("Net" + strconv.Itoa(id)).SetNameFold(unifold.Fold("Net" + strconv.Itoa(id))).
+			SetCreated(now).SetUpdated(now).SetStatus(status).SaveX(ctx)
+	}
+	for id, status := range map[int]string{9200: "ok", 9201: "not-operational", 9202: "deleted", 9203: "pending"} {
+		client.NetworkIxLan.Create().
+			SetID(id).SetNetID(9100).SetIxLan(r.IxLan).SetAsn(73100).SetSpeed(1000).
+			SetCreated(now).SetUpdated(now).SetStatus(status).SaveX(ctx)
+	}
+
+	parentIDs := map[string]func() ([]int, error){
+		peeringdb.TypeOrg:     func() ([]int, error) { return client.Organization.Query().IDs(ctx) },
+		peeringdb.TypeNet:     func() ([]int, error) { return client.Network.Query().IDs(ctx) },
+		peeringdb.TypeIX:      func() ([]int, error) { return client.InternetExchange.Query().IDs(ctx) },
+		peeringdb.TypeIXLan:   func() ([]int, error) { return client.IxLan.Query().IDs(ctx) },
+		peeringdb.TypeCarrier: func() ([]int, error) { return client.Carrier.Query().IDs(ctx) },
+		peeringdb.TypeCampus:  func() ([]int, error) { return client.Campus.Query().IDs(ctx) },
+	}
+	const missingID = 999999
+	for typ, sets := range childSets {
+		ids, err := parentIDs[typ]()
+		if err != nil {
+			t.Fatalf("%s ids: %v", typ, err)
+		}
+		query := append(slices.Clone(ids), missingID)
+		for _, cs := range sets {
+			name := typ + "." + cs.key
+			all, err := cs.countByParent(ctx, client, query)
+			if err != nil {
+				t.Fatalf("%s over %v: %v", name, query, err)
+			}
+			single := map[int]int{}
+			for _, id := range query {
+				one, err := cs.countByParent(ctx, client, []int{id})
+				if err != nil {
+					t.Fatalf("%s over [%d]: %v", name, id, err)
+				}
+				for k, n := range one {
+					if k != id {
+						t.Errorf("%s over [%d] has an entry for id %d", name, id, k)
+					}
+					single[k] = n
+				}
+			}
+			if !maps.Equal(all, single) {
+				t.Errorf("%s over %v = %v, single-id queries give %v", name, query, all, single)
+			}
+			for k, n := range all {
+				if n <= 0 || !slices.Contains(ids, k) {
+					t.Errorf("%s has entry %d: %d, want only parents with elements", name, k, n)
+				}
+			}
+		}
+		for _, id := range ids {
+			got, err := Registry[typ].Get(ctx, client, id, 2)
+			if err != nil {
+				continue // a deleted parent has no detail response
+			}
+			m, ok := got.(map[string]any)
+			if !ok {
+				t.Fatalf("%s/%d depth 2 renders %T, want map[string]any", typ, id, got)
+			}
+			for _, cs := range sets {
+				set, found := m[cs.key]
+				if !found {
+					t.Errorf("%s/%d depth 2 has no key %q", typ, id, cs.key)
+					continue
+				}
+				counts, err := cs.countByParent(ctx, client, []int{id})
+				if err != nil {
+					t.Fatalf("%s.%s over [%d]: %v", typ, cs.key, id, err)
+				}
+				if n := reflect.ValueOf(set).Len(); n != counts[id] {
+					t.Errorf("%s/%d %s renders %d elements, countByParent gives %d", typ, id, cs.key, n, counts[id])
+				}
 			}
 		}
 	}

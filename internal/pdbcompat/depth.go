@@ -147,7 +147,7 @@ func intsOrEmpty(ids []int, err error) ([]int, error) {
 // A set whose child type has the one live status "ok" filters with
 // likelyOK (filter.go), which keeps the query on the FK index. The other
 // filters are inline StatusIn literals that list the admitted statuses.
-// detailChildSets (detail_budget.go) repeats the set filters.
+// childSets (detail_budget.go) repeats the set filters.
 
 // nestedOrgMap renders an organization as it appears when embedded in a parent
 // object at depth=2 (e.g. the `org` field of a Network). Upstream expands the

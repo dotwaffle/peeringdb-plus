@@ -28,7 +28,8 @@ var statusIndexUse = regexp.MustCompile(`INDEX \w+_status\b`)
 // status = ? as selective as the parent FK equality. It can then read
 // every live row of the child table through the status index. likely()
 // on the status test keeps the plan on the FK index. No query of a
-// detail read may use a status-leading index.
+// detail read may use a status-leading index, and no query of the
+// estimate may use one or sort.
 func TestDetailPlan_KeepsFKIndex(t *testing.T) {
 	t.Parallel()
 	seedClient, db := testutil.SetupClientWithDB(t)
@@ -57,12 +58,23 @@ func TestDetailPlan_KeepsFKIndex(t *testing.T) {
 				if _, err := Registry[typ].Get(t.Context(), client, id, depth); err != nil {
 					t.Fatalf("get %s/%d depth %d: %v", typ, id, depth, err)
 				}
-				if depth == 2 {
-					detailInflightEstimate(t.Context(), client, typ, id, depth)
-				}
 				for _, q := range rec.queries() {
 					if plan := explainPlan(t, db, q.q, q.args); statusIndexUse.MatchString(plan) {
 						t.Errorf("query reads a status index:\n  sql:  %s\n  plan: %s", q.q, plan)
+					}
+				}
+				if depth < 2 {
+					return
+				}
+				// The estimate counts each set with one GROUP BY over an
+				// FK IN json_each list. The FK index gives the group
+				// order, so no step sorts.
+				est := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+				detailInflightEstimate(t.Context(), ent.NewClient(ent.Driver(est)), typ, id, depth)
+				for _, q := range est.queries() {
+					plan := explainPlan(t, db, q.q, q.args)
+					if statusIndexUse.MatchString(plan) || strings.Contains(plan, "TEMP B-TREE") {
+						t.Errorf("estimate query reads a status index or sorts:\n  sql:  %s\n  plan: %s", q.q, plan)
 					}
 				}
 			})
