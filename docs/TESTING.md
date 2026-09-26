@@ -22,7 +22,7 @@ Key test locations:
 | Sync integration tests | `internal/sync/integration_test.go` | Uses `httptest.Server` + fixtures |
 | Conformance tests | `internal/conformance/` | Structural JSON comparison |
 | Response-budget tests | `internal/pdbcompat/stream_integration_test.go` | `TestServeList_UnderBudgetStreams`, `TestServeList_OverBudget413` |
-| Parity tests | `internal/pdbcompat/parity/` | 9 category files, `harness_helpers_test.go`, `harness_test.go`, `bench_test.go`, and `doc.go`. Each sub-test seeds clean rows inline through the ent client. |
+| Parity tests | `internal/pdbcompat/parity/` | 10 category files, `harness_helpers_test.go`, `harness_test.go`, `bench_test.go`, and `doc.go`. Each sub-test seeds clean rows inline through the ent client. |
 | Fuzz tests | `internal/pdbcompat/fuzz_test.go` | `FuzzFilterParser` |
 | Benchmarks | `bench_test.go`, `bench_*_test.go`, and `*_bench_test.go` files in `internal/pdbcompat`, `internal/pdbcompat/parity`, `internal/grpcserver`, `internal/sync`, and `internal/web`. Also `internal/web/termrender/network_test.go`. | For example `BenchmarkApplyFieldProjection`, `BenchmarkRowSize`, `BenchmarkParity_*` |
 | Live gated tests | `internal/conformance/live_test.go`, `internal/peeringdb/client_live_test.go` | Require the `-peeringdb-live` flag |
@@ -231,7 +231,7 @@ See [DEVELOPMENT.md § Adding a new pdbcompat entity](DEVELOPMENT.md#adding-a-ne
 
 `internal/pdbcompat/parity/` locks the `/api/` behavior that matches upstream PeeringDB.
 A test fails when that behavior changes.
-The package is split into 9 category-specific test files plus shared infrastructure:
+The package is split into 10 category-specific test files plus shared infrastructure:
 
 | File | Entry test | Covers |
 |------|------------|--------|
@@ -244,6 +244,7 @@ The package is split into 9 category-specific test files plus shared infrastruct
 | `meta_test.go` | `TestParity_Meta` | netixlan `meta__*` filters (typed keys, absent key never matches, net keys ignored) |
 | `serializer_test.go` | `TestParity_Serializer` | Serializer values and keys (IX-F URL key for permitted callers, `ix.media`/`ixlan.dot1q_support` constants, `info_types` as a list, the `as_set` lookup) |
 | `multichoice_test.go` | `TestParity_MultiChoice` | Multi-value choice filters (net `info_types` and legacy `info_type`, fac `available_voltage_services`) |
+| `name_search_test.go` | `TestParity_NameSearch` | `?name_search=` (word, digit and IP matches, the 7 types without a search index, the `id__in` union, `ok`-only matches) |
 | `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget` / `newTestServerWithTier`, `httpGet`, `httpDo`, `decodeDataArray`, `extractIDs`, `mustDecodeMetaError`, `mustDecodeProblem` (problem+json opt-in only) (server wiring and response decoding, no seeders) |
 | `harness_test.go` | `TestHarness_*` | Self-tests for the helpers |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
@@ -419,7 +420,7 @@ The testing package cancels this context just before it runs the cleanup functio
 - Fuzz tests: `FuzzFoo`.
 - Live tests: gate them with the package-level `-peeringdb-live` flag
   and call `t.Skip` when the flag is not set.
-- Parity tests: one `TestParity_<Category>` entry function for each category (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`, `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`, `TestParity_Meta`, `TestParity_Serializer`, `TestParity_MultiChoice`).
+- Parity tests: one `TestParity_<Category>` entry function for each category (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`, `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`, `TestParity_Meta`, `TestParity_Serializer`, `TestParity_MultiChoice`, `TestParity_NameSearch`).
   Give each `t.Run` sub-test a descriptive snake_case name (e.g. `list_no_since_status_ok_only`).
   Start the name of an intentional non-parity sub-test with `DIVERGENCE_` (e.g. `DIVERGENCE_i_operator_suffixes_filter`).
   A divergence test that is its own top-level function ends its name with `_DIVERGENCE` (e.g. `TestParity_Unicode_FoldWindow_DIVERGENCE`).

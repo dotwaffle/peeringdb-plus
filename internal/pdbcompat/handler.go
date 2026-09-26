@@ -1,6 +1,7 @@
 package pdbcompat
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -258,12 +259,33 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// rest.py:757-760, Django query.py:403-417), after the filters and
 	// since, and before the serializer. So a filter error wins, and the
 	// unique-query 404 never fires.
+	// A name_search that matches no row is the exception: upstream
+	// returns qset.none() before the slice (rest.py:550-553), so the
+	// result is empty.
 	if skip < 0 {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: errNegativeSkip.Error(),
-		})
-		return
+		miss, err := h.nameSearchMisses(r.Context(), tc, lf)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "pdbcompat: list name_search query failed",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.String("error", err.Error()),
+			)
+			writeError(w, r, apiError{
+				Status: http.StatusInternalServerError,
+				Detail: "failed to query matching records",
+			})
+			return
+		}
+		if !miss {
+			writeError(w, r, apiError{
+				Status: http.StatusBadRequest,
+				Detail: errNegativeSkip.Error(),
+			})
+			return
+		}
+		lf.emptyResult = true
+		lf.preds = nil
+		skip = 0
 	}
 
 	// Parse search (?q=).
@@ -550,6 +572,30 @@ func missMessage(tc TypeConfig) string {
 // raises the same Http404 (negotiation.py:80-88).
 const detailSliceNotFound = "Not found."
 
+// nameSearchMisses reports whether the name_search of a request
+// matches no row: upstream qset.none(), which get_queryset returns
+// before it slices the query (2.83.0 rest.py:550-553, :755-760). So it
+// decides the response of a request with a slice or a negative skip.
+// lf.none is known without a query. A search that runs sends one query
+// (LIMIT 1) for the ok rows that it matches. Without a name_search the
+// result is false.
+func (h *Handler) nameSearchMisses(ctx context.Context, tc TypeConfig, lf listFilters) (bool, error) {
+	if lf.none {
+		return true, nil
+	}
+	if lf.searchHit == nil {
+		return false, nil
+	}
+	rows, err := tc.List(ctx, h.client, QueryOptions{
+		Filters: []func(*sql.Selector){lf.searchHit},
+		Limit:   1,
+	})
+	if err != nil {
+		return false, err
+	}
+	return len(rows) == 0, nil
+}
+
 // serveDetail handles detail requests for a single object by ID.
 //
 // Default detail depth is 2 (matches upstream PeeringDB 2.83.0
@@ -577,6 +623,11 @@ const detailSliceNotFound = "Not found."
 // (drf generics.py:87-100). An id that int() rejects is a 404 (Not
 // found.), also when a filter already emptied the result: Django
 // converts the pk when it builds the lookup, on a none() queryset too.
+// A name_search that matches no row is the miss 404 before the limit
+// and skip checks, the negative skip 400 included, as upstream returns
+// qset.none() before the slice (rest.py:550-553). On a type with a
+// search index, a request with a limit or skip that is not 0 runs one
+// query to find out if the search has a hit (nameSearchMisses).
 // since is checked and then ignored (rest.py:718), and ?q= is ignored
 // (rest.py:566). The filter check runs before the budget admission, so
 // a filter miss costs one primary-key query and charges nothing.
@@ -631,7 +682,29 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 		return
 	}
 	filters := lf.preds
-	if negativeSkip {
+	// A name_search that matches no row is upstream qset.none(), which
+	// get_queryset returns before it slices the query (2.83.0
+	// rest.py:550-553, :755-760). So it is the miss 404, also with a
+	// limit or skip above 0 or a negative skip. Only a request with a
+	// slice or a negative skip needs the query of nameSearchMisses:
+	// without them, Match applies the search.
+	miss := lf.none
+	if sliced || negativeSkip {
+		miss, err = h.nameSearchMisses(r.Context(), tc, lf)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "pdbcompat: detail name_search query failed",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.String("error", err.Error()),
+			)
+			writeError(w, r, apiError{
+				Status: http.StatusInternalServerError,
+				Detail: "failed to query record",
+			})
+			return
+		}
+	}
+	if negativeSkip && !miss {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
 			Detail: errNegativeSkip.Error(),
@@ -644,6 +717,10 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	id, _, err := pyInt(rawID)
 	if err != nil {
 		writeDetailNotFound(w, r, detailSliceNotFound)
+		return
+	}
+	if miss {
+		writeDetailNotFound(w, r, missMessage(tc))
 		return
 	}
 	if sliced {

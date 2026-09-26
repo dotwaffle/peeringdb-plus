@@ -1537,6 +1537,8 @@ func TestParity_Status(t *testing.T) {
 		mustIxPfx(t.Context(), t, c, 1, "10.0.0.0/24", 1, t0)
 		// Fac 1 has a netfac of net 1 (asn 64500).
 		mustFac(t.Context(), t, c, 1, "StatusFac", 1, t0)
+		// Fac 2 is an ok row that name_search can match.
+		mustFac(t.Context(), t, c, 2, "OtherFac", 1, t0)
 		c.NetworkFacility.Create().
 			SetID(1).SetNetID(1).SetFacID(1).SetLocalAsn(64500).
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(t.Context())
@@ -1608,6 +1610,17 @@ func TestParity_Status(t *testing.T) {
 			{path: "/api/org/1?latitude=52.367600&longitude=4.904100&distance=10", want: http.StatusNotFound, wantErr: "No Organization matches the given query."},
 			// A distance of 0 or less is a no-op (:1839-1840).
 			{path: "/api/fac/1?distance=0", want: http.StatusOK, wantIDs: []int{1}},
+			// name_search filters a detail request too
+			// (rest.py:532-553). A search with no hit returns
+			// qset.none() before the slice (:755-760), so it is the
+			// miss 404 also with a limit.
+			{path: "/api/fac/1?name_search=statusfac", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/fac/1?name_search=zzz", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			// The search has a hit (fac 2), but not the object.
+			{path: "/api/fac/1?name_search=otherfac", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			{path: "/api/fac/1?name_search=zzz&limit=1", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			// netixlan has no search index: no row matches.
+			{path: "/api/netixlan/1?name_search=x&limit=1", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)
@@ -1696,6 +1709,13 @@ func TestParity_Status(t *testing.T) {
 			{"/api/net/1?depth=abc&depth=0", http.StatusOK, ""},
 			{"/api/net/1?depth=%D9%A1", http.StatusOK, ""},
 			{"/api/net/1?depth=99", http.StatusOK, ""},
+			// A name_search with no hit is qset.none() before the
+			// slice (rest.py:550-553, :755-760), whatever the id. With
+			// a hit, the slice gives the 404.
+			{"/api/net/1?name_search=zzz&limit=1", http.StatusNotFound, "No Network matches the given query."},
+			{"/api/net/999?name_search=zzz&skip=1", http.StatusNotFound, "No Network matches the given query."},
+			{"/api/net/1?name_search=64500&limit=1", http.StatusNotFound, "Not found."},
+			{"/api/net/999?name_search=64500&limit=1", http.StatusNotFound, "Not found."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)
@@ -1752,6 +1772,8 @@ func TestParity_Status(t *testing.T) {
 			// over a filter that excludes the object.
 			{"/api/net/abc?name__in=", http.StatusNotFound, "Not found."},
 			{"/api/net/abc?name=nomatch", http.StatusNotFound, "Not found."},
+			// Also over a name_search with no hit (rest.py:550-553).
+			{"/api/net/abc?name_search=zzz", http.StatusNotFound, "Not found."},
 			{"/api/net/%D9%A1", http.StatusOK, ""},
 			{"/api/net/+1", http.StatusOK, ""},
 			{"/api/net/%201%20", http.StatusOK, ""},
@@ -1822,6 +1844,10 @@ func TestParity_Status(t *testing.T) {
 			// Upstream: int("") raises ValueError, then inst[0] raises
 			// TypeError (rest.py:665-666, :697).
 			{path: "/api/net/1?asn__in=", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			// Upstream: search_v2 calls int() on a digit value that is
+			// not decimal (search_v2.py:385, :619), and get_queryset
+			// runs it outside the prepare_query handler (rest.py:546).
+			{path: "/api/net/1?name_search=%C2%B2", want: http.StatusBadRequest, wantErr: "filter error: filter name_search: "},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)

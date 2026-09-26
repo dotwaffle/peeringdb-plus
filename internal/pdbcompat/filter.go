@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/netip"
 	"net/url"
 	"slices"
@@ -291,8 +292,9 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // Keys with len(relSegs) > 2 are silently rejected.
 //
-// Before the key loop, a pre-pass of parseListFilters resolves the fac
-// and org distance key (parseDistanceSearch).
+// Before the key loop, the pre-passes of parseListFilters resolve the
+// fac and org distance key (parseDistanceSearch) and then the
+// name_search key (resolveNameSearch).
 //
 // In the loop, the filterable meta keys of the type (netixlan
 // meta__<path> and the upstream meta_* column names, see
@@ -339,6 +341,19 @@ type listFilters struct {
 	// distance of a fac or org distance search. nil otherwise. A detail
 	// request does not use it.
 	orderBy func(*sql.Selector)
+	// none is set with emptyResult when name_search matches no row
+	// without a query (upstream qset.none(), 2.83.0 rest.py:550-553).
+	// Upstream returns it before the slice, so it wins over the slice
+	// 404 of a detail request and over a negative skip
+	// (nameSearchMisses).
+	none bool
+	// searchHit is set when name_search runs a search: it keeps the
+	// ok rows that the search matches. Whether the search has a hit is
+	// known only when a query runs. nameSearchMisses runs it for a
+	// detail request with a limit or skip that is not 0 and for a list
+	// with a negative skip, as a search with no hit is upstream
+	// qset.none() before the slice.
+	searchHit func(*sql.Selector)
 }
 
 // parseListFilters parses the filter keys of a request (see
@@ -351,6 +366,10 @@ type listFilters struct {
 // (2.83.0 rest.py:569-597). The pre-pass adds its keys to the consumed
 // set, which the loop skips. The pre-passes run in upstream order: the
 // prepare_query keys (rest.py:488-500) before name_search (:532-553).
+// The name_search pre-pass (resolveNameSearch) consumes name_search,
+// and id__in when it unions the two. When name_search can match no
+// row, or its value is not valid, the loop reads only the keys of
+// isPrepareQueryKey, as upstream returns before its filter loop.
 //
 // The one empty-result exit is after the loop.
 func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (listFilters, error) {
@@ -374,7 +393,20 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (li
 			consumed[k] = true
 		}
 	}
-	emptyResult := false
+	// The name_search pre-pass runs after the distance pre-pass, as
+	// upstream runs name_search after prepare_query (2.83.0
+	// rest.py:488-500, :532-553). A name_search error is returned
+	// after the loop, so that a prepare_query error wins over it.
+	ns, nsErr := resolveNameSearch(tc, params)
+	if nsErr != nil {
+		ns = nameSearchResult{consumed: map[string]bool{"name_search": true}}
+	}
+	prepareOnly := ns.none || nsErr != nil
+	maps.Copy(consumed, ns.consumed)
+	if ns.pred != nil {
+		predicates = append(predicates, ns.pred)
+	}
+	emptyResult := ns.empty || ns.none
 	for key, vals := range params {
 		if len(vals) == 0 {
 			continue
@@ -387,6 +419,15 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (li
 		// Skip reserved pagination/control parameters and the keys that
 		// a pre-pass handled.
 		if reservedParams[key] || consumed[key] {
+			continue
+		}
+		// Upstream returns qset.none() for a name_search that matches
+		// nothing before finalize_query_params and the filter loop
+		// (rest.py:550-553), so only the prepare_query keys can still
+		// fail the request. The other keys are not read, so they are
+		// not unknown either. A name_search error also stops upstream
+		// before the loop.
+		if prepareOnly && !isPrepareQueryKey(tc, key) {
 			continue
 		}
 		// Meta keys resolve before the key is split, as upstream
@@ -564,10 +605,44 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (li
 		}
 		predicates = append(predicates, p)
 	}
-	if emptyResult {
-		return listFilters{emptyResult: true}, nil
+	if nsErr != nil {
+		return listFilters{}, nsErr
 	}
-	return listFilters{preds: predicates, orderBy: orderBy}, nil
+	if emptyResult {
+		return listFilters{emptyResult: true, none: ns.none, searchHit: ns.hit}, nil
+	}
+	return listFilters{preds: predicates, orderBy: orderBy, searchHit: ns.hit}, nil
+}
+
+// isPrepareQueryKey reports whether an upstream prepare_query of typ
+// handles key. prepare_query runs before name_search (2.83.0
+// rest.py:488-500, :532-553), so its errors still return 400 when
+// name_search matches no row. Every resolver of a prepare_query key
+// must be listed here: the presence keys (asn_overlap included), the
+// ix ipblock and capacity keys, the ixpfx whereis key, the relation
+// keys, and the count seeds (TypeConfig.ExactCounts, with or without
+// an operator). The bare netixlan ipaddr6 key, the meta keys and the
+// legacy info_type keys are not: upstream handles them after
+// name_search.
+func isPrepareQueryKey(tc TypeConfig, key string) bool {
+	typ := tc.Name
+	if _, ok := lookupPresenceKey(typ, key); ok {
+		return true
+	}
+	if lookupIPBlockKey(typ, key) {
+		return true
+	}
+	if _, ok := lookupWhereisKey(typ, key); ok {
+		return true
+	}
+	if _, ok := lookupCapacityFilter(typ, key); ok {
+		return true
+	}
+	if _, _, ok := lookupRelationSeed(typ, key); ok {
+		return true
+	}
+	relSegs, field, _ := parseFieldOp(key)
+	return len(relSegs) == 0 && tc.ExactCounts[field]
 }
 
 // buildLocalPredicate extracts the original local-field behaviour into a

@@ -76,9 +76,10 @@ import (
 //     fac or org is a substring match, not a geocoded search; nan,
 //     inf, non-ASCII digits and the coordinate values are handled by
 //     the mirror's own rules.
-//   - DIVERGENCE: the custom keys that upstream handles in Python
-//     (hide_ix_no_fac, name_search) are silent-ignored, also on a
-//     single-object GET (`ix/<id>?hide_ix_no_fac=1`).
+//   - DIVERGENCE: the custom key that upstream handles in Python
+//     (hide_ix_no_fac) is silent-ignored, also on a single-object GET
+//     (`ix/<id>?hide_ix_no_fac=1`). name_search filters as upstream:
+//     see TestParity_NameSearch.
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
 //   - DIVERGENCE: a relation key, ixpfx whereis or ix capacity given in
@@ -476,12 +477,12 @@ func TestParity_Traversal(t *testing.T) {
 
 	t.Run("DIVERGENCE_prepare_query_keys_silent_ignore", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream handles these keys in Python before its
-		// model-field filters: the hide_ix_no_fac mixin, and the search
-		// index for name_search. They are not model fields, and the
-		// mirror does not implement them, so they are silent-ignored and
-		// the list is unfiltered. The presence keys (not_ix, all_net,
-		// org_present and the others) are parity: see
+		// DIVERGENCE: upstream handles this key in Python before its
+		// model-field filters: the hide_ix_no_fac mixin. It is not a
+		// model field, and the mirror does not implement it, so it is
+		// silent-ignored and the list is unfiltered. name_search is
+		// parity: see TestParity_NameSearch. The presence keys (not_ix,
+		// all_net, org_present and the others) are parity: see
 		// prepare_query_presence_keys. So are ix ipblock, ixpfx whereis,
 		// ix capacity, fac and ix asn_overlap and fac and org distance:
 		// see prepare_query_ipblock, prepare_query_whereis,
@@ -489,8 +490,7 @@ func TestParity_Traversal(t *testing.T) {
 		// prepare_query_distance_filter.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: 2.83.0 rest.py:1267-1297 (hide_ix_no_fac),
-		// :532-553 (name_search)
+		// upstream: 2.83.0 rest.py:1267-1297 (hide_ix_no_fac)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "QueryOrgA", t0)
@@ -513,8 +513,7 @@ func TestParity_Traversal(t *testing.T) {
 
 		srv := newTestServer(t, c)
 		// No netfac or ixfac rows exist. Upstream returns a narrower
-		// list for each request below (for example [100] for
-		// name_search).
+		// list for each request below.
 		// The relation keys of a prepare_query (net?ix_id=,
 		// fac?net_id=, org?asn=) resolve: see
 		// prepare_query_relation_keys_pin_join_status_ok and
@@ -526,8 +525,6 @@ func TestParity_Traversal(t *testing.T) {
 			// mixin filters the detail query (rest.py:752-753,
 			// :1288-1289).
 			{path: "/api/ix/300?hide_ix_no_fac=1", want: []int{300}},
-			// name_search: upstream returns the search-index hits.
-			{path: "/api/net?name_search=QueryNetA", want: []int{100, 101}},
 		})
 	})
 

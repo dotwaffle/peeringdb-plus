@@ -50,6 +50,13 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   A single-object GET applies the key too: `/api/fac/<id>?distance=` returns `404` when the facility is farther.
   Upstream allows the filter only to verified users and finds coordinates for a city and country; the mirror allows it to all callers and returns `400` without coordinates.
   See `docs/API.md` § Distance filter.
+- pdbcompat implements `?name_search=`.
+  On `org`, `fac`, `ix`, `net`, `campus` and `carrier` it matches the words of the value in the name fields of the type, a partial IP address in the netixlan addresses of `net` and `ix`, and digits in the ASN of `net` and in the name fields.
+  On the other 7 types a non-empty value returns no rows, as upstream; a bad value in a model-field filter of the request then does not return `400`.
+  A search that matches no row also returns an empty result with a negative `skip`, as upstream.
+  Before, pdbcompat ignored the key and returned the unfiltered list.
+  A single-object GET applies the key too: `/api/fac/<id>?name_search=` returns `404` when the search does not match the facility.
+  The match is an approximation of upstream's search index (see `docs/API.md` § Name search and § Known Divergences).
 
 ### Changed
 

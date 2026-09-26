@@ -298,7 +298,9 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
 - Detail filters: `serveDetail` parses the same filter keys as a list (`parseRequestFilters`, the list parser) and checks the row with `TypeConfig.Match` (built in `wireEntity`: `id = ? AND <filters>`, `Exist`, request ctx, so the poc policy applies) before the budget admission and the PK lookup; no filter key = no extra query.
   A miss is the same `404` as a missing id (`writeDetailNotFound`, `missMessage`: `No <DjangoModel> matches the given query.` via `pdbtypes.DjangoModelOf`); `limit`/`skip` above 0 is `404` `Not found.` (upstream slices before `get()`, `parseDetailSlice`; a negative `limit` is accepted); `since` is checked and ignored; `q` is ignored.
   Parse order is the list order (skip, limit, since, depth, filters, negative skip 400).
+  A request with a slice or a negative skip first runs `nameSearchMisses` (`listFilters.none`, or one `searchHit` query): a `name_search` without a match skips the negative skip `400` (upstream `qset.none()` comes before the slice).
   Then the `{id}` (`pyInt`): a bad one is `404` `Not found.`, before the slice and empty-result 404s (upstream converts the pk after `get_queryset`); `dispatch` sends that 404 at once for an id with `.` or `/` (DRF format suffix, `initial()`).
+  Then a `name_search` without a match is the miss `404`, then the slice `404`, then the empty-result `404`.
   A new detail-path exit must keep this order; a route outside the Registry that reads the raw id branches before the Registry lookup.
   `Match` adds no status: the inline `StatusIn` of the PK lookup stays the detail status set (a relation seed may still pin `ok`, as upstream).
   Locked by `TestParity_Status/detail_applies_list_filters` and `TestParity_Status/detail_non_integer_id_404`.
@@ -435,13 +437,24 @@ Locked by `TestParity_Traversal/prepare_query_capacity` + `TestCapacityPlan` (un
 **Distance filter (`internal/pdbcompat/distance_filter.go`).**
 The fac/org `?distance=` key resolves in a pre-pass of `parseListFilters` (`ParseFiltersCtx` and `parseRequestFilters` wrap it), because the params map has no order.
 Pre-passes run in upstream order: `prepare_query` keys (distance) before `name_search`, and they share one `consumed` skip set.
-The `listFilters` fields are `preds`, `emptyResult` (still one exit, after the loop) and `orderBy` (the distance sort; `serveList` sets `QueryOptions.OrderBy`, `serveDetail` ignores it, and `Match` applies the predicate).
+The `listFilters` fields are `preds`, `emptyResult` (still one exit, after the loop), `orderBy` (the distance sort; `serveList` sets `QueryOptions.OrderBy`, `serveDetail` ignores it, and `Match` applies the predicate), and `none`/`searchHit` (name_search, below).
 The key takes the first value with Python `float()` rules (`parsePyFloat`: overflow is ±Inf, not an error; hex rejected); a value `<= 0` is a no-op; the key is known on fac/org and unknown on the other 11 types.
 A positive value needs `latitude` and `longitude`, else `400` (the mirror has no geocoder).
 While spatial, the loop skips `latitude`/`longitude`/`address1`/`city`/`city__in`/`state`/`zipcode`, and a bare `country` is iexact (`buildLocalPredicate(..., spatial)`, `rest.py:569-597`).
 SQLite has no `greatest`/`least`: use `min`/`max`, and keep the clamp (`acos(1+ε)` is NULL).
 The `nan`, `inf`, first-value coordinates and coordinate `400` rules are mirror choices (`DIVERGENCE_distance_value_handling`).
 Locked by `TestParity_Traversal/prepare_query_distance_*` + `TestDistanceSearch_ListAndCountAgree`.
+
+**Name search (`internal/pdbcompat/name_search.go`).**
+`resolveNameSearch` resolves `name_search` in a pre-pass of `parseListFilters` after the distance pre-pass (upstream: `prepare_query`, then `name_search`, 2.83.0 `rest.py:488-553`), exact key, last value; its keys go in the `consumed` set.
+On the 6 indexed types it matches words (substring of the index fields per type, `nameSearchFields`), digits (net ASN prefix + text) or a partial IP (live netixlan address range), `ok` rows only; words bind as ONE JSON array and every column goes through `coalesce` (else a NULL column passes `NOT EXISTS`).
+It owns `id__in` when both are present: upstream unions the search ids into `id__in` (`rest.py:685-690`); an `EXISTS (... LIMIT 1)` gate keeps the empty result when nothing matches (without `LIMIT 1` SQLite sorts the page in a temp B-tree).
+`none` (7 types without an index, or a value such as `AND` that can match nothing) sets `emptyResult` before the loop, and the loop then reads only `isPrepareQueryKey` keys (`rest.py:550-553` returns before the filter loop, after `prepare_query`); they are not unknown keys either.
+A `name_search` value error does the same and is returned after the loop, so a `prepare_query` error wins (`TestParity_NameSearch/prepare_query_errors_win`).
+Every new `prepare_query` key resolver MUST be added to `isPrepareQueryKey` (`filter.go`), else its `400` is lost when `name_search` matches nothing; bare `ipaddr6`, meta and `info_type` stay out.
+Detail and negative skip: upstream's `qset.none()` comes before the slice, so `nameSearchMisses` (`none`, or `searchHit` once via `tc.List`, limit 1) runs for a sliced detail or a negative `skip` (list or detail); a miss is the miss `404` (detail) or the empty result (list), not the slice `404` or the negative skip `400`.
+The digit test follows Python `isdigit` + `int` (`pyDigitNotDecimal`, `ndValue`, `pyIntMaxStrDigits`): a value that `int()` rejects is `400`, as upstream.
+Locked by `TestParity_NameSearch`, `TestNameSearchPlan`, `TestParseListFilters_NameSearchNone`.
 
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
@@ -495,7 +508,7 @@ Its `dispatch` branch sees the raw id: keep it ahead of any id parsing or suffix
 
 ### Upstream parity regression
 
-`internal/pdbcompat/parity/` locks pdbcompat semantics via 9 category-split test files (`{ordering,status,limit,unicode,in,traversal,meta,serializer,multichoice}_test.go`) + `harness_helpers_test.go`.
+`internal/pdbcompat/parity/` locks pdbcompat semantics via 10 category-split test files (`{ordering,status,limit,unicode,in,traversal,meta,serializer,multichoice,name_search}_test.go`) + `harness_helpers_test.go`.
 Each test seeds its own clean rows **inline** via the ent client and cites the upstream source line in a comment.
 The earlier ported-fixture pipeline (`internal/testutil/parity` + `cmd/pdb-fixture-port`) was removed: the ports carried unseedable Python-source artefacts (`**kwargs` splats, `SHARED[...]` refs) and 5 of 6 slices had zero behavioural consumers, while the `--check` drift gate was wired into nothing.
 
