@@ -238,14 +238,14 @@ The package is split into 10 category-specific test files plus shared infrastruc
 | `ordering_test.go` | `TestParity_Ordering` | Default list order (`id` ascending), `?limit=`/`?skip=` pages, and the tie-break for rows with the same `updated` value in a `?since=` list |
 | `status_test.go` | `TestParity_Status` | Status (status × since matrix, tombstone visibility) |
 | `limit_test.go` | `TestParity_Limit` | `?limit=0` streaming and its 413 budget check, no upper cap on `?limit=`, `?depth=` truncation on lists (250 rows, `meta.truncated`), bad `?limit=`/`?skip=` values |
-| `unicode_test.go` | `TestParity_Unicode` | Unicode (fold-column routing) |
+| `unicode_test.go` | `TestParity_Unicode` | Unicode (fold-column routing, the canonical value of the netixlan `ipaddr6` filter) |
 | `in_test.go` | `TestParity_In` | `__in` filters (large `__in` sets, empty-`__in` short-circuit) |
 | `traversal_test.go` | `TestParity_Traversal` | Traversal (1-hop and 2-hop traversal) |
 | `meta_test.go` | `TestParity_Meta` | netixlan `meta__*` filters (typed keys, absent key never matches, net keys ignored) |
 | `serializer_test.go` | `TestParity_Serializer` | Serializer values and keys (IX-F URL key for permitted callers, `ix.media`/`ixlan.dot1q_support` constants, `info_types` as a list, the `as_set` lookup, `?depth=` list shapes and `?fields=` with `?depth=`) |
 | `multichoice_test.go` | `TestParity_MultiChoice` | Multi-value choice filters (net `info_types` and legacy `info_type`, fac `available_voltage_services`) |
 | `name_search_test.go` | `TestParity_NameSearch` | `?name_search=` (word, digit and IP matches, the 7 types without a search index, the `id__in` union, `ok`-only matches) |
-| `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget` / `newTestServerWithTier`, `httpGet`, `httpDo`, `decodeDataArray`, `extractIDs`, `mustDecodeMetaError`, `mustDecodeProblem` (problem+json opt-in only) (server wiring and response decoding, no seeders) |
+| `harness_helpers_test.go` | (helpers only) | `newTestServer` / `newTestServerWithBudget` / `newTestServerWithTier`, `httpGet`, `httpDo`, `decodeDataArray`, `extractIDs`, `mustDecodeMetaError`, `mustDecodeProblem` for the problem+json opt-in only. Server wiring and response decoding, no seeders |
 | `harness_test.go` | `TestHarness_*` | Self-tests for the helpers |
 | `bench_test.go` | `BenchmarkParity_*` | 3 perf envelopes (run locally, not gated in CI) |
 | `doc.go` | (package doc) | Package documentation |

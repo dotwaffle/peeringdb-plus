@@ -209,7 +209,7 @@ Without `PDBPLUS_PEERINGDB_API_KEY`, the sync worker does not receive `Users` co
 Startup logs `slog.Warn("public tier override active", …)` naming the override so the elevated default is never silent; the OTel attribute `pdbplus.privacy.tier=users` also appears on read spans.
 
 Only use this for deployments you would not want indexed by a search engine.
-It does not affect the sync worker (which has always had full access).
+It does not change what the sync worker fetches or stores; that depends on `PDBPLUS_PEERINGDB_API_KEY`.
 
 ## Configuration File Format
 

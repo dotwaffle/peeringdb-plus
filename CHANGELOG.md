@@ -40,7 +40,7 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - pdbcompat implements `asn_overlap` on `fac` and `ix`: `fac?asn_overlap=64500,64501` returns the facilities where the network of every listed ASN has a netfac with status `ok`, and `ix?asn_overlap=` the exchanges where it has a netixlan with status `ok` or `not-operational`.
   Before, pdbcompat ignored the key and returned the unfiltered list.
   One ASN, an empty value, more than 25 ASNs or an item that is not an integer returns `400`, as upstream.
-  An ASN that occurs two times in the list matches no row, as upstream.
+  An item that occurs two times in the list, for example `64500,64500`, matches no row, as upstream.
   A single-object GET applies the key too: `/api/fac/<id>?asn_overlap=` returns `404` when the facility does not match, and `400` for one ASN.
   See `docs/API.md` § Presence filters.
 - pdbcompat implements `?distance=` with `latitude` and `longitude` on `fac` and `org`: the list holds the rows within that many kilometers of the point, nearest first, as upstream.
@@ -82,7 +82,7 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - `/api/` parses `limit`, `skip` and `since` as upstream does: Python `int()` rules (spaces at the ends, a sign, Unicode digits, underscores between digits) and the last value of a repeated key.
   An empty value returns `400`; before, it was ignored.
   The error messages are now the upstream texts `'limit' needs to be a number`, `'skip' needs to be a number`, `'since' needs to be a unix timestamp (epoch seconds)` and `Negative indexing is not supported.`.
-  When `since` and a filter key are both bad, the message is now the `since` message, as upstream.
+  When `since` and a key of the upstream filter loop are both bad, the message is now the `since` message, as upstream.
 - `/api/` treats a key without an operator, or with `__iexact`, on an integer field as upstream does: the value must be the decimal text of the stored integer, and any other value matches no row.
   `?id=abc` and `?asn=` (on `net`) now return `404` `Entity not found`, and `?asn=abc` on other types returns an empty list.
   Before, these returned `400`.

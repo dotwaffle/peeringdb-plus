@@ -318,7 +318,7 @@ The `nested<Type>Map` builders (`nestedOrg/Net/Fac/Ix/IxLan/Carrier/CampusMap`) 
 Direct reverse sets sort ascending (`sortedIDsOrEmpty`), EXCEPT the three facility-link sets (`net.netfac_set`, `ix.fac_set` via ixfac, `carrier.carrierfac_set`), which order by `(fac_id, id)` at depth 1 AND 2 (`intsOrEmpty` + query `Order`): upstream's prefetch has no ORDER BY and MySQL reads them through the unique `(<parent>, facility)` index (`models.py:3284/5998/6603`), confirmed live 2026-09-23 (net 20, ix 26).
 `ixlan.net_set` via netixlan keeps join order WITH duplicates (`intsOrEmpty`).
 `ixlan` exposes `net_set` (Networks resolved through the netixlan join, `getter="network"`), NOT `netixlan_set`.
-Sets are live-only at every depth: `likelyOK` (`likely(status IN ('ok'))`, which keeps the set query on the FK index; plans locked by `TestDetailPlan_KeepsFKIndex`), netixlan `StatusIn("ok", "not-operational")` (upstream nested prefetch, 2.83.0 `serializers.py:1140-1148`).
+Sets are live-only at every depth: `likelyOK` (`likely(status IN ('ok'))`, which keeps the set query on the FK index; plans locked by `TestDetailPlan_KeepsFKIndex`), netixlan `StatusIn("ok", "not-operational")` (upstream nested prefetch, 2.83.0 `serializers.py:1140-1148`; `childSets` and the list-depth loaders use the same set as `likelyNetIXLanSet`).
 A pending child (in practice a campus) is left out of its parent's set while its own PK lookup still returns it; through-relation sets filter the join row only (the resolved fac/net is unfiltered, `serializers.py:1678-1681`); `childSets` repeats the set filters.
 Campus-less facilities emit `campus:null` at detail depth.
 Per-serializer back-ref strips differ (campus.fac_set drops `org_id`/keeps `campus_id`; carrier.carrierfac_set keeps `carrier_id`).
@@ -369,7 +369,7 @@ For a new (7th+) entity, also create the sibling file declaring `Mixin()`.
 See `docs/API.md § Cross-entity traversal` for Path A (allowlist) / Path B (ent-edge introspection), 2-hop cap, `parseFieldOp` 3-tuple, and unknown-field diagnostics.
 
 **Non-model targets.**
-`TypeConfig.NonModelFields` (serializer fields / properties upstream, e.g. fac `org_name`, campus `city`) are never a traversal target (`traversalTargetField`) nor a relation-seed tail: upstream `queryable_relations` offers model fields only.
+`TypeConfig.NonModelFields` (serializer fields / properties upstream, e.g. fac `org_name`, campus `city`) are never a traversal target (`traversalTargetField`) nor a relation-seed tail (such a tail is a 400 `Invalid query`, see Relation filters): upstream `queryable_relations` offers model fields only.
 Do NOT key this on `UpstreamIgnored`: it also holds renamed MODEL fields (carrier `fac_count`) that stay valid targets (`carrierfac?carrier__fac_count=`).
 
 **Codegen invariants.**
@@ -413,7 +413,7 @@ Do not re-add these keys to `pdb_allowlists.go`: Path A never sees them.
 Semantics table: `docs/API.md § Relation filters`.
 
 **Presence keys (`internal/pdbcompat/presence_filter.go`).**
-The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`org_present`/`org_not_present` (upstream `prepare_query`) resolve in `ParseFiltersCtx` BEFORE the relation seeds, exact key only, first value.
+The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`asn_overlap`/`org_present`/`org_not_present` (upstream `prepare_query`) resolve in `ParseFiltersCtx` BEFORE the relation seeds, exact key only, first value.
 `not_*` = `sql.NotPredicates` over the relation seed of the same target (same `ok` pin); `all_net` = one `GROUP BY ... HAVING COUNT(DISTINCT net_id) = <distinct ids>` subquery (no SQL term per id); `org_present` checks no status on any row (upstream `.objects`), ix path compares `ix.id` with `netixlan.ixlan_id` as upstream does.
 A non-integer item is a 400.
 `asn_overlap` (fac/ix) is a presence key with its own `parse` (`parseASNOverlap`): 1 item or more than 25 is a 400 before any int parse; a repeated raw item matches nothing through `sql.False()` (upstream keys by the raw string; the opposite of the `all_net` `distinctCount`), not `emptyResult`; it matches `net.asn` through `networks_asn_key`, never `local_asn`/netixlan `asn`; ix counts `LiveStatuses("netixlan")` through `ixlan.ix_id`; `likely()` on the link status keeps the plan on the `_net_id` index (`TestPresencePlan_KeepsNetIndex`).
@@ -427,13 +427,13 @@ Locked by `TestParity_Traversal/prepare_query_ipblock` + `TestIPBlockPlan_Subque
 **ixpfx `whereis` (`internal/pdbcompat/whereis_filter.go`).**
 `ParseFiltersCtx` resolves `whereis` and its operator forms after the ix ipblock key, first value; `whereis__in` is always a 400 (upstream passes a list to `ip_address`).
 The predicate is `prefix IN json_each(<every prefix of the address, /0../32 or /0../128>)`, built with `netip.Addr.Prefix(bits).String()`: it relies on stored prefixes being canonical (upstream `str(ip_network)`, strict), so never scan rows in Go and never `Unmap()` (Python keeps a mapped address IPv6).
-Rows with an empty prefix (tombstone 4185) never match; upstream 400s on them (`DIVERGENCE_whereis_ignores_empty_prefix_row`).
+Rows with an empty prefix (tombstone 4185) never match; upstream returns 400 for every lookup while such a row exists (`DIVERGENCE_whereis_ignores_empty_prefix_row`).
 Locked by `TestParity_Traversal/prepare_query_whereis` + `TestWhereisCandidates`.
 
 **ix `capacity` (`internal/pdbcompat/capacity_filter.go`).**
 `ix?capacity[__lt|lte|gt|gte|in|contains|startswith]=` resolves in `ParseFiltersCtx` after the ixpfx whereis key, first value: `id IN (SELECT ixlan_id FROM network_ix_lans WHERE status <> 'deleted' GROUP BY ixlan_id HAVING SUM(speed) <op> ?)` (upstream `filter_capacity`, `models.py:2895-2942`, takes `ixlan_id` as the ix id; do not join `ixlan` or use `netixlan.ix_id`).
 Values parse with `pyInt` (saturated, bound as integers; `__in` as ONE JSON array); `capacity__in=` is a 400 (upstream int-converts every item), not `errEmptyIn`; contains/startswith match `CAST(SUM AS TEXT)` and never 400.
-Two different capacity keys AND (upstream applies only the last): `DIVERGENCE_relation_filter_forms_all_apply`.
+Two different capacity keys AND (upstream applies only the form whose first occurrence is last): `DIVERGENCE_relation_filter_forms_all_apply`.
 Locked by `TestParity_Traversal/prepare_query_capacity` + `TestCapacityPlan` (uncorrelated `LIST SUBQUERY` on `networkixlan_ixlan_id`).
 
 **Distance filter (`internal/pdbcompat/distance_filter.go`).**
@@ -489,7 +489,7 @@ Invariants:
 
 **Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer`: in `dispatch` for the Registry list + detail terminal paths, and in `serveASSet` for `/api/as_set` (routed before the Registry lookup).
 
-**Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (child `COUNT(*)` × child `Depth0` per embedded `_set`, table `childSets` in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads and the `list_depth.go` loaders).
+**Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (per embedded `_set`, the child count from one `GROUP BY` query per set × child `Depth0`, table `childSets` in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads and the `list_depth.go` loaders).
 Changing a depth expansion's set list means updating `childSets` too.
 The detail 413 check stays flat (`CheckBudget(1, type, depth, …)`); fan-out feeds only the pool.
 
