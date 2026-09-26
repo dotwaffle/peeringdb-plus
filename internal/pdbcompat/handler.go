@@ -456,10 +456,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 
 	// Parse field projection (?fields=).
-	var fields []string
-	if f := params.Get("fields"); f != "" {
-		fields = strings.Split(f, ",")
-	}
+	fields := fieldsParam(params)
 
 	// A negative limit serves every row, as limit=0 does: upstream
 	// slices only when limit > 0 (2.83.0 rest.py:757-760). The budget
@@ -1293,10 +1290,7 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	}
 
 	// Parse field projection (?fields=).
-	var fields []string
-	if f := params.Get("fields"); f != "" {
-		fields = strings.Split(f, ",")
-	}
+	fields := fieldsParam(params)
 
 	result, err := tc.Get(withSetDateFilter(r.Context(), lf.setDateFilter), h.client, id, depth)
 	if err != nil {

@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat `?fields=` keeps only the keys that it names, as upstream does: `id`, the `_set` fields and the nested objects are removed unless named.
+  The last `fields` value applies, and the names are no longer trimmed.
+  On an `ixlan`, a kept `ixf_ixp_member_list_url` also keeps `ixf_ixp_member_list_url_visible`, as upstream does.
+  Before, pdbcompat always kept `id`, every `_set` key and every nested object (a registered divergence, now closed).
 - pdbcompat applies a `created` or `updated` date filter to the rows of every `_set` when the request has `_ctf`, as upstream does.
   With two or more date filters, the key that appears last in the query string applies.
   Before, pdbcompat ignored `_ctf` (a registered divergence, now closed).

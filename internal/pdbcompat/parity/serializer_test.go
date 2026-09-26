@@ -574,17 +574,15 @@ func TestParity_Serializer(t *testing.T) {
 	t.Run("list_depth_fields_selects_sets", func(t *testing.T) {
 		t.Parallel()
 		// upstream: serializers.py:942-950 at 2.83.0: ?fields= drops the
-		// _set fields that it does not name. The mirror keeps id and a
-		// plain field whose name ends in _set (registered row
-		// DIVERGENCE_fields_keeps_id_and_detail_sets).
+		// _set fields that it does not name.
 		srv := newTestServer(t, seedListDepthShapes(t, t0))
 		for _, tc := range []struct {
 			path string
 			want []string
 		}{
-			{"/api/org?id=1&depth=2&fields=name", []string{"id", "name"}},
-			{"/api/org?id=1&depth=2&fields=name,net_set", []string{"id", "name", "net_set"}},
-			{"/api/net?id=1&depth=2&fields=name", []string{"id", "irr_as_set", "name"}},
+			{"/api/org?id=1&depth=2&fields=name", []string{"name"}},
+			{"/api/org?id=1&depth=2&fields=name,net_set", []string{"name", "net_set"}},
+			{"/api/net?id=1&depth=2&fields=name", []string{"name"}},
 		} {
 			if got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path))); !slices.Equal(got, tc.want) {
 				t.Errorf("%s: keys = %v, want %v", tc.path, got, tc.want)
@@ -695,21 +693,20 @@ func TestParity_Serializer(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_fields_keeps_id_and_detail_sets", func(t *testing.T) {
+	t.Run("fields_projection_like_upstream", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream serializers.py:942-950 at 2.83.0 drops
-		// every field that ?fields= does not name, id and the _set
-		// fields too, and the API cache path drops every key not named
-		// (api_cache.py:170-177). The mirror keeps id, every key that
-		// ends in _set and every nested object on a detail, and a plain
-		// field that ends in _set (net irr_as_set) on a list. See
-		// docs/API.md § Known Divergences.
-		// For an ixlan, upstream IXLanSerializer.to_representation adds
+		// upstream: serializers.py:942-950 at 2.83.0 drops every field
+		// that ?fields= does not name, id and the _set fields and nested
+		// objects too. It reads the last value (QueryDict.get), splits it
+		// on "," and compares the names as given. A nested object keeps
+		// every key: sub_serializer builds it without the request
+		// (serializers.py:1335-1341).
+		// For an ixlan, IXLanSerializer.to_representation adds
 		// ixf_ixp_member_list_url_visible back whenever the URL is in the
-		// output (serializers.py:4319-4337), and handle_ixlan removes it
-		// again only when the URL and _visible are the only keys left
-		// (permissions.py:355-372). The mirror never adds _visible back.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// output (serializers.py:4319-4337). handle_ixlan removes the URL
+		// for a caller that may not see it, and removes _visible again
+		// only when the URL and _visible are the only keys left
+		// (permissions.py:344-372).
 		c := seedListDepthShapes(t, t0)
 		ctx := t.Context()
 		c.IxLan.Create().SetID(20).SetIxID(1).
@@ -724,21 +721,40 @@ func TestParity_Serializer(t *testing.T) {
 			path string
 			want []string
 		}{
-			// Upstream: [name].
-			{"/api/org?id=1&fields=name", []string{"id", "name"}},
-			{"/api/net?id=1&fields=name", []string{"id", "irr_as_set", "name"}},
-			// Upstream: [name]. Detail defaults to depth 2.
-			{"/api/net/1?fields=name", []string{"id", "irr_as_set", "name", "netfac_set", "netixlan_set", "org", "poc_set"}},
-			// Upstream: [ixf_ixp_member_list_url].
-			{"/api/ixlan?id=20&fields=ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url"}},
-			// Upstream: [id, ixf_ixp_member_list_url, ixf_ixp_member_list_url_visible].
-			{"/api/ixlan?id=20&fields=id,ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url"}},
-			// Anonymous caller, Users row. Upstream:
-			// [ixf_ixp_member_list_url_visible].
-			{"/api/ixlan?id=21&fields=ixf_ixp_member_list_url", []string{"id"}},
+			{"/api/org?id=1&fields=name", []string{"name"}},
+			{"/api/net?id=1&fields=name", []string{"name"}},
+			{"/api/net?id=1&fields=id,%20name", []string{"id"}},
+			{"/api/net?id=1&fields=asn&fields=name", []string{"name"}},
+			{"/api/net?id=1&fields=,", []string{}},
+			{"/api/net?id=1&fields=", []string{"aka", "allow_ixp_update", "asn"}},
+			// Detail defaults to depth 2.
+			{"/api/net/1?fields=name", []string{"name"}},
+			{"/api/net/1?fields=name,org,poc_set", []string{"name", "org", "poc_set"}},
+			{"/api/ixlan?id=20&fields=ixf_ixp_member_list_url", []string{"ixf_ixp_member_list_url"}},
+			{"/api/ixlan?id=20&fields=id,ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url", "ixf_ixp_member_list_url_visible"}},
+			// Anonymous caller, Users row.
+			{"/api/ixlan?id=21&fields=ixf_ixp_member_list_url", []string{"ixf_ixp_member_list_url_visible"}},
+			{"/api/ixlan?id=21&fields=id,ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url_visible"}},
 		} {
-			if got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path))); !slices.Equal(got, tc.want) {
-				t.Errorf("%s: keys = %v, want %v (divergence canary)", tc.path, got, tc.want)
+			got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path)))
+			want := tc.want
+			if strings.HasSuffix(tc.path, "fields=") {
+				// No projection: check a few keys only.
+				got = got[:min(len(got), 3)]
+			}
+			if !slices.Equal(got, want) {
+				t.Errorf("%s: keys = %v, want %v", tc.path, got, want)
+			}
+		}
+		// A named nested object keeps every key.
+		row := listDepthRow(t, srv, "/api/net/1?fields=org")
+		org, ok := row["org"].(map[string]any)
+		if !ok {
+			t.Fatalf("org = %T, want an object", row["org"])
+		}
+		for _, k := range []string{"id", "name", "net_set"} {
+			if _, has := org[k]; !has {
+				t.Errorf("org is missing %q: %v", k, slices.Sorted(maps.Keys(org)))
 			}
 		}
 	})

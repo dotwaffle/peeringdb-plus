@@ -3,7 +3,6 @@ package pdbcompat
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
@@ -397,9 +396,9 @@ func loadCampusFacSet(ctx context.Context, client *ent.Client, ids []int, depth 
 }
 
 // selectSets returns the sets of typeName that a list at depth > 0 loads:
-// every set without ?fields=, else only the sets that fields names (the
-// names are trimmed as in applyFieldProjection). Upstream removes every
-// field that fields does not name (2.83.0 serializers.py:942-950).
+// every set without ?fields=, else only the sets that fields names, as
+// applyFieldProjection compares them. Upstream removes every field that
+// fields does not name (2.83.0 serializers.py:942-950).
 func selectSets(typeName string, fields []string) []childSet {
 	all := childSets[typeName]
 	if len(fields) == 0 {
@@ -407,7 +406,7 @@ func selectSets(typeName string, fields []string) []childSet {
 	}
 	want := make(map[string]bool, len(fields))
 	for _, f := range fields {
-		want[strings.TrimSpace(f)] = true
+		want[f] = true
 	}
 	out := make([]childSet, 0, len(all))
 	for _, cs := range all {

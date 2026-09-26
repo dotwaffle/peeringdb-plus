@@ -63,7 +63,7 @@ func TestFieldProjection_RedactedGatedFieldStaysAbsent(t *testing.T) {
 
 	// No privacy-tier stamp on the request context — privctx fails closed
 	// to the anonymous tier, exactly like an unauthenticated caller.
-	req := httptest.NewRequest(http.MethodGet, "/api/ixlan?fields=ixf_ixp_member_list_url", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/ixlan?fields=id,ixf_ixp_member_list_url", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 

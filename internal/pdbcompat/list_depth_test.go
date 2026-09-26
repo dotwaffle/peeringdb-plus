@@ -220,7 +220,9 @@ func TestSelectSets(t *testing.T) {
 	}{
 		{peeringdb.TypeOrg, nil, []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"}},
 		{peeringdb.TypeOrg, []string{"name"}, []string{}},
-		{peeringdb.TypeOrg, []string{"name", " fac_set", "net_set "}, []string{"net_set", "fac_set"}},
+		{peeringdb.TypeOrg, []string{"name", "fac_set", "net_set"}, []string{"net_set", "fac_set"}},
+		// Names are compared as given, as upstream does.
+		{peeringdb.TypeOrg, []string{" fac_set", "net_set "}, []string{}},
 		{peeringdb.TypeNet, []string{"irr_as_set", "poc_set"}, []string{"poc_set"}},
 		{peeringdb.TypePoc, nil, []string{}},
 	} {

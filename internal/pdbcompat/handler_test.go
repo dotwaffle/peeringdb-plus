@@ -1168,10 +1168,10 @@ func TestFieldProjectionWithDepth(t *testing.T) {
 	_ = json.Unmarshal(env.Data, &items)
 	orgID := int(items[0]["id"].(float64))
 
-	// Detail with depth=2 and fields=id,name should project top-level
-	// but _set objects should be unaffected.
+	// Detail with depth=2 and fields=id,name,net_set keeps the named
+	// keys only, and the named _set is unaffected.
 	detReq := httptest.NewRequest(http.MethodGet,
-		"/api/org/"+itoa(orgID)+"?depth=2&fields=id,name", nil)
+		"/api/org/"+itoa(orgID)+"?depth=2&fields=id,name,net_set", nil)
 	detRec := httptest.NewRecorder()
 	mux.ServeHTTP(detRec, detReq)
 
@@ -1195,9 +1195,12 @@ func TestFieldProjectionWithDepth(t *testing.T) {
 	if _, ok := obj["name"]; !ok {
 		t.Error("projected detail missing 'name'")
 	}
-	// _set fields should still be present (projection does not remove them).
 	if _, ok := obj["net_set"]; !ok {
-		t.Error("projected detail missing 'net_set' (should be preserved)")
+		t.Error("projected detail missing 'net_set'")
+	}
+	// A set that fields does not name is removed.
+	if _, ok := obj["fac_set"]; ok {
+		t.Error("projected detail has 'fac_set', which fields does not name")
 	}
 }
 
