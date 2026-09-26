@@ -8,6 +8,13 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Changed
+
+- Sync deletes a `poc` tombstone when its `updated` value is 30 days old, as upstream `pdb_delete_pocs` does (`POC_DELETION_PERIOD`).
+  Before, the mirror kept every poc tombstone, so `/api/poc?since=N` returned rows that upstream no longer has (a registered divergence, now removed).
+  The first cycle after the upgrade deletes the older tombstones at once.
+  Each cycle logs `INFO "purged deleted pocs"` with the count after its commit.
+
 ## [1.35.2] - 2026-09-26
 
 ### Changed
