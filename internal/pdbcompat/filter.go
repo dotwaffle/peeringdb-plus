@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"slices"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -184,6 +186,33 @@ func coerceLocationFilterOp(field, op, value string) string {
 	return op
 }
 
+// coerceIPAddr ports upstream coerce_ipaddr (2.83.0 util.py:61-73). It
+// returns the canonical text of an IP address, or the value as given
+// when it is not one. netip.Addr.String gives the same text as CPython
+// 3.13+ str(ipaddress.ip_address(v)): compressed, lower case, and an
+// IPv4-mapped address in dotted form. CPython rejects a zone that
+// contains "%" and Go accepts it, so such a value stays as given.
+func coerceIPAddr(v string) string {
+	a, err := netip.ParseAddr(v)
+	if err != nil || strings.Contains(a.Zone(), "%") {
+		return v
+	}
+	return a.String()
+}
+
+// ipaddr6Predicate filters netixlan ipaddr6 for the bare key. Upstream
+// runs unidecode on every value before coerce_ipaddr (2.83.0
+// rest.py:597, :605-606), so the value is folded first; Fold also
+// lower-cases it. Sync stores the address text of the upstream API,
+// which is the CPython canonical form and always lower case (django-inet
+// get_prep_value, DRF CharField.to_representation). So a plain = gives
+// the same match as upstream's __iexact, and SQLite can read the
+// networkixlan_ipaddr6 index. A value that is not an address matches no
+// stored row either way.
+func ipaddr6Predicate(value string) func(*sql.Selector) {
+	return sql.FieldEQ("ipaddr6", coerceIPAddr(unifold.Fold(value)))
+}
+
 // unknownFieldsCtxKey is an unexported context key used by ParseFiltersCtx
 // to record filter params whose fields don't resolve.
 // Retrieved via UnknownFieldsFromCtx at the handler layer for OTel span
@@ -269,6 +298,8 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // fac?all_net=) resolve next, then its relation keys (relationSeeds,
 // for example fac?net= and net?ix__name=), with their own path and
 // status rules (buildPresencePredicate, buildRelationSeedPredicate).
+// The bare netixlan ipaddr6 key resolves next and compares the
+// canonical text of the address (ipaddr6Predicate).
 //
 // The status matrix and the _fold-routing / empty-__in invariants
 // are preserved: traversal predicates wrap around buildPredicate which still
@@ -362,6 +393,14 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 				continue
 			}
 			predicates = append(predicates, p)
+			continue
+		}
+		// A bare ipaddr6 key on netixlan compares the canonical text of
+		// the address, as upstream does (2.83.0 rest.py:605-606,
+		// util.py:61-73). Only the exact key: the value of ipaddr6__in,
+		// of the other suffixes and of ipaddr4 is not canonicalized.
+		if tc.Name == peeringdb.TypeNetIXLan && key == "ipaddr6" {
+			predicates = append(predicates, ipaddr6Predicate(value))
 			continue
 		}
 		relSegs, field, op := parseFieldOp(key)

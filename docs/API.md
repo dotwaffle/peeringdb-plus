@@ -366,6 +366,10 @@ Filter values follow these rules:
   With an operator suffix or a relation prefix, the key uses the normal match rules.
 - A bare `country` filter with a 2-letter value is an exact match.
   A longer value matches a substring.
+- A bare `ipaddr6` filter on `netixlan` compares the canonical text of the address, as upstream does (2.83.0 `rest.py:605-606`, `util.py:61-73`).
+  For example, `?ipaddr6=2001:7F8:0:0::1` matches `2001:7f8::1`.
+  A value that is not an IP address matches no row, and the response is `200`.
+  The value of `ipaddr6` with an operator suffix, for example `__in` or `__startswith`, and of `ipaddr4` is not canonicalized; the normal match rules apply.
 - If a query repeats a filter key, the last value applies.
   A relation key of a `prepare_query` uses the first value (see § Relation filters).
 - A time field, for example `created` or `updated`, accepts Unix seconds or ISO 8601: `2024-01-01`, `2024-01-01T12:00:00`, `2024-01-01 12:00:00`, or RFC 3339 with an offset.

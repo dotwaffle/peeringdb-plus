@@ -1510,6 +1510,9 @@ func TestParity_Status(t *testing.T) {
 		// drf generics.py:79-105; django/shortcuts.py:90-93
 		c := testutil.SetupClient(t)
 		seedNetIXLanMix(t, c)
+		if err := c.NetworkIxLan.UpdateOneID(1).SetIpaddr6("2001:7f8::1").Exec(t.Context()); err != nil {
+			t.Fatalf("set netixlan 1 ipaddr6: %v", err)
+		}
 		srv := newTestServer(t, c)
 		// The PK miss of each path, sent to a server with no rows.
 		empty := newTestServer(t, testutil.SetupClient(t))
@@ -1544,6 +1547,10 @@ func TestParity_Status(t *testing.T) {
 			{path: "/api/net/1?name__in=", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
 			{path: "/api/net/1?depth=0&name=nomatch", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
 			{path: "/api/net/1?fields=id&name=NetIXLanNet", want: http.StatusOK, wantIDs: []int{1}},
+			// The bare ipaddr6 value is canonicalized before it filters
+			// (rest.py:605-606, util.py:61-73).
+			{path: "/api/netixlan/1?ipaddr6=2001:7F8:0:0::1", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/netixlan/1?ipaddr6=2001:7f8:0:0::2", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)

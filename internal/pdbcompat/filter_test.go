@@ -3,6 +3,7 @@ package pdbcompat
 import (
 	"context"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -970,6 +971,87 @@ func TestParseFilters_UnknownFieldsAppendToCtx(t *testing.T) {
 	}
 	if len(wantSet) > 0 {
 		t.Errorf("missing unknown fields in accumulator: %v", wantSet)
+	}
+}
+
+// TestCoerceIPAddr locks coerceIPAddr to upstream coerce_ipaddr (2.83.0
+// util.py:61-73). The want values are the output of CPython 3.13
+// str(ipaddress.ip_address(v)), or the input when CPython raises
+// ValueError.
+func TestCoerceIPAddr(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct{ in, want string }{
+		{"2001:7F8:0:0::1", "2001:7f8::1"},
+		{"2001:0db8:0000:0000:0000:0000:0000:0001", "2001:db8::1"},
+		{"2001:db8:0:0:1:0:0:1", "2001:db8::1:0:0:1"},
+		{"::1:2:3:4:5:6:7", "0:1:2:3:4:5:6:7"},
+		{"1:2:3:4:5:6:7::", "1:2:3:4:5:6:7:0"},
+		{"1:0:0:0:0:0:0:0", "1::"},
+		{"0::0", "::"},
+		{"::ffff:1.2.3.4", "::ffff:1.2.3.4"},
+		{"::FFFF:1.2.3.4", "::ffff:1.2.3.4"},
+		{"::ffff:102:304", "::ffff:1.2.3.4"},
+		{"0:0:0:0:0:ffff:102:304", "::ffff:1.2.3.4"},
+		{"::1.2.3.4", "::102:304"},
+		{"2001:db8::1.2.3.4", "2001:db8::102:304"},
+		{"1.2.3.4", "1.2.3.4"},
+		{"fe80::1%eth0", "fe80::1%eth0"},
+		{"fe80::1%ETH0", "fe80::1%ETH0"},
+		// Not parsed by CPython: the value stays as given.
+		{"fe80::1%a%b", "fe80::1%a%b"},     // Go alone accepts this zone
+		{"fe80::1%eth0%", "fe80::1%eth0%"}, // same
+		{"fe80::1%", "fe80::1%"},
+		{"01.2.3.4", "01.2.3.4"},
+		{"::ffff:01.2.3.4", "::ffff:01.2.3.4"},
+		{" 2001:db8::1", " 2001:db8::1"},
+		{"2001:db8::1 ", "2001:db8::1 "},
+		{"2001:db8::1/64", "2001:db8::1/64"},
+		{"[2001:db8::1]", "[2001:db8::1]"},
+		{"2001:db8::00001", "2001:db8::00001"},
+		{"1::2::3", "1::2::3"},
+		{"1:2:3:4:5:6::7:8", "1:2:3:4:5:6::7:8"},
+		{"", ""},
+	} {
+		if got := coerceIPAddr(tt.in); got != tt.want {
+			t.Errorf("coerceIPAddr(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+// TestParseFilters_IPAddr6KeyNotUnknown checks that the bare ipaddr6
+// key filters netixlan on the canonical, folded text of the address and
+// is not recorded as an unknown field there. On another type the key
+// stays unknown: no other type has the field.
+func TestParseFilters_IPAddr6KeyNotUnknown(t *testing.T) {
+	t.Parallel()
+
+	ctx := WithUnknownFields(context.Background())
+	// Fullwidth digits and upper case: Fold gives 2001:7f8:0:0::1.
+	params := url.Values{"ipaddr6": {"\uff12\uff10\uff10\uff11:7F8:0:0::1"}}
+	preds, empty, err := ParseFiltersCtx(ctx, params, Registry["netixlan"])
+	if err != nil || empty || len(preds) != 1 {
+		t.Fatalf("netixlan: preds=%d empty=%v err=%v, want one predicate", len(preds), empty, err)
+	}
+	s := sql.Dialect(dialect.SQLite).Select("*").From(sql.Table("t"))
+	preds[0](s)
+	query, args := s.Query()
+	if want := "SELECT * FROM `t` WHERE `t`.`ipaddr6` = ?"; query != want {
+		t.Errorf("netixlan SQL = %q, want %q", query, want)
+	}
+	if len(args) != 1 || args[0] != "2001:7f8::1" {
+		t.Errorf("netixlan args = %v, want [2001:7f8::1]", args)
+	}
+	if got := UnknownFieldsFromCtx(ctx); slices.Contains(got, "ipaddr6") {
+		t.Errorf("netixlan: unknown fields %v hold ipaddr6", got)
+	}
+
+	ctx = WithUnknownFields(context.Background())
+	preds, _, err = ParseFiltersCtx(ctx, params, Registry["net"])
+	if err != nil || len(preds) != 0 {
+		t.Fatalf("net: preds=%d err=%v, want no predicate", len(preds), err)
+	}
+	if got := UnknownFieldsFromCtx(ctx); !slices.Contains(got, "ipaddr6") {
+		t.Errorf("net: unknown fields %v, want ipaddr6", got)
 	}
 }
 

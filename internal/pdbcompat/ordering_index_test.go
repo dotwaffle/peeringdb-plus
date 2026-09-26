@@ -3,6 +3,7 @@ package pdbcompat
 import (
 	"context"
 	"database/sql"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -93,6 +94,26 @@ func TestPdbcompatListPlan_NoTempBTree(t *testing.T) {
 				t.Errorf("count plan = %q, want it to contain %q", count, tc.wantCount)
 			}
 		})
+	}
+}
+
+// TestPdbcompatIPAddr6Plan_UsesIndex checks that the bare netixlan
+// ipaddr6 filter reads the networkixlan_ipaddr6 index in the List and
+// the Count query. The filter compares the canonical text with a plain
+// =; a LOWER(ipaddr6) comparison read every row.
+func TestPdbcompatIPAddr6Plan_UsesIndex(t *testing.T) {
+	t.Parallel()
+	preds, empty, err := ParseFilters(url.Values{"ipaddr6": {"2001:7F8:0:0::1"}}, Registry["netixlan"])
+	if err != nil || empty || len(preds) != 1 {
+		t.Fatalf("ParseFilters: preds=%d empty=%v err=%v, want one predicate", len(preds), empty, err)
+	}
+	const want = "USING INDEX networkixlan_ipaddr6 (ipaddr6=?)"
+	list, count := listPlans(t, "netixlan", QueryOptions{Filters: preds, Limit: 250})
+	if !strings.Contains(list, want) {
+		t.Errorf("list plan = %q, want it to contain %q", list, want)
+	}
+	if !strings.Contains(count, want) {
+		t.Errorf("count plan = %q, want it to contain %q", count, want)
 	}
 }
 

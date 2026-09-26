@@ -286,6 +286,10 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   It fires on all three empty exits of `serveList` (empty `__in`, budget `count == 0`, empty `List`) and runs after privacy filtering, so a hidden poc id is a 404 (registered divergence).
 - A plain key (or `__iexact`) on a non-FK integer model field matches the decimal text of the folded value (`intTextMatch`, `sql.False()` otherwise, never the `EmptyResult` sentinel): upstream `__iexact` does not convert the value (`rest.py:670-683`).
   FK keys, operators, relation seeds, presence keys and the count seeds (`TypeConfig.ExactCounts`, first value) convert with `pyInt` (400 on a bad value).
+- Bare `netixlan?ipaddr6=` (`ipaddr6Predicate` in `filter.go`) canonicalizes the folded value with `netip` (upstream `coerce_ipaddr`, 2.83.0 `rest.py:605-606`) and compares with a plain `=` so the `networkixlan_ipaddr6` index serves it.
+  This needs the stored `ipaddr6` to be upstream's lower-case canonical text: sync stores the API string as given, so never normalize or re-case it there.
+  MCP `lookup_ip` (`internal/mcpserver/server.go`) already depends on the same fact (`netip` canonical text compared with a plain `=` on `ipaddr4`/`ipaddr6`), so a sync change that alters the stored text breaks both paths.
+  Locked by `TestCoerceIPAddr`, `TestParseFilters_IPAddr6KeyNotUnknown`, `TestParity_Unicode/ipaddr6_*`, `TestPdbcompatIPAddr6Plan_UsesIndex`.
 - PK-lookup (`internal/pdbcompat/depth.go`) MUST use `Query().Where(foo.ID(id), foo.StatusIn("ok", "pending")).Only(ctx)` — never `client.Foo.Get(ctx, id)` bare; netixlan uses `StatusIn("ok", "not-operational", "pending")` (live + pending, `rest.py:750`).
   Inline the `StatusIn` literal at each of the 27 call sites; grep-ability trumps DRY here.
 - Detail filters: `serveDetail` parses the same filter keys as a list (`parseRequestFilters`, the list parser) and checks the row with `TypeConfig.Match` (built in `wireEntity`: `id = ? AND <filters>`, `Exist`, request ctx, so the poc policy applies) before the budget admission and the PK lookup; no filter key = no extra query.

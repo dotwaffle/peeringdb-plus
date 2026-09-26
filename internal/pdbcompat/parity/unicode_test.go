@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
 	"github.com/dotwaffle/peeringdb-plus/internal/unifold"
 )
@@ -25,6 +26,9 @@ import (
 // upstream: 2.83.0 pdb_api_test.py:5191-5211
 // (test_guest_005_list_filter_accented: `fac unãccented` matches
 // `fac unaccented`)
+//
+// The bare netixlan ipaddr6 value is canonicalized in the same value
+// pipeline (upstream rest.py:605-606, util.py:61-73).
 //
 // `internal/unifold.Fold` is the reference folder used to BUILD
 // expected matches against fixture-style inputs — never as the
@@ -185,6 +189,107 @@ func TestParity_Unicode(t *testing.T) {
 			t.Errorf("NFKD combining-mark: got %v, want [20]", ids)
 		}
 	})
+
+	t.Run("ipaddr6_value_is_canonicalized", func(t *testing.T) {
+		t.Parallel()
+		// The bare netixlan ipaddr6 key: upstream folds the value
+		// (unidecode), turns it into the canonical text of the address
+		// and filters ipaddr6__iexact.
+		// upstream: 2.83.0 rest.py:597, :605-606, :682-683; util.py:61-73
+		// synthesised: pdb_api_test.py has no ipaddr6 filter case
+		srv := newTestServer(t, seedIPAddr6Rows(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{"/api/netixlan?ipaddr6=2001:7f8::1", []int{5001}},
+			{"/api/netixlan?ipaddr6=2001:7F8:0:0::1", []int{5001}},
+			{"/api/netixlan?ipaddr6=2001:07f8:0000:0000:0000:0000:0000:0001", []int{5001}},
+			{"/api/netixlan?ipaddr6=2001:7f8:0:0:0:0:0:2", []int{5002}},
+			{"/api/netixlan?ipaddr6=" + url.QueryEscape("\uff12\uff10\uff10\uff11:7f8::1"), []int{5001}},
+			// The last value of a repeated key applies.
+			{"/api/netixlan?ipaddr6=2001:7f8::2&ipaddr6=2001:7f8:0::1", []int{5001}},
+		})
+		// assertKeysResolve does not check the order: since sorts by
+		// updated.
+		path := "/api/netixlan?ipaddr6=2001:7f8:0::1&since=1"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusOK {
+			t.Fatalf("%s: status = %d; body=%s", path, status, string(body))
+		}
+		if ids := extractIDs(t, body); !equalIntSlice(ids, []int{5001, 5004}) {
+			t.Errorf("%s: got %v, want [5001 5004]", path, ids)
+		}
+	})
+
+	t.Run("ipaddr6_unparsed_value_matches_nothing", func(t *testing.T) {
+		t.Parallel()
+		// A value that does not parse stays as given and matches no
+		// stored address. It is never a 400.
+		// upstream: 2.83.0 rest.py:597, :605-606, :682-683; util.py:61-73
+		// synthesised: pdb_api_test.py has no ipaddr6 filter case
+		srv := newTestServer(t, seedIPAddr6Rows(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{"/api/netixlan?ipaddr6=", []int{}},
+			{"/api/netixlan?ipaddr6=not-an-ip", []int{}},
+			{"/api/netixlan?ipaddr6=2001:7f8::1%2F128", []int{}},
+			{"/api/netixlan?ipaddr6=%202001:7f8::1", []int{}},
+			{"/api/netixlan?ipaddr6=192.0.2.1", []int{}},
+			{"/api/netixlan?ipaddr6=fe80::1%25eth0", []int{}},
+			{"/api/netixlan?ipaddr6=fe80::1%25a%25b", []int{}},
+		})
+	})
+
+	t.Run("ipaddr6_only_exact_key_is_canonicalized", func(t *testing.T) {
+		t.Parallel()
+		// Only the exact key is canonicalized: ipaddr6 with an operator
+		// suffix and ipaddr4 use the normal match rules.
+		// upstream: 2.83.0 rest.py:597, :605-606, :657-670; util.py:61-73
+		// synthesised: pdb_api_test.py has no ipaddr6 filter case
+		srv := newTestServer(t, seedIPAddr6Rows(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{"/api/netixlan?ipaddr6__in=2001:7F8:0:0::1", []int{}},
+			{"/api/netixlan?ipaddr6__in=2001:7F8::1,2001:7f8::2", []int{5001, 5002}},
+			{"/api/netixlan?ipaddr6__startswith=2001:7F8::", []int{5001, 5002}},
+			{"/api/netixlan?ipaddr6__contains=7f8:0:0", []int{}},
+			{"/api/netixlan?ipaddr4=192.000.2.1", []int{}},
+			{"/api/netixlan?ipaddr4=192.0.2.1", []int{5001}},
+			// No other type has the field: the key is ignored.
+			{"/api/net?ipaddr6=2001:7f8:0::1", []int{100}},
+		})
+	})
+}
+
+// seedIPAddr6Rows seeds netixlan rows for the ipaddr6 sub-tests of
+// TestParity_Unicode: 5001 (2001:7f8::1, 192.0.2.1, ok), 5002
+// (2001:7f8::2, ok), 5003 (no ipaddr6, 192.0.2.3, ok) and 5004
+// (2001:7f8::1, deleted, updated one hour after the others).
+func seedIPAddr6Rows(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "IPOrg", t0)
+	mustNet(ctx, t, c, 100, "IPNet", 64500, 1, t0)
+	mustIX(ctx, t, c, 300, "IPIX", 1, t0)
+	mustIxLan(ctx, t, c, 3000, "IPLan", 300, t0)
+	for _, row := range []struct {
+		id         int
+		ip6, ip4   *string
+		status     string
+		updatedOff time.Duration
+	}{
+		{5001, new("2001:7f8::1"), new("192.0.2.1"), "ok", 0},
+		{5002, new("2001:7f8::2"), nil, "ok", 0},
+		{5003, nil, new("192.0.2.3"), "ok", 0},
+		{5004, new("2001:7f8::1"), nil, "deleted", time.Hour},
+	} {
+		if _, err := c.NetworkIxLan.Create().
+			SetID(row.id).SetNetID(100).SetIxlanID(3000).SetIxID(300).
+			SetAsn(64500).SetSpeed(1000).
+			SetNillableIpaddr6(row.ip6).SetNillableIpaddr4(row.ip4).
+			SetStatus(row.status).SetCreated(t0).SetUpdated(t0.Add(row.updatedOff)).
+			Save(ctx); err != nil {
+			t.Fatalf("seed netixlan id=%d: %v", row.id, err)
+		}
+	}
+	return c
 }
 
 // TestParity_Unicode_FoldWindow_DIVERGENCE locks the intentional divergence
