@@ -1070,21 +1070,22 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 // buildModelFieldPredicate builds the predicate of a key that the
 // upstream filter loop resolves as a model field (2.83.0
 // rest.py:670-683). The loop folds every value with unidecode first
-// (rest.py:597). A plain key on an integer field is an __iexact filter
-// upstream, and Django does not convert an iexact value
+// (rest.py:597), which also turns every Unicode decimal digit into its
+// ASCII digit (ndToASCII). A plain key on an integer field is an
+// __iexact filter upstream, and Django does not convert an iexact value
 // (IExact.prepare_rhs=False, django/db/models/lookups.py:430-438):
 // MySQL compares the integer as decimal text, so only the decimal form
 // of the stored value matches. A FK column (exactInt) and the operators
 // convert the value with int() (pyInt), so a bad value is a 400.
 func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exactInt bool) (func(*sql.Selector), error) {
 	if ft == FieldInt {
-		value = unifold.Fold(value)
+		value = ndToASCII(unifold.Fold(value))
 		if !exactInt && (op == "" || op == "iexact") {
 			return intTextMatch(col, value), nil
 		}
 	}
 	if expr := numericText(ft); expr != "" && !exactInt {
-		text := likeEscape(unifold.Fold(value))
+		text := likeEscape(ndToASCII(unifold.Fold(value)))
 		switch coerceToCaseInsensitive(op) {
 		case "icontains":
 			return textLike(col, expr, "%"+text+"%"), nil
@@ -1109,7 +1110,7 @@ func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exact
 		case "":
 			// upstream rest.py:680-681: v.lower() == "true" or v == "1",
 			// any other value selects false.
-			f := unifold.Fold(value)
+			f := ndToASCII(unifold.Fold(value))
 			return sql.FieldEQ(col, f == "true" || f == "1"), nil
 		case "lt", "lte", "gt", "gte", "in":
 			return buildBoolOperator(col, op, value)

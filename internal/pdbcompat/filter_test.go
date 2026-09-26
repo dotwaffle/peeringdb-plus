@@ -809,6 +809,9 @@ func TestParseFilters_PlainIntKey(t *testing.T) {
 		{"net", "asn", "42", "`t`.`asn` = ?", []any{42}},
 		// unidecode folds full-width digits (rest.py:597).
 		{"net", "asn", "\uff14\uff12", "`t`.`asn` = ?", []any{42}},
+		// unidecode also folds the other decimal digits, for example
+		// Arabic-Indic.
+		{"net", "asn", "\u0664\u0662", "`t`.`asn` = ?", []any{42}},
 		{"net", "asn__iexact", "42", "`t`.`asn` = ?", []any{42}},
 		// A FK key converts with int().
 		{"net", "org_id", " 5", "`t`.`org_id` = ?", []any{5}},
