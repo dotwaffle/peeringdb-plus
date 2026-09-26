@@ -52,6 +52,9 @@ import (
 //   - DIVERGENCE: the custom keys that upstream handles in Python
 //     (prepare_query keys such as asn_overlap, not_ix and whereis,
 //     hide_ix_no_fac, name_search) are silent-ignored.
+//   - DIVERGENCE: a relation key given in two forms
+//     (`ix?net=1&net__in=2`) applies both forms, where upstream uses
+//     one.
 //   - DIVERGENCE: a 3-segment relation key with contains or
 //     startswith ignores case, and campus?facility__<field>= returns
 //     each campus once.
@@ -895,6 +898,36 @@ func TestParity_Traversal(t *testing.T) {
 			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
 				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
 			}
+		}
+	})
+
+	t.Run("DIVERGENCE_relation_filter_forms_all_apply", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: get_relation_filters stores every form of one key
+		// under one entry (2.83.0 serializers.py:614-656):
+		// queryable_field_xl maps net and net__in to network
+		// (:403-441). A later key replaces the entry of an earlier one,
+		// so upstream uses only the form whose first occurrence is last
+		// in the query string, and parses only its value. The mirror
+		// applies every form (AND), and every value must parse.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// Seed: ix 20 and 21 have an ok netixlan of net 100, ix 22 has
+		// one of net 101.
+		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// Control: each form alone.
+			{path: "/api/ix?net=100", want: []int{20, 21}},
+			{path: "/api/ix?net__in=101", want: []int{22}},
+			// Upstream: [22] (net__in).
+			{path: "/api/ix?net=100&net__in=101", want: []int{}},
+			// Upstream: [20 21] (net).
+			{path: "/api/ix?net__in=101&net=100", want: []int{}},
+		})
+		// Upstream: 200 [22]. It parses only the net__in value.
+		path := "/api/ix?net=abc&net__in=101"
+		if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
 		}
 	})
 
