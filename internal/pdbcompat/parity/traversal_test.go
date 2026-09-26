@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -408,7 +410,8 @@ func TestParity_Traversal(t *testing.T) {
 		// serializer, the hide_ix_no_fac mixin, and the search index for
 		// name_search. They are not model fields, and the mirror does
 		// not implement them, so they are silent-ignored and the list is
-		// unfiltered.
+		// unfiltered. The presence keys (not_ix, all_net, org_present and
+		// the others) are parity: see prepare_query_presence_keys.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 serializers.py:2092-2210
@@ -441,8 +444,8 @@ func TestParity_Traversal(t *testing.T) {
 
 		srv := newTestServer(t, c)
 		// No netfac or ixfac rows exist. Upstream returns a narrower
-		// list for each request below (for example [101] for not_ix and
-		// [4000] for whereis), or 400 (see asn_overlap and distance).
+		// list for each request below (for example [4000] for whereis),
+		// or 400 (see asn_overlap and distance).
 		// The relation keys of a prepare_query (net?ix_id=,
 		// fac?net_id=, org?asn=) resolve: see
 		// prepare_query_relation_keys_pin_join_status_ok and
@@ -450,9 +453,6 @@ func TestParity_Traversal(t *testing.T) {
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			// prepare_query keys.
 			{path: "/api/fac?asn_overlap=64500,64501", want: []int{200, 201}},
-			{path: "/api/fac?org_present=1", want: []int{200, 201}},
-			{path: "/api/fac?all_net=100,101", want: []int{200, 201}},
-			{path: "/api/net?not_ix=300", want: []int{100, 101}},
 			{path: "/api/ix?ipblock=10.0.0.0/24", want: []int{300, 301}},
 			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4001}},
 			{path: "/api/ix?capacity__gte=1000", want: []int{300, 301}},
@@ -464,6 +464,90 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
 			// name_search: upstream returns the search-index hits.
 			{path: "/api/net?name_search=QueryNetA", want: []int{100, 101}},
+		})
+	})
+
+	t.Run("prepare_query_presence_keys", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:3750-3760 (net not_ix,
+		// not_fac), :2131-2201 (fac org_present, org_not_present,
+		// all_net, not_net), :4559-4629 (ix all_net, not_net,
+		// org_present, org_not_present); models.py:221-234
+		// (make_relation_filter pins the link row to status ok),
+		// :2349-2399, :2777-2828, :5603-5616, :5683-5697.
+		// synthesised: pdb_api_test.py has no case for these keys.
+		// See seedPresenceKeys for the rows.
+		c := seedPresenceKeys(t, t0)
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// not_ix and not_fac exclude the nets with an ok link. A
+			// not-operational or deleted link does not count.
+			{path: "/api/net?not_ix=20", want: []int{102}},
+			{path: "/api/net?not_ix=21", want: []int{100, 101, 102}},
+			{path: "/api/net?not_ix=22", want: []int{100, 101, 102}},
+			{path: "/api/net?not_fac=400", want: []int{102}},
+			{path: "/api/net?not_fac=401", want: []int{100, 101, 102}},
+			// A repeated key uses its first value (kwargs.get(k)[0]).
+			{path: "/api/net?not_ix=20&not_ix=22", want: []int{102}},
+			// Only the exact key is a presence key.
+			{path: "/api/net?not_ix__in=20", want: []int{100, 101, 102}},
+			// not_net and all_net read a comma-separated list.
+			{path: "/api/fac?not_net=100", want: []int{401, 402, 403}},
+			{path: "/api/fac?not_net=101,102", want: []int{401, 403}},
+			{path: "/api/fac?all_net=100,101", want: []int{400}},
+			{path: "/api/fac?all_net=100,100", want: []int{400}},
+			{path: "/api/fac?all_net=101", want: []int{400}},
+			{path: "/api/fac?all_net=101,102", want: []int{}},
+			{path: "/api/ix?not_net=100", want: []int{21, 22}},
+			{path: "/api/ix?not_net=101", want: []int{21, 22}},
+			{path: "/api/ix?all_net=100,101", want: []int{20}},
+			{path: "/api/ix?all_net=102", want: []int{}},
+			// org_present checks no status on the path: the deleted
+			// net 103, netfac 602, netixlan 503 and ixfac 701 count.
+			{path: "/api/fac?org_present=1", want: []int{400, 403}},
+			{path: "/api/fac?org_present=2", want: []int{400, 401, 402}},
+			{path: "/api/fac?org_present=3", want: []int{401, 402}},
+			{path: "/api/fac?org_present=2,1", want: []int{400, 401, 402, 403}},
+			{path: "/api/fac?org_present=9", want: []int{}},
+			{path: "/api/fac?org_not_present=2", want: []int{403}},
+			{path: "/api/fac?org_not_present=9", want: []int{400, 401, 402, 403}},
+			{path: "/api/ix?org_present=1", want: []int{20}},
+			{path: "/api/ix?org_present=2", want: []int{20, 21}},
+			{path: "/api/ix?org_present=3", want: []int{20, 22}},
+			{path: "/api/ix?org_not_present=3", want: []int{21}},
+		})
+		// An item that is not an integer raises ValueError upstream,
+		// which rest.py:488-500 returns as 400. not_ix and not_fac take
+		// one id, so a list is not an integer either.
+		for _, path := range []string{
+			"/api/net?not_ix=abc",
+			"/api/net?not_ix=",
+			"/api/net?not_ix=20,21",
+			"/api/net?not_fac=x",
+			"/api/fac?all_net=100,x",
+			"/api/fac?not_net=100,",
+			"/api/fac?org_present=a",
+			"/api/ix?all_net=",
+			"/api/ix?org_not_present=1,b",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
+			}
+		}
+		// A long list binds as one JSON array and adds no SQL term per
+		// id, so it stays under the SQLite variable and expression-depth
+		// limits. Upstream has no cap.
+		ids := make([]string, 0, 3000)
+		for i := range 3000 {
+			ids = append(ids, strconv.Itoa(100+i))
+		}
+		long := strings.Join(ids, ",")
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?all_net=" + long, want: []int{}},
+			{path: "/api/fac?not_net=" + long, want: []int{401}},
+			{path: "/api/ix?all_net=" + long, want: []int{}},
+			{path: "/api/fac?org_present=" + long, want: []int{}},
 		})
 	})
 
@@ -1536,6 +1620,83 @@ func seedRelationSeedKeys(t *testing.T, t0 time.Time) *ent.Client {
 		c.IxFacility.Create().
 			SetID(id).SetIxID(id - 680).SetFacID(400).
 			SetStatus(st).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	return c
+}
+
+// seedPresenceKeys seeds rows for the prepare_query presence keys:
+//   - orgs 1, 2 and 3.
+//   - nets 100 (org 1), 101 (org 2), 102 (org 3) and 103 (org 1,
+//     deleted).
+//   - facs 400 to 403 (org 3).
+//   - ixes 20 (org 3), 21 (org 1) and 22 (org 2), each with an ixlan of
+//     the same id, as upstream gives every ixlan the id of its exchange.
+//   - netixlans 500 (net 100, ixlan 20), 501 (net 101, ixlan 20), 502
+//     (net 101, ixlan 21, not-operational) and 503 (net 102, ixlan 22,
+//     deleted).
+//   - netfacs 600 (net 100, fac 400), 601 (net 101, fac 400), 602 (net
+//     101, fac 401, deleted), 603 (net 102, fac 402) and 604 (net 103,
+//     fac 403).
+//   - ixfacs 700 (ix 20, fac 401) and 701 (ix 22, fac 402, deleted).
+func seedPresenceKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	for _, id := range []int{1, 2, 3} {
+		mustOrg(ctx, t, c, id, fmt.Sprintf("PresenceOrg%d", id), t0)
+	}
+	for id, org := range map[int]int{100: 1, 101: 2, 102: 3} {
+		mustNet(ctx, t, c, id, fmt.Sprintf("PresenceNet%d", id), 64400+id, org, t0)
+	}
+	c.Network.Create().
+		SetID(103).SetName("PresenceNet103").SetNameFold("presencenet103").
+		SetAsn(64503).SetOrgID(1).
+		SetStatus("deleted").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	for _, id := range []int{400, 401, 402, 403} {
+		mustFac(ctx, t, c, id, fmt.Sprintf("PresenceFac%d", id), 3, t0)
+	}
+	for id, org := range map[int]int{20: 3, 21: 1, 22: 2} {
+		mustIX(ctx, t, c, id, fmt.Sprintf("PresenceIX%d", id), org, t0)
+		mustIxLan(ctx, t, c, id, fmt.Sprintf("PresenceLan%d", id), id, t0)
+	}
+	for _, n := range []struct {
+		id, net, lan int
+		status       string
+	}{
+		{500, 100, 20, "ok"},
+		{501, 101, 20, "ok"},
+		{502, 101, 21, "not-operational"},
+		{503, 102, 22, "deleted"},
+	} {
+		c.NetworkIxLan.Create().
+			SetID(n.id).SetNetID(n.net).SetIxlanID(n.lan).SetIxID(n.lan).
+			SetAsn(64400 + n.net).SetSpeed(1000).
+			SetStatus(n.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for _, n := range []struct {
+		id, net, fac int
+		status       string
+	}{
+		{600, 100, 400, "ok"},
+		{601, 101, 400, "ok"},
+		{602, 101, 401, "deleted"},
+		{603, 102, 402, "ok"},
+		{604, 103, 403, "ok"},
+	} {
+		c.NetworkFacility.Create().
+			SetID(n.id).SetNetID(n.net).SetFacID(n.fac).SetLocalAsn(64400 + n.net).
+			SetStatus(n.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for _, x := range []struct {
+		id, ix, fac int
+		status      string
+	}{
+		{700, 20, 401, "ok"},
+		{701, 22, 402, "deleted"},
+	} {
+		c.IxFacility.Create().
+			SetID(x.id).SetIxID(x.ix).SetFacID(x.fac).
+			SetStatus(x.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	return c
 }

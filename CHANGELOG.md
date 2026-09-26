@@ -8,6 +8,13 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Added
+
+- pdbcompat implements the upstream presence keys: `net?not_ix=` and `not_fac=`, and `not_net=`, `all_net=`, `org_present=` and `org_not_present=` on `fac` and `ix`.
+  Before, pdbcompat ignored these keys and returned the unfiltered list, so for example `net?not_ix=26` returned every network.
+  A value item that is not an integer returns `400`, as upstream.
+  See `docs/API.md` § Presence filters.
+
 ### Changed
 
 - Sync deletes a `poc` tombstone when its `updated` value is 30 days old, as upstream `pdb_delete_pocs` does (`POC_DELETION_PERIOD`).

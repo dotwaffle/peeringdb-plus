@@ -379,6 +379,12 @@ They read `vals[0]` (upstream `v[0]`), not the last value.
 Do not re-add these keys to `pdb_allowlists.go`: Path A never sees them.
 Semantics table: `docs/API.md § Relation filters`.
 
+**Presence keys (`internal/pdbcompat/presence_filter.go`).**
+The net keys `not_ix`/`not_fac` and the fac/ix keys `not_net`/`all_net`/`org_present`/`org_not_present` (upstream `prepare_query`) resolve in `ParseFiltersCtx` BEFORE the relation seeds, exact key only, first value.
+`not_*` = `sql.NotPredicates` over the relation seed of the same target (same `ok` pin); `all_net` = one `GROUP BY ... HAVING COUNT(DISTINCT net_id) = <distinct ids>` subquery (no SQL term per id); `org_present` checks no status on any row (upstream `.objects`), ix path compares `ix.id` with `netixlan.ixlan_id` as upstream does.
+A non-integer item is a 400.
+Locked by `TestParity_Traversal/prepare_query_presence_keys`.
+
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
 Keys come from `metaFilterColumns` (upstream `meta_registry.py:277-313`; the raw `meta_*` column names are aliases).

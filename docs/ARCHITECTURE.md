@@ -1108,6 +1108,7 @@ Two paths resolve the target field:
   the `cmd/pdb-compat-allowlist` step emits the maps from the same schema source
   as Path A, avoiding init-order coupling.
 
+The presence keys of an upstream `prepare_query` (`net?not_ix=`, `fac?all_net=`, `ix?org_present=`) resolve first, through `presenceKeys` in `internal/pdbcompat/presence_filter.go` ([API.md § Presence filters](./API.md#presence-filters)).
 The relation keys that an upstream `prepare_query` handles (`net?ix=`, `fac?net__name=`, `netixlan?ix_id=`) resolve before both paths, through `relationSeeds` in `internal/pdbcompat/relation_filter.go`.
 Each key walks a fixed path of up to three tables with nested `IN` subqueries and requires status `ok` on the one row that upstream pins ([API.md § Relation filters](./API.md#relation-filters)).
 
