@@ -361,13 +361,48 @@ func TestParity_In(t *testing.T) {
 		}
 	})
 
+	t.Run("date_key_without_operator_is_text_prefix", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:678-679 filters a date key without an
+		// operator with __startswith, which does not convert the value
+		// (prepare_rhs=False), so MySQL matches it as a prefix of the
+		// DATETIME(6) text "YYYY-MM-DD HH:MM:SS.ffffff" (LIKE BINARY,
+		// with % and _ escaped).
+		srv := seedDateNets(t)
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/net?created=2024-01-0", []int{1, 2}},
+			{"/api/net?created=2024-01-01", []int{1}},
+			{"/api/net?created=2024-01-01%2012:30:45", []int{1}},
+			{"/api/net?created=2024-01-01%2012:30:45.", []int{1}},
+			{"/api/net?created=2024-01-01T12:30:45", []int{}},
+			{"/api/net?created=2024-01-01%2012:30:45%2B00:00", []int{}},
+			{"/api/net?created=1704112245", []int{}},
+			{"/api/net?created=2024-01-01%25", []int{}},
+			{"/api/net?created=x", []int{}},
+			{"/api/net?created=", []int{1, 2}},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status %d, want 200; body=%s", tc.path, status, body)
+				continue
+			}
+			if ids := extractIDs(t, body); !slices.Equal(ids, tc.want) {
+				t.Errorf("%s: ids %v, want %v", tc.path, ids, tc.want)
+			}
+		}
+	})
+
 	t.Run("DIVERGENCE_date_compare_whole_seconds", func(t *testing.T) {
 		t.Parallel()
 		// upstream: created and updated are DATETIME(6), so a row
 		// created at 12:30:45.5 is later than 12:30:45 and matches
 		// created__gt=2024-01-01T12:30:45 (rest.py:640-669). The API
 		// shows whole seconds, and the mirror stores the second it
-		// shows, so the row matches __lte instead.
+		// shows, so the row matches __lte instead. A key without an
+		// operator that names microseconds matches the whole second.
 		srv := seedDateNets(t)
 		for _, tc := range []struct {
 			path string
@@ -375,6 +410,9 @@ func TestParity_In(t *testing.T) {
 		}{
 			{"/api/net?created__gt=2024-01-01T12:30:45", []int{2}},
 			{"/api/net?created__lte=2024-01-01T12:30:45", []int{1}},
+			// Upstream matches the microseconds of the text; the
+			// mirror matches every row of the second.
+			{"/api/net?created=2024-01-01%2012:30:45.5", []int{1}},
 		} {
 			status, body := httpGet(t, srv, tc.path)
 			if status != http.StatusOK {

@@ -13,10 +13,11 @@ import (
 )
 
 // TestTimeFilterSemantics locks upstream's date filter handling
-// (2.83.0 rest.py:640-679): time filters accept ISO 8601 alongside epoch
-// seconds; a bare 10-char date in gt/lte gets its time forced to
-// end-of-day (rest.py:642-645); and bare date equality matches the
-// whole day (the __startswith rewrite at rest.py:678-679).
+// (2.83.0 rest.py:640-679): the operators accept the ISO 8601 forms of
+// Django DateTimeField.to_python; a bare 10-char date in gt/lte gets its
+// time forced to end-of-day (rest.py:642-645); and a key without an
+// operator is a prefix of the database text of the column (the
+// __startswith rewrite at rest.py:678-679).
 func TestTimeFilterSemantics(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)
@@ -78,11 +79,19 @@ func TestTimeFilterSemantics(t *testing.T) {
 		{"gte date is start of day", "/api/net?updated__gte=2026-04-01", []int{1, 2}},
 		// RFC 3339 instants accepted.
 		{"rfc3339 gt", "/api/net?updated__gt=2026-04-01T10%3A00%3A00Z", []int{2}},
-		// An RFC 3339 offset names the same instant as the UTC row.
-		{"rfc3339 offset equality", "/api/net?updated=2026-04-01T11%3A00%3A00%2B01%3A00", []int{1}},
 		{"rfc3339 offset gte", "/api/net?updated__gte=2026-04-01T11%3A00%3A00%2B01%3A00", []int{1, 2}},
-		// Epoch seconds still accepted.
-		{"epoch equality", fmt.Sprintf("/api/net?updated=%d", day1.Unix()), []int{1}},
+		// A key without an operator is a text prefix: a month, an hour,
+		// the full second, the second with a fraction.
+		{"month prefix", "/api/net?updated=2026-04", []int{1, 2}},
+		{"hour prefix", "/api/net?updated=2026-04-02%2010", []int{2}},
+		{"second prefix", "/api/net?updated=2026-04-01%2010:00:00", []int{1}},
+		{"fraction prefix", "/api/net?updated=2026-04-01%2010:00:00.12", []int{1}},
+		// The text has a space, no T and no zone, so these match no row.
+		{"rfc3339 offset equality", "/api/net?updated=2026-04-01T11%3A00%3A00%2B01%3A00", []int{}},
+		{"T separator", "/api/net?updated=2026-04-01T10", []int{}},
+		{"zone after the fraction", "/api/net?updated=2026-04-01%2010:00:00.000000Z", []int{}},
+		{"epoch equality", fmt.Sprintf("/api/net?updated=%d", day1.Unix()), []int{}},
+		{"like wildcard is literal", "/api/net?updated=2026-04-0_", []int{}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

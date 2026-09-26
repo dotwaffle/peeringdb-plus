@@ -1098,6 +1098,8 @@ func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exact
 	}
 	if ft == FieldTime {
 		switch op := coerceToCaseInsensitive(op); op {
+		case "":
+			return dateTextPrefix(col, value), nil
 		case "lt", "lte", "gt", "gte", "icontains", "istartswith":
 			return buildDateOperator(col, op, value)
 		}
@@ -1145,6 +1147,32 @@ func textLike(col, expr, pattern string) func(*sql.Selector) {
 	return func(s *sql.Selector) {
 		s.Where(sql.ExprP(fmt.Sprintf(expr, s.C(col))+` LIKE ? ESCAPE '\'`, pattern))
 	}
+}
+
+// dateTextPrefix builds the predicate of a date key without an
+// operator. Upstream filters it with __startswith (2.83.0
+// rest.py:678-679), which does not convert the value, so MySQL matches
+// the value as a prefix of the DATETIME(6) text of the column,
+// "YYYY-MM-DD HH:MM:SS.ffffff" in UTC: ?created=2024-01 matches the
+// month and ?created=1700000000 matches no row. The mirror stores the
+// time as "YYYY-MM-DD HH:MM:SS +0000 UTC" (time.Time.String, whole
+// seconds), so the first 19 bytes are the upstream text up to the
+// seconds. The microseconds are not stored: a value that goes on with a
+// decimal point and up to 6 digits matches every row of its second.
+func dateTextPrefix(col, value string) func(*sql.Selector) {
+	value = ndToASCII(value)
+	const secondsLen = len("2006-01-02 15:04:05")
+	if len(value) > secondsLen {
+		frac := value[secondsLen:]
+		if frac[0] != '.' || len(frac) > 7 {
+			return func(s *sql.Selector) { s.Where(sql.False()) }
+		}
+		if _, ok := digitsAt(frac, 1, len(frac)-1); !ok {
+			return func(s *sql.Selector) { s.Where(sql.False()) }
+		}
+		value = value[:secondsLen]
+	}
+	return textLike(col, "substr(%s, 1, 19)", likeEscape(value)+"%")
 }
 
 // buildDateOperator builds an operator predicate on a date model field,

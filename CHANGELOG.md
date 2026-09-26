@@ -16,6 +16,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat matches a time key without an operator, for example `?updated=2024-01`, as a prefix of the upstream database text of the column (`YYYY-MM-DD HH:MM:SS.ffffff`), as upstream does.
+  A value with a `T`, a zone or Unix seconds matches no row, and a value that is not a time matches no row instead of returning `400`.
+  Before, pdbcompat matched a date as the whole day and any other value as one instant.
 - pdbcompat converts the value of `__lt`, `__lte`, `__gt`, `__gte`, `__contains` and `__startswith` on a time field as Django `DateTimeField.to_python` does upstream (Django 5.2 on CPython 3.14): the ISO 8601 forms of `datetime.fromisoformat`, for example `20240101` or `2024-W01-1`, and the Django forms, for example `2024-1-1 1:2`.
   Unix seconds and other values return `400`.
   `__contains` and `__startswith` on a time field match no row for a valid value, as upstream.

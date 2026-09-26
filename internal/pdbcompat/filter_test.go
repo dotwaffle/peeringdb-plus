@@ -713,9 +713,10 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			wantMsg: "filter info_unicast__lt",
 		},
 		{
+			// A plain time key is a text prefix and never fails.
 			name:    "time conversion error propagated",
-			params:  url.Values{"created": {"not-a-time"}},
-			wantMsg: "filter created",
+			params:  url.Values{"created__lt": {"not-a-time"}},
+			wantMsg: "filter created__lt",
 		},
 		{
 			name: "float conversion error propagated",
