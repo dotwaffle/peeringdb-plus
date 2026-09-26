@@ -54,7 +54,10 @@ func asSetPredicates() []predicate.Network {
 }
 
 // serveASSet serves /api/as_set and /api/as_set/<asn>. idStr is the raw
-// path segment after as_set. dispatch routes here before the Registry
+// path segment after as_set, without a format suffix (parseAPIPath).
+// Upstream answers a path with a format suffix with a 500: its list and
+// retrieve take no format argument (2.83.0 rest.py:1411-1414). The
+// mirror serves it (see docs/API.md § Known Divergences). dispatch routes here before the Registry
 // lookup, so this function takes the heap-delta sample of the request.
 func (h *Handler) serveASSet(w http.ResponseWriter, r *http.Request, idStr string) {
 	endpoint := asSetListEndpoint
@@ -63,15 +66,6 @@ func (h *Handler) serveASSet(w http.ResponseWriter, r *http.Request, idStr strin
 	}
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), endpoint, asSetPath, startHeapBytes)
-
-	// Upstream has no route for a path with more segments. For a "."
-	// the format-suffix route raises Http404 in content negotiation,
-	// before the method check (drf urlpatterns.py:109,
-	// negotiation.py:80-88, views.py:408-411).
-	if strings.ContainsAny(idStr, "./") {
-		writeDetailNotFound(w, r, detailSliceNotFound)
-		return
-	}
 
 	// DRF answers HEAD with 405 (getOnly). net/http sends no body for a
 	// HEAD response.

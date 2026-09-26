@@ -1017,6 +1017,92 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
+	t.Run("format_suffix_and_query_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: the viewsets are on a DefaultRouter (2.83.0
+		// rest.py:185, :1305), which adds a format suffix route
+		// \.(?P<format>[a-z0-9]+)/?$ to each route (drf routers.py,
+		// urlpatterns.py). Content negotiation reads the suffix, or
+		// else the last ?format= value (negotiation.py:44-45). The only
+		// renderer has the format json (settings
+		// DEFAULT_RENDERER_CLASSES, renderers.py:76-86), so another
+		// format is Http404 in initial(), before the method check
+		// (negotiation.py:80-88, views.py:408-411).
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			method, path string
+			want         int
+		}{
+			{http.MethodGet, "/api/net.json", http.StatusOK},
+			{http.MethodGet, "/api/net.json/", http.StatusOK},
+			{http.MethodGet, "/api/net/1.json", http.StatusOK},
+			{http.MethodGet, "/api/net/1.json/", http.StatusOK},
+			{http.MethodGet, "/api/.json", http.StatusOK},
+			{http.MethodGet, "/api/net?format=json", http.StatusOK},
+			{http.MethodGet, "/api/net?format=", http.StatusOK},
+			{http.MethodGet, "/api/net?format=xml&format=json", http.StatusOK},
+			{http.MethodGet, "/api/net.json?format=xml", http.StatusOK},
+			{http.MethodGet, "/api/net/1?format=json", http.StatusOK},
+			{http.MethodGet, "/api/net?format=xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net?format=json&format=xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net?format=JSON", http.StatusNotFound},
+			{http.MethodGet, "/api/net?format=api", http.StatusNotFound},
+			{http.MethodGet, "/api/net.xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net/1.xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net/1.5", http.StatusNotFound},
+			{http.MethodGet, "/api/.xml", http.StatusNotFound},
+			{http.MethodGet, "/api/?format=xml", http.StatusNotFound},
+			// The format check comes before the parameter checks.
+			{http.MethodGet, "/api/net.xml?depth=x", http.StatusNotFound},
+			{http.MethodPost, "/api/net.xml", http.StatusNotFound},
+			{http.MethodDelete, "/api/net/1?format=xml", http.StatusNotFound},
+			{http.MethodPost, "/api/net.json", http.StatusMethodNotAllowed},
+			{http.MethodHead, "/api/ixlan.xml", http.StatusNotFound},
+			{http.MethodHead, "/api/ixlan.json", http.StatusMethodNotAllowed},
+		} {
+			status, _, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != tc.want {
+				t.Errorf("%s %s: status = %d, want %d; body=%s", tc.method, tc.path, status, tc.want, string(body))
+				continue
+			}
+			if status == http.StatusNotFound && tc.method != http.MethodHead {
+				if got := mustDecodeMetaError(t, body).Error; got != "Not found." {
+					t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, "Not found.")
+				}
+			}
+		}
+		// A suffix serves the same body.
+		_, plain := httpGet(t, srv, "/api/net/1")
+		if _, suffixed := httpGet(t, srv, "/api/net/1.json"); string(suffixed) != string(plain) {
+			t.Errorf("/api/net/1.json body = %s, want %s", suffixed, plain)
+		}
+	})
+
+	t.Run("DIVERGENCE_as_set_format_suffix_served", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: the as_set list and retrieve take no format
+		// argument (2.83.0 rest.py:1411-1414), so a path with the
+		// format suffix json fails with TypeError, and upstream
+		// returns 500. The mirror serves the path as it serves the
+		// path without the suffix. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		c.Network.UpdateOneID(1).SetIrrAsSet("AS-ONE").ExecX(t.Context())
+		srv := newTestServer(t, c)
+		for _, pair := range [][2]string{
+			{"/api/as_set.json", "/api/as_set"},
+			{"/api/as_set/64501.json", "/api/as_set/64501"},
+		} {
+			status, body := httpGet(t, srv, pair[0])
+			_, want := httpGet(t, srv, pair[1])
+			if status != http.StatusOK || string(body) != string(want) {
+				t.Errorf("%s: status = %d, body = %s; want 200 and %s", pair[0], status, body, want)
+			}
+		}
+	})
+
 	t.Run("get_only_head_and_options_405_allow_get", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 rest.py:1404 (as_set, http_method_names =

@@ -604,7 +604,7 @@ func TestListDepth_RendersLazily(t *testing.T) {
 		ResponseRecorder: httptest.NewRecorder(),
 		snap:             func() [2]int { return [2]int{loads, renders} },
 	}
-	h.serveList(tc, w, httptest.NewRequest(http.MethodGet, "/api/org?depth=1", nil))
+	h.serveList(tc, w, httptest.NewRequest(http.MethodGet, "/api/org?depth=1", nil), false)
 	if w.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", w.Code, w.Body.String())
 	}
@@ -882,6 +882,49 @@ func TestServeList_DepthTruncatesLeafTypes(t *testing.T) {
 			if _, ok := env.Data[0][k]; ok {
 				t.Errorf("budget %d: row has the forward FK object %q", budget, k)
 			}
+		}
+	}
+}
+
+// TestServeList_FormatSuffixDepthIsLive locks that a list path with a
+// format suffix is cut to apiDepthRowLimit rows at depth > 0 without a
+// filter: upstream serves a path with a URL kwarg from its live query,
+// not from its API cache (2.83.0 api_cache.py:120-122).
+func TestServeList_FormatSuffixDepthIsLive(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	r := seed.Full(t, client)
+	now := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	builders := make([]*ent.NetworkIxLanCreate, 0, 260)
+	for i := range 260 {
+		builders = append(builders, client.NetworkIxLan.Create().
+			SetID(10000+i).SetNetID(r.Network.ID).SetIxlanID(r.IxLan.ID).SetAsn(64999).SetSpeed(1000).
+			SetCreated(now).SetUpdated(now).SetStatus("ok"))
+	}
+	client.NetworkIxLan.CreateBulk(builders...).SaveX(ctx)
+	_, mux := newListDepthMux(client, 0, defaultListDepthChunk)
+	for _, tc := range []struct {
+		path          string
+		wantTruncated bool
+	}{
+		{"/api/netixlan?depth=1", false},
+		{"/api/netixlan.json?depth=1", true},
+	} {
+		rec := getList(mux, tc.path)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d; body=%s", tc.path, rec.Code, rec.Body.String())
+		}
+		var env struct {
+			Meta map[string]string `json:"meta"`
+			Data []map[string]any  `json:"data"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatal(err)
+		}
+		_, truncated := env.Meta["truncated"]
+		if truncated != tc.wantTruncated || (len(env.Data) == apiDepthRowLimit) != tc.wantTruncated {
+			t.Errorf("%s: %d rows, meta %v; want truncated = %v", tc.path, len(env.Data), env.Meta, tc.wantTruncated)
 		}
 	}
 }

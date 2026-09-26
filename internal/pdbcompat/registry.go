@@ -195,6 +195,9 @@ var reservedParams = map[string]bool{
 	"q":      true,
 	"fields": true,
 	"pretty": true,
+	// format selects the renderer (formatAccepted). Upstream also reads
+	// it as a filter key, which names no field.
+	"format": true,
 }
 
 // Registry maps PeeringDB type name strings to their TypeConfig.

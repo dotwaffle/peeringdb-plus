@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat serves the format suffix `.json` on every `/api/` route, for example `/api/net.json` and `/api/net/1.json`, as upstream does, and returns `404` (`Not found.`) for another suffix or a `?format=` value other than `json`, before any other check.
+  A `?depth=` list with the suffix is cut to 250 rows also without a filter, because the upstream API cache does not serve it.
+  `/api/as_set.json` is served, where upstream returns `500` (registered divergence).
+  Before, pdbcompat returned `404` for every suffix and ignored `?format=`.
 - pdbcompat answers `HEAD` on `/api/ixlan` and `/api/ixlan/{id}` with `405` and `Allow: GET`, as upstream does: the upstream `ixlan` viewset maps only `GET` and `PUT`.
   The other `405` responses on these paths also send `Allow: GET`.
   A CORS preflight still gets its answer from the CORS middleware.

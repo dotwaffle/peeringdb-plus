@@ -83,9 +83,19 @@ func (h *Handler) Register(mux *http.ServeMux) {
 // methods in Allow and runs the write handlers (docs/API.md § Known
 // Divergences). The mux sets no Allow header for this pattern, so the
 // handler sets it. The paths of getOnly types get Allow: GET.
+//
+// Content negotiation comes before the method check, so on a path that
+// an upstream route matches, a format other than json is a 404 (see
+// dispatch).
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
+	_, known := Registry[typeName]
+	if routed && (known || typeName == "" || typeName == asSetPath) && !formatAccepted(format, r.URL.Query()) {
+		writeDetailNotFound(w, r, detailSliceNotFound)
+		return
+	}
 	allow := "GET, HEAD"
-	if typeName, _ := splitTypeID(r.PathValue("rest")); getOnly(typeName) {
+	if getOnly(typeName) {
 		allow = "GET"
 	}
 	writeMethodNotAllowed(w, r, allow)
@@ -114,13 +124,14 @@ func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string)
 // dispatch routes requests under /api/ to index, list, or detail handlers
 // based on the URL path structure.
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
-	rest := r.PathValue("rest")
-
-	// Parse the rest path: "", "{type}", "{type}/", or "{type}/{id}".
-	typeName, idStr := splitTypeID(rest)
+	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))
 
 	if typeName == "" {
-		// /api/ or /api -- serve the index.
+		// /api/, /api or /api/.json -- serve the index.
+		if !formatAccepted(format, r.URL.Query()) {
+			writeDetailNotFound(w, r, detailSliceNotFound)
+			return
+		}
 		h.serveIndex(w, r)
 		return
 	}
@@ -130,6 +141,10 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// below turns an id that is not an integer into a 404. The as_set
 	// lookup parses its own ASN and takes its own heap-delta sample.
 	if typeName == asSetPath {
+		if !routed || !formatAccepted(format, r.URL.Query()) {
+			writeDetailNotFound(w, r, detailSliceNotFound)
+			return
+		}
 		h.serveASSet(w, r, idStr)
 		return
 	}
@@ -161,16 +176,15 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
 
-	// Detail endpoint: /api/{type}/{id}. An id with a "." or a "/" is
-	// a 404 before any parameter check. Upstream routes "1.5" as pk "1"
-	// with format suffix "5", and the renderer negotiation raises Http404
-	// in initial(), before get_queryset (drf routers.py:143,
-	// urlpatterns.py:109, negotiation.py:80-88, views.py:408-411).
-	// Upstream has no GET route for a path with more segments: it sends
-	// its HTML 404 page, or 405 on a POST-only action path such as
-	// /api/ix/<id>/request_ixf_import (rest.py:209-228, :1033-1191).
+	// A detail path that no upstream route matches is a 404 before any
+	// parameter check. Upstream has no GET route for a path with more
+	// segments: it sends its HTML 404 page, or 405 on a POST-only action
+	// path such as /api/ix/<id>/request_ixf_import (rest.py:209-228,
+	// :1033-1191). A format other than json raises Http404 in the
+	// content negotiation of initial(), before get_queryset and before
+	// the method check (drf negotiation.py:80-88, views.py:408-411).
 	// serveDetail parses any other id after the parameter checks.
-	if strings.ContainsAny(idStr, "./") {
+	if !routed || !formatAccepted(format, r.URL.Query()) {
 		writeDetailNotFound(w, r, detailSliceNotFound)
 		return
 	}
@@ -185,10 +199,60 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 
 	if idStr == "" {
 		// List endpoint: /api/{type} or /api/{type}/
-		h.serveList(tc, w, r)
+		h.serveList(tc, w, r, format != "")
 		return
 	}
 	h.serveDetail(tc, idStr, w, r)
+}
+
+// parseAPIPath splits a rest path such as "net", "net/42" or
+// "net/42.json" into the type name, the id and the format suffix.
+// routed is false when no upstream route matches the path: an id with
+// more segments, or a "." that is not a format suffix. A type name with
+// such a "." is returned whole and names no type.
+func parseAPIPath(rest string) (typeName, id, format string, routed bool) {
+	typeName, id = splitTypeID(rest)
+	if id == "" {
+		base, format, ok := cutFormatSuffix(typeName)
+		return base, "", format, ok
+	}
+	base, format, ok := cutFormatSuffix(id)
+	if !ok || base == "" || strings.Contains(base, "/") {
+		return typeName, id, "", false
+	}
+	return typeName, base, format, true
+}
+
+// cutFormatSuffix splits the format suffix off the last segment of an
+// /api/ path. Upstream registers its viewsets on a DefaultRouter
+// (2.83.0 rest.py:185, :1305), which adds a route with the suffix
+// \.(?P<format>[a-z0-9]+)/?$ to each route (drf routers.py
+// include_format_suffixes, urlpatterns.py format_suffix_patterns).
+// The type name and the lookup value ([^/.]+) have no ".". ok is false
+// when seg has a "." in another form.
+func cutFormatSuffix(seg string) (base, format string, ok bool) {
+	base, format, found := strings.Cut(seg, ".")
+	if !found {
+		return seg, "", true
+	}
+	if format == "" || strings.Trim(format, "abcdefghijklmnopqrstuvwxyz0123456789") != "" {
+		return seg, "", false
+	}
+	return base, format, true
+}
+
+// formatAccepted reports whether DRF content negotiation accepts the
+// format of a request: the format suffix, or else the last ?format=
+// value (drf negotiation.py:44-45, Django QueryDict.get). The only
+// upstream renderer has the format json (settings DEFAULT_RENDERER_CLASSES,
+// renderers.py:76-86). Another format raises Http404
+// (negotiation.py:80-88), and an empty value selects no format.
+func formatAccepted(suffix string, params url.Values) bool {
+	format := suffix
+	if vals := params["format"]; format == "" && len(vals) > 0 {
+		format = vals[len(vals)-1]
+	}
+	return format == "" || format == "json"
 }
 
 // splitTypeID splits a rest path like "net", "net/", "net/42" into type name
@@ -240,7 +304,10 @@ func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 
 // serveList handles list requests for the given type. The per-request
 // heap-delta sampler lives in dispatch (shared with serveDetail).
-func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request) {
+//
+// suffixed is set for a path with a format suffix, which upstream never
+// serves from its API cache (depthListIsLive).
+func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request, suffixed bool) {
 	params := r.URL.Query()
 	unique := isUniqueQuery(tc.Name, params)
 
@@ -333,7 +400,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// A list at depth > 0 is cut to apiDepthRowLimit rows when upstream
 	// would serve it from its live query, not from its API cache
 	// (depthListIsLive).
-	live := depth > 0 && depthListIsLive(lf, params, q)
+	live := depth > 0 && depthListIsLive(lf, params, q, suffixed)
 	if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() && depth != 0 {
 		span.SetAttributes(attribute.Int("pdbplus.list.depth", depth))
 	}
@@ -529,9 +596,10 @@ func truncatedMeta(depthText string) map[string]string {
 // the mirror ignores and upstream filters (for example org_flags or
 // fac?ix_side_set__asn=) does not count, so the mirror serves such a
 // list whole (see docs/API.md § Known Divergences). ?q= is a mirror
-// extension that filters, so it counts.
-func depthListIsLive(lf listFilters, params url.Values, q string) bool {
-	return lf.upstreamFilter || sinceIsNonZero(params) || q != ""
+// extension that filters, so it counts. The cache also needs no URL
+// kwarg (api_cache.py:120-122), and a format suffix is one (suffixed).
+func depthListIsLive(lf listFilters, params url.Values, q string, suffixed bool) bool {
+	return lf.upstreamFilter || sinceIsNonZero(params) || q != "" || suffixed
 }
 
 // sinceIsNonZero reports whether ?since= holds a value other than 0.
