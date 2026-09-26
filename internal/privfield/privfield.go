@@ -25,8 +25,10 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
-// Redact returns (value, false) if the caller's tier on ctx admits the
-// field, or ("", true) if the serializer should omit the field entirely.
+// Redact returns (value, false) when the caller's tier on ctx admits the
+// field, or (zero value of T, true) when the serializer must omit it. T is
+// the stored type of the gated value, for example *string for a nullable
+// column.
 //
 // Admission rule: admit when visible is in the caller tier's
 // privctx.Tier.AdmittedVisibilities, the same set that the row gates use.
@@ -41,9 +43,10 @@ import (
 // privctx.TierFrom(ctx) already returns TierPublic for un-stamped
 // contexts, so an un-plumbed ctx naturally lands in the most
 // restrictive branch — no extra check needed here.
-func Redact(ctx context.Context, visible, value string) (out string, omit bool) {
+func Redact[T any](ctx context.Context, visible string, value T) (out T, omit bool) {
 	if slices.Contains(privctx.TierFrom(ctx).AdmittedVisibilities(), visible) {
 		return value, false
 	}
-	return "", true
+	var zero T
+	return zero, true
 }

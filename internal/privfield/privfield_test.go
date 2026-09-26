@@ -54,3 +54,47 @@ func TestRedact(t *testing.T) {
 		})
 	}
 }
+
+// TestRedact_Pointer checks Redact with a *string value, the stored type
+// of a nullable column. An admitted value comes back as the same pointer,
+// so nil stays nil and a pointer to "" stays a pointer to "". An omitted
+// value comes back as nil.
+func TestRedact_Pointer(t *testing.T) {
+	t.Parallel()
+
+	url := "https://example.test/members.json"
+	empty := ""
+
+	publicCtx := privctx.WithTier(context.Background(), privctx.TierPublic)
+	usersCtx := privctx.WithTier(context.Background(), privctx.TierUsers)
+	bareCtx := context.Background() // un-stamped: TierFrom returns TierPublic
+
+	tests := []struct {
+		name     string
+		ctx      context.Context
+		visible  string
+		value    *string
+		wantOut  *string
+		wantOmit bool
+	}{
+		{"admitted-nil-stays-nil", publicCtx, "Public", nil, nil, false},
+		{"admitted-empty-stays-empty", usersCtx, "Users", &empty, &empty, false},
+		{"admitted-url", usersCtx, "Public", &url, &url, false},
+		{"redacted-url", publicCtx, "Users", &url, nil, true},
+		{"redacted-nil", publicCtx, "Private", nil, nil, true},
+		{"unstamped-ctx-fail-closed", bareCtx, "Users", &url, nil, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			gotOut, gotOmit := privfield.Redact(tc.ctx, tc.visible, tc.value)
+			if gotOut != tc.wantOut {
+				t.Errorf("out = %p, want %p", gotOut, tc.wantOut)
+			}
+			if gotOmit != tc.wantOmit {
+				t.Errorf("omit = %v, want %v", gotOmit, tc.wantOmit)
+			}
+		})
+	}
+}

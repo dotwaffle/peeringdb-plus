@@ -67,7 +67,7 @@ Two ent fields carry upstream PeeringDB visibility signals:
 
 ### Field-level privacy
 
-`internal/privfield.Redact(ctx, visible, value) (out string, omit bool)` is the single source of truth.
+`internal/privfield.Redact[T any](ctx, visible string, value T) (out T, omit bool)` is the single source of truth (T is the stored type of the gated value).
 Every API serializer calls it for each gated field; `privctx.TierFrom(ctx)` reads the tier stamped by `middleware.PrivacyTier`, and unstamped contexts fail-closed to `TierPublic`.
 Serializer surfaces that must call `Redact` today:
 
@@ -777,7 +777,7 @@ Single-source-of-truth packages:
   `LiveStatuses(name)` mirrors upstream `live_statuses()` (feeds the pdbcompat status matrix).
   Exception: `internal/sync` keeps its own ordered step list — loadtest's ordering parity test cross-checks the two.
 - `internal/pdbcompat/` — PeeringDB-compatible `/api` layer (filter routing, allowlist, status matrix, response budget)
-- `internal/privfield/` `Redact(ctx, visible, value)`: field-level redaction across all 6 surfaces
+- `internal/privfield/` `Redact[T](ctx, visible, value)`: field-level redaction across all 6 surfaces
 - `internal/privctx/` `TierFrom(ctx)` — privacy tier reader
 - `internal/unifold/` `Fold(s string) string` — diacritic-insensitive folding (mirrors upstream `unidecode`)
 - `internal/visbaseline/` — visibility baseline + schema-alignment regression test

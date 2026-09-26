@@ -421,7 +421,7 @@ When the last attempt fails, the caller logs its usual failure line.
   the wrap order is regression-locked by `TestMiddlewareChain_Order` in
   `middleware_chain_test.go`.
 - **`privfield.Redact`** (`internal/privfield/`) — Single source of truth for field-level redaction.
-  Every API serializer that exposes a gated field (e.g. `ixlan.ixf_ixp_member_list_url`) calls `Redact(ctx, visible, value) (out string, omit bool)`; unstamped contexts fail-closed to `TierPublic`.
+  Every API serializer that exposes a gated field (e.g. `ixlan.ixf_ixp_member_list_url`) calls `Redact[T any](ctx, visible string, value T) (out T, omit bool)`; unstamped contexts fail-closed to `TierPublic`.
 - **`unifold.Fold`** (`internal/unifold/unifold.go`) — Diacritic-insensitive folding (NFKD + ligature map) used to populate the 16 `<field>_fold` shadow columns spread across 6 entity types.
   The pdbcompat filter layer routes `__contains` / `__startswith` predicates to these shadow columns for parity with upstream PeeringDB's `unidecode` behaviour.
 
@@ -710,7 +710,7 @@ The pieces:
    `/rest/v1/networks?sort=pocs.count` returns 400, and the OpenAPI enum does not list the field.
    A new filter or sort that reads `pocs` in a subquery must apply `AdmittedVisibilities()`, or the API must not offer it.
 3. **Field-level — `privfield.Redact`** (`internal/privfield/`).
-   `Redact(ctx, visible, value) (out string, omit bool)` is the single source of truth for per-field redaction.
+   `Redact[T any](ctx, visible string, value T) (out T, omit bool)` is the single source of truth for per-field redaction.
    It admits the same visibility values as the row policy (`privctx.Tier.AdmittedVisibilities()`), so the row gate and the field gate cannot disagree.
    Every API serializer that exposes a gated field calls `Redact`; unstamped contexts fail-closed to `TierPublic`.
    The current gated field is `ixlan.ixf_ixp_member_list_url` (gated by sibling `ixf_ixp_member_list_url_visible`).
