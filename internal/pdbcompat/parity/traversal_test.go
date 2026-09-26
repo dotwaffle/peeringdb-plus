@@ -53,15 +53,19 @@ import (
 //     values.
 //   - `ix?ipblock=` keeps the exchanges with a prefix whose text
 //     starts with the value (not containment), as upstream.
+//   - `ixpfx?whereis=` keeps the prefixes that contain the address, as
+//     upstream; a value that is not an address is a 400.
+//   - DIVERGENCE: `ixpfx?whereis=` ignores a prefix row with an empty
+//     prefix, where upstream returns 400 for every lookup.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
-//     (prepare_query keys such as asn_overlap and whereis,
+//     (prepare_query keys such as asn_overlap and capacity,
 //     hide_ix_no_fac, name_search) are silent-ignored, also on a
 //     single-object GET (`ix/<id>?hide_ix_no_fac=1`).
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
-//   - DIVERGENCE: a relation key given in two forms
-//     (`ix?net=1&net__in=2`) applies both forms, where upstream uses
-//     one.
+//   - DIVERGENCE: a relation key or ixpfx whereis given in two forms
+//     (`ix?net=1&net__in=2`, `ixpfx?whereis=A&whereis__contains=B`)
+//     applies both forms, where upstream uses one.
 //   - A relation key of a prepare_query whose field the related model
 //     does not have (`fac?net__bogus=`, `net?netfac__name=`) returns
 //     400 Invalid query. `pk`, the Django lookup names on a relation
@@ -458,14 +462,15 @@ func TestParity_Traversal(t *testing.T) {
 		// name_search. They are not model fields, and the mirror does
 		// not implement them, so they are silent-ignored and the list is
 		// unfiltered. The presence keys (not_ix, all_net, org_present and
-		// the others) are parity: see prepare_query_presence_keys. So is
-		// ix ipblock: see prepare_query_ipblock.
+		// the others) are parity: see prepare_query_presence_keys. So
+		// are ix ipblock and ixpfx whereis: see prepare_query_ipblock
+		// and prepare_query_whereis.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 serializers.py:2092-2210
 		// (FacilitySerializer.prepare_query), :3708-3762 (Network),
-		// :4503-4631 (InternetExchange), :4970-4992 (Organization),
-		// :4154-4168 (IXLanPrefix); rest.py:1267-1297 (hide_ix_no_fac),
+		// :4503-4631 (InternetExchange), :4970-4992 (Organization);
+		// rest.py:1267-1297 (hide_ix_no_fac),
 		// :532-553 (name_search)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
@@ -477,11 +482,8 @@ func TestParity_Traversal(t *testing.T) {
 		mustFac(ctx, t, c, 201, "QueryFacB", 2, t0)
 		mustIX(ctx, t, c, 300, "QueryIXA", 1, t0)
 		mustIX(ctx, t, c, 301, "QueryIXB", 2, t0)
-		// Net 100 connects to IX 300 through one netixlan, and the LAN
-		// of IX 300 holds two prefixes.
+		// Net 100 connects to IX 300 through one netixlan.
 		mustIxLan(ctx, t, c, 3000, "QueryLanA", 300, t0)
-		mustIxPfx(ctx, t, c, 4000, "10.0.0.0/24", 3000, t0)
-		mustIxPfx(ctx, t, c, 4001, "10.1.0.0/24", 3000, t0)
 		if _, err := c.NetworkIxLan.Create().
 			SetID(5000).SetNetID(100).SetIxlanID(3000).SetIxID(300).
 			SetAsn(64500).SetSpeed(1000).
@@ -492,7 +494,7 @@ func TestParity_Traversal(t *testing.T) {
 
 		srv := newTestServer(t, c)
 		// No netfac or ixfac rows exist. Upstream returns a narrower
-		// list for each request below (for example [4000] for whereis),
+		// list for each request below (for example [] for capacity),
 		// or 400 (see asn_overlap and distance).
 		// The relation keys of a prepare_query (net?ix_id=,
 		// fac?net_id=, org?asn=) resolve: see
@@ -501,7 +503,6 @@ func TestParity_Traversal(t *testing.T) {
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			// prepare_query keys.
 			{path: "/api/fac?asn_overlap=64500,64501", want: []int{200, 201}},
-			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4001}},
 			{path: "/api/ix?capacity__gte=1000", want: []int{300, 301}},
 			{path: "/api/org?distance=10", want: []int{1, 2}},
 			// Upstream returns 400 for a single ASN
@@ -687,6 +688,121 @@ func TestParity_Traversal(t *testing.T) {
 		if status, body := httpGet(t, srv, "/api/ix?id=20&ipblock=10.0.0.5"); status != http.StatusNotFound {
 			t.Errorf("GET /api/ix?id=20&ipblock=10.0.0.5: status = %d, want 404; body=%s", status, string(body))
 		}
+	})
+
+	t.Run("prepare_query_whereis", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:4154-4168
+		// (IXLanPrefixSerializer.prepare_query: whereis and its operator
+		// forms, first value, serializers.py:614-656), models.py:5179-5197
+		// (IXLanPrefix.whereis_ip: ipaddress.ip_address, then
+		// "ipaddr in ixpfx.prefix" over every row of every status),
+		// rest.py:493-500 (ValueError -> 400), rest.py:719-750 (status
+		// matrix), rest.py:809-815 (unique-query 404);
+		// pdb_api_test.py:4379-4387 (the network address of the prefix
+		// finds it). See seedWhereis for the rows.
+		srv := newTestServer(t, seedWhereis(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4002}},
+			{path: "/api/ixpfx?whereis=10.0.0.0", want: []int{4000, 4002}},
+			{path: "/api/ixpfx?whereis=10.0.0.255", want: []int{4000, 4002}},
+			{path: "/api/ixpfx?whereis=10.0.1.1", want: []int{4002}},
+			{path: "/api/ixpfx?whereis=10.9.9.9", want: []int{}},
+			// The parser normalizes the address, and the zone has no
+			// effect (ipaddress.py:749 compares _ip only).
+			{path: "/api/ixpfx?whereis=2001:DB8:100:0::1", want: []int{4003}},
+			{path: "/api/ixpfx?whereis=2001:db8:100::1%25eth0", want: []int{4003}},
+			// An IPv4-mapped address is IPv6 and never in an IPv4
+			// network (ipaddress.py:739-749).
+			{path: "/api/ixpfx?whereis=::ffff:10.0.0.5", want: []int{}},
+			// Only the deleted 4004 holds it: the status matrix drops it
+			// from a plain list and keeps it with since.
+			{path: "/api/ixpfx?whereis=10.2.0.1", want: []int{}},
+			{path: "/api/ixpfx?whereis=10.2.0.1&since=1", want: []int{4004}},
+			// whereis_ip does not use the operator.
+			{path: "/api/ixpfx?whereis__contains=10.0.1.1", want: []int{4002}},
+			{path: "/api/ixpfx?whereis__startswith=10.0.1.1", want: []int{4002}},
+			{path: "/api/ixpfx?whereis__lt=10.0.1.1", want: []int{4002}},
+			{path: "/api/ixpfx?whereis__gte=10.0.1.1", want: []int{4002}},
+			// A repeated key uses its first value.
+			{path: "/api/ixpfx?whereis=10.0.1.1&whereis=10.1.0.1", want: []int{4002}},
+			// The key ANDs with the other filters.
+			{path: "/api/ixpfx?whereis=10.0.0.5&ix=300", want: []int{4000, 4002}},
+			{path: "/api/ixpfx?whereis=10.0.0.5&protocol=IPv6", want: []int{}},
+		})
+		// Upstream ignores the other forms, and the key on other types.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/ixpfx?whereis__iexact=10.0.1.1", want: []int{4000, 4001, 4002, 4003}},
+			{path: "/api/ixpfx?whereis__icontains=abc", want: []int{4000, 4001, 4002, 4003}},
+			{path: "/api/ixpfx?whereis_id=abc", want: []int{4000, 4001, 4002, 4003}},
+			{path: "/api/ix?whereis=10.0.0.5", want: []int{300}},
+		})
+		// ipaddress.ip_address raises ValueError for a value that is
+		// not one address, and whereis__in gives it a list: 400
+		// (rest.py:493-500). The error wins over an empty __in.
+		for _, path := range []string{
+			"/api/ixpfx?whereis=",
+			"/api/ixpfx?whereis=abc",
+			"/api/ixpfx?whereis=10.0.0.0/24",
+			"/api/ixpfx?whereis=%2010.0.0.5",
+			"/api/ixpfx?whereis=+10.0.0.5",
+			"/api/ixpfx?whereis=010.0.0.5",
+			"/api/ixpfx?whereis=167772165",
+			"/api/ixpfx?whereis=1.2.3",
+			"/api/ixpfx?whereis=2001:db8::1%25",
+			"/api/ixpfx?whereis=2001:db8::1%25a%25b",
+			"/api/ixpfx?whereis=10.0.0.5%25eth0",
+			"/api/ixpfx?whereis__in=10.0.0.5",
+			"/api/ixpfx?whereis__in=",
+			"/api/ixpfx?whereis=abc&id__in=",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "does not appear to be an IPv4 or IPv6 address") {
+				t.Errorf("GET %s: meta.error = %q, want the address error", path, msg)
+			}
+		}
+		// A lookup by id that the key excludes is the unique-query 404.
+		path := "/api/ixpfx?id=4001&whereis=10.0.0.5"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
+		}
+		if msg := mustDecodeMetaError(t, body).Error; msg != "Entity not found" {
+			t.Errorf("GET %s: meta.error = %q, want %q", path, msg, "Entity not found")
+		}
+	})
+
+	t.Run("DIVERGENCE_whereis_ignores_empty_prefix_row", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream whereis_ip tests the address against
+		// every row of every status (2.83.0 rest.py:482,
+		// models.py:5193-5195). django-inet loads an empty prefix as
+		// None (django-inet 1.1.1 models.py:195-200), "ip in None"
+		// raises TypeError at models.py:5194, and rest.py:497-498
+		// returns it as 400. So upstream returns 400 for every lookup
+		// while such a row exists, for example the tombstone ixpfx 4185
+		// (prefix: null). This is derived from the source, not verified
+		// on the live API. The mirror ignores the row.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := seedWhereis(t, t0)
+		ctx := t.Context()
+		if _, err := c.IxPrefix.Create().
+			SetID(4005).SetPrefix("").SetProtocol("IPv4").SetIxlanID(3000).
+			SetStatus("deleted").SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed ixpfx 4005: %v", err)
+		}
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			// Upstream: 400.
+			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4002}},
+			{path: "/api/ixpfx?whereis=10.0.0.5&since=1", want: []int{4000, 4002}},
+		})
 	})
 
 	t.Run("netixlan_ix_side_facility_keys_filter_like_upstream", func(t *testing.T) {
@@ -1089,6 +1205,19 @@ func TestParity_Traversal(t *testing.T) {
 		// Upstream: 200 [22]. It parses only the net__in value.
 		path := "/api/ix?net=abc&net__in=101"
 		if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+		}
+		// The ixpfx whereis key and its operator forms share one entry
+		// in the same way (2.83.0 serializers.py:4157). See seedWhereis
+		// for the rows.
+		srv2 := newTestServer(t, seedWhereis(t, t0))
+		assertKeysResolve(t, srv2, []silentIgnoreCase{
+			// Upstream: [4000 4002] (whereis__contains).
+			{path: "/api/ixpfx?whereis=10.1.0.1&whereis__contains=10.0.0.5", want: []int{}},
+		})
+		// Upstream: 200 [4000 4002]. It parses only the whereis value.
+		path = "/api/ixpfx?whereis__in=x&whereis=10.0.0.5"
+		if status, body := httpGet(t, srv2, path); status != http.StatusBadRequest {
 			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
 		}
 	})
@@ -1904,6 +2033,37 @@ func seedFKKeys(t *testing.T, t0 time.Time) *ent.Client {
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	mustNet(ctx, t, c, 102, "FKNet102", 64502, 3, t0)
+	return c
+}
+
+// seedWhereis seeds the prefixes for the ixpfx whereis key: org 1, ix
+// 300, ixlan 3000, and ixpfx 4000 10.0.0.0/24, 4001 10.1.0.0/24, 4002
+// 10.0.0.0/23, 4003 2001:db8:100::/48 (IPv6) and 4004 10.2.0.0/24
+// (deleted). Each prefix has the canonical form that upstream stores.
+func seedWhereis(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "WhereisOrg", t0)
+	mustIX(ctx, t, c, 300, "WhereisIX", 1, t0)
+	mustIxLan(ctx, t, c, 3000, "WhereisLan", 300, t0)
+	mustIxPfx(ctx, t, c, 4000, "10.0.0.0/24", 3000, t0)
+	mustIxPfx(ctx, t, c, 4001, "10.1.0.0/24", 3000, t0)
+	mustIxPfx(ctx, t, c, 4002, "10.0.0.0/23", 3000, t0)
+	for _, r := range []struct {
+		id                       int
+		prefix, protocol, status string
+	}{
+		{4003, "2001:db8:100::/48", "IPv6", "ok"},
+		{4004, "10.2.0.0/24", "IPv4", "deleted"},
+	} {
+		if _, err := c.IxPrefix.Create().
+			SetID(r.id).SetPrefix(r.prefix).SetProtocol(r.protocol).SetIxlanID(3000).
+			SetStatus(r.status).SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed ixpfx %d: %v", r.id, err)
+		}
+	}
 	return c
 }
 

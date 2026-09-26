@@ -25,6 +25,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   The match compares text, not addresses: `ipblock=10.0.0.0` matches `10.0.0.0/24`, but `ipblock=10.0.0.5` does not.
   A single-object GET applies the key too: `/api/ix/<id>?ipblock=` returns `404` when the exchange has no matching prefix.
   See `docs/API.md` § IP block filter.
+- pdbcompat implements `ixpfx?whereis=<address>`: the list holds the prefixes that contain the IPv4 or IPv6 address.
+  Before, pdbcompat ignored the key and returned every prefix.
+  A value that is not an address returns `400`, as upstream, and so does `whereis__in=`.
+  A single-object GET applies the key too: `/api/ixpfx/<id>?whereis=` returns `404` when the prefix does not contain the address.
+  A prefix row with an empty prefix never matches; the upstream source shows a `400` for every lookup while such a row exists (not verified on the live API; a registered divergence).
+  See `docs/API.md` § IP address lookup.
 
 ### Changed
 

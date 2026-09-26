@@ -416,6 +416,12 @@ Locked by `TestParity_Traversal/prepare_query_presence_keys`.
 It is a TEXT prefix match (`substr(prefix, 1, length(?)) = ?`: case-sensitive, `%`/`_` literal, like upstream `LIKE BINARY`), NOT containment (`whereis` is), through `ix_lans.ix_id` (upstream `ixlan__ix_id`), with no status on ixpfx or ixlan (upstream `.objects`); an empty value matches every prefix, the stored `""` of a tombstone included.
 Locked by `TestParity_Traversal/prepare_query_ipblock` + `TestIPBlockPlan_SubqueryRunsOnce`.
 
+**ixpfx `whereis` (`internal/pdbcompat/whereis_filter.go`).**
+`ParseFiltersCtx` resolves `whereis` and its operator forms after the ix ipblock key, first value; `whereis__in` is always a 400 (upstream passes a list to `ip_address`).
+The predicate is `prefix IN json_each(<every prefix of the address, /0../32 or /0../128>)`, built with `netip.Addr.Prefix(bits).String()`: it relies on stored prefixes being canonical (upstream `str(ip_network)`, strict), so never scan rows in Go and never `Unmap()` (Python keeps a mapped address IPv6).
+Rows with an empty prefix (tombstone 4185) never match; upstream 400s on them (`DIVERGENCE_whereis_ignores_empty_prefix_row`).
+Locked by `TestParity_Traversal/prepare_query_whereis` + `TestWhereisCandidates`.
+
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
 Keys come from `metaFilterColumns` (upstream `meta_registry.py:277-313`; the raw `meta_*` column names are aliases).

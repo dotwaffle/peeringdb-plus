@@ -297,8 +297,9 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // upstream prepare_query (presenceKeys, for example net?not_ix= and
 // fac?all_net=) resolve next, then the ix ipblock key
 // (lookupIPBlockKey, a text prefix match on the ixpfx prefix), then the
-// relation keys (relationSeeds, for example fac?net= and
-// net?ix__name=), with their own path and status rules
+// ixpfx whereis key (lookupWhereisKey, the prefixes that contain an
+// address), then the relation keys (relationSeeds, for example
+// fac?net= and net?ix__name=), with their own path and status rules
 // (buildPresencePredicate, buildRelationSeedPredicate).
 // The bare netixlan ipaddr6 key resolves next and compares the
 // canonical text of the address (ipaddr6Predicate).
@@ -382,6 +383,18 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// is an error, and an empty value is not an empty result.
 		if lookupIPBlockKey(tc.Name, key) {
 			predicates = append(predicates, buildIPBlockPredicate(vals[0]))
+			continue
+		}
+		// The ixpfx whereis key of an upstream prepare_query and its
+		// operator forms use the first value of a repeated key
+		// (2.83.0 serializers.py:618-619). A value that is not an
+		// address, and the __in form, are an error.
+		if inList, isWhereis := lookupWhereisKey(tc.Name, key); isWhereis {
+			p, err := buildWhereisPredicate(vals[0], inList)
+			if err != nil {
+				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			}
+			predicates = append(predicates, p)
 			continue
 		}
 		// The relation keys of an upstream prepare_query resolve before

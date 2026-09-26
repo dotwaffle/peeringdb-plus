@@ -1556,6 +1556,10 @@ func TestParity_Status(t *testing.T) {
 			// exchange (serializers.py:4548-4552, models.py:2830-2843).
 			{path: "/api/ix/1?ipblock=10.0.0.0", want: http.StatusOK, wantIDs: []int{1}},
 			{path: "/api/ix/1?ipblock=10.0.0.5", want: http.StatusNotFound, wantErr: "No InternetExchange matches the given query."},
+			// whereis keeps the prefixes that contain the address
+			// (serializers.py:4154-4168, models.py:5179-5197).
+			{path: "/api/ixpfx/1?whereis=10.0.0.5", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/ixpfx/1?whereis=10.1.0.5", want: http.StatusNotFound, wantErr: "No IXLanPrefix matches the given query."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)
@@ -1576,6 +1580,16 @@ func TestParity_Status(t *testing.T) {
 			if missStatus, missBody := httpGet(t, empty, pk); missStatus != http.StatusNotFound || string(missBody) != string(body) {
 				t.Errorf("GET %s: body %s differs from the PK miss %s (status %d)", tc.path, body, missBody, missStatus)
 			}
+		}
+		// A prepare_query error is a 400 on a single-object GET too
+		// (rest.py:493-500): get_object filters get_queryset().
+		path := "/api/ixpfx/1?whereis=abc"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusBadRequest {
+			t.Fatalf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
+		}
+		if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "does not appear to be an IPv4 or IPv6 address") {
+			t.Errorf("GET %s: meta.error = %q, want the address error", path, msg)
 		}
 	})
 
