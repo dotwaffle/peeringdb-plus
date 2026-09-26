@@ -57,15 +57,21 @@ import (
 //     upstream; a value that is not an address is a 400.
 //   - DIVERGENCE: `ixpfx?whereis=` ignores a prefix row with an empty
 //     prefix, where upstream returns 400 for every lookup.
+//   - `ix?capacity=` and its operator forms keep the exchanges whose
+//     netixlans that are not deleted have a sum of speed that matches,
+//     grouped by ixlan_id, as upstream; a value that is not an integer
+//     is a 400.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
-//     (prepare_query keys such as asn_overlap and capacity,
+//     (prepare_query keys such as asn_overlap and distance,
 //     hide_ix_no_fac, name_search) are silent-ignored, also on a
 //     single-object GET (`ix/<id>?hide_ix_no_fac=1`).
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
-//   - DIVERGENCE: a relation key or ixpfx whereis given in two forms
-//     (`ix?net=1&net__in=2`, `ixpfx?whereis=A&whereis__contains=B`)
-//     applies both forms, where upstream uses one.
+//   - DIVERGENCE: a relation key, ixpfx whereis or ix capacity given in
+//     two forms (`ix?net=1&net__in=2`,
+//     `ixpfx?whereis=A&whereis__contains=B`,
+//     `ix?capacity__gte=A&capacity__lte=B`) applies both forms, where
+//     upstream uses one.
 //   - A relation key of a prepare_query whose field the related model
 //     does not have (`fac?net__bogus=`, `net?netfac__name=`) returns
 //     400 Invalid query. `pk`, the Django lookup names on a relation
@@ -463,8 +469,9 @@ func TestParity_Traversal(t *testing.T) {
 		// not implement them, so they are silent-ignored and the list is
 		// unfiltered. The presence keys (not_ix, all_net, org_present and
 		// the others) are parity: see prepare_query_presence_keys. So
-		// are ix ipblock and ixpfx whereis: see prepare_query_ipblock
-		// and prepare_query_whereis.
+		// are ix ipblock, ixpfx whereis and ix capacity: see
+		// prepare_query_ipblock, prepare_query_whereis and
+		// prepare_query_capacity.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		// upstream: 2.83.0 serializers.py:2092-2210
@@ -494,7 +501,8 @@ func TestParity_Traversal(t *testing.T) {
 
 		srv := newTestServer(t, c)
 		// No netfac or ixfac rows exist. Upstream returns a narrower
-		// list for each request below (for example [] for capacity),
+		// list for each request below (for example [] for
+		// asn_overlap),
 		// or 400 (see asn_overlap and distance).
 		// The relation keys of a prepare_query (net?ix_id=,
 		// fac?net_id=, org?asn=) resolve: see
@@ -503,7 +511,6 @@ func TestParity_Traversal(t *testing.T) {
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			// prepare_query keys.
 			{path: "/api/fac?asn_overlap=64500,64501", want: []int{200, 201}},
-			{path: "/api/ix?capacity__gte=1000", want: []int{300, 301}},
 			{path: "/api/org?distance=10", want: []int{1, 2}},
 			// Upstream returns 400 for a single ASN
 			// (models.py:2867-2868).
@@ -803,6 +810,116 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ixpfx?whereis=10.0.0.5", want: []int{4000, 4002}},
 			{path: "/api/ixpfx?whereis=10.0.0.5&since=1", want: []int{4000, 4002}},
 		})
+	})
+
+	t.Run("prepare_query_capacity", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:614-656 (get_relation_filters:
+		// the operators, the first value), :4503-4546
+		// (InternetExchangeSerializer.prepare_query); models.py:2895-2942
+		// (InternetExchange.filter_capacity: SUM(speed) of the undeleted
+		// netixlans, GROUP BY ixlan_id, taken as the exchange id);
+		// rest.py:493-500 (ValueError -> 400), :719-750 (status matrix),
+		// :809-815 (unique-query 404); pdb_api_test.py:4410-4431
+		// (test_guest_005_list_filter_ix_capacity). See seedCapacity for
+		// the rows: the capacity of exchange 20 is 11000, 21 is 500, 22
+		// is 0, and 24 (deleted) is 2000. 23, 25 and 26 have none.
+		srv := newTestServer(t, seedCapacity(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?capacity=11000", want: []int{20}},
+			// The deleted netixlan 502 does not count.
+			{path: "/api/ix?capacity=111000", want: []int{}},
+			// A pending netixlan counts.
+			{path: "/api/ix?capacity=500", want: []int{21}},
+			{path: "/api/ix?capacity=0", want: []int{22}},
+			{path: "/api/ix?capacity__lt=1", want: []int{22}},
+			{path: "/api/ix?capacity__lte=500", want: []int{21, 22}},
+			{path: "/api/ix?capacity__gt=500", want: []int{20}},
+			{path: "/api/ix?capacity__gte=500", want: []int{20, 21}},
+			{path: "/api/ix?capacity__in=500,0", want: []int{21, 22}},
+			{path: "/api/ix?capacity__in=%20500", want: []int{21}},
+			// contains and startswith match the decimal text of the sum,
+			// and do not convert the value.
+			{path: "/api/ix?capacity__contains=00", want: []int{20, 21}},
+			{path: "/api/ix?capacity__contains=", want: []int{20, 21, 22}},
+			{path: "/api/ix?capacity__contains=abc", want: []int{}},
+			{path: "/api/ix?capacity__startswith=1", want: []int{20}},
+			{path: "/api/ix?capacity__startswith=5", want: []int{21}},
+			// A value outside the range saturates: Django's
+			// IntegerFieldOverflow gives the same rows (lookups.py:461-515).
+			{path: "/api/ix?capacity__gt=-1", want: []int{20, 21, 22}},
+			{path: "/api/ix?capacity__lt=-1", want: []int{}},
+			{path: "/api/ix?capacity__lt=99999999999999999999999", want: []int{20, 21, 22}},
+			{path: "/api/ix?capacity__gte=99999999999999999999999", want: []int{}},
+			{path: "/api/ix?capacity__in=999999999999999999999999999999,0", want: []int{22}},
+			// Netixlan 507 is on ixlan 2600 of exchange 26: the sum
+			// groups under 2600.
+			{path: "/api/ix?capacity=700", want: []int{}},
+			// A repeated key uses its first value.
+			{path: "/api/ix?capacity=500&capacity=0", want: []int{21}},
+			// The status matrix applies to the exchange.
+			{path: "/api/ix?capacity=2000", want: []int{}},
+			{path: "/api/ix?since=1&capacity=2000", want: []int{24}},
+			// Python int(): white space ('+' is a space in a query
+			// string), a sign, '_' between digits, Unicode digits.
+			{path: "/api/ix?capacity=+500", want: []int{21}},
+			{path: "/api/ix?capacity=%2B500", want: []int{21}},
+			{path: "/api/ix?capacity=11_000", want: []int{20}},
+			{path: "/api/ix?capacity=%D9%A5%D9%A0%D9%A0", want: []int{21}},
+			// The key ANDs with the other filters.
+			{path: "/api/ix?capacity__gte=0&name=CapacityIX21", want: []int{21}},
+		})
+		// Upstream ignores the other forms, and the key on other types.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?capacity__iexact=500", want: []int{20, 21, 22, 23, 25, 26}},
+			{path: "/api/ix?capacity__exact=500", want: []int{20, 21, 22, 23, 25, 26}},
+			{path: "/api/ix?capacity__icontains=5", want: []int{20, 21, 22, 23, 25, 26}},
+			{path: "/api/ix?capacity__istartswith=5", want: []int{20, 21, 22, 23, 25, 26}},
+			{path: "/api/ix?capacity__foo__gte=1", want: []int{20, 21, 22, 23, 25, 26}},
+			{path: "/api/ix?capacity_id=500", want: []int{20, 21, 22, 23, 25, 26}},
+			{path: "/api/ix?capacity_id__gte=500", want: []int{20, 21, 22, 23, 25, 26}},
+			{path: "/api/net?capacity=1", want: []int{100}},
+		})
+		// A long __in list binds as one JSON array.
+		items := make([]string, 0, 3000)
+		for i := range 3000 {
+			items = append(items, strconv.Itoa(i))
+		}
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?capacity__in=" + strings.Join(items, ","), want: []int{21, 22}},
+		})
+		// int() raises ValueError for a value that is not an integer,
+		// also for each item of __in: 400. So capacity__in= is a 400,
+		// not an empty result. The error wins over an empty __in.
+		for _, path := range []string{
+			"/api/ix?capacity=",
+			"/api/ix?capacity=abc",
+			"/api/ix?capacity=1.5",
+			"/api/ix?capacity__lt=1e3",
+			"/api/ix?capacity__gte=x",
+			"/api/ix?capacity__in=",
+			"/api/ix?capacity__in=500,",
+			"/api/ix?capacity__in=500,x",
+			"/api/ix?capacity=abc&id__in=",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "is not an integer") {
+				t.Errorf("GET %s: meta.error = %q, want the integer error", path, msg)
+			}
+		}
+		// A lookup by id that the key excludes is the unique-query 404.
+		path := "/api/ix?id=23&capacity=0"
+		status, body := httpGet(t, srv, path)
+		if status != http.StatusNotFound {
+			t.Fatalf("GET %s: status = %d, want 404; body=%s", path, status, string(body))
+		}
+		if msg := mustDecodeMetaError(t, body).Error; msg != "Entity not found" {
+			t.Errorf("GET %s: meta.error = %q, want %q", path, msg, "Entity not found")
+		}
 	})
 
 	t.Run("netixlan_ix_side_facility_keys_filter_like_upstream", func(t *testing.T) {
@@ -1210,7 +1327,9 @@ func TestParity_Traversal(t *testing.T) {
 		// The ixpfx whereis key and its operator forms share one entry
 		// in the same way (2.83.0 serializers.py:4157). See seedWhereis
 		// for the rows.
-		srv2 := newTestServer(t, seedWhereis(t, t0))
+		c2 := seedWhereis(t, t0)
+		addCapacityRows(t, c2, t0)
+		srv2 := newTestServer(t, c2)
 		assertKeysResolve(t, srv2, []silentIgnoreCase{
 			// Upstream: [4000 4002] (whereis__contains).
 			{path: "/api/ixpfx?whereis=10.1.0.1&whereis__contains=10.0.0.5", want: []int{}},
@@ -1220,6 +1339,17 @@ func TestParity_Traversal(t *testing.T) {
 		if status, body := httpGet(t, srv2, path); status != http.StatusBadRequest {
 			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
 		}
+		// The ix capacity key and its operator forms share one entry
+		// too (2.83.0 serializers.py:630-641). The capacity rows are on
+		// the same server; see addCapacityRows.
+		assertKeysResolve(t, srv2, []silentIgnoreCase{
+			// Upstream: [22] (capacity__lt).
+			{path: "/api/ix?capacity__gte=600&capacity__lt=1", want: []int{}},
+			// Upstream: [20] (capacity__gte).
+			{path: "/api/ix?capacity=500&capacity__gte=600", want: []int{}},
+			// Upstream: [21 22] (capacity__lte).
+			{path: "/api/ix?capacity__gte=400&capacity__lte=600", want: []int{21}},
+		})
 	})
 
 	t.Run("DIVERGENCE_relation_field_contains_ignores_case", func(t *testing.T) {
@@ -2065,6 +2195,66 @@ func seedWhereis(t *testing.T, t0 time.Time) *ent.Client {
 		}
 	}
 	return c
+}
+
+// seedCapacity seeds org 1 and the rows of addCapacityRows.
+func seedCapacity(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	mustOrg(t.Context(), t, c, 1, "CapacityOrg", t0)
+	addCapacityRows(t, c, t0)
+	return c
+}
+
+// addCapacityRows seeds rows for the ix capacity key into a client that
+// has org 1: net 100, exchanges 20 to 26 (24 deleted), ixlans 20 to 25
+// with the id of their exchange, ixlan 2600 of exchange 26, and these
+// netixlans of net 100:
+//   - 500 (ixlan 20, 1000, ok), 501 (ixlan 20, 10000, not-operational)
+//     and 502 (ixlan 20, 100000, deleted): capacity 11000.
+//   - 503 (ixlan 21, 500, pending): capacity 500.
+//   - 504 (ixlan 22, 0, ok): capacity 0.
+//   - 505 (ixlan 24, 2000, ok): capacity 2000 on a deleted exchange.
+//   - 506 (ixlan 25, 300, deleted): no capacity.
+//   - 507 (ixlan 2600, 700, ok): no capacity for exchange 26.
+//
+// Exchange 23 has no netixlan.
+func addCapacityRows(t *testing.T, c *ent.Client, t0 time.Time) {
+	t.Helper()
+	ctx := t.Context()
+	mustNet(ctx, t, c, 100, "CapacityNet", 64500, 1, t0)
+	for id := 20; id <= 26; id++ {
+		mustIX(ctx, t, c, id, fmt.Sprintf("CapacityIX%d", id), 1, t0)
+		lan := id
+		if id == 26 {
+			lan = 2600
+		}
+		mustIxLan(ctx, t, c, lan, fmt.Sprintf("CapacityLan%d", lan), id, t0)
+	}
+	if err := c.InternetExchange.UpdateOneID(24).SetStatus("deleted").Exec(ctx); err != nil {
+		t.Fatalf("delete ix 24: %v", err)
+	}
+	for _, r := range []struct {
+		id, ixlan, ix, speed int
+		status               string
+	}{
+		{500, 20, 20, 1000, "ok"},
+		{501, 20, 20, 10000, "not-operational"},
+		{502, 20, 20, 100000, "deleted"},
+		{503, 21, 21, 500, "pending"},
+		{504, 22, 22, 0, "ok"},
+		{505, 24, 24, 2000, "ok"},
+		{506, 25, 25, 300, "deleted"},
+		{507, 2600, 26, 700, "ok"},
+	} {
+		if _, err := c.NetworkIxLan.Create().
+			SetID(r.id).SetNetID(100).SetIxlanID(r.ixlan).SetIxID(r.ix).
+			SetAsn(64500).SetSpeed(r.speed).SetOperational(r.status == "ok").
+			SetStatus(r.status).SetCreated(t0).SetUpdated(t0).
+			Save(ctx); err != nil {
+			t.Fatalf("seed netixlan id=%d: %v", r.id, err)
+		}
+	}
 }
 
 // seedIxSideKeys seeds netixlan rows for the ix_side__<field> keys: orgs

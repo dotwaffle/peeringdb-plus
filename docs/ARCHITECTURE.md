@@ -1111,6 +1111,7 @@ Two paths resolve the target field:
 The presence keys of an upstream `prepare_query` (`net?not_ix=`, `fac?all_net=`, `ix?org_present=`) resolve first, through `presenceKeys` in `internal/pdbcompat/presence_filter.go` ([API.md § Presence filters](./API.md#presence-filters)).
 The `ix` key `ipblock` (`ix?ipblock=`) resolves next, through `lookupIPBlockKey` in `internal/pdbcompat/ipblock_filter.go`: a text prefix match on the ixpfx prefix through `ix_lans.ix_id` ([API.md § IP block filter](./API.md#ip-block-filter)).
 The `ixpfx` key `whereis` (`ixpfx?whereis=`) resolves next, through `lookupWhereisKey` in `internal/pdbcompat/whereis_filter.go`: the stored `prefix` must equal one of the prefixes that contain the address, bound as one JSON array ([API.md § IP address lookup](./API.md#ip-address-lookup)).
+The `ix` key `capacity` (`ix?capacity__gte=`) resolves next, through `lookupCapacityFilter` in `internal/pdbcompat/capacity_filter.go`: one `GROUP BY ixlan_id HAVING SUM(speed)` subquery over the netixlans that are not deleted ([API.md § Capacity filter](./API.md#capacity-filter)).
 The relation keys that an upstream `prepare_query` handles (`net?ix=`, `fac?net__name=`, `netixlan?ix_id=`) resolve before both paths, through `relationSeeds` in `internal/pdbcompat/relation_filter.go`.
 Each key walks a fixed path of up to three tables with nested `IN` subqueries and requires status `ok` on the one row that upstream pins ([API.md § Relation filters](./API.md#relation-filters)).
 

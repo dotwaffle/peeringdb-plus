@@ -901,6 +901,22 @@ func TestParity_Status(t *testing.T) {
 		assertKeysResolve(t, srv, []silentIgnoreCase{
 			{path: "/api/fac?net_count=2&net_count=0", want: []int{400}},
 		})
+		// The ix capacity key converts its value with int() too
+		// (serializers.py:4545-4546, models.py:2927-2931). See
+		// seedCapacity for the rows.
+		capSrv := newTestServer(t, seedCapacity(t, t0))
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/ix?capacity__gte=1_000", []int{20}},
+			{"/api/ix?capacity__gte=1000", []int{20}},
+			{"/api/ix?capacity=%D9%A5%D9%A0%D9%A0", []int{21}},
+			{"/api/ix?capacity=500", []int{21}},
+			{"/api/ix?capacity__in=%D9%A5%D9%A0%D9%A0,0_0", []int{21, 22}},
+		} {
+			assertKeysResolve(t, capSrv, []silentIgnoreCase{{path: tc.path, want: tc.want}})
+		}
 	})
 
 	t.Run("unique_key_non_integer_with_bad_operator_is_400", func(t *testing.T) {
@@ -1560,6 +1576,11 @@ func TestParity_Status(t *testing.T) {
 			// (serializers.py:4154-4168, models.py:5179-5197).
 			{path: "/api/ixpfx/1?whereis=10.0.0.5", want: http.StatusOK, wantIDs: []int{1}},
 			{path: "/api/ixpfx/1?whereis=10.1.0.5", want: http.StatusNotFound, wantErr: "No IXLanPrefix matches the given query."},
+			// capacity is the sum of the speed of the netixlans that
+			// are not deleted: 1, 2 and 3 on ixlan 1, 10000 each
+			// (serializers.py:4545-4546, models.py:2895-2942).
+			{path: "/api/ix/1?capacity=30000", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/ix/1?capacity__gt=30000", want: http.StatusNotFound, wantErr: "No InternetExchange matches the given query."},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)
@@ -1583,13 +1604,18 @@ func TestParity_Status(t *testing.T) {
 		}
 		// A prepare_query error is a 400 on a single-object GET too
 		// (rest.py:493-500): get_object filters get_queryset().
-		path := "/api/ixpfx/1?whereis=abc"
-		status, body := httpGet(t, srv, path)
-		if status != http.StatusBadRequest {
-			t.Fatalf("GET %s: status = %d, want 400; body=%s", path, status, string(body))
-		}
-		if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "does not appear to be an IPv4 or IPv6 address") {
-			t.Errorf("GET %s: meta.error = %q, want the address error", path, msg)
+		for _, tc := range []struct{ path, wantErr string }{
+			{"/api/ixpfx/1?whereis=abc", "does not appear to be an IPv4 or IPv6 address"},
+			{"/api/ix/1?capacity=abc", "is not an integer"},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusBadRequest {
+				t.Errorf("GET %s: status = %d, want 400; body=%s", tc.path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, tc.wantErr) {
+				t.Errorf("GET %s: meta.error = %q, want it to contain %q", tc.path, msg, tc.wantErr)
+			}
 		}
 	})
 

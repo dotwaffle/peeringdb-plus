@@ -31,6 +31,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   A single-object GET applies the key too: `/api/ixpfx/<id>?whereis=` returns `404` when the prefix does not contain the address.
   A prefix row with an empty prefix never matches; the upstream source shows a `400` for every lookup while such a row exists (not verified on the live API; a registered divergence).
   See `docs/API.md` § IP address lookup.
+- pdbcompat implements the upstream `ix` key `capacity`: `ix?capacity=N`, and the operators `__lt`, `__lte`, `__gt`, `__gte`, `__in`, `__contains` and `__startswith`.
+  The capacity of an exchange is the sum of the port speeds (Mbit/s) of its netixlans that are not deleted.
+  Before, pdbcompat ignored the key and returned every exchange.
+  A value that is not an integer returns `400`, as upstream, and so does `capacity__in=`.
+  A single-object GET applies the key too: `/api/ix/<id>?capacity=` returns `404` when the capacity does not match.
+  See `docs/API.md` § Capacity filter.
 
 ### Changed
 

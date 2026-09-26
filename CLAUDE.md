@@ -422,6 +422,12 @@ The predicate is `prefix IN json_each(<every prefix of the address, /0../32 or /
 Rows with an empty prefix (tombstone 4185) never match; upstream 400s on them (`DIVERGENCE_whereis_ignores_empty_prefix_row`).
 Locked by `TestParity_Traversal/prepare_query_whereis` + `TestWhereisCandidates`.
 
+**ix `capacity` (`internal/pdbcompat/capacity_filter.go`).**
+`ix?capacity[__lt|lte|gt|gte|in|contains|startswith]=` resolves in `ParseFiltersCtx` after the ixpfx whereis key, first value: `id IN (SELECT ixlan_id FROM network_ix_lans WHERE status <> 'deleted' GROUP BY ixlan_id HAVING SUM(speed) <op> ?)` (upstream `filter_capacity`, `models.py:2895-2942`, takes `ixlan_id` as the ix id; do not join `ixlan` or use `netixlan.ix_id`).
+Values parse with `pyInt` (saturated, bound as integers; `__in` as ONE JSON array); `capacity__in=` is a 400 (upstream int-converts every item), not `errEmptyIn`; contains/startswith match `CAST(SUM AS TEXT)` and never 400.
+Two different capacity keys AND (upstream applies only the last): `DIVERGENCE_relation_filter_forms_all_apply`.
+Locked by `TestParity_Traversal/prepare_query_capacity` + `TestCapacityPlan` (uncorrelated `LIST SUBQUERY` on `networkixlan_ixlan_id`).
+
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
 Keys come from `metaFilterColumns` (upstream `meta_registry.py:277-313`; the raw `meta_*` column names are aliases).
