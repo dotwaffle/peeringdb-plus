@@ -35,7 +35,7 @@ Each rule has two queries:
   `B` is the condition.
 
 No data is `OK`.
-An evaluation error is `Alerting`.
+An evaluation error is `Alerting` in the groups `pdbplus-critical` and `pdbplus-warning`, and `Error` in the group `pdbplus-fly` (see below).
 
 ### Fly.io rules
 
@@ -48,7 +48,10 @@ Query `A` of these rules uses the Grafana Prometheus data source `fly.io`, not t
   `fly tokens create readonly -o <org>` (it starts with `FlyV1`).
 
 Fly.io keeps these metrics for about 15 days, at no charge, and they use none of the active series of the stack.
-When the token expires, the rules cannot evaluate, and an evaluation error is `Alerting`.
+An evaluation error of these rules is `Error`.
+Grafana then sends a separate `DatasourceError` alert with the labels `datasource_uid` and `rulename`, so a failing `fly.io` data source does not show as a firing rule.
+When the token expires, the rules cannot evaluate, and each of the four rules sends a `DatasourceError` alert.
+A silence or a notification policy that matches the alert name of a rule does not match its `DatasourceError` alert.
 The Fly Platform and LiteFS Replication rows of the dashboard use the same data source.
 
 When you change this file, update the Grafana-managed rule with the same UID to match it, in the Grafana UI or through the alerting provisioning API.

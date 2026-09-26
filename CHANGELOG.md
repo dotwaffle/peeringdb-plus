@@ -23,6 +23,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- The four alert rules of the group `pdbplus-fly` send a `DatasourceError` alert when they cannot evaluate, not a firing alert of the rule.
+  An expired `fly.io` data source token now shows as a data source error, apart from a real replica, memory or CPU problem.
 - `/api/` errors use the upstream form `{"meta":{"error":"<message>"}}` with `Content-Type: application/json`.
   The `404` of a lookup by `id` or `asn` also has `"data":[]`, as upstream.
   The `413` body has `max_rows` and `budget_bytes` in `meta`.
