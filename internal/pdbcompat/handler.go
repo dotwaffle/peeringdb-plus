@@ -70,10 +70,11 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	// index itself. Go 1.22+ {rest...} wildcard matches the empty string
 	// for /api/ requests, so index, list, and detail are all dispatched
 	// from one registration point.
-	mux.HandleFunc("GET /api/{rest...}", h.dispatch)
+	// prettyJSON indents the body of any of them for ?pretty.
+	mux.Handle("GET /api/{rest...}", prettyJSON(http.HandlerFunc(h.dispatch)))
 	// Every other method reaches the method-less pattern: GET (and HEAD,
 	// which the mux serves with the GET pattern) is more specific.
-	mux.HandleFunc("/api/{rest...}", h.methodNotAllowed)
+	mux.Handle("/api/{rest...}", prettyJSON(http.HandlerFunc(h.methodNotAllowed)))
 }
 
 // methodNotAllowed answers a method other than GET and HEAD. The mirror

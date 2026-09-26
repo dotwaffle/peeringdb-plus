@@ -8,6 +8,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Added
+
+- pdbcompat indents the JSON body by 2 spaces when the request has a `pretty` key, with any value, as upstream does.
+  This applies to every `/api/` response, including errors.
+  Before, pdbcompat ignored `?pretty`.
+
 ### Changed
 
 - pdbcompat sends `Content-Type: application/json; charset=utf-8` on every `/api/` JSON response, success and error, as the upstream renderer does.

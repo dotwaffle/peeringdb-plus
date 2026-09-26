@@ -779,6 +779,44 @@ func TestParity_Serializer(t *testing.T) {
 		}
 	})
 
+	t.Run("pretty_indents_every_response", func(t *testing.T) {
+		t.Parallel()
+		// upstream: renderers.py:64-73 at 2.83.0. A pretty key with any
+		// value renders the body with json.dumps(indent=2): the errors
+		// too, as the same renderer writes them. Go json.Indent with a
+		// 2-space indent gives the same text for compact input.
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		for _, tc := range []struct{ path, pretty string }{
+			{"/api/net", "/api/net?pretty"},
+			{"/api/net", "/api/net?pretty=0"},
+			{"/api/net?asn=64500", "/api/net?asn=64500&pretty=1"},
+			{"/api/net?asn=1", "/api/net?asn=1&pretty"},
+			{"/api/net?limit=abc", "/api/net?limit=abc&pretty"},
+			{"/api/as_set", "/api/as_set?pretty"},
+			{"/api/", "/api/?pretty"},
+		} {
+			_, compact := httpGet(t, srv, tc.path)
+			_, body := httpGet(t, srv, tc.pretty)
+			var want bytes.Buffer
+			if err := json.Indent(&want, bytes.TrimSpace(compact), "", "  "); err != nil {
+				t.Fatalf("GET %s: indent: %v; body=%s", tc.path, err, compact)
+			}
+			if !bytes.Equal(body, want.Bytes()) {
+				t.Errorf("GET %s:\n%s\nwant\n%s", tc.pretty, body, want.Bytes())
+			}
+		}
+
+		// A detail response and an empty list keep "[]" and "{}" on one
+		// line, as json.dumps does.
+		_, body := httpGet(t, srv, "/api/net?asn=1&pretty")
+		if !bytes.Contains(body, []byte(`"data": []`)) || !bytes.Contains(body, []byte("\n  ")) {
+			t.Errorf("GET /api/net?asn=1&pretty: body = %s, want an indented body with \"data\": []", body)
+		}
+	})
+
 	t.Run("as_set_detail_returns_one_pair", func(t *testing.T) {
 		t.Parallel()
 		// upstream: rest.py:1414-1423 at 2.83.0.

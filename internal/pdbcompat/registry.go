@@ -194,6 +194,7 @@ var reservedParams = map[string]bool{
 	"since":  true,
 	"q":      true,
 	"fields": true,
+	"pretty": true,
 }
 
 // Registry maps PeeringDB type name strings to their TypeConfig.
