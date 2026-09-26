@@ -16,6 +16,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat applies a `created` or `updated` date filter to the rows of every `_set` when the request has `_ctf`, as upstream does.
+  With two or more date filters, the key that appears last in the query string applies.
+  Before, pdbcompat ignored `_ctf` (a registered divergence, now closed).
+  A date filter on another field with `_ctf` stays registered: upstream fails with a server error.
 - pdbcompat filters `fac?ix_side_set__<field>=` on the netixlans whose IX side is at the facility, and `fac?ix_side_set__in=` (with `__lt`, `__lte`, `__gt` and `__gte`) on their ids, as upstream does.
   A bare `ix_side_set`, and `ix_side_set__contains` or `__startswith`, return `400` `Invalid query`.
   Before, pdbcompat ignored these keys (a registered divergence, now closed).

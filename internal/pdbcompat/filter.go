@@ -374,6 +374,12 @@ type listFilters struct {
 	// even when the key matches every row. A list at depth > 0 with
 	// such a key is cut to 250 rows, as upstream (rest.py:766-772).
 	upstreamFilter bool
+	// ctf maps each date key that sets the upstream _ctf filter to its
+	// _set filter (see noteCTF). It is nil without the _ctf key.
+	ctf map[string]func(*sql.Selector)
+	// setDateFilter is the _ctf filter of the rows of every _set, or
+	// nil (parseRequestFilters, pickCTF).
+	setDateFilter func(*sql.Selector)
 }
 
 // filterState collects the predicates of parseListFilters while it
@@ -390,6 +396,8 @@ type filterState struct {
 	// adjusted records a key that upstream counts in its API cache gate
 	// but that adds no predicate (see listFilters.upstreamFilter).
 	adjusted bool
+	// ctf is listFilters.ctf.
+	ctf map[string]func(*sql.Selector)
 }
 
 // parseListFilters parses the filter keys of a request (see
@@ -423,6 +431,9 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, aft
 		tc:       tc,
 		tier:     privctx.TierFrom(ctx),
 		consumed: map[string]bool{},
+	}
+	if params.Has(ctfParam) {
+		st.ctf = map[string]func(*sql.Selector){}
 	}
 	var orderBy func(*sql.Selector)
 	ds, err := parseDistanceSearch(tc.Name, params)
@@ -483,6 +494,7 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, aft
 		orderBy:        orderBy,
 		searchHit:      ns.hit,
 		upstreamFilter: st.adjusted || len(st.preds) > 0,
+		ctf:            st.ctf,
 	}, nil
 }
 
@@ -683,6 +695,7 @@ func (st *filterState) addKey(key string, vals []string) error {
 			return nil
 		}
 		st.preds = append(st.preds, p)
+		st.noteCTF(key, nil, field, op, p)
 		return nil
 	}
 
@@ -702,6 +715,7 @@ func (st *filterState) addKey(key string, vals []string) error {
 		return nil
 	}
 	st.preds = append(st.preds, p)
+	st.noteCTF(key, relSegs, field, op, nil)
 	return nil
 }
 

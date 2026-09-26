@@ -482,6 +482,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		span.SetAttributes(attribute.Int("pdbplus.list.depth", depth))
 	}
 	if depth > 0 && tc.ListDepth != nil {
+		r = r.WithContext(withSetDateFilter(r.Context(), lf.setDateFilter))
 		h.serveListDepth(tc, w, r, opts, listDepthRequest{
 			depth:     min(depth, 2),
 			depthText: depthText,
@@ -955,6 +956,7 @@ func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig, afte
 	if err != nil {
 		return listFilters{}, err
 	}
+	lf.setDateFilter = pickCTF(r.URL.RawQuery, lf.ctf)
 	if unknown := UnknownFieldsFromCtx(ctx); len(unknown) > 0 {
 		csv := strings.Join(unknown, ",")
 		slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently ignored",
@@ -1296,7 +1298,7 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 		fields = strings.Split(f, ",")
 	}
 
-	result, err := tc.Get(r.Context(), h.client, id, depth)
+	result, err := tc.Get(withSetDateFilter(r.Context(), lf.setDateFilter), h.client, id, depth)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			writeDetailNotFound(w, r, missMessage(tc))
