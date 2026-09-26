@@ -282,7 +282,7 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   The distance sort uses a temp B-tree: no index can serve it (`TestPdbcompatListPlan_Distance`).
 - `pyInt` (`internal/pdbcompat/pyint.go`) is the one integer parser of the request path: Python `int()` rules (Unicode space and `Nd` digits, sign, single `_`, at most 4300 digits), saturating to `math.MinInt`/`math.MaxInt`.
   It also parses the detail `{id}`.
-  `limit`, `skip`, `since` and detail `depth` take the last value (`lastParam`), and an empty value is a 400 with the upstream text; `since` is read only through `parseSince`, `depth` only through `ParseDepthParam`.
+  `limit`, `skip`, `since` and `depth` take the last value (`lastParam`), and an empty value is a 400 with the upstream text; `since` is read only through `parseSince`, `depth` only through `ParseDepthParam`.
   `ParsePaginationParams` returns signed values: `serveList` sends 400 `Negative indexing is not supported.` for a negative `skip` (after the filters, before every exit) and serves every row for a negative `limit`.
   A negative `skip` on a list that upstream serves from its API cache is a registered divergence (`DIVERGENCE_negative_skip_on_cacheable_list_returns_400`).
 - Unique-query 404 (`isUniqueQuery` in `handler.go`): a list with the `id` key (any type) or `asn` key (net), no `page` key, and zero served rows returns 404 `Entity not found` (upstream `rest.py:809-815`).
@@ -311,7 +311,7 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
 REST/GraphQL/gRPC have no default status filter.
 Row markers (not operational, planned removal/activation `<date>`, RFC8950) come from `catalog.ConnectionMarkersFor` only: HTML badges via templ `connectionMarkers`, terminal via `writeConnectionMarkers`; not-operational = status `not-operational` OR (`ok` AND `operational=false`), i.e. upstream's `not x.operational` before and after its migration.
 
-**Depth expansion** (`internal/pdbcompat/depth.go`, brought to full upstream parity in v1.20.5 and validated live 2026-06-08, locked by `depth_test.go`): `serveDetail` rejects a non-integer `?depth=` with 400 (`rest.py:520-523`) and clamps it to `[0,4]` (`handler.go`); each `getXWithDepth` branches bare (≤0) / `depth==1` (forward FK objects flat + reverse `_set` as bare ID lists) / `depth>=2` (full).
+**Depth expansion** (`internal/pdbcompat/depth.go`, brought to full upstream parity in v1.20.5 and validated live 2026-06-08, locked by `depth_test.go`): `serveDetail` rejects a non-integer `?depth=` with 400 (`rest.py:520-523`) and clamps it to `[0,4]` (`handler.go`); lists: see List depth under § Response memory envelope; each `getXWithDepth` branches bare (≤0) / `depth==1` (forward FK objects flat + reverse `_set` as bare ID lists) / `depth>=2` (full).
 The `nested<Type>Map` builders (`nestedOrg/Net/Fac/Ix/IxLan/Carrier/CampusMap`) render a singular FK object one level down — full object + its own reverse sets as ID lists + a FLAT sub-FK — and ARE the `depth==1` top-level shape, so parent getters reuse them.
 Direct reverse sets sort ascending (`sortedIDsOrEmpty`), EXCEPT the three facility-link sets (`net.netfac_set`, `ix.fac_set` via ixfac, `carrier.carrierfac_set`), which order by `(fac_id, id)` at depth 1 AND 2 (`intsOrEmpty` + query `Order`): upstream's prefetch has no ORDER BY and MySQL reads them through the unique `(<parent>, facility)` index (`models.py:3284/5998/6603`), confirmed live 2026-09-23 (net 20, ix 26).
 `ixlan.net_set` via netixlan keeps join order WITH duplicates (`intsOrEmpty`).
@@ -483,12 +483,22 @@ Invariants:
 **Closure pairing:** the 13 List/Count/Match sets in `internal/pdbcompat/registry_funcs.go` are built by one generic `wireEntity` helper from a single shared predicate builder (v1.23.0), so budget pre-check and served response cannot disagree (the 413 guarantee).
 `Match` shares the predicate builder, so a detail filter and a list filter are the same SQL.
 `applyStatusMatrix` LAST and the `opts.EmptyResult` short-circuit both live in exactly one place inside `wireEntity` — do not add per-entity closures outside it.
+`ListIDs` and `ListDepth` are built in the same helper from the same predicate builder; `ListDepth` adds its chunk `id IN json_each` predicate to a copy of `opts.Filters`, so `applyStatusMatrix` stays last.
 
 **Single-call-site telemetry:** `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the ONLY call site for `runtime.ReadMemStats`; `recordResponseHeapDelta` fires once per request via `defer`: in `dispatch` for the Registry list + detail terminal paths, and in `serveASSet` for `/api/as_set` (routed before the Registry lookup).
 
-**Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (child `COUNT(*)` × child `Depth0` per embedded `_set`, table in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads).
+**Detail-path admission:** depth≥2 details charge the shared `inflightBytes` pool with a count-based fan-out estimate (child `COUNT(*)` × child `Depth0` per embedded `_set`, table `childSets` in `internal/pdbcompat/detail_budget.go` mirroring the `get<Type>WithDepth` eager-loads and the `list_depth.go` loaders).
 Changing a depth expansion's set list means updating `childSets` too.
-The 413 check stays flat (`CheckBudget(1, type, depth, …)`) — fan-out feeds only the pool.
+The detail 413 check stays flat (`CheckBudget(1, type, depth, …)`); fan-out feeds only the pool.
+
+**List depth (`internal/pdbcompat/list_depth.go`):** a `?depth=` list of org/net/ix/ixlan/carrier/campus fetches the served ids first (`TypeConfig.ListIDs`: the same predicates, order, skip and limit as `List`), loads 250 ids at a time (`TypeConfig.ListDepth`: one query per set with `<fk> IN json_each`, no ent `With*`), and renders one row at a time as the stream pulls it.
+It prices its most expensive 250-id chunk (`listDepthEstimate`: `childSets` `GROUP BY` counts, child Depth0 per element at depth 2 or 16 bytes at depth 1, plus `listDepthRenderFactor` 4 × the largest row, plus 16 bytes per id) and feeds that to BOTH the 413 and the pool, after a flat Depth0 `CheckBudget` over the served count.
+Only the `_set` fields that `?fields=` names are loaded (`selectSets`).
+List rows never carry the forward FK object (upstream `list_exclude`), so the 7 types without sets render depth-0 rows (`ListDepth` nil); depth 3 renders the depth-2 shape (registered divergence).
+A list with depth > 0, more than 250 served rows and a key that upstream counts in its API cache gate (`listFilters.upstreamFilter`, incl. no-op keys such as `net?info_type__in=,x`), a non-zero `since` (`sinceIsNonZero`) or `?q` is cut to 250 with `meta.truncated` (2.83.0 `rest.py:766-772`); an unfiltered one is not (upstream API cache).
+Poc privacy holds in `poc_set` (the loader queries through the ent policy) and ixlan URL redaction in `ixlan_set` (`ixLansFromEnt(ctx)`).
+Set status filters on this path MUST use `likely()` (`likelyOK`, netixlan `likelyNetIXLanSet`): with a json_each FK list, a bare `status IN (?, ?)` reads the status index.
+Locked by `TestListDepthPlan_KeepsFKIndex`, `TestListDepth_CountsMatchRender`, `TestListDepth_MatchesDetail`, `TestListDepthRenderFactor`.
 
 **Adding an entity type:** add a `typicalRowBytes` entry to `internal/pdbcompat/rowsize.go` (bench via `BenchmarkRowSize`, double the mean, round to 64 bytes), add a `wireEntity(entityWiring[...]{...})` entry in `registry_funcs.go` `init()`, extend the sizing table in `docs/ARCHITECTURE.md`, add under-/over-budget E2E cases mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
 

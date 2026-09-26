@@ -47,11 +47,12 @@ var syncDepths = []int{0, 1, 2}
 // syncOrder so FK dependency parents come before children within
 // each depth band.
 //
-// Note: pdbcompat silently drops `?depth=N` on list endpoints (a
-// documented divergence), so depth=0/1/2 currently produce identical
-// bodies. The depth band still has value as a regression signal — if/when
-// that divergence is reverted, the loadtest will surface it immediately
-// via response-size drift across the bands.
+// Note: pdbcompat expands `?depth=N` on the list endpoints of the 6
+// types with reverse sets (org, net, ix, ixlan, carrier, campus); the
+// other 7 types render the same rows at every depth, as upstream does.
+// The incremental mode (limit=250&since=M) is at the 250-row truncation
+// limit and never over it. The full mode at depth 1 or 2 is not
+// truncated and loads every row with its sets.
 func buildSyncEndpoints(mode string, since time.Time) []Endpoint {
 	out := make([]Endpoint, 0, len(syncOrder)*len(syncDepths))
 	for _, depth := range syncDepths {

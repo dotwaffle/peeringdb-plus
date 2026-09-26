@@ -57,6 +57,14 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   Before, pdbcompat ignored the key and returned the unfiltered list.
   A single-object GET applies the key too: `/api/fac/<id>?name_search=` returns `404` when the search does not match the facility.
   The match is an approximation of upstream's search index (see `docs/API.md` § Name search and § Known Divergences).
+- pdbcompat lists accept `?depth=`.
+  At depth 1, each row of `org`, `net`, `ix`, `ixlan`, `carrier` and `campus` carries its `_set` fields as ID lists; at depth 2 or higher, as objects.
+  A list row does not carry the parent object (`org`, `net`, `ixlan` and so on), as upstream, so the other 7 types return the same rows at every depth.
+  A list with a filter, a non-zero `?since` or `?q` and more than 250 rows returns the first 250 rows and a `meta.truncated` message, as upstream.
+  A list without a filter is not truncated; the response memory budget applies to its most expensive group of 250 rows.
+  A `?depth=` value that is not an integer, or is empty, returns `400` on a list too.
+  Before, lists ignored `?depth=` (a registered divergence, now removed for depths 1 and 2).
+  See `docs/API.md` § List depth.
 
 ### Changed
 

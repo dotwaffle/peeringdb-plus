@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -202,5 +203,88 @@ func TestPresencePlan_KeepsNetIndex(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestListDepthPlan_KeepsFKIndex checks the plans of the queries of a
+// list at depth 1 and 2, with and without ?since, for the 6 types with
+// reverse sets: ListIDs, the chunk query of ListDepth, the set loaders
+// and the listDepthEstimate counts.
+//   - A step on the listed table may read its status index (the default
+//     list reads <type>_status), but the chunk query must seek each id
+//     (rowid=?), not scan the status range.
+//   - A step on a set table must not read a status index. likely() on
+//     the status test keeps it on the FK index.
+//   - The estimate counts must not sort: the FK index gives the group
+//     order. A loader may sort the rows that it fetched for the last
+//     ORDER BY terms (the facility order of netfac, ixfac and
+//     carrierfac), but never all the rows of a table.
+func TestListDepthPlan_KeepsFKIndex(t *testing.T) {
+	t.Parallel()
+	seedClient, db := testutil.SetupClientWithDB(t)
+	seedListDepthRows(t, seedClient)
+	for _, typ := range setTypes() {
+		for _, depth := range []int{1, 2} {
+			for _, since := range []bool{false, true} {
+				name := typ + "_depth" + strconv.Itoa(depth)
+				if since {
+					name += "_since"
+				}
+				t.Run(name, func(t *testing.T) {
+					t.Parallel()
+					ctx := t.Context()
+					var opts QueryOptions
+					if since {
+						ts := time.Unix(1, 0).UTC()
+						opts.Since = &ts
+					}
+					listed := " " + tableFor(t, typ) + " "
+					tc := Registry[typ]
+
+					idsRec := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+					ids, err := tc.ListIDs(ctx, ent.NewClient(ent.Driver(idsRec)), opts)
+					if err != nil || len(ids) == 0 {
+						t.Fatalf("ListIDs: %v ids, err %v", ids, err)
+					}
+					chunkRec := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+					if _, err := tc.ListDepth(ctx, ent.NewClient(ent.Driver(chunkRec)), opts, ids, depth, childSets[typ]); err != nil {
+						t.Fatalf("ListDepth: %v", err)
+					}
+					estRec := &recordingDriver{Driver: entsql.OpenDB(dialect.SQLite, db)}
+					if _, err := listDepthEstimate(ctx, ent.NewClient(ent.Driver(estRec)), typ, ids, depth, childSets[typ], defaultListDepthChunk); err != nil {
+						t.Fatalf("listDepthEstimate: %v", err)
+					}
+
+					sawChunk := false
+					for _, q := range append(idsRec.queries(), chunkRec.queries()...) {
+						plan := explainPlan(t, db, q.q, q.args)
+						onListed := strings.Contains(q.q, "FROM `"+strings.TrimSpace(listed)+"`")
+						if onListed && strings.Contains(q.q, "json_each") {
+							sawChunk = true
+							if !strings.Contains(plan, "rowid=?") {
+								t.Errorf("chunk query does not seek by id:\n  sql:  %s\n  plan: %s", q.q, plan)
+							}
+						}
+						for step := range strings.SplitSeq(plan, " | ") {
+							if statusIndexUse.MatchString(step) && !strings.Contains(step, listed) {
+								t.Errorf("set query reads a status index:\n  sql:  %s\n  plan: %s", q.q, plan)
+							}
+							if strings.Contains(step, "TEMP B-TREE") && !strings.Contains(step, "LAST 2 TERMS") {
+								t.Errorf("query sorts every row:\n  sql:  %s\n  plan: %s", q.q, plan)
+							}
+						}
+					}
+					if !sawChunk {
+						t.Error("no chunk query recorded")
+					}
+					for _, q := range estRec.queries() {
+						plan := explainPlan(t, db, q.q, q.args)
+						if statusIndexUse.MatchString(plan) || strings.Contains(plan, "TEMP B-TREE") {
+							t.Errorf("estimate query reads a status index or sorts:\n  sql:  %s\n  plan: %s", q.q, plan)
+						}
+					}
+				})
+			}
+		}
 	}
 }

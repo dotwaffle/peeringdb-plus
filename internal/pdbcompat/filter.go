@@ -364,6 +364,16 @@ type listFilters struct {
 	// with a negative skip, as a search with no hit is upstream
 	// qset.none() before the slice.
 	searchHit func(*sql.Selector)
+	// upstreamFilter is set when the request has a key that upstream
+	// counts in the gate of its API cache (2.83.0 rest.py:705-709,
+	// api_cache.py:109-110): a key that adds a predicate or an empty
+	// result, a legacy net info_type key (query_adjusted,
+	// serializers.py:3775-3810), and a relation key of a prepare_query
+	// with at most 3 segments, also when the mirror ignores its form
+	// (get_relation_filters puts it in p_filters, :614-654). It is set
+	// even when the key matches every row. A list at depth > 0 with
+	// such a key is cut to 250 rows, as upstream (rest.py:766-772).
+	upstreamFilter bool
 }
 
 // parseListFilters parses the filter keys of a request (see
@@ -417,6 +427,9 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (li
 		predicates = append(predicates, ns.pred)
 	}
 	emptyResult := ns.empty || ns.none
+	// adjusted records a key that upstream counts in its API cache gate
+	// but that adds no predicate (see listFilters.upstreamFilter).
+	adjusted := false
 	for key, vals := range params {
 		if len(vals) == 0 {
 			continue
@@ -467,7 +480,9 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (li
 		// serializers.py:3768-3813, rest.py:559-563).
 		if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
 			if patterns == nil {
-				// A pattern matches every network.
+				// A pattern matches every network. Upstream still sets
+				// query_adjusted, so the key counts as a filter.
+				adjusted = true
 				continue
 			}
 			p, err := multiChoiceLikeAny("info_types", patterns)
@@ -535,6 +550,12 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (li
 				continue
 			}
 			if !ok {
+				// Upstream puts a key of up to 3 segments in p_filters,
+				// also when prepare_query does not apply it (2.83.0
+				// serializers.py:641-654).
+				if len(tail) <= 2 {
+					adjusted = true
+				}
 				appendUnknown(ctx, key)
 				continue
 			}
@@ -619,9 +640,14 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (li
 		return listFilters{}, nsErr
 	}
 	if emptyResult {
-		return listFilters{emptyResult: true, none: ns.none, searchHit: ns.hit}, nil
+		return listFilters{emptyResult: true, none: ns.none, searchHit: ns.hit, upstreamFilter: true}, nil
 	}
-	return listFilters{preds: predicates, orderBy: orderBy, searchHit: ns.hit}, nil
+	return listFilters{
+		preds:          predicates,
+		orderBy:        orderBy,
+		searchHit:      ns.hit,
+		upstreamFilter: adjusted || len(predicates) > 0,
+	}, nil
 }
 
 // isPrepareQueryKey reports whether an upstream prepare_query of typ

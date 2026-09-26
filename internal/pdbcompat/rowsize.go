@@ -49,8 +49,9 @@ type RowSize struct {
 //	campus          269    1332
 //
 // The Depth2 column feeds the detail-path budget check
-// (serveDetail → CheckBudget(1, type, 2, …)); lists are pinned to
-// depth 0 by the list-depth guardrail and never consult it. A
+// (serveDetail → CheckBudget(1, type, 2, …)). Lists never consult it:
+// a list at depth > 0 is priced by listDepthEstimate from the child
+// counts and the Depth0 figures. A
 // bare /api/org/<id> at the default depth=2 bills roughly 8.6 KiB for
 // the single expanded org, so only a degenerately small budget would
 // 413 it — the check is a floor, not a bound on _set cardinality.

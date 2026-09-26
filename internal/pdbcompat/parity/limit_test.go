@@ -1,10 +1,12 @@
 package parity
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"maps"
 	"net/http"
+	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
@@ -23,9 +25,10 @@ import (
 //     clients incorrectly assume).
 //   - ?limit=0 paired with the response budget returns 413 when the
 //     precount × TypicalRowBytes exceeds the budget.
-//   - ?depth=N on a list endpoint is silently dropped by the
-//     guardrail. DIVERGENCE from upstream which accepts depth on
-//     list. See docs/API.md § Known Divergences.
+//   - ?depth=N above 0 on a list that upstream answers from its live
+//     query (a filter key, since other than 0, or ?q=) is cut to 250
+//     rows with meta.truncated. A list that upstream serves from its
+//     API cache is not cut.
 //   - limit, skip and since are parsed as upstream parses them: the
 //     last value, Python int() rules, the upstream error texts, and an
 //     empty value is a 400. A negative limit serves every row. A
@@ -178,40 +181,397 @@ func TestParity_Limit(t *testing.T) {
 		}
 	})
 
-	t.Run("depth_on_list_silently_dropped_DIVERGENCE", func(t *testing.T) {
+	t.Run("list_depth_filtered_truncates_at_250", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream rest.py accepts ?depth on list
-		// endpoints and embeds related objects per row. The list
-		// guardrail (handler.go:163-168) silently drops the param to
-		// avoid memory blow-up at scale; until a safe list+depth
-		// implementation lands the response is IDENTICAL to a
-		// no-depth call.
-		// See docs/API.md § Known Divergences.
-		// synthesised: the silent-drop is novel to this fork.
+		// upstream: 2.83.0 rest.py:757-772: a list at depth > 0 that
+		// upstream answers from its live query is cut to 250 rows after
+		// the skip/limit slice, and meta.truncated says so. A filter key
+		// keeps the list off the API cache (api_cache.py:90-124).
 		c := testutil.SetupClient(t)
-		ctx := t.Context()
-		for _, id := range []int{1, 2} {
-			if _, err := c.Network.Create().
-				SetID(id).SetName("DepthProbe").SetNameFold(unifold.Fold("DepthProbe")).
-				SetAsn(80000 + id).SetStatus("ok").
-				SetCreated(t0).SetUpdated(t0.Add(time.Duration(id) * time.Hour)).
-				Save(ctx); err != nil {
-				t.Fatalf("seed net %d: %v", id, err)
+		seedDepthNets(t, c, t0, "DepthProbe", 260)
+		srv := newTestServer(t, c)
+		ids, meta := getDepthList(t, srv, "/api/net?name=DepthProbe&depth=1")
+		if len(ids) != 250 || ids[0] != 1 || ids[249] != 250 {
+			t.Errorf("ids = %d rows [%v..], want ids 1..250", len(ids), ids[:min(len(ids), 3)])
+		}
+		assertTruncated(t, meta, "1")
+	})
+
+	t.Run("list_depth_exactly_250_not_truncated", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:766: the message is set only when the
+		// sliced query holds more than 250 rows.
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "DepthProbe", 250)
+		srv := newTestServer(t, c)
+		ids, meta := getDepthList(t, srv, "/api/net?name=DepthProbe&depth=1")
+		if len(ids) != 250 {
+			t.Errorf("%d rows, want 250", len(ids))
+		}
+		assertNotTruncated(t, meta)
+	})
+
+	t.Run("list_depth_truncation_after_skip_limit", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:757-769: the skip/limit slice comes
+		// first, then the count of the sliced query decides the cut.
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "DepthProbe", 300)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			query     string
+			rows      int
+			first     int
+			truncated bool
+		}{
+			{"limit=280&skip=10", 250, 11, true},
+			{"skip=10", 250, 11, true},
+			{"limit=100", 100, 1, false},
+			{"skip=295", 5, 296, false},
+		} {
+			ids, meta := getDepthList(t, srv, "/api/net?name=DepthProbe&depth=1&"+tc.query)
+			if len(ids) != tc.rows || ids[0] != tc.first {
+				t.Errorf("?%s: %d rows from id %v, want %d rows from id %d", tc.query, len(ids), ids[:min(len(ids), 1)], tc.rows, tc.first)
+			}
+			if tc.truncated {
+				assertTruncated(t, meta, "1")
+			} else {
+				assertNotTruncated(t, meta)
 			}
 		}
-		srv := newTestServer(t, c)
+	})
 
-		statusPlain, bodyPlain := httpGet(t, srv, "/api/net")
-		statusDepth, bodyDepth := httpGet(t, srv, "/api/net?depth=2")
-		if statusPlain != http.StatusOK || statusDepth != http.StatusOK {
-			t.Fatalf("plain=%d depth=%d (both must be 200)", statusPlain, statusDepth)
+	t.Run("list_depth_unfiltered_not_truncated", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 api_cache.py:90-124 (a list with no filter
+		// and no since qualifies for the API cache at depth > 0),
+		// pdb_api_cache.py:170 (the cache files hold every row) and
+		// docs/api/op_list.md:112-114. The cache path never truncates.
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "DepthProbe", 260)
+		srv := newTestServer(t, c)
+		for _, q := range []string{"depth=1", "depth=2", "depth=1&limit=0", "depth=1&limit=300"} {
+			ids, meta := getDepthList(t, srv, "/api/net?"+q)
+			if len(ids) != 260 {
+				t.Errorf("?%s: %d rows, want 260", q, len(ids))
+			}
+			assertNotTruncated(t, meta)
 		}
-		idsPlain := extractIDs(t, bodyPlain)
-		idsDepth := extractIDs(t, bodyDepth)
-		if !equalIntSlice(idsPlain, idsDepth) {
-			t.Errorf("DIVERGENCE: ?depth=2 must produce identical id list as no-depth (silent-drop). got plain=%v depth=%v",
-				idsPlain, idsDepth)
+		ids, meta := getDepthList(t, srv, "/api/net?depth=1&limit=10&skip=5")
+		if len(ids) != 10 || ids[0] != 6 {
+			t.Errorf("?depth=1&limit=10&skip=5: ids = %v, want 10 rows from id 6", ids)
 		}
+		assertNotTruncated(t, meta)
+	})
+
+	t.Run("list_depth_ignored_keys_not_truncated", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 models.py:1259-1264 (org_flags) and
+		// models.py:6095-6101 (the ix_side_set reverse relation) are
+		// filters upstream, so upstream answers from its live query and
+		// truncates. The mirror ignores these keys (registered rows
+		// DIVERGENCE_unserialized_model_columns_silent_ignore and
+		// DIVERGENCE_reverse_set_keys_silent_ignore), and an ignored key
+		// does not make the list live, so the mirror serves the
+		// unfiltered list in full, as it does at depth 0.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		orgs := make([]*ent.OrganizationCreate, 0, 260)
+		facs := make([]*ent.FacilityCreate, 0, 260)
+		for i := 1; i <= 260; i++ {
+			orgs = append(orgs, c.Organization.Create().
+				SetID(i).SetName(fmt.Sprintf("FlagOrg %d", i)).SetNameFold(unifold.Fold(fmt.Sprintf("FlagOrg %d", i))).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0))
+			facs = append(facs, c.Facility.Create().
+				SetID(i).SetName(fmt.Sprintf("SideFac %d", i)).SetNameFold(unifold.Fold(fmt.Sprintf("SideFac %d", i))).
+				SetOrgID(1).SetStatus("ok").SetCreated(t0).SetUpdated(t0))
+		}
+		c.Organization.CreateBulk(orgs...).ExecX(ctx)
+		c.Facility.CreateBulk(facs...).ExecX(ctx)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/org?org_flags=1&depth=1",
+			"/api/fac?ix_side_set__asn=64500&depth=1",
+		} {
+			ids, meta := getDepthList(t, srv, path)
+			if len(ids) != 260 {
+				t.Errorf("GET %s: %d rows, want 260", path, len(ids))
+			}
+			assertNotTruncated(t, meta)
+		}
+	})
+
+	t.Run("list_depth_since_truncates", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 api_cache.py:109-110 (since > 0 keeps the
+		// list off the cache), rest.py:744 (updated, id order) and
+		// :757-772 (the cut). The updated values run opposite to the ids.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		nets := make([]*ent.NetworkCreate, 0, 260)
+		for i := 1; i <= 260; i++ {
+			ts := t0.Add(time.Duration(261-i) * time.Second)
+			nets = append(nets, c.Network.Create().
+				SetID(i).SetName("SinceDepth").SetNameFold(unifold.Fold("SinceDepth")).
+				SetAsn(90000+i).SetStatus("ok").SetCreated(ts).SetUpdated(ts))
+		}
+		c.Network.CreateBulk(nets...).ExecX(ctx)
+		srv := newTestServer(t, c)
+		ids, meta := getDepthList(t, srv, "/api/net?since=1&depth=1")
+		if len(ids) != 250 || ids[0] != 260 || ids[249] != 11 {
+			t.Errorf("ids = %d rows, first %v, want ids 260 down to 11", len(ids), ids[:min(len(ids), 3)])
+		}
+		assertTruncated(t, meta, "1")
+	})
+
+	t.Run("list_depth_negative_since_truncates", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 api_cache.py:80 and :109-110 (any since other
+		// than 0 keeps the list off the cache) and rest.py:719 (the since
+		// matrix applies only for since > 0, so a negative since lists
+		// the live rows in id order).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "DepthProbe", 260)
+		srv := newTestServer(t, c)
+		ids, meta := getDepthList(t, srv, "/api/net?since=-1&depth=1")
+		if len(ids) != 250 || ids[0] != 1 {
+			t.Errorf("?since=-1: %d rows from %v, want 250 from id 1", len(ids), ids[:min(len(ids), 1)])
+		}
+		assertTruncated(t, meta, "1")
+		ids, meta = getDepthList(t, srv, "/api/net?since=0&depth=1")
+		if len(ids) != 260 {
+			t.Errorf("?since=0: %d rows, want 260", len(ids))
+		}
+		assertNotTruncated(t, meta)
+	})
+
+	t.Run("list_depth_noop_filter_keys_truncate", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:3775-3810 (net info_type keys
+		// set query_adjusted) and :614-654 (a prepare_query relation key
+		// is a filter): both keep the list off the cache
+		// (api_cache.py:100-110) even when they match every row.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		seedDepthNets(t, c, t0, "DepthProbe", 260)
+		mustOrg(ctx, t, c, 1, "NoopOrg", t0)
+		facs := make([]*ent.FacilityCreate, 0, 260)
+		for i := 1; i <= 260; i++ {
+			facs = append(facs, c.Facility.Create().
+				SetID(i).SetName(fmt.Sprintf("NoopFac %d", i)).SetNameFold(unifold.Fold(fmt.Sprintf("NoopFac %d", i))).
+				SetOrgID(1).SetStatus("ok").SetCreated(t0).SetUpdated(t0))
+		}
+		c.Facility.CreateBulk(facs...).ExecX(ctx)
+		srv := newTestServer(t, c)
+		for _, path := range []string{
+			"/api/net?info_type__in=,x&depth=1",
+			"/api/fac?org_name__iexact=x&depth=1",
+		} {
+			ids, meta := getDepthList(t, srv, path)
+			if len(ids) != 250 {
+				t.Errorf("GET %s: %d rows, want 250", path, len(ids))
+			}
+			assertTruncated(t, meta, "1")
+		}
+	})
+
+	t.Run("list_depth_q_truncates", func(t *testing.T) {
+		t.Parallel()
+		// synthesised: ?q= is a mirror extension; the mirror counts it
+		// as a filter, so a ?q= list at depth > 0 is cut at 250 rows.
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "QProbe", 260)
+		srv := newTestServer(t, c)
+		ids, meta := getDepthList(t, srv, "/api/net?q=QProbe&depth=1")
+		if len(ids) != 250 {
+			t.Errorf("%d rows, want 250", len(ids))
+		}
+		assertTruncated(t, meta, "1")
+	})
+
+	t.Run("list_depth_raw_value_in_message", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:520-523 (depth = int(...)) and
+		// :771 (the message prints that int, not the clamped depth).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "DepthProbe", 260)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ value, text string }{
+			{"7", "7"},
+			{"007", "7"},
+			{"99999999999999999999", "99999999999999999999"},
+		} {
+			ids, meta := getDepthList(t, srv, "/api/net?name=DepthProbe&depth="+tc.value)
+			if len(ids) != 250 {
+				t.Errorf("depth=%s: %d rows, want 250", tc.value, len(ids))
+			}
+			assertTruncated(t, meta, tc.text)
+		}
+	})
+
+	t.Run("list_depth_negative_is_depth0", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:766 (the cut needs depth > 0) and
+		// serializers.py:1032-1039 (a depth of 0 or less renders flat
+		// rows).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "DepthProbe", 260)
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/net?name=DepthProbe&depth=-1")
+		if status != http.StatusOK {
+			t.Fatalf("status = %d, want 200; body=%s", status, headBody(body, 300))
+		}
+		rows := decodeDataArray(t, body)
+		if len(rows) != 260 {
+			t.Errorf("%d rows, want 260", len(rows))
+		}
+		if _, ok := rows[0]["netixlan_set"]; ok {
+			t.Errorf("depth=-1 row has netixlan_set: %v", rows[0])
+		}
+		assertNotTruncated(t, decodeListMeta(t, body))
+	})
+
+	t.Run("list_depth_non_integer_400", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:520-523: int() of the value, and the
+		// view returns "'depth' needs to be a number" for a ValueError.
+		// CPython int() refuses a decimal string of more than 4300
+		// digits (sys.int_info.default_max_str_digits).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "DepthProbe", 260)
+		srv := newTestServer(t, c)
+		const want = "'depth' needs to be a number"
+		for _, v := range []string{"abc", "", "1.5", "0x1", strings.Repeat("1", 4301)} {
+			status, body := httpGet(t, srv, "/api/net?name=DepthProbe&depth="+v)
+			if status != http.StatusBadRequest {
+				t.Errorf("depth=%.10s: status = %d, want 400", v, status)
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != want {
+				t.Errorf("depth=%.10s: meta.error = %q, want %q", v, got, want)
+			}
+		}
+		ids, meta := getDepthList(t, srv, "/api/net?name=DepthProbe&depth="+strings.Repeat("1", 4300))
+		if len(ids) != 250 {
+			t.Errorf("4300 digits: %d rows, want 250", len(ids))
+		}
+		assertTruncated(t, meta, strings.Repeat("1", 4300))
+	})
+
+	t.Run("list_depth_python_int_forms", func(t *testing.T) {
+		t.Parallel()
+		// synthesised: upstream parses depth with Python int() (2.83.0
+		// rest.py:520-523), which accepts white space at both ends, a
+		// sign and single underscores between digits; QueryDict.get
+		// returns the last value. A "+" in a query string decodes to a
+		// space, so the sign is sent as %2B.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "IntFormOrg", t0)
+		mustNet(ctx, t, c, 1, "IntFormNet", 64501, 1, t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			value     string
+			wantDepth int
+		}{
+			{"%202%20", 2},
+			{"%2B2", 2},
+			{"+2", 2},
+			{"0_2", 2},
+			{"0&depth=1", 1},
+		} {
+			status, body := httpGet(t, srv, "/api/org?id=1&depth="+tc.value)
+			if status != http.StatusOK {
+				t.Errorf("depth=%s: status = %d, want 200; body=%s", tc.value, status, headBody(body, 300))
+				continue
+			}
+			set, _ := decodeDataArray(t, body)[0]["net_set"].([]any)
+			if len(set) != 1 {
+				t.Errorf("depth=%s: net_set = %v, want one element", tc.value, set)
+				continue
+			}
+			_, isObject := set[0].(map[string]any)
+			if isObject != (tc.wantDepth == 2) {
+				t.Errorf("depth=%s: net_set[0] = %v, want the depth %d shape", tc.value, set[0], tc.wantDepth)
+			}
+		}
+	})
+
+	t.Run("list_depth_error_order", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:505-523 parses since, skip, limit and
+		// depth before the filter loop (:564-683). The mirror checks
+		// skip and limit before since; each pair below is still a 400
+		// with the upstream text.
+		c := testutil.SetupClient(t)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ query, want string }{
+			{"since=abc&depth=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"depth=abc&skip=abc", "'skip' needs to be a number"},
+			{"depth=abc&asn__lt=x", "'depth' needs to be a number"},
+		} {
+			status, body := httpGet(t, srv, "/api/net?"+tc.query)
+			if status != http.StatusBadRequest {
+				t.Errorf("?%s: status = %d, want 400; body=%s", tc.query, status, headBody(body, 300))
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != tc.want {
+				t.Errorf("?%s: meta.error = %q, want %q", tc.query, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("list_depth_leaf_types_unchanged", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 pdb_api_cache.py:50-58 and
+		// serializers.py:1286-1290 (list_exclude): a list row never
+		// carries its forward FK object, so the types without reverse
+		// sets render the depth-0 row at every depth.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "LeafOrg", t0)
+		mustFac(ctx, t, c, 1, "LeafFac", 1, t0)
+		mustNet(ctx, t, c, 1, "LeafNet", 64501, 1, t0)
+		mustIX(ctx, t, c, 1, "LeafIX", 1, t0)
+		mustIxLan(ctx, t, c, 1, "LeafLan", 1, t0)
+		mustIxPfx(ctx, t, c, 1, "192.0.2.0/24", 1, t0)
+		c.Carrier.Create().SetID(1).SetName("LeafCarrier").SetOrgID(1).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.CarrierFacility.Create().SetID(1).SetCarrierID(1).SetFacID(1).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.NetworkFacility.Create().SetID(1).SetNetID(1).SetFacID(1).SetLocalAsn(64501).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.IxFacility.Create().SetID(1).SetIxID(1).SetFacID(1).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.Poc.Create().SetID(1).SetNetID(1).SetRole("NOC").SetName("Leaf NOC").SetVisible("Public").
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		nix := make([]*ent.NetworkIxLanCreate, 0, 260)
+		for i := 1; i <= 260; i++ {
+			nix = append(nix, c.NetworkIxLan.Create().
+				SetID(i).SetNetID(1).SetIxlanID(1).SetIxID(1).SetName("LeafIX").
+				SetAsn(64501).SetSpeed(1000).SetOperational(true).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0))
+		}
+		c.NetworkIxLan.CreateBulk(nix...).ExecX(ctx)
+		srv := newTestServer(t, c)
+		for _, typ := range []string{"netixlan", "netfac", "ixfac", "poc", "ixpfx", "carrierfac", "fac"} {
+			_, flat := httpGet(t, srv, "/api/"+typ+"?id=1")
+			for _, d := range []string{"1", "2"} {
+				status, body := httpGet(t, srv, "/api/"+typ+"?id=1&depth="+d)
+				if status != http.StatusOK {
+					t.Errorf("%s depth=%s: status = %d; body=%s", typ, d, status, headBody(body, 300))
+					continue
+				}
+				if !bytes.Equal(body, flat) {
+					t.Errorf("%s depth=%s row differs from depth 0:\n  got:  %s\n  want: %s", typ, d, headBody(body, 400), headBody(flat, 400))
+				}
+			}
+		}
+		ids, meta := getDepthList(t, srv, "/api/netixlan?asn=64501&depth=1")
+		if len(ids) != 250 {
+			t.Errorf("netixlan: %d rows, want 250", len(ids))
+		}
+		assertTruncated(t, meta, "1")
 	})
 
 	t.Run("error_envelope_meta_error", func(t *testing.T) {
@@ -528,13 +888,21 @@ func TestParity_Limit(t *testing.T) {
 		// file (2.83.0 api_cache.py:90-124, settings/__init__.py:399
 		// API_CACHE_ENABLED) and slices the rows with Python slices
 		// (api_cache.py:136-142), so ?skip=-2 returns the last 2 rows.
+		// At depth > 0 every limit qualifies (api_cache.py:100-110), so
+		// ?depth=1&skip=-2 also returns the last 2 rows and
+		// ?depth=1&limit=-1 returns data[:-1], every row but the last.
 		// The mirror returns 400 for every negative skip, as the
-		// upstream DB path does. See docs/API.md § Known Divergences.
+		// upstream DB path does, and serves every row for a negative
+		// limit. See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		c := testutil.SetupClient(t)
 		seedLimitNets(t, c, t0, 3)
 		srv := newTestServer(t, c)
-		for _, q := range []string{"skip=-2", "skip=-2&limit=300", "skip=-2&limit=0"} {
+		ids, _ := getDepthList(t, srv, "/api/net?depth=1&limit=-1")
+		if !equalIntSlice(ids, []int{1, 2, 3}) {
+			t.Errorf("?depth=1&limit=-1: ids = %v, want [1 2 3] (divergence canary)", ids)
+		}
+		for _, q := range []string{"skip=-2", "skip=-2&limit=300", "skip=-2&limit=0", "depth=1&skip=-2", "depth=1&skip=-2&limit=10"} {
 			status, body := httpGet(t, srv, "/api/net?"+q)
 			if status != http.StatusBadRequest {
 				t.Errorf("?%s: status = %d, want 400 (divergence canary); body=%s", q, status, string(body))
@@ -746,5 +1114,62 @@ func assertMetaKeys(t *testing.T, body []byte, want ...string) {
 	}
 	if got := slices.Sorted(maps.Keys(top.Meta)); !slices.Equal(got, slices.Sorted(slices.Values(want))) {
 		t.Errorf("meta keys = %v, want %v; body=%s", got, want, string(body))
+	}
+}
+
+// seedDepthNets seeds n ok nets with ids 1..n and the same name, with
+// no org, created and updated at ts.
+func seedDepthNets(t *testing.T, c *ent.Client, ts time.Time, name string, n int) {
+	t.Helper()
+	nets := make([]*ent.NetworkCreate, 0, n)
+	for i := 1; i <= n; i++ {
+		nets = append(nets, c.Network.Create().
+			SetID(i).SetName(name).SetNameFold(unifold.Fold(name)).
+			SetAsn(90000+i).SetStatus("ok").
+			SetCreated(ts).SetUpdated(ts))
+	}
+	if err := c.Network.CreateBulk(nets...).Exec(t.Context()); err != nil {
+		t.Fatalf("seed %d nets: %v", n, err)
+	}
+}
+
+// getDepthList GETs a list that must return 200 and returns its row ids
+// and its meta object.
+func getDepthList(t *testing.T, srv *httptest.Server, path string) ([]int, map[string]any) {
+	t.Helper()
+	status, body := httpGet(t, srv, path)
+	if status != http.StatusOK {
+		t.Fatalf("GET %s: status = %d, want 200; body=%s", path, status, headBody(body, 300))
+	}
+	return extractIDs(t, body), decodeListMeta(t, body)
+}
+
+// decodeListMeta returns the meta object of a list response.
+func decodeListMeta(t *testing.T, body []byte) map[string]any {
+	t.Helper()
+	var env struct {
+		Meta map[string]any `json:"meta"`
+	}
+	if err := json.Unmarshal(body, &env); err != nil {
+		t.Fatalf("decode meta: %v", err)
+	}
+	return env.Meta
+}
+
+// assertTruncated checks meta.truncated against the upstream text
+// (2.83.0 rest.py:771) with depthText as the printed depth.
+func assertTruncated(t *testing.T, meta map[string]any, depthText string) {
+	t.Helper()
+	want := "Your search query (with depth " + depthText + ") returned more than 250 rows and has been truncated. Please be more specific in your filters, use the limit and skip parameters to page through the resultset or drop the depth parameter"
+	if got, _ := meta["truncated"].(string); got != want {
+		t.Errorf("meta.truncated = %.120q, want %.120q", got, want)
+	}
+}
+
+// assertNotTruncated checks that meta has no truncated key.
+func assertNotTruncated(t *testing.T, meta map[string]any) {
+	t.Helper()
+	if v, ok := meta["truncated"]; ok {
+		t.Errorf("meta.truncated = %.80v, want no key", v)
 	}
 }

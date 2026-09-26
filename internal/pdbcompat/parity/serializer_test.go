@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -361,6 +362,225 @@ func TestParity_Serializer(t *testing.T) {
 		}
 	})
 
+	t.Run("list_depth1_sets_as_id_lists", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:4122-4129 at 2.83.0 (a list at depth
+		// 1 renders each _set as an id list) and serializers.py:1286-1290
+		// (list_exclude: no forward FK object on a list row). The
+		// facility-link sets are in facility order and ixlan.net_set
+		// keeps the netixlan order with duplicates, as on a detail
+		// response (serializers.py:1140-1148, :1678-1681).
+		srv := newTestServer(t, seedListDepthShapes(t, t0))
+		org := listDepthRow(t, srv, "/api/org?id=1&depth=1")
+		for set, want := range map[string][]int{
+			"net_set":     {1, 2, 3},
+			"fac_set":     {7, 64},
+			"ix_set":      {1},
+			"carrier_set": {1},
+			"campus_set":  {1}, // campus 2 is pending
+		} {
+			if got := setIDs(t, org, set); !slices.Equal(got, want) {
+				t.Errorf("org %s = %v, want %v", set, got, want)
+			}
+		}
+		for _, tc := range []struct {
+			path, fk, set string
+			want          []int
+		}{
+			{"/api/net?id=1&depth=1", "org", "netfac_set", []int{300, 200}},
+			{"/api/net?id=1&depth=1", "org", "netixlan_set", []int{11, 14}},
+			{"/api/ix?id=1&depth=1", "org", "fac_set", []int{7, 64}},
+			{"/api/ix?id=1&depth=1", "org", "ixlan_set", []int{1}},
+			{"/api/carrier?id=1&depth=1", "org", "carrierfac_set", []int{300, 200}},
+			{"/api/campus?id=1&depth=1", "org", "fac_set", []int{64}},
+			{"/api/ixlan?id=1&depth=1", "ix", "net_set", []int{2, 1, 2, 4, 1}},
+		} {
+			row := listDepthRow(t, srv, tc.path)
+			if _, ok := row[tc.fk]; ok {
+				t.Errorf("%s: row has the %q key", tc.path, tc.fk)
+			}
+			if got := setIDs(t, row, tc.set); !slices.Equal(got, tc.want) {
+				t.Errorf("%s %s = %v, want %v", tc.path, tc.set, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("list_depth2_sets_as_objects", func(t *testing.T) {
+		t.Parallel()
+		// upstream: pdb_api_test.py:4131-4137 at 2.83.0 (a list at depth
+		// 2 renders each _set as objects), serializers.py:1240-1309 (a
+		// nested object drops the FK back to its parent and has no _set
+		// of its own at depth 2), :1140-1148 (netixlan_set holds the
+		// not-operational rows) and :1678-1681 (a through set filters the
+		// join row only).
+		srv := newTestServer(t, seedListDepthShapes(t, t0))
+		net := setObjects(t, listDepthRow(t, srv, "/api/org?id=1&depth=2"), "net_set")[0]
+		if net["id"] != float64(1) || net["asn"] == nil {
+			t.Errorf("org net_set[0] = %v, want the full net 1", net)
+		}
+		for _, k := range []string{"org_id", "poc_set", "netfac_set", "netixlan_set"} {
+			if _, ok := net[k]; ok {
+				t.Errorf("org net_set[0] has the %q key", k)
+			}
+		}
+		statuses := map[any]bool{}
+		for _, nix := range setObjects(t, listDepthRow(t, srv, "/api/net?id=1&depth=2"), "netixlan_set") {
+			if _, ok := nix["net_id"]; ok {
+				t.Errorf("net netixlan_set element has net_id: %v", nix)
+			}
+			statuses[nix["status"]] = true
+		}
+		if !statuses["not-operational"] {
+			t.Errorf("net netixlan_set statuses = %v, want a not-operational row", statuses)
+		}
+		fac := setObjects(t, listDepthRow(t, srv, "/api/campus?id=1&depth=2"), "fac_set")[0]
+		if _, ok := fac["org_id"]; ok || fac["campus_id"] != float64(1) {
+			t.Errorf("campus fac_set[0] = %v, want campus_id 1 and no org_id", fac)
+		}
+		cf := setObjects(t, listDepthRow(t, srv, "/api/carrier?id=1&depth=2"), "carrierfac_set")[0]
+		if cf["carrier_id"] != float64(1) {
+			t.Errorf("carrier carrierfac_set[0] = %v, want carrier_id 1", cf)
+		}
+		found := false
+		for _, n := range setObjects(t, listDepthRow(t, srv, "/api/ixlan?id=1&depth=2"), "net_set") {
+			if n["id"] == float64(4) && n["status"] == "deleted" {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("ixlan net_set has no deleted net 4 (a live netixlan points to it)")
+		}
+	})
+
+	t.Run("list_depth_matches_detail_without_fk_objects", func(t *testing.T) {
+		t.Parallel()
+		// upstream: serializers.py:1286-1290 at 2.83.0: a list row is
+		// the detail row without the forward FK objects. Locks the list
+		// set loaders to the detail getters.
+		srv := newTestServer(t, seedListDepthShapes(t, t0))
+		for _, typ := range []string{"org", "net", "ix", "ixlan", "carrier", "campus"} {
+			for _, d := range []string{"1", "2"} {
+				list := listDepthRow(t, srv, "/api/"+typ+"?id=1&depth="+d)
+				detail := listDepthRow(t, srv, "/api/"+typ+"/1?depth="+d)
+				for _, k := range []string{"org", "campus", "ix"} {
+					delete(detail, k)
+				}
+				if !reflect.DeepEqual(list, detail) {
+					t.Errorf("%s depth=%s: list row differs from the detail row:\n  list:   %v\n  detail: %v", typ, d, list, detail)
+				}
+			}
+		}
+	})
+
+	t.Run("list_depth_since_deleted_parent_expands_live_children", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:719-750 at 2.83.0 (a ?since list holds the
+		// deleted rows) and serializers.py:1140-1148 (the nested sets
+		// keep their own live filter): a deleted org lists its live net.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		c.Organization.Create().SetID(5).SetName("Gone Org").SetNameFold(unifold.Fold("Gone Org")).
+			SetStatus("deleted").SetCreated(t0).SetUpdated(t0.Add(time.Hour)).SaveX(ctx)
+		mustNet(ctx, t, c, 50, "Live Net", 64550, 5, t0)
+		srv := newTestServer(t, c)
+		path := fmt.Sprintf("/api/org?since=%d&depth=1", t0.Add(30*time.Minute).Unix())
+		row := listDepthRow(t, srv, path)
+		if row["id"] != float64(5) || row["status"] != "deleted" {
+			t.Fatalf("%s: row = %v, want the deleted org 5", path, row)
+		}
+		if got := setIDs(t, row, "net_set"); !slices.Equal(got, []int{50}) {
+			t.Errorf("%s: net_set = %v, want [50]", path, got)
+		}
+	})
+
+	t.Run("list_depth_fields_selects_sets", func(t *testing.T) {
+		t.Parallel()
+		// upstream: serializers.py:942-950 at 2.83.0: ?fields= drops the
+		// _set fields that it does not name. The mirror keeps id and a
+		// plain field whose name ends in _set (registered row
+		// DIVERGENCE_fields_keeps_id_and_detail_sets).
+		srv := newTestServer(t, seedListDepthShapes(t, t0))
+		for _, tc := range []struct {
+			path string
+			want []string
+		}{
+			{"/api/org?id=1&depth=2&fields=name", []string{"id", "name"}},
+			{"/api/org?id=1&depth=2&fields=name,net_set", []string{"id", "name", "net_set"}},
+			{"/api/net?id=1&depth=2&fields=name", []string{"id", "irr_as_set", "name"}},
+		} {
+			if got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path))); !slices.Equal(got, tc.want) {
+				t.Errorf("%s: keys = %v, want %v", tc.path, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_list_depth3_renders_depth2_shape", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream pdb_api_test.py:4140-4152 at 2.83.0: a
+		// list at depth 3 gives each set element its own _set fields as
+		// id lists (serializers.py:1240-1309). The mirror renders the
+		// depth-2 shape. See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		srv := newTestServer(t, seedListDepthShapes(t, t0))
+		net := setObjects(t, listDepthRow(t, srv, "/api/org?id=1&depth=3"), "net_set")[0]
+		if _, ok := net["netfac_set"]; ok {
+			t.Errorf("depth=3 org net_set[0] has netfac_set (divergence canary): %v", net)
+		}
+		_, two := httpGet(t, srv, "/api/org?id=1&depth=2")
+		_, three := httpGet(t, srv, "/api/org?id=1&depth=3")
+		if !bytes.Equal(two, three) {
+			t.Errorf("depth=3 body differs from depth=2:\n  2: %s\n  3: %s", two, three)
+		}
+	})
+
+	t.Run("DIVERGENCE_list_depth_ctf_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream rest.py:654-655 at 2.83.0: with _ctf, the
+		// last date filter with an operator is kept in request._ctf, and
+		// serializers.py:998-1002 applies it to every nested set, so
+		// upstream lists only net 1. The mirror ignores _ctf (an unknown
+		// key). See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		day := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
+		mustOrg(ctx, t, c, 1, "CTF Org", day)
+		mustNet(ctx, t, c, 1, "CTF Old", 64501, 1, day)
+		mustNet(ctx, t, c, 2, "CTF New", 64502, 1, day.AddDate(0, 0, 5))
+		srv := newTestServer(t, c)
+		row := listDepthRow(t, srv, "/api/org?id=1&depth=1&updated__lte=2026-09-22&_ctf=1")
+		if got := setIDs(t, row, "net_set"); !slices.Equal(got, []int{1, 2}) {
+			t.Errorf("net_set = %v, want [1 2] (divergence canary)", got)
+		}
+	})
+
+	t.Run("DIVERGENCE_fields_keeps_id_and_detail_sets", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream serializers.py:942-950 at 2.83.0 drops
+		// every field that ?fields= does not name, id and the _set
+		// fields too, and the API cache path drops every key not named
+		// (api_cache.py:170-177). The mirror keeps id, every key that
+		// ends in _set and every nested object on a detail, and a plain
+		// field that ends in _set (net irr_as_set) on a list. See
+		// docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		srv := newTestServer(t, seedListDepthShapes(t, t0))
+		for _, tc := range []struct {
+			path string
+			want []string
+		}{
+			// Upstream: [name].
+			{"/api/org?id=1&fields=name", []string{"id", "name"}},
+			{"/api/net?id=1&fields=name", []string{"id", "irr_as_set", "name"}},
+			// Upstream: [name]. Detail defaults to depth 2.
+			{"/api/net/1?fields=name", []string{"id", "irr_as_set", "name", "netfac_set", "netixlan_set", "org", "poc_set"}},
+		} {
+			if got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path))); !slices.Equal(got, tc.want) {
+				t.Errorf("%s: keys = %v, want %v (divergence canary)", tc.path, got, tc.want)
+			}
+		}
+	})
+
 	t.Run("net_info_types_is_a_list", func(t *testing.T) {
 		t.Parallel()
 		// upstream: serializers.py:3947-3960 at 2.83.0 renders info_types
@@ -627,4 +847,106 @@ func newTierTestServer(t testing.TB, c *ent.Client, tier privctx.Tier) *httptest
 	}))
 	t.Cleanup(srv.Close)
 	return srv
+}
+
+// seedListDepthShapes seeds one row of each type with reverse sets
+// (id 1) and children that exercise the set filters and orders:
+//   - org 1: nets 3, 1, 2 (inserted out of order) and a deleted net 4,
+//     facs 7 and 64, ix 1, carrier 1, campus 1 and a pending campus 2.
+//   - fac 64 is in campus 1.
+//   - netfac, ixfac and carrierfac 300 (fac 7) and 200 (fac 64), on net
+//     1, ix 1 and carrier 1: link ids run opposite to the fac ids.
+//   - ixlan 1 on ix 1 with netixlans 10 (net 2), 11 (net 1), 12 (net
+//     2), 13 (deleted net 4) and 14 (net 1, not-operational).
+//   - net 1 has irr_as_set "AS-SHAPE".
+func seedListDepthShapes(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "Shape Org", t0)
+	for _, id := range []int{3, 1, 2} {
+		mustNet(ctx, t, c, id, fmt.Sprintf("Shape Net %d", id), 64500+id, 1, t0)
+	}
+	c.Network.UpdateOneID(1).SetIrrAsSet("AS-SHAPE").ExecX(ctx)
+	c.Network.Create().SetID(4).SetName("Shape Gone").SetNameFold(unifold.Fold("Shape Gone")).
+		SetAsn(64504).SetOrgID(1).SetStatus("deleted").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	mustCampus(ctx, t, c, 1, "Shape Campus", 1, t0)
+	c.Campus.Create().SetID(2).SetName("Shape Pending").SetNameFold(unifold.Fold("Shape Pending")).
+		SetOrgID(1).SetStatus("pending").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	mustFac(ctx, t, c, 7, "Shape Fac 7", 1, t0)
+	mustFac(ctx, t, c, 64, "Shape Fac 64", 1, t0)
+	c.Facility.UpdateOneID(64).SetCampusID(1).ExecX(ctx)
+	mustIX(ctx, t, c, 1, "Shape IX", 1, t0)
+	mustIxLan(ctx, t, c, 1, "Shape LAN", 1, t0)
+	c.Carrier.Create().SetID(1).SetName("Shape Carrier").SetOrgID(1).
+		SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	for _, l := range []struct{ id, fac int }{{300, 7}, {200, 64}} {
+		c.NetworkFacility.Create().SetID(l.id).SetNetID(1).SetFacID(l.fac).SetLocalAsn(64501).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.IxFacility.Create().SetID(l.id).SetIxID(1).SetFacID(l.fac).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.CarrierFacility.Create().SetID(l.id).SetCarrierID(1).SetFacID(l.fac).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for _, n := range []struct {
+		id, net int
+		status  string
+	}{{10, 2, "ok"}, {11, 1, "ok"}, {12, 2, "ok"}, {13, 4, "ok"}, {14, 1, "not-operational"}} {
+		c.NetworkIxLan.Create().
+			SetID(n.id).SetNetID(n.net).SetIxlanID(1).SetIxID(1).SetName("Shape IX").
+			SetAsn(64500 + n.net).SetSpeed(1000).SetOperational(n.status == "ok").
+			SetStatus(n.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	return c
+}
+
+// listDepthRow GETs a list or detail that must return 200 with one row
+// and returns the row.
+func listDepthRow(t *testing.T, srv *httptest.Server, path string) map[string]any {
+	t.Helper()
+	status, body := httpGet(t, srv, path)
+	if status != http.StatusOK {
+		t.Fatalf("GET %s: status = %d, want 200; body=%s", path, status, headBody(body, 300))
+	}
+	rows := decodeDataArray(t, body)
+	if len(rows) != 1 {
+		t.Fatalf("GET %s: %d rows, want 1", path, len(rows))
+	}
+	return rows[0]
+}
+
+// setIDs returns the ids of a depth-1 _set field (an id list).
+func setIDs(t *testing.T, row map[string]any, key string) []int {
+	t.Helper()
+	raw, ok := row[key].([]any)
+	if !ok {
+		t.Fatalf("%s = %T(%v), want an array", key, row[key], row[key])
+	}
+	ids := make([]int, 0, len(raw))
+	for _, v := range raw {
+		f, ok := v.(float64)
+		if !ok {
+			t.Fatalf("%s element = %T(%v), want an id", key, v, v)
+		}
+		ids = append(ids, int(f))
+	}
+	return ids
+}
+
+// setObjects returns the elements of a depth-2 _set field (objects).
+func setObjects(t *testing.T, row map[string]any, key string) []map[string]any {
+	t.Helper()
+	raw, ok := row[key].([]any)
+	if !ok || len(raw) == 0 {
+		t.Fatalf("%s = %T(%v), want a non-empty array", key, row[key], row[key])
+	}
+	out := make([]map[string]any, 0, len(raw))
+	for _, v := range raw {
+		m, ok := v.(map[string]any)
+		if !ok {
+			t.Fatalf("%s element = %T(%v), want an object", key, v, v)
+		}
+		out = append(out, m)
+	}
+	return out
 }

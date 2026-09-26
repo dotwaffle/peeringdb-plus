@@ -103,6 +103,19 @@ type GetFunc func(ctx context.Context, client *ent.Client, id int, depth int) (a
 // (a relation seed, make_relation_filter).
 type MatchFunc func(ctx context.Context, client *ent.Client, id int, filters []func(*sql.Selector)) (bool, error)
 
+// ListIDsFunc returns the ids that a list request serves, in list
+// order: the same predicates, order, skip and limit as ListFunc. A list
+// at depth > 0 of a type with reverse sets reads the ids first and then
+// loads the rows in chunks (ListDepthFunc).
+type ListIDsFunc func(ctx context.Context, client *ent.Client, opts QueryOptions) ([]int, error)
+
+// ListDepthFunc loads the rows with the given ids (one chunk) and the
+// given sets of each row at list depth 1 or 2 (list_depth.go). It
+// returns one render closure per loaded row, in the order of ids. It
+// applies the list predicates again, so a row that stopped matching after
+// ListIDs is left out. A closure builds the row map when it is called.
+type ListDepthFunc func(ctx context.Context, client *ent.Client, opts QueryOptions, ids []int, depth int, sets []childSet) ([]func() any, error)
+
 // TypeConfig describes a PeeringDB object type for the compatibility layer.
 type TypeConfig struct {
 	Name         string
@@ -112,6 +125,10 @@ type TypeConfig struct {
 	Count        CountFunc
 	Get          GetFunc
 	Match        MatchFunc
+	ListIDs      ListIDsFunc
+	// ListDepth is nil for the 7 types without reverse sets (childSets):
+	// their list rows are the same at every depth.
+	ListDepth ListDepthFunc
 
 	// FoldedFields lists the string fields on this type that have a sibling
 	// <field>_fold column populated by the sync worker.

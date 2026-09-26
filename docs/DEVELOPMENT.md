@@ -563,6 +563,8 @@ Any new entity wired into `/api/` must integrate with this budget:
 5. **Detail fan-out:** if the depth-2 detail of the type embeds `_set` collections, add them to `childSets` in `internal/pdbcompat/detail_budget.go`.
    The list must match the eager-loads in `get<Type>WithDepth` in `internal/pdbcompat/depth.go`.
    Add the type and its set count to `wantParents` in `TestChildSets_CoverRegistryParents` (`internal/pdbcompat/detail_budget_test.go`).
+   Each `childSets` entry also names its list loader (the `load` field): add a loader in `internal/pdbcompat/list_depth.go`, and set the `id` field of the `wireEntity` entry, so that `?depth=` lists expand the sets.
+   `TestListDepth_CountsMatchRender` checks each loader against the count of its `childSets` entry.
 
 `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the **single call site** for `runtime.ReadMemStats`.
 Do not call it elsewhere — STW cost compounds, and the single-call-site invariant is grep-enforceable.

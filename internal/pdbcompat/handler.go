@@ -40,6 +40,11 @@ type Handler struct {
 	// pool would exceed responseMemoryLimit; serveList / serveDetail
 	// release the charge on return.
 	inflightBytes atomic.Int64
+
+	// listDepthChunk is the number of rows that a list at depth > 0 of
+	// a type with reverse sets loads and renders at a time
+	// (defaultListDepthChunk). Tests set a smaller value.
+	listDepthChunk int
 }
 
 // NewHandler creates a Handler for PeeringDB-compatible API endpoints.
@@ -48,7 +53,11 @@ type Handler struct {
 // budget check (local dev / tests only; operators ship a non-zero
 // PDBPLUS_RESPONSE_MEMORY_LIMIT in prod — default 128 MiB).
 func NewHandler(client *ent.Client, responseMemoryLimit int64) *Handler {
-	return &Handler{client: client, responseMemoryLimit: responseMemoryLimit}
+	return &Handler{
+		client:              client,
+		responseMemoryLimit: responseMemoryLimit,
+		listDepthChunk:      defaultListDepthChunk,
+	}
 }
 
 // Register sets up PeeringDB-compatible routes on the given mux.
@@ -209,24 +218,10 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	params := r.URL.Query()
 	unique := isUniqueQuery(tc.Name, params)
 
-	// List-depth guardrail: list + ?depth= is not supported. Silently
-	// ignore the param here so callers get normal list behaviour rather
-	// than a 400 (matches upstream rest.py: unsupported request shapes
-	// fall through to default list semantics). opts.Depth is never
-	// populated on list requests, so there is no leak — list closures
-	// never see a non-zero depth. The debug slog documents the no-op for
-	// operators who enable DEBUG logging.
-	if params.Get("depth") != "" {
-		slog.DebugContext(r.Context(), "pdbcompat list: ignoring unsupported ?depth= param (list-depth guardrail)",
-			slog.String("path", r.URL.Path),
-			slog.String("type", tc.Name),
-		)
-	}
-
-	// Parse skip, limit (2.83.0 rest.py:511-518) and since
-	// (:505-510) before the filters, as upstream runs its filter loop
-	// after them (:564-683). Upstream checks since before skip, so for
-	// ?since=abc&skip=abc it names since and the mirror names skip.
+	// Parse skip, limit (2.83.0 rest.py:511-518), since (:505-510) and
+	// depth (:520-523) before the filters, as upstream runs its filter
+	// loop after them (:564-683). Upstream checks since before skip, so
+	// for ?since=abc&skip=abc it names since and the mirror names skip.
 	// Both are 400.
 	limit, skip, err := ParsePaginationParams(params)
 	if err != nil {
@@ -237,6 +232,17 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		return
 	}
 	since, err := ParseSinceParam(params)
+	if err != nil {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: err.Error(),
+		})
+		return
+	}
+	// A list defaults to depth 0 (upstream default_depth(is_list=True),
+	// serializers.py:1032-1039). The raw value decides the truncation
+	// and prints in its message (rest.py:766-772).
+	depth, depthText, _, err := ParseDepthParam(params)
 	if err != nil {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
@@ -289,7 +295,8 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 
 	// Parse search (?q=).
-	if q := params.Get("q"); q != "" {
+	q := params.Get("q")
+	if q != "" {
 		var sp func(*sql.Selector)
 		if tc.Name == peeringdb.TypeNet {
 			sp = buildNetworkSearchPredicate(q, tc.SearchFields)
@@ -320,6 +327,46 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		OrderBy:     lf.orderBy,
 	}
 
+	// A list at depth > 0 is cut to apiDepthRowLimit rows when upstream
+	// would serve it from its live query, not from its API cache
+	// (depthListIsLive).
+	live := depth > 0 && depthListIsLive(lf, params, q)
+	if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() && depth != 0 {
+		span.SetAttributes(attribute.Int("pdbplus.list.depth", depth))
+	}
+	if depth > 0 && tc.ListDepth != nil {
+		h.serveListDepth(tc, w, r, opts, listDepthRequest{
+			depth:     min(depth, 2),
+			depthText: depthText,
+			live:      live,
+			unique:    unique,
+			fields:    fields,
+		})
+		return
+	}
+
+	// The 7 types without reverse sets serve the same rows at every
+	// depth, as upstream (list_exclude, 2.83.0 serializers.py:1286-1290),
+	// so only the truncation applies.
+	meta := any(struct{}{})
+	count, counted := 0, false
+	if live {
+		count, err = tc.Count(r.Context(), h.client, opts)
+		if err != nil {
+			h.writeCountError(w, r, tc, err)
+			return
+		}
+		counted = true
+		if count > apiDepthRowLimit {
+			count = apiDepthRowLimit
+			opts.Limit = apiDepthRowLimit
+			meta = truncatedMeta(depthText)
+		}
+	}
+	if depth > 0 {
+		setListDepthAttrs(r.Context(), meta)
+	}
+
 	// Pre-flight budget check.
 	//
 	// Runs BEFORE tc.List so an over-budget response 413s without
@@ -333,27 +380,17 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	//     result is known-empty; counting 0 rows and then streaming []
 	//     is wasted work and would paper over a broken CountFunc.
 	//
-	// List depth is always 0 per the list-depth guardrail (the
-	// ?depth= param is ignored on list endpoints; opts.Depth is never
-	// populated by ParsePaginationParams).
+	// A list row of these types has the depth-0 size at every depth, so
+	// the check bills TypicalRowBytes at depth 0.
 	if h.responseMemoryLimit > 0 && !lf.emptyResult && tc.Count != nil {
-		count, err := tc.Count(r.Context(), h.client, opts)
-		if err != nil {
-			// Log the raw error for operators; never echo ent/SQL error
-			// strings into the client-facing error text (SEC: avoid
-			// leaking schema/driver internals on the /api surface).
-			slog.ErrorContext(r.Context(), "pdbcompat: count query failed",
-				slog.String("endpoint", r.URL.Path),
-				slog.String("type", tc.Name),
-				slog.String("error", err.Error()),
-			)
-			writeError(w, r, apiError{
-				Status: http.StatusInternalServerError,
-				Detail: "failed to count matching records",
-			})
-			return
+		if !counted {
+			count, err = tc.Count(r.Context(), h.client, opts)
+			if err != nil {
+				h.writeCountError(w, r, tc, err)
+				return
+			}
 		}
-		info, ok := CheckBudget(count, tc.Name, 0 /*list depth=0 per the list-depth guardrail*/, h.responseMemoryLimit)
+		info, ok := CheckBudget(count, tc.Name, 0, h.responseMemoryLimit)
 		if !ok {
 			slog.WarnContext(r.Context(), "pdbcompat: response budget exceeded",
 				slog.String("endpoint", r.URL.Path),
@@ -457,13 +494,295 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// visibility and drop the connection by returning (Go's net/http
 	// closes the response on handler return).
 	iter := iterFromSlice(results)
-	if err := StreamListResponse(r.Context(), w, struct{}{}, iter); err != nil {
+	if err := StreamListResponse(r.Context(), w, meta, iter); err != nil {
 		slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
 			slog.String("endpoint", r.URL.Path),
 			slog.String("type", tc.Name),
 			slog.String("error", err.Error()),
 		)
 		return
+	}
+}
+
+// apiDepthRowLimit is upstream API_DEPTH_ROW_LIMIT: a live list at
+// depth > 0 serves at most this many rows (2.83.0 rest.py:484,
+// settings/__init__.py:1512).
+const apiDepthRowLimit = 250
+
+// truncatedFormat is the upstream meta.truncated text (2.83.0
+// rest.py:771). The first verb is the raw depth of the request.
+const truncatedFormat = "Your search query (with depth %s) returned more than %d rows and has been truncated. Please be more specific in your filters, use the limit and skip parameters to page through the resultset or drop the depth parameter"
+
+// truncatedMeta returns the meta object of a truncated depth list.
+func truncatedMeta(depthText string) map[string]string {
+	return map[string]string{"truncated": fmt.Sprintf(truncatedFormat, depthText, apiDepthRowLimit)}
+}
+
+// depthListIsLive reports whether upstream serves a list at depth > 0
+// from its live query, which it cuts to apiDepthRowLimit rows, and not
+// from its API cache file, which it never cuts (2.83.0 rest.py:705-709,
+// :766-772, api_cache.py:90-124). The cache path needs no filter, no
+// non-zero since and no query adjustment (lf.upstreamFilter). A key that
+// the mirror ignores and upstream filters (for example org_flags or
+// fac?ix_side_set__asn=) does not count, so the mirror serves such a
+// list whole (see docs/API.md § Known Divergences). ?q= is a mirror
+// extension that filters, so it counts.
+func depthListIsLive(lf listFilters, params url.Values, q string) bool {
+	return lf.upstreamFilter || sinceIsNonZero(params) || q != ""
+}
+
+// sinceIsNonZero reports whether ?since= holds a value other than 0.
+// The upstream cache gate reads int(since), so a negative value also
+// makes the list live (2.83.0 api_cache.py:80, :109-110), while the
+// since matrix applies only for a value above 0 (rest.py:719).
+func sinceIsNonZero(params url.Values) bool {
+	n, present, err := parseSince(params)
+	return present && err == nil && n != 0
+}
+
+// setListDepthAttrs records on the request span whether a list at
+// depth > 0 was cut to apiDepthRowLimit rows. No-op without a span.
+func setListDepthAttrs(ctx context.Context, meta any) {
+	span := trace.SpanFromContext(ctx)
+	if !span.SpanContext().IsValid() {
+		return
+	}
+	_, truncated := meta.(map[string]string)
+	span.SetAttributes(attribute.Bool("pdbplus.list.truncated", truncated))
+}
+
+// writeCountError logs a failed count query and writes a 500. The
+// client text stays generic, so ent and SQL errors never reach the /api
+// wire.
+func (h *Handler) writeCountError(w http.ResponseWriter, r *http.Request, tc TypeConfig, err error) {
+	slog.ErrorContext(r.Context(), "pdbcompat: count query failed",
+		slog.String("endpoint", r.URL.Path),
+		slog.String("type", tc.Name),
+		slog.String("error", err.Error()),
+	)
+	writeError(w, r, apiError{
+		Status: http.StatusInternalServerError,
+		Detail: "failed to count matching records",
+	})
+}
+
+// writeListQueryError logs a failed list query and writes a 500 with a
+// generic text.
+func (h *Handler) writeListQueryError(w http.ResponseWriter, r *http.Request, tc TypeConfig, err error) {
+	slog.ErrorContext(r.Context(), "pdbcompat: list query failed",
+		slog.String("endpoint", r.URL.Path),
+		slog.String("type", tc.Name),
+		slog.String("error", err.Error()),
+	)
+	writeError(w, r, apiError{
+		Status: http.StatusInternalServerError,
+		Detail: "failed to query matching records",
+	})
+}
+
+// admitInflight charges estimate to the shared in-flight pool. When the
+// pool would exceed the budget, it writes 503 with Retry-After: 1 and
+// returns false. The caller releases the charge with
+// h.inflightBytes.Add(-estimate) when the response is written.
+func (h *Handler) admitInflight(w http.ResponseWriter, r *http.Request, tc TypeConfig, estimate int64, depth int) bool {
+	pooled := h.inflightBytes.Add(estimate)
+	if pooled <= h.responseMemoryLimit {
+		return true
+	}
+	h.inflightBytes.Add(-estimate)
+	slog.WarnContext(r.Context(), "pdbcompat: concurrent budget pool exhausted",
+		slog.String("endpoint", r.URL.Path),
+		slog.String("type", tc.Name),
+		slog.Int("depth", depth),
+		slog.Int64("estimated_bytes", estimate),
+		slog.Int64("pooled_bytes", pooled),
+		slog.Int64("budget_bytes", h.responseMemoryLimit),
+	)
+	w.Header().Set("Retry-After", "1")
+	writeError(w, r, apiError{
+		Status: http.StatusServiceUnavailable,
+		Detail: "server is serving other large responses; retry shortly",
+	})
+	return false
+}
+
+// writeBudgetExceeded logs a 413 and writes it.
+func writeBudgetExceeded(w http.ResponseWriter, r *http.Request, tc TypeConfig, info BudgetExceeded) {
+	slog.WarnContext(r.Context(), "pdbcompat: response budget exceeded",
+		slog.String("endpoint", r.URL.Path),
+		slog.String("type", tc.Name),
+		slog.Int("depth", info.Depth),
+		slog.Int("count", info.Count),
+		slog.Int64("estimated_bytes", info.EstimatedBytes),
+		slog.Int64("budget_bytes", info.BudgetBytes),
+		slog.Int("max_rows", info.MaxRows),
+	)
+	writeBudgetError(w, r, info)
+}
+
+// listDepthRequest holds the parsed parameters of a list at depth > 0.
+type listDepthRequest struct {
+	depth     int // render depth: 1, or 2 for any value of 2 or more
+	depthText string
+	live      bool // depthListIsLive
+	unique    bool // isUniqueQuery
+	fields    []string
+}
+
+// streamEmptyList writes the response of a list that serves no row: the
+// unique-query 404, or an empty data array with meta.
+func streamEmptyList(w http.ResponseWriter, r *http.Request, tc TypeConfig, unique bool, meta any) {
+	if unique {
+		writeEntityNotFound(w, r)
+		return
+	}
+	if err := StreamListResponse(r.Context(), w, meta, iterFromSlice(nil)); err != nil {
+		slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("error", err.Error()),
+		)
+	}
+}
+
+// serveListDepth serves a list at depth > 0 of a type with reverse sets
+// (org, net, ix, ixlan, carrier, campus). Each row carries the sets of
+// req.fields (all of them without ?fields=): at depth 1 as id lists, at
+// depth 2 as flat objects, and no forward FK object (list_depth.go).
+//
+// Steps:
+//  1. When the list is live or the budget is on, count the served rows.
+//     A live list of more than apiDepthRowLimit rows is cut to that many
+//     rows with meta.truncated (2.83.0 rest.py:757-772: upstream slices
+//     by skip and limit first, then counts and cuts). With the budget
+//     on, the flat Depth0 check runs over the count before any id is
+//     read.
+//  2. Read the served ids (ListIDs).
+//  3. With the budget on, price the most expensive chunk of
+//     h.listDepthChunk ids (listDepthEstimate). The figure feeds the 413
+//     check and the in-flight pool.
+//  4. Load the first chunk before the first byte, so its query errors
+//     are a clean 500. Stream the rows: each row renders when the stream
+//     pulls it, and the next chunk loads after the last row of a chunk.
+//     A later chunk error drops the connection, as a mid-stream encode
+//     error does.
+//
+// No read transaction spans the chunks: a long read transaction on a
+// replica holds up the LiteFS apply. A row deleted after step 2 is left
+// out of its chunk.
+func (h *Handler) serveListDepth(tc TypeConfig, w http.ResponseWriter, r *http.Request, opts QueryOptions, req listDepthRequest) {
+	ctx := r.Context()
+	budget := h.responseMemoryLimit
+	meta := any(struct{}{})
+	if budget > 0 || req.live {
+		count, err := tc.Count(ctx, h.client, opts)
+		if err != nil {
+			h.writeCountError(w, r, tc, err)
+			return
+		}
+		if req.live && count > apiDepthRowLimit {
+			// qset[skip:skip+limit][:250] is qset[skip:skip+250] here:
+			// the count is over 250 only when limit is 0 or above 250.
+			count = apiDepthRowLimit
+			opts.Limit = apiDepthRowLimit
+			meta = truncatedMeta(req.depthText)
+		}
+		if count == 0 {
+			streamEmptyList(w, r, tc, req.unique, meta)
+			return
+		}
+		if budget > 0 {
+			if info, ok := CheckBudget(count, tc.Name, 0, budget); !ok {
+				writeBudgetExceeded(w, r, tc, info)
+				return
+			}
+		}
+	}
+	setListDepthAttrs(ctx, meta)
+
+	sets := selectSets(tc.Name, req.fields)
+	ids, err := tc.ListIDs(ctx, h.client, opts)
+	if err != nil {
+		h.writeListQueryError(w, r, tc, err)
+		return
+	}
+	if len(ids) == 0 {
+		streamEmptyList(w, r, tc, req.unique, meta)
+		return
+	}
+	chunk := max(h.listDepthChunk, 1)
+	if budget > 0 {
+		cost, err := listDepthEstimate(ctx, h.client, tc.Name, ids, req.depth, sets, chunk)
+		if err != nil {
+			slog.ErrorContext(ctx, "pdbcompat: list depth estimate failed",
+				slog.String("endpoint", r.URL.Path),
+				slog.String("type", tc.Name),
+				slog.String("error", err.Error()),
+			)
+			writeError(w, r, apiError{
+				Status: http.StatusInternalServerError,
+				Detail: "failed to count matching records",
+			})
+			return
+		}
+		if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+			span.SetAttributes(attribute.Int64("pdbplus.list.estimated_bytes", cost.bytes))
+		}
+		if cost.bytes > budget {
+			writeBudgetExceeded(w, r, tc, cost.exceeded(len(ids), budget, tc.Name, req.depth))
+			return
+		}
+		if !h.admitInflight(w, r, tc, cost.bytes, req.depth) {
+			return
+		}
+		defer h.inflightBytes.Add(-cost.bytes)
+	}
+
+	end := min(chunk, len(ids))
+	pending, err := tc.ListDepth(ctx, h.client, opts, ids[:end], req.depth, sets)
+	if err != nil {
+		h.writeListQueryError(w, r, tc, err)
+		return
+	}
+	if len(pending) == 0 && end == len(ids) {
+		// Every row changed or went away after ListIDs.
+		streamEmptyList(w, r, tc, req.unique, meta)
+		return
+	}
+	chunks := 1
+	iter := func() (any, bool, error) {
+		for len(pending) == 0 {
+			if end >= len(ids) {
+				return nil, false, nil
+			}
+			next := min(end+chunk, len(ids))
+			rows, err := tc.ListDepth(ctx, h.client, opts, ids[end:next], req.depth, sets)
+			if err != nil {
+				return nil, false, err
+			}
+			end = next
+			pending = rows
+			chunks++
+		}
+		render := pending[0]
+		pending[0] = nil
+		pending = pending[1:]
+		row := render()
+		if len(req.fields) > 0 {
+			row = applyFieldProjection([]any{row}, req.fields)[0]
+		}
+		return row, true, nil
+	}
+	err = StreamListResponse(ctx, w, meta, iter)
+	if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+		span.SetAttributes(attribute.Int("pdbplus.list.chunks", chunks))
+	}
+	if err != nil {
+		slog.ErrorContext(ctx, "pdbcompat: stream encode failed mid-response",
+			slog.String("endpoint", r.URL.Path),
+			slog.String("type", tc.Name),
+			slog.String("error", err.Error()),
+		)
 	}
 }
 
@@ -762,9 +1081,10 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	// expanded row, not the actual _set cardinality — but it keeps the
 	// detail path symmetric with serveList and trips a clean 413 rather
 	// than serving under a degenerately small budget. This is also the
-	// only caller that exercises the depth=2 row-size estimate (lists are
-	// pinned to depth 0 by the list-depth guardrail). budget<=0 disables the
-	// check (dev/test) exactly as on the list path.
+	// only caller that uses the depth=2 row-size estimate: a list at
+	// depth > 0 prices its rows with listDepthEstimate, from the child
+	// counts and the Depth0 figures. budget<=0 disables the check
+	// (dev/test) exactly as on the list path.
 	if h.responseMemoryLimit > 0 {
 		if info, ok := CheckBudget(1, tc.Name, depth, h.responseMemoryLimit); !ok {
 			slog.WarnContext(r.Context(), "pdbcompat: detail response budget exceeded",

@@ -1348,7 +1348,12 @@ Unknown entities fall back to `defaultRowSize = 4096` (fail-closed).
 | carrierfac | 320 | 419,430 | 3,520 | 38,130 |
 | campus | 576 | 233,016 | 2,688 | 49,932 |
 
-Lists ignore `?depth=` and always bill the Depth=0 figure.
+A list bills the Depth=0 figure per row.
+A `?depth=` list of `org`, `net`, `ix`, `ixlan`, `carrier` or `campus` loads and renders its rows in chunks of 250 ids and bills its most expensive chunk.
+Per row, that is the Depth=0 figure plus, per set element, the child Depth=0 figure at depth 2 or 16 bytes at depth 1 (element counts from one `GROUP BY` per set).
+The chunk adds 4 × its most expensive row (its rendered maps and JSON), and the list adds 16 bytes per served id.
+This figure feeds the 413 check and the in-flight pool.
+A flat Depth=0 check over all served rows runs first.
 A detail request bills one row: the Depth=2 figure at `?depth=1` or higher, which is the flat 413 check.
 At depth 2 or higher, the in-flight pool charge also counts the child rows (see Global admission below).
 The D=2 `max_rows` column is thus not a trip point for any request.
@@ -1371,7 +1376,10 @@ At 128 MiB, that is 209,715 entries.
    - Under budget → step 5.
    - Over budget → `writeBudgetError(w, r, info)` emits 413 with `max_rows`, `budget_bytes`, and a human-readable `detail` string.
      NO row data is fetched; no `Retry-After` header (413 is request-shape, not transient).
+   - For a `?depth=` list of a type with sets: `tc.ListIDs` fetches the served ids, `listDepthEstimate` prices the most expensive chunk, and the figure is checked against the budget (413) and charged to the pool.
 5. `tc.List` loads the result rows.
+   A `?depth=` list of a type with sets loads its rows in chunks of 250 ids (`tc.ListDepth`) and renders one row at a time as the stream pulls it.
+   The first chunk loads before the first byte is sent.
 6. `StreamListResponse` emits the envelope token-by-token with
    `http.Flusher.Flush()` every 100 rows, bounding intermediate
    allocations.
@@ -1380,6 +1388,8 @@ At 128 MiB, that is 209,715 entries.
 The per-request check treats each request in isolation, so two concurrent near-budget responses could jointly materialise ~2× the budget.
 Every admitted request therefore also charges its estimate into a process-wide `inflightBytes` pool and gets 503 + `Retry-After: 1` when the pool would overflow; the charge releases when the handler returns.
 Lists charge the `CheckBudget` figure directly.
+`?depth=` lists charge the largest-chunk estimate (`listDepthEstimate`, `internal/pdbcompat/detail_budget.go`), which uses the same `childSets` table as the detail estimate.
+The render factor `listDepthRenderFactor` (4) is measured by `TestListDepthRenderFactor`.
 Detail requests participate too: the flat 413 check bills only the typical expanded row, but at depth ≥ 2 the pool charge is count-based — child `COUNT(*)` × child Depth0 per embedded `_set` (`internal/pdbcompat/detail_budget.go`) — so a hub-organisation detail (thousands of embedded networks) cannot stack with other large responses.
 A detail request with filter keys checks the row first (one primary-key query); a filter miss returns `404` before the 413 check and charges nothing.
 

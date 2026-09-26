@@ -305,11 +305,14 @@ func TestStatusMatrix(t *testing.T) {
 		}
 	})
 
-	t.Run("depth_on_list_is_silently_ignored", func(t *testing.T) {
+	t.Run("depth_on_list_keeps_row_set", func(t *testing.T) {
 		t.Parallel()
+		// A list at depth > 0 serves the same rows as at depth 0: the
+		// status matrix still applies, so a deleted network is left out.
 		client := testutil.SetupClient(t)
 		seedNet(t, client, 1, 64501, "ok", t0)
 		seedNet(t, client, 2, 64502, "ok", t0.Add(1*time.Hour))
+		seedNet(t, client, 3, 64503, "deleted", t0.Add(2*time.Hour))
 
 		srv := httptest.NewServer(newMuxForOrdering(client))
 		t.Cleanup(srv.Close)
@@ -320,8 +323,8 @@ func TestStatusMatrix(t *testing.T) {
 		if codePlain != http.StatusOK || codeDepth != http.StatusOK {
 			t.Fatalf("status: plain=%d depth=%d (both must be 200)", codePlain, codeDepth)
 		}
-		if nPlain != nDepth {
-			t.Errorf("depth-on-list guardrail failed: /api/net returned %d, /api/net?depth=2 returned %d (expected equal)", nPlain, nDepth)
+		if nPlain != 2 || nDepth != 2 {
+			t.Errorf("/api/net returned %d rows, /api/net?depth=2 returned %d, want 2 (live rows only)", nPlain, nDepth)
 		}
 	})
 }
