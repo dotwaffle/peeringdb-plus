@@ -62,8 +62,8 @@ func NewHandler(client *ent.Client, responseMemoryLimit int64) *Handler {
 }
 
 // Register sets up PeeringDB-compatible routes on the given mux.
-// Routes follow PeeringDB's URL patterns: /api/{type}, /api/{type}/{id}.
-// Both with and without trailing slash variants are handled.
+// Routes follow PeeringDB's URL patterns: /api/{type}, /api/{type}/{id}
+// (parseAPIPath).
 // The index endpoint at /api/ lists all available types.
 func (h *Handler) Register(mux *http.ServeMux) {
 	// Single wildcard pattern handles all /api/ sub-paths including the
@@ -96,27 +96,41 @@ func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 // methodNotAllowed answers a method other than GET and HEAD. The mirror
-// is read-only, so every such method gets 405 with the DRF text
-// (views.py:167-172, exceptions.py:194-196). Upstream lists its write
-// methods in Allow and runs the write handlers (docs/API.md § Known
-// Divergences). The mux sets no Allow header for this pattern, so the
-// handler sets it. The paths of getOnly types get Allow: GET.
+// is read-only, so every such method on a path that an upstream route
+// matches gets 405 with the DRF text (views.py:167-172,
+// exceptions.py:194-196). Upstream lists its write methods in Allow and
+// runs the write handlers (docs/API.md § Known Divergences). The mux
+// sets no Allow header for this pattern, so the handler sets it. The
+// paths of getOnly types get Allow: GET.
 //
-// Content negotiation comes before the method check, so on a path that
-// an upstream route matches, a format other than json is a 404 (see
-// dispatch).
+// A path that no route matches is a 404 for every method, as in
+// dispatch. Content negotiation comes before the method check, so a
+// format other than json is also a 404.
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
 	_, known := Registry[typeName]
-	if routed && (known || typeName == "" || typeName == asSetPath) && !formatAccepted(format, r.URL.Query()) {
+	switch {
+	case !routed:
 		writeDetailNotFound(w, r, detailSliceNotFound)
-		return
+	case !known && typeName != "" && typeName != asSetPath:
+		writeUnknownType(w, r, typeName)
+	case !formatAccepted(format, r.URL.Query()):
+		writeDetailNotFound(w, r, detailSliceNotFound)
+	case getOnly(typeName):
+		writeMethodNotAllowed(w, r, "GET")
+	default:
+		writeMethodNotAllowed(w, r, "GET, HEAD")
 	}
-	allow := "GET, HEAD"
-	if getOnly(typeName) {
-		allow = "GET"
-	}
-	writeMethodNotAllowed(w, r, allow)
+}
+
+// writeUnknownType writes the 404 of a path that names no type. Upstream
+// has no route for it and sends its HTML 404 page (docs/API.md § Known
+// Divergences).
+func writeUnknownType(w http.ResponseWriter, r *http.Request, typeName string) {
+	writeError(w, r, apiError{
+		Status: http.StatusNotFound,
+		Detail: fmt.Sprintf("unknown type %q", typeName),
+	})
 }
 
 // getOnly reports whether the upstream viewset of typeName leaves HEAD
@@ -144,6 +158,16 @@ func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string)
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))
 
+	// Upstream sends its HTML 404 page for a path that no route matches,
+	// for example a path with a "/" at the end, more segments, or a "."
+	// that is not a format suffix (docs/API.md § Known Divergences). A
+	// POST-only action path such as /api/ix/<id>/request_ixf_import
+	// (rest.py:209-228, :1033-1191) gets 405 there.
+	if !routed {
+		writeDetailNotFound(w, r, detailSliceNotFound)
+		return
+	}
+
 	if typeName == "" {
 		// /api/ or /api/.json -- serve the index. /api has its own route
 		// (redirectAPIRoot).
@@ -160,7 +184,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// below turns an id that is not an integer into a 404. The as_set
 	// lookup parses its own ASN and takes its own heap-delta sample.
 	if typeName == asSetPath {
-		if !routed || !formatAccepted(format, r.URL.Query()) {
+		if !formatAccepted(format, r.URL.Query()) {
 			writeDetailNotFound(w, r, detailSliceNotFound)
 			return
 		}
@@ -171,10 +195,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// Validate type name against Registry.
 	tc, ok := Registry[typeName]
 	if !ok {
-		writeError(w, r, apiError{
-			Status: http.StatusNotFound,
-			Detail: fmt.Sprintf("unknown type %q", typeName),
-		})
+		writeUnknownType(w, r, typeName)
 		return
 	}
 
@@ -195,15 +216,11 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
 
-	// A detail path that no upstream route matches is a 404 before any
-	// parameter check. Upstream has no GET route for a path with more
-	// segments: it sends its HTML 404 page, or 405 on a POST-only action
-	// path such as /api/ix/<id>/request_ixf_import (rest.py:209-228,
-	// :1033-1191). A format other than json raises Http404 in the
-	// content negotiation of initial(), before get_queryset and before
-	// the method check (drf negotiation.py:80-88, views.py:408-411).
-	// serveDetail parses any other id after the parameter checks.
-	if !routed || !formatAccepted(format, r.URL.Query()) {
+	// A format other than json raises Http404 in the content
+	// negotiation of initial(), before get_queryset and before the
+	// method check (drf negotiation.py:80-88, views.py:408-411).
+	// serveDetail parses the id after the parameter checks.
+	if !formatAccepted(format, r.URL.Query()) {
 		writeDetailNotFound(w, r, detailSliceNotFound)
 		return
 	}
@@ -217,26 +234,39 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if idStr == "" {
-		// List endpoint: /api/{type} or /api/{type}/
+		// List endpoint: /api/{type}
 		h.serveList(tc, w, r, format != "")
 		return
 	}
 	h.serveDetail(tc, idStr, w, r)
 }
 
-// parseAPIPath splits a rest path such as "net", "net/42" or
-// "net/42.json" into the type name, the id and the format suffix.
-// routed is false when no upstream route matches the path: an id with
-// more segments, or a "." that is not a format suffix. A type name with
-// such a "." is returned whole and names no type.
+// parseAPIPath matches a rest path, the part after /api/, with the
+// upstream routes: a DefaultRouter with no trailing slash (2.83.0
+// rest.py:185-230, :1305) has the index "", the list "<type>" and the
+// detail "<type>/<id>", and each of them also with the format suffix of
+// cutFormatSuffix, which alone may have one "/" after it. routed is
+// false for any other path, for example "net/", "net/1/" or "net/1/2".
+// For a routed path, typeName is the type and id is the id without the
+// suffix.
 func parseAPIPath(rest string) (typeName, id, format string, routed bool) {
-	typeName, id = splitTypeID(rest)
-	if id == "" {
-		base, format, ok := cutFormatSuffix(typeName)
-		return base, "", format, ok
+	if rest == "" {
+		return "", "", "", true
 	}
-	base, format, ok := cutFormatSuffix(id)
-	if !ok || base == "" || strings.Contains(base, "/") {
+	path, slash := strings.CutSuffix(rest, "/")
+	typeName, id, detail := strings.Cut(path, "/")
+	last := typeName
+	if detail {
+		last = id
+	}
+	base, format, ok := cutFormatSuffix(last)
+	if !ok || (slash && format == "") {
+		return typeName, id, "", false
+	}
+	if !detail {
+		return base, "", format, true
+	}
+	if typeName == "" || base == "" || strings.Contains(base, "/") {
 		return typeName, id, "", false
 	}
 	return typeName, base, format, true
@@ -272,17 +302,6 @@ func formatAccepted(suffix string, params url.Values) bool {
 		format = vals[len(vals)-1]
 	}
 	return format == "" || format == "json"
-}
-
-// splitTypeID splits a rest path like "net", "net/", "net/42" into type name
-// and optional ID string.
-func splitTypeID(rest string) (typeName, id string) {
-	rest = strings.TrimRight(rest, "/")
-	if rest == "" {
-		return "", ""
-	}
-	typeName, id, _ = strings.Cut(rest, "/")
-	return typeName, id
 }
 
 // serveIndex writes the API index in upstream PeeringDB's shape:

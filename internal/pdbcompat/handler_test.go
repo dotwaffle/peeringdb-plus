@@ -446,30 +446,44 @@ func TestListEndpoint(t *testing.T) {
 	}
 }
 
-func TestListEndpointTrailingSlash(t *testing.T) {
+// TestParseAPIPath locks the upstream routes of parseAPIPath: no
+// trailing slash, and a format suffix that may have one "/" after it
+// (2.83.0 rest.py:185-230, :1305; drf format_suffix_patterns).
+func TestParseAPIPath(t *testing.T) {
 	t.Parallel()
-	_, mux := setupTestHandler(t)
-
-	// Without trailing slash.
-	req1 := httptest.NewRequest(http.MethodGet, "/api/net", nil)
-	rec1 := httptest.NewRecorder()
-	mux.ServeHTTP(rec1, req1)
-
-	// With trailing slash.
-	req2 := httptest.NewRequest(http.MethodGet, "/api/net/", nil)
-	rec2 := httptest.NewRecorder()
-	mux.ServeHTTP(rec2, req2)
-
-	if rec1.Code != http.StatusOK {
-		t.Fatalf("no slash: expected 200, got %d", rec1.Code)
-	}
-	if rec2.Code != http.StatusOK {
-		t.Fatalf("trailing slash: expected 200, got %d: %s", rec2.Code, rec2.Body.String())
-	}
-
-	if rec1.Body.String() != rec2.Body.String() {
-		t.Errorf("responses differ:\n  no slash:      %s\n  trailing slash: %s",
-			rec1.Body.String(), rec2.Body.String())
+	for _, tc := range []struct {
+		rest, typeName, id, format string
+		routed                     bool
+	}{
+		{"", "", "", "", true},
+		{".json", "", "", "json", true},
+		{".json/", "", "", "json", true},
+		{"net", "net", "", "", true},
+		{"net.json", "net", "", "json", true},
+		{"net.json/", "net", "", "json", true},
+		{"net.xml", "net", "", "xml", true},
+		{"net/1", "net", "1", "", true},
+		{"net/1.json", "net", "1", "json", true},
+		{"net/1.json/", "net", "1", "json", true},
+		{"net/1.5", "net", "1", "5", true},
+		{"foo", "foo", "", "", true},
+		{"/", "", "", "", false},
+		{"net/", "net", "", "", false},
+		{"net//", "net", "", "", false},
+		{"net/1/", "net", "1", "", false},
+		{"net/1/2", "net", "1/2", "", false},
+		{"net/1.json//", "net", "1.json/", "", false},
+		{"net/.json", "net", ".json", "", false},
+		{"net/1.JSON", "net", "1.JSON", "", false},
+		{"net/1.2.json", "net", "1.2.json", "", false},
+		{"net.a.b", "net.a.b", "", "", false},
+		{"/1", "", "1", "", false},
+	} {
+		typeName, id, format, routed := parseAPIPath(tc.rest)
+		if typeName != tc.typeName || id != tc.id || format != tc.format || routed != tc.routed {
+			t.Errorf("parseAPIPath(%q) = (%q, %q, %q, %v), want (%q, %q, %q, %v)",
+				tc.rest, typeName, id, format, routed, tc.typeName, tc.id, tc.format, tc.routed)
+		}
 	}
 }
 

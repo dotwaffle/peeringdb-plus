@@ -16,6 +16,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat returns `404` for a path with a `/` at the end, for example `/api/net/`, `/api/net/1/` or `/api/as_set/`, for every method, as upstream does: no upstream route has a `/` at the end.
+  A write method on a path that no upstream route matches, for example `POST /api/foo`, also returns `404` now, not `405`.
+  Before, pdbcompat removed the `/` and served the path.
 - pdbcompat answers `/api` with `301` to `/api/`, with the same query string and an empty body, for every method, as the upstream `APPEND_SLASH` middleware does.
   Before, the Go router sent `307`.
 - pdbcompat serves the format suffix `.json` on every `/api/` route, for example `/api/net.json` and `/api/net/1.json`, as upstream does, and returns `404` (`Not found.`) for another suffix or a `?format=` value other than `json`, before any other check.

@@ -964,16 +964,51 @@ func TestParity_Status(t *testing.T) {
 		// mainsite/urls.py:111, views.py:336-340). The mirror sends a
 		// JSON 404 in the /api/ error form, with the same status. See
 		// docs/API.md § Known Divergences.
-		srv := newTestServer(t, testutil.SetupClient(t))
-		status, hdr, body := httpDo(t, srv, http.MethodGet, "/api/foo", nil)
-		if status != http.StatusNotFound {
-			t.Fatalf("GET /api/foo: status = %d, want 404; body=%s", status, string(body))
+		// The routes have no trailing slash (DefaultRouter with
+		// trailing_slash off, rest.py:185-230, :1305), and Django
+		// APPEND_SLASH adds a "/", never removes one, so a path with a
+		// "/" at the end also gets the HTML page, for every method.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ method, path string }{
+			{http.MethodGet, "/api/foo"},
+			{http.MethodPost, "/api/foo"},
+			{http.MethodGet, "/api/net/"},
+			{http.MethodGet, "/api/net/1/"},
+			{http.MethodGet, "/api/net/1/2"},
+			{http.MethodGet, "/api/as_set/"},
+			{http.MethodPost, "/api/net/"},
+			{http.MethodDelete, "/api/net/1/"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != http.StatusNotFound {
+				t.Errorf("%s %s: status = %d, want 404; body=%s", tc.method, tc.path, status, string(body))
+				continue
+			}
+			if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("%s %s: Content-Type = %q, want application/json; charset=utf-8", tc.method, tc.path, ct)
+			}
+			if got := mustDecodeMetaError(t, body).Error; got == "" {
+				t.Errorf("%s %s: meta.error is empty", tc.method, tc.path)
+			}
 		}
-		if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
-			t.Errorf("GET /api/foo: Content-Type = %q, want application/json; charset=utf-8", ct)
+		// The Go router redirects a path with a repeated "/" to the
+		// clean path before any handler runs. Upstream has no route for
+		// it.
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/api//net", nil)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if got := mustDecodeMetaError(t, body).Error; got == "" {
-			t.Errorf("GET /api/foo: meta.error is empty")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusTemporaryRedirect || resp.Header.Get("Location") != "/api/net" {
+			t.Errorf("GET /api//net: status = %d, Location = %q; want 307 to /api/net", resp.StatusCode, resp.Header.Get("Location"))
 		}
 	})
 
