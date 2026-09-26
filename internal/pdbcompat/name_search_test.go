@@ -214,7 +214,7 @@ func TestParseListFilters_NameSearchNone(t *testing.T) {
 			t.Fatal(err)
 		}
 		ctx := WithUnknownFields(t.Context())
-		lf, err := parseListFilters(ctx, params, Registry[tt.typ])
+		lf, err := parseListFilters(ctx, params, Registry[tt.typ], nil)
 		if tt.wantErr != "" {
 			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("%s?%s: err = %v, want %q", tt.typ, tt.query, err, tt.wantErr)

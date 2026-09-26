@@ -499,29 +499,46 @@ func TestParity_Limit(t *testing.T) {
 
 	t.Run("list_depth_error_order", func(t *testing.T) {
 		t.Parallel()
-		// upstream: 2.83.0 rest.py:505-523 parses since, skip, limit and
-		// depth before the filter loop (:564-683). The mirror checks
-		// skip and limit before since; each pair below is still a 400
-		// with the upstream text.
+		// upstream: 2.83.0 rest.py:486-500 runs prepare_query first, then
+		// parses since, skip, limit and depth (:505-523), all before the
+		// filter loop (:564-683). So a prepare_query error wins over a
+		// parameter error, and a parameter error wins over a filter-loop
+		// error. The relation seed and presence keys below are
+		// prepare_query keys; asn__lt is a filter-loop key.
 		c := testutil.SetupClient(t)
 		srv := newTestServer(t, c)
-		for _, tc := range []struct{ query, want string }{
-			{"since=abc&depth=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
-			{"depth=abc&skip=abc", "'skip' needs to be a number"},
-			{"depth=abc&asn__lt=x", "'depth' needs to be a number"},
+		for _, tc := range []struct{ path, want string }{
+			{"/api/net?since=abc&depth=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&skip=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&limit=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?depth=abc&skip=abc", "'skip' needs to be a number"},
+			{"/api/net?depth=abc&limit=abc", "'limit' needs to be a number"},
+			{"/api/net?depth=abc&asn__lt=x", "'depth' needs to be a number"},
 			// since is parsed before the filter loop and before the
 			// negative-skip check (Django raises that one at the slice,
 			// rest.py:757-760).
-			{"since=abc&asn__lt=x", "'since' needs to be a unix timestamp (epoch seconds)"},
-			{"since=abc&skip=-1", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&asn__lt=x", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&skip=-1", "'since' needs to be a unix timestamp (epoch seconds)"},
+			// A prepare_query error wins over every parameter error.
+			{"/api/fac?net=abc&since=abc", "filter error: "},
+			{"/api/net?not_ix=abc&depth=abc&skip=abc", "filter error: "},
+			{"/api/net/1?not_ix=abc&limit=abc", "filter error: "},
+			{"/api/fac/1?net__bogus=1&since=abc", "filter error: "},
 		} {
-			status, body := httpGet(t, srv, "/api/net?"+tc.query)
+			status, body := httpGet(t, srv, tc.path)
 			if status != http.StatusBadRequest {
-				t.Errorf("?%s: status = %d, want 400; body=%s", tc.query, status, headBody(body, 300))
+				t.Errorf("%s: status = %d, want 400; body=%s", tc.path, status, headBody(body, 300))
 				continue
 			}
-			if got := mustDecodeMetaError(t, body).Error; got != tc.want {
-				t.Errorf("?%s: meta.error = %q, want %q", tc.query, got, tc.want)
+			got := mustDecodeMetaError(t, body).Error
+			if strings.HasSuffix(tc.want, ": ") {
+				if !strings.HasPrefix(got, tc.want) {
+					t.Errorf("%s: meta.error = %q, want prefix %q", tc.path, got, tc.want)
+				}
+				continue
+			}
+			if got != tc.want {
+				t.Errorf("%s: meta.error = %q, want %q", tc.path, got, tc.want)
 			}
 		}
 	})

@@ -215,9 +215,45 @@ func ParseSinceParam(params url.Values) (*time.Time, error) {
 	return &t, nil
 }
 
-// parseDetailSlice reads limit and skip of a single-object GET with the
-// list parser, so the error texts and their order are the list ones.
-// Upstream parses both for a detail too and slices the query before
+// requestParams holds since, skip, limit and depth of a list or detail
+// request.
+type requestParams struct {
+	// limit and skip keep their sign (see ParsePaginationParams).
+	limit, skip int
+	// since is nil when the key is absent or its value is 0 or less
+	// (ParseSinceParam).
+	since *time.Time
+	// depth is the raw depth value and depthText its decimal form
+	// (ParseDepthParam). depthPresent is false when the key is absent:
+	// the caller applies its own default.
+	depth        int
+	depthText    string
+	depthPresent bool
+}
+
+// parseRequestParams parses since, skip, limit and depth in the order of
+// upstream get_queryset (2.83.0 rest.py:505-523), so a request with two
+// bad values gets the error of the first one that upstream checks.
+// Upstream parses them after prepare_query (:486-500) and before
+// name_search and its filter loop (:531-703): the callers run this
+// function as the afterPrepare step of parseListFilters.
+func parseRequestParams(params url.Values) (requestParams, error) {
+	var p requestParams
+	var err error
+	if p.since, err = ParseSinceParam(params); err != nil {
+		return requestParams{}, err
+	}
+	if p.limit, p.skip, err = ParsePaginationParams(params); err != nil {
+		return requestParams{}, err
+	}
+	if p.depth, p.depthText, p.depthPresent, err = ParseDepthParam(params); err != nil {
+		return requestParams{}, err
+	}
+	return p, nil
+}
+
+// detailSlice returns the slice rules of a single-object GET. Upstream
+// parses limit and skip for a detail too and slices the query before
 // get() (2.83.0 rest.py:511-518, :755-760). Django cannot filter a
 // sliced query, so get() fails and DRF answers 404 Not found. (Django
 // query.py:1505-1507, DRF generics.py:13-21). sliced is true for a limit
@@ -226,10 +262,6 @@ func ParseSinceParam(params url.Values) (*time.Time, error) {
 // is true for a skip below 0. The caller returns 400 errNegativeSkip
 // after the filters, as serveList does (upstream: 500, see docs/API.md
 // § Known Divergences).
-func parseDetailSlice(params url.Values) (sliced, negativeSkip bool, err error) {
-	limit, skip, err := ParsePaginationParams(params)
-	if err != nil {
-		return false, false, err
-	}
-	return limit > 0 || skip > 0, skip < 0, nil
+func (p requestParams) detailSlice() (sliced, negativeSkip bool) {
+	return p.limit > 0 || p.skip > 0, p.skip < 0
 }

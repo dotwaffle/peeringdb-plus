@@ -1707,8 +1707,8 @@ func TestParity_Status(t *testing.T) {
 			{"/api/net/1?limit=", http.StatusBadRequest, "'limit' needs to be a number"},
 			{"/api/net/1?skip=abc", http.StatusBadRequest, "'skip' needs to be a number"},
 			{"/api/net/1?skip=", http.StatusBadRequest, "'skip' needs to be a number"},
-			// The list order: skip before since.
-			{"/api/net/1?since=abc&skip=abc", http.StatusBadRequest, "'skip' needs to be a number"},
+			// The upstream order: since before skip.
+			{"/api/net/1?since=abc&skip=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
 			{"/api/net/1?limit=1", http.StatusNotFound, "Not found."},
 			{"/api/net/1?skip=1", http.StatusNotFound, "Not found."},
 			{"/api/net/999?limit=1", http.StatusNotFound, "Not found."},

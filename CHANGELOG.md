@@ -16,6 +16,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- pdbcompat checks the request values in the upstream order: the `prepare_query` keys (relation, presence and count keys, `whereis`, `ipblock`, `capacity`, `distance`), then `since`, `skip`, `limit` and `depth`, then `name_search`, then the other filter keys.
+  A request with two bad values now gets the message of the value that upstream reports, for example `since` before `skip`.
+  Before, pdbcompat checked `skip` and `limit` before `since`, and every filter key after `depth`.
 - pdbcompat sends `Content-Type: application/json; charset=utf-8` on every `/api/` JSON response, success and error, as the upstream renderer does.
   Before, it sent `application/json` without a charset, except on the `/api/` index.
 

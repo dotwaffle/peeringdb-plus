@@ -1158,14 +1158,19 @@ The message is the upstream text for these errors:
 - A single-object GET with a `limit` or `skip` above `0`, or with an `{id}` that is not an integer: `Not found.`.
 - A method that upstream does not map to a handler: `Method "PUT" not allowed.`, or `Method "HEAD" not allowed.` on the `as_set` paths.
 - A `limit`, `skip` or `since` that is empty or not an integer: `'limit' needs to be a number`, `'skip' needs to be a number` or `'since' needs to be a unix timestamp (epoch seconds)`.
-  Upstream checks `since` before `skip` and `limit`, and the mirror checks `skip` and `limit` first, so `?since=abc&skip=abc` gets the `skip` message.
 - A `depth` that is empty or not an integer: `'depth' needs to be a number`.
-  The mirror checks it after `since`, `skip` and `limit`, and before the filters.
 - A negative `skip`: `Negative indexing is not supported.`.
 
-Upstream checks the keys that its `prepare_query` handles (the relation, presence and count keys, for example `fac?net_count=`) before `since`, `skip`, `limit` and `depth` (2.83.0 `rest.py:488-523`), and the other filter keys after them.
-The mirror checks every filter key after `depth`.
-So a request with two bad values can report a different one of them than upstream.
+The mirror checks the values in the upstream order (2.83.0 `rest.py:486-523`, `:564-703`):
+
+1. The keys that a `prepare_query` handles: the relation, presence and count keys, `whereis`, `ipblock`, `capacity` and `distance`, for example `fac?net=` or `fac?net_count=`.
+2. `since`, then `skip`, then `limit`, then `depth`.
+3. `name_search`.
+4. The other filter keys.
+
+So a request with two bad values reports the first one in this order.
+For example, `?since=abc&skip=abc` gets the `since` message, and `/api/fac?net=abc&since=abc` gets the `filter error` message of `net`.
+Inside one step, the mirror reads the keys in sorted order.
 
 Other messages are the mirror's own.
 A panic on the server returns an RFC 9457 `500` body on every path.

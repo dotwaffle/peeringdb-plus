@@ -278,7 +278,7 @@ func TestParseListFilters_UpstreamFilter(t *testing.T) {
 				t.Fatalf("parse %q: %v", tc.query, err)
 			}
 			ctx := WithUnknownFields(t.Context())
-			lf, err := parseListFilters(ctx, params, Registry[tc.typ])
+			lf, err := parseListFilters(ctx, params, Registry[tc.typ], nil)
 			if err != nil {
 				t.Fatalf("parseListFilters(%s?%s): %v", tc.typ, tc.query, err)
 			}
@@ -292,7 +292,7 @@ func TestParseListFilters_UpstreamFilter(t *testing.T) {
 	}
 	// The ignored seed form is still reported as an unknown key.
 	ctx := WithUnknownFields(t.Context())
-	if _, err := parseListFilters(ctx, url.Values{"org_name__iexact": {"x"}}, Registry[peeringdb.TypeFac]); err != nil {
+	if _, err := parseListFilters(ctx, url.Values{"org_name__iexact": {"x"}}, Registry[peeringdb.TypeFac], nil); err != nil {
 		t.Fatal(err)
 	}
 	if got := UnknownFieldsFromCtx(ctx); !slices.Equal(got, []string{"org_name__iexact"}) {

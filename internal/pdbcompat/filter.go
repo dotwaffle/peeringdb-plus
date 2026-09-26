@@ -302,11 +302,11 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // Keys with len(relSegs) > 2 are silently rejected.
 //
-// Before the key loop, the pre-passes of parseListFilters resolve the
-// fac and org distance key (parseDistanceSearch) and then the
-// name_search key (resolveNameSearch).
+// parseListFilters reads the keys in the upstream order: the fac and
+// org distance key (parseDistanceSearch), the prepare_query keys,
+// name_search (resolveNameSearch), then the other keys.
 //
-// In the loop, the filterable meta keys of the type (netixlan
+// For each key (filterState.addKey), the filterable meta keys of the type (netixlan
 // meta__<path> and the upstream meta_* column names, see
 // lookupMetaFilter) resolve first,
 // before the key is split for traversal. The presence keys of an
@@ -327,13 +327,12 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // emptyResult sentinel bubbles back up from subquery construction.
 //
 // An empty result (an empty __in) is returned after every key is
-// parsed, so an error of any key wins, as upstream runs prepare_query
-// before its filter loop (2.83.0 rest.py:488-500).
+// parsed, so an error of any key wins.
 //
 // ParseFiltersCtx wraps parseListFilters and drops the sort key of a
 // distance search: see parseListFilters for the pre-pass.
 func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
-	lf, err := parseListFilters(ctx, params, tc)
+	lf, err := parseListFilters(ctx, params, tc, nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -376,282 +375,315 @@ type listFilters struct {
 	upstreamFilter bool
 }
 
+// filterState collects the predicates of parseListFilters while it
+// reads the keys of a request.
+type filterState struct {
+	ctx      context.Context
+	tc       TypeConfig
+	tier     privctx.Tier
+	spatial  bool
+	consumed map[string]bool
+	preds    []func(*sql.Selector)
+	// empty records an empty __in.
+	empty bool
+	// adjusted records a key that upstream counts in its API cache gate
+	// but that adds no predicate (see listFilters.upstreamFilter).
+	adjusted bool
+}
+
 // parseListFilters parses the filter keys of a request (see
-// ParseFiltersCtx for the key rules).
+// ParseFiltersCtx for the key rules), in the order of upstream
+// get_queryset (2.83.0 rest.py:477-703):
 //
-// Before the key loop, a pre-pass resolves the fac and org distance
-// search (parseDistanceSearch), because the params map has no order and
-// a distance search changes how the loop reads other keys: it skips the
-// location keys of spatialSkipKeys and matches a bare country exactly
-// (2.83.0 rest.py:569-597). The pre-pass adds its keys to the consumed
-// set, which the loop skips. The pre-passes run in upstream order: the
-// prepare_query keys (rest.py:488-500) before name_search (:532-553).
-// A distance error wins over an error in another prepare_query key,
-// although upstream fac checks its presence keys first
-// (serializers.py:2126-2208); the status is 400 on both sides, only
-// the message differs.
-// The name_search pre-pass (resolveNameSearch) consumes name_search,
-// and id__in when it unions the two. When name_search can match no
-// row, or its value is not valid, the loop reads only the keys of
-// isPrepareQueryKey, as upstream returns before its filter loop.
+//  1. the prepare_query keys (:486-500): the fac and org distance
+//     search (parseDistanceSearch) and every key of isPrepareQueryKey;
+//  2. afterPrepare, when it is not nil: the caller parses since, skip,
+//     limit and depth there (:505-523), so their errors lose to a
+//     prepare_query error and win over the others;
+//  3. name_search (:531-553, resolveNameSearch);
+//  4. the other keys, the filter loop (:564-703). When name_search can
+//     match no row, upstream returns before the loop, so these keys are
+//     not read.
 //
-// The one empty-result exit is after the loop.
-func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (listFilters, error) {
-	tier := privctx.TierFrom(ctx)
-	var predicates []func(*sql.Selector)
+// The distance pre-pass runs first, because a distance search changes
+// how the other keys are read: the loop skips the location keys of
+// spatialSkipKeys and matches a bare country exactly (2.83.0
+// rest.py:569-597). A distance error wins over an error in another
+// prepare_query key, although upstream fac checks its presence keys
+// first (serializers.py:2126-2208); the status is 400 on both sides,
+// only the message differs. Each pass reads the keys in sorted order,
+// so a request with two bad keys always gets the same message.
+//
+// An error of afterPrepare is returned as is. The one empty-result exit
+// is after the loop.
+func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, afterPrepare func() error) (listFilters, error) {
+	st := &filterState{
+		ctx:      ctx,
+		tc:       tc,
+		tier:     privctx.TierFrom(ctx),
+		consumed: map[string]bool{},
+	}
 	var orderBy func(*sql.Selector)
-	consumed := map[string]bool{}
 	ds, err := parseDistanceSearch(tc.Name, params)
 	if err != nil {
 		return listFilters{}, fmt.Errorf("filter %w", err)
 	}
 	if distanceTypes[tc.Name] {
 		// A known key also when it is a no-op (a value of 0 or less).
-		consumed["distance"] = true
+		st.consumed["distance"] = true
 	}
-	spatial := ds != nil
-	if spatial {
-		predicates = append(predicates, ds.predicate())
+	st.spatial = ds != nil
+	if st.spatial {
+		st.preds = append(st.preds, ds.predicate())
 		orderBy = ds.order()
 		for k := range spatialSkipKeys {
-			consumed[k] = true
+			st.consumed[k] = true
 		}
 	}
-	// The name_search pre-pass runs after the distance pre-pass, as
-	// upstream runs name_search after prepare_query (2.83.0
-	// rest.py:488-500, :532-553). A name_search error is returned
-	// after the loop, so that a prepare_query error wins over it.
-	ns, nsErr := resolveNameSearch(tc, params)
-	if nsErr != nil {
-		ns = nameSearchResult{consumed: map[string]bool{"name_search": true}}
+	keys := slices.Sorted(maps.Keys(params))
+	for _, key := range keys {
+		if isPrepareQueryKey(tc, key) {
+			if err := st.addKey(key, params[key]); err != nil {
+				return listFilters{}, err
+			}
+		}
 	}
-	prepareOnly := ns.none || nsErr != nil
-	maps.Copy(consumed, ns.consumed)
+	if afterPrepare != nil {
+		if err := afterPrepare(); err != nil {
+			return listFilters{}, err
+		}
+	}
+	ns, err := resolveNameSearch(tc, params)
+	if err != nil {
+		return listFilters{}, err
+	}
+	maps.Copy(st.consumed, ns.consumed)
 	if ns.pred != nil {
-		predicates = append(predicates, ns.pred)
+		st.preds = append(st.preds, ns.pred)
 	}
-	emptyResult := ns.empty || ns.none
-	// adjusted records a key that upstream counts in its API cache gate
-	// but that adds no predicate (see listFilters.upstreamFilter).
-	adjusted := false
-	for key, vals := range params {
-		if len(vals) == 0 {
-			continue
-		}
-		// Repeated params (?foo=a&foo=b) take the LAST value, matching
-		// Django's QueryDict.__getitem__ (upstream PeeringDB's request
-		// layer). url.Values preserves insertion order, so vals[len-1] is
-		// the last value seen on the wire.
-		value := vals[len(vals)-1]
-		// Skip reserved pagination/control parameters and the keys that
-		// a pre-pass handled.
-		if reservedParams[key] || consumed[key] {
-			continue
-		}
-		// Upstream returns qset.none() for a name_search that matches
-		// nothing before finalize_query_params and the filter loop
-		// (rest.py:550-553), so only the prepare_query keys can still
-		// fail the request. The other keys are not read, so they are
-		// not unknown either. A name_search error also stops upstream
-		// before the loop.
-		if prepareOnly && !isPrepareQueryKey(tc, key) {
-			continue
-		}
-		// Meta keys resolve before the key is split, as upstream
-		// rewrites them before its filter loop (2.83.0
-		// serializers.py:3129-3149). They are not traversals: a split
-		// would read meta__planned_status_change__date__lt as a 2-hop
-		// path and ignore it.
-		if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
-			p, empty, ok, err := buildMetaPredicate(col, suffix, value)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			if empty {
-				emptyResult = true
-				continue
-			}
-			if !ok {
-				appendUnknown(ctx, key)
-				continue
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The legacy net info_type keys, and info_types with __in or
-		// __startswith, resolve before the key is split, as upstream
-		// rewrites them before its filter loop (2.83.0
-		// serializers.py:3768-3813, rest.py:559-563).
-		if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
-			if patterns == nil {
-				// A pattern matches every network. Upstream still sets
-				// query_adjusted, so the key counts as a filter.
-				adjusted = true
-				continue
-			}
-			p, err := multiChoiceLikeAny("info_types", patterns)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The presence keys of an upstream prepare_query (not_ix,
-		// all_net, org_present and the others) use the first value of a
-		// repeated key, as prepare_query reads kwargs.get(key)[0].
-		if pk, isPresence := lookupPresenceKey(tc.Name, key); isPresence {
-			p, err := buildPresencePredicate(tc, pk, vals[0], tier)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The ix ipblock key of an upstream prepare_query uses the first
-		// value of a repeated key, as prepare_query reads
-		// kwargs.get(key)[0] (2.83.0 serializers.py:4548-4552). No value
-		// is an error, and an empty value is not an empty result.
-		if lookupIPBlockKey(tc.Name, key) {
-			predicates = append(predicates, buildIPBlockPredicate(vals[0]))
-			continue
-		}
-		// The ixpfx whereis key of an upstream prepare_query and its
-		// operator forms use the first value of a repeated key
-		// (2.83.0 serializers.py:618-619). A value that is not an
-		// address, and the __in form, are an error.
-		if inList, isWhereis := lookupWhereisKey(tc.Name, key); isWhereis {
-			p, err := buildWhereisPredicate(vals[0], inList)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The ix capacity key of an upstream prepare_query and its
-		// operator forms use the first value of a repeated key (2.83.0
-		// serializers.py:618-619). A value that is not an integer is an
-		// error, also as an item of __in.
-		if op, isCapacity := lookupCapacityFilter(tc.Name, key); isCapacity {
-			p, err := buildCapacityPredicate(op, vals[0])
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The relation keys of an upstream prepare_query resolve before
-		// the other keys, as upstream handles them apart from its
-		// model-field filters. They use the first value of a repeated
-		// key, as get_relation_filters does (2.83.0
-		// serializers.py:618-619).
-		if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
-			p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			if empty {
-				emptyResult = true
-				continue
-			}
-			if !ok {
-				// Upstream puts a key of up to 3 segments in p_filters,
-				// also when prepare_query does not apply it (2.83.0
-				// serializers.py:641-654).
-				if len(tail) <= 2 {
-					adjusted = true
+	// Upstream returns qset.none() for a name_search that matches
+	// nothing before finalize_query_params and the filter loop
+	// (rest.py:550-553). The other keys are not read, so they are not
+	// unknown either.
+	if !ns.none {
+		for _, key := range keys {
+			if !isPrepareQueryKey(tc, key) {
+				if err := st.addKey(key, params[key]); err != nil {
+					return listFilters{}, err
 				}
-				appendUnknown(ctx, key)
-				continue
 			}
-			predicates = append(predicates, p)
-			continue
 		}
-		// A bare ipaddr6 key on netixlan compares the canonical text of
-		// the address, as upstream does (2.83.0 rest.py:605-606,
-		// util.py:61-73). Only the exact key: the value of ipaddr6__in,
-		// of the other suffixes and of ipaddr4 is not canonicalized.
-		if tc.Name == peeringdb.TypeNetIXLan && key == "ipaddr6" {
-			predicates = append(predicates, ipaddr6Predicate(value))
-			continue
-		}
-		relSegs, field, op := parseFieldOp(key)
-		// Also check if the raw final field is a reserved name
-		// (e.g. "fields" on a top-level single-segment key).
-		if len(relSegs) == 0 && reservedParams[field] {
-			continue
-		}
-		// Upstream ignores a relation key whose field is a FK column
-		// (net__org_id, see namesFKColumn), and status on a reverse or
-		// 2-hop key (see relationStatusFilterable).
-		if len(relSegs) > 0 && (namesFKColumn(field) ||
-			field == "status" && !relationStatusFilterable(tc, relSegs)) {
-			appendUnknown(ctx, key)
-			continue
-		}
-		// Hard cap: >2 relation segments is silently rejected.
-		if len(relSegs) > 2 {
-			appendUnknown(ctx, key)
-			continue
-		}
-		// Malformed split (empty final field, empty leading segment)
-		// falls through to unknown-field handling.
-		if field == "" {
-			appendUnknown(ctx, key)
-			continue
-		}
-
-		if len(relSegs) == 0 {
-			// Direct local field path — the original local-field behaviour.
-			// A count seed is a prepare_query key: it uses the first
-			// value of a repeated key (2.83.0 serializers.py:618-619).
-			if tc.ExactCounts[field] {
-				value = vals[0]
-			}
-			p, empty, ok, err := buildLocalPredicate(field, op, value, tc, spatial)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			if empty {
-				emptyResult = true
-				continue
-			}
-			if !ok {
-				appendUnknown(ctx, key)
-				continue
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-
-		// Traversal path (1-hop or 2-hop). An upstream FK name as the
-		// first segment (network__asn) walks the matching mirror edge.
-		relSegs[0] = traversalKeyFor(tc, relSegs[0])
-		p, ok, empty, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
-		if err != nil {
-			return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-		}
-		if empty {
-			emptyResult = true
-			continue
-		}
-		if !ok {
-			appendUnknown(ctx, key)
-			continue
-		}
-		predicates = append(predicates, p)
 	}
-	if nsErr != nil {
-		return listFilters{}, nsErr
-	}
-	if emptyResult {
+	if st.empty || ns.empty || ns.none {
 		return listFilters{emptyResult: true, none: ns.none, searchHit: ns.hit, upstreamFilter: true}, nil
 	}
 	return listFilters{
-		preds:          predicates,
+		preds:          st.preds,
 		orderBy:        orderBy,
 		searchHit:      ns.hit,
-		upstreamFilter: adjusted || len(predicates) > 0,
+		upstreamFilter: st.adjusted || len(st.preds) > 0,
 	}, nil
+}
+
+// addKey parses one filter key. vals holds every value of the key.
+func (st *filterState) addKey(key string, vals []string) error {
+	ctx, tc, tier := st.ctx, st.tc, st.tier
+	if len(vals) == 0 {
+		return nil
+	}
+	// Repeated params (?foo=a&foo=b) take the LAST value, matching
+	// Django's QueryDict.__getitem__ (upstream PeeringDB's request
+	// layer). url.Values preserves insertion order, so vals[len-1] is
+	// the last value seen on the wire.
+	value := vals[len(vals)-1]
+	// Skip reserved pagination/control parameters and the keys that
+	// a pre-pass handled.
+	if reservedParams[key] || st.consumed[key] {
+		return nil
+	}
+	// Meta keys resolve before the key is split, as upstream
+	// rewrites them before its filter loop (2.83.0
+	// serializers.py:3129-3149). They are not traversals: a split
+	// would read meta__planned_status_change__date__lt as a 2-hop
+	// path and ignore it.
+	if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
+		p, empty, ok, err := buildMetaPredicate(col, suffix, value)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The legacy net info_type keys, and info_types with __in or
+	// __startswith, resolve before the key is split, as upstream
+	// rewrites them before its filter loop (2.83.0
+	// serializers.py:3768-3813, rest.py:559-563).
+	if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
+		if patterns == nil {
+			// A pattern matches every network. Upstream still sets
+			// query_adjusted, so the key counts as a filter.
+			st.adjusted = true
+			return nil
+		}
+		p, err := multiChoiceLikeAny("info_types", patterns)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The presence keys of an upstream prepare_query (not_ix,
+	// all_net, org_present and the others) use the first value of a
+	// repeated key, as prepare_query reads kwargs.get(key)[0].
+	if pk, isPresence := lookupPresenceKey(tc.Name, key); isPresence {
+		p, err := buildPresencePredicate(tc, pk, vals[0], tier)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The ix ipblock key of an upstream prepare_query uses the first
+	// value of a repeated key, as prepare_query reads
+	// kwargs.get(key)[0] (2.83.0 serializers.py:4548-4552). No value
+	// is an error, and an empty value is not an empty result.
+	if lookupIPBlockKey(tc.Name, key) {
+		st.preds = append(st.preds, buildIPBlockPredicate(vals[0]))
+		return nil
+	}
+	// The ixpfx whereis key of an upstream prepare_query and its
+	// operator forms use the first value of a repeated key
+	// (2.83.0 serializers.py:618-619). A value that is not an
+	// address, and the __in form, are an error.
+	if inList, isWhereis := lookupWhereisKey(tc.Name, key); isWhereis {
+		p, err := buildWhereisPredicate(vals[0], inList)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The ix capacity key of an upstream prepare_query and its
+	// operator forms use the first value of a repeated key (2.83.0
+	// serializers.py:618-619). A value that is not an integer is an
+	// error, also as an item of __in.
+	if op, isCapacity := lookupCapacityFilter(tc.Name, key); isCapacity {
+		p, err := buildCapacityPredicate(op, vals[0])
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The relation keys of an upstream prepare_query resolve before
+	// the other keys, as upstream handles them apart from its
+	// model-field filters. They use the first value of a repeated
+	// key, as get_relation_filters does (2.83.0
+	// serializers.py:618-619).
+	if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
+		p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			// Upstream puts a key of up to 3 segments in p_filters,
+			// also when prepare_query does not apply it (2.83.0
+			// serializers.py:641-654).
+			if len(tail) <= 2 {
+				st.adjusted = true
+			}
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// A bare ipaddr6 key on netixlan compares the canonical text of
+	// the address, as upstream does (2.83.0 rest.py:605-606,
+	// util.py:61-73). Only the exact key: the value of ipaddr6__in,
+	// of the other suffixes and of ipaddr4 is not canonicalized.
+	if tc.Name == peeringdb.TypeNetIXLan && key == "ipaddr6" {
+		st.preds = append(st.preds, ipaddr6Predicate(value))
+		return nil
+	}
+	relSegs, field, op := parseFieldOp(key)
+	// Also check if the raw final field is a reserved name
+	// (e.g. "fields" on a top-level single-segment key).
+	if len(relSegs) == 0 && reservedParams[field] {
+		return nil
+	}
+	// Upstream ignores a relation key whose field is a FK column
+	// (net__org_id, see namesFKColumn), and status on a reverse or
+	// 2-hop key (see relationStatusFilterable).
+	if len(relSegs) > 0 && (namesFKColumn(field) ||
+		field == "status" && !relationStatusFilterable(tc, relSegs)) {
+		appendUnknown(ctx, key)
+		return nil
+	}
+	// Hard cap: >2 relation segments is silently rejected.
+	if len(relSegs) > 2 {
+		appendUnknown(ctx, key)
+		return nil
+	}
+	// Malformed split (empty final field, empty leading segment)
+	// falls through to unknown-field handling.
+	if field == "" {
+		appendUnknown(ctx, key)
+		return nil
+	}
+
+	if len(relSegs) == 0 {
+		// Direct local field path — the original local-field behaviour.
+		// A count seed is a prepare_query key: it uses the first
+		// value of a repeated key (2.83.0 serializers.py:618-619).
+		if tc.ExactCounts[field] {
+			value = vals[0]
+		}
+		p, empty, ok, err := buildLocalPredicate(field, op, value, tc, st.spatial)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+
+	// Traversal path (1-hop or 2-hop). An upstream FK name as the
+	// first segment (network__asn) walks the matching mirror edge.
+	relSegs[0] = traversalKeyFor(tc, relSegs[0])
+	p, ok, empty, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
+	if err != nil {
+		return fmt.Errorf("filter %s: %w", key, err)
+	}
+	if empty {
+		st.empty = true
+		return nil
+	}
+	if !ok {
+		appendUnknown(ctx, key)
+		return nil
+	}
+	st.preds = append(st.preds, p)
+	return nil
 }
 
 // isPrepareQueryKey reports whether an upstream prepare_query of typ

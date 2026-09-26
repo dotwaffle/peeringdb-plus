@@ -222,48 +222,18 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	params := r.URL.Query()
 	unique := isUniqueQuery(tc.Name, params)
 
-	// Parse skip, limit (2.83.0 rest.py:511-518), since (:505-510) and
-	// depth (:520-523) before the filters, as upstream runs its filter
-	// loop after them (:564-683). Upstream checks since before skip, so
-	// for ?since=abc&skip=abc it names since and the mirror names skip.
-	// Both are 400.
-	limit, skip, err := ParsePaginationParams(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
+	// Parse the filters with since, skip, limit and depth, in upstream
+	// order (parseRequest).
+	lf, rp, ok := parseRequest(w, r, params, tc)
+	if !ok {
 		return
 	}
-	since, err := ParseSinceParam(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
+	limit, skip, since := rp.limit, rp.skip, rp.since
 	// A list defaults to depth 0 (upstream default_depth(is_list=True),
 	// serializers.py:1032-1039). The raw value decides the truncation
 	// and prints in its message (rest.py:766-772).
-	depth, depthText, _, err := ParseDepthParam(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
-
-	// Parse filters. The emptyResult short-circuit handles ?field__in=.
-	lf, err := parseRequestFilters(r, params, tc)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: fmt.Sprintf("filter error: %v", err),
-		})
-		return
-	}
+	depth, depthText := rp.depth, rp.depthText
+	var err error
 
 	// A negative skip is a 400. Upstream raises it at the slice (2.83.0
 	// rest.py:757-760, Django query.py:403-417), after the filters and
@@ -805,9 +775,9 @@ func (h *Handler) serveListDepth(tc TypeConfig, w http.ResponseWriter, r *http.R
 //
 // A detail request uses only the predicates and the empty-result flag
 // of the result, not its sort key.
-func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (listFilters, error) {
+func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig, afterPrepare func() error) (listFilters, error) {
 	ctx := WithUnknownFields(r.Context())
-	lf, err := parseListFilters(ctx, params, tc)
+	lf, err := parseListFilters(ctx, params, tc, afterPrepare)
 	if err != nil {
 		return listFilters{}, err
 	}
@@ -827,6 +797,34 @@ func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (lis
 		}
 	}
 	return lf, nil
+}
+
+// parseRequest parses the filters and the since, skip, limit and depth
+// values of a list or detail request, in upstream order: the
+// prepare_query keys, then since, skip, limit and depth, then
+// name_search and the other keys (parseListFilters,
+// parseRequestParams). On an error it writes the 400 and returns
+// ok=false. A filter error has the "filter error: " prefix, and a
+// parameter error is the upstream text.
+func parseRequest(w http.ResponseWriter, r *http.Request, params url.Values, tc TypeConfig) (listFilters, requestParams, bool) {
+	var rp requestParams
+	var paramErr error
+	lf, err := parseRequestFilters(r, params, tc, func() error {
+		rp, paramErr = parseRequestParams(params)
+		return paramErr
+	})
+	if err != nil {
+		detail := "filter error: " + err.Error()
+		if paramErr != nil {
+			detail = paramErr.Error()
+		}
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: detail,
+		})
+		return listFilters{}, requestParams{}, false
+	}
+	return lf, rp, true
 }
 
 // isUniqueQuery reports whether a list request names one object, so
@@ -939,8 +937,8 @@ func (h *Handler) nameSearchMisses(ctx context.Context, tc TypeConfig, lf listFi
 // A detail request applies the filter keys of a list, as upstream:
 // retrieve calls DRF get_object, which filters get_queryset() (2.83.0
 // rest.py:849-855, :477-703). The parameters are parsed in the list
-// order (skip, limit, since, depth, filters, negative skip), so a
-// request with two bad parameters gets the same 400 on both paths.
+// order (parseRequest, then the negative skip), so a request with two
+// bad parameters gets the same 400 on both paths.
 // rawID is parsed after them, as upstream: get_object builds the
 // filtered queryset before get_object_or_404 converts the pk with int()
 // (drf generics.py:87-100). An id that int() rejects is a 404 (Not
@@ -957,23 +955,14 @@ func (h *Handler) nameSearchMisses(ctx context.Context, tc TypeConfig, lf listFi
 func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
-	sliced, negativeSkip, err := parseDetailSlice(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
+	lf, rp, ok := parseRequest(w, r, params, tc)
+	if !ok {
 		return
 	}
-	if _, err := ParseSinceParam(params); err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
+	sliced, negativeSkip := rp.detailSlice()
+	var err error
 
-	// Parse depth. Default = 2 for detail endpoints to match upstream's
+	// Default depth = 2 for detail endpoints to match upstream's
 	// `default_depth(is_list=False)` (2.83.0 serializers.py:1032-1039).
 	// Upstream parses `?depth=` as a raw int clamped to [0, max_depth] with
 	// max_depth=4 for single GETs (serializers.py:1004-1030), so we honour
@@ -984,26 +973,10 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	// value that is not an integer is a 400, as upstream (rest.py:520-523);
 	// negatives floor to 0.
 	depth := 2
-	rawDepth, _, depthPresent, err := ParseDepthParam(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
-	if depthPresent {
-		depth = min(max(rawDepth, 0), 4)
+	if rp.depthPresent {
+		depth = min(max(rp.depth, 0), 4)
 	}
 
-	lf, err := parseRequestFilters(r, params, tc)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: fmt.Sprintf("filter error: %v", err),
-		})
-		return
-	}
 	filters := lf.preds
 	// A name_search that matches no row is upstream qset.none(), which
 	// get_queryset returns before it slices the query (2.83.0
