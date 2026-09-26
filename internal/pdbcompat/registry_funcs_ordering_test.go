@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
+
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/testutil"
@@ -239,4 +243,33 @@ func intSliceEqual(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+// TestListOrder_OrderBy checks the ORDER BY of a list with a filter
+// sort key (a fac or org distance search): the key, then id. A ?since=
+// list keeps updated, id, as upstream order_by("updated") replaces the
+// distance order (2.83.0 rest.py:744).
+func TestListOrder_OrderBy(t *testing.T) {
+	t.Parallel()
+	byDist := func(s *entsql.Selector) { s.OrderExpr(entsql.Expr("dist")) }
+	since := time.Unix(1, 0)
+	for _, tt := range []struct {
+		name string
+		opts QueryOptions
+		want string
+	}{
+		{"plain", QueryOptions{}, "ORDER BY `t`.`id` ASC"},
+		{"order_by", QueryOptions{OrderBy: byDist}, "ORDER BY dist, `t`.`id` ASC"},
+		{"since", QueryOptions{Since: &since}, "ORDER BY `t`.`updated` ASC, `t`.`id` ASC"},
+		{"order_by_since", QueryOptions{OrderBy: byDist, Since: &since}, "ORDER BY `t`.`updated` ASC, `t`.`id` ASC"},
+	} {
+		s := entsql.Dialect(dialect.SQLite).Select("*").From(entsql.Table("t"))
+		for _, o := range listOrder[func(*entsql.Selector)](tt.opts) {
+			o(s)
+		}
+		q, _ := s.Query()
+		if !strings.HasSuffix(q, tt.want) {
+			t.Errorf("%s: query = %q, want suffix %q", tt.name, q, tt.want)
+		}
+	}
 }

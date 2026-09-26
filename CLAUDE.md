@@ -277,6 +277,9 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   `status` is an ordinary `Fields` key on all 13 types (upstream `status__iexact`, ANDed with the matrix; locked by `TestRegistryFields_AlignWithEntColumns`); LAST is what keeps `?status=` narrow-only.
 - List order (`listOrder` in `registry_funcs.go`): plain list `id ASC` (upstream has no `ORDER BY` and no model `Meta.ordering`; live-verified 2026-09-23), `?since` list `updated ASC, id ASC` (`rest.py:744`). entrest/ConnectRPC keep their own `(-updated, -created, -id)`.
   `applySince` is `updated >= N`: upstream compares microsecond `updated` with `N.000000` and we store only the shown second (locked by `TestParity_Status/since_boundary_includes_same_second`).
+  A fac/org `?distance=` list orders by distance, then `id` (`QueryOptions.OrderBy`, set from `listFilters.orderBy`).
+  A `?since` list keeps `updated, id` (upstream `order_by("updated")` replaces the distance order).
+  The distance sort uses a temp B-tree: no index can serve it (`TestPdbcompatListPlan_Distance`).
 - `pyInt` (`internal/pdbcompat/pyint.go`) is the one integer parser of the request path: Python `int()` rules (Unicode space and `Nd` digits, sign, single `_`, at most 4300 digits), saturating to `math.MinInt`/`math.MaxInt`.
   It also parses the detail `{id}`.
   `limit`, `skip`, `since` and detail `depth` take the last value (`lastParam`), and an empty value is a 400 with the upstream text; `since` is read only through `parseSince`, `depth` only through `ParseDepthParam`.
@@ -428,6 +431,17 @@ Locked by `TestParity_Traversal/prepare_query_whereis` + `TestWhereisCandidates`
 Values parse with `pyInt` (saturated, bound as integers; `__in` as ONE JSON array); `capacity__in=` is a 400 (upstream int-converts every item), not `errEmptyIn`; contains/startswith match `CAST(SUM AS TEXT)` and never 400.
 Two different capacity keys AND (upstream applies only the last): `DIVERGENCE_relation_filter_forms_all_apply`.
 Locked by `TestParity_Traversal/prepare_query_capacity` + `TestCapacityPlan` (uncorrelated `LIST SUBQUERY` on `networkixlan_ixlan_id`).
+
+**Distance filter (`internal/pdbcompat/distance_filter.go`).**
+The fac/org `?distance=` key resolves in a pre-pass of `parseListFilters` (`ParseFiltersCtx` and `parseRequestFilters` wrap it), because the params map has no order.
+Pre-passes run in upstream order: `prepare_query` keys (distance) before `name_search`, and they share one `consumed` skip set.
+The `listFilters` fields are `preds`, `emptyResult` (still one exit, after the loop) and `orderBy` (the distance sort; `serveList` sets `QueryOptions.OrderBy`, `serveDetail` ignores it, and `Match` applies the predicate).
+The key takes the first value with Python `float()` rules (`parsePyFloat`: overflow is ±Inf, not an error; hex rejected); a value `<= 0` is a no-op; the key is known on fac/org and unknown on the other 11 types.
+A positive value needs `latitude` and `longitude`, else `400` (the mirror has no geocoder).
+While spatial, the loop skips `latitude`/`longitude`/`address1`/`city`/`city__in`/`state`/`zipcode`, and a bare `country` is iexact (`buildLocalPredicate(..., spatial)`, `rest.py:569-597`).
+SQLite has no `greatest`/`least`: use `min`/`max`, and keep the clamp (`acos(1+ε)` is NULL).
+The `nan`, `inf`, first-value coordinates and coordinate `400` rules are mirror choices (`DIVERGENCE_distance_value_handling`).
+Locked by `TestParity_Traversal/prepare_query_distance_*` + `TestDistanceSearch_ListAndCountAgree`.
 
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.

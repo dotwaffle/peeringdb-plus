@@ -43,6 +43,13 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   An ASN that occurs two times in the list matches no row, as upstream.
   A single-object GET applies the key too: `/api/fac/<id>?asn_overlap=` returns `404` when the facility does not match, and `400` for one ASN.
   See `docs/API.md` § Presence filters.
+- pdbcompat implements `?distance=` with `latitude` and `longitude` on `fac` and `org`: the list holds the rows within that many kilometers of the point, nearest first, as upstream.
+  Before, pdbcompat ignored the key and returned the unfiltered list.
+  While the filter applies, `city`, `state`, `zipcode`, `address1`, `city__in`, `latitude` and `longitude` do not filter, as upstream.
+  A value of 0 or less has no effect; a value that is not a number, or a request without coordinates, returns `400`.
+  A single-object GET applies the key too: `/api/fac/<id>?distance=` returns `404` when the facility is farther.
+  Upstream allows the filter only to verified users and finds coordinates for a city and country; the mirror allows it to all callers and returns `400` without coordinates.
+  See `docs/API.md` § Distance filter.
 
 ### Changed
 

@@ -306,9 +306,19 @@ func applySince(opts QueryOptions) func(*sql.Selector) {
 // A ?since= list is ordered by updated ascending, as upstream orders it
 // (rest.py:738-745). The id tiebreak keeps the order of rows with the
 // same updated value stable across pages.
+//
+// A plain list with opts.OrderBy (a fac or org distance search) is
+// ordered by that key, then by id. Upstream orders by distance only
+// (serializers.py:1897) and leaves ties to the database. A ?since= list
+// keeps the updated order: upstream order_by("updated") replaces the
+// distance order (rest.py:744; Django order_by clears the earlier
+// ordering, django/db/models/query.py:1721-1728).
 func listOrder[T ~func(*sql.Selector)](opts QueryOptions) []T {
 	if opts.Since != nil {
 		return []T{T(ent.Asc("updated")), T(ent.Asc("id"))}
+	}
+	if opts.OrderBy != nil {
+		return []T{T(opts.OrderBy), T(ent.Asc("id"))}
 	}
 	return []T{T(ent.Asc("id"))}
 }

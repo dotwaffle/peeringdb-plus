@@ -656,7 +656,8 @@ pdbcompat `/api/<type>` lists use the upstream PeeringDB order.
 A list without `?since` is ordered by `id`, ascending, because upstream adds no `ORDER BY` and MySQL returns primary-key order. netixlan is the exception: its upstream order depends on the MySQL query plan (see [API.md § Known Divergences](./API.md#known-divergences)).
 A `?since` list is ordered by `updated`, ascending, as upstream orders it.
 The mirror adds `id`, ascending, as the tiebreak.
-`listOrder` in `internal/pdbcompat/registry_funcs.go` sets both orders.
+A distance search on `fac` or `org` is ordered by distance, then `id`; with `?since`, it keeps the `updated` order, as upstream.
+`listOrder` in `internal/pdbcompat/registry_funcs.go` sets these orders.
 See [API.md § List order](./API.md#list-order).
 
 entrest `/rest/v1/<type>` and the ConnectRPC `List*`/`Stream*` RPCs return rows in compound `(-updated, -created, -id)` order by default.
@@ -863,6 +864,7 @@ Without `ANALYZE` statistics, SQLite otherwise reads a plain `IN` through a stat
 With the hint, SQLite reads the rowid table for `id` order and the `updated` index for the `?since` order, and does not sort.
 `COUNT` queries still read a covering status index.
 `TestPdbcompatListPlan_NoTempBTree` locks these plans.
+A distance search sorts the kept rows in a temp B-tree, because no index can serve the distance order (`TestPdbcompatListPlan_Distance`).
 The pk-lookup path (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site (`StatusIn("ok", "not-operational", "pending")` for netixlan) so direct-ID GETs return 404 for tombstones.
 The nested `_set` collections of the depth expansion admit only the live statuses of the child (`likelyOK`, `StatusIn("ok", "not-operational")` for netixlan), the same as the upstream nested prefetch.
 `likelyOK` is `likely(status IN ('ok'))`.

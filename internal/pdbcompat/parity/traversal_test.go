@@ -65,10 +65,20 @@ import (
 //     network of every listed ASN reaches through an ok netfac, or an
 //     ok or not-operational netixlan, as upstream; one ASN, more than
 //     25 or an item that is not an integer is a 400.
+//   - `fac?distance=` and `org?distance=` with `latitude` and
+//     `longitude` keep the rows within that many kilometers, nearest
+//     first, as upstream; the location keys do not filter in such a
+//     search, and a bare country is an exact match. A value that
+//     float() rejects, or a search without coordinates and without
+//     city or country, is a 400.
+//   - DIVERGENCE: the distance filter is served to every caller;
+//     without coordinates it is a 400 (no geocoder); a bare city on
+//     fac or org is a substring match, not a geocoded search; nan,
+//     inf, non-ASCII digits and the coordinate values are handled by
+//     the mirror's own rules.
 //   - DIVERGENCE: the custom keys that upstream handles in Python
-//     (prepare_query keys such as distance, hide_ix_no_fac,
-//     name_search) are silent-ignored, also on a single-object GET
-//     (`ix/<id>?hide_ix_no_fac=1`).
+//     (hide_ix_no_fac, name_search) are silent-ignored, also on a
+//     single-object GET (`ix/<id>?hide_ix_no_fac=1`).
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
 //   - DIVERGENCE: a relation key, ixpfx whereis or ix capacity given in
@@ -467,21 +477,19 @@ func TestParity_Traversal(t *testing.T) {
 	t.Run("DIVERGENCE_prepare_query_keys_silent_ignore", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream handles these keys in Python before its
-		// model-field filters: the custom prepare_query keys of each
-		// serializer, the hide_ix_no_fac mixin, and the search index for
-		// name_search. They are not model fields, and the mirror does
-		// not implement them, so they are silent-ignored and the list is
-		// unfiltered. The presence keys (not_ix, all_net, org_present and
-		// the others) are parity: see prepare_query_presence_keys. So
-		// are ix ipblock, ixpfx whereis, ix capacity and fac and ix
-		// asn_overlap: see prepare_query_ipblock, prepare_query_whereis,
-		// prepare_query_capacity and prepare_query_asn_overlap.
+		// model-field filters: the hide_ix_no_fac mixin, and the search
+		// index for name_search. They are not model fields, and the
+		// mirror does not implement them, so they are silent-ignored and
+		// the list is unfiltered. The presence keys (not_ix, all_net,
+		// org_present and the others) are parity: see
+		// prepare_query_presence_keys. So are ix ipblock, ixpfx whereis,
+		// ix capacity, fac and ix asn_overlap and fac and org distance:
+		// see prepare_query_ipblock, prepare_query_whereis,
+		// prepare_query_capacity, prepare_query_asn_overlap and
+		// prepare_query_distance_filter.
 		// See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: 2.83.0 serializers.py:2092-2210
-		// (FacilitySerializer.prepare_query), :3708-3762 (Network),
-		// :4970-4992 (Organization);
-		// rest.py:1267-1297 (hide_ix_no_fac),
+		// upstream: 2.83.0 rest.py:1267-1297 (hide_ix_no_fac),
 		// :532-553 (name_search)
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
@@ -506,14 +514,12 @@ func TestParity_Traversal(t *testing.T) {
 		srv := newTestServer(t, c)
 		// No netfac or ixfac rows exist. Upstream returns a narrower
 		// list for each request below (for example [100] for
-		// name_search), or 400 (see distance).
+		// name_search).
 		// The relation keys of a prepare_query (net?ix_id=,
 		// fac?net_id=, org?asn=) resolve: see
 		// prepare_query_relation_keys_pin_join_status_ok and
 		// prepare_query_relation_keys_on_listed_row.
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			// prepare_query keys.
-			{path: "/api/org?distance=10", want: []int{1, 2}},
 			// hide_ix_no_fac: neither IX has a facility.
 			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
 			// A single-object GET ignores it too. Upstream: 404, the
@@ -1049,6 +1055,191 @@ func TestParity_Traversal(t *testing.T) {
 		}
 		if msg := mustDecodeMetaError(t, body).Error; msg != "Entity not found" {
 			t.Errorf("GET %s: meta.error = %q, want %q", path, msg, "Entity not found")
+		}
+	})
+
+	t.Run("prepare_query_distance_filter", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:443-460 (single_url_param:
+		// first value, float()), :1837-1905 (prepare_spatial_search:
+		// great-circle distance in km, distance__lte, order by
+		// distance), :2203-2208 (fac), :4985-4990 (org).
+		// synthesised: pdb_api_test.py:1353-1378 uses latitude and
+		// longitude but asserts only membership. See seedDistanceRows:
+		// fac 10 and 15 are in Frankfurt, 11 in Offenbach (6.92 km), 12
+		// in Amsterdam (363.4 km); 13 and 14 have no full coordinates;
+		// 16 is deleted.
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		const ll = "latitude=50.110900&longitude=8.682100"
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?" + ll + "&distance=10", want: []int{10, 15, 11}},
+			{path: "/api/fac?" + ll + "&distance=500", want: []int{10, 15, 11, 12}},
+			{path: "/api/org?" + ll + "&distance=10", want: []int{1, 2}},
+			// The first distance value applies (single_url_param).
+			{path: "/api/fac?" + ll + "&distance=1&distance=500", want: []int{10, 15}},
+			// float() rules: white space at the ends, exponent,
+			// underscore.
+			{path: "/api/fac?" + ll + "&distance=%2010%20", want: []int{10, 15, 11}},
+			{path: "/api/fac?" + ll + "&distance=1e1", want: []int{10, 15, 11}},
+			{path: "/api/fac?" + ll + "&distance=1_0", want: []int{10, 15, 11}},
+		})
+		// A lookup by id out of the distance is the unique-query 404
+		// (rest.py:809-815).
+		path := "/api/fac?id=12&" + ll + "&distance=10"
+		if status, body := httpGet(t, srv, path); status != http.StatusNotFound ||
+			mustDecodeMetaError(t, body).Error != "Entity not found" {
+			t.Errorf("%s: status = %d, want 404 Entity not found; body=%s", path, status, string(body))
+		}
+	})
+
+	t.Run("prepare_query_distance_skips_location_keys", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:569-581 (a spatial query skips the
+		// exact keys latitude, longitude, address1, city, city__in,
+		// state and zipcode), :582-595 (the substring and country rules
+		// run only when the query is not spatial), :597, :683 (a bare
+		// key is __iexact).
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		const search = "/api/fac?latitude=50.110900&longitude=8.682100&distance=10"
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: search + "&city=Nowhere&city__in=Nowhere&state=Nowhere&zipcode=0&address1=Nowhere", want: []int{10, 15, 11}},
+			// Other forms still filter.
+			{path: search + "&city__contains=Offenbach", want: []int{11}},
+			{path: search + "&country__in=NL", want: []int{}},
+			// A bare country is iexact for any length.
+			{path: search + "&country=DE", want: []int{10, 15, 11}},
+			{path: search + "&country=d", want: []int{}},
+			// Not a distance search: a country that is not 2 letters
+			// long matches a substring.
+			{path: "/api/fac?country=d", want: []int{10, 11, 13, 14, 15}},
+		})
+	})
+
+	t.Run("prepare_query_distance_noop_and_errors", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:443-460 (only a ValueError of
+		// float() is "Invalid value"), :1839-1840 (a distance of 0 or
+		// less is a no-op), :1842-1865 (without latitude and longitude,
+		// country and then city are required), rest.py:488-500
+		// (prepare_query errors are 400, before the filter loop).
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		const ll = "latitude=50.110900&longitude=8.682100"
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?distance=0", want: []int{10, 11, 12, 13, 14, 15}},
+			{path: "/api/fac?distance=-1e999", want: []int{10, 11, 12, 13, 14, 15}},
+			// A no-op keeps latitude and longitude as plain filters.
+			{path: "/api/fac?distance=-3&" + ll, want: []int{10, 15}},
+			{path: "/api/fac?" + ll, want: []int{10, 15}},
+			// A no-op keeps the substring rule of a bare city.
+			{path: "/api/fac?distance=-inf&city=Frankfurt", want: []int{10, 13, 14, 15}},
+			// The other types ignore the key (for a caller who may use
+			// the filter upstream).
+			{path: "/api/campus?distance=10", want: []int{200}},
+		})
+		for _, tc := range []struct{ path, wantErr string }{
+			{"/api/fac?distance=abc", "filter distance: Invalid value"},
+			{"/api/fac?distance=", "filter distance: Invalid value"},
+			{"/api/fac?distance=0x10&" + ll, "filter distance: Invalid value"},
+			{"/api/fac?distance=10", "country: Required for distance filtering; city: Required for distance filtering"},
+			{"/api/fac?distance=10&latitude=50.110900", "country: Required for distance filtering; city: Required for distance filtering"},
+			{"/api/org?distance=10&city=Frankfurt", "country: Required for distance filtering"},
+			// The distance pre-pass runs before the other keys, so its
+			// error wins over an empty __in.
+			{"/api/fac?distance=abc&name_search=x&id__in=", "filter distance: Invalid value"},
+		} {
+			assertFilterError(t, srv, tc.path, tc.wantErr)
+		}
+	})
+
+	t.Run("DIVERGENCE_distance_served_without_auth", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream returns 403 to a caller without a
+		// verified user account for any request with the distance key
+		// (FilterDistanceThrottle, a default throttle class that DRF
+		// checks before the query is built). The mirror has no accounts
+		// and serves the filter to every caller. A verified user
+		// upstream gets the rows below.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 rest_throttles.py:275-331, :345-350;
+		// mainsite/settings/__init__.py:526-529, :1467-1473
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		const ll = "latitude=50.110900&longitude=8.682100"
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?" + ll + "&distance=10", want: []int{10, 15, 11}},
+			{path: "/api/net?distance=10", want: []int{100}},
+			{path: "/api/net?distance=abc", want: []int{100}},
+			{path: "/api/fac/10?" + ll + "&distance=10", want: []int{10}},
+		})
+	})
+
+	t.Run("DIVERGENCE_distance_without_coordinates_returns_400", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: with city and country and no coordinates,
+		// upstream finds the coordinates through the Google geocoding
+		// API; on fac, name_search first finds a location in the search
+		// index. If it finds none, the list is empty. The mirror has
+		// no geocoder and returns 400.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 serializers.py:1842-1880, :2213-2280;
+		// models.py:719-790
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		for _, path := range []string{
+			"/api/fac?city=Frankfurt&country=DE&distance=50",
+			"/api/org?city=Frankfurt&country__in=DE&distance=50",
+			"/api/fac?name_search=Frankfurt&distance=50",
+		} {
+			assertFilterError(t, srv, path, "distance: needs latitude and longitude")
+		}
+	})
+
+	t.Run("DIVERGENCE_city_filter_is_substring_not_geocoded_radius", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: on fac and org, upstream turns a bare city of one
+		// value into a distance search around the geocoded city
+		// (convert_to_spatial_search). The mirror has no geocoder and
+		// matches a substring: fac 13 and 14 have no coordinates and
+		// match, and fac 11 in Offenbach does not.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: 2.83.0 serializers.py:1709-1834, :2203, :4985;
+		// geo.py:184-189
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?city=Frankfurt", want: []int{10, 13, 14, 15}},
+			{path: "/api/org?city=Frankfurt", want: []int{1, 4}},
+		})
+	})
+
+	t.Run("DIVERGENCE_distance_value_handling", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream float() accepts nan, inf, 1e999 and
+		// non-ASCII digits, and only a ValueError is an error, so these
+		// values reach the database. latitude and longitude go to the
+		// database as the raw lists of URL values. The mirror rejects
+		// nan and non-ASCII digits, keeps every row with coordinates
+		// for inf, uses the first latitude and longitude, and rejects a
+		// coordinate that is not a finite number.
+		// See docs/API.md § Known Divergences.
+		// This test ASSERTS the divergence (it is NOT a parity match).
+		// upstream: serializers.py:443-460 (only ValueError is an
+		// error), :1839, :1881-1898, rest.py:488-491;
+		// the MySQL driver result is not in the source tree (synthesised).
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		const ll = "latitude=50.110900&longitude=8.682100"
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?" + ll + "&distance=inf", want: []int{10, 15, 11, 12}},
+			{path: "/api/fac?" + ll + "&distance=1e999", want: []int{10, 15, 11, 12}},
+			{path: "/api/fac?latitude=52.367600&latitude=50.110900&longitude=4.904100&longitude=8.682100&distance=1", want: []int{12}},
+		})
+		for _, tc := range []struct{ path, wantErr string }{
+			{"/api/org?distance=nan&" + ll, "filter distance: Invalid value"},
+			{"/api/fac?" + ll + "&distance=%D9%A5", "filter distance: Invalid value"},
+			{"/api/fac?distance=10&latitude=abc&longitude=8.682100", "filter latitude: Invalid value"},
+			{"/api/fac?distance=10&latitude=&longitude=8.682100", "filter latitude: Invalid value"},
+		} {
+			assertFilterError(t, srv, tc.path, tc.wantErr)
 		}
 	})
 
@@ -2186,6 +2377,37 @@ func assertKeysResolve(t *testing.T, srv *httptest.Server, cases []silentIgnoreC
 	}
 }
 
+// assertIDsInOrder checks that each request returns HTTP 200 and
+// exactly the given IDs, in the given order. It is for the lists whose
+// order is part of the result, such as a distance search.
+func assertIDsInOrder(t *testing.T, srv *httptest.Server, cases []silentIgnoreCase) {
+	t.Helper()
+	for _, tc := range cases {
+		status, body := httpGet(t, srv, tc.path)
+		if status != http.StatusOK {
+			t.Errorf("%s: status = %d, want 200; body=%s", tc.path, status, string(body))
+			continue
+		}
+		if got := extractIDs(t, body); !slices.Equal(got, tc.want) {
+			t.Errorf("%s: got %v, want %v (in order)", tc.path, got, tc.want)
+		}
+	}
+}
+
+// assertFilterError checks that a request returns HTTP 400 and that its
+// meta.error contains wantErr.
+func assertFilterError(t *testing.T, srv *httptest.Server, path, wantErr string) {
+	t.Helper()
+	status, body := httpGet(t, srv, path)
+	if status != http.StatusBadRequest {
+		t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+		return
+	}
+	if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, wantErr) {
+		t.Errorf("%s: meta.error = %q, want it to contain %q", path, msg, wantErr)
+	}
+}
+
 // assertUnknownFieldsOTelAttr exercises the same handler under a
 // tracetest in-memory exporter and asserts the
 // `pdbplus.filter.unknown_fields` span attribute is emitted with a
@@ -2469,6 +2691,76 @@ func seedASNOverlap(t *testing.T, t0 time.Time) *ent.Client {
 			SetAsn(n.asn).SetSpeed(1000).SetOperational(n.status == "ok").
 			SetStatus(n.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
+	return c
+}
+
+// seedDistanceRows seeds the rows of the distance tests. Coordinates:
+// Frankfurt F = (50.1109, 8.6821), Offenbach O = (50.0956, 8.7761),
+// 6.92 km from F, and Amsterdam A = (52.3676, 4.9041), 363.4 km from F,
+// computed with the upstream formula.
+//
+//	org 1 F Frankfurt am Main DE, org 2 O Offenbach am Main DE,
+//	org 3 A Amsterdam NL, org 4 no coordinates, Frankfurt am Main DE;
+//	fac 10 F Frankfurt am Main, Hessen, 60326, Kleyerstrasse 90, DE,
+//	updated t0+3h; fac 11 O Offenbach am Main DE, t0+1h; fac 12 A
+//	Amsterdam NL; fac 13 no coordinates, Frankfurt am Main DE; fac 14
+//	latitude only, Frankfurt am Main DE; fac 15 F Frankfurt DE, t0+3h;
+//	fac 16 F Frankfurt am Main DE, deleted, t0+2h;
+//	net 100 and campus 200 (org 1).
+func seedDistanceRows(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	type point struct{ lat, lng *float64 }
+	f := func(v float64) *float64 { return &v }
+	var (
+		fra  = point{f(50.1109), f(8.6821)}
+		off  = point{f(50.0956), f(8.7761)}
+		ams  = point{f(52.3676), f(4.9041)}
+		none = point{}
+	)
+	for _, o := range []struct {
+		id      int
+		p       point
+		city, c string
+	}{
+		{1, fra, "Frankfurt am Main", "DE"},
+		{2, off, "Offenbach am Main", "DE"},
+		{3, ams, "Amsterdam", "NL"},
+		{4, none, "Frankfurt am Main", "DE"},
+	} {
+		name := fmt.Sprintf("DistOrg%d", o.id)
+		c.Organization.Create().
+			SetID(o.id).SetName(name).SetNameFold(unifold.Fold(name)).
+			SetCity(o.city).SetCityFold(unifold.Fold(o.city)).SetCountry(o.c).
+			SetNillableLatitude(o.p.lat).SetNillableLongitude(o.p.lng).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	for _, r := range []struct {
+		id                        int
+		p                         point
+		city, state, zip, address string
+		country, status           string
+		updated                   time.Duration
+	}{
+		{10, fra, "Frankfurt am Main", "Hessen", "60326", "Kleyerstrasse 90", "DE", "ok", 3 * time.Hour},
+		{11, off, "Offenbach am Main", "", "", "", "DE", "ok", time.Hour},
+		{12, ams, "Amsterdam", "", "", "", "NL", "ok", 0},
+		{13, none, "Frankfurt am Main", "", "", "", "DE", "ok", 0},
+		{14, point{lat: f(50.1109)}, "Frankfurt am Main", "", "", "", "DE", "ok", 0},
+		{15, fra, "Frankfurt", "", "", "", "DE", "ok", 3 * time.Hour},
+		{16, fra, "Frankfurt am Main", "", "", "", "DE", "deleted", 2 * time.Hour},
+	} {
+		name := fmt.Sprintf("DistFac%d", r.id)
+		c.Facility.Create().
+			SetID(r.id).SetName(name).SetNameFold(unifold.Fold(name)).SetOrgID(1).
+			SetCity(r.city).SetCityFold(unifold.Fold(r.city)).
+			SetState(r.state).SetZipcode(r.zip).SetAddress1(r.address).SetCountry(r.country).
+			SetNillableLatitude(r.p.lat).SetNillableLongitude(r.p.lng).
+			SetStatus(r.status).SetCreated(t0).SetUpdated(t0.Add(r.updated)).SaveX(ctx)
+	}
+	mustNet(ctx, t, c, 100, "DistNet", 64500, 1, t0)
+	mustCampus(ctx, t, c, 200, "DistCampus", 1, t0)
 	return c
 }
 

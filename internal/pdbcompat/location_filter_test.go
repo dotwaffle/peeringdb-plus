@@ -102,3 +102,49 @@ func TestLocationFilterCoercion(t *testing.T) {
 		})
 	}
 }
+
+// TestLocationFilterCoercion_Spatial checks the location keys in a fac
+// distance search. Upstream skips the exact keys latitude, longitude,
+// address1, city, city__in, state and zipcode, and runs a bare country
+// as iexact for any length, because the substring rules are in its
+// non-spatial branch (2.83.0 rest.py:569-597). A distance of 0 is no
+// search, so the substring rules apply.
+func TestLocationFilterCoercion_Spatial(t *testing.T) {
+	t.Parallel()
+	// Fac 1 is in Frankfurt (country DE), fac 2 has no coordinates.
+	client := seedDistanceFacs(t, &pointFrankfurt, nil)
+	h := NewHandler(client, 0)
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	const search = "/api/fac?distance=10&latitude=50.1109&longitude=8.6821"
+	cases := []struct {
+		name, path string
+		want       int // number of rows
+	}{
+		{"skipped keys", search + "&city=Nowhere&city__in=Nowhere&state=Nowhere&zipcode=0&address1=Nowhere", 1},
+		{"city__contains filters", search + "&city__contains=Nowhere", 0},
+		{"country exact", search + "&country=de", 1},
+		{"country fragment exact", search + "&country=d", 0},
+		{"no search: city substring", "/api/fac?distance=0&city=Frankfurt", 2},
+		{"no search: country fragment", "/api/fac?distance=0&country=d", 2},
+	}
+	for _, tc := range cases {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: GET %s: %d: %s", tc.name, tc.path, rec.Code, rec.Body.String())
+			continue
+		}
+		var env struct {
+			Data []json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatalf("%s: decode: %v", tc.name, err)
+		}
+		if len(env.Data) != tc.want {
+			t.Errorf("%s: GET %s: %d rows, want %d", tc.name, tc.path, len(env.Data), tc.want)
+		}
+	}
+}

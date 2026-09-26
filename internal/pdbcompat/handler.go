@@ -245,7 +245,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 
 	// Parse filters. The emptyResult short-circuit handles ?field__in=.
-	filters, emptyResult, err := parseRequestFilters(r, params, tc)
+	lf, err := parseRequestFilters(r, params, tc)
 	if err != nil {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
@@ -275,7 +275,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			sp = buildSearchPredicate(q, tc.SearchFields)
 		}
 		if sp != nil {
-			filters = append(filters, sp)
+			lf.preds = append(lf.preds, sp)
 		}
 	}
 
@@ -288,12 +288,14 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// A negative limit serves every row, as limit=0 does: upstream
 	// slices only when limit > 0 (2.83.0 rest.py:757-760). The budget
 	// check below prices the full count.
+	// OrderBy is the sort key of a fac or org distance search.
 	opts := QueryOptions{
-		Filters:     filters,
+		Filters:     lf.preds,
 		Limit:       max(limit, 0),
 		Skip:        skip,
 		Since:       since,
-		EmptyResult: emptyResult,
+		EmptyResult: lf.emptyResult,
+		OrderBy:     lf.orderBy,
 	}
 
 	// Pre-flight budget check.
@@ -312,7 +314,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// List depth is always 0 per the list-depth guardrail (the
 	// ?depth= param is ignored on list endpoints; opts.Depth is never
 	// populated by ParsePaginationParams).
-	if h.responseMemoryLimit > 0 && !emptyResult && tc.Count != nil {
+	if h.responseMemoryLimit > 0 && !lf.emptyResult && tc.Count != nil {
 		count, err := tc.Count(r.Context(), h.client, opts)
 		if err != nil {
 			// Log the raw error for operators; never echo ent/SQL error
@@ -455,11 +457,14 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 // attribute. ParseFiltersCtx writes to the accumulator, and the
 // diagnostics are emitted AFTER it returns, so the response does not
 // change (HTTP 200, no 400).
-func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (filters []func(*sql.Selector), emptyResult bool, err error) {
+//
+// A detail request uses only the predicates and the empty-result flag
+// of the result, not its sort key.
+func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (listFilters, error) {
 	ctx := WithUnknownFields(r.Context())
-	filters, emptyResult, err = ParseFiltersCtx(ctx, params, tc)
+	lf, err := parseListFilters(ctx, params, tc)
 	if err != nil {
-		return nil, false, err
+		return listFilters{}, err
 	}
 	if unknown := UnknownFieldsFromCtx(ctx); len(unknown) > 0 {
 		csv := strings.Join(unknown, ",")
@@ -476,7 +481,7 @@ func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (fil
 			span.SetAttributes(attribute.String("pdbplus.filter.unknown_fields", csv))
 		}
 	}
-	return filters, emptyResult, nil
+	return lf, nil
 }
 
 // isUniqueQuery reports whether a list request names one object, so
@@ -617,7 +622,7 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 		depth = min(max(rawDepth, 0), 4)
 	}
 
-	filters, emptyResult, err := parseRequestFilters(r, params, tc)
+	lf, err := parseRequestFilters(r, params, tc)
 	if err != nil {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
@@ -625,6 +630,7 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 		})
 		return
 	}
+	filters := lf.preds
 	if negativeSkip {
 		writeError(w, r, apiError{
 			Status: http.StatusBadRequest,
@@ -644,7 +650,7 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 		writeDetailNotFound(w, r, detailSliceNotFound)
 		return
 	}
-	if emptyResult {
+	if lf.emptyResult {
 		writeDetailNotFound(w, r, missMessage(tc))
 		return
 	}

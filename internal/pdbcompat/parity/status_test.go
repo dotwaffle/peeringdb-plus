@@ -1540,6 +1540,9 @@ func TestParity_Status(t *testing.T) {
 		c.NetworkFacility.Create().
 			SetID(1).SetNetID(1).SetFacID(1).SetLocalAsn(64500).
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(t.Context())
+		// Fac 1 and org 1 are in Frankfurt (50.1109, 8.6821).
+		c.Facility.UpdateOneID(1).SetLatitude(50.1109).SetLongitude(8.6821).ExecX(t.Context())
+		c.Organization.UpdateOneID(1).SetLatitude(50.1109).SetLongitude(8.6821).ExecX(t.Context())
 		srv := newTestServer(t, c)
 		// The PK miss of each path, sent to a server with no rows.
 		empty := newTestServer(t, testutil.SetupClient(t))
@@ -1596,6 +1599,15 @@ func TestParity_Status(t *testing.T) {
 			// models.py:2436-2483). Two items for one ASN count as one.
 			{path: "/api/fac/1?asn_overlap=64500,%2064500", want: http.StatusOK, wantIDs: []int{1}},
 			{path: "/api/fac/1?asn_overlap=64500,64501", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			// distance keeps the rows within that many kilometers of
+			// the point (serializers.py:1837-1905, :2203-2208,
+			// :4985-4990). Amsterdam is 363 km from Frankfurt.
+			{path: "/api/fac/1?latitude=50.110900&longitude=8.682100&distance=10", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/fac/1?latitude=52.367600&longitude=4.904100&distance=10", want: http.StatusNotFound, wantErr: "No Facility matches the given query."},
+			{path: "/api/org/1?latitude=50.110900&longitude=8.682100&distance=10", want: http.StatusOK, wantIDs: []int{1}},
+			{path: "/api/org/1?latitude=52.367600&longitude=4.904100&distance=10", want: http.StatusNotFound, wantErr: "No Organization matches the given query."},
+			// A distance of 0 or less is a no-op (:1839-1840).
+			{path: "/api/fac/1?distance=0", want: http.StatusOK, wantIDs: []int{1}},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)
@@ -1624,6 +1636,11 @@ func TestParity_Status(t *testing.T) {
 			{"/api/ix/1?capacity=abc", "is not an integer"},
 			// One ASN (models.py:2457-2458).
 			{"/api/fac/1?asn_overlap=64500", "Need to specify at least two asns"},
+			// A value that float() rejects, and a distance without
+			// coordinates, city and country (serializers.py:443-460,
+			// :1856-1865).
+			{"/api/fac/1?distance=abc", "filter distance: Invalid value"},
+			{"/api/org/1?distance=10", "country: Required for distance filtering; city: Required for distance filtering"},
 		} {
 			status, body := httpGet(t, srv, tc.path)
 			if status != http.StatusBadRequest {

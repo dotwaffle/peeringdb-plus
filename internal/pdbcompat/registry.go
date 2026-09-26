@@ -71,6 +71,11 @@ type QueryOptions struct {
 	// result set without issuing any SQL — matches Django ORM
 	// Model.objects.filter(id__in=[]).
 	EmptyResult bool
+
+	// OrderBy is a primary sort key that a filter asks for: the distance
+	// of a fac or org distance search. listOrder puts it before the id
+	// tiebreak on a plain list. A ?since= list ignores it.
+	OrderBy func(*sql.Selector)
 }
 
 // ListFunc queries entities and returns their serialized objects.

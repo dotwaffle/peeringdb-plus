@@ -1082,6 +1082,8 @@ func TestParseFiltersCtx_ErrorWinsOverEmptyResult(t *testing.T) {
 		{"capacity_in_beats_empty_in", "ix", "name__in", "capacity__in", ""},
 		{"asn_overlap_one_asn_beats_empty_in", "fac", "id__in", "asn_overlap", "64500"},
 		{"asn_overlap_bad_item_beats_empty_in", "ix", "name__in", "asn_overlap", "64500,abc"},
+		{"distance_bad_value_beats_empty_in", "fac", "id__in", "distance", "abc"},
+		{"distance_nan_beats_empty_in", "org", "name__in", "distance", "nan"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

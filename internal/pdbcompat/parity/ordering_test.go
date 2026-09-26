@@ -159,6 +159,35 @@ func TestParity_Ordering(t *testing.T) {
 		}
 	})
 
+	t.Run("distance_list_order_nearest_first_id_tiebreak", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:1897 (order_by("distance")).
+		// Fac 10 and 15 are at the same point. Upstream leaves rows at
+		// the same distance to MySQL; the id tiebreak is the mirror's
+		// choice, which keeps skip/limit pages stable.
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		const search = "/api/fac?latitude=50.110900&longitude=8.682100&distance=500"
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: search, want: []int{10, 15, 11, 12}},
+			{path: search + "&limit=2", want: []int{10, 15}},
+			{path: search + "&skip=2&limit=2", want: []int{11, 12}},
+		})
+	})
+
+	t.Run("distance_since_keeps_updated_order", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:738-745 orders a ?since= list by
+		// updated after prepare_query, and Django order_by replaces the
+		// distance order (django/db/models/query.py:1721-1728). The
+		// distance filter still applies, and the status matrix admits
+		// the deleted fac 16 (rest.py:719-735). Updated: 12 t0, 11
+		// t0+1h, 16 t0+2h, 10 and 15 t0+3h (id tiebreak).
+		srv := newTestServer(t, seedDistanceRows(t, t0))
+		assertIDsInOrder(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?since=1&latitude=50.110900&longitude=8.682100&distance=500", want: []int{12, 11, 16, 10, 15}},
+		})
+	})
+
 	t.Run("DIVERGENCE_netixlan_list_order_is_id_asc", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 rest.py:747-748 (no order_by) +

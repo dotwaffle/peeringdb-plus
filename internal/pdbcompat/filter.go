@@ -291,8 +291,12 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // Keys with len(relSegs) > 2 are silently rejected.
 //
-// The filterable meta keys of the type (netixlan meta__<path> and the
-// upstream meta_* column names, see lookupMetaFilter) resolve first,
+// Before the key loop, a pre-pass of parseListFilters resolves the fac
+// and org distance key (parseDistanceSearch).
+//
+// In the loop, the filterable meta keys of the type (netixlan
+// meta__<path> and the upstream meta_* column names, see
+// lookupMetaFilter) resolve first,
 // before the key is split for traversal. The presence keys of an
 // upstream prepare_query (presenceKeys, for example net?not_ix= and
 // fac?all_net=) resolve next, then the ix ipblock key
@@ -313,9 +317,63 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // An empty result (an empty __in) is returned after every key is
 // parsed, so an error of any key wins, as upstream runs prepare_query
 // before its filter loop (2.83.0 rest.py:488-500).
+//
+// ParseFiltersCtx wraps parseListFilters and drops the sort key of a
+// distance search: see parseListFilters for the pre-pass.
 func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
+	lf, err := parseListFilters(ctx, params, tc)
+	if err != nil {
+		return nil, false, err
+	}
+	return lf.preds, lf.emptyResult, nil
+}
+
+// listFilters is the parsed filter set of a list or detail request.
+type listFilters struct {
+	// preds are the filter predicates. nil when emptyResult is set.
+	preds []func(*sql.Selector)
+	// emptyResult is set when a filter matches no row without a query
+	// (an empty __in). The request returns an empty result.
+	emptyResult bool
+	// orderBy is the primary sort key that a filter asks for: the
+	// distance of a fac or org distance search. nil otherwise. A detail
+	// request does not use it.
+	orderBy func(*sql.Selector)
+}
+
+// parseListFilters parses the filter keys of a request (see
+// ParseFiltersCtx for the key rules).
+//
+// Before the key loop, a pre-pass resolves the fac and org distance
+// search (parseDistanceSearch), because the params map has no order and
+// a distance search changes how the loop reads other keys: it skips the
+// location keys of spatialSkipKeys and matches a bare country exactly
+// (2.83.0 rest.py:569-597). The pre-pass adds its keys to the consumed
+// set, which the loop skips. The pre-passes run in upstream order: the
+// prepare_query keys (rest.py:488-500) before name_search (:532-553).
+//
+// The one empty-result exit is after the loop.
+func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (listFilters, error) {
 	tier := privctx.TierFrom(ctx)
 	var predicates []func(*sql.Selector)
+	var orderBy func(*sql.Selector)
+	consumed := map[string]bool{}
+	ds, err := parseDistanceSearch(tc.Name, params)
+	if err != nil {
+		return listFilters{}, fmt.Errorf("filter %w", err)
+	}
+	if distanceTypes[tc.Name] {
+		// A known key also when it is a no-op (a value of 0 or less).
+		consumed["distance"] = true
+	}
+	spatial := ds != nil
+	if spatial {
+		predicates = append(predicates, ds.predicate())
+		orderBy = ds.order()
+		for k := range spatialSkipKeys {
+			consumed[k] = true
+		}
+	}
 	emptyResult := false
 	for key, vals := range params {
 		if len(vals) == 0 {
@@ -326,8 +384,9 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		// layer). url.Values preserves insertion order, so vals[len-1] is
 		// the last value seen on the wire.
 		value := vals[len(vals)-1]
-		// Skip reserved pagination/control parameters.
-		if reservedParams[key] {
+		// Skip reserved pagination/control parameters and the keys that
+		// a pre-pass handled.
+		if reservedParams[key] || consumed[key] {
 			continue
 		}
 		// Meta keys resolve before the key is split, as upstream
@@ -338,7 +397,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
 			p, empty, ok, err := buildMetaPredicate(col, suffix, value)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			if empty {
 				emptyResult = true
@@ -362,7 +421,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 			}
 			p, err := multiChoiceLikeAny("info_types", patterns)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			predicates = append(predicates, p)
 			continue
@@ -373,7 +432,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if pk, isPresence := lookupPresenceKey(tc.Name, key); isPresence {
 			p, err := buildPresencePredicate(tc, pk, vals[0], tier)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			predicates = append(predicates, p)
 			continue
@@ -393,7 +452,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if inList, isWhereis := lookupWhereisKey(tc.Name, key); isWhereis {
 			p, err := buildWhereisPredicate(vals[0], inList)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			predicates = append(predicates, p)
 			continue
@@ -405,7 +464,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if op, isCapacity := lookupCapacityFilter(tc.Name, key); isCapacity {
 			p, err := buildCapacityPredicate(op, vals[0])
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			predicates = append(predicates, p)
 			continue
@@ -418,7 +477,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
 			p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			if empty {
 				emptyResult = true
@@ -472,9 +531,9 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 			if tc.ExactCounts[field] {
 				value = vals[0]
 			}
-			p, empty, ok, err := buildLocalPredicate(field, op, value, tc)
+			p, empty, ok, err := buildLocalPredicate(field, op, value, tc, spatial)
 			if err != nil {
-				return nil, false, fmt.Errorf("filter %s: %w", key, err)
+				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 			}
 			if empty {
 				emptyResult = true
@@ -493,7 +552,7 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		relSegs[0] = traversalKeyFor(tc, relSegs[0])
 		p, ok, empty, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
 		if err != nil {
-			return nil, false, fmt.Errorf("filter %s: %w", key, err)
+			return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
 		}
 		if empty {
 			emptyResult = true
@@ -506,24 +565,32 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 		predicates = append(predicates, p)
 	}
 	if emptyResult {
-		return nil, true, nil
+		return listFilters{emptyResult: true}, nil
 	}
-	return predicates, false, nil
+	return listFilters{preds: predicates, orderBy: orderBy}, nil
 }
 
 // buildLocalPredicate extracts the original local-field behaviour into a
 // helper returning a uniform (predicate, emptyResult, ok, err) shape so
 // ParseFiltersCtx can treat local and traversal paths symmetrically.
 //
+// spatial is set in a distance search. Upstream then skips the location
+// rules of its non-spatial branch (2.83.0 rest.py:582-595), so a bare
+// country is an exact match for a value of any length. The other
+// location keys of that branch do not reach this function in a
+// distance search (spatialSkipKeys).
+//
 // ok=false => the field is unknown on tc; caller silently ignores.
 // emptyResult=true => empty __in sentinel; caller short-circuits.
-func buildLocalPredicate(field, op, value string, tc TypeConfig) (func(*sql.Selector), bool, bool, error) {
+func buildLocalPredicate(field, op, value string, tc TypeConfig, spatial bool) (func(*sql.Selector), bool, bool, error) {
 	col, ft, exists := resolveLocalField(tc, field)
 	if !exists {
 		return nil, false, false, nil
 	}
 	folded := tc.FoldedFields[col]
-	op = coerceLocationFilterOp(col, op, value)
+	if !spatial {
+		op = coerceLocationFilterOp(col, op, value)
+	}
 	var p func(*sql.Selector)
 	var err error
 	if tc.ExactCounts[col] {
