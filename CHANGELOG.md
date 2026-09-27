@@ -8,6 +8,16 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Added
+
+- pdbcompat serves `/api/asset/<tag>/<id>/logo` for `org`, `fac`, `net`, `ix`, `carrier` and `campus`, as upstream answers a caller without an API key.
+  `GET` returns the logo row, with the file in base64 in `file_data`.
+  The mirror reads the file from the upstream media host when a caller asks for it and keeps it in memory (16 MiB for all files).
+  The counter `pdbplus.asset.logo_fetches` records each read.
+  `POST` and `PUT` run the upstream body parsers and checks, with the same field errors, and then return `403`.
+  `DELETE` returns `404` or `403`.
+  Before, pdbcompat returned `404` `Not found.` for every asset path.
+
 ## [1.39.0] - 2026-09-27
 
 ### Added
