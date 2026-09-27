@@ -3,13 +3,27 @@ package templates
 // NotFoundPage renders a styled 404 page with an embedded search box.
 templ NotFoundPage() {
 	<div class="max-w-2xl mx-auto text-center py-16">
-		<h1 class="text-8xl font-bold text-emerald-500 font-mono mb-4">404</h1>
+		<h1 class="text-8xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-4">404</h1>
 		<h2 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Page not found</h2>
-		<p class="text-neutral-500 dark:text-neutral-400 mb-8">
+		<p class="text-neutral-600 dark:text-neutral-400 mb-8">
 			The page you're looking for doesn't exist. Try searching instead.
 		</p>
 		@SearchForm("", nil)
-		<a href="/ui/" class="inline-block mt-6 text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors font-mono">
+		<a href="/ui/" class="inline-block mt-6 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors font-mono">
+			Back to home
+		</a>
+	</div>
+}
+
+// BadRequestPage renders a styled 400 page for a URL whose identifier
+// is not valid, with the reason and an embedded search box.
+templ BadRequestPage(detail string) {
+	<div class="max-w-2xl mx-auto text-center py-16">
+		<h1 class="text-8xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-4">400</h1>
+		<h2 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Bad request</h2>
+		<p class="text-neutral-600 dark:text-neutral-400 mb-8">{ detail }</p>
+		@SearchForm("", nil)
+		<a href="/ui/" class="inline-block mt-6 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors font-mono">
 			Back to home
 		</a>
 	</div>
@@ -18,12 +32,12 @@ templ NotFoundPage() {
 // ServerErrorPage renders a styled 500 page with a link back to the homepage.
 templ ServerErrorPage() {
 	<div class="max-w-2xl mx-auto text-center py-16">
-		<h1 class="text-8xl font-bold text-red-500 font-mono mb-4">500</h1>
+		<h1 class="text-8xl font-bold text-red-700 dark:text-red-500 font-mono mb-4">500</h1>
 		<h2 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4">Something went wrong</h2>
-		<p class="text-neutral-500 dark:text-neutral-400 mb-8">
+		<p class="text-neutral-600 dark:text-neutral-400 mb-8">
 			We're sorry, an unexpected error occurred. Please try again later.
 		</p>
-		<a href="/ui/" class="inline-flex px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors font-mono">
+		<a href="/ui/" class="inline-flex px-4 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors font-mono">
 			Back to home
 		</a>
 	</div>

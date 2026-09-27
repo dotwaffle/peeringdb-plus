@@ -101,14 +101,14 @@ templ MapContainer(id string, markers []MapMarker, zoom int) {
 			data-zoom={ strconv.Itoa(zoom) }
 			data-popup={ buildPopupHTML(markers[0]) }
 			class="w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
-			role="application"
+			role="region"
 			aria-label="Map showing facility location"
 		></div>
 	} else {
 		<div
 			id={ id }
 			class="w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
-			role="application"
+			role="region"
 			aria-label="Map showing facility location"
 		></div>
 	}
@@ -129,16 +129,16 @@ templ MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, sho
 				data-legend={ marshalLegend(legendLabels) }
 			}
 			class="w-full h-[250px] md:h-[450px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden"
-			role="application"
+			role="region"
 			aria-label={ ariaLabel }
 		></div>
 		if unmapped > 0 {
 			if unmapped == 1 {
-				<p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+				<p class="text-xs text-neutral-600 dark:text-neutral-400 mt-2">
 					1 facility not shown (no location data)
 				</p>
 			} else {
-				<p class="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
+				<p class="text-xs text-neutral-600 dark:text-neutral-400 mt-2">
 					{ strconv.Itoa(unmapped) } facilities not shown (no location data)
 				</p>
 			}

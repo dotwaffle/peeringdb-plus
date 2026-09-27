@@ -34,8 +34,9 @@ Replica instances reject the request with a `fly-replay` header that routes the 
 | `GET` | `/healthz` | Health | Liveness probe (always `200`) |
 | `GET` | `/readyz` | Health | Readiness probe (checks the DB and the age of the last successful sync) |
 | `POST` | `/sync` | Admin | On-demand sync trigger (primary only, token-gated) |
+| `POST` | `/csp-report` | CSP reports | Receives the CSP violation reports of the `/ui/` and `/graphql` pages. Answers `204` |
 | `GET` | `/favicon.ico` | Static | Favicon served from embedded `internal/web/static/` |
-| `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/` |
+| `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/`. A second group names the AI training, search and assistant crawlers (GPTBot, ClaudeBot, Google-Extended, CCBot and others) with the same rules |
 | `GET` | `/static/*` | Static | Embedded UI assets (CSS, JS, images) |
 | `GET` | `/ui/` | Web UI | Home / search page |
 | `GET` | `/ui/asn/{asn}` | Web UI | Network detail by ASN |
@@ -75,6 +76,8 @@ Replica instances reject the request with a `fly-replay` header that routes the 
 | `GET` / `HEAD` | `/.well-known/agent-skills/index.json` | Agent discovery | Agent Skills v0.2.0 index with a SHA-256 digest |
 | `GET` / `HEAD` | `/.well-known/agent-skills/peeringdb-plus/SKILL.md` | Agent Skill | Standard well-known alias for the raw skill |
 | `GET` / `HEAD` | `/llms.txt` | Agent discovery | Curated Markdown index of agent and API interfaces |
+| `GET` / `HEAD` | `/.well-known/api-catalog` | API discovery | RFC 9727 linkset (`application/linkset+json`) with the root, description and documentation of `/api/`, `/rest/v1/`, `/graphql` and `/mcp` |
+| `GET` / `HEAD` | `/.well-known/security.txt` | Security contact | RFC 9116 file. `Contact` is the private vulnerability report form of the GitHub repository. `Expires` is 180 days after the start of the current UTC day |
 
 The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`, `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`, `netixlan`, `org`, `poc`.
 
@@ -172,22 +175,23 @@ For machine-readable output, use one of the structured API surfaces (`/api/`, `/
 | `GET /ui/` | Home page. Accepts `?q=` for pre-rendered search results (shareable URLs) |
 | `GET /ui/search?q=` | Search results. Returns a full page, an htmx fragment, or a terminal render depending on headers. Sets `HX-Push-Url` for browser history |
 | `GET /ui/search?q=&type=&offset=` | Results of one type: `net`, `ix`, `fac`, `org`, `campus` or `carrier`. Returns 50 rows for each page. A request with `offset` above 0 returns only the next rows as an htmx fragment. An unknown type returns the 404 page |
-| `GET /ui/asn/{asn}` | Network detail by ASN (1 .. 2³²−1; values outside the range return `400 Problem+JSON`) |
+| `GET /ui/asn/{asn}` | Network detail by ASN (1 .. 2³²−1). A value outside the range returns `400` in the negotiated format: the 400 page for a browser, text for a terminal client, and a problem document for `?format=json` or `Accept: application/json`. The compare routes do the same for their ASNs |
 | `GET /ui/ix/{id}` | Internet exchange detail by numeric ID |
 | `GET /ui/fac/{id}` | Facility detail |
 | `GET /ui/org/{id}` | Organization detail |
 | `GET /ui/campus/{id}` | Campus detail |
 | `GET /ui/carrier/{id}` | Carrier detail |
 | `GET /ui/about` | Application version, optional serving region, privacy mode, and sync freshness. The region row is omitted outside environments that provide one. Opted out of response caching in `middleware.NewCachingState` because it renders relative time (e.g. "5 minutes ago") |
-| `GET /ui/compare` | ASN comparison form. `?asn1=` and `?asn2=` pre-fill the form |
+| `GET /ui/compare` | ASN comparison form. `?asn1=` and `?asn2=` pre-fill the form. When both are valid ASNs, as in a form submit, the response is a `303` redirect to `/ui/compare/{asn1}/{asn2}` |
 | `GET /ui/compare/{asn1}` | Pre-fills the form with `asn1`, awaits `asn2` |
-| `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union with shared-flag highlighting. Any other `view` value falls back to the shared view. |
+| `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union, and a row that only one network has carries an `AS<n> only` label. Any other `view` value falls back to the shared view. |
 | `GET /ui/completions/bash` | Installable bash completion script |
 | `GET /ui/completions/zsh` | Installable zsh completion script |
 | `GET /ui/completions/search?q=&type=` | Newline-separated identifiers for the shell completion scripts: the ASN for `net`, and the numeric ID for `ix`, `fac`, `org`, `campus` and `carrier`. Up to 10 for each type. `type` is optional. A `q` shorter than 2 characters returns an empty body |
-| `GET /ui/fragment/{type}/{id}/{relation}` | htmx fragments that the detail pages load, for example `/ui/fragment/net/{id}/ixlans`. Not a stable interface. `robots.txt` blocks them |
+| `GET /ui/fragment/{type}/{id}/{relation}` | htmx fragments that the detail pages load, for example `/ui/fragment/net/{id}/ixlans`. Not a stable interface. `robots.txt` blocks them. Without JavaScript, each section links to its fragment in a `<noscript>` element, and the fragment opens as a page without styles that shows the first 100 rows |
 
 Unknown `/ui/*` paths render the themed 404 page via `handleNotFound`.
+`GET /ui` and a UI path with a trailing slash (`/ui/asn/13335/`) answer `308` to the canonical path, with the query string.
 
 ### IX connection markers
 
@@ -1701,7 +1705,7 @@ Service discovery JSON body:
 }
 ```
 
-`GET /` and `HEAD /` include `Link` headers for `llms.txt`, the MCP server card, and the Agent Skills index.
+`GET /`, `HEAD /` and every `/ui/` response include `Link` headers for `llms.txt`, the MCP server card, the Agent Skills index, and the API catalog.
 The root bypasses the readiness middleware so service discovery still works while the first sync is in progress.
 
 ### `GET /healthz`

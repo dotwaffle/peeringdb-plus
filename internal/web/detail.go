@@ -24,7 +24,6 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/internal/catalog"
-	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/sync"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
 )
@@ -44,11 +43,7 @@ func (h *Handler) getFreshness(ctx context.Context) time.Time {
 func (h *Handler) handleNetworkDetail(w http.ResponseWriter, r *http.Request, asnStr string) {
 	asn, ok := parseASN(asnStr)
 	if !ok {
-		httperr.WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", asnStr),
-			Instance: r.URL.Path,
-		})
+		h.handleBadRequest(w, r, invalidASNDetail(asnStr))
 		return
 	}
 

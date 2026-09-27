@@ -30,7 +30,7 @@ func NotFoundPage() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-emerald-500 font-mono mb-4\">404</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Page not found</h2><p class=\"text-neutral-500 dark:text-neutral-400 mb-8\">The page you're looking for doesn't exist. Try searching instead.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-4\">404</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Page not found</h2><p class=\"text-neutral-600 dark:text-neutral-400 mb-8\">The page you're looking for doesn't exist. Try searching instead.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -38,7 +38,59 @@ func NotFoundPage() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<a href=\"/ui/\" class=\"inline-block mt-6 text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors font-mono\">Back to home</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<a href=\"/ui/\" class=\"inline-block mt-6 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors font-mono\">Back to home</a></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+// BadRequestPage renders a styled 400 page for a URL whose identifier
+// is not valid, with the reason and an embedded search box.
+func BadRequestPage(detail string) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var2 == nil {
+			templ_7745c5c3_Var2 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-4\">400</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Bad request</h2><p class=\"text-neutral-600 dark:text-neutral-400 mb-8\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 string
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(detail)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `error.templ`, Line: 24, Col: 65}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</p>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = SearchForm("", nil).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<a href=\"/ui/\" class=\"inline-block mt-6 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors font-mono\">Back to home</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -63,12 +115,12 @@ func ServerErrorPage() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var2 == nil {
-			templ_7745c5c3_Var2 = templ.NopComponent
+		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var4 == nil {
+			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-red-500 font-mono mb-4\">500</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Something went wrong</h2><p class=\"text-neutral-500 dark:text-neutral-400 mb-8\">We're sorry, an unexpected error occurred. Please try again later.</p><a href=\"/ui/\" class=\"inline-flex px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors font-mono\">Back to home</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-red-700 dark:text-red-500 font-mono mb-4\">500</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Something went wrong</h2><p class=\"text-neutral-600 dark:text-neutral-400 mb-8\">We're sorry, an unexpected error occurred. Please try again later.</p><a href=\"/ui/\" class=\"inline-flex px-4 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors font-mono\">Back to home</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

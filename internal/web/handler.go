@@ -15,7 +15,6 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/catalog"
-	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -33,6 +32,12 @@ func parseASN(s string) (uint32, bool) {
 	return uint32(asn), true
 }
 
+// invalidASNDetail is the reason on the 400 page for a URL whose ASN
+// does not parse.
+func invalidASNDetail(s string) string {
+	return fmt.Sprintf("Invalid ASN %q: it must be a number from 1 to 4294967295.", s)
+}
+
 // Handler serves web UI pages.
 type Handler struct {
 	client     *ent.Client
@@ -45,6 +50,9 @@ type Handler struct {
 	version    string
 	region     string
 	mapTiles   maptiles.Config
+	// discoveryLink is the Link header value that every UI response
+	// carries; empty sends none.
+	discoveryLink string
 }
 
 // NewHandlerInput configures a web Handler. Client is required; DB may be
@@ -61,6 +69,9 @@ type NewHandlerInput struct {
 	Version    string
 	Region     string
 	MapTiles   maptiles.Config
+	// DiscoveryLink is sent as the Link header of every UI response, so
+	// that a client that starts at /ui/ finds the discovery documents.
+	DiscoveryLink string
 }
 
 // NewHandler creates a web UI handler with integrated search and compare
@@ -81,6 +92,8 @@ func NewHandler(in NewHandlerInput) *Handler {
 		version:    in.Version,
 		region:     in.Region,
 		mapTiles:   in.MapTiles,
+
+		discoveryLink: in.DiscoveryLink,
 	}
 }
 
@@ -90,28 +103,74 @@ func NewHandler(in NewHandlerInput) *Handler {
 // A single wildcard pattern dispatches all /ui/ paths internally,
 // following the pdbcompat handler pattern.
 func (h *Handler) Register(mux *http.ServeMux) {
-	mux.Handle("GET /static/", http.StripPrefix("/static/",
-		http.FileServerFS(StaticFS)))
+	assets := staticHandler()
+	mux.Handle("GET /static/", http.StripPrefix("/static/", assets))
 
 	// Serve favicon.ico at root for browsers that request it directly.
-	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = "/favicon.ico"
-		http.FileServerFS(StaticFS).ServeHTTP(w, r)
-	})
+	mux.Handle("GET /favicon.ico", assets)
 
-	// robots.txt: everything is crawlable except the htmx fragment
-	// endpoints, which serve partial HTML that is useless as a search
-	// result and doubles crawl volume against the detail pages.
 	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = io.WriteString(w, "User-agent: *\nAllow: /\nDisallow: /ui/fragment/\n")
+		_, _ = io.WriteString(w, robotsTxt)
 	})
 
+	// ServeMux would redirect /ui to /ui/ with 307, a temporary
+	// redirect. The move is permanent, so caches and crawlers can keep
+	// it.
+	mux.HandleFunc("GET /ui", func(w http.ResponseWriter, r *http.Request) {
+		redirectUI(w, r, "")
+	})
 	mux.HandleFunc("GET /ui/{rest...}", h.dispatch)
 }
 
+// redirectUI sends a 308 to /ui/<rest>, with the query string of the
+// request.
+func redirectUI(w http.ResponseWriter, r *http.Request, rest string) {
+	target := "/ui/" + rest
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	http.Redirect(w, r, target, http.StatusPermanentRedirect) //nolint:gosec // G710: target always starts with /ui/, a same-origin path
+}
+
+// aiCrawlers are the user agents of the AI training, search and
+// assistant crawlers that robots.txt names.
+var aiCrawlers = []string{
+	"GPTBot", "OAI-SearchBot", "ChatGPT-User",
+	"ClaudeBot", "Claude-SearchBot", "Claude-User", "anthropic-ai",
+	"Google-Extended", "Applebot-Extended", "PerplexityBot", "Perplexity-User",
+	"CCBot", "Bytespider", "Amazonbot", "meta-externalagent",
+}
+
+// robotsTxt allows everything except the htmx fragment endpoints, which
+// serve partial HTML that is useless as a search result and doubles
+// crawl volume against the detail pages. The AI crawlers get the same
+// rules in a group of their own: a crawler reads only the most specific
+// group that names it, so the group states the policy for each of them
+// and must repeat the rules.
+var robotsTxt = func() string {
+	const rules = "Allow: /\nDisallow: /ui/fragment/\n"
+	var b strings.Builder
+	b.WriteString("User-agent: *\n" + rules + "\n")
+	b.WriteString("# AI crawlers: the same rules as above.\n")
+	for _, agent := range aiCrawlers {
+		b.WriteString("User-agent: " + agent + "\n")
+	}
+	b.WriteString(rules)
+	return b.String()
+}()
+
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
+	if h.discoveryLink != "" {
+		w.Header().Set("Link", h.discoveryLink)
+	}
 	rest := r.PathValue("rest")
+	// No UI route ends in a slash after /ui/. Without this redirect,
+	// /ui/asn/13335/ would fail to parse "13335/" as an ASN.
+	if trimmed := strings.TrimRight(rest, "/"); trimmed != rest && trimmed != "" {
+		redirectUI(w, r, trimmed)
+		return
+	}
 	switch {
 	case rest == "" || rest == "/":
 		h.handleHome(w, r)
@@ -329,6 +388,16 @@ func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleBadRequest renders the styled 400 page for a UI URL whose
+// identifier is not valid. Browsers get the page in the layout, and
+// terminal and JSON clients get the same reason in their format.
+func (h *Handler) handleBadRequest(w http.ResponseWriter, r *http.Request, detail string) {
+	page := PageContent{Title: "Bad Request", Kind: KindBadRequest, Detail: detail, Content: templates.BadRequestPage(detail), Status: http.StatusBadRequest}
+	if err := renderPage(r.Context(), w, r, page); err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
+}
+
 // statusClientClosedRequest is the nginx status for a request that the
 // client closed before the response. net/http has no constant for it.
 const statusClientClosedRequest = 499
@@ -376,10 +445,19 @@ func convertToSearchGroups(results []TypeResult) []templates.SearchGroup {
 }
 
 // handleCompareForm renders the empty comparison form, optionally pre-filling
-// ASN values from query parameters.
+// ASN values from query parameters. When both parameters are valid ASNs,
+// which is what a submit of the form sends, it redirects with 303 to the
+// results path /ui/compare/{asn1}/{asn2}, so the form works without
+// JavaScript.
 func (h *Handler) handleCompareForm(w http.ResponseWriter, r *http.Request) {
 	asn1 := r.URL.Query().Get("asn1")
 	asn2 := r.URL.Query().Get("asn2")
+	a1, ok1 := parseASN(asn1)
+	a2, ok2 := parseASN(asn2)
+	if ok1 && ok2 {
+		http.Redirect(w, r, fmt.Sprintf("/ui/compare/%d/%d", a1, a2), http.StatusSeeOther) //nolint:gosec // G710: a fixed path with two integers
+		return
+	}
 	page := PageContent{
 		Title:       "Compare Networks",
 		Description: "Compare two networks' shared IXPs, facilities, and campuses on PeeringDB Plus.",
@@ -398,11 +476,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 
 	asn1, ok := parseASN(parts[0])
 	if !ok {
-		httperr.WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", parts[0]),
-			Instance: r.URL.Path,
-		})
+		h.handleBadRequest(w, r, invalidASNDetail(parts[0]))
 		return
 	}
 
@@ -421,11 +495,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	// /ui/compare/{asn1}/{asn2} -- show results.
 	asn2, ok := parseASN(parts[1])
 	if !ok {
-		httperr.WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", parts[1]),
-			Instance: r.URL.Path,
-		})
+		h.handleBadRequest(w, r, invalidASNDetail(parts[1]))
 		return
 	}
 

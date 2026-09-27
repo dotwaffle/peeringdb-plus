@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -108,7 +109,7 @@ func TestHandlerServesRawSkill(t *testing.T) {
 	}
 
 	sum := sha256.Sum256(skillDocument)
-	wantETag := fmt.Sprintf(`"%x"`, sum)
+	wantETag := fmt.Sprintf(`W/"%x"`, sum)
 	if got := get.Header().Get("ETag"); got != wantETag {
 		t.Errorf("ETag = %q, want %q", got, wantETag)
 	}
@@ -416,7 +417,7 @@ func TestHandlerArchiveContentsAndCaching(t *testing.T) {
 	}
 
 	sum := sha256.Sum256(first.Body.Bytes())
-	wantETag := fmt.Sprintf(`"%x"`, sum)
+	wantETag := fmt.Sprintf(`W/"%x"`, sum)
 	if got := first.Header().Get("ETag"); got != wantETag {
 		t.Errorf("ETag = %q, want %q", got, wantETag)
 	}
@@ -583,8 +584,8 @@ func assertDocumentHeaders(
 	if got := headers.Get("Content-Disposition"); got != disposition {
 		t.Errorf("Content-Disposition = %q, want %q", got, disposition)
 	}
-	if got := headers.Get("Vary"); got != "X-Forwarded-Proto" {
-		t.Errorf("Vary = %q, want X-Forwarded-Proto", got)
+	if got := headers.Values("Vary"); !slices.Contains(got, "X-Forwarded-Proto") {
+		t.Errorf("Vary = %q, want X-Forwarded-Proto among them", got)
 	}
 	if got := headers.Get("Last-Modified"); got != testSourceTime.Format(http.TimeFormat) {
 		t.Errorf("Last-Modified = %q, want %q", got, testSourceTime.Format(http.TimeFormat))
@@ -606,4 +607,110 @@ func serveRequest(handler http.Handler, method string, target string) *httptest.
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 	return recorder
+}
+
+// TestServeDocument_KeepsEarlierVary checks that a document keeps the
+// Vary values that outer middleware set before the handler ran. The
+// compression middleware adds Accept-Encoding before it calls the
+// handler, and a cache that loses it can serve a gzip body to a client
+// that did not ask for one.
+func TestServeDocument_KeepsEarlierVary(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestHandler(t, Options{SourceTime: testSourceTime})
+	mux := http.NewServeMux()
+	handler.Register(mux)
+
+	request := httptest.NewRequest(http.MethodGet, "http://example.com"+SkillPath, nil)
+	recorder := httptest.NewRecorder()
+	recorder.Header().Add("Vary", "Accept-Encoding")
+	mux.ServeHTTP(recorder, request)
+
+	got := recorder.Header().Values("Vary")
+	for _, want := range []string{"Accept-Encoding", "X-Forwarded-Proto"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("Vary = %q, want %s among them", got, want)
+		}
+	}
+}
+
+// TestHandlerServesSecurityText checks the RFC 9116 fields of
+// security.txt: the report form as Contact, an Expires date 180 days
+// after the start of the request day, and the file URL of the
+// deployment as Canonical.
+func TestHandlerServesSecurityText(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestHandler(t, Options{SourceTime: testSourceTime})
+	handler.now = func() time.Time { return time.Date(2026, time.September, 27, 17, 30, 0, 0, time.UTC) }
+	mux := http.NewServeMux()
+	handler.Register(mux)
+
+	rec := serveRequest(mux, http.MethodGet, "https://mirror.example"+SecurityTextPath)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	want := "Contact: https://github.com/dotwaffle/peeringdb-plus/security/advisories/new\n" +
+		"Expires: 2027-03-26T00:00:00Z\n" +
+		"Preferred-Languages: en\n" +
+		"Canonical: https://mirror.example/.well-known/security.txt\n"
+	if got := rec.Body.String(); got != want {
+		t.Errorf("body =\n%s\nwant:\n%s", got, want)
+	}
+	assertDocumentHeaders(t, rec, "text/plain; charset=utf-8", `inline; filename="security.txt"`)
+}
+
+// TestHandlerServesAPICatalog checks the RFC 9727 catalog: the linkset
+// media type with the profile, the api-catalog link that a HEAD request
+// finds, and one anchor for each HTTP API of the deployment.
+func TestHandlerServesAPICatalog(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestHandler(t, Options{SourceTime: testSourceTime})
+	mux := http.NewServeMux()
+	handler.Register(mux)
+
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		rec := serveRequest(mux, method, "https://mirror.example"+APICatalogPath)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status = %d, want 200", method, rec.Code)
+		}
+		if got := rec.Header().Get("Content-Type"); got != `application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"` {
+			t.Errorf("%s Content-Type = %q", method, got)
+		}
+		if got := rec.Header().Get("Link"); !strings.Contains(got, `</.well-known/api-catalog>; rel="api-catalog"`) {
+			t.Errorf("%s Link = %q, want the api-catalog link", method, got)
+		}
+	}
+
+	rec := serveRequest(mux, http.MethodGet, "https://mirror.example"+APICatalogPath)
+	var catalog struct {
+		Linkset []struct {
+			Anchor      string `json:"anchor"`
+			ServiceDesc []struct {
+				Href string `json:"href"`
+			} `json:"service-desc"`
+			ServiceDoc []struct {
+				Href string `json:"href"`
+			} `json:"service-doc"`
+		} `json:"linkset"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &catalog); err != nil {
+		t.Fatal(err)
+	}
+	anchors := map[string]bool{}
+	for _, entry := range catalog.Linkset {
+		anchors[entry.Anchor] = true
+		if len(entry.ServiceDesc)+len(entry.ServiceDoc) == 0 {
+			t.Errorf("%s has no service-desc or service-doc", entry.Anchor)
+		}
+	}
+	for _, want := range []string{"/api/", "/rest/v1/", "/graphql", "/mcp"} {
+		if !anchors["https://mirror.example"+want] {
+			t.Errorf("catalog has no anchor for %s", want)
+		}
+	}
+	if !strings.Contains(DiscoveryLinkHeader, `rel="api-catalog"`) {
+		t.Error("DiscoveryLinkHeader does not name the API catalog")
+	}
 }

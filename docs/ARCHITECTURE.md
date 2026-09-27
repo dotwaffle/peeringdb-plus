@@ -493,9 +493,8 @@ deploy/                   # Deployment-adjacent assets (Grafana dashboards, aler
 
 ## Code generation pipeline
 
-`go generate ./...` runs the four steps below.
-A schema change converges in a **single pass**, because `ent/generate.go` runs the schema producer ahead of its consumer (entc).
-A Tailwind class removal can need a second run (see after step 4).
+`go generate ./...` runs the three steps below and converges in a **single pass**.
+`ent/generate.go` runs the schema producer ahead of its consumer (entc), and `internal/web/static.go` runs templ ahead of Tailwind.
 
 1. **`ent/generate.go`** runs four directives in order:
    1. `pdb-schema-generate` (run first) regenerates `ent/schema/{type}.go` from `schema/peeringdb.json`.
@@ -529,16 +528,13 @@ A Tailwind class removal can need a second run (see after step 4).
 2. **`graph/generate.go`** runs `gqlgen generate` to produce the GraphQL
    resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
 
-3. **`internal/web/static.go`** runs `tailwindcss` to build
-   `internal/web/static/tailwind.css` from `internal/web/tailwind.input.css`.
+3. **`internal/web/static.go`** runs `templ generate -path templates` to
+   produce the type-safe `*_templ.go` files from `.templ` sources, then
+   `tailwindcss` to build `internal/web/static/tailwind.css` from
+   `internal/web/tailwind.input.css`.
 
-4. **`internal/web/templates/generate.go`** runs `templ generate` to
-   produce the type-safe `*_templ.go` files from `.templ` sources.
-
-`go generate ./...` visits the packages in import-path order, so step 3 runs before step 4.
 Tailwind scans every file in `internal/web/templates`, which includes the generated `*_templ.go` files.
-If a `.templ` change removes the last use of a class, step 3 still finds the class in the old `*_templ.go` file.
-Run `go generate ./...` a second time to remove the class from `tailwind.css`.
+The two directives are in one file, and `go generate` runs them in order, so Tailwind always reads the new `*_templ.go` files and one run converges.
 
 `schema/generate.go` carries no `go:generate` directive.
 `cmd/pdb-schema-extract <peeringdb-src>` is a manual drift check and is not part of `go generate ./...`.
@@ -571,17 +567,27 @@ Outermost first:
    Each line has `trace_id` and `span_id` when the span is valid.
 7. **PrivacyTier** (`internal/middleware/privacy_tier.go`): stamps the resolved `PDBPLUS_PUBLIC_TIER` value onto every inbound request context via `privctx.WithTier`.
    Sits between Logging and Readiness so even the Readiness 503 path carries the tier; downstream ent privacy policies and `privfield.Redact` callers consume it via `privctx.TierFrom(ctx)`.
-8. **Readiness**: returns 503 for all routes except `/sync`, `/healthz`, `/readyz`, `/`, `/favicon.ico`, `/static/*`, and `/grpc.health.v1.Health/*` until the first sync completes.
+8. **Readiness**: returns 503 for all routes except `/sync`, `/healthz`, `/readyz`, `/`, `/favicon.ico`, `/static/*`, and `/grpc.health.v1.Health/*` until the first sync completes, with `Retry-After: 10` (the reload interval of the syncing page).
    Browser clients get a styled HTML syncing page; terminal clients get plain text; everything else gets JSON.
-9. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers on every response: `Strict-Transport-Security: max-age=31536000; includeSubDomains` (365 days), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Resource-Policy: same-origin`.
+9. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers on every response: `Strict-Transport-Security: max-age=31536000; includeSubDomains` (365 days), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin` and `Permissions-Policy`.
    It sets `X-Frame-Options: DENY` only on browser paths: `/`, `/ui`, `/graphql`, and the paths below `/ui/` and `/graphql/`.
+   `Permissions-Policy` turns off the browser features that no page uses (camera, microphone, geolocation, payment, USB and others) and allows `clipboard-write` for the same origin, because the web UI copies IP addresses.
+   The entrest docs page at `/rest/v1/docs` sends its own `Permissions-Policy`, which replaces this one.
 10. **CSP** (`internal/middleware/csp.go`):
    different policies for `/ui/` and `/graphql`.
    Served as `Report-Only` by default; switched to enforcing via `PDBPLUS_CSP_ENFORCE=true`.
+   The UI policy also sets `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` and `form-action 'self'`.
+   The last three do not fall back to `default-src`, and `object-src 'none'` is stricter than it.
+   Both policies end with `report-uri /csp-report; report-to csp`, and responses that carry a policy also send `Reporting-Endpoints: csp="/csp-report"`.
+   `POST /csp-report` (`cmd/peeringdb-plus/csp_report.go`) reads the legacy `application/csp-report` body and the Reporting API `application/reports+json` body (up to 20 `csp-violation` entries, 16 KiB).
+   It counts each report in `pdbplus.csp.reports` and logs WARN `csp violation` with the directive and the URLs without their query or fragment.
+   The log is rate-limited (a burst of 5, then one line each 10 seconds), and the counter is not.
+   It answers `204`, or `400`, `413` or `415` for a body that it cannot read.
 11. **Caching** (`internal/middleware/caching.go`) handles GET and HEAD only:
     - `/skills/*`: no change.
       The skill handlers set their own ETags.
-    - `/static/*`: `Cache-Control: public, max-age=86400`.
+    - `/static/*` and `/favicon.ico`: no change.
+      The static handler sets a weak content ETag, `public, max-age=31536000, immutable` for a request with the current `?v=` content version, and `public, max-age=86400` for others.
     - `/ui/about`, `/healthz` and `/readyz`: `Cache-Control: no-store`.
       (`/ui/about` renders relative timestamps
       that would freeze under a version key.)
@@ -1238,6 +1244,7 @@ Span batching uses the OTel SDK batch-processor defaults (5s schedule delay, 512
   - `pdbplus.peeringdb.requests` and `pdbplus.peeringdb.retries` (counters)
     and `pdbplus.peeringdb.rate_limit_wait_ms` (histogram): upstream calls.
   - `pdbplus.role.transitions` (counter) — LiteFS promote/demote events.
+  - `pdbplus.csp.reports` (counter): CSP violation reports by `directive` (a known directive name, else `other`).
   - `pdbplus.build.info` (gauge, `InitBuildInfoGauge`): the value 1 with
     the attribute `service.version`, on every machine.
   - `pdbplus.data.type.count` (gauge, `InitObjectCountGauges`): object count per type, from an atomic cache that each successful sync updates, so no request runs a live `COUNT(*)`.

@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -660,7 +661,7 @@ func TestFacilityDetail_MapRendered(t *testing.T) {
 				"leaflet",
 				"Telehouse London",
 				"View facility",
-				`role="application"`,
+				`role="region"`,
 			},
 			nil,
 		},
@@ -902,5 +903,79 @@ func TestNetworkDetail_FacilityMapMarkers(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestPages_HeadingOrder checks that each page has one h1, that it is
+// the first heading, and that no heading skips a level below the one
+// before it, so screen reader users can navigate by heading.
+func TestPages_HeadingOrder(t *testing.T) {
+	t.Parallel()
+	all := setupAllTestMux(t)
+	compare := setupCompareMux(t)
+	heading := regexp.MustCompile(`<h([1-6])\b`)
+	for _, tc := range []struct {
+		mux *http.ServeMux
+		url string
+	}{
+		{all, "/ui/"},
+		{all, "/ui/about"},
+		{all, "/ui/asn/13335"},
+		{all, "/ui/ix/20"},
+		{all, "/ui/fac/30"},
+		{all, "/ui/org/1"},
+		{all, "/ui/campus/40"},
+		{all, "/ui/carrier/50"},
+		{all, "/ui/asn/99999"},
+		{all, "/ui/asn/abc"},
+		{compare, "/ui/compare"},
+		{compare, "/ui/compare/13335/15169"},
+	} {
+		req := httptest.NewRequest(http.MethodGet, tc.url, nil)
+		req.Header.Set("User-Agent", "Mozilla/5.0")
+		rec := httptest.NewRecorder()
+		tc.mux.ServeHTTP(rec, req)
+		levels := heading.FindAllStringSubmatch(rec.Body.String(), -1)
+		if len(levels) == 0 || levels[0][1] != "1" {
+			t.Errorf("%s: the first heading is not an h1", tc.url)
+			continue
+		}
+		prev, h1 := 0, 0
+		for _, m := range levels {
+			level := int(m[1][0] - '0')
+			if level == 1 {
+				h1++
+			}
+			if level > prev+1 {
+				t.Errorf("%s: h%d follows h%d", tc.url, level, prev)
+			}
+			prev = level
+		}
+		if h1 != 1 {
+			t.Errorf("%s: %d h1 headings, want 1", tc.url, h1)
+		}
+	}
+}
+
+// TestCollapsibleSection_NoScriptLink checks that a section that loads
+// its rows with htmx also links to its fragment inside <noscript>, and
+// that the layout hides the loader when scripts do not run, so a browser
+// without JavaScript can still open the list.
+func TestCollapsibleSection_NoScriptLink(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/asn/13335", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+
+	link := regexp.MustCompile(`(?s)<noscript><p [^>]*><a href="/ui/fragment/net/\d+/ixlans"[^>]*>Open the IX Presences list</a></p></noscript>`)
+	if !link.MatchString(body) {
+		t.Error("IX Presences section has no <noscript> link to its fragment")
+	}
+	if !strings.Contains(body, `<noscript><style>[data-section-loader] { display: none; }</style></noscript>`) {
+		t.Error("layout does not hide the section loader without JavaScript")
 	}
 }

@@ -40,7 +40,7 @@ No drop-in alternative exists for edge SQLite replication.
   2. `graph/generate.go`: runs `gqlgen generate` for GraphQL resolvers/models.
      GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` (today `complexity.go`); a `package graph_test` file sorting before it breaks generation with "exec and model define the same import path (graph vs graph_test)".
      Name new test files so they sort after it (e.g. `resolver_*_test.go`).
-  3. `internal/web/templates/generate.go` — runs `templ generate` for templ Go files
+  3. `internal/web/static.go`: runs `templ generate -path templates`, then the Tailwind CLI, in that order (Tailwind scans the generated `*_templ.go` files, so the CSS would lag one run behind templ otherwise)
   - GOTCHA: `scalar Map` lives in `graph/schema.graphqls`, emitted by entgql because `Network.meta` / `NetworkIxLan.meta` use it.
     `graph/custom.graphql` must not redeclare it ("Cannot redeclare type Map"). entgql cannot see the custom.graphql declaration: its gqlgen schema load fails when run from `ent/`, so it always emits the builtin.
   - `schema/generate.go` carries no `go:generate` directive (package doc for the manual `pdb-schema-extract` step); the schema-regen step now lives first in `ent/generate.go`.

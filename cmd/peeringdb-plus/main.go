@@ -543,6 +543,8 @@ func main() {
 		Version:    buildinfo.Version(),
 		Region:     strings.TrimSpace(os.Getenv("FLY_REGION")),
 		MapTiles:   cfg.MapTiles,
+
+		DiscoveryLink: agentdocs.DiscoveryLinkHeader,
 	})
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))
@@ -698,6 +700,15 @@ func main() {
 	mux.HandleFunc("GET /{$}", rootHandler)
 	mux.HandleFunc("HEAD /{$}", rootHandler)
 
+	// Browsers send the violation reports of the UI and GraphiQL
+	// policies here. The endpoint takes anonymous input: the log is
+	// rate-limited and the counter label comes from a fixed list.
+	mux.Handle("POST "+cspReportPath, newCSPReportHandler(cspReportInput{
+		Logger:   logger,
+		LogLimit: newCSPReportLogLimit(),
+		Count:    countCSPReport,
+	}))
+
 	// Build middleware stack (outermost first):
 	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
 	//
@@ -719,11 +730,12 @@ func main() {
 			// /static/{theme-init,ui,map-init}.js and Tailwind/Leaflet are
 			// self-hosted, so no inline scripts or CDN script hosts remain.
 			// style-src keeps 'unsafe-inline' (layout <style> blocks,
-			// Leaflet's inline style attributes) plus jsdelivr for the
-			// flag-icons stylesheet. img-src includes the validated map tile
-			// origin and jsdelivr, where the stylesheet loads its flag SVGs.
+			// Leaflet's inline style attributes). The flag-icons stylesheet
+			// and its SVGs are self-hosted too, so img-src adds only the
+			// validated map tile origin.
 			UIPolicy:      uiCSPPolicy(cfg.MapTiles.CSPSource()),
 			GraphQLPolicy: graphQLCSPPolicy,
+			ReportPath:    cspReportPath,
 			EnforcingMode: cfg.CSPEnforce,
 		},
 		CachingState: cachingState,

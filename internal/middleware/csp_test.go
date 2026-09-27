@@ -210,3 +210,39 @@ func TestCSP_EnforcingModeHeaders(t *testing.T) {
 		})
 	}
 }
+
+func TestCSP_ReportPath(t *testing.T) {
+	t.Parallel()
+
+	cspMW := middleware.CSP(middleware.CSPInput{
+		UIPolicy:      "default-src 'self'",
+		GraphQLPolicy: "default-src 'none'",
+		ReportPath:    "/csp-report",
+	})
+	handler := cspMW(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	tests := []struct {
+		path       string
+		wantPolicy string
+	}{
+		{"/ui/", "default-src 'self'; report-uri /csp-report; report-to csp"},
+		{"/graphql", "default-src 'none'; report-uri /csp-report; report-to csp"},
+		{"/api/net", ""},
+	}
+	for _, tc := range tests {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, nil))
+		if got := rec.Header().Get("Content-Security-Policy-Report-Only"); got != tc.wantPolicy {
+			t.Errorf("%s: policy = %q, want %q", tc.path, got, tc.wantPolicy)
+		}
+		wantEndpoints := ""
+		if tc.wantPolicy != "" {
+			wantEndpoints = `csp="/csp-report"`
+		}
+		if got := rec.Header().Get("Reporting-Endpoints"); got != wantEndpoints {
+			t.Errorf("%s: Reporting-Endpoints = %q, want %q", tc.path, got, wantEndpoints)
+		}
+	}
+}

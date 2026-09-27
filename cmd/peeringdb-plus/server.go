@@ -57,6 +57,14 @@ type chainConfig struct {
 	DefaultTier privctx.Tier
 }
 
+// permissionsPolicy turns off the browser features that no page of the
+// server uses. clipboard-write stays on for the same origin: the web UI
+// copies IP addresses (static/ui.js).
+const permissionsPolicy = "accelerometer=(), autoplay=(), camera=(), clipboard-read=(), clipboard-write=(self), " +
+	"display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), hid=(), " +
+	"magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(), " +
+	"screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=()"
+
 // buildMiddlewareChain wraps the innermost handler in the full production
 // middleware stack, returning the outermost handler. The chain order is:
 //
@@ -106,6 +114,7 @@ func buildMiddlewareChain(inner http.Handler, cc chainConfig) http.Handler {
 		ReferrerPolicy:            "strict-origin-when-cross-origin",
 		CrossOriginOpenerPolicy:   "same-origin",
 		CrossOriginResourcePolicy: "same-origin",
+		PermissionsPolicy:         permissionsPolicy,
 	})(h)
 	h = middleware.Readiness(cc.SyncWorker, h)
 	h = middleware.PrivacyTier(middleware.PrivacyTierInput{DefaultTier: cc.DefaultTier})(h)

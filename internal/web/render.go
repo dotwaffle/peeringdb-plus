@@ -32,6 +32,9 @@ const (
 	KindHome
 	// KindNotFound is the styled 404 page.
 	KindNotFound
+	// KindBadRequest is the styled 400 page; PageContent.Detail holds
+	// the reason.
+	KindBadRequest
 	// KindServerError is the styled 500 page.
 	KindServerError
 )
@@ -42,6 +45,7 @@ type PageContent struct {
 	Title       string
 	Kind        PageKind // Kind routes the special pages in terminal/JSON modes (zero value = ordinary page).
 	Description string   // Description feeds the meta description / og:description tags when non-empty.
+	Detail      string   // Detail is the reason shown on a KindBadRequest page.
 	Canonical   string   // Canonical feeds the rel=canonical link / og:url tags when non-empty.
 	Content     templ.Component
 	Data        any             // Raw data struct for terminal/JSON rendering. Nil for pages without entity data.
@@ -131,6 +135,8 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 		case KindNotFound:
 			return renderer.RenderError(w, http.StatusNotFound, "Not Found",
 				"The page you're looking for doesn't exist. Try searching instead.")
+		case KindBadRequest:
+			return renderer.RenderError(w, http.StatusBadRequest, "Bad Request", page.Detail)
 		case KindServerError:
 			return renderer.RenderError(w, http.StatusInternalServerError, "Internal Server Error",
 				"An unexpected error occurred. Please try again later.")
@@ -157,6 +163,12 @@ func renderPage(ctx context.Context, w http.ResponseWriter, r *http.Request, pag
 			return termrender.RenderJSON(w, httperr.NewProblemDetail(httperr.WriteProblemInput{
 				Status: http.StatusNotFound,
 				Detail: "The page you're looking for doesn't exist.",
+			}))
+		case KindBadRequest:
+			return termrender.RenderJSON(w, httperr.NewProblemDetail(httperr.WriteProblemInput{
+				Status:   http.StatusBadRequest,
+				Detail:   page.Detail,
+				Instance: r.URL.Path,
 			}))
 		case KindServerError:
 			return termrender.RenderJSON(w, httperr.NewProblemDetail(httperr.WriteProblemInput{

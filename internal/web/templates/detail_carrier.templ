@@ -13,10 +13,10 @@ templ CarrierDetailPage(data CarrierDetail) {
 		</div>
 		if data.OrgID > 0 {
 			<div class="py-1">
-				<span class="text-neutral-500 text-sm">Organization</span>
+				<span class="text-neutral-600 dark:text-neutral-400 text-sm">Organization</span>
 				<div>
 					<a href={ templ.SafeURL(fmt.Sprintf("/ui/org/%d", data.OrgID)) }
-						class="text-cyan-400 hover:text-cyan-300 transition-colors">
+						class="text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 transition-colors">
 						{ data.OrgName }
 					</a>
 				</div>
@@ -38,10 +38,11 @@ templ CarrierDetailPage(data CarrierDetail) {
 // name-only table linking to the respective facility detail page.
 templ CarrierFacilitiesList(rows []CarrierFacilityRow, moreURL string) {
 	if len(rows) == 0 {
-		<div class="px-4 py-3 text-neutral-500 text-sm">No facilities found.</div>
+		<div class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No facilities found.</div>
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left">
+				<caption class="sr-only">Facilities of this carrier</caption>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					@CarrierFacilitiesRows(rows, moreURL)
 				</tbody>
@@ -59,7 +60,7 @@ templ CarrierFacilitiesRows(rows []CarrierFacilityRow, moreURL string) {
 			<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
 				<td class="px-3 py-1.5">
 					<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", row.FacID)) }
-						class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-400 transition-colors">
+						class="text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-800 dark:hover:text-violet-400 transition-colors">
 						{ row.FacName }
 					</a>
 				</td>

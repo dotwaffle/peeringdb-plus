@@ -1,6 +1,6 @@
-// Leaflet map bootstrap. Loaded synchronously in the layout head right
-// after leaflet.markercluster.js (only on map-bearing pages), so the L
-// global is guaranteed to exist. Map containers declare themselves with
+// Leaflet map bootstrap. Loaded with defer in the layout head right
+// after leaflet.markercluster.js (only on map-bearing pages). Deferred
+// scripts run in document order, so the L global exists. Map containers declare themselves with
 // data-map="single" or data-map="multi" plus data attributes carrying
 // the server-rendered marker payload; this file scans and initializes
 // them on DOMContentLoaded. Replaces the former inline templ script
@@ -20,9 +20,20 @@ L.CircleMarker.include({
 	var TILE_URL = urlMeta ? urlMeta.content : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 	var ATTRIBUTION = attributionMeta ? attributionMeta.content : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
+	// reduceMotion follows the prefers-reduced-motion setting. The layout
+	// stylesheet shortens CSS transitions, but Leaflet and markercluster
+	// also time their zoom, fade and cluster animations with their own
+	// timers, so those animations are turned off here.
+	var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 	// newBaseMap creates the map and its configured tile layer.
 	function newBaseMap(el) {
-		var map = L.map(el, { scrollWheelZoom: false });
+		var map = L.map(el, {
+			scrollWheelZoom: false,
+			zoomAnimation: !reduceMotion,
+			fadeAnimation: !reduceMotion,
+			markerZoomAnimation: !reduceMotion
+		});
 		L.tileLayer(TILE_URL, {
 			attribution: ATTRIBUTION,
 			maxZoom: 19
@@ -51,7 +62,7 @@ L.CircleMarker.include({
 		if (!markers || markers.length === 0) return;
 
 		var map = newBaseMap(el);
-		var clusterGroup = L.markerClusterGroup();
+		var clusterGroup = L.markerClusterGroup({ animate: !reduceMotion });
 		var bounds = [];
 
 		for (var i = 0; i < markers.length; i++) {

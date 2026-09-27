@@ -43,6 +43,7 @@ func TestInstruments_BoundAtPackageInit(t *testing.T) {
 		{"PeeringDBRetries", PeeringDBRetries},
 		{"PeeringDBRateLimitWaitMS", PeeringDBRateLimitWaitMS},
 		{"RoleTransitions", RoleTransitions},
+		{"CSPReports", CSPReports},
 		{"ResponseHeapDeltaBytes", ResponseHeapDeltaBytes},
 	}
 	for _, tc := range tests {

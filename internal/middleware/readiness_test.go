@@ -152,3 +152,41 @@ func assertMetaError(t *testing.T, body []byte) {
 		t.Errorf("body = %s, want {\"meta\":{\"error\":\"sync not yet completed\"}}", body)
 	}
 }
+
+// TestReadiness_RetryAfter checks that every pre-sync 503, in each
+// client format, carries Retry-After, and that a synced response does
+// not.
+func TestReadiness_RetryAfter(t *testing.T) {
+	t.Parallel()
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	for _, tt := range []struct {
+		name   string
+		path   string
+		header http.Header
+	}{
+		{"api", "/api/net", nil},
+		{"browser", "/ui/", http.Header{"Accept": {"text/html"}, "User-Agent": {"Mozilla/5.0"}}},
+		{"terminal", "/ui/", http.Header{"User-Agent": {"curl/8.5.0"}}},
+		{"json", "/rest/v1/networks", nil},
+	} {
+		req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+		maps.Copy(req.Header, tt.header)
+		rec := httptest.NewRecorder()
+		middleware.Readiness(fakeReadiness(false), next).ServeHTTP(rec, req)
+		if rec.Code != http.StatusServiceUnavailable {
+			t.Errorf("%s: status = %d, want 503", tt.name, rec.Code)
+		}
+		if got := rec.Header().Get("Retry-After"); got != "10" {
+			t.Errorf("%s: Retry-After = %q, want 10", tt.name, got)
+		}
+	}
+
+	rec := httptest.NewRecorder()
+	middleware.Readiness(fakeReadiness(true), next).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/ui/", nil))
+	if got := rec.Header().Get("Retry-After"); got != "" {
+		t.Errorf("synced: Retry-After = %q, want none", got)
+	}
+}

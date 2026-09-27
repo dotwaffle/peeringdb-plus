@@ -643,10 +643,11 @@ func TestCaching_SkipPath(t *testing.T) {
 	}
 }
 
-// TestCaching_StaticAssets locks the /static/ prefix rule: embedded
-// assets change on deploy, not on sync, so they get a fixed day-long
-// public max-age instead of the version-keyed ETag (which would
-// invalidate every stylesheet and script each sync cycle).
+// TestCaching_StaticAssets locks the /static/ prefix and /favicon.ico
+// rule: embedded assets change on deploy, not on sync, so the
+// middleware leaves their caching headers to the static handler instead
+// of sending the version-keyed ETag (which would invalidate every
+// stylesheet and script each sync cycle).
 func TestCaching_StaticAssets(t *testing.T) {
 	t.Parallel()
 
@@ -659,16 +660,19 @@ func TestCaching_StaticAssets(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	rec := httptest.NewRecorder()
-	mw.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/static/tailwind.css", nil))
-	if !called.Load() {
-		t.Error("inner handler not called for static asset")
-	}
-	if got := rec.Header().Get("Cache-Control"); got != "public, max-age=86400" {
-		t.Errorf("Cache-Control = %q, want %q", got, "public, max-age=86400")
-	}
-	if got := rec.Header().Get("ETag"); got != "" {
-		t.Errorf("ETag = %q, want empty on static asset", got)
+	for _, path := range []string{"/static/tailwind.css", "/favicon.ico"} {
+		called.Store(false)
+		rec := httptest.NewRecorder()
+		mw.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if !called.Load() {
+			t.Errorf("%s: inner handler not called", path)
+		}
+		if got := rec.Header().Get("Cache-Control"); got != "" {
+			t.Errorf("%s: Cache-Control = %q, want none from the middleware", path, got)
+		}
+		if got := rec.Header().Get("ETag"); got != "" {
+			t.Errorf("%s: ETag = %q, want none from the middleware", path, got)
+		}
 	}
 
 	// The version-keyed 304 short-circuit must not apply either.

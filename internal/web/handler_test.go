@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -640,6 +641,53 @@ func TestCompareFormPage(t *testing.T) {
 			t.Errorf("compare form page missing %q", want)
 		}
 	}
+	// Both fields are required digit strings that point at the hint, so
+	// the browser reports an empty or bad value instead of doing nothing.
+	field := `type="text" inputmode="numeric" pattern="[0-9]+" maxlength="10" required autocomplete="off" title="AS number, digits only" aria-describedby="compare-hint"`
+	if n := strings.Count(body, field); n != 2 {
+		t.Errorf("%d validated ASN fields, want 2", n)
+	}
+	if !strings.Contains(body, `<p id="compare-hint"`) {
+		t.Error("compare form page has no hint")
+	}
+	if strings.Contains(body, `type="number"`) {
+		t.Error(`compare form page still has type="number" fields`)
+	}
+}
+
+// TestCompareForm_SubmitRedirects checks that a submit of the compare
+// form, a GET with asn1 and asn2, redirects to the results path, so the
+// form works without JavaScript.
+func TestCompareForm_SubmitRedirects(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		query, location string
+	}{
+		{"asn1=13335&asn2=15169", "/ui/compare/13335/15169"},
+		{"asn1=0013335&asn2=15169", "/ui/compare/13335/15169"},
+		{"asn1=13335&asn2=", ""},
+		{"asn1=13335&asn2=abc", ""},
+		{"asn1=0&asn2=15169", ""},
+		{"asn1=13335&asn2=4294967296", ""},
+	}
+	for _, tt := range tests {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/ui/compare?"+tt.query, nil))
+		if tt.location == "" {
+			if rec.Code != http.StatusOK {
+				t.Errorf("%s: status = %d, want 200 (the form)", tt.query, rec.Code)
+			}
+			continue
+		}
+		if rec.Code != http.StatusSeeOther {
+			t.Errorf("%s: status = %d, want 303", tt.query, rec.Code)
+		}
+		if got := rec.Header().Get("Location"); got != tt.location {
+			t.Errorf("%s: Location = %q, want %q", tt.query, got, tt.location)
+		}
+	}
 }
 
 func TestCompareFormPagePreFilled(t *testing.T) {
@@ -708,6 +756,17 @@ func TestCompareResultsPage_FullView(t *testing.T) {
 	// Full view should show non-shared facilities like Equinix AM5.
 	if !strings.Contains(body, "Equinix AM5") {
 		t.Error("full view should include non-shared facilities like Equinix AM5")
+	}
+	// A row that one network has carries an "AS<n> only" label at full
+	// contrast. Reduced opacity took its text below 4.5:1.
+	for _, name := range []string{"AMS-IX", "Equinix AM5"} {
+		only := regexp.MustCompile(regexp.QuoteMeta(name) + `\s*</a><span class="ml-2 text-xs text-neutral-600 dark:text-neutral-400">AS(13335|15169) only</span>`)
+		if !only.MatchString(body) {
+			t.Errorf("full view row %s has no AS<n> only label", name)
+		}
+	}
+	if strings.Contains(body, "opacity-40") {
+		t.Error("full view still dims rows with opacity-40")
 	}
 }
 
@@ -1121,9 +1180,8 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 
 	checks := []string{
 		"data-result",
-		`tabindex="-1"`,
-		"focus:ring-2",
-		"focus:ring-emerald-500",
+		"focus-visible:outline-2",
+		"focus-visible:outline-emerald-600",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {
@@ -1132,7 +1190,8 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 	}
 	// Results are plain links; the listbox/option ARIA pattern was
 	// dropped (it mislabels anchors and demanded aria-selected upkeep).
-	for _, unwanted := range []string{`role="option"`, "aria-selected"} {
+	// A tabindex would take them out of the Tab order.
+	for _, unwanted := range []string{`role="option"`, "aria-selected", "tabindex"} {
 		if strings.Contains(body, unwanted) {
 			t.Errorf("search results still carry %q", unwanted)
 		}
@@ -1143,14 +1202,13 @@ func TestSearchForm_ResultsContainer(t *testing.T) {
 	t.Parallel()
 	body := renderComponent(t, templates.SearchForm("", nil))
 
-	checks := []string{
-		"autofocus",
-		`id="search-results"`,
+	if !strings.Contains(body, `id="search-results"`) {
+		t.Error(`search form missing id="search-results"`)
 	}
-	for _, want := range checks {
-		if !strings.Contains(body, want) {
-			t.Errorf("search form missing %q", want)
-		}
+	// autofocus would move focus past the skip link and the navigation
+	// before a keyboard or screen reader user reaches them.
+	if strings.Contains(body, "autofocus") {
+		t.Error("search form sets autofocus")
 	}
 	if strings.Contains(body, "hx-params") {
 		t.Error("search form contains removed hx-params attribute")
@@ -1214,7 +1272,8 @@ func TestLayout_KeyboardNavScript(t *testing.T) {
 	checks := []string{
 		"ArrowDown",
 		"ArrowUp",
-		"tabindex",
+		"searchResultKeys",
+		"aria-sort",
 		"htmx:after:swap",
 		"htmx:response:error",
 		"htmx:error",
@@ -1629,6 +1688,107 @@ func TestASNValidation(t *testing.T) {
 	}
 }
 
+// TestBadRequestPage_Negotiated checks that a UI URL with an invalid
+// ASN gets a 400 in the client's format: the styled page for a browser,
+// text for a terminal client, and a problem document for a JSON client.
+func TestBadRequestPage_Negotiated(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		name        string
+		path        string
+		userAgent   string
+		accept      string
+		contentType string
+		want        []string
+	}{
+		{
+			name:        "browser detail",
+			path:        "/ui/asn/abc",
+			userAgent:   "Mozilla/5.0",
+			accept:      "text/html",
+			contentType: "text/html; charset=utf-8",
+			want:        []string{"<!doctype html>", "Bad request", `Invalid ASN &#34;abc&#34;`, `id="search-form"`},
+		},
+		{
+			name:        "browser compare",
+			path:        "/ui/compare/13335/x",
+			userAgent:   "Mozilla/5.0",
+			accept:      "text/html",
+			contentType: "text/html; charset=utf-8",
+			want:        []string{"<!doctype html>", "Bad request", `Invalid ASN &#34;x&#34;`},
+		},
+		{
+			name:        "terminal",
+			path:        "/ui/asn/abc",
+			userAgent:   "curl/8.0",
+			contentType: "text/plain; charset=utf-8",
+			want:        []string{"400 Bad Request", `Invalid ASN "abc"`},
+		},
+		{
+			name:        "json",
+			path:        "/ui/asn/abc?format=json",
+			userAgent:   "curl/8.0",
+			contentType: "application/json; charset=utf-8",
+			want:        []string{`"status": 400`, `Invalid ASN \"abc\"`},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req.Header.Set("User-Agent", tt.userAgent)
+			if tt.accept != "" {
+				req.Header.Set("Accept", tt.accept)
+			}
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want 400", rec.Code)
+			}
+			if got := rec.Header().Get("Content-Type"); got != tt.contentType {
+				t.Errorf("Content-Type = %q, want %q", got, tt.contentType)
+			}
+			body := rec.Body.String()
+			for _, want := range tt.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("body has no %q:\n%s", want, truncateBody(body, 600))
+				}
+			}
+		})
+	}
+}
+
+// TestUIRedirects checks the permanent redirects to the canonical UI
+// paths: /ui to /ui/, and a path with a trailing slash to the path
+// without it. The query string is kept.
+func TestUIRedirects(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		path, location string
+	}{
+		{"/ui", "/ui/"},
+		{"/ui?q=cloudflare", "/ui/?q=cloudflare"},
+		{"/ui/asn/13335/", "/ui/asn/13335"},
+		{"/ui/about/?format=json", "/ui/about?format=json"},
+		{"/ui/compare/13335/15169/", "/ui/compare/13335/15169"},
+	}
+	for _, tt := range tests {
+		req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusPermanentRedirect {
+			t.Errorf("%s: status = %d, want 308", tt.path, rec.Code)
+		}
+		if got := rec.Header().Get("Location"); got != tt.location {
+			t.Errorf("%s: Location = %q, want %q", tt.path, got, tt.location)
+		}
+	}
+}
+
 func TestWidthParameterCapping(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)
@@ -1771,5 +1931,52 @@ func TestParseASN_Boundary(t *testing.T) {
 					tt.in, gotASN, gotOK, tt.wantASN, tt.wantOK)
 			}
 		})
+	}
+}
+
+// TestDispatch_DiscoveryLink checks that UI responses carry the
+// configured discovery Link header, and none when it is not set.
+func TestDispatch_DiscoveryLink(t *testing.T) {
+	t.Parallel()
+	const link = `</llms.txt>; rel="describedby"`
+	client := testutil.SetupClient(t)
+	for _, tt := range []struct {
+		link string
+		want string
+	}{
+		{link, link},
+		{"", ""},
+	} {
+		mux := http.NewServeMux()
+		NewHandler(NewHandlerInput{Client: client, DiscoveryLink: tt.link}).Register(mux)
+		for _, path := range []string{"/ui/", "/ui/about"} {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req.Header.Set("User-Agent", "Mozilla/5.0")
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if got := rec.Header().Get("Link"); got != tt.want {
+				t.Errorf("%s with link %q: Link = %q, want %q", path, tt.link, got, tt.want)
+			}
+		}
+	}
+}
+
+// TestHome_CardLinksOpenInBrowser checks that no home page card links
+// /mcp, which answers a browser GET with 405, and that the MCP card
+// opens the server card.
+func TestHome_CardLinksOpenInBrowser(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if strings.Contains(body, `href="/mcp"`) {
+		t.Error(`home page links /mcp, which answers GET with 405`)
+	}
+	if !strings.Contains(body, `href="/.well-known/mcp/server-card.json"`) {
+		t.Error("home page does not link the MCP server card")
 	}
 }

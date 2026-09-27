@@ -5,8 +5,8 @@ package templates
 // groups contains pre-computed search results for bookmarked URL support.
 templ Home(query string, groups []SearchGroup) {
 	<div class="max-w-3xl mx-auto text-center py-12">
-		<h1 class="text-4xl font-bold text-emerald-500 font-mono mb-4">PeeringDB Plus</h1>
-		<p class="text-neutral-500 dark:text-neutral-400 text-lg mb-8">
+		<h1 class="text-4xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-4">PeeringDB Plus</h1>
+		<p class="text-neutral-600 dark:text-neutral-400 text-lg mb-8">
 			A fast, read-only mirror of PeeringDB data. Search networks, IXPs, facilities, and more.
 		</p>
 		@SearchForm(query, groups)
@@ -32,7 +32,9 @@ var apiSurfaces = []surfaceCard{
 	{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI REST endpoints, with interactive documentation at /rest/v1/docs."},
 	{Title: "ConnectRPC / gRPC", Desc: "Get, List, and Stream RPCs for all 13 PeeringDB types, with typed filters, reflection, and health checks. Supports the Connect, gRPC, and gRPC-Web protocols. Use buf curl or grpcurl."},
 	{Href: "/api/", Title: "PeeringDB API", Desc: "Read-only PeeringDB-compatible API for existing PeeringDB clients."},
-	{Href: "/mcp", Title: "MCP", Desc: "Model Context Protocol server with read-only tools, resources, and prompts for network research agents."},
+	// /mcp answers POST only, so the card opens the server card, which
+	// names the endpoint and lists the tools.
+	{Href: "/.well-known/mcp/server-card.json", Title: "MCP", Desc: "Model Context Protocol server at /mcp with read-only tools, resources, and prompts for network research agents. Opens the server card."},
 	{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Download an installable skill configured for this deployment."},
 }
 
@@ -42,13 +44,13 @@ templ apiSurfaceCards(cards []surfaceCard) {
 	for _, c := range cards {
 		if c.Href != "" {
 			<a href={ templ.SafeURL(c.Href) } class="bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block">
-				<h3 class="text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h3>
-				<p class="text-neutral-500 dark:text-neutral-400 text-sm">{ c.Desc }</p>
+				<h2 class="text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h2>
+				<p class="text-neutral-600 dark:text-neutral-400 text-sm">{ c.Desc }</p>
 			</a>
 		} else {
 			<div class="bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 block">
-				<h3 class="text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h3>
-				<p class="text-neutral-500 dark:text-neutral-400 text-sm">{ c.Desc }</p>
+				<h2 class="text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h2>
+				<p class="text-neutral-600 dark:text-neutral-400 text-sm">{ c.Desc }</p>
 			</div>
 		}
 	}
@@ -69,7 +71,7 @@ templ SearchForm(query string, groups []SearchGroup) {
 				name="q"
 				value={ query }
 				placeholder="Search networks, IXPs, facilities..."
-				class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+				class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-emerald-600 focus:outline-2 focus:outline-offset-1 focus:outline-emerald-600 font-mono"
 				hx-get="/ui/search"
 				hx-trigger="input changed delay:300ms"
 				hx-target="#search-results"
@@ -77,10 +79,9 @@ templ SearchForm(query string, groups []SearchGroup) {
 				hx-indicator="#search-indicator"
 				hx-push-url="true"
 				autocomplete="off"
-			autofocus
 			/>
 			<div id="search-indicator" class="htmx-indicator absolute right-3 top-3.5">
-				<svg class="animate-spin h-5 w-5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+				<svg class="animate-spin h-5 w-5 text-emerald-700 dark:text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 				</svg>
@@ -96,4 +97,5 @@ templ SearchForm(query string, groups []SearchGroup) {
 			@SearchResults(groups, query)
 		}
 	</div>
+	<p id="search-status" role="status" class="sr-only"></p>
 }

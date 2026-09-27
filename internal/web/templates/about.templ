@@ -18,7 +18,7 @@ func formatAge(d time.Duration) string {
 // and the Privacy & Sync section.
 templ AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo RuntimeInfo) {
 	<div class="max-w-3xl mx-auto py-12">
-		<h1 class="text-3xl font-bold text-emerald-500 font-mono mb-6">About PeeringDB Plus</h1>
+		<h1 class="text-3xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-6">About PeeringDB Plus</h1>
 		<p class="text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed">
 			PeeringDB Plus is a read-only mirror of PeeringDB. It syncs all 13 PeeringDB object types on a
 			schedule and serves them through the APIs below.
@@ -27,22 +27,22 @@ templ AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtim
 			<h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono">Data Freshness</h2>
 			if freshness.Available {
 				<p class="text-neutral-600 dark:text-neutral-300">
-					Last synced: <time class="font-mono text-emerald-500">{ freshness.LastSyncAt.UTC().Format("2006-01-02 15:04:05 UTC") }</time>
+					Last synced: <time class="font-mono text-emerald-700 dark:text-emerald-500">{ freshness.LastSyncAt.UTC().Format("2006-01-02 15:04:05 UTC") }</time>
 				</p>
-				<p class="text-neutral-500 dark:text-neutral-400 text-sm mt-1">{ formatAge(freshness.Age) } ago</p>
+				<p class="text-neutral-600 dark:text-neutral-400 text-sm mt-1">{ formatAge(freshness.Age) } ago</p>
 			} else {
-				<p class="text-neutral-500 dark:text-neutral-400">Sync status unavailable</p>
+				<p class="text-neutral-600 dark:text-neutral-400">Sync status unavailable</p>
 			}
 		</div>
 		<div class="mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
 			<h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono">Privacy &amp; Sync</h2>
 			<dl class="space-y-2 text-neutral-600 dark:text-neutral-300">
 				<div class="flex flex-col sm:flex-row sm:gap-2">
-					<dt class="font-mono text-neutral-500 dark:text-neutral-400 sm:w-44">PeeringDB access:</dt>
+					<dt class="font-mono text-neutral-600 dark:text-neutral-400 sm:w-44">PeeringDB access:</dt>
 					<dd>{ privacy.AuthMode }</dd>
 				</div>
 				<div class="flex flex-col sm:flex-row sm:gap-2 sm:items-center">
-					<dt class="font-mono text-neutral-500 dark:text-neutral-400 sm:w-44">Public tier:</dt>
+					<dt class="font-mono text-neutral-600 dark:text-neutral-400 sm:w-44">Public tier:</dt>
 					<dd class="flex items-center gap-2">
 						<span class="font-mono">{ privacy.PublicTier }</span>
 						if privacy.OverrideActive {
@@ -51,7 +51,7 @@ templ AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtim
 					</dd>
 				</div>
 			</dl>
-			<p class="text-sm text-neutral-500 dark:text-neutral-400 mt-3">{ privacy.PublicTierExplanation }</p>
+			<p class="text-sm text-neutral-600 dark:text-neutral-400 mt-3">{ privacy.PublicTierExplanation }</p>
 		</div>
 		if runtimeInfo.Version != "" || runtimeInfo.Region != "" {
 			<div class="mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
@@ -59,13 +59,13 @@ templ AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtim
 				<dl class="space-y-2 text-neutral-600 dark:text-neutral-300">
 					if runtimeInfo.Version != "" {
 						<div class="flex flex-col sm:flex-row sm:gap-2">
-							<dt class="font-mono text-neutral-500 dark:text-neutral-400 sm:w-36">Version:</dt>
+							<dt class="font-mono text-neutral-600 dark:text-neutral-400 sm:w-36">Version:</dt>
 							<dd class="font-mono">{ runtimeInfo.Version }</dd>
 						</div>
 					}
 					if runtimeInfo.Region != "" {
 						<div class="flex flex-col sm:flex-row sm:gap-2">
-							<dt class="font-mono text-neutral-500 dark:text-neutral-400 sm:w-36">Serving region:</dt>
+							<dt class="font-mono text-neutral-600 dark:text-neutral-400 sm:w-36">Serving region:</dt>
 							<dd class="font-mono">{ runtimeInfo.Region }</dd>
 						</div>
 					}
@@ -79,12 +79,12 @@ templ AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtim
 		<h2 class="text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono">Links</h2>
 		<ul class="space-y-2 text-neutral-600 dark:text-neutral-300">
 			<li>
-				<a href="https://github.com/dotwaffle/peeringdb-plus" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors" target="_blank" rel="noopener noreferrer">
+				<a href="https://github.com/dotwaffle/peeringdb-plus" class="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors" target="_blank" rel="noopener noreferrer">
 					GitHub Repository
 				</a>
 			</li>
 			<li>
-				<a href="https://www.peeringdb.com" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors" target="_blank" rel="noopener noreferrer">
+				<a href="https://www.peeringdb.com" class="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors" target="_blank" rel="noopener noreferrer">
 					PeeringDB Official
 				</a>
 			</li>

@@ -15,6 +15,10 @@ type SyncReadiness interface {
 	HasCompletedSync() bool
 }
 
+// syncRetryAfter is the Retry-After value, in seconds, of the pre-sync
+// 503. It matches the meta refresh of the syncing page.
+const syncRetryAfter = "10"
+
 // Readiness returns 503 for all routes except infrastructure paths
 // until the first sync has completed.
 // Browser requests receive a styled HTML syncing page instead of JSON,
@@ -33,6 +37,9 @@ func Readiness(sr SyncReadiness, next http.Handler) http.Handler {
 			return
 		}
 		if !sr.HasCompletedSync() {
+			// Every pre-sync 503 tells the client when to try again.
+			// The syncing page also reloads itself after the same time.
+			w.Header().Set("Retry-After", syncRetryAfter)
 			// The PeeringDB-compatible API answers every client in its own
 			// error form, as upstream does for its maintenance-mode 503
 			// (2.83.0 maintenance.py:73-78): browsers and curl get JSON on
