@@ -8,6 +8,30 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-09-27
+
+### Added
+
+- pdbcompat serves `/api/<tag>/self` for `org`, `net`, `ix`, `fac`, `carrier` and `campus`, as upstream does: a `302` to the default object of the tag, for example `/api/net/666`, with the same query string.
+  As upstream, the route matches any path under `/api/` that contains `<tag>/self`, for example `/api/ixfac/self` (tag `fac`).
+  `OPTIONS` returns the DRF metadata of the view, and every response has `Allow: GET, OPTIONS`, as upstream.
+  Before, pdbcompat returned `404`.
+- pdbcompat answers the organization users paths (`/api/org/<id>/users`, and `add`, `remove` and `<user_id>` below it) as upstream answers a caller without an API key: `404` when the organization is not an `ok` row, else `403` `Invalid authentication`.
+  `OPTIONS` returns the DRF metadata of the view, with the `POST` fields on the `add` path, as upstream.
+  Before, pdbcompat returned `404` `Not found.` for every such path.
+- pdbcompat serves `/api/search?q=<text>`, the search of `fac`, `ix`, `net`, `org`, `campus` and `carrier` that upstream offers to callers with an `Authorization` header.
+  The body has the upstream shape: a list of hits with `id`, `name` and `org_id` (and `asn` on `net`) for each type, at most 1000 hits.
+  The text matches as `name_search` does.
+  As upstream, `OPTIONS` and `TRACE` search as `GET` does, and another method gets the `403` of the upstream CSRF check.
+  Before, pdbcompat returned `404`.
+
+### Fixed
+
+- The `301` from `/api` to `/api/` quotes the query string as upstream (Django `iri_to_uri`) does: for example, `"` becomes `%22`.
+  Before, pdbcompat copied the raw query string into `Location`.
+- `docs/API.md` § Known Divergences now lists an `/api/` request with credentials that upstream rejects, for example `Authorization: Api-Key <unknown key>`: upstream returns `401` `Invalid API key` (or `400`/`401` for a bad `Basic` header), and pdbcompat ignores the header.
+  Behavior is unchanged.
+
 ## [1.38.0] - 2026-09-27
 
 ### Added
@@ -1471,7 +1495,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.38.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.39.0...HEAD
+[1.39.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.38.0...v1.39.0
 [1.38.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...v1.38.0
 [1.37.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.36.0...v1.37.0
 [1.36.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.2...v1.36.0

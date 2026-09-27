@@ -88,15 +88,10 @@ func (h *Handler) Register(mux *http.ServeMux) {
 // CommonMiddleware with APPEND_SLASH: a 301 for every method to the
 // path with a "/" and the same query string, with an empty HTML body
 // (Django HttpResponsePermanentRedirect). The Location is relative, as
-// upstream sends it for its www host.
+// upstream sends it for its www host. Django quotes the query string
+// with iri_to_uri (django/http/request.py:219-230).
 func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
-	target := "/api/"
-	if r.URL.RawQuery != "" {
-		target += "?" + r.URL.RawQuery
-	}
-	w.Header().Set("Location", target)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusMovedPermanently)
+	writeDjangoRedirect(w, "/api/", r.URL.RawQuery, http.StatusMovedPermanently)
 }
 
 // methodNotAllowed answers a method other than GET and HEAD. The mirror
@@ -108,9 +103,22 @@ func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
 // paths of getOnly types get Allow: GET.
 //
 // A path that no route matches is a 404 for every method, as in
-// dispatch. Content negotiation comes before the method check
-// (negotiate).
+// dispatch. The self, organization users and search routes answer
+// every method themselves (serveSelf, serveOrgUsers, serveSearch).
+// Content negotiation comes before the method check (negotiate).
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	if tag, ok := selfTag(r.PathValue("rest")); ok {
+		serveSelf(w, r, tag)
+		return
+	}
+	if route, orgID, ok := matchOrgUsers(r.PathValue("rest")); ok {
+		h.serveOrgUsers(w, r, route, orgID)
+		return
+	}
+	if searchPath(r.PathValue("rest")) {
+		h.serveSearch(w, r)
+		return
+	}
 	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
 	_, known := Registry[typeName]
 	switch {
@@ -159,6 +167,21 @@ func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string)
 // dispatch routes requests under /api/ to index, list, or detail handlers
 // based on the URL path structure.
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
+	// The self, organization users and search routes come before the
+	// router routes upstream (rest.py:2087-2122). The self route matches
+	// anywhere in the path (selfRoute).
+	if tag, ok := selfTag(r.PathValue("rest")); ok {
+		serveSelf(w, r, tag)
+		return
+	}
+	if route, orgID, ok := matchOrgUsers(r.PathValue("rest")); ok {
+		h.serveOrgUsers(w, r, route, orgID)
+		return
+	}
+	if searchPath(r.PathValue("rest")) {
+		h.serveSearch(w, r)
+		return
+	}
 	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))
 
 	// Upstream sends its HTML 404 page for a path that no route matches,

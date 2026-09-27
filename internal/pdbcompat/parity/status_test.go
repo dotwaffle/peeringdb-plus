@@ -1026,8 +1026,12 @@ func TestParity_Status(t *testing.T) {
 		// the permission check first: 401 (drf views.py:174-180,
 		// permissions.py:191-199; tests/test_api_cache_keys.py:222-245).
 		// The mirror is read-only: every method other than GET and HEAD
-		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. See
-		// docs/API.md § Known Divergences.
+		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. The
+		// self and organization users routes answer OPTIONS, and
+		// /api/search every method, as upstream
+		// (self_redirects_302_like_upstream,
+		// org_users_routes_like_upstream, api_search_like_upstream).
+		// See docs/API.md § Known Divergences.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		srv := newTestServer(t, c)
@@ -1083,6 +1087,271 @@ func TestParity_Status(t *testing.T) {
 				t.Errorf("%s /api: body = %q, want empty", method, body)
 			}
 		}
+	})
+
+	t.Run("self_redirects_302_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:2088 routes (net|ix|org|fac|carrier|
+		// campus)/self with no anchors, before the router routes, and
+		// Django matches it with re.search. view_self_entity
+		// (rest.py:1600-1646) redirects an anonymous caller with a 302
+		// to the DEFAULT_SELF_<TAG> object (settings/__init__.py:
+		// 1689-1694) and keeps the query string (iri_to_uri, Django
+		// response.py:633-638). The api_view maps GET and OPTIONS (DRF
+		// decorators.py:46-47), so HEAD and POST get 405 after content
+		// negotiation (views.py:404-421, :513-521), and OPTIONS gets the
+		// SimpleMetadata body (metadata.py:59-72). DRF sets Allow on
+		// every response of the view (views.py:159-165, :443-449).
+		srv := newTestServer(t, testutil.SetupClient(t))
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		for path, want := range map[string]string{
+			"/api/net/self":                      "/api/net/666",
+			"/api/org/self":                      "/api/org/25554",
+			"/api/ix/self":                       "/api/ix/4095",
+			"/api/fac/self":                      "/api/fac/13346",
+			"/api/carrier/self":                  "/api/carrier/66",
+			"/api/campus/self":                   "/api/campus/25",
+			"/api/net/self/":                     "/api/net/666",
+			"/api/net/selfie":                    "/api/net/666",
+			"/api/ixfac/self":                    "/api/fac/13346",
+			"/api/net/self.json":                 "/api/net/666",
+			"/api/net/self?depth=0&name=%22a%22": "/api/net/666?depth=0&name=%22a%22",
+			"/api/net/self?q=\"x\"":              "/api/net/666?q=%22x%22",
+		} {
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+path, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("GET %s: %v", path, err)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != want || len(body) != 0 ||
+				resp.Header.Get("Allow") != "GET, OPTIONS" {
+				t.Errorf("GET %s: status = %d, Location = %q, Allow = %q, body = %q; want 302 to %q with Allow: GET, OPTIONS and no body",
+					path, resp.StatusCode, resp.Header.Get("Location"), resp.Header.Get("Allow"), body, want)
+			}
+		}
+		for _, method := range []string{http.MethodHead, http.MethodPost, http.MethodPut} {
+			status, hdr, _ := httpDo(t, srv, method, "/api/net/self", nil)
+			if status != http.StatusMethodNotAllowed || hdr.Get("Allow") != "GET, OPTIONS" {
+				t.Errorf("%s /api/net/self: status = %d, Allow = %q; want 405 with Allow: GET, OPTIONS", method, status, hdr.Get("Allow"))
+			}
+		}
+		for _, path := range []string{"/api/net/self", "/api/ixfac/self/"} {
+			status, hdr, body := httpDo(t, srv, http.MethodOptions, path, nil)
+			if status != http.StatusOK || hdr.Get("Allow") != "GET, OPTIONS" {
+				t.Errorf("OPTIONS %s: status = %d, Allow = %q; want 200 with Allow: GET, OPTIONS", path, status, hdr.Get("Allow"))
+				continue
+			}
+			checkDRFMetadata(t, "OPTIONS "+path, body, "View Self Entity",
+				"This API View redirect self entity API to the corresponding url", nil)
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/net/self", http.Header{"Accept": {"text/html"}}); status != http.StatusNotAcceptable {
+			t.Errorf("GET /api/net/self with Accept: text/html: status = %d, want 406", status)
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodPost, "/api/net/self?format=xml", nil); status != http.StatusNotFound {
+			t.Errorf("POST /api/net/self?format=xml: status = %d, want 404", status)
+		}
+		if status, hdr, _ := httpDo(t, srv, http.MethodOptions, "/api/net/self", http.Header{"Accept": {"text/html"}}); status != http.StatusNotAcceptable || hdr.Get("Allow") != "GET, OPTIONS" {
+			t.Errorf("OPTIONS /api/net/self with Accept: text/html: status = %d, Allow = %q; want 406 with Allow: GET, OPTIONS", status, hdr.Get("Allow"))
+		}
+	})
+
+	t.Run("DIVERGENCE_self_redirects_keyed_caller_to_default", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream sends an authenticated caller to the
+		// object of its primary organization when it has one
+		// (2.83.0 rest.py:1617-1636). The mirror has no user data, so
+		// every caller gets the default object. See docs/API.md
+		// § Known Divergences.
+		srv := newTestServer(t, testutil.SetupClient(t))
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/api/net/self", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Api-Key abcdef.0123456789")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "/api/net/666" {
+			t.Errorf("status = %d, Location = %q; want 302 to /api/net/666", resp.StatusCode, resp.Header.Get("Location"))
+		}
+	})
+
+	t.Run("DIVERGENCE_invalid_credentials_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream PDBPermissionMiddleware checks the
+		// Authorization header of every request before any view (2.83.0
+		// middleware.py:228-346). An "Api-Key <key>" header (drf-api-key
+		// 3.1.0 KeyParser: the first word, any case) with a key that is
+		// unknown gets 401 "Invalid API key", a revoked or inactive key
+		// 401 "Inactive API key". A "Basic" header gets 401 "Invalid
+		// username or password" or "Inactive account", or 400 "Corrupt
+		// base64 input." or "Invalid Input." when it does not decode to
+		// "<user>:<password>". The mirror has no user or key data and
+		// ignores the header. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, auth := range []string{
+			"Api-Key not-a-key",
+			"api-key x",
+			"Basic dTpw",
+			"Basic !!!",
+			"Basic dQ==",
+		} {
+			code, _, body := httpDo(t, srv, http.MethodGet, "/api/net/1", http.Header{"Authorization": {auth}})
+			if code != http.StatusOK || len(decodeDataArray(t, body)) != 1 {
+				t.Errorf("GET /api/net/1 with Authorization %q: status = %d, body = %s; want 200 with the row", auth, code, body)
+			}
+		}
+	})
+
+	t.Run("org_users_routes_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:2089-2108 route the organization
+		// users actions before the router routes; each route maps one
+		// method, and DRF maps HEAD to the GET action (viewsets.py:
+		// 105-106). After content negotiation and the method check
+		// (views.py:404-421, :513-521), every handler runs
+		// check_permissions_for_action (rest.py:1696-1751):
+		// get_object_or_404(Organization, id=<id>, status="ok"), then
+		// PermissionDenied("Invalid authentication") for a caller
+		// without an API key, returned as {"detail": ...} with 403.
+		// \d in the Python route matches every Unicode decimal digit.
+		// OPTIONS gets the SimpleMetadata body, with the UserSerializer
+		// fields for POST on the add route (DRF metadata.py:59-100), and
+		// DRF sets Allow on every response (views.py:159-165,
+		// :443-449).
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		for id, status := range map[int]string{1: "ok", 2: "deleted", 3: "pending"} {
+			c.Organization.Create().
+				SetID(id).SetName(fmt.Sprintf("Org%d", id)).SetNameFold(unifold.Fold(fmt.Sprintf("Org%d", id))).
+				SetStatus(status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			method, path string
+			status       int
+			msg, allow   string
+		}{
+			{http.MethodGet, "/api/org/1/users", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/1/users/", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/001/users", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/%D9%A1/users", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodPost, "/api/org/1/users/add", 403, "Invalid authentication", "POST, OPTIONS"},
+			{http.MethodPut, "/api/org/1/users/7", 403, "Invalid authentication", "PUT, OPTIONS"},
+			{http.MethodDelete, "/api/org/1/users/remove/", 403, "Invalid authentication", "DELETE, OPTIONS"},
+			{http.MethodGet, "/api/org/2/users", 404, "No Organization matches the given query.", "GET, HEAD, OPTIONS"},
+			{http.MethodPost, "/api/org/3/users/add", 404, "No Organization matches the given query.", "POST, OPTIONS"},
+			{http.MethodPut, "/api/org/9/users/7", 404, "No Organization matches the given query.", "PUT, OPTIONS"},
+			{http.MethodGet, "/api/org/99999999999999999999999/users", 404, "No Organization matches the given query.", "GET, HEAD, OPTIONS"},
+			{http.MethodPost, "/api/org/1/users", 405, "Method \"POST\" not allowed.", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/1/users/add", 405, "Method \"GET\" not allowed.", "POST, OPTIONS"},
+			{http.MethodDelete, "/api/org/9/users/7", 405, "Method \"DELETE\" not allowed.", "PUT, OPTIONS"},
+			{http.MethodPost, "/api/org/1/users/remove", 405, "Method \"POST\" not allowed.", "DELETE, OPTIONS"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != tc.status {
+				t.Errorf("%s %s: status = %d, want %d; body=%s", tc.method, tc.path, status, tc.status, body)
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != tc.msg {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, tc.msg)
+			}
+			if got := hdr.Get("Allow"); got != tc.allow {
+				t.Errorf("%s %s: Allow = %q, want %q", tc.method, tc.path, got, tc.allow)
+			}
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodHead, "/api/org/1/users", nil); status != http.StatusForbidden {
+			t.Errorf("HEAD /api/org/1/users: status = %d, want 403", status)
+		}
+		for _, tc := range []struct {
+			path, allow string
+			post        []string
+		}{
+			{"/api/org/1/users", "GET, HEAD, OPTIONS", nil},
+			{"/api/org/2/users/", "GET, HEAD, OPTIONS", nil},
+			{"/api/org/1/users/add", "POST, OPTIONS", []string{"id", "first_name", "last_name", "full_name", "is_active", "date_joined", "status", "role"}},
+			{"/api/org/9/users/add", "POST, OPTIONS", []string{"id", "first_name", "last_name", "full_name", "is_active", "date_joined", "status", "role"}},
+			{"/api/org/9/users/7", "PUT, OPTIONS", nil},
+			{"/api/org/1/users/remove", "DELETE, OPTIONS", nil},
+		} {
+			status, hdr, body := httpDo(t, srv, http.MethodOptions, tc.path, nil)
+			if status != http.StatusOK || hdr.Get("Allow") != tc.allow {
+				t.Errorf("OPTIONS %s: status = %d, Allow = %q; want 200 with Allow: %s", tc.path, status, hdr.Get("Allow"), tc.allow)
+				continue
+			}
+			checkDRFMetadata(t, "OPTIONS "+tc.path, body, "Organization Users",
+				"ViewSet for managing users within an organization.\n\nThis ViewSet provides endpoints for:\n", tc.post)
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/org/1/users?format=xml", nil); status != http.StatusNotFound {
+			t.Errorf("GET /api/org/1/users?format=xml: status = %d, want 404", status)
+		}
+		for _, path := range []string{"/api/org/1/users.json", "/api/org/x/users", "/api/org/1/users/add/x"} {
+			if status, _, _ := httpDo(t, srv, http.MethodGet, path, nil); status != http.StatusNotFound {
+				t.Errorf("GET %s: status = %d, want 404 (no route)", path, status)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_org_users_keyed_caller_403", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream answers a caller with the API key of an
+		// organization admin, or an organization key with the users
+		// permission, with the users of the organization, and runs
+		// the add, change and remove actions (rest.py:1726-1748,
+		// :1775-1972). OrganizationUsersThrottle allows 1 request per
+		// second (rest_throttles.py:598-611). The mirror has no user
+		// data, does not check API keys and has no rate limit, so
+		// every caller gets 403. See docs/API.md § Known Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().
+			SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		hdr := http.Header{"Authorization": {"Api-Key abcdef.0123456789"}}
+		for range 2 {
+			if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/org/1/users", hdr); status != http.StatusForbidden {
+				t.Errorf("GET /api/org/1/users with an API key: status = %d, want 403", status)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_org_users_options_change_route_200", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: for OPTIONS on the change route of an ok
+		// organization, SimpleMetadata calls get_object for PUT (DRF
+		// metadata.py:74-100). get_queryset finds the organization
+		// (2.83.0 rest.py:1676-1694), and get_object then fails its
+		// assertion that the route has a "pk" argument (DRF
+		// generics.py:79-96), which is not an exception that
+		// determine_actions catches, so upstream answers 500. The mirror
+		// sends the body without actions that upstream sends when the
+		// organization is not an ok row. See docs/API.md § Known
+		// Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().
+			SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		status, hdr, body := httpDo(t, srv, http.MethodOptions, "/api/org/1/users/7", nil)
+		if status != http.StatusOK || hdr.Get("Allow") != "PUT, OPTIONS" {
+			t.Fatalf("OPTIONS /api/org/1/users/7: status = %d, Allow = %q; want 200 with Allow: PUT, OPTIONS", status, hdr.Get("Allow"))
+		}
+		checkDRFMetadata(t, "OPTIONS /api/org/1/users/7", body, "Organization Users",
+			"ViewSet for managing users within an organization.", nil)
 	})
 
 	t.Run("non_json_accept_406_like_upstream", func(t *testing.T) {

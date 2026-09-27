@@ -1,6 +1,9 @@
 package parity
 
 import (
+	"encoding/json"
+	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -394,6 +397,246 @@ func TestParity_NameSearch(t *testing.T) {
 		assertFilterError(t, srv, "/api/net?name_search=nomatch&asn__lt=abc", "filter asn__lt:")
 		assertFilterError(t, srv, "/api/net?name_search=nomatch&id__in=abc", "filter id__in:")
 	})
+
+	t.Run("api_search_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: rest.py:2009-2041 (search_api_view, a plain Django
+		// view: no content negotiation, no envelope), :1975-2006
+		// (serialize_search_results), views.py:3623-3682
+		// (extract_query, perform_search), search_v2.py:861-978. The
+		// Authorization header must split into two words; the key
+		// itself is not checked here (DIVERGENCE_api_search_key_not_checked).
+		srv := newTestServer(t, seedNameSearch(t, t0))
+		key := http.Header{"Authorization": {"Bearer token"}}
+		const alpha = `{
+  "fac": [],
+  "ix": [],
+  "net": [
+    {
+      "id": 100,
+      "name": "Alpha Networks",
+      "org_id": 1,
+      "asn": 64500
+    }
+  ],
+  "org": [],
+  "campus": [
+    {
+      "id": 400,
+      "name": "Alpha Campus",
+      "org_id": 1
+    }
+  ],
+  "carrier": [
+    {
+      "id": 500,
+      "name": "Alpha Carrier",
+      "org_id": 1
+    }
+  ]
+}`
+		for _, tc := range []struct {
+			path string
+			hdr  http.Header
+			code int
+			body string
+		}{
+			{"/api/search?q=alpha", nil, 401, `{"error": "No API key provided. Please include an Authorization header with your API key."}`},
+			{"/api/search?q=alpha", http.Header{"Authorization": {""}}, 401, `{"error": "No API key provided. Please include an Authorization header with your API key."}`},
+			{"/api/search?q=alpha", http.Header{"Authorization": {"Api-Key"}}, 401, `{"error": "API key cannot be empty"}`},
+			{"/api/search?q=alpha", http.Header{"Authorization": {"Api-Key a b"}}, 401, `{"error": "API key cannot be empty"}`},
+			{"/api/search?q=alpha", key, 200, alpha},
+			{"/api/search/?q=ALPHA&format=xml&pretty", http.Header{"Authorization": {"x y"}, "Accept": {"text/html"}}, 200, alpha},
+			{"/api/search", key, 200, `{}`},
+			{"/api/search?q=", key, 200, `{}`},
+			{"/api/search?q=alpha&q=carrier", key, 200, "{\n  \"fac\": [],\n  \"ix\": [],\n  \"net\": [],\n  \"org\": [],\n  \"campus\": [],\n  \"carrier\": [\n    {\n      \"id\": 500,\n      \"name\": \"Alpha Carrier\",\n      \"org_id\": 1\n    }\n  ]\n}"},
+			{"/api/search?q=%20", key, 200, "{\n  \"fac\": [],\n  \"ix\": [],\n  \"net\": [],\n  \"org\": [],\n  \"campus\": [],\n  \"carrier\": []\n}"},
+		} {
+			code, hdr, body := httpDo(t, srv, http.MethodGet, tc.path, tc.hdr)
+			if code != tc.code || string(body) != tc.body {
+				t.Errorf("GET %s %v: status = %d, body =\n%s\nwant %d,\n%s", tc.path, tc.hdr, code, body, tc.code, tc.body)
+			}
+			if got := hdr.Get("Content-Type"); got != "application/json" {
+				t.Errorf("GET %s: Content-Type = %q, want application/json", tc.path, got)
+			}
+		}
+		// A partial address searches the netixlan addresses of net and
+		// ix, digits the ASN (search_v2.py:359-522).
+		for path, want := range map[string]map[string][]int{
+			"/api/search?q=80.81.192": {"ix": {300}, "net": {100}},
+			"/api/search?q=64510":     {"net": {101}},
+			"/api/search?q=frankfurt": {"fac": {200}, "ix": {300}, "org": {1}},
+		} {
+			code, _, body := httpDo(t, srv, http.MethodGet, path, key)
+			if code != http.StatusOK {
+				t.Errorf("GET %s: status = %d, want 200", path, code)
+				continue
+			}
+			if got := searchIDs(t, body); !maps.EqualFunc(got, want, slices.Equal) {
+				t.Errorf("GET %s: ids = %v, want %v", path, got, want)
+			}
+		}
+		if code, _, body := httpDo(t, srv, http.MethodHead, "/api/search?q=alpha", key); code != http.StatusOK || len(body) != 0 {
+			t.Errorf("HEAD /api/search: status = %d, body = %q; want 200 with no body", code, body)
+		}
+		if code, _, _ := httpDo(t, srv, http.MethodGet, "/api/search.json?q=alpha", key); code != http.StatusNotFound {
+			t.Errorf("GET /api/search.json: status = %d, want 404 (no route)", code)
+		}
+		// search_api_view has no method check, so OPTIONS and TRACE
+		// search as GET does. Django CsrfViewMiddleware checks every
+		// other method first (django/middleware/csrf.py:414-469). With
+		// CSRF_USE_SESSIONS (settings/__init__.py:1930) and no session
+		// the check always fails, and view_http_error_csrf answers 403
+		// with the reason (views.py:348-359). The reason depends on the
+		// Origin header, then, on a secure request, on the Referer.
+		for _, m := range []string{http.MethodOptions, http.MethodTrace} {
+			if code, _, body := httpDo(t, srv, m, "/api/search?q=alpha", key); code != http.StatusOK || string(body) != alpha {
+				t.Errorf("%s /api/search: status = %d, body =\n%s\nwant 200 with the search result", m, code, body)
+			}
+		}
+		host := srv.Listener.Addr().String()
+		for _, tc := range []struct {
+			method string
+			hdr    http.Header
+			reason string
+		}{
+			{http.MethodPost, key, "Your session expired or cookies are blocked; reload and retry."},
+			{http.MethodDelete, http.Header{"X-Forwarded-Proto": {"https"}}, "Referer checking failed - no Referer."},
+			{http.MethodPut, http.Header{"X-Forwarded-Proto": {"https"}, "Referer": {"https://" + host + "/ui/"}}, "Your session expired or cookies are blocked; reload and retry."},
+			{http.MethodPost, http.Header{"X-Forwarded-Proto": {"https"}, "Referer": {"http://" + host + "/"}}, "Referer checking failed - Referer is insecure while host is secure."},
+			{http.MethodPost, http.Header{"X-Forwarded-Proto": {"https"}, "Referer": {"HTTPS://evil.example/p?#"}}, "Referer checking failed - https://evil.example/p does not match any trusted origins."},
+			{http.MethodPatch, http.Header{"Origin": {"https://evil.example"}}, "Origin checking failed - https://evil.example does not match any trusted origins."},
+			{"PROPFIND", http.Header{"Origin": {"http://" + host}}, "Your session expired or cookies are blocked; reload and retry."},
+		} {
+			code, hdr, body := httpDo(t, srv, tc.method, "/api/search?q=alpha", tc.hdr)
+			want := `{"non_field_errors": ["` + tc.reason + `"]}`
+			if code != http.StatusForbidden || string(body) != want || hdr.Get("Allow") != "" || hdr.Get("Content-Type") != "application/json" {
+				t.Errorf("%s /api/search %v: status = %d, Allow = %q, Content-Type = %q, body = %s; want 403 with %s",
+					tc.method, tc.hdr, code, hdr.Get("Allow"), hdr.Get("Content-Type"), body, want)
+			}
+		}
+	})
+
+	t.Run("api_search_exact_name_first", func(t *testing.T) {
+		t.Parallel()
+		// upstream: search_v2.py:298-356 (order_results_alphabetically):
+		// the first hit whose lower-case name is a search word, or the
+		// words joined, moves to the front of its type.
+		ctx := t.Context()
+		c := seedNameSearch(t, t0)
+		mustNet(ctx, t, c, 104, "Alpha", 64520, 2, t0)
+		mustNet(ctx, t, c, 105, "AAA Alpha", 64521, 2, t0)
+		srv := newTestServer(t, c)
+		_, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q=alpha", http.Header{"Authorization": {"Api-Key k"}})
+		if got, want := searchIDs(t, body)["net"], []int{104, 105, 100}; !slices.Equal(got, want) {
+			t.Errorf("net ids = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("DIVERGENCE_api_search_key_not_checked", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream checks an "Api-Key <key>" header in
+		// PDBPermissionMiddleware before any view (middleware.py:
+		// 229-346): an unknown key gets 401 {"meta": {"error":
+		// "Invalid API key"}}, an inactive key 401 "Inactive API key".
+		// A user key applies the user's hide_ixs_without_fac setting
+		// to ix hits (search_v2.py:693-718). The mirror does not check
+		// keys and has no user settings, so every header with two
+		// words runs the search. See docs/API.md § Known Divergences.
+		srv := newTestServer(t, seedNameSearch(t, t0))
+		code, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q=alpha", http.Header{"Authorization": {"Api-Key not-a-key"}})
+		if code != http.StatusOK || searchIDs(t, body)["net"][0] != 100 {
+			t.Errorf("status = %d, body = %s; want 200 with the search result", code, body)
+		}
+	})
+
+	t.Run("DIVERGENCE_api_search_location_words_dropped", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream turns "near <lat>,<lon>", "near
+		// <place>" and "in <place>" into a location filter (Google
+		// geocoding, or the search index for a place name;
+		// views.py:3823-4098). With no text left, it returns up to
+		// 1000 rows near the place. The mirror has no geocoder: it
+		// removes the same words and does not filter by location, so
+		// it returns more rows, and no row when no text is left.
+		// See docs/API.md § Known Divergences.
+		srv := newTestServer(t, seedNameSearch(t, t0))
+		key := http.Header{"Authorization": {"Api-Key k"}}
+		for path, want := range map[string]map[string][]int{
+			"/api/search?q=alpha+in+London":        {"net": {100}, "campus": {400}, "carrier": {500}},
+			"/api/search?q=alpha+near+50.1,8.6":    {"net": {100}, "campus": {400}, "carrier": {500}},
+			"/api/search?q=near+Frankfurt":         {},
+			"/api/search?q=alpha&q=near+50.1,+8.6": {"net": {100}, "campus": {400}, "carrier": {500}},
+		} {
+			code, _, body := httpDo(t, srv, http.MethodGet, path, key)
+			if got := searchIDs(t, body); code != http.StatusOK || !maps.EqualFunc(got, want, slices.Equal) {
+				t.Errorf("GET %s: status = %d, ids = %v; want 200, %v", path, code, got, want)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_api_search_name_order_and_cap", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream keeps the first 1000 search hits in
+		// score order over the 6 types (SEARCH_RESULTS_LIMIT,
+		// settings/__init__.py:1516, search_v2.py:962-967) and sorts
+		// each type by score, then by lower-case name
+		// (search_v2.py:325-329). The mirror has no score: it keeps
+		// the first 1000 hits in lower-case name order over all types
+		// and sorts each type by name. See docs/API.md § Known
+		// Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		builders := make([]*ent.OrganizationCreate, 1001)
+		for i := range builders {
+			name := fmt.Sprintf("Cap %04d", 1000-i)
+			builders[i] = c.Organization.Create().SetID(i + 1).SetName(name).SetNameFold(unifold.Fold(name)).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0)
+		}
+		c.Organization.CreateBulk(builders...).SaveX(ctx)
+		mustCampus(ctx, t, c, 1, "Cap 0500 Campus", 1, t0)
+		srv := newTestServer(t, c)
+		_, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q=cap", http.Header{"Authorization": {"Api-Key k"}})
+		ids := searchIDs(t, body)
+		if len(ids["org"]) != 999 || ids["org"][0] != 1001 || ids["org"][998] != 3 {
+			t.Errorf("org: %d ids from %v to %v; want 999 ids from 1001 (Cap 0000) to 3 (Cap 0998)", len(ids["org"]), ids["org"][:1], ids["org"][len(ids["org"])-1:])
+		}
+		if !slices.Equal(ids["campus"], []int{1}) {
+			t.Errorf("campus ids = %v, want [1]", ids["campus"])
+		}
+	})
+
+	t.Run("DIVERGENCE_api_search_int_error_400", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream does not catch the ValueError of int()
+		// on a digit that is not a decimal digit (search_v2.py:385,
+		// :393), so the view answers 500. The mirror answers 400 with
+		// the Python message. See docs/API.md § Known Divergences.
+		srv := newTestServer(t, seedNameSearch(t, t0))
+		code, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q=%C2%B2", http.Header{"Authorization": {"Api-Key k"}})
+		if want := `{"error": "invalid literal for int() with base 10: '²'"}`; code != http.StatusBadRequest || string(body) != want {
+			t.Errorf("status = %d, body = %s; want 400, %s", code, body, want)
+		}
+	})
+}
+
+// searchIDs decodes an /api/search body into the ids of each type,
+// leaving out the types with no hit.
+func searchIDs(t *testing.T, body []byte) map[string][]int {
+	t.Helper()
+	var res map[string][]struct {
+		ID int `json:"id"`
+	}
+	if err := json.Unmarshal(body, &res); err != nil {
+		t.Fatalf("decode search body: %v\nbody=%s", err, body)
+	}
+	out := map[string][]int{}
+	for typ, hits := range res {
+		for _, h := range hits {
+			out[typ] = append(out[typ], h.ID)
+		}
+	}
+	return out
 }
 
 // assertNameSearchIDs checks that each request returns HTTP 200 and

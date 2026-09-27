@@ -1,11 +1,14 @@
 package parity
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -228,4 +231,71 @@ func mustDecodeProblem(t testing.TB, body []byte) problem {
 		t.Fatalf("mustDecodeProblem: %v\nbody=%s", err, string(body))
 	}
 	return p
+}
+
+// checkDRFMetadata checks the body of a DRF OPTIONS response: one data
+// row that SimpleMetadata builds (DRF metadata.py:59-72), with the keys
+// in DRF order, the name name, a description that starts with
+// descPrefix, and the upstream renders and parses. post is the field
+// order of actions.POST; nil means the row has no actions.
+func checkDRFMetadata(t testing.TB, what string, body []byte, name, descPrefix string, post []string) {
+	t.Helper()
+	var env struct {
+		Data []json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(body, &env); err != nil || len(env.Data) != 1 {
+		t.Errorf("%s: want one data row (err %v); body=%s", what, err, body)
+		return
+	}
+	wantKeys := []string{"name", "description", "renders", "parses"}
+	if post != nil {
+		wantKeys = append(wantKeys, "actions")
+	}
+	if got := objectKeys(t, env.Data[0]); !slices.Equal(got, wantKeys) {
+		t.Errorf("%s: keys = %q, want %q", what, got, wantKeys)
+	}
+	var row struct {
+		Name        string                     `json:"name"`
+		Description string                     `json:"description"`
+		Renders     []string                   `json:"renders"`
+		Parses      []string                   `json:"parses"`
+		Actions     map[string]json.RawMessage `json:"actions"`
+	}
+	if err := json.Unmarshal(env.Data[0], &row); err != nil {
+		t.Fatalf("%s: %v", what, err)
+	}
+	if row.Name != name || !strings.HasPrefix(row.Description, descPrefix) {
+		t.Errorf("%s: name = %q, description = %q; want %q, prefix %q", what, row.Name, row.Description, name, descPrefix)
+	}
+	if !slices.Equal(row.Renders, []string{"application/json"}) ||
+		!slices.Equal(row.Parses, []string{"application/json", "application/x-www-form-urlencoded", "multipart/form-data"}) {
+		t.Errorf("%s: renders = %q, parses = %q", what, row.Renders, row.Parses)
+	}
+	if post != nil {
+		if got := objectKeys(t, row.Actions["POST"]); len(row.Actions) != 1 || !slices.Equal(got, post) {
+			t.Errorf("%s: actions = %d methods, POST fields %q; want POST only with %q", what, len(row.Actions), got, post)
+		}
+	}
+}
+
+// objectKeys returns the keys of the JSON object raw in order.
+func objectKeys(t testing.TB, raw json.RawMessage) []string {
+	t.Helper()
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+		t.Fatalf("objectKeys: not an object: %s", raw)
+	}
+	var keys []string
+	for dec.More() {
+		tok, err := dec.Token()
+		if err != nil {
+			t.Fatalf("objectKeys: %v", err)
+		}
+		keys = append(keys, tok.(string))
+		var skip json.RawMessage
+		if err := dec.Decode(&skip); err != nil {
+			t.Fatalf("objectKeys: %v", err)
+		}
+	}
+	return keys
 }
