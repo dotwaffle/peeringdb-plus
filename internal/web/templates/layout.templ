@@ -85,8 +85,8 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 				.animate-fade-in { animation: fadeIn 200ms ease-out; }
 				.htmx-swapping { opacity: 0; transition: opacity 100ms ease-out; }
 				.htmx-settling { opacity: 1; transition: opacity 200ms ease-in; }
-				#spotlight-overlay { opacity: 0; transition: opacity 150ms ease-out; }
-			#spotlight-overlay.open { opacity: 1; }
+				#spotlight[open] { opacity: 1; transition: opacity 150ms ease-out; }
+				@starting-style { #spotlight[open] { opacity: 0; } }
 			#global-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 50; }
 				.htmx-request #global-indicator, .htmx-request#global-indicator { opacity: 1; transition-delay: 0ms; }
 				th[data-sortable] { cursor: pointer; user-select: none; position: relative; padding-right: 1.25rem; }
@@ -121,14 +121,14 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 				@contents
 			</main>
 			@Footer()
-		<!-- Spotlight search overlay -->
-		<div id="spotlight-overlay" class="hidden fixed inset-0 z-50" aria-modal="true" role="dialog" aria-label="Quick search">
-			<div id="spotlight-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+		<!-- Spotlight search overlay. A modal dialog: showModal() makes the page behind it inert. -->
+		<dialog id="spotlight" aria-label="Quick search" class="m-0 p-0 border-0 w-full h-full max-w-none max-h-none bg-transparent text-neutral-900 dark:text-neutral-100 backdrop:bg-black/50 backdrop:backdrop-blur-sm">
 			<div class="relative max-w-2xl mx-auto mt-[15vh] px-4">
-				<div class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+				<div id="spotlight-panel" class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 					<form id="spotlight-form">
 						<div class="relative">
-							<svg class="absolute left-4 top-3.5 h-5 w-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<label for="spotlight-input" class="sr-only">Search networks, IXPs and facilities</label>
+							<svg class="absolute left-4 top-3.5 h-5 w-5 text-neutral-600 dark:text-neutral-400" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
 							</svg>
 							<input
@@ -136,7 +136,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 								type="search"
 								name="q"
 								placeholder="Search networks, IXPs, facilities..."
-								class="w-full bg-transparent pl-12 pr-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none font-mono text-lg"
+								class="w-full bg-transparent pl-12 pr-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-2 focus:-outline-offset-2 focus:outline-emerald-600 font-mono text-lg"
 								hx-get="/ui/search"
 								hx-trigger="input changed delay:300ms"
 								hx-target="#spotlight-results"
@@ -151,7 +151,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 					<div id="spotlight-results" class="max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0"></div>
 				</div>
 			</div>
-		</div>
+		</dialog>
 		</body>
 	</html>
 }

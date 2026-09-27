@@ -245,38 +245,30 @@ function searchResultKeys(e, input, container) {
 	});
 })();
 
-// Spotlight search: "/" to open, Escape to close.
+// Spotlight search: "/" opens it, Escape closes it. The overlay is a
+// modal <dialog>: showModal() makes the rest of the page inert, the
+// browser closes it on Escape, and closing it returns focus to the
+// element that had focus before.
 (function () {
 	document.addEventListener('DOMContentLoaded', function () {
-		var overlay = document.getElementById('spotlight-overlay');
-		var backdrop = document.getElementById('spotlight-backdrop');
+		var dialog = document.getElementById('spotlight');
+		var panel = document.getElementById('spotlight-panel');
 		var input = document.getElementById('spotlight-input');
 		var resultsContainer = document.getElementById('spotlight-results');
 		var form = document.getElementById('spotlight-form');
-		if (!overlay || !backdrop || !input || !resultsContainer || !form) return;
-
-		function isOpen() {
-			return overlay.classList.contains('open');
-		}
+		if (!dialog || !panel || !input || !resultsContainer || !form) return;
+		if (typeof dialog.showModal !== 'function') return;
 
 		function open() {
-			overlay.classList.remove('hidden');
-			// Force reflow so the transition triggers.
-			overlay.offsetHeight;
-			overlay.classList.add('open');
 			input.value = '';
 			resultsContainer.replaceChildren();
+			dialog.showModal();
 			input.focus();
-		}
-
-		function close() {
-			overlay.classList.remove('open');
-			setTimeout(function () { overlay.classList.add('hidden'); }, 150);
 		}
 
 		function isInputFocused() {
 			var el = document.activeElement;
-			return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+			return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 		}
 
 		// Numeric ASN redirect from spotlight; non-numeric submits are
@@ -285,32 +277,28 @@ function searchResultKeys(e, input, container) {
 			event.preventDefault();
 			var q = input.value.trim();
 			if (/^\d+$/.test(q)) {
-				close();
+				dialog.close();
 				window.location.href = '/ui/asn/' + q;
 			}
 		});
 
+		// "/" opens spotlight when not typing in a form field.
 		document.addEventListener('keydown', function (e) {
-			// "/" opens spotlight when not typing in an input.
-			if (e.key === '/' && !isOpen() && !isInputFocused()) {
+			if (e.key === '/' && !dialog.open && !isInputFocused()) {
 				e.preventDefault();
 				open();
-				return;
 			}
-
-			if (!isOpen()) return;
-
-			// Escape closes spotlight.
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				close();
-				return;
-			}
-
-			searchResultKeys(e, input, resultsContainer);
 		});
 
-		// Close on backdrop click.
-		backdrop.addEventListener('click', close);
+		// Escape is left to the dialog, which closes on it.
+		dialog.addEventListener('keydown', function (e) {
+			if (e.key !== 'Escape') searchResultKeys(e, input, resultsContainer);
+		});
+
+		// A click outside the panel lands on the dialog box, which covers
+		// the viewport, and closes it.
+		dialog.addEventListener('click', function (e) {
+			if (!panel.contains(e.target)) dialog.close();
+		});
 	});
 })();

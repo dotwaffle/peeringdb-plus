@@ -197,3 +197,37 @@ func TestTemplates_TextContrast(t *testing.T) {
 		t.Fatal("no text colors found")
 	}
 }
+
+// TestLayout_SpotlightDialog checks that the spotlight overlay is a
+// modal dialog with an accessible name and a labeled input, and that
+// ui.js opens it with showModal(), which makes the page behind it inert.
+func TestLayout_SpotlightDialog(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	for _, want := range []string{
+		`<dialog id="spotlight" aria-label="Quick search"`,
+		`<label for="spotlight-input" class="sr-only">`,
+		`id="spotlight-panel"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page has no %q", want)
+		}
+	}
+	if strings.Contains(body, "aria-modal") {
+		t.Error("page still sets aria-modal; the dialog element is modal by itself")
+	}
+
+	js, err := fs.ReadFile(StaticFS, "ui.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(js), "dialog.showModal()") {
+		t.Error("ui.js does not open the spotlight with showModal()")
+	}
+}
