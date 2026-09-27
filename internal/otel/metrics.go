@@ -126,6 +126,13 @@ var PeeringDBRateLimitWaitMS metric.Float64Histogram
 // RoleTransitions counts LiteFS role transition events (promoted/demoted).
 var RoleTransitions metric.Int64Counter
 
+// CSPReports counts the Content-Security-Policy violation reports that
+// browsers send to /csp-report, by directive. The directive comes from
+// a fixed list, and any other value counts as "other", because the
+// report body is client input.
+// Cardinality: at most 20 series.
+var CSPReports metric.Int64Counter
+
 func init() {
 	BindInstruments()
 }
@@ -210,6 +217,10 @@ func BindInstruments() {
 	RoleTransitions = mustInt64Counter("pdbplus.role.transitions",
 		metric.WithDescription("Role transition events (promoted/demoted)"),
 		metric.WithUnit("{event}"),
+	)
+	CSPReports = mustInt64Counter("pdbplus.csp.reports",
+		metric.WithDescription("Content-Security-Policy violation reports received, by directive"),
+		metric.WithUnit("{report}"),
 	)
 	ResponseHeapDeltaBytes = mustInt64Histogram("pdbplus.response.heap_delta",
 		metric.WithDescription("Per-request Go heap HeapInuse delta on pdbcompat list handlers, in bytes"),

@@ -34,6 +34,7 @@ Replica instances reject the request with a `fly-replay` header that routes the 
 | `GET` | `/healthz` | Health | Liveness probe (always `200`) |
 | `GET` | `/readyz` | Health | Readiness probe (checks the DB and the age of the last successful sync) |
 | `POST` | `/sync` | Admin | On-demand sync trigger (primary only, token-gated) |
+| `POST` | `/csp-report` | CSP reports | Receives the CSP violation reports of the `/ui/` and `/graphql` pages. Answers `204` |
 | `GET` | `/favicon.ico` | Static | Favicon served from embedded `internal/web/static/` |
 | `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/`. A second group names the AI training, search and assistant crawlers (GPTBot, ClaudeBot, Google-Extended, CCBot and others) with the same rules |
 | `GET` | `/static/*` | Static | Embedded UI assets (CSS, JS, images) |

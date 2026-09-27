@@ -14,6 +14,12 @@ type CSPInput struct {
 	// Typically more permissive than UIPolicy (e.g. allows unsafe-eval for GraphiQL).
 	GraphQLPolicy string
 
+	// ReportPath, when set, is the same-origin path that receives
+	// violation reports. Both policies then name it in report-uri and,
+	// through the "csp" reporting endpoint, in report-to, and responses
+	// that carry a policy also send Reporting-Endpoints.
+	ReportPath string
+
 	// EnforcingMode selects the CSP header name. When true, the middleware
 	// sets "Content-Security-Policy" (enforcing). When false, it sets
 	// "Content-Security-Policy-Report-Only" (report-only). The policy
@@ -34,13 +40,29 @@ func CSP(in CSPInput) func(http.Handler) http.Handler {
 	if in.EnforcingMode {
 		headerName = "Content-Security-Policy"
 	}
+	uiPolicy, graphQLPolicy, reportingEndpoints := in.UIPolicy, in.GraphQLPolicy, ""
+	if in.ReportPath != "" {
+		// report-uri is for browsers without the Reporting API; a
+		// browser that supports report-to ignores report-uri.
+		reporting := "; report-uri " + in.ReportPath + "; report-to csp"
+		uiPolicy += reporting
+		graphQLPolicy += reporting
+		reportingEndpoints = `csp="` + in.ReportPath + `"`
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			policy := ""
 			switch {
 			case r.URL.Path == "/ui" || strings.HasPrefix(r.URL.Path, "/ui/"):
-				w.Header().Set(headerName, in.UIPolicy)
+				policy = uiPolicy
 			case strings.HasPrefix(r.URL.Path, "/graphql"):
-				w.Header().Set(headerName, in.GraphQLPolicy)
+				policy = graphQLPolicy
+			}
+			if policy != "" {
+				w.Header().Set(headerName, policy)
+				if reportingEndpoints != "" {
+					w.Header().Set("Reporting-Endpoints", reportingEndpoints)
+				}
 			}
 
 			next.ServeHTTP(w, r)

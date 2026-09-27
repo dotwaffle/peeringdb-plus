@@ -700,6 +700,15 @@ func main() {
 	mux.HandleFunc("GET /{$}", rootHandler)
 	mux.HandleFunc("HEAD /{$}", rootHandler)
 
+	// Browsers send the violation reports of the UI and GraphiQL
+	// policies here. The endpoint takes anonymous input: the log is
+	// rate-limited and the counter label comes from a fixed list.
+	mux.Handle("POST "+cspReportPath, newCSPReportHandler(cspReportInput{
+		Logger:   logger,
+		LogLimit: newCSPReportLogLimit(),
+		Count:    countCSPReport,
+	}))
+
 	// Build middleware stack (outermost first):
 	// Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag -> mux
 	//
@@ -726,6 +735,7 @@ func main() {
 			// validated map tile origin.
 			UIPolicy:      uiCSPPolicy(cfg.MapTiles.CSPSource()),
 			GraphQLPolicy: graphQLCSPPolicy,
+			ReportPath:    cspReportPath,
 			EnforcingMode: cfg.CSPEnforce,
 		},
 		CachingState: cachingState,
