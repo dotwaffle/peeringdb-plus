@@ -136,11 +136,9 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 			// Embedded static assets change only on deploy, never on
 			// sync, so the version-keyed ETag is the wrong key: it
 			// would invalidate every stylesheet and script each sync
-			// cycle. A fixed day-long public max-age is appropriate for
-			// content this stable (and self-corrects within a day of a
-			// deploy that changes an asset).
-			if strings.HasPrefix(r.URL.Path, "/static/") {
-				w.Header().Set("Cache-Control", "public, max-age=86400")
+			// cycle. The web static handler sets a content ETag and
+			// the Cache-Control of each file.
+			if strings.HasPrefix(r.URL.Path, "/static/") || r.URL.Path == "/favicon.ico" {
 				next.ServeHTTP(w, r)
 				return
 			}

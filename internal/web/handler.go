@@ -95,14 +95,11 @@ func NewHandler(in NewHandlerInput) *Handler {
 // A single wildcard pattern dispatches all /ui/ paths internally,
 // following the pdbcompat handler pattern.
 func (h *Handler) Register(mux *http.ServeMux) {
-	mux.Handle("GET /static/", http.StripPrefix("/static/",
-		http.FileServerFS(StaticFS)))
+	assets := staticHandler()
+	mux.Handle("GET /static/", http.StripPrefix("/static/", assets))
 
 	// Serve favicon.ico at root for browsers that request it directly.
-	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = "/favicon.ico"
-		http.FileServerFS(StaticFS).ServeHTTP(w, r)
-	})
+	mux.Handle("GET /favicon.ico", assets)
 
 	// robots.txt: everything is crawlable except the htmx fragment
 	// endpoints, which serve partial HTML that is useless as a search

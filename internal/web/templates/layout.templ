@@ -1,6 +1,9 @@
 package templates
 
-import "github.com/dotwaffle/peeringdb-plus/internal/maptiles"
+import (
+	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
+	"github.com/dotwaffle/peeringdb-plus/internal/web/static"
+)
 
 // LayoutOptions carries per-page head configuration for Layout.
 // NeedsMap gates the Leaflet/markercluster includes: only the pages
@@ -19,12 +22,12 @@ type LayoutOptions struct {
 // cluster theme. Scripts are synchronous on purpose: map-init.js needs
 // the L global defined before it runs.
 templ mapHead() {
-	<link rel="stylesheet" href="/static/leaflet.css"/>
-	<link rel="stylesheet" href="/static/MarkerCluster.css"/>
-	<link rel="stylesheet" href="/static/MarkerCluster.Default.css"/>
-	<script src="/static/leaflet.js"></script>
-	<script src="/static/leaflet.markercluster.js"></script>
-	<script src="/static/map-init.js"></script>
+	<link rel="stylesheet" href={ static.URL("leaflet.css") }/>
+	<link rel="stylesheet" href={ static.URL("MarkerCluster.css") }/>
+	<link rel="stylesheet" href={ static.URL("MarkerCluster.Default.css") }/>
+	<script src={ static.URL("leaflet.js") }></script>
+	<script src={ static.URL("leaflet.markercluster.js") }></script>
+	<script src={ static.URL("map-init.js") }></script>
 	<style>
 		/* Markercluster emerald theme */
 		.marker-cluster-small { background-color: rgba(16, 185, 129, 0.3); }
@@ -61,14 +64,14 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 				<link rel="canonical" href={ opts.Canonical }/>
 				<meta property="og:url" content={ opts.Canonical }/>
 			}
-			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
-			<link rel="icon" type="image/x-icon" href="/static/favicon.ico"/>
-			<script src="/static/theme-init.js"></script>
-			<link rel="stylesheet" href="/static/tailwind.css"/>
-			<link rel="stylesheet" href="/static/flag-icons/css/flag-icons.min.css"/>
+			<link rel="icon" type="image/svg+xml" href={ static.URL("favicon.svg") }/>
+			<link rel="icon" type="image/x-icon" href={ static.URL("favicon.ico") }/>
+			<script src={ static.URL("theme-init.js") }></script>
+			<link rel="stylesheet" href={ static.URL("tailwind.css") }/>
+			<link rel="stylesheet" href={ static.URL("flag-icons/css/flag-icons.min.css") }/>
 			<meta name="htmx-config" content='{"history":"reload","noSwap":[204,304,"4xx","5xx"]}'/>
-			<script src="/static/htmx.min.js"></script>
-			<script src="/static/ui.js" defer></script>
+			<script src={ static.URL("htmx.min.js") }></script>
+			<script src={ static.URL("ui.js") } defer></script>
 			if opts.NeedsMap {
 				<meta name="pdbplus-map-tile-url" content={ opts.MapTiles.URL }/>
 				<meta name="pdbplus-map-tile-attribution" content={ opts.MapTiles.Attribution }/>

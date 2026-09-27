@@ -585,7 +585,8 @@ Outermost first:
 11. **Caching** (`internal/middleware/caching.go`) handles GET and HEAD only:
     - `/skills/*`: no change.
       The skill handlers set their own ETags.
-    - `/static/*`: `Cache-Control: public, max-age=86400`.
+    - `/static/*` and `/favicon.ico`: no change.
+      The static handler sets a weak content ETag, `public, max-age=31536000, immutable` for a request with the current `?v=` content version, and `public, max-age=86400` for others.
     - `/ui/about`, `/healthz` and `/readyz`: `Cache-Control: no-store`.
       (`/ui/about` renders relative timestamps
       that would freeze under a version key.)

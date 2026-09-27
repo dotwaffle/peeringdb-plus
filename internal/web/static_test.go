@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/web/static"
 )
 
 // TestFlagIcons_SelfHosted checks that pages load the flag-icons
@@ -27,7 +29,7 @@ func TestFlagIcons_SelfHosted(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 	body := rec.Body.String()
 	const css = "/static/flag-icons/css/flag-icons.min.css"
-	if !strings.Contains(body, `href="`+css+`"`) {
+	if !strings.Contains(body, `href="`+css+`?v=`) {
 		t.Errorf("home page does not link %s", css)
 	}
 	if strings.Contains(body, "cdn.jsdelivr.net") {
@@ -329,5 +331,65 @@ func TestTemplates_FocusOutline(t *testing.T) {
 				t.Errorf("%s: uses %s; use an outline for the focus indicator", f, bad)
 			}
 		}
+	}
+}
+
+// TestStaticAssets_Versioned checks the caching of the embedded files.
+// Pages link each file with its content version, a request with that
+// version may keep the file for a year, and every file has a weak
+// content ETag that answers If-None-Match with 304.
+func TestStaticAssets_Versioned(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	for _, name := range []string{"tailwind.css", "ui.js", "htmx.min.js", "theme-init.js", "favicon.svg"} {
+		want := "/static/" + name + "?v=" + static.Version(name) + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("home page does not link %s", want)
+		}
+	}
+	if regexp.MustCompile(`(href|src)="/static/[^"?]+"`).MatchString(body) {
+		t.Error("home page links a static file without its version")
+	}
+
+	v := static.Version("ui.js")
+	etag := `W/"` + v + `"`
+	for _, tt := range []struct {
+		path, cacheControl string
+	}{
+		{"/static/ui.js?v=" + v, "public, max-age=31536000, immutable"},
+		{"/static/ui.js", "public, max-age=86400"},
+		{"/static/ui.js?v=000000000000", "public, max-age=86400"},
+	} {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tt.path, nil))
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: status = %d, want 200", tt.path, rec.Code)
+		}
+		if got := rec.Header().Get("Cache-Control"); got != tt.cacheControl {
+			t.Errorf("%s: Cache-Control = %q, want %q", tt.path, got, tt.cacheControl)
+		}
+		if got := rec.Header().Get("ETag"); got != etag {
+			t.Errorf("%s: ETag = %q, want %q", tt.path, got, etag)
+		}
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/static/ui.js", nil)
+	req.Header.Set("If-None-Match", etag)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotModified {
+		t.Errorf("If-None-Match: status = %d, want 304", rec.Code)
+	}
+
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/favicon.ico", nil))
+	if got, want := rec.Header().Get("ETag"), `W/"`+static.Version("favicon.ico")+`"`; got != want {
+		t.Errorf("favicon.ico: ETag = %q, want %q", got, want)
 	}
 }

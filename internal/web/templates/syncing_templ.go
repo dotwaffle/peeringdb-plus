@@ -8,6 +8,8 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "github.com/dotwaffle/peeringdb-plus/internal/web/static"
+
 // SyncingPage renders a standalone page shown by readiness middleware
 // before the first sync completes. It is self-contained with its own
 // DOCTYPE, head, and styling because it renders outside the normal
@@ -33,7 +35,46 @@ func SyncingPage() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><meta http-equiv=\"refresh\" content=\"10\"><title>Syncing - PeeringDB Plus</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/static/favicon.svg\"><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><link rel=\"stylesheet\" href=\"/static/tailwind.css\"><style>\n\t\t\t\tbody { background-color: #171717; color: #f5f5f5; }\n\t\t\t\t@keyframes pulse {\n\t\t\t\t\t0%, 100% { opacity: 1; }\n\t\t\t\t\t50% { opacity: 0.4; }\n\t\t\t\t}\n\t\t\t\t.animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }\n\t\t\t</style></head><body><div class=\"min-h-screen bg-neutral-900 flex items-center justify-center\"><div class=\"text-center\"><h1 class=\"text-4xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-6\">PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-400 text-lg mb-8\">Syncing data...</p><div class=\"flex justify-center space-x-2\"><div class=\"w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow\"></div><div class=\"w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow\" style=\"animation-delay: 0.3s\"></div><div class=\"w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow\" style=\"animation-delay: 0.6s\"></div></div><p class=\"text-neutral-600 dark:text-neutral-400 text-sm mt-8\">This page refreshes automatically.</p></div></div></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><meta http-equiv=\"refresh\" content=\"10\"><title>Syncing - PeeringDB Plus</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var2 templ.SafeURL
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(static.URL("favicon.svg"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `syncing.templ`, Line: 17, Col: 73}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><link rel=\"icon\" type=\"image/x-icon\" href=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var3 templ.SafeURL
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(static.URL("favicon.ico"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `syncing.templ`, Line: 18, Col: 72}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><link rel=\"stylesheet\" href=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var4 templ.SafeURL
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(static.URL("tailwind.css"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `syncing.templ`, Line: 19, Col: 59}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><style>\n\t\t\t\tbody { background-color: #171717; color: #f5f5f5; }\n\t\t\t\t@keyframes pulse {\n\t\t\t\t\t0%, 100% { opacity: 1; }\n\t\t\t\t\t50% { opacity: 0.4; }\n\t\t\t\t}\n\t\t\t\t.animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }\n\t\t\t</style></head><body><div class=\"min-h-screen bg-neutral-900 flex items-center justify-center\"><div class=\"text-center\"><h1 class=\"text-4xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-6\">PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-400 text-lg mb-8\">Syncing data...</p><div class=\"flex justify-center space-x-2\"><div class=\"w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow\"></div><div class=\"w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow\" style=\"animation-delay: 0.3s\"></div><div class=\"w-3 h-3 bg-emerald-500 rounded-full animate-pulse-slow\" style=\"animation-delay: 0.6s\"></div></div><p class=\"text-neutral-600 dark:text-neutral-400 text-sm mt-8\">This page refreshes automatically.</p></div></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

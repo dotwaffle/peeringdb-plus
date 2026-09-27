@@ -1,8 +1,10 @@
 package web
 
 import (
-	"embed"
-	"io/fs"
+	"net/http"
+	"strings"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/web/static"
 )
 
 // Compile the static Tailwind stylesheet from the templates tree.
@@ -11,14 +13,36 @@ import (
 // gate re-runs this and fails on any difference.
 //go:generate tailwindcss -i tailwind.input.css -o static/tailwind.css --minify
 
-// static/flag-icons is flag-icons 7.5.0 (MIT, static/flag-icons/LICENSE)
-// from the npm tarball: the 4x3 flags, and css/flag-icons.min.css without
-// the 1x1 (".fis") rules, whose flags are not vendored. The UI uses only
-// the "fi fi-<cc>" classes (templates.CountryFlag).
-//
-//go:embed static
-var staticFiles embed.FS
+// StaticFS provides access to the embedded static files (htmx.min.js,
+// etc.) at their base names.
+var StaticFS = static.FS
 
-// StaticFS provides access to embedded static files (htmx.min.js, etc.)
-// with the "static/" prefix stripped so files are served at their base names.
-var StaticFS, _ = fs.Sub(staticFiles, "static")
+// Cache-Control values of the static files. A request with the current
+// content version in v may keep the file for a year, because a new
+// version has a new URL. Other requests (relative URLs inside the
+// stylesheets, favicon.ico, an old v after a deploy) keep it for a day
+// and can revalidate it with the ETag.
+const (
+	staticCacheVersioned   = "public, max-age=31536000, immutable"
+	staticCacheUnversioned = "public, max-age=86400"
+)
+
+// staticHandler serves the embedded files. r.URL.Path is the file name
+// relative to the static directory, with or without a leading slash.
+// Each file gets a weak ETag of its content: weak, because the
+// compression middleware sends a gzip body under the same tag.
+// http.FileServerFS answers a matching If-None-Match with 304.
+func staticHandler() http.Handler {
+	files := http.FileServerFS(StaticFS)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if v := static.Version(strings.TrimPrefix(r.URL.Path, "/")); v != "" {
+			w.Header().Set("ETag", `W/"`+v+`"`)
+			if r.URL.Query().Get("v") == v {
+				w.Header().Set("Cache-Control", staticCacheVersioned)
+			} else {
+				w.Header().Set("Cache-Control", staticCacheUnversioned)
+			}
+		}
+		files.ServeHTTP(w, r)
+	})
+}

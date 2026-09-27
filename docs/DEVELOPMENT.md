@@ -412,7 +412,12 @@ The web UI uses a single wildcard `GET /ui/{rest...}` route that internally disp
    and the seed helpers in `internal/web/detail_test.go`.
 
 Static assets (CSS, JavaScript, images, favicon) are in `internal/web/static/`.
-The server embeds them and serves them at `/static/`.
+The `static` package in that directory embeds them, and the server serves them at `/static/`.
+A new file type needs a pattern in the `//go:embed` line of `static.go`.
+Link an asset from a template with `static.URL("<name>")`, which adds the content version (`?v=`).
+A request with the current version gets `Cache-Control: public, max-age=31536000, immutable`.
+Other requests get a one-day max-age.
+Every file has a weak ETag of its content.
 `static/tailwind.css` is generated from `internal/web/tailwind.input.css`.
 Do not edit it by hand.
 
