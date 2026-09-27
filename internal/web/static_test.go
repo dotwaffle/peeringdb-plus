@@ -53,3 +53,34 @@ func TestFlagIcons_SelfHosted(t *testing.T) {
 		t.Errorf("de.svg: status %d, Content-Type %q; want 200 image/svg+xml", rec.Code, rec.Header().Get("Content-Type"))
 	}
 }
+
+// TestLayout_ReducedMotion checks that every page carries the
+// prefers-reduced-motion rule, after the transition rules that it must
+// override, and that the map script reads the same setting.
+func TestLayout_ReducedMotion(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	rule := strings.Index(body, "@media (prefers-reduced-motion: reduce)")
+	if rule < 0 {
+		t.Fatal("page has no prefers-reduced-motion rule")
+	}
+	for _, earlier := range []string{".htmx-settling {", "html.theme-transition, html.theme-transition *"} {
+		if i := strings.Index(body, earlier); i < 0 || i > rule {
+			t.Errorf("%q must come before the reduced-motion rule", earlier)
+		}
+	}
+
+	js, err := fs.ReadFile(StaticFS, "map-init.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(js), "prefers-reduced-motion: reduce") {
+		t.Error("map-init.js does not read prefers-reduced-motion")
+	}
+}
