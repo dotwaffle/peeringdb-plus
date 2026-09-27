@@ -1913,3 +1913,23 @@ func TestDispatch_DiscoveryLink(t *testing.T) {
 		}
 	}
 }
+
+// TestHome_CardLinksOpenInBrowser checks that no home page card links
+// /mcp, which answers a browser GET with 405, and that the MCP card
+// opens the server card.
+func TestHome_CardLinksOpenInBrowser(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if strings.Contains(body, `href="/mcp"`) {
+		t.Error(`home page links /mcp, which answers GET with 405`)
+	}
+	if !strings.Contains(body, `href="/.well-known/mcp/server-card.json"`) {
+		t.Error("home page does not link the MCP server card")
+	}
+}

@@ -72,7 +72,9 @@ var apiSurfaces = []surfaceCard{
 	{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI REST endpoints, with interactive documentation at /rest/v1/docs."},
 	{Title: "ConnectRPC / gRPC", Desc: "Get, List, and Stream RPCs for all 13 PeeringDB types, with typed filters, reflection, and health checks. Supports the Connect, gRPC, and gRPC-Web protocols. Use buf curl or grpcurl."},
 	{Href: "/api/", Title: "PeeringDB API", Desc: "Read-only PeeringDB-compatible API for existing PeeringDB clients."},
-	{Href: "/mcp", Title: "MCP", Desc: "Model Context Protocol server with read-only tools, resources, and prompts for network research agents."},
+	// /mcp answers POST only, so the card opens the server card, which
+	// names the endpoint and lists the tools.
+	{Href: "/.well-known/mcp/server-card.json", Title: "MCP", Desc: "Model Context Protocol server at /mcp with read-only tools, resources, and prompts for network research agents. Opens the server card."},
 	{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Download an installable skill configured for this deployment."},
 }
 
@@ -108,7 +110,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var3 templ.SafeURL
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(c.Href))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 44, Col: 34}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 46, Col: 34}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -121,7 +123,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(c.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 45, Col: 97}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 47, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -134,7 +136,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.Desc)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 46, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 48, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -152,7 +154,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 50, Col: 97}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 52, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -165,7 +167,7 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(c.Desc)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 51, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 53, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -211,7 +213,7 @@ func SearchForm(query string, groups []SearchGroup) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(query)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 70, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 72, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {

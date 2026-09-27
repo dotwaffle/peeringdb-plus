@@ -32,7 +32,9 @@ var apiSurfaces = []surfaceCard{
 	{Href: "/rest/v1/", Title: "REST API", Desc: "OpenAPI REST endpoints, with interactive documentation at /rest/v1/docs."},
 	{Title: "ConnectRPC / gRPC", Desc: "Get, List, and Stream RPCs for all 13 PeeringDB types, with typed filters, reflection, and health checks. Supports the Connect, gRPC, and gRPC-Web protocols. Use buf curl or grpcurl."},
 	{Href: "/api/", Title: "PeeringDB API", Desc: "Read-only PeeringDB-compatible API for existing PeeringDB clients."},
-	{Href: "/mcp", Title: "MCP", Desc: "Model Context Protocol server with read-only tools, resources, and prompts for network research agents."},
+	// /mcp answers POST only, so the card opens the server card, which
+	// names the endpoint and lists the tools.
+	{Href: "/.well-known/mcp/server-card.json", Title: "MCP", Desc: "Model Context Protocol server at /mcp with read-only tools, resources, and prompts for network research agents. Opens the server card."},
 	{Href: "/skills/peeringdb-plus.zip", Title: "Agent Skill", Desc: "Download an installable skill configured for this deployment."},
 }
 
