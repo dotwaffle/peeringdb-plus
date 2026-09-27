@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -755,6 +756,17 @@ func TestCompareResultsPage_FullView(t *testing.T) {
 	// Full view should show non-shared facilities like Equinix AM5.
 	if !strings.Contains(body, "Equinix AM5") {
 		t.Error("full view should include non-shared facilities like Equinix AM5")
+	}
+	// A row that one network has carries an "AS<n> only" label at full
+	// contrast. Reduced opacity took its text below 4.5:1.
+	for _, name := range []string{"AMS-IX", "Equinix AM5"} {
+		only := regexp.MustCompile(regexp.QuoteMeta(name) + `\s*</a><span class="ml-2 text-xs text-neutral-600 dark:text-neutral-400">AS(13335|15169) only</span>`)
+		if !only.MatchString(body) {
+			t.Errorf("full view row %s has no AS<n> only label", name)
+		}
+	}
+	if strings.Contains(body, "opacity-40") {
+		t.Error("full view still dims rows with opacity-40")
 	}
 }
 

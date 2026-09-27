@@ -160,12 +160,13 @@ templ compareIXPsSection(data CompareData) {
 							<tr><td colspan="9" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No IX presences found.</td></tr>
 						}
 						for _, ix := range data.AllIXPs {
-							<tr class={ compareRowClasses(ix.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+							<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(ix.IXName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
 										class="text-sky-700 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium transition-colors">
 										{ ix.IXName }
 									</a>
+									@compareOnlyLabel(ix.Shared, ix.NetA != nil, data)
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ speedSortValue(ix.NetA) }>
 									if ix.NetA != nil && ix.NetA.Speed > 0 {
@@ -236,7 +237,7 @@ templ compareIXPsSection(data CompareData) {
 							<tr><td colspan="9" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No shared IX presences found.</td></tr>
 						}
 						for _, ix := range data.SharedIXPs {
-							<tr class={ compareRowClasses(ix.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+							<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(ix.IXName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
 										class="text-sky-700 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium transition-colors">
@@ -345,12 +346,13 @@ templ compareFacilitiesSection(data CompareData) {
 							<tr><td colspan="5" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No facility presences found.</td></tr>
 						}
 						for _, fac := range data.AllFacilities {
-							<tr class={ compareRowClasses(fac.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+							<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.FacName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
 										class="text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 font-medium transition-colors">
 										{ fac.FacName }
 									</a>
+									@compareOnlyLabel(fac.Shared, fac.NetA != nil, data)
 								</td>
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.Country) }>
 									@CountryFlag(fac.Country)
@@ -379,7 +381,7 @@ templ compareFacilitiesSection(data CompareData) {
 							<tr><td colspan="5" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No shared facility presences found.</td></tr>
 						}
 						for _, fac := range data.SharedFacilities {
-							<tr class={ compareRowClasses(fac.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
+							<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.FacName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
 										class="text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 font-medium transition-colors">
@@ -524,11 +526,17 @@ func facASNSortValue(p *CompareFacPresence) string {
 	return fmt.Sprintf("%d", p.LocalASN)
 }
 
-// compareRowClasses returns CSS classes for a comparison row.
-// Non-shared rows in full view are dimmed with reduced opacity.
-func compareRowClasses(shared bool) string {
-	if shared {
-		return ""
+// compareOnlyLabel marks a full-view row that only one network has with
+// "AS<n> only". The row keeps its full text contrast; reduced opacity
+// would take its text below a 4.5:1 contrast ratio.
+templ compareOnlyLabel(shared, inA bool, data CompareData) {
+	if !shared {
+		<span class="ml-2 text-xs text-neutral-600 dark:text-neutral-400">
+			if inA {
+				{ fmt.Sprintf("AS%d only", data.NetA.ASN) }
+			} else {
+				{ fmt.Sprintf("AS%d only", data.NetB.ASN) }
+			}
+		</span>
 	}
-	return "opacity-40"
 }

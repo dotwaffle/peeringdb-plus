@@ -184,7 +184,7 @@ For machine-readable output, use one of the structured API surfaces (`/api/`, `/
 | `GET /ui/about` | Application version, optional serving region, privacy mode, and sync freshness. The region row is omitted outside environments that provide one. Opted out of response caching in `middleware.NewCachingState` because it renders relative time (e.g. "5 minutes ago") |
 | `GET /ui/compare` | ASN comparison form. `?asn1=` and `?asn2=` pre-fill the form. When both are valid ASNs, as in a form submit, the response is a `303` redirect to `/ui/compare/{asn1}/{asn2}` |
 | `GET /ui/compare/{asn1}` | Pre-fills the form with `asn1`, awaits `asn2` |
-| `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union with shared-flag highlighting. Any other `view` value falls back to the shared view. |
+| `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union, and a row that only one network has carries an `AS<n> only` label. Any other `view` value falls back to the shared view. |
 | `GET /ui/completions/bash` | Installable bash completion script |
 | `GET /ui/completions/zsh` | Installable zsh completion script |
 | `GET /ui/completions/search?q=&type=` | Newline-separated identifiers for the shell completion scripts: the ASN for `net`, and the numeric ID for `ix`, `fac`, `org`, `campus` and `carrier`. Up to 10 for each type. `type` is optional. A `q` shorter than 2 characters returns an empty body |
