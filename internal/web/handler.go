@@ -15,7 +15,6 @@ import (
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/internal/catalog"
-	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/maptiles"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 	"github.com/dotwaffle/peeringdb-plus/internal/web/templates"
@@ -31,6 +30,12 @@ func parseASN(s string) (uint32, bool) {
 		return 0, false
 	}
 	return uint32(asn), true
+}
+
+// invalidASNDetail is the reason on the 400 page for a URL whose ASN
+// does not parse.
+func invalidASNDetail(s string) string {
+	return fmt.Sprintf("Invalid ASN %q: it must be a number from 1 to 4294967295.", s)
 }
 
 // Handler serves web UI pages.
@@ -329,6 +334,16 @@ func (h *Handler) handleNotFound(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleBadRequest renders the styled 400 page for a UI URL whose
+// identifier is not valid. Browsers get the page in the layout, and
+// terminal and JSON clients get the same reason in their format.
+func (h *Handler) handleBadRequest(w http.ResponseWriter, r *http.Request, detail string) {
+	page := PageContent{Title: "Bad Request", Kind: KindBadRequest, Detail: detail, Content: templates.BadRequestPage(detail), Status: http.StatusBadRequest}
+	if err := renderPage(r.Context(), w, r, page); err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
+}
+
 // statusClientClosedRequest is the nginx status for a request that the
 // client closed before the response. net/http has no constant for it.
 const statusClientClosedRequest = 499
@@ -398,11 +413,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 
 	asn1, ok := parseASN(parts[0])
 	if !ok {
-		httperr.WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", parts[0]),
-			Instance: r.URL.Path,
-		})
+		h.handleBadRequest(w, r, invalidASNDetail(parts[0]))
 		return
 	}
 
@@ -421,11 +432,7 @@ func (h *Handler) handleCompare(w http.ResponseWriter, r *http.Request, path str
 	// /ui/compare/{asn1}/{asn2} -- show results.
 	asn2, ok := parseASN(parts[1])
 	if !ok {
-		httperr.WriteProblem(w, httperr.WriteProblemInput{
-			Status:   http.StatusBadRequest,
-			Detail:   fmt.Sprintf("invalid ASN %q: must be between 1 and 4294967295", parts[1]),
-			Instance: r.URL.Path,
-		})
+		h.handleBadRequest(w, r, invalidASNDetail(parts[1]))
 		return
 	}
 

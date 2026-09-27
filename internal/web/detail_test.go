@@ -927,6 +927,7 @@ func TestPages_HeadingOrder(t *testing.T) {
 		{all, "/ui/campus/40"},
 		{all, "/ui/carrier/50"},
 		{all, "/ui/asn/99999"},
+		{all, "/ui/asn/abc"},
 		{compare, "/ui/compare"},
 		{compare, "/ui/compare/13335/15169"},
 	} {

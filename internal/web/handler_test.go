@@ -1641,6 +1641,78 @@ func TestASNValidation(t *testing.T) {
 	}
 }
 
+// TestBadRequestPage_Negotiated checks that a UI URL with an invalid
+// ASN gets a 400 in the client's format: the styled page for a browser,
+// text for a terminal client, and a problem document for a JSON client.
+func TestBadRequestPage_Negotiated(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		name        string
+		path        string
+		userAgent   string
+		accept      string
+		contentType string
+		want        []string
+	}{
+		{
+			name:        "browser detail",
+			path:        "/ui/asn/abc",
+			userAgent:   "Mozilla/5.0",
+			accept:      "text/html",
+			contentType: "text/html; charset=utf-8",
+			want:        []string{"<!doctype html>", "Bad request", `Invalid ASN &#34;abc&#34;`, `id="search-form"`},
+		},
+		{
+			name:        "browser compare",
+			path:        "/ui/compare/13335/x",
+			userAgent:   "Mozilla/5.0",
+			accept:      "text/html",
+			contentType: "text/html; charset=utf-8",
+			want:        []string{"<!doctype html>", "Bad request", `Invalid ASN &#34;x&#34;`},
+		},
+		{
+			name:        "terminal",
+			path:        "/ui/asn/abc",
+			userAgent:   "curl/8.0",
+			contentType: "text/plain; charset=utf-8",
+			want:        []string{"400 Bad Request", `Invalid ASN "abc"`},
+		},
+		{
+			name:        "json",
+			path:        "/ui/asn/abc?format=json",
+			userAgent:   "curl/8.0",
+			contentType: "application/json; charset=utf-8",
+			want:        []string{`"status": 400`, `Invalid ASN \"abc\"`},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req.Header.Set("User-Agent", tt.userAgent)
+			if tt.accept != "" {
+				req.Header.Set("Accept", tt.accept)
+			}
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want 400", rec.Code)
+			}
+			if got := rec.Header().Get("Content-Type"); got != tt.contentType {
+				t.Errorf("Content-Type = %q, want %q", got, tt.contentType)
+			}
+			body := rec.Body.String()
+			for _, want := range tt.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("body has no %q:\n%s", want, truncateBody(body, 600))
+				}
+			}
+		})
+	}
+}
+
 func TestWidthParameterCapping(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)

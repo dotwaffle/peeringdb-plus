@@ -172,7 +172,7 @@ For machine-readable output, use one of the structured API surfaces (`/api/`, `/
 | `GET /ui/` | Home page. Accepts `?q=` for pre-rendered search results (shareable URLs) |
 | `GET /ui/search?q=` | Search results. Returns a full page, an htmx fragment, or a terminal render depending on headers. Sets `HX-Push-Url` for browser history |
 | `GET /ui/search?q=&type=&offset=` | Results of one type: `net`, `ix`, `fac`, `org`, `campus` or `carrier`. Returns 50 rows for each page. A request with `offset` above 0 returns only the next rows as an htmx fragment. An unknown type returns the 404 page |
-| `GET /ui/asn/{asn}` | Network detail by ASN (1 .. 2³²−1; values outside the range return `400 Problem+JSON`) |
+| `GET /ui/asn/{asn}` | Network detail by ASN (1 .. 2³²−1). A value outside the range returns `400` in the negotiated format: the 400 page for a browser, text for a terminal client, and a problem document for `?format=json` or `Accept: application/json`. The compare routes do the same for their ASNs |
 | `GET /ui/ix/{id}` | Internet exchange detail by numeric ID |
 | `GET /ui/fac/{id}` | Facility detail |
 | `GET /ui/org/{id}` | Organization detail |
