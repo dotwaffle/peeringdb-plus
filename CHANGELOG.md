@@ -20,6 +20,7 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - pdbcompat serves `/api/search?q=<text>`, the search of `fac`, `ix`, `net`, `org`, `campus` and `carrier` that upstream offers to callers with an `Authorization` header.
   The body has the upstream shape: a list of hits with `id`, `name` and `org_id` (and `asn` on `net`) for each type, at most 1000 hits.
   The text matches as `name_search` does.
+  As upstream, `OPTIONS` and `TRACE` search as `GET` does, and another method gets the `403` of the upstream CSRF check.
   Before, pdbcompat returned `404`.
 
 ### Fixed

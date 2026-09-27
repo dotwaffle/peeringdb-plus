@@ -313,6 +313,7 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   `/api/org/<id>/users*` (`org_users.go`) answers as for an anonymous caller: `404` unless the org is `ok`, else `403`, never a write.
   Both are DRF views upstream: `Allow` on every response, `OPTIONS` = SimpleMetadata body (`drf_options.go`; add-route `actions` = embedded `org_users_actions.json`, DRF output for the upstream `UserSerializer`).
   `/api/search` (`api_search.go`) is a plain Django view upstream: no `negotiate`, no `writeError` envelope, no `?pretty` (it unwraps `prettyWriter`); it reuses `parseNameSearch`/`match`.
+  No method check: `OPTIONS`/`TRACE` search; other methods get the Django CSRF 403 (`django_csrf.go`: no session in the mirror, so it always fails; only the Origin/Referer reason varies).
 
 **Native netixlan listings** (web fragments `internal/web/detail.go`, `internal/catalog` network/IX/compare, MCP `lookup_ip`) inline `networkixlan.StatusIn("ok", "not-operational", "pending")`: upstream 2.83.0 lists not-operational connections in its views and counts them in IX stats.
 REST/GraphQL/gRPC have no default status filter.

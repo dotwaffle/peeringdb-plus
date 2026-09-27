@@ -1027,10 +1027,11 @@ func TestParity_Status(t *testing.T) {
 		// permissions.py:191-199; tests/test_api_cache_keys.py:222-245).
 		// The mirror is read-only: every method other than GET and HEAD
 		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. The
-		// self and organization users routes answer OPTIONS as upstream
+		// self and organization users routes answer OPTIONS, and
+		// /api/search every method, as upstream
 		// (self_redirects_302_like_upstream,
-		// org_users_routes_like_upstream). See docs/API.md § Known
-		// Divergences.
+		// org_users_routes_like_upstream, api_search_like_upstream).
+		// See docs/API.md § Known Divergences.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		srv := newTestServer(t, c)
@@ -1040,7 +1041,6 @@ func TestParity_Status(t *testing.T) {
 			{http.MethodDelete, "/api/net/1", "GET, HEAD"},
 			{http.MethodOptions, "/api/net", "GET, HEAD"},
 			{http.MethodPost, "/api/as_set", "GET"},
-			{http.MethodPost, "/api/search", "GET, HEAD"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != http.StatusMethodNotAllowed {

@@ -151,16 +151,17 @@ var searchTypes = []searchType{
 //  4. The search runs the name_search match of each type, ok rows only,
 //     and sorts the hits (searchOrderHits).
 //
-// A method other than GET and HEAD gets 405. Upstream runs the Django
-// CSRF check for it (docs/API.md § Known Divergences).
+// The view does not check the method, so OPTIONS and TRACE search as
+// GET does. Another method first gets the Django CSRF check, which
+// always answers 403 in the mirror (csrfRejectBody).
 func (h *Handler) serveSearch(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		writeMethodNotAllowed(w, r, "GET, HEAD")
-		return
-	}
 	// The ?pretty middleware re-indents DRF output only.
 	if pw, ok := w.(*prettyWriter); ok {
 		w = pw.ResponseWriter
+	}
+	if !csrfSafeMethod(r.Method) {
+		writeSearchBody(w, http.StatusForbidden, csrfRejectBody(r))
+		return
 	}
 	auth := strings.Join(r.Header.Values("Authorization"), ",")
 	if auth == "" {
@@ -429,6 +430,19 @@ func pyJSONInt(v *int) string {
 // (\n, \r, \t, \b and \f in short form, the others as \u00XX), and
 // writes every other character as it is, U+2028 and U+2029 included.
 func pyJSONString(s string) string {
+	return pyJSONQuote(s, false)
+}
+
+// pyJSONASCIIString quotes s as json.dumps with ensure_ascii=True does:
+// as pyJSONString, but every character that is not printable ASCII
+// (0x20-0x7e) is a \uXXXX escape, with a surrogate pair above U+FFFF.
+func pyJSONASCIIString(s string) string {
+	return pyJSONQuote(s, true)
+}
+
+// pyJSONQuote quotes s as json.dumps does with ensure_ascii set to
+// ascii.
+func pyJSONQuote(s string, ascii bool) string {
 	var b strings.Builder
 	b.WriteByte('"')
 	for _, r := range s {
@@ -448,9 +462,13 @@ func pyJSONString(s string) string {
 		case '\f':
 			b.WriteString(`\f`)
 		default:
-			if r < 0x20 {
+			switch {
+			case r < 0x20, ascii && r > 0x7e && r <= 0xffff:
 				fmt.Fprintf(&b, `\u%04x`, r)
-			} else {
+			case ascii && r > 0xffff:
+				r -= 0x10000
+				fmt.Fprintf(&b, `\u%04x\u%04x`, 0xd800+r>>10, 0xdc00+r&0x3ff)
+			default:
 				b.WriteRune(r)
 			}
 		}

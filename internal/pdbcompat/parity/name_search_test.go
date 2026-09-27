@@ -482,6 +482,39 @@ func TestParity_NameSearch(t *testing.T) {
 		if code, _, _ := httpDo(t, srv, http.MethodGet, "/api/search.json?q=alpha", key); code != http.StatusNotFound {
 			t.Errorf("GET /api/search.json: status = %d, want 404 (no route)", code)
 		}
+		// search_api_view has no method check, so OPTIONS and TRACE
+		// search as GET does. Django CsrfViewMiddleware checks every
+		// other method first (django/middleware/csrf.py:414-469). With
+		// CSRF_USE_SESSIONS (settings/__init__.py:1930) and no session
+		// the check always fails, and view_http_error_csrf answers 403
+		// with the reason (views.py:348-359). The reason depends on the
+		// Origin header, then, on a secure request, on the Referer.
+		for _, m := range []string{http.MethodOptions, http.MethodTrace} {
+			if code, _, body := httpDo(t, srv, m, "/api/search?q=alpha", key); code != http.StatusOK || string(body) != alpha {
+				t.Errorf("%s /api/search: status = %d, body =\n%s\nwant 200 with the search result", m, code, body)
+			}
+		}
+		host := srv.Listener.Addr().String()
+		for _, tc := range []struct {
+			method string
+			hdr    http.Header
+			reason string
+		}{
+			{http.MethodPost, key, "Your session expired or cookies are blocked; reload and retry."},
+			{http.MethodDelete, http.Header{"X-Forwarded-Proto": {"https"}}, "Referer checking failed - no Referer."},
+			{http.MethodPut, http.Header{"X-Forwarded-Proto": {"https"}, "Referer": {"https://" + host + "/ui/"}}, "Your session expired or cookies are blocked; reload and retry."},
+			{http.MethodPost, http.Header{"X-Forwarded-Proto": {"https"}, "Referer": {"http://" + host + "/"}}, "Referer checking failed - Referer is insecure while host is secure."},
+			{http.MethodPost, http.Header{"X-Forwarded-Proto": {"https"}, "Referer": {"HTTPS://evil.example/p?#"}}, "Referer checking failed - https://evil.example/p does not match any trusted origins."},
+			{http.MethodPatch, http.Header{"Origin": {"https://evil.example"}}, "Origin checking failed - https://evil.example does not match any trusted origins."},
+			{"PROPFIND", http.Header{"Origin": {"http://" + host}}, "Your session expired or cookies are blocked; reload and retry."},
+		} {
+			code, hdr, body := httpDo(t, srv, tc.method, "/api/search?q=alpha", tc.hdr)
+			want := `{"non_field_errors": ["` + tc.reason + `"]}`
+			if code != http.StatusForbidden || string(body) != want || hdr.Get("Allow") != "" || hdr.Get("Content-Type") != "application/json" {
+				t.Errorf("%s /api/search %v: status = %d, Allow = %q, Content-Type = %q, body = %s; want 403 with %s",
+					tc.method, tc.hdr, code, hdr.Get("Allow"), hdr.Get("Content-Type"), body, want)
+			}
+		}
 	})
 
 	t.Run("api_search_exact_name_first", func(t *testing.T) {
