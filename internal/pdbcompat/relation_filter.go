@@ -174,6 +174,12 @@ type relationSeed struct {
 	// (models.py:2723, :2740, :5629, :5644). Empty for every other
 	// seed.
 	prefix string
+	// tailSeed, when not nil, returns the seed of a key tail that the
+	// shape does not accept (ixLanNameLookup).
+	tailSeed func(tail []string) (relationSeed, bool)
+	// lookup marks a shapeWholeKey seed whose bareOp is a Django lookup
+	// on a string field (charFieldLookup).
+	lookup bool
 }
 
 // facilityFieldSeeds returns the netfac and ixfac seeds name, country
@@ -231,18 +237,15 @@ var relationSeeds = map[string]map[string]relationSeed{
 	// NetworkIXLanSerializer.prepare_query (serializers.py:3152-3169):
 	// related_to_ix and related_to_name filter the ixlan rows
 	// (models.py:6172-6197). A bare name, and name with an operator that
-	// get_relation_filters parses, becomes ix__name. get_relation_filters
-	// does not parse iexact, icontains or istartswith, so it keeps the
-	// whole key (serializers.py:643-654), and related_to_name applies
-	// the lookup to the name of the ixlan.
+	// get_relation_filters parses, becomes ix__name. With another
+	// suffix, get_relation_filters keeps the key (serializers.py:641-654),
+	// and related_to_name applies it as a Django lookup to the name of
+	// the ixlan (ixLanNameLookup).
 	peeringdb.TypeNetIXLan: func() map[string]relationSeed {
 		m := withIDSpellings(map[string]relationSeed{
 			"ix": {hops: []string{"ixlan", "ix"}, pinAt: 1},
 		})
-		m["name"] = relationSeed{hops: []string{"ixlan", "ix"}, pinAt: 1, shape: shapeFixedField, field: "name"}
-		for _, op := range []string{"iexact", "icontains", "istartswith"} {
-			m["name__"+op] = relationSeed{hops: []string{"ixlan"}, pinAt: 1, shape: shapeWholeKey, field: "name", bareOp: op}
-		}
+		m["name"] = relationSeed{hops: []string{"ixlan", "ix"}, pinAt: 1, shape: shapeFixedField, field: "name", tailSeed: ixLanNameLookup}
 		return m
 	}(),
 	// IXLanPrefixSerializer.prepare_query (serializers.py:4154-4163):
@@ -295,6 +298,11 @@ func lookupRelationSeed(typ, key string) (relationSeed, []string, bool) {
 	}
 	segs := strings.Split(key, "__")
 	sd, ok := relationSeeds[typ][segs[0]]
+	if ok && sd.tailSeed != nil {
+		if tsd, ok := sd.tailSeed(segs[1:]); ok {
+			return tsd, nil, true
+		}
+	}
 	return sd, segs[1:], ok
 }
 
@@ -391,10 +399,16 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 		if sd.prefix != "" && len(tail) > 0 && !isKnownOperator(tail[0]) {
 			field = stripRelationPrefix(sd.prefix, field)
 		}
+		lookup := field
 		var err error
-		field, op, err = relationLookupName(sd, field, op)
+		field, op, value, err = relationLookupName(sd, field, op, value)
 		if err != nil {
 			return nil, false, false, err
+		}
+		if lookup == "in" && value == "" {
+			// Django iterates the characters of the string: an empty
+			// value is an empty list, which matches no row.
+			return nil, false, true, nil
 		}
 	}
 	edges := make([]EdgeMetadata, len(sd.hops))
@@ -436,7 +450,13 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 	}
 	var leaf func(*sql.Selector)
 	if col != "status" || op != "" || sd.pinAt != n {
-		p, err := buildPredicate(col, op, value, ft, folded)
+		var p func(*sql.Selector)
+		var err error
+		if sd.lookup {
+			p, err = charFieldLookup(col, op, value)
+		} else {
+			p, err = buildPredicate(col, op, value, ft, folded)
+		}
 		if err != nil {
 			if errors.Is(err, errEmptyIn) {
 				return nil, false, true, nil
@@ -463,24 +483,27 @@ func stripRelationPrefix(prefix, field string) string {
 }
 
 // relationLookupName handles a Django lookup name as the field segment
-// of a shapeRelation seed key, and returns the field and operator to
-// filter. A relation through a FK accepts the lookups exact, lt, lte,
+// of a shapeRelation seed key, and returns the field, operator and value
+// to filter. A relation through a FK accepts the lookups exact, lt, lte,
 // gt, gte, in and isnull (django/db/models/fields/related.py:949-955):
 // exact, lt, lte, gt and gte compare the id, as the seed name with an
-// operator does. pk names the id on every seed. Any other field passes
-// unchanged.
-func relationLookupName(sd relationSeed, field, op string) (string, string, error) {
+// operator does. in compares the id with each character of the value:
+// RelatedIn iterates a str (django/db/models/fields/related_lookups.py:
+// 48-68), so 34 means the ids 3 and 4, a comma is not an integer (a
+// 400), and an empty value matches no row. pk names the id on every
+// seed. Any other field passes unchanged.
+func relationLookupName(sd relationSeed, field, op, value string) (string, string, string, error) {
 	switch field {
 	case "pk":
-		return "id", op, nil
+		return "id", op, value, nil
 	case "exact", "lt", "lte", "gt", "gte", "in", "isnull":
 	default:
-		return field, op, nil
+		return field, op, value, nil
 	}
 	if sd.prefix != "" {
 		// A prefix seed filters the pinned model itself, which has no
 		// field of that name.
-		return "", "", errInvalidQuery
+		return "", "", "", errInvalidQuery
 	}
 	if op == "iexact" || op == "icontains" || op == "istartswith" {
 		// get_relation_filters drops a third segment that it does not
@@ -489,20 +512,20 @@ func relationLookupName(sd relationSeed, field, op string) (string, string, erro
 	}
 	if op != "" {
 		// A lookup after a lookup (django/db/models/sql/query.py:1461).
-		return "", "", errInvalidQuery
+		return "", "", "", errInvalidQuery
 	}
 	switch field {
 	case "isnull":
-		return "", "", errIsNullValue
+		return "", "", "", errIsNullValue
 	case "in":
-		// Upstream iterates the characters of the value (RelatedIn,
-		// django/db/models/fields/related_lookups.py:48-68), so 34
-		// means the ids 3 and 4. The mirror does not copy this.
-		return "", "", errInvalidQuery
+		// One item per character, joined for buildIn. strings.Split
+		// with an empty separator splits after each UTF-8 sequence, as
+		// Python iterates the code points of a str.
+		return "id", "in", strings.Join(strings.Split(value, ""), ","), nil
 	case "exact":
-		return "id", "", nil
+		return "id", "", value, nil
 	}
-	return "id", field, nil
+	return "id", field, value, nil
 }
 
 // relationPathPredicate returns the predicate on the listed row that

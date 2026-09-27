@@ -155,9 +155,9 @@ func TestMatch_AppliesPocPolicy(t *testing.T) {
 	}
 }
 
-// TestParseDetailSlice checks the limit and skip rules of a detail
-// request and that the error texts are the list texts.
-func TestParseDetailSlice(t *testing.T) {
+// TestDetailSlice checks the limit and skip rules of a detail request
+// and that the error texts are the list texts.
+func TestDetailSlice(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		query       string
@@ -178,7 +178,7 @@ func TestParseDetailSlice(t *testing.T) {
 		{query: "limit=abc&skip=abc", wantErr: true},
 	} {
 		params, _ := url.ParseQuery(tc.query)
-		sliced, neg, err := parseDetailSlice(params)
+		p, err := parseRequestParams(params)
 		if (err != nil) != tc.wantErr {
 			t.Errorf("%q: err = %v, want error %v", tc.query, err, tc.wantErr)
 			continue
@@ -189,7 +189,7 @@ func TestParseDetailSlice(t *testing.T) {
 			}
 			continue
 		}
-		if sliced != tc.sliced || neg != tc.neg {
+		if sliced, neg := p.detailSlice(); sliced != tc.sliced || neg != tc.neg {
 			t.Errorf("%q: sliced, negativeSkip = %v, %v; want %v, %v", tc.query, sliced, neg, tc.sliced, tc.neg)
 		}
 	}

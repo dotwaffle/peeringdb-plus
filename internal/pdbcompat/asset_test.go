@@ -54,16 +54,25 @@ func TestASSet_Methods(t *testing.T) {
 		{http.MethodOptions, "/api/as_set", http.StatusMethodNotAllowed, "GET"},
 		{http.MethodPost, "/api/as_set", http.StatusMethodNotAllowed, "GET"},
 		{http.MethodDelete, "/api/as_set/42", http.StatusMethodNotAllowed, "GET"},
-		// A type that starts with as_set is not the lookup.
-		{http.MethodPost, "/api/as_setx", http.StatusMethodNotAllowed, "GET, HEAD"},
+		// A type that starts with as_set is not the lookup, and no
+		// upstream route matches it.
+		{http.MethodPost, "/api/as_setx", http.StatusNotFound, ""},
 		{http.MethodGet, "/api/as_set/42/extra", http.StatusNotFound, ""},
 		{http.MethodGet, "/api/as_set/4.2", http.StatusNotFound, ""},
-		{http.MethodGet, "/api/as_set/42.json", http.StatusNotFound, ""},
-		{http.MethodGet, "/api/as_set/42.json/", http.StatusNotFound, ""},
+		{http.MethodGet, "/api/as_set/4.JSON", http.StatusNotFound, ""},
+		{http.MethodGet, "/api/as_set.xml", http.StatusNotFound, ""},
+		{http.MethodGet, "/api/as_set?format=xml", http.StatusNotFound, ""},
+		// Upstream answers a format suffix with a 500 (docs/API.md §
+		// Known Divergences). The mirror serves it.
+		{http.MethodGet, "/api/as_set/42.json", http.StatusOK, ""},
+		{http.MethodGet, "/api/as_set/42.json/", http.StatusOK, ""},
+		{http.MethodGet, "/api/as_set.json", http.StatusOK, ""},
 		{http.MethodHead, "/api/as_set/4.2", http.StatusNotFound, ""},
-		// The mirror trims a trailing slash on every /api/ path.
-		{http.MethodGet, "/api/as_set/", http.StatusOK, ""},
-		{http.MethodGet, "/api/as_set/42/", http.StatusOK, ""},
+		{http.MethodHead, "/api/as_set.json", http.StatusMethodNotAllowed, "GET"},
+		{http.MethodPost, "/api/as_set.xml", http.StatusNotFound, ""},
+		// Upstream has no route with a trailing slash.
+		{http.MethodGet, "/api/as_set/", http.StatusNotFound, ""},
+		{http.MethodGet, "/api/as_set/42/", http.StatusNotFound, ""},
 	} {
 		req := httptest.NewRequest(tc.method, tc.path, nil)
 		rec := httptest.NewRecorder()

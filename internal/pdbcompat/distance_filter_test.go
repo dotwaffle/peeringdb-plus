@@ -150,7 +150,7 @@ func TestParseListFilters_DistanceKeysNotUnknown(t *testing.T) {
 		"distance": {"10"}, "latitude": {"50.1109"}, "longitude": {"8.6821"},
 		"city": {"X"}, "city__in": {"X"}, "state": {"X"}, "zipcode": {"X"}, "address1": {"X"},
 	}
-	lf, err := parseListFilters(ctx, params, Registry["fac"])
+	lf, err := parseListFilters(ctx, params, Registry["fac"], nil)
 	if err != nil {
 		t.Fatalf("parseListFilters: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestParseListFilters_DistanceKeysNotUnknown(t *testing.T) {
 
 	// A no-op distance is a known key too.
 	ctx = WithUnknownFields(t.Context())
-	lf, err = parseListFilters(ctx, url.Values{"distance": {"0"}}, Registry["org"])
+	lf, err = parseListFilters(ctx, url.Values{"distance": {"0"}}, Registry["org"], nil)
 	if err != nil || lf.orderBy != nil || len(lf.preds) != 0 {
 		t.Fatalf("distance=0: preds=%d orderBy=%v err=%v, want no filter", len(lf.preds), lf.orderBy != nil, err)
 	}
@@ -172,7 +172,7 @@ func TestParseListFilters_DistanceKeysNotUnknown(t *testing.T) {
 	}
 
 	ctx = WithUnknownFields(t.Context())
-	if _, err := parseListFilters(ctx, url.Values{"distance": {"10"}}, Registry["net"]); err != nil {
+	if _, err := parseListFilters(ctx, url.Values{"distance": {"10"}}, Registry["net"], nil); err != nil {
 		t.Fatalf("net: %v", err)
 	}
 	if got := UnknownFieldsFromCtx(ctx); !slices.Equal(got, []string{"distance"}) {
@@ -217,7 +217,7 @@ func TestDistanceSearch_ClampsAcosArgument(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lf, err := parseListFilters(t.Context(), params, tc)
+	lf, err := parseListFilters(t.Context(), params, tc, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestDistanceSearch_ListAndCountAgree(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		lf, err := parseListFilters(t.Context(), params, tc)
+		lf, err := parseListFilters(t.Context(), params, tc, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", tt.query, err)
 		}

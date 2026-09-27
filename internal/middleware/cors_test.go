@@ -45,6 +45,32 @@ func TestCORSPreflightAllowed(t *testing.T) {
 	}
 }
 
+// TestCORSPreflightNeverReachesHandler verifies that the middleware
+// answers a preflight itself. pdbcompat answers OPTIONS on /api/ixlan
+// with 405, as upstream does, and a browser preflight must still pass.
+func TestCORSPreflightNeverReachesHandler(t *testing.T) {
+	t.Parallel()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	})
+	handler := middleware.CORS(middleware.CORSInput{AllowedOrigins: "*"})(inner)
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/ixlan", nil)
+	req.Header.Set("Origin", "http://example.com")
+	req.Header.Set("Access-Control-Request-Method", "GET")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusMethodNotAllowed {
+		t.Fatalf("preflight status = 405, want the middleware to answer it")
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Errorf("Access-Control-Allow-Origin = %q, want %q", got, "*")
+	}
+}
+
 // TestCORSPreflightDisallowed verifies that OPTIONS preflight from a disallowed origin
 // does not get CORS Allow-Origin header.
 func TestCORSPreflightDisallowed(t *testing.T) {

@@ -289,12 +289,18 @@ func TestParseFilters(t *testing.T) {
 			wantCount: 1,
 		},
 		{
-			// Empty __in short-circuits with emptyResult=true
-			// and no predicates are emitted (caller returns []).
-			name:         "empty __in triggers emptyResult sentinel",
-			params:       url.Values{"asn__in": {""}},
-			wantCount:    0,
-			wantEmptyRes: true,
+			// An empty __in is one empty item (str.split), which an
+			// integer field cannot convert.
+			name:    "empty __in on int field is an error",
+			params:  url.Values{"asn__in": {""}},
+			wantErr: true,
+		},
+		{
+			// On a string field the empty item matches the empty
+			// string.
+			name:      "empty __in on string field is a predicate",
+			params:    url.Values{"status__in": {""}},
+			wantCount: 1,
 		},
 	}
 
@@ -688,7 +694,9 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			"created":      FieldTime,
 			"latitude":     FieldFloat,
 			"name":         FieldString,
+			"org_id":       FieldInt,
 		},
+		ForeignKeys: map[string]string{"org": "org_id"},
 	}
 
 	tests := []struct {
@@ -704,29 +712,34 @@ func TestParseFiltersErrorPaths(t *testing.T) {
 			wantMsg: "filter asn__lt",
 		},
 		{
+			// A plain bool key selects false for any other value
+			// (TestParseFilters_BoolValues). An operator converts.
 			name:    "bool conversion error propagated",
-			params:  url.Values{"info_unicast": {"maybe"}},
-			wantMsg: "filter info_unicast",
+			params:  url.Values{"info_unicast__lt": {"maybe"}},
+			wantMsg: "filter info_unicast__lt",
 		},
 		{
+			// A plain time key is a text prefix and never fails.
 			name:    "time conversion error propagated",
-			params:  url.Values{"created": {"not-a-time"}},
-			wantMsg: "filter created",
+			params:  url.Values{"created__lt": {"not-a-time"}},
+			wantMsg: "filter created__lt",
 		},
 		{
-			name:    "float conversion error propagated",
-			params:  url.Values{"latitude": {"not-a-float"}},
-			wantMsg: "filter latitude",
+			name: "float conversion error propagated",
+			// A plain decimal key matches the text (TestParseFilters_NumericText).
+			params:  url.Values{"latitude__lt": {"not-a-float"}},
+			wantMsg: "filter latitude__lt",
 		},
 		{
-			name:    "contains on int field error propagated",
-			params:  url.Values{"asn__contains": {"123"}},
-			wantMsg: "filter asn__contains",
+			// A FK has no text form upstream: Django raises FieldError.
+			name:    "contains on FK field error propagated",
+			params:  url.Values{"org_id__contains": {"123"}},
+			wantMsg: "filter org_id__contains",
 		},
 		{
-			name:    "startswith on int field error propagated",
-			params:  url.Values{"asn__startswith": {"123"}},
-			wantMsg: "filter asn__startswith",
+			name:    "startswith on FK field error propagated",
+			params:  url.Values{"org__startswith": {"123"}},
+			wantMsg: "filter org__startswith",
 		},
 		{
 			name:    "in with non-numeric int values error propagated",
@@ -796,6 +809,9 @@ func TestParseFilters_PlainIntKey(t *testing.T) {
 		{"net", "asn", "42", "`t`.`asn` = ?", []any{42}},
 		// unidecode folds full-width digits (rest.py:597).
 		{"net", "asn", "\uff14\uff12", "`t`.`asn` = ?", []any{42}},
+		// unidecode also folds the other decimal digits, for example
+		// Arabic-Indic.
+		{"net", "asn", "\u0664\u0662", "`t`.`asn` = ?", []any{42}},
 		{"net", "asn__iexact", "42", "`t`.`asn` = ?", []any{42}},
 		// A FK key converts with int().
 		{"net", "org_id", " 5", "`t`.`org_id` = ?", []any{5}},
@@ -1074,20 +1090,16 @@ func TestParseFiltersCtx_ErrorWinsOverEmptyResult(t *testing.T) {
 		errKey   string
 		errValue string
 	}{
+		// Only an empty __in on a nullable boolean (fac
+		// diverse_serving_substations) and the metadata __in keys give
+		// an empty result: on the other fields an empty __in is one
+		// empty item, a 400 or a match of the empty string.
 		{"meta", "netixlan", "meta__rfc8950__in", "ix", "abc"},
-		{"relation_seed", "fac", "net__in", "all_net", "x"},
-		{"local", "fac", "id__in", "all_net", "x"},
-		{"traversal", "net", "org__name__in", "not_ix", "x"},
-		{"relation_key_bad_field_beats_empty_in", "fac", "id__in", "net__bogus", "1"},
-		{"whereis_bad_address_beats_empty_in", "ixpfx", "id__in", "whereis", "abc"},
-		{"whereis_in_beats_empty_in", "ixpfx", "prefix__in", "whereis__in", ""},
-		{"capacity_bad_value_beats_empty_in", "ix", "id__in", "capacity", "abc"},
-		{"capacity_in_beats_empty_in", "ix", "name__in", "capacity__in", ""},
-		{"asn_overlap_one_asn_beats_empty_in", "fac", "id__in", "asn_overlap", "64500"},
-		{"asn_overlap_bad_item_beats_empty_in", "ix", "name__in", "asn_overlap", "64500,abc"},
-		{"distance_bad_value_beats_empty_in", "fac", "id__in", "distance", "abc"},
-		{"distance_nan_beats_empty_in", "org", "name__in", "distance", "nan"},
-		{"name_search_bad_digit_beats_empty_in", "net", "name__in", "name_search", "²"},
+		{"local", "fac", "diverse_serving_substations__in", "all_net", "x"},
+		{"relation_key_bad_field_beats_empty_in", "fac", "diverse_serving_substations__in", "net__bogus", "1"},
+		{"asn_overlap_one_asn_beats_empty_in", "fac", "diverse_serving_substations__in", "asn_overlap", "64500"},
+		{"distance_bad_value_beats_empty_in", "fac", "diverse_serving_substations__in", "distance", "abc"},
+		{"distance_nan_beats_empty_in", "fac", "diverse_serving_substations__in", "distance", "nan"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1108,6 +1120,40 @@ func TestParseFiltersCtx_ErrorWinsOverEmptyResult(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), "filter "+tt.errKey) {
 					t.Fatalf("iteration %d: preds=%d empty=%v err=%v, want the %s error", i, len(preds), empty, err, tt.errKey)
 				}
+			}
+		})
+	}
+}
+
+func TestParseFilters_NumericText(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		typ, key, value string
+		wantSQL         string
+		wantArg         string
+	}{
+		{"net", "asn__contains", "33", "CAST(`t`.`asn` AS TEXT) LIKE ?", "%33%"},
+		{"net", "asn__startswith", "1_", "CAST(`t`.`asn` AS TEXT) LIKE ?", `1\_%`},
+		{"net", "id__contains", "%", "CAST(`t`.`id` AS TEXT) LIKE ?", `%\%%`},
+		{"net", "info_unicast__contains", "1", "CAST(`t`.`info_unicast` AS TEXT) LIKE ?", "%1%"},
+		{"fac", "latitude", "52.5", "printf('%.6f', `t`.`latitude`) END LIKE ?", "52.5"},
+		{"fac", "latitude__iexact", "52.500000", "printf('%.6f', `t`.`latitude`) END LIKE ?", "52.500000"},
+		{"org", "longitude__startswith", "-0.1", "printf('%.6f', `t`.`longitude`) END LIKE ?", "-0.1%"},
+	} {
+		t.Run(tt.typ+"?"+tt.key+"="+tt.value, func(t *testing.T) {
+			t.Parallel()
+			preds, empty, err := ParseFilters(url.Values{tt.key: {tt.value}}, Registry[tt.typ])
+			if err != nil || empty || len(preds) != 1 {
+				t.Fatalf("ParseFilters: %d predicates, empty=%v, err=%v", len(preds), empty, err)
+			}
+			s := sql.Dialect(dialect.SQLite).Select("*").From(sql.Table("t"))
+			preds[0](s)
+			query, args := s.Query()
+			if !strings.Contains(query, tt.wantSQL) {
+				t.Errorf("query = %q, want %s", query, tt.wantSQL)
+			}
+			if len(args) != 1 || args[0] != tt.wantArg {
+				t.Errorf("args = %v, want [%s]", args, tt.wantArg)
 			}
 		})
 	}

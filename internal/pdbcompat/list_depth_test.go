@@ -220,7 +220,9 @@ func TestSelectSets(t *testing.T) {
 	}{
 		{peeringdb.TypeOrg, nil, []string{"net_set", "fac_set", "ix_set", "carrier_set", "campus_set"}},
 		{peeringdb.TypeOrg, []string{"name"}, []string{}},
-		{peeringdb.TypeOrg, []string{"name", " fac_set", "net_set "}, []string{"net_set", "fac_set"}},
+		{peeringdb.TypeOrg, []string{"name", "fac_set", "net_set"}, []string{"net_set", "fac_set"}},
+		// Names are compared as given, as upstream does.
+		{peeringdb.TypeOrg, []string{" fac_set", "net_set "}, []string{}},
 		{peeringdb.TypeNet, []string{"irr_as_set", "poc_set"}, []string{"poc_set"}},
 		{peeringdb.TypePoc, nil, []string{}},
 	} {
@@ -255,7 +257,7 @@ func TestParseListFilters_UpstreamFilter(t *testing.T) {
 		wantPreds        bool
 	}{
 		{"model_field", peeringdb.TypeNet, "name=x", true, true},
-		{"empty_in", peeringdb.TypeNet, "id__in=", true, false},
+		{"empty_in", peeringdb.TypeFac, "diverse_serving_substations__in=", true, false},
 		// upstream sets query_adjusted (serializers.py:3775-3810).
 		{"info_type_matches_all", peeringdb.TypeNet, "info_type=", true, false},
 		{"info_type_in_matches_all", peeringdb.TypeNet, "info_type__in=,x", true, false},
@@ -278,7 +280,7 @@ func TestParseListFilters_UpstreamFilter(t *testing.T) {
 				t.Fatalf("parse %q: %v", tc.query, err)
 			}
 			ctx := WithUnknownFields(t.Context())
-			lf, err := parseListFilters(ctx, params, Registry[tc.typ])
+			lf, err := parseListFilters(ctx, params, Registry[tc.typ], nil)
 			if err != nil {
 				t.Fatalf("parseListFilters(%s?%s): %v", tc.typ, tc.query, err)
 			}
@@ -292,7 +294,7 @@ func TestParseListFilters_UpstreamFilter(t *testing.T) {
 	}
 	// The ignored seed form is still reported as an unknown key.
 	ctx := WithUnknownFields(t.Context())
-	if _, err := parseListFilters(ctx, url.Values{"org_name__iexact": {"x"}}, Registry[peeringdb.TypeFac]); err != nil {
+	if _, err := parseListFilters(ctx, url.Values{"org_name__iexact": {"x"}}, Registry[peeringdb.TypeFac], nil); err != nil {
 		t.Fatal(err)
 	}
 	if got := UnknownFieldsFromCtx(ctx); !slices.Equal(got, []string{"org_name__iexact"}) {
@@ -604,7 +606,7 @@ func TestListDepth_RendersLazily(t *testing.T) {
 		ResponseRecorder: httptest.NewRecorder(),
 		snap:             func() [2]int { return [2]int{loads, renders} },
 	}
-	h.serveList(tc, w, httptest.NewRequest(http.MethodGet, "/api/org?depth=1", nil))
+	h.serveList(tc, w, httptest.NewRequest(http.MethodGet, "/api/org?depth=1", nil), false)
 	if w.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", w.Code, w.Body.String())
 	}
@@ -882,6 +884,49 @@ func TestServeList_DepthTruncatesLeafTypes(t *testing.T) {
 			if _, ok := env.Data[0][k]; ok {
 				t.Errorf("budget %d: row has the forward FK object %q", budget, k)
 			}
+		}
+	}
+}
+
+// TestServeList_FormatSuffixDepthIsLive locks that a list path with a
+// format suffix is cut to apiDepthRowLimit rows at depth > 0 without a
+// filter: upstream serves a path with a URL kwarg from its live query,
+// not from its API cache (2.83.0 api_cache.py:120-122).
+func TestServeList_FormatSuffixDepthIsLive(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	ctx := t.Context()
+	r := seed.Full(t, client)
+	now := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	builders := make([]*ent.NetworkIxLanCreate, 0, 260)
+	for i := range 260 {
+		builders = append(builders, client.NetworkIxLan.Create().
+			SetID(10000+i).SetNetID(r.Network.ID).SetIxlanID(r.IxLan.ID).SetAsn(64999).SetSpeed(1000).
+			SetCreated(now).SetUpdated(now).SetStatus("ok"))
+	}
+	client.NetworkIxLan.CreateBulk(builders...).SaveX(ctx)
+	_, mux := newListDepthMux(client, 0, defaultListDepthChunk)
+	for _, tc := range []struct {
+		path          string
+		wantTruncated bool
+	}{
+		{"/api/netixlan?depth=1", false},
+		{"/api/netixlan.json?depth=1", true},
+	} {
+		rec := getList(mux, tc.path)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d; body=%s", tc.path, rec.Code, rec.Body.String())
+		}
+		var env struct {
+			Meta map[string]string `json:"meta"`
+			Data []map[string]any  `json:"data"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+			t.Fatal(err)
+		}
+		_, truncated := env.Meta["truncated"]
+		if truncated != tc.wantTruncated || (len(env.Data) == apiDepthRowLimit) != tc.wantTruncated {
+			t.Errorf("%s: %d rows, meta %v; want truncated = %v", tc.path, len(env.Data), env.Meta, tc.wantTruncated)
 		}
 	}
 }

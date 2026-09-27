@@ -41,7 +41,7 @@ type envelope struct {
 // WriteResponse writes a successful PeeringDB-compatible JSON response with
 // the standard envelope format. Data must be a slice.
 func WriteResponse(w http.ResponseWriter, data any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
 	w.Header().Set("X-Powered-By", poweredByHeader)
 
 	resp := envelope{
@@ -156,21 +156,44 @@ func ParsePaginationParams(params url.Values) (limit, skip int, err error) {
 	return limit, skip, nil
 }
 
+// sinceIntError is the error of a since value that Python float()
+// accepts and int() does not, for example 1.5 or 1e3. Upstream first
+// parses since with int(float(v)) (2.83.0 rest.py:505-510), so the
+// value passes, and then parses it again with int(v) when it builds its
+// API cache loader after the filter loop (rest.py:707,
+// api_cache.py:80). list() returns that ValueError as a 400 with the
+// Python message (rest.py:824-827).
+type sinceIntError struct {
+	value string
+}
+
+func (e *sinceIntError) Error() string {
+	return pyIntValueError(e.value)
+}
+
 // parseSince returns the raw ?since= value: the last value, Python
 // int() rules (2.83.0 rest.py:505-510, api_cache.py:80). present is
-// false when the key is absent. An empty or non-integer value is
-// errSinceNotTimestamp. Every reader of since calls this function, so
-// the value is parsed one way only.
+// false when the key is absent. An empty value, or a value that
+// float() rejects or that is nan, is errSinceNotTimestamp (int(float())
+// raises ValueError). An infinite value is errSinceNotTimestamp too:
+// upstream int(float()) raises OverflowError, which it does not catch
+// (a 500, see docs/API.md § Known Divergences). A finite value that
+// int() rejects is a *sinceIntError, which the caller reports after the
+// filters. Every reader of since calls this function, so the value is
+// parsed one way only.
 func parseSince(params url.Values) (n int, present bool, err error) {
 	v, ok := lastParam(params, "since")
 	if !ok {
 		return 0, false, nil
 	}
 	n, _, err = pyInt(v)
-	if err != nil {
-		return 0, true, errSinceNotTimestamp
+	if err == nil {
+		return n, true, nil
 	}
-	return n, true, nil
+	if classifyPyFloat(v) == pyFloatFinite {
+		return 0, true, &sinceIntError{value: v}
+	}
+	return 0, true, errSinceNotTimestamp
 }
 
 // ParseDepthParam returns the ?depth= value as upstream parses it
@@ -215,9 +238,53 @@ func ParseSinceParam(params url.Values) (*time.Time, error) {
 	return &t, nil
 }
 
-// parseDetailSlice reads limit and skip of a single-object GET with the
-// list parser, so the error texts and their order are the list ones.
-// Upstream parses both for a detail too and slices the query before
+// requestParams holds since, skip, limit and depth of a list or detail
+// request.
+type requestParams struct {
+	// limit and skip keep their sign (see ParsePaginationParams).
+	limit, skip int
+	// since is nil when the key is absent or its value is 0 or less
+	// (ParseSinceParam).
+	since *time.Time
+	// sinceInt is set when the since value is a *sinceIntError. since
+	// is then nil. The caller returns it as a 400 after the filters.
+	sinceInt error
+	// depth is the raw depth value and depthText its decimal form
+	// (ParseDepthParam). depthPresent is false when the key is absent:
+	// the caller applies its own default.
+	depth        int
+	depthText    string
+	depthPresent bool
+}
+
+// parseRequestParams parses since, skip, limit and depth in the order of
+// upstream get_queryset (2.83.0 rest.py:505-523), so a request with two
+// bad values gets the error of the first one that upstream checks.
+// Upstream parses them after prepare_query (:486-500) and before
+// name_search and its filter loop (:531-703): the callers run this
+// function as the afterPrepare step of parseListFilters.
+func parseRequestParams(params url.Values) (requestParams, error) {
+	var p requestParams
+	var err error
+	var sie *sinceIntError
+	p.since, err = ParseSinceParam(params)
+	switch {
+	case errors.As(err, &sie):
+		p.sinceInt = err
+	case err != nil:
+		return requestParams{}, err
+	}
+	if p.limit, p.skip, err = ParsePaginationParams(params); err != nil {
+		return requestParams{}, err
+	}
+	if p.depth, p.depthText, p.depthPresent, err = ParseDepthParam(params); err != nil {
+		return requestParams{}, err
+	}
+	return p, nil
+}
+
+// detailSlice returns the slice rules of a single-object GET. Upstream
+// parses limit and skip for a detail too and slices the query before
 // get() (2.83.0 rest.py:511-518, :755-760). Django cannot filter a
 // sliced query, so get() fails and DRF answers 404 Not found. (Django
 // query.py:1505-1507, DRF generics.py:13-21). sliced is true for a limit
@@ -226,10 +293,6 @@ func ParseSinceParam(params url.Values) (*time.Time, error) {
 // is true for a skip below 0. The caller returns 400 errNegativeSkip
 // after the filters, as serveList does (upstream: 500, see docs/API.md
 // § Known Divergences).
-func parseDetailSlice(params url.Values) (sliced, negativeSkip bool, err error) {
-	limit, skip, err := ParsePaginationParams(params)
-	if err != nil {
-		return false, false, err
-	}
-	return limit > 0 || skip > 0, skip < 0, nil
+func (p requestParams) detailSlice() (sliced, negativeSkip bool) {
+	return p.limit > 0 || p.skip > 0, p.skip < 0
 }

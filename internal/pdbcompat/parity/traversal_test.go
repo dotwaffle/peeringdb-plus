@@ -428,7 +428,8 @@ func TestParity_Traversal(t *testing.T) {
 		// a HandleRefModel field (django-handleref models.py:90) that
 		// HandleRefSerializer does not serialize (rest/serializers.py:12).
 		// fac notified_for_geocoords (models.py:2257-2260) is a model
-		// field that no serializer names.
+		// field that no serializer names, and so are the netfac avail_*
+		// columns (abstract.py:879-893, "Not exposed via the API").
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "ColumnOrgA", t0)
@@ -439,6 +440,11 @@ func TestParity_Traversal(t *testing.T) {
 		mustFac(ctx, t, c, 201, "ColumnFacB", 2, t0)
 		mustIX(ctx, t, c, 300, "ColumnIXA", 1, t0)
 		mustIX(ctx, t, c, 301, "ColumnIXB", 2, t0)
+		for id, net := range map[int]int{600: 100, 601: 101} {
+			c.NetworkFacility.Create().
+				SetID(id).SetNetID(net).SetFacID(200).SetLocalAsn(64500).
+				SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
 
 		srv := newTestServer(t, c)
 		// Upstream returns [] for each request: no seeded row can carry
@@ -464,6 +470,10 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/fac?version=-1", want: []int{200, 201}},
 			// Upstream: []. notified_for_geocoords defaults to False.
 			{path: "/api/fac?notified_for_geocoords=true", want: []int{200, 201}},
+			// Upstream: []. The avail_* columns default to False.
+			{path: "/api/netfac?avail_sonet=true", want: []int{600, 601}},
+			{path: "/api/netfac?avail_atm=1", want: []int{600, 601}},
+			{path: "/api/netfac?avail_ethernet__in=true", want: []int{600, 601}},
 		})
 		// The same columns of the IX-side facility, through the netixlan
 		// ix_side column edge. Upstream: [] for each request.
@@ -472,6 +482,94 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/netixlan?ix_side__location_method=google", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__version=-1", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__notified_for_geocoords=true", want: []int{5000, 5001, 5002}},
+			// The unserialized version and the unfiltered meta column of
+			// the netixlans through the ix_side_set reverse relation.
+			{path: "/api/fac?ix_side_set__version=-1", want: []int{200, 202}},
+			{path: "/api/fac?ix_side_set__meta=x", want: []int{200, 202}},
+		})
+	})
+
+	t.Run("DIVERGENCE_social_media_filter_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: social_media is a model JSONField of org, fac,
+		// net, ix, carrier and campus (django-peeringdb abstract.py:146,
+		// :186, :411, :668, :986, :1047), so the upstream filter loop
+		// filters its JSON text: a key without an operator is __iexact,
+		// __contains is __icontains (2.83.0 rest.py:525-528, :633-683),
+		// and queryable_relations adds <fk>__social_media
+		// (serializers.py:970-996). The mirror stores and serves the
+		// column, but pdbcompat has no filter key for it, so every form
+		// is ignored. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "SocialOrg", t0)
+		mustNet(ctx, t, c, 100, "SocialNetA", 64500, 1, t0)
+		mustNet(ctx, t, c, 101, "SocialNetB", 64501, 1, t0)
+		mustFac(ctx, t, c, 200, "SocialFac", 1, t0)
+		srv := newTestServer(t, c)
+		// Upstream: []. No seeded row has a social media entry.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/net?social_media=x", want: []int{100, 101}},
+			{path: "/api/net?social_media__contains=website", want: []int{100, 101}},
+			{path: "/api/org?social_media__startswith=[", want: []int{1}},
+			{path: "/api/fac?social_media=x", want: []int{200}},
+			{path: "/api/net?org__social_media__contains=x", want: []int{100, 101}},
+		})
+	})
+
+	t.Run("DIVERGENCE_notes_private_filter_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: notes_private is a model field of net that the API
+		// does not serialize, "visible only to administrators of the
+		// owning organization" (django-peeringdb abstract.py:436-442).
+		// The upstream filter loop takes its field set from the model
+		// (2.83.0 rest.py:525-528), so net?notes_private= and its
+		// operator forms filter on the private text for any caller.
+		// Only the <fk>__notes_private form is left out
+		// (FILTER_EXCLUDE "network__notes_private",
+		// serializers.py:136-145). The mirror never receives the
+		// column, so it ignores every form. See docs/API.md § Known
+		// Divergences.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "PrivNotesOrg", t0)
+		mustNet(ctx, t, c, 100, "PrivNotesNetA", 64500, 1, t0)
+		mustNet(ctx, t, c, 101, "PrivNotesNetB", 64501, 1, t0)
+		srv := newTestServer(t, c)
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/net?notes_private=x", want: []int{100, 101}},
+			{path: "/api/net?notes_private__contains=a", want: []int{100, 101}},
+			{path: "/api/net?notes_private__startswith=a", want: []int{100, 101}},
+		})
+	})
+
+	t.Run("DIVERGENCE_ixlan_ixf_url_filter_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: ixf_ixp_member_list_url is an ixlan model field
+		// (django-peeringdb abstract.py:819), so the upstream filter
+		// loop filters it for any caller (2.83.0 rest.py:525-528),
+		// also on rows whose URL the caller cannot see: the permission
+		// check removes the value from the output only
+		// (permissions.py:344-353). Only the <fk>__ forms are left out
+		// (FILTER_EXCLUDE, serializers.py:136-145). The mirror ignores
+		// every form, so a filter cannot show a hidden URL one match at
+		// a time. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "IxfURLOrg", t0)
+		mustIX(ctx, t, c, 20, "IxfURLIX", 1, t0)
+		mustIxLan(ctx, t, c, 200, "Public", 20, t0)
+		mustIxLan(ctx, t, c, 201, "Private", 20, t0)
+		c.IxLan.UpdateOneID(200).SetIxfIxpMemberListURL("https://public.example/ixf.json").
+			SetIxfIxpMemberListURLVisible("Public").ExecX(ctx)
+		c.IxLan.UpdateOneID(201).SetIxfIxpMemberListURL("https://private.example/ixf.json").
+			SetIxfIxpMemberListURLVisible("Private").ExecX(ctx)
+		srv := newTestServer(t, c)
+		// Upstream: [200] for the first two, [201] for the third.
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/ixlan?ixf_ixp_member_list_url=https://public.example/ixf.json", want: []int{200, 201}},
+			{path: "/api/ixlan?ixf_ixp_member_list_url__contains=public", want: []int{200, 201}},
+			{path: "/api/ixlan?ixf_ixp_member_list_url__startswith=https://private", want: []int{200, 201}},
 		})
 	})
 
@@ -1568,7 +1666,8 @@ func TestParity_Traversal(t *testing.T) {
 			// get_relation_filters does not parse iexact, icontains or
 			// istartswith, so it keeps the whole key, and related_to_name
 			// applies the lookup to the name of the ixlan, not of the
-			// exchange (serializers.py:643-654, :3161-3169).
+			// exchange (serializers.py:643-654, :3161-3169). See
+			// netixlan_name_lookups_like_upstream for the other lookups.
 			{path: "/api/netixlan?name__iexact=lana", want: []int{500, 501}},
 			{path: "/api/netixlan?name__iexact=RelSeedIX20", want: []int{}},
 			{path: "/api/netixlan?name__icontains=AN", want: []int{500, 501}},
@@ -1593,6 +1692,139 @@ func TestParity_Traversal(t *testing.T) {
 			"/api/net?netfac__fac__name=RelSeedFac400",
 			"/api/net?ix=abc",
 			"/api/fac?net__contains=1",
+		} {
+			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+			}
+		}
+	})
+
+	t.Run("netixlan_name_lookups_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 serializers.py:641-654 keeps netixlan
+		// name__X, where X is not an operator of get_relation_filters,
+		// and name__X__Y as a Django lookup X, with an "_id" suffix of
+		// X stripped (:411-414). related_to_name filters the ixlan rows
+		// with it and status "ok" (models.py:6172-6197). On MySQL
+		// (utf8_unicode_ci), exact ignores case and trailing spaces,
+		// contains/startswith/endswith are LIKE BINARY, iendswith is
+		// LIKE, and in and range iterate the characters of the value.
+		// A Y that is an operator follows the lookup, and Django raises
+		// FieldError (400 Invalid query, rest.py:499-500), as it does
+		// for an unknown lookup. isnull needs a bool (ValueError, 400).
+		srv := newTestServer(t, seedIXLanNameLookups(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?name__exact=lana", want: []int{900}},
+			{path: "/api/netixlan?name__exact=LAN*B", want: []int{901}},
+			{path: "/api/netixlan?name__exact_id=LanA", want: []int{900}},
+			{path: "/api/netixlan?name__exact__x=lana", want: []int{900}},
+			{path: "/api/netixlan?name__iexact__x=LANA", want: []int{900}},
+			{path: "/api/netixlan?name__contains__x=an", want: []int{900, 901}},
+			{path: "/api/netixlan?name__contains__x=AN", want: []int{}},
+			{path: "/api/netixlan?name__contains__x=*", want: []int{901}},
+			{path: "/api/netixlan?name__startswith__x=Lan", want: []int{900}},
+			{path: "/api/netixlan?name__endswith=A", want: []int{900}},
+			{path: "/api/netixlan?name__endswith=a", want: []int{}},
+			{path: "/api/netixlan?name__endswith=*B%20", want: []int{901}},
+			{path: "/api/netixlan?name__iendswith=a", want: []int{900}},
+			{path: "/api/netixlan?name__gt__x=m", want: []int{902, 904}},
+			{path: "/api/netixlan?name__in__x=yx", want: []int{904}},
+			{path: "/api/netixlan?name__in__x=", want: []int{}},
+			{path: "/api/netixlan?name__range=mz", want: []int{902, 904}},
+			// The pending ixlan 13 is also named LanA.
+			{path: "/api/netixlan?name__iexact=LanA", want: []int{900}},
+		})
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			{path: "/api/netixlan?name__a__b__c=1", want: []int{900, 901, 902, 903, 904}},
+		})
+		for _, tc := range []struct{ path, msg string }{
+			{"/api/netixlan?name__bogus=1", "Invalid query"},
+			{"/api/netixlan?name__exact__gt=1", "Invalid query"},
+			{"/api/netixlan?name__x__in=1", "Invalid query"},
+			{"/api/netixlan?name__isnull=true", "isnull lookup must be True or False"},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", tc.path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, tc.msg) {
+				t.Errorf("%s: meta.error = %q, want it to contain %q", tc.path, msg, tc.msg)
+			}
+		}
+	})
+
+	t.Run("reverse_ix_side_set_keys_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: NetworkIXLan.ix_side has related_name ix_side_set
+		// (2.83.0 models.py:6095-6101). The reverse relation reports the
+		// ForeignKey type, so field_names holds ix_side_set and
+		// queryable_relations adds ix_side_set__<field> for each netixlan
+		// field that is not a ForeignKey (serializers.py:970-996). The
+		// filter loop strips "_id" (rest.py:608-610, :620-632), filters
+		// ix_side_set__<field> as a model field of the netixlan, and
+		// compares the netixlan id for ix_side_set__in, __lt, __lte,
+		// __gt and __gte (:633-669). The netixlans get no status filter.
+		// A bare ix_side_set is an exact lookup on ix_side_set_id
+		// (:676-677), and contains/startswith become icontains/
+		// istartswith (:657-662), which a relation does not have: both
+		// are a FieldError, 400 Invalid query (:702-703).
+		srv := newTestServer(t, seedIxSideSetKeys(t, t0))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?ix_side_set__asn=64500", want: []int{200, 201}},
+			// The deleted netixlan 5001 matches.
+			{path: "/api/fac?ix_side_set__asn=64501", want: []int{201}},
+			{path: "/api/fac?ix_side_set__status=deleted", want: []int{201}},
+			{path: "/api/fac?ix_side_set__speed__gte=10000", want: []int{201}},
+			{path: "/api/fac?ix_side_set__asn__in=64501,64502", want: []int{201}},
+			{path: "/api/fac?ix_side_set__asn_id=64500", want: []int{200, 201}},
+			{path: "/api/fac?ix_side_set__in=5000", want: []int{200}},
+			{path: "/api/fac?ix_side_set_id__in=5000,5003", want: []int{200}},
+			{path: "/api/fac?ix_side_set__lt=5001", want: []int{200}},
+			{path: "/api/fac?ix_side_set__gte=5001", want: []int{201}},
+		})
+		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
+			// A ForeignKey of the netixlan, an unknown lookup and a
+			// second relation name no field (serializers.py:991-995).
+			{path: "/api/fac?ix_side_set__net_id=100", want: []int{200, 201, 202}},
+			{path: "/api/fac?ix_side_set__isnull=true", want: []int{200, 201, 202}},
+			{path: "/api/fac?ix_side_set__net__name=SideNet", want: []int{200, 201, 202}},
+		})
+		for _, path := range []string{
+			"/api/fac?ix_side_set=5000",
+			"/api/fac?ix_side_set_id=5000",
+			"/api/fac?ix_side_set__contains=5",
+			"/api/fac?ix_side_set__startswith=5",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
+				continue
+			}
+			if msg := mustDecodeMetaError(t, body).Error; !strings.Contains(msg, "Invalid query") {
+				t.Errorf("%s: meta.error = %q, want it to contain %q", path, msg, "Invalid query")
+			}
+		}
+		if status, body := httpGet(t, srv, "/api/fac?ix_side_set__in=abc"); status != http.StatusBadRequest {
+			t.Errorf("ix_side_set__in=abc: status = %d, want 400; body=%s", status, string(body))
+		}
+	})
+
+	t.Run("DIVERGENCE_netixlan_name_regex_and_range_lookups", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream runs netixlan name__regex and
+		// name__iregex as MySQL REGEXP (2.83.0 serializers.py:641-654,
+		// models.py:6172-6197), and a name__range value that is not two
+		// characters long fails as Django builds the SQL (500). The
+		// mirror returns 400 for all of them: SQLite has no REGEXP
+		// function, and the two regular expression dialects differ.
+		// See docs/API.md § Known Divergences.
+		srv := newTestServer(t, seedIXLanNameLookups(t, t0))
+		for _, path := range []string{
+			"/api/netixlan?name__regex=^Lan",
+			"/api/netixlan?name__iregex=^lan",
+			"/api/netixlan?name__range=m",
+			"/api/netixlan?name__range=mnz",
 		} {
 			if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
 				t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
@@ -1776,6 +2008,38 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/net?netixlan__pk=501", want: []int{}},
 			{path: "/api/ix?ixlan__pk=200", want: []int{20}},
 		})
+	})
+
+	t.Run("relation_key_in_as_field_reads_each_character", func(t *testing.T) {
+		t.Parallel()
+		// upstream: Django db/models/fields/related_lookups.py:48-68
+		// (RelatedIn iterates the value; a str gives one item per
+		// character), 2.83.0 serializers.py:643-654 (get_relation_filters
+		// drops the third segment of fac?net__in__x=, so the key runs
+		// network__in with the raw value), models.py:2343-2345.
+		// fac?net__in__x=34 means the nets 3 and 4. A comma is an item
+		// too, and int(",") raises ValueError: 400. An empty value is an
+		// empty list, which matches no row.
+		// Seed: fac 400 has netfac 600 (net 100, ok). Net 3 gets netfac
+		// 610 on fac 401.
+		c := seedRelationSeedKeys(t, t0)
+		ctx := t.Context()
+		mustNet(ctx, t, c, 3, "RelSeedNet3", 64403, 1, t0)
+		mustFac(ctx, t, c, 401, "RelSeedFac401", 1, t0)
+		c.NetworkFacility.Create().
+			SetID(610).SetNetID(3).SetFacID(401).SetLocalAsn(64403).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/fac?net__in__x=34", want: []int{401}},
+			{path: "/api/fac?net__in__x=100", want: []int{}},
+			{path: "/api/fac?net__in__x=", want: []int{}},
+			{path: "/api/fac?net__in__iexact=3", want: []int{401}},
+		})
+		status, body := httpGet(t, srv, "/api/fac?net__in__x=3,4")
+		if status != http.StatusBadRequest {
+			t.Errorf("fac?net__in__x=3,4: status = %d, want 400; body=%s", status, body)
+		}
 	})
 
 	t.Run("relation_key_prefix_aliases", func(t *testing.T) {
@@ -2050,14 +2314,6 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/net?ix__ixlan_set=5", want: []int{100, 200, 301}},
 			{path: "/api/fac?net__poc_set=1", want: []int{400, 401}},
 			{path: "/api/ix?fac__netfac_set=1", want: []int{20, 21}},
-		})
-		srv2 := newTestServer(t, seedIxSideKeys(t, t0))
-		assertKeysSilentlyIgnored(t, srv2, []silentIgnoreCase{
-			// Upstream: [200]. The reverse relation of NetworkIXLan.ix_side
-			// (models.py:6095-6101); fac 201 also has a matching netixlan
-			// but is deleted, so the status matrix drops it on both sides.
-			// The mirror has no fac -> netixlan edge through ix_side.
-			{path: "/api/fac?ix_side_set__asn=64500", want: []int{200, 202}},
 		})
 	})
 
@@ -2788,6 +3044,38 @@ func seedIxSideKeys(t *testing.T, t0 time.Time) *ent.Client {
 	return c
 }
 
+// seedIxSideSetKeys seeds three live facilities and four netixlans:
+// 5000 on the IX side of fac 200, 5001 (deleted, speed 10000) and 5002
+// on the IX side of fac 201, and 5003 with no IX side. Fac 202 has none.
+func seedIxSideSetKeys(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "SetOrg", t0)
+	mustNet(ctx, t, c, 100, "SideNet", 64500, 1, t0)
+	mustIX(ctx, t, c, 300, "SetIX", 1, t0)
+	mustIxLan(ctx, t, c, 3000, "SetLan", 300, t0)
+	for _, fac := range []int{200, 201, 202} {
+		mustFac(ctx, t, c, fac, fmt.Sprintf("SetFac%d", fac), 1, t0)
+	}
+	for _, row := range []struct {
+		id, asn, speed int
+		fac            *int
+		status         string
+	}{
+		{5000, 64500, 1000, new(200), "ok"},
+		{5001, 64501, 10000, new(201), "deleted"},
+		{5002, 64500, 1000, new(201), "ok"},
+		{5003, 64502, 1000, nil, "ok"},
+	} {
+		c.NetworkIxLan.Create().
+			SetID(row.id).SetNetID(100).SetIxlanID(3000).SetIxID(300).
+			SetAsn(row.asn).SetSpeed(row.speed).SetNillableIxSideID(row.fac).
+			SetStatus(row.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	return c
+}
+
 // seedIgnoredKeys seeds rows whose filter keys upstream ignores: two
 // netixlans with different net_side facilities, two carriers with
 // different fac_count and org_name values and their carrierfac rows,
@@ -2901,6 +3189,38 @@ func seedRelationSeedKeys(t *testing.T, t0 time.Time) *ent.Client {
 		c.IxFacility.Create().
 			SetID(id).SetIxID(id - 680).SetFacID(400).
 			SetStatus(st).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+	}
+	return c
+}
+
+// seedIXLanNameLookups seeds rows for the netixlan name lookups:
+//   - ixlans 10 (LanA), 11 ("lan*B ", with a trailing space), 12
+//     (Other), 13 (LanA, pending) and 14 (x) on exchange 20.
+//   - netixlans 900 to 904 on ixlans 10 to 14, all ok.
+func seedIXLanNameLookups(t *testing.T, t0 time.Time) *ent.Client {
+	t.Helper()
+	c := testutil.SetupClient(t)
+	ctx := t.Context()
+	mustOrg(ctx, t, c, 1, "NameLookupOrg", t0)
+	mustNet(ctx, t, c, 100, "NameLookupNet", 64500, 1, t0)
+	mustIX(ctx, t, c, 20, "NameLookupIX", 1, t0)
+	for _, l := range []struct {
+		id           int
+		name, status string
+	}{
+		{10, "LanA", "ok"},
+		{11, "lan*B ", "ok"},
+		{12, "Other", "ok"},
+		{13, "LanA", "pending"},
+		{14, "x", "ok"},
+	} {
+		c.IxLan.Create().
+			SetID(l.id).SetIxID(20).SetName(l.name).
+			SetStatus(l.status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.NetworkIxLan.Create().
+			SetID(890 + l.id).SetNetID(100).SetIxlanID(l.id).SetIxID(20).
+			SetName("NameLookupIX").SetAsn(64500).SetSpeed(1000).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
 	}
 	return c
 }

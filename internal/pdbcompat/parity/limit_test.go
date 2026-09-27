@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -264,10 +265,218 @@ func TestParity_Limit(t *testing.T) {
 		assertNotTruncated(t, meta)
 	})
 
+	t.Run("cached_list_meta_generated_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 api_cache.py:90-124 serves a list from its
+		// cache file when it has no filter, no since, no pk, no URL
+		// kwarg (a format suffix is one) and a cache file for
+		// min(depth, 3), and at depth 0 no limit in 1..250
+		// (API_CACHE_ALL_LIMITS unset); a negative depth has no file.
+		// load() sets meta.generated to the file mtime (:135), which
+		// MetaJSONRenderer sends as the meta object (renderers.py:108-
+		// 116). The mirror sends the completion time of its newest
+		// successful sync.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		mustOrg(ctx, t, c, 1, "GenOrg", t0)
+		mustNet(ctx, t, c, 1, "GenNet", 64500, 1, t0)
+		clock := &pdbcompat.SyncClock{}
+		synced := time.Date(2026, 9, 27, 6, 0, 0, 250_000_000, time.UTC)
+		clock.Set(synced)
+		h := pdbcompat.NewHandler(c, 0)
+		h.SetSyncClock(clock)
+		mux := http.NewServeMux()
+		h.Register(mux)
+		srv := httptest.NewServer(mux)
+		t.Cleanup(srv.Close)
+		want := float64(synced.UnixNano()) / 1e9
+		for _, tc := range []struct {
+			path      string
+			generated bool
+		}{
+			{"/api/net", true},
+			{"/api/net?limit=0", true},
+			{"/api/net?limit=251", true},
+			{"/api/net?limit=-1", false},
+			{"/api/net?limit=10", false},
+			{"/api/net?depth=1&limit=10", true},
+			{"/api/net?depth=9", true},
+			{"/api/net?depth=-1", false},
+			{"/api/net?skip=1", true},
+			{"/api/net?fields=name", true},
+			{"/api/net?asn=64500", false},
+			{"/api/net?since=1", false},
+			{"/api/net?q=Gen", false},
+			{"/api/net?name_search=Gen", false},
+			{"/api/net.json", false},
+			{"/api/org", true},
+			{"/api/poc", true},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != http.StatusOK {
+				t.Errorf("%s: status = %d, want 200", tc.path, status)
+				continue
+			}
+			got, has := decodeListMeta(t, body)["generated"]
+			if has != tc.generated {
+				t.Errorf("%s: meta.generated present = %v, want %v", tc.path, has, tc.generated)
+				continue
+			}
+			if has && got != want {
+				t.Errorf("%s: meta.generated = %v, want %v", tc.path, got, want)
+			}
+		}
+		// A detail request is never served from the cache.
+		if _, body := httpGet(t, srv, "/api/net/1"); bytes.Contains(body, []byte(`"generated"`)) {
+			t.Errorf("/api/net/1: body has meta.generated: %s", headBody(body, 300))
+		}
+		// Without a sync time, no response carries it.
+		if _, body := httpGet(t, newTestServer(t, c), "/api/net"); bytes.Contains(body, []byte(`"generated"`)) {
+			t.Errorf("no clock: body has meta.generated: %s", headBody(body, 300))
+		}
+	})
+
+	t.Run("page_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:790-806 paginates the list when the
+		// query has the page key (UnlimitedIfNoPagePagination,
+		// pagination.py:20-40), after get_queryset has sliced by skip
+		// and limit. per_page is DRF page_size_query_param, capped at
+		// 250 (PAGE_SIZE). meta.pagination is build_pagination_meta
+		// (pagination.py:87-99), and the links are DRF
+		// replace_query_param / remove_query_param. A page that does
+		// not exist is DRF NotFound "Invalid page." (DRF
+		// pagination.py:186-207). The API cache path paginates only a
+		// page value that is not empty (api_cache.py:146).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "PageNet", 7)
+		clock := &pdbcompat.SyncClock{}
+		clock.Set(time.Date(2026, 9, 27, 6, 0, 0, 0, time.UTC))
+		h := pdbcompat.NewHandler(c, 0)
+		h.SetSyncClock(clock)
+		mux := http.NewServeMux()
+		h.Register(mux)
+		srv := httptest.NewServer(mux)
+		t.Cleanup(srv.Close)
+		link := func(q string) any { return srv.URL + "/api/net" + q }
+		for _, tc := range []struct {
+			path       string
+			ids        []int
+			pagination map[string]any // nil: no meta.pagination
+			generated  bool
+		}{
+			{"/api/net?name=PageNet&page=1&per_page=3", []int{1, 2, 3}, map[string]any{
+				"count": 7.0, "has_next": true, "has_previous": false,
+				"next": link("?name=PageNet&page=2&per_page=3"), "previous": nil,
+				"page": 1.0, "per_page": 3.0, "total_pages": 3.0,
+			}, false},
+			{"/api/net?per_page=3&page=2", []int{4, 5, 6}, map[string]any{
+				"count": 7.0, "has_next": true, "has_previous": true,
+				"next": link("?page=3&per_page=3"), "previous": link("?per_page=3"),
+				"page": 2.0, "per_page": 3.0, "total_pages": 3.0,
+			}, true},
+			{"/api/net?page=last&per_page=3", []int{7}, map[string]any{
+				"count": 7.0, "has_next": false, "has_previous": true,
+				"next": nil, "previous": link("?page=2&per_page=3"),
+				"page": 3.0, "per_page": 3.0, "total_pages": 3.0,
+			}, true},
+			// per_page 0, a negative or a non-integer value is 250.
+			{"/api/net?page=1&per_page=0", []int{1, 2, 3, 4, 5, 6, 7}, map[string]any{
+				"count": 7.0, "has_next": false, "has_previous": false,
+				"next": nil, "previous": nil,
+				"page": 1.0, "per_page": 250.0, "total_pages": 1.0,
+			}, true},
+			// The page applies to the rows after skip and limit.
+			{"/api/net?name=PageNet&skip=2&limit=4&page=2&per_page=3", []int{6}, map[string]any{
+				"count": 4.0, "has_next": false, "has_previous": true,
+				"next": nil, "previous": link("?limit=4&name=PageNet&per_page=3&skip=2"),
+				"page": 2.0, "per_page": 3.0, "total_pages": 2.0,
+			}, false},
+			// An empty page value is page 1 on the live path, and no
+			// pagination on the API cache path.
+			{"/api/net?name=PageNet&page=", []int{1, 2, 3, 4, 5, 6, 7}, map[string]any{
+				"count": 7.0, "has_next": false, "has_previous": false,
+				"next": nil, "previous": nil,
+				"page": 1.0, "per_page": 250.0, "total_pages": 1.0,
+			}, false},
+			{"/api/net?page=", []int{1, 2, 3, 4, 5, 6, 7}, nil, true},
+			// An empty list has one page. The unique-query 404 does not
+			// apply.
+			{"/api/net?asn=1&page=1", []int{}, map[string]any{
+				"count": 0.0, "has_next": false, "has_previous": false,
+				"next": nil, "previous": nil,
+				"page": 1.0, "per_page": 250.0, "total_pages": 1.0,
+			}, false},
+		} {
+			ids, meta := getDepthList(t, srv, tc.path)
+			if !slices.Equal(ids, tc.ids) {
+				t.Errorf("%s: ids = %v, want %v", tc.path, ids, tc.ids)
+			}
+			got, has := meta["pagination"]
+			switch {
+			case tc.pagination == nil && has:
+				t.Errorf("%s: meta.pagination = %v, want none", tc.path, got)
+			case tc.pagination != nil && !reflect.DeepEqual(got, tc.pagination):
+				t.Errorf("%s: meta.pagination = %v, want %v", tc.path, got, tc.pagination)
+			}
+			if _, has := meta["generated"]; has != tc.generated {
+				t.Errorf("%s: meta.generated present = %v, want %v", tc.path, has, tc.generated)
+			}
+		}
+		for _, path := range []string{
+			"/api/net?page=4&per_page=3",
+			"/api/net?page=0",
+			"/api/net?page=-1",
+			"/api/net?page=abc",
+			"/api/net?page=1.0",
+			"/api/net?asn=1&page=2",
+		} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusNotFound {
+				t.Errorf("%s: status = %d, want 404; body=%s", path, status, headBody(body, 300))
+				continue
+			}
+			if m := mustDecodeMetaError(t, body); m.Error != "Invalid page." {
+				t.Errorf("%s: meta.error = %q, want %q", path, m.Error, "Invalid page.")
+			}
+			if bytes.Contains(body, []byte(`"data"`)) || bytes.Contains(body, []byte(`"generated"`)) {
+				t.Errorf("%s: body = %s, want meta.error only", path, headBody(body, 300))
+			}
+		}
+	})
+
+	t.Run("page_after_depth_truncation", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:757-772 cuts a live depth list to 250
+		// rows in get_queryset, so the page count is 250 and
+		// meta.truncated stays next to meta.pagination, also on the 404
+		// (the NotFound comes after get_queryset, renderers.py:111-118).
+		c := testutil.SetupClient(t)
+		seedDepthNets(t, c, t0, "PageDepth", 260)
+		srv := newTestServer(t, c)
+		ids, meta := getDepthList(t, srv, "/api/net?name=PageDepth&depth=1&page=2&per_page=200")
+		if len(ids) != 50 || ids[0] != 201 || ids[49] != 250 {
+			t.Errorf("ids = %d rows [%v..], want ids 201..250", len(ids), ids[:min(len(ids), 3)])
+		}
+		assertTruncated(t, meta, "1")
+		pg, _ := meta["pagination"].(map[string]any)
+		if pg["count"] != 250.0 || pg["total_pages"] != 2.0 {
+			t.Errorf("meta.pagination = %v, want count 250, total_pages 2", pg)
+		}
+		status, body := httpGet(t, srv, "/api/net?name=PageDepth&depth=1&page=3&per_page=200")
+		if status != http.StatusNotFound {
+			t.Fatalf("page 3: status = %d, want 404", status)
+		}
+		if m := mustDecodeMetaError(t, body); m.Error != "Invalid page." {
+			t.Errorf("page 3: meta.error = %q", m.Error)
+		}
+		assertTruncated(t, decodeListMeta(t, body), "1")
+	})
+
 	t.Run("list_depth_ignored_keys_not_truncated", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 models.py:1259-1264 (org_flags) and
-		// models.py:6095-6101 (the ix_side_set reverse relation) are
+		// models.py:2621-2622 (the ix_set reverse relation of org) are
 		// filters upstream, so upstream answers from its live query and
 		// truncates. The mirror ignores these keys (registered rows
 		// DIVERGENCE_unserialized_model_columns_silent_ignore and
@@ -277,21 +486,16 @@ func TestParity_Limit(t *testing.T) {
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		orgs := make([]*ent.OrganizationCreate, 0, 260)
-		facs := make([]*ent.FacilityCreate, 0, 260)
 		for i := 1; i <= 260; i++ {
 			orgs = append(orgs, c.Organization.Create().
 				SetID(i).SetName(fmt.Sprintf("FlagOrg %d", i)).SetNameFold(unifold.Fold(fmt.Sprintf("FlagOrg %d", i))).
 				SetStatus("ok").SetCreated(t0).SetUpdated(t0))
-			facs = append(facs, c.Facility.Create().
-				SetID(i).SetName(fmt.Sprintf("SideFac %d", i)).SetNameFold(unifold.Fold(fmt.Sprintf("SideFac %d", i))).
-				SetOrgID(1).SetStatus("ok").SetCreated(t0).SetUpdated(t0))
 		}
 		c.Organization.CreateBulk(orgs...).ExecX(ctx)
-		c.Facility.CreateBulk(facs...).ExecX(ctx)
 		srv := newTestServer(t, c)
 		for _, path := range []string{
 			"/api/org?org_flags=1&depth=1",
-			"/api/fac?ix_side_set__asn=64500&depth=1",
+			"/api/org?ix_set__name=x&depth=1",
 		} {
 			ids, meta := getDepthList(t, srv, path)
 			if len(ids) != 260 {
@@ -499,29 +703,46 @@ func TestParity_Limit(t *testing.T) {
 
 	t.Run("list_depth_error_order", func(t *testing.T) {
 		t.Parallel()
-		// upstream: 2.83.0 rest.py:505-523 parses since, skip, limit and
-		// depth before the filter loop (:564-683). The mirror checks
-		// skip and limit before since; each pair below is still a 400
-		// with the upstream text.
+		// upstream: 2.83.0 rest.py:486-500 runs prepare_query first, then
+		// parses since, skip, limit and depth (:505-523), all before the
+		// filter loop (:564-683). So a prepare_query error wins over a
+		// parameter error, and a parameter error wins over a filter-loop
+		// error. The relation seed and presence keys below are
+		// prepare_query keys; asn__lt is a filter-loop key.
 		c := testutil.SetupClient(t)
 		srv := newTestServer(t, c)
-		for _, tc := range []struct{ query, want string }{
-			{"since=abc&depth=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
-			{"depth=abc&skip=abc", "'skip' needs to be a number"},
-			{"depth=abc&asn__lt=x", "'depth' needs to be a number"},
+		for _, tc := range []struct{ path, want string }{
+			{"/api/net?since=abc&depth=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&skip=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&limit=abc", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?depth=abc&skip=abc", "'skip' needs to be a number"},
+			{"/api/net?depth=abc&limit=abc", "'limit' needs to be a number"},
+			{"/api/net?depth=abc&asn__lt=x", "'depth' needs to be a number"},
 			// since is parsed before the filter loop and before the
 			// negative-skip check (Django raises that one at the slice,
 			// rest.py:757-760).
-			{"since=abc&asn__lt=x", "'since' needs to be a unix timestamp (epoch seconds)"},
-			{"since=abc&skip=-1", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&asn__lt=x", "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=abc&skip=-1", "'since' needs to be a unix timestamp (epoch seconds)"},
+			// A prepare_query error wins over every parameter error.
+			{"/api/fac?net=abc&since=abc", "filter error: "},
+			{"/api/net?not_ix=abc&depth=abc&skip=abc", "filter error: "},
+			{"/api/net/1?not_ix=abc&limit=abc", "filter error: "},
+			{"/api/fac/1?net__bogus=1&since=abc", "filter error: "},
 		} {
-			status, body := httpGet(t, srv, "/api/net?"+tc.query)
+			status, body := httpGet(t, srv, tc.path)
 			if status != http.StatusBadRequest {
-				t.Errorf("?%s: status = %d, want 400; body=%s", tc.query, status, headBody(body, 300))
+				t.Errorf("%s: status = %d, want 400; body=%s", tc.path, status, headBody(body, 300))
 				continue
 			}
-			if got := mustDecodeMetaError(t, body).Error; got != tc.want {
-				t.Errorf("?%s: meta.error = %q, want %q", tc.query, got, tc.want)
+			got := mustDecodeMetaError(t, body).Error
+			if strings.HasSuffix(tc.want, ": ") {
+				if !strings.HasPrefix(got, tc.want) {
+					t.Errorf("%s: meta.error = %q, want prefix %q", tc.path, got, tc.want)
+				}
+				continue
+			}
+			if got != tc.want {
+				t.Errorf("%s: meta.error = %q, want %q", tc.path, got, tc.want)
 			}
 		}
 	})
@@ -717,18 +938,26 @@ func TestParity_Limit(t *testing.T) {
 			t.Errorf("budget: problem type/budget_bytes = %q/%d, want %q/100", p.Type, p.BudgetBytes, pdbcompat.ResponseTooLargeType)
 		}
 
-		// Accept values that keep the upstream form.
-		for _, accept := range []string{
-			"application/problem+json;q=0",
-			"*/*",
-			"application/*",
-			"application/json",
-			"application/problem+json;q=abc",
-			"application/problem+json;q=NaN",
+		// Accept values that keep the upstream form. A header that
+		// names application/problem+json only with a q of 0 or a q
+		// that is not a number gets the upstream 406, as it does not
+		// name the media type for the mirror.
+		for _, tc := range []struct {
+			accept string
+			want   int
+		}{
+			{"application/problem+json;q=0", http.StatusNotAcceptable},
+			{"*/*", http.StatusBadRequest},
+			{"application/*", http.StatusBadRequest},
+			{"application/json", http.StatusBadRequest},
+			{"application/problem+json;q=abc", http.StatusNotAcceptable},
+			{"application/problem+json;q=NaN", http.StatusNotAcceptable},
+			{"application/problem+json;q=0, application/json", http.StatusBadRequest},
 		} {
+			accept := tc.accept
 			status, _, body := httpDo(t, srv, http.MethodGet, "/api/net?limit=abc", http.Header{"Accept": {accept}})
-			if status != http.StatusBadRequest {
-				t.Errorf("Accept %q: status = %d, want 400", accept, status)
+			if status != tc.want {
+				t.Errorf("Accept %q: status = %d, want %d", accept, status, tc.want)
 				continue
 			}
 			if got := mustDecodeMetaError(t, body).Error; got == "" {
@@ -748,8 +977,8 @@ func TestParity_Limit(t *testing.T) {
 		if status != http.StatusOK {
 			t.Fatalf("success: status = %d, want 200; body=%s", status, string(body))
 		}
-		if ct := hdr.Get("Content-Type"); ct != "application/json" {
-			t.Errorf("success: Content-Type = %q, want application/json", ct)
+		if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+			t.Errorf("success: Content-Type = %q, want application/json; charset=utf-8", ct)
 		}
 		if ids := extractIDs(t, body); len(ids) != 50 {
 			t.Errorf("success: %d rows, want 50", len(ids))
@@ -987,6 +1216,63 @@ func TestParity_Limit(t *testing.T) {
 		}
 	})
 
+	t.Run("since_float_forms_400_after_filters", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:505-510 parses since with
+		// int(float(v)), so 1.5 and 1e3 pass. The API cache loader then
+		// runs int(v) after the filter loop (rest.py:707,
+		// api_cache.py:80), and list() returns the ValueError as a 400
+		// with the Python message (rest.py:824-827). A filter error comes
+		// first; a negative skip comes later (the slice, :757-760). A
+		// name_search that matches no row returns qset.none() before the
+		// loader (:550-553). nan fails the first parse.
+		c := testutil.SetupClient(t)
+		if _, err := c.Network.Create().
+			SetID(1).SetName("SinceNet").SetNameFold(unifold.Fold("SinceNet")).
+			SetAsn(64500).SetStatus("ok").
+			SetCreated(t0).SetUpdated(t0).
+			Save(t.Context()); err != nil {
+			t.Fatalf("seed net: %v", err)
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			path    string
+			want    int
+			wantErr string
+		}{
+			{"/api/net?since=1.5", http.StatusBadRequest, "invalid literal for int() with base 10: '1.5'"},
+			{"/api/net?since=1e3", http.StatusBadRequest, "invalid literal for int() with base 10: '1e3'"},
+			{"/api/net?since=%201.5", http.StatusBadRequest, "invalid literal for int() with base 10: ' 1.5'"},
+			{"/api/net?since=1.5&skip=-1", http.StatusBadRequest, "invalid literal for int() with base 10: '1.5'"},
+			{"/api/net?since=1.5&asn__lt=x", http.StatusBadRequest, "filter error: "},
+			{"/api/net?since=1.5&depth=abc", http.StatusBadRequest, "'depth' needs to be a number"},
+			{"/api/net?since=nan", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
+			{"/api/net?since=1.5&name_search=zzzz", http.StatusOK, ""},
+		} {
+			status, body := httpGet(t, srv, tc.path)
+			if status != tc.want {
+				t.Errorf("%s: status = %d, want %d; body=%s", tc.path, status, tc.want, headBody(body, 300))
+				continue
+			}
+			if tc.want == http.StatusOK {
+				if ids := extractIDs(t, body); len(ids) != 0 {
+					t.Errorf("%s: ids = %v, want none", tc.path, ids)
+				}
+				continue
+			}
+			got := mustDecodeMetaError(t, body).Error
+			if strings.HasSuffix(tc.wantErr, ": ") {
+				if !strings.HasPrefix(got, tc.wantErr) {
+					t.Errorf("%s: meta.error = %q, want prefix %q", tc.path, got, tc.wantErr)
+				}
+				continue
+			}
+			if got != tc.wantErr {
+				t.Errorf("%s: meta.error = %q, want %q", tc.path, got, tc.wantErr)
+			}
+		}
+	})
+
 	t.Run("since_last_value_wins", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 rest.py:505 reads since with QueryDict.get
@@ -1069,11 +1355,11 @@ func seedLimitNets(t *testing.T, c *ent.Client, ts time.Time, n int) {
 }
 
 // assertErrorHeaders checks the headers of an upstream-form /api/ error:
-// Content-Type application/json and Vary with the Accept token.
+// Content-Type application/json; charset=utf-8 and Vary with the Accept token.
 func assertErrorHeaders(t *testing.T, label string, hdr http.Header) {
 	t.Helper()
-	if ct := hdr.Get("Content-Type"); ct != "application/json" {
-		t.Errorf("%s: Content-Type = %q, want application/json", label, ct)
+	if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+		t.Errorf("%s: Content-Type = %q, want application/json; charset=utf-8", label, ct)
 	}
 	if !headerHasToken(hdr, "Vary", "Accept") {
 		t.Errorf("%s: Vary = %q, want the Accept token", label, hdr.Values("Vary"))

@@ -15,6 +15,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
 )
@@ -41,6 +42,10 @@ type Handler struct {
 	// release the charge on return.
 	inflightBytes atomic.Int64
 
+	// syncClock is the time of meta.generated (SetSyncClock). nil sends
+	// no meta.generated.
+	syncClock *SyncClock
+
 	// listDepthChunk is the number of rows that a list at depth > 0 of
 	// a type with reverse sets loads and renders at a time
 	// (defaultListDepthChunk). Tests set a smaller value.
@@ -61,32 +66,88 @@ func NewHandler(client *ent.Client, responseMemoryLimit int64) *Handler {
 }
 
 // Register sets up PeeringDB-compatible routes on the given mux.
-// Routes follow PeeringDB's URL patterns: /api/{type}, /api/{type}/{id}.
-// Both with and without trailing slash variants are handled.
+// Routes follow PeeringDB's URL patterns: /api/{type}, /api/{type}/{id}
+// (parseAPIPath).
 // The index endpoint at /api/ lists all available types.
 func (h *Handler) Register(mux *http.ServeMux) {
 	// Single wildcard pattern handles all /api/ sub-paths including the
 	// index itself. Go 1.22+ {rest...} wildcard matches the empty string
 	// for /api/ requests, so index, list, and detail are all dispatched
 	// from one registration point.
-	mux.HandleFunc("GET /api/{rest...}", h.dispatch)
+	// prettyJSON indents the body of any of them for ?pretty.
+	mux.Handle("GET /api/{rest...}", prettyJSON(http.HandlerFunc(h.dispatch)))
 	// Every other method reaches the method-less pattern: GET (and HEAD,
 	// which the mux serves with the GET pattern) is more specific.
-	mux.HandleFunc("/api/{rest...}", h.methodNotAllowed)
+	mux.Handle("/api/{rest...}", prettyJSON(http.HandlerFunc(h.methodNotAllowed)))
+	// The mux would send a 307 for /api, so the path has its own route.
+	mux.HandleFunc("/api", redirectAPIRoot)
+}
+
+// redirectAPIRoot answers /api with the redirect of the upstream
+// PDBCommonMiddleware (2.83.0 middleware.py:175-190), a Django
+// CommonMiddleware with APPEND_SLASH: a 301 for every method to the
+// path with a "/" and the same query string, with an empty HTML body
+// (Django HttpResponsePermanentRedirect). The Location is relative, as
+// upstream sends it for its www host.
+func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
+	target := "/api/"
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	w.Header().Set("Location", target)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusMovedPermanently)
 }
 
 // methodNotAllowed answers a method other than GET and HEAD. The mirror
-// is read-only, so every such method gets 405 with the DRF text
-// (views.py:167-172, exceptions.py:194-196). Upstream lists its write
-// methods in Allow and runs the write handlers (docs/API.md § Known
-// Divergences). The mux sets no Allow header for this pattern, so the
-// handler sets it. The as_set lookup serves only GET upstream (2.83.0
-// rest.py:1399), so its paths get Allow: GET.
+// is read-only, so every such method on a path that an upstream route
+// matches gets 405 with the DRF text (views.py:167-172,
+// exceptions.py:194-196). Upstream lists its write methods in Allow and
+// runs the write handlers (docs/API.md § Known Divergences). The mux
+// sets no Allow header for this pattern, so the handler sets it. The
+// paths of getOnly types get Allow: GET.
+//
+// A path that no route matches is a 404 for every method, as in
+// dispatch. Content negotiation comes before the method check
+// (negotiate).
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	allow := "GET, HEAD"
-	if typeName, _ := splitTypeID(r.PathValue("rest")); typeName == asSetPath {
-		allow = "GET"
+	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
+	_, known := Registry[typeName]
+	switch {
+	case !routed:
+		writeDetailNotFound(w, r, detailSliceNotFound)
+	case !known && typeName != "" && typeName != asSetPath:
+		writeUnknownType(w, r, typeName)
+	case !negotiate(w, r, format):
+	case getOnly(typeName):
+		writeMethodNotAllowed(w, r, "GET")
+	default:
+		writeMethodNotAllowed(w, r, "GET, HEAD")
 	}
+}
+
+// writeUnknownType writes the 404 of a path that names no type. Upstream
+// has no route for it and sends its HTML 404 page (docs/API.md § Known
+// Divergences).
+func writeUnknownType(w http.ResponseWriter, r *http.Request, typeName string) {
+	writeError(w, r, apiError{
+		Status: http.StatusNotFound,
+		Detail: fmt.Sprintf("unknown type %q", typeName),
+	})
+}
+
+// getOnly reports whether the upstream viewset of typeName leaves HEAD
+// and OPTIONS out of http_method_names: ixlan maps GET and PUT (2.83.0
+// rest.py:1358), as_set maps GET (:1404). DRF answers HEAD and OPTIONS
+// there with 405 (views.py:513-521). The mirror does not list the
+// write method PUT in Allow.
+func getOnly(typeName string) bool {
+	return typeName == peeringdb.TypeIXLan || typeName == asSetPath
+}
+
+// writeMethodNotAllowed writes the DRF 405 for the request method with
+// the Allow header allow.
+func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string) {
 	w.Header().Set("Allow", allow)
 	// Concatenate: %q would escape the method a second time.
 	writeError(w, r, apiError{
@@ -98,13 +159,24 @@ func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 // dispatch routes requests under /api/ to index, list, or detail handlers
 // based on the URL path structure.
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
-	rest := r.PathValue("rest")
+	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))
 
-	// Parse the rest path: "", "{type}", "{type}/", or "{type}/{id}".
-	typeName, idStr := splitTypeID(rest)
+	// Upstream sends its HTML 404 page for a path that no route matches,
+	// for example a path with a "/" at the end, more segments, or a "."
+	// that is not a format suffix (docs/API.md § Known Divergences). A
+	// POST-only action path such as /api/ix/<id>/request_ixf_import
+	// (rest.py:209-228, :1033-1191) gets 405 there.
+	if !routed {
+		writeDetailNotFound(w, r, detailSliceNotFound)
+		return
+	}
 
 	if typeName == "" {
-		// /api/ or /api -- serve the index.
+		// /api/ or /api/.json -- serve the index. /api has its own route
+		// (redirectAPIRoot).
+		if !negotiate(w, r, format) {
+			return
+		}
 		h.serveIndex(w, r)
 		return
 	}
@@ -114,6 +186,9 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// below turns an id that is not an integer into a 404. The as_set
 	// lookup parses its own ASN and takes its own heap-delta sample.
 	if typeName == asSetPath {
+		if !negotiate(w, r, format) {
+			return
+		}
 		h.serveASSet(w, r, idStr)
 		return
 	}
@@ -121,10 +196,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// Validate type name against Registry.
 	tc, ok := Registry[typeName]
 	if !ok {
-		writeError(w, r, apiError{
-			Status: http.StatusNotFound,
-			Detail: fmt.Sprintf("unknown type %q", typeName),
-		})
+		writeUnknownType(w, r, typeName)
 		return
 	}
 
@@ -145,37 +217,134 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), r.URL.Path, tc.Name, startHeapBytes)
 
-	if idStr == "" {
-		// List endpoint: /api/{type} or /api/{type}/
-		h.serveList(tc, w, r)
+	// Content negotiation runs in initial(), before get_queryset and
+	// before the method check (negotiate). serveDetail parses the id
+	// after the parameter checks.
+	if !negotiate(w, r, format) {
 		return
 	}
 
-	// Detail endpoint: /api/{type}/{id}. An id with a "." or a "/" is
-	// a 404 before any parameter check. Upstream routes "1.5" as pk "1"
-	// with format suffix "5", and the renderer negotiation raises Http404
-	// in initial(), before get_queryset (drf routers.py:143,
-	// urlpatterns.py:109, negotiation.py:80-88, views.py:408-411).
-	// Upstream has no GET route for a path with more segments: it sends
-	// its HTML 404 page, or 405 on a POST-only action path such as
-	// /api/ix/<id>/request_ixf_import (rest.py:209-228, :1033-1191).
-	// serveDetail parses any other id after the parameter checks.
-	if strings.ContainsAny(idStr, "./") {
-		writeDetailNotFound(w, r, detailSliceNotFound)
+	// DRF compares the method with http_method_names after initial()
+	// and before the handler, so no parameter is read. net/http sends
+	// no body for a HEAD response.
+	if r.Method == http.MethodHead && getOnly(tc.Name) {
+		writeMethodNotAllowed(w, r, "GET")
+		return
+	}
+
+	if idStr == "" {
+		// List endpoint: /api/{type}
+		h.serveList(tc, w, r, format != "")
 		return
 	}
 	h.serveDetail(tc, idStr, w, r)
 }
 
-// splitTypeID splits a rest path like "net", "net/", "net/42" into type name
-// and optional ID string.
-func splitTypeID(rest string) (typeName, id string) {
-	rest = strings.TrimRight(rest, "/")
+// parseAPIPath matches a rest path, the part after /api/, with the
+// upstream routes: a DefaultRouter with no trailing slash (2.83.0
+// rest.py:185-230, :1305) has the index "", the list "<type>" and the
+// detail "<type>/<id>", and each of them also with the format suffix of
+// cutFormatSuffix, which alone may have one "/" after it. routed is
+// false for any other path, for example "net/", "net/1/" or "net/1/2".
+// For a routed path, typeName is the type and id is the id without the
+// suffix.
+func parseAPIPath(rest string) (typeName, id, format string, routed bool) {
 	if rest == "" {
-		return "", ""
+		return "", "", "", true
 	}
-	typeName, id, _ = strings.Cut(rest, "/")
-	return typeName, id
+	path, slash := strings.CutSuffix(rest, "/")
+	typeName, id, detail := strings.Cut(path, "/")
+	last := typeName
+	if detail {
+		last = id
+	}
+	base, format, ok := cutFormatSuffix(last)
+	if !ok || (slash && format == "") {
+		return typeName, id, "", false
+	}
+	if !detail {
+		return base, "", format, true
+	}
+	if typeName == "" || base == "" || strings.Contains(base, "/") {
+		return typeName, id, "", false
+	}
+	return typeName, base, format, true
+}
+
+// cutFormatSuffix splits the format suffix off the last segment of an
+// /api/ path. Upstream registers its viewsets on a DefaultRouter
+// (2.83.0 rest.py:185, :1305), which adds a route with the suffix
+// \.(?P<format>[a-z0-9]+)/?$ to each route (drf routers.py
+// include_format_suffixes, urlpatterns.py format_suffix_patterns).
+// The type name and the lookup value ([^/.]+) have no ".". ok is false
+// when seg has a "." in another form.
+func cutFormatSuffix(seg string) (base, format string, ok bool) {
+	base, format, found := strings.Cut(seg, ".")
+	if !found {
+		return seg, "", true
+	}
+	if format == "" || strings.Trim(format, "abcdefghijklmnopqrstuvwxyz0123456789") != "" {
+		return seg, "", false
+	}
+	return base, format, true
+}
+
+// errNotAcceptable is the DRF NotAcceptable text (exceptions.py:205-208).
+const errNotAcceptable = "Could not satisfy the request Accept header."
+
+// negotiate runs the checks of DRF content negotiation, which initial()
+// runs before the method check and before any parameter is read
+// (views.py:408-411): a format other than json is a 404
+// (formatAccepted, negotiation.py:80-88), and an Accept header with no
+// media range that matches application/json is a 406 (acceptsJSON,
+// negotiation.py:52-78). A header that names application/problem+json
+// gets no 406 (docs/API.md § Known Divergences). negotiate writes the
+// error and returns false when a check fails.
+func negotiate(w http.ResponseWriter, r *http.Request, suffix string) bool {
+	if !formatAccepted(suffix, r.URL.Query()) {
+		writeDetailNotFound(w, r, detailSliceNotFound)
+		return false
+	}
+	if !acceptsJSON(r.Header) && !httperr.WantsProblemJSON(r.Header) {
+		writeError(w, r, apiError{Status: http.StatusNotAcceptable, Detail: errNotAcceptable})
+		return false
+	}
+	return true
+}
+
+// acceptsJSON reports whether a media range of the Accept header
+// matches application/json as DRF matches it (mediatypes.py
+// _MediaType.match): the header is split at each ",", the type and
+// subtype ignore case, "*" matches any type or subtype, and no
+// parameter is read, q=0 included. Without an Accept header, DRF reads
+// */*. An empty header matches nothing.
+func acceptsJSON(h http.Header) bool {
+	vals, ok := h["Accept"]
+	if !ok {
+		return true
+	}
+	for part := range strings.SplitSeq(strings.Join(vals, ","), ",") {
+		full, _, _ := strings.Cut(part, ";")
+		typ, sub, _ := strings.Cut(strings.ToLower(strings.TrimSpace(full)), "/")
+		if (typ == "*" || typ == "application") && (sub == "*" || sub == "json") {
+			return true
+		}
+	}
+	return false
+}
+
+// formatAccepted reports whether DRF content negotiation accepts the
+// format of a request: the format suffix, or else the last ?format=
+// value (drf negotiation.py:44-45, Django QueryDict.get). The only
+// upstream renderer has the format json (settings DEFAULT_RENDERER_CLASSES,
+// renderers.py:76-86). Another format raises Http404
+// (negotiation.py:80-88), and an empty value selects no format.
+func formatAccepted(suffix string, params url.Values) bool {
+	format := suffix
+	if vals := params["format"]; format == "" && len(vals) > 0 {
+		format = vals[len(vals)-1]
+	}
+	return format == "" || format == "json"
 }
 
 // serveIndex writes the API index in upstream PeeringDB's shape:
@@ -187,13 +356,7 @@ func splitTypeID(rest string) (typeName, id string) {
 // Upstream lists as_set last in router order (rest.py:1598); the Go map
 // encodes the keys in sorted order, and JSON object order has no meaning.
 func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
-	scheme := "https"
-	if xfp := r.Header.Get("X-Forwarded-Proto"); xfp != "" {
-		scheme = xfp
-	} else if r.TLS == nil {
-		scheme = "http"
-	}
-	base := scheme + "://" + r.Host + "/api/"
+	base := requestScheme(r) + "://" + r.Host + "/api/"
 
 	types := make(map[string]string, len(Registry)+1)
 	for name := range Registry {
@@ -209,68 +372,44 @@ func (h *Handler) serveIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	b, _ := json.Marshal(body)
 
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
 	w.Header().Set("X-Powered-By", poweredByHeader)
 	_, _ = w.Write(b)
 }
 
 // serveList handles list requests for the given type. The per-request
 // heap-delta sampler lives in dispatch (shared with serveDetail).
-func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request) {
+//
+// suffixed is set for a path with a format suffix, which upstream never
+// serves from its API cache (depthListIsLive).
+func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Request, suffixed bool) {
 	params := r.URL.Query()
 	unique := isUniqueQuery(tc.Name, params)
 
-	// Parse skip, limit (2.83.0 rest.py:511-518), since (:505-510) and
-	// depth (:520-523) before the filters, as upstream runs its filter
-	// loop after them (:564-683). Upstream checks since before skip, so
-	// for ?since=abc&skip=abc it names since and the mirror names skip.
-	// Both are 400.
-	limit, skip, err := ParsePaginationParams(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
+	// Parse the filters with since, skip, limit and depth, in upstream
+	// order (parseRequest).
+	lf, rp, ok := parseRequest(w, r, params, tc)
+	if !ok {
 		return
 	}
-	since, err := ParseSinceParam(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
+	limit, skip, since := rp.limit, rp.skip, rp.since
 	// A list defaults to depth 0 (upstream default_depth(is_list=True),
 	// serializers.py:1032-1039). The raw value decides the truncation
 	// and prints in its message (rest.py:766-772).
-	depth, depthText, _, err := ParseDepthParam(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
+	depth, depthText := rp.depth, rp.depthText
+	var err error
 
-	// Parse filters. The emptyResult short-circuit handles ?field__in=.
-	lf, err := parseRequestFilters(r, params, tc)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: fmt.Sprintf("filter error: %v", err),
-		})
-		return
-	}
-
-	// A negative skip is a 400. Upstream raises it at the slice (2.83.0
-	// rest.py:757-760, Django query.py:403-417), after the filters and
-	// since, and before the serializer. So a filter error wins, and the
+	// Two errors come after the filters, in this order. A since that
+	// float() accepts and int() does not is a 400 with the Python
+	// message: upstream parses since again with int() when it builds its
+	// API cache loader (2.83.0 rest.py:707, api_cache.py:80). A negative
+	// skip is a 400 at the slice (rest.py:757-760, Django
+	// query.py:403-417). So a filter error wins over both, and the
 	// unique-query 404 never fires.
 	// A name_search that matches no row is the exception: upstream
-	// returns qset.none() before the slice (rest.py:550-553), so the
-	// result is empty.
-	if skip < 0 {
+	// returns qset.none() before both (rest.py:550-553), so the result
+	// is empty.
+	if rp.sinceInt != nil || skip < 0 {
 		miss, err := h.nameSearchMisses(r.Context(), tc, lf)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "pdbcompat: list name_search query failed",
@@ -285,9 +424,13 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if !miss {
+			detail := errNegativeSkip.Error()
+			if rp.sinceInt != nil {
+				detail = rp.sinceInt.Error()
+			}
 			writeError(w, r, apiError{
 				Status: http.StatusBadRequest,
-				Detail: errNegativeSkip.Error(),
+				Detail: detail,
 			})
 			return
 		}
@@ -311,10 +454,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 
 	// Parse field projection (?fields=).
-	var fields []string
-	if f := params.Get("fields"); f != "" {
-		fields = strings.Split(f, ",")
-	}
+	fields := fieldsParam(params)
 
 	// A negative limit serves every row, as limit=0 does: upstream
 	// slices only when limit > 0 (2.83.0 rest.py:757-760). The budget
@@ -332,17 +472,33 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// A list at depth > 0 is cut to apiDepthRowLimit rows when upstream
 	// would serve it from its live query, not from its API cache
 	// (depthListIsLive).
-	live := depth > 0 && depthListIsLive(lf, params, q)
+	live := depth > 0 && depthListIsLive(lf, params, q, suffixed)
+	// A list that upstream serves from its API cache carries
+	// meta.generated (servedFromCache).
+	cached := servedFromCache(lf, params, q, suffixed, depth, limit)
+	baseMeta := h.listMeta(cached)
+	// ?page= narrows opts to the rows of the page and applies the depth
+	// cut first, so the paths below serve the page as a list that is
+	// not live.
+	if value, ok := pageValue(params, cached); ok {
+		baseMeta, ok = h.paginateList(w, r, tc, &opts, value, live, depthText, baseMeta)
+		if !ok {
+			return
+		}
+		live = false
+	}
 	if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() && depth != 0 {
 		span.SetAttributes(attribute.Int("pdbplus.list.depth", depth))
 	}
 	if depth > 0 && tc.ListDepth != nil {
+		r = r.WithContext(withSetDateFilter(r.Context(), lf.setDateFilter))
 		h.serveListDepth(tc, w, r, opts, listDepthRequest{
 			depth:     min(depth, 2),
 			depthText: depthText,
 			live:      live,
 			unique:    unique,
 			fields:    fields,
+			meta:      baseMeta,
 		})
 		return
 	}
@@ -350,7 +506,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// The 7 types without reverse sets serve the same rows at every
 	// depth, as upstream (list_exclude, 2.83.0 serializers.py:1286-1290),
 	// so only the truncation applies.
-	meta := any(struct{}{})
+	meta := baseMeta
 	count, counted := 0, false
 	if live {
 		count, err = tc.Count(r.Context(), h.client, opts)
@@ -446,7 +602,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 				writeEntityNotFound(w, r)
 				return
 			}
-			if err := StreamListResponse(r.Context(), w, struct{}{}, iterFromSlice(nil)); err != nil {
+			if err := StreamListResponse(r.Context(), w, meta, iterFromSlice(nil)); err != nil {
 				slog.ErrorContext(r.Context(), "pdbcompat: stream encode failed mid-response",
 					slog.String("endpoint", r.URL.Path),
 					slog.String("type", tc.Name),
@@ -485,9 +641,8 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 		results = applyFieldProjection(results, fields)
 	}
 
-	// Stream via Plan 01's StreamListResponse (replaces legacy
-	// WriteResponse). Meta envelope stays as struct{}{} for on-the-wire
-	// parity with the legacy path. iterFromSlice is a half-step toward
+	// Stream via StreamListResponse. meta is an empty object, or holds
+	// meta.truncated, meta.generated or meta.pagination. iterFromSlice is a half-step toward
 	// true cursor-based streaming: a future plan flips tc.List to a
 	// pull-iterator and serveList is unaffected.
 	//
@@ -526,11 +681,12 @@ func truncatedMeta(depthText string) map[string]string {
 // :766-772, api_cache.py:90-124). The cache path needs no filter, no
 // non-zero since and no query adjustment (lf.upstreamFilter). A key that
 // the mirror ignores and upstream filters (for example org_flags or
-// fac?ix_side_set__asn=) does not count, so the mirror serves such a
+// org?ix_set__name=) does not count, so the mirror serves such a
 // list whole (see docs/API.md § Known Divergences). ?q= is a mirror
-// extension that filters, so it counts.
-func depthListIsLive(lf listFilters, params url.Values, q string) bool {
-	return lf.upstreamFilter || sinceIsNonZero(params) || q != ""
+// extension that filters, so it counts. The cache also needs no URL
+// kwarg (api_cache.py:120-122), and a format suffix is one (suffixed).
+func depthListIsLive(lf listFilters, params url.Values, q string, suffixed bool) bool {
+	return lf.upstreamFilter || sinceIsNonZero(params) || q != "" || suffixed
 }
 
 // sinceIsNonZero reports whether ?since= holds a value other than 0.
@@ -549,7 +705,13 @@ func setListDepthAttrs(ctx context.Context, meta any) {
 	if !span.SpanContext().IsValid() {
 		return
 	}
-	_, truncated := meta.(map[string]string)
+	var truncated bool
+	switch m := meta.(type) {
+	case map[string]string:
+		_, truncated = m["truncated"]
+	case map[string]any:
+		_, truncated = m["truncated"]
+	}
 	span.SetAttributes(attribute.Bool("pdbplus.list.truncated", truncated))
 }
 
@@ -629,6 +791,7 @@ type listDepthRequest struct {
 	live      bool // depthListIsLive
 	unique    bool // isUniqueQuery
 	fields    []string
+	meta      any // meta before the depth cut (listMeta, paginateList)
 }
 
 // streamEmptyList writes the response of a list that serves no row: the
@@ -675,7 +838,10 @@ func streamEmptyList(w http.ResponseWriter, r *http.Request, tc TypeConfig, uniq
 func (h *Handler) serveListDepth(tc TypeConfig, w http.ResponseWriter, r *http.Request, opts QueryOptions, req listDepthRequest) {
 	ctx := r.Context()
 	budget := h.responseMemoryLimit
-	meta := any(struct{}{})
+	meta := req.meta
+	if meta == nil {
+		meta = struct{}{}
+	}
 	if budget > 0 || req.live {
 		count, err := tc.Count(ctx, h.client, opts)
 		if err != nil {
@@ -803,12 +969,13 @@ func (h *Handler) serveListDepth(tc TypeConfig, w http.ResponseWriter, r *http.R
 //
 // A detail request uses only the predicates and the empty-result flag
 // of the result, not its sort key.
-func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (listFilters, error) {
+func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig, afterPrepare func() error) (listFilters, error) {
 	ctx := WithUnknownFields(r.Context())
-	lf, err := parseListFilters(ctx, params, tc)
+	lf, err := parseListFilters(ctx, params, tc, afterPrepare)
 	if err != nil {
 		return listFilters{}, err
 	}
+	lf.setDateFilter = pickCTF(r.URL.RawQuery, lf.ctf)
 	if unknown := UnknownFieldsFromCtx(ctx); len(unknown) > 0 {
 		csv := strings.Join(unknown, ",")
 		slog.DebugContext(ctx, "pdbcompat: unknown filter fields silently ignored",
@@ -827,6 +994,34 @@ func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (lis
 	return lf, nil
 }
 
+// parseRequest parses the filters and the since, skip, limit and depth
+// values of a list or detail request, in upstream order: the
+// prepare_query keys, then since, skip, limit and depth, then
+// name_search and the other keys (parseListFilters,
+// parseRequestParams). On an error it writes the 400 and returns
+// ok=false. A filter error has the "filter error: " prefix, and a
+// parameter error is the upstream text.
+func parseRequest(w http.ResponseWriter, r *http.Request, params url.Values, tc TypeConfig) (listFilters, requestParams, bool) {
+	var rp requestParams
+	var paramErr error
+	lf, err := parseRequestFilters(r, params, tc, func() error {
+		rp, paramErr = parseRequestParams(params)
+		return paramErr
+	})
+	if err != nil {
+		detail := "filter error: " + err.Error()
+		if paramErr != nil {
+			detail = paramErr.Error()
+		}
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: detail,
+		})
+		return listFilters{}, requestParams{}, false
+	}
+	return lf, rp, true
+}
+
 // isUniqueQuery reports whether a list request names one object, so
 // that an empty result is a 404 instead of an empty list. It mirrors
 // upstream is_unique_query: the "id" key on every type (2.83.0
@@ -834,11 +1029,10 @@ func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig) (lis
 // (serializers.py:3815-3820). Only the key counts, whatever its value
 // and whatever the other filters, skip, limit and since are.
 //
-// Upstream skips the 404 when ?page= applies, because the response
-// data is then the pagination object and never empty (rest.py:799-815,
-// pagination.py:35-50). The mirror does not implement ?page=, but it
-// keeps this exception so that a request with ?page= gets the same
-// status as upstream.
+// Upstream skips the 404 when the query has the page key, because the
+// response data is then the pagination object and never empty
+// (rest.py:799-815, pagination.py:35-50). An empty page is a 200 with
+// meta.pagination (paginateList).
 func isUniqueQuery(typeName string, params url.Values) bool {
 	if params.Has("page") {
 		return false
@@ -937,8 +1131,8 @@ func (h *Handler) nameSearchMisses(ctx context.Context, tc TypeConfig, lf listFi
 // A detail request applies the filter keys of a list, as upstream:
 // retrieve calls DRF get_object, which filters get_queryset() (2.83.0
 // rest.py:849-855, :477-703). The parameters are parsed in the list
-// order (skip, limit, since, depth, filters, negative skip), so a
-// request with two bad parameters gets the same 400 on both paths.
+// order (parseRequest, then the negative skip), so a request with two
+// bad parameters gets the same 400 on both paths.
 // rawID is parsed after them, as upstream: get_object builds the
 // filtered queryset before get_object_or_404 converts the pk with int()
 // (drf generics.py:87-100). An id that int() rejects is a 404 (Not
@@ -955,23 +1149,14 @@ func (h *Handler) nameSearchMisses(ctx context.Context, tc TypeConfig, lf listFi
 func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 
-	sliced, negativeSkip, err := parseDetailSlice(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
+	lf, rp, ok := parseRequest(w, r, params, tc)
+	if !ok {
 		return
 	}
-	if _, err := ParseSinceParam(params); err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
+	sliced, negativeSkip := rp.detailSlice()
+	var err error
 
-	// Parse depth. Default = 2 for detail endpoints to match upstream's
+	// Default depth = 2 for detail endpoints to match upstream's
 	// `default_depth(is_list=False)` (2.83.0 serializers.py:1032-1039).
 	// Upstream parses `?depth=` as a raw int clamped to [0, max_depth] with
 	// max_depth=4 for single GETs (serializers.py:1004-1030), so we honour
@@ -982,26 +1167,10 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	// value that is not an integer is a 400, as upstream (rest.py:520-523);
 	// negatives floor to 0.
 	depth := 2
-	rawDepth, _, depthPresent, err := ParseDepthParam(params)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		})
-		return
-	}
-	if depthPresent {
-		depth = min(max(rawDepth, 0), 4)
+	if rp.depthPresent {
+		depth = min(max(rp.depth, 0), 4)
 	}
 
-	lf, err := parseRequestFilters(r, params, tc)
-	if err != nil {
-		writeError(w, r, apiError{
-			Status: http.StatusBadRequest,
-			Detail: fmt.Sprintf("filter error: %v", err),
-		})
-		return
-	}
 	filters := lf.preds
 	// A name_search that matches no row is upstream qset.none(), which
 	// get_queryset returns before it slices the query (2.83.0
@@ -1010,7 +1179,7 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	// slice or a negative skip needs the query of nameSearchMisses:
 	// without them, Match applies the search.
 	miss := lf.none
-	if sliced || negativeSkip {
+	if sliced || negativeSkip || rp.sinceInt != nil {
 		miss, err = h.nameSearchMisses(r.Context(), tc, lf)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "pdbcompat: detail name_search query failed",
@@ -1024,6 +1193,16 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 			})
 			return
 		}
+	}
+	// A since that int() does not accept, then a negative skip, as on a
+	// list (upstream: 500 for both, see docs/API.md § Known
+	// Divergences).
+	if rp.sinceInt != nil && !miss {
+		writeError(w, r, apiError{
+			Status: http.StatusBadRequest,
+			Detail: rp.sinceInt.Error(),
+		})
+		return
 	}
 	if negativeSkip && !miss {
 		writeError(w, r, apiError{
@@ -1132,12 +1311,9 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	}
 
 	// Parse field projection (?fields=).
-	var fields []string
-	if f := params.Get("fields"); f != "" {
-		fields = strings.Split(f, ",")
-	}
+	fields := fieldsParam(params)
 
-	result, err := tc.Get(r.Context(), h.client, id, depth)
+	result, err := tc.Get(withSetDateFilter(r.Context(), lf.setDateFilter), h.client, id, depth)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			writeDetailNotFound(w, r, missMessage(tc))

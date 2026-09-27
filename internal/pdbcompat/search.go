@@ -1,6 +1,7 @@
 package pdbcompat
 
 import (
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -71,25 +72,30 @@ func buildNetworkSearchPredicate(search string, searchFields []string) func(*sql
 	}
 }
 
-// applyFieldProjection filters each object in data to include only the
-// requested fields. The "id" field is always included even if not explicitly
-// listed. Fields that do not exist on an object are silently ignored.
-// If fields is empty, data is returned unchanged.
+// applyFieldProjection keeps the keys of each row that fields names.
+// Upstream removes every serializer field that fields does not name
+// (2.83.0 serializers.py:942-950), id, the _set fields and the nested
+// objects too, and compares the names as given. A nested object keeps
+// every key: upstream builds it without the request, so the fields filter
+// does not run on it (sub_serializer, serializers.py:1335-1341). Names
+// that no row has are ignored. If fields is empty, data is returned
+// unchanged.
 //
-// For depth > 0 responses, _set fields and expanded FK edge objects are
-// preserved regardless of the field list.
+// An ixlan row that keeps ixf_ixp_member_list_url also keeps
+// ixf_ixp_member_list_url_visible: the serializer adds it back
+// (serializers.py:4319-4337), and the permission check removes it again
+// only when the URL and _visible are the only keys left
+// (permissions.py:355-372). The URL key is absent when the caller may not
+// see it, so such a row keeps _visible.
 func applyFieldProjection(data []any, fields []string) []any {
 	if len(fields) == 0 {
 		return data
 	}
-
-	// Build a lookup set with the requested fields plus "id".
-	want := make(map[string]bool, len(fields)+1)
-	want["id"] = true
+	want := make(map[string]bool, len(fields))
 	for _, f := range fields {
-		want[strings.TrimSpace(f)] = true
+		want[f] = true
 	}
-
+	addVisible := want[ixfURLKey] && !want[ixfURLVisibleKey]
 	out := make([]any, len(data))
 	for i, item := range data {
 		m, ok := itemToMap(item)
@@ -97,23 +103,39 @@ func applyFieldProjection(data []any, fields []string) []any {
 			out[i] = item
 			continue
 		}
-		projected := make(map[string]any, len(want))
+		projected := make(map[string]any, len(want)+1)
 		for k, v := range m {
-			// Always keep _set fields and expanded FK objects (depth > 0 responses).
-			if want[k] || strings.HasSuffix(k, "_set") {
+			if want[k] {
 				projected[k] = v
-				continue
 			}
-			// Check if this is an expanded FK object (value is a map with an
-			// "id" key). These are produced by depth=2 expansion for things
-			// like "org", "net", "fac", etc.
-			if isExpandedObject(v) {
-				projected[k] = v
+		}
+		if v, has := m[ixfURLVisibleKey]; addVisible && has {
+			projected[ixfURLVisibleKey] = v
+			if _, url := projected[ixfURLKey]; url && len(projected) == 2 {
+				delete(projected, ixfURLVisibleKey)
 			}
 		}
 		out[i] = projected
 	}
 	return out
+}
+
+// The ixlan member list URL and its visibility companion, as JSON keys.
+const (
+	ixfURLKey        = "ixf_ixp_member_list_url"
+	ixfURLVisibleKey = "ixf_ixp_member_list_url_visible"
+)
+
+// fieldsParam returns the names of ?fields=, or nil when the key is absent
+// or its value is empty. Upstream reads the last value
+// (QueryDict.get) and splits it on "," with no trimming
+// (serializers.py:942-946).
+func fieldsParam(params url.Values) []string {
+	vals := params["fields"]
+	if len(vals) == 0 || vals[len(vals)-1] == "" {
+		return nil
+	}
+	return strings.Split(vals[len(vals)-1], ",")
 }
 
 // fieldAccessor holds the struct field index for a JSON-tagged field, plus
@@ -201,15 +223,4 @@ func itemToMap(item any) (map[string]any, bool) {
 		return m, true
 	}
 	return structToMap(item)
-}
-
-// isExpandedObject checks if a value is an expanded FK object (a map with
-// an "id" key), as produced by depth=2 expansion.
-func isExpandedObject(v any) bool {
-	m, ok := v.(map[string]any)
-	if !ok {
-		return false
-	}
-	_, hasID := m["id"]
-	return hasID
 }

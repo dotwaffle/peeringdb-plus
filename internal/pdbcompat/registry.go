@@ -194,6 +194,16 @@ var reservedParams = map[string]bool{
 	"since":  true,
 	"q":      true,
 	"fields": true,
+	"pretty": true,
+	// format selects the renderer (formatAccepted). Upstream also reads
+	// it as a filter key, which names no field.
+	"format": true,
+	// _ctf applies a date filter to the rows of every _set (ctf.go).
+	ctfParam: true,
+	// page and per_page select a page of the list (page.go). They name
+	// no field, so the upstream filter loop ignores them.
+	pageParam:    true,
+	perPageParam: true,
 }
 
 // Registry maps PeeringDB type name strings to their TypeConfig.

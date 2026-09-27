@@ -70,11 +70,15 @@ func TestRelationSeed_ParseTail(t *testing.T) {
 		{peeringdb.TypeNet, "ix__org__name__x", "", "", false},
 		{peeringdb.TypeNetIXLan, "name", "name", "", true},
 		{peeringdb.TypeNetIXLan, "name__contains", "name", "contains", true},
-		{peeringdb.TypeNetIXLan, "name__x", "", "", false},
-		// get_relation_filters keeps the whole key, and related_to_name
-		// applies the lookup to the ixlan name.
+		// get_relation_filters keeps the key, and related_to_name
+		// applies it as a Django lookup to the ixlan name.
+		{peeringdb.TypeNetIXLan, "name__x", "name", "x", true},
 		{peeringdb.TypeNetIXLan, "name__iexact", "name", "iexact", true},
-		{peeringdb.TypeNetIXLan, "name__icontains__x", "", "", false},
+		{peeringdb.TypeNetIXLan, "name__exact_id", "name", "exact", true},
+		{peeringdb.TypeNetIXLan, "name__icontains__x", "name", "icontains", true},
+		{peeringdb.TypeNetIXLan, "name__contains__x", "name", "contains", true},
+		{peeringdb.TypeNetIXLan, "name__exact__gt", "name", "exact__gt", true},
+		{peeringdb.TypeNetIXLan, "name__a__b__c", "", "", false},
 		{peeringdb.TypeFac, "org_name", "name", "icontains", true},
 		{peeringdb.TypeFac, "org_name__in", "name", "in", true},
 		{peeringdb.TypeFac, "org_name__x", "", "", false},
@@ -336,15 +340,15 @@ func TestRelationLookupName(t *testing.T) {
 		{"lookup_after_lookup", fkPath, "lt", "in", "", "", errInvalidQuery},
 		{"exact_then_contains", fkPath, "exact", "contains", "", "", errInvalidQuery},
 		{"isnull", fkPath, "isnull", "", "", "", errIsNullValue},
-		// Residual: upstream iterates the characters of the value.
-		{"in_as_field", fkPath, "in", "", "", "", errInvalidQuery},
+		{"in_as_field", fkPath, "in", "", "id", "in", nil},
+		{"in_after_in", fkPath, "in", "in", "", "", errInvalidQuery},
 		{"lookup_on_prefix_seed", prefixed, "exact", "", "", "", errInvalidQuery},
 		{"isnull_on_prefix_seed", prefixed, "isnull", "", "", "", errInvalidQuery},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			field, op, err := relationLookupName(tt.sd, tt.field, tt.op)
+			field, op, _, err := relationLookupName(tt.sd, tt.field, tt.op, "")
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}

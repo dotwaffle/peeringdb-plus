@@ -2,6 +2,7 @@ package parity
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -963,16 +964,51 @@ func TestParity_Status(t *testing.T) {
 		// mainsite/urls.py:111, views.py:336-340). The mirror sends a
 		// JSON 404 in the /api/ error form, with the same status. See
 		// docs/API.md § Known Divergences.
-		srv := newTestServer(t, testutil.SetupClient(t))
-		status, hdr, body := httpDo(t, srv, http.MethodGet, "/api/foo", nil)
-		if status != http.StatusNotFound {
-			t.Fatalf("GET /api/foo: status = %d, want 404; body=%s", status, string(body))
+		// The routes have no trailing slash (DefaultRouter with
+		// trailing_slash off, rest.py:185-230, :1305), and Django
+		// APPEND_SLASH adds a "/", never removes one, so a path with a
+		// "/" at the end also gets the HTML page, for every method.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct{ method, path string }{
+			{http.MethodGet, "/api/foo"},
+			{http.MethodPost, "/api/foo"},
+			{http.MethodGet, "/api/net/"},
+			{http.MethodGet, "/api/net/1/"},
+			{http.MethodGet, "/api/net/1/2"},
+			{http.MethodGet, "/api/as_set/"},
+			{http.MethodPost, "/api/net/"},
+			{http.MethodDelete, "/api/net/1/"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != http.StatusNotFound {
+				t.Errorf("%s %s: status = %d, want 404; body=%s", tc.method, tc.path, status, string(body))
+				continue
+			}
+			if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("%s %s: Content-Type = %q, want application/json; charset=utf-8", tc.method, tc.path, ct)
+			}
+			if got := mustDecodeMetaError(t, body).Error; got == "" {
+				t.Errorf("%s %s: meta.error is empty", tc.method, tc.path)
+			}
 		}
-		if ct := hdr.Get("Content-Type"); ct != "application/json" {
-			t.Errorf("GET /api/foo: Content-Type = %q, want application/json", ct)
+		// The Go router redirects a path with a repeated "/" to the
+		// clean path before any handler runs. Upstream has no route for
+		// it.
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/api//net", nil)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if got := mustDecodeMetaError(t, body).Error; got == "" {
-			t.Errorf("GET /api/foo: meta.error is empty")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusTemporaryRedirect || resp.Header.Get("Location") != "/api/net" {
+			t.Errorf("GET /api//net: status = %d, Location = %q; want 307 to /api/net", resp.StatusCode, resp.Header.Get("Location"))
 		}
 	})
 
@@ -1017,13 +1053,195 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
-	t.Run("as_set_head_and_options_405_allow_get", func(t *testing.T) {
+	t.Run("api_root_without_slash_redirects_301", func(t *testing.T) {
 		t.Parallel()
-		// upstream: rest.py:1399 at 2.83.0 (http_method_names =
-		// ["get"]). DRF compares the method with that list after the
-		// permission check, which a read method passes, so HEAD and
-		// OPTIONS get 405 (drf views.py:513-521, :167-172) with
-		// Allow: GET (views.py:158-164, :448-449). net/http sends no
+		// upstream: 2.83.0 middleware.py:175-190 (PDBCommonMiddleware,
+		// a Django CommonMiddleware with APPEND_SLASH) redirects /api to
+		// /api/ with a 301 for every method, before any view runs, and
+		// keeps the query string. The body is empty.
+		srv := newTestServer(t, testutil.SetupClient(t))
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodOptions} {
+			req, err := http.NewRequestWithContext(t.Context(), method, srv.URL+"/api?depth=x&pretty", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("%s /api: %v", method, err)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusMovedPermanently {
+				t.Errorf("%s /api: status = %d, want 301", method, resp.StatusCode)
+			}
+			if got := resp.Header.Get("Location"); got != "/api/?depth=x&pretty" {
+				t.Errorf("%s /api: Location = %q, want %q", method, got, "/api/?depth=x&pretty")
+			}
+			if len(body) != 0 {
+				t.Errorf("%s /api: body = %q, want empty", method, body)
+			}
+		}
+	})
+
+	t.Run("non_json_accept_406_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: the only renderer is application/json (2.83.0
+		// settings/__init__.py:1459, renderers.py:76-86). DRF content
+		// negotiation compares it with each media range of Accept,
+		// split at ",", with no parameter read, q=0 included
+		// (negotiation.py:52-78, mediatypes.py _MediaType.match), and
+		// raises NotAcceptable (406) when none matches. It runs in
+		// initial(), after the format check (404) and before the
+		// method check (views.py:408-411). A request without Accept
+		// reads */*; an empty header matches nothing.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			method, path, accept string
+			want                 int
+		}{
+			{http.MethodGet, "/api/net", "application/xml", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net/1", "text/html", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/", "text/html", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/as_set", "text/plain", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "*", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "json", http.StatusNotAcceptable},
+			{http.MethodGet, "/api/net", "application/json/x", http.StatusNotAcceptable},
+			// The format check comes first, the method check after.
+			{http.MethodGet, "/api/net.xml", "text/html", http.StatusNotFound},
+			{http.MethodPost, "/api/net", "text/html", http.StatusNotAcceptable},
+			{http.MethodHead, "/api/ixlan", "text/html", http.StatusNotAcceptable},
+			// No route: the HTML 404 page upstream (row B).
+			{http.MethodGet, "/api/foo", "text/html", http.StatusNotFound},
+			{http.MethodGet, "/api/net", "text/html, */*;q=0.8", http.StatusOK},
+			{http.MethodGet, "/api/net", "application/json;q=0", http.StatusOK},
+			{http.MethodGet, "/api/net", "APPLICATION/JSON", http.StatusOK},
+			{http.MethodGet, "/api/net", "application/*", http.StatusOK},
+			{http.MethodGet, "/api/net", "*/json", http.StatusOK},
+			{http.MethodGet, "/api/net", " text/html ; level=1 ,application/json; indent=4", http.StatusOK},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, http.Header{"Accept": {tc.accept}})
+			if status != tc.want {
+				t.Errorf("%s %s (Accept %q): status = %d, want %d; body=%s", tc.method, tc.path, tc.accept, status, tc.want, string(body))
+				continue
+			}
+			if status != http.StatusNotAcceptable || tc.method == http.MethodHead {
+				continue
+			}
+			if ct := hdr.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("%s %s (Accept %q): Content-Type = %q, want application/json; charset=utf-8", tc.method, tc.path, tc.accept, ct)
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != "Could not satisfy the request Accept header." {
+				t.Errorf("%s %s (Accept %q): meta.error = %q", tc.method, tc.path, tc.accept, got)
+			}
+		}
+		// Two Accept headers are read as one list.
+		status, _, body := httpDo(t, srv, http.MethodGet, "/api/net", http.Header{"Accept": {"text/html", "application/json"}})
+		if status != http.StatusOK {
+			t.Errorf("two Accept headers: status = %d, want 200; body=%s", status, string(body))
+		}
+	})
+
+	t.Run("format_suffix_and_query_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: the viewsets are on a DefaultRouter (2.83.0
+		// rest.py:185, :1305), which adds a format suffix route
+		// \.(?P<format>[a-z0-9]+)/?$ to each route (drf routers.py,
+		// urlpatterns.py). Content negotiation reads the suffix, or
+		// else the last ?format= value (negotiation.py:44-45). The only
+		// renderer has the format json (settings
+		// DEFAULT_RENDERER_CLASSES, renderers.py:76-86), so another
+		// format is Http404 in initial(), before the method check
+		// (negotiation.py:80-88, views.py:408-411).
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			method, path string
+			want         int
+		}{
+			{http.MethodGet, "/api/net.json", http.StatusOK},
+			{http.MethodGet, "/api/net.json/", http.StatusOK},
+			{http.MethodGet, "/api/net/1.json", http.StatusOK},
+			{http.MethodGet, "/api/net/1.json/", http.StatusOK},
+			{http.MethodGet, "/api/.json", http.StatusOK},
+			{http.MethodGet, "/api/net?format=json", http.StatusOK},
+			{http.MethodGet, "/api/net?format=", http.StatusOK},
+			{http.MethodGet, "/api/net?format=xml&format=json", http.StatusOK},
+			{http.MethodGet, "/api/net.json?format=xml", http.StatusOK},
+			{http.MethodGet, "/api/net/1?format=json", http.StatusOK},
+			{http.MethodGet, "/api/net?format=xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net?format=json&format=xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net?format=JSON", http.StatusNotFound},
+			{http.MethodGet, "/api/net?format=api", http.StatusNotFound},
+			{http.MethodGet, "/api/net.xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net/1.xml", http.StatusNotFound},
+			{http.MethodGet, "/api/net/1.5", http.StatusNotFound},
+			{http.MethodGet, "/api/.xml", http.StatusNotFound},
+			{http.MethodGet, "/api/?format=xml", http.StatusNotFound},
+			// The format check comes before the parameter checks.
+			{http.MethodGet, "/api/net.xml?depth=x", http.StatusNotFound},
+			{http.MethodPost, "/api/net.xml", http.StatusNotFound},
+			{http.MethodDelete, "/api/net/1?format=xml", http.StatusNotFound},
+			{http.MethodPost, "/api/net.json", http.StatusMethodNotAllowed},
+			{http.MethodHead, "/api/ixlan.xml", http.StatusNotFound},
+			{http.MethodHead, "/api/ixlan.json", http.StatusMethodNotAllowed},
+		} {
+			status, _, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != tc.want {
+				t.Errorf("%s %s: status = %d, want %d; body=%s", tc.method, tc.path, status, tc.want, string(body))
+				continue
+			}
+			if status == http.StatusNotFound && tc.method != http.MethodHead {
+				if got := mustDecodeMetaError(t, body).Error; got != "Not found." {
+					t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, "Not found.")
+				}
+			}
+		}
+		// A suffix serves the same body.
+		_, plain := httpGet(t, srv, "/api/net/1")
+		if _, suffixed := httpGet(t, srv, "/api/net/1.json"); string(suffixed) != string(plain) {
+			t.Errorf("/api/net/1.json body = %s, want %s", suffixed, plain)
+		}
+	})
+
+	t.Run("DIVERGENCE_as_set_format_suffix_served", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: the as_set list and retrieve take no format
+		// argument (2.83.0 rest.py:1411-1414), so a path with the
+		// format suffix json fails with TypeError, and upstream
+		// returns 500. The mirror serves the path as it serves the
+		// path without the suffix. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		c.Network.UpdateOneID(1).SetIrrAsSet("AS-ONE").ExecX(t.Context())
+		srv := newTestServer(t, c)
+		for _, pair := range [][2]string{
+			{"/api/as_set.json", "/api/as_set"},
+			{"/api/as_set/64501.json", "/api/as_set/64501"},
+		} {
+			status, body := httpGet(t, srv, pair[0])
+			_, want := httpGet(t, srv, pair[1])
+			if status != http.StatusOK || string(body) != string(want) {
+				t.Errorf("%s: status = %d, body = %s; want 200 and %s", pair[0], status, body, want)
+			}
+		}
+	})
+
+	t.Run("get_only_head_and_options_405_allow_get", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:1404 (as_set, http_method_names =
+		// ["get"]) and rest.py:1358 (ixlan, methods=["get", "put"]).
+		// DRF compares the method with that list after the permission
+		// check, which a read method passes, so HEAD and OPTIONS get
+		// 405 (drf views.py:513-521, :167-172) before any parameter is
+		// read. Allow lists GET (views.py:158-164, :448-449); the
+		// mirror leaves out the write method PUT of ixlan (see
+		// DIVERGENCE_non_get_method_405_read_only). net/http sends no
 		// body for HEAD.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
@@ -1032,6 +1250,14 @@ func TestParity_Status(t *testing.T) {
 			{http.MethodHead, "/api/as_set"},
 			{http.MethodHead, "/api/as_set/64501"},
 			{http.MethodOptions, "/api/as_set"},
+			{http.MethodHead, "/api/ixlan"},
+			{http.MethodHead, "/api/ixlan/1"},
+			{http.MethodHead, "/api/ixlan?depth=x"},
+			{http.MethodHead, "/api/ixlan/999"},
+			{http.MethodOptions, "/api/ixlan"},
+			{http.MethodOptions, "/api/ixlan/1"},
+			{http.MethodPost, "/api/ixlan"},
+			{http.MethodPut, "/api/ixlan/1"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != http.StatusMethodNotAllowed {
@@ -1048,6 +1274,11 @@ func TestParity_Status(t *testing.T) {
 			if got := mustDecodeMetaError(t, body).Error; got != want {
 				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, want)
 			}
+		}
+		// The format-suffix route raises Http404 in initial(), before
+		// the method check (drf negotiation.py:80-88, views.py:408-411).
+		if status, _, body := httpDo(t, srv, http.MethodHead, "/api/ixlan/1.5", nil); status != http.StatusNotFound {
+			t.Errorf("HEAD /api/ixlan/1.5: status = %d, want 404; body=%s", status, string(body))
 		}
 	})
 
@@ -1707,8 +1938,8 @@ func TestParity_Status(t *testing.T) {
 			{"/api/net/1?limit=", http.StatusBadRequest, "'limit' needs to be a number"},
 			{"/api/net/1?skip=abc", http.StatusBadRequest, "'skip' needs to be a number"},
 			{"/api/net/1?skip=", http.StatusBadRequest, "'skip' needs to be a number"},
-			// The list order: skip before since.
-			{"/api/net/1?since=abc&skip=abc", http.StatusBadRequest, "'skip' needs to be a number"},
+			// The upstream order: since before skip.
+			{"/api/net/1?since=abc&skip=abc", http.StatusBadRequest, "'since' needs to be a unix timestamp (epoch seconds)"},
 			{"/api/net/1?limit=1", http.StatusNotFound, "Not found."},
 			{"/api/net/1?skip=1", http.StatusNotFound, "Not found."},
 			{"/api/net/999?limit=1", http.StatusNotFound, "Not found."},
@@ -1860,11 +2091,22 @@ func TestParity_Status(t *testing.T) {
 			{path: "/api/net/1?limit=1&asn__lt=abc", want: http.StatusBadRequest, wantErr: "filter error: "},
 			// Upstream: int("") raises ValueError, then inst[0] raises
 			// TypeError (rest.py:665-666, :697).
-			{path: "/api/net/1?asn__in=", want: http.StatusNotFound, wantErr: "No Network matches the given query."},
+			{path: "/api/net/1?asn__in=", want: http.StatusBadRequest, wantErr: "filter error: "},
 			// Upstream: search_v2 calls int() on a digit value that is
 			// not decimal (search_v2.py:385, :619), and get_queryset
 			// runs it outside the prepare_query handler (rest.py:546).
 			{path: "/api/net/1?name_search=%C2%B2", want: http.StatusBadRequest, wantErr: "filter error: filter name_search: "},
+			// Upstream: the API cache loader runs int() on since after
+			// the filter loop (rest.py:707, api_cache.py:80), and
+			// retrieve does not catch the ValueError. A list returns it
+			// as a 400 (rest.py:824-827).
+			{path: "/api/net/1?since=1.5", want: http.StatusBadRequest, wantErr: "invalid literal for int() with base 10: '1.5'"},
+			// Upstream: int(float("inf")) raises OverflowError, which
+			// get_queryset does not catch (rest.py:505-510), on a list
+			// too.
+			{path: "/api/net/1?since=inf", want: http.StatusBadRequest, wantErr: "'since' needs to be a unix timestamp (epoch seconds)"},
+			{path: "/api/net?since=-Infinity", want: http.StatusBadRequest, wantErr: "'since' needs to be a unix timestamp (epoch seconds)"},
+			{path: "/api/net?since=1e999", want: http.StatusBadRequest, wantErr: "'since' needs to be a unix timestamp (epoch seconds)"},
 		}
 		for _, tc := range cases {
 			status, body := httpGet(t, srv, tc.path)

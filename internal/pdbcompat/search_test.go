@@ -129,8 +129,8 @@ func TestApplyFieldProjectionReflect(t *testing.T) {
 				testEntity{ID: 1, Name: "Test", Value: 3.14},
 			},
 			fields:     []string{"name"},
-			wantFields: []string{"id", "name"},
-			wantAbsent: []string{"value"},
+			wantFields: []string{"name"},
+			wantAbsent: []string{"id", "value"},
 		},
 		{
 			name: "empty fields returns unchanged",
@@ -140,15 +140,16 @@ func TestApplyFieldProjectionReflect(t *testing.T) {
 			fields: []string{},
 		},
 		{
-			name: "_set suffix fields preserved",
+			name: "_set fields removed unless named",
 			data: []any{
 				testEntity{ID: 1, Name: "Test", OrgSet: []string{"a", "b"}},
 			},
 			fields:     []string{"name"},
-			wantFields: []string{"id", "name", "org_set"},
+			wantFields: []string{"name"},
+			wantAbsent: []string{"id", "org_set"},
 		},
 		{
-			name: "expanded FK objects preserved",
+			name: "expanded FK objects removed unless named",
 			data: []any{
 				map[string]any{
 					"id":   1,
@@ -157,7 +158,44 @@ func TestApplyFieldProjectionReflect(t *testing.T) {
 				},
 			},
 			fields:     []string{"name"},
-			wantFields: []string{"id", "name", "org"},
+			wantFields: []string{"name"},
+			wantAbsent: []string{"id", "org"},
+		},
+		{
+			name: "names compared as given",
+			data: []any{
+				testEntity{ID: 1, Name: "Test"},
+			},
+			fields:     []string{"id", " name"},
+			wantFields: []string{"id"},
+			wantAbsent: []string{"name"},
+		},
+		{
+			name: "ixlan URL keeps _visible with other keys",
+			data: []any{
+				map[string]any{"id": 1, ixfURLKey: "u", ixfURLVisibleKey: "Public", "name": "x"},
+			},
+			fields:     []string{"id", ixfURLKey},
+			wantFields: []string{"id", ixfURLKey, ixfURLVisibleKey},
+			wantAbsent: []string{"name"},
+		},
+		{
+			name: "ixlan URL alone drops _visible",
+			data: []any{
+				map[string]any{"id": 1, ixfURLKey: "u", ixfURLVisibleKey: "Public"},
+			},
+			fields:     []string{ixfURLKey},
+			wantFields: []string{ixfURLKey},
+			wantAbsent: []string{"id", ixfURLVisibleKey},
+		},
+		{
+			name: "hidden ixlan URL keeps _visible",
+			data: []any{
+				map[string]any{"id": 1, ixfURLVisibleKey: "Users"},
+			},
+			fields:     []string{ixfURLKey},
+			wantFields: []string{ixfURLVisibleKey},
+			wantAbsent: []string{"id", ixfURLKey},
 		},
 	}
 

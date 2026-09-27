@@ -82,8 +82,8 @@ func TestServeList_OverBudget413(t *testing.T) {
 	t.Run("meta envelope", func(t *testing.T) {
 		t.Parallel()
 		resp, body := get(t, "")
-		if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
-			t.Errorf("expected Content-Type application/json, got %q", ct)
+		if ct := resp.Header.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+			t.Errorf("expected Content-Type application/json; charset=utf-8, got %q", ct)
 		}
 		var env map[string]json.RawMessage
 		if err := json.Unmarshal(body, &env); err != nil {
@@ -167,8 +167,8 @@ func TestServeList_UnderBudgetStreams(t *testing.T) {
 		body, _ := io.ReadAll(resp.Body)
 		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, string(body))
 	}
-	if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
-		t.Errorf("expected Content-Type application/json, got %q", ct)
+	if ct := resp.Header.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+		t.Errorf("expected Content-Type application/json; charset=utf-8, got %q", ct)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -289,7 +289,8 @@ func TestServeList_ByteExactParityWithLegacy(t *testing.T) {
 }
 
 // TestServeList_EmptyResultShortCircuitsBeforeBudget asserts that the
-// empty-result short-circuit (?asn__in= with no values)
+// empty-result short-circuit (an empty __in on a nullable boolean,
+// which Django reads as None and drops)
 // bypasses the pre-flight budget check entirely. A 1-byte budget would
 // 413 any non-empty result; an empty-result request must 200 through.
 func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
@@ -298,10 +299,9 @@ func TestServeList_EmptyResultShortCircuitsBeforeBudget(t *testing.T) {
 	srv, client := newHandlerForStream(t, 1)
 	_ = seed.Full(t, client)
 
-	// ?asn__in= — empty IN list.
-	resp, err := http.Get(srv.URL + "/api/net?asn__in=")
+	resp, err := http.Get(srv.URL + "/api/fac?diverse_serving_substations__in=")
 	if err != nil {
-		t.Fatalf("GET /api/net?asn__in=: %v", err)
+		t.Fatalf("GET /api/fac?diverse_serving_substations__in=: %v", err)
 	}
 	defer resp.Body.Close()
 

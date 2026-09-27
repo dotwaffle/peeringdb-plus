@@ -3,7 +3,6 @@ package pdbcompat
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
@@ -168,7 +167,7 @@ func distinctTargets(rows []linkRow, target func(linkRow) *int) []int {
 // 2.83.0 serializers.py:4905-4933).
 
 func loadOrgNetSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.Network.Query().Where(idInJSON(network.FieldOrgID, ids), likelyOK).
+	q := client.Network.Query().Where(idInJSON(network.FieldOrgID, ids), likelyOK, setDateFilter(ctx)).
 		Order(network.ByOrgID(), network.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(network.FieldOrgID, network.FieldID))
@@ -181,7 +180,7 @@ func loadOrgNetSet(ctx context.Context, client *ent.Client, ids []int, depth int
 }
 
 func loadOrgFacSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.Facility.Query().Where(idInJSON(facility.FieldOrgID, ids), likelyOK).
+	q := client.Facility.Query().Where(idInJSON(facility.FieldOrgID, ids), likelyOK, setDateFilter(ctx)).
 		Order(facility.ByOrgID(), facility.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(facility.FieldOrgID, facility.FieldID))
@@ -194,7 +193,7 @@ func loadOrgFacSet(ctx context.Context, client *ent.Client, ids []int, depth int
 }
 
 func loadOrgIXSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.InternetExchange.Query().Where(idInJSON(internetexchange.FieldOrgID, ids), likelyOK).
+	q := client.InternetExchange.Query().Where(idInJSON(internetexchange.FieldOrgID, ids), likelyOK, setDateFilter(ctx)).
 		Order(internetexchange.ByOrgID(), internetexchange.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(internetexchange.FieldOrgID, internetexchange.FieldID))
@@ -207,7 +206,7 @@ func loadOrgIXSet(ctx context.Context, client *ent.Client, ids []int, depth int)
 }
 
 func loadOrgCarrierSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.Carrier.Query().Where(idInJSON(carrier.FieldOrgID, ids), likelyOK).
+	q := client.Carrier.Query().Where(idInJSON(carrier.FieldOrgID, ids), likelyOK, setDateFilter(ctx)).
 		Order(carrier.ByOrgID(), carrier.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(carrier.FieldOrgID, carrier.FieldID))
@@ -220,7 +219,7 @@ func loadOrgCarrierSet(ctx context.Context, client *ent.Client, ids []int, depth
 }
 
 func loadOrgCampusSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.Campus.Query().Where(idInJSON(campus.FieldOrgID, ids), likelyOK).
+	q := client.Campus.Query().Where(idInJSON(campus.FieldOrgID, ids), likelyOK, setDateFilter(ctx)).
 		Order(campus.ByOrgID(), campus.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(campus.FieldOrgID, campus.FieldID))
@@ -238,7 +237,7 @@ func loadOrgCampusSet(ctx context.Context, client *ent.Client, ids []int, depth 
 // caller's tier cannot read, from the ids and from the objects.
 
 func loadNetPocSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.Poc.Query().Where(idInJSON(poc.FieldNetID, ids), likelyOK).
+	q := client.Poc.Query().Where(idInJSON(poc.FieldNetID, ids), likelyOK, setDateFilter(ctx)).
 		Order(poc.ByNetID(), poc.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(poc.FieldNetID, poc.FieldID))
@@ -251,7 +250,7 @@ func loadNetPocSet(ctx context.Context, client *ent.Client, ids []int, depth int
 }
 
 func loadNetNetFacSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.NetworkFacility.Query().Where(idInJSON(networkfacility.FieldNetID, ids), likelyOK).
+	q := client.NetworkFacility.Query().Where(idInJSON(networkfacility.FieldNetID, ids), likelyOK, setDateFilter(ctx)).
 		Order(networkfacility.ByNetID(), networkfacility.ByFacID(), networkfacility.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(networkfacility.FieldNetID, networkfacility.FieldID))
@@ -264,7 +263,7 @@ func loadNetNetFacSet(ctx context.Context, client *ent.Client, ids []int, depth 
 }
 
 func loadNetNetIXLanSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.NetworkIxLan.Query().Where(idInJSON(networkixlan.FieldNetID, ids), likelyNetIXLanSet).
+	q := client.NetworkIxLan.Query().Where(idInJSON(networkixlan.FieldNetID, ids), likelyNetIXLanSet, setDateFilter(ctx)).
 		Order(networkixlan.ByNetID(), networkixlan.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(networkixlan.FieldNetID, networkixlan.FieldID))
@@ -282,7 +281,7 @@ func loadNetNetIXLanSet(ctx context.Context, client *ent.Client, ids []int, dept
 // ixf_ixp_member_list_url for the caller's tier.
 
 func loadIXIXLanSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.IxLan.Query().Where(idInJSON(ixlan.FieldIxID, ids), likelyOK).
+	q := client.IxLan.Query().Where(idInJSON(ixlan.FieldIxID, ids), likelyOK, setDateFilter(ctx)).
 		Order(ixlan.ByIxID(), ixlan.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(ixlan.FieldIxID, ixlan.FieldID))
@@ -296,7 +295,7 @@ func loadIXIXLanSet(ctx context.Context, client *ent.Client, ids []int, depth in
 
 func loadIXFacSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
 	rows, err := scanLinks(ctx, client.IxFacility.Query().
-		Where(idInJSON(ixfacility.FieldIxID, ids), likelyOK).
+		Where(idInJSON(ixfacility.FieldIxID, ids), likelyOK, setDateFilter(ctx)).
 		Order(ixfacility.ByIxID(), ixfacility.ByFacID(), ixfacility.ByID()).
 		Select(ixfacility.FieldIxID, ixfacility.FieldFacID))
 	if err != nil {
@@ -326,7 +325,7 @@ func loadIXFacSet(ctx context.Context, client *ent.Client, ids []int, depth int)
 // (2.83.0 serializers.py:4252-4262).
 
 func loadIXLanIXPfxSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.IxPrefix.Query().Where(idInJSON(ixprefix.FieldIxlanID, ids), likelyOK).
+	q := client.IxPrefix.Query().Where(idInJSON(ixprefix.FieldIxlanID, ids), likelyOK, setDateFilter(ctx)).
 		Order(ixprefix.ByIxlanID(), ixprefix.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(ixprefix.FieldIxlanID, ixprefix.FieldID))
@@ -340,7 +339,7 @@ func loadIXLanIXPfxSet(ctx context.Context, client *ent.Client, ids []int, depth
 
 func loadIXLanNetSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
 	rows, err := scanLinks(ctx, client.NetworkIxLan.Query().
-		Where(idInJSON(networkixlan.FieldIxlanID, ids), likelyNetIXLanSet).
+		Where(idInJSON(networkixlan.FieldIxlanID, ids), likelyNetIXLanSet, setDateFilter(ctx)).
 		Order(networkixlan.ByIxlanID(), networkixlan.ByID()).
 		Select(networkixlan.FieldIxlanID, networkixlan.FieldNetID))
 	if err != nil {
@@ -369,7 +368,7 @@ func loadIXLanNetSet(ctx context.Context, client *ent.Client, ids []int, depth i
 // order. The elements keep carrier_id (2.83.0 serializers.py:2658-2662
 // excludes only the fac object).
 func loadCarrierCarrierFacSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.CarrierFacility.Query().Where(idInJSON(carrierfacility.FieldCarrierID, ids), likelyOK).
+	q := client.CarrierFacility.Query().Where(idInJSON(carrierfacility.FieldCarrierID, ids), likelyOK, setDateFilter(ctx)).
 		Order(carrierfacility.ByCarrierID(), carrierfacility.ByFacID(), carrierfacility.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(carrierfacility.FieldCarrierID, carrierfacility.FieldID))
@@ -384,7 +383,7 @@ func loadCarrierCarrierFacSet(ctx context.Context, client *ent.Client, ids []int
 // loadCampusFacSet loads campus.fac_set. The elements keep campus_id and
 // drop org_id (2.83.0 serializers.py:4784-4788).
 func loadCampusFacSet(ctx context.Context, client *ent.Client, ids []int, depth int) (setRender, error) {
-	q := client.Facility.Query().Where(idInJSON(facility.FieldCampusID, ids), likelyOK).
+	q := client.Facility.Query().Where(idInJSON(facility.FieldCampusID, ids), likelyOK, setDateFilter(ctx)).
 		Order(facility.ByCampusID(), facility.ByID())
 	if depth < 2 {
 		rows, err := scanLinks(ctx, q.Select(facility.FieldCampusID, facility.FieldID))
@@ -397,9 +396,9 @@ func loadCampusFacSet(ctx context.Context, client *ent.Client, ids []int, depth 
 }
 
 // selectSets returns the sets of typeName that a list at depth > 0 loads:
-// every set without ?fields=, else only the sets that fields names (the
-// names are trimmed as in applyFieldProjection). Upstream removes every
-// field that fields does not name (2.83.0 serializers.py:942-950).
+// every set without ?fields=, else only the sets that fields names, as
+// applyFieldProjection compares them. Upstream removes every field that
+// fields does not name (2.83.0 serializers.py:942-950).
 func selectSets(typeName string, fields []string) []childSet {
 	all := childSets[typeName]
 	if len(fields) == 0 {
@@ -407,7 +406,7 @@ func selectSets(typeName string, fields []string) []childSet {
 	}
 	want := make(map[string]bool, len(fields))
 	for _, f := range fields {
-		want[strings.TrimSpace(f)] = true
+		want[f] = true
 	}
 	out := make([]childSet, 0, len(all))
 	for _, cs := range all {

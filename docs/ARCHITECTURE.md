@@ -593,6 +593,7 @@ Outermost first:
     Each second it reads the version of the local database: the LiteFS `<db>-pos` file (TXID and checksum), or `PRAGMA data_version` on a pinned connection when LiteFS is absent.
     Every committed write changes the version: a sync, its LTX apply on a replica, and writes outside a sync cycle, such as the startup poc-contact scrub.
     When the version changes, the watcher sets a new ETag.
+    After the first successful sync, it also reads the completion time of the newest successful sync into the `pdbcompat.SyncClock`, which `/api` sends as `meta.generated`; a failed read clears the ETag, as a failed version read does.
     The first read runs before the server starts, so a warm restart serves cacheable responses at once.
 
     Until the node has seen a successful sync in `sync_status`, the middleware has no ETag, and it adds no caching headers on the paths of the last list item.

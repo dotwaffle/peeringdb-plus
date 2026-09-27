@@ -2,7 +2,6 @@ package pdbcompat
 
 import (
 	"context"
-	"errors"
 	"net/url"
 	"slices"
 	"testing"
@@ -136,8 +135,10 @@ func TestMultiChoiceFilter_StoredString(t *testing.T) {
 // apply to a multi-value field.
 func TestBuildMultiChoicePredicate_Errors(t *testing.T) {
 	t.Parallel()
-	if _, err := buildMultiChoicePredicate("info_types", "in", ""); !errors.Is(err, errEmptyIn) {
-		t.Errorf("empty __in: err = %v, want errEmptyIn", err)
+	// An empty __in is one empty item, the empty string
+	// (django-peeringdb fields.py:61-71), not an empty list.
+	if _, err := buildMultiChoicePredicate("info_types", "in", ""); err != nil {
+		t.Errorf("empty __in: err = %v, want nil", err)
 	}
 	if _, err := buildMultiChoicePredicate("info_types", "regex", "x"); err == nil {
 		t.Error("unknown operator: err = nil, want an error")

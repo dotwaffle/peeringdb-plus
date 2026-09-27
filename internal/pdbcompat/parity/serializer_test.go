@@ -574,17 +574,15 @@ func TestParity_Serializer(t *testing.T) {
 	t.Run("list_depth_fields_selects_sets", func(t *testing.T) {
 		t.Parallel()
 		// upstream: serializers.py:942-950 at 2.83.0: ?fields= drops the
-		// _set fields that it does not name. The mirror keeps id and a
-		// plain field whose name ends in _set (registered row
-		// DIVERGENCE_fields_keeps_id_and_detail_sets).
+		// _set fields that it does not name.
 		srv := newTestServer(t, seedListDepthShapes(t, t0))
 		for _, tc := range []struct {
 			path string
 			want []string
 		}{
-			{"/api/org?id=1&depth=2&fields=name", []string{"id", "name"}},
-			{"/api/org?id=1&depth=2&fields=name,net_set", []string{"id", "name", "net_set"}},
-			{"/api/net?id=1&depth=2&fields=name", []string{"id", "irr_as_set", "name"}},
+			{"/api/org?id=1&depth=2&fields=name", []string{"name"}},
+			{"/api/org?id=1&depth=2&fields=name,net_set", []string{"name", "net_set"}},
+			{"/api/net?id=1&depth=2&fields=name", []string{"name"}},
 		} {
 			if got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path))); !slices.Equal(got, tc.want) {
 				t.Errorf("%s: keys = %v, want %v", tc.path, got, tc.want)
@@ -611,42 +609,104 @@ func TestParity_Serializer(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_list_depth_ctf_ignored", func(t *testing.T) {
+	t.Run("ctf_filters_sets_like_upstream", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream rest.py:654-655 at 2.83.0: with _ctf, the
-		// last date filter with an operator is kept in request._ctf, and
-		// serializers.py:998-1002 applies it to every nested set, so
-		// upstream lists only net 1. The mirror ignores _ctf (an unknown
-		// key). See docs/API.md § Known Divergences.
+		// upstream: 2.83.0 rest.py:633-655: with _ctf, each date key
+		// with an operator of the filter loop sets request._ctf to that
+		// one filter, so the key that the loop reads last wins. The loop
+		// reads query_params.items(), a QueryDict, which keeps the keys
+		// in the order of their first appearance (rest.py:564).
+		// serializers.py:998-1002 and :1137-1149 apply the filter to
+		// every Prefetch of a _set, on lists and on a detail.
+		c := testutil.SetupClient(t)
+		ctx := t.Context()
+		day := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
+		mustOrg(ctx, t, c, 1, "CTF Org", day.AddDate(0, 0, 1))
+		mustNet(ctx, t, c, 1, "CTF Old", 64501, 1, day)
+		mustNet(ctx, t, c, 2, "CTF New", 64502, 1, day.AddDate(0, 0, 5))
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			path string
+			want []int
+		}{
+			{"/api/org?id=1&depth=1&updated__lte=2026-09-22&_ctf=1", []int{1}},
+			{"/api/org?id=1&depth=1&updated__lte=2026-09-22", []int{1, 2}},
+			{"/api/org?id=1&depth=1&_ctf&updated__lte=2026-09-22&updated__gte=2026-09-21", []int{2}},
+			{"/api/org?id=1&depth=1&_ctf&updated__gte=2026-09-21&updated__lte=2026-09-22", []int{1}},
+			// A repeated key keeps the place of its first appearance.
+			{"/api/org?id=1&depth=1&_ctf&updated__lte=2026-09-22&updated__gte=2026-09-21&updated__lte=2026-09-23", []int{2}},
+			// A key that is not a date key does not reset the filter.
+			{"/api/org?id=1&depth=1&_ctf&updated__lte=2026-09-22&name__contains=CTF", []int{1}},
+		} {
+			row := listDepthRow(t, srv, tc.path)
+			if got := setIDs(t, row, "net_set"); !slices.Equal(got, tc.want) {
+				t.Errorf("%s: net_set = %v, want %v", tc.path, got, tc.want)
+			}
+		}
+		row := listDepthRow(t, srv, "/api/org?id=1&depth=2&created__gt=2026-09-20&_ctf")
+		if got := objectIDs(setObjects(t, row, "net_set")); !slices.Equal(got, []int{2}) {
+			t.Errorf("depth 2: net_set ids = %v, want [2]", got)
+		}
+		// A detail request. Detail defaults to depth 2.
+		status, body := httpGet(t, srv, "/api/org/1?updated__lte=2026-09-22&_ctf")
+		if status != http.StatusOK {
+			t.Fatalf("detail: status = %d, want 200; body=%s", status, headBody(body, 300))
+		}
+		rows := decodeDataArray(t, body)
+		if len(rows) != 1 {
+			t.Fatalf("detail: %d rows, want 1", len(rows))
+		}
+		if got := objectIDs(setObjects(t, rows[0], "net_set")); !slices.Equal(got, []int{1}) {
+			t.Errorf("detail: net_set ids = %v, want [1]", got)
+		}
+	})
+
+	t.Run("DIVERGENCE_ctf_other_date_key", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream filters the related model of each _set
+		// with request._ctf as given (2.83.0 serializers.py:998-1002).
+		// A date key other than created or updated of the listed type
+		// names no field of the related model, so Django raises
+		// FieldError while upstream builds the Prefetch, which the list
+		// view does not catch (rest.py:826-833): a 500. The mirror
+		// filters no _set for such a key. See docs/API.md § Known
+		// Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		day := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
 		mustOrg(ctx, t, c, 1, "CTF Org", day)
-		mustNet(ctx, t, c, 1, "CTF Old", 64501, 1, day)
-		mustNet(ctx, t, c, 2, "CTF New", 64502, 1, day.AddDate(0, 0, 5))
+		mustNet(ctx, t, c, 1, "CTF Net", 64501, 1, day)
+		c.Network.UpdateOneID(1).SetRirStatusUpdated(day).ExecX(ctx)
+		mustFac(ctx, t, c, 10, "CTF Fac", 1, day)
+		c.NetworkFacility.Create().SetID(100).SetNetID(1).SetFacID(10).SetLocalAsn(64501).
+			SetStatus("ok").SetCreated(day).SetUpdated(day.AddDate(0, 0, 5)).SaveX(ctx)
 		srv := newTestServer(t, c)
-		row := listDepthRow(t, srv, "/api/org?id=1&depth=1&updated__lte=2026-09-22&_ctf=1")
-		if got := setIDs(t, row, "net_set"); !slices.Equal(got, []int{1, 2}) {
-			t.Errorf("net_set = %v, want [1 2] (divergence canary)", got)
+		row := listDepthRow(t, srv, "/api/net?id=1&depth=1&_ctf&updated__lte=2026-09-22")
+		if got := setIDs(t, row, "netfac_set"); len(got) != 0 {
+			t.Errorf("netfac_set = %v, want [] (the updated filter applies)", got)
+		}
+		// Upstream: 500.
+		row = listDepthRow(t, srv, "/api/net?id=1&depth=1&_ctf&updated__lte=2026-09-22&rir_status_updated__gt=2000-01-01")
+		if got := setIDs(t, row, "netfac_set"); !slices.Equal(got, []int{100}) {
+			t.Errorf("netfac_set = %v, want [100] (divergence canary)", got)
 		}
 	})
 
-	t.Run("DIVERGENCE_fields_keeps_id_and_detail_sets", func(t *testing.T) {
+	t.Run("fields_projection_like_upstream", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream serializers.py:942-950 at 2.83.0 drops
-		// every field that ?fields= does not name, id and the _set
-		// fields too, and the API cache path drops every key not named
-		// (api_cache.py:170-177). The mirror keeps id, every key that
-		// ends in _set and every nested object on a detail, and a plain
-		// field that ends in _set (net irr_as_set) on a list. See
-		// docs/API.md § Known Divergences.
-		// For an ixlan, upstream IXLanSerializer.to_representation adds
+		// upstream: serializers.py:942-950 at 2.83.0 drops every field
+		// that ?fields= does not name, id and the _set fields and nested
+		// objects too. It reads the last value (QueryDict.get), splits it
+		// on "," and compares the names as given. A nested object keeps
+		// every key: sub_serializer builds it without the request
+		// (serializers.py:1335-1341).
+		// For an ixlan, IXLanSerializer.to_representation adds
 		// ixf_ixp_member_list_url_visible back whenever the URL is in the
-		// output (serializers.py:4319-4337), and handle_ixlan removes it
-		// again only when the URL and _visible are the only keys left
-		// (permissions.py:355-372). The mirror never adds _visible back.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// output (serializers.py:4319-4337). handle_ixlan removes the URL
+		// for a caller that may not see it, and removes _visible again
+		// only when the URL and _visible are the only keys left
+		// (permissions.py:344-372).
 		c := seedListDepthShapes(t, t0)
 		ctx := t.Context()
 		c.IxLan.Create().SetID(20).SetIxID(1).
@@ -661,21 +721,40 @@ func TestParity_Serializer(t *testing.T) {
 			path string
 			want []string
 		}{
-			// Upstream: [name].
-			{"/api/org?id=1&fields=name", []string{"id", "name"}},
-			{"/api/net?id=1&fields=name", []string{"id", "irr_as_set", "name"}},
-			// Upstream: [name]. Detail defaults to depth 2.
-			{"/api/net/1?fields=name", []string{"id", "irr_as_set", "name", "netfac_set", "netixlan_set", "org", "poc_set"}},
-			// Upstream: [ixf_ixp_member_list_url].
-			{"/api/ixlan?id=20&fields=ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url"}},
-			// Upstream: [id, ixf_ixp_member_list_url, ixf_ixp_member_list_url_visible].
-			{"/api/ixlan?id=20&fields=id,ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url"}},
-			// Anonymous caller, Users row. Upstream:
-			// [ixf_ixp_member_list_url_visible].
-			{"/api/ixlan?id=21&fields=ixf_ixp_member_list_url", []string{"id"}},
+			{"/api/org?id=1&fields=name", []string{"name"}},
+			{"/api/net?id=1&fields=name", []string{"name"}},
+			{"/api/net?id=1&fields=id,%20name", []string{"id"}},
+			{"/api/net?id=1&fields=asn&fields=name", []string{"name"}},
+			{"/api/net?id=1&fields=,", []string{}},
+			{"/api/net?id=1&fields=", []string{"aka", "allow_ixp_update", "asn"}},
+			// Detail defaults to depth 2.
+			{"/api/net/1?fields=name", []string{"name"}},
+			{"/api/net/1?fields=name,org,poc_set", []string{"name", "org", "poc_set"}},
+			{"/api/ixlan?id=20&fields=ixf_ixp_member_list_url", []string{"ixf_ixp_member_list_url"}},
+			{"/api/ixlan?id=20&fields=id,ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url", "ixf_ixp_member_list_url_visible"}},
+			// Anonymous caller, Users row.
+			{"/api/ixlan?id=21&fields=ixf_ixp_member_list_url", []string{"ixf_ixp_member_list_url_visible"}},
+			{"/api/ixlan?id=21&fields=id,ixf_ixp_member_list_url", []string{"id", "ixf_ixp_member_list_url_visible"}},
 		} {
-			if got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path))); !slices.Equal(got, tc.want) {
-				t.Errorf("%s: keys = %v, want %v (divergence canary)", tc.path, got, tc.want)
+			got := slices.Sorted(maps.Keys(listDepthRow(t, srv, tc.path)))
+			want := tc.want
+			if strings.HasSuffix(tc.path, "fields=") {
+				// No projection: check a few keys only.
+				got = got[:min(len(got), 3)]
+			}
+			if !slices.Equal(got, want) {
+				t.Errorf("%s: keys = %v, want %v", tc.path, got, want)
+			}
+		}
+		// A named nested object keeps every key.
+		row := listDepthRow(t, srv, "/api/net/1?fields=org")
+		org, ok := row["org"].(map[string]any)
+		if !ok {
+			t.Fatalf("org = %T, want an object", row["org"])
+		}
+		for _, k := range []string{"id", "name", "net_set"} {
+			if _, has := org[k]; !has {
+				t.Errorf("org is missing %q: %v", k, slices.Sorted(maps.Keys(org)))
 			}
 		}
 	})
@@ -776,6 +855,44 @@ func TestParity_Serializer(t *testing.T) {
 		}
 		if !bytes.Equal(body, bare) {
 			t.Errorf("GET %s: body = %s, want the bare list %s", path, body, bare)
+		}
+	})
+
+	t.Run("pretty_indents_every_response", func(t *testing.T) {
+		t.Parallel()
+		// upstream: renderers.py:64-73 at 2.83.0. A pretty key with any
+		// value renders the body with json.dumps(indent=2): the errors
+		// too, as the same renderer writes them. Go json.Indent with a
+		// 2-space indent gives the same text for compact input.
+		c := testutil.SetupClient(t)
+		seedASSetNets(t, c, t0)
+		srv := newTestServer(t, c)
+
+		for _, tc := range []struct{ path, pretty string }{
+			{"/api/net", "/api/net?pretty"},
+			{"/api/net", "/api/net?pretty=0"},
+			{"/api/net?asn=64500", "/api/net?asn=64500&pretty=1"},
+			{"/api/net?asn=1", "/api/net?asn=1&pretty"},
+			{"/api/net?limit=abc", "/api/net?limit=abc&pretty"},
+			{"/api/as_set", "/api/as_set?pretty"},
+			{"/api/", "/api/?pretty"},
+		} {
+			_, compact := httpGet(t, srv, tc.path)
+			_, body := httpGet(t, srv, tc.pretty)
+			var want bytes.Buffer
+			if err := json.Indent(&want, bytes.TrimSpace(compact), "", "  "); err != nil {
+				t.Fatalf("GET %s: indent: %v; body=%s", tc.path, err, compact)
+			}
+			if !bytes.Equal(body, want.Bytes()) {
+				t.Errorf("GET %s:\n%s\nwant\n%s", tc.pretty, body, want.Bytes())
+			}
+		}
+
+		// A detail response and an empty list keep "[]" and "{}" on one
+		// line, as json.dumps does.
+		_, body := httpGet(t, srv, "/api/net?asn=1&pretty")
+		if !bytes.Contains(body, []byte(`"data": []`)) || !bytes.Contains(body, []byte("\n  ")) {
+			t.Errorf("GET /api/net?asn=1&pretty: body = %s, want an indented body with \"data\": []", body)
 		}
 	})
 
@@ -1033,6 +1150,17 @@ func setIDs(t *testing.T, row map[string]any, key string) []int {
 }
 
 // setObjects returns the elements of a depth-2 _set field (objects).
+// objectIDs returns the id of each object.
+func objectIDs(objs []map[string]any) []int {
+	ids := make([]int, 0, len(objs))
+	for _, o := range objs {
+		if f, ok := o["id"].(float64); ok {
+			ids = append(ids, int(f))
+		}
+	}
+	return ids
+}
+
 func setObjects(t *testing.T, row map[string]any, key string) []map[string]any {
 	t.Helper()
 	raw, ok := row[key].([]any)

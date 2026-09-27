@@ -247,12 +247,6 @@ func TestTraversal_E2E_Matrix(t *testing.T) {
 			url:         "/api/net?name__contains=Zurich",
 			expectedIDs: []int{8001, 8002},
 		},
-		// Empty __in short-circuits before SQL executes.
-		{
-			name:        "empty_in_returns_empty_set",
-			url:         "/api/net?org_id__in=",
-			expectedIDs: []int{},
-		},
 	}
 
 	for _, tc := range tests {

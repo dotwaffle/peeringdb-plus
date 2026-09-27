@@ -34,7 +34,7 @@ func BenchmarkDistanceSearch_Org(b *testing.B) {
 	}
 	params := url.Values{"distance": {"700"}, "latitude": {"50.1109"}, "longitude": {"8.6821"}}
 	tc := Registry["org"]
-	lf, err := parseListFilters(ctx, params, tc)
+	lf, err := parseListFilters(ctx, params, tc, nil)
 	if err != nil {
 		b.Fatal(err)
 	}

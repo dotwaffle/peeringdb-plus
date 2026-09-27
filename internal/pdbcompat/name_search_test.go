@@ -113,7 +113,6 @@ func TestResolveNameSearch_Consumes(t *testing.T) {
 		consumed []string
 		pred     bool
 		none     bool
-		empty    bool
 		wantErr  string
 	}{
 		{name: "absent", typ: "net", params: url.Values{"id__in": {"1"}}},
@@ -121,7 +120,7 @@ func TestResolveNameSearch_Consumes(t *testing.T) {
 		{name: "words", typ: "net", params: url.Values{"name_search": {"alpha"}}, consumed: []string{"name_search"}, pred: true},
 		{name: "last value", typ: "net", params: url.Values{"name_search": {"alpha", ""}}, consumed: []string{"name_search"}},
 		{name: "id__in union", typ: "net", params: url.Values{"name_search": {"alpha"}, "id__in": {"1,2"}}, consumed: []string{"id__in", "name_search"}, pred: true},
-		{name: "empty id__in", typ: "net", params: url.Values{"name_search": {"alpha"}, "id__in": {""}}, consumed: []string{"id__in", "name_search"}, empty: true},
+		{name: "empty id__in", typ: "net", params: url.Values{"name_search": {"alpha"}, "id__in": {""}}, wantErr: "filter id__in:"},
 		{name: "bad id__in", typ: "net", params: url.Values{"name_search": {"alpha"}, "id__in": {"abc"}}, wantErr: "filter id__in:"},
 		{name: "no index", typ: "poc", params: url.Values{"name_search": {"x"}, "id__in": {"abc"}}, consumed: []string{"name_search"}, none: true},
 		{name: "no index not parsed", typ: "poc", params: url.Values{"name_search": {"²"}}, consumed: []string{"name_search"}, none: true},
@@ -146,9 +145,9 @@ func TestResolveNameSearch_Consumes(t *testing.T) {
 			consumed = append(consumed, k)
 		}
 		slices.Sort(consumed)
-		if !slices.Equal(consumed, tt.consumed) || (res.pred != nil) != tt.pred || res.none != tt.none || res.empty != tt.empty {
-			t.Errorf("%s: consumed=%v pred=%v none=%v empty=%v, want consumed=%v pred=%v none=%v empty=%v",
-				tt.name, consumed, res.pred != nil, res.none, res.empty, tt.consumed, tt.pred, tt.none, tt.empty)
+		if !slices.Equal(consumed, tt.consumed) || (res.pred != nil) != tt.pred || res.none != tt.none {
+			t.Errorf("%s: consumed=%v pred=%v none=%v, want consumed=%v pred=%v none=%v",
+				tt.name, consumed, res.pred != nil, res.none, tt.consumed, tt.pred, tt.none)
 		}
 	}
 }
@@ -214,7 +213,7 @@ func TestParseListFilters_NameSearchNone(t *testing.T) {
 			t.Fatal(err)
 		}
 		ctx := WithUnknownFields(t.Context())
-		lf, err := parseListFilters(ctx, params, Registry[tt.typ])
+		lf, err := parseListFilters(ctx, params, Registry[tt.typ], nil)
 		if tt.wantErr != "" {
 			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("%s?%s: err = %v, want %q", tt.typ, tt.query, err, tt.wantErr)

@@ -61,8 +61,8 @@ func TestE2E_PdbcompatErrorEnvelope(t *testing.T) {
 			if resp.StatusCode != tc.wantStatus {
 				t.Fatalf("%s %s: status = %d, want %d; body=%s", tc.method, tc.path, resp.StatusCode, tc.wantStatus, body)
 			}
-			if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
-				t.Errorf("Content-Type = %q, want application/json", ct)
+			if ct := resp.Header.Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 			}
 			if tc.wantAllow != "" {
 				if got := resp.Header.Get("Allow"); got != tc.wantAllow {

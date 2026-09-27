@@ -8,6 +8,87 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-09-27
+
+### Added
+
+- pdbcompat lists support `?page=` and `?per_page=` as upstream does: one page of up to 250 rows, `meta.pagination` with the `next` and `previous` links, and `404` `Invalid page.` for a page that does not exist.
+  Before, pdbcompat ignored both keys and served the whole list.
+- pdbcompat sends `meta.generated` on the lists that upstream serves from its API cache, as upstream does: no filter, no `since`, no format suffix, and at depth 0 no limit from 1 to 250.
+  The value is the completion time of the newest successful sync of the node, in Unix seconds.
+  Before, `meta` was always empty on these lists.
+- pdbcompat indents the JSON body by 2 spaces when the request has a `pretty` key, with any value, as upstream does.
+  This applies to every `/api/` response, including errors.
+  Before, pdbcompat ignored `?pretty`.
+
+### Changed
+
+- pdbcompat `?fields=` keeps only the keys that it names, as upstream does: `id`, the `_set` fields and the nested objects are removed unless named.
+  The last `fields` value applies, and the names are no longer trimmed.
+  On an `ixlan`, a kept `ixf_ixp_member_list_url` also keeps `ixf_ixp_member_list_url_visible`, as upstream does.
+  Before, pdbcompat always kept `id`, every `_set` key and every nested object (a registered divergence, now closed).
+- pdbcompat applies a `created` or `updated` date filter to the rows of every `_set` when the request has `_ctf`, as upstream does.
+  With two or more date filters, the key that appears last in the query string applies.
+  Before, pdbcompat ignored `_ctf` (a registered divergence, now closed).
+  A date filter on another field with `_ctf` stays registered: upstream fails with a server error.
+- pdbcompat filters `fac?ix_side_set__<field>=` on the netixlans whose IX side is at the facility, and `fac?ix_side_set__in=` (with `__lt`, `__lte`, `__gt` and `__gte`) on their ids, as upstream does.
+  A bare `ix_side_set`, and `ix_side_set__contains` or `__startswith`, return `400` `Invalid query`.
+  Before, pdbcompat ignored these keys (a registered divergence, now closed).
+- `docs/API.md` § Known Divergences now lists `ixlan?ixf_ixp_member_list_url=`: upstream filters the gated URL for any caller, and pdbcompat ignores the key so that a filter cannot show a hidden URL.
+  Behavior is unchanged.
+- `docs/API.md` § Known Divergences now lists the plain filter keys on upstream model columns that pdbcompat does not filter: `social_media` (stored, but no filter key), `net?notes_private=` (upstream filters private data for any caller), and the `netfac` `avail_sonet`, `avail_ethernet` and `avail_atm` columns.
+  Behavior is unchanged: the mirror ignores these keys.
+- pdbcompat returns `406` (`Could not satisfy the request Accept header.`) when no media range of the `Accept` header matches `application/json`, for example `Accept: text/html` or an empty header, as upstream DRF content negotiation does, before the method check and before any parameter is read.
+  A header that names `application/problem+json` still gets the RFC 9457 errors and no `406`.
+  Before, pdbcompat ignored `Accept`.
+- pdbcompat returns `404` for a path with a `/` at the end, for example `/api/net/`, `/api/net/1/` or `/api/as_set/`, for every method, as upstream does: no upstream route has a `/` at the end.
+  A write method on a path that no upstream route matches, for example `POST /api/foo`, also returns `404` now, not `405`.
+  Before, pdbcompat removed the `/` and served the path.
+- pdbcompat answers `/api` with `301` to `/api/`, with the same query string and an empty body, for every method, as the upstream `APPEND_SLASH` middleware does.
+  Before, the Go router sent `307`.
+- pdbcompat serves the format suffix `.json` on every `/api/` route, for example `/api/net.json` and `/api/net/1.json`, as upstream does, and returns `404` (`Not found.`) for another suffix or a `?format=` value other than `json`, before any other check.
+  A `?depth=` list with the suffix is cut to 250 rows also without a filter, because the upstream API cache does not serve it.
+  `/api/as_set.json` is served, where upstream returns `500` (registered divergence).
+  Before, pdbcompat returned `404` for every suffix and ignored `?format=`.
+- pdbcompat answers `HEAD` on `/api/ixlan` and `/api/ixlan/{id}` with `405` and `Allow: GET`, as upstream does: the upstream `ixlan` viewset maps only `GET` and `PUT`.
+  The other `405` responses on these paths also send `Allow: GET`.
+  A CORS preflight still gets its answer from the CORS middleware.
+  Before, `HEAD` returned the `GET` headers.
+- pdbcompat applies every Django lookup of `netixlan?name__<lookup>=` and `name__<lookup>__<x>=` to the ixlan name, as upstream `related_to_name` does, for example `?name__endswith=`, `?name__exact=` and `?name__contains__x=` (case-sensitive).
+  An unknown lookup, an operator after the lookup and `isnull` return `400`.
+  `regex`, `iregex` and a `range` value that is not two characters long return `400` (registered divergence).
+  Before, pdbcompat ignored every lookup except `iexact`, `icontains` and `istartswith`.
+- pdbcompat reads a Unicode decimal digit as its ASCII digit in a key without an operator on an integer or boolean field and in `__contains` and `__startswith` on a numeric field, as upstream `unidecode` does, for example `?asn=٤٢`.
+  Before, only the digits that NFKD folds (such as full-width digits) matched.
+- pdbcompat compares a string field with `__lt`, `__lte`, `__gt` and `__gte` without case, as the MySQL collation of upstream does, and without diacritics on a folded field.
+  Before, the comparison used the byte order, so `?name__lt=b` also returned `Beta`.
+- pdbcompat splits an `__in` value as upstream does, keeping empty items: an empty item that does not convert for the field type returns `400`, for example `?asn__in=` or `?asn__in=1,`, and on a string field it matches the empty string.
+  A space at the start of a string item now counts, a space at the end does not.
+  Before, an empty `__in` returned an empty list and every item lost its spaces.
+- pdbcompat matches a time key without an operator, for example `?updated=2024-01`, as a prefix of the upstream database text of the column (`YYYY-MM-DD HH:MM:SS.ffffff`), as upstream does.
+  A value with a `T`, a zone or Unix seconds matches no row, and a value that is not a time matches no row instead of returning `400`.
+  Before, pdbcompat matched a date as the whole day and any other value as one instant.
+- pdbcompat converts the value of `__lt`, `__lte`, `__gt`, `__gte`, `__contains` and `__startswith` on a time field as Django `DateTimeField.to_python` does upstream (Django 5.2 on CPython 3.14): the ISO 8601 forms of `datetime.fromisoformat`, for example `20240101` or `2024-W01-1`, and the Django forms, for example `2024-1-1 1:2`.
+  Unix seconds and other values return `400`.
+  `__contains` and `__startswith` on a time field match no row for a valid value, as upstream.
+  Before, these operators accepted Unix seconds and four ISO 8601 layouts, and `__contains` and `__startswith` returned `400`.
+- pdbcompat matches `__contains` and `__startswith` on an integer, boolean or decimal field against the text of the stored value, as MySQL does upstream, for example `?asn__contains=33`.
+  A key without an operator and `__iexact` on `latitude` or `longitude` match the text with 6 decimals, so `?latitude=52.5` matches no row and `?latitude=52.500000` matches.
+  Before, pdbcompat returned `400` for `__contains` and `__startswith` on these fields and compared `latitude` and `longitude` as numbers.
+- pdbcompat reads boolean filter values as upstream.
+  A key without an operator selects `false` for any value other than `true` (in any case) or `1`, for example `?info_unicast=yes`.
+  `__in`, `__lt`, `__lte`, `__gt` and `__gte` accept only `t`, `True`, `1`, `f`, `False` and `0` (Django `BooleanField.to_python`) and return `400` for another value, for example `?info_unicast__in=true` or an empty `__in`.
+  Before, pdbcompat returned `400` for a key without an operator and a value other than `true`, `false`, `1` or `0`, and the operators accepted `true` and `false` in any case.
+- pdbcompat reads `in` as the field of a relation key through a FK, for example `fac?net__in__x=34`, as upstream: it compares the id with each character of the value (the networks 3 and 4).
+  Before, pdbcompat returned `400` (`Invalid query`).
+- pdbcompat reads a `since` that is a number but not an integer, for example `1.5` or `1e3`, as upstream: it returns `400` with the Python message (`invalid literal for int() with base 10: '1.5'`) after the filter checks, and a `name_search` that matches no row returns an empty list.
+  Before, pdbcompat returned `400` with the `'since' needs to be a unix timestamp` message before the filter checks.
+- pdbcompat checks the request values in the upstream order: the `prepare_query` keys (relation, presence and count keys, `whereis`, `ipblock`, `capacity`, `distance`), then `since`, `skip`, `limit` and `depth`, then `name_search`, then the other filter keys.
+  A request with two bad values now gets the message of the value that upstream reports, for example `since` before `skip`.
+  Before, pdbcompat checked `skip` and `limit` before `since`, and every filter key after `depth`.
+- pdbcompat sends `Content-Type: application/json; charset=utf-8` on every `/api/` JSON response, success and error, as the upstream renderer does.
+  Before, it sent `application/json` without a charset, except on the `/api/` index.
+
 ## [1.37.0] - 2026-09-26
 
 ### Added
@@ -1390,7 +1471,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.38.0...HEAD
+[1.38.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...v1.38.0
 [1.37.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.36.0...v1.37.0
 [1.36.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.2...v1.36.0
 [1.35.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.1...v1.35.2

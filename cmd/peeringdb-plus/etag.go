@@ -12,6 +12,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/database"
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbcompat"
 	pdbsync "github.com/dotwaffle/peeringdb-plus/internal/sync"
 )
 
@@ -47,15 +48,26 @@ const (
 // answers 304 for a version that it cannot confirm. A pos read that hangs
 // blocks the poll, and the node keeps its last ETag until the read returns.
 //
+// On each version change after the first successful sync, the watcher
+// also reads the completion time of the newest successful sync into clock,
+// which pdbcompat sends as meta.generated. The time is stored in the
+// database, so it changes only with the version, and the ETag stays valid
+// for the body. A failed read clears the ETag, as a failed version read
+// does, so the next poll reads both again.
+//
 // poll and run are not safe for concurrent use; one goroutine owns the
 // watcher.
 type etagWatcher struct {
 	source  string
 	version func(context.Context) (string, error)
 	synced  func(context.Context) (bool, error)
-	closeFn func()
-	state   *middleware.CachingState
-	logger  *slog.Logger
+	// lastSync reads the time for clock. It is not called when clock is
+	// nil.
+	lastSync func(context.Context) (time.Time, error)
+	clock    *pdbcompat.SyncClock
+	closeFn  func()
+	state    *middleware.CachingState
+	logger   *slog.Logger
 
 	last     string // version of the last poll that read one; "" after a failure
 	seenSync bool   // a success row was seen; the sync_status prune keeps the newest success row
@@ -68,8 +80,9 @@ type etagWatcher struct {
 // before startETagWatcher returns, so a warm restart serves cacheable
 // responses at once. Later polls run every etagPollInterval until ctx is
 // done.
-func startETagWatcher(ctx context.Context, dbPath string, db *sql.DB, state *middleware.CachingState, logger *slog.Logger) {
+func startETagWatcher(ctx context.Context, dbPath string, db *sql.DB, state *middleware.CachingState, clock *pdbcompat.SyncClock, logger *slog.Logger) {
 	w := newETagWatcher(dbPath, db, state, logger)
+	w.clock = clock
 	w.poll(ctx)
 	go w.run(ctx, etagPollInterval)
 }
@@ -85,6 +98,9 @@ func newETagWatcher(dbPath string, db *sql.DB, state *middleware.CachingState, l
 		synced: func(ctx context.Context) (bool, error) {
 			t, err := pdbsync.GetLastSuccessfulSyncTime(ctx, db)
 			return !t.IsZero(), err
+		},
+		lastSync: func(ctx context.Context) (time.Time, error) {
+			return pdbsync.GetLastSuccessfulSyncTime(ctx, db)
 		},
 		closeFn: func() {},
 		state:   state,
@@ -136,6 +152,14 @@ func (w *etagWatcher) poll(ctx context.Context) {
 			return
 		}
 		w.seenSync = true
+	}
+	if w.clock != nil {
+		t, err := w.lastSync(checkCtx)
+		if err != nil {
+			w.fail(ctx, err)
+			return
+		}
+		w.clock.Set(t)
 	}
 	w.state.SetVersion(v)
 	w.last = v

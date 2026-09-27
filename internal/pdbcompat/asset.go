@@ -12,6 +12,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
+	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 )
 
 // The as_set lookup (upstream 2.83.0 rest.py:1396-1423, registered at
@@ -53,7 +54,10 @@ func asSetPredicates() []predicate.Network {
 }
 
 // serveASSet serves /api/as_set and /api/as_set/<asn>. idStr is the raw
-// path segment after as_set. dispatch routes here before the Registry
+// path segment after as_set, without a format suffix (parseAPIPath).
+// Upstream answers a path with a format suffix with a 500: its list and
+// retrieve take no format argument (2.83.0 rest.py:1411-1414). The
+// mirror serves it (see docs/API.md § Known Divergences). dispatch routes here before the Registry
 // lookup, so this function takes the heap-delta sample of the request.
 func (h *Handler) serveASSet(w http.ResponseWriter, r *http.Request, idStr string) {
 	endpoint := asSetListEndpoint
@@ -63,24 +67,10 @@ func (h *Handler) serveASSet(w http.ResponseWriter, r *http.Request, idStr strin
 	startHeapBytes := memStatsHeapInuseBytes()
 	defer recordResponseHeapDelta(r.Context(), endpoint, asSetPath, startHeapBytes)
 
-	// Upstream has no route for a path with more segments. For a "."
-	// the format-suffix route raises Http404 in content negotiation,
-	// before the method check (drf urlpatterns.py:109,
-	// negotiation.py:80-88, views.py:408-411).
-	if strings.ContainsAny(idStr, "./") {
-		writeDetailNotFound(w, r, detailSliceNotFound)
-		return
-	}
-
-	// The viewset sets http_method_names = ["get"] (rest.py:1399), so
-	// DRF answers HEAD with 405 (views.py:517-521). net/http sends no
-	// body for a HEAD response.
+	// DRF answers HEAD with 405 (getOnly). net/http sends no body for a
+	// HEAD response.
 	if r.Method == http.MethodHead {
-		w.Header().Set("Allow", "GET")
-		writeError(w, r, apiError{
-			Status: http.StatusMethodNotAllowed,
-			Detail: "Method \"" + r.Method + "\" not allowed.",
-		})
+		writeMethodNotAllowed(w, r, "GET")
 		return
 	}
 
@@ -234,7 +224,7 @@ func writeASSetList(ctx context.Context, w http.ResponseWriter, rows []asSetRow)
 		b.WriteByte('}')
 	}
 	b.WriteString("]}")
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
 	w.Header().Set("X-Powered-By", poweredByHeader)
 	if _, err := io.WriteString(w, b.String()); err != nil {
 		slog.ErrorContext(ctx, "pdbcompat: stream encode failed mid-response",

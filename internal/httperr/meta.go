@@ -12,6 +12,11 @@ import (
 // problemJSONMediaType is the RFC 9457 media type.
 const problemJSONMediaType = "application/problem+json"
 
+// MetaJSONContentType is the Content-Type of every PeeringDB /api/ JSON
+// body. The upstream renderer sets charset utf-8 (2.83.0
+// renderers.py:44-47, :76-85), and DRF adds it to the media type.
+const MetaJSONContentType = "application/json; charset=utf-8"
+
 // MetaErrorInput holds the parameters of a PeeringDB /api/ error body.
 // Upstream 2.83.0 renderers.py:134-148 writes a 4xx body as
 // {"meta": {"error": "<detail>"}} with no "data" key.
@@ -28,7 +33,7 @@ type MetaErrorInput struct {
 }
 
 // WriteMetaError writes a PeeringDB /api/ error body as
-// application/json: {"meta": {"error": "<text>", ...}}, plus
+// MetaJSONContentType: {"meta": {"error": "<text>", ...}}, plus
 // "data": [] when in.EmptyData is set.
 func WriteMetaError(w http.ResponseWriter, in MetaErrorInput) {
 	meta := make(map[string]any, len(in.Meta)+1)
@@ -40,7 +45,7 @@ func WriteMetaError(w http.ResponseWriter, in MetaErrorInput) {
 		body["data"] = []any{}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", MetaJSONContentType)
 	w.WriteHeader(in.Status)
 	_ = json.NewEncoder(w).Encode(body)
 }

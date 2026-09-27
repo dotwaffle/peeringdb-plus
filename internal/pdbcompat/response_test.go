@@ -67,7 +67,10 @@ func TestParseSinceParam(t *testing.T) {
 		{"", 0, nil},
 		{"since=", 0, errSinceNotTimestamp},
 		{"since=abc", 0, errSinceNotTimestamp},
-		{"since=1.5", 0, errSinceNotTimestamp},
+		{"since=nan", 0, errSinceNotTimestamp},
+		{"since=inf", 0, errSinceNotTimestamp},
+		{"since=1e999", 0, errSinceNotTimestamp},
+		{"since=0x10", 0, errSinceNotTimestamp},
 		{"since=0", 0, nil},
 		{"since=-5", 0, nil},
 		{"since=%2010%20", 10, nil},
@@ -191,6 +194,92 @@ func TestLastParam(t *testing.T) {
 	} {
 		if got, ok := lastParam(params, tc.key); got != tc.want || ok != tc.wantOK {
 			t.Errorf("lastParam(%q) = (%q, %v), want (%q, %v)", tc.key, got, ok, tc.want, tc.wantOK)
+		}
+	}
+}
+
+// TestParseSince_FloatForms checks that a since value that Python
+// float() accepts and int() rejects is a *sinceIntError with the Python
+// message (2.83.0 rest.py:505-510, api_cache.py:80).
+func TestParseSince_FloatForms(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ query, want string }{
+		{"since=1.5", "invalid literal for int() with base 10: '1.5'"},
+		{"since=1e3", "invalid literal for int() with base 10: '1e3'"},
+		{"since=%201.5%20", "invalid literal for int() with base 10: ' 1.5 '"},
+		{"since=-.5", "invalid literal for int() with base 10: '-.5'"},
+		{"since=1_0.5", "invalid literal for int() with base 10: '1_0.5'"},
+		{"since=5.", "invalid literal for int() with base 10: '5.'"},
+	} {
+		params, err := url.ParseQuery(tc.query)
+		if err != nil {
+			t.Fatalf("ParseQuery(%q): %v", tc.query, err)
+		}
+		_, present, err := parseSince(params)
+		var sie *sinceIntError
+		if !present || !errors.As(err, &sie) || err.Error() != tc.want {
+			t.Errorf("%q: present %v, err %v; want a sinceIntError %q", tc.query, present, err, tc.want)
+		}
+		p, err := parseRequestParams(params)
+		if err != nil || p.sinceInt == nil || p.since != nil {
+			t.Errorf("%q: parseRequestParams = %+v, %v; want sinceInt set and no error", tc.query, p, err)
+		}
+	}
+}
+
+func TestClassifyPyFloat(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		in   string
+		want pyFloatKind
+	}{
+		{"1", pyFloatFinite},
+		{"1.5", pyFloatFinite},
+		{" -1.5e-3\n", pyFloatFinite},
+		{".5", pyFloatFinite},
+		{"5.", pyFloatFinite},
+		{"1_000.000_1e1_0", pyFloatFinite},
+		{"\u0661.\u0665", pyFloatFinite},
+		{"1e-999", pyFloatFinite},
+		{"INF", pyFloatInf},
+		{"-Infinity", pyFloatInf},
+		{"1e999", pyFloatInf},
+		{"nan", pyFloatNaN},
+		{"+NaN", pyFloatNaN},
+		{"", pyFloatInvalid},
+		{".", pyFloatInvalid},
+		{"e3", pyFloatInvalid},
+		{".e3", pyFloatInvalid},
+		{"1__0", pyFloatInvalid},
+		{"_1", pyFloatInvalid},
+		{"1_", pyFloatInvalid},
+		{"1_.5", pyFloatInvalid},
+		{"1._5", pyFloatInvalid},
+		{"0x10", pyFloatInvalid},
+		{"1e", pyFloatInvalid},
+		{"infin", pyFloatInvalid},
+		{"--1", pyFloatInvalid},
+	} {
+		if got := classifyPyFloat(tc.in); got != tc.want {
+			t.Errorf("classifyPyFloat(%q) = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestPyRepr(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ in, want string }{
+		{"abc", "'abc'"},
+		{"it's", `"it's"`},
+		{`it's "x"`, `'it\'s "x"'`},
+		{`a\b`, `'a\\b'`},
+		{"a\tb\nc\rd", `'a\tb\nc\rd'`},
+		{"\x00\x7f\u0085", `'\x00\x7f\x85'`},
+		{"\u200b\u2028", `'\u200b\u2028'`},
+		{"é ü \u00a0", `'é ü \xa0'`},
+	} {
+		if got := pyRepr(tc.in); got != tc.want {
+			t.Errorf("pyRepr(%q) = %s, want %s", tc.in, got, tc.want)
 		}
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -302,11 +303,11 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 //
 // Keys with len(relSegs) > 2 are silently rejected.
 //
-// Before the key loop, the pre-passes of parseListFilters resolve the
-// fac and org distance key (parseDistanceSearch) and then the
-// name_search key (resolveNameSearch).
+// parseListFilters reads the keys in the upstream order: the fac and
+// org distance key (parseDistanceSearch), the prepare_query keys,
+// name_search (resolveNameSearch), then the other keys.
 //
-// In the loop, the filterable meta keys of the type (netixlan
+// For each key (filterState.addKey), the filterable meta keys of the type (netixlan
 // meta__<path> and the upstream meta_* column names, see
 // lookupMetaFilter) resolve first,
 // before the key is split for traversal. The presence keys of an
@@ -327,13 +328,12 @@ func ParseFilters(params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool
 // emptyResult sentinel bubbles back up from subquery construction.
 //
 // An empty result (an empty __in) is returned after every key is
-// parsed, so an error of any key wins, as upstream runs prepare_query
-// before its filter loop (2.83.0 rest.py:488-500).
+// parsed, so an error of any key wins.
 //
 // ParseFiltersCtx wraps parseListFilters and drops the sort key of a
 // distance search: see parseListFilters for the pre-pass.
 func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]func(*sql.Selector), bool, error) {
-	lf, err := parseListFilters(ctx, params, tc)
+	lf, err := parseListFilters(ctx, params, tc, nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -374,284 +374,349 @@ type listFilters struct {
 	// even when the key matches every row. A list at depth > 0 with
 	// such a key is cut to 250 rows, as upstream (rest.py:766-772).
 	upstreamFilter bool
+	// ctf maps each date key that sets the upstream _ctf filter to its
+	// _set filter (see noteCTF). It is nil without the _ctf key.
+	ctf map[string]func(*sql.Selector)
+	// setDateFilter is the _ctf filter of the rows of every _set, or
+	// nil (parseRequestFilters, pickCTF).
+	setDateFilter func(*sql.Selector)
+}
+
+// filterState collects the predicates of parseListFilters while it
+// reads the keys of a request.
+type filterState struct {
+	ctx      context.Context
+	tc       TypeConfig
+	tier     privctx.Tier
+	spatial  bool
+	consumed map[string]bool
+	preds    []func(*sql.Selector)
+	// empty records an empty __in.
+	empty bool
+	// adjusted records a key that upstream counts in its API cache gate
+	// but that adds no predicate (see listFilters.upstreamFilter).
+	adjusted bool
+	// ctf is listFilters.ctf.
+	ctf map[string]func(*sql.Selector)
 }
 
 // parseListFilters parses the filter keys of a request (see
-// ParseFiltersCtx for the key rules).
+// ParseFiltersCtx for the key rules), in the order of upstream
+// get_queryset (2.83.0 rest.py:477-703):
 //
-// Before the key loop, a pre-pass resolves the fac and org distance
-// search (parseDistanceSearch), because the params map has no order and
-// a distance search changes how the loop reads other keys: it skips the
-// location keys of spatialSkipKeys and matches a bare country exactly
-// (2.83.0 rest.py:569-597). The pre-pass adds its keys to the consumed
-// set, which the loop skips. The pre-passes run in upstream order: the
-// prepare_query keys (rest.py:488-500) before name_search (:532-553).
-// A distance error wins over an error in another prepare_query key,
-// although upstream fac checks its presence keys first
-// (serializers.py:2126-2208); the status is 400 on both sides, only
-// the message differs.
-// The name_search pre-pass (resolveNameSearch) consumes name_search,
-// and id__in when it unions the two. When name_search can match no
-// row, or its value is not valid, the loop reads only the keys of
-// isPrepareQueryKey, as upstream returns before its filter loop.
+//  1. the prepare_query keys (:486-500): the fac and org distance
+//     search (parseDistanceSearch) and every key of isPrepareQueryKey;
+//  2. afterPrepare, when it is not nil: the caller parses since, skip,
+//     limit and depth there (:505-523), so their errors lose to a
+//     prepare_query error and win over the others;
+//  3. name_search (:531-553, resolveNameSearch);
+//  4. the other keys, the filter loop (:564-703). When name_search can
+//     match no row, upstream returns before the loop, so these keys are
+//     not read.
 //
-// The one empty-result exit is after the loop.
-func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig) (listFilters, error) {
-	tier := privctx.TierFrom(ctx)
-	var predicates []func(*sql.Selector)
+// The distance pre-pass runs first, because a distance search changes
+// how the other keys are read: the loop skips the location keys of
+// spatialSkipKeys and matches a bare country exactly (2.83.0
+// rest.py:569-597). A distance error wins over an error in another
+// prepare_query key, although upstream fac checks its presence keys
+// first (serializers.py:2126-2208); the status is 400 on both sides,
+// only the message differs. Each pass reads the keys in sorted order,
+// so a request with two bad keys always gets the same message.
+//
+// An error of afterPrepare is returned as is. The one empty-result exit
+// is after the loop.
+func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, afterPrepare func() error) (listFilters, error) {
+	st := &filterState{
+		ctx:      ctx,
+		tc:       tc,
+		tier:     privctx.TierFrom(ctx),
+		consumed: map[string]bool{},
+	}
+	if params.Has(ctfParam) {
+		st.ctf = map[string]func(*sql.Selector){}
+	}
 	var orderBy func(*sql.Selector)
-	consumed := map[string]bool{}
 	ds, err := parseDistanceSearch(tc.Name, params)
 	if err != nil {
 		return listFilters{}, fmt.Errorf("filter %w", err)
 	}
 	if distanceTypes[tc.Name] {
 		// A known key also when it is a no-op (a value of 0 or less).
-		consumed["distance"] = true
+		st.consumed["distance"] = true
 	}
-	spatial := ds != nil
-	if spatial {
-		predicates = append(predicates, ds.predicate())
+	st.spatial = ds != nil
+	if st.spatial {
+		st.preds = append(st.preds, ds.predicate())
 		orderBy = ds.order()
 		for k := range spatialSkipKeys {
-			consumed[k] = true
+			st.consumed[k] = true
 		}
 	}
-	// The name_search pre-pass runs after the distance pre-pass, as
-	// upstream runs name_search after prepare_query (2.83.0
-	// rest.py:488-500, :532-553). A name_search error is returned
-	// after the loop, so that a prepare_query error wins over it.
-	ns, nsErr := resolveNameSearch(tc, params)
-	if nsErr != nil {
-		ns = nameSearchResult{consumed: map[string]bool{"name_search": true}}
+	keys := slices.Sorted(maps.Keys(params))
+	for _, key := range keys {
+		if isPrepareQueryKey(tc, key) {
+			if err := st.addKey(key, params[key]); err != nil {
+				return listFilters{}, err
+			}
+		}
 	}
-	prepareOnly := ns.none || nsErr != nil
-	maps.Copy(consumed, ns.consumed)
+	if afterPrepare != nil {
+		if err := afterPrepare(); err != nil {
+			return listFilters{}, err
+		}
+	}
+	ns, err := resolveNameSearch(tc, params)
+	if err != nil {
+		return listFilters{}, err
+	}
+	maps.Copy(st.consumed, ns.consumed)
 	if ns.pred != nil {
-		predicates = append(predicates, ns.pred)
+		st.preds = append(st.preds, ns.pred)
 	}
-	emptyResult := ns.empty || ns.none
-	// adjusted records a key that upstream counts in its API cache gate
-	// but that adds no predicate (see listFilters.upstreamFilter).
-	adjusted := false
-	for key, vals := range params {
-		if len(vals) == 0 {
-			continue
-		}
-		// Repeated params (?foo=a&foo=b) take the LAST value, matching
-		// Django's QueryDict.__getitem__ (upstream PeeringDB's request
-		// layer). url.Values preserves insertion order, so vals[len-1] is
-		// the last value seen on the wire.
-		value := vals[len(vals)-1]
-		// Skip reserved pagination/control parameters and the keys that
-		// a pre-pass handled.
-		if reservedParams[key] || consumed[key] {
-			continue
-		}
-		// Upstream returns qset.none() for a name_search that matches
-		// nothing before finalize_query_params and the filter loop
-		// (rest.py:550-553), so only the prepare_query keys can still
-		// fail the request. The other keys are not read, so they are
-		// not unknown either. A name_search error also stops upstream
-		// before the loop.
-		if prepareOnly && !isPrepareQueryKey(tc, key) {
-			continue
-		}
-		// Meta keys resolve before the key is split, as upstream
-		// rewrites them before its filter loop (2.83.0
-		// serializers.py:3129-3149). They are not traversals: a split
-		// would read meta__planned_status_change__date__lt as a 2-hop
-		// path and ignore it.
-		if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
-			p, empty, ok, err := buildMetaPredicate(col, suffix, value)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			if empty {
-				emptyResult = true
-				continue
-			}
-			if !ok {
-				appendUnknown(ctx, key)
-				continue
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The legacy net info_type keys, and info_types with __in or
-		// __startswith, resolve before the key is split, as upstream
-		// rewrites them before its filter loop (2.83.0
-		// serializers.py:3768-3813, rest.py:559-563).
-		if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
-			if patterns == nil {
-				// A pattern matches every network. Upstream still sets
-				// query_adjusted, so the key counts as a filter.
-				adjusted = true
-				continue
-			}
-			p, err := multiChoiceLikeAny("info_types", patterns)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The presence keys of an upstream prepare_query (not_ix,
-		// all_net, org_present and the others) use the first value of a
-		// repeated key, as prepare_query reads kwargs.get(key)[0].
-		if pk, isPresence := lookupPresenceKey(tc.Name, key); isPresence {
-			p, err := buildPresencePredicate(tc, pk, vals[0], tier)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The ix ipblock key of an upstream prepare_query uses the first
-		// value of a repeated key, as prepare_query reads
-		// kwargs.get(key)[0] (2.83.0 serializers.py:4548-4552). No value
-		// is an error, and an empty value is not an empty result.
-		if lookupIPBlockKey(tc.Name, key) {
-			predicates = append(predicates, buildIPBlockPredicate(vals[0]))
-			continue
-		}
-		// The ixpfx whereis key of an upstream prepare_query and its
-		// operator forms use the first value of a repeated key
-		// (2.83.0 serializers.py:618-619). A value that is not an
-		// address, and the __in form, are an error.
-		if inList, isWhereis := lookupWhereisKey(tc.Name, key); isWhereis {
-			p, err := buildWhereisPredicate(vals[0], inList)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The ix capacity key of an upstream prepare_query and its
-		// operator forms use the first value of a repeated key (2.83.0
-		// serializers.py:618-619). A value that is not an integer is an
-		// error, also as an item of __in.
-		if op, isCapacity := lookupCapacityFilter(tc.Name, key); isCapacity {
-			p, err := buildCapacityPredicate(op, vals[0])
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-		// The relation keys of an upstream prepare_query resolve before
-		// the other keys, as upstream handles them apart from its
-		// model-field filters. They use the first value of a repeated
-		// key, as get_relation_filters does (2.83.0
-		// serializers.py:618-619).
-		if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
-			p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			if empty {
-				emptyResult = true
-				continue
-			}
-			if !ok {
-				// Upstream puts a key of up to 3 segments in p_filters,
-				// also when prepare_query does not apply it (2.83.0
-				// serializers.py:641-654).
-				if len(tail) <= 2 {
-					adjusted = true
+	// Upstream returns qset.none() for a name_search that matches
+	// nothing before finalize_query_params and the filter loop
+	// (rest.py:550-553). The other keys are not read, so they are not
+	// unknown either.
+	if !ns.none {
+		for _, key := range keys {
+			if !isPrepareQueryKey(tc, key) {
+				if err := st.addKey(key, params[key]); err != nil {
+					return listFilters{}, err
 				}
-				appendUnknown(ctx, key)
-				continue
 			}
-			predicates = append(predicates, p)
-			continue
 		}
-		// A bare ipaddr6 key on netixlan compares the canonical text of
-		// the address, as upstream does (2.83.0 rest.py:605-606,
-		// util.py:61-73). Only the exact key: the value of ipaddr6__in,
-		// of the other suffixes and of ipaddr4 is not canonicalized.
-		if tc.Name == peeringdb.TypeNetIXLan && key == "ipaddr6" {
-			predicates = append(predicates, ipaddr6Predicate(value))
-			continue
-		}
-		relSegs, field, op := parseFieldOp(key)
-		// Also check if the raw final field is a reserved name
-		// (e.g. "fields" on a top-level single-segment key).
-		if len(relSegs) == 0 && reservedParams[field] {
-			continue
-		}
-		// Upstream ignores a relation key whose field is a FK column
-		// (net__org_id, see namesFKColumn), and status on a reverse or
-		// 2-hop key (see relationStatusFilterable).
-		if len(relSegs) > 0 && (namesFKColumn(field) ||
-			field == "status" && !relationStatusFilterable(tc, relSegs)) {
-			appendUnknown(ctx, key)
-			continue
-		}
-		// Hard cap: >2 relation segments is silently rejected.
-		if len(relSegs) > 2 {
-			appendUnknown(ctx, key)
-			continue
-		}
-		// Malformed split (empty final field, empty leading segment)
-		// falls through to unknown-field handling.
-		if field == "" {
-			appendUnknown(ctx, key)
-			continue
-		}
-
-		if len(relSegs) == 0 {
-			// Direct local field path — the original local-field behaviour.
-			// A count seed is a prepare_query key: it uses the first
-			// value of a repeated key (2.83.0 serializers.py:618-619).
-			if tc.ExactCounts[field] {
-				value = vals[0]
-			}
-			p, empty, ok, err := buildLocalPredicate(field, op, value, tc, spatial)
-			if err != nil {
-				return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-			}
-			if empty {
-				emptyResult = true
-				continue
-			}
-			if !ok {
-				appendUnknown(ctx, key)
-				continue
-			}
-			predicates = append(predicates, p)
-			continue
-		}
-
-		// Traversal path (1-hop or 2-hop). An upstream FK name as the
-		// first segment (network__asn) walks the matching mirror edge.
-		relSegs[0] = traversalKeyFor(tc, relSegs[0])
-		p, ok, empty, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
-		if err != nil {
-			return listFilters{}, fmt.Errorf("filter %s: %w", key, err)
-		}
-		if empty {
-			emptyResult = true
-			continue
-		}
-		if !ok {
-			appendUnknown(ctx, key)
-			continue
-		}
-		predicates = append(predicates, p)
 	}
-	if nsErr != nil {
-		return listFilters{}, nsErr
-	}
-	if emptyResult {
+	if st.empty || ns.none {
 		return listFilters{emptyResult: true, none: ns.none, searchHit: ns.hit, upstreamFilter: true}, nil
 	}
 	return listFilters{
-		preds:          predicates,
+		preds:          st.preds,
 		orderBy:        orderBy,
 		searchHit:      ns.hit,
-		upstreamFilter: adjusted || len(predicates) > 0,
+		upstreamFilter: st.adjusted || len(st.preds) > 0,
+		ctf:            st.ctf,
 	}, nil
+}
+
+// addKey parses one filter key. vals holds every value of the key.
+func (st *filterState) addKey(key string, vals []string) error {
+	ctx, tc, tier := st.ctx, st.tc, st.tier
+	if len(vals) == 0 {
+		return nil
+	}
+	// Repeated params (?foo=a&foo=b) take the LAST value, matching
+	// Django's QueryDict.__getitem__ (upstream PeeringDB's request
+	// layer). url.Values preserves insertion order, so vals[len-1] is
+	// the last value seen on the wire.
+	value := vals[len(vals)-1]
+	// Skip reserved pagination/control parameters and the keys that
+	// a pre-pass handled.
+	if reservedParams[key] || st.consumed[key] {
+		return nil
+	}
+	// Meta keys resolve before the key is split, as upstream
+	// rewrites them before its filter loop (2.83.0
+	// serializers.py:3129-3149). They are not traversals: a split
+	// would read meta__planned_status_change__date__lt as a 2-hop
+	// path and ignore it.
+	if col, suffix, isMeta := lookupMetaFilter(tc.Name, key); isMeta {
+		p, empty, ok, err := buildMetaPredicate(col, suffix, value)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The legacy net info_type keys, and info_types with __in or
+	// __startswith, resolve before the key is split, as upstream
+	// rewrites them before its filter loop (2.83.0
+	// serializers.py:3768-3813, rest.py:559-563).
+	if patterns, ok := legacyInfoTypePatterns(tc.Name, key, value); ok {
+		if patterns == nil {
+			// A pattern matches every network. Upstream still sets
+			// query_adjusted, so the key counts as a filter.
+			st.adjusted = true
+			return nil
+		}
+		p, err := multiChoiceLikeAny("info_types", patterns)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The presence keys of an upstream prepare_query (not_ix,
+	// all_net, org_present and the others) use the first value of a
+	// repeated key, as prepare_query reads kwargs.get(key)[0].
+	if pk, isPresence := lookupPresenceKey(tc.Name, key); isPresence {
+		p, err := buildPresencePredicate(tc, pk, vals[0], tier)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The ix ipblock key of an upstream prepare_query uses the first
+	// value of a repeated key, as prepare_query reads
+	// kwargs.get(key)[0] (2.83.0 serializers.py:4548-4552). No value
+	// is an error, and an empty value is not an empty result.
+	if lookupIPBlockKey(tc.Name, key) {
+		st.preds = append(st.preds, buildIPBlockPredicate(vals[0]))
+		return nil
+	}
+	// The ixpfx whereis key of an upstream prepare_query and its
+	// operator forms use the first value of a repeated key
+	// (2.83.0 serializers.py:618-619). A value that is not an
+	// address, and the __in form, are an error.
+	if inList, isWhereis := lookupWhereisKey(tc.Name, key); isWhereis {
+		p, err := buildWhereisPredicate(vals[0], inList)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The ix capacity key of an upstream prepare_query and its
+	// operator forms use the first value of a repeated key (2.83.0
+	// serializers.py:618-619). A value that is not an integer is an
+	// error, also as an item of __in.
+	if op, isCapacity := lookupCapacityFilter(tc.Name, key); isCapacity {
+		p, err := buildCapacityPredicate(op, vals[0])
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// The relation keys of an upstream prepare_query resolve before
+	// the other keys, as upstream handles them apart from its
+	// model-field filters. They use the first value of a repeated
+	// key, as get_relation_filters does (2.83.0
+	// serializers.py:618-619).
+	if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
+		p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			// Upstream puts a key of up to 3 segments in p_filters,
+			// also when prepare_query does not apply it (2.83.0
+			// serializers.py:641-654).
+			if len(tail) <= 2 {
+				st.adjusted = true
+			}
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	// A bare ipaddr6 key on netixlan compares the canonical text of
+	// the address, as upstream does (2.83.0 rest.py:605-606,
+	// util.py:61-73). Only the exact key: the value of ipaddr6__in,
+	// of the other suffixes and of ipaddr4 is not canonicalized.
+	if tc.Name == peeringdb.TypeNetIXLan && key == "ipaddr6" {
+		st.preds = append(st.preds, ipaddr6Predicate(value))
+		return nil
+	}
+	// A reverse relation key in upstream spelling (fac?ix_side_set__asn=)
+	// where no traversal key reaches the related rows.
+	if rs, relField, relOp, isSet := lookupReverseSetKey(tc.Name, key); isSet {
+		p, ok, empty, err := buildReverseSetPredicate(rs, relField, relOp, value)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		return nil
+	}
+	relSegs, field, op := parseFieldOp(key)
+	// Also check if the raw final field is a reserved name
+	// (e.g. "fields" on a top-level single-segment key).
+	if len(relSegs) == 0 && reservedParams[field] {
+		return nil
+	}
+	// Upstream ignores a relation key whose field is a FK column
+	// (net__org_id, see namesFKColumn), and status on a reverse or
+	// 2-hop key (see relationStatusFilterable).
+	if len(relSegs) > 0 && (namesFKColumn(field) ||
+		field == "status" && !relationStatusFilterable(tc, relSegs)) {
+		appendUnknown(ctx, key)
+		return nil
+	}
+	// Hard cap: >2 relation segments is silently rejected.
+	if len(relSegs) > 2 {
+		appendUnknown(ctx, key)
+		return nil
+	}
+	// Malformed split (empty final field, empty leading segment)
+	// falls through to unknown-field handling.
+	if field == "" {
+		appendUnknown(ctx, key)
+		return nil
+	}
+
+	if len(relSegs) == 0 {
+		// Direct local field path — the original local-field behaviour.
+		// A count seed is a prepare_query key: it uses the first
+		// value of a repeated key (2.83.0 serializers.py:618-619).
+		if tc.ExactCounts[field] {
+			value = vals[0]
+		}
+		p, empty, ok, err := buildLocalPredicate(field, op, value, tc, st.spatial)
+		if err != nil {
+			return fmt.Errorf("filter %s: %w", key, err)
+		}
+		if empty {
+			st.empty = true
+			return nil
+		}
+		if !ok {
+			appendUnknown(ctx, key)
+			return nil
+		}
+		st.preds = append(st.preds, p)
+		st.noteCTF(key, nil, field, op, p)
+		return nil
+	}
+
+	// Traversal path (1-hop or 2-hop). An upstream FK name as the
+	// first segment (network__asn) walks the matching mirror edge.
+	relSegs[0] = traversalKeyFor(tc, relSegs[0])
+	p, ok, empty, err := buildTraversalPredicate(tc, relSegs, field, op, value, tier)
+	if err != nil {
+		return fmt.Errorf("filter %s: %w", key, err)
+	}
+	if empty {
+		st.empty = true
+		return nil
+	}
+	if !ok {
+		appendUnknown(ctx, key)
+		return nil
+	}
+	st.preds = append(st.preds, p)
+	st.noteCTF(key, relSegs, field, op, nil)
+	return nil
 }
 
 // isPrepareQueryKey reports whether an upstream prepare_query of typ
@@ -1037,20 +1102,210 @@ func buildTwoHop(entityType, fk1, fk2, field, op, value string, tier privctx.Tie
 // buildModelFieldPredicate builds the predicate of a key that the
 // upstream filter loop resolves as a model field (2.83.0
 // rest.py:670-683). The loop folds every value with unidecode first
-// (rest.py:597). A plain key on an integer field is an __iexact filter
-// upstream, and Django does not convert an iexact value
+// (rest.py:597), which also turns every Unicode decimal digit into its
+// ASCII digit (ndToASCII). A plain key on an integer field is an
+// __iexact filter upstream, and Django does not convert an iexact value
 // (IExact.prepare_rhs=False, django/db/models/lookups.py:430-438):
 // MySQL compares the integer as decimal text, so only the decimal form
 // of the stored value matches. A FK column (exactInt) and the operators
 // convert the value with int() (pyInt), so a bad value is a 400.
 func buildModelFieldPredicate(col, op, value string, ft FieldType, folded, exactInt bool) (func(*sql.Selector), error) {
 	if ft == FieldInt {
-		value = unifold.Fold(value)
+		value = ndToASCII(unifold.Fold(value))
 		if !exactInt && (op == "" || op == "iexact") {
 			return intTextMatch(col, value), nil
 		}
 	}
+	if expr := numericText(ft); expr != "" && !exactInt {
+		text := likeEscape(ndToASCII(unifold.Fold(value)))
+		switch coerceToCaseInsensitive(op) {
+		case "icontains":
+			return textLike(col, expr, "%"+text+"%"), nil
+		case "istartswith":
+			return textLike(col, expr, text+"%"), nil
+		case "", "iexact":
+			if ft == FieldFloat {
+				return textLike(col, expr, text), nil
+			}
+		}
+	}
+	if ft == FieldTime {
+		switch op := coerceToCaseInsensitive(op); op {
+		case "":
+			return dateTextPrefix(col, value), nil
+		case "lt", "lte", "gt", "gte", "icontains", "istartswith":
+			return buildDateOperator(col, op, value)
+		}
+	}
+	if ft == FieldBool {
+		switch op {
+		case "":
+			// upstream rest.py:680-681: v.lower() == "true" or v == "1",
+			// any other value selects false.
+			f := ndToASCII(unifold.Fold(value))
+			return sql.FieldEQ(col, f == "true" || f == "1"), nil
+		case "lt", "lte", "gt", "gte", "in":
+			return buildBoolOperator(col, op, value)
+		}
+	}
 	return buildPredicate(col, op, value, ft, folded)
+}
+
+// numericText returns the SQL expression, with one %s for the column,
+// that renders a column of type ft as MySQL renders it as text, or ""
+// for a type that is not numeric. Upstream does not convert the value of
+// __icontains, __istartswith and __iexact (PatternLookup and IExact set
+// prepare_rhs=False, django/db/models/lookups.py), so MySQL compares
+// the column as text with LIKE: an integer as decimal text, a boolean
+// (tinyint) as 1 or 0, and a DecimalField(max_digits=9,
+// decimal_places=6) as its text with 6 decimals, for example 52.500000.
+// printf renders NULL as 0.000000, so the decimal form keeps NULL.
+func numericText(ft FieldType) string {
+	switch ft {
+	case FieldInt, FieldBool:
+		return "CAST(%s AS TEXT)"
+	case FieldFloat:
+		return "CASE WHEN %[1]s IS NULL THEN NULL ELSE printf('%%.6f', %[1]s) END"
+	case FieldString, FieldTime, FieldMultiChoice:
+		return ""
+	default:
+		return ""
+	}
+}
+
+// textLike returns the predicate expr LIKE pattern, where expr holds one
+// %s for col and pattern is escaped for ESCAPE '\'. SQLite LIKE ignores
+// ASCII case, as the MySQL collation does.
+func textLike(col, expr, pattern string) func(*sql.Selector) {
+	return func(s *sql.Selector) {
+		s.Where(sql.ExprP(fmt.Sprintf(expr, s.C(col))+` LIKE ? ESCAPE '\'`, pattern))
+	}
+}
+
+// dateTextPrefix builds the predicate of a date key without an
+// operator. Upstream filters it with __startswith (2.83.0
+// rest.py:678-679), which does not convert the value, so MySQL matches
+// the value as a prefix of the DATETIME(6) text of the column,
+// "YYYY-MM-DD HH:MM:SS.ffffff" in UTC: ?created=2024-01 matches the
+// month and ?created=1700000000 matches no row. The mirror stores the
+// time as "YYYY-MM-DD HH:MM:SS +0000 UTC" (time.Time.String, whole
+// seconds), so the first 19 bytes are the upstream text up to the
+// seconds. The microseconds are not stored: a value that goes on with a
+// decimal point and up to 6 digits matches every row of its second.
+func dateTextPrefix(col, value string) func(*sql.Selector) {
+	value = ndToASCII(value)
+	const secondsLen = len("2006-01-02 15:04:05")
+	if len(value) > secondsLen {
+		frac := value[secondsLen:]
+		if frac[0] != '.' || len(frac) > 7 {
+			return func(s *sql.Selector) { s.Where(sql.False()) }
+		}
+		if _, ok := digitsAt(frac, 1, len(frac)-1); !ok {
+			return func(s *sql.Selector) { s.Where(sql.False()) }
+		}
+		value = value[:secondsLen]
+	}
+	return textLike(col, "substr(%s, 1, 19)", likeEscape(value)+"%")
+}
+
+// buildDateOperator builds an operator predicate on a date model field,
+// as upstream does (2.83.0 rest.py:640-662): for gt and lte, a value of
+// 10 characters (a date) gets " 23:59:59.999", so the whole day counts.
+// Then Django DateTimeField.to_python converts the value
+// (djangoDateTime), and a value that it rejects is a 400. icontains and
+// istartswith compare the text of the converted value, which ends in a
+// zone ("+00:00"), with the MySQL text of the column, which has none, so
+// they match no row.
+func buildDateOperator(col, op, value string) (func(*sql.Selector), error) {
+	if (op == "gt" || op == "lte") && utf8.RuneCountInString(value) == 10 {
+		value += " 23:59:59.999"
+	}
+	t, err := djangoDateTime(value)
+	if err != nil {
+		return nil, fmt.Errorf("convert %q to time: %w", value, err)
+	}
+	switch op {
+	case "lt":
+		return sql.FieldLT(col, t), nil
+	case "lte":
+		return sql.FieldLTE(col, t), nil
+	case "gt":
+		return sql.FieldGT(col, t), nil
+	case "gte":
+		return sql.FieldGTE(col, t), nil
+	default:
+		return func(s *sql.Selector) { s.Where(sql.False()) }, nil
+	}
+}
+
+// nullableBoolFields lists the boolean model fields that allow NULL
+// upstream (django-peeringdb models/abstract.py:259). Django converts an
+// empty value on these fields to None.
+var nullableBoolFields = map[string]bool{"diverse_serving_substations": true}
+
+// buildBoolOperator builds an operator predicate on a boolean model
+// field. Upstream passes the value to the lookup as is (rest.py:664-669),
+// and Django converts it with BooleanField.to_python
+// (django/db/models/fields/__init__.py BooleanField.to_python): only t,
+// True, 1, f, False and 0 are valid, and the case counts. __in splits the
+// value on commas and does not strip the items. On a nullable field an
+// empty value is None: the comparisons reject it, and __in drops it (In
+// discards None, and a list with no other item matches no row).
+func buildBoolOperator(col, op, value string) (func(*sql.Selector), error) {
+	nullable := nullableBoolFields[col]
+	if op != "in" {
+		v, err := djangoBool(value, nullable)
+		if err != nil {
+			return nil, err
+		}
+		if v == nil {
+			return nil, fmt.Errorf("convert %q to bool: cannot use None as a query value", value)
+		}
+		switch op {
+		case "lt":
+			return sql.FieldLT(col, *v), nil
+		case "lte":
+			return sql.FieldLTE(col, *v), nil
+		case "gt":
+			return sql.FieldGT(col, *v), nil
+		default:
+			return sql.FieldGTE(col, *v), nil
+		}
+	}
+	var items []any
+	for p := range strings.SplitSeq(value, ",") {
+		v, err := djangoBool(p, nullable)
+		if err != nil {
+			return nil, fmt.Errorf("convert %q to bool for IN: %w", p, err)
+		}
+		if v != nil {
+			items = append(items, *v)
+		}
+	}
+	if len(items) == 0 {
+		return nil, errEmptyIn
+	}
+	return sql.FieldIn(col, items...), nil
+}
+
+// djangoBool converts s as Django BooleanField.to_python does. It
+// returns nil for an empty value on a nullable field.
+func djangoBool(s string, nullable bool) (*bool, error) {
+	var v bool
+	switch s {
+	case "t", "True", "1":
+		v = true
+	case "f", "False", "0":
+		v = false
+	case "":
+		if nullable {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("invalid bool value %q: use t, True, 1, f, False or 0", s)
+	default:
+		return nil, fmt.Errorf("invalid bool value %q: use t, True, 1, f, False or 0", s)
+	}
+	return &v, nil
 }
 
 // intTextMatch returns the predicate col = n when value is the decimal
@@ -1089,6 +1344,12 @@ func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*s
 		return buildExact(field, value, ft, folded)
 	case "in":
 		return buildIn(field, value, ft, folded)
+	case "lt", "gt", "lte", "gte":
+		if ft == FieldString {
+			return buildStringComparison(field, op, value, folded), nil
+		}
+	}
+	switch op {
 	case "lt":
 		return buildComparison(field, op, value, ft, sql.FieldLT)
 	case "gt":
@@ -1186,17 +1447,13 @@ func buildStartsWith(field, value string, ft FieldType, folded bool) (func(*sql.
 // (modernc.org/sqlite v1.48.2 = 32766) and keeps the query plan stable
 // at any list size.
 //
-// An empty value (?asn__in=) returns errEmptyIn which ParseFilters
-// translates to QueryOptions.EmptyResult=true.
+// Upstream splits the value with str.split(","), which keeps empty
+// items, and Django converts each item for the field (2.83.0
+// rest.py:664-666). So an empty item of a string field matches an empty
+// value, and on the other types it is a value that does not convert
+// (400): ?asn__in= and ?asn__in=1, return 400.
 func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
-	if value == "" {
-		return nil, errEmptyIn
-	}
 	parts := strings.Split(value, ",")
-	if len(parts) == 0 {
-		// Defensive — strings.Split never returns []; "" is handled above.
-		return nil, errEmptyIn
-	}
 	// Bool, float, and time IN lists bind each value as a parameter via
 	// ent's converter (sql.FieldIn), exactly like buildExact's FieldEQ.
 	// This keeps IN comparison semantics identical to single-value
@@ -1217,9 +1474,11 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 		// the <field>_fold shadow column), keeping __in consistent
 		// with the exact/contains/startswith operators on the same
 		// field.
+		// The MySQL collations pad with spaces (PAD SPACE), so trailing
+		// spaces do not count and leading spaces do.
 		trimmed := make([]string, len(parts))
 		for i, p := range parts {
-			v := strings.TrimSpace(p)
+			v := strings.TrimRight(p, " ")
 			if folded {
 				v = unifold.Fold(v)
 			}
@@ -1295,6 +1554,28 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 		}
 		s.Where(sql.ExprP(expr+" IN (SELECT value FROM json_each(?))", jsonStr))
 	}, nil
+}
+
+// stringComparisons maps a comparison operator to its SQL operator.
+var stringComparisons = map[string]string{"lt": "<", "lte": "<=", "gt": ">", "gte": ">="}
+
+// buildStringComparison compares a string field as the MySQL collation
+// of upstream does: case does not count, and upstream folds the value
+// with unidecode (2.83.0 rest.py:597), with accents equal to their base
+// letter under the collation. A folded field compares its <field>_fold
+// column with the folded value; another field compares the lower case
+// of both sides. The collation also weighs punctuation differently from
+// the byte order that SQLite uses, which this does not copy.
+func buildStringComparison(field, op, value string, folded bool) func(*sql.Selector) {
+	cmp := stringComparisons[op]
+	if folded {
+		return func(s *sql.Selector) {
+			s.Where(sql.ExprP(s.C(field+"_fold")+" "+cmp+" ?", unifold.Fold(value)))
+		}
+	}
+	return func(s *sql.Selector) {
+		s.Where(sql.ExprP("LOWER("+s.C(field)+") "+cmp+" ?", strings.ToLower(unifold.Fold(value))))
+	}
 }
 
 // buildComparison builds a comparison predicate (lt, gt, lte, gte) with value

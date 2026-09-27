@@ -156,8 +156,8 @@ func TestErrorResponsesSanitized(t *testing.T) {
 			if rec.Code != http.StatusInternalServerError {
 				t.Fatalf("status = %d, want 500; body=%s", rec.Code, rec.Body.String())
 			}
-			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-				t.Errorf("Content-Type = %q, want application/json", ct)
+			if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 			}
 			msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta")
 			if msg == "" {
@@ -234,9 +234,9 @@ func TestListEndpoint_InBoolAndTime(t *testing.T) {
 		query string
 		want  int
 	}{
-		{"/api/net?info_unicast__in=true", 2},
-		{"/api/net?info_unicast__in=false", 1},
-		{"/api/net?info_unicast__in=true,false", 3},
+		{"/api/net?info_unicast__in=True", 2},
+		{"/api/net?info_unicast__in=0", 1},
+		{"/api/net?info_unicast__in=t,False", 3},
 		{"/api/net?created__in=1700000000,1700000200", 2},
 		{"/api/net?created__in=1700000100", 1},
 	}
@@ -297,8 +297,8 @@ func TestServeDetail_BudgetCheck(t *testing.T) {
 				t.Errorf("%s: status %d, want %d; body %s", c.query, rec.Code, c.want, rec.Body.String())
 			}
 			if c.want == http.StatusRequestEntityTooLarge {
-				if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-					t.Errorf("413 Content-Type = %q, want application/json", ct)
+				if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+					t.Errorf("413 Content-Type = %q, want application/json; charset=utf-8", ct)
 				}
 			}
 		})
@@ -446,30 +446,44 @@ func TestListEndpoint(t *testing.T) {
 	}
 }
 
-func TestListEndpointTrailingSlash(t *testing.T) {
+// TestParseAPIPath locks the upstream routes of parseAPIPath: no
+// trailing slash, and a format suffix that may have one "/" after it
+// (2.83.0 rest.py:185-230, :1305; drf format_suffix_patterns).
+func TestParseAPIPath(t *testing.T) {
 	t.Parallel()
-	_, mux := setupTestHandler(t)
-
-	// Without trailing slash.
-	req1 := httptest.NewRequest(http.MethodGet, "/api/net", nil)
-	rec1 := httptest.NewRecorder()
-	mux.ServeHTTP(rec1, req1)
-
-	// With trailing slash.
-	req2 := httptest.NewRequest(http.MethodGet, "/api/net/", nil)
-	rec2 := httptest.NewRecorder()
-	mux.ServeHTTP(rec2, req2)
-
-	if rec1.Code != http.StatusOK {
-		t.Fatalf("no slash: expected 200, got %d", rec1.Code)
-	}
-	if rec2.Code != http.StatusOK {
-		t.Fatalf("trailing slash: expected 200, got %d: %s", rec2.Code, rec2.Body.String())
-	}
-
-	if rec1.Body.String() != rec2.Body.String() {
-		t.Errorf("responses differ:\n  no slash:      %s\n  trailing slash: %s",
-			rec1.Body.String(), rec2.Body.String())
+	for _, tc := range []struct {
+		rest, typeName, id, format string
+		routed                     bool
+	}{
+		{"", "", "", "", true},
+		{".json", "", "", "json", true},
+		{".json/", "", "", "json", true},
+		{"net", "net", "", "", true},
+		{"net.json", "net", "", "json", true},
+		{"net.json/", "net", "", "json", true},
+		{"net.xml", "net", "", "xml", true},
+		{"net/1", "net", "1", "", true},
+		{"net/1.json", "net", "1", "json", true},
+		{"net/1.json/", "net", "1", "json", true},
+		{"net/1.5", "net", "1", "5", true},
+		{"foo", "foo", "", "", true},
+		{"/", "", "", "", false},
+		{"net/", "net", "", "", false},
+		{"net//", "net", "", "", false},
+		{"net/1/", "net", "1", "", false},
+		{"net/1/2", "net", "1/2", "", false},
+		{"net/1.json//", "net", "1.json/", "", false},
+		{"net/.json", "net", ".json", "", false},
+		{"net/1.JSON", "net", "1.JSON", "", false},
+		{"net/1.2.json", "net", "1.2.json", "", false},
+		{"net.a.b", "net.a.b", "", "", false},
+		{"/1", "", "1", "", false},
+	} {
+		typeName, id, format, routed := parseAPIPath(tc.rest)
+		if typeName != tc.typeName || id != tc.id || format != tc.format || routed != tc.routed {
+			t.Errorf("parseAPIPath(%q) = (%q, %q, %q, %v), want (%q, %q, %q, %v)",
+				tc.rest, typeName, id, format, routed, tc.typeName, tc.id, tc.format, tc.routed)
+		}
 	}
 }
 
@@ -534,8 +548,8 @@ func TestDetailNotFound(t *testing.T) {
 	// Errors use the upstream form {"meta": {"error": ...}} with no data
 	// key (2.83.0 renderers.py:134-148).
 	ct := rec.Header().Get("Content-Type")
-	if ct != "application/json" {
-		t.Errorf("Content-Type = %q, want application/json", ct)
+	if ct != "application/json; charset=utf-8" {
+		t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 	}
 	// The Django text with the upstream model name
 	// (django/shortcuts.py:90-93).
@@ -581,8 +595,8 @@ func TestMethodNotAllowed(t *testing.T) {
 			if got := rec.Header().Get("Allow"); got != "GET, HEAD" {
 				t.Errorf("%s %s: Allow = %q, want %q", method, path, got, "GET, HEAD")
 			}
-			if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-				t.Errorf("%s %s: Content-Type = %q, want application/json", method, path, ct)
+			if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+				t.Errorf("%s %s: Content-Type = %q, want application/json; charset=utf-8", method, path, ct)
 			}
 			want := "Method \"" + method + "\" not allowed."
 			if msg := decodeTestMetaError(t, rec.Body.Bytes(), "meta"); msg != want {
@@ -862,8 +876,8 @@ func TestResponseHeaders(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-		t.Errorf("Content-Type = %q, want application/json", ct)
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
+		t.Errorf("Content-Type = %q, want application/json; charset=utf-8", ct)
 	}
 	if pb := rec.Header().Get("X-Powered-By"); pb == "" {
 		t.Error("missing X-Powered-By header")
@@ -921,7 +935,7 @@ func TestServeList_UniqueQueryEmptyExits(t *testing.T) {
 			path   string
 			want   int
 		}{
-			{http.MethodGet, "/api/net?id=1&asn__in=", http.StatusNotFound},
+			{http.MethodGet, "/api/fac?id=1&diverse_serving_substations__in=", http.StatusNotFound},
 			{http.MethodGet, "/api/net?id=1", http.StatusNotFound},
 			{http.MethodGet, "/api/net?asn=1", http.StatusNotFound},
 			{http.MethodHead, "/api/net?id=1", http.StatusNotFound},
@@ -1154,10 +1168,10 @@ func TestFieldProjectionWithDepth(t *testing.T) {
 	_ = json.Unmarshal(env.Data, &items)
 	orgID := int(items[0]["id"].(float64))
 
-	// Detail with depth=2 and fields=id,name should project top-level
-	// but _set objects should be unaffected.
+	// Detail with depth=2 and fields=id,name,net_set keeps the named
+	// keys only, and the named _set is unaffected.
 	detReq := httptest.NewRequest(http.MethodGet,
-		"/api/org/"+itoa(orgID)+"?depth=2&fields=id,name", nil)
+		"/api/org/"+itoa(orgID)+"?depth=2&fields=id,name,net_set", nil)
 	detRec := httptest.NewRecorder()
 	mux.ServeHTTP(detRec, detReq)
 
@@ -1181,9 +1195,12 @@ func TestFieldProjectionWithDepth(t *testing.T) {
 	if _, ok := obj["name"]; !ok {
 		t.Error("projected detail missing 'name'")
 	}
-	// _set fields should still be present (projection does not remove them).
 	if _, ok := obj["net_set"]; !ok {
-		t.Error("projected detail missing 'net_set' (should be preserved)")
+		t.Error("projected detail missing 'net_set'")
+	}
+	// A set that fields does not name is removed.
+	if _, ok := obj["fac_set"]; ok {
+		t.Error("projected detail has 'fac_set', which fields does not name")
 	}
 }
 
@@ -1320,24 +1337,39 @@ func TestTraversal_FoldRouting_Preserved(t *testing.T) {
 	}
 }
 
-// TestTraversal_EmptyIn_ShortCircuits guards the empty-__in sentinel under
-// the traversal parser. An empty __in parameter short-circuits the
-// handler to return 200 with an empty data array — no SQL is executed.
-// seed.Full has multiple networks; without the short-circuit a naive
-// IN(empty) would either error or return all rows.
-func TestTraversal_EmptyIn_ShortCircuits(t *testing.T) {
+// TestTraversal_EmptyIn_LikeUpstream locks the empty __in value on a
+// local and a traversal key. Upstream splits the value with
+// str.split(","), so an empty value is one empty item (2.83.0
+// rest.py:664-666): an integer field cannot convert it (400), and a
+// string field matches the empty string. Only a nullable boolean field,
+// where Django reads the empty item as None and In drops it, gives the
+// empty result that short-circuits the handler with no SQL.
+func TestTraversal_EmptyIn_LikeUpstream(t *testing.T) {
 	t.Parallel()
 	mux := setupTraversalHandler(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/net?asn__in=", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200: %s", rec.Code, rec.Body.String())
-	}
-	ids := extractIDs(t, rec.Body.Bytes())
-	if len(ids) != 0 {
-		t.Errorf("empty __in short-circuit regression: got %d rows (ids=%v), want 0", len(ids), ids)
+	for _, tc := range []struct {
+		path string
+		want int
+	}{
+		{"/api/net?asn__in=", http.StatusBadRequest},
+		{"/api/net?org__id__in=", http.StatusBadRequest},
+		// Matches the empty string; the seed has no fold values, so
+		// the status is what counts here.
+		{"/api/net?org__name__in=", http.StatusOK},
+		{"/api/fac?diverse_serving_substations__in=", http.StatusOK},
+	} {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != tc.want {
+			t.Errorf("%s: status = %d, want %d: %s", tc.path, rec.Code, tc.want, rec.Body.String())
+			continue
+		}
+		if rec.Code == http.StatusOK && !strings.Contains(tc.path, "name") {
+			if ids := extractIDs(t, rec.Body.Bytes()); len(ids) != 0 {
+				t.Errorf("%s: got ids %v, want none", tc.path, ids)
+			}
+		}
 	}
 }

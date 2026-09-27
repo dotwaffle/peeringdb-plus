@@ -159,7 +159,7 @@ func TestIPBlockPlan_SubqueryRunsOnce(t *testing.T) {
 func TestPdbcompatListPlan_Distance(t *testing.T) {
 	t.Parallel()
 	params := url.Values{"distance": {"700"}, "latitude": {"50.1109"}, "longitude": {"8.6821"}}
-	lf, err := parseListFilters(t.Context(), params, Registry["org"])
+	lf, err := parseListFilters(t.Context(), params, Registry["org"], nil)
 	if err != nil || lf.orderBy == nil || len(lf.preds) != 1 {
 		t.Fatalf("parseListFilters: preds=%d orderBy=%v err=%v, want a distance search", len(lf.preds), lf.orderBy != nil, err)
 	}
