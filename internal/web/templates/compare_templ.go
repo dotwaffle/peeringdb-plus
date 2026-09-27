@@ -36,33 +36,33 @@ func CompareFormPage(asn1 string, asn2 string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><div class=\"text-center mb-8\"><h1 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2\">Compare Networks</h1><p class=\"text-neutral-600 dark:text-neutral-400\">Find shared IXPs, facilities, and campuses between two networks</p></div><form id=\"compare-form\" method=\"GET\" action=\"/ui/compare\" class=\"space-y-6\"><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div><label for=\"compare-asn1\" class=\"block text-sm text-neutral-600 dark:text-neutral-400 mb-1\">First ASN</label> <input type=\"number\" id=\"compare-asn1\" name=\"asn1\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><div class=\"text-center mb-8\"><h1 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2\">Compare Networks</h1><p class=\"text-neutral-600 dark:text-neutral-400\">Find shared IXPs, facilities, and campuses between two networks</p></div><form id=\"compare-form\" method=\"GET\" action=\"/ui/compare\" class=\"space-y-6\"><div class=\"grid grid-cols-1 md:grid-cols-2 gap-4\"><div><label for=\"compare-asn1\" class=\"block text-sm text-neutral-600 dark:text-neutral-400 mb-1\">First ASN</label> <input type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]+\" maxlength=\"10\" required autocomplete=\"off\" title=\"AS number, digits only\" aria-describedby=\"compare-hint\" id=\"compare-asn1\" name=\"asn1\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(asn1)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 24, Col: 18}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 31, Col: 18}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" placeholder=\"e.g. 13335\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\"></div><div><label for=\"compare-asn2\" class=\"block text-sm text-neutral-600 dark:text-neutral-400 mb-1\">Second ASN</label> <input type=\"number\" id=\"compare-asn2\" name=\"asn2\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" placeholder=\"e.g. 13335\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\"></div><div><label for=\"compare-asn2\" class=\"block text-sm text-neutral-600 dark:text-neutral-400 mb-1\">Second ASN</label> <input type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]+\" maxlength=\"10\" required autocomplete=\"off\" title=\"AS number, digits only\" aria-describedby=\"compare-hint\" id=\"compare-asn2\" name=\"asn2\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(asn2)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 35, Col: 18}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 49, Col: 18}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" placeholder=\"e.g. 15169\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\"></div></div><div class=\"text-center\"><button type=\"submit\" class=\"bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2 rounded-lg font-medium transition-colors\">Compare</button></div></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" placeholder=\"e.g. 15169\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\"></div></div><p id=\"compare-hint\" class=\"text-sm text-neutral-600 dark:text-neutral-400 text-center\">Enter two AS numbers, digits only, for example 13335 and 15169.</p><div class=\"text-center\"><button type=\"submit\" class=\"bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2 rounded-lg font-medium transition-colors\">Compare</button></div></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -99,7 +99,7 @@ func CompareResultsPage(data CompareData) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.NetA.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 58, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 73, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -112,7 +112,7 @@ func CompareResultsPage(data CompareData) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(data.NetB.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 58, Col: 102}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 73, Col: 102}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -125,7 +125,7 @@ func CompareResultsPage(data CompareData) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", data.NetA.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 61, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 76, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -138,7 +138,7 @@ func CompareResultsPage(data CompareData) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", data.NetB.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 63, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 78, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -236,7 +236,7 @@ func viewToggleLink(href string, label string, active bool) templ.Component {
 			var templ_7745c5c3_Var10 templ.SafeURL
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 98, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 113, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -249,7 +249,7 @@ func viewToggleLink(href string, label string, active bool) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 101, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 116, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -267,7 +267,7 @@ func viewToggleLink(href string, label string, active bool) templ.Component {
 			var templ_7745c5c3_Var12 templ.SafeURL
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 105, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 120, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -280,7 +280,7 @@ func viewToggleLink(href string, label string, active bool) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 108, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 123, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -325,7 +325,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", len(data.AllIXPs)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 120, Col: 45}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 135, Col: 45}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -335,7 +335,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", len(data.SharedIXPs)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 122, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 137, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -349,7 +349,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("Spd (AS%d)", data.NetA.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 132, Col: 160}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 147, Col: 160}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
@@ -362,7 +362,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("Spd (AS%d)", data.NetB.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 133, Col: 160}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 148, Col: 160}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
@@ -375,7 +375,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("IPv4 (AS%d)", data.NetA.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 134, Col: 104}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 149, Col: 104}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
@@ -388,7 +388,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var20 string
 		templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("IPv4 (AS%d)", data.NetB.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 135, Col: 104}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 150, Col: 104}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 		if templ_7745c5c3_Err != nil {
@@ -401,7 +401,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("IPv6 (AS%d)", data.NetA.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 136, Col: 104}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 151, Col: 104}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -414,7 +414,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("IPv6 (AS%d)", data.NetB.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 137, Col: 104}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 152, Col: 104}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -427,7 +427,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("RS (AS%d)", data.NetA.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 138, Col: 114}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 153, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -440,7 +440,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var24 string
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("RS (AS%d)", data.NetB.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 139, Col: 114}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 154, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
@@ -483,7 +483,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(ix.IXName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 149, Col: 76}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 164, Col: 76}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 				if templ_7745c5c3_Err != nil {
@@ -496,7 +496,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var28 templ.SafeURL
 				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 150, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 165, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {
@@ -509,7 +509,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var29 string
 				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(ix.IXName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 152, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 167, Col: 21}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 				if templ_7745c5c3_Err != nil {
@@ -522,7 +522,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var30 string
 				templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.ResolveAttributeValue(speedSortValue(ix.NetA))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 155, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 170, Col: 104}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var30)
 				if templ_7745c5c3_Err != nil {
@@ -558,7 +558,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var33 string
 					templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(formatSpeed(ix.NetA.Speed))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 157, Col: 85}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 172, Col: 85}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 					if templ_7745c5c3_Err != nil {
@@ -587,7 +587,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var34 string
 				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.ResolveAttributeValue(speedSortValue(ix.NetB))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 165, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 180, Col: 104}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var34)
 				if templ_7745c5c3_Err != nil {
@@ -623,7 +623,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var37 string
 					templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(formatSpeed(ix.NetB.Speed))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 167, Col: 85}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 182, Col: 85}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 					if templ_7745c5c3_Err != nil {
@@ -653,7 +653,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var38 string
 					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetA.IPAddr4)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 177, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 192, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 					if templ_7745c5c3_Err != nil {
@@ -673,7 +673,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var39 string
 					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetB.IPAddr4)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 184, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 199, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 					if templ_7745c5c3_Err != nil {
@@ -693,7 +693,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var40 string
 					templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetA.IPAddr6)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 191, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 206, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 					if templ_7745c5c3_Err != nil {
@@ -713,7 +713,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var41 string
 					templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetB.IPAddr6)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 198, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 213, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 					if templ_7745c5c3_Err != nil {
@@ -793,7 +793,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var44 string
 				templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(ix.IXName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 225, Col: 76}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 240, Col: 76}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var44)
 				if templ_7745c5c3_Err != nil {
@@ -806,7 +806,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var45 templ.SafeURL
 				templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 226, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 241, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 				if templ_7745c5c3_Err != nil {
@@ -819,7 +819,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var46 string
 				templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(ix.IXName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 228, Col: 21}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 243, Col: 21}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 				if templ_7745c5c3_Err != nil {
@@ -832,7 +832,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var47 string
 				templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.ResolveAttributeValue(speedSortValue(ix.NetA))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 231, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 246, Col: 104}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 				if templ_7745c5c3_Err != nil {
@@ -868,7 +868,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var50 string
 					templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(formatSpeed(ix.NetA.Speed))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 233, Col: 85}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 248, Col: 85}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 					if templ_7745c5c3_Err != nil {
@@ -897,7 +897,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var51 string
 				templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.ResolveAttributeValue(speedSortValue(ix.NetB))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 241, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 256, Col: 104}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var51)
 				if templ_7745c5c3_Err != nil {
@@ -933,7 +933,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var54 string
 					templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(formatSpeed(ix.NetB.Speed))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 243, Col: 85}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 258, Col: 85}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 					if templ_7745c5c3_Err != nil {
@@ -963,7 +963,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var55 string
 					templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetA.IPAddr4)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 253, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 268, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 					if templ_7745c5c3_Err != nil {
@@ -983,7 +983,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var56 string
 					templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetB.IPAddr4)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 260, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 275, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 					if templ_7745c5c3_Err != nil {
@@ -1003,7 +1003,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var57 string
 					templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetA.IPAddr6)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 267, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 282, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 					if templ_7745c5c3_Err != nil {
@@ -1023,7 +1023,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var58 string
 					templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(ix.NetB.IPAddr6)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 274, Col: 27}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 289, Col: 27}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 					if templ_7745c5c3_Err != nil {
@@ -1109,7 +1109,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var60 string
 			templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", len(data.AllFacilities)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 309, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 324, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 			if templ_7745c5c3_Err != nil {
@@ -1119,7 +1119,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var61 string
 			templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", len(data.SharedFacilities)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 311, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 326, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 			if templ_7745c5c3_Err != nil {
@@ -1133,7 +1133,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var62 string
 		templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("ASN (AS%d)", data.NetA.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 323, Col: 170}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 338, Col: 170}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 		if templ_7745c5c3_Err != nil {
@@ -1146,7 +1146,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var63 string
 		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("ASN (AS%d)", data.NetB.ASN))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 324, Col: 170}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 339, Col: 170}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 		if templ_7745c5c3_Err != nil {
@@ -1189,7 +1189,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var66 string
 				templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(fac.FacName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 334, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 349, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var66)
 				if templ_7745c5c3_Err != nil {
@@ -1202,7 +1202,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var67 templ.SafeURL
 				templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 335, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 350, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 				if templ_7745c5c3_Err != nil {
@@ -1215,7 +1215,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var68 string
 				templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(fac.FacName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 337, Col: 23}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 352, Col: 23}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 				if templ_7745c5c3_Err != nil {
@@ -1228,7 +1228,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var69 string
 				templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(fac.Country))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 340, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 355, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var69)
 				if templ_7745c5c3_Err != nil {
@@ -1249,7 +1249,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var70 string
 				templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(fac.City))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 343, Col: 135}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 358, Col: 135}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var70)
 				if templ_7745c5c3_Err != nil {
@@ -1262,7 +1262,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var71 string
 				templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.JoinStringErrs(fac.City)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 344, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 359, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var71))
 				if templ_7745c5c3_Err != nil {
@@ -1275,7 +1275,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var72 string
 				templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.ResolveAttributeValue(facASNSortValue(fac.NetA))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 346, Col: 106}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 361, Col: 106}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 				if templ_7745c5c3_Err != nil {
@@ -1289,7 +1289,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var73 string
 					templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", fac.NetA.LocalASN))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 348, Col: 50}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 363, Col: 50}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var73))
 					if templ_7745c5c3_Err != nil {
@@ -1308,7 +1308,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var74 string
 				templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.ResolveAttributeValue(facASNSortValue(fac.NetB))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 353, Col: 106}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 368, Col: 106}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
 				if templ_7745c5c3_Err != nil {
@@ -1322,7 +1322,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var75 string
 					templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", fac.NetB.LocalASN))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 355, Col: 50}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 370, Col: 50}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 					if templ_7745c5c3_Err != nil {
@@ -1372,7 +1372,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var78 string
 				templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(fac.FacName))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 368, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 383, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var78)
 				if templ_7745c5c3_Err != nil {
@@ -1385,7 +1385,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var79 templ.SafeURL
 				templ_7745c5c3_Var79, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 369, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 384, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var79))
 				if templ_7745c5c3_Err != nil {
@@ -1398,7 +1398,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var80 string
 				templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinStringErrs(fac.FacName)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 371, Col: 23}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 386, Col: 23}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 				if templ_7745c5c3_Err != nil {
@@ -1411,7 +1411,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var81 string
 				templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(fac.Country))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 374, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 389, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var81)
 				if templ_7745c5c3_Err != nil {
@@ -1432,7 +1432,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var82 string
 				templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(fac.City))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 377, Col: 135}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 392, Col: 135}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var82)
 				if templ_7745c5c3_Err != nil {
@@ -1445,7 +1445,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var83 string
 				templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinStringErrs(fac.City)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 378, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 393, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
 				if templ_7745c5c3_Err != nil {
@@ -1458,7 +1458,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var84 string
 				templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.ResolveAttributeValue(facASNSortValue(fac.NetA))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 380, Col: 106}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 395, Col: 106}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var84)
 				if templ_7745c5c3_Err != nil {
@@ -1472,7 +1472,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var85 string
 					templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", fac.NetA.LocalASN))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 382, Col: 50}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 397, Col: 50}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
 					if templ_7745c5c3_Err != nil {
@@ -1491,7 +1491,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 				var templ_7745c5c3_Var86 string
 				templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.ResolveAttributeValue(facASNSortValue(fac.NetB))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 387, Col: 106}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 402, Col: 106}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var86)
 				if templ_7745c5c3_Err != nil {
@@ -1505,7 +1505,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 					var templ_7745c5c3_Var87 string
 					templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("AS%d", fac.NetB.LocalASN))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 389, Col: 50}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 404, Col: 50}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 					if templ_7745c5c3_Err != nil {
@@ -1560,7 +1560,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 		var templ_7745c5c3_Var89 string
 		templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("(%d)", len(data.SharedCampuses)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 408, Col: 121}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 423, Col: 121}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 		if templ_7745c5c3_Err != nil {
@@ -1584,7 +1584,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var90 string
 			templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.ResolveAttributeValue(strings.ToLower(campus.CampusName))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 425, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 440, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var90)
 			if templ_7745c5c3_Err != nil {
@@ -1597,7 +1597,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var91 templ.SafeURL
 			templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(fmt.Sprintf("/ui/campus/%d", campus.CampusID)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 426, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 441, Col: 78}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var91))
 			if templ_7745c5c3_Err != nil {
@@ -1610,7 +1610,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var92 string
 			templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinStringErrs(campus.CampusName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 428, Col: 28}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 443, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 			if templ_7745c5c3_Err != nil {
@@ -1623,7 +1623,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var93 string
 			templ_7745c5c3_Var93, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("%d", len(campus.SharedFacilities)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 431, Col: 157}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 446, Col: 157}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var93)
 			if templ_7745c5c3_Err != nil {
@@ -1636,7 +1636,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 			var templ_7745c5c3_Var94 string
 			templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(campus.SharedFacilities)))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 432, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `compare.templ`, Line: 447, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 			if templ_7745c5c3_Err != nil {

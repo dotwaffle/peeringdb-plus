@@ -18,7 +18,14 @@ templ CompareFormPage(asn1 string, asn2 string) {
 				<div>
 					<label for="compare-asn1" class="block text-sm text-neutral-600 dark:text-neutral-400 mb-1">First ASN</label>
 					<input
-						type="number"
+						type="text"
+						inputmode="numeric"
+						pattern="[0-9]+"
+						maxlength="10"
+						required
+						autocomplete="off"
+						title="AS number, digits only"
+						aria-describedby="compare-hint"
 						id="compare-asn1"
 						name="asn1"
 						value={ asn1 }
@@ -29,7 +36,14 @@ templ CompareFormPage(asn1 string, asn2 string) {
 				<div>
 					<label for="compare-asn2" class="block text-sm text-neutral-600 dark:text-neutral-400 mb-1">Second ASN</label>
 					<input
-						type="number"
+						type="text"
+						inputmode="numeric"
+						pattern="[0-9]+"
+						maxlength="10"
+						required
+						autocomplete="off"
+						title="AS number, digits only"
+						aria-describedby="compare-hint"
 						id="compare-asn2"
 						name="asn2"
 						value={ asn2 }
@@ -38,6 +52,7 @@ templ CompareFormPage(asn1 string, asn2 string) {
 					/>
 				</div>
 			</div>
+			<p id="compare-hint" class="text-sm text-neutral-600 dark:text-neutral-400 text-center">Enter two AS numbers, digits only, for example 13335 and 15169.</p>
 			<div class="text-center">
 				<button
 					type="submit"

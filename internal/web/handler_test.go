@@ -640,6 +640,18 @@ func TestCompareFormPage(t *testing.T) {
 			t.Errorf("compare form page missing %q", want)
 		}
 	}
+	// Both fields are required digit strings that point at the hint, so
+	// the browser reports an empty or bad value instead of doing nothing.
+	field := `type="text" inputmode="numeric" pattern="[0-9]+" maxlength="10" required autocomplete="off" title="AS number, digits only" aria-describedby="compare-hint"`
+	if n := strings.Count(body, field); n != 2 {
+		t.Errorf("%d validated ASN fields, want 2", n)
+	}
+	if !strings.Contains(body, `<p id="compare-hint"`) {
+		t.Error("compare form page has no hint")
+	}
+	if strings.Contains(body, `type="number"`) {
+		t.Error(`compare form page still has type="number" fields`)
+	}
 }
 
 func TestCompareFormPagePreFilled(t *testing.T) {
