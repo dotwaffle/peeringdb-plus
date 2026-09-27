@@ -642,7 +642,7 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	}
 
 	// Stream via StreamListResponse. meta is an empty object, or holds
-	// meta.truncated or meta.generated. iterFromSlice is a half-step toward
+	// meta.truncated, meta.generated or meta.pagination. iterFromSlice is a half-step toward
 	// true cursor-based streaming: a future plan flips tc.List to a
 	// pull-iterator and serveList is unaffected.
 	//
@@ -791,7 +791,7 @@ type listDepthRequest struct {
 	live      bool // depthListIsLive
 	unique    bool // isUniqueQuery
 	fields    []string
-	meta      any // meta of a list that is not truncated (listMeta)
+	meta      any // meta before the depth cut (listMeta, paginateList)
 }
 
 // streamEmptyList writes the response of a list that serves no row: the
