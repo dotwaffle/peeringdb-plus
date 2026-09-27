@@ -231,3 +231,23 @@ func TestLayout_SpotlightDialog(t *testing.T) {
 		t.Error("ui.js does not open the spotlight with showModal()")
 	}
 }
+
+// TestNav_TouchTargets checks that the icon buttons in the navigation
+// have padding around their icons, so that each target is at least 24
+// by 24 pixels (WCAG 2.5.8).
+func TestNav_TouchTargets(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if n := strings.Count(body, `<button type="button" class="dark-mode-toggle p-2 `); n != 2 {
+		t.Errorf("%d padded theme toggles, want 2 (desktop and mobile)", n)
+	}
+	if !strings.Contains(body, `<button type="button" class="md:hidden -m-2 p-2 `) {
+		t.Error("the menu button has no padding")
+	}
+}
