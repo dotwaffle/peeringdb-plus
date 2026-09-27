@@ -1,0 +1,71 @@
+{
+  "POST": {
+    "id": {
+      "type": "integer",
+      "required": false,
+      "read_only": true,
+      "label": "ID"
+    },
+    "first_name": {
+      "type": "string",
+      "required": false,
+      "read_only": false,
+      "label": "First name",
+      "help_text": "Given name of the user",
+      "max_length": 254
+    },
+    "last_name": {
+      "type": "string",
+      "required": false,
+      "read_only": false,
+      "label": "Last name",
+      "help_text": "Family name of the user",
+      "max_length": 254
+    },
+    "full_name": {
+      "type": "field",
+      "required": false,
+      "read_only": true,
+      "label": "Full name",
+      "help_text": "First and last name of the user, combined"
+    },
+    "is_active": {
+      "type": "boolean",
+      "required": false,
+      "read_only": false,
+      "label": "Is active",
+      "help_text": "Whether this account is enabled. `false` for a closed or administratively disabled account, which cannot sign in"
+    },
+    "date_joined": {
+      "type": "datetime",
+      "required": false,
+      "read_only": false,
+      "label": "Date joined",
+      "help_text": "Time this user account was registered"
+    },
+    "status": {
+      "type": "field",
+      "required": false,
+      "read_only": true,
+      "label": "Status",
+      "help_text": "Account state: `ok` once the account has been approved, either by the organization it affiliated with or by PeeringDB staff, `pending` until then. Unrelated to email address confirmation"
+    },
+    "role": {
+      "type": "choice",
+      "required": false,
+      "read_only": false,
+      "label": "Role",
+      "help_text": "This user's role in the organization: `admin` can manage the organization, `member` cannot",
+      "choices": [
+        {
+          "value": "admin",
+          "display_name": "admin"
+        },
+        {
+          "value": "member",
+          "display_name": "member"
+        }
+      ]
+    }
+  }
+}

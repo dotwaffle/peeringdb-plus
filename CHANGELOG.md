@@ -12,8 +12,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 - pdbcompat serves `/api/<tag>/self` for `org`, `net`, `ix`, `fac`, `carrier` and `campus`, as upstream does: a `302` to the default object of the tag, for example `/api/net/666`, with the same query string.
   As upstream, the route matches any path under `/api/` that contains `<tag>/self`, for example `/api/ixfac/self` (tag `fac`).
+  `OPTIONS` returns the DRF metadata of the view, and every response has `Allow: GET, OPTIONS`, as upstream.
   Before, pdbcompat returned `404`.
 - pdbcompat answers the organization users paths (`/api/org/<id>/users`, and `add`, `remove` and `<user_id>` below it) as upstream answers a caller without an API key: `404` when the organization is not an `ok` row, else `403` `Invalid authentication`.
+  `OPTIONS` returns the DRF metadata of the view, with the `POST` fields on the `add` path, as upstream.
   Before, pdbcompat returned `404` `Not found.` for every such path.
 - pdbcompat serves `/api/search?q=<text>`, the search of `fac`, `ix`, `net`, `org`, `campus` and `carrier` that upstream offers to callers with an `Authorization` header.
   The body has the upstream shape: a list of hits with `id`, `name` and `org_id` (and `asn` on `net`) for each type, at most 1000 hits.

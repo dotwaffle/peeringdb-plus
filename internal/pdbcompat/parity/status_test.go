@@ -1026,8 +1026,11 @@ func TestParity_Status(t *testing.T) {
 		// the permission check first: 401 (drf views.py:174-180,
 		// permissions.py:191-199; tests/test_api_cache_keys.py:222-245).
 		// The mirror is read-only: every method other than GET and HEAD
-		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. See
-		// docs/API.md § Known Divergences.
+		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. The
+		// self and organization users routes answer OPTIONS as upstream
+		// (self_redirects_302_like_upstream,
+		// org_users_routes_like_upstream). See docs/API.md § Known
+		// Divergences.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		srv := newTestServer(t, c)
@@ -1037,8 +1040,6 @@ func TestParity_Status(t *testing.T) {
 			{http.MethodDelete, "/api/net/1", "GET, HEAD"},
 			{http.MethodOptions, "/api/net", "GET, HEAD"},
 			{http.MethodPost, "/api/as_set", "GET"},
-			{http.MethodOptions, "/api/net/self", "GET"},
-			{http.MethodOptions, "/api/org/1/users", "GET, HEAD"},
 			{http.MethodPost, "/api/search", "GET, HEAD"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
@@ -1096,9 +1097,11 @@ func TestParity_Status(t *testing.T) {
 		// (rest.py:1600-1646) redirects an anonymous caller with a 302
 		// to the DEFAULT_SELF_<TAG> object (settings/__init__.py:
 		// 1689-1694) and keeps the query string (iri_to_uri, Django
-		// response.py:633-638). The api_view maps GET only (DRF
+		// response.py:633-638). The api_view maps GET and OPTIONS (DRF
 		// decorators.py:46-47), so HEAD and POST get 405 after content
-		// negotiation (views.py:404-421, :513-521).
+		// negotiation (views.py:404-421, :513-521), and OPTIONS gets the
+		// SimpleMetadata body (metadata.py:59-72). DRF sets Allow on
+		// every response of the view (views.py:159-165, :443-449).
 		srv := newTestServer(t, testutil.SetupClient(t))
 		client := srv.Client()
 		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
@@ -1126,22 +1129,35 @@ func TestParity_Status(t *testing.T) {
 			}
 			body, _ := io.ReadAll(resp.Body)
 			_ = resp.Body.Close()
-			if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != want || len(body) != 0 {
-				t.Errorf("GET %s: status = %d, Location = %q, body = %q; want 302 to %q with no body",
-					path, resp.StatusCode, resp.Header.Get("Location"), body, want)
+			if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != want || len(body) != 0 ||
+				resp.Header.Get("Allow") != "GET, OPTIONS" {
+				t.Errorf("GET %s: status = %d, Location = %q, Allow = %q, body = %q; want 302 to %q with Allow: GET, OPTIONS and no body",
+					path, resp.StatusCode, resp.Header.Get("Location"), resp.Header.Get("Allow"), body, want)
 			}
 		}
 		for _, method := range []string{http.MethodHead, http.MethodPost, http.MethodPut} {
 			status, hdr, _ := httpDo(t, srv, method, "/api/net/self", nil)
-			if status != http.StatusMethodNotAllowed || hdr.Get("Allow") != "GET" {
-				t.Errorf("%s /api/net/self: status = %d, Allow = %q; want 405 with Allow: GET", method, status, hdr.Get("Allow"))
+			if status != http.StatusMethodNotAllowed || hdr.Get("Allow") != "GET, OPTIONS" {
+				t.Errorf("%s /api/net/self: status = %d, Allow = %q; want 405 with Allow: GET, OPTIONS", method, status, hdr.Get("Allow"))
 			}
+		}
+		for _, path := range []string{"/api/net/self", "/api/ixfac/self/"} {
+			status, hdr, body := httpDo(t, srv, http.MethodOptions, path, nil)
+			if status != http.StatusOK || hdr.Get("Allow") != "GET, OPTIONS" {
+				t.Errorf("OPTIONS %s: status = %d, Allow = %q; want 200 with Allow: GET, OPTIONS", path, status, hdr.Get("Allow"))
+				continue
+			}
+			checkDRFMetadata(t, "OPTIONS "+path, body, "View Self Entity",
+				"This API View redirect self entity API to the corresponding url", nil)
 		}
 		if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/net/self", http.Header{"Accept": {"text/html"}}); status != http.StatusNotAcceptable {
 			t.Errorf("GET /api/net/self with Accept: text/html: status = %d, want 406", status)
 		}
 		if status, _, _ := httpDo(t, srv, http.MethodPost, "/api/net/self?format=xml", nil); status != http.StatusNotFound {
 			t.Errorf("POST /api/net/self?format=xml: status = %d, want 404", status)
+		}
+		if status, hdr, _ := httpDo(t, srv, http.MethodOptions, "/api/net/self", http.Header{"Accept": {"text/html"}}); status != http.StatusNotAcceptable || hdr.Get("Allow") != "GET, OPTIONS" {
+			t.Errorf("OPTIONS /api/net/self with Accept: text/html: status = %d, Allow = %q; want 406 with Allow: GET, OPTIONS", status, hdr.Get("Allow"))
 		}
 	})
 
@@ -1182,6 +1198,10 @@ func TestParity_Status(t *testing.T) {
 		// PermissionDenied("Invalid authentication") for a caller
 		// without an API key, returned as {"detail": ...} with 403.
 		// \d in the Python route matches every Unicode decimal digit.
+		// OPTIONS gets the SimpleMetadata body, with the UserSerializer
+		// fields for POST on the add route (DRF metadata.py:59-100), and
+		// DRF sets Allow on every response (views.py:159-165,
+		// :443-449).
 		ctx := t.Context()
 		c := testutil.SetupClient(t)
 		for id, status := range map[int]string{1: "ok", 2: "deleted", 3: "pending"} {
@@ -1195,21 +1215,21 @@ func TestParity_Status(t *testing.T) {
 			status       int
 			msg, allow   string
 		}{
-			{http.MethodGet, "/api/org/1/users", 403, "Invalid authentication", ""},
-			{http.MethodGet, "/api/org/1/users/", 403, "Invalid authentication", ""},
-			{http.MethodGet, "/api/org/001/users", 403, "Invalid authentication", ""},
-			{http.MethodGet, "/api/org/%D9%A1/users", 403, "Invalid authentication", ""},
-			{http.MethodPost, "/api/org/1/users/add", 403, "Invalid authentication", ""},
-			{http.MethodPut, "/api/org/1/users/7", 403, "Invalid authentication", ""},
-			{http.MethodDelete, "/api/org/1/users/remove/", 403, "Invalid authentication", ""},
-			{http.MethodGet, "/api/org/2/users", 404, "No Organization matches the given query.", ""},
-			{http.MethodPost, "/api/org/3/users/add", 404, "No Organization matches the given query.", ""},
-			{http.MethodPut, "/api/org/9/users/7", 404, "No Organization matches the given query.", ""},
-			{http.MethodGet, "/api/org/99999999999999999999999/users", 404, "No Organization matches the given query.", ""},
-			{http.MethodPost, "/api/org/1/users", 405, "Method \"POST\" not allowed.", "GET, HEAD"},
-			{http.MethodGet, "/api/org/1/users/add", 405, "Method \"GET\" not allowed.", "POST"},
-			{http.MethodDelete, "/api/org/9/users/7", 405, "Method \"DELETE\" not allowed.", "PUT"},
-			{http.MethodPost, "/api/org/1/users/remove", 405, "Method \"POST\" not allowed.", "DELETE"},
+			{http.MethodGet, "/api/org/1/users", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/1/users/", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/001/users", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/%D9%A1/users", 403, "Invalid authentication", "GET, HEAD, OPTIONS"},
+			{http.MethodPost, "/api/org/1/users/add", 403, "Invalid authentication", "POST, OPTIONS"},
+			{http.MethodPut, "/api/org/1/users/7", 403, "Invalid authentication", "PUT, OPTIONS"},
+			{http.MethodDelete, "/api/org/1/users/remove/", 403, "Invalid authentication", "DELETE, OPTIONS"},
+			{http.MethodGet, "/api/org/2/users", 404, "No Organization matches the given query.", "GET, HEAD, OPTIONS"},
+			{http.MethodPost, "/api/org/3/users/add", 404, "No Organization matches the given query.", "POST, OPTIONS"},
+			{http.MethodPut, "/api/org/9/users/7", 404, "No Organization matches the given query.", "PUT, OPTIONS"},
+			{http.MethodGet, "/api/org/99999999999999999999999/users", 404, "No Organization matches the given query.", "GET, HEAD, OPTIONS"},
+			{http.MethodPost, "/api/org/1/users", 405, "Method \"POST\" not allowed.", "GET, HEAD, OPTIONS"},
+			{http.MethodGet, "/api/org/1/users/add", 405, "Method \"GET\" not allowed.", "POST, OPTIONS"},
+			{http.MethodDelete, "/api/org/9/users/7", 405, "Method \"DELETE\" not allowed.", "PUT, OPTIONS"},
+			{http.MethodPost, "/api/org/1/users/remove", 405, "Method \"POST\" not allowed.", "DELETE, OPTIONS"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != tc.status {
@@ -1225,6 +1245,25 @@ func TestParity_Status(t *testing.T) {
 		}
 		if status, _, _ := httpDo(t, srv, http.MethodHead, "/api/org/1/users", nil); status != http.StatusForbidden {
 			t.Errorf("HEAD /api/org/1/users: status = %d, want 403", status)
+		}
+		for _, tc := range []struct {
+			path, allow string
+			post        []string
+		}{
+			{"/api/org/1/users", "GET, HEAD, OPTIONS", nil},
+			{"/api/org/2/users/", "GET, HEAD, OPTIONS", nil},
+			{"/api/org/1/users/add", "POST, OPTIONS", []string{"id", "first_name", "last_name", "full_name", "is_active", "date_joined", "status", "role"}},
+			{"/api/org/9/users/add", "POST, OPTIONS", []string{"id", "first_name", "last_name", "full_name", "is_active", "date_joined", "status", "role"}},
+			{"/api/org/9/users/7", "PUT, OPTIONS", nil},
+			{"/api/org/1/users/remove", "DELETE, OPTIONS", nil},
+		} {
+			status, hdr, body := httpDo(t, srv, http.MethodOptions, tc.path, nil)
+			if status != http.StatusOK || hdr.Get("Allow") != tc.allow {
+				t.Errorf("OPTIONS %s: status = %d, Allow = %q; want 200 with Allow: %s", tc.path, status, hdr.Get("Allow"), tc.allow)
+				continue
+			}
+			checkDRFMetadata(t, "OPTIONS "+tc.path, body, "Organization Users",
+				"ViewSet for managing users within an organization.\n\nThis ViewSet provides endpoints for:\n", tc.post)
 		}
 		if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/org/1/users?format=xml", nil); status != http.StatusNotFound {
 			t.Errorf("GET /api/org/1/users?format=xml: status = %d, want 404", status)
@@ -1258,6 +1297,32 @@ func TestParity_Status(t *testing.T) {
 				t.Errorf("GET /api/org/1/users with an API key: status = %d, want 403", status)
 			}
 		}
+	})
+
+	t.Run("DIVERGENCE_org_users_options_change_route_200", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: for OPTIONS on the change route of an ok
+		// organization, SimpleMetadata calls get_object for PUT (DRF
+		// metadata.py:74-100). get_queryset finds the organization
+		// (2.83.0 rest.py:1676-1694), and get_object then fails its
+		// assertion that the route has a "pk" argument (DRF
+		// generics.py:79-96), which is not an exception that
+		// determine_actions catches, so upstream answers 500. The mirror
+		// sends the body without actions that upstream sends when the
+		// organization is not an ok row. See docs/API.md § Known
+		// Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().
+			SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		status, hdr, body := httpDo(t, srv, http.MethodOptions, "/api/org/1/users/7", nil)
+		if status != http.StatusOK || hdr.Get("Allow") != "PUT, OPTIONS" {
+			t.Fatalf("OPTIONS /api/org/1/users/7: status = %d, Allow = %q; want 200 with Allow: PUT, OPTIONS", status, hdr.Get("Allow"))
+		}
+		checkDRFMetadata(t, "OPTIONS /api/org/1/users/7", body, "Organization Users",
+			"ViewSet for managing users within an organization.", nil)
 	})
 
 	t.Run("non_json_accept_406_like_upstream", func(t *testing.T) {

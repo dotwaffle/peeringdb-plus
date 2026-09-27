@@ -44,12 +44,17 @@ func selfTag(rest string) (string, bool) {
 	return m[1], true
 }
 
-// serveSelf answers a request that the self route matches. The view is
-// an api_view that maps GET only (DRF decorators.py:46-47), so DRF
-// runs content negotiation first, then answers every other method,
-// HEAD included, with 405 (views.py:513-521). The format suffix is not
-// part of the route, so only ?format= selects a format. The mirror
-// answers OPTIONS with 405 too (docs/API.md § Known Divergences).
+// selfAllow is the Allow header of every response of the self route:
+// the api_view maps GET and OPTIONS (DRF decorators.py:46-47), and DRF
+// sets the header on each response of the view (views.py:159-165,
+// :443-449).
+const selfAllow = "GET, OPTIONS"
+
+// serveSelf answers a request that the self route matches. DRF runs
+// content negotiation first, then answers OPTIONS with the view
+// metadata (selfMetadata) and every other method, HEAD included, with
+// 405 (views.py:513-521). The format suffix is not part of the route,
+// so only ?format= selects a format.
 //
 // GET redirects with a 302 to the default object of the tag and keeps
 // the query string, as upstream does for an anonymous caller. Upstream
@@ -58,11 +63,17 @@ func selfTag(rest string) (string, bool) {
 // Divergences). The redirect needs no database read: upstream loads
 // the object by id with no status filter only to read the same id.
 func serveSelf(w http.ResponseWriter, r *http.Request, tag string) {
+	w.Header().Set("Allow", selfAllow)
 	if !negotiate(w, r, "") {
 		return
 	}
-	if r.Method != http.MethodGet {
-		writeMethodNotAllowed(w, r, "GET")
+	switch r.Method {
+	case http.MethodGet:
+	case http.MethodOptions:
+		writeDRFMetadata(w, selfMetadata)
+		return
+	default:
+		writeMethodNotAllowed(w, r, selfAllow)
 		return
 	}
 	target := "/api/" + tag + "/" + strconv.Itoa(defaultSelfIDs[tag])

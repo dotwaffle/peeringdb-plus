@@ -311,6 +311,7 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
 - Upstream `urlpatterns` routes (2.83.0 `rest.py:2087-2122`) come before the router routes: `dispatch` AND `methodNotAllowed` resolve them first, before `parseAPIPath`.
   `/api/<tag>/self` (`self.go`) is unanchored (Django `re.search`), so `/api/ixfac/self` is the fac self path.
   `/api/org/<id>/users*` (`org_users.go`) answers as for an anonymous caller: `404` unless the org is `ok`, else `403`, never a write.
+  Both are DRF views upstream: `Allow` on every response, `OPTIONS` = SimpleMetadata body (`drf_options.go`; add-route `actions` = embedded `org_users_actions.json`, DRF output for the upstream `UserSerializer`).
   `/api/search` (`api_search.go`) is a plain Django view upstream: no `negotiate`, no `writeError` envelope, no `?pretty` (it unwraps `prettyWriter`); it reuses `parseNameSearch`/`match`.
 
 **Native netixlan listings** (web fragments `internal/web/detail.go`, `internal/catalog` network/IX/compare, MCP `lookup_ip`) inline `networkixlan.StatusIn("ok", "not-operational", "pending")`: upstream 2.83.0 lists not-operational connections in its views and counts them in IX stats.
