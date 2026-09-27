@@ -308,6 +308,8 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   Locked by `TestParity_Status/detail_applies_list_filters` and `TestParity_Status/detail_non_integer_id_404`.
 - Errors on `/api/` go through `writeError` (`internal/pdbcompat/response.go`): upstream `{"meta":{"error":...}}` by default, RFC 9457 only when `Accept` names `application/problem+json` (`httperr.WantsProblemJSON`).
   Never call `httperr.WriteProblem` from pdbcompat directly.
+- Upstream `urlpatterns` routes (2.83.0 `rest.py:2087-2122`) come before the router routes: `dispatch` AND `methodNotAllowed` resolve them first, before `parseAPIPath`.
+  `/api/<tag>/self` (`self.go`) is unanchored (Django `re.search`), so `/api/ixfac/self` is the fac self path.
 
 **Native netixlan listings** (web fragments `internal/web/detail.go`, `internal/catalog` network/IX/compare, MCP `lookup_ip`) inline `networkixlan.StatusIn("ok", "not-operational", "pending")`: upstream 2.83.0 lists not-operational connections in its views and counts them in IX stats.
 REST/GraphQL/gRPC have no default status filter.

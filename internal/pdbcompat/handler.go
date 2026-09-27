@@ -108,9 +108,13 @@ func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
 // paths of getOnly types get Allow: GET.
 //
 // A path that no route matches is a 404 for every method, as in
-// dispatch. Content negotiation comes before the method check
+// dispatch. The self route answers every method itself (serveSelf). Content negotiation comes before the method check
 // (negotiate).
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	if tag, ok := selfTag(r.PathValue("rest")); ok {
+		serveSelf(w, r, tag)
+		return
+	}
 	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
 	_, known := Registry[typeName]
 	switch {
@@ -159,6 +163,12 @@ func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string)
 // dispatch routes requests under /api/ to index, list, or detail handlers
 // based on the URL path structure.
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
+	// The self route comes before the router routes upstream and
+	// matches anywhere in the path (selfRoute).
+	if tag, ok := selfTag(r.PathValue("rest")); ok {
+		serveSelf(w, r, tag)
+		return
+	}
 	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))
 
 	// Upstream sends its HTML 404 page for a path that no route matches,

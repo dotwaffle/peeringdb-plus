@@ -1037,6 +1037,7 @@ func TestParity_Status(t *testing.T) {
 			{http.MethodDelete, "/api/net/1", "GET, HEAD"},
 			{http.MethodOptions, "/api/net", "GET, HEAD"},
 			{http.MethodPost, "/api/as_set", "GET"},
+			{http.MethodOptions, "/api/net/self", "GET"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != http.StatusMethodNotAllowed {
@@ -1082,6 +1083,88 @@ func TestParity_Status(t *testing.T) {
 			if len(body) != 0 {
 				t.Errorf("%s /api: body = %q, want empty", method, body)
 			}
+		}
+	})
+
+	t.Run("self_redirects_302_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:2088 routes (net|ix|org|fac|carrier|
+		// campus)/self with no anchors, before the router routes, and
+		// Django matches it with re.search. view_self_entity
+		// (rest.py:1600-1646) redirects an anonymous caller with a 302
+		// to the DEFAULT_SELF_<TAG> object (settings/__init__.py:
+		// 1689-1694) and keeps the query string (iri_to_uri, Django
+		// response.py:633-638). The api_view maps GET only (DRF
+		// decorators.py:46-47), so HEAD and POST get 405 after content
+		// negotiation (views.py:404-421, :513-521).
+		srv := newTestServer(t, testutil.SetupClient(t))
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		for path, want := range map[string]string{
+			"/api/net/self":                      "/api/net/666",
+			"/api/org/self":                      "/api/org/25554",
+			"/api/ix/self":                       "/api/ix/4095",
+			"/api/fac/self":                      "/api/fac/13346",
+			"/api/carrier/self":                  "/api/carrier/66",
+			"/api/campus/self":                   "/api/campus/25",
+			"/api/net/self/":                     "/api/net/666",
+			"/api/net/selfie":                    "/api/net/666",
+			"/api/ixfac/self":                    "/api/fac/13346",
+			"/api/net/self.json":                 "/api/net/666",
+			"/api/net/self?depth=0&name=%22a%22": "/api/net/666?depth=0&name=%22a%22",
+			"/api/net/self?q=\"x\"":              "/api/net/666?q=%22x%22",
+		} {
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+path, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("GET %s: %v", path, err)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != want || len(body) != 0 {
+				t.Errorf("GET %s: status = %d, Location = %q, body = %q; want 302 to %q with no body",
+					path, resp.StatusCode, resp.Header.Get("Location"), body, want)
+			}
+		}
+		for _, method := range []string{http.MethodHead, http.MethodPost, http.MethodPut} {
+			status, hdr, _ := httpDo(t, srv, method, "/api/net/self", nil)
+			if status != http.StatusMethodNotAllowed || hdr.Get("Allow") != "GET" {
+				t.Errorf("%s /api/net/self: status = %d, Allow = %q; want 405 with Allow: GET", method, status, hdr.Get("Allow"))
+			}
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/net/self", http.Header{"Accept": {"text/html"}}); status != http.StatusNotAcceptable {
+			t.Errorf("GET /api/net/self with Accept: text/html: status = %d, want 406", status)
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodPost, "/api/net/self?format=xml", nil); status != http.StatusNotFound {
+			t.Errorf("POST /api/net/self?format=xml: status = %d, want 404", status)
+		}
+	})
+
+	t.Run("DIVERGENCE_self_redirects_keyed_caller_to_default", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream sends an authenticated caller to the
+		// object of its primary organization when it has one
+		// (2.83.0 rest.py:1617-1636). The mirror has no user data, so
+		// every caller gets the default object. See docs/API.md
+		// § Known Divergences.
+		srv := newTestServer(t, testutil.SetupClient(t))
+		client := srv.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/api/net/self", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Api-Key abcdef.0123456789")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "/api/net/666" {
+			t.Errorf("status = %d, Location = %q; want 302 to /api/net/666", resp.StatusCode, resp.Header.Get("Location"))
 		}
 	})
 
