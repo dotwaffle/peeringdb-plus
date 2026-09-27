@@ -571,7 +571,7 @@ Outermost first:
    Each line has `trace_id` and `span_id` when the span is valid.
 7. **PrivacyTier** (`internal/middleware/privacy_tier.go`): stamps the resolved `PDBPLUS_PUBLIC_TIER` value onto every inbound request context via `privctx.WithTier`.
    Sits between Logging and Readiness so even the Readiness 503 path carries the tier; downstream ent privacy policies and `privfield.Redact` callers consume it via `privctx.TierFrom(ctx)`.
-8. **Readiness**: returns 503 for all routes except `/sync`, `/healthz`, `/readyz`, `/`, `/favicon.ico`, `/static/*`, and `/grpc.health.v1.Health/*` until the first sync completes.
+8. **Readiness**: returns 503 for all routes except `/sync`, `/healthz`, `/readyz`, `/`, `/favicon.ico`, `/static/*`, and `/grpc.health.v1.Health/*` until the first sync completes, with `Retry-After: 10` (the reload interval of the syncing page).
    Browser clients get a styled HTML syncing page; terminal clients get plain text; everything else gets JSON.
 9. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers on every response: `Strict-Transport-Security: max-age=31536000; includeSubDomains` (365 days), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin` and `Permissions-Policy`.
    It sets `X-Frame-Options: DENY` only on browser paths: `/`, `/ui`, `/graphql`, and the paths below `/ui/` and `/graphql/`.
