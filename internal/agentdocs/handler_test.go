@@ -633,3 +633,29 @@ func TestServeDocument_KeepsEarlierVary(t *testing.T) {
 		}
 	}
 }
+
+// TestHandlerServesSecurityText checks the RFC 9116 fields of
+// security.txt: the report form as Contact, an Expires date 180 days
+// after the start of the request day, and the file URL of the
+// deployment as Canonical.
+func TestHandlerServesSecurityText(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestHandler(t, Options{SourceTime: testSourceTime})
+	handler.now = func() time.Time { return time.Date(2026, time.September, 27, 17, 30, 0, 0, time.UTC) }
+	mux := http.NewServeMux()
+	handler.Register(mux)
+
+	rec := serveRequest(mux, http.MethodGet, "https://mirror.example"+SecurityTextPath)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	want := "Contact: https://github.com/dotwaffle/peeringdb-plus/security/advisories/new\n" +
+		"Expires: 2027-03-26T00:00:00Z\n" +
+		"Preferred-Languages: en\n" +
+		"Canonical: https://mirror.example/.well-known/security.txt\n"
+	if got := rec.Body.String(); got != want {
+		t.Errorf("body =\n%s\nwant:\n%s", got, want)
+	}
+	assertDocumentHeaders(t, rec, "text/plain; charset=utf-8", `inline; filename="security.txt"`)
+}

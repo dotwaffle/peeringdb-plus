@@ -32,6 +32,9 @@ const (
 	MCPServerCardPath = "/.well-known/mcp/server-card.json"
 	// LLMSTextPath is the curated site index for language models.
 	LLMSTextPath = "/llms.txt"
+	// SecurityTextPath is the RFC 9116 file that tells a researcher where
+	// to report a vulnerability.
+	SecurityTextPath = "/.well-known/security.txt"
 
 	// DiscoveryLinkHeader advertises the agent-facing discovery documents.
 	DiscoveryLinkHeader = `</llms.txt>; rel="describedby"; type="text/markdown"; title="Site index for LLMs", </.well-known/mcp/server-card.json>; rel="mcp"; type="application/json"; title="MCP server card", </.well-known/agent-skills/index.json>; rel="agent-skills"; type="application/json"; title="Agent Skills index"`
@@ -39,7 +42,14 @@ const (
 	skillArchivePath  = "peeringdb-plus/SKILL.md"
 	openAIArchivePath = "peeringdb-plus/agents/openai.yaml"
 	mcpPath           = "/mcp"
-	skillDescription  = "Query the PeeringDB Plus read-only mirror for networks, exchanges, facilities, organizations, campuses, carriers, IX peering addresses, network comparisons, and sync freshness. Use for PeeringDB research, interconnection discovery, network footprint analysis, or mirror health checks."
+	// securityContact is the private vulnerability report form of the
+	// repository.
+	securityContact = "https://github.com/dotwaffle/peeringdb-plus/security/advisories/new"
+	// securityTextLifetime is how far after the start of the request day
+	// the Expires field of security.txt lies. RFC 9116 recommends less
+	// than a year.
+	securityTextLifetime = 180 * 24 * time.Hour
+	skillDescription     = "Query the PeeringDB Plus read-only mirror for networks, exchanges, facilities, organizations, campuses, carriers, IX peering addresses, network comparisons, and sync freshness. Use for PeeringDB research, interconnection discovery, network footprint analysis, or mirror health checks."
 )
 
 var zipEpoch = time.Date(1980, time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -65,6 +75,9 @@ type Handler struct {
 	publicURL  *url.URL
 	version    string
 	sourceTime time.Time
+	// now gives the time that the security.txt Expires field counts
+	// from. Tests replace it.
+	now func() time.Time
 }
 
 // NewHandler validates options and returns a skill document handler.
@@ -82,6 +95,7 @@ func NewHandler(options Options) (*Handler, error) {
 		publicURL:  publicURL,
 		version:    options.Version,
 		sourceTime: normalizeSourceTime(options.SourceTime),
+		now:        time.Now,
 	}, nil
 }
 
@@ -99,6 +113,8 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("HEAD "+MCPServerCardPath, h.serveMCPServerCard)
 	mux.HandleFunc("GET "+LLMSTextPath, h.serveLLMSText)
 	mux.HandleFunc("HEAD "+LLMSTextPath, h.serveLLMSText)
+	mux.HandleFunc("GET "+SecurityTextPath, h.serveSecurityText)
+	mux.HandleFunc("HEAD "+SecurityTextPath, h.serveSecurityText)
 }
 
 func (h *Handler) serveSkill(w http.ResponseWriter, r *http.Request) {
@@ -191,6 +207,23 @@ func (h *Handler) serveLLMSText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.serveGenerated(w, r, "llms.txt", llmsText(origin), "text/markdown; charset=utf-8")
+}
+
+func (h *Handler) serveSecurityText(w http.ResponseWriter, r *http.Request) {
+	origin, ok := h.requestOrigin(w, r)
+	if !ok {
+		return
+	}
+	h.serveGenerated(w, r, "security.txt", securityText(origin, h.now()), "text/plain; charset=utf-8")
+}
+
+// securityText returns the RFC 9116 security.txt of the deployment at
+// origin. Expires counts from the start of the UTC day of now, so the
+// file changes once a day and never lists a past date.
+func securityText(origin string, now time.Time) []byte {
+	expires := now.UTC().Truncate(24 * time.Hour).Add(securityTextLifetime)
+	return fmt.Appendf(nil, "Contact: %s\nExpires: %s\nPreferred-Languages: en\nCanonical: %s%s\n",
+		securityContact, expires.Format(time.RFC3339), origin, SecurityTextPath)
 }
 
 func (h *Handler) requestOrigin(w http.ResponseWriter, r *http.Request) (string, bool) {
