@@ -543,6 +543,8 @@ func main() {
 		Version:    buildinfo.Version(),
 		Region:     strings.TrimSpace(os.Getenv("FLY_REGION")),
 		MapTiles:   cfg.MapTiles,
+
+		DiscoveryLink: agentdocs.DiscoveryLinkHeader,
 	})
 	webHandler.Register(mux)
 	logger.Info("Web UI mounted", slog.String("prefix", "/ui/"))

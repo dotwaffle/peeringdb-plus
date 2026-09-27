@@ -1704,7 +1704,7 @@ Service discovery JSON body:
 }
 ```
 
-`GET /` and `HEAD /` include `Link` headers for `llms.txt`, the MCP server card, the Agent Skills index, and the API catalog.
+`GET /`, `HEAD /` and every `/ui/` response include `Link` headers for `llms.txt`, the MCP server card, the Agent Skills index, and the API catalog.
 The root bypasses the readiness middleware so service discovery still works while the first sync is in progress.
 
 ### `GET /healthz`

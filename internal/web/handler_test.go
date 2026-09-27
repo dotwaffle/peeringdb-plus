@@ -1886,3 +1886,30 @@ func TestParseASN_Boundary(t *testing.T) {
 		})
 	}
 }
+
+// TestDispatch_DiscoveryLink checks that UI responses carry the
+// configured discovery Link header, and none when it is not set.
+func TestDispatch_DiscoveryLink(t *testing.T) {
+	t.Parallel()
+	const link = `</llms.txt>; rel="describedby"`
+	client := testutil.SetupClient(t)
+	for _, tt := range []struct {
+		link string
+		want string
+	}{
+		{link, link},
+		{"", ""},
+	} {
+		mux := http.NewServeMux()
+		NewHandler(NewHandlerInput{Client: client, DiscoveryLink: tt.link}).Register(mux)
+		for _, path := range []string{"/ui/", "/ui/about"} {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req.Header.Set("User-Agent", "Mozilla/5.0")
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if got := rec.Header().Get("Link"); got != tt.want {
+				t.Errorf("%s with link %q: Link = %q, want %q", path, tt.link, got, tt.want)
+			}
+		}
+	}
+}

@@ -50,6 +50,9 @@ type Handler struct {
 	version    string
 	region     string
 	mapTiles   maptiles.Config
+	// discoveryLink is the Link header value that every UI response
+	// carries; empty sends none.
+	discoveryLink string
 }
 
 // NewHandlerInput configures a web Handler. Client is required; DB may be
@@ -66,6 +69,9 @@ type NewHandlerInput struct {
 	Version    string
 	Region     string
 	MapTiles   maptiles.Config
+	// DiscoveryLink is sent as the Link header of every UI response, so
+	// that a client that starts at /ui/ finds the discovery documents.
+	DiscoveryLink string
 }
 
 // NewHandler creates a web UI handler with integrated search and compare
@@ -86,6 +92,8 @@ func NewHandler(in NewHandlerInput) *Handler {
 		version:    in.Version,
 		region:     in.Region,
 		mapTiles:   in.MapTiles,
+
+		discoveryLink: in.DiscoveryLink,
 	}
 }
 
@@ -129,6 +137,9 @@ func redirectUI(w http.ResponseWriter, r *http.Request, rest string) {
 }
 
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
+	if h.discoveryLink != "" {
+		w.Header().Set("Link", h.discoveryLink)
+	}
 	rest := r.PathValue("rest")
 	// No UI route ends in a slash after /ui/. Without this redirect,
 	// /ui/asn/13335/ would fail to parse "13335/" as an ASN.
