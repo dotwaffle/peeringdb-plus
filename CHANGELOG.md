@@ -8,6 +8,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-09-27
+
 ### Added
 
 - pdbcompat serves `/api/asset/<tag>/<id>/logo` for `org`, `fac`, `net`, `ix`, `carrier` and `campus`, as upstream answers a caller without an API key.
@@ -1505,7 +1507,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.39.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.40.0...HEAD
+[1.40.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.39.0...v1.40.0
 [1.39.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.38.0...v1.39.0
 [1.38.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...v1.38.0
 [1.37.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.36.0...v1.37.0
