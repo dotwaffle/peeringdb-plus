@@ -14,6 +14,11 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   As upstream, the route matches any path under `/api/` that contains `<tag>/self`, for example `/api/ixfac/self` (tag `fac`).
   Before, pdbcompat returned `404`.
 
+### Fixed
+
+- The `301` from `/api` to `/api/` quotes the query string as upstream (Django `iri_to_uri`) does: for example, `"` becomes `%22`.
+  Before, pdbcompat copied the raw query string into `Location`.
+
 ## [1.38.0] - 2026-09-27
 
 ### Added

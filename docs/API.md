@@ -338,6 +338,7 @@ See § Known Divergences.
 
 A path with a `/` at the end, for example `/api/net/` or `/api/net/1/`, returns `404`, as upstream: no upstream route has it.
 `/api` without the `/` returns `301` with `Location: /api/` and the same query string, for every method, as upstream (Django `APPEND_SLASH`).
+As in the `self` redirects, the characters that Django `iri_to_uri` quotes are in `%` form.
 
 Each route also accepts the format suffix `.json`, with or without a `/` after it, as upstream: `/api/.json`, `/api/net.json` and `/api/net/1.json` return the same body as `/api/`, `/api/net` and `/api/net/1`.
 Another suffix of lowercase letters and digits, for example `/api/net.xml`, returns `404` (`Not found.`), as upstream.

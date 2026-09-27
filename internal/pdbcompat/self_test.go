@@ -1,6 +1,10 @@
 package pdbcompat
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
 
 func TestSelfTag(t *testing.T) {
 	t.Parallel()
@@ -56,6 +60,30 @@ func TestIRIToURI(t *testing.T) {
 	for in, want := range cases {
 		if got := iriToURI(in); got != want {
 			t.Errorf("iriToURI(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestDjangoRedirectQuotesQuery(t *testing.T) {
+	t.Parallel()
+	// The query string of both redirects goes through Django
+	// iri_to_uri (request.py:219-230, response.py:633-638).
+	const raw = "q=\"x\"&e=\xe9&k=%C3%A9"
+	const quoted = "q=%22x%22&e=%C3%A9&k=%C3%A9"
+	for name, tc := range map[string]struct {
+		serve  func(http.ResponseWriter, *http.Request)
+		status int
+		want   string
+	}{
+		"api root": {redirectAPIRoot, http.StatusMovedPermanently, "/api/?" + quoted},
+		"self":     {func(w http.ResponseWriter, r *http.Request) { serveSelf(w, r, "ix") }, http.StatusFound, "/api/ix/4095?" + quoted},
+	} {
+		r := httptest.NewRequest(http.MethodGet, "/api", nil)
+		r.URL.RawQuery = raw
+		w := httptest.NewRecorder()
+		tc.serve(w, r)
+		if w.Code != tc.status || w.Header().Get("Location") != tc.want {
+			t.Errorf("%s: status = %d, Location = %q; want %d, %q", name, w.Code, w.Header().Get("Location"), tc.status, tc.want)
 		}
 	}
 }

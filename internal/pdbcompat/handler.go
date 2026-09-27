@@ -88,15 +88,10 @@ func (h *Handler) Register(mux *http.ServeMux) {
 // CommonMiddleware with APPEND_SLASH: a 301 for every method to the
 // path with a "/" and the same query string, with an empty HTML body
 // (Django HttpResponsePermanentRedirect). The Location is relative, as
-// upstream sends it for its www host.
+// upstream sends it for its www host. Django quotes the query string
+// with iri_to_uri (django/http/request.py:219-230).
 func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
-	target := "/api/"
-	if r.URL.RawQuery != "" {
-		target += "?" + r.URL.RawQuery
-	}
-	w.Header().Set("Location", target)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusMovedPermanently)
+	writeDjangoRedirect(w, "/api/", r.URL.RawQuery, http.StatusMovedPermanently)
 }
 
 // methodNotAllowed answers a method other than GET and HEAD. The mirror
