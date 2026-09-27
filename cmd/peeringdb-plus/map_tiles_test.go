@@ -16,6 +16,10 @@ func TestUICSPPolicy(t *testing.T) {
 	}{
 		{name: "absolute tile service", tileSource: "https://tiles.example.com:8443", want: "img-src 'self' data: https://tiles.example.com:8443 https://cdn.jsdelivr.net"},
 		{name: "same-origin tile service", want: "img-src 'self' data: https://cdn.jsdelivr.net", notWant: "tiles.example.com"},
+		{name: "no plugins", want: "object-src 'none'"},
+		{name: "no base element from elsewhere", want: "base-uri 'self'"},
+		{name: "never framed", want: "frame-ancestors 'none'"},
+		{name: "forms submit to the same origin", want: "form-action 'self'"},
 	}
 
 	for _, tt := range tests {

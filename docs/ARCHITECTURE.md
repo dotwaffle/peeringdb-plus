@@ -580,6 +580,8 @@ Outermost first:
 10. **CSP** (`internal/middleware/csp.go`):
    different policies for `/ui/` and `/graphql`.
    Served as `Report-Only` by default; switched to enforcing via `PDBPLUS_CSP_ENFORCE=true`.
+   The UI policy also sets `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` and `form-action 'self'`.
+   The last three do not fall back to `default-src`, and `object-src 'none'` is stricter than it.
 11. **Caching** (`internal/middleware/caching.go`) handles GET and HEAD only:
     - `/skills/*`: no change.
       The skill handlers set their own ETags.
