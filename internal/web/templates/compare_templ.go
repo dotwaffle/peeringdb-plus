@@ -49,7 +49,7 @@ func CompareFormPage(asn1 string, asn2 string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" placeholder=\"e.g. 13335\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\"></div><div><label for=\"compare-asn2\" class=\"block text-sm text-neutral-600 dark:text-neutral-400 mb-1\">Second ASN</label> <input type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]+\" maxlength=\"10\" required autocomplete=\"off\" title=\"AS number, digits only\" aria-describedby=\"compare-hint\" id=\"compare-asn2\" name=\"asn2\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" placeholder=\"e.g. 13335\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-emerald-600 focus:outline-2 focus:outline-offset-1 focus:outline-emerald-600 font-mono\"></div><div><label for=\"compare-asn2\" class=\"block text-sm text-neutral-600 dark:text-neutral-400 mb-1\">Second ASN</label> <input type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]+\" maxlength=\"10\" required autocomplete=\"off\" title=\"AS number, digits only\" aria-describedby=\"compare-hint\" id=\"compare-asn2\" name=\"asn2\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -62,7 +62,7 @@ func CompareFormPage(asn1 string, asn2 string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" placeholder=\"e.g. 15169\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\"></div></div><p id=\"compare-hint\" class=\"text-sm text-neutral-600 dark:text-neutral-400 text-center\">Enter two AS numbers, digits only, for example 13335 and 15169.</p><div class=\"text-center\"><button type=\"submit\" class=\"bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2 rounded-lg font-medium transition-colors\">Compare</button></div></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" placeholder=\"e.g. 15169\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:border-emerald-600 focus:outline-2 focus:outline-offset-1 focus:outline-emerald-600 font-mono\"></div></div><p id=\"compare-hint\" class=\"text-sm text-neutral-600 dark:text-neutral-400 text-center\">Enter two AS numbers, digits only, for example 13335 and 15169.</p><div class=\"text-center\"><button type=\"submit\" class=\"bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2 rounded-lg font-medium transition-colors\">Compare</button></div></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

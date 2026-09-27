@@ -307,3 +307,27 @@ func TestLayout_StatusRegions(t *testing.T) {
 		}
 	}
 }
+
+// TestTemplates_FocusOutline checks that no element removes its focus
+// outline. Forced-colors mode (Windows High Contrast) drops box-shadow,
+// so a focus ring made with the Tailwind ring utilities disappears
+// there, but an outline stays and takes the system highlight color.
+func TestTemplates_FocusOutline(t *testing.T) {
+	t.Parallel()
+	files, err := filepath.Glob("templates/*.templ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	files = append(files, "static/ui.js")
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, bad := range []string{"outline-none", "focus:ring", "focus-visible:ring"} {
+			if strings.Contains(string(src), bad) {
+				t.Errorf("%s: uses %s; use an outline for the focus indicator", f, bad)
+			}
+		}
+	}
+}

@@ -1133,8 +1133,8 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 
 	checks := []string{
 		"data-result",
-		"focus:ring-2",
-		"focus:ring-emerald-500",
+		"focus-visible:outline-2",
+		"focus-visible:outline-emerald-600",
 	}
 	for _, want := range checks {
 		if !strings.Contains(body, want) {

@@ -4,8 +4,8 @@
 // replaces the inline <script> blocks the layout used to carry, which
 // lets the CSP drop 'unsafe-inline' from script-src.
 //
-// NOTE: Tailwind classes referenced only from this file (ring-2, the
-// error/retry styling, etc.) are kept in the compiled stylesheet by the
+// NOTE: Tailwind classes referenced only from this file (the
+// error/retry styling) are kept in the compiled stylesheet by the
 // `@source` entry for this file in internal/web/tailwind.input.css.
 
 // Dark mode toggle. Both nav toggles share the .dark-mode-toggle class.
