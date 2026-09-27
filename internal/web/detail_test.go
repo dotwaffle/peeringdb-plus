@@ -956,3 +956,26 @@ func TestPages_HeadingOrder(t *testing.T) {
 		}
 	}
 }
+
+// TestCollapsibleSection_NoScriptLink checks that a section that loads
+// its rows with htmx also links to its fragment inside <noscript>, and
+// that the layout hides the loader when scripts do not run, so a browser
+// without JavaScript can still open the list.
+func TestCollapsibleSection_NoScriptLink(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/asn/13335", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+
+	link := regexp.MustCompile(`(?s)<noscript><p [^>]*><a href="/ui/fragment/net/\d+/ixlans"[^>]*>Open the IX Presences list</a></p></noscript>`)
+	if !link.MatchString(body) {
+		t.Error("IX Presences section has no <noscript> link to its fragment")
+	}
+	if !strings.Contains(body, `<noscript><style>[data-section-loader] { display: none; }</style></noscript>`) {
+		t.Error("layout does not hide the section loader without JavaScript")
+	}
+}

@@ -79,6 +79,9 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 				<meta name="pdbplus-map-tile-attribution" content={ opts.MapTiles.Attribution }/>
 				@mapHead()
 			}
+			<noscript>
+				<style>[data-section-loader] { display: none; }</style>
+			</noscript>
 			<style>
 				html.theme-transition, html.theme-transition *, html.theme-transition *::before, html.theme-transition *::after {
 					transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;

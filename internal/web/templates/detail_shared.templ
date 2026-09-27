@@ -250,6 +250,11 @@ templ CollapsibleSection(title string, count int, bandwidth string, loadURL stri
 					<span class="animate-pulse">Loading...</span>
 				</div>
 			</div>
+			<noscript>
+				<p class="px-4 py-3 text-sm text-center">
+					<a href={ templ.SafeURL(loadURL) } class="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 underline">Open the { title } list</a>
+				</p>
+			</noscript>
 		} else {
 			<div class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">None</div>
 		}

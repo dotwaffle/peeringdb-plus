@@ -188,7 +188,7 @@ For machine-readable output, use one of the structured API surfaces (`/api/`, `/
 | `GET /ui/completions/bash` | Installable bash completion script |
 | `GET /ui/completions/zsh` | Installable zsh completion script |
 | `GET /ui/completions/search?q=&type=` | Newline-separated identifiers for the shell completion scripts: the ASN for `net`, and the numeric ID for `ix`, `fac`, `org`, `campus` and `carrier`. Up to 10 for each type. `type` is optional. A `q` shorter than 2 characters returns an empty body |
-| `GET /ui/fragment/{type}/{id}/{relation}` | htmx fragments that the detail pages load, for example `/ui/fragment/net/{id}/ixlans`. Not a stable interface. `robots.txt` blocks them |
+| `GET /ui/fragment/{type}/{id}/{relation}` | htmx fragments that the detail pages load, for example `/ui/fragment/net/{id}/ixlans`. Not a stable interface. `robots.txt` blocks them. Without JavaScript, each section links to its fragment in a `<noscript>` element, and the fragment opens as a page without styles that shows the first 100 rows |
 
 Unknown `/ui/*` paths render the themed 404 page via `handleNotFound`.
 `GET /ui` and a UI path with a trailing slash (`/ui/asn/13335/`) answer `308` to the canonical path, with the query string.
