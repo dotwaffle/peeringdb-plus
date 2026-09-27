@@ -1713,6 +1713,35 @@ func TestBadRequestPage_Negotiated(t *testing.T) {
 	}
 }
 
+// TestUIRedirects checks the permanent redirects to the canonical UI
+// paths: /ui to /ui/, and a path with a trailing slash to the path
+// without it. The query string is kept.
+func TestUIRedirects(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		path, location string
+	}{
+		{"/ui", "/ui/"},
+		{"/ui?q=cloudflare", "/ui/?q=cloudflare"},
+		{"/ui/asn/13335/", "/ui/asn/13335"},
+		{"/ui/about/?format=json", "/ui/about?format=json"},
+		{"/ui/compare/13335/15169/", "/ui/compare/13335/15169"},
+	}
+	for _, tt := range tests {
+		req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		if rec.Code != http.StatusPermanentRedirect {
+			t.Errorf("%s: status = %d, want 308", tt.path, rec.Code)
+		}
+		if got := rec.Header().Get("Location"); got != tt.location {
+			t.Errorf("%s: Location = %q, want %q", tt.path, got, tt.location)
+		}
+	}
+}
+
 func TestWidthParameterCapping(t *testing.T) {
 	t.Parallel()
 	mux := newTestMux(t)

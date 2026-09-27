@@ -112,11 +112,33 @@ func (h *Handler) Register(mux *http.ServeMux) {
 		_, _ = io.WriteString(w, "User-agent: *\nAllow: /\nDisallow: /ui/fragment/\n")
 	})
 
+	// ServeMux would redirect /ui to /ui/ with 307, a temporary
+	// redirect. The move is permanent, so caches and crawlers can keep
+	// it.
+	mux.HandleFunc("GET /ui", func(w http.ResponseWriter, r *http.Request) {
+		redirectUI(w, r, "")
+	})
 	mux.HandleFunc("GET /ui/{rest...}", h.dispatch)
+}
+
+// redirectUI sends a 308 to /ui/<rest>, with the query string of the
+// request.
+func redirectUI(w http.ResponseWriter, r *http.Request, rest string) {
+	target := "/ui/" + rest
+	if r.URL.RawQuery != "" {
+		target += "?" + r.URL.RawQuery
+	}
+	http.Redirect(w, r, target, http.StatusPermanentRedirect) //nolint:gosec // G710: target always starts with /ui/, a same-origin path
 }
 
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	rest := r.PathValue("rest")
+	// No UI route ends in a slash after /ui/. Without this redirect,
+	// /ui/asn/13335/ would fail to parse "13335/" as an ASN.
+	if trimmed := strings.TrimRight(rest, "/"); trimmed != rest && trimmed != "" {
+		redirectUI(w, r, trimmed)
+		return
+	}
 	switch {
 	case rest == "" || rest == "/":
 		h.handleHome(w, r)

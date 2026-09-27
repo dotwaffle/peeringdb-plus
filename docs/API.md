@@ -188,6 +188,7 @@ For machine-readable output, use one of the structured API surfaces (`/api/`, `/
 | `GET /ui/fragment/{type}/{id}/{relation}` | htmx fragments that the detail pages load, for example `/ui/fragment/net/{id}/ixlans`. Not a stable interface. `robots.txt` blocks them |
 
 Unknown `/ui/*` paths render the themed 404 page via `handleNotFound`.
+`GET /ui` and a UI path with a trailing slash (`/ui/asn/13335/`) answer `308` to the canonical path, with the query string.
 
 ### IX connection markers
 
