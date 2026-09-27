@@ -19,15 +19,17 @@ type LayoutOptions struct {
 }
 
 // mapHead emits the self-hosted Leaflet + markercluster assets and the
-// cluster theme. Scripts are synchronous on purpose: map-init.js needs
-// the L global defined before it runs.
+// cluster theme. The scripts are deferred: deferred scripts run in
+// document order, so the L global exists before map-init.js runs, and
+// all of them run before DOMContentLoaded, when map-init.js starts the
+// maps.
 templ mapHead() {
 	<link rel="stylesheet" href={ static.URL("leaflet.css") }/>
 	<link rel="stylesheet" href={ static.URL("MarkerCluster.css") }/>
 	<link rel="stylesheet" href={ static.URL("MarkerCluster.Default.css") }/>
-	<script src={ static.URL("leaflet.js") }></script>
-	<script src={ static.URL("leaflet.markercluster.js") }></script>
-	<script src={ static.URL("map-init.js") }></script>
+	<script src={ static.URL("leaflet.js") } defer></script>
+	<script src={ static.URL("leaflet.markercluster.js") } defer></script>
+	<script src={ static.URL("map-init.js") } defer></script>
 	<style>
 		/* Markercluster emerald theme */
 		.marker-cluster-small { background-color: rgba(16, 185, 129, 0.3); }
@@ -70,7 +72,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 			<link rel="stylesheet" href={ static.URL("tailwind.css") }/>
 			<link rel="stylesheet" href={ static.URL("flag-icons/css/flag-icons.min.css") }/>
 			<meta name="htmx-config" content='{"history":"reload","noSwap":[204,304,"4xx","5xx"]}'/>
-			<script src={ static.URL("htmx.min.js") }></script>
+			<script src={ static.URL("htmx.min.js") } defer></script>
 			<script src={ static.URL("ui.js") } defer></script>
 			if opts.NeedsMap {
 				<meta name="pdbplus-map-tile-url" content={ opts.MapTiles.URL }/>

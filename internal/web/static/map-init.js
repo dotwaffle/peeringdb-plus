@@ -1,6 +1,6 @@
-// Leaflet map bootstrap. Loaded synchronously in the layout head right
-// after leaflet.markercluster.js (only on map-bearing pages), so the L
-// global is guaranteed to exist. Map containers declare themselves with
+// Leaflet map bootstrap. Loaded with defer in the layout head right
+// after leaflet.markercluster.js (only on map-bearing pages). Deferred
+// scripts run in document order, so the L global exists. Map containers declare themselves with
 // data-map="single" or data-map="multi" plus data attributes carrying
 // the server-rendered marker payload; this file scans and initializes
 // them on DOMContentLoaded. Replaces the former inline templ script

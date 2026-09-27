@@ -393,3 +393,33 @@ func TestStaticAssets_Versioned(t *testing.T) {
 		t.Errorf("favicon.ico: ETag = %q, want %q", got, want)
 	}
 }
+
+// TestLayout_ScriptsDeferred checks that every script in the page head
+// is deferred, so none of them blocks parsing, except theme-init.js,
+// which must set the dark class before the first paint. The facility
+// page also loads the map scripts.
+func TestLayout_ScriptsDeferred(t *testing.T) {
+	t.Parallel()
+	mux := setupAllTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/fac/32", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	scripts := regexp.MustCompile(`<script src="([^"]+)"([^>]*)>`).FindAllStringSubmatch(rec.Body.String(), -1)
+	if len(scripts) < 6 {
+		t.Fatalf("%d scripts on the facility page, want the layout and map scripts", len(scripts))
+	}
+	for _, m := range scripts {
+		deferred := strings.Contains(m[2], "defer")
+		if strings.Contains(m[1], "/theme-init.js") {
+			if deferred {
+				t.Error("theme-init.js is deferred; the page would flash the light theme")
+			}
+			continue
+		}
+		if !deferred {
+			t.Errorf("%s is not deferred", m[1])
+		}
+	}
+}
