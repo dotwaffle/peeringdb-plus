@@ -61,7 +61,7 @@ func CampusDetailPage(data CampusDetail) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.OrgID > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"py-1\"><span class=\"text-neutral-500 text-sm\">Organization</span><div><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"py-1\"><span class=\"text-neutral-600 dark:text-neutral-400 text-sm\">Organization</span><div><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -74,7 +74,7 @@ func CampusDetailPage(data CampusDetail) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"text-rose-400 hover:text-rose-300 transition-colors\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 transition-colors\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -172,12 +172,12 @@ func CampusFacilitiesList(rows []CampusFacilityRow, moreURL string) templ.Compon
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(rows) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"px-4 py-3 text-neutral-500 text-sm\">No facilities found.</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm\">No facilities found.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Facilities on this campus</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\">Name</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\" data-sortable data-sort-col=\"1\" data-sort-type=\"alpha\">City</th><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"2\" data-sort-type=\"alpha\" data-sort-default=\"asc\">Country</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Facilities on this campus</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\">Name</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\" data-sortable data-sort-col=\"1\" data-sort-type=\"alpha\">City</th><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"2\" data-sort-type=\"alpha\" data-sort-default=\"asc\">Country</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -246,7 +246,7 @@ func CampusFacilitiesRows(rows []CampusFacilityRow, moreURL string) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-400 transition-colors\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"text-neutral-900 dark:text-neutral-100 font-medium hover:text-violet-800 dark:hover:text-violet-400 transition-colors\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -259,7 +259,7 @@ func CampusFacilitiesRows(rows []CampusFacilityRow, moreURL string) templ.Compon
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</a></td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400\" data-sort-value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</a></td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-600 dark:text-neutral-400\" data-sort-value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

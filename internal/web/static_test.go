@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -125,5 +126,74 @@ func TestTemplates_TablesLabeled(t *testing.T) {
 	}
 	if !strings.Contains(string(css), ".sr-only{") {
 		t.Error("tailwind.css has no .sr-only rule")
+	}
+}
+
+// TestTemplates_TextContrast checks the text colors of every class list
+// in the templates and ui.js against the shades that reach a 4.5:1
+// contrast ratio: neutral 600 or darker and the accent colors 700 or
+// darker on the light backgrounds, and neutral 400 or lighter on the
+// dark backgrounds. A light-mode text color needs a dark: counterpart
+// for the same state, because the dark shades are different.
+func TestTemplates_TextContrast(t *testing.T) {
+	t.Parallel()
+	files, err := filepath.Glob("templates/*.templ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	files = append(files, "static/ui.js")
+	literal := regexp.MustCompile(`"[^"\n]*"|'[^'\n]*'`)
+	color := regexp.MustCompile(`^((?:[a-z-]+:)*)(text|placeholder)-(neutral|emerald|sky|violet|rose|cyan|amber|red|blue)-(\d+)(/\d+)?$`)
+	checked := 0
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, lit := range literal.FindAllString(string(src), -1) {
+			type token struct {
+				text, state, kind, color string
+				shade                    int
+			}
+			var light []token
+			dark := map[string]bool{}
+			for field := range strings.FieldsSeq(strings.Trim(lit, `"'`)) {
+				m := color.FindStringSubmatch(field)
+				if m == nil {
+					continue
+				}
+				checked++
+				if m[5] != "" {
+					t.Errorf("%s: %s: opacity lowers the contrast", f, field)
+				}
+				shade, _ := strconv.Atoi(m[4])
+				if rest, ok := strings.CutPrefix(m[1], "dark:"); ok {
+					dark[rest+m[2]] = true
+					if m[3] == "neutral" && shade > 400 && shade < 700 {
+						t.Errorf("%s: %s is too dark on the dark backgrounds", f, field)
+					}
+					continue
+				}
+				light = append(light, token{field, m[1], m[2], m[3], shade})
+			}
+			for _, tok := range light {
+				minShade := 700
+				switch {
+				case tok.kind == "placeholder":
+					minShade = 500
+				case tok.color == "neutral":
+					minShade = 600
+				}
+				if tok.shade < minShade {
+					t.Errorf("%s: %s is too light on the light backgrounds", f, tok.text)
+				}
+				if !dark[tok.state+tok.kind] {
+					t.Errorf("%s: %s has no dark: counterpart", f, tok.text)
+				}
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no text colors found")
 	}
 }

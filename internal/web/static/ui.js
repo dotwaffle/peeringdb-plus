@@ -189,10 +189,10 @@
 		var wrapper = document.createElement('div');
 		wrapper.className = 'px-4 py-3 text-center';
 		var msg = document.createElement('span');
-		msg.className = 'text-red-400 text-sm';
+		msg.className = 'text-red-700 dark:text-red-400 text-sm';
 		msg.textContent = 'Failed to load.';
 		var btn = document.createElement('button');
-		btn.className = 'text-emerald-400 hover:text-emerald-300 text-sm underline ml-2';
+		btn.className = 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm underline ml-2';
 		btn.textContent = 'Retry';
 		btn.setAttribute('hx-get', url);
 		btn.setAttribute('hx-target', 'closest [data-section-loader]');

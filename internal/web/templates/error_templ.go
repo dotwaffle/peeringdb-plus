@@ -30,7 +30,7 @@ func NotFoundPage() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-emerald-500 font-mono mb-4\">404</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Page not found</h2><p class=\"text-neutral-500 dark:text-neutral-400 mb-8\">The page you're looking for doesn't exist. Try searching instead.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-4\">404</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Page not found</h2><p class=\"text-neutral-600 dark:text-neutral-400 mb-8\">The page you're looking for doesn't exist. Try searching instead.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -38,7 +38,7 @@ func NotFoundPage() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<a href=\"/ui/\" class=\"inline-block mt-6 text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors font-mono\">Back to home</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<a href=\"/ui/\" class=\"inline-block mt-6 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors font-mono\">Back to home</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -68,7 +68,7 @@ func ServerErrorPage() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-red-500 font-mono mb-4\">500</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Something went wrong</h2><p class=\"text-neutral-500 dark:text-neutral-400 mb-8\">We're sorry, an unexpected error occurred. Please try again later.</p><a href=\"/ui/\" class=\"inline-flex px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors font-mono\">Back to home</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-red-700 dark:text-red-500 font-mono mb-4\">500</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Something went wrong</h2><p class=\"text-neutral-600 dark:text-neutral-400 mb-8\">We're sorry, an unexpected error occurred. Please try again later.</p><a href=\"/ui/\" class=\"inline-flex px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors font-mono\">Back to home</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

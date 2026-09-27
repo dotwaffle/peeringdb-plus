@@ -45,25 +45,25 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><h1 class=\"text-3xl font-bold text-emerald-500 font-mono mb-6\">About PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed\">PeeringDB Plus is a read-only mirror of PeeringDB. It syncs all 13 PeeringDB object types on a schedule and serves them through the APIs below.</p><div class=\"mt-8 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Data Freshness</h2>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-12\"><h1 class=\"text-3xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-6\">About PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed\">PeeringDB Plus is a read-only mirror of PeeringDB. It syncs all 13 PeeringDB object types on a schedule and serves them through the APIs below.</p><div class=\"mt-8 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Data Freshness</h2>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if freshness.Available {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"text-neutral-600 dark:text-neutral-300\">Last synced: <time class=\"font-mono text-emerald-500\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"text-neutral-600 dark:text-neutral-300\">Last synced: <time class=\"font-mono text-emerald-700 dark:text-emerald-500\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(freshness.LastSyncAt.UTC().Format("2006-01-02 15:04:05 UTC"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 30, Col: 121}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `about.templ`, Line: 30, Col: 143}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</time></p><p class=\"text-neutral-500 dark:text-neutral-400 text-sm mt-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</time></p><p class=\"text-neutral-600 dark:text-neutral-400 text-sm mt-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -81,12 +81,12 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-neutral-500 dark:text-neutral-400\">Sync status unavailable</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-neutral-600 dark:text-neutral-400\">Sync status unavailable</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Privacy &amp; Sync</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-44\">PeeringDB access:</dt><dd>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</div><div class=\"mt-6 p-6 bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700\"><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-3 font-mono\">Privacy &amp; Sync</h2><dl class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-600 dark:text-neutral-400 sm:w-44\">PeeringDB access:</dt><dd>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -99,7 +99,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</dd></div><div class=\"flex flex-col sm:flex-row sm:gap-2 sm:items-center\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-44\">Public tier:</dt><dd class=\"flex items-center gap-2\"><span class=\"font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</dd></div><div class=\"flex flex-col sm:flex-row sm:gap-2 sm:items-center\"><dt class=\"font-mono text-neutral-600 dark:text-neutral-400 sm:w-44\">Public tier:</dt><dd class=\"flex items-center gap-2\"><span class=\"font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -122,7 +122,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</dd></div></dl><p class=\"text-sm text-neutral-500 dark:text-neutral-400 mt-3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</dd></div></dl><p class=\"text-sm text-neutral-600 dark:text-neutral-400 mt-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -145,7 +145,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 				return templ_7745c5c3_Err
 			}
 			if runtimeInfo.Version != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-36\">Version:</dt><dd class=\"font-mono\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-600 dark:text-neutral-400 sm:w-36\">Version:</dt><dd class=\"font-mono\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -164,7 +164,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 				}
 			}
 			if runtimeInfo.Region != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-500 dark:text-neutral-400 sm:w-36\">Serving region:</dt><dd class=\"font-mono\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"flex flex-col sm:flex-row sm:gap-2\"><dt class=\"font-mono text-neutral-600 dark:text-neutral-400 sm:w-36\">Serving region:</dt><dd class=\"font-mono\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -195,7 +195,7 @@ func AboutPage(freshness DataFreshness, privacy PrivacySync, runtimeInfo Runtime
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">Links</h2><ul class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><li><a href=\"https://github.com/dotwaffle/peeringdb-plus\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></li><li><a href=\"https://www.peeringdb.com\" class=\"text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">PeeringDB Official</a></li></ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div><h2 class=\"text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-8 mb-4 font-mono\">Links</h2><ul class=\"space-y-2 text-neutral-600 dark:text-neutral-300\"><li><a href=\"https://github.com/dotwaffle/peeringdb-plus\" class=\"text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></li><li><a href=\"https://www.peeringdb.com\" class=\"text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors\" target=\"_blank\" rel=\"noopener noreferrer\">PeeringDB Official</a></li></ul></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -11,30 +11,30 @@ templ CompareFormPage(asn1 string, asn2 string) {
 	<div class="max-w-3xl mx-auto py-12">
 		<div class="text-center mb-8">
 			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Compare Networks</h1>
-			<p class="text-neutral-400">Find shared IXPs, facilities, and campuses between two networks</p>
+			<p class="text-neutral-600 dark:text-neutral-400">Find shared IXPs, facilities, and campuses between two networks</p>
 		</div>
 		<form id="compare-form" method="GET" action="/ui/compare" class="space-y-6">
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div>
-					<label for="compare-asn1" class="block text-sm text-neutral-400 mb-1">First ASN</label>
+					<label for="compare-asn1" class="block text-sm text-neutral-600 dark:text-neutral-400 mb-1">First ASN</label>
 					<input
 						type="number"
 						id="compare-asn1"
 						name="asn1"
 						value={ asn1 }
 						placeholder="e.g. 13335"
-						class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+						class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
 					/>
 				</div>
 				<div>
-					<label for="compare-asn2" class="block text-sm text-neutral-400 mb-1">Second ASN</label>
+					<label for="compare-asn2" class="block text-sm text-neutral-600 dark:text-neutral-400 mb-1">Second ASN</label>
 					<input
 						type="number"
 						id="compare-asn2"
 						name="asn2"
 						value={ asn2 }
 						placeholder="e.g. 15169"
-						class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+						class="w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
 					/>
 				</div>
 			</div>
@@ -55,11 +55,11 @@ templ CompareResultsPage(data CompareData) {
 	<div class="space-y-6">
 		<div class="mb-6">
 			<h1 class="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
-				{ data.NetA.Name } <span class="text-neutral-500">vs</span> { data.NetB.Name }
+				{ data.NetA.Name } <span class="text-neutral-600 dark:text-neutral-400">vs</span> { data.NetB.Name }
 			</h1>
-			<div class="flex gap-3 mt-1 text-sm text-neutral-400 font-mono">
+			<div class="flex gap-3 mt-1 text-sm text-neutral-600 dark:text-neutral-400 font-mono">
 				<span>{ fmt.Sprintf("AS%d", data.NetA.ASN) }</span>
-				<span class="text-neutral-500">|</span>
+				<span class="text-neutral-600 dark:text-neutral-400">|</span>
 				<span>{ fmt.Sprintf("AS%d", data.NetB.ASN) }</span>
 			</div>
 		</div>
@@ -81,7 +81,7 @@ templ CompareResultsPage(data CompareData) {
 		<div class="pt-4">
 			<a
 				href="/ui/compare"
-				class="text-emerald-400 hover:text-emerald-300 text-sm transition-colors"
+				class="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm transition-colors"
 			>
 				New Comparison
 			</a>
@@ -96,14 +96,14 @@ templ viewToggleLink(href string, label string, active bool) {
 	if active {
 		<a
 			href={ templ.SafeURL(href) }
-			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
+			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-emerald-600/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
 		>
 			{ label }
 		</a>
 	} else {
 		<a
 			href={ templ.SafeURL(href) }
-			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+			class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
 		>
 			{ label }
 		</a>
@@ -115,7 +115,7 @@ templ compareIXPsSection(data CompareData) {
 	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
 			<span class="font-medium text-neutral-900 dark:text-neutral-100">Internet Exchanges</span>
-			<span class="text-neutral-500 text-sm font-mono">
+			<span class="text-neutral-600 dark:text-neutral-400 text-sm font-mono">
 				if data.ViewMode == "full" {
 					{ fmt.Sprintf("(%d)", len(data.AllIXPs)) }
 				} else {
@@ -127,7 +127,7 @@ templ compareIXPsSection(data CompareData) {
 			<table class="w-full text-sm text-left sortable">
 				<caption class="sr-only">Exchange presence of both networks</caption>
 				<thead>
-					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
 						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">IX Name</th>
 						<th scope="col" class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="numeric">{ fmt.Sprintf("Spd (AS%d)", data.NetA.ASN) }</th>
 						<th scope="col" class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="2" data-sort-type="numeric">{ fmt.Sprintf("Spd (AS%d)", data.NetB.ASN) }</th>
@@ -142,13 +142,13 @@ templ compareIXPsSection(data CompareData) {
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					if data.ViewMode == "full" {
 						if len(data.AllIXPs) == 0 {
-							<tr><td colspan="9" class="px-4 py-3 text-neutral-500 text-sm">No IX presences found.</td></tr>
+							<tr><td colspan="9" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No IX presences found.</td></tr>
 						}
 						for _, ix := range data.AllIXPs {
 							<tr class={ compareRowClasses(ix.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(ix.IXName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
-										class="text-sky-400 hover:text-sky-300 font-medium transition-colors">
+										class="text-sky-700 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium transition-colors">
 										{ ix.IXName }
 									</a>
 								</td>
@@ -156,7 +156,7 @@ templ compareIXPsSection(data CompareData) {
 									if ix.NetA != nil && ix.NetA.Speed > 0 {
 										<span class={ speedColorClass(ix.NetA.Speed) }>{ formatSpeed(ix.NetA.Speed) }</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 									if ix.NetA != nil {
 										@connectionMarkers(ix.NetA.Markers)
@@ -166,7 +166,7 @@ templ compareIXPsSection(data CompareData) {
 									if ix.NetB != nil && ix.NetB.Speed > 0 {
 										<span class={ speedColorClass(ix.NetB.Speed) }>{ formatSpeed(ix.NetB.Speed) }</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 									if ix.NetB != nil {
 										@connectionMarkers(ix.NetB.Markers)
@@ -176,55 +176,55 @@ templ compareIXPsSection(data CompareData) {
 									if ix.NetA != nil && ix.NetA.IPAddr4 != "" {
 										{ ix.NetA.IPAddr4 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
 									if ix.NetB != nil && ix.NetB.IPAddr4 != "" {
 										{ ix.NetB.IPAddr4 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
 									if ix.NetA != nil && ix.NetA.IPAddr6 != "" {
 										{ ix.NetA.IPAddr6 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
 									if ix.NetB != nil && ix.NetB.IPAddr6 != "" {
 										{ ix.NetB.IPAddr6 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell text-center">
 									if ix.NetA != nil && ix.NetA.IsRSPeer {
-										<span class="text-emerald-400/70">RS</span>
+										<span class="text-emerald-700 dark:text-emerald-400">RS</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell text-center">
 									if ix.NetB != nil && ix.NetB.IsRSPeer {
-										<span class="text-emerald-400/70">RS</span>
+										<span class="text-emerald-700 dark:text-emerald-400">RS</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 							</tr>
 						}
 					} else {
 						if len(data.SharedIXPs) == 0 {
-							<tr><td colspan="9" class="px-4 py-3 text-neutral-500 text-sm">No shared IX presences found.</td></tr>
+							<tr><td colspan="9" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No shared IX presences found.</td></tr>
 						}
 						for _, ix := range data.SharedIXPs {
 							<tr class={ compareRowClasses(ix.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(ix.IXName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/ix/%d", ix.IXID)) }
-										class="text-sky-400 hover:text-sky-300 font-medium transition-colors">
+										class="text-sky-700 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium transition-colors">
 										{ ix.IXName }
 									</a>
 								</td>
@@ -232,7 +232,7 @@ templ compareIXPsSection(data CompareData) {
 									if ix.NetA != nil && ix.NetA.Speed > 0 {
 										<span class={ speedColorClass(ix.NetA.Speed) }>{ formatSpeed(ix.NetA.Speed) }</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 									if ix.NetA != nil {
 										@connectionMarkers(ix.NetA.Markers)
@@ -242,7 +242,7 @@ templ compareIXPsSection(data CompareData) {
 									if ix.NetB != nil && ix.NetB.Speed > 0 {
 										<span class={ speedColorClass(ix.NetB.Speed) }>{ formatSpeed(ix.NetB.Speed) }</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 									if ix.NetB != nil {
 										@connectionMarkers(ix.NetB.Markers)
@@ -252,42 +252,42 @@ templ compareIXPsSection(data CompareData) {
 									if ix.NetA != nil && ix.NetA.IPAddr4 != "" {
 										{ ix.NetA.IPAddr4 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
 									if ix.NetB != nil && ix.NetB.IPAddr4 != "" {
 										{ ix.NetB.IPAddr4 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
 									if ix.NetA != nil && ix.NetA.IPAddr6 != "" {
 										{ ix.NetA.IPAddr6 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden lg:table-cell font-mono">
 									if ix.NetB != nil && ix.NetB.IPAddr6 != "" {
 										{ ix.NetB.IPAddr6 }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell text-center">
 									if ix.NetA != nil && ix.NetA.IsRSPeer {
-										<span class="text-emerald-400/70">RS</span>
+										<span class="text-emerald-700 dark:text-emerald-400">RS</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell text-center">
 									if ix.NetB != nil && ix.NetB.IsRSPeer {
-										<span class="text-emerald-400/70">RS</span>
+										<span class="text-emerald-700 dark:text-emerald-400">RS</span>
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 							</tr>
@@ -304,7 +304,7 @@ templ compareFacilitiesSection(data CompareData) {
 	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
 			<span class="font-medium text-neutral-900 dark:text-neutral-100">Facilities</span>
-			<span class="text-neutral-500 text-sm font-mono">
+			<span class="text-neutral-600 dark:text-neutral-400 text-sm font-mono">
 				if data.ViewMode == "full" {
 					{ fmt.Sprintf("(%d)", len(data.AllFacilities)) }
 				} else {
@@ -316,7 +316,7 @@ templ compareFacilitiesSection(data CompareData) {
 			<table class="w-full text-sm text-left sortable">
 				<caption class="sr-only">Facility presence of both networks</caption>
 				<thead>
-					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
 						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Name</th>
 						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="alpha">Country</th>
 						<th scope="col" class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="2" data-sort-type="alpha">City</th>
@@ -327,68 +327,68 @@ templ compareFacilitiesSection(data CompareData) {
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					if data.ViewMode == "full" {
 						if len(data.AllFacilities) == 0 {
-							<tr><td colspan="5" class="px-4 py-3 text-neutral-500 text-sm">No facility presences found.</td></tr>
+							<tr><td colspan="5" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No facility presences found.</td></tr>
 						}
 						for _, fac := range data.AllFacilities {
 							<tr class={ compareRowClasses(fac.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.FacName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
-										class="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+										class="text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 font-medium transition-colors">
 										{ fac.FacName }
 									</a>
 								</td>
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.Country) }>
 									@CountryFlag(fac.Country)
 								</td>
-								<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(fac.City) }>
+								<td class="px-3 py-1.5 hidden md:table-cell text-neutral-600 dark:text-neutral-400" data-sort-value={ strings.ToLower(fac.City) }>
 									{ fac.City }
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetA) }>
 									if fac.NetA != nil {
 										{ fmt.Sprintf("AS%d", fac.NetA.LocalASN) }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetB) }>
 									if fac.NetB != nil {
 										{ fmt.Sprintf("AS%d", fac.NetB.LocalASN) }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 							</tr>
 						}
 					} else {
 						if len(data.SharedFacilities) == 0 {
-							<tr><td colspan="5" class="px-4 py-3 text-neutral-500 text-sm">No shared facility presences found.</td></tr>
+							<tr><td colspan="5" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No shared facility presences found.</td></tr>
 						}
 						for _, fac := range data.SharedFacilities {
 							<tr class={ compareRowClasses(fac.Shared) + " hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30" }>
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.FacName) }>
 									<a href={ templ.SafeURL(fmt.Sprintf("/ui/fac/%d", fac.FacID)) }
-										class="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+										class="text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 font-medium transition-colors">
 										{ fac.FacName }
 									</a>
 								</td>
 								<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(fac.Country) }>
 									@CountryFlag(fac.Country)
 								</td>
-								<td class="px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400" data-sort-value={ strings.ToLower(fac.City) }>
+								<td class="px-3 py-1.5 hidden md:table-cell text-neutral-600 dark:text-neutral-400" data-sort-value={ strings.ToLower(fac.City) }>
 									{ fac.City }
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetA) }>
 									if fac.NetA != nil {
 										{ fmt.Sprintf("AS%d", fac.NetA.LocalASN) }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 								<td class="px-3 py-1.5 hidden md:table-cell font-mono" data-sort-value={ facASNSortValue(fac.NetB) }>
 									if fac.NetB != nil {
 										{ fmt.Sprintf("AS%d", fac.NetB.LocalASN) }
 									} else {
-										<span class="text-neutral-500">---</span>
+										<span class="text-neutral-600 dark:text-neutral-400">---</span>
 									}
 								</td>
 							</tr>
@@ -405,30 +405,30 @@ templ compareCampusesSection(data CompareData) {
 	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
 			<span class="font-medium text-neutral-900 dark:text-neutral-100">Campuses</span>
-			<span class="text-neutral-500 text-sm font-mono">{ fmt.Sprintf("(%d)", len(data.SharedCampuses)) }</span>
+			<span class="text-neutral-600 dark:text-neutral-400 text-sm font-mono">{ fmt.Sprintf("(%d)", len(data.SharedCampuses)) }</span>
 		</div>
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left sortable">
 				<caption class="sr-only">Campus presence of both networks</caption>
 				<thead>
-					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
+					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
 						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Campus Name</th>
 						<th scope="col" class="px-3 py-2 w-20 text-center" data-sortable data-sort-col="1" data-sort-type="numeric">Shared</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					if len(data.SharedCampuses) == 0 {
-						<tr><td colspan="2" class="px-4 py-3 text-neutral-500 text-sm">No shared campuses found.</td></tr>
+						<tr><td colspan="2" class="px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm">No shared campuses found.</td></tr>
 					}
 					for _, campus := range data.SharedCampuses {
 						<tr class="hover:bg-neutral-100 dark:hover:bg-neutral-800/50 even:bg-neutral-50/50 dark:even:bg-neutral-800/30">
 							<td class="px-3 py-1.5" data-sort-value={ strings.ToLower(campus.CampusName) }>
 								<a href={ templ.SafeURL(fmt.Sprintf("/ui/campus/%d", campus.CampusID)) }
-									class="text-rose-400 hover:text-rose-300 font-medium transition-colors">
+									class="text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 font-medium transition-colors">
 									{ campus.CampusName }
 								</a>
 							</td>
-							<td class="px-3 py-1.5 text-center font-mono text-neutral-400" data-sort-value={ fmt.Sprintf("%d", len(campus.SharedFacilities)) }>
+							<td class="px-3 py-1.5 text-center font-mono text-neutral-600 dark:text-neutral-400" data-sort-value={ fmt.Sprintf("%d", len(campus.SharedFacilities)) }>
 								{ fmt.Sprintf("%d", len(campus.SharedFacilities)) }
 							</td>
 						</tr>

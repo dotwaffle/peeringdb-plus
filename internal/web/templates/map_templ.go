@@ -308,12 +308,12 @@ func MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, show
 			}
 			if unmapped > 0 {
 				if unmapped == 1 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">1 facility not shown (no location data)</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<p class=\"text-xs text-neutral-600 dark:text-neutral-400 mt-2\">1 facility not shown (no location data)</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"text-xs text-neutral-500 dark:text-neutral-400 mt-2\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<p class=\"text-xs text-neutral-600 dark:text-neutral-400 mt-2\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

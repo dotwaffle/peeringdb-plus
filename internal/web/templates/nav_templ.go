@@ -55,7 +55,7 @@ func darkModeToggle(extraClasses string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		var templ_7745c5c3_Var2 = []any{"dark-mode-toggle text-neutral-500 dark:text-neutral-300 hover:text-emerald-400 transition-colors " + extraClasses}
+		var templ_7745c5c3_Var2 = []any{"dark-mode-toggle text-neutral-600 dark:text-neutral-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors " + extraClasses}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -102,7 +102,7 @@ func Nav() templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<nav role=\"navigation\" aria-label=\"Main navigation\" class=\"bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700\"><div class=\"container mx-auto px-4 flex items-center justify-between h-16\"><a href=\"/ui/\" class=\"text-emerald-600 dark:text-emerald-500 font-bold text-xl font-mono\">PeeringDB Plus</a><div class=\"hidden md:flex items-center gap-4\"><div class=\"flex items-center space-x-6\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<nav role=\"navigation\" aria-label=\"Main navigation\" class=\"bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700\"><div class=\"container mx-auto px-4 flex items-center justify-between h-16\"><a href=\"/ui/\" class=\"text-emerald-700 dark:text-emerald-500 font-bold text-xl font-mono\">PeeringDB Plus</a><div class=\"hidden md:flex items-center gap-4\"><div class=\"flex items-center space-x-6\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -143,7 +143,7 @@ func Nav() templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " class=\"text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " class=\"text-neutral-600 dark:text-neutral-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -169,7 +169,7 @@ func Nav() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><button class=\"md:hidden text-neutral-500 dark:text-neutral-300 hover:text-emerald-400\" aria-expanded=\"false\" aria-controls=\"mobile-menu\" aria-label=\"Toggle navigation menu\"><svg class=\"w-6 h-6\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div><div id=\"mobile-menu\" class=\"hidden md:hidden pb-4 space-y-2 px-4 bg-white dark:bg-neutral-800\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><button class=\"md:hidden text-neutral-600 dark:text-neutral-300 hover:text-emerald-800 dark:hover:text-emerald-400\" aria-expanded=\"false\" aria-controls=\"mobile-menu\" aria-label=\"Toggle navigation menu\"><svg class=\"w-6 h-6\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div><div id=\"mobile-menu\" class=\"hidden md:hidden pb-4 space-y-2 px-4 bg-white dark:bg-neutral-800\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -210,7 +210,7 @@ func Nav() templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " class=\"block text-neutral-600 dark:text-neutral-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors py-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " class=\"block text-neutral-600 dark:text-neutral-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors py-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

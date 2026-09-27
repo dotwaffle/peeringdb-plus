@@ -126,7 +126,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 				<div class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 					<form id="spotlight-form">
 						<div class="relative">
-							<svg class="absolute left-4 top-3.5 h-5 w-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="absolute left-4 top-3.5 h-5 w-5 text-neutral-600 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
 							</svg>
 							<input
@@ -134,7 +134,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 								type="search"
 								name="q"
 								placeholder="Search networks, IXPs, facilities..."
-								class="w-full bg-transparent pl-12 pr-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none font-mono text-lg"
+								class="w-full bg-transparent pl-12 pr-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none font-mono text-lg"
 								hx-get="/ui/search"
 								hx-trigger="input changed delay:300ms"
 								hx-target="#spotlight-results"
@@ -143,7 +143,7 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 								hx-vals='{"spotlight":"1"}'
 								autocomplete="off"
 							/>
-							<kbd class="absolute right-4 top-3.5 hidden sm:inline-flex items-center px-1.5 py-0.5 text-xs font-mono text-neutral-400 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">esc</kbd>
+							<kbd class="absolute right-4 top-3.5 hidden sm:inline-flex items-center px-1.5 py-0.5 text-xs font-mono text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">esc</kbd>
 						</div>
 					</form>
 					<div id="spotlight-results" class="max-h-[60vh] overflow-y-auto border-t border-neutral-200 dark:border-neutral-700 empty:border-0"></div>

@@ -32,7 +32,7 @@ func Home(query string, groups []SearchGroup) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto text-center py-12\"><h1 class=\"text-4xl font-bold text-emerald-500 font-mono mb-4\">PeeringDB Plus</h1><p class=\"text-neutral-500 dark:text-neutral-400 text-lg mb-8\">A fast, read-only mirror of PeeringDB data. Search networks, IXPs, facilities, and more.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto text-center py-12\"><h1 class=\"text-4xl font-bold text-emerald-700 dark:text-emerald-500 font-mono mb-4\">PeeringDB Plus</h1><p class=\"text-neutral-600 dark:text-neutral-400 text-lg mb-8\">A fast, read-only mirror of PeeringDB data. Search networks, IXPs, facilities, and more.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -114,20 +114,20 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block\"><h3 class=\"text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(c.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 45, Col: 75}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 45, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</h3><p class=\"text-neutral-600 dark:text-neutral-400 text-sm\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -145,20 +145,20 @@ func apiSurfaceCards(cards []surfaceCard) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 block\"><h3 class=\"text-emerald-400 font-mono font-bold text-lg mb-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 block\"><h3 class=\"text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 50, Col: 75}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `home.templ`, Line: 50, Col: 97}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</h3><p class=\"text-neutral-500 dark:text-neutral-400 text-sm\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</h3><p class=\"text-neutral-600 dark:text-neutral-400 text-sm\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -217,7 +217,7 @@ func SearchForm(query string, groups []SearchGroup) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" placeholder=\"Search networks, IXPs, facilities...\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\" hx-get=\"/ui/search\" hx-trigger=\"input changed delay:300ms\" hx-target=\"#search-results\" hx-sync=\"this:replace\" hx-indicator=\"#search-indicator\" hx-push-url=\"true\" autocomplete=\"off\" autofocus><div id=\"search-indicator\" class=\"htmx-indicator absolute right-3 top-3.5\"><svg class=\"animate-spin h-5 w-5 text-emerald-500\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\"><circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle> <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\"></path></svg></div></div></form><style>\n\t\t.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; }\n\t\t.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; transition-delay: 0ms; }\n\t</style><div id=\"search-results\" class=\"mt-6 text-left\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" placeholder=\"Search networks, IXPs, facilities...\" class=\"w-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-lg px-4 py-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono\" hx-get=\"/ui/search\" hx-trigger=\"input changed delay:300ms\" hx-target=\"#search-results\" hx-sync=\"this:replace\" hx-indicator=\"#search-indicator\" hx-push-url=\"true\" autocomplete=\"off\" autofocus><div id=\"search-indicator\" class=\"htmx-indicator absolute right-3 top-3.5\"><svg class=\"animate-spin h-5 w-5 text-emerald-700 dark:text-emerald-500\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\"><circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle> <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\"></path></svg></div></div></form><style>\n\t\t.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in 150ms; }\n\t\t.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; transition-delay: 0ms; }\n\t</style><div id=\"search-results\" class=\"mt-6 text-left\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

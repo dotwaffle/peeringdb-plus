@@ -77,12 +77,12 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-emerald-500 text-emerald-500 hover:bg-emerald-500/10 dark:border-emerald-400 dark:text-emerald-400 transition-colors\">Compare with&hellip;</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-emerald-500 text-emerald-700 hover:bg-emerald-500/10 dark:border-emerald-400 dark:text-emerald-400 transition-colors\">Compare with&hellip;</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.OrgID > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"py-1\"><span class=\"text-neutral-500 text-sm\">Organization</span><div><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"py-1\"><span class=\"text-neutral-600 dark:text-neutral-400 text-sm\">Organization</span><div><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -95,7 +95,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"text-emerald-400 hover:text-emerald-300 transition-colors\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -175,7 +175,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.InfoPrefixes4 > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"text-sm\"><span class=\"text-neutral-500\">IPv4 Prefixes:</span> <span class=\"text-neutral-900 dark:text-neutral-100 font-mono ml-1\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"text-sm\"><span class=\"text-neutral-600 dark:text-neutral-400\">IPv4 Prefixes:</span> <span class=\"text-neutral-900 dark:text-neutral-100 font-mono ml-1\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -194,7 +194,7 @@ func NetworkDetailPage(data NetworkDetail) templ.Component {
 				}
 			}
 			if data.InfoPrefixes6 > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"text-sm\"><span class=\"text-neutral-500\">IPv6 Prefixes:</span> <span class=\"text-neutral-900 dark:text-neutral-100 font-mono ml-1\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"text-sm\"><span class=\"text-neutral-600 dark:text-neutral-400\">IPv6 Prefixes:</span> <span class=\"text-neutral-900 dark:text-neutral-100 font-mono ml-1\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -296,24 +296,24 @@ func boolIndicator(label string, value bool) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if value {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<span class=\"text-emerald-400\">&#10003;</span> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<span class=\"text-emerald-700 dark:text-emerald-400\">&#10003;</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"text-neutral-500\">&mdash;</span> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"text-neutral-600 dark:text-neutral-400\">&mdash;</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<span class=\"text-neutral-400\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<span class=\"text-neutral-600 dark:text-neutral-400\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 91, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `detail_net.templ`, Line: 91, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -408,12 +408,12 @@ func NetworkIXLansList(rows []NetworkIXLanRow, moreURL string) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(rows) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<div class=\"px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm\">No IX presences found.</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<div class=\"px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm\">No IX presences found.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Exchange connections of this network</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\" data-sort-default=\"asc\">IX Name</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\" data-sortable data-sort-col=\"1\" data-sort-type=\"numeric\">Speed</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">IPv4</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">IPv6</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">RS</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Exchange connections of this network</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\" data-sort-default=\"asc\">IX Name</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\" data-sortable data-sort-col=\"1\" data-sort-type=\"numeric\">Speed</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">IPv4</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">IPv6</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">RS</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -482,7 +482,7 @@ func NetworkIXLansRows(rows []NetworkIXLanRow, moreURL string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" class=\"text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" class=\"text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-800 dark:hover:text-sky-400 transition-colors\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -576,7 +576,7 @@ func NetworkIXLansRows(rows []NetworkIXLanRow, moreURL string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if row.IsRSPeer {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<span class=\"text-xs text-emerald-400 border border-emerald-400/30 rounded px-1.5 py-0.5 font-mono\">RS</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<span class=\"text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-400/30 rounded px-1.5 py-0.5 font-mono\">RS</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -620,12 +620,12 @@ func NetworkFacilitiesList(rows []NetworkFacRow, moreURL string) templ.Component
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(rows) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div class=\"px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm\">No facility presences found.</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div class=\"px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm\">No facility presences found.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Facilities of this network</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\">Name</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\" data-sortable data-sort-col=\"1\" data-sort-type=\"alpha\">City</th><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"2\" data-sort-type=\"alpha\" data-sort-default=\"asc\">Country</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Facilities of this network</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\">Name</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\" data-sortable data-sort-col=\"1\" data-sort-type=\"alpha\">City</th><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"2\" data-sort-type=\"alpha\" data-sort-default=\"asc\">Country</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -694,7 +694,7 @@ func NetworkFacilitiesRows(rows []NetworkFacRow, moreURL string) templ.Component
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "\" class=\"text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-400 transition-colors\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "\" class=\"text-neutral-900 dark:text-neutral-100 font-medium hover:text-sky-800 dark:hover:text-sky-400 transition-colors\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -707,7 +707,7 @@ func NetworkFacilitiesRows(rows []NetworkFacRow, moreURL string) templ.Component
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</a></td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400\" data-sort-value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</a></td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-600 dark:text-neutral-400\" data-sort-value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -793,12 +793,12 @@ func NetworkContactsList(rows []ContactRow, moreURL string) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if len(rows) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<div class=\"px-4 py-3 text-neutral-500 dark:text-neutral-500 text-sm\">No contacts found.</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<div class=\"px-4 py-3 text-neutral-600 dark:text-neutral-400 text-sm\">No contacts found.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Contacts of this network</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\">Name</th><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"1\" data-sort-type=\"alpha\" data-sort-default=\"asc\">Role</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">Email</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">Phone</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<div class=\"overflow-x-auto\"><table class=\"w-full text-sm text-left sortable\"><caption class=\"sr-only\">Contacts of this network</caption> <thead><tr class=\"bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700\"><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"0\" data-sort-type=\"alpha\">Name</th><th scope=\"col\" class=\"px-3 py-2\" data-sortable data-sort-col=\"1\" data-sort-type=\"alpha\" data-sort-default=\"asc\">Role</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">Email</th><th scope=\"col\" class=\"px-3 py-2 hidden md:table-cell\">Phone</th></tr></thead> <tbody class=\"divide-y divide-neutral-200/50 dark:divide-neutral-700/50\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -867,7 +867,7 @@ func NetworkContactsRows(rows []ContactRow, moreURL string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "</td><td class=\"px-3 py-1.5 font-mono text-xs text-neutral-500 dark:text-neutral-400\" data-sort-value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "</td><td class=\"px-3 py-1.5 font-mono text-xs text-neutral-600 dark:text-neutral-400\" data-sort-value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -893,7 +893,7 @@ func NetworkContactsRows(rows []ContactRow, moreURL string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "</td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-600 dark:text-neutral-400\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -906,7 +906,7 @@ func NetworkContactsRows(rows []ContactRow, moreURL string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-500 dark:text-neutral-400\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</td><td class=\"px-3 py-1.5 hidden md:table-cell text-neutral-600 dark:text-neutral-400\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
