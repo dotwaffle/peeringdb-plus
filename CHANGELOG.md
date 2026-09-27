@@ -8,6 +8,39 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-09-27
+
+### Added
+
+- `/.well-known/security.txt` (RFC 9116).
+  `Contact` is the private vulnerability report form of the GitHub repository.
+- `/.well-known/api-catalog` (RFC 9727): a linkset with the root, description and documentation of `/api/`, `/rest/v1/`, `/graphql` and `/mcp`.
+  UI responses send the discovery `Link` header too.
+- `POST /csp-report` receives the CSP violation reports of the `/ui/` and `/graphql` pages.
+  Both policies name it in `report-uri` and `report-to`, and the pages send `Reporting-Endpoints`.
+  The counter `pdbplus.csp.reports` counts the reports by directive, and a rate-limited WARN `csp violation` logs them without URL queries.
+- Every response sends a `Permissions-Policy` header.
+- `robots.txt` names 15 AI crawlers in a second group with the same rules.
+
+### Changed
+
+- Web UI accessibility: text contrast of 4.5:1 or more in both themes, copy and sort buttons and search results that a keyboard reaches, the spotlight search as a modal `<dialog>`, section titles as headings, larger navigation buttons, focus outlines that forced-colors mode keeps, screen reader announcements for search, copy and load results, table captions and header scopes, and `prefers-reduced-motion`.
+- The full compare view labels a row that only one network has with `AS<n> only`, instead of dimming it.
+- The UI CSP also sets `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` and `form-action 'self'`.
+- flag-icons is served from the embedded static files, not from a CDN.
+- Static files have versioned URLs (`?v=<content hash>`), a weak content ETag and a one-year immutable cache for the current version.
+- An invalid ASN in a UI URL returns a 400 page (text for terminal clients, a problem document for JSON clients), not a 404.
+- `/ui` and UI paths with a trailing slash redirect with `308`.
+- A compare form submit redirects on the server (`303`), so the form works without JavaScript.
+  Without JavaScript, the lazy detail sections link to their rows.
+- The pre-sync `503` sends `Retry-After: 10`.
+- The htmx and map scripts load with `defer`.
+- `go generate ./...` runs templ before Tailwind, so a class change converges in one run.
+
+### Fixed
+
+- The agent documents no longer replace the `Vary` header that the compression middleware sets, and their ETag is weak, so it is valid for gzip and identity bodies.
+
 ## [1.40.0] - 2026-09-27
 
 ### Added
@@ -1507,7 +1540,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.40.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.41.0...HEAD
+[1.41.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.40.0...v1.41.0
 [1.40.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.39.0...v1.40.0
 [1.39.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.38.0...v1.39.0
 [1.38.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...v1.38.0
