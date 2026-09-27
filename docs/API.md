@@ -182,7 +182,7 @@ For machine-readable output, use one of the structured API surfaces (`/api/`, `/
 | `GET /ui/campus/{id}` | Campus detail |
 | `GET /ui/carrier/{id}` | Carrier detail |
 | `GET /ui/about` | Application version, optional serving region, privacy mode, and sync freshness. The region row is omitted outside environments that provide one. Opted out of response caching in `middleware.NewCachingState` because it renders relative time (e.g. "5 minutes ago") |
-| `GET /ui/compare` | ASN comparison form. `?asn1=` and `?asn2=` pre-fill the form |
+| `GET /ui/compare` | ASN comparison form. `?asn1=` and `?asn2=` pre-fill the form. When both are valid ASNs, as in a form submit, the response is a `303` redirect to `/ui/compare/{asn1}/{asn2}` |
 | `GET /ui/compare/{asn1}` | Pre-fills the form with `asn1`, awaits `asn2` |
 | `GET /ui/compare/{asn1}/{asn2}` | Comparison results. `?view=shared` (default) shows only IXPs/facilities/campuses where both networks are present; `?view=full` shows the union with shared-flag highlighting. Any other `view` value falls back to the shared view. |
 | `GET /ui/completions/bash` | Installable bash completion script |

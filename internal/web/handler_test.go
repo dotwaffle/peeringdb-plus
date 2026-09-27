@@ -654,6 +654,41 @@ func TestCompareFormPage(t *testing.T) {
 	}
 }
 
+// TestCompareForm_SubmitRedirects checks that a submit of the compare
+// form, a GET with asn1 and asn2, redirects to the results path, so the
+// form works without JavaScript.
+func TestCompareForm_SubmitRedirects(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	tests := []struct {
+		query, location string
+	}{
+		{"asn1=13335&asn2=15169", "/ui/compare/13335/15169"},
+		{"asn1=0013335&asn2=15169", "/ui/compare/13335/15169"},
+		{"asn1=13335&asn2=", ""},
+		{"asn1=13335&asn2=abc", ""},
+		{"asn1=0&asn2=15169", ""},
+		{"asn1=13335&asn2=4294967296", ""},
+	}
+	for _, tt := range tests {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/ui/compare?"+tt.query, nil))
+		if tt.location == "" {
+			if rec.Code != http.StatusOK {
+				t.Errorf("%s: status = %d, want 200 (the form)", tt.query, rec.Code)
+			}
+			continue
+		}
+		if rec.Code != http.StatusSeeOther {
+			t.Errorf("%s: status = %d, want 303", tt.query, rec.Code)
+		}
+		if got := rec.Header().Get("Location"); got != tt.location {
+			t.Errorf("%s: Location = %q, want %q", tt.query, got, tt.location)
+		}
+	}
+}
+
 func TestCompareFormPagePreFilled(t *testing.T) {
 	t.Parallel()
 	mux := setupCompareMux(t)

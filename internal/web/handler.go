@@ -445,10 +445,19 @@ func convertToSearchGroups(results []TypeResult) []templates.SearchGroup {
 }
 
 // handleCompareForm renders the empty comparison form, optionally pre-filling
-// ASN values from query parameters.
+// ASN values from query parameters. When both parameters are valid ASNs,
+// which is what a submit of the form sends, it redirects with 303 to the
+// results path /ui/compare/{asn1}/{asn2}, so the form works without
+// JavaScript.
 func (h *Handler) handleCompareForm(w http.ResponseWriter, r *http.Request) {
 	asn1 := r.URL.Query().Get("asn1")
 	asn2 := r.URL.Query().Get("asn2")
+	a1, ok1 := parseASN(asn1)
+	a2, ok2 := parseASN(asn2)
+	if ok1 && ok2 {
+		http.Redirect(w, r, fmt.Sprintf("/ui/compare/%d/%d", a1, a2), http.StatusSeeOther) //nolint:gosec // G710: a fixed path with two integers
+		return
+	}
 	page := PageContent{
 		Title:       "Compare Networks",
 		Description: "Compare two networks' shared IXPs, facilities, and campuses on PeeringDB Plus.",

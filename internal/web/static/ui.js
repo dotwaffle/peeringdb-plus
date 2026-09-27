@@ -63,19 +63,6 @@
 	});
 })();
 
-// Compare form: rewrite the GET query-string submit into the canonical
-// /ui/compare/{asn1}/{asn2} path form.
-(function () {
-	document.addEventListener('submit', function (e) {
-		var form = e.target.closest('#compare-form');
-		if (!form) return;
-		e.preventDefault();
-		var a1 = document.getElementById('compare-asn1').value;
-		var a2 = document.getElementById('compare-asn2').value;
-		if (a1 && a2) { window.location.href = '/ui/compare/' + a1 + '/' + a2; }
-	});
-})();
-
 // Copy-to-clipboard for IP addresses. Elements carry data-copy with the
 // text; the enclosing [data-copy-group] contains the .copied-msg status
 // region, which shows the result for a second, and screen readers
