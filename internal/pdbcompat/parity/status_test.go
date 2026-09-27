@@ -1186,6 +1186,35 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
+	t.Run("DIVERGENCE_invalid_credentials_ignored", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream PDBPermissionMiddleware checks the
+		// Authorization header of every request before any view (2.83.0
+		// middleware.py:228-346). An "Api-Key <key>" header (drf-api-key
+		// 3.1.0 KeyParser: the first word, any case) with a key that is
+		// unknown gets 401 "Invalid API key", a revoked or inactive key
+		// 401 "Inactive API key". A "Basic" header gets 401 "Invalid
+		// username or password" or "Inactive account", or 400 "Corrupt
+		// base64 input." or "Invalid Input." when it does not decode to
+		// "<user>:<password>". The mirror has no user or key data and
+		// ignores the header. See docs/API.md § Known Divergences.
+		c := testutil.SetupClient(t)
+		seedNet(t, c, 1, 64501, "ok", t0)
+		srv := newTestServer(t, c)
+		for _, auth := range []string{
+			"Api-Key not-a-key",
+			"api-key x",
+			"Basic dTpw",
+			"Basic !!!",
+			"Basic dQ==",
+		} {
+			code, _, body := httpDo(t, srv, http.MethodGet, "/api/net/1", http.Header{"Authorization": {auth}})
+			if code != http.StatusOK || len(decodeDataArray(t, body)) != 1 {
+				t.Errorf("GET /api/net/1 with Authorization %q: status = %d, body = %s; want 200 with the row", auth, code, body)
+			}
+		}
+	})
+
 	t.Run("org_users_routes_like_upstream", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 rest.py:2089-2108 route the organization

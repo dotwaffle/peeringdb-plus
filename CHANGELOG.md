@@ -27,6 +27,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 - The `301` from `/api` to `/api/` quotes the query string as upstream (Django `iri_to_uri`) does: for example, `"` becomes `%22`.
   Before, pdbcompat copied the raw query string into `Location`.
+- `docs/API.md` § Known Divergences now lists an `/api/` request with credentials that upstream rejects, for example `Authorization: Api-Key <unknown key>`: upstream returns `401` `Invalid API key` (or `400`/`401` for a bad `Basic` header), and pdbcompat ignores the header.
+  Behavior is unchanged.
 
 ## [1.38.0] - 2026-09-27
 
