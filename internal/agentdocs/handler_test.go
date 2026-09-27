@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -108,7 +109,7 @@ func TestHandlerServesRawSkill(t *testing.T) {
 	}
 
 	sum := sha256.Sum256(skillDocument)
-	wantETag := fmt.Sprintf(`"%x"`, sum)
+	wantETag := fmt.Sprintf(`W/"%x"`, sum)
 	if got := get.Header().Get("ETag"); got != wantETag {
 		t.Errorf("ETag = %q, want %q", got, wantETag)
 	}
@@ -416,7 +417,7 @@ func TestHandlerArchiveContentsAndCaching(t *testing.T) {
 	}
 
 	sum := sha256.Sum256(first.Body.Bytes())
-	wantETag := fmt.Sprintf(`"%x"`, sum)
+	wantETag := fmt.Sprintf(`W/"%x"`, sum)
 	if got := first.Header().Get("ETag"); got != wantETag {
 		t.Errorf("ETag = %q, want %q", got, wantETag)
 	}
@@ -583,8 +584,8 @@ func assertDocumentHeaders(
 	if got := headers.Get("Content-Disposition"); got != disposition {
 		t.Errorf("Content-Disposition = %q, want %q", got, disposition)
 	}
-	if got := headers.Get("Vary"); got != "X-Forwarded-Proto" {
-		t.Errorf("Vary = %q, want X-Forwarded-Proto", got)
+	if got := headers.Values("Vary"); !slices.Contains(got, "X-Forwarded-Proto") {
+		t.Errorf("Vary = %q, want X-Forwarded-Proto among them", got)
 	}
 	if got := headers.Get("Last-Modified"); got != testSourceTime.Format(http.TimeFormat) {
 		t.Errorf("Last-Modified = %q, want %q", got, testSourceTime.Format(http.TimeFormat))
@@ -606,4 +607,29 @@ func serveRequest(handler http.Handler, method string, target string) *httptest.
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 	return recorder
+}
+
+// TestServeDocument_KeepsEarlierVary checks that a document keeps the
+// Vary values that outer middleware set before the handler ran. The
+// compression middleware adds Accept-Encoding before it calls the
+// handler, and a cache that loses it can serve a gzip body to a client
+// that did not ask for one.
+func TestServeDocument_KeepsEarlierVary(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestHandler(t, Options{SourceTime: testSourceTime})
+	mux := http.NewServeMux()
+	handler.Register(mux)
+
+	request := httptest.NewRequest(http.MethodGet, "http://example.com"+SkillPath, nil)
+	recorder := httptest.NewRecorder()
+	recorder.Header().Add("Vary", "Accept-Encoding")
+	mux.ServeHTTP(recorder, request)
+
+	got := recorder.Header().Values("Vary")
+	for _, want := range []string{"Accept-Encoding", "X-Forwarded-Proto"} {
+		if !slices.Contains(got, want) {
+			t.Errorf("Vary = %q, want %s among them", got, want)
+		}
+	}
 }

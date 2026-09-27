@@ -315,8 +315,12 @@ func serveDocument(w http.ResponseWriter, r *http.Request, input serveDocumentIn
 	header.Set("Access-Control-Allow-Origin", "*")
 	header.Set("Content-Disposition", input.disposition)
 	header.Set("Content-Type", input.contentType)
-	header.Set("ETag", `"`+fmt.Sprintf("%x", sum)+`"`)
-	header.Set("Vary", "X-Forwarded-Proto")
+	// Weak: the compression middleware sends a gzip body under the same
+	// tag, and a strong tag promises byte-for-byte equal bodies.
+	header.Set("ETag", `W/"`+fmt.Sprintf("%x", sum)+`"`)
+	// Add, not Set: the compression middleware already added
+	// Vary: Accept-Encoding, and CORS may have added Origin.
+	header.Add("Vary", "X-Forwarded-Proto")
 
 	http.ServeContent(
 		w,
