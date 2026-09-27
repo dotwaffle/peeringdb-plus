@@ -27,6 +27,7 @@ func TestMiddleware_SecurityHeaders(t *testing.T) {
 		ReferrerPolicy:            "strict-origin-when-cross-origin",
 		CrossOriginOpenerPolicy:   "same-origin",
 		CrossOriginResourcePolicy: "same-origin",
+		PermissionsPolicy:         "camera=()",
 	})
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -79,6 +80,9 @@ func TestMiddleware_SecurityHeaders(t *testing.T) {
 			}
 			if got := rec.Header().Get("Cross-Origin-Resource-Policy"); got != "same-origin" {
 				t.Errorf("Cross-Origin-Resource-Policy header mismatch: got %q, want %q", got, "same-origin")
+			}
+			if got := rec.Header().Get("Permissions-Policy"); got != "camera=()" {
+				t.Errorf("Permissions-Policy header mismatch: got %q, want %q", got, "camera=()")
 			}
 		})
 	}

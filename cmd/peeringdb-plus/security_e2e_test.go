@@ -235,3 +235,36 @@ func TestSecurity_HSTSValueShape(t *testing.T) {
 		t.Errorf("HSTS = %q, want includeSubDomains directive", got)
 	}
 }
+
+// TestPermissionsPolicy checks the production Permissions-Policy value:
+// every directive has the "feature=(allowlist)" shape, clipboard-write
+// stays on for the same origin (static/ui.js copies IP addresses), and
+// the device features are off.
+func TestPermissionsPolicy(t *testing.T) {
+	t.Parallel()
+	seen := map[string]string{}
+	for d := range strings.SplitSeq(permissionsPolicy, ", ") {
+		feature, allow, ok := strings.Cut(d, "=")
+		if !ok || feature == "" || !strings.HasPrefix(allow, "(") || !strings.HasSuffix(allow, ")") {
+			t.Errorf("directive %q: want feature=(allowlist)", d)
+			continue
+		}
+		if _, dup := seen[feature]; dup {
+			t.Errorf("feature %q repeated", feature)
+		}
+		seen[feature] = allow
+	}
+	want := map[string]string{
+		"clipboard-write": "(self)",
+		"camera":          "()",
+		"microphone":      "()",
+		"geolocation":     "()",
+		"payment":         "()",
+		"usb":             "()",
+	}
+	for feature, allow := range want {
+		if seen[feature] != allow {
+			t.Errorf("%s = %q, want %q", feature, seen[feature], allow)
+		}
+	}
+}

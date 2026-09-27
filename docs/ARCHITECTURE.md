@@ -573,8 +573,10 @@ Outermost first:
    Sits between Logging and Readiness so even the Readiness 503 path carries the tier; downstream ent privacy policies and `privfield.Redact` callers consume it via `privctx.TierFrom(ctx)`.
 8. **Readiness**: returns 503 for all routes except `/sync`, `/healthz`, `/readyz`, `/`, `/favicon.ico`, `/static/*`, and `/grpc.health.v1.Health/*` until the first sync completes.
    Browser clients get a styled HTML syncing page; terminal clients get plain text; everything else gets JSON.
-9. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers on every response: `Strict-Transport-Security: max-age=31536000; includeSubDomains` (365 days), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Resource-Policy: same-origin`.
+9. **SecurityHeaders** (`internal/middleware/security.go`) sets these headers on every response: `Strict-Transport-Security: max-age=31536000; includeSubDomains` (365 days), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin` and `Permissions-Policy`.
    It sets `X-Frame-Options: DENY` only on browser paths: `/`, `/ui`, `/graphql`, and the paths below `/ui/` and `/graphql/`.
+   `Permissions-Policy` turns off the browser features that no page uses (camera, microphone, geolocation, payment, USB and others) and allows `clipboard-write` for the same origin, because the web UI copies IP addresses.
+   The entrest docs page at `/rest/v1/docs` sends its own `Permissions-Policy`, which replaces this one.
 10. **CSP** (`internal/middleware/csp.go`):
    different policies for `/ui/` and `/graphql`.
    Served as `Report-Only` by default; switched to enforcing via `PDBPLUS_CSP_ENFORCE=true`.

@@ -39,10 +39,17 @@ type SecurityHeadersInput struct {
 
 	// CrossOriginResourcePolicy sets Cross-Origin-Resource-Policy when non-empty.
 	CrossOriginResourcePolicy string
+
+	// PermissionsPolicy sets Permissions-Policy when non-empty. A
+	// handler that sets its own value (the entrest docs page) replaces
+	// it, because this middleware sets the header before the handler
+	// runs.
+	PermissionsPolicy string
 }
 
-// SecurityHeaders returns middleware that sets HSTS, X-Frame-Options, and
-// X-Content-Type-Options response headers. HSTS and XCTO apply to every
+// SecurityHeaders returns middleware that sets HSTS, X-Frame-Options,
+// X-Content-Type-Options, Referrer-Policy, the Cross-Origin policies and
+// Permissions-Policy. Every header except XFO applies to every
 // response; XFO is scoped to browser paths because JSON APIs and gRPC do
 // not render in frames.
 //
@@ -80,6 +87,9 @@ func SecurityHeaders(in SecurityHeadersInput) func(http.Handler) http.Handler {
 			}
 			if in.CrossOriginResourcePolicy != "" {
 				h.Set("Cross-Origin-Resource-Policy", in.CrossOriginResourcePolicy)
+			}
+			if in.PermissionsPolicy != "" {
+				h.Set("Permissions-Policy", in.PermissionsPolicy)
 			}
 			next.ServeHTTP(w, r)
 		})
