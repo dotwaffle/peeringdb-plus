@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -204,8 +205,14 @@ func pyIntValueError(s string) string {
 // the quote character, \t, \n, \r and every rune that Python does not
 // print are escaped.
 func pyRepr(s string) string {
+	return pyReprRunes([]rune(s))
+}
+
+// pyReprRunes is pyRepr for a str held as runes, which can hold a lone
+// surrogate.
+func pyReprRunes(s []rune) string {
 	quote := byte('\'')
-	if strings.ContainsRune(s, '\'') && !strings.ContainsRune(s, '"') {
+	if slices.Contains(s, '\'') && !slices.Contains(s, '"') {
 		quote = '"'
 	}
 	var b strings.Builder
