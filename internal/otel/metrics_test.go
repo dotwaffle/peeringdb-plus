@@ -39,6 +39,7 @@ func TestInstruments_BoundAtPackageInit(t *testing.T) {
 		{"SyncLockRetries", SyncLockRetries},
 		{"SyncHistoryRequests", SyncHistoryRequests},
 		{"PeeringDBRequests", PeeringDBRequests},
+		{"AssetLogoFetches", AssetLogoFetches},
 		{"PeeringDBRetries", PeeringDBRetries},
 		{"PeeringDBRateLimitWaitMS", PeeringDBRateLimitWaitMS},
 		{"RoleTransitions", RoleTransitions},

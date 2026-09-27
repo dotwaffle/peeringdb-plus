@@ -46,6 +46,10 @@ type Handler struct {
 	// no meta.generated.
 	syncClock *SyncClock
 
+	// logos reads the logo files of the asset route (SetLogoSource).
+	// nil sends file_data null.
+	logos *logoFetcher
+
 	// listDepthChunk is the number of rows that a list at depth > 0 of
 	// a type with reverse sets loads and renders at a time
 	// (defaultListDepthChunk). Tests set a smaller value.

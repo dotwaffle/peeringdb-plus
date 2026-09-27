@@ -33,6 +33,7 @@ import (
 	"connectrpc.com/grpcreflect"
 	"connectrpc.com/otelconnect"
 	"github.com/KimMachineGun/automemlimit/memlimit"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/migrate"
 	"github.com/dotwaffle/peeringdb-plus/ent/rest"
@@ -522,6 +523,7 @@ func main() {
 	// Readiness gating applies automatically (not in bypass list).
 	compatHandler := pdbcompat.NewHandler(entClient, cfg.ResponseMemoryLimit)
 	compatHandler.SetSyncClock(syncClock)
+	compatHandler.SetLogoSource(&http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}, pdbcompat.LogoMediaHost)
 	compatHandler.Register(mux)
 	logger.Info("PeeringDB compat API mounted", slog.String("prefix", "/api/"))
 

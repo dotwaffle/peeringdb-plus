@@ -100,6 +100,13 @@ var SyncHistoryRequests metric.Int64Counter
 // Cardinality: 5 values × 1 metric = 5 series (well under any concern).
 var PeeringDBRequests metric.Int64Counter
 
+// AssetLogoFetches counts the logo reads of pdbcompat /api/asset by
+// result ∈ {hit, miss, error, skipped}: hit = served from the cache,
+// miss = fetched from the media bucket, error = the fetch failed or was
+// backed off, skipped = the stored URL is not on the media host.
+// Cardinality: 4 series.
+var AssetLogoFetches metric.Int64Counter
+
 // PeeringDBRetries counts in-transport retries broken down by cause ∈
 // {429, 5xx, network_error}. The 429 axis catches
 // upstream rate-limit pressure that the limiter under-provisioned for;
@@ -186,6 +193,10 @@ func BindInstruments() {
 	PeeringDBRequests = mustInt64Counter("pdbplus.peeringdb.requests",
 		metric.WithDescription("Outbound HTTP requests to PeeringDB API, by status_class"),
 		metric.WithUnit("{request}"),
+	)
+	AssetLogoFetches = mustInt64Counter("pdbplus.asset.logo_fetches",
+		metric.WithDescription("Logo reads of /api/asset, by result"),
+		metric.WithUnit("{read}"),
 	)
 	PeeringDBRetries = mustInt64Counter("pdbplus.peeringdb.retries",
 		metric.WithDescription("In-transport PeeringDB request retries, by cause"),
