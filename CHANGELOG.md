@@ -8,6 +8,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-09-27
+
 ### Added
 
 - pdbcompat lists support `?page=` and `?per_page=` as upstream does: one page of up to 250 rows, `meta.pagination` with the `next` and `previous` links, and `404` `Invalid page.` for a page that does not exist.
@@ -1469,7 +1471,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.38.0...HEAD
+[1.38.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.37.0...v1.38.0
 [1.37.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.36.0...v1.37.0
 [1.36.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.2...v1.36.0
 [1.35.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.35.1...v1.35.2
