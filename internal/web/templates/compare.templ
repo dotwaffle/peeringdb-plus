@@ -114,7 +114,7 @@ templ viewToggleLink(href string, label string, active bool) {
 templ compareIXPsSection(data CompareData) {
 	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
-			<span class="font-medium text-neutral-900 dark:text-neutral-100">Internet Exchanges</span>
+			<h2 class="font-medium text-neutral-900 dark:text-neutral-100">Internet Exchanges</h2>
 			<span class="text-neutral-600 dark:text-neutral-400 text-sm font-mono">
 				if data.ViewMode == "full" {
 					{ fmt.Sprintf("(%d)", len(data.AllIXPs)) }
@@ -303,7 +303,7 @@ templ compareIXPsSection(data CompareData) {
 templ compareFacilitiesSection(data CompareData) {
 	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
-			<span class="font-medium text-neutral-900 dark:text-neutral-100">Facilities</span>
+			<h2 class="font-medium text-neutral-900 dark:text-neutral-100">Facilities</h2>
 			<span class="text-neutral-600 dark:text-neutral-400 text-sm font-mono">
 				if data.ViewMode == "full" {
 					{ fmt.Sprintf("(%d)", len(data.AllFacilities)) }
@@ -404,7 +404,7 @@ templ compareFacilitiesSection(data CompareData) {
 templ compareCampusesSection(data CompareData) {
 	<div class="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden">
 		<div class="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
-			<span class="font-medium text-neutral-900 dark:text-neutral-100">Campuses</span>
+			<h2 class="font-medium text-neutral-900 dark:text-neutral-100">Campuses</h2>
 			<span class="text-neutral-600 dark:text-neutral-400 text-sm font-mono">{ fmt.Sprintf("(%d)", len(data.SharedCampuses)) }</span>
 		</div>
 		<div class="overflow-x-auto">

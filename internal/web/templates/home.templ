@@ -42,12 +42,12 @@ templ apiSurfaceCards(cards []surfaceCard) {
 	for _, c := range cards {
 		if c.Href != "" {
 			<a href={ templ.SafeURL(c.Href) } class="bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 transition-colors block">
-				<h3 class="text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h3>
+				<h2 class="text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h2>
 				<p class="text-neutral-600 dark:text-neutral-400 text-sm">{ c.Desc }</p>
 			</a>
 		} else {
 			<div class="bg-neutral-100 dark:bg-neutral-800 rounded-lg p-6 border border-neutral-200 dark:border-neutral-700 block">
-				<h3 class="text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h3>
+				<h2 class="text-emerald-700 dark:text-emerald-400 font-mono font-bold text-lg mb-2">{ c.Title }</h2>
 				<p class="text-neutral-600 dark:text-neutral-400 text-sm">{ c.Desc }</p>
 			</div>
 		}

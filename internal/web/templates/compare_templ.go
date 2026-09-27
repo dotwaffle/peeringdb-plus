@@ -317,7 +317,7 @@ func compareIXPsSection(data CompareData) templ.Component {
 			templ_7745c5c3_Var14 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><div class=\"px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between\"><span class=\"font-medium text-neutral-900 dark:text-neutral-100\">Internet Exchanges</span> <span class=\"text-neutral-600 dark:text-neutral-400 text-sm font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><div class=\"px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between\"><h2 class=\"font-medium text-neutral-900 dark:text-neutral-100\">Internet Exchanges</h2><span class=\"text-neutral-600 dark:text-neutral-400 text-sm font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1101,7 +1101,7 @@ func compareFacilitiesSection(data CompareData) templ.Component {
 			templ_7745c5c3_Var59 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "<div class=\"bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><div class=\"px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between\"><span class=\"font-medium text-neutral-900 dark:text-neutral-100\">Facilities</span> <span class=\"text-neutral-600 dark:text-neutral-400 text-sm font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "<div class=\"bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><div class=\"px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between\"><h2 class=\"font-medium text-neutral-900 dark:text-neutral-100\">Facilities</h2><span class=\"text-neutral-600 dark:text-neutral-400 text-sm font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1553,7 +1553,7 @@ func compareCampusesSection(data CompareData) templ.Component {
 			templ_7745c5c3_Var88 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "<div class=\"bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><div class=\"px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between\"><span class=\"font-medium text-neutral-900 dark:text-neutral-100\">Campuses</span> <span class=\"text-neutral-600 dark:text-neutral-400 text-sm font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "<div class=\"bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\"><div class=\"px-4 py-3 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between\"><h2 class=\"font-medium text-neutral-900 dark:text-neutral-100\">Campuses</h2><span class=\"text-neutral-600 dark:text-neutral-400 text-sm font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

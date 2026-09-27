@@ -231,7 +231,7 @@ templ CollapsibleSection(title string, count int, bandwidth string, loadURL stri
 			<svg class="w-4 h-4 text-neutral-600 dark:text-neutral-400 transition-transform duration-200 group-open:rotate-90 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"></path>
 			</svg>
-			<span class="font-medium text-neutral-900 dark:text-neutral-100">{ title }</span>
+			<h2 class="font-medium text-neutral-900 dark:text-neutral-100">{ title }</h2>
 			if bandwidth != "" {
 				<span class="ml-auto text-neutral-600 dark:text-neutral-400 text-sm font-mono">{ fmt.Sprintf("(%d)", count) } &mdash; { bandwidth }</span>
 			} else {
