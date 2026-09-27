@@ -308,6 +308,10 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   Locked by `TestParity_Status/detail_applies_list_filters` and `TestParity_Status/detail_non_integer_id_404`.
 - Errors on `/api/` go through `writeError` (`internal/pdbcompat/response.go`): upstream `{"meta":{"error":...}}` by default, RFC 9457 only when `Accept` names `application/problem+json` (`httperr.WantsProblemJSON`).
   Never call `httperr.WriteProblem` from pdbcompat directly.
+- `/api/asset/<tag>/<id>/<type>` (`asset_logo.go`, `asset_write.go`) answers as upstream answers a caller without an API key: GET/HEAD the logo row, DELETE 404/403, POST/PUT the DRF parsers + `AssetWriteSerializer` checks, then 403 (never a write, never a request to upstream's API).
+  Field errors go through `apiError.Fields` (`writeFieldErrors`: top-level keys + `meta.error`, ASCII-escaped, messages in WTF-8 so a lone surrogate renders `\ud800` as upstream).
+  The Python ports it needs live in `pyjson.go` (`json.loads` with its messages, codecs, `pyB64Decode`); oracle: `testdata/asset_write_oracle.json` + `pyjson_corpus.json` (CPython 3.13.5, DRF 3.18.1; upstream runs 3.14).
+  `file_data` comes from `logoFetcher` (`logo_fetch.go`): https GET of the stored logo URL on `LogoMediaHost` only (SSRF guard, no redirects), 1 MiB cap, 16 MiB LRU, 5m failure backoff, singleflight; wired by `Handler.SetLogoSource` in `main.go` (unset = `file_data` null).
 - Upstream `urlpatterns` routes (2.83.0 `rest.py:2087-2122`) come before the router routes: `dispatch` AND `methodNotAllowed` resolve them first, before `parseAPIPath`.
   `/api/<tag>/self` (`self.go`) is unanchored (Django `re.search`), so `/api/ixfac/self` is the fac self path.
   `/api/org/<id>/users*` (`org_users.go`) answers as for an anonymous caller: `404` unless the org is `ok`, else `403`, never a write.

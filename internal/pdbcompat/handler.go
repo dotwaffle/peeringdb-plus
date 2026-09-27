@@ -46,6 +46,10 @@ type Handler struct {
 	// no meta.generated.
 	syncClock *SyncClock
 
+	// logos reads the logo files of the asset route (SetLogoSource).
+	// nil sends file_data null.
+	logos *logoFetcher
+
 	// listDepthChunk is the number of rows that a list at depth > 0 of
 	// a type with reverse sets loads and renders at a time
 	// (defaultListDepthChunk). Tests set a smaller value.
@@ -103,8 +107,9 @@ func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
 // paths of getOnly types get Allow: GET.
 //
 // A path that no route matches is a 404 for every method, as in
-// dispatch. The self, organization users and search routes answer
-// every method themselves (serveSelf, serveOrgUsers, serveSearch).
+// dispatch. The self, organization users, asset and search routes answer
+// every method themselves (serveSelf, serveOrgUsers, serveAsset,
+// serveSearch).
 // Content negotiation comes before the method check (negotiate).
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	if tag, ok := selfTag(r.PathValue("rest")); ok {
@@ -113,6 +118,10 @@ func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	}
 	if route, orgID, ok := matchOrgUsers(r.PathValue("rest")); ok {
 		h.serveOrgUsers(w, r, route, orgID)
+		return
+	}
+	if p, ok := matchAsset(r.PathValue("rest")); ok {
+		h.serveAsset(w, r, p)
 		return
 	}
 	if searchPath(r.PathValue("rest")) {
@@ -167,8 +176,8 @@ func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string)
 // dispatch routes requests under /api/ to index, list, or detail handlers
 // based on the URL path structure.
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
-	// The self, organization users and search routes come before the
-	// router routes upstream (rest.py:2087-2122). The self route matches
+	// The self, organization users, asset and search routes come before
+	// the router routes upstream (rest.py:2087-2122). The self route matches
 	// anywhere in the path (selfRoute).
 	if tag, ok := selfTag(r.PathValue("rest")); ok {
 		serveSelf(w, r, tag)
@@ -176,6 +185,10 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 	if route, orgID, ok := matchOrgUsers(r.PathValue("rest")); ok {
 		h.serveOrgUsers(w, r, route, orgID)
+		return
+	}
+	if p, ok := matchAsset(r.PathValue("rest")); ok {
+		h.serveAsset(w, r, p)
 		return
 	}
 	if searchPath(r.PathValue("rest")) {

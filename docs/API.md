@@ -337,6 +337,7 @@ See § Known Divergences.
 | `GET /api/{tag}/self` | `302` to the default object of `{tag}` (see § Self paths) |
 | `GET /api/search?q=<text>` | Search of 6 types by name, ASN or address (see § Search) |
 | `GET /api/org/{id}/users` and the `add`, `remove` and `{user_id}` paths below it | `403` or `404`, as upstream for a caller without an API key (see § Organization users paths) |
+| `GET /api/asset/{tag}/{id}/logo` | The logo of an object, and the upload and delete answers that upstream sends a caller without an API key (see § Asset paths) |
 
 A path with a `/` at the end, for example `/api/net/` or `/api/net/1/`, returns `404`, as upstream: no upstream route has it.
 `/api` without the `/` returns `301` with `Location: /api/` and the same query string, for every method, as upstream (Django `APPEND_SLASH`).
@@ -395,6 +396,52 @@ On the `add` path, the metadata also has `actions`: the user fields that upstrea
 Another method returns `405`.
 Every response has `Allow` with the method of the path and `OPTIONS` (`GET, HEAD, OPTIONS` on `/users`), as upstream.
 The path takes no format suffix, and `?format=` with a format other than `json` returns `404`.
+A caller with an API key also gets `403` (see § Known Divergences).
+
+#### Asset paths
+
+Upstream reads, uploads and deletes the logo of an object on `/api/asset/{tag}/{id}/{type}` (2.83.0 `rest.py:1426-1590`, `:2109-2119`, `serializers.py:5000-5294`).
+`{tag}` is `org`, `fac`, `net`, `ix`, `carrier` or `campus`, and `{type}` is `logo`.
+A `/` at the end is optional, and `{id}` can have decimal digits of any script, as in the upstream route.
+The path takes no format suffix.
+Every response has `Allow: GET, POST, PUT, DELETE, HEAD, OPTIONS`, as upstream.
+
+The mirror checks the path first, as upstream:
+
+1. A `{tag}` or `{type}` that is not in the list returns `400` with the field errors, for example `{"ref_tag": ["\"xx\" is not a valid choice."], "meta": {"error": "Bad Request"}}`.
+   The keys are `ref_tag`, `ref_id` and `asset_type`.
+   An `{id}` with more than 1000 characters gets `String value too large.`.
+2. An `{id}` that is not an object of the tag with the status `ok` returns `400` with `{"ref_id": ["<Model> with id <id> not found"]}`, for example `Network with id 5 not found`.
+
+Then the method decides the response:
+
+| Method | Response |
+|--------|----------|
+| `GET` | `200` with one row in `data`: `ref_tag`, `ref_id`, `asset_type`, `file_type` (`image/png` or `image/jpeg` from the end of the logo file name, else `null`), `file_data` (the file in base64, `null` when the object has no logo), `created` and `updated` |
+| `HEAD` | The `GET` status and headers, with no body |
+| `DELETE` | `404` `Asset does not exist` when the object has no logo, else `403` `No delete permissions to this entity` |
+| `POST`, `PUT` | `403` `No write permissions to this entity` when the body passes the checks below |
+| `OPTIONS` | `200` with the DRF metadata of the view, and the `POST` and `PUT` fields in `actions` |
+| Other | `405` |
+
+The mirror stores the URL of the logo, not the file.
+For `file_data`, it reads the file from the upstream media host (`peeringdb-media-prod.s3.amazonaws.com`) and keeps it in memory (16 MiB for all files).
+When the read fails, `file_data` is `null` (see § Known Divergences).
+The counter `pdbplus.asset.logo_fetches` records each read by `result` (`hit`, `miss`, `error` or `skipped`).
+
+A `POST` or `PUT` body goes through the upstream checks in this order:
+
+1. The body parser: JSON, form or multipart, chosen by `Content-Type` as DRF chooses it.
+   An empty body is an empty object.
+   Another media type returns `415` (`Unsupported media type "<type>" in request.`), and JSON that does not parse returns `400` with the Python message, for example `JSON parse error - Expecting value: line 1 column 1 (char 0)`.
+   JSON that is not an object returns `400` with `{"non_field_errors": ["Invalid data. Expected a dictionary, but got list."]}` (upstream: `500`, see § Known Divergences).
+2. The fields: the path fields, then `file_type` (`image/png` or `image/jpeg`) and `file_data` (a string).
+   An error returns `400` with the field errors.
+   A form or multipart body always fails here: upstream copies each form value as a list, so `file_type` is `"['image/png']" is not a valid choice.` and `file_data` is `Not a valid string.`.
+3. The object lookup, as for `GET`.
+4. The file: `file_data` must decode as Python `base64.b64decode` decodes it (`Invalid base64 encoded data`), must be a PNG or JPEG file (`Unsupported file type. Only PNG and JPEG are allowed`), must match `file_type` (`Declared file_type does not match actual file type. Expected: image/png`), and must be at most 51200 bytes (`File size too big, max. 50 kb`) and 75 pixels high (`Image height too large. Maximum allowed: 75 pixels`).
+5. `403` `No write permissions to this entity`.
+
 A caller with an API key also gets `403` (see § Known Divergences).
 
 #### Search
@@ -1334,12 +1381,13 @@ Typical status codes:
 
 | Status | Cause |
 |--------|-------|
-| `400` | An operator that the field type does not support (for example `created__contains`), a value that does not parse for the field type, a malformed `__in` value, a `since` or a FK id that is not an integer, a `limit`, `skip` or `depth` that is not an integer, a negative `skip`, a relation key of a `prepare_query` whose field the related model does not have (`Invalid query`, see § Relation filters), or an `as_set` ASN that is not an integer (`Invalid ASN`) |
-| `403` | An organization users path of an `ok` organization (`Invalid authentication`, see § Organization users paths), or a method other than `GET`, `HEAD`, `OPTIONS` and `TRACE` on `/api/search` (the CSRF check, see § Search) |
-| `404` | Unknown `{type}`, a path with a `/` at the end (`/api/net/`) or more segments, a format other than `json` (a path suffix or `?format=`), missing `{id}`, an `{id}` that is not an integer, detail GET on a tombstoned row, an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn`, a single-object GET whose filters exclude the object or that has a `limit` or `skip` above `0` (see § Filters on a single-object GET), or an `as_set` ASN that no network has (empty body) |
-| `405` | `HEAD` on the `as_set`, `ixlan` or `self` paths, a method other than `GET` and `HEAD` on a path that an upstream route matches, except `OPTIONS` on a `self` path and every method on `/api/search`, or a method other than the one of an organization users path and `OPTIONS`. The `Allow` header is `GET` on the `as_set` and `ixlan` paths, `GET, OPTIONS` on the `self` paths, the method of the path and `OPTIONS` on an organization users path, and `GET, HEAD` on every other path |
+| `400` | An operator that the field type does not support (for example `created__contains`), a value that does not parse for the field type, a malformed `__in` value, a `since` or a FK id that is not an integer, a `limit`, `skip` or `depth` that is not an integer, a negative `skip`, a relation key of a `prepare_query` whose field the related model does not have (`Invalid query`, see § Relation filters), an `as_set` ASN that is not an integer (`Invalid ASN`), or an asset path or body that fails a check (the field errors, see § Asset paths) |
+| `403` | An organization users path of an `ok` organization (`Invalid authentication`, see § Organization users paths), a method other than `GET`, `HEAD`, `OPTIONS` and `TRACE` on `/api/search` (the CSRF check, see § Search), or a `DELETE`, `POST` or `PUT` on an asset path that passes the checks (see § Asset paths) |
+| `404` | Unknown `{type}`, a path with a `/` at the end (`/api/net/`) or more segments, a format other than `json` (a path suffix or `?format=`), missing `{id}`, an `{id}` that is not an integer, detail GET on a tombstoned row, an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn`, a single-object GET whose filters exclude the object or that has a `limit` or `skip` above `0` (see § Filters on a single-object GET), an `as_set` ASN that no network has (empty body), or a `DELETE` on an asset path of an object with no logo |
+| `405` | `HEAD` on the `as_set`, `ixlan` or `self` paths, a method other than `GET` and `HEAD` on a path that an upstream route matches, except `OPTIONS` on a `self` path and every method on `/api/search`, or a method other than the one of an organization users path and `OPTIONS`. The `Allow` header is `GET` on the `as_set` and `ixlan` paths, `GET, OPTIONS` on the `self` paths, the method of the path and `OPTIONS` on an organization users path, `GET, POST, PUT, DELETE, HEAD, OPTIONS` on an asset path, and `GET, HEAD` on every other path |
 | `406` | An `Accept` header with no media range that matches `application/json`, for example `Accept: text/html` or an empty header, as upstream (DRF content negotiation). A parameter such as `q=0` does not count. A header that names `application/problem+json` gets no `406` (see § Known Divergences) |
-| `413` | The estimated response is larger than the response memory budget (see § Response memory budget) |
+| `413` | The estimated response is larger than the response memory budget (see § Response memory budget), or a request body larger than 1 MB |
+| `415` | A `POST` or `PUT` body on an asset path with a media type that no parser takes (see § Asset paths) |
 | `500` | Database error (details redacted from response body, full error logged) |
 | `503` | The in-flight response pool is full (transient, `Retry-After: 1`), or the first sync has not completed (see § Before the first sync) |
 
@@ -1349,6 +1397,7 @@ The message is the upstream text for these errors:
 - A single-object GET for an object that does not exist, that the detail status set or the caller's tier excludes, or that a filter excludes: `No <Model> matches the given query.`, with the upstream model name, for example `No Network matches the given query.` or `No NetworkContact matches the given query.`.
 - A single-object GET with a `limit` or `skip` above `0`, or with an `{id}` that is not an integer, and a format other than `json`: `Not found.`.
 - An organization users path: `No Organization matches the given query.` or `Invalid authentication`.
+- An asset path: the field errors, `Asset does not exist`, `No delete permissions to this entity` or `No write permissions to this entity` (see § Asset paths).
 - A method on `/api/search` that the CSRF check does not accept: the reason in `non_field_errors` (see § Search).
 - An `Accept` header that does not match `application/json`: `Could not satisfy the request Accept header.`.
 - A method that upstream does not map to a handler: `Method "PUT" not allowed.`, or `Method "HEAD" not allowed.` on the `as_set`, `ixlan` and `self` paths.
@@ -1794,6 +1843,11 @@ The shape of list responses at `?depth=1` and `2` also matches upstream.
 | `/api/{tag}/self` from a caller with an API key or a session, for example `/api/net/self` with `Authorization: Api-Key <key>` | Redirects to the object of the caller's primary organization: the organization itself for `org`, else its first `ok` object of the tag, and the default object when it has none (2.83.0 `rest.py:1617-1636`). | Redirects every caller to the default object of the tag (see § Self paths). | The mirror has no user or organization data, and it does not check API keys. Locked by `TestParity_Status/DIVERGENCE_self_redirects_keyed_caller_to_default`. | v1.39.0 (registered 2026-09-27) |
 | An organization users path (`/api/org/{id}/users` and the paths below it) from a caller with an API key, or more than one request per second | Lists the users of the organization for the key of an organization admin, or for an organization key with the users permission, and runs the add, change and remove actions (2.83.0 `rest.py:1726-1748`, `:1775-1972`). Another key gets `403` with another text. `OrganizationUsersThrottle` allows 1 request per second (`rest_throttles.py:598-611`) and answers more with `429`. | Returns `403` (`Invalid authentication`) for an `ok` organization, for every caller, with no rate limit (see § Organization users paths). | The mirror has no user data, does not check API keys and is read-only. Locked by `TestParity_Status/DIVERGENCE_org_users_keyed_caller_403`. | v1.39.0 (registered 2026-09-27) |
 | `OPTIONS` on `/api/org/{id}/users/{user_id}` when `{id}` is an organization with the status `ok` | Returns `500`. SimpleMetadata calls `get_object` for `PUT` (DRF `metadata.py:74-100`), which fails its assertion that the route has a `pk` argument (DRF `generics.py:79-96`, 2.83.0 `rest.py:1676-1694`). | Returns `200` with the metadata without `actions`, the body that upstream sends when the organization is not an `ok` row. | A server error gives the caller no information. Locked by `TestParity_Status/DIVERGENCE_org_users_options_change_route_200`. | v1.39.0 (registered 2026-09-27) |
+| `GET /api/asset/{tag}/{id}/logo` of an object whose `created` or `updated` has a fraction of a second | Renders the time with its microseconds, for example `2020-01-02T03:04:05.678901+00:00` (Python `isoformat`, 2.83.0 `renderers.py:35-36`). | Renders whole seconds, for example `2020-01-02T03:04:05+00:00`. | The upstream API sends whole seconds, so the mirror stores no fraction. Locked by `TestParity_Status/DIVERGENCE_asset_timestamps_whole_seconds`. | v1.40.0 (registered 2026-09-27) |
+| `POST`, `PUT` or `DELETE` on an asset path from a caller with an API key that has write permission on the object, or more than 2 such requests a minute | Stores or deletes the logo (2.83.0 `rest.py:1495-1590`). `WriteRateThrottle` allows 2 writes a minute per user or address (`rest_throttles.py:574-595`) and answers more with `429`. | Returns `403` for every request that passes the checks, with no rate limit (see § Asset paths). | The mirror is read-only, does not check API keys, and sends no request that changes upstream data. Locked by `TestParity_Status/DIVERGENCE_asset_writes_keyed_caller_403`. | v1.40.0 (registered 2026-09-27) |
+| `GET /api/asset/{tag}/{id}/logo` when the mirror cannot read the logo file | Reads the file from its own storage, and sends `file_data` `null` only when that read fails (2.83.0 `serializers.py:5277-5283`). | Reads the file from the upstream media host. `file_data` is `null` when the read fails, when the host answers with a status other than `200`, when the file is larger than 1 MiB, or when the logo URL names another host. After a failed read, the mirror waits 5 minutes before it reads that URL again. | The mirror stores the logo URL, not the file. Locked by `TestParity_Status/DIVERGENCE_asset_file_data_unreadable_null`. | v1.40.0 (registered 2026-09-27) |
+| A `POST` or `PUT` body on an asset path with a charset other than `utf-8`, `latin-1` or `ascii`, larger than 1 MB, or at the edge of a parser | Decodes the body with any charset that Python knows (Django 5.2 `http/request.py:152-163`) and accepts bodies up to 2.5 MB. The multipart parser decodes a `base64` transfer encoding and HTML entities in file names, and Pillow also identifies MPO files. | Reads another charset as `utf-8` and returns `413` for a body larger than 1 MB. It does not decode a multipart `base64` transfer encoding or HTML entities in file names. The order of `POST` and `PUT` in the `OPTIONS` body is fixed (upstream: the order of a Python set). | Every such body fails a field check or gets `403`, as upstream, so only the error text can differ. Locked by `TestParity_Status/DIVERGENCE_asset_body_other_charset_read_as_utf8`. | v1.40.0 (registered 2026-09-27) |
+| A `POST` or `PUT` body on an asset path with JSON that is not an object, for example `[1]`, or JSON nested deeper than 1000 levels | Returns `500`: `{**request.data}` raises `TypeError` for a value that is not a mapping (2.83.0 `rest.py:1506-1511`, `:1540-1545`), and the JSON decoder raises `RecursionError` for a deep document. | Returns `400`: `{"non_field_errors": ["Invalid data. Expected a dictionary, but got list."]}` (the DRF `Serializer` error for data that is not a dict, DRF `serializers.py:497-503`), or `JSON parse error - maximum recursion depth exceeded while decoding a JSON document`. | A request must not cause a server error: a `500` counts against the error-rate alerts. Locked by `TestParity_Status/DIVERGENCE_asset_non_object_json_400`. | v1.40.0 (registered 2026-09-27) |
 | An `/api/` request with an `Authorization` header that upstream rejects: `Api-Key <key>` with a key that is unknown, revoked or inactive, or `Basic` with a wrong user name or password, an inactive account, or a value that is not base64 of `<user>:<password>` | `PDBPermissionMiddleware` checks the header before any view (2.83.0 `middleware.py:228-346`). An unknown key returns `401` with `{"meta": {"error": "Invalid API key"}}`, a revoked or inactive key `401` `Inactive API key`. A `Basic` header returns `401` `Invalid username or password` or `Inactive account`, or `400` `Corrupt base64 input.` or `Invalid Input.`. | Ignores the header and answers as for a caller without credentials. The privacy tier comes from `PDBPLUS_PUBLIC_TIER`, not from the request. | The mirror has no user or key data. Locked by `TestParity_Status/DIVERGENCE_invalid_credentials_ignored`. | v1.39.0 (registered 2026-09-27) |
 | `/api/search` with an `Authorization` header of two words that upstream does not accept, for example `Api-Key <unknown key>`, or with the key of a user who hides exchanges without facilities | `PDBPermissionMiddleware` checks an API key before any view: an unknown key gets `401` with `{"meta": {"error": "Invalid API key"}}`, a revoked or inactive key `401` with `Inactive API key` (2.83.0 `middleware.py:229-346`). A user key applies the user's `hide_ixs_without_fac` setting to the `ix` hits (`search_v2.py:693-718`). | Runs the search for every header of two words (see § Search). | The mirror has no user accounts and does not check API keys. Locked by `TestParity_NameSearch/DIVERGENCE_api_search_key_not_checked`. | v1.39.0 (registered 2026-09-27) |
 | `/api/search` results: a location in `q` (`near <lat>,<lon>`, `near <place>`, `in <place>`), the order of the hits and the 1000-hit cap, and a digit value that Python `int()` rejects | Turns the location into a filter by distance (Google geocoding, or the search index for a place name, `views.py:3823-4098`), and with no text left returns up to 1000 rows near it. Keeps the first 1000 hits of the search index in score order over the 6 types (`settings/__init__.py:1516`, `search_v2.py:962-967`) and sorts each type by score, then by lower-case name (`search_v2.py:325-329`). The words match as the search index matches them (see the `name_search` row). A digit such as `²` raises `ValueError`, and the view answers `500` (`search_v2.py:385`, `:393`). | Removes the same location words and does not filter by location, so it returns more rows, and no row when no text is left. Keeps the first 1000 hits in lower-case name order over all types (SQLite `lower()` folds ASCII letters only) and sorts each type by name. Matches as `name_search` does. Returns `400` with `{"error": "invalid literal for int() with base 10: '²'"}`. | The mirror has no geocoder and no search index. The name order is a stable order that a client can predict. Locked by `TestParity_NameSearch/DIVERGENCE_api_search_location_words_dropped`, `TestParity_NameSearch/DIVERGENCE_api_search_name_order_and_cap` and `TestParity_NameSearch/DIVERGENCE_api_search_int_error_400`. | v1.39.0 (registered 2026-09-27) |

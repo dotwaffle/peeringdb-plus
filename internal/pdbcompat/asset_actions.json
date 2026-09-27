@@ -1,0 +1,104 @@
+{
+  "POST": {
+    "ref_tag": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "Ref tag",
+      "help_text": "Entity type the asset belongs to: org, fac, net, ix, carrier or campus"
+    },
+    "ref_id": {
+      "type": "integer",
+      "required": false,
+      "read_only": true,
+      "label": "Ref id",
+      "help_text": "Id of the entity the asset belongs to"
+    },
+    "asset_type": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "Asset type",
+      "help_text": "Type of asset. Only `logo` is currently supported"
+    },
+    "file_type": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "File type",
+      "help_text": "MIME type of the asset file"
+    },
+    "file_data": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "File data",
+      "help_text": "Base64 encoded contents of the asset file"
+    },
+    "created": {
+      "type": "datetime",
+      "required": false,
+      "read_only": true,
+      "label": "Created",
+      "help_text": "Time the entity this asset belongs to was created, not the time the asset was uploaded"
+    },
+    "updated": {
+      "type": "datetime",
+      "required": false,
+      "read_only": true,
+      "label": "Updated",
+      "help_text": "Time the entity this asset belongs to was last modified. Moves on any change to that entity, not only on a change to the asset"
+    }
+  },
+  "PUT": {
+    "ref_tag": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "Ref tag",
+      "help_text": "Entity type the asset belongs to: org, fac, net, ix, carrier or campus"
+    },
+    "ref_id": {
+      "type": "integer",
+      "required": false,
+      "read_only": true,
+      "label": "Ref id",
+      "help_text": "Id of the entity the asset belongs to"
+    },
+    "asset_type": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "Asset type",
+      "help_text": "Type of asset. Only `logo` is currently supported"
+    },
+    "file_type": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "File type",
+      "help_text": "MIME type of the asset file"
+    },
+    "file_data": {
+      "type": "string",
+      "required": false,
+      "read_only": true,
+      "label": "File data",
+      "help_text": "Base64 encoded contents of the asset file"
+    },
+    "created": {
+      "type": "datetime",
+      "required": false,
+      "read_only": true,
+      "label": "Created",
+      "help_text": "Time the entity this asset belongs to was created, not the time the asset was uploaded"
+    },
+    "updated": {
+      "type": "datetime",
+      "required": false,
+      "read_only": true,
+      "label": "Updated",
+      "help_text": "Time the entity this asset belongs to was last modified. Moves on any change to that entity, not only on a change to the asset"
+    }
+  }
+}

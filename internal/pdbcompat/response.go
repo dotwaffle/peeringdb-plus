@@ -3,9 +3,12 @@ package pdbcompat
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/httperr"
 )
@@ -63,6 +66,11 @@ type apiError struct {
 	EmptyData bool
 	// Meta holds more meta keys for the upstream form.
 	Meta map[string]any
+	// Fields holds the field errors of a DRF serializer. The upstream
+	// form puts each field at the top level of the body, in serializer
+	// field order, and meta.error is the reason phrase of Status
+	// (renderers.py:134-141). Detail is not used.
+	Fields []fieldError
 	// budget selects the WriteBudgetProblem body in problem+json mode.
 	budget *BudgetExceeded
 }
@@ -81,11 +89,19 @@ func writeError(w http.ResponseWriter, r *http.Request, e apiError) {
 			WriteBudgetProblem(w, r.URL.Path, *e.budget)
 			return
 		}
+		detail := e.Detail
+		if len(e.Fields) > 0 {
+			detail = fieldErrorsDetail(e.Fields)
+		}
 		httperr.WriteProblem(w, httperr.WriteProblemInput{
 			Status:   e.Status,
-			Detail:   e.Detail,
+			Detail:   detail,
 			Instance: r.URL.Path,
 		})
+		return
+	}
+	if len(e.Fields) > 0 {
+		writeFieldErrors(w, e.Status, e.Fields)
 		return
 	}
 	httperr.WriteMetaError(w, httperr.MetaErrorInput{
@@ -94,6 +110,86 @@ func writeError(w http.ResponseWriter, r *http.Request, e apiError) {
 		Meta:      e.Meta,
 		EmptyData: e.EmptyData,
 	})
+}
+
+// fieldError is one field error of a DRF serializer. Message is WTF-8:
+// UTF-8 that can also hold a lone surrogate (wtf8String), which a JSON
+// value of the request can put in the text.
+type fieldError struct {
+	Field, Message string
+}
+
+// fieldErrorsDetail joins field errors as "<field>: <message>" for the
+// problem+json detail.
+func fieldErrorsDetail(errs []fieldError) string {
+	parts := make([]string, len(errs))
+	for i, e := range errs {
+		parts[i] = e.Field + ": " + string(wtf8Runes(e.Message))
+	}
+	return strings.Join(parts, "; ")
+}
+
+// writeFieldErrors writes the upstream body of DRF field errors:
+// {"<field>": ["<message>"], ..., "meta": {"error": "<reason>"}}. A
+// field with more than one error has one entry per error, in order.
+// Upstream writes every character that is not ASCII as an escape
+// (renderers.py:44-47, ensure_ascii), so the body does too.
+func writeFieldErrors(w http.ResponseWriter, status int, errs []fieldError) {
+	var b strings.Builder
+	b.WriteByte('{')
+	for i := 0; i < len(errs); {
+		j := i
+		for j < len(errs) && errs[j].Field == errs[i].Field {
+			j++
+		}
+		b.WriteString(pyJSONQuote(errs[i].Field, true))
+		b.WriteString(":[")
+		for k := i; k < j; k++ {
+			if k > i {
+				b.WriteByte(',')
+			}
+			b.WriteString(pyJSONQuoteRunes(wtf8Runes(errs[k].Message), true))
+		}
+		b.WriteString("],")
+		i = j
+	}
+	b.WriteString(`"meta":{"error":`)
+	b.WriteString(pyJSONQuote(http.StatusText(status), true))
+	b.WriteString("}}\n")
+	w.Header().Set("Content-Type", httperr.MetaJSONContentType)
+	w.WriteHeader(status)
+	_, _ = io.WriteString(w, b.String())
+}
+
+// wtf8String encodes rs as UTF-8, with a lone surrogate as its 3-byte
+// form (WTF-8), which utf8.EncodeRune would replace with U+FFFD.
+func wtf8String(rs []rune) string {
+	var b strings.Builder
+	for _, r := range rs {
+		if isSurrogate(r) {
+			u := uint16(r) //nolint:gosec // G115: a surrogate fits in 16 bits
+			b.Write([]byte{0xe0 | byte(u>>12), 0x80 | byte(u>>6)&0x3f, 0x80 | byte(u)&0x3f})
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// wtf8Runes decodes a wtf8String.
+func wtf8Runes(s string) []rune {
+	out := make([]rune, 0, len(s))
+	for len(s) > 0 {
+		if len(s) >= 3 && s[0] == 0xed && s[1] >= 0xa0 && s[1] <= 0xbf && s[2] >= 0x80 && s[2] <= 0xbf {
+			out = append(out, rune(s[0]&0x0f)<<12|rune(s[1]&0x3f)<<6|rune(s[2]&0x3f))
+			s = s[3:]
+			continue
+		}
+		r, n := utf8.DecodeRuneInString(s)
+		out = append(out, r)
+		s = s[n:]
+	}
+	return out
 }
 
 // Upstream error texts of the list parameters.

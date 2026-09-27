@@ -48,6 +48,20 @@ func newTestServerWithBudget(t testing.TB, c *ent.Client, budget int64) *httptes
 	return srv
 }
 
+// newTestServerWithLogos mirrors newTestServer but makes the asset
+// route read logo files from logoSrv, a TLS server that stands for the
+// upstream media host.
+func newTestServerWithLogos(t testing.TB, c *ent.Client, logoSrv *httptest.Server) *httptest.Server {
+	t.Helper()
+	h := pdbcompat.NewHandler(c, 0)
+	h.SetLogoSource(logoSrv.Client(), logoSrv.Listener.Addr().String())
+	mux := http.NewServeMux()
+	h.Register(mux)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
 // newTestServerWithTier mirrors newTestServer but stamps tier on each
 // request context, as middleware.PrivacyTier does in production from
 // PDBPLUS_PUBLIC_TIER. newTestServer leaves the context unstamped, which
