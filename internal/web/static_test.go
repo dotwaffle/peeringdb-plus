@@ -134,7 +134,8 @@ func TestTemplates_TablesLabeled(t *testing.T) {
 // contrast ratio: neutral 600 or darker and the accent colors 700 or
 // darker on the light backgrounds, and neutral 400 or lighter on the
 // dark backgrounds. A light-mode text color needs a dark: counterpart
-// for the same state, because the dark shades are different.
+// for the same state, because the dark shades are different. White text
+// needs an accent background of shade 700 or darker.
 func TestTemplates_TextContrast(t *testing.T) {
 	t.Parallel()
 	files, err := filepath.Glob("templates/*.templ")
@@ -195,6 +196,29 @@ func TestTemplates_TextContrast(t *testing.T) {
 	}
 	if checked == 0 {
 		t.Fatal("no text colors found")
+	}
+
+	// White text needs a 700 or darker background, in every state.
+	background := regexp.MustCompile(`^((?:[a-z-]+:)*)bg-(emerald|sky|violet|rose|cyan|amber|red|blue)-(\d+)$`)
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, lit := range literal.FindAllString(string(src), -1) {
+			if !strings.Contains(lit, "text-white") {
+				continue
+			}
+			for field := range strings.FieldsSeq(strings.Trim(lit, `"'`)) {
+				m := background.FindStringSubmatch(field)
+				if m == nil {
+					continue
+				}
+				if shade, _ := strconv.Atoi(m[3]); shade < 700 {
+					t.Errorf("%s: %s is too light behind white text", f, field)
+				}
+			}
+		}
 	}
 }
 

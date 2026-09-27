@@ -68,7 +68,7 @@ func ServerErrorPage() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-red-700 dark:text-red-500 font-mono mb-4\">500</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Something went wrong</h2><p class=\"text-neutral-600 dark:text-neutral-400 mb-8\">We're sorry, an unexpected error occurred. Please try again later.</p><a href=\"/ui/\" class=\"inline-flex px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors font-mono\">Back to home</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"max-w-2xl mx-auto text-center py-16\"><h1 class=\"text-8xl font-bold text-red-700 dark:text-red-500 font-mono mb-4\">500</h1><h2 class=\"text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-4\">Something went wrong</h2><p class=\"text-neutral-600 dark:text-neutral-400 mb-8\">We're sorry, an unexpected error occurred. Please try again later.</p><a href=\"/ui/\" class=\"inline-flex px-4 py-2 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors font-mono\">Back to home</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
