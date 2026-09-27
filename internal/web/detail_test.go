@@ -661,7 +661,7 @@ func TestFacilityDetail_MapRendered(t *testing.T) {
 				"leaflet",
 				"Telehouse London",
 				"View facility",
-				`role="application"`,
+				`role="region"`,
 			},
 			nil,
 		},

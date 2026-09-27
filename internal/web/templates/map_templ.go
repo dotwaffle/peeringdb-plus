@@ -186,7 +186,7 @@ func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"Map showing facility location\"></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"region\" aria-label=\"Map showing facility location\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -204,7 +204,7 @@ func MapContainer(id string, markers []MapMarker, zoom int) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"Map showing facility location\"></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"w-full h-[200px] md:h-[350px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"region\" aria-label=\"Map showing facility location\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -289,7 +289,7 @@ func MultiPinMapContainer(id string, markers []MapMarker, ariaLabel string, show
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " class=\"w-full h-[250px] md:h-[450px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"application\" aria-label=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " class=\"w-full h-[250px] md:h-[450px] rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden\" role=\"region\" aria-label=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

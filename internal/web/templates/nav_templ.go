@@ -104,7 +104,7 @@ func Nav() templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<nav role=\"navigation\" aria-label=\"Main navigation\" class=\"bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700\"><div class=\"container mx-auto px-4 flex items-center justify-between h-16\"><a href=\"/ui/\" class=\"text-emerald-700 dark:text-emerald-500 font-bold text-xl font-mono\">PeeringDB Plus</a><div class=\"hidden md:flex items-center gap-4\"><div class=\"flex items-center space-x-6\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<nav aria-label=\"Main navigation\" class=\"bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700\"><div class=\"container mx-auto px-4 flex items-center justify-between h-16\"><a href=\"/ui/\" class=\"text-emerald-700 dark:text-emerald-500 font-bold text-xl font-mono\">PeeringDB Plus</a><div class=\"hidden md:flex items-center gap-4\"><div class=\"flex items-center space-x-6\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

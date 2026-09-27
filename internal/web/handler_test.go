@@ -1155,14 +1155,13 @@ func TestSearchForm_ResultsContainer(t *testing.T) {
 	t.Parallel()
 	body := renderComponent(t, templates.SearchForm("", nil))
 
-	checks := []string{
-		"autofocus",
-		`id="search-results"`,
+	if !strings.Contains(body, `id="search-results"`) {
+		t.Error(`search form missing id="search-results"`)
 	}
-	for _, want := range checks {
-		if !strings.Contains(body, want) {
-			t.Errorf("search form missing %q", want)
-		}
+	// autofocus would move focus past the skip link and the navigation
+	// before a keyboard or screen reader user reaches them.
+	if strings.Contains(body, "autofocus") {
+		t.Error("search form sets autofocus")
 	}
 	if strings.Contains(body, "hx-params") {
 		t.Error("search form contains removed hx-params attribute")
