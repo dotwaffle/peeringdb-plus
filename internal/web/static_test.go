@@ -4,7 +4,9 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -82,5 +84,46 @@ func TestLayout_ReducedMotion(t *testing.T) {
 	}
 	if !strings.Contains(string(js), "prefers-reduced-motion: reduce") {
 		t.Error("map-init.js does not read prefers-reduced-motion")
+	}
+}
+
+// TestTemplates_TablesLabeled checks that every data table has a
+// caption for screen readers as its first child and that every header
+// cell names its scope, and that the compiled stylesheet has sr-only.
+func TestTemplates_TablesLabeled(t *testing.T) {
+	t.Parallel()
+	files, err := filepath.Glob("templates/*.templ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	table := regexp.MustCompile(`<table\b[^>]*>\s*(<caption class="sr-only">[^<]+</caption>)?`)
+	th := regexp.MustCompile(`<th\b[^>]*>`)
+	tables := 0
+	for _, f := range files {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range table.FindAllStringSubmatch(string(src), -1) {
+			tables++
+			if m[1] == "" {
+				t.Errorf("%s: %s has no sr-only caption as its first child", f, m[0])
+			}
+		}
+		for _, tag := range th.FindAllString(string(src), -1) {
+			if !strings.Contains(tag, `scope="col"`) {
+				t.Errorf("%s: %s has no scope", f, tag)
+			}
+		}
+	}
+	if tables == 0 {
+		t.Fatal("no tables found in templates")
+	}
+	css, err := fs.ReadFile(StaticFS, "tailwind.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(css), ".sr-only{") {
+		t.Error("tailwind.css has no .sr-only rule")
 	}
 }

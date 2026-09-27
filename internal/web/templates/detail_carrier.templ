@@ -42,6 +42,7 @@ templ CarrierFacilitiesList(rows []CarrierFacilityRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left">
+				<caption class="sr-only">Facilities of this carrier</caption>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					@CarrierFacilitiesRows(rows, moreURL)
 				</tbody>

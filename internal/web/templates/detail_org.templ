@@ -48,10 +48,11 @@ templ OrgNetworksList(rows []OrgNetworkRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left sortable">
+				<caption class="sr-only">Networks of this organization</caption>
 				<thead>
 					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Name</th>
-						<th class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="numeric">ASN</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Name</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="numeric">ASN</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
@@ -93,6 +94,7 @@ templ OrgIXPsList(rows []OrgIXRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left">
+				<caption class="sr-only">Exchanges of this organization</caption>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					@OrgIXPsRows(rows, moreURL)
 				</tbody>
@@ -129,11 +131,12 @@ templ OrgFacilitiesList(rows []OrgFacilityRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left sortable">
+				<caption class="sr-only">Facilities of this organization</caption>
 				<thead>
 					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
-						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="alpha">City</th>
-						<th class="px-3 py-2" data-sortable data-sort-col="2" data-sort-type="alpha" data-sort-default="asc">Country</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
+						<th scope="col" class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="alpha">City</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="2" data-sort-type="alpha" data-sort-default="asc">Country</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
@@ -178,6 +181,7 @@ templ OrgCampusesList(rows []OrgCampusRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left">
+				<caption class="sr-only">Campuses of this organization</caption>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					@OrgCampusesRows(rows, moreURL)
 				</tbody>
@@ -214,6 +218,7 @@ templ OrgCarriersList(rows []OrgCarrierRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left">
+				<caption class="sr-only">Carriers of this organization</caption>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
 					@OrgCarriersRows(rows, moreURL)
 				</tbody>

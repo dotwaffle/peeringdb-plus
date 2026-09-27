@@ -58,14 +58,15 @@ templ IXParticipantsList(rows []IXParticipantRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left sortable">
+				<caption class="sr-only">Networks connected to this exchange</caption>
 				<thead>
 					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
-						<th class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="numeric" data-sort-default="asc">ASN</th>
-						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="2" data-sort-type="numeric">Speed</th>
-						<th class="px-3 py-2 hidden md:table-cell">IPv4</th>
-						<th class="px-3 py-2 hidden md:table-cell">IPv6</th>
-						<th class="px-3 py-2 hidden md:table-cell">RS</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="numeric" data-sort-default="asc">ASN</th>
+						<th scope="col" class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="2" data-sort-type="numeric">Speed</th>
+						<th scope="col" class="px-3 py-2 hidden md:table-cell">IPv4</th>
+						<th scope="col" class="px-3 py-2 hidden md:table-cell">IPv6</th>
+						<th scope="col" class="px-3 py-2 hidden md:table-cell">RS</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
@@ -130,11 +131,12 @@ templ IXFacilitiesList(rows []IXFacilityRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left sortable">
+				<caption class="sr-only">Facilities of this exchange</caption>
 				<thead>
 					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-						<th class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
-						<th class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="alpha">City</th>
-						<th class="px-3 py-2" data-sortable data-sort-col="2" data-sort-type="alpha" data-sort-default="asc">Country</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="0" data-sort-type="alpha">Name</th>
+						<th scope="col" class="px-3 py-2 hidden md:table-cell" data-sortable data-sort-col="1" data-sort-type="alpha">City</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="2" data-sort-type="alpha" data-sort-default="asc">Country</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
@@ -211,11 +213,12 @@ templ IXPrefixesList(rows []IXPrefixRow, moreURL string) {
 	} else {
 		<div class="overflow-x-auto">
 			<table class="w-full text-sm text-left sortable">
+				<caption class="sr-only">Peering LAN prefixes of this exchange</caption>
 				<thead>
 					<tr class="bg-neutral-50/50 dark:bg-neutral-800/70 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-						<th class="px-3 py-2 font-mono" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Prefix</th>
-						<th class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="alpha">Protocol</th>
-						<th class="px-3 py-2 text-center">DFZ</th>
+						<th scope="col" class="px-3 py-2 font-mono" data-sortable data-sort-col="0" data-sort-type="alpha" data-sort-default="asc">Prefix</th>
+						<th scope="col" class="px-3 py-2" data-sortable data-sort-col="1" data-sort-type="alpha">Protocol</th>
+						<th scope="col" class="px-3 py-2 text-center">DFZ</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-neutral-200/50 dark:divide-neutral-700/50">
