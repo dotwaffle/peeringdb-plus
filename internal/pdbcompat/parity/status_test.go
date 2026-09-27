@@ -1039,6 +1039,7 @@ func TestParity_Status(t *testing.T) {
 			{http.MethodPost, "/api/as_set", "GET"},
 			{http.MethodOptions, "/api/net/self", "GET"},
 			{http.MethodOptions, "/api/org/1/users", "GET, HEAD"},
+			{http.MethodPost, "/api/search", "GET, HEAD"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != http.StatusMethodNotAllowed {
