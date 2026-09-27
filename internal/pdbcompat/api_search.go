@@ -443,6 +443,12 @@ func pyJSONASCIIString(s string) string {
 // pyJSONQuote quotes s as json.dumps does with ensure_ascii set to
 // ascii.
 func pyJSONQuote(s string, ascii bool) string {
+	return pyJSONQuoteRunes([]rune(s), ascii)
+}
+
+// pyJSONQuoteRunes is pyJSONQuote for a str held as runes, which can
+// hold a lone surrogate: ensure_ascii writes it as a \uXXXX escape.
+func pyJSONQuoteRunes(s []rune, ascii bool) string {
 	var b strings.Builder
 	b.WriteByte('"')
 	for _, r := range s {

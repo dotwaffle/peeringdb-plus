@@ -49,6 +49,25 @@ type pyValue struct {
 	vals []pyValue
 }
 
+// get returns the value of the dict key name.
+func (v pyValue) get(name string) (pyValue, bool) {
+	for i, k := range v.keys {
+		if string(k) == name {
+			return v.vals[i], true
+		}
+	}
+	return pyValue{}, false
+}
+
+// pyStr returns Python str(v): the text of a str, and the repr of every
+// other value.
+func (v pyValue) pyStr() []rune {
+	if v.kind == pyStrValue {
+		return v.str
+	}
+	return []rune(v.repr())
+}
+
 // repr returns Python repr(v).
 func (v pyValue) repr() string {
 	switch v.kind {
@@ -534,6 +553,38 @@ func pyDecode(b []byte, codec pyCodec) ([]rune, error) {
 	case pyUTF8:
 	}
 	return pyUTF8Decode(b, false, false)
+}
+
+// pyDecodeReplace decodes b as bytes.decode(codec, "replace") does:
+// each bad sequence, and an incomplete sequence at the end, becomes
+// U+FFFD.
+func pyDecodeReplace(b []byte, codec pyCodec) []rune {
+	switch codec {
+	case pyLatin1:
+		return pyLatin1Decode(b)
+	case pyASCII:
+		out := make([]rune, 0, len(b))
+		for _, c := range b {
+			if c >= 0x80 {
+				out = append(out, 0xfffd)
+			} else {
+				out = append(out, rune(c))
+			}
+		}
+		return out
+	case pyUTF8:
+	}
+	out, _ := pyUTF8Decode(b, true, true)
+	return out
+}
+
+// pyDecodeStrict decodes b as bytes.decode(codec) does: every bad or
+// incomplete sequence is an error.
+func pyDecodeStrict(b []byte, codec pyCodec) ([]rune, error) {
+	if codec == pyUTF8 {
+		return pyUTF8Decode(b, true, false)
+	}
+	return pyDecode(b, codec)
 }
 
 // pyLatin1Decode decodes b as ISO-8859-1.

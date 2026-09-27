@@ -1,12 +1,20 @@
 package parity
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
+	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1325,6 +1333,393 @@ func TestParity_Status(t *testing.T) {
 			if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/org/1/users", hdr); status != http.StatusForbidden {
 				t.Errorf("GET /api/org/1/users with an API key: status = %d, want 403", status)
 			}
+		}
+	})
+
+	t.Run("asset_route_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:2109-2119 routes the asset actions
+		// before the router routes, and AssetViewSet (rest.py:
+		// 1426-1590) answers them. retrieve validates the path with
+		// AssetLookupSerializer (serializers.py:5040-5073): field
+		// errors in field order, then the ok object, else a ref_id
+		// error "<Model> with id <int> not found". The 400 body has
+		// the fields at the top level (renderers.py:134-141).
+		// AssetReadSerializer (serializers.py:5256-5294) reads the
+		// file type from the logo name and sends the file as base64,
+		// or file_data null when it cannot read the file. Datetimes
+		// render as isoformat (renderers.py:35-36). destroy answers
+		// 404 "Asset does not exist" without a logo, else 403 for a
+		// caller without delete permission. DRF sets Allow on every
+		// response. Checked against DRF 3.18.1 with the upstream view.
+		ctx := t.Context()
+		logo := []byte("\x89PNG\r\n\x1a\nlogo")
+		var logoReads atomic.Int32
+		logoSrv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logoReads.Add(1)
+			if r.URL.Path != "/media/logos_user_supplied/org-1-abcd1234.png" {
+				http.NotFound(w, r)
+				return
+			}
+			_, _ = w.Write(logo)
+		}))
+		t.Cleanup(logoSrv.Close)
+		media := "https://" + logoSrv.Listener.Addr().String() + "/media/logos_user_supplied/"
+		c := testutil.SetupClient(t)
+		created := time.Date(2020, 1, 2, 3, 4, 5, 678901000, time.UTC)
+		c.Organization.Create().SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetLogo(media + "org-1-abcd1234.png").SetCreated(created).SetUpdated(t0).SaveX(ctx)
+		c.Organization.Create().SetID(2).SetName("Org2").SetNameFold(unifold.Fold("Org2")).
+			SetStatus("deleted").SetLogo(media + "org-2-abcd1234.png").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.Organization.Create().SetID(3).SetName("Org3").SetNameFold(unifold.Fold("Org3")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.Network.Create().SetID(5).SetName("Net5").SetNameFold(unifold.Fold("Net5")).SetAsn(64505).
+			SetStatus("ok").SetLogo(media + "network-5-x.JPG").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		c.Network.Create().SetID(6).SetName("Net6").SetNameFold(unifold.Fold("Net6")).SetAsn(64506).
+			SetStatus("ok").SetLogo("https://other.invalid/network-6-x.gif").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServerWithLogos(t, c, logoSrv)
+		const allow = "GET, POST, PUT, DELETE, HEAD, OPTIONS"
+		b64 := base64.StdEncoding.EncodeToString(logo)
+		for _, tc := range []struct {
+			path, want string
+		}{
+			{"/api/asset/org/1/logo", `{"ref_tag":"org","ref_id":1,"asset_type":"logo","file_type":"image/png","file_data":"` + b64 + `","created":"2020-01-02T03:04:05.678901+00:00","updated":"2026-04-01T12:00:00+00:00"}`},
+			{"/api/asset/org/1/logo/", `{"ref_tag":"org","ref_id":1,"asset_type":"logo","file_type":"image/png","file_data":"` + b64 + `","created":"2020-01-02T03:04:05.678901+00:00","updated":"2026-04-01T12:00:00+00:00"}`},
+			{"/api/asset/org/001/logo", `{"ref_tag":"org","ref_id":1,"asset_type":"logo","file_type":"image/png","file_data":"` + b64 + `","created":"2020-01-02T03:04:05.678901+00:00","updated":"2026-04-01T12:00:00+00:00"}`},
+			{"/api/asset/org/%D9%A1/logo", `{"ref_tag":"org","ref_id":1,"asset_type":"logo","file_type":"image/png","file_data":"` + b64 + `","created":"2020-01-02T03:04:05.678901+00:00","updated":"2026-04-01T12:00:00+00:00"}`},
+			{"/api/asset/org/3/logo", `{"ref_tag":"org","ref_id":3,"asset_type":"logo","file_type":null,"file_data":null,"created":"2026-04-01T12:00:00+00:00","updated":"2026-04-01T12:00:00+00:00"}`},
+			// The file of net 5 is missing: upstream sends file_data
+			// null. The logo of net 6 names another host, which the
+			// mirror does not read.
+			{"/api/asset/net/5/logo", `{"ref_tag":"net","ref_id":5,"asset_type":"logo","file_type":"image/jpeg","file_data":null,"created":"2026-04-01T12:00:00+00:00","updated":"2026-04-01T12:00:00+00:00"}`},
+			{"/api/asset/net/6/logo", `{"ref_tag":"net","ref_id":6,"asset_type":"logo","file_type":null,"file_data":null,"created":"2026-04-01T12:00:00+00:00","updated":"2026-04-01T12:00:00+00:00"}`},
+		} {
+			status, hdr, body := httpDo(t, srv, http.MethodGet, tc.path, nil)
+			var env struct {
+				Data []json.RawMessage `json:"data"`
+			}
+			if err := json.Unmarshal(body, &env); status != http.StatusOK || err != nil || len(env.Data) != 1 {
+				t.Errorf("GET %s: status = %d, want 200 with one row; body=%s", tc.path, status, body)
+				continue
+			}
+			if got := string(env.Data[0]); got != tc.want {
+				t.Errorf("GET %s: row = %s, want %s", tc.path, got, tc.want)
+			}
+			if got := hdr.Get("Allow"); got != allow {
+				t.Errorf("GET %s: Allow = %q, want %q", tc.path, got, allow)
+			}
+		}
+		// The file is read once and then served from the cache. net 5
+		// is read once, net 6 never.
+		if got := logoReads.Load(); got != 2 {
+			t.Errorf("logo server requests = %d, want 2", got)
+		}
+		long := "/api/asset/org/" + strings.Repeat("1", 1001) + "/logo"
+		for _, tc := range []struct {
+			method, path string
+			keys         []string
+			fields       map[string][]string
+		}{
+			{http.MethodGet, "/api/asset/org/2/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"Organization with id 2 not found"}}},
+			{http.MethodGet, "/api/asset/org/9/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"Organization with id 9 not found"}}},
+			{http.MethodGet, "/api/asset/org/099999999999999999999/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"Organization with id 99999999999999999999 not found"}}},
+			{http.MethodGet, "/api/asset/fac/1/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"Facility with id 1 not found"}}},
+			{http.MethodGet, "/api/asset/ix/1/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"InternetExchange with id 1 not found"}}},
+			{http.MethodGet, "/api/asset/carrier/1/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"Carrier with id 1 not found"}}},
+			{http.MethodGet, "/api/asset/campus/1/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"Campus with id 1 not found"}}},
+			{http.MethodGet, "/api/asset/xx/1/logo", []string{"ref_tag", "meta"}, map[string][]string{"ref_tag": {`"xx" is not a valid choice.`}}},
+			{http.MethodGet, "/api/asset/org/1/logo.json", []string{"asset_type", "meta"}, map[string][]string{"asset_type": {`"logo.json" is not a valid choice.`}}},
+			{http.MethodGet, "/api/asset/xx/1/banner", []string{"ref_tag", "asset_type", "meta"}, map[string][]string{"ref_tag": {`"xx" is not a valid choice.`}, "asset_type": {`"banner" is not a valid choice.`}}},
+			{http.MethodGet, long, []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"String value too large."}}},
+			{http.MethodDelete, "/api/asset/org/9/logo", []string{"ref_id", "meta"}, map[string][]string{"ref_id": {"Organization with id 9 not found"}}},
+			{http.MethodDelete, "/api/asset/xx/1/logo", []string{"ref_tag", "meta"}, map[string][]string{"ref_tag": {`"xx" is not a valid choice.`}}},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != http.StatusBadRequest || hdr.Get("Allow") != allow {
+				t.Errorf("%s %s: status = %d, Allow = %q; want 400 with Allow: %s; body=%s", tc.method, tc.path, status, hdr.Get("Allow"), allow, body)
+				continue
+			}
+			if got := objectKeys(t, body); !slices.Equal(got, tc.keys) {
+				t.Errorf("%s %s: keys = %q, want %q", tc.method, tc.path, got, tc.keys)
+			}
+			var got map[string]json.RawMessage
+			if err := json.Unmarshal(body, &got); err != nil {
+				t.Fatalf("%s %s: %v", tc.method, tc.path, err)
+			}
+			for field, want := range tc.fields {
+				var msgs []string
+				if err := json.Unmarshal(got[field], &msgs); err != nil || !slices.Equal(msgs, want) {
+					t.Errorf("%s %s: %s = %s, want %q", tc.method, tc.path, field, got[field], want)
+				}
+			}
+			if msg := mustDecodeMetaError(t, body).Error; msg != "Bad Request" {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, msg, "Bad Request")
+			}
+		}
+		for _, tc := range []struct {
+			method, path string
+			status       int
+			msg          string
+		}{
+			{http.MethodDelete, "/api/asset/org/1/logo", 403, "No delete permissions to this entity"},
+			{http.MethodDelete, "/api/asset/org/3/logo/", 404, "Asset does not exist"},
+			{http.MethodPatch, "/api/asset/org/1/logo", 405, "Method \"PATCH\" not allowed."},
+			{http.MethodPatch, "/api/asset/xx/1/logo", 405, "Method \"PATCH\" not allowed."},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != tc.status || hdr.Get("Allow") != allow {
+				t.Errorf("%s %s: status = %d, Allow = %q; want %d with Allow: %s; body=%s", tc.method, tc.path, status, hdr.Get("Allow"), tc.status, allow, body)
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != tc.msg {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, tc.msg)
+			}
+		}
+		// HEAD reads no file: net/http sends no body.
+		before := logoReads.Load()
+		if status, _, _ := httpDo(t, srv, http.MethodHead, "/api/asset/net/5/logo", nil); status != http.StatusOK {
+			t.Errorf("HEAD /api/asset/net/5/logo: status = %d, want 200", status)
+		}
+		if got := logoReads.Load(); got != before {
+			t.Errorf("HEAD read the logo file: %d requests, want %d", got, before)
+		}
+		// OPTIONS: the view metadata. view.action is None, so the
+		// actions describe AssetReadSerializer for POST and PUT.
+		status, hdr, body := httpDo(t, srv, http.MethodOptions, "/api/asset/xx/1/logo", nil)
+		if status != http.StatusOK || hdr.Get("Allow") != allow {
+			t.Fatalf("OPTIONS: status = %d, Allow = %q; body=%s", status, hdr.Get("Allow"), body)
+		}
+		var meta struct {
+			Data []struct {
+				Name        string                     `json:"name"`
+				Description string                     `json:"description"`
+				Actions     map[string]json.RawMessage `json:"actions"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &meta); err != nil || len(meta.Data) != 1 {
+			t.Fatalf("OPTIONS: %v; body=%s", err, body)
+		}
+		row := meta.Data[0]
+		if row.Name != "Asset" || !strings.HasPrefix(row.Description, "Unified API endpoint for managing logos across all entity types.\n\n") {
+			t.Errorf("OPTIONS: name = %q, description = %q", row.Name, row.Description)
+		}
+		fields := []string{"ref_tag", "ref_id", "asset_type", "file_type", "file_data", "created", "updated"}
+		for _, m := range []string{"POST", "PUT"} {
+			if got := objectKeys(t, row.Actions[m]); !slices.Equal(got, fields) {
+				t.Errorf("OPTIONS: actions %s = %q, want %q", m, got, fields)
+			}
+		}
+		// The problem+json form joins the field errors in detail.
+		status, _, body = httpDo(t, srv, http.MethodGet, "/api/asset/xx/1/banner", http.Header{"Accept": {"application/problem+json"}})
+		if want := `ref_tag: "xx" is not a valid choice.; asset_type: "banner" is not a valid choice.`; status != http.StatusBadRequest || mustDecodeProblem(t, body).Detail != want {
+			t.Errorf("GET /api/asset/xx/1/banner as problem+json: status = %d, body=%s; want detail %q", status, body, want)
+		}
+		for _, path := range []string{"/api/asset/org/x/logo", "/api/asset/org/1", "/api/asset/org/1/logo/x", "/api/asset//1/logo"} {
+			if status, _, _ := httpDo(t, srv, http.MethodGet, path, nil); status != http.StatusNotFound {
+				t.Errorf("GET %s: status = %d, want 404 (no route)", path, status)
+			}
+		}
+	})
+
+	t.Run("asset_writes_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:1495-1558 create and update read
+		// {**request.data} (DRF parsers: JSON, form, multipart, else
+		// 415), then AssetWriteSerializer (serializers.py:5090-5185):
+		// field errors in field order, the ok object, the file checks,
+		// and 403 "No write permissions to this entity" for a caller
+		// without write permission. A form body is a QueryDict, whose
+		// values {**} copies as lists. Checked against DRF 3.18.1
+		// (internal/pdbcompat TestAssetWrite_Oracle has the full set).
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		var logo bytes.Buffer
+		if err := png.Encode(&logo, image.NewRGBA(image.Rect(0, 0, 10, 10))); err != nil {
+			t.Fatal(err)
+		}
+		pngData := base64.StdEncoding.EncodeToString(logo.Bytes())
+		const allow = "GET, POST, PUT, DELETE, HEAD, OPTIONS"
+		for _, tc := range []struct {
+			method, path, ct, body string
+			status                 int
+			want                   string
+		}{
+			{http.MethodPost, "/api/asset/org/1/logo", "", "", 400, `{"file_type":["This field is required."],"file_data":["This field is required."],"meta":{"error":"Bad Request"}}`},
+			{http.MethodPost, "/api/asset/xx/1/logo", "application/json", `{"file_type":"image/gif"}`, 400, `{"ref_tag":["\"xx\" is not a valid choice."],"file_type":["\"image/gif\" is not a valid choice."],"file_data":["This field is required."],"meta":{"error":"Bad Request"}}`},
+			{http.MethodPost, "/api/asset/org/9/logo", "application/json", `{"file_type":"image/png","file_data":"` + pngData + `"}`, 400, `{"ref_id":["Organization with id 9 not found"],"meta":{"error":"Bad Request"}}`},
+			{http.MethodPost, "/api/asset/org/1/logo", "application/json", `{"file_type":"image/jpeg","file_data":"` + pngData + `"}`, 400, `{"file_type":["Declared file_type does not match actual file type. Expected: image/png"],"meta":{"error":"Bad Request"}}`},
+			{http.MethodPost, "/api/asset/org/1/logo", "application/json", `{"file_type":"image/png","file_data":"abc"}`, 400, `{"file_data":["Invalid base64 encoded data"],"meta":{"error":"Bad Request"}}`},
+			{http.MethodPost, "/api/asset/org/1/logo", "application/json", `{"file_type":"image/png","file_data":"aGVsbG8="}`, 400, `{"file_data":["Unsupported file type. Only PNG and JPEG are allowed"],"meta":{"error":"Bad Request"}}`},
+			{http.MethodPost, "/api/asset/org/1/logo", "application/x-www-form-urlencoded", "file_type=image/png&file_data=" + url.QueryEscape(pngData), 400, `{"file_type":["\"['image/png']\" is not a valid choice."],"file_data":["Not a valid string."],"meta":{"error":"Bad Request"}}`},
+			{http.MethodPost, "/api/asset/org/1/logo", "application/json", `{"a":1,}`, 400, `{"meta":{"error":"JSON parse error - Illegal trailing comma before end of object: line 1 column 7 (char 6)"}}`},
+			{http.MethodPost, "/api/asset/org/1/logo", "text/plain", "x", 415, `{"meta":{"error":"Unsupported media type \"text/plain\" in request."}}`},
+			{http.MethodPost, "/api/asset/org/1/logo", "application/json", `{"file_type":"image/png","file_data":"` + pngData + `"}`, 403, `{"meta":{"error":"No write permissions to this entity"}}`},
+			{http.MethodPut, "/api/asset/org/1/logo/", "application/json", `{"file_type":"image/png","file_data":"` + pngData + `"}`, 403, `{"meta":{"error":"No write permissions to this entity"}}`},
+		} {
+			req, err := http.NewRequestWithContext(ctx, tc.method, srv.URL+tc.path, strings.NewReader(tc.body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.ct != "" {
+				req.Header.Set("Content-Type", tc.ct)
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != tc.status || resp.Header.Get("Allow") != allow {
+				t.Errorf("%s %s %q: status = %d, Allow = %q; want %d; body=%s", tc.method, tc.path, tc.body, resp.StatusCode, resp.Header.Get("Allow"), tc.status, body)
+				continue
+			}
+			var got, want any
+			if json.Unmarshal(body, &got) != nil || json.Unmarshal([]byte(tc.want), &want) != nil || !reflect.DeepEqual(got, want) ||
+				!slices.Equal(objectKeys(t, body), objectKeys(t, []byte(tc.want))) {
+				t.Errorf("%s %s %q:\n got %s\nwant %s", tc.method, tc.path, tc.body, body, tc.want)
+			}
+		}
+		// No body: an empty dict, so the required-field errors.
+		if status, _, _ := httpDo(t, srv, http.MethodPost, "/api/asset/org/1/logo", nil); status != http.StatusBadRequest {
+			t.Errorf("POST without a body: status = %d, want 400", status)
+		}
+	})
+
+	t.Run("DIVERGENCE_asset_non_object_json_400", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream copies the body with {**request.data}
+		// (2.83.0 rest.py:1506-1511), which raises TypeError for JSON
+		// that is not an object, and the JSON decoder raises
+		// RecursionError for a document nested too deep: both are a
+		// 500. The mirror answers 400, so a client cannot cause a 5xx:
+		// the DRF Serializer error for data that is not a dict (DRF
+		// serializers.py:497-503), or a JSON parse error. See
+		// docs/API.md § Known Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		deep := strings.Repeat("[", 2000) + strings.Repeat("]", 2000)
+		for _, tc := range []struct{ body, want string }{
+			{"[1]", `{"non_field_errors":["Invalid data. Expected a dictionary, but got list."],"meta":{"error":"Bad Request"}}`},
+			{"null", `{"non_field_errors":["Invalid data. Expected a dictionary, but got NoneType."],"meta":{"error":"Bad Request"}}`},
+			{`"x"`, `{"non_field_errors":["Invalid data. Expected a dictionary, but got str."],"meta":{"error":"Bad Request"}}`},
+			{deep, `{"meta":{"error":"JSON parse error - maximum recursion depth exceeded while decoding a JSON document"}}`},
+		} {
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, srv.URL+"/api/asset/org/1/logo", strings.NewReader(tc.body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusBadRequest || strings.TrimSpace(string(body)) != tc.want {
+				t.Errorf("POST %.20q: status = %d, body=%s; want 400 %s", tc.body, resp.StatusCode, body, tc.want)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_asset_timestamps_whole_seconds", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream renders created and updated of the object
+		// with isoformat, with the microseconds when they are not zero
+		// (renderers.py:35-36), for example
+		// "2020-01-02T03:04:05.678901+00:00". The API sends only whole
+		// seconds, so the mirror stores and renders those:
+		// "2020-01-02T03:04:05+00:00". See docs/API.md § Known
+		// Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		synced := time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC)
+		c.Organization.Create().SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(synced).SetUpdated(synced).SaveX(ctx)
+		srv := newTestServer(t, c)
+		status, body := httpGet(t, srv, "/api/asset/org/1/logo")
+		if want := `"created":"2020-01-02T03:04:05+00:00","updated":"2020-01-02T03:04:05+00:00"`; status != http.StatusOK || !strings.Contains(string(body), want) {
+			t.Errorf("GET /api/asset/org/1/logo: status = %d, body=%s; want %s", status, body, want)
+		}
+	})
+
+	t.Run("DIVERGENCE_asset_writes_keyed_caller_403", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream stores or deletes the logo for a caller
+		// whose API key has write permission on the object and answers
+		// 201, 200 or 204 (rest.py:1495-1590). WriteRateThrottle allows
+		// 2 writes a minute per user or address (rest_throttles.py:
+		// 574-595) and answers more with 429. The mirror is read-only,
+		// does not check API keys and has no rate limit: every write
+		// that passes the checks gets 403. See docs/API.md § Known
+		// Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetLogo("https://media.invalid/org-1-x.png").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		hdr := http.Header{"Authorization": {"Api-Key abcdef.0123456789"}}
+		for range 3 {
+			if status, _, _ := httpDo(t, srv, http.MethodDelete, "/api/asset/org/1/logo", hdr); status != http.StatusForbidden {
+				t.Errorf("DELETE with an API key: status = %d, want 403", status)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_asset_file_data_unreadable_null", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream reads the logo from its own storage and
+		// sends file_data null only when that read fails
+		// (serializers.py:5277-5283). The mirror stores the logo URL and
+		// reads the file from the upstream media host when a caller asks
+		// for it. When that read fails (the host is not reachable,
+		// answers with another status than 200, or the file is larger
+		// than 1 MiB), or the URL names another host, the mirror sends
+		// file_data null. See docs/API.md § Known Divergences.
+		ctx := t.Context()
+		logoSrv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}))
+		t.Cleanup(logoSrv.Close)
+		c := testutil.SetupClient(t)
+		c.Organization.Create().SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetLogo("https://" + logoSrv.Listener.Addr().String() + "/org-1-x.png").
+			SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServerWithLogos(t, c, logoSrv)
+		status, body := httpGet(t, srv, "/api/asset/org/1/logo")
+		if want := `"file_type":"image/png","file_data":null`; status != http.StatusOK || !strings.Contains(string(body), want) {
+			t.Errorf("GET /api/asset/org/1/logo: status = %d, body=%s; want %s", status, body, want)
+		}
+	})
+
+	t.Run("DIVERGENCE_asset_body_other_charset_read_as_utf8", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream decodes a JSON or form body with the
+		// charset of the Content-Type when Python knows the codec
+		// (Django 5.2 http/request.py:152-163), for example utf-16. The mirror
+		// knows utf-8, latin-1 and ascii (with their Python aliases) and
+		// reads a body with another charset as utf-8. See docs/API.md §
+		// Known Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		req, _ := http.NewRequestWithContext(ctx, http.MethodPost, srv.URL+"/api/asset/org/1/logo", strings.NewReader(`{"file_type":"x"}`))
+		req.Header.Set("Content-Type", "application/json; charset=utf-16")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest || !strings.Contains(string(body), `"file_type":["\"x\" is not a valid choice."]`) {
+			t.Errorf("POST with charset=utf-16: status = %d, body=%s; want the utf-8 field errors", resp.StatusCode, body)
 		}
 	})
 
