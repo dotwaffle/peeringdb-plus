@@ -53,6 +53,7 @@ func TestCopyableIP_KeyboardButton(t *testing.T) {
 		`aria-label="Copy 2001:db8::1"`,
 		`<svg class="w-3.5 h-3.5" aria-hidden="true"`,
 		"focus-visible:opacity-100",
+		`<span class="copied-msg text-xs text-emerald-700 dark:text-emerald-400 ml-1" role="status"></span>`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("CopyableIP output has no %q:\n%s", want, out)

@@ -77,19 +77,48 @@
 })();
 
 // Copy-to-clipboard for IP addresses. Elements carry data-copy with the
-// text; the enclosing [data-copy-group] contains the .copied-msg flash.
+// text; the enclosing [data-copy-group] contains the .copied-msg status
+// region, which shows the result for a second, and screen readers
+// announce it.
 (function () {
 	document.addEventListener('click', function (e) {
 		var el = e.target.closest('[data-copy]');
 		if (!el) return;
-		navigator.clipboard.writeText(el.getAttribute('data-copy')).then(function () {
-			var group = el.closest('[data-copy-group]');
-			var msg = group && group.querySelector('.copied-msg');
-			if (msg) {
-				msg.classList.remove('hidden');
-				setTimeout(function () { msg.classList.add('hidden'); }, 1000);
-			}
-		});
+		var group = el.closest('[data-copy-group]');
+		var msg = group && group.querySelector('.copied-msg');
+		function show(text) {
+			if (!msg) return;
+			msg.textContent = text;
+			setTimeout(function () { msg.textContent = ''; }, 1000);
+		}
+		if (!navigator.clipboard) {
+			show('Copy failed');
+			return;
+		}
+		navigator.clipboard.writeText(el.getAttribute('data-copy')).then(
+			function () { show('Copied!'); },
+			function () { show('Copy failed'); }
+		);
+	});
+})();
+
+// Screen reader announcements for search results. The results replace
+// the whole container, so a live region on it would read every row.
+// A separate status element announces the number of results instead.
+(function () {
+	var statusFor = { 'search-results': 'search-status', 'spotlight-results': 'spotlight-status' };
+	document.addEventListener('htmx:after:swap', function (e) {
+		var ctx = e.detail.ctx;
+		var target = ctx && ctx.target;
+		var status = target && statusFor[target.id] && document.getElementById(statusFor[target.id]);
+		if (!status) return;
+		var source = ctx.sourceElement;
+		if (!source || !source.value || !source.value.trim()) {
+			status.textContent = '';
+			return;
+		}
+		var n = target.querySelectorAll('[data-result]').length;
+		status.textContent = n === 0 ? 'No results' : n === 1 ? '1 result' : n + ' results';
 	});
 })();
 
@@ -142,6 +171,7 @@ function searchResultKeys(e, input, container) {
 		wrapper.className = 'px-4 py-3 text-center';
 		var msg = document.createElement('span');
 		msg.className = 'text-red-700 dark:text-red-400 text-sm';
+		msg.setAttribute('role', 'alert');
 		msg.textContent = 'Failed to load.';
 		var btn = document.createElement('button');
 		btn.className = 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 text-sm underline ml-2';
@@ -262,6 +292,8 @@ function searchResultKeys(e, input, container) {
 		function open() {
 			input.value = '';
 			resultsContainer.replaceChildren();
+			var status = document.getElementById('spotlight-status');
+			if (status) status.textContent = '';
 			dialog.showModal();
 			input.focus();
 		}

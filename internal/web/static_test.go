@@ -275,3 +275,35 @@ func TestNav_TouchTargets(t *testing.T) {
 		t.Error("the menu button has no padding")
 	}
 }
+
+// TestLayout_StatusRegions checks the live regions that announce
+// changes a screen reader user cannot see: the number of search results
+// on the home page and in the spotlight, and the result of a copy.
+func TestLayout_StatusRegions(t *testing.T) {
+	t.Parallel()
+	mux := newTestMux(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/", nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	for _, want := range []string{
+		`<p id="search-status" role="status" class="sr-only"></p>`,
+		`<p id="spotlight-status" role="status" class="sr-only"></p>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page has no %q", want)
+		}
+	}
+
+	js, err := fs.ReadFile(StaticFS, "ui.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"'search-results': 'search-status'", "'spotlight-results': 'spotlight-status'", "setAttribute('role', 'alert')"} {
+		if !strings.Contains(string(js), want) {
+			t.Errorf("ui.js has no %q", want)
+		}
+	}
+}
