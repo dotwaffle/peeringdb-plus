@@ -35,7 +35,7 @@ Replica instances reject the request with a `fly-replay` header that routes the 
 | `GET` | `/readyz` | Health | Readiness probe (checks the DB and the age of the last successful sync) |
 | `POST` | `/sync` | Admin | On-demand sync trigger (primary only, token-gated) |
 | `GET` | `/favicon.ico` | Static | Favicon served from embedded `internal/web/static/` |
-| `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/` |
+| `GET` | `/robots.txt` | Static | Crawler rules. Blocks `/ui/fragment/`. A second group names the AI training, search and assistant crawlers (GPTBot, ClaudeBot, Google-Extended, CCBot and others) with the same rules |
 | `GET` | `/static/*` | Static | Embedded UI assets (CSS, JS, images) |
 | `GET` | `/ui/` | Web UI | Home / search page |
 | `GET` | `/ui/asn/{asn}` | Web UI | Network detail by ASN |

@@ -109,12 +109,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	// Serve favicon.ico at root for browsers that request it directly.
 	mux.Handle("GET /favicon.ico", assets)
 
-	// robots.txt: everything is crawlable except the htmx fragment
-	// endpoints, which serve partial HTML that is useless as a search
-	// result and doubles crawl volume against the detail pages.
 	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = io.WriteString(w, "User-agent: *\nAllow: /\nDisallow: /ui/fragment/\n")
+		_, _ = io.WriteString(w, robotsTxt)
 	})
 
 	// ServeMux would redirect /ui to /ui/ with 307, a temporary
@@ -135,6 +132,33 @@ func redirectUI(w http.ResponseWriter, r *http.Request, rest string) {
 	}
 	http.Redirect(w, r, target, http.StatusPermanentRedirect) //nolint:gosec // G710: target always starts with /ui/, a same-origin path
 }
+
+// aiCrawlers are the user agents of the AI training, search and
+// assistant crawlers that robots.txt names.
+var aiCrawlers = []string{
+	"GPTBot", "OAI-SearchBot", "ChatGPT-User",
+	"ClaudeBot", "Claude-SearchBot", "Claude-User", "anthropic-ai",
+	"Google-Extended", "Applebot-Extended", "PerplexityBot", "Perplexity-User",
+	"CCBot", "Bytespider", "Amazonbot", "meta-externalagent",
+}
+
+// robotsTxt allows everything except the htmx fragment endpoints, which
+// serve partial HTML that is useless as a search result and doubles
+// crawl volume against the detail pages. The AI crawlers get the same
+// rules in a group of their own: a crawler reads only the most specific
+// group that names it, so the group states the policy for each of them
+// and must repeat the rules.
+var robotsTxt = func() string {
+	const rules = "Allow: /\nDisallow: /ui/fragment/\n"
+	var b strings.Builder
+	b.WriteString("User-agent: *\n" + rules + "\n")
+	b.WriteString("# AI crawlers: the same rules as above.\n")
+	for _, agent := range aiCrawlers {
+		b.WriteString("User-agent: " + agent + "\n")
+	}
+	b.WriteString(rules)
+	return b.String()
+}()
 
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	if h.discoveryLink != "" {

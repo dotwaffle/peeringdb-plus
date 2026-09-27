@@ -29,6 +29,20 @@ func TestRobotsTxt(t *testing.T) {
 			t.Errorf("robots.txt missing %q, got %q", want, body)
 		}
 	}
+	// Each named crawler must be in a group that repeats the rules: a
+	// crawler that finds its name ignores the "*" group.
+	groups := strings.Split(body, "\n\n")
+	if len(groups) != 2 {
+		t.Fatalf("robots.txt has %d groups, want 2:\n%s", len(groups), body)
+	}
+	for _, agent := range []string{"GPTBot", "ClaudeBot", "Google-Extended", "CCBot", "PerplexityBot"} {
+		if !strings.Contains(groups[1], "User-agent: "+agent+"\n") {
+			t.Errorf("robots.txt has no group for %s", agent)
+		}
+	}
+	if !strings.HasSuffix(groups[1], "Allow: /\nDisallow: /ui/fragment/\n") {
+		t.Errorf("the AI crawler group does not repeat the rules:\n%s", groups[1])
+	}
 }
 
 // TestSEOHead verifies detail pages emit the meta description,
