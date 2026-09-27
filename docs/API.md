@@ -75,6 +75,7 @@ Replica instances reject the request with a `fly-replay` header that routes the 
 | `GET` / `HEAD` | `/.well-known/agent-skills/index.json` | Agent discovery | Agent Skills v0.2.0 index with a SHA-256 digest |
 | `GET` / `HEAD` | `/.well-known/agent-skills/peeringdb-plus/SKILL.md` | Agent Skill | Standard well-known alias for the raw skill |
 | `GET` / `HEAD` | `/llms.txt` | Agent discovery | Curated Markdown index of agent and API interfaces |
+| `GET` / `HEAD` | `/.well-known/api-catalog` | API discovery | RFC 9727 linkset (`application/linkset+json`) with the root, description and documentation of `/api/`, `/rest/v1/`, `/graphql` and `/mcp` |
 | `GET` / `HEAD` | `/.well-known/security.txt` | Security contact | RFC 9116 file. `Contact` is the private vulnerability report form of the GitHub repository. `Expires` is 180 days after the start of the current UTC day |
 
 The 13 entity types mirrored from PeeringDB are: `campus`, `carrier`, `carrierfac`, `fac`, `ix`, `ixfac`, `ixlan`, `ixpfx`, `net`, `netfac`, `netixlan`, `org`, `poc`.
@@ -1703,7 +1704,7 @@ Service discovery JSON body:
 }
 ```
 
-`GET /` and `HEAD /` include `Link` headers for `llms.txt`, the MCP server card, and the Agent Skills index.
+`GET /` and `HEAD /` include `Link` headers for `llms.txt`, the MCP server card, the Agent Skills index, and the API catalog.
 The root bypasses the readiness middleware so service discovery still works while the first sync is in progress.
 
 ### `GET /healthz`

@@ -32,16 +32,24 @@ const (
 	MCPServerCardPath = "/.well-known/mcp/server-card.json"
 	// LLMSTextPath is the curated site index for language models.
 	LLMSTextPath = "/llms.txt"
+	// APICatalogPath is the RFC 9727 list of the public APIs.
+	APICatalogPath = "/.well-known/api-catalog"
 	// SecurityTextPath is the RFC 9116 file that tells a researcher where
 	// to report a vulnerability.
 	SecurityTextPath = "/.well-known/security.txt"
 
 	// DiscoveryLinkHeader advertises the agent-facing discovery documents.
-	DiscoveryLinkHeader = `</llms.txt>; rel="describedby"; type="text/markdown"; title="Site index for LLMs", </.well-known/mcp/server-card.json>; rel="mcp"; type="application/json"; title="MCP server card", </.well-known/agent-skills/index.json>; rel="agent-skills"; type="application/json"; title="Agent Skills index"`
+	DiscoveryLinkHeader = `</llms.txt>; rel="describedby"; type="text/markdown"; title="Site index for LLMs", </.well-known/mcp/server-card.json>; rel="mcp"; type="application/json"; title="MCP server card", </.well-known/agent-skills/index.json>; rel="agent-skills"; type="application/json"; title="Agent Skills index", ` + apiCatalogLink
 
 	skillArchivePath  = "peeringdb-plus/SKILL.md"
 	openAIArchivePath = "peeringdb-plus/agents/openai.yaml"
 	mcpPath           = "/mcp"
+	// apiCatalogLink is the RFC 9727 link to the API catalog.
+	apiCatalogLink = `</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"`
+	// apiCatalogContentType is the RFC 9727 media type of the catalog.
+	apiCatalogContentType = `application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"`
+	// apiDocsURL is the API reference in the repository.
+	apiDocsURL = "https://github.com/dotwaffle/peeringdb-plus/blob/main/docs/API.md"
 	// securityContact is the private vulnerability report form of the
 	// repository.
 	securityContact = "https://github.com/dotwaffle/peeringdb-plus/security/advisories/new"
@@ -113,6 +121,8 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("HEAD "+MCPServerCardPath, h.serveMCPServerCard)
 	mux.HandleFunc("GET "+LLMSTextPath, h.serveLLMSText)
 	mux.HandleFunc("HEAD "+LLMSTextPath, h.serveLLMSText)
+	mux.HandleFunc("GET "+APICatalogPath, h.serveAPICatalog)
+	mux.HandleFunc("HEAD "+APICatalogPath, h.serveAPICatalog)
 	mux.HandleFunc("GET "+SecurityTextPath, h.serveSecurityText)
 	mux.HandleFunc("HEAD "+SecurityTextPath, h.serveSecurityText)
 }
@@ -207,6 +217,59 @@ func (h *Handler) serveLLMSText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.serveGenerated(w, r, "llms.txt", llmsText(origin), "text/markdown; charset=utf-8")
+}
+
+func (h *Handler) serveAPICatalog(w http.ResponseWriter, r *http.Request) {
+	origin, ok := h.requestOrigin(w, r)
+	if !ok {
+		return
+	}
+	// RFC 9727 section 4.1: a HEAD request finds the catalog through
+	// this link.
+	w.Header().Set("Link", apiCatalogLink)
+	h.serveGenerated(w, r, "api-catalog", apiCatalog(origin), apiCatalogContentType)
+}
+
+// linkTarget is one target object of an RFC 9264 linkset.
+type linkTarget struct {
+	Href  string `json:"href"`
+	Type  string `json:"type,omitempty"`
+	Title string `json:"title,omitempty"`
+}
+
+// apiLinks is one context object of the API catalog: an API root with
+// its machine-readable description and its documentation.
+type apiLinks struct {
+	Anchor      string       `json:"anchor"`
+	ServiceDesc []linkTarget `json:"service-desc,omitempty"`
+	ServiceDoc  []linkTarget `json:"service-doc,omitempty"`
+}
+
+// apiCatalog returns the RFC 9727 catalog of the HTTP APIs at origin.
+// ConnectRPC is not listed: it has no single root URL, and clients find
+// its services through gRPC reflection.
+func apiCatalog(origin string) []byte {
+	return marshalJSON(struct {
+		Linkset []apiLinks `json:"linkset"`
+	}{Linkset: []apiLinks{
+		{
+			Anchor:     origin + "/api/",
+			ServiceDoc: []linkTarget{{Href: apiDocsURL, Type: "text/html", Title: "PeeringDB-compatible API"}},
+		},
+		{
+			Anchor:      origin + "/rest/v1/",
+			ServiceDesc: []linkTarget{{Href: origin + "/rest/v1/openapi.json", Type: "application/json", Title: "OpenAPI description"}},
+			ServiceDoc:  []linkTarget{{Href: origin + "/rest/v1/docs", Type: "text/html", Title: "REST API reference"}},
+		},
+		{
+			Anchor:     origin + "/graphql",
+			ServiceDoc: []linkTarget{{Href: origin + "/graphql", Type: "text/html", Title: "GraphiQL playground with the schema"}},
+		},
+		{
+			Anchor:      origin + mcpPath,
+			ServiceDesc: []linkTarget{{Href: origin + MCPServerCardPath, Type: "application/json", Title: "MCP server card"}},
+		},
+	}})
 }
 
 func (h *Handler) serveSecurityText(w http.ResponseWriter, r *http.Request) {

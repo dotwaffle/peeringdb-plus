@@ -659,3 +659,58 @@ func TestHandlerServesSecurityText(t *testing.T) {
 	}
 	assertDocumentHeaders(t, rec, "text/plain; charset=utf-8", `inline; filename="security.txt"`)
 }
+
+// TestHandlerServesAPICatalog checks the RFC 9727 catalog: the linkset
+// media type with the profile, the api-catalog link that a HEAD request
+// finds, and one anchor for each HTTP API of the deployment.
+func TestHandlerServesAPICatalog(t *testing.T) {
+	t.Parallel()
+
+	handler := newTestHandler(t, Options{SourceTime: testSourceTime})
+	mux := http.NewServeMux()
+	handler.Register(mux)
+
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		rec := serveRequest(mux, method, "https://mirror.example"+APICatalogPath)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status = %d, want 200", method, rec.Code)
+		}
+		if got := rec.Header().Get("Content-Type"); got != `application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"` {
+			t.Errorf("%s Content-Type = %q", method, got)
+		}
+		if got := rec.Header().Get("Link"); !strings.Contains(got, `</.well-known/api-catalog>; rel="api-catalog"`) {
+			t.Errorf("%s Link = %q, want the api-catalog link", method, got)
+		}
+	}
+
+	rec := serveRequest(mux, http.MethodGet, "https://mirror.example"+APICatalogPath)
+	var catalog struct {
+		Linkset []struct {
+			Anchor      string `json:"anchor"`
+			ServiceDesc []struct {
+				Href string `json:"href"`
+			} `json:"service-desc"`
+			ServiceDoc []struct {
+				Href string `json:"href"`
+			} `json:"service-doc"`
+		} `json:"linkset"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &catalog); err != nil {
+		t.Fatal(err)
+	}
+	anchors := map[string]bool{}
+	for _, entry := range catalog.Linkset {
+		anchors[entry.Anchor] = true
+		if len(entry.ServiceDesc)+len(entry.ServiceDoc) == 0 {
+			t.Errorf("%s has no service-desc or service-doc", entry.Anchor)
+		}
+	}
+	for _, want := range []string{"/api/", "/rest/v1/", "/graphql", "/mcp"} {
+		if !anchors["https://mirror.example"+want] {
+			t.Errorf("catalog has no anchor for %s", want)
+		}
+	}
+	if !strings.Contains(DiscoveryLinkHeader, `rel="api-catalog"`) {
+		t.Error("DiscoveryLinkHeader does not name the API catalog")
+	}
+}
