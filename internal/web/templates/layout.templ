@@ -93,6 +93,8 @@ templ Layout(opts LayoutOptions, contents templ.Component) {
 				th[data-sortable]::after { content: ''; position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 4px solid #525252; margin-top: 2px; }
 				th[data-sort-active="asc"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #10b981; border-bottom: none; margin-top: 0; }
 				th[data-sort-active="desc"]::after { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #10b981; border-top: none; margin-top: 0; }
+				th[data-sortable] > .sort-button { cursor: pointer; text-align: inherit; text-transform: inherit; }
+				th[data-sortable] > .sort-button:focus-visible { outline: 2px solid #059669; outline-offset: 2px; }
 				/* Last in the block so that it wins over the rules above. The
 				 * theme-transition selectors repeat here because their !important
 				 * rule is more specific than "*". Durations stay above zero so that

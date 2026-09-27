@@ -1121,7 +1121,6 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 
 	checks := []string{
 		"data-result",
-		`tabindex="-1"`,
 		"focus:ring-2",
 		"focus:ring-emerald-500",
 	}
@@ -1132,7 +1131,8 @@ func TestSearchResults_ARIARoles(t *testing.T) {
 	}
 	// Results are plain links; the listbox/option ARIA pattern was
 	// dropped (it mislabels anchors and demanded aria-selected upkeep).
-	for _, unwanted := range []string{`role="option"`, "aria-selected"} {
+	// A tabindex would take them out of the Tab order.
+	for _, unwanted := range []string{`role="option"`, "aria-selected", "tabindex"} {
 		if strings.Contains(body, unwanted) {
 			t.Errorf("search results still carry %q", unwanted)
 		}
@@ -1214,7 +1214,8 @@ func TestLayout_KeyboardNavScript(t *testing.T) {
 	checks := []string{
 		"ArrowDown",
 		"ArrowUp",
-		"tabindex",
+		"searchResultKeys",
+		"aria-sort",
 		"htmx:after:swap",
 		"htmx:response:error",
 		"htmx:error",

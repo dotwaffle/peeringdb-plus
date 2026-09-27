@@ -37,3 +37,25 @@ func TestDetailLink_SanitizesUpstreamURL(t *testing.T) {
 		t.Errorf("a legitimate https URL should pass through unchanged, got:\n%s", out)
 	}
 }
+
+// TestCopyableIP_KeyboardButton checks that the copy action is a button
+// with an accessible name, so keyboard and screen reader users can reach
+// it, and that the icon inside it is hidden from assistive technology.
+func TestCopyableIP_KeyboardButton(t *testing.T) {
+	t.Parallel()
+	var buf strings.Builder
+	if err := CopyableIP("IPv6", "2001:db8::1").Render(t.Context(), &buf); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	for _, want := range []string{
+		`<button type="button"`,
+		`aria-label="Copy 2001:db8::1"`,
+		`<svg class="w-3.5 h-3.5" aria-hidden="true"`,
+		"focus-visible:opacity-100",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("CopyableIP output has no %q:\n%s", want, out)
+		}
+	}
+}
