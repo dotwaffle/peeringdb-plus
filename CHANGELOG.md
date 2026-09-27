@@ -13,6 +13,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - pdbcompat serves `/api/<tag>/self` for `org`, `net`, `ix`, `fac`, `carrier` and `campus`, as upstream does: a `302` to the default object of the tag, for example `/api/net/666`, with the same query string.
   As upstream, the route matches any path under `/api/` that contains `<tag>/self`, for example `/api/ixfac/self` (tag `fac`).
   Before, pdbcompat returned `404`.
+- pdbcompat answers the organization users paths (`/api/org/<id>/users`, and `add`, `remove` and `<user_id>` below it) as upstream answers a caller without an API key: `404` when the organization is not an `ok` row, else `403` `Invalid authentication`.
+  Before, pdbcompat returned `404` `Not found.` for every such path.
 
 ### Fixed
 

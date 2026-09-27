@@ -1038,6 +1038,7 @@ func TestParity_Status(t *testing.T) {
 			{http.MethodOptions, "/api/net", "GET, HEAD"},
 			{http.MethodPost, "/api/as_set", "GET"},
 			{http.MethodOptions, "/api/net/self", "GET"},
+			{http.MethodOptions, "/api/org/1/users", "GET, HEAD"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
 			if status != http.StatusMethodNotAllowed {
@@ -1165,6 +1166,96 @@ func TestParity_Status(t *testing.T) {
 		_ = resp.Body.Close()
 		if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "/api/net/666" {
 			t.Errorf("status = %d, Location = %q; want 302 to /api/net/666", resp.StatusCode, resp.Header.Get("Location"))
+		}
+	})
+
+	t.Run("org_users_routes_like_upstream", func(t *testing.T) {
+		t.Parallel()
+		// upstream: 2.83.0 rest.py:2089-2108 route the organization
+		// users actions before the router routes; each route maps one
+		// method, and DRF maps HEAD to the GET action (viewsets.py:
+		// 105-106). After content negotiation and the method check
+		// (views.py:404-421, :513-521), every handler runs
+		// check_permissions_for_action (rest.py:1696-1751):
+		// get_object_or_404(Organization, id=<id>, status="ok"), then
+		// PermissionDenied("Invalid authentication") for a caller
+		// without an API key, returned as {"detail": ...} with 403.
+		// \d in the Python route matches every Unicode decimal digit.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		for id, status := range map[int]string{1: "ok", 2: "deleted", 3: "pending"} {
+			c.Organization.Create().
+				SetID(id).SetName(fmt.Sprintf("Org%d", id)).SetNameFold(unifold.Fold(fmt.Sprintf("Org%d", id))).
+				SetStatus(status).SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			method, path string
+			status       int
+			msg, allow   string
+		}{
+			{http.MethodGet, "/api/org/1/users", 403, "Invalid authentication", ""},
+			{http.MethodGet, "/api/org/1/users/", 403, "Invalid authentication", ""},
+			{http.MethodGet, "/api/org/001/users", 403, "Invalid authentication", ""},
+			{http.MethodGet, "/api/org/%D9%A1/users", 403, "Invalid authentication", ""},
+			{http.MethodPost, "/api/org/1/users/add", 403, "Invalid authentication", ""},
+			{http.MethodPut, "/api/org/1/users/7", 403, "Invalid authentication", ""},
+			{http.MethodDelete, "/api/org/1/users/remove/", 403, "Invalid authentication", ""},
+			{http.MethodGet, "/api/org/2/users", 404, "No Organization matches the given query.", ""},
+			{http.MethodPost, "/api/org/3/users/add", 404, "No Organization matches the given query.", ""},
+			{http.MethodPut, "/api/org/9/users/7", 404, "No Organization matches the given query.", ""},
+			{http.MethodGet, "/api/org/99999999999999999999999/users", 404, "No Organization matches the given query.", ""},
+			{http.MethodPost, "/api/org/1/users", 405, "Method \"POST\" not allowed.", "GET, HEAD"},
+			{http.MethodGet, "/api/org/1/users/add", 405, "Method \"GET\" not allowed.", "POST"},
+			{http.MethodDelete, "/api/org/9/users/7", 405, "Method \"DELETE\" not allowed.", "PUT"},
+			{http.MethodPost, "/api/org/1/users/remove", 405, "Method \"POST\" not allowed.", "DELETE"},
+		} {
+			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)
+			if status != tc.status {
+				t.Errorf("%s %s: status = %d, want %d; body=%s", tc.method, tc.path, status, tc.status, body)
+				continue
+			}
+			if got := mustDecodeMetaError(t, body).Error; got != tc.msg {
+				t.Errorf("%s %s: meta.error = %q, want %q", tc.method, tc.path, got, tc.msg)
+			}
+			if got := hdr.Get("Allow"); got != tc.allow {
+				t.Errorf("%s %s: Allow = %q, want %q", tc.method, tc.path, got, tc.allow)
+			}
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodHead, "/api/org/1/users", nil); status != http.StatusForbidden {
+			t.Errorf("HEAD /api/org/1/users: status = %d, want 403", status)
+		}
+		if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/org/1/users?format=xml", nil); status != http.StatusNotFound {
+			t.Errorf("GET /api/org/1/users?format=xml: status = %d, want 404", status)
+		}
+		for _, path := range []string{"/api/org/1/users.json", "/api/org/x/users", "/api/org/1/users/add/x"} {
+			if status, _, _ := httpDo(t, srv, http.MethodGet, path, nil); status != http.StatusNotFound {
+				t.Errorf("GET %s: status = %d, want 404 (no route)", path, status)
+			}
+		}
+	})
+
+	t.Run("DIVERGENCE_org_users_keyed_caller_403", func(t *testing.T) {
+		t.Parallel()
+		// DIVERGENCE: upstream answers a caller with the API key of an
+		// organization admin, or an organization key with the users
+		// permission, with the users of the organization, and runs
+		// the add, change and remove actions (rest.py:1726-1748,
+		// :1775-1972). OrganizationUsersThrottle allows 1 request per
+		// second (rest_throttles.py:598-611). The mirror has no user
+		// data, does not check API keys and has no rate limit, so
+		// every caller gets 403. See docs/API.md § Known Divergences.
+		ctx := t.Context()
+		c := testutil.SetupClient(t)
+		c.Organization.Create().
+			SetID(1).SetName("Org1").SetNameFold(unifold.Fold("Org1")).
+			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		srv := newTestServer(t, c)
+		hdr := http.Header{"Authorization": {"Api-Key abcdef.0123456789"}}
+		for range 2 {
+			if status, _, _ := httpDo(t, srv, http.MethodGet, "/api/org/1/users", hdr); status != http.StatusForbidden {
+				t.Errorf("GET /api/org/1/users with an API key: status = %d, want 403", status)
+			}
 		}
 	})
 

@@ -103,11 +103,16 @@ func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
 // paths of getOnly types get Allow: GET.
 //
 // A path that no route matches is a 404 for every method, as in
-// dispatch. The self route answers every method itself (serveSelf). Content negotiation comes before the method check
+// dispatch. The self and organization users routes answer every
+// method themselves (serveSelf, serveOrgUsers). Content negotiation comes before the method check
 // (negotiate).
 func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	if tag, ok := selfTag(r.PathValue("rest")); ok {
 		serveSelf(w, r, tag)
+		return
+	}
+	if route, orgID, ok := matchOrgUsers(r.PathValue("rest")); ok {
+		h.serveOrgUsers(w, r, route, orgID)
 		return
 	}
 	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
@@ -158,10 +163,15 @@ func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request, allow string)
 // dispatch routes requests under /api/ to index, list, or detail handlers
 // based on the URL path structure.
 func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
-	// The self route comes before the router routes upstream and
-	// matches anywhere in the path (selfRoute).
+	// The self and organization users routes come before the router
+	// routes upstream (rest.py:2087-2122). The self route matches
+	// anywhere in the path (selfRoute).
 	if tag, ok := selfTag(r.PathValue("rest")); ok {
 		serveSelf(w, r, tag)
+		return
+	}
+	if route, orgID, ok := matchOrgUsers(r.PathValue("rest")); ok {
+		h.serveOrgUsers(w, r, route, orgID)
 		return
 	}
 	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))

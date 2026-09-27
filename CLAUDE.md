@@ -310,6 +310,7 @@ If a per-Op tracing need re-emerges, restore at a coarser granularity (per-batch
   Never call `httperr.WriteProblem` from pdbcompat directly.
 - Upstream `urlpatterns` routes (2.83.0 `rest.py:2087-2122`) come before the router routes: `dispatch` AND `methodNotAllowed` resolve them first, before `parseAPIPath`.
   `/api/<tag>/self` (`self.go`) is unanchored (Django `re.search`), so `/api/ixfac/self` is the fac self path.
+  `/api/org/<id>/users*` (`org_users.go`) answers as for an anonymous caller: `404` unless the org is `ok`, else `403`, never a write.
 
 **Native netixlan listings** (web fragments `internal/web/detail.go`, `internal/catalog` network/IX/compare, MCP `lookup_ip`) inline `networkixlan.StatusIn("ok", "not-operational", "pending")`: upstream 2.83.0 lists not-operational connections in its views and counts them in IX stats.
 REST/GraphQL/gRPC have no default status filter.

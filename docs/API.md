@@ -335,6 +335,7 @@ See § Known Divergences.
 | `GET /api/as_set` | Map of ASN to `irr_as_set` (see § AS-SET lookup) |
 | `GET /api/as_set/{asn}` | One ASN to `irr_as_set` pair (see § AS-SET lookup) |
 | `GET /api/{tag}/self` | `302` to the default object of `{tag}` (see § Self paths) |
+| `GET /api/org/{id}/users` and the `add`, `remove` and `{user_id}` paths below it | `403` or `404`, as upstream for a caller without an API key (see § Organization users paths) |
 
 A path with a `/` at the end, for example `/api/net/` or `/api/net/1/`, returns `404`, as upstream: no upstream route has it.
 `/api` without the `/` returns `301` with `Location: /api/` and the same query string, for every method, as upstream (Django `APPEND_SLASH`).
@@ -365,6 +366,29 @@ A path suffix does not select a format here.
 `?format=` does, and a format other than `json` returns `404`.
 A method other than `GET`, `HEAD` included, returns `405` with `Allow: GET`.
 Upstream sends a caller with an API key to an object of the caller's organization (see § Known Divergences).
+
+#### Organization users paths
+
+Upstream lists, adds, changes and removes the users of an organization on these paths (2.83.0 `rest.py:1649-1972`, `:2089-2108`).
+Each path accepts one method:
+
+| Path | Method |
+|------|--------|
+| `/api/org/{id}/users` | `GET` (and `HEAD`) |
+| `/api/org/{id}/users/add` | `POST` |
+| `/api/org/{id}/users/{user_id}` | `PUT` |
+| `/api/org/{id}/users/remove` | `DELETE` |
+
+A `/` at the end is optional, and `{id}` and `{user_id}` can have decimal digits of any script, as in the upstream routes.
+The mirror has no user data and does not change data.
+It answers as upstream answers a caller without an API key:
+
+1. If `{id}` is not an organization with the status `ok`, the response is `404` with `No Organization matches the given query.`.
+2. Otherwise, the response is `403` with `Invalid authentication`.
+
+Another method returns `405`, with the method of the path in `Allow` (`GET, HEAD` on `/users`).
+The path takes no format suffix, and `?format=` with a format other than `json` returns `404`.
+A caller with an API key also gets `403` (see § Known Divergences).
 
 Valid `{type}` values are the same 13 constants defined in `internal/peeringdb/types.go`: `org`, `net`, `fac`, `ix`, `poc`, `ixlan`, `ixpfx`, `netixlan`, `netfac`, `ixfac`, `carrier`, `carrierfac`, `campus`.
 
@@ -1261,8 +1285,9 @@ Typical status codes:
 | Status | Cause |
 |--------|-------|
 | `400` | An operator that the field type does not support (for example `created__contains`), a value that does not parse for the field type, a malformed `__in` value, a `since` or a FK id that is not an integer, a `limit`, `skip` or `depth` that is not an integer, a negative `skip`, a relation key of a `prepare_query` whose field the related model does not have (`Invalid query`, see § Relation filters), or an `as_set` ASN that is not an integer (`Invalid ASN`) |
+| `403` | An organization users path of an `ok` organization (`Invalid authentication`, see § Organization users paths) |
 | `404` | Unknown `{type}`, a path with a `/` at the end (`/api/net/`) or more segments, a format other than `json` (a path suffix or `?format=`), missing `{id}`, an `{id}` that is not an integer, detail GET on a tombstoned row, an empty list for a lookup by `id` (any type) or `asn` (`net`), see § Lookup by `id` or `asn`, a single-object GET whose filters exclude the object or that has a `limit` or `skip` above `0` (see § Filters on a single-object GET), or an `as_set` ASN that no network has (empty body) |
-| `405` | `HEAD` on the `as_set`, `ixlan` or `self` paths, or a method other than `GET` and `HEAD` on a path that an upstream route matches. The `Allow` header is `GET` on the `as_set`, `ixlan` and `self` paths and `GET, HEAD` on every other path |
+| `405` | `HEAD` on the `as_set`, `ixlan` or `self` paths, a method other than `GET` and `HEAD` on a path that an upstream route matches, or a method other than the one of an organization users path. The `Allow` header is `GET` on the `as_set`, `ixlan` and `self` paths, the method of the path on an organization users path, and `GET, HEAD` on every other path |
 | `406` | An `Accept` header with no media range that matches `application/json`, for example `Accept: text/html` or an empty header, as upstream (DRF content negotiation). A parameter such as `q=0` does not count. A header that names `application/problem+json` gets no `406` (see § Known Divergences) |
 | `413` | The estimated response is larger than the response memory budget (see § Response memory budget) |
 | `500` | Database error (details redacted from response body, full error logged) |
@@ -1273,6 +1298,7 @@ The message is the upstream text for these errors:
 - A lookup by `id` or `asn` with no match: `Entity not found`.
 - A single-object GET for an object that does not exist, that the detail status set or the caller's tier excludes, or that a filter excludes: `No <Model> matches the given query.`, with the upstream model name, for example `No Network matches the given query.` or `No NetworkContact matches the given query.`.
 - A single-object GET with a `limit` or `skip` above `0`, or with an `{id}` that is not an integer, and a format other than `json`: `Not found.`.
+- An organization users path: `No Organization matches the given query.` or `Invalid authentication`.
 - An `Accept` header that does not match `application/json`: `Could not satisfy the request Accept header.`.
 - A method that upstream does not map to a handler: `Method "PUT" not allowed.`, or `Method "HEAD" not allowed.` on the `as_set`, `ixlan` and `self` paths.
 - A `limit`, `skip` or `since` that is empty or not an integer: `'limit' needs to be a number`, `'skip' needs to be a number` or `'since' needs to be a unix timestamp (epoch seconds)`.
@@ -1715,7 +1741,8 @@ The shape of list responses at `?depth=1` and `2` also matches upstream.
 | An `/api/` request whose `Accept` header names `application/problem+json` with a `q` value above 0, for example `Accept: application/problem+json` | Returns `406` with `{"meta": {"error": "Could not satisfy the request Accept header."}}` when no range in the header matches `application/json` (DRF content negotiation, `rest_framework/negotiation.py:78`). When the header also has `*/*` or `application/json`, an error has the `meta.error` form. | An error has an RFC 9457 `application/problem+json` body. A success response is the normal JSON envelope. The mirror sends no `406` for such a header. For every other header, the mirror sends the upstream `406`. | Clients that ask for RFC 9457 errors get the same form as from the REST API of the mirror. Upstream clients do not send this media type. Locked by `TestParity_Limit/DIVERGENCE_problem_json_when_accept_names_it`. | v1.37.0 (registered 2026-09-26) |
 | A path under `/api/` that no upstream route matches: a path that names no type, for example `/api/foo`, a path with a `/` at the end, for example `/api/net/` or `/api/net/1/`, and a path with more segments | Returns the `404` HTML page of the web site (`mainsite/urls.py:111`, `views.py:336-340`), for every method. The routes have no `/` at the end (2.83.0 `rest.py:185-230`, `:1305`), and `APPEND_SLASH` only adds a `/`. | Returns `404` with `{"meta": {"error": "unknown type \"foo\""}}`, or with `Not found.` for the other paths, for every method. The Go router sends a `307` to the clean path first for a path with a repeated `/` or a `.` or `..` segment, for example from `/api//net` to `/api/net`. | A JSON client can read the error. The status code is the same. Locked by `TestParity_Status/DIVERGENCE_unknown_path_json_404`. | v1.37.0 (registered 2026-09-26, `/` at the end 2026-09-27) |
 | `/api/{tag}/self` from a caller with an API key or a session, for example `/api/net/self` with `Authorization: Api-Key <key>` | Redirects to the object of the caller's primary organization: the organization itself for `org`, else its first `ok` object of the tag, and the default object when it has none (2.83.0 `rest.py:1617-1636`). | Redirects every caller to the default object of the tag (see § Self paths). | The mirror has no user or organization data, and it does not check API keys. Locked by `TestParity_Status/DIVERGENCE_self_redirects_keyed_caller_to_default`. | v1.39.0 (registered 2026-09-27) |
-| A write method that upstream maps (`POST` on a list, `PUT`, `PATCH` or `DELETE` on an object), `OPTIONS`, and the `Allow` header | Runs the handler. For an anonymous caller: `POST` or `PUT` with no body returns `400` (`No data was supplied with the POST request`, 2.83.0 `rest.py:867-924`), `PATCH` returns `403` (`:970-974`), `DELETE` returns `204`, `403` or `400` (`:978-1020`), and `OPTIONS` returns `200` with DRF metadata. Every response has `Allow` with the methods of the route: `GET, POST, HEAD, OPTIONS` on a list, `GET, PUT, PATCH, DELETE, HEAD, OPTIONS` on an object (`GET` and `GET, PUT` for `ixlan`). A method that the route does not map returns `405` with `Method "<METHOD>" not allowed.`. `as_set` answers an anonymous write with `401` (`Authentication credentials were not provided.`, DRF `views.py:174-180`, `permissions.py:191-199`) and `OPTIONS` with `405`, and sends `Allow: GET` (`rest.py:1396-1399`). A `self` path answers `OPTIONS` with `200` and sends `Allow` with `GET` and `OPTIONS` (DRF `decorators.py:46-47`). | On a path that an upstream route matches, every method other than `GET` and `HEAD` returns `405` with `{"meta": {"error": "Method \"<METHOD>\" not allowed."}}` and `Allow: GET, HEAD` (`Allow: GET` on the `as_set`, `ixlan` and `self` paths, where `HEAD` and `OPTIONS` return `405` as upstream, except `OPTIONS` on a `self` path). Success responses have no `Allow` header. | The mirror is read-only. Writes go to PeeringDB. Locked by `TestParity_Status/DIVERGENCE_non_get_method_405_read_only`. | v1.37.0 (registered 2026-09-26) |
+| An organization users path (`/api/org/{id}/users` and the paths below it) from a caller with an API key, or more than one request per second | Lists the users of the organization for the key of an organization admin, or for an organization key with the users permission, and runs the add, change and remove actions (2.83.0 `rest.py:1726-1748`, `:1775-1972`). Another key gets `403` with another text. `OrganizationUsersThrottle` allows 1 request per second (`rest_throttles.py:598-611`) and answers more with `429`. | Returns `403` (`Invalid authentication`) for an `ok` organization, for every caller, with no rate limit (see § Organization users paths). | The mirror has no user data, does not check API keys and is read-only. Locked by `TestParity_Status/DIVERGENCE_org_users_keyed_caller_403`. | v1.39.0 (registered 2026-09-27) |
+| A write method that upstream maps (`POST` on a list, `PUT`, `PATCH` or `DELETE` on an object), `OPTIONS`, and the `Allow` header | Runs the handler. For an anonymous caller: `POST` or `PUT` with no body returns `400` (`No data was supplied with the POST request`, 2.83.0 `rest.py:867-924`), `PATCH` returns `403` (`:970-974`), `DELETE` returns `204`, `403` or `400` (`:978-1020`), and `OPTIONS` returns `200` with DRF metadata. Every response has `Allow` with the methods of the route: `GET, POST, HEAD, OPTIONS` on a list, `GET, PUT, PATCH, DELETE, HEAD, OPTIONS` on an object (`GET` and `GET, PUT` for `ixlan`). A method that the route does not map returns `405` with `Method "<METHOD>" not allowed.`. `as_set` answers an anonymous write with `401` (`Authentication credentials were not provided.`, DRF `views.py:174-180`, `permissions.py:191-199`) and `OPTIONS` with `405`, and sends `Allow: GET` (`rest.py:1396-1399`). A `self` path answers `OPTIONS` with `200` and sends `Allow` with `GET` and `OPTIONS` (DRF `decorators.py:46-47`). An organization users path also answers `OPTIONS` with `200`, and its `Allow` also has `OPTIONS`. | On a path that an upstream route matches, every method other than `GET` and `HEAD` returns `405` with `{"meta": {"error": "Method \"<METHOD>\" not allowed."}}` and `Allow: GET, HEAD` (`Allow: GET` on the `as_set`, `ixlan` and `self` paths, where `HEAD` and `OPTIONS` return `405` as upstream, except `OPTIONS` on a `self` path). An organization users path is the exception: its own method gets `403` or `404` as upstream, `OPTIONS` returns `405`, and `Allow` has the method of the path. Success responses have no `Allow` header. | The mirror is read-only. Writes go to PeeringDB. Locked by `TestParity_Status/DIVERGENCE_non_get_method_405_read_only`. | v1.37.0 (registered 2026-09-26) |
 
 ## Validation Notes
 
