@@ -170,7 +170,7 @@ func Layout(opts LayoutOptions, contents templ.Component) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/static/favicon.svg\"><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><script src=\"/static/theme-init.js\"></script><link rel=\"stylesheet\" href=\"/static/tailwind.css\"><link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/css/flag-icons.min.css\"><meta name=\"htmx-config\" content='{\"history\":\"reload\",\"noSwap\":[204,304,\"4xx\",\"5xx\"]}'><script src=\"/static/htmx.min.js\"></script><script src=\"/static/ui.js\" defer></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/static/favicon.svg\"><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><script src=\"/static/theme-init.js\"></script><link rel=\"stylesheet\" href=\"/static/tailwind.css\"><link rel=\"stylesheet\" href=\"/static/flag-icons/css/flag-icons.min.css\"><meta name=\"htmx-config\" content='{\"history\":\"reload\",\"noSwap\":[204,304,\"4xx\",\"5xx\"]}'><script src=\"/static/htmx.min.js\"></script><script src=\"/static/ui.js\" defer></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

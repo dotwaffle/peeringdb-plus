@@ -719,9 +719,9 @@ func main() {
 			// /static/{theme-init,ui,map-init}.js and Tailwind/Leaflet are
 			// self-hosted, so no inline scripts or CDN script hosts remain.
 			// style-src keeps 'unsafe-inline' (layout <style> blocks,
-			// Leaflet's inline style attributes) plus jsdelivr for the
-			// flag-icons stylesheet. img-src includes the validated map tile
-			// origin and jsdelivr, where the stylesheet loads its flag SVGs.
+			// Leaflet's inline style attributes). The flag-icons stylesheet
+			// and its SVGs are self-hosted too, so img-src adds only the
+			// validated map tile origin.
 			UIPolicy:      uiCSPPolicy(cfg.MapTiles.CSPSource()),
 			GraphQLPolicy: graphQLCSPPolicy,
 			EnforcingMode: cfg.CSPEnforce,

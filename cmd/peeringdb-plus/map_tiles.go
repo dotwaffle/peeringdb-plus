@@ -10,8 +10,7 @@ func uiCSPPolicy(tileSource string) string {
 	if tileSource != "" {
 		imageSources += " " + tileSource
 	}
-	imageSources += " https://cdn.jsdelivr.net"
 
-	return "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src " + imageSources + "; connect-src 'self'; font-src 'self' https://cdn.jsdelivr.net" +
+	return "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src " + imageSources + "; connect-src 'self'; font-src 'self'" +
 		"; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
 }

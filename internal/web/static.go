@@ -11,6 +11,11 @@ import (
 // gate re-runs this and fails on any difference.
 //go:generate tailwindcss -i tailwind.input.css -o static/tailwind.css --minify
 
+// static/flag-icons is flag-icons 7.5.0 (MIT, static/flag-icons/LICENSE)
+// from the npm tarball: the 4x3 flags, and css/flag-icons.min.css without
+// the 1x1 (".fis") rules, whose flags are not vendored. The UI uses only
+// the "fi fi-<cc>" classes (templates.CountryFlag).
+//
 //go:embed static
 var staticFiles embed.FS
 
