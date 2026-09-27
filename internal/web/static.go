@@ -7,10 +7,14 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/internal/web/static"
 )
 
-// Compile the static Tailwind stylesheet from the templates tree.
-// Mise installs the pinned standalone CLI directly from its GitHub release,
-// so no Node.js toolchain is required. The output is committed; the CI drift
-// gate re-runs this and fails on any difference.
+// Generate the templ Go files, then compile the static Tailwind
+// stylesheet from the templates tree. Tailwind reads the generated
+// *_templ.go files, so templ must run first; go generate runs the
+// directives of a file in order. Mise installs the pinned standalone CLI
+// directly from its GitHub release, so no Node.js toolchain is required.
+// The output is committed; the CI drift gate re-runs this and fails on
+// any difference.
+//go:generate templ generate -path templates
 //go:generate tailwindcss -i tailwind.input.css -o static/tailwind.css --minify
 
 // StaticFS provides access to the embedded static files (htmx.min.js,

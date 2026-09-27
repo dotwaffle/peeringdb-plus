@@ -493,9 +493,8 @@ deploy/                   # Deployment-adjacent assets (Grafana dashboards, aler
 
 ## Code generation pipeline
 
-`go generate ./...` runs the four steps below.
-A schema change converges in a **single pass**, because `ent/generate.go` runs the schema producer ahead of its consumer (entc).
-A Tailwind class removal can need a second run (see after step 4).
+`go generate ./...` runs the three steps below and converges in a **single pass**.
+`ent/generate.go` runs the schema producer ahead of its consumer (entc), and `internal/web/static.go` runs templ ahead of Tailwind.
 
 1. **`ent/generate.go`** runs four directives in order:
    1. `pdb-schema-generate` (run first) regenerates `ent/schema/{type}.go` from `schema/peeringdb.json`.
@@ -529,16 +528,13 @@ A Tailwind class removal can need a second run (see after step 4).
 2. **`graph/generate.go`** runs `gqlgen generate` to produce the GraphQL
    resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
 
-3. **`internal/web/static.go`** runs `tailwindcss` to build
-   `internal/web/static/tailwind.css` from `internal/web/tailwind.input.css`.
+3. **`internal/web/static.go`** runs `templ generate -path templates` to
+   produce the type-safe `*_templ.go` files from `.templ` sources, then
+   `tailwindcss` to build `internal/web/static/tailwind.css` from
+   `internal/web/tailwind.input.css`.
 
-4. **`internal/web/templates/generate.go`** runs `templ generate` to
-   produce the type-safe `*_templ.go` files from `.templ` sources.
-
-`go generate ./...` visits the packages in import-path order, so step 3 runs before step 4.
 Tailwind scans every file in `internal/web/templates`, which includes the generated `*_templ.go` files.
-If a `.templ` change removes the last use of a class, step 3 still finds the class in the old `*_templ.go` file.
-Run `go generate ./...` a second time to remove the class from `tailwind.css`.
+The two directives are in one file, and `go generate` runs them in order, so Tailwind always reads the new `*_templ.go` files and one run converges.
 
 `schema/generate.go` carries no `go:generate` directive.
 `cmd/pdb-schema-extract <peeringdb-src>` is a manual drift check and is not part of `go generate ./...`.

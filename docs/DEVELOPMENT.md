@@ -115,7 +115,7 @@ Then run `mise run generate` and commit the regenerated files.
 PeeringDB Plus is heavily code-generated.
 A single `go generate ./...` invocation runs every stage in the correct order and converges in a single pass.
 `mise run generate` runs this command.
-The `go:generate` directives are in four files, and `go generate ./...` runs them in this order:
+The `go:generate` directives are in three files, and `go generate ./...` runs them in this order:
 
 1. `ent/generate.go` has four directives:
    1. `cd ../schema && go run ../cmd/pdb-schema-generate/main.go peeringdb.json ../ent/schema` writes `ent/schema/{type}.go` and `ent/schema/types.go` from `schema/peeringdb.json`.
@@ -130,11 +130,11 @@ The `go:generate` directives are in four files, and `go generate ./...` runs the
 2. `graph/generate.go` runs `gqlgen generate`.
    It reads `graph/schema.graphqls` (from entgql), the hand-written `graph/custom.graphql`, and `graph/gqlgen.yml`.
    It writes `graph/generated.go` and updates the resolver files.
-3. `internal/web/static.go` runs the mise-managed `tailwindcss` CLI.
-   It compiles `internal/web/tailwind.input.css` into `internal/web/static/tailwind.css`.
+3. `internal/web/static.go` runs two directives in order.
+   `templ generate -path templates` writes `*_templ.go` from the `.templ` sources.
+   Then the mise-managed `tailwindcss` CLI compiles `internal/web/tailwind.input.css` into `internal/web/static/tailwind.css`.
    It reads class names only from `internal/web/templates/` and `internal/web/static/ui.js`.
-4. `internal/web/templates/generate.go` runs `templ generate`.
-   It writes `*_templ.go` from the `.templ` sources.
+   Tailwind reads the generated `*_templ.go` files, so templ runs first.
 
 `schema/generate.go` has no `go:generate` directive.
 It is the package documentation for the manual drift check (see [Check for upstream schema drift](#check-for-upstream-schema-drift)).
