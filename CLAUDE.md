@@ -10,7 +10,7 @@ Built in Go using entgo as the ORM.
 
 ### Constraints
 
-- **Language**: Go 1.27.1
+- **Language**: Go 1.27.2
 - **ORM**: entgo (non-negotiable — ecosystem drives GraphQL/gRPC/REST generation)
 - **Storage**: SQLite + LiteFS (enables edge distribution without a central database)
 - **Platform**: Fly.io (LiteFS dependency, global edge deployment)
@@ -37,14 +37,16 @@ No drop-in alternative exists for edge SQLite replication.
 
 - `go generate ./...` runs the full codegen pipeline and converges in a SINGLE pass on a clean tree (the schema producer is sequenced ahead of entc, its consumer):
   1. `ent/generate.go` — runs `cmd/pdb-schema-generate` (peeringdb.json → ent/schema/*.go) FIRST, then entc.go (ent + entgql + entrest + entproto), then `cmd/pdb-compat-allowlist`, then `buf generate` for proto Go types
-  2. `graph/generate.go`: runs `gqlgen generate` for GraphQL resolvers/models.
+  2. `graph/generate.go`: runs `go run -mod=mod github.com/99designs/gqlgen generate` for GraphQL resolvers/models.
      GOTCHA: gqlgen's config loader takes the package name from the alphabetically-FIRST `.go` file in `graph/` (today `complexity.go`); a `package graph_test` file sorting before it breaks generation with "exec and model define the same import path (graph vs graph_test)".
      Name new test files so they sort after it (e.g. `resolver_*_test.go`).
   3. `internal/web/static.go`: runs `templ generate -path templates`, then the Tailwind CLI, in that order (Tailwind scans the generated `*_templ.go` files, so the CSS would lag one run behind templ otherwise)
   - GOTCHA: `scalar Map` lives in `graph/schema.graphqls`, emitted by entgql because `Network.meta` / `NetworkIxLan.meta` use it.
     `graph/custom.graphql` must not redeclare it ("Cannot redeclare type Map"). entgql cannot see the custom.graphql declaration: its gqlgen schema load fails when run from `ent/`, so it always emits the builtin.
   - `schema/generate.go` carries no `go:generate` directive (package doc for the manual `pdb-schema-extract` step); the schema-regen step now lives first in `ent/generate.go`.
-- `mise.toml` and `mise.lock` own Go and all contributor CLI versions; run `mise install --locked`, then invoke generators as ordinary binaries.
+- `mise.toml` and `mise.lock` own Go and all contributor CLI versions.
+  Run `mise install --locked`, then `mise run generate`.
+  gqlgen uses the project module graph so its parser supports the pinned Go toolchain.
 - Hand-edited schema methods live in `{type}_{method}.go` siblings — see "Hand-edited schema methods" below.
 - Always commit `*_templ.go` alongside `.templ` changes, and generated `ent/`/`gen/`/`graph/` files alongside schema changes.
 - Proto files: `proto/peeringdb/v1/v1.proto` (messages; entproto output frozen at v1.6, hand-maintained since), `services.proto` (RPCs, hand-written), `common.proto` (manual types like SocialMedia).

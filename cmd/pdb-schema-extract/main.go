@@ -735,8 +735,8 @@ func isFieldConstructor(name string) bool {
 // lastSegment returns the final dotted component of a callable reference, so
 // "models.CharField" becomes "CharField" and a bare "ASNField" is unchanged.
 func lastSegment(s string) string {
-	if i := strings.LastIndex(s, "."); i >= 0 {
-		return s[i+1:]
+	if _, suffix, ok := strings.CutLast(s, "."); ok {
+		return suffix
 	}
 	return s
 }

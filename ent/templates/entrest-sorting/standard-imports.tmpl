@@ -1,0 +1,9 @@
+{{/* Declare the SQL package explicitly so generation does not depend on import discovery. */}}
+{{- define "helper/rest/standard-imports" }}
+    sql "entgo.io/ent/dialect/sql"
+    __ent "{{ $.Config.Package }}"
+    __predicate "{{ $.Config.Package }}/predicate"
+    {{- with $.Config.FeatureEnabled "privacy" }}
+        __privacy "{{ $.Config.Package }}/privacy"
+    {{- end }}
+{{- end }}

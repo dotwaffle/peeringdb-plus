@@ -87,12 +87,10 @@ func connectHandlerOpts(interceptor connect.Interceptor) connect.HandlerOption {
 // WithoutMetrics stops the per-procedure rpc.server.* instruments at the
 // source: they are high-cardinality and duplicate the otelhttp duration
 // histogram, which already covers each ConnectRPC service route.
-// WithoutTraceEvents removes per-message span events, which otherwise grow
-// with each row that a Stream RPC sends.
+// The interceptor omits server peer attributes and per-message span events
+// by default.
 func connectOTelOpts() []otelconnect.Option {
 	return []otelconnect.Option{
-		otelconnect.WithoutServerPeerAttributes(),
-		otelconnect.WithoutTraceEvents(),
 		otelconnect.WithoutMetrics(),
 	}
 }

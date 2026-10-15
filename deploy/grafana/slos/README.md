@@ -25,9 +25,8 @@ The recording rules write to `grafanacloud-prom` and add series to the metrics u
 
 ## Availability
 
-The SLI is the share of routed HTTP requests that return a status below
-500. Good and total requests come from
-`http_server_request_duration_seconds_count`, which otelhttp records on every machine.
+The SLI is the share of routed HTTP requests that return a status below 500.
+Good and total requests come from `http_server_request_duration_seconds_count`, which otelhttp records on every machine.
 The selector leaves out these requests:
 
 - Health probes (`GET /healthz`, `GET /readyz`, `/grpc.health.*`): a 503

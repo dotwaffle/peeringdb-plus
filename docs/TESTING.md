@@ -3,7 +3,7 @@
 PeeringDB Plus tests use the Go `testing` package.
 Some tests also use `github.com/google/go-cmp/cmp` for diffs, and the `internal/mcpserver` tests use `github.com/stretchr/testify`.
 Tests follow the Go convention of living next to the code they exercise as `*_test.go` files in the same package (or a `_test` sibling package for black-box tests).
-The project targets Go 1.27.1 and all tests must pass with the race detector enabled.
+The project targets Go 1.27.2 and all tests must pass with the race detector enabled.
 
 ## Test Layout
 

@@ -573,24 +573,22 @@ Outermost first:
    It sets `X-Frame-Options: DENY` only on browser paths: `/`, `/ui`, `/graphql`, and the paths below `/ui/` and `/graphql/`.
    `Permissions-Policy` turns off the browser features that no page uses (camera, microphone, geolocation, payment, USB and others) and allows `clipboard-write` for the same origin, because the web UI copies IP addresses.
    The entrest docs page at `/rest/v1/docs` sends its own `Permissions-Policy`, which replaces this one.
-10. **CSP** (`internal/middleware/csp.go`):
-   different policies for `/ui/` and `/graphql`.
-   Served as `Report-Only` by default; switched to enforcing via `PDBPLUS_CSP_ENFORCE=true`.
-   The UI policy also sets `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` and `form-action 'self'`.
-   The last three do not fall back to `default-src`, and `object-src 'none'` is stricter than it.
-   Both policies end with `report-uri /csp-report; report-to csp`, and responses that carry a policy also send `Reporting-Endpoints: csp="/csp-report"`.
-   `POST /csp-report` (`cmd/peeringdb-plus/csp_report.go`) reads the legacy `application/csp-report` body and the Reporting API `application/reports+json` body (up to 20 `csp-violation` entries, 16 KiB).
-   It counts each report in `pdbplus.csp.reports` and logs WARN `csp violation` with the directive and the URLs without their query or fragment.
-   The log is rate-limited (a burst of 5, then one line each 10 seconds), and the counter is not.
-   It answers `204`, or `400`, `413` or `415` for a body that it cannot read.
+10. **CSP** (`internal/middleware/csp.go`): different policies for `/ui/` and `/graphql`.
+    Served as `Report-Only` by default; switched to enforcing via `PDBPLUS_CSP_ENFORCE=true`.
+    The UI policy also sets `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'` and `form-action 'self'`.
+    The last three do not fall back to `default-src`, and `object-src 'none'` is stricter than it.
+    Both policies end with `report-uri /csp-report; report-to csp`, and responses that carry a policy also send `Reporting-Endpoints: csp="/csp-report"`.
+    `POST /csp-report` (`cmd/peeringdb-plus/csp_report.go`) reads the legacy `application/csp-report` body and the Reporting API `application/reports+json` body (up to 20 `csp-violation` entries, 16 KiB).
+    It counts each report in `pdbplus.csp.reports` and logs WARN `csp violation` with the directive and the URLs without their query or fragment.
+    The log is rate-limited (a burst of 5, then one line each 10 seconds), and the counter is not.
+    It answers `204`, or `400`, `413` or `415` for a body that it cannot read.
 11. **Caching** (`internal/middleware/caching.go`) handles GET and HEAD only:
     - `/skills/*`: no change.
       The skill handlers set their own ETags.
     - `/static/*` and `/favicon.ico`: no change.
       The static handler sets a weak content ETag, `public, max-age=31536000, immutable` for a request with the current `?v=` content version, and `public, max-age=86400` for others.
     - `/ui/about`, `/healthz` and `/readyz`: `Cache-Control: no-store`.
-      (`/ui/about` renders relative timestamps
-      that would freeze under a version key.)
+      (`/ui/about` renders relative timestamps that would freeze under a version key.)
     - All other paths: a weak ETag from the database version, and 304 for a matching `If-None-Match`.
       `Cache-Control` is `public` for the Public tier and `private` for the Users tier, with `max-age` equal to the sync interval plus 120 seconds.
       A response with status 400 or higher gets `Cache-Control: no-store` and no ETag.

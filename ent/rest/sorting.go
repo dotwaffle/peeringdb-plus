@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"entgo.io/ent/dialect/sql"
+	sql "entgo.io/ent/dialect/sql"
 	__ent "github.com/dotwaffle/peeringdb-plus/ent"
 	__campus "github.com/dotwaffle/peeringdb-plus/ent/campus"
 	__carrier "github.com/dotwaffle/peeringdb-plus/ent/carrier"

@@ -14,7 +14,7 @@ For environment variables and runtime configuration, see [CONFIGURATION.md](CONF
   `mise run check` runs `mise run test`.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
-Mise installs Go 1.27.1 and all contributor tools from the committed cross-platform lockfile.
+Mise installs Go 1.27.2 and all contributor tools from the committed cross-platform lockfile.
 
 The SQLite driver (`modernc.org/sqlite`) is pure Go.
 The server binary does not need cgo, and the Docker images build with `CGO_ENABLED=0`.
@@ -127,7 +127,8 @@ The `go:generate` directives are in three files, and `go generate ./...` runs th
       `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
    4. `cd .. && buf generate` writes the protobuf Go types and the ConnectRPC
       handler interfaces from the proto sources.
-2. `graph/generate.go` runs `gqlgen generate`.
+2. `graph/generate.go` runs `go run -mod=mod github.com/99designs/gqlgen generate`.
+   It uses the project module graph so the parser supports the pinned Go toolchain.
    It reads `graph/schema.graphqls` (from entgql), the hand-written `graph/custom.graphql`, and `graph/gqlgen.yml`.
    It writes `graph/generated.go` and updates the resolver files.
 3. `internal/web/static.go` runs two directives in order.

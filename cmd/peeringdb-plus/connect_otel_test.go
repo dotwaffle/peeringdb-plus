@@ -91,8 +91,8 @@ func TestConnectOTelOpts_SpansWithoutMetrics(t *testing.T) {
 				}
 			}
 			if tt.wantMetrics {
-				if !slices.Contains(names, "rpc.server.duration") {
-					t.Errorf("control: rpc.server.duration not recorded; got %v", names)
+				if !slices.Contains(names, "rpc.server.call.duration") {
+					t.Errorf("control: rpc.server.call.duration not recorded; got %v", names)
 				}
 			} else if len(names) > 0 {
 				t.Errorf("interceptor recorded metrics %v, want none", names)
