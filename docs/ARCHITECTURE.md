@@ -9,8 +9,8 @@ By default the worker fetches only the objects that changed upstream (`?since=`)
 Once per `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`) it fetches every object.
 Data is stored in SQLite, replicated to edge nodes by [LiteFS](https://fly.io/docs/litefs/), and served with low latency from the nearest Fly.io region.
 Writes (schema migrations and data sync) happen only on the LiteFS primary.
-Only a machine in `PRIMARY_REGION` can take the LiteFS lease (`lease.candidate` in `litefs.yml`).
-Replicas in other regions stay read-only.
+Only a machine of the `primary` process group can take the LiteFS lease (`lease.candidate` in `litefs.yml`).
+Replicas stay read-only.
 
 [entgo](https://entgo.io/) code generation drives most of the code.
 `schema/peeringdb.json` is a hand-curated description of the 13 PeeringDB types.
@@ -1162,7 +1162,7 @@ LiteFS runs as a separate FUSE process whose mount point is inspected by the det
 ### Fleet topology
 
 The app runs under two Fly process groups — `primary` (1 machine, LHR, `shared-cpu-2x`/512 MB, persistent `litefs_data` volume) and `replica` (7 machines, other regions, `shared-cpu-1x`/256 MB, ephemeral rootfs).
-The process-group split reinforces but does not replace the region-gated LiteFS candidacy: `litefs.yml`'s `lease.candidate: ${FLY_REGION == PRIMARY_REGION}` remains the sole source of truth for "which machine may become primary".
+The process group also selects the LiteFS lease candidates: `litefs.yml`'s `lease.candidate: ${FLY_PROCESS_GROUP == "primary"}` is the sole source of truth for "which machine may become primary", and `litefs.IsCandidate` mirrors it (`TestLiteFSConfigLease`).
 The process groups exist to scope `[[vm]]` sizing and `[[mounts]]` to the primary-only tier (per `fly.toml`'s `[[mounts]] processes = ["primary"]` constraint).
 Replicas cold-sync the SQLite DB from primary over LiteFS HTTP on boot; `/readyz` fail-closes during hydration so Fly Proxy excludes them until ready.
 Replica recovery = destroy-and-recreate (no volume management).

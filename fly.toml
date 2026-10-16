@@ -20,12 +20,11 @@ kill_timeout = 30
 [env]
   PDBPLUS_LISTEN_ADDR = ":8080"
   PDBPLUS_DB_PATH = "/litefs/peeringdb-plus.db"
-  PRIMARY_REGION = "lhr"
-  # The sync scratch database goes on the primary volume, which is faster
-  # than the root file system. The directory is outside the /litefs FUSE
-  # mount, and LiteFS does not read or remove files in it. Replicas
-  # normally do not run the sync worker. A replica that takes the lease
-  # uses the directory on its root file system.
+  # The sync scratch database goes on the volume of the primary group,
+  # which is faster than the root file system. The directory is outside
+  # the /litefs FUSE mount, and LiteFS does not read or remove files in
+  # it. Replicas are not lease candidates, so they never run the sync
+  # worker.
   PDBPLUS_SCRATCH_DIR = "/var/lib/litefs/scratch"
 
 # Consul is required for LiteFS leader election.

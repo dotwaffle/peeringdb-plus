@@ -50,9 +50,11 @@ func IsPrimaryAt(path string) bool {
 //     destructive Schema.Create DDL (WithDropColumn/WithDropIndex).
 //  3. If the file is genuinely absent and the parent directory of path exists
 //     (LiteFS is mounted), this is the primary only if LiteFS can elect it
-//     (IsCandidate of FLY_REGION and PRIMARY_REGION). A replica also sees
-//     no file while no node holds the lease, for example while the
-//     primary restarts during a deploy.
+//     (IsCandidate of FLY_PROCESS_GROUP). A replica also sees no file
+//     while no node holds the lease, for example while the primary
+//     restarts during a deploy. In that gap every candidate reads as
+//     primary; LiteFS still refuses their writes, and a running sync cycle
+//     stops at the next demotion check.
 //  4. If neither exists (no LiteFS), fall back to the environment variable
 //     identified by envKey parsed as a boolean. Defaults to true if the env
 //     var is unset, matching the common local-dev expectation (single node = primary).
@@ -82,7 +84,7 @@ func IsPrimaryWithFallback(path string, envKey string) bool {
 		// LiteFS directory exists but .primary file does not. We hold the
 		// lease, or no node holds it: a node that LiteFS cannot elect is
 		// a replica.
-		return IsCandidate(os.Getenv("FLY_REGION"), os.Getenv("PRIMARY_REGION"))
+		return IsCandidate(os.Getenv("FLY_PROCESS_GROUP"))
 	}
 
 	// No LiteFS at all — fall back to environment variable.
@@ -121,14 +123,17 @@ func PrimaryHost(path string) string {
 	return strings.TrimSpace(string(b))
 }
 
+// CandidateProcessGroup is the Fly.io process group whose machines LiteFS
+// can elect as primary. Its machines have a volume, in more than one
+// region, so that a standby can take the lease when the primary is lost.
+const CandidateProcessGroup = "primary"
+
 // IsCandidate reports whether LiteFS can elect this node as primary. It
-// mirrors the lease rule in litefs.yml, `candidate: ${FLY_REGION ==
-// PRIMARY_REGION}`: region is FLY_REGION and primaryRegion is
-// PRIMARY_REGION. When both values are empty (not on Fly.io), every node
-// is a candidate. When only one is empty, LiteFS elects no node, so no
-// node is a candidate.
-func IsCandidate(region, primaryRegion string) bool {
-	return region == primaryRegion
+// mirrors the lease rule in litefs.yml, `candidate: ${FLY_PROCESS_GROUP ==
+// "primary"}`: processGroup is FLY_PROCESS_GROUP. A node with no process
+// group (not on Fly.io) is not a candidate.
+func IsCandidate(processGroup string) bool {
+	return processGroup == CandidateProcessGroup
 }
 
 // ValidateEnvFallback checks that the environment fallback variable, if

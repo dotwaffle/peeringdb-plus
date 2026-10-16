@@ -3,6 +3,7 @@ package litefs_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/internal/litefs"
@@ -85,8 +86,7 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 			name: "no file but litefs directory exists means primary",
 			setup: func(t *testing.T) (string, string) {
 				// Simulate LiteFS directory existing but no .primary file
-				t.Setenv("FLY_REGION", "")
-				t.Setenv("PRIMARY_REGION", "")
+				t.Setenv("FLY_PROCESS_GROUP", "primary")
 				dir := t.TempDir() // acts as the litefs mount dir
 				path := filepath.Join(dir, ".primary")
 				// dir exists but .primary file does not
@@ -95,33 +95,30 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 			wantPrimary: true,
 		},
 		{
-			name: "no file in the primary region means primary",
+			name: "no file without a process group means replica",
 			setup: func(t *testing.T) (string, string) {
-				t.Setenv("FLY_REGION", "lhr")
-				t.Setenv("PRIMARY_REGION", "lhr")
+				t.Setenv("FLY_PROCESS_GROUP", "")
 				return filepath.Join(t.TempDir(), ".primary"), "TEST_IS_PRIMARY_7"
 			},
-			wantPrimary: true,
+			wantPrimary: false,
 		},
 		{
 			// LiteFS shows no .primary file on a replica while no node
 			// holds the lease (the primary restarts during a deploy). A
-			// node outside PRIMARY_REGION can never hold it.
-			name: "no file outside the primary region means replica",
+			// node outside the primary process group can never hold it.
+			name: "no file outside the primary process group means replica",
 			setup: func(t *testing.T) (string, string) {
-				t.Setenv("FLY_REGION", "gru")
-				t.Setenv("PRIMARY_REGION", "lhr")
+				t.Setenv("FLY_PROCESS_GROUP", "replica")
 				return filepath.Join(t.TempDir(), ".primary"), "TEST_IS_PRIMARY_8"
 			},
 			wantPrimary: false,
 		},
 		{
-			// Without LiteFS there is no lease, so the regions do not
-			// select the role.
-			name: "no litefs directory ignores the regions",
+			// Without LiteFS there is no lease, so the process group
+			// does not select the role.
+			name: "no litefs directory ignores the process group",
 			setup: func(t *testing.T) (string, string) {
-				t.Setenv("FLY_REGION", "gru")
-				t.Setenv("PRIMARY_REGION", "lhr")
+				t.Setenv("FLY_PROCESS_GROUP", "replica")
 				dir := filepath.Join(t.TempDir(), "nonexistent-litefs")
 				envKey := "TEST_IS_PRIMARY_9"
 				t.Setenv(envKey, "true")
@@ -231,22 +228,46 @@ func TestPrimaryHost(t *testing.T) {
 }
 
 // TestIsCandidate locks the mirror of the litefs.yml lease rule
-// `candidate: ${FLY_REGION == PRIMARY_REGION}`.
+// `candidate: ${FLY_PROCESS_GROUP == "primary"}`.
 func TestIsCandidate(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		region, primaryRegion string
-		want                  bool
+		processGroup string
+		want         bool
 	}{
-		{"lhr", "lhr", true},
-		{"gru", "lhr", false},
-		{"", "lhr", false},
-		{"gru", "", false},
-		{"", "", true},
+		{"primary", true},
+		{"replica", false},
+		{"", false},
+		{"Primary", false},
 	}
 	for _, tt := range tests {
-		if got := litefs.IsCandidate(tt.region, tt.primaryRegion); got != tt.want {
-			t.Errorf("IsCandidate(%q, %q) = %v, want %v", tt.region, tt.primaryRegion, got, tt.want)
+		if got := litefs.IsCandidate(tt.processGroup); got != tt.want {
+			t.Errorf("IsCandidate(%q) = %v, want %v", tt.processGroup, got, tt.want)
+		}
+	}
+}
+
+// TestLiteFSConfigLease verifies that litefs.yml elects the process group
+// that IsCandidate names, and that a candidate does not take the lease
+// from the primary when it starts (promote: false). With promote: true,
+// every restart of a standby candidate moves the lease to it, and each
+// move cancels an in-flight sync cycle.
+func TestLiteFSConfigLease(t *testing.T) {
+	t.Parallel()
+	b, err := os.ReadFile(filepath.Join("..", "..", "litefs.yml"))
+	if err != nil {
+		t.Fatalf("read litefs.yml: %v", err)
+	}
+	lines := map[string]bool{}
+	for line := range strings.SplitSeq(string(b), "\n") {
+		lines[strings.TrimSpace(line)] = true
+	}
+	for _, want := range []string{
+		`candidate: ${FLY_PROCESS_GROUP == "` + litefs.CandidateProcessGroup + `"}`,
+		"promote: false",
+	} {
+		if !lines[want] {
+			t.Errorf("litefs.yml has no line %q", want)
 		}
 	}
 }

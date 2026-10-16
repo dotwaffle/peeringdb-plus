@@ -112,7 +112,7 @@ On startup the effective interval, authentication state, and whether the operato
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
-| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary, if the node is a lease candidate (`FLY_REGION` equals `PRIMARY_REGION`; both empty also match), else replica; (4) otherwise parse this variable (default `true` when unset). An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role. Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`. |
+| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary, if the node is a lease candidate (`FLY_PROCESS_GROUP` is `primary`), else replica; (4) otherwise parse this variable (default `true` when unset). An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role. Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`. |
 
 ### Fly.io Resource Attribution (read-only)
 
@@ -127,13 +127,12 @@ The OTel resource attributes emitted by `buildResourceFiltered` use OTel semconv
 | Env var | Resource attr (semconv) | On metrics? | On traces/logs? | Consumer |
 |---------|-------------------------|-------------|-----------------|----------|
 | `FLY_REGION` | `cloud.region` (`semconv.CloudRegion`) | yes | yes | OTel resource. Region shown on `/ui/about` and in the MCP `peeringdb-plus://service` resource. `POST /sync` handler: on a replica, returns HTTP 307 with `fly-replay: instance=<machine ID of the lease holder>`. |
-| `FLY_PROCESS_GROUP` | `service.namespace` (`semconv.ServiceNamespace`) | yes | yes | OTel resource. 2-cardinality: `primary` / `replica`. The dashboard `process_group` variable takes its values from `pdbplus_sync_peak_heap_bytes`, which only the primary sends, so it lists only `primary`. Select `All` to include replicas. |
+| `FLY_PROCESS_GROUP` | `service.namespace` (`semconv.ServiceNamespace`) | yes | yes | OTel resource. 2-cardinality: `primary` / `replica`. The dashboard `process_group` variable takes its values from `pdbplus_sync_peak_heap_bytes`, which only the primary sends, so it lists only `primary`. Select `All` to include replicas. Also selects the LiteFS lease candidates: `litefs.yml` `${FLY_PROCESS_GROUP == "primary"}` and primary detection (`litefs.IsCandidate`: with LiteFS mounted and no `.primary` file, a node outside the `primary` group is a replica). |
 | `FLY_MACHINE_ID` | `service.instance.id` (`semconv.ServiceInstanceID`) | **no** (per-VM cardinality stripped) | yes | OTel resource (traces and logs only). Deliberately omitted from the metric resource via the `forMetrics` gate to keep cardinality low. |
 | (build info) | `service.version` (`semconv.ServiceVersion`) | **no** (per-deploy cardinality stripped) | yes | OTel resource (traces and logs only). On metrics the `pdbplus_build_info` gauge carries it as a label, one series per machine. |
 | `FLY_APP_NAME` | `fly.app_name` (custom key) | dropped by Grafana Cloud allowlist | yes (human grep) | OTel resource; `litefs.yml` substitution. |
 | (constant) | `cloud.provider="fly_io"` (`semconv.CloudProviderKey`) | yes | yes | Always-on, 1-cardinality. |
 | (constant) | `cloud.platform="fly_io_apps"` (`semconv.CloudPlatformKey`) | yes | yes | Always-on, 1-cardinality. |
-| `PRIMARY_REGION` | (not a resource attr) | n/a | n/a | `POST /sync` handler; `litefs.yml` lease candidacy; primary detection (`litefs.IsCandidate`: with LiteFS mounted and no `.primary` file, a node whose `FLY_REGION` differs is a replica). Three-letter Fly region designated as the LiteFS primary candidate. `fly.toml` sets `lhr`. If you change it, the LiteFS lease candidates move to the new region. |
 | `FLY_CONSUL_URL` | (not a resource attr) | n/a | n/a | `litefs.yml` Consul lease backend. `fly consul attach` sets it as an app secret. Run the command once for each app. |
 | `HOSTNAME` | (not a resource attr) | n/a | n/a | `litefs.yml` advertise URL `http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202`. |
 
@@ -218,11 +217,11 @@ PeeringDB Plus does not use a configuration file for application settings — ev
 Two deployment-adjacent files exist in the repository:
 
 - `fly.toml`: the Fly.io deployment manifest.
-  It sets `PDBPLUS_LISTEN_ADDR` (`:8080`), `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`), `PDBPLUS_SCRATCH_DIR` (`/var/lib/litefs/scratch`), and `PRIMARY_REGION` (`lhr`).
+  It sets `PDBPLUS_LISTEN_ADDR` (`:8080`), `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`), and `PDBPLUS_SCRATCH_DIR` (`/var/lib/litefs/scratch`).
   It defines the `primary` process group (`shared-cpu-2x`, 512 MB, `litefs_data` volume) and the `replica` process group (`shared-cpu-1x`, 256 MB, no volume).
   It also sets the rolling deploy (`max_unavailable = 0.5`), `kill_timeout = 30`, the `always` restart policy, and the `/readyz` HTTP check.
 - `litefs.yml` — LiteFS FUSE and lease configuration.
-  Uses `${FLY_REGION}`, `${PRIMARY_REGION}`, `${FLY_APP_NAME}`, `${HOSTNAME}`, and `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
+  Uses `${FLY_PROCESS_GROUP}`, `${FLY_APP_NAME}`, `${HOSTNAME}`, and `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
 
 ## Required vs Optional Settings
 
@@ -293,7 +292,7 @@ Environment values are supplied by:
 - **Local Docker**: image defaults plus `-e` or `--env-file` flags on `docker run`.
   `Dockerfile` sets `PDBPLUS_DB_PATH=/data/peeringdb-plus.db`.
   `Dockerfile.litefs` sets no `PDBPLUS_*` variable.
-- **Fly.io production**: the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`, `PDBPLUS_SCRATCH_DIR`, and `PRIMARY_REGION`.
+- **Fly.io production**: the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`, and `PDBPLUS_SCRATCH_DIR`.
   The Fly.io runtime injects `FLY_REGION`, `FLY_PROCESS_GROUP`, `FLY_MACHINE_ID`, and `FLY_APP_NAME`.
   `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
   Set other secrets, such as `PDBPLUS_SYNC_TOKEN` and `PDBPLUS_PEERINGDB_API_KEY`, with `fly secrets set`.

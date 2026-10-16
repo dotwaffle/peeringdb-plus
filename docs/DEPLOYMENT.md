@@ -214,7 +214,6 @@ Non-secret configuration lives in `fly.toml`'s `[env]` block:
   LiteFS proxy is intentionally not used; see [LiteFS](#litefs) below).
 - `PDBPLUS_DB_PATH=/litefs/peeringdb-plus.db` — database file inside the
   FUSE-mounted LiteFS directory.
-- `PRIMARY_REGION=lhr` — consumed by `litefs.yml` for lease candidacy.
 - `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`: the directory of the sync
   scratch database, on the primary volume
   (see [Asymmetric fleet](#asymmetric-fleet)).
@@ -243,7 +242,8 @@ There is no drop-in alternative for edge SQLite replication, so the project cont
   It reads and writes plain SQLite files under `/litefs/`; LiteFS intercepts the filesystem operations and replicates them out-of-band.
 - **Lease election via Consul.**
   `litefs.yml` sets `lease.type: "consul"` and uses `${FLY_CONSUL_URL}` as the backend.
-  Only machines in `PRIMARY_REGION` are lease candidates (`candidate: ${FLY_REGION == PRIMARY_REGION}`).
+  Only machines of the `primary` process group are lease candidates (`candidate: ${FLY_PROCESS_GROUP == "primary"}`).
+  `promote: false`: a candidate that starts does not take the lease from the current primary, so the lease moves only when its holder is lost or stops.
 - **Replication state volume.**
   A 1 GB `litefs_data` volume is mounted at `/var/lib/litefs` per `fly.toml`'s `[[mounts]]` block, auto-extending up to 10 GB when 80 percent full.
   The mount is scoped to `processes = ["primary"]` — replicas have no volume and cold-sync to ephemeral rootfs.
@@ -255,7 +255,7 @@ There is no drop-in alternative for edge SQLite replication, so the project cont
   The file at `/litefs/.primary` is **present on replicas** (containing the primary's hostname) and **absent on the primary** (the primary holds the lease).
   The detection logic in `internal/litefs/primary.go` is:
   1. If `/litefs/.primary` exists → replica.
-  2. If `/litefs/` exists but `.primary` does not → primary, but only on a lease candidate (`FLY_REGION` equals `PRIMARY_REGION`; both empty also match).
+  2. If `/litefs/` exists but `.primary` does not → primary, but only on a lease candidate (`FLY_PROCESS_GROUP` is `primary`).
      A replica also sees no `.primary` file while no node holds the lease, for example while the primary restarts during a deploy.
   3. If `/litefs/` does not exist (LiteFS not mounted) → fall back to the
      `PDBPLUS_IS_PRIMARY` env var (default `true` for local dev).
@@ -358,14 +358,13 @@ fly scale vm shared-cpu-1x --memory 256 --process-group replica   # resize repli
 fly scale vm shared-cpu-2x --memory 512 --process-group primary   # resize primary group (matches fly.toml defaults)
 ```
 
-Do not put `replica` machines in `lhr`.
-`litefs.yml` makes every machine in `PRIMARY_REGION` a lease candidate, whatever its process group.
-A `replica` machine in `lhr` can take the lease while the primary restarts.
-It then runs the sync worker on a machine that has no volume.
-Always give `--region` when you scale the `replica` group.
-Without `--region`, `fly scale count` acts on every region that has a machine of the app, and `lhr` is one of these regions.
+`litefs.yml` makes every machine of the `primary` process group a lease candidate, whatever its region.
+A `replica` machine is never a candidate, so it never runs the sync worker on a machine that has no volume.
+Always give `--region` when you scale a process group.
+Without `--region`, `fly scale count` acts on every region that has a machine of the app.
 
-Only machines in `PRIMARY_REGION=lhr` are eligible to hold the LiteFS write lease, so the primary group is sized at exactly 1 — running multiple primary candidates wastes the persistent volume on the standby and does not add write capacity (LiteFS is single-writer).
+Only machines of the `primary` group are eligible to hold the LiteFS write lease.
+LiteFS is single-writer: a second machine in the group adds no write capacity, only a standby that takes the lease when the primary is lost.
 
 The alert `PdbPlusFleetMachineCountLow` counts the pairs of process group and region that send metrics.
 It does not count machines.

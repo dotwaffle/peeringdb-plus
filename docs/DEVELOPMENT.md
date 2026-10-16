@@ -619,7 +619,7 @@ Before you open a PR:
   Streaming RPCs will hang or buffer without it.
   Also add `Unwrap() http.ResponseWriter` so nested middleware can unwrap to the inner writer.
 - **Sync never completes / `/readyz` stays unhealthy:** the sync worker only writes on the LiteFS primary.
-  Check `internal/litefs/primary.go` — `.primary` file **absent** = this node is primary (inverted semantics), if it is a lease candidate (`FLY_REGION` equals `PRIMARY_REGION`).
+  Check `internal/litefs/primary.go` — `.primary` file **absent** = this node is primary (inverted semantics), if it is a lease candidate (`FLY_PROCESS_GROUP` is `primary`).
   For local dev without LiteFS, `PDBPLUS_IS_PRIMARY=true` is the default.
 - **Generated code drift in CI:** run `mise run generate` locally and commit the resulting diff.
   The drift check compares tracked files and separately rejects untracked output under `ent/`, `gen/`, `graph/`, `internal/web/templates/`, `internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.

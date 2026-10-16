@@ -5,8 +5,9 @@
 # exit-on-error is false: when LiteFS fails during startup (for example, it
 # cannot open its data directory or cannot start the application), it logs
 # the error and keeps running, so you can debug with `fly ssh console`. The
-# application does not run, and the machine does not restart. On the
-# primary, the PdbPlusPrimaryAbsent alert reports this state. When the
+# application does not run, and the machine does not restart. On one
+# machine of the primary group, the PdbPlusLeaseCandidateDown alert
+# reports this state (PdbPlusPrimaryAbsent when both fail). When the
 # application itself exits, LiteFS stops too, so the restart policy in
 # fly.toml covers application crashes.
 exit-on-error: false
@@ -22,10 +23,21 @@ data:
 exec:
   - cmd: "/usr/local/bin/peeringdb-plus"
 
+# Every machine of the primary process group is a lease candidate. Each
+# has a volume. With a second machine in the group (a standby in another
+# region), the lease moves to it within seconds when the holder is lost
+# (a host restart or a regional outage). Replicas have no volume and are
+# never candidates. internal/litefs.IsCandidate mirrors this rule.
+#
+# promote is false: a candidate that starts does not take the lease from
+# the current primary. The lease moves only when its holder is lost or
+# stops, so a restart of the standby does not cancel a running sync
+# cycle. After a failover the lease stays on the standby until that
+# machine stops.
 lease:
   type: "consul"
-  candidate: ${FLY_REGION == PRIMARY_REGION}
-  promote: true
+  candidate: ${FLY_PROCESS_GROUP == "primary"}
+  promote: false
   advertise-url: "http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202"
   consul:
     url: "${FLY_CONSUL_URL}"
