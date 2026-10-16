@@ -62,6 +62,13 @@ var ErrSyncAttemptTimeout = errors.New("sync attempt exceeded PDBPLUS_SYNC_TIMEO
 // defaultRetryBackoffs defines the backoff durations for sync-level retries.
 var defaultRetryBackoffs = []time.Duration{30 * time.Second, 2 * time.Minute, 8 * time.Minute}
 
+// defaultRoleCheckInterval is the longest time that a node that is not
+// the primary waits before it checks for promotion. LiteFS moves the
+// lease to a standby candidate within seconds, so the wait sets the time
+// from a failover to the first sync on the new primary. A check is one
+// stat of the lease file.
+const defaultRoleCheckInterval = time.Minute
+
 // WorkerConfig holds configuration for the sync worker.
 type WorkerConfig struct {
 	IsPrimary func() bool // live primary detection; nil defaults to always-primary
@@ -197,6 +204,10 @@ type Worker struct {
 	// retryOnLock). The sync_status prune does not retry.
 	// NewWorker sets DefaultLockRetry. Tests set short delays.
 	lockRetry LockRetry
+	// roleCheckInterval is the longest wait of the scheduler on a node
+	// that is not the primary (see StartScheduler). NewWorker sets
+	// defaultRoleCheckInterval. Tests set a short one.
+	roleCheckInterval time.Duration
 	// fkRegistry maps parent type name to the set of IDs successfully
 	// upserted during the current Phase B. Populated by recordIDs
 	// callbacks from dispatchScratchChunk as parent types land (org,
@@ -348,6 +359,7 @@ func NewWorker(pdbClient *peeringdb.Client, entClient *ent.Client, db *sql.DB, c
 		logger:               logger,
 		retryBackoffs:        defaultRetryBackoffs,
 		lockRetry:            DefaultLockRetry(),
+		roleCheckInterval:    defaultRoleCheckInterval,
 		fkBackfillRequestCap: cfg.FKBackfillMaxRequestsPerCycle,
 		fkBackfillTimeout:    cfg.FKBackfillTimeout,
 		netIxLanVerifyMemo:   make(map[int]netIxLanVerifyEntry),
@@ -2305,8 +2317,9 @@ func seedOperationCounters(ctx context.Context) {
 //   - Warm start on a primary with a recent lastSync: wait until
 //     lastSync+interval; if that is already in the past, the first
 //     iteration fires immediately.
-//   - Replica: wake every interval to check for promotion. Matches the
-//     heartbeat cadence of the pre-rewrite ticker-based design.
+//   - Replica: wake every min(interval, roleCheckInterval) (1m) to check
+//     for promotion, so a standby candidate that takes the lease starts
+//     to sync about a minute after a failover, not an interval later.
 //
 // After each cycle — success or failure — the next sync is scheduled at
 // time.Now()+interval. A slower-than-expected sync therefore does NOT
@@ -2361,8 +2374,8 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 		// otherwise we wait exactly until the anchor.
 		nextAt = lastSync.Add(interval)
 	default:
-		// Replica: wake every interval to check for promotion.
-		nextAt = time.Now().Add(interval)
+		// Replica: wake soon to check for promotion.
+		nextAt = time.Now().Add(min(interval, w.roleCheckInterval))
 		w.logger.LogAttrs(ctx, slog.LevelDebug, "starting scheduler as replica")
 	}
 
@@ -2407,7 +2420,7 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 				metric.WithAttributes(attribute.String("direction", "demoted")),
 			)
 			wasPrimary = false
-			nextAt = time.Now().Add(interval)
+			nextAt = time.Now().Add(min(interval, w.roleCheckInterval))
 			continue
 		}
 		wasPrimary = isPrimary
@@ -2422,7 +2435,7 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 			// otherwise latch synced=false for the life of the process
 			// and serve 503 on every data route even after LiteFS
 			// replication delivers a fully-synced database. The read is
-			// one local-SQLite row per interval, only while unsynced.
+			// one local-SQLite row per role check, only while unsynced.
 			if !w.synced.Load() {
 				if ls, lsErr := GetLastSuccessfulSyncTime(ctx, w.db); lsErr == nil && !ls.IsZero() {
 					w.logger.LogAttrs(ctx, slog.LevelInfo, "replicated sync history observed, marking ready",
@@ -2432,7 +2445,7 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 				}
 			}
 			w.logger.LogAttrs(ctx, slog.LevelDebug, "not primary, skipping sync")
-			nextAt = time.Now().Add(interval)
+			nextAt = time.Now().Add(min(interval, w.roleCheckInterval))
 			continue
 		}
 

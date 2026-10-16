@@ -2521,6 +2521,59 @@ func TestStartScheduler_PromotionSync(t *testing.T) {
 	}
 }
 
+// TestStartScheduler_PromotionWithinRoleCheck verifies that a node that is
+// not the primary checks for promotion every roleCheckInterval, not every
+// sync interval: a standby candidate that takes the LiteFS lease must
+// start to sync soon after a failover. The sync interval is an hour, so
+// only the role check can start the sync before the deadline.
+func TestStartScheduler_PromotionWithinRoleCheck(t *testing.T) {
+	t.Parallel()
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	ps := &primarySwitch{}
+	w, _ := newTestWorker(t, f)
+	w.roleCheckInterval = 10 * time.Millisecond
+	// Signal the second role check: the entry check, then the first
+	// replica heartbeat.
+	var roleChecks atomic.Int32
+	replicaHeartbeat := make(chan struct{})
+	signalReplicaHeartbeat := stdsync.OnceFunc(func() { close(replicaHeartbeat) })
+	w.config.IsPrimary = func() bool {
+		v := ps.IsPrimary()
+		if roleChecks.Add(1) >= 2 {
+			signalReplicaHeartbeat()
+		}
+		return v
+	}
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+	completions := syncCompletions(w)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(ctx, time.Hour)
+		close(done)
+	}()
+
+	select {
+	case <-replicaHeartbeat:
+	case <-done:
+		t.Fatal("scheduler exited before its first replica heartbeat")
+	case <-ctx.Done():
+		<-done
+		t.Fatal("no replica heartbeat before the deadline")
+	}
+	ps.v.Store(true)
+
+	waitSyncCompletions(ctx, t, completions, done, 1)
+	cancel()
+	<-done
+}
+
 // TestRunSyncCycle_DemotionAbort verifies that a demotion mid-sync cancels
 // the cycle context: the client drops the in-flight upstream request,
 // SyncWithRetry leaves its backoff without a retry, nothing commits, and
