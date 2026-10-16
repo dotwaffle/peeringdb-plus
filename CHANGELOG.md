@@ -8,6 +8,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.42.0] - 2026-10-16
+
 ### Added
 
 - A LiteFS lease standby: a second `primary` group machine in `fra`, with its own volume.
@@ -25,6 +27,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - `PdbPlusPrimaryAbsent` fires only when both `primary` group machines are down.
   `PdbPlusReplicaLagHigh` is silent while no machine holds the lease.
   `PdbPlusFleetMachineCountLow` expects 9 machines and fires below 7.
+- Go 1.27.1 to 1.27.2 and `golang.org/x/net` 0.59.0 to 0.61.0 (HTTP, TLS and template advisories).
+  OpenTelemetry 1.46.0 to 1.47.0 (contrib 0.71.0 to 0.72.0), `otelconnect` 0.9.0 to 0.12.0, Connect 1.21.1, `modernc.org/sqlite` 1.59.0 to 1.60.1, templ 0.3.1070, and the other module and build tool pins.
 
 ## [1.41.0] - 2026-09-27
 
@@ -1558,7 +1562,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.41.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.42.0...HEAD
+[1.42.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.41.0...v1.42.0
 [1.41.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.40.0...v1.41.0
 [1.40.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.39.0...v1.40.0
 [1.39.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.38.0...v1.39.0
