@@ -112,28 +112,45 @@ func TestFreshnessFromDB(t *testing.T) {
 }
 
 func TestSyncReplay_FlyReplica(t *testing.T) {
-	// When isPrimaryFn returns false AND FLY_REGION is set,
-	// POST /sync should return 307 with fly-replay: region=lhr header.
-	t.Setenv("FLY_REGION", "iad")
-	t.Setenv("PRIMARY_REGION", "lhr")
-
-	handler := newSyncHandler(t.Context(), SyncHandlerInput{
-		IsPrimaryFn: func() bool { return false },
-		SyncToken:   "test-token",
-		DefaultMode: config.SyncModeFull,
-		SyncFn:      func(_ context.Context, _ config.SyncMode) {},
-	})
-
-	req := httptest.NewRequest("POST", "/sync", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusTemporaryRedirect {
-		t.Fatalf("want status %d, got %d", http.StatusTemporaryRedirect, rec.Code)
+	// When isPrimaryFn returns false AND FLY_REGION is set, POST /sync
+	// replays to the machine named in the LiteFS lease file, which can be
+	// in any region of the primary group. Without a known primary, or
+	// with a lease file that names this machine, it answers 503.
+	tests := []struct {
+		name        string
+		primaryHost func() string
+		wantCode    int
+		wantReplay  string
+	}{
+		{"lease holder known", func() string { return "48e1ddea215398" }, http.StatusTemporaryRedirect, "instance=48e1ddea215398"},
+		{"no lease holder", func() string { return "" }, http.StatusServiceUnavailable, ""},
+		{"nil lookup", nil, http.StatusServiceUnavailable, ""},
+		{"lease file names this machine", func() string { return "d8d3e31b367d18" }, http.StatusServiceUnavailable, ""},
 	}
-	replay := rec.Header().Get("fly-replay")
-	if replay != "region=lhr" {
-		t.Fatalf("want fly-replay %q, got %q", "region=lhr", replay)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("FLY_REGION", "iad")
+			t.Setenv("FLY_MACHINE_ID", "d8d3e31b367d18")
+
+			handler := newSyncHandler(t.Context(), SyncHandlerInput{
+				IsPrimaryFn: func() bool { return false },
+				PrimaryHost: tt.primaryHost,
+				SyncToken:   "test-token",
+				DefaultMode: config.SyncModeFull,
+				SyncFn:      func(_ context.Context, _ config.SyncMode) {},
+			})
+
+			req := httptest.NewRequest("POST", "/sync", nil)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantCode {
+				t.Fatalf("want status %d, got %d", tt.wantCode, rec.Code)
+			}
+			if replay := rec.Header().Get("fly-replay"); replay != tt.wantReplay {
+				t.Fatalf("want fly-replay %q, got %q", tt.wantReplay, replay)
+			}
+		})
 	}
 }
 

@@ -119,14 +119,14 @@ On startup the effective interval, authentication state, and whether the operato
 These variables are injected by the Fly.io runtime and Fly Consul.
 `internal/otel/provider.go` reads the resource variables at startup.
 `cmd/peeringdb-plus/main.go` reads `FLY_REGION` at startup for the Web UI and the MCP server.
-The `POST /sync` handler (`cmd/peeringdb-plus/sync_handler.go`) reads `FLY_REGION` and `PRIMARY_REGION` on each request.
+The `POST /sync` handler (`cmd/peeringdb-plus/sync_handler.go`) reads `FLY_REGION` and `FLY_MACHINE_ID` on each request.
 `internal/config` never loads them, and the application never sets them.
 
 The OTel resource attributes emitted by `buildResourceFiltered` use OTel semconv keys (not custom `fly.*` keys) for everything except `fly.app_name`, because Grafana Cloud's hosted OTLP receiver only promotes a small allowlist of resource attrs to Prometheus labels (`service.*`, `cloud.*`, `host.*`, `k8s.*`); custom `fly.*` keys are silently dropped on the metrics path.
 
 | Env var | Resource attr (semconv) | On metrics? | On traces/logs? | Consumer |
 |---------|-------------------------|-------------|-----------------|----------|
-| `FLY_REGION` | `cloud.region` (`semconv.CloudRegion`) | yes | yes | OTel resource. Region shown on `/ui/about` and in the MCP `peeringdb-plus://service` resource. `POST /sync` handler: on a replica, returns HTTP 307 with `fly-replay: region=${PRIMARY_REGION}`. |
+| `FLY_REGION` | `cloud.region` (`semconv.CloudRegion`) | yes | yes | OTel resource. Region shown on `/ui/about` and in the MCP `peeringdb-plus://service` resource. `POST /sync` handler: on a replica, returns HTTP 307 with `fly-replay: instance=<machine ID of the lease holder>`. |
 | `FLY_PROCESS_GROUP` | `service.namespace` (`semconv.ServiceNamespace`) | yes | yes | OTel resource. 2-cardinality: `primary` / `replica`. The dashboard `process_group` variable takes its values from `pdbplus_sync_peak_heap_bytes`, which only the primary sends, so it lists only `primary`. Select `All` to include replicas. |
 | `FLY_MACHINE_ID` | `service.instance.id` (`semconv.ServiceInstanceID`) | **no** (per-VM cardinality stripped) | yes | OTel resource (traces and logs only). Deliberately omitted from the metric resource via the `forMetrics` gate to keep cardinality low. |
 | (build info) | `service.version` (`semconv.ServiceVersion`) | **no** (per-deploy cardinality stripped) | yes | OTel resource (traces and logs only). On metrics the `pdbplus_build_info` gauge carries it as a label, one series per machine. |
@@ -277,8 +277,9 @@ The following values have runtime fallbacks rather than startup validation:
 - **`PDBPLUS_LOG_LEVEL`** — Parsed once at logger construction by `internal/otel/logger.go` `otelLevelFromEnv()`.
   Invalid values silently default to `INFO` (operator-friendly fallback, intentional deviation from the fail-fast rule).
   Changes take effect only on next startup.
-- **`FLY_REGION` / `PRIMARY_REGION`** — Read per-request inside the `POST /sync` handler.
-  Empty `FLY_REGION` indicates local development; an empty `PRIMARY_REGION` produces a `fly-replay: region=` header (behavior undefined on Fly.io, intentional for local testing).
+- **`FLY_REGION` / `FLY_MACHINE_ID`**: read per request inside the `POST /sync` handler.
+  Empty `FLY_REGION` indicates local development.
+  On Fly.io a replica replays the request to the machine named in the LiteFS lease file (`/litefs/.primary`), and answers `503 no primary` when the file is absent or names the machine itself.
 - **OTel `autoexport` variables** — Changes take effect only on the next startup.
   The SDK providers are constructed once and shut down on termination.
 

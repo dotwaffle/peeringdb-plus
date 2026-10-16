@@ -24,7 +24,7 @@ Most endpoints are **unauthenticated and read-only** — they expose the same pu
 | Upstream fetch from `api.peeringdb.com` | Optional — set `PDBPLUS_PEERINGDB_API_KEY` to use an authenticated client with higher rate limits |
 
 If `PDBPLUS_SYNC_TOKEN` is empty at startup the sync endpoint logs a warning and rejects every request as `401 unauthorized` — there is no "accept anything" mode.
-Replica instances reject the request with a `fly-replay` header that routes the request to the primary region on Fly.io, or return `503 not primary` when running outside Fly.io.
+Replica instances reject the request with a `fly-replay` header that routes the request to the primary machine on Fly.io (`503 no primary` while no machine holds the lease), or return `503 not primary` when running outside Fly.io.
 
 ## Endpoints overview
 
@@ -1751,11 +1751,11 @@ Only served by the LiteFS primary.
 | Status | Meaning |
 |--------|---------|
 | `202 Accepted` | Request authenticated; sync started in the background (fire-and-forget, using the application root context so request cancellation does not abort it). The body is `{"status":"accepted"}` |
-| `307 Temporary Redirect` + `fly-replay: region=<primary>` | On Fly.io replicas, the request is replayed to the primary region. Clients following the header will land on the primary and complete the call |
+| `307 Temporary Redirect` + `fly-replay: instance=<machine ID>` | On Fly.io replicas, the request is replayed to the machine that holds the LiteFS lease. Clients following the header will land on the primary and complete the call |
 | `401 Unauthorized` | Missing, wrong, or mismatched-length `X-Sync-Token` |
 | `400 Bad Request` | Invalid `mode` value |
 | `409 Conflict` | A sync cycle is already running. The server does not start a second one. The body is `{"status":"conflict","detail":"a sync cycle is already running"}` |
-| `503 Service Unavailable` | Replica outside Fly.io (no `FLY_REGION`) cannot forward the request |
+| `503 Service Unavailable` | Replica outside Fly.io (no `FLY_REGION`) cannot forward the request (`not primary`), or no machine holds the LiteFS lease (`no primary`) |
 
 Request body is capped at 1 MB.
 

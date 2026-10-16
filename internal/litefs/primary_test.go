@@ -213,6 +213,23 @@ func TestIsPrimaryWithFallback(t *testing.T) {
 	}
 }
 
+// TestPrimaryHost verifies that PrimaryHost returns the hostname in the
+// lease file without the line end, and "" when there is no file.
+func TestPrimaryHost(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".primary")
+	if got := litefs.PrimaryHost(path); got != "" {
+		t.Errorf("PrimaryHost without a lease file = %q, want \"\"", got)
+	}
+	if err := os.WriteFile(path, []byte("48e1ddea215398\n"), 0o600); err != nil {
+		t.Fatalf("write lease file: %v", err)
+	}
+	if got := litefs.PrimaryHost(path); got != "48e1ddea215398" {
+		t.Errorf("PrimaryHost = %q, want %q", got, "48e1ddea215398")
+	}
+}
+
 // TestIsCandidate locks the mirror of the litefs.yml lease rule
 // `candidate: ${FLY_REGION == PRIMARY_REGION}`.
 func TestIsCandidate(t *testing.T) {

@@ -214,8 +214,7 @@ Non-secret configuration lives in `fly.toml`'s `[env]` block:
   LiteFS proxy is intentionally not used; see [LiteFS](#litefs) below).
 - `PDBPLUS_DB_PATH=/litefs/peeringdb-plus.db` — database file inside the
   FUSE-mounted LiteFS directory.
-- `PRIMARY_REGION=lhr` — consumed by both `litefs.yml` for lease candidacy
-  and the `POST /sync` handler for `fly-replay` forwarding.
+- `PRIMARY_REGION=lhr` — consumed by `litefs.yml` for lease candidacy.
 - `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`: the directory of the sync
   scratch database, on the primary volume
   (see [Asymmetric fleet](#asymmetric-fleet)).
@@ -261,7 +260,9 @@ There is no drop-in alternative for edge SQLite replication, so the project cont
   3. If `/litefs/` does not exist (LiteFS not mounted) → fall back to the
      `PDBPLUS_IS_PRIMARY` env var (default `true` for local dev).
 - **Write forwarding via `fly-replay`.**
-  When `POST /sync` lands on a replica, the handler returns HTTP 307 with a `fly-replay: region=${PRIMARY_REGION}` header so the Fly edge re-routes the request to the primary region.
+  When `POST /sync` lands on a replica, the handler returns HTTP 307 with a `fly-replay: instance=<machine ID>` header so the Fly edge re-routes the request to the machine that holds the lease.
+  The machine ID comes from the LiteFS lease file (`/litefs/.primary`).
+  When no node holds the lease, the handler answers `503 no primary`.
 
 ### Rolling deploy behavior
 

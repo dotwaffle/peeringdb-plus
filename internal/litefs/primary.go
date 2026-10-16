@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // PrimaryFile is the standard LiteFS lease file path.
@@ -105,6 +106,19 @@ func IsPrimaryWithFallback(path string, envKey string) bool {
 		return false
 	}
 	return b
+}
+
+// PrimaryHost returns the hostname of the LiteFS primary as LiteFS writes
+// it to the lease file at path on a replica. On Fly.io the hostname is
+// the machine ID of the primary, so it can address a fly-replay to the
+// primary machine. It returns "" when the file is absent or unreadable:
+// this node is the primary, or no node holds the lease.
+func PrimaryHost(path string) string {
+	b, err := os.ReadFile(path) //nolint:gosec // G304: path is the fixed LiteFS lease file (PrimaryFile) or a test path
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
 }
 
 // IsCandidate reports whether LiteFS can elect this node as primary. It

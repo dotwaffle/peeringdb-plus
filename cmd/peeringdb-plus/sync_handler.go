@@ -77,6 +77,11 @@ func runSyncWithDemotionMonitor(ctx context.Context, mode config.SyncMode, in mo
 // SyncHandlerInput holds dependencies for the sync handler.
 type SyncHandlerInput struct {
 	IsPrimaryFn func() bool
+	// PrimaryHost returns the hostname of the LiteFS primary (on Fly.io
+	// its machine ID), or "" when this node does not know one. A
+	// non-primary on Fly.io replays the request to that machine. Nil
+	// means no primary is known.
+	PrimaryHost func() string
 	SyncToken   string
 	DefaultMode config.SyncMode
 	SyncFn      func(ctx context.Context, mode config.SyncMode)
@@ -90,15 +95,25 @@ type SyncHandlerInput struct {
 
 // newSyncHandler creates the POST /sync handler with fly-replay write forwarding.
 // On Fly.io replicas (FLY_REGION set, not primary), it returns a fly-replay header
-// routing to PRIMARY_REGION. In local dev (FLY_REGION empty, not primary), it
-// returns 503 since there is no Fly proxy to replay the request.
+// routing to the machine that holds the LiteFS lease (instance=<machine ID>).
+// A region replay is not enough: the primary group has a lease candidate in
+// more than one region, and the lease can be in any of them. When no
+// primary is known, or the lease file names this machine, it returns 503.
+// In local dev (FLY_REGION empty, not primary), it returns 503 since there
+// is no Fly proxy to replay the request.
 func newSyncHandler(appCtx context.Context, in SyncHandlerInput) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !in.IsPrimaryFn() {
-			// On Fly.io, replay to primary region.
 			if flyRegion := os.Getenv("FLY_REGION"); flyRegion != "" {
-				primaryRegion := os.Getenv("PRIMARY_REGION")
-				w.Header().Set("fly-replay", "region="+primaryRegion)
+				var host string
+				if in.PrimaryHost != nil {
+					host = in.PrimaryHost()
+				}
+				if host == "" || host == os.Getenv("FLY_MACHINE_ID") {
+					http.Error(w, "no primary", http.StatusServiceUnavailable)
+					return
+				}
+				w.Header().Set("fly-replay", "instance="+host)
 				w.WriteHeader(http.StatusTemporaryRedirect)
 				return
 			}

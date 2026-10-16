@@ -442,9 +442,11 @@ func main() {
 	mux := http.NewServeMux()
 
 	// POST /sync: on-demand sync trigger.
-	// Write forwarding: replicas replay to primary via fly-replay header on Fly.io.
+	// Write forwarding: replicas replay to the primary machine via a
+	// fly-replay header on Fly.io.
 	syncHandler := newSyncHandler(ctx, SyncHandlerInput{
 		IsPrimaryFn: isPrimaryFn,
+		PrimaryHost: func() string { return litefs.PrimaryHost(litefs.PrimaryFile) },
 		SyncToken:   cfg.SyncToken,
 		DefaultMode: cfg.SyncMode,
 		// Route on-demand syncs through the same demotion monitor the

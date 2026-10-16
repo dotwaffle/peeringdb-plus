@@ -55,7 +55,7 @@ graph TD
 
 Only the node that currently holds the LiteFS lease (the primary) runs the sync worker's write path.
 Replicas periodically re-check their role: on promotion, they begin syncing; on demotion, they stop.
-Clients issuing write operations (the on-demand `POST /sync` trigger) are redirected to the primary region via Fly.io's `fly-replay` header.
+Clients issuing write operations (the on-demand `POST /sync` trigger) are redirected to the primary machine via Fly.io's `fly-replay` header.
 
 ## Data flow
 
@@ -1153,7 +1153,7 @@ Primary status is checked *live* on every scheduler tick (`cmd/peeringdb-plus/ma
 The sync worker's scheduler also handles role transitions: promoted replicas begin running sync cycles, and demoted primaries stop.
 During a sync cycle the worker checks the role every second and cancels the cycle if the node is demoted.
 
-The on-demand sync endpoint (`POST /sync`) uses `IsPrimaryFn` to decide whether to run the sync locally, return a Fly.io `fly-replay` header pointing at `PRIMARY_REGION`, or 503 in local dev (`newSyncHandler` in `cmd/peeringdb-plus/sync_handler.go`).
+The on-demand sync endpoint (`POST /sync`) uses `IsPrimaryFn` to decide whether to run the sync locally, return a Fly.io `fly-replay` header pointing at the machine in the LiteFS lease file (`instance=<machine ID>`, 503 when no node holds the lease), or 503 in local dev (`newSyncHandler` in `cmd/peeringdb-plus/sync_handler.go`).
 Fly.io handles the replay; the app itself does not forward HTTP traffic.
 
 The app listens directly on `:8080` with h2c enabled and does **not** sit behind the LiteFS proxy, because the proxy does not handle HTTP/2 streaming RPCs.
