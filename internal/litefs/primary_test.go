@@ -251,7 +251,9 @@ func TestIsCandidate(t *testing.T) {
 // that IsCandidate names, and that a candidate does not take the lease
 // from the primary when it starts (promote: false). With promote: true,
 // every restart of a standby candidate moves the lease to it, and each
-// move cancels an in-flight sync cycle.
+// move cancels an in-flight sync cycle. It also verifies exit-on-error:
+// true, so a startup error (such as a failed Consul lookup) restarts the
+// machine instead of leaving LiteFS running without the application.
 func TestLiteFSConfigLease(t *testing.T) {
 	t.Parallel()
 	b, err := os.ReadFile(filepath.Join("..", "..", "litefs.yml"))
@@ -265,6 +267,7 @@ func TestLiteFSConfigLease(t *testing.T) {
 	for _, want := range []string{
 		`candidate: ${FLY_PROCESS_GROUP == "` + litefs.CandidateProcessGroup + `"}`,
 		"promote: false",
+		"exit-on-error: true",
 	} {
 		if !lines[want] {
 			t.Errorf("litefs.yml has no line %q", want)

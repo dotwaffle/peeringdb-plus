@@ -2,15 +2,16 @@
 # Proxy section removed -- app serves traffic directly on :8080 for h2c/gRPC support
 # See: https://fly.io/docs/litefs/config/
 
-# exit-on-error is false: when LiteFS fails during startup (for example, it
-# cannot open its data directory or cannot start the application), it logs
-# the error and keeps running, so you can debug with `fly ssh console`. The
-# application does not run, and the machine does not restart. On one
-# machine of the primary group, the PdbPlusLeaseCandidateDown alert
-# reports this state (PdbPlusPrimaryAbsent when both fail). When the
-# application itself exits, LiteFS stops too, so the restart policy in
-# fly.toml covers application crashes.
-exit-on-error: false
+# exit-on-error is true: when LiteFS fails during startup (for example, it
+# cannot reach Consul, cannot open its data directory or cannot start the
+# application), it exits with status 1, and the restart policy in fly.toml
+# ("always") starts the machine again. With false, LiteFS logs the error
+# and keeps running without the application, and the machine never
+# restarts: on 2026-10-16 a Fly DNS timeout during the Consul lookup kept
+# the nrt replica out of service until a manual restart. A persistent
+# startup error now gives a restart loop; to debug it, stop the machine or
+# set this to false. When the application itself exits, LiteFS stops too.
+exit-on-error: true
 
 fuse:
   dir: "/litefs"

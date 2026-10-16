@@ -8,6 +8,11 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Fixed
+
+- LiteFS exits on a startup error (`exit-on-error: true`), so the Fly.io restart policy starts the machine again.
+  Before, LiteFS kept running without the application and the machine stayed out of service: on 2026-10-16 a Fly.io DNS timeout during the Consul lookup stopped the `nrt` replica until a manual restart.
+
 ## [1.42.0] - 2026-10-16
 
 ### Added
