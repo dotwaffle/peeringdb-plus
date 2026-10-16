@@ -50,7 +50,7 @@ Query `A` of these rules uses the Grafana Prometheus data source `fly.io`, not t
 Fly.io keeps these metrics for about 15 days, at no charge, and they use none of the active series of the stack.
 An evaluation error of these rules is `Error`.
 Grafana then sends a separate `DatasourceError` alert with the labels `datasource_uid` and `rulename`, so a failing `fly.io` data source does not show as a firing rule.
-When the token expires, the rules cannot evaluate, and each of the four rules sends a `DatasourceError` alert.
+When the token expires, the rules cannot evaluate, and each of the five rules sends a `DatasourceError` alert.
 A silence or a notification policy that matches the alert name of a rule does not match its `DatasourceError` alert.
 The Fly Platform and LiteFS Replication rows of the dashboard use the same data source.
 
@@ -86,8 +86,8 @@ When both tiers use the default policy, they go to the same contact point.
 
 | Tier       | Meaning                    | Used for                                                          |
 |------------|----------------------------|-------------------------------------------------------------------|
-| `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, primary absent, /api check failing from 2+ probe locations. |
-| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, replica LiteFS lag >10 min, LiteFS metrics absent, machine OOM kill, CPU throttled, primary volume <512 MiB free, 2 failed sync attempts in 3h. |
+| `critical` | Act now                    | Sync stalls (>2h freshness), sync keeps failing, fleet drop, telemetry absent, both primary group machines absent, no LiteFS lease holder, /api check failing from 2+ probe locations. |
+| `warning`  | Look during working hours  | Heap/RSS sustained breach on the primary, replica memory high, one LiteFS lease candidate left, replica LiteFS lag >10 min, LiteFS metrics absent, machine OOM kill, CPU throttled, primary group volume <512 MiB free, 2 failed sync attempts in 3h. |
 
 The 5xx responses have no rule in this file.
 The burn-rate alert rules of the availability SLO (`deploy/grafana/slos/`) alert on them, with the same two tiers: fast burn is `critical`, slow burn is `warning`.

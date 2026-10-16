@@ -52,17 +52,18 @@ groups:
             count by (service_namespace, cloud_region) (
               go_memory_used_bytes{service_name="peeringdb-plus"}
             )
-          ) < 6
+          ) < 7
         for: 10m
         labels:
           severity: critical
         annotations:
-          summary: "PeeringDB Plus fleet machine count <6 (expected 8)"
+          summary: "PeeringDB Plus fleet machine count <7 (expected 9)"
           description: |
             Counted distinct (service_namespace, cloud_region) pairs reporting
-            go_memory_used_bytes for service_name=peeringdb-plus is below 6
-            for 10m. Expected fleet is 8 machines (1 primary LHR + 7
-            replicas). Check Fly machine status: fly status -a peeringdb-plus.
+            go_memory_used_bytes for service_name=peeringdb-plus is below 7
+            for 10m. Expected fleet is 9 machines (primary group: lhr and
+            the fra standby; 7 replicas). Check Fly machine status:
+            fly status -a peeringdb-plus.
 
       - alert: PdbPlusTelemetryAbsent
         expr: absent(go_memory_used_bytes{service_name="peeringdb-plus"})
@@ -88,17 +89,17 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "PeeringDB Plus primary machine is not reporting"
+          summary: "PeeringDB Plus primary group machines are not reporting"
           description: |
-            No series with service_namespace="primary" for 10m. The
-            primary is the fleet's single stateful machine (LHR volume)
-            and the only sync writer: with it down, replicas keep serving
-            but data freshness degrades until PdbPlusSyncFreshnessHigh
-            fires at 2h — this rule exists to cut that detection gap to
-            10m. Note PdbPlusFleetMachineCountLow triggers at <6 of 8, so
-            losing exactly the primary does not trip it. If
+            No series with service_namespace="primary" for 10m: both
+            machines of the primary group (lhr and the fra standby) are
+            down. They are the only LiteFS lease candidates, so no machine
+            can sync: replicas keep serving, but data freshness degrades
+            until PdbPlusSyncFreshnessHigh fires at 2h. When only one of
+            the two is down, PdbPlusLeaseCandidateDown (warning) fires
+            instead and the other machine holds the lease. If
             PdbPlusTelemetryAbsent is firing too, suspect the export
-            pipeline rather than the machine. Check:
+            pipeline rather than the machines. Check:
             fly status -a peeringdb-plus.
 
       - alert: PdbPlusProbeFailing
@@ -176,16 +177,38 @@ groups:
             machine, which then copies the whole database from the primary
             again.
 
+      - alert: PdbPlusLeaseCandidateDown
+        expr: |
+          count(
+            count by (cloud_region) (
+              go_memory_used_bytes{service_name="peeringdb-plus", service_namespace="primary"}
+            )
+          ) < 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PeeringDB Plus has one LiteFS lease candidate left"
+          description: |
+            Only one machine of the primary group (lhr and the fra standby)
+            has reported service_namespace="primary" for 10m. The other
+            machine holds the lease and syncs, so the service works, but a
+            loss of that machine stops sync. Fly.io host restarts take 15
+            to 20 minutes; a longer outage needs a look. When both machines
+            are down, PdbPlusPrimaryAbsent (critical) fires instead. Check:
+            fly status -a peeringdb-plus.
+
       - alert: PdbPlusPrimaryVolumeLow
-        expr: min(pdbplus_scratch_free_bytes{service_name="peeringdb-plus", service_namespace="primary"}) < 536870912
+        expr: min by (cloud_region) (pdbplus_scratch_free_bytes{service_name="peeringdb-plus", service_namespace="primary"}) < 536870912
         for: 30m
         labels:
           severity: warning
         annotations:
-          summary: "PeeringDB Plus primary volume has <512 MiB free for 30m"
+          summary: "PeeringDB Plus primary group volume has <512 MiB free for 30m"
           description: |
-            pdbplus_scratch_free_bytes on the primary has been below
-            536870912 bytes (512 MiB) for 30m. It is the free space of the
+            pdbplus_scratch_free_bytes on the primary group machine in
+            {{ $labels.cloud_region }} has been below 536870912 bytes
+            (512 MiB) for 30m. It is the free space of the
             file system of PDBPLUS_SCRATCH_DIR, the LiteFS volume that also
             holds the database and its LTX files. Below 512 MiB each sync
             cycle stages its scratch file in the temp dir of the rootfs
@@ -256,8 +279,30 @@ groups:
             dashboard. A machine that stays throttled needs a larger CPU kind
             (fly.toml [[vm]]).
 
+      - alert: PdbPlusLeaseHolderAbsent
+        expr: max(max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])) < 1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PeeringDB Plus has no LiteFS primary for 10m"
+          description: |
+            No machine has reported litefs_is_primary = 1 for 10m, so no
+            machine can write and sync has stopped. Replicas keep serving
+            the data of their last applied transaction. Normally the lease
+            moves to the other machine of the primary group within
+            seconds. Causes: both primary group machines are down (see
+            PdbPlusPrimaryAbsent), or the Fly.io Consul that holds the
+            lease fails (LiteFS logs "primary lease lost" or "cannot
+            acquire lease"). The rule looks back 2m, so a missed scrape does
+            not clear the lease. Check fly status -a peeringdb-plus and
+            the LiteFS lines in fly logs.
+
       - alert: PdbPlusReplicaLagHigh
-        expr: max by (region) (last_over_time(litefs_lag_seconds{app="peeringdb-plus"}[2m])) > 600
+        expr: |
+          max by (region) (last_over_time(litefs_lag_seconds{app="peeringdb-plus"}[2m])) > 600
+            unless on ()
+          max(max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])) < 1
         for: 10m
         labels:
           severity: warning
@@ -270,7 +315,8 @@ groups:
             last applied transaction. The 7-day maximum to 2026-09-25 was 30
             seconds. The value is 0 on the primary. The rule uses the last
             sample of the last 2m, so a missed scrape does not restart the
-            10m. If PdbPlusPrimaryAbsent fires too, fix the primary first.
+            10m. While no machine holds the lease, every replica lags and
+            the rule is silent: PdbPlusLeaseHolderAbsent fires instead.
             Else read the LiteFS lines of that machine in fly logs; a
             replica is recovered by destroying and recreating it.
 
