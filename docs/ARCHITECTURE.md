@@ -1161,7 +1161,7 @@ LiteFS runs as a separate FUSE process whose mount point is inspected by the det
 
 ### Fleet topology
 
-The app runs under two Fly process groups — `primary` (1 machine, LHR, `shared-cpu-2x`/512 MB, persistent `litefs_data` volume) and `replica` (7 machines, other regions, `shared-cpu-1x`/256 MB, ephemeral rootfs).
+The app runs under two Fly process groups — `primary` (2 machines, `lhr` and a lease standby in `fra`, `shared-cpu-2x`/512 MB, each with a persistent `litefs_data` volume) and `replica` (7 machines, other regions, `shared-cpu-1x`/256 MB, ephemeral rootfs).
 The process group also selects the LiteFS lease candidates: `litefs.yml`'s `lease.candidate: ${FLY_PROCESS_GROUP == "primary"}` is the sole source of truth for "which machine may become primary", and `litefs.IsCandidate` mirrors it (`TestLiteFSConfigLease`).
 The process groups exist to scope `[[vm]]` sizing and `[[mounts]]` to the primary-only tier (per `fly.toml`'s `[[mounts]] processes = ["primary"]` constraint).
 Replicas cold-sync the SQLite DB from primary over LiteFS HTTP on boot; `/readyz` fail-closes during hydration so Fly Proxy excludes them until ready.

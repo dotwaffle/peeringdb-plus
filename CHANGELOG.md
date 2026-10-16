@@ -8,6 +8,23 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Added
+
+- A LiteFS lease standby: a second `primary` group machine in `fra`, with its own volume.
+  When the lease holder is lost (a host restart or a regional outage), the other machine takes the lease within seconds and continues the sync.
+  On 2026-10-16, Fly.io host restarts stopped sync for 22 minutes.
+- Alerts `PdbPlusLeaseHolderAbsent` (critical: no machine holds the LiteFS lease for 10 minutes) and `PdbPlusLeaseCandidateDown` (warning: one of the two candidates is down).
+
+### Changed
+
+- LiteFS elects any machine of the `primary` process group (`candidate: ${FLY_PROCESS_GROUP == "primary"}`), not the machines in `PRIMARY_REGION`.
+  `promote` is `false`, so a candidate that starts does not take the lease from the current holder.
+- A machine that does not hold the lease checks for promotion every minute, not once per sync interval.
+- `POST /sync` on a replica replays to the lease holder machine (`fly-replay: instance=<machine ID>`), not to a region, and answers `503 no primary` while no machine holds the lease.
+- `PdbPlusPrimaryAbsent` fires only when both `primary` group machines are down.
+  `PdbPlusReplicaLagHigh` is silent while no machine holds the lease.
+  `PdbPlusFleetMachineCountLow` expects 9 machines and fires below 7.
+
 ## [1.41.0] - 2026-09-27
 
 ### Added

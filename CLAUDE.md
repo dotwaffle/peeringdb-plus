@@ -683,7 +683,8 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
   Primary region: lhr.
 - LiteFS FUSE mount takes a moment — "not listening" warnings during rolling deploy are normal.
 - **Asymmetric fleet (v1.15+).**
-  Fly app `peeringdb-plus` runs two process groups: `primary` (1 machine, LHR, `shared-cpu-2x`/512 MB, persistent `litefs_data` volume) and `replica` (7 machines in other regions, `shared-cpu-1x`/256 MB, ephemeral rootfs).
+  Fly app `peeringdb-plus` runs two process groups: `primary` (2 lease candidates, `lhr` + standby `fra`, `shared-cpu-2x`/512 MB, each its own `litefs_data` volume; `promote: false`, so the lease can stay in `fra`; non-primary role check every 1m; `POST /sync` replays to `instance=<.primary host>`) and `replica` (7 machines in other regions, `shared-cpu-1x`/256 MB, ephemeral rootfs).
+  Added after 2026-10-16 (Fly host restarts stopped the lone lhr primary for 22 min); see `docs/DEPLOYMENT.md` § Lease standby.
   Replicas cold-sync the DB (126 MB on 2026-09-24) from primary over LiteFS HTTP on boot (5-45s per region).
   LiteFS starts the app only after it applies the snapshot, and later LTX files stream in the background.
   Fly caps the ephemeral rootfs at 2000 IOPS and 8 MiB/s.

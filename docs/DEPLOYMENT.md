@@ -1,7 +1,7 @@
 # Deployment
 
 PeeringDB Plus is designed to be deployed to [Fly.io](https://fly.io/) with [LiteFS](https://fly.io/docs/litefs/) providing edge-local SQLite replication.
-The production topology is an [asymmetric fleet](#asymmetric-fleet): one Consul-elected LiteFS primary in `lhr` (persistent volume, runs the sync worker) and a set of ephemeral, read-only replicas in other regions that cold-sync from the primary on boot.
+The production topology is an [asymmetric fleet](#asymmetric-fleet): two LiteFS lease candidates with persistent volumes (`lhr`, and a standby in `fra`; the Consul-elected primary runs the sync worker) and a set of ephemeral, read-only replicas in other regions that cold-sync from the primary on boot.
 
 ## Deployment targets
 
@@ -277,19 +277,21 @@ Blue-green deploys are not usable here because two parallel fleets would conflic
 
 The fleet is split into two Fly process groups, with different VM sizing and mount policies (declared in `fly.toml`'s `[processes]` and per-group `[[vm]]` blocks):
 
-- **`primary` group** — 1 machine in `lhr`, `shared-cpu-2x` / 512 MB, persistent `litefs_data` volume mounted at `/var/lib/litefs`.
-  Runs the sync worker, holds the LiteFS Consul lease, source of LiteFS HTTP replication.
+- **`primary` group**: 2 machines, one in `lhr` and a standby in `fra`, each `shared-cpu-2x` / 512 MB with its own persistent `litefs_data` volume mounted at `/var/lib/litefs`.
+  Both are LiteFS lease candidates.
+  The machine that holds the Consul lease runs the sync worker and is the source of LiteFS HTTP replication.
+  The other is a LiteFS replica with a volume that serves reads; it takes the lease within seconds when the holder is lost (see [Lease standby](#lease-standby)).
 - **`replica` group** — read-only edge machines, `shared-cpu-1x` / 256 MB, **no persistent volume** (ephemeral rootfs).
   On boot, LiteFS cold-syncs the database from the primary via HTTP.
   LiteFS starts the application only after this cold sync, so the `/readyz` check fails and Fly Proxy routes around the machine until it is ready.
 
-The production fleet has 8 machines: 1 primary in `lhr` and 7 replicas, one in each of `iad`, `nrt`, `syd`, `lax`, `jnb`, `sin`, and `gru`.
+The production fleet has 9 machines: the `primary` group in `lhr` and `fra`, and 7 replicas, one in each of `iad`, `nrt`, `syd`, `lax`, `jnb`, `sin`, and `gru`.
 `fly scale count` sets these counts.
 `fly.toml` does not.
 The `PdbPlusFleetMachineCountLow` alert expects this fleet.
 
 **Scratch directory on the volume:** `fly.toml` sets `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`.
-Each sync cycle on the primary stages the fetched rows in a scratch SQLite file in this directory.
+Each sync cycle on the lease holder stages the fetched rows in a scratch SQLite file in this directory.
 A full cycle writes about 100 MB there.
 Fly.io limits the root file system to 2000 IOPS and 8 MiB/s.
 A volume has higher limits, for example 4000 IOPS and 16 MiB/s on a `shared-cpu-1x` VM.
@@ -308,11 +310,10 @@ When the WARN repeats, extend the volume with `fly volumes extend`.
 The gauge `pdbplus_scratch_free_bytes` shows the free space, and the alert `PdbPlusPrimaryVolumeLow` fires after 30 minutes below 512 MiB.
 The span attribute `pdbplus.sync.scratch_dir` names the directory that the cycle used.
 The `[env]` block applies to both groups.
-Replicas normally do not run the sync worker.
-A replica machine that takes the lease (see [Regional rollout](#regional-rollout)) uses the directory on its root file system.
+Replicas are not lease candidates, so they never run the sync worker.
 
 **Volume-only-on-primary contract:** `[[mounts]]` in `fly.toml` is scoped to `processes = ["primary"]`.
-Only the LHR primary machine has a volume.
+Only the two machines of the `primary` group have a volume.
 Fly.io does not replace a destroyed machine.
 To replace a damaged replica, do these steps:
 
@@ -339,16 +340,57 @@ To clear them, correct the cause of the failed syncs on the primary, then send `
 The new cycle on the primary writes a new `sync_status` row, and LTX replication copies it to the replicas within seconds.
 
 **Sizing rationale:** Observed replica RSS is 58-59 MB steady-state; `shared-cpu-1x` / 256 MB gives ~4× memory headroom and budget for LiteFS LTX replay spikes.
-The primary keeps `shared-cpu-2x` / 512 MB — it runs the sync worker whose memory profile was characterized during production load testing.
+Both `primary` group machines keep `shared-cpu-2x` / 512 MB: either can run the sync worker, whose memory profile was characterized during production load testing.
+
+### Lease standby
+
+The `fra` machine of the `primary` group is a lease standby.
+On 2026-10-16, Fly.io host restarts stopped the only lease candidate in `lhr` for 22 minutes, and sync stopped with it.
+With two candidates in different regions, a host restart or a regional outage stops neither the lease nor sync.
+
+- LiteFS elects any machine of the `primary` group (`candidate: ${FLY_PROCESS_GROUP == "primary"}`).
+  When the holder stops, it releases the lease, and the other candidate takes it at once.
+  When the holder is lost without a release, the Consul lease expires first (seconds).
+- `promote: false`: a candidate that starts does not take the lease back.
+  After a failover or a deploy, the lease can stay in `fra` for a long time.
+  That is normal: both machines have the same size and a volume.
+- The scheduler on a candidate that does not hold the lease checks the lease file every minute.
+  After a failover, the first sync on the new holder starts within about a minute.
+- `POST /sync` on any non-primary machine replays to the holder (`fly-replay: instance=<machine ID>`).
+- While no machine holds the lease, the lease file is absent on every machine, so both candidates read as primary.
+  LiteFS refuses their writes, and a running sync cycle stops at its next demotion check (every second).
+- LiteFS replication is asynchronous.
+  When the holder is lost, the transactions that it did not send yet are lost with it, and a returning machine takes the database of the new holder.
+  The sync watermark is in the same database, so the next cycle fetches those rows again.
+- The Consul cluster that holds the lease is a Fly.io service.
+  A Consul fault stops the lease on every machine, whatever the number of candidates (2026-10-15).
+  `PdbPlusLeaseHolderAbsent` fires for that case.
+
+To create the standby, first deploy a release with `candidate: ${FLY_PROCESS_GROUP == "primary"}`.
+A machine made from an older image uses the region rule and is never a candidate.
+Then run:
+
+```bash
+fly scale count 1 --process-group primary --region fra -a peeringdb-plus
+fly volumes list -a peeringdb-plus   # one litefs_data volume in lhr, one in fra
+```
+
+The new volume is empty.
+LiteFS 0.5 does not let a node without a cluster ID take a lease that already has one (`store.go`, "cannot become primary, local node has no cluster ID"), so the new machine waits for a primary, joins as a replica, copies the database, and only then starts the app.
+Check its first LiteFS log lines for `existing primary found` and `connecting as replica`.
+The same applies when you replace the volume of either machine.
+
+To find the lease holder, read the lease file on any replica: `fly ssh console -a peeringdb-plus --process-group replica -C "cat /litefs/.primary"` prints its machine ID.
+Fly.io metrics: `litefs_is_primary == 1` (data source `fly.io`).
 
 ## Regional rollout
 
-The primary region is `lhr`.
+The `primary` group has machines in `lhr` and `fra`.
 Every other region has `replica` machines only.
 To add a region, or to change the number of replica machines in a region, run:
 
 ```bash
-fly scale count <n> --process-group replica --region <region>   # machines in one region (not lhr)
+fly scale count <n> --process-group replica --region <region>   # machines in one region (not lhr or fra)
 ```
 
 To resize a process group:
@@ -368,7 +410,7 @@ LiteFS is single-writer: a second machine in the group adds no write capacity, o
 
 The alert `PdbPlusFleetMachineCountLow` counts the pairs of process group and region that send metrics.
 It does not count machines.
-It fires below 6 and expects 8.
+It fires below 7 and expects 9.
 When you add or remove a region, change the threshold and the description in `deploy/grafana/alerts/pdbplus-alerts.yaml`.
 Then apply the rules again (see `deploy/grafana/alerts/README.md`).
 A second machine in a region that already has one does not change the count.

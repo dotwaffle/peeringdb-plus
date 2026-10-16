@@ -1,6 +1,7 @@
 # Fly.io deployment configuration for PeeringDB Plus
 # Deploy manually with `fly deploy`.
-# Two process groups: primary (lhr, volume) and replica (7 regions, no volume).
+# Two process groups: primary (lhr + fra standby, a volume each; the LiteFS
+# lease candidates) and replica (7 regions, no volume).
 
 app = "peeringdb-plus"
 primary_region = "lhr"
@@ -11,7 +12,9 @@ kill_timeout = 30
 
 [deploy]
   strategy = "rolling"
-  # Parallelize rolling deploys to ~4-at-a-time (half the 8-machine fleet).
+  # Parallelize rolling deploys to ~4-at-a-time (half the 9-machine fleet).
+  # Both lease candidates can restart in the same batch; sync then pauses
+  # until one of them is back (the replicas keep serving).
   # Trades ~55% worst-moment capacity for ~3-4x faster rollouts.
   # Bluegreen is NOT an option here: parallel fleets fight LiteFS +
   # Consul primary election.
@@ -54,7 +57,8 @@ kill_timeout = 30
 [[restart]]
   policy = "always"
 
-# Two process groups: primary (1 machine, LHR) and replica (7 machines).
+# Two process groups: primary (2 machines: lhr and the fra lease standby)
+# and replica (7 machines). fly scale count sets the counts per region.
 # Both run `litefs mount` (the container ENTRYPOINT), not a separate binary.
 # The command string here is informational; the image ENTRYPOINT wins at runtime.
 # Fly docs state the command is passed to the Dockerfile entrypoint. Our
@@ -64,7 +68,7 @@ kill_timeout = 30
   primary = ""
   replica = ""
 
-# Persistent volume attached to the primary group ONLY.
+# Persistent volume attached to the primary group ONLY (one per machine).
 # Replica machines get no mount — LiteFS cold-syncs the DB to ephemeral rootfs.
 [[mounts]]
   source = "litefs_data"
