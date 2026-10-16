@@ -2574,6 +2574,69 @@ func TestStartScheduler_PromotionWithinRoleCheck(t *testing.T) {
 	<-done
 }
 
+// TestStartScheduler_PromotionReapsRunningRows verifies that a node
+// promoted to primary marks the "running" sync_status row of the lost
+// primary as failed. Startup reaps such rows only on a node that starts
+// as primary, so without the promotion reap the row stays "running".
+func TestStartScheduler_PromotionReapsRunningRows(t *testing.T) {
+	t.Parallel()
+
+	f := newFixture(t)
+	f.responses["org"] = []any{makeOrg(1, "Org1", "ok")}
+
+	ps := &primarySwitch{}
+	w, db := newTestWorker(t, f)
+	if _, err := db.ExecContext(t.Context(),
+		`INSERT INTO sync_status (started_at, status) VALUES (?, 'running')`, time.Now().Add(-time.Minute)); err != nil {
+		t.Fatalf("seed running row: %v", err)
+	}
+	w.roleCheckInterval = 10 * time.Millisecond
+	var roleChecks atomic.Int32
+	replicaHeartbeat := make(chan struct{})
+	signalReplicaHeartbeat := stdsync.OnceFunc(func() { close(replicaHeartbeat) })
+	w.config.IsPrimary = func() bool {
+		v := ps.IsPrimary()
+		if roleChecks.Add(1) >= 2 {
+			signalReplicaHeartbeat()
+		}
+		return v
+	}
+	w.SetRetryBackoffs([]time.Duration{1 * time.Millisecond})
+	completions := syncCompletions(w)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		w.StartScheduler(ctx, time.Hour)
+		close(done)
+	}()
+
+	select {
+	case <-replicaHeartbeat:
+	case <-done:
+		t.Fatal("scheduler exited before its first replica heartbeat")
+	case <-ctx.Done():
+		<-done
+		t.Fatal("no replica heartbeat before the deadline")
+	}
+	ps.v.Store(true)
+
+	waitSyncCompletions(ctx, t, completions, done, 1)
+	cancel()
+	<-done
+
+	var running int
+	if err := db.QueryRowContext(t.Context(),
+		`SELECT COUNT(*) FROM sync_status WHERE status = 'running'`).Scan(&running); err != nil {
+		t.Fatalf("count running rows: %v", err)
+	}
+	if running != 0 {
+		t.Errorf("running sync_status rows after promotion = %d, want 0", running)
+	}
+}
+
 // TestRunSyncCycle_DemotionAbort verifies that a demotion mid-sync cancels
 // the cycle context: the client drops the in-flight upstream request,
 // SyncWithRetry leaves its backoff without a retry, nothing commits, and

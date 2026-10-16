@@ -2305,7 +2305,8 @@ func seedOperationCounters(ctx context.Context) {
 // w.config.IsPrimary(). The scheduler stops when ctx is cancelled.
 // On a primary, it first runs seedOperationCounters,
 // sweepScratchDirAtStartup, scrubPocContactsAtStartup and
-// cascadeNetIxLansAtStartup. A promotion also runs seedOperationCounters.
+// cascadeNetIxLansAtStartup. A promotion runs seedOperationCounters and
+// ReapStaleRunningRows.
 //
 // Scheduling anchor: the next sync is scheduled at lastCompletion + interval,
 // not at processStart + N*interval. This matters across restarts — a rolling
@@ -2403,6 +2404,18 @@ func (w *Worker) StartScheduler(ctx context.Context, interval time.Duration) {
 			)
 			wasPrimary = true
 			seedOperationCounters(ctx)
+			// A primary lost in the middle of a cycle leaves its
+			// sync_status row "running". Startup reaps such rows only
+			// on a node that starts as primary, so a standby that takes
+			// the lease reaps them here. Non-fatal: the rows are
+			// cosmetic (/ui/about).
+			if reaped, err := ReapStaleRunningRows(ctx, w.db, w.logger, w.lockRetry); err != nil {
+				w.logger.LogAttrs(ctx, slog.LevelWarn, "failed to reap stale running rows",
+					slog.Any("error", err))
+			} else if reaped > 0 {
+				w.logger.LogAttrs(ctx, slog.LevelInfo, "reaped stale running rows",
+					slog.Int("count", reaped))
+			}
 			// Re-read from the DB: replication may have advanced the
 			// last-sync timestamp while we were a replica.
 			ls, _ := GetLastSuccessfulSyncTime(ctx, w.db)

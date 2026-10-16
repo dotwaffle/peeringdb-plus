@@ -89,7 +89,7 @@ func InitStatusTable(ctx context.Context, db *sql.DB) error {
 
 // ReapStaleRunningRows transitions any sync_status rows stuck in "running"
 // state to "failed" with an explanatory error message. Call from startup
-// on the primary machine — a row can get stuck in "running" if a previous
+// on the primary machine, and when a node is promoted to primary — a row can get stuck in "running" if a previous
 // process was killed mid-sync (e.g. rolling deploy terminated the primary
 // before the sync commit/rollback path ran). The Worker.running atomic
 // is reset on process start, so no future sync is blocked by these rows;

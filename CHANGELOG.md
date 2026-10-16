@@ -20,6 +20,7 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 - LiteFS elects any machine of the `primary` process group (`candidate: ${FLY_PROCESS_GROUP == "primary"}`), not the machines in `PRIMARY_REGION`.
   `promote` is `false`, so a candidate that starts does not take the lease from the current holder.
 - A machine that does not hold the lease checks for promotion every minute, not once per sync interval.
+  A promoted machine marks a `running` `sync_status` row of the lost primary as `failed`, as a primary does at startup.
 - `POST /sync` on a replica replays to the lease holder machine (`fly-replay: instance=<machine ID>`), not to a region, and answers `503 no primary` while no machine holds the lease.
 - `PdbPlusPrimaryAbsent` fires only when both `primary` group machines are down.
   `PdbPlusReplicaLagHigh` is silent while no machine holds the lease.
