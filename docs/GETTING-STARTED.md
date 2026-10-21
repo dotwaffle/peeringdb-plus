@@ -65,9 +65,7 @@ With no configuration, the binary uses the defaults from `internal/config/config
 - Listens on `:8080`.
   The listener accepts HTTP/1.1 and h2c (HTTP/2 without TLS). gRPC clients need h2c.
 - Stores data in `./peeringdb-plus.db` in the current working directory.
-- Syncs from `https://api.peeringdb.com` with a 1-hour interval (15 minutes if
-  `PDBPLUS_PEERINGDB_API_KEY` is set — the authenticated rate-limit budget
-  comfortably absorbs the 4× frequency).
+- Syncs from `https://api.peeringdb.com` with a 1-hour interval (15 minutes if `PDBPLUS_PEERINGDB_API_KEY` is set -- the authenticated rate-limit budget comfortably absorbs the 4× frequency).
 - Uses sync mode `incremental`.
   On an empty database, the first sync is always a full fetch.
   A full fetch also runs every `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`).
@@ -285,16 +283,12 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
 
 ## Next steps
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): system overview, component diagram,
-  data flow, and the key abstractions you'll touch when making changes.
-- [CONFIGURATION.md](CONFIGURATION.md): the full list of environment variables,
-  including OpenTelemetry, LiteFS, and Fly.io-specific knobs not covered here.
-- [API.md](API.md): surface-by-surface contract notes, including documented
-  divergences from upstream PeeringDB.
+- [ARCHITECTURE.md](ARCHITECTURE.md): system overview, component diagram, data flow, and the key abstractions you'll touch when making changes.
+- [CONFIGURATION.md](CONFIGURATION.md): the full list of environment variables, including OpenTelemetry, LiteFS, and Fly.io-specific knobs not covered here.
+- [API.md](API.md): surface-by-surface contract notes, including documented divergences from upstream PeeringDB.
 - `cmd/peeringdb-plus/main.go`: the HTTP wiring, middleware chain, and graceful shutdown logic.
   Good entry point for understanding how requests flow through the binary.
 - `schema/peeringdb.json` and `ent/schema/`: the curated PeeringDB schema and the entgo schemas generated from it.
   Hand-edited methods are in sibling files, for example `ent/schema/poc_policy.go`.
   Code generation builds the ent client and the GraphQL and REST layers from these schemas.
-- `internal/sync/`: the PeeringDB sync worker, including full vs incremental
-  modes and the memory guardrail.
+- `internal/sync/`: the PeeringDB sync worker, including full vs incremental modes and the memory guardrail.

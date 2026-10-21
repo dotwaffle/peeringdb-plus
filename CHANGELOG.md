@@ -353,20 +353,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Added
 
-- Dashboard: collapsed row Fly Platform and a Machine restarts
-  annotation, from the metrics that Fly.io collects for each machine and
-  its edge (Grafana data source `fly.io`, variable `fly_datasource`):
-  CPU throttling, CPU use against the baseline quota, burst balance, VM
-  memory, edge error responses (including Fly proxy errors that never
-  reach the app) and edge response time.
-- Alert rules `PdbPlusMachineOOMKilled` (warning: a machine restarted
-  after an out-of-memory kill, which the app cannot report) and
-  `PdbPlusMachineCPUThrottled` (warning: a machine throttled for more than
-  1% of the time for 15 minutes), in the group `pdbplus-fly`, on the
-  `fly.io` data source.
-- Alert rule `PdbPlusLiteFSMetricsAbsent` (warning, group `pdbplus-fly`):
-  Fly.io reports a machine but has no LiteFS metrics for it for 10
-  minutes, so `PdbPlusReplicaLagHigh` cannot fire for that machine.
+- Dashboard: collapsed row Fly Platform and a Machine restarts annotation, from the metrics that Fly.io collects for each machine and its edge (Grafana data source `fly.io`, variable `fly_datasource`): CPU throttling, CPU use against the baseline quota, burst balance, VM memory, edge error responses (including Fly proxy errors that never reach the app) and edge response time.
+- Alert rules `PdbPlusMachineOOMKilled` (warning: a machine restarted after an out-of-memory kill, which the app cannot report) and `PdbPlusMachineCPUThrottled` (warning: a machine throttled for more than 1% of the time for 15 minutes), in the group `pdbplus-fly`, on the `fly.io` data source.
+- Alert rule `PdbPlusLiteFSMetricsAbsent` (warning, group `pdbplus-fly`): Fly.io reports a machine but has no LiteFS metrics for it for 10 minutes, so `PdbPlusReplicaLagHigh` cannot fire for that machine.
 
 ### Changed
 
@@ -392,16 +381,10 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Added
 
-- Attribute `user_agent.synthetic.type` on the HTTP duration metric
-  (`user_agent_synthetic_type` in Prometheus): `test` on requests whose
-  User-Agent starts with `synthetic-monitoring-agent/` (Grafana
-  Synthetic Monitoring).
+- Attribute `user_agent.synthetic.type` on the HTTP duration metric (`user_agent_synthetic_type` in Prometheus): `test` on requests whose User-Agent starts with `synthetic-monitoring-agent/` (Grafana Synthetic Monitoring).
 - Gauge `pdbplus.build.info` (`pdbplus_build_info`): the value 1 with the label `service_version`, one series per machine.
   Find the version of each machine with `count by (service_version) (pdbplus_build_info{service_name="peeringdb-plus"})`.
-- Dashboard: collapsed row External Probes (share of passed executions
-  in 15 minutes and time of the last execution, by probe location) and
-  a Deploys annotation from the first report of a new version on
-  `pdbplus_build_info`.
+- Dashboard: collapsed row External Probes (share of passed executions in 15 minutes and time of the last execution, by probe location) and a Deploys annotation from the first report of a new version on `pdbplus_build_info`.
 
 ### Changed
 
@@ -409,11 +392,7 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   Grafana Cloud promotes the attribute to a label on every series, so each deploy started a new copy of every series (about 1,400), which stayed active until it aged out.
   Traces and logs keep `service.version`.
   To compare a metric between versions, join it to the newest `pdbplus_build_info` series of each machine (query in `docs/ARCHITECTURE.md`).
-- Replicas no longer export `pdbplus_data_type_count` (they reported the
-  counts that they read at process start, because only the primary
-  syncs) or the 54 pre-warmed zero series of the sync and role
-  transition counters (only nodes that LiteFS can elect as primary
-  pre-warm them).
+- Replicas no longer export `pdbplus_data_type_count` (they reported the counts that they read at process start, because only the primary syncs) or the 54 pre-warmed zero series of the sync and role transition counters (only nodes that LiteFS can elect as primary pre-warm them).
 - otelsql records no metrics: `db_client_operation_duration_seconds` (about 350 series, not read by any dashboard or alert) is gone.
   The DB spans are unchanged.
 - The availability SLO and the dashboard panels Request Rate by Route, Error Rate (5xx) and Latency leave out Synthetic Monitoring requests (`user_agent_synthetic_type!="test"`).
@@ -438,10 +417,7 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   A stalled replica showed only in the freshness alert after 2 hours, and a filling volume only in a WARN log.
 - Gauge `pdbplus.scratch.free` (`pdbplus_scratch_free_bytes`): the free space of the file system of `PDBPLUS_SCRATCH_DIR`, which on Fly.io is the LiteFS volume of the primary.
   Before, only the WARN of the scratch free-space guard showed a filling volume.
-- Synthetic Monitoring check definition in
-  `deploy/grafana/synthetics/README.md`: an HTTP check of `/api` through
-  the Fly proxy from London, Sydney and the US every 3 minutes (43,200
-  executions per month, inside the 100,000 of the free plan).
+- Synthetic Monitoring check definition in `deploy/grafana/synthetics/README.md`: an HTTP check of `/api` through the Fly proxy from London, Sydney and the US every 3 minutes (43,200 executions per month, inside the 100,000 of the free plan).
 - Dashboard `pdbplus-overview`: two collapsed rows.
   "Upstream PeeringDB" shows the requests to PeeringDB by status class, retries by cause, and the p95 wait for the local rate limiter.
   "Sync Sweep & Backfill" shows the history sweep windows by type and result, FK backfill attempts, and FK orphan rows.
@@ -803,9 +779,7 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
   A connection that PeeringDB changed after it deleted the network stays live.
   When the primary starts, it also marks the connections that it already holds.
   `updated` does not change.
-- A full sync no longer turns a deleted connection back into a live one
-  when the PeeringDB cache lists an old copy of it with the same
-  `updated` value.
+- A full sync no longer turns a deleted connection back into a live one when the PeeringDB cache lists an old copy of it with the same `updated` value.
 
 ### Upgrade notes
 
@@ -860,9 +834,7 @@ Read "Changed" before you upgrade a client.
   `/api/netixlan` accepts `meta__*` filters.
 - Serve the netixlan status `not-operational` as a live status, as PeeringDB 2.83.0 does.
   The web UI and MCP include these connections and mark them.
-- Accept the upstream names of FK filter keys on `/api/`: `?org=`,
-  `?network=`, `?facility_id__in=`, `network__<field>` and
-  `facility__<field>`, with the upstream operators.
+- Accept the upstream names of FK filter keys on `/api/`: `?org=`, `?network=`, `?facility_id__in=`, `network__<field>` and `facility__<field>`, with the upstream operators.
 - Filter `/api/` on the upstream `prepare_query` relation keys, for example `fac?net=`, `net?ix=`, `netixlan?name=` and `campus?facility=`.
   A join row that is not live does not match.
 - Filter `net` `info_types` and `fac` `available_voltage_services` with the upstream rules for multi-value fields.
@@ -877,17 +849,14 @@ Read "Changed" before you upgrade a client.
   Up to v1.27.0, a poller that sent the last `updated` value it had seen could miss rows.
 - A list request with `id` (any type) or `asn` (`net`) that matches no row returns `404` with the detail `Entity not found`, as upstream does.
   `id__in` and `asn__in` still return `200` with an empty list.
-- `?status=` narrows the status set of the request and no longer adds
-  other statuses to it, as upstream does.
+- `?status=` narrows the status set of the request and no longer adds other statuses to it, as upstream does.
 - Depth `_set` lists contain only live rows.
   `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are in facility `id` order.
 - `ix.media` is always `Ethernet` and `ixlan.dot1q_support` is always `false`, as upstream renders them.
   `net.info_types` is `[]`, not `null`, when it holds no value.
 - A caller who may see `ixlan.ixf_ixp_member_list_url` gets the key with `""` when no URL is stored.
   Before, the key was left out.
-- `/api/` ignores the filter keys that upstream ignores: `netixlan`
-  `net_side*`, `carrier` `fac_count*`, relation keys on fields that are not
-  model fields, and reverse or 2-hop `__status` keys.
+- `/api/` ignores the filter keys that upstream ignores: `netixlan` `net_side*`, `carrier` `fac_count*`, relation keys on fields that are not model fields, and reverse or 2-hop `__status` keys.
 - ConnectRPC internal errors no longer include database error text.
   A canceled request returns `Canceled`, and a request past its deadline returns `DeadlineExceeded`.
 - REST query binding errors are in lower case (form decoder 4.5.0).
@@ -901,20 +870,15 @@ Read "Changed" before you upgrade a client.
 
 - Do not serve the name, phone, email or url of a deleted contact (`poc`) on any API.
   Sync stores deleted contacts without these fields, and the primary blanks them on the tombstones that it already holds.
-- `PDBPLUS_PUBLIC_TIER=users` no longer shows `Private` contacts, on any
-  API or through a filter.
-- The GraphQL `where` input no longer has contact edge predicates, which
-  could test values of hidden contacts.
-- A 2-hop `/api/` key through contacts, for example
-  `/api/net?poc__net__asn=`, no longer matches through contacts that the
-  caller cannot read.
+- `PDBPLUS_PUBLIC_TIER=users` no longer shows `Private` contacts, on any API or through a filter.
+- The GraphQL `where` input no longer has contact edge predicates, which could test values of hidden contacts.
+- A 2-hop `/api/` key through contacts, for example `/api/net?poc__net__asn=`, no longer matches through contacts that the caller cannot read.
 - REST `sort=pocs.count` returns `400`, and the OpenAPI sort list no longer offers it.
   The count included hidden contacts.
 - `/api/` time filters and `?since=` compare in UTC.
   A value with an offset, for example `?updated=2026-04-01T11:00:00+01:00`, matches the same instant stored in UTC.
 - Sync sets netixlan `operational` when upstream leaves it out.
-- The `/api/fac` detail budget no longer counts sets that the response
-  does not include.
+- The `/api/fac` detail budget no longer counts sets that the response does not include.
 
 ### Upgrade notes
 
@@ -926,13 +890,11 @@ Read "Changed" before you upgrade a client.
 ### Changed
 
 - Update Go to 1.27.1 and gqlgen to 0.17.95.
-- Update entrest to 1.2.0, gqlparser to 2.5.37, otelsql to 0.44.0,
-  compress to 1.20.0, and SQLite to 1.58.0 with libc 1.75.6.
+- Update entrest to 1.2.0, gqlparser to 2.5.37, otelsql to 0.44.0, compress to 1.20.0, and SQLite to 1.58.0 with libc 1.75.6.
 - Use the new REST JSON encoder.
   Empty list fields emit arrays instead of `null`, and pretty responses use tabs.
   The PeeringDB-compatible API keeps its existing serializers.
-- Migrate the web UI to htmx 4, including history navigation and fragment
-  error handling.
+- Migrate the web UI to htmx 4, including history navigation and fragment error handling.
 
 ### Fixed
 
@@ -945,40 +907,27 @@ Read "Changed" before you upgrade a client.
 
 ### Added
 
-- Add an MCP server card, Agent Skills discovery index, standard skill alias,
-  `llms.txt`, and root `Link` headers for agent discovery.
+- Add an MCP server card, Agent Skills discovery index, standard skill alias, `llms.txt`, and root `Link` headers for agent discovery.
 
 ### Changed
 
-- Support MCP 2026-07-28 sessionless discovery while retaining legacy
-  handshake compatibility.
-- Add tool output schemas, stronger input constraints, explicit read-only
-  capabilities, request cancellation, and current MCP CORS headers.
+- Support MCP 2026-07-28 sessionless discovery while retaining legacy handshake compatibility.
+- Add tool output schemas, stronger input constraints, explicit read-only capabilities, request cancellation, and current MCP CORS headers.
 - Move the toolchain to Go 1.26.7 and golangci-lint 2.13.2.
-- Bump direct Go modules: `github.com/KimMachineGun/automemlimit`
-  0.7.5→1.0.0 (new `memlimit.Set` entry point, same cgroup-then-system
-  provider chain), the OpenTelemetry API/SDK 1.45.0→1.46.0 with contrib
-  0.70.0→0.71.0 and `sdk/log` 0.21.0→0.22.0, `modernc.org/sqlite`
-  1.56.0→1.57.0, and `github.com/stretchr/testify` 1.12.0→1.12.1.
-  `github.com/lrstanley/entrest` stays at 1.0.4 because 1.1.0 requires
-  Go 1.27. `govulncheck` reports no vulnerabilities.
+- Bump direct Go modules: `github.com/KimMachineGun/automemlimit` 0.7.5→1.0.0 (new `memlimit.Set` entry point, same cgroup-then-system provider chain), the OpenTelemetry API/SDK 1.45.0→1.46.0 with contrib 0.70.0→0.71.0 and `sdk/log` 0.21.0→0.22.0, `modernc.org/sqlite` 1.56.0→1.57.0, and `github.com/stretchr/testify` 1.12.0→1.12.1. `github.com/lrstanley/entrest` stays at 1.0.4 because 1.1.0 requires Go 1.27. `govulncheck` reports no vulnerabilities.
 
 ## [1.25.0] — 2026-07-24
 
 ### Added
 
-- Show the application version and optional serving region on the About page
-  without requiring a Fly.io runtime.
-- Add a read-only Streamable HTTP MCP server with catalog search,
-  entity detail, network comparison, IP lookup, sync freshness,
-  resources, and guided prompts.
+- Show the application version and optional serving region on the About page without requiring a Fly.io runtime.
+- Add a read-only Streamable HTTP MCP server with catalog search, entity detail, network comparison, IP lookup, sync freshness, resources, and guided prompts.
 - Host an origin-neutral agent skill as both Markdown and an installable ZIP.
   The ZIP is generated per request so its MCP dependency follows the requested hostname or `PDBPLUS_PUBLIC_URL`.
 
 ### Changed
 
-- Extract web catalog queries and result types into a protocol-neutral package
-  shared by the UI and MCP server.
+- Extract web catalog queries and result types into a protocol-neutral package shared by the UI and MCP server.
 - Add the MCP Go SDK at v1.4.1, including its default DNS-rebinding protection.
 
 ### Fixed
@@ -989,8 +938,7 @@ Read "Changed" before you upgrade a client.
 
 ### Fixed
 
-- Correct production version stamping so the intentionally filtered Docker
-  build context does not make every release report a false `-dirty` suffix.
+- Correct production version stamping so the intentionally filtered Docker build context does not make every release report a false `-dirty` suffix.
 
 ## [1.24.0] — 2026-07-24
 
@@ -999,26 +947,21 @@ There are no API or runtime behavior changes from PeeringDB 2.81.0: its interven
 
 ### Added
 
-- Add a cross-platform mise manifest and lockfile covering Go, code generators,
-  Tailwind, gotestsum, lint, and vulnerability tooling.
-- Add mise tasks for generation, build, race tests, coverage, lint,
-  vulnerability scanning, and the canonical local validation sweep.
+- Add a cross-platform mise manifest and lockfile covering Go, code generators, Tailwind, gotestsum, lint, and vulnerability tooling.
+- Add mise tasks for generation, build, race tests, coverage, lint, vulnerability scanning, and the canonical local validation sweep.
 
 ### Changed
 
 - Move CI and local development to the same locked tool versions.
   CI now installs tools through mise, runs race coverage through gotestsum, validates its workflow with actionlint, and retains the existing cached sequential Go job plus parallel Docker builds.
-- Replace the dynamically assembled coverage package list with explicit
-  hand-written package trees; `.octocov.yml` remains the file-level exclusion
-  authority for generated GraphQL and templ output.
+- Replace the dynamically assembled coverage package list with explicit hand-written package trees; `.octocov.yml` remains the file-level exclusion authority for generated GraphQL and templ output.
 - Update Go to 1.26.5, `otelsql` to 0.43.0, `compress` to 1.19.1, `ogen` to 1.23.0, modernc SQLite to 1.54.0, and Tailwind to 4.3.3.
   SQLite 1.54.0 includes the upstream WAL corruption fix in SQLite 3.53.3.
 
 ### Removed
 
 - Remove the `go.mod` tool block and Buf's codegen-only transitive module graph.
-- Remove the custom Tailwind downloader; mise now downloads and verifies the
-  same standalone GitHub release assets without requiring Node.js.
+- Remove the custom Tailwind downloader; mise now downloads and verifies the same standalone GitHub release assets without requiring Node.js.
 
 ## [1.23.0] — 2026-07-10
 
@@ -1026,21 +969,16 @@ Full-repository review remediation across sync reliability, API correctness, web
 
 ### Fixed
 
-- Harden sync watchdogs, FK pre-processing, heap telemetry, upstream
-  authentication diagnostics, and tombstone filtering.
-- Correct HTTP recovery, conditional requests, REST redaction scope,
-  gRPC health evaluation, stream timeout validation, and reserved metadata.
-- Improve web accessibility, static asset delivery, CSP enforcement,
-  relation pagination, error handling, and light/dark presentation.
-- Extend pdbcompat response budgeting and lock registries and filter tables
-  against generated schema or SQL drift.
+- Harden sync watchdogs, FK pre-processing, heap telemetry, upstream authentication diagnostics, and tombstone filtering.
+- Correct HTTP recovery, conditional requests, REST redaction scope, gRPC health evaluation, stream timeout validation, and reserved metadata.
+- Improve web accessibility, static asset delivery, CSP enforcement, relation pagination, error handling, and light/dark presentation.
+- Extend pdbcompat response budgeting and lock registries and filter tables against generated schema or SQL drift.
 
 ### Changed
 
 - Make Docker builds more cacheable and runtime images smaller.
 - Harden schema, compatibility, load-test, LiteFS, and observability tooling.
-- Consolidate repeated API, sync, GraphQL, and command wiring behind typed
-  registries and shared helpers.
+- Consolidate repeated API, sync, GraphQL, and command wiring behind typed registries and shared helpers.
 
 ## [1.22.0] — 2026-06-30
 
@@ -1058,13 +996,8 @@ The new `net.ixp_update_exclude` field is the only read-path addition across all
 
 - Refresh the pdbcompat upstream parity anchor from `99e92c72` (~2.77) to `545c58a4` (PeeringDB 2.80.1) and re-verify the cited upstream line numbers throughout `docs/API.md`.
   A full schema re-extract confirmed the only read-path field drift across all 13 types in that range is the `ixp_update_exclude` field above; every other upstream change in the window is write-path and irrelevant to a read-only mirror.
-- Rebuild `cmd/pdb-schema-extract` around DRF serializer introspection so it
-  parses the current django-peeringdb 3.7.0 / peeringdb-server source layout,
-  and document it explicitly as an upstream drift detector — not the schema
-  source of truth, which stays hand-curated and is consumed as such by
-  `cmd/pdb-schema-generate`.
-- Bump Go modules to their latest releases via `go get -u`; `golangci-lint`
-  and `govulncheck` are clean.
+- Rebuild `cmd/pdb-schema-extract` around DRF serializer introspection so it parses the current django-peeringdb 3.7.0 / peeringdb-server source layout, and document it explicitly as an upstream drift detector -- not the schema source of truth, which stays hand-curated and is consumed as such by `cmd/pdb-schema-generate`.
+- Bump Go modules to their latest releases via `go get -u`; `golangci-lint` and `govulncheck` are clean.
 
 ### Removed
 
@@ -1080,10 +1013,8 @@ No functional or API changes, and `govulncheck` reported no vulnerabilities — 
 - Bump direct Go modules to their latest patch/minor releases: `golang.org/x/net` 0.55.0→0.56.0, `golang.org/x/text` 0.37.0→0.38.0, `modernc.org/sqlite` 1.52.0→1.53.0, `charm.land/lipgloss/v2` 2.0.3→2.0.4, `github.com/99designs/gqlgen` 0.17.90→0.17.92, `github.com/vektah/gqlparser/v2` 2.5.33→2.5.35, and `github.com/ogen-go/ogen` 1.20.3→1.22.0.
   The `buf` build tool moves 1.68.4→1.71.0; `go mod tidy` settled the transitive graph, and the gqlgen GraphQL output was regenerated for the bump.
 - Raise the `go` directive to 1.26.4 to match the toolchain.
-- Update CI action pins to their latest majors: `actions/checkout` v6→v7 and
-  `actions/cache` v5→v6.
-- Add `-v` to the production image's `go build` so compile progress is visible
-  in build logs, making a stalled build distinguishable from a slow one.
+- Update CI action pins to their latest majors: `actions/checkout` v6→v7 and `actions/cache` v5→v6.
+- Add `-v` to the production image's `go build` so compile progress is visible in build logs, making a stalled build distinguishable from a slow one.
 
 ## [1.21.0] — 2026-06-10
 
@@ -1112,45 +1043,23 @@ Fixes for all 42 confirmed findings of the 2026-06-10 full-codebase audit (4 hig
   Full cycles now bypass the gate.
 - **Tombstoned rows are hidden everywhere.**
   Depth≥2 `_set` collections, all web UI queries (52 sites), and GraphQL's `networkByAsn` now filter `StatusIn("ok", "pending")`, matching the list-path status matrix.
-- **pdbcompat parity restored on five fronts:** `?since=0` is inert
-  (upstream's `if since > 0` gate), the since boundary is strictly greater,
-  and since lists order `updated` ascending; non-numeric/negative
-  `limit`/`skip` return 400 and the hidden 1000-row clamp is gone; bare
-  `city`/`address1`/`state` filters are substring matches and `country`
-  follows the 2-char-iexact rule; time filters accept ISO 8601 with
-  upstream's date day-window semantics; string `__in` is case-insensitive
-  and routes folded fields through the `_fold` shadow columns.
-- **Caching headers corrected:** error responses and `/healthz`/`/readyz`
-  are `no-store` (the readiness 304 short-circuit no longer masks health
-  flips); render paths `Add` to `Vary` instead of clobbering gzhttp's
-  `Accept-Encoding`; web 404/500 pages set headers before the status.
+- **pdbcompat parity restored on five fronts:** `?since=0` is inert (upstream's `if since > 0` gate), the since boundary is strictly greater, and since lists order `updated` ascending; non-numeric/negative `limit`/`skip` return 400 and the hidden 1000-row clamp is gone; bare `city`/`address1`/`state` filters are substring matches and `country` follows the 2-char-iexact rule; time filters accept ISO 8601 with upstream's date day-window semantics; string `__in` is case-insensitive and routes folded fields through the `_fold` shadow columns.
+- **Caching headers corrected:** error responses and `/healthz`/`/readyz` are `no-store` (the readiness 304 short-circuit no longer masks health flips); render paths `Add` to `Vary` instead of clobbering gzhttp's `Accept-Encoding`; web 404/500 pages set headers before the status.
 - **Replica readiness latch recovers.**
   A replica booted before the primary's first successful sync no longer serves 503 forever — the heartbeat re-reads sync_status until ready.
 - **`unifold` folds `œ`/`Œ`, `ð`/`Ð`, and dotless `ı`** like upstream's unidecode.
   Run one full sync after deploying to converge stale `_fold` values.
-- **The served shell-completion scripts work** (`pdb asn 13335` no longer
-  issues two URLs; zsh subcommand completion expands).
-- **`fly.toml` health checks probe `/readyz`** so Fly Proxy actually
-  excludes hydrating replicas; `Dockerfile.prod` builds with
-  `CGO_ENABLED=0` as documented.
+- **The served shell-completion scripts work** (`pdb asn 13335` no longer issues two URLs; zsh subcommand completion expands).
+- **`fly.toml` health checks probe `/readyz`** so Fly Proxy actually excludes hydrating replicas; `Dockerfile.prod` builds with `CGO_ENABLED=0` as documented.
 
 ### Changed
 
-- GraphQL flat-list resolvers batch edge loads via `CollectFields`
-  (previously 1+N queries per request).
-- SQLite page cache is 8 MB per connection (was 32 MB; the pool multiplied
-  it to 320 MB worst-case on a 256 MB replica).
-- `POST /sync` returns 409 when a cycle is already running instead of a
-  202 whose trigger was silently dropped; on-demand syncs honour demotion;
-  the retry ladder short-circuits on upstream WAF blocks.
-- `/rest/v1/` 4xx errors carry entrest's validation detail; the served
-  OpenAPI spec documents the problem+json error shape actually emitted.
-- Incremental since-pagination stops on a short page, saving one upstream
-  request per type per cycle.
-- Dead exported code removed (`peeringdb.FetchType`, the grpcserver
-  stream-cursor wire codec); the `/api/` problem+json error envelope and
-  the poc_set/fold-window divergences are now registered and test-locked
-  in `docs/API.md § Known Divergences`.
+- GraphQL flat-list resolvers batch edge loads via `CollectFields` (previously 1+N queries per request).
+- SQLite page cache is 8 MB per connection (was 32 MB; the pool multiplied it to 320 MB worst-case on a 256 MB replica).
+- `POST /sync` returns 409 when a cycle is already running instead of a 202 whose trigger was silently dropped; on-demand syncs honour demotion; the retry ladder short-circuits on upstream WAF blocks.
+- `/rest/v1/` 4xx errors carry entrest's validation detail; the served OpenAPI spec documents the problem+json error shape actually emitted.
+- Incremental since-pagination stops on a short page, saving one upstream request per type per cycle.
+- Dead exported code removed (`peeringdb.FetchType`, the grpcserver stream-cursor wire codec); the `/api/` problem+json error envelope and the poc_set/fold-window divergences are now registered and test-locked in `docs/API.md § Known Divergences`.
 
 ## [1.20.6] — 2026-06-08
 
@@ -1179,20 +1088,12 @@ Fixes for all 42 confirmed findings of the 2026-06-10 full-codebase audit (4 hig
     Upstream's IXLanSerializer resolves the netixlan join to its networks (`nested(NetworkSerializer, through="netixlan_set", getter="network")`); the mirror was exposing the raw join rows under the wrong key and omitting `net_set` entirely.
   - **Second-level nested FK objects at `?depth=2` now carry their own reverse-relation ID lists** (e.g. a netixlan's `net` carries `poc_set`/`netfac_set`/`netixlan_set`, its `ixlan` carries `net_set`/`ixpfx_set`), matching upstream's recursive depth budget.
     Removes the bounded divergence deferred in v1.19.3.
-  - **Nested back-reference FK stripping corrected** to match upstream's
-    per-serializer `exclude=` lists: a facility nested under a campus keeps
-    `campus_id` and drops `org_id`; a carrierfac nested under a carrier keeps
-    `carrier_id`.
-  - **Campus-less facilities emit `campus:null` at detail depth** rather than
-    omitting the key (upstream's `FacilitySerializer.campus` is a related
-    field present at detail depth).
+  - **Nested back-reference FK stripping corrected** to match upstream's per-serializer `exclude=` lists: a facility nested under a campus keeps `campus_id` and drops `org_id`; a carrierfac nested under a carrier keeps `carrier_id`.
+  - **Campus-less facilities emit `campus:null` at detail depth** rather than omitting the key (upstream's `FacilitySerializer.campus` is a related field present at detail depth).
 
 ### Changed
 
-- Response-budget row-size floor (`internal/pdbcompat/rowsize.go`) recalibrated
-  for the larger depth=2 rows (leaf join entities grew most now that each
-  embeds its FK objects' own ID-list sets); a `?depth=1` request bills the
-  depth=2 estimate.
+- Response-budget row-size floor (`internal/pdbcompat/rowsize.go`) recalibrated for the larger depth=2 rows (leaf join entities grew most now that each embeds its FK objects' own ID-list sets); a `?depth=1` request bills the depth=2 estimate.
 - One intentional non-parity is retained and documented in `docs/API.md § Known Divergences`: anonymous `poc_set` ID lists omit non-`Public` POC ids that upstream lists at `?depth=1` (upstream hides them only on expansion).
   Matching upstream there would leak the existence of non-`Public` contacts, contradicting the row-level `poc.visible` privacy policy.
 
@@ -1234,8 +1135,7 @@ Fixes for all 42 confirmed findings of the 2026-06-10 full-codebase audit (4 hig
 
 ### Dependencies
 
-- Bump `golang.org/x/sync` v0.20.0 → v0.21.0 and `modernc.org/sqlite`
-  v1.51.0 → v1.52.0.
+- Bump `golang.org/x/sync` v0.20.0 → v0.21.0 and `modernc.org/sqlite` v1.51.0 → v1.52.0.
 
 ## [1.20.0] — 2026-06-08
 
@@ -1305,13 +1205,8 @@ Fixes for all 42 confirmed findings of the 2026-06-10 full-codebase audit (4 hig
 
 ### Added
 
-- **Per-entity status×since matrix regression test** covering all 13
-  PeeringDB types (previously only `net` + `campus` had behavioural
-  coverage), guarding against a per-entity wiring omission that would
-  leak `deleted`/`pending` rows onto the anonymous `/api` list surface.
-- **`StreamIxLans` field-level redaction coverage** at both privacy
-  tiers, closing the one load-bearing redaction surface that had no
-  test for the gated `ixf_ixp_member_list_url` field.
+- **Per-entity status×since matrix regression test** covering all 13 PeeringDB types (previously only `net` + `campus` had behavioural coverage), guarding against a per-entity wiring omission that would leak `deleted`/`pending` rows onto the anonymous `/api` list surface.
+- **`StreamIxLans` field-level redaction coverage** at both privacy tiers, closing the one load-bearing redaction surface that had no test for the gated `ixf_ixp_member_list_url` field.
 
 ### Changed
 
@@ -1361,16 +1256,10 @@ The entries below are the 2026-05-30 audit-hardening batch (merged via PR #13)._
 
 ### Changed
 
-- **Repeated query parameters take the last value** (`?asn=1&asn=2` → `2`),
-  matching Django's `QueryDict` and upstream PeeringDB (was first-value).
-- **Filter type errors name the type** (`field type bool`) instead of the
-  internal enum integer (`field type 2`).
-- **`PDBPLUS_SYNC_STALE_THRESHOLD` is validated at startup** — a
-  non-positive value is rejected at boot rather than pinning `/readyz` at
-  503 for the process lifetime.
-- **Detail endpoints (`/api/<type>/<id>`) are gated by the response memory
-  budget**, like list endpoints — an over-budget `depth=2` expansion now
-  returns `413` instead of being served unbounded.
+- **Repeated query parameters take the last value** (`?asn=1&asn=2` → `2`), matching Django's `QueryDict` and upstream PeeringDB (was first-value).
+- **Filter type errors name the type** (`field type bool`) instead of the internal enum integer (`field type 2`).
+- **`PDBPLUS_SYNC_STALE_THRESHOLD` is validated at startup** -- a non-positive value is rejected at boot rather than pinning `/readyz` at 503 for the process lifetime.
+- **Detail endpoints (`/api/<type>/<id>`) are gated by the response memory budget**, like list endpoints -- an over-budget `depth=2` expansion now returns `413` instead of being served unbounded.
 
 ### Security
 
@@ -1382,35 +1271,20 @@ The entries below are the 2026-05-30 audit-hardening batch (merged via PR #13)._
 
 ### Performance
 
-- List pages that serve no rows (e.g. `?skip=` past the end of the result
-  set) short-circuit before the `ORDER BY … OFFSET` sort.
-- The sync-freshness gauge reads a cached value instead of a live
-  `sync_status` query on every Prometheus scrape.
-- FK validation memoises confirmed-present parents per sync cycle,
-  collapsing the per-child `Exist()` queries when many children share one
-  untouched parent.
-- pdbcompat list serialization builds its output in a single pass,
-  dropping a redundant intermediate slice.
-- The `/rest/v1/ix-lans` redaction path skips re-marshalling the body when
-  no field was gated out.
+- List pages that serve no rows (e.g. `?skip=` past the end of the result set) short-circuit before the `ORDER BY … OFFSET` sort.
+- The sync-freshness gauge reads a cached value instead of a live `sync_status` query on every Prometheus scrape.
+- FK validation memoises confirmed-present parents per sync cycle, collapsing the per-child `Exist()` queries when many children share one untouched parent.
+- pdbcompat list serialization builds its output in a single pass, dropping a redundant intermediate slice.
+- The `/rest/v1/ix-lans` redaction path skips re-marshalling the body when no field was gated out.
 
 ### Fixed
 
-- Corrected three documentation claims against the pinned upstream source:
-  the detail `?depth=` default is `2` (not `0`); there is no top-level
-  `meta.count` (the empty `__in` example is `{"data":[],"meta":{}}`); and
-  `org_flags` is not an upstream filter parameter (recorded as a
-  Validation Note, not a divergence).
+- Corrected three documentation claims against the pinned upstream source: the detail `?depth=` default is `2` (not `0`); there is no top-level `meta.count` (the empty `__in` example is `{"data":[],"meta":{}}`); and `org_flags` is not an upstream filter parameter (recorded as a Validation Note, not a divergence).
 
 ### Internal
 
-- Removed dead sync code (the write-only FK skipped-ID tracker and the
-  unread `getStatus` filter) and the unused `litefs.IsPrimary` wrapper.
-- Clarified stale doc comments: the per-request heap-delta metric is
-  process-global, the FK-backfill cap default is 20, stream cursors are
-  session-local, and the REST writers' `http.Flusher` contract (the
-  pass-through writer delegates `Flush`; the buffering redact writer must
-  not).
+- Removed dead sync code (the write-only FK skipped-ID tracker and the unread `getStatus` filter) and the unused `litefs.IsPrimary` wrapper.
+- Clarified stale doc comments: the per-request heap-delta metric is process-global, the FK-backfill cap default is 20, stream cursors are session-local, and the REST writers' `http.Flusher` contract (the pass-through writer delegates `Flush`; the buffering redact writer must not).
 
 ## [1.16.0] — 2026-04-19
 
@@ -1512,12 +1386,7 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
   - **`internal/pdbcompat/parity/bench_test.go` performance lock-in** — 3 `b.Loop()`-style benchmarks: `BenchmarkParity_TwoHopTraversal` (`ixpfx?ixlan__ix__id=20`, ~580μs/op on Ryzen 5 3600), `BenchmarkParity_LimitZeroStreaming` (5000-row seeded end-to-end `stream.go` path, ~82.7ms/op), `BenchmarkParity_InFiveThousandElements` (5001-id IN via the `json_each` rewrite, ~98.6ms/op).
     Benchstat-on-main is out of scope — benchmarks are local-run only, gated by the standard `go test -race ./...` tier.
     `testing.TB` widening plumbed through `testutil.SetupClient` + 9 parity harness helpers (type-only change, every `*testing.T` call site still satisfies the interface).
-  - **`docs/API.md § Known Divergences` extended** with 3 new rows
-    (pre-soft-delete hard-delete gap parity cross-ref; pdbfe `limit=0`
-    count-only invalid claim; depth-on-list silent-drop
-    guardrail) plus `TestParity_*` cross-refs appended to the Since
-    columns of the existing `fac?campus__name=X` +
-    `fac?ixlan__ix__fac_count__gt=0` divergence rows.
+  - **`docs/API.md § Known Divergences` extended** with 3 new rows (pre-soft-delete hard-delete gap parity cross-ref; pdbfe `limit=0` count-only invalid claim; depth-on-list silent-drop guardrail) plus `TestParity_*` cross-refs appended to the Since columns of the existing `fac?campus__name=X` + `fac?ixlan__ix__fac_count__gt=0` divergence rows.
   - **`docs/API.md § Validation Notes` NEW sub-section** documenting 5 invalid third-party claims about upstream behaviour with pinned `peeringdb/peeringdb@99e92c72…` SHA refs: (1) `net?country=NL` is not a valid filter (country lives on `org`), (2) `?limit=0` is unlimited not count-only, (3) default ordering is `(-updated, -created)` not `id ASC`, (4) Unicode folding is Python `unidecode` not MySQL collation, (5) filter surface is `prepare_query` + `queryable_relations` not a DRF `filterset_class`.
     Each row cites the specific upstream file:line and cross- references the parity sub-test locking the corrected behaviour.
     Future conformance audits against pdbfe's gotchas doc don't re- research the same invalid claims.
@@ -1539,8 +1408,7 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 
 ### Deprecated
 
-- `PDBPLUS_INCLUDE_DELETED` (see Breaking above; removal completes
-  with fatal startup error in v1.17).
+- `PDBPLUS_INCLUDE_DELETED` (see Breaking above; removal completes with fatal startup error in v1.17).
 
 ### Fixed
 

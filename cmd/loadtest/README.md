@@ -127,10 +127,8 @@ Ramp loop per surface:
    - `p95 > baseline.p95 × --p95-multiplier`, OR
    - `p99 > --p99-absolute`, OR
    - `error rate > --error-rate-threshold`.
-4. **Hold** at the inflection concurrency for `--hold-duration` to
-   gather a stable p99 reading.
-5. **Past-inflection**: 1-2 additional steps (concurrency permitting)
-   so the operator can see how badly things degrade just past the knee.
+4. **Hold** at the inflection concurrency for `--hold-duration` to gather a stable p99 reading.
+5. **Past-inflection**: 1-2 additional steps (concurrency permitting) so the operator can see how badly things degrade just past the knee.
 6. Print a markdown table for the surface to stdout, then move on.
 
 If no request completes within the baseline step, the ramp has no latency to compare with.
@@ -234,8 +232,7 @@ CI:
   The artefact is discarded.
 - `go test -race ./...` — runs the unit tests.
   They use `httptest.NewServer` for the server side; nothing reaches a real Fly.io endpoint.
-- `golangci-lint run` — lints the package as part of the default
-  sweep.
+- `golangci-lint run` -- lints the package as part of the default sweep.
 - `.github/workflows/ci.yml` — never invokes the resulting binary.
   The loadtest binary never ships in Docker images and never runs in production deployments.
 
@@ -251,8 +248,7 @@ go test -race ./cmd/loadtest/...
   Use `wrk`, `k6`, or `vegeta` for multi-region distributed traffic.
 - **Recording / replay** — no HAR or HTTP capture.
   The registry is declarative.
-- **Write endpoints** — peeringdb-plus is a read-only mirror; the
-  upstream PeeringDB is the source of truth for writes.
+- **Write endpoints** -- peeringdb-plus is a read-only mirror; the upstream PeeringDB is the source of truth for writes.
 - **Custom queries** — GraphQL queries are minimal `{ id }` selectors; ConnectRPC bodies are `{"id":1}` / `{"limit":10}`.
   If you need richer query payloads, extend `cmd/loadtest/registry.go`.
 

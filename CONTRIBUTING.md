@@ -27,11 +27,9 @@ If you are reporting a vulnerability in a dependency rather than in PeeringDB Pl
 - Search existing issues first to avoid duplicates.
 - Open a new issue on GitHub with:
   - A clear title describing the problem or request.
-  - Steps to reproduce (for bugs): commands, environment variables,
-    and expected vs. actual behavior.
+  - Steps to reproduce (for bugs): commands, environment variables, and expected vs. actual behavior.
   - Relevant log output or error messages.
-  - Your Go version (`go version`) and OS if the issue is build-
-    or runtime-related.
+  - Your Go version (`go version`) and OS if the issue is build- or runtime-related.
 
 There are no issue templates in this repository — free-form descriptions are fine.
 
@@ -49,8 +47,7 @@ Small fixes, doc tweaks, and clear bug fixes can go straight to a PR.
   Descriptive names such as `fix/sync-scheduler` or `deps/2026-08-29-sweep` are fine.
 - PRs land on `main` as GitHub merge commits (`Merge pull request #N from <branch>`), preserving the individual feature-branch commits.
   Smaller direct-to-`main` commits (docs, hotfixes) do occur, but external contributions should flow through a PR.
-- Check the last few merged PRs for current conventions:
-  `gh pr list --state merged --limit 10`.
+- Check the last few merged PRs for current conventions: `gh pr list --state merged --limit 10`.
 
 ## Commit Message Style
 
@@ -80,14 +77,10 @@ mise run check
 If you changed one of these files, regenerate code and commit the result:
 
 - `schema/peeringdb.json`, or a hand-edited sibling file under `ent/schema/`
-- a `.proto` file under `proto/peeringdb/v1/`
-  (`v1.proto`, `services.proto`, or `common.proto`)
+- a `.proto` file under `proto/peeringdb/v1/` (`v1.proto`, `services.proto`, or `common.proto`)
 - `graph/custom.graphql` or `graph/gqlgen.yml`
-- a `.templ` file under `internal/web/templates/`,
-  `internal/web/tailwind.input.css`, or `internal/web/static/ui.js`
-- a code generator or its configuration, for example `ent/entc.go`,
-  `buf.gen.yaml`, `cmd/pdb-schema-generate/`, `cmd/pdb-compat-allowlist/`,
-  or a generator version in `mise.toml`
+- a `.templ` file under `internal/web/templates/`, `internal/web/tailwind.input.css`, or `internal/web/static/ui.js`
+- a code generator or its configuration, for example `ent/entc.go`, `buf.gen.yaml`, `cmd/pdb-schema-generate/`, `cmd/pdb-compat-allowlist/`, or a generator version in `mise.toml`
 
 ```bash
 mise run generate
@@ -157,10 +150,8 @@ The worked example is `ixlan.ixf_ixp_member_list_url_visible`.
 
 ## Repository Layout Notes
 
-- `CLAUDE.md` captures project conventions for AI-assisted contributions
-  and is a useful reference but not required reading for human contributors.
-- See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design
-  and [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for environment variables.
+- `CLAUDE.md` captures project conventions for AI-assisted contributions and is a useful reference but not required reading for human contributors.
+- See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design and [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for environment variables.
 
 ## Getting Help
 

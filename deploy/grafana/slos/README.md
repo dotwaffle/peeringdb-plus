@@ -29,16 +29,11 @@ The SLI is the share of routed HTTP requests that return a status below 500.
 Good and total requests come from `http_server_request_duration_seconds_count`, which otelhttp records on every machine.
 The selector leaves out these requests:
 
-- Health probes (`GET /healthz`, `GET /readyz`, `/grpc.health.*`): a 503
-  there is a readiness verdict for the Fly proxy, not a failed user
-  request.
+- Health probes (`GET /healthz`, `GET /readyz`, `/grpc.health.*`): a 503 there is a readiness verdict for the Fly proxy, not a failed user request.
 - `POST /sync`: an operator endpoint.
 - Requests with no `http_route` (the label is empty): 404 and 405 responses to paths that no route matches, and the 503 of the readiness gate on a machine that has not synced yet.
   The Fly proxy sends no traffic to a machine that fails `/readyz`.
-- Synthetic Monitoring probe requests
-  (`user_agent_synthetic_type="test"`, see
-  `deploy/grafana/synthetics/README.md`): the probe has its own alert,
-  `PdbPlusProbeFailing`.
+- Synthetic Monitoring probe requests (`user_agent_synthetic_type="test"`, see `deploy/grafana/synthetics/README.md`): the probe has its own alert, `PdbPlusProbeFailing`.
 
 A 404 under a matched route counts as good, for example `/api/<unknown type>` or a unique query with no row: 935 of the 62,500 `/api` requests in the 28 days to 2026-09-25.
 The dashboard panel "Error Rate (5xx)" uses the same selector.
@@ -47,17 +42,13 @@ These failures do not count as bad:
 
 - A panic after the handler started the response: the metric records the status already sent.
   A panic before that counts as a 500 with its route (the inner Recovery sits inside otelhttp).
-- A panic in a middleware before the mux dispatch: the 500 has no
-  `http_route`.
-- A ConnectRPC stream that fails after it started: the error goes in
-  the trailers of an HTTP 200.
+- A panic in a middleware before the mux dispatch: the 500 has no `http_route`.
+- A ConnectRPC stream that fails after it started: the error goes in the trailers of an HTTP 200.
 
 The burn-rate alerts replace a separate 5xx alert rule:
 
-- Fast burn (`severity: critical`): the burn rate is at least 14.4 over
-  1h and 5m, or at least 6 over 6h and 30m.
-- Slow burn (`severity: warning`): the burn rate is at least 3 over 24h
-  and 2h, or at least 1 over 72h and 6h.
+- Fast burn (`severity: critical`): the burn rate is at least 14.4 over 1h and 5m, or at least 6 over 6h and 30m.
+- Slow burn (`severity: warning`): the burn rate is at least 3 over 24h and 2h, or at least 1 over 72h and 6h.
 
 Both need at least 5 failed requests (`minFailures`), so that one error at low traffic does not fire them.
 In the 28 days to 2026-09-25 the fleet served about 65,000 routed requests and the SLI was 99.991% (6 responses with status 500).
@@ -80,6 +71,5 @@ The alert rule `PdbPlusSyncFreshnessHigh` (freshness above 2 hours) stays the fr
 The following MUST NOT appear in any file in `deploy/grafana/slos/`:
 
 - Email addresses (any user, any domain).
-- Hosted Grafana Cloud stack URLs (the per-tenant `grafana dot net`
-  subdomain) or any other stack-specific URL.
+- Hosted Grafana Cloud stack URLs (the per-tenant `grafana dot net` subdomain) or any other stack-specific URL.
 - Tenant identifiers, API keys, or any credential value.

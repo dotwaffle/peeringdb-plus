@@ -138,8 +138,7 @@ The server inspects each request through `internal/web/termrender.Detect` (`inte
 
 1. `?T` or `?format=plain|json|whois|short` query parameter (highest priority)
 2. `Accept` header (`text/plain` → rich terminal, `application/json` → JSON)
-3. `User-Agent` prefix — `curl/`, `Wget/`, `HTTPie/`, `xh/`, `PowerShell/`,
-   `fetch` are treated as terminal clients and receive ANSI-colored output
+3. `User-Agent` prefix: `curl/`, `Wget/`, `HTTPie/`, `xh/`, `PowerShell/`, `fetch` are treated as terminal clients and receive ANSI-colored output
 4. `HX-Request` header — htmx fragments are returned without the page shell
 5. Default: HTML
 
@@ -241,10 +240,8 @@ The handler lives in `internal/graphql/handler.go`.
   `limit` defaults to 100 and must be 1 to 1000.
   `offset` must be 0 or more.
   These queries set no order, so use a connection for stable paging.
-- `networkByAsn(asn: Int!)` returns one network with status `ok` or `pending`,
-  or `null`.
-- `syncStatus` returns the latest sync record, which can be a running sync:
-  `status`, `lastSyncAt`, `durationMs`, `objectCounts` and `errorMessage`.
+- `networkByAsn(asn: Int!)` returns one network with status `ok` or `pending`, or `null`.
+- `syncStatus` returns the latest sync record, which can be a running sync: `status`, `lastSyncAt`, `durationMs`, `objectCounts` and `errorMessage`.
 
 ### Error envelope
 
@@ -560,11 +557,7 @@ Some keys name a column that the mirror stores but upstream does not filter. pdb
   `net_side` and `net_side_id` on `netixlan` become `network_side`.
   `fac_count` on `carrier` becomes `facility_count`.
   The count keys `net_count` on `fac`, `fac_count` on `net`, and `net_count` and `fac_count` on `ix` still filter, because their `prepare_query` handles them.
-- Serializer fields and model properties that no `prepare_query` handles:
-  `org_name` on `carrier` and `campus`,
-  `city`, `country`, `state` and `zipcode` on `campus`,
-  `name` on `carrierfac`, and `local_asn` on `netfac`
-  (`rest.py:525-528`, `:633`, `:670`).
+- Serializer fields and model properties that no `prepare_query` handles: `org_name` on `carrier` and `campus`, `city`, `country`, `state` and `zipcode` on `campus`, `name` on `carrierfac`, and `local_asn` on `netfac` (`rest.py:525-528`, `:633`, `:670`).
 - Relation keys whose last segment is a FK column, for example `netixlan?net__org_id=`.
   Upstream strips `_id` from the key and gets `network__org`, and `queryable_relations()` leaves FK fields out (`serializers.py:991-995`).
   `<fk>__id` keeps its suffix and filters.
@@ -872,8 +865,7 @@ To select every live connection, use `?status__in=ok,not-operational` or leave o
 Exact match is case-insensitive, and `__in`, `__contains` and `__startswith` also work.
 The filter ANDs with the matrix, so it can only narrow the result:
 
-- `/api/net?status=deleted` returns `[]`, because the list without `?since`
-  admits only `ok` rows.
+- `/api/net?status=deleted` returns `[]`, because the list without `?since` admits only `ok` rows.
 - `/api/net?since=N&status=deleted` returns only the tombstones in the window.
 - `/api/campus?since=N&status=pending` returns only the pending campuses.
 
@@ -893,10 +885,8 @@ The key follows `logo` on `net` and `ix_side_id` on `netixlan`.
 - Sync stores the document that upstream sends, and pdbcompat serves it unchanged.
   Key order inside the document can differ from upstream.
 - A row without a stored document returns `{}`, the same as upstream.
-- `meta` appears in every shape: lists, detail responses, depth `_set` objects,
-  and nested `net` objects.
-- Upstream applies no read restriction to `meta`,
-  so the mirror applies no privacy filter to it.
+- `meta` appears in every shape: lists, detail responses, depth `_set` objects, and nested `net` objects.
+- Upstream applies no read restriction to `meta`, so the mirror applies no privacy filter to it.
 
 A document that upstream set before the mirror stored `meta` arrives with the next full sync.
 With the default `PDBPLUS_FULL_SYNC_INTERVAL` of `24h`, this is within a day.
@@ -913,8 +903,7 @@ If the interval is `0`, run one full sync (`POST /sync?mode=full`).
 | `meta__planned_status_change__date` | `meta_planned_status_change_date` | date |
 | `meta__rfc8950` | `meta_rfc8950` | boolean |
 
-- Each key takes the usual operator suffixes,
-  for example `?meta__planned_status_change__date__lt=2026-10-15`.
+- Each key takes the usual operator suffixes, for example `?meta__planned_status_change__date__lt=2026-10-15`.
 - The upstream column name is also a filter key, the same as upstream.
 - Text: exact match, `__contains` and `__startswith` ignore case.
   `__in`, `__lt`, `__lte`, `__gt` and `__gte` also work.
@@ -1002,8 +991,7 @@ Upstream handles some relation keys in the `prepare_query` method of a serialize
 The relation keys of `fac`, `ix`, `net`, `netixlan` and `ixpfx` also accept the spelling `<rel>_id`, except `org_name` and `name`.
 The key forms follow `get_relation_filters`:
 
-- `<rel>=V` compares the id of the related row, and `<rel>__<op>=V`
-  compares that id with the operator.
+- `<rel>=V` compares the id of the related row, and `<rel>__<op>=V` compares that id with the operator.
 - `<rel>__<field>=V` filters a field of the related row, and `<rel>__<field>__<op>=V` adds an operator.
   A field that ends in `_id` names a FK of that row (`ix?ixfac__fac_id=`).
   A field that the related model does not have returns `400` (`Invalid query`), as upstream (`rest.py:499-500`).
@@ -1016,9 +1004,7 @@ The key forms follow `get_relation_filters`:
   `isnull` as the field returns `400`.
   `in` as the field compares the id with each character of the value, as Django `RelatedIn` does (`related_lookups.py:48-68`): `fac?net__in__x=34` keeps the facilities of the networks 3 and 4, a comma in the value returns `400`, and an empty value matches no row.
   A model field that the mirror does not store, for example `fac?net__version=`, is ignored (see § Known Divergences).
-- `<rel>__<field>__<other>=V` drops the third segment:
-  `net?netfac__fac__name=X` compares the facility id with `X`,
-  which returns `400` for a non-numeric `X`.
+- `<rel>__<field>__<other>=V` drops the third segment: `net?netfac__fac__name=X` compares the facility id with `X`, which returns `400` for a non-numeric `X`.
 - A key with four or more segments is ignored.
 - `netixlan?name=V` compares the exchange name, not the stored `name` of the netixlan (`serializers.py:3166-3167`).
   `name` with an operator that `get_relation_filters` parses also compares the exchange name.
@@ -1056,8 +1042,7 @@ The status rules follow `make_relation_filter` (`models.py:221-234`):
   For example, `net?ix=` does not check the ixlan.
 - If the key filters `status` of that row without an operator, upstream replaces the value with `ok`: `net?netixlan__status=deleted` returns the nets that have an `ok` netixlan.
   With an operator, both filters apply.
-- A repeated relation key uses its first value, not the last
-  (`serializers.py:618-619`).
+- A repeated relation key uses its first value, not the last (`serializers.py:618-619`).
 
 #### Presence filters
 
@@ -1277,8 +1262,7 @@ Examples:
 - `?org__name=X`: 1 hop, resolves via Path A (every primary entity).
 - `?ixlan__ix__id=N` on `ixpfx`: 2 hops, resolves via Path A (`TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`).
   Upstream ignores this key: it is a mirror extension (see § Known Divergences).
-- `?ixlan__ix__org__name=X`: 3 hops, SILENTLY IGNORED (HTTP 200,
-  result set is unfiltered).
+- `?ixlan__ix__org__name=X`: 3 hops, SILENTLY IGNORED (HTTP 200, result set is unfiltered).
 
 A relation key of a `prepare_query` also has at most two segments before its operator, but its path can reach three tables: `net?ix__name=` walks netixlan, ixlan and ix (see § Relation filters).
 
@@ -1297,8 +1281,7 @@ If a legitimate 3-hop use case emerges, raise the cap together with a fresh benc
 
 When the server ignores one or more filter keys of a list or single-object request, it records them in two places:
 
-- A DEBUG log record `pdbcompat: unknown filter fields silently ignored`
-  with `endpoint`, `type` and `unknown_fields` (a comma-separated list).
+- A DEBUG log record `pdbcompat: unknown filter fields silently ignored` with `endpoint`, `type` and `unknown_fields` (a comma-separated list).
 - The span attribute `pdbplus.filter.unknown_fields`, with the same list.
 
 This applies to every ignored key, not only to traversal keys.
@@ -1624,8 +1607,7 @@ The server also exposes:
 - `GET /skills/peeringdb-plus.zip` for an installable skill archive.
 - `GET /.well-known/mcp/server-card.json` for MCP discovery metadata.
 - `GET /.well-known/agent-skills/index.json` for the Agent Skills index.
-- `GET /.well-known/agent-skills/peeringdb-plus/SKILL.md` for the standard
-  skill location.
+- `GET /.well-known/agent-skills/peeringdb-plus/SKILL.md` for the standard skill location.
 - `GET /llms.txt` for a curated Markdown index.
 
 The archive and origin-specific discovery files are generated on demand.
@@ -1742,8 +1724,7 @@ Returns `200 OK` only when all of these conditions are true:
 2. At least one sync has succeeded.
 3. The latest sync did not fail.
    While a sync runs, the server checks the last successful sync instead.
-4. The last successful sync is not older than `PDBPLUS_SYNC_STALE_THRESHOLD`
-   (default `24h`).
+4. The last successful sync is not older than `PDBPLUS_SYNC_STALE_THRESHOLD` (default `24h`).
 
 Otherwise it returns `503 Service Unavailable`.
 After a failed sync, `/readyz` returns `503` until the next sync attempt starts: a retry or the next scheduled cycle.
