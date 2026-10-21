@@ -3,6 +3,7 @@ package graphql
 
 import (
 	"context"
+	"embed"
 	"html/template"
 	"net/http"
 
@@ -102,56 +103,18 @@ const defaultQuery = `# === PeeringDB Plus Example Queries ===
 }
 `
 
-// playgroundTmpl is a custom GraphiQL HTML template that includes a defaultQuery prop.
-var playgroundTmpl = template.Must(template.New("playground").Parse(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>PeeringDB Plus - GraphQL</title>
-    <style>
-      body { height: 100%; margin: 0; width: 100%; overflow: hidden; }
-      #graphiql { height: 100vh; }
-    </style>
-    <script
-      src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"
-      integrity="sha256-S0lp+k7zWUMk2ixteM6HZvu8L9Eh//OVrt+ZfbCpmgY="
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"
-      integrity="sha256-IXWO0ITNDjfnNXIu5POVfqlgYoop36bDzhodR6LW5Pc="
-      crossorigin="anonymous"
-    ></script>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/graphiql@4.1.2/graphiql.min.css"
-      integrity="sha256-MEh+B2NdMSpj9kexQNN3QKc8UzMrCXW/Sx/phcpuyIU="
-      crossorigin="anonymous"
-    />
-  </head>
-  <body>
-    <div id="graphiql">Loading...</div>
-    <script
-      src="https://cdn.jsdelivr.net/npm/graphiql@4.1.2/graphiql.min.js"
-      integrity="sha256-hnImuor1znlJkD/FOTL3jayfS/xsyNoP04abi8bFJWs="
-      crossorigin="anonymous"
-    ></script>
-    <script>
-      const url = location.protocol + '//' + location.host + {{.Endpoint}};
-      const fetcher = GraphiQL.createFetcher({ url });
-      ReactDOM.render(
-        React.createElement(GraphiQL, {
-          fetcher: fetcher,
-          defaultQuery: {{.DefaultQuery}},
-          isHeadersEditorEnabled: true,
-          shouldPersistHeaders: true,
-        }),
-        document.getElementById('graphiql'),
-      );
-    </script>
-  </body>
-</html>
-`))
+//go:embed playground.html
+var playgroundHTML string
+
+//go:embed assets/*.mjs assets/licenses/*
+var playgroundAssets embed.FS
+
+var playgroundTmpl = template.Must(template.New("playground").Parse(playgroundHTML))
+
+// PlaygroundAssetsHandler serves the pinned Monaco workers and their dependencies.
+func PlaygroundAssetsHandler() http.Handler {
+	return http.StripPrefix("/graphql/", http.FileServerFS(playgroundAssets))
+}
 
 // playgroundData holds template data for the custom playground HTML.
 type playgroundData struct {

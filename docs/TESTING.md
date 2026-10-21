@@ -3,7 +3,7 @@
 PeeringDB Plus tests use the Go `testing` package.
 Some tests also use `github.com/google/go-cmp/cmp` for diffs, and the `internal/mcpserver` tests use `github.com/stretchr/testify`.
 Tests follow the Go convention of living next to the code they exercise as `*_test.go` files in the same package (or a `_test` sibling package for black-box tests).
-The project targets Go 1.27.2 and all tests must pass with the race detector enabled.
+The project targets Go 1.27.3 and all tests must pass with the race detector enabled.
 
 ## Test Layout
 
@@ -178,9 +178,7 @@ The mock server returns the fixture data on the first page (`skip=0`) and an emp
 
 ### Writing a new sync integration test using a fixture
 
-1. If the scenario needs a new record shape,
-   edit the relevant JSON file in `testdata/fixtures/`
-   (keep it matching the real PeeringDB envelope).
+1. If the scenario needs a new record shape, edit the relevant JSON file in `testdata/fixtures/` (keep it matching the real PeeringDB envelope).
 2. Write your test in `internal/sync/integration_test.go` (or a sibling `_test.go` in `package sync_test`).
    Re-use the existing `newFixtureServer(t)` helper to get a mock API server plus `testutil.SetupClientWithDB(t)` for an isolated database.
 3. Build a `sync.Worker` with the mock server URL as the PeeringDB base:
@@ -259,14 +257,12 @@ There is no generated fixtures package and no per-category seeder — the upstre
 
 - **Isolation**: every parity test calls `testutil.SetupClient(tb)` for a fresh in-memory ent client.
   Do **not** reach into `internal/testutil/seed.Full` — it seeds a different shape and causes cross-test contamination.
-- **Seeding**: seed clean rows inline via the ent client
-  (`c.Network.Create()...`), seeding only the rows a single sub-test needs.
+- **Seeding**: seed clean rows inline via the ent client (`c.Network.Create()...`), seeding only the rows a single sub-test needs.
 - **Parallelism**: every sub-test calls `t.Parallel()`.
 - **Citation comments**: every sub-test carries one of:
   - `// upstream: pdb_api_test.py:<line>` — when the assertion mirrors an upstream test case.
     A case from another upstream test file names that file, for example `// upstream: tests/test_meta_registry.py:<line>`.
-  - `// synthesised: <context>` marks a behavior that no upstream test covers
-    (for example tombstones, folding, traversal, or budgets).
+  - `// synthesised: <context>` marks a behavior that no upstream test covers (for example tombstones, folding, traversal, or budgets).
 - **Divergence prefix**: sub-tests whose names begin with `DIVERGENCE_` mark intentional non-parity outcomes.
   A divergence test that is its own top-level function ends its name with `_DIVERGENCE` (for example `TestParity_Unicode_FoldWindow_DIVERGENCE`).
   Each such test must have a matching row in `docs/API.md § Known Divergences` cross-referencing it.
@@ -275,8 +271,7 @@ There is no generated fixtures package and no per-category seeder — the upstre
 
 ### Adding a parity test
 
-1. Pick the category file that matches the behavior under test,
-   for example `ordering_test.go` for list order.
+1. Pick the category file that matches the behavior under test, for example `ordering_test.go` for list order.
 2. Add a sub-test under `TestParity_<Category>`:
 
    ```go
@@ -353,8 +348,7 @@ PDBPLUS_PEERINGDB_API_KEY=... go test -race ./internal/peeringdb/ -run TestMetaG
 
 These tests are intentionally excluded from CI because:
 
-- They depend on an external service (beta.peeringdb.com) being reachable
-  and healthy.
+- They depend on an external service (beta.peeringdb.com) being reachable and healthy.
 - They must be rate-limited to avoid abusing the upstream API.
 - Their output is not deterministic (the live dataset changes).
 
@@ -418,8 +412,7 @@ The testing package cancels this context just before it runs the cleanup functio
 - Test functions: `TestFoo`, `TestFoo_Subcase` or `TestFooSubcase`.
 - Benchmarks: `BenchmarkFoo`.
 - Fuzz tests: `FuzzFoo`.
-- Live tests: gate them with the package-level `-peeringdb-live` flag
-  and call `t.Skip` when the flag is not set.
+- Live tests: gate them with the package-level `-peeringdb-live` flag and call `t.Skip` when the flag is not set.
 - Parity tests: one `TestParity_<Category>` entry function for each category (`TestParity_Ordering`, `TestParity_Status`, `TestParity_Limit`, `TestParity_Unicode`, `TestParity_In`, `TestParity_Traversal`, `TestParity_Meta`, `TestParity_Serializer`, `TestParity_MultiChoice`, `TestParity_NameSearch`).
   Give each `t.Run` sub-test a descriptive snake_case name (e.g. `list_no_since_status_ok_only`).
   Start the name of an intentional non-parity sub-test with `DIVERGENCE_` (e.g. `DIVERGENCE_i_operator_suffixes_filter`).

@@ -36,7 +36,8 @@ var (
 // not filter: model columns that the API does not serialize or that the
 // mirror does not keep, the stored meta document (no plain filter key),
 // and reverse related names. Upstream filters on them. The mirror does
-// not, so a relation key with such a field is ignored (see docs/API.md
+// not. PeeringDB 2.84.0 excludes some names before this lookup.
+// The remaining names are divergences (see docs/API.md
 // § Known Divergences). Every other field that the related model does
 // not have returns errInvalidQuery.
 //
@@ -468,15 +469,10 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 	return relationPathPredicate(edges[:n], sd.pinAt, leaf, tier), true, false, nil
 }
 
-// stripRelationPrefix applies the prefix rules of make_relation_filter
-// (models.py:224-227) to the field segment of a relation key: it
-// removes "<prefix>_" once, and changes a result equal to the prefix to
-// "id". A segment holds no "__", so the "<prefix>__" rule of upstream,
-// which removes the seed name from the whole key, has no equivalent
-// here.
+// stripRelationPrefix accepts only exact ID aliases of a relation prefix
+// (PeeringDB 2.84.0 models.py:223-232). Other prefixed fields stay unchanged.
 func stripRelationPrefix(prefix, field string) string {
-	field = strings.TrimPrefix(field, prefix+"_")
-	if field == prefix {
+	if field == prefix || field == prefix+"_id" {
 		return "id"
 	}
 	return field

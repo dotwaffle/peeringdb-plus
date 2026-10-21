@@ -47,6 +47,5 @@ With basic metrics, each location adds about 40 active series.
 The following MUST NOT appear in any file in `deploy/grafana/synthetics/`:
 
 - Email addresses (any user, any domain).
-- Hosted Grafana Cloud stack URLs (the per-tenant `grafana dot net`
-  subdomain) or any other stack-specific URL.
+- Hosted Grafana Cloud stack URLs (the per-tenant `grafana dot net` subdomain) or any other stack-specific URL.
 - Tenant identifiers, API keys, access tokens, or any credential value.

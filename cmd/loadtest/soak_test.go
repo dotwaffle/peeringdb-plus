@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -69,8 +70,10 @@ func TestSoak_CtxCancellation(t *testing.T) {
 	time.AfterFunc(50*time.Millisecond, cancel)
 
 	select {
-	case <-done:
-		// success — runSoak returned promptly
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("runSoak returned %v, want context.Canceled", err)
+		}
 	case <-time.After(500 * time.Millisecond):
 		t.Fatalf("runSoak did not return within 500ms after ctx cancel")
 	}

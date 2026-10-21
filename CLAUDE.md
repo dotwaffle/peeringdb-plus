@@ -10,7 +10,7 @@ Built in Go using entgo as the ORM.
 
 ### Constraints
 
-- **Language**: Go 1.27.2
+- **Language**: Go 1.27.3
 - **ORM**: entgo (non-negotiable — ecosystem drives GraphQL/gRPC/REST generation)
 - **Storage**: SQLite + LiteFS (enables edge distribution without a central database)
 - **Platform**: Fly.io (LiteFS dependency, global edge deployment)
@@ -416,7 +416,13 @@ Regression-guarded by `TestTraversal_StatusMatrix_Preserved`, `TestTraversal_Fol
 The relation keys that an upstream `prepare_query` handles (fac `net`/`ix`/`org_name`, ix `ixlan`/`ixfac`/`fac`/`net`, net `ix`/`ixlan`/`netixlan`/`netfac`/`fac`, netixlan `ix`/`name` (`name__<Django lookup>`, e.g. `__iexact`/`__endswith`, filters the ixlan name; `charFieldLookup`), ixpfx `ix`, netfac+ixfac `name`/`country`/`city`, campus `facility`, org `asn`, carrier `carrierfac_set__facility_id`) live in `relationSeeds` and resolve in `ParseFiltersCtx` BEFORE `parseFieldOp` and Path A/B.
 Most seeds pin ONE row of their path to `status='ok'` (`make_relation_filter`, 2.83.0 `models.py:221-234`; `pinAt`, `noPin` for fac `org_name` and carrier); a bare `status` filter on that row is replaced by the pin.
 The tail field of a `shapeRelation` seed resolves as a Django name (`resolveModelName`, no second xl).
-On the 4 prefix seeds (`relationSeed.prefix`), `stripRelationPrefix` first removes `<prefix>_` and maps the prefix to `id` (`models.py:224-227`).
+On the 4 prefix seeds (`relationSeed.prefix`), `stripRelationPrefix` accepts only the exact prefix or `<prefix>_id` as an ID alias (2.84.0 `models.py:223-232`).
+Other repeated prefixes return `400`.
+`filter_exclude.go` applies 2.84.0 `FILTER_EXCLUDE` before relation-key translation/truncation and checks the emitted key.
+The contact model excludes `name`, `phone`, `email` and `url` from local and traversal filters.
+The registry retains these fields for schema alignment.
+Serialization and row privacy stay unchanged.
+Excluded keys remain unknown-filter diagnostics and do not count in the API cache gate.
 `pk` -> id.
 On an FK-path seed, `exact`/`lt`/`lte`/`gt`/`gte` -> id with that lookup, `isnull` -> 400 isnull text, `in` -> 400 (residual: upstream iterates the characters).
 A field that the model does not have (including `NonModelFields` and names that `queryable_field_xl` renames to nothing) is a 400 `Invalid query` (upstream `FieldError`, `rest.py:499-500`).

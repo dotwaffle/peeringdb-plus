@@ -18,8 +18,7 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 ## Choose a tool
 
 - Use `search_peeringdb` to find records across object types.
-- Use `get_network`, `get_exchange`, `get_facility`, `get_organization`,
-  `get_campus`, or `get_carrier` for a known record.
+- Use `get_network`, `get_exchange`, `get_facility`, `get_organization`, `get_campus`, or `get_carrier` for a known record.
 - Use `compare_networks` to compare network footprints.
 - Use `lookup_ip` to find the network that holds an IX peering address and the exchange prefix that contains it.
   It does not map other IP addresses to networks.
@@ -28,11 +27,9 @@ Use the PeeringDB Plus MCP server for read-only PeeringDB research.
 
 ## Work with results
 
-- Set `relation` to fetch one related collection, and set `page_size` to limit
-  the rows.
+- Set `relation` to fetch one related collection, and set `page_size` to limit the rows.
 - Follow relation cursors when a response indicates more related records.
 - IX connection rows include connections that are not operational.
   Check `Markers.NotOperational` or `status` before you describe a connection as active.
 - Treat the data as a mirror snapshot and report its freshness when material.
-- Distinguish returned facts from inferences, and preserve source record IDs in
-  the answer.
+- Distinguish returned facts from inferences, and preserve source record IDs in the answer.

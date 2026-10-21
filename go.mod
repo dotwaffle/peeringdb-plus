@@ -1,6 +1,6 @@
 module github.com/dotwaffle/peeringdb-plus
 
-go 1.27.2
+go 1.27.3
 
 require (
 	charm.land/lipgloss/v2 v2.0.6
@@ -11,7 +11,7 @@ require (
 	connectrpc.com/otelconnect v0.12.0
 	entgo.io/contrib v0.7.1-0.20260726130719-793ca36770f6
 	entgo.io/ent v0.14.6
-	github.com/99designs/gqlgen v0.17.95
+	github.com/99designs/gqlgen v0.17.97
 	github.com/KimMachineGun/automemlimit v1.0.0
 	github.com/XSAM/otelsql v0.44.0
 	github.com/a-h/templ v0.3.1070
@@ -43,7 +43,7 @@ require (
 	golang.org/x/time v0.16.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.60.1
+	modernc.org/sqlite v1.61.0
 )
 
 require (
@@ -138,7 +138,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261012220534-4341edf3f941 // indirect
 	google.golang.org/grpc v1.84.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	modernc.org/libc v1.77.1 // indirect
+	modernc.org/libc v1.79.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )

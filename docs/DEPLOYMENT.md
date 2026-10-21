@@ -10,15 +10,7 @@ The production topology is an [asymmetric fleet](#asymmetric-fleet): two LiteFS 
 | Fly.io (production) | `fly.toml`, `Dockerfile.litefs`, `litefs.yml` | App name `peeringdb-plus`, primary region `lhr`. |
 | Generic Docker host | `Dockerfile` | Standalone image. Runs the binary directly without LiteFS. CI publishes it to GHCR (see [Published image](#published-image)). |
 
-- `fly.toml`: app (`peeringdb-plus`), primary region (`lhr`), rolling deploy
-  strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases,
-  two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]`
-  blocks (`shared-cpu-2x` / 512 MB for `primary`, `shared-cpu-1x` / 256 MB
-  for `replica`), a 1 GB auto-extending `litefs_data` volume mounted at
-  `/var/lib/litefs` **scoped to `processes = ["primary"]`** (replicas have
-  no volume), and an HTTP health check on `GET /readyz` every 15s (the
-  readiness probe, so Fly Proxy routes around hydrating or stale machines;
-  `GET /healthz` remains the always-200 liveness probe).
+- `fly.toml`: app (`peeringdb-plus`), primary region (`lhr`), rolling deploy strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases, two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]` blocks (`shared-cpu-2x` / 512 MB for `primary`, `shared-cpu-1x` / 256 MB for `replica`), a 1 GB auto-extending `litefs_data` volume mounted at `/var/lib/litefs` **scoped to `processes = ["primary"]`** (replicas have no volume), and an HTTP health check on `GET /readyz` every 15s (the readiness probe, so Fly Proxy routes around hydrating or stale machines; `GET /healthz` remains the always-200 liveness probe).
 - `Dockerfile.litefs`: LiteFS-aware production image.
   Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite` (CLI for incident response — see [Incident-response debug shell](#incident-response-debug-shell)) installed, copies the LiteFS 0.5 binary from `flyio/litefs:0.5`, copies `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point, and sets `ENTRYPOINT ["litefs", "mount"]`.
   The application binary is built with `CGO_ENABLED=0` (pure Go via `modernc.org/sqlite`) and `-trimpath -ldflags="-s -w …"`.
@@ -210,13 +202,9 @@ See [CONFIGURATION.md §Privacy & Tiers](./CONFIGURATION.md#privacy--tiers) for 
 
 Non-secret configuration lives in `fly.toml`'s `[env]` block:
 
-- `PDBPLUS_LISTEN_ADDR=:8080` — the app listens on 8080 directly (the
-  LiteFS proxy is intentionally not used; see [LiteFS](#litefs) below).
-- `PDBPLUS_DB_PATH=/litefs/peeringdb-plus.db` — database file inside the
-  FUSE-mounted LiteFS directory.
-- `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`: the directory of the sync
-  scratch database, on the primary volume
-  (see [Asymmetric fleet](#asymmetric-fleet)).
+- `PDBPLUS_LISTEN_ADDR=:8080` -- the app listens on 8080 directly (the LiteFS proxy is intentionally not used; see [LiteFS](#litefs) below).
+- `PDBPLUS_DB_PATH=/litefs/peeringdb-plus.db` -- database file inside the FUSE-mounted LiteFS directory.
+- `PDBPLUS_SCRATCH_DIR=/var/lib/litefs/scratch`: the directory of the sync scratch database, on the primary volume (see [Asymmetric fleet](#asymmetric-fleet)).
 
 Fly.io injects `FLY_REGION`, `FLY_APP_NAME`, and `HOSTNAME` automatically.
 `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
@@ -257,8 +245,7 @@ There is no drop-in alternative for edge SQLite replication, so the project cont
   1. If `/litefs/.primary` exists → replica.
   2. If `/litefs/` exists but `.primary` does not → primary, but only on a lease candidate (`FLY_PROCESS_GROUP` is `primary`).
      A replica also sees no `.primary` file while no node holds the lease, for example while the primary restarts during a deploy.
-  3. If `/litefs/` does not exist (LiteFS not mounted) → fall back to the
-     `PDBPLUS_IS_PRIMARY` env var (default `true` for local dev).
+  3. If `/litefs/` does not exist (LiteFS not mounted) → fall back to the `PDBPLUS_IS_PRIMARY` env var (default `true` for local dev).
 - **Write forwarding via `fly-replay`.**
   When `POST /sync` lands on a replica, the handler returns HTTP 307 with a `fly-replay: instance=<machine ID>` header so the Fly edge re-routes the request to the machine that holds the lease.
   The machine ID comes from the LiteFS lease file (`/litefs/.primary`).
@@ -421,15 +408,11 @@ Observability uses OpenTelemetry end-to-end.
 The SDK is initialized in `internal/otel/provider.go` and picks up exporters via `autoexport.NewSpanExporter`, `autoexport.NewMetricReader`, and `autoexport.NewLogExporter`.
 Signals are selected by the standard environment variables documented at <https://opentelemetry.io/docs/languages/sdk-configuration/>:
 
-- `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`,
-  `OTEL_EXPORTER_OTLP_PROTOCOL` for OTLP export.
-- `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER`
-  (set to `none` to disable a signal).
-- `OTEL_EXPORTER_PROMETHEUS_HOST` / `OTEL_EXPORTER_PROMETHEUS_PORT` for
-  scrape-based metrics.
+- `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_PROTOCOL` for OTLP export.
+- `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER` (set to `none` to disable a signal).
+- `OTEL_EXPORTER_PROMETHEUS_HOST` / `OTEL_EXPORTER_PROMETHEUS_PORT` for scrape-based metrics.
 - `PDBPLUS_OTEL_SAMPLE_RATE` (app-specific) for the trace sampling ratio.
-- `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` (app-specific) for the trace sampling
-  ratio of scheduled sync cycles (default `1.0`: every cycle).
+- `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` (app-specific) for the trace sampling ratio of scheduled sync cycles (default `1.0`: every cycle).
 
 A Grafana dashboard is provided in `deploy/grafana/dashboards/pdbplus-overview.json` with a provisioning manifest at `deploy/grafana/provisioning/dashboards.yaml` for self-hosted Grafana instances.
 Its `LiteFS Replication` row reads the LiteFS metrics (`litefs_*`) that Fly.io scrapes from each machine (`[[metrics]]` in `fly.toml`) through the `fly.io` data source (see below), so it has data only in the Fly.io deployment.
@@ -456,12 +439,10 @@ Runtime health:
 - `GET /readyz` is the readiness probe.
   The `fly.toml` HTTP check uses it.
   It returns 503 in these conditions:
-  - The database ping fails or takes more than 2 seconds
-    (log: `readyz db probe failed`).
+  - The database ping fails or takes more than 2 seconds (log: `readyz db probe failed`).
   - The `sync_status` query fails (log: `readyz sync lookup failed`).
   - No sync has completed successfully (log: `readyz no sync completed`).
-  - The newest successful sync is older than `PDBPLUS_SYNC_STALE_THRESHOLD`,
-    default `24h` (log: `readyz sync stale`).
+  - The newest successful sync is older than `PDBPLUS_SYNC_STALE_THRESHOLD`, default `24h` (log: `readyz sync stale`).
 
   A failed or running sync does not cause a 503 by itself: the check uses the age of the newest successful sync.
   A failed cycle rolls back, so the data of that sync stays in place.
@@ -488,14 +469,10 @@ A sustained breach of `PDBPLUS_HEAP_WARN_MIB` needs investigation (see **Memory 
 **Dashboard.**
 The `Sync Memory` row in `deploy/grafana/dashboards/pdbplus-overview.json` contains four panels:
 
-- `Peak Heap` — threshold line at 400 MiB
-  (Grafana auto-formats MiB / GiB from the `bytes` field unit)
+- `Peak Heap` -- threshold line at 400 MiB (Grafana auto-formats MiB / GiB from the `bytes` field unit)
 - `Peak RSS` — threshold line at 384 MiB
-- `Live Heap by Instance` —
-  sourced from the `go_memory_used_bytes` OTel runtime gauge,
-  plots all fleet machines (primary + replicas) across the asymmetric fleet
-- `Response Heap Delta`: p50, p95, and p99 of
-  `pdbplus_response_heap_delta_bytes` for each endpoint
+- `Live Heap by Instance` -- sourced from the `go_memory_used_bytes` OTel runtime gauge, plots all fleet machines (primary + replicas) across the asymmetric fleet
+- `Response Heap Delta`: p50, p95, and p99 of `pdbplus_response_heap_delta_bytes` for each endpoint
 
 **Memory escalation.**
 If the peak heap stays above `PDBPLUS_HEAP_WARN_MIB` for several sync cycles, find the cause before the primary reaches its 512 MB limit.
@@ -524,16 +501,10 @@ Build with `go build -o loadtest ./cmd/loadtest`.
 
 Four subcommands:
 
-- `loadtest endpoints` — one-shot inventory sweep across all 5 API
-  surfaces (~114 requests).
+- `loadtest endpoints` -- one-shot inventory sweep across all 5 API surfaces (~114 requests).
 - `loadtest sync` — replays the 13-step ordered sync GET sequence.
 - `loadtest soak` — sustained QPS-capped mixed-surface load.
-- `loadtest ramp` — finds the per-surface inflection point by
-  ramping concurrency C=1 ×1.5/2s, triggering on p95 > 2× baseline
-  OR p99 > 1s OR error rate > 1% OR a step in which no request
-  completes, holding past inflection, then
-  emitting a markdown table per surface to stdout (paste into
-  capacity-planning docs / incident reports).
+- `loadtest ramp` -- finds the per-surface inflection point by ramping concurrency C=1 ×1.5/2s, triggering on p95 > 2× baseline OR p99 > 1s OR error rate > 1% OR a step in which no request completes, holding past inflection, then emitting a markdown table per surface to stdout (paste into capacity-planning docs / incident reports).
 
 The default `--base` is `https://peeringdb-plus.fly.dev` (`--target` is an alias).
 The tool refuses `peeringdb.com` and its subdomains, except `beta.peeringdb.com`.
@@ -678,8 +649,7 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 
 ### 1) LiteFS lease/primary flaps
 
-- Symptoms: frequent primary-role transitions, write replay spikes,
-  elevated sync churn.
+- Symptoms: frequent primary-role transitions, write replay spikes, elevated sync churn.
 - First checks: process-group placement, Fly region health, LiteFS lease logs.
 - Immediate action: stabilize primary placement before tuning sync intervals.
 
@@ -697,10 +667,8 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 ### 3) Repeated upstream 429 / long Retry-After
 
 - Symptoms: sync lag growth, repeated upstream rate-limit logs.
-- First checks: API key presence, effective RPS,
-  concurrent external callers sharing quota.
-- Immediate action: set/rotate API key, reduce anonymous traffic,
-  lower configured RPS if needed.
+- First checks: API key presence, effective RPS, concurrent external callers sharing quota.
+- Immediate action: set/rotate API key, reduce anonymous traffic, lower configured RPS if needed.
 
 ### 4) `/sync` auth misconfiguration
 

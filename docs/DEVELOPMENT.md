@@ -14,7 +14,7 @@ For environment variables and runtime configuration, see [CONFIGURATION.md](CONF
   `mise run check` runs `mise run test`.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
-Mise installs Go 1.27.2 and all contributor tools from the committed cross-platform lockfile.
+Mise installs Go 1.27.3 and all contributor tools from the committed cross-platform lockfile.
 
 The SQLite driver (`modernc.org/sqlite`) is pure Go.
 The server binary does not need cgo, and the Docker images build with `CGO_ENABLED=0`.
@@ -70,6 +70,51 @@ Code-change-relevant directories:
 | `schema/` | Hand-curated `peeringdb.json` (the schema source of truth) |
 | `testdata/fixtures/` | JSON fixtures for 13 PeeringDB entity types, used by sync tests |
 
+## GraphQL playground assets
+
+The Go handler serves the GraphiQL 5 editor at `/graphql`.
+The main Web UI uses templ and htmx.
+The editor requires Chrome 127+, Firefox 138+, or Safari 18+ for import-map integrity support.
+Older browsers can ignore the module integrity map and are unsupported for this editor.
+
+`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 5.4.0.
+It uses GraphQL.js 16.14.2 to keep the editor on GraphQL 16 semantics.
+Each CDN module has a SHA-384 digest, including modules imported by other modules.
+The stylesheet has its own integrity attribute.
+The explicit `es2022` URLs prevent the CDN from selecting different bytes for different browser user agents.
+
+Monaco 0.52.2 matches the `@graphiql/react` dependency and the `monaco-graphql` peer range.
+Browsers do not accept an integrity option for worker scripts.
+The Go binary therefore embeds the worker modules and their dependencies from `internal/graphql/assets/`.
+The handler serves these files at `/graphql/assets/`.
+The vendored modules total about 1.12 MB, or 339 KB with gzip.
+The `licenses/` directory contains their license texts and third-party notices and is also embedded.
+
+To update these assets:
+
+1. Check the [GraphiQL migration guide](https://github.com/graphql/graphiql/blob/main/docs/migration/graphiql-5.0.0.md) and [CDN example](https://github.com/graphql/graphiql/blob/main/examples/graphiql-cdn/index.html).
+2. Select exact package versions and use the `es2022` CDN target.
+   Keep React and ReactDOM on the same version.
+   Check the Monaco peer constraints before changing its version.
+3. Download each CDN module and inspect its imports, including dynamic imports.
+   Pin each imported module and compute its SHA-384 digest from the response bytes.
+   Update the import map and stylesheet integrity in `playground.html`.
+4. Download the worker sources listed in `assets/sources.json`.
+   That manifest records each source URL, its upstream digest, and its served-file digest.
+   Map static imports to local filenames from the manifest and remove source-map directives.
+   Keep the worker dependency graph local.
+   Recompute the served-file digests after rewriting imports.
+5. Update the manifest and the upstream licenses in `assets/licenses/`.
+   Check the upstream source maps for bundled dependencies that need additional notices.
+6. Test the editor with a local fixture endpoint and an enforcing GraphQL CSP.
+   Verify introspection, queries, variables, headers, worker diagnostics, and documentation browsing.
+   Alter a CDN response in the browser test and confirm that integrity blocks it.
+   Verify that a blocked worker prevents worker diagnostics.
+
+No npm build runs during Go generation or deployment.
+The GraphQL CSP in `cmd/peeringdb-plus/main.go` allows the pinned CDN and same-origin workers.
+`PDBPLUS_CSP_ENFORCE` continues to control report-only versus enforcing mode.
+
 ## Build commands
 
 | Command | Description |
@@ -123,10 +168,8 @@ The `go:generate` directives are in three files, and `go generate ./...` runs th
    2. `go run -mod=mod entc.go` runs ent with the entgql and entrest extensions.
       It writes `ent/`, `graph/schema.graphqls`, and the REST OpenAPI spec (`ent/rest/openapi.json`).
       The entproto extension is also configured, but it writes no file, because no ent schema has an entproto annotation.
-   3. `cd .. && go run ./cmd/pdb-compat-allowlist` writes
-      `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
-   4. `cd .. && buf generate` writes the protobuf Go types and the ConnectRPC
-      handler interfaces from the proto sources.
+   3. `cd .. && go run ./cmd/pdb-compat-allowlist` writes `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go`.
+   4. `cd .. && buf generate` writes the protobuf Go types and the ConnectRPC handler interfaces from the proto sources.
 2. `graph/generate.go` runs `go run -mod=mod github.com/99designs/gqlgen generate`.
    It uses the project module graph so the parser supports the pinned Go toolchain.
    It reads `graph/schema.graphqls` (from entgql), the hand-written `graph/custom.graphql`, and `graph/gqlgen.yml`.
@@ -173,11 +216,8 @@ Without a fix, ent generates `Campu`-themed code and entrest produces `/campu` U
 
 `ent/entc.go` patches this in two places via `go:linkname`:
 
-1. The global `inflect` default ruleset — used by `entrest.Pluralize` for URL
-   paths.
-2. Ent's internal, unexported `gen.rules` ruleset — used by
-   `Edge.MutationAdd`/`Remove`, graph column naming, and template funcs that
-   feed both Go code and templates.
+1. The global `inflect` default ruleset -- used by `entrest.Pluralize` for URL paths.
+2. Ent's internal, unexported `gen.rules` ruleset -- used by `Edge.MutationAdd`/`Remove`, graph column naming, and template funcs that feed both Go code and templates.
 
 `AddIrregular("campus", "campuses")` alone is not enough — it only adds the plural→singular mapping, so the bare word `campus` still falls through to the default `s` → `∅` rule.
 The patch explicitly calls `AddSingular("campus", "campus")` plus PascalCase `AddSingularExact`/`AddPluralExact` entries for entrest (which passes type names directly without case folding).
@@ -238,8 +278,7 @@ internal/pdbcompat/allowlist_gen.go
 `buf generate` (invoked by `ent/generate.go`) reads `buf.gen.yaml` and produces:
 
 - `gen/peeringdb/v1/*.pb.go` (protobuf Go types via `protoc-gen-go`).
-- `gen/peeringdb/v1/peeringdbv1connect/*.go` (handler interfaces via
-  `protoc-gen-connect-go`).
+- `gen/peeringdb/v1/peeringdbv1connect/*.go` (handler interfaces via `protoc-gen-connect-go`).
 
 Proto `optional` fields generate Go pointer types (`*int64`, `*string`).
 Always check `!= nil` for presence before dereferencing.
@@ -317,8 +356,7 @@ Add the field at its source instead:
    It does not change `proto/peeringdb/v1/v1.proto`.
 3. Add the field to the struct of the type in `internal/peeringdb/types.go`.
    Sync decodes the upstream response into this struct.
-4. Set the field in the `upsert*` function of the type
-   in `internal/sync/upsert.go` (for example `upsertNetworks`).
+4. Set the field in the `upsert*` function of the type in `internal/sync/upsert.go` (for example `upsertNetworks`).
 5. Set the field in the `/api/` serializer in `internal/pdbcompat/serializer.go`.
    Add it to the `Fields` map of the type in `internal/pdbcompat/registry.go` so that `/api/` can filter on it.
 6. To send the field on ConnectRPC, add it to the message in `v1.proto` by hand (see [proto / buf workflow](#proto--buf-workflow)).
@@ -327,8 +365,7 @@ Add the field at its source instead:
    Then add an entry to both filter tables of the type in `internal/grpcserver/{type}.go`, for example `networkListFilters` and `networkStreamFilters`.
    `TestAllFilterFieldsExercised` fails if one table does not have the field.
 8. Run `mise run generate` again after proto edits.
-9. Regenerate the golden files
-   (step 4 of [Schema hygiene drop procedure](#schema-hygiene-drop-procedure)).
+9. Regenerate the golden files (step 4 of [Schema hygiene drop procedure](#schema-hygiene-drop-procedure)).
 10. Add test cases in `internal/grpcserver/`.
     If seed data uses the field, update `internal/testutil/seed/seed.go`.
 11. Commit the source edits and all generated files together.
@@ -338,10 +375,7 @@ Add the field at its source instead:
 `migrate.WithDropColumn(true)` and `migrate.WithDropIndex(true)` are permanently on (`cmd/peeringdb-plus/main.go`).
 Dropping a field is therefore a checklist, not a migration script:
 
-1. Edit `schema/peeringdb.json` (remove the field from the upstream-derived
-   schema), OR remove it from its sibling-file Mixin (e.g.
-   `ent/schema/{type}_fold.go`) if it is peeringdb-plus-local — never from
-   the generated `ent/schema/{type}.go` itself.
+1. Edit `schema/peeringdb.json` (remove the field from the upstream-derived schema), OR remove it from its sibling-file Mixin (e.g. `ent/schema/{type}_fold.go`) if it is peeringdb-plus-local -- never from the generated `ent/schema/{type}.go` itself.
 2. Run `go generate ./...`.
 3. Remove references in:
    - `internal/peeringdb/types.go` (PeeringDB API client types)
@@ -368,8 +402,7 @@ The 13 PeeringDB entity types already each have their own ConnectRPC service, so
 
 **New RPC on an existing service:**
 
-1. Edit `proto/peeringdb/v1/services.proto` — add the `rpc` line inside the
-   service block and any new request/response messages.
+1. Edit `proto/peeringdb/v1/services.proto` -- add the `rpc` line inside the service block and any new request/response messages.
 2. Run `buf generate` (or `go generate ./ent`).
 3. Implement the method on the corresponding struct in `internal/grpcserver/<entity>.go`.
    The handler interface it must satisfy is regenerated in `gen/peeringdb/v1/peeringdbv1connect/`.
@@ -385,10 +418,8 @@ The 13 PeeringDB entity types already each have their own ConnectRPC service, so
 2. Regenerate.
 3. Create `internal/grpcserver/<newentity>.go` with a struct that holds `Client *ent.Client` and `StreamTimeout time.Duration`, and implements the generated handler interface.
    Return failed database queries through `queryError`, as for a new RPC.
-4. Register it in `cmd/peeringdb-plus/main.go` — add it to the `serviceNames`
-   slice and add a `registerService(...)` call alongside the existing 13.
-5. Add the service to `TestQueryError_GetAllServices`
-   in `internal/grpcserver/errors_test.go`.
+4. Register it in `cmd/peeringdb-plus/main.go` -- add it to the `serviceNames` slice and add a `registerService(...)` call alongside the existing 13.
+5. Add the service to `TestQueryError_GetAllServices` in `internal/grpcserver/errors_test.go`.
 
 All handlers are wrapped with `otelconnect` interceptors automatically via `handlerOpts`; no extra wiring needed.
 
@@ -402,15 +433,11 @@ The web UI uses a single wildcard `GET /ui/{rest...}` route that internally disp
    This regenerates the `*_templ.go` files and `internal/web/static/tailwind.css`.
    Do not run `templ generate` from the repository root.
    From the root, templ writes path-qualified file names into every `*_templ.go` file, and the CI drift check fails.
-3. Add a handler method to `internal/web/`
-   (e.g. `handleNewPage` in `internal/web/handler.go`,
-   or in a new file as `about.go` does).
-4. Add a `case` arm to the `switch` in `Handler.dispatch` routing the new URL
-   sub-path to your handler.
+3. Add a handler method to `internal/web/` (e.g. `handleNewPage` in `internal/web/handler.go`, or in a new file as `about.go` does).
+4. Add a `case` arm to the `switch` in `Handler.dispatch` routing the new URL sub-path to your handler.
 5. If the page needs database queries, add them to `internal/catalog/` (for example in a `query_<type>.go` file).
    Then the MCP server can use them too.
-6. Write a test with `httptest`, `testutil.SetupClient(t)`,
-   and the seed helpers in `internal/web/detail_test.go`.
+6. Write a test with `httptest`, `testutil.SetupClient(t)`, and the seed helpers in `internal/web/detail_test.go`.
 
 Static assets (CSS, JavaScript, images, favicon) are in `internal/web/static/`.
 The `static` package in that directory embeds them, and the server serves them at `/static/`.
@@ -446,9 +473,7 @@ When a new PeeringDB field gains a `<field>_visible` companion (or you introduce
      `ixLanResponse` and `ixfMemberListURLOut` are the worked example.
    - **ConnectRPC:** `internal/grpcserver/<entity>.go` in the proto conversion function.
      Wrap the closure passed to the generic pagination helper so `ctx` is captured (the helper signature stays `Convert func(*E) *P`).
-   - **GraphQL:** opt the field into a custom resolver via `graph/gqlgen.yml`,
-     then return `nil` from the resolver in `graph/schema.resolvers.go` when
-     `omit=true`.
+   - **GraphQL:** opt the field into a custom resolver via `graph/gqlgen.yml`, then return `nil` from the resolver in `graph/schema.resolvers.go` when `omit=true`.
    - **entrest:** add the new key pair to `redactGatedFields` in `internal/middleware/rest_redact.go`.
      `middleware.RESTFieldRedact` already buffers and parses every `/rest/v1/` body.
      Keep it wrapped **inside** `middleware.RESTError` so that `application/problem+json` error bodies pass through unchanged.
@@ -456,9 +481,7 @@ When a new PeeringDB field gains a `<field>_visible` companion (or you introduce
      If the new field reaches them, call `privfield.Redact` in the code that builds the row data.
      Both read rows through `internal/catalog`.
      The fragment handlers in `internal/web/detail.go` and the MCP `lookup_ip` tool in `internal/mcpserver/server.go` also query ent directly.
-4. **Seed both rows:** extend `internal/testutil/seed.Full` to seed BOTH a
-   gated row (`_visible=Users`) AND a `Public` row, so E2E tests can assert
-   the helper does not over-redact.
+4. **Seed both rows:** extend `internal/testutil/seed.Full` to seed BOTH a gated row (`_visible=Users`) AND a `Public` row, so E2E tests can assert the helper does not over-redact.
 5. **E2E tests:** extend the `TestE2E_FieldLevel_IxlanURL_*` functions in `cmd/peeringdb-plus/field_privacy_e2e_test.go`, or add a set like them.
    `TestE2E_FieldLevel_IxlanURL_RedactedAnon` and `TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier` have sub-tests for `/api`, `/rest/v1/`, ConnectRPC, and GraphQL, and a skipped `webui` sub-test.
    `RedactedAnon` also has the `fail-closed-bypass-middleware` check against the ConnectRPC handler.
@@ -477,7 +500,7 @@ The 6 folded entities (`organization`, `network`, `facility`, `internetexchange`
 
 To add a new searchable text field on one of these entities (e.g. a future `network.tagline_fold`):
 
-1. **Sibling file** — extend the `fields` slice in `ent/schema/{type}_fold.go`:
+1. **Sibling file**: extend the `fields` slice in `ent/schema/{type}_fold.go`.
 
    ```go
    func (Network) Mixin() []ent.Mixin {
@@ -485,8 +508,7 @@ To add a new searchable text field on one of these entities (e.g. a future `netw
    }
    ```
 
-   Do NOT edit `ent/schema/network.go` directly —
-   `pdb-schema-generate` will strip your changes.
+   Do NOT edit `ent/schema/network.go` directly; `pdb-schema-generate` will strip your changes.
 2. **Regenerate**: `mise run generate`.
    The mixin adds the `_fold` column with three guards.
    `entgql.Skip(entgql.SkipAll)` keeps it out of GraphQL.
@@ -497,9 +519,7 @@ To add a new searchable text field on one of these entities (e.g. a future `netw
    Place the new setter in the trailing `_fold` block per the existing convention.
 4. **Filter routing** — add `"tagline": true` to `network`'s `FoldedFields` map in `internal/pdbcompat/registry.go`.
    The filter layer reads this map to decide whether to route to the shadow column.
-5. **Round-trip test** — extend `internal/pdbcompat/fold_filter_test.go`
-   with a test proving `?tagline__contains=<ascii>` matches a
-   `tagline="<diacritic>"` row.
+5. **Round-trip test** -- extend `internal/pdbcompat/fold_filter_test.go` with a test proving `?tagline__contains=<ascii>` matches a `tagline="<diacritic>"` row.
 
 To add shadow columns on a 7th entity, create a new sibling `ent/schema/{type}_fold.go` with the `foldMixin` wiring, then steps 3-5 above plus add the `FoldedFields` map for the entity in `registry.go`.
 The other 6 upsert functions stay untouched — per-entity surgery is the convention.
@@ -535,12 +555,9 @@ See `docs/API.md § Relation filters`.
 
 **Do NOT:**
 
-- Hand-edit `internal/pdbcompat/allowlist_gen.go` — it is overwritten on
-  every codegen run; the CI drift check catches stale output.
-- Add traversal allowlists to grpcserver / entrest / GraphQL — those
-  surfaces have their own filter models and traversal is out of scope.
-- Add 3+-hop keys — they're dropped by codegen sanity checks AND by the
-  2-hop cap in `parseFieldOp` at request time.
+- Hand-edit `internal/pdbcompat/allowlist_gen.go` -- it is overwritten on every codegen run; the CI drift check catches stale output.
+- Add traversal allowlists to grpcserver / entrest / GraphQL -- those surfaces have their own filter models and traversal is out of scope.
+- Add 3+-hop keys -- they're dropped by codegen sanity checks AND by the 2-hop cap in `parseFieldOp` at request time.
 
 ## Adding a new pdbcompat entity (response memory budget)
 
@@ -558,13 +575,8 @@ Any new entity wired into `/api/` must integrate with this budget:
 2. **wireEntity registration** — in `internal/pdbcompat/registry_funcs.go`, add a `wireEntity(entityWiring[...]{...})` entry to `init()` naming the entity's ent query constructor, serializer, and depth getter.
    The generic helper derives the List and Count closures from a single shared predicate builder — they cannot diverge, which is what upholds the 413 guarantee — and preserves the `applyStatusMatrix(live, isCampus, opts.Since != nil)` last-predicate invariant and the `EmptyResult` short-circuit.
    `live` comes from `pdbtypes.LiveStatuses`; extend it if upstream `live_statuses()` gives the new type a live status other than `ok`.
-3. **Architecture doc** — add a row to the per-entity sizing table in
-   `docs/ARCHITECTURE.md § Response Memory Envelope` with the computed
-   `max_rows @ 128 MiB`.
-4. **E2E coverage** — extend `cmd/peeringdb-plus/*_e2e_test.go` (or
-   `internal/pdbcompat/stream_integration_test.go`) with an under-budget
-   smoke test and an over-budget 413 assertion mirroring
-   `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+3. **Architecture doc** -- add a row to the per-entity sizing table in `docs/ARCHITECTURE.md § Response Memory Envelope` with the computed `max_rows @ 128 MiB`.
+4. **E2E coverage** -- extend `cmd/peeringdb-plus/*_e2e_test.go` (or `internal/pdbcompat/stream_integration_test.go`) with an under-budget smoke test and an over-budget 413 assertion mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
 5. **Detail fan-out:** if the depth-2 detail of the type embeds `_set` collections, add them to `childSets` in `internal/pdbcompat/detail_budget.go`.
    The list must match the eager-loads in `get<Type>WithDepth` in `internal/pdbcompat/depth.go`.
    Add the type and its set count to `wantParents` in `TestChildSets_CoverRegistryParents` (`internal/pdbcompat/detail_budget_test.go`).
@@ -640,8 +652,6 @@ Before you open a PR:
 ## Next steps
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — system design and package layout.
-- [CONFIGURATION.md](CONFIGURATION.md) — environment variables and runtime
-  configuration.
+- [CONFIGURATION.md](CONFIGURATION.md) -- environment variables and runtime configuration.
 - [TESTING.md](TESTING.md) — test framework and conventions.
-- [API.md](API.md) — API surfaces, traversal allowlists, divergence
-  registry.
+- [API.md](API.md) -- API surfaces, traversal allowlists, divergence registry.

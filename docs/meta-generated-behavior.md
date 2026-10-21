@@ -21,8 +21,7 @@ A `?page=` request adds `meta.pagination`.
 A list request uses the cache only when all of these are true (`api_cache.py:90-124`):
 
 - The request has no filter and no `?since=`.
-- At depth 0 (the default), the request has no `?limit=`,
-  or a `?limit=` above 250.
+- At depth 0 (the default), the request has no `?limit=`, or a `?limit=` above 250.
 - The request is a list, not one object.
 - The cache file exists.
 

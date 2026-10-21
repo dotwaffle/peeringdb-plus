@@ -164,16 +164,12 @@ The full list of variables honored by autoexport is documented in the upstream S
 
 These signal-specific details are enforced by `internal/otel/provider.go` regardless of exporter selection:
 
-- W3C Trace Context and Baggage are installed as the global text-map
-  propagators.
-- `http.server.request.body.size` and `http.server.response.body.size`
-  instruments are dropped via a metric view (low debugging value, high
-  cardinality).
+- W3C Trace Context and Baggage are installed as the global text-map propagators.
+- `http.server.request.body.size` and `http.server.response.body.size` instruments are dropped via a metric view (low debugging value, high cardinality).
 - `http.server.request.duration` uses an explicit-bucket histogram with boundaries `[0.01, 0.05, 0.25, 1, 5]` seconds.
   It keeps only the `http.route`, `http.response.status_code`, `network.protocol.version` and `user_agent.synthetic.type` attributes.
   The last one is `test` on requests from Grafana Synthetic Monitoring probes (User-Agent `synthetic-monitoring-agent/...`), which the dashboard and the availability SLO leave out.
-- Go runtime metrics (goroutines, heap, GC) are started unconditionally via
-  `runtime.Start(runtime.WithMeterProvider(mp))`.
+- Go runtime metrics (goroutines, heap, GC) are started unconditionally via `runtime.Start(runtime.WithMeterProvider(mp))`.
 
 The ConnectRPC interceptor records spans but no `rpc.server.*` metrics (`otelconnect.WithoutMetrics()` in `cmd/peeringdb-plus/main.go`).
 `http.server.request.duration` covers ConnectRPC latency, with one `http.route` value per service.
@@ -303,10 +299,8 @@ Environment values are supplied by:
 ## Related Documentation
 
 - `internal/config/config.go` — authoritative loader and validator.
-- `internal/otel/provider.go` — OTel pipeline setup, resource attribute mapping,
-  and metric views.
-- `internal/otel/logger.go` —
-  `PDBPLUS_LOG_LEVEL` parser and OTel log handler filter.
+- `internal/otel/provider.go` -- OTel pipeline setup, resource attribute mapping, and metric views.
+- `internal/otel/logger.go` -- `PDBPLUS_LOG_LEVEL` parser and OTel log handler filter.
 - `internal/litefs/primary.go` — primary detection and env fallback.
 - `fly.toml`, `litefs.yml`, `Dockerfile.litefs`: deployment manifests.
 
@@ -314,18 +308,13 @@ Environment values are supplied by:
 
 This section lists the risks of upstream fetches, the signal for each risk, and the variable that controls it.
 
-- **Rate-limit amplification (HTTP 429):** anonymous traffic can get long
-  `Retry-After` windows from upstream.
-  - Signal: `pdbplus.peeringdb.retries{cause="429"}` and the WARN log
-    `PeeringDB rate-limited, aborting (retry-after exceeds cap)`.
+- **Rate-limit amplification (HTTP 429):** anonymous traffic can get long `Retry-After` windows from upstream.
+  - Signal: `pdbplus.peeringdb.retries{cause="429"}` and the WARN log `PeeringDB rate-limited, aborting (retry-after exceeds cap)`.
   - Action: set `PDBPLUS_PEERINGDB_API_KEY`.
     Without a key, lower `PDBPLUS_PEERINGDB_RPS`.
     With a key, the client uses 30 requests per minute and ignores this variable.
-- **Credential leakage (API key):** a leaked key can use your upstream quota,
-  and upstream abuse handling then sees your identity.
-  - Signal: 429 responses while a key is set,
-    or the WARN log `PeeringDB rejected request: API key may be invalid`
-    after upstream revokes the key.
+- **Credential leakage (API key):** a leaked key can use your upstream quota, and upstream abuse handling then sees your identity.
+  - Signal: 429 responses while a key is set, or the WARN log `PeeringDB rejected request: API key may be invalid` after upstream revokes the key.
   - Action: keep the key only in a Fly secret.
     The application does not log the key.
     The startup logs show only whether a key is set.
@@ -335,7 +324,5 @@ This section lists the risks of upstream fetches, the signal for each risk, and 
   The handler rejects every request with 401, so on-demand sync is disabled.
   The scheduled sync worker is unaffected.
   The risk is availability: operators cannot start a recovery sync until a token is set.
-  - Signal: the startup WARN log that starts with
-    `PDBPLUS_SYNC_TOKEN not set`.
-  - Action: set `PDBPLUS_SYNC_TOKEN` in every persistent environment
-    where on-demand sync is wanted.
+  - Signal: the startup WARN log that starts with `PDBPLUS_SYNC_TOKEN not set`.
+  - Action: set `PDBPLUS_SYNC_TOKEN` in every persistent environment where on-demand sync is wanted.

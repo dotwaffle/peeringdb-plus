@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PeeringDB Plus - GraphQL</title>
+    <style>
+      body { margin: 0; }
+      #graphiql { height: 100dvh; }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://esm.sh/graphiql@5.4.0/dist/style.css"
+      integrity="sha384-TFpQQKp325U5sd3PddH4cS0KOB3Gz/aqdEe12Mqkkq3wm2MGcDhRX5WhWf+o8akh"
+      crossorigin="anonymous"
+    >
+    <script type="importmap">
+{
+  "imports": {
+    "https://esm.sh/node/process.mjs": "/graphql/assets/9d3493270fc89c07.mjs",
+    "react": "https://esm.sh/react@19.3.1/es2022/react.mjs",
+    "react/jsx-runtime": "https://esm.sh/react@19.3.1/X-ZXJlYWN0/es2022/jsx-runtime.mjs",
+    "react-dom": "https://esm.sh/react-dom@19.3.1/X-ZXJlYWN0/es2022/react-dom.bundle.mjs",
+    "react-dom/client": "https://esm.sh/react-dom@19.3.1/X-ZXJlYWN0LHJlYWN0LWRvbQ/es2022/client.bundle.mjs",
+    "graphiql": "https://esm.sh/graphiql@5.4.0/X-ZUBncmFwaGlxbC9yZWFjdCxncmFwaHFsLHJlYWN0LHJlYWN0LWRvbQ/es2022/graphiql.bundle.mjs",
+    "@graphiql/react": "https://esm.sh/@graphiql/react@0.39.1/X-ZUBlbW90aW9uL2lzLXByb3AtdmFsaWQsQGdyYXBoaXFsL3Rvb2xraXQsZ3JhcGhxbCxyZWFjdCxyZWFjdC1kb20/es2022/react.bundle.mjs",
+    "@graphiql/toolkit": "https://esm.sh/@graphiql/toolkit@0.12.1/X-ZWdyYXBocWwsZ3JhcGhxbC13cw/es2022/toolkit.bundle.mjs",
+    "graphql-ws": "https://esm.sh/graphql-ws@6.4.1/X-ZWdyYXBocWw/es2022/graphql-ws.bundle.mjs",
+    "graphql": "https://esm.sh/graphql@16.14.2/es2022/graphql.mjs",
+    "@emotion/is-prop-valid": "https://esm.sh/@emotion/is-prop-valid@1.4.0/es2022/is-prop-valid.bundle.mjs"
+  },
+  "integrity": {
+    "https://esm.sh/react@19.3.1/es2022/react.mjs": "sha384-Psq5WJvVF357tIF0zhz8ailHVmWVJLwyWH6vLzhozGkNMdVwvi/q4PAofRwgDYt6",
+    "https://esm.sh/react@19.3.1/X-ZXJlYWN0/es2022/jsx-runtime.mjs": "sha384-gh8xw1wmcir9SHUqXziDr2z4Oz0Kyy0SrQ8ZhX/0UyjVAHiQnKjEs0ePh4PDo5o2",
+    "https://esm.sh/react-dom@19.3.1/X-ZXJlYWN0/es2022/react-dom.bundle.mjs": "sha384-gQRQ5otGBGgqIZj9Fzm+7ENVYBWIqxP4X+a4EENO+pg4x66+WL/uNkZWaWP899eA",
+    "https://esm.sh/react-dom@19.3.1/X-ZXJlYWN0LHJlYWN0LWRvbQ/es2022/client.bundle.mjs": "sha384-IuKqoar2WkSTJ/IdLIJt9wAjHyXeK8eqh6WgqBLS+kdq0ZAknpshODwQ4yFKfgGX",
+    "https://esm.sh/graphiql@5.4.0/X-ZUBncmFwaGlxbC9yZWFjdCxncmFwaHFsLHJlYWN0LHJlYWN0LWRvbQ/es2022/graphiql.bundle.mjs": "sha384-z/6HAYyvLqPKKDdKsUuZAqMG7sUWSeKeGc28Ol8bjrlqjnnQTx4OSdJCADaOnjn2",
+    "https://esm.sh/@graphiql/react@0.39.1/X-ZUBlbW90aW9uL2lzLXByb3AtdmFsaWQsQGdyYXBoaXFsL3Rvb2xraXQsZ3JhcGhxbCxyZWFjdCxyZWFjdC1kb20/es2022/react.bundle.mjs": "sha384-iOq7t8zixarwHVVeBmKb6U84/b443KIK4ClH1UgZ861Xm4nuDzUPqgW1SHuLGtey",
+    "https://esm.sh/@graphiql/toolkit@0.12.1/X-ZWdyYXBocWwsZ3JhcGhxbC13cw/es2022/toolkit.bundle.mjs": "sha384-JYGshbmrZZimLuRSEb/QiVgOEDiZSkkPba2AgzOReudpsklBr9xKkPFziQgzLc8n",
+    "https://esm.sh/graphql-ws@6.4.1/X-ZWdyYXBocWw/es2022/graphql-ws.bundle.mjs": "sha384-B12+HLHQUzr6iO9HiRCLZSabbZCJf4ly/m3EM/yZ+hivCRdbBeDfKyrZpReEkE6N",
+    "https://esm.sh/@emotion/is-prop-valid@1.4.0/es2022/is-prop-valid.bundle.mjs": "sha384-YLYQft639KxCLP+3v0OvHk0cB57D6qLyqItJYUcmx8yI6hWfujNuRiX9wJ0doKrU",
+    "https://esm.sh/graphql@16.14.2/es2022/graphql.mjs": "sha384-K3ARQkEcUXaFMLUFyzrze/Kt3W1CtpUjq0TOk1Ean+4xkCOb27HURRmwMfvqDeB/"
+  }
+}
+    </script>
+  </head>
+  <body>
+    <div id="graphiql">Loading...</div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { GraphiQL } from 'graphiql';
+      import { createGraphiQLFetcher } from '@graphiql/toolkit';
+
+      // Workers and their dependencies are embedded in the Go binary.
+      globalThis.MonacoEnvironment = {
+        getWorker(_workerId, label) {
+          const workers = {"editor": "e8425f059c96b044.mjs", "json": "07aa32f158d0c602.mjs", "graphql": "f1ffcb013dc52c99.mjs"};
+          const name = workers[label] || workers.editor;
+          return new Worker('/graphql/assets/' + name, { type: 'module', name: label });
+        },
+      };
+
+      const url = new URL({{.Endpoint}}, location.origin).href;
+      const fetcher = createGraphiQLFetcher({ url });
+      createRoot(document.getElementById('graphiql')).render(
+        React.createElement(GraphiQL, {
+          fetcher,
+          defaultQuery: {{.DefaultQuery}},
+          shouldPersistHeaders: true,
+        }),
+      );
+    </script>
+  </body>
+</html>

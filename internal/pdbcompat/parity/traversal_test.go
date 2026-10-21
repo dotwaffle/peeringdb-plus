@@ -47,9 +47,9 @@ import (
 //     entsql.Annotation{Table: "campuses"} on Campus
 //     (ent/schema/campus_annotations.go).
 //   - DIVERGENCE: filters on upstream model columns that the API does
-//     not serialize (org_flags, geocode_*, fac location_*) are
+//     not serialize (geocode_*, fac location_*) are
 //     silent-ignored, also as the field of a prepare_query relation
-//     key (`fac?net__notes_private=`). The mirror never receives these
+//     key (`fac?net__version=`). The mirror never receives these
 //     values.
 //   - `ix?ipblock=` keeps the exchanges with a prefix whose text
 //     starts with the value (not containment), as upstream.
@@ -406,7 +406,7 @@ func TestParity_Traversal(t *testing.T) {
 
 	t.Run("DIVERGENCE_unserialized_model_columns_silent_ignore", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream filters on every model column, also on
+		// DIVERGENCE: upstream filters on nonexcluded model columns, including
 		// columns that its serializers never emit. The filter loop takes
 		// its field set from the model (2.83.0 rest.py:525-528), and
 		// queryable_relations adds <fk>__<field> for each FK
@@ -414,16 +414,13 @@ func TestParity_Traversal(t *testing.T) {
 		// fields, so these keys are silent-ignored and the list is
 		// unfiltered. See docs/API.md § Known Divergences.
 		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: 2.83.0 models.py:1259-1264 (org_flags),
-		// :591-599 (geocode_status, geocode_date on org and fac),
-		// :2207-2217 (fac location_method, location_place_id),
-		// :2612 (ix ixf_import_request_user)
+		// upstream: 2.83.0 models.py:591-599 (geocode_status, geocode_date on org and fac),
+		// :2207-2217 (fac location_method, location_place_id)
 		// A relation key of a prepare_query filters the same columns,
 		// and the other upstream model names in unservedModelNames, on
 		// the related model (models.py:223-234).
 		// upstream: django-handleref models.py:86-90 (version),
-		// django-peeringdb abstract.py:436 (notes_private), :791 (vlan),
-		// :819 (ixf_ixp_member_list_url), :879-889 (avail_*)
+		// django-peeringdb abstract.py:791 (vlan), :879-889 (avail_*)
 		// The plain version key filters every type upstream: version is
 		// a HandleRefModel field (django-handleref models.py:90) that
 		// HandleRefSerializer does not serialize (rest/serializers.py:12).
@@ -448,22 +445,16 @@ func TestParity_Traversal(t *testing.T) {
 
 		srv := newTestServer(t, c)
 		// Upstream returns [] for each request: no seeded row can carry
-		// the filtered value (org_flags defaults to 0, geocode_status to
+		// the filtered value (geocode_status defaults to
 		// false, location_method to "").
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/org?org_flags=1", want: []int{1, 2}},
-			{path: "/api/org?org_flags__gt=0", want: []int{1, 2}},
 			{path: "/api/org?geocode_status=true", want: []int{1, 2}},
-			{path: "/api/net?org__org_flags=1", want: []int{100, 101}},
 			{path: "/api/fac?location_method=google", want: []int{200, 201}},
 			{path: "/api/fac?location_place_id=ChIJ", want: []int{200, 201}},
-			{path: "/api/ix?ixf_import_request_user=1", want: []int{300, 301}},
-			{path: "/api/fac?net__notes_private=x", want: []int{200, 201}},
 			{path: "/api/fac?net__version=1", want: []int{200, 201}},
 			{path: "/api/net?fac__geocode_status=x", want: []int{100, 101}},
 			{path: "/api/net?netfac__avail_sonet=true", want: []int{100, 101}},
-			{path: "/api/ix?ixlan__ixf_ixp_member_list_url=x", want: []int{300, 301}},
-			{path: "/api/ix?ixlan__ixlan_vlan=5", want: []int{300, 301}},
+			{path: "/api/ix?ixlan__vlan=5", want: []int{300, 301}},
 			// Upstream: []. version starts at 0 and only grows
 			// (django-handleref models.py:9-16, :90).
 			{path: "/api/org?version=-1", want: []int{1, 2}},
@@ -517,19 +508,10 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_notes_private_filter_ignored", func(t *testing.T) {
+	t.Run("notes_private_filter_ignored", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: notes_private is a model field of net that the API
-		// does not serialize, "visible only to administrators of the
-		// owning organization" (django-peeringdb abstract.py:436-442).
-		// The upstream filter loop takes its field set from the model
-		// (2.83.0 rest.py:525-528), so net?notes_private= and its
-		// operator forms filter on the private text for any caller.
-		// Only the <fk>__notes_private form is left out
-		// (FILTER_EXCLUDE "network__notes_private",
-		// serializers.py:136-145). The mirror never receives the
-		// column, so it ignores every form. See docs/API.md § Known
-		// Divergences.
+		// PeeringDB 2.84.0 serializers.py:140-196 excludes this field
+		// on the local endpoint and on relations, for every caller.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "PrivNotesOrg", t0)
@@ -543,17 +525,10 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_ixlan_ixf_url_filter_ignored", func(t *testing.T) {
+	t.Run("ixlan_ixf_url_filter_ignored", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: ixf_ixp_member_list_url is an ixlan model field
-		// (django-peeringdb abstract.py:819), so the upstream filter
-		// loop filters it for any caller (2.83.0 rest.py:525-528),
-		// also on rows whose URL the caller cannot see: the permission
-		// check removes the value from the output only
-		// (permissions.py:344-353). Only the <fk>__ forms are left out
-		// (FILTER_EXCLUDE, serializers.py:136-145). The mirror ignores
-		// every form, so a filter cannot show a hidden URL one match at
-		// a time. See docs/API.md § Known Divergences.
+		// PeeringDB 2.84.0 serializers.py:140-196 excludes this field
+		// on the local endpoint and on relations, for every caller.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		mustOrg(ctx, t, c, 1, "IxfURLOrg", t0)
@@ -565,7 +540,6 @@ func TestParity_Traversal(t *testing.T) {
 		c.IxLan.UpdateOneID(201).SetIxfIxpMemberListURL("https://private.example/ixf.json").
 			SetIxfIxpMemberListURLVisible("Private").ExecX(ctx)
 		srv := newTestServer(t, c)
-		// Upstream: [200] for the first two, [201] for the third.
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
 			{path: "/api/ixlan?ixf_ixp_member_list_url=https://public.example/ixf.json", want: []int{200, 201}},
 			{path: "/api/ixlan?ixf_ixp_member_list_url__contains=public", want: []int{200, 201}},
@@ -2044,16 +2018,8 @@ func TestParity_Traversal(t *testing.T) {
 
 	t.Run("relation_key_prefix_aliases", func(t *testing.T) {
 		t.Parallel()
-		// upstream: 2.83.0 models.py:224-227 (make_relation_filter with
-		// prefix=), called by ix related_to_ixlan and related_to_ixfac
-		// (:2723, :2740) and net related_to_netfac and
-		// related_to_netixlan (:5629, :5644).
-		// The prefix rule removes "<prefix>_" from the field and changes
-		// a field equal to the prefix to id, so the field can repeat the
-		// relation name: ix?ixlan__ixlan_id= is ixlan id, and
-		// net?netixlan__netixlan_speed= is the netixlan speed.
-		// netixlan_net_side_id gives net_side, the Django name of the FK
-		// (models.py:6088).
+		// Upstream 2.84.0 models.py:223-232 accepts only exact prefix
+		// and prefix_id aliases. Repeated prefixes cannot name fields.
 		// Seed: ixlan 200 (ix 20) is ok, 210 (ix 21) is pending.
 		// netixlan 500 and 503 (net 100) are ok with speed 1000, 504
 		// (net 101) is ok with speed 10000. netfac 600 (net 100) is ok.
@@ -2067,15 +2033,17 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ix?ixlan__ixlan_id=200", want: []int{20}},
 			{path: "/api/ix?ixlan__ixlan=200", want: []int{20}},
 			{path: "/api/ix?ixlan__ixlan_id=210", want: []int{}},
-			{path: "/api/ix?ixlan__ixlan_name=LanA", want: []int{20}},
-			{path: "/api/ix?ixfac__ixfac_facility_id=400", want: []int{20}},
-			{path: "/api/net?netixlan__netixlan_speed=10000", want: []int{101}},
-			{path: "/api/net?netixlan__netixlan_speed=1000", want: []int{100}},
 			{path: "/api/net?netfac=600", want: []int{100}},
 			{path: "/api/net?netfac__netfac=600", want: []int{100}},
 			{path: "/api/net?netfac__netfac=601", want: []int{}},
-			{path: "/api/net?netixlan__netixlan_net_side_id=400", want: []int{100}},
 		})
+		for _, path := range []string{"/api/ix?ixlan__ixlan_name=LanA", "/api/ix?ixfac__ixfac_facility_id=400", "/api/net?netixlan__netixlan_speed=10000", "/api/net?netixlan__netixlan_speed=1000", "/api/net?netixlan__netixlan_net_side_id=400"} {
+			status, body := httpGet(t, srv, path)
+			if status != http.StatusBadRequest {
+				t.Errorf("%s: status = %d, want 400: %s", path, status, body)
+			}
+		}
+
 	})
 
 	t.Run("prepare_query_relation_keys_on_listed_row", func(t *testing.T) {

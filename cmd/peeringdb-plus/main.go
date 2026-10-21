@@ -62,11 +62,9 @@ import (
 // GraphQL queries rarely exceed 10 KB; 1 MB is generous.
 const maxRequestBodySize = 1 << 20
 
-// graphQLCSPPolicy is the browser policy for the GraphiQL playground on
-// /graphql. The GraphiQL stylesheet embeds its fonts as data: URIs, so
-// font-src allows data:. Without it, fonts fall back to default-src 'self'
-// and an enforcing policy blocks them.
-const graphQLCSPPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; font-src 'self' data:"
+// graphQLCSPPolicy allows the pinned GraphiQL modules and stylesheet from esm.sh.
+// Fonts use data: URIs. Monaco workers load from the same origin.
+const graphQLCSPPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://esm.sh; style-src 'self' 'unsafe-inline' https://esm.sh; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; worker-src 'self'"
 
 // connectHandlerOpts builds the handler options shared by all 13 ConnectRPC
 // service registrations: OTel tracing plus an inbound message-size cap.
@@ -482,6 +480,7 @@ func main() {
 	// POST /graphql: handle GraphQL queries.
 	// POST body limited to maxRequestBodySize.
 	playgroundHandler := pdbgql.PlaygroundHandler("/graphql")
+	mux.Handle("GET /graphql/assets/", pdbgql.PlaygroundAssetsHandler())
 	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			playgroundHandler.ServeHTTP(w, r)

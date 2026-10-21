@@ -2,7 +2,7 @@
 // versions. It is a leaf package so that the templates and the
 // readiness middleware can link versioned asset URLs.
 //
-// flag-icons is flag-icons 7.5.0 (MIT, flag-icons/LICENSE) from the npm
+// flag-icons is flag-icons 7.6.0 (MIT, flag-icons/LICENSE) from the npm
 // tarball: the 4x3 flags, and css/flag-icons.min.css without the 1x1
 // (".fis") rules, whose flags are not vendored. The UI uses only the
 // "fi fi-<cc>" classes (templates.CountryFlag).

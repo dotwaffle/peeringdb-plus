@@ -2249,7 +2249,7 @@ func TestParity_Status(t *testing.T) {
 
 		public := newTestServerWithTier(t, c, privctx.TierPublic)
 		_, bare := httpGet(t, public, "/api/poc/10")
-		for _, path := range []string{"/api/poc/10?name=Hidden", "/api/poc/10?name=Other"} {
+		for _, path := range []string{"/api/poc/10?role=NOC", "/api/poc/10?role=Other"} {
 			status, body := httpGet(t, public, path)
 			if status != http.StatusNotFound {
 				t.Errorf("public GET %s: status = %d, want 404; body=%s", path, status, string(body))
@@ -2258,14 +2258,14 @@ func TestParity_Status(t *testing.T) {
 				t.Errorf("public GET %s: body %s differs from /api/poc/10 %s", path, body, bare)
 			}
 		}
-		if status, body := httpGet(t, public, "/api/poc/11?name=Shown"); status != http.StatusOK {
-			t.Errorf("public GET /api/poc/11?name=Shown: status = %d, want 200; body=%s", status, string(body))
+		if status, body := httpGet(t, public, "/api/poc/11?role=NOC"); status != http.StatusOK {
+			t.Errorf("public GET /api/poc/11?role=NOC: status = %d, want 200; body=%s", status, string(body))
 		}
 
 		users := newTestServerWithTier(t, c, privctx.TierUsers)
 		for path, want := range map[string]int{
-			"/api/poc/10?name=Hidden": http.StatusOK,
-			"/api/poc/10?name=Other":  http.StatusNotFound,
+			"/api/poc/10?role=NOC":   http.StatusOK,
+			"/api/poc/10?role=Other": http.StatusNotFound,
 		} {
 			if status, body := httpGet(t, users, path); status != want {
 				t.Errorf("users GET %s: status = %d, want %d; body=%s", path, status, want, string(body))

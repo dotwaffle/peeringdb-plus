@@ -14,12 +14,10 @@ Each rule has:
 - `alert:`: PascalCase name with the `PdbPlus` prefix.
 - `expr:`: PromQL expression.
 - `for:`: sustained-breach window before the alert fires.
-- `keep_firing_for:` (optional): how long the alert stays firing after
-  the expression stops matching.
+- `keep_firing_for:` (optional): how long the alert stays firing after the expression stops matching.
 - `labels.severity:`: `critical` or `warning` (see the tier table below).
 - `annotations.summary:`: one-line operator summary.
-- `annotations.description:`: operator-actionable detail, including the
-  threshold value and the metric name.
+- `annotations.description:`: operator-actionable detail, including the threshold value and the metric name.
 
 Rules have no receiver label.
 Grafana notification policies route the alerts.
@@ -42,10 +40,8 @@ An evaluation error is `Alerting` in the groups `pdbplus-critical` and `pdbplus-
 The rules of the group `pdbplus-fly` read the metrics that Fly.io collects for each machine and for its edge, and the LiteFS metrics that Fly.io scrapes from each machine (`[[metrics]]` in `fly.toml`, port 20202).
 Query `A` of these rules uses the Grafana Prometheus data source `fly.io`, not the Prometheus of the stack:
 
-- URL: `https://api.fly.io/prometheus/<org>/`, where `<org>` is the
-  slug of the Fly.io organization of the app.
-- HTTP header `Authorization`: the output of
-  `fly tokens create readonly -o <org>` (it starts with `FlyV1`).
+- URL: `https://api.fly.io/prometheus/<org>/`, where `<org>` is the slug of the Fly.io organization of the app.
+- HTTP header `Authorization`: the output of `fly tokens create readonly -o <org>` (it starts with `FlyV1`).
 
 Fly.io keeps these metrics for about 15 days, at no charge, and they use none of the active series of the stack.
 An evaluation error of these rules is `Error`.
@@ -103,8 +99,7 @@ Note on absence coverage: all metric-presence rules key on `go_memory_used_bytes
 The following MUST NOT appear in any file in `deploy/grafana/alerts/`:
 
 - Email addresses (any user, any domain).
-- Hosted Grafana Cloud stack URLs (the per-tenant `grafana dot net`
-  subdomain) or any other stack-specific URL.
+- Hosted Grafana Cloud stack URLs (the per-tenant `grafana dot net` subdomain) or any other stack-specific URL.
 - Tenant identifiers, API keys, or any credential value.
 
 The repository is a public-style source of truth.

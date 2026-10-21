@@ -14,13 +14,9 @@ PeeringDB Plus incrementally syncs PeeringDB objects on a regular schedule (esca
 The upstream PeeringDB API is the canonical source for peering coordination data, but it is single-region and rate-limited.
 PeeringDB Plus offers:
 
-- **Low-latency reads** from the nearest Fly.io region (LiteFS replicates
-  SQLite transactions to every replica).
-- **Multiple wire formats from a single dataset**: drop-in PeeringDB API
-  compatibility, OpenAPI REST, GraphQL, ConnectRPC/gRPC, MCP, and a Web UI all
-  read from the same `ent.Client`.
-- **Built-in observability**: the server sends OpenTelemetry traces
-  (sampled per route), metrics, and structured logs.
+- **Low-latency reads** from the nearest Fly.io region (LiteFS replicates SQLite transactions to every replica).
+- **Multiple wire formats from a single dataset**: drop-in PeeringDB API compatibility, OpenAPI REST, GraphQL, ConnectRPC/gRPC, MCP, and a Web UI all read from the same `ent.Client`.
+- **Built-in observability**: the server sends OpenTelemetry traces (sampled per route), metrics, and structured logs.
 - **One Go binary**: the server needs no cgo.
   LiteFS runs as a separate FUSE process.
 
@@ -51,7 +47,7 @@ See [`docs/API.md`](docs/API.md) for each API, with filter semantics, ordering, 
 
 ### Local (Go)
 
-You need Go 1.27.2 or later.
+You need Go 1.27.3 or later.
 You can also use mise, as shown in [Development](#development).
 
 ```bash
@@ -205,26 +201,18 @@ The server also reads the standard `OTEL_*` environment variables through OpenTe
 
 ## Technology
 
-- **Language:** Go 1.27.2
+- **Language:** Go 1.27.3
 - **ORM / codegen:** [entgo](https://entgo.io/).
   `cmd/pdb-schema-generate` generates the ent schemas from `schema/peeringdb.json`. entgql and entrest generate the GraphQL and REST layers.
   The protobuf definitions in `proto/peeringdb/v1/` are hand-maintained, and `buf generate` makes the Go code from them.
   All six APIs read data through the same ent client.
-- **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite)
-  (pure Go, no cgo) plus [LiteFS](https://fly.io/docs/litefs/) for edge
-  replication
-- **RPC:** [ConnectRPC](https://connectrpc.com/) — gRPC, gRPC-Web, and the
-  Connect protocol on the same handlers
+- **Database:** [`modernc.org/sqlite`](https://pkg.go.dev/modernc.org/sqlite) (pure Go, no cgo) plus [LiteFS](https://fly.io/docs/litefs/) for edge replication
+- **RPC:** [ConnectRPC](https://connectrpc.com/) -- gRPC, gRPC-Web, and the Connect protocol on the same handlers
 - **GraphQL:** [gqlgen](https://gqlgen.com/) wired through entgql
-- **Web UI:** [templ](https://templ.guide/) + [htmx](https://htmx.org/) +
-  Tailwind CSS — zero JavaScript build toolchain
-- **Observability:** [OpenTelemetry](https://opentelemetry.io/) with the
-  stdlib `log/slog` bridge; per-route trace sampling; per-VM runtime metrics
-- **Platform:** [Fly.io](https://fly.io) with an asymmetric `primary` /
-  `replica` process-group fleet
-- **Container base:** [Chainguard](https://www.chainguard.dev/) minimal
-  images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/static`, and
-  `cgr.dev/chainguard/glibc-dynamic` for the LiteFS image)
+- **Web UI:** [templ](https://templ.guide/) + [htmx](https://htmx.org/) + Tailwind CSS -- zero JavaScript build toolchain
+- **Observability:** [OpenTelemetry](https://opentelemetry.io/) with the stdlib `log/slog` bridge; per-route trace sampling; per-VM runtime metrics
+- **Platform:** [Fly.io](https://fly.io) with an asymmetric `primary` / `replica` process-group fleet
+- **Container base:** [Chainguard](https://www.chainguard.dev/) minimal images (`cgr.dev/chainguard/go`, `cgr.dev/chainguard/static`, and `cgr.dev/chainguard/glibc-dynamic` for the LiteFS image)
 
 ## Development
 

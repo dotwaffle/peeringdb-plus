@@ -1,0 +1,3 @@
+# Preserve upstream module strings and license formatting.
+*.mjs -whitespace
+licenses/** -whitespace

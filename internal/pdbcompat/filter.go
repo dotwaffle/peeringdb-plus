@@ -602,6 +602,10 @@ func (st *filterState) addKey(key string, vals []string) error {
 	// key, as get_relation_filters does (2.83.0
 	// serializers.py:618-619).
 	if sd, tail, isSeed := lookupRelationSeed(tc.Name, key); isSeed {
+		if relationFilterExcluded(key) {
+			appendUnknown(ctx, key)
+			return nil
+		}
 		p, ok, empty, err := buildRelationSeedPredicate(tc, sd, tail, vals[0], tier)
 		if err != nil {
 			return fmt.Errorf("filter %s: %w", key, err)
@@ -924,7 +928,7 @@ func applyVisibilityGate(sel *sql.Selector, table string, tier privctx.Tier) {
 // the key. A model field that UpstreamIgnored hides from the local key
 // stays a target (carrierfac?carrier__fac_count=).
 func traversalTargetField(tc TypeConfig, field string) (FieldType, bool) {
-	if tc.NonModelFields[field] {
+	if tc.NonModelFields[field] || modelFilterExcluded(tc.Name, field) {
 		return 0, false
 	}
 	ft, ok := tc.Fields[field]

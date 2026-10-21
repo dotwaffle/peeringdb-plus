@@ -61,21 +61,13 @@ Clients issuing write operations (the on-demand `POST /sync` trigger) are redire
 
 A typical read request flows as follows:
 
-1. Fly.io terminates TLS at the edge
-   and routes the request to the nearest healthy `peeringdb-plus` instance.
-2. The Go HTTP server (`cmd/peeringdb-plus/main.go`) accepts the connection on
-   `:8080` with HTTP/1.1 and h2c (cleartext HTTP/2 for gRPC) enabled.
-3. The middleware chain runs
-   (`Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag`)
-   before dispatching to the mux (`buildMiddlewareChain` in
-   `cmd/peeringdb-plus/server.go`).
+1. Fly.io terminates TLS at the edge and routes the request to the nearest healthy `peeringdb-plus` instance.
+2. The Go HTTP server (`cmd/peeringdb-plus/main.go`) accepts the connection on `:8080` with HTTP/1.1 and h2c (cleartext HTTP/2 for gRPC) enabled.
+3. The middleware chain runs (`Recovery -> MaxBytesBody -> CORS -> OTel HTTP -> Recovery -> Logging -> PrivacyTier -> Readiness -> SecurityHeaders -> CSP -> Caching -> Gzip -> RouteTag`) before dispatching to the mux (`buildMiddlewareChain` in `cmd/peeringdb-plus/server.go`).
 4. The request is dispatched to one of the six API surfaces based on URL path.
 5. The handler reads from the local SQLite file via the ent client.
    Because SQLite is a local file (mounted through LiteFS FUSE), reads never leave the instance.
-6. The response is serialized into the requested wire format
-   (HTML, JSON, Protobuf, GraphQL, OpenAPI JSON)
-   and passes back through the middleware chain for compression,
-   caching headers, and OTel span completion.
+6. The response is serialized into the requested wire format (HTML, JSON, Protobuf, GraphQL, OpenAPI JSON) and passes back through the middleware chain for compression, caching headers, and OTel span completion.
 
 The sync data flow (one cycle per `PDBPLUS_SYNC_INTERVAL`, default `1h` unauthenticated / `15m` authenticated):
 
@@ -93,9 +85,7 @@ The sync data flow (one cycle per `PDBPLUS_SYNC_INTERVAL`, default `1h` unauthen
    The sweep needs the exclusive lock on `.pdbplus-scratch.lock` in the directory, and each process that stages a cycle there holds a shared lock.
    When a cycle cannot get the shared lock, it stages in `os.TempDir()`.
    It also stages in `os.TempDir()` when the directory has less than 512 MiB of free space, so the scratch file does not take the space that LiteFS needs on the primary volume.
-3. A memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT`, default `400MB`) aborts the
-   sync if `runtime.MemStats.HeapAlloc` exceeds the ceiling before the
-   transaction opens.
+3. A memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT`, default `400MB`) aborts the sync if `runtime.MemStats.HeapAlloc` exceeds the ceiling before the transaction opens.
 4. Phase B — apply: the worker opens a single ent transaction and upserts all rows (`internal/sync/upsert.go`), then commits.
    Sync does not infer a tombstone from a row that a list response leaves out.
    A row carries `status="deleted"` when upstream's `?since` response said so, or when it is a live netixlan of a deleted network that upstream no longer has (see [Soft-delete tombstones](#soft-delete-tombstones)).
@@ -133,9 +123,7 @@ The sync transaction writes the next watermark of each type before it commits, s
 - A table that is still empty gets no watermark row.
   A table that was empty before the cycle and holds only rows that FK backfill landed gets the oldest `updated` value of those rows.
   Two backfill requests of one cycle can land rows at different times, so the newest of these rows can be later than a delete of an older one.
-- A held cursor, one that is earlier than the newest row,
-  keeps its watermark when the worker discarded the tombstone window
-  of the type after a failed incremental fetch.
+- A held cursor, one that is earlier than the newest row, keeps its watermark when the worker discarded the tombstone window of the type after a failed incremental fetch.
 
 FK backfill can land a parent row that upstream changed after the fetch of the parent type in the same cycle.
 Before the `sync_watermark` table, the cursor was the newest `updated` value, so it moved past the changes between that fetch and the backfilled row.
@@ -156,13 +144,9 @@ A missing `sync_watermark` table is not an error: the worker uses the newest `up
 
 Observability:
 
-- The `sync-fetch-<type>` span has `pdbplus.sync.cursor` (RFC 3339),
-  `pdbplus.sync.cursor.source` (`watermark`, `max_updated` or `empty`),
-  and `pdbplus.sync.cursor.behind_seconds` for a held cursor.
-- The root span has `pdbplus.sync.watermarks_written` and
-  `pdbplus.sync.watermarks_held`, counted in the transaction.
-- A held cursor logs INFO `sync cursor held behind newest row`
-  before the first request.
+- The `sync-fetch-<type>` span has `pdbplus.sync.cursor` (RFC 3339), `pdbplus.sync.cursor.source` (`watermark`, `max_updated` or `empty`), and `pdbplus.sync.cursor.behind_seconds` for a held cursor.
+- The root span has `pdbplus.sync.watermarks_written` and `pdbplus.sync.watermarks_held`, counted in the transaction.
+- A held cursor logs INFO `sync cursor held behind newest row` before the first request.
 - After the commit, a type whose watermark is earlier than its newest row logs INFO `sync watermark behind backfilled rows`, or WARN `sync watermark kept, tombstone window discarded`.
   When the WARN repeats for a type, the `?since=` requests of that type fail.
 
@@ -228,8 +212,7 @@ Each request is one id window:
   It starts where a window would reach the largest stored id, so it also gets the ids above that id.
 - `ix`, `ixlan`, `net` and `netixlan` windows add `hide_ix_no_fac=0`.
   This turns off the upstream filter that hides exchanges without a facility for a user who set that preference (2.83.0 `rest.py:1267-1297`).
-- `campus` takes one request without `status=deleted`,
-  so it also gets the pending campuses.
+- `campus` takes one request without `status=deleted`, so it also gets the pending campuses.
 - `poc` is not swept.
   Upstream removes poc tombstones after 30 days, and the `?since=` windows of the normal cycles get them before that.
 
@@ -244,25 +227,20 @@ It never deletes a row:
 
 - The windows stage into the scratch database after the normal fetch.
   Phase B upserts them in the same transaction as the rest of the cycle, with the incremental gate: a stored row changes only when the window row has a later `updated`.
-- In scratch, a window row does not replace a row of the normal fetch
-  that has a later `updated`.
+- In scratch, a window row does not replace a row of the normal fetch that has a later `updated`.
 - The sweep drops a window row whose `updated` is later than the newest `updated` value of its table before the cycle.
   Such a row can have changed after the normal fetch of the cycle, and its commit would move the next watermark past the other rows that changed in that gap.
   The next `?since=` fetch gets the row.
 - A stored live row becomes a tombstone when upstream has a tombstone for it with a later `updated`.
   This repairs the rows that full cycles before v1.28.1 turned back into live rows.
   A bare list holds no tombstones, so the daily full cycle cannot repair them.
-- A swept network tombstone with the RIR reclaim signature,
-  for a network that the mirror does not have as deleted,
-  starts class A of the netixlan cascade in the same cycle (see
-  [Class A: RIR reclaim in this cycle](#class-a-rir-reclaim-in-this-cycle)).
+- A swept network tombstone with the RIR reclaim signature, for a network that the mirror does not have as deleted, starts class A of the netixlan cascade in the same cycle (see [Class A: RIR reclaim in this cycle](#class-a-rir-reclaim-in-this-cycle)).
 - FK backfill applies to swept rows.
   A tombstone whose parent is missing uses the `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` cap that the rest of the cycle also uses.
 
 Limits:
 
-- `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` (default 15, `0` turns the sweep
-  off) caps the windows of one cycle.
+- `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` (default 15, `0` turns the sweep off) caps the windows of one cycle.
 - The sweep runs only in incremental cycles.
   A full cycle skips it.
 - The sweep skips a type whose table is empty, as in the first cycle of a new install, and does not mark it done.
@@ -296,12 +274,8 @@ Observability:
 
 - Span `sync-history-sweep` with the attributes `pdbplus.sync.history.{restart,requests,rows,dropped,stop}`.
   `stop` is `budget`, `type_done`, `complete`, `memo`, `zero_cursor` (only types with an empty table are left), `rate_limited` or `error`.
-- Counter `pdbplus.sync.history.requests{type,result}`,
-  where `result` is `ok`, `rate_limited` or `error`.
-- After the commit: INFO `history sweep progress`
-  (`requests`, `rows`, `dropped`, `stop`, `next_type`, `next_id`)
-  when the cycle sent a window, INFO `history sweep complete`
-  when the last type is done, and INFO `history sweep restarted` (`stop`).
+- Counter `pdbplus.sync.history.requests{type,result}`, where `result` is `ok`, `rate_limited` or `error`.
+- After the commit: INFO `history sweep progress` (`requests`, `rows`, `dropped`, `stop`, `next_type`, `next_id`) when the cycle sent a window, INFO `history sweep complete` when the last type is done, and INFO `history sweep restarted` (`stop`).
 
 ### Daily full reconcile
 
@@ -322,10 +296,8 @@ Only a full-mode cycle repairs this data:
   Upstream orders the window by `updated` only and pages it with an offset (2.83.0 `rest.py:738-745`, `:757-760`).
   Rows that share one `updated` value can move across a page edge between two requests, and the cursor then moves past the rows that were skipped.
   Upstream migration `0160_netixlan_not_operational_status` gives about 600 netixlans one `updated` value.
-- Values that upstream set before the mirror stored the field,
-  for example `meta` on `net` and `netixlan`.
-- FK columns that the sync set to `NULL` because the parent was missing,
-  and a newly added `_fold` column.
+- Values that upstream set before the mirror stored the field, for example `meta` on `net` and `netixlan`.
+- FK columns that the sync set to `NULL` because the parent was missing, and a newly added `_fold` column.
 
 With `PDBPLUS_FULL_SYNC_INTERVAL=0` this data stays stale until an operator runs `POST /sync?mode=full` with the `X-Sync-Token` header (`PDBPLUS_SYNC_TOKEN`).
 
@@ -359,8 +331,7 @@ On 2026-09-24 the startup netixlan cascade commit failed with `locking protocol 
 `retryOnLock` (`internal/sync/lockretry.go`) runs these short writes again:
 
 - The `sync_status` INSERT at the start of a cycle.
-- The `sync_status` UPDATE at the end of a cycle, for a success and for a
-  failure.
+- The `sync_status` UPDATE at the end of a cycle, for a success and for a failure.
 - The startup `ReapStaleRunningRows` UPDATE.
 - The startup poc contact scrub transaction.
 - The startup netixlan cascade transaction.
@@ -392,34 +363,20 @@ When the last attempt fails, the caller logs its usual failure line.
 
 ## Key abstractions
 
-- **`ent.Client`** (`ent/client.go`) — Generated ent client;
-  the single entry point for all typed database access across every API surface.
+- **`ent.Client`** (`ent/client.go`) -- Generated ent client; the single entry point for all typed database access across every API surface.
 - **ent schemas** (`ent/schema/`): `{type}.go` files that `cmd/pdb-schema-generate` writes from `schema/peeringdb.json`.
   Do not edit them.
   Hand-written methods live in sibling files (`poc_policy.go`, `{type}_fold.go`, `fold_mixin.go`, `campus_annotations.go`, `pdb_allowlists.go`, `hooks.go`).
-- **`peeringdb.Client`** (`internal/peeringdb/client.go`) —
-  Rate-limit-aware HTTP client for `api.peeringdb.com`;
-  returns a typed `RateLimitError` on HTTP 429
-  so the retry loop honors `Retry-After`.
-- **`sync.Worker`** (`internal/sync/worker.go`) —
-  Two-phase sync orchestrator with scheduler, retry backoff, primary gating,
-  and memory guardrail.
-- **`litefs.IsPrimaryWithFallback`** (`internal/litefs/primary.go`) —
-  Primary detection with inverted-lease-file semantics,
-  a lease-candidate check (`litefs.IsCandidate`),
-  and env var fallback for local dev.
+- **`peeringdb.Client`** (`internal/peeringdb/client.go`) -- Rate-limit-aware HTTP client for `api.peeringdb.com`; returns a typed `RateLimitError` on HTTP 429 so the retry loop honors `Retry-After`.
+- **`sync.Worker`** (`internal/sync/worker.go`) -- Two-phase sync orchestrator with scheduler, retry backoff, primary gating, and memory guardrail.
+- **`litefs.IsPrimaryWithFallback`** (`internal/litefs/primary.go`) -- Primary detection with inverted-lease-file semantics, a lease-candidate check (`litefs.IsCandidate`), and env var fallback for local dev.
 - **`grpcserver.ListEntities[E, P]`** (`internal/grpcserver/generic.go`): Generic paginated list helper parameterized over ent entity and proto message types; used by all 13 ConnectRPC services to avoid per-type duplication.
   The companion `StreamEntities[E, P]` (same file) streams rows in keyset batches.
 - **`middleware.CachingState`** (`internal/middleware/caching.go`): an ETag keyed on the local database version, held behind an atomic pointer.
   It costs one SHA-256 for each version change and none for each request.
   The ETag watcher (`cmd/peeringdb-plus/etag.go`) updates it on every node (see [Middleware chain](#middleware-chain)).
-- **`pdbotel.SetupOutput`** (`internal/otel/provider.go`) —
-  Bundles the OTel shutdown function and `LoggerProvider`
-  so the dual slog handler can bridge log records into the OTel pipeline.
-- **`chainConfig` / `buildMiddlewareChain`** (`cmd/peeringdb-plus/server.go`):
-  Single construction point for the HTTP middleware stack;
-  the wrap order is regression-locked by `TestMiddlewareChain_Order` in
-  `middleware_chain_test.go`.
+- **`pdbotel.SetupOutput`** (`internal/otel/provider.go`) -- Bundles the OTel shutdown function and `LoggerProvider` so the dual slog handler can bridge log records into the OTel pipeline.
+- **`chainConfig` / `buildMiddlewareChain`** (`cmd/peeringdb-plus/server.go`): Single construction point for the HTTP middleware stack; the wrap order is regression-locked by `TestMiddlewareChain_Order` in `middleware_chain_test.go`.
 - **`privfield.Redact`** (`internal/privfield/`) — Single source of truth for field-level redaction.
   Every API serializer that exposes a gated field (e.g. `ixlan.ixf_ixp_member_list_url`) calls `Redact[T any](ctx, visible string, value T) (out T, omit bool)`; unstamped contexts fail-closed to `TierPublic`.
 - **`unifold.Fold`** (`internal/unifold/unifold.go`) — Diacritic-insensitive folding (NFKD + ligature map) used to populate the 16 `<field>_fold` shadow columns spread across 6 entity types.
@@ -503,35 +460,19 @@ deploy/                   # Deployment-adjacent assets (Grafana dashboards, aler
       See [Sibling-file convention](DEVELOPMENT.md#sibling-file-convention-load-bearing) for the rules.
       It is sequenced here, ahead of entc, rather than under `schema/`, because `go generate ./...` visits `ent/` before `schema/` and could not otherwise guarantee the producer runs before the consumer.
    2. `go run entc.go` (`ent/entc.go`), which:
-      - Patches `go-openapi/inflect`
-        and ent's internal inflect rules via `go:linkname` to fix `"campus"` ->
-        `"campu"` mangling.
+      - Patches `go-openapi/inflect` and ent's internal inflect rules via `go:linkname` to fix `"campus"` -> `"campu"` mangling.
       - Configures three ent extensions:
-        - `entgql` — emits `graph/schema.graphqls`
-          and `graph/gqlgen.yml` with Relay spec + where inputs.
-        - `entrest` — emits an OpenAPI-compliant HTTP handler at `ent/rest/`,
-          read-only operations (`OperationRead`, `OperationList`) by default.
+        - `entgql` -- emits `graph/schema.graphqls` and `graph/gqlgen.yml` with Relay spec + where inputs.
+        - `entrest` -- emits an OpenAPI-compliant HTTP handler at `ent/rest/`, read-only operations (`OperationRead`, `OperationList`) by default.
         - `entproto` — configured with `SkipGenFile`, but no ent schema carries an entproto annotation, so it writes nothing.
           `proto/peeringdb/v1/v1.proto` is hand-maintained since v1.6.
-      - Enables the `sql/upsert`, `sql/execquery`, and `privacy` ent features
-        (required by the sync worker's bulk upsert,
-        per-connection `PRAGMA` execution,
-        and the POC privacy policy respectively).
-   3. `cmd/pdb-compat-allowlist` regenerates
-      `internal/pdbcompat/allowlist_gen.go` from `schema.PrepareQueryAllows`
-      declared in `ent/schema/pdb_allowlists.go` (the cross-entity traversal
-      allowlist).
-   4. `buf generate` at the repo root reads `buf.gen.yaml`
-      and invokes `protoc-gen-go` + `protoc-gen-connect-go` to emit Go types
-      and ConnectRPC service interfaces under `gen/peeringdb/v1/`.
+      - Enables the `sql/upsert`, `sql/execquery`, and `privacy` ent features (required by the sync worker's bulk upsert, per-connection `PRAGMA` execution, and the POC privacy policy respectively).
+   3. `cmd/pdb-compat-allowlist` regenerates `internal/pdbcompat/allowlist_gen.go` from `schema.PrepareQueryAllows` declared in `ent/schema/pdb_allowlists.go` (the cross-entity traversal allowlist).
+   4. `buf generate` at the repo root reads `buf.gen.yaml` and invokes `protoc-gen-go` + `protoc-gen-connect-go` to emit Go types and ConnectRPC service interfaces under `gen/peeringdb/v1/`.
 
-2. **`graph/generate.go`** runs `gqlgen generate` to produce the GraphQL
-   resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
+2. **`graph/generate.go`** runs `gqlgen generate` to produce the GraphQL resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
 
-3. **`internal/web/static.go`** runs `templ generate -path templates` to
-   produce the type-safe `*_templ.go` files from `.templ` sources, then
-   `tailwindcss` to build `internal/web/static/tailwind.css` from
-   `internal/web/tailwind.input.css`.
+3. **`internal/web/static.go`** runs `templ generate -path templates` to produce the type-safe `*_templ.go` files from `.templ` sources, then `tailwindcss` to build `internal/web/static/tailwind.css` from `internal/web/tailwind.input.css`.
 
 Tailwind scans every file in `internal/web/templates`, which includes the generated `*_templ.go` files.
 The two directives are in one file, and `go generate` runs them in order, so Tailwind always reads the new `*_templ.go` files and one run converges.
@@ -550,12 +491,10 @@ Mise installs `buf`, `templ`, `gqlgen`, `tailwindcss`, `protoc-gen-go` and `prot
 The HTTP middleware stack is assembled by `buildMiddlewareChain` (`cmd/peeringdb-plus/server.go`).
 Outermost first:
 
-1. **Recovery** (outer, `internal/middleware/recovery.go`):
-   returns a 500 for a panic in MaxBytesBody, CORS or OTel HTTP.
+1. **Recovery** (outer, `internal/middleware/recovery.go`): returns a 500 for a panic in MaxBytesBody, CORS or OTel HTTP.
 2. **MaxBytesBody** (`internal/middleware/maxbody.go`) — Caps non-gRPC request bodies at 1 MB (`maxRequestBodySize`).
    ConnectRPC and gRPC paths are skipped via a hardcoded prefix list to preserve streaming.
-3. **CORS** (`internal/middleware/cors.go`) —
-   Configurable via `PDBPLUS_CORS_ORIGINS` (default `*`).
+3. **CORS** (`internal/middleware/cors.go`) -- Configurable via `PDBPLUS_CORS_ORIGINS` (default `*`).
 4. **OTel HTTP**: `otelhttp.NewMiddleware("peeringdb-plus")` creates a server span for each request and records the standard `http.server.*` metrics.
    It treats every request as a public endpoint, so each request starts a new root span.
    A `traceparent` from the client becomes a span link, so a client cannot set the trace ID or the sampling decision.
@@ -610,8 +549,7 @@ Outermost first:
     From the primary commit, add the LiteFS replication lag.
     A client inside `max-age` does not revalidate, and a client that revalidates in the second between a commit and the ETag change keeps its old body for one more `max-age`.
     A deploy that changes the rendered output without a database write keeps the ETag until the next commit.
-12. **Gzip / Compression** (`internal/middleware/compression.go`):
-    response compression.
+12. **Gzip / Compression** (`internal/middleware/compression.go`): response compression.
 13. **RouteTag** (`cmd/peeringdb-plus/route_tag.go` `routeTagMiddleware`): Innermost wrap; injects `http.route` into the otelhttp labeler AFTER mux dispatch so `r.Pattern` is populated.
     Empty `r.Pattern` (404 traffic) is skipped to avoid `http.route=""` cardinality bloat.
     A request whose User-Agent starts with `synthetic-monitoring-agent/` (Grafana Synthetic Monitoring) also gets `user_agent.synthetic.type=test`, so the dashboard and the availability SLO can leave the probes out.
@@ -670,8 +608,7 @@ This order is a choice of the mirror and does not copy upstream.
 The trailing `id DESC` makes the order deterministic across replicas.
 `cmd/peeringdb-plus/ordering_cross_surface_e2e_test.go` verifies that these two surfaces return the same order, and that pdbcompat returns `id` order on the same data.
 
-- **ConnectRPC** emits the full compound `ORDER BY` directly via ent
-  (the `List<Entity>`/`Stream<Entity>` closures in `internal/grpcserver/*.go`).
+- **ConnectRPC** emits the full compound `ORDER BY` directly via ent (the `List<Entity>`/`Stream<Entity>` closures in `internal/grpcserver/*.go`).
 - **entrest** uses an in-tree template override at `ent/templates/entrest-sorting/sorting.tmpl` because entrest's annotation API is single-field; the template injects `created, id` tie-breakers (in the requested sort direction) whenever the request's sort field matches each schema's declared default (`updated`).
   Explicit `?sort=<field>&order=<dir>` overrides are honoured unchanged.
   The template also takes the sort fields from `restSortableFields`, which leaves out the sorts over the `pocs` edge (see § Privacy layer).
@@ -722,12 +659,9 @@ The pieces:
    Four serializers expose the gated field and call `Redact` at different layers.
    The Web UI and MCP do not expose it.
    To add a gated field, follow [the checklist in DEVELOPMENT.md](DEVELOPMENT.md#adding-a-new-field-level-privacy-gated-field).
-   - **pdbcompat** — `internal/pdbcompat/serializer.go` (the `omit` flag
-     sets a `*string` to nil, and json `,omitempty` removes the key).
-   - **ConnectRPC** — `internal/grpcserver/ixlan.go` (nil
-     `*wrapperspb.StringValue` → wire omission).
-   - **GraphQL** — `graph/schema.resolvers.go` `IxLan.ixfIxpMemberListURL`
-     custom resolver returns `nil` when `omit=true`.
+   - **pdbcompat** -- `internal/pdbcompat/serializer.go` (the `omit` flag sets a `*string` to nil, and json `,omitempty` removes the key).
+   - **ConnectRPC** -- `internal/grpcserver/ixlan.go` (nil `*wrapperspb.StringValue` → wire omission).
+   - **GraphQL** -- `graph/schema.resolvers.go` `IxLan.ixfIxpMemberListURL` custom resolver returns `nil` when `omit=true`.
    - **entrest**: `middleware.RESTFieldRedact` buffers every `/rest/v1/` response except `/rest/v1/openapi.json`.
      It passes non-JSON bodies through unchanged.
      In a JSON body it deletes `ixf_ixp_member_list_url` from each object that has the `ixf_ixp_member_list_url_visible` key, when `privfield.Redact` returns `omit=true`.
@@ -790,9 +724,7 @@ Field-level redaction is per-surface (each serializer calls `privfield.Redact` a
 
 Operator control surface:
 
-- `PDBPLUS_PEERINGDB_API_KEY` — set to enable authenticated sync; absence
-  is still supported (no `Users`-tier rows reach the DB, the filter is a
-  no-op).
+- `PDBPLUS_PEERINGDB_API_KEY` -- set to enable authenticated sync; absence is still supported (no `Users`-tier rows reach the DB, the filter is a no-op).
 - `PDBPLUS_PUBLIC_TIER=users` — elevate anonymous callers to Users-tier for private-instance deployments.
   Logged with WARN at startup; `pdbplus.privacy.tier=users` on read spans.
 
@@ -964,8 +896,7 @@ Limits:
   This includes a 5xx after the retries, a 4xx and a body that does not decode.
   The pass continues with the next chunk only when the chunk before the failed one succeeded.
   So a chunk with one bad id does not stop the others, and an endpoint that fails every request gets one request in each pass.
-- When the candidates need more requests than the limit,
-  the worker defers the rest and logs a WARN.
+- When the candidates need more requests than the limit, the worker defers the rest and logs a WARN.
 - Each sync attempt (a retry is a new attempt) and each primary start runs a pass.
   In the worst case, a pass sends as many requests as the limit above, each with up to 3 tries for a 5xx, and takes 2 minutes.
 
@@ -1023,9 +954,7 @@ Upstream gets about 3 requests at the first start after the upgrade, none in a n
   `waiting` counts the `deleted` verdicts that the pass leaves for the first cycle, at startup or when the cursor read failed.
   The level is DEBUG when the pass sent no request and nothing failed, INFO when it sent requests, and WARN when `failed` or `deferred` is more than 0.
   `waiting` does not change the level.
-- `WARN "netixlan cascade verification failed, cascade deferred"`
-  with `mode`, `error`, `requests`, `failed` and `deferred`,
-  once for each pass, with the first error.
+- `WARN "netixlan cascade verification failed, cascade deferred"` with `mode`, `error`, `requests`, `failed` and `deferred`, once for each pass, with the first error.
 - The `sync-verify-netixlan-cascade` span carries `pdbplus.sync.netixlan_verify.{candidates,memo_hits,backoff,requests,absent,live,deleted,staged,failed,deferred,waiting}`.
   The `sync-cascade-netixlan-deletes` span carries `pdbplus.sync.netixlans_cascaded` and `pdbplus.sync.netixlans_cascaded_backlog`.
   They count the rows that the `UPDATE` statements changed in the transaction.
@@ -1049,8 +978,7 @@ How to read the logs:
   One such line is normal after a class-A miss, a deferral, or a row that a stale cache inserted.
   The same network ids every day are not normal.
 - `live` more than 0: upstream-live orphans, checked again about once a day.
-- `failed` more than 0 again and again with the same `failed_ids`:
-  upstream fails on that id.
+- `failed` more than 0 again and again with the same `failed_ids`: upstream fails on that id.
 
 LogQL for these lines (the attributes are structured metadata, so the queries need no parser):
 
@@ -1085,8 +1013,7 @@ These cases stay open:
   The netixlans of the old owner stay deleted or removed upstream.
   When the undelete came before the mirror marked those netixlans, for example for a network reclaimed before v1.28.2, the network is `ok` in the mirror.
   Only networks with `status='deleted'` give candidates, so the netixlans that `pdb_rir_status` removed stay live on every surface.
-- An upstream-live orphan that upstream removes later stays live for up to
-  24 hours and one cycle, until its `live` memo entry expires.
+- An upstream-live orphan that upstream removes later stays live for up to 24 hours and one cycle, until its `live` memo entry expires.
 
 ## Shadow-column folding
 
@@ -1109,12 +1036,7 @@ Two paths resolve the target field:
 - **Path A (allowlist)** — `internal/pdbcompat/allowlist_gen.go`, regenerated by `cmd/pdb-compat-allowlist` from `schema.PrepareQueryAllows` declared in `ent/schema/pdb_allowlists.go`.
   A comment above each entry cites the upstream `peeringdb_server/serializers.py:<line>` that the entry derives from, usually `<Serializer>.prepare_query`, or `related_fields` / `queryable_relations` when the serializer has no `prepare_query` list.
   The citations are for audit.
-- **Path B (ent-edge introspection)** —
-  `internal/pdbcompat/introspect.go` walks codegen-time static maps
-  (`LookupEdge` / `ResolveEdges` / `TargetFields`)
-  instead of runtime `client.Schema.Tables` —
-  the `cmd/pdb-compat-allowlist` step emits the maps from the same schema source
-  as Path A, avoiding init-order coupling.
+- **Path B (ent-edge introspection)** -- `internal/pdbcompat/introspect.go` walks codegen-time static maps (`LookupEdge` / `ResolveEdges` / `TargetFields`) instead of runtime `client.Schema.Tables` -- the `cmd/pdb-compat-allowlist` step emits the maps from the same schema source as Path A, avoiding init-order coupling.
 
 The presence keys of an upstream `prepare_query` (`net?not_ix=`, `fac?all_net=`, `ix?org_present=`) resolve first, through `presenceKeys` in `internal/pdbcompat/presence_filter.go` ([API.md § Presence filters](./API.md#presence-filters)).
 The `ix` key `ipblock` (`ix?ipblock=`) resolves next, through `lookupIPBlockKey` in `internal/pdbcompat/ipblock_filter.go`: a text prefix match on the ixpfx prefix through `ix_lans.ix_id` ([API.md § IP block filter](./API.md#ip-block-filter)).
@@ -1141,11 +1063,8 @@ LiteFS uses an *inverted* lease file: the presence of `/litefs/.primary` indicat
 1. If `/litefs/.primary` exists, this node is a replica (`false`).
 2. If the stat of `/litefs/.primary` fails with any error other than "does not exist", the node is a replica (`false`), and a WARN is logged.
    A wrong primary would run destructive migrations.
-3. If `/litefs/` (the parent directory) exists,
-   LiteFS is mounted and no primary file means this node holds the lease
-   (`true`).
-4. Otherwise (no LiteFS, as in local dev),
-   parse the `PDBPLUS_IS_PRIMARY` env var (default `true`).
+3. If `/litefs/` (the parent directory) exists, LiteFS is mounted and no primary file means this node holds the lease (`true`).
+4. Otherwise (no LiteFS, as in local dev), parse the `PDBPLUS_IS_PRIMARY` env var (default `true`).
 
 Startup fails if `PDBPLUS_IS_PRIMARY` is set but does not parse as a boolean (`litefs.ValidateEnvFallback`).
 
@@ -1219,36 +1138,24 @@ Boundary rule: prefixes that end in an alphanumeric character (e.g. `/api`) requ
 
 Span batching uses the OTel SDK batch-processor defaults (5s schedule delay, 512 max export batch size): `internal/otel/provider.go` calls `sdktrace.WithBatcher(spanExporter)` without overriding either, so both remain operator-tunable via the standard `OTEL_BSP_SCHEDULE_DELAY` / `OTEL_BSP_MAX_EXPORT_BATCH_SIZE` autoexport env vars.
 
-- **`MeterProvider`** — Exposes standard `http.server.*` metrics
-  (from otelhttp)
-  and custom sync metrics bound at package init in
-  `internal/otel/metrics.go` (`BindInstruments`; instruments created
-  before `SetMeterProvider` delegate to the real provider once main
-  wires it):
+- **`MeterProvider`** -- Exposes standard `http.server.*` metrics (from otelhttp) and custom sync metrics bound at package init in `internal/otel/metrics.go` (`BindInstruments`; instruments created before `SetMeterProvider` delegate to the real provider once main wires it):
   - `pdbplus.sync.duration` (histogram) — buckets 1/5/10/30/60/120/300 seconds.
-  - `pdbplus.sync.operations` (counter): attributes `status`
-    (`success`, `failed`) and `mode` (`full`, `incremental`).
+  - `pdbplus.sync.operations` (counter): attributes `status` (`success`, `failed`) and `mode` (`full`, `incremental`).
   - `pdbplus.sync.type.objects` (counter) — per-type object counts.
     The worker adds the counts of a cycle only after its transaction commits.
     A cycle that rolls back adds nothing.
   - `pdbplus.sync.type.deleted` (counter): rows that sync marks deleted itself, by `type`.
     Only the netixlan cascade emits it (see [Netixlan cascade of deleted networks](#netixlan-cascade-of-deleted-networks)).
-  - `pdbplus.sync.type.fetch_errors` / `upsert_errors` / `fallback` / `orphans`
-    (counters).
+  - `pdbplus.sync.type.fetch_errors` / `upsert_errors` / `fallback` / `orphans` (counters).
   - `pdbplus.sync.fk_backfill` (counter): FK backfill attempts by `result`.
-  - `pdbplus.sync.lock_retries` (counter): retries of short primary writes
-    after a SQLite lock error, by `op`
-    (see [Lock-error retry of short writes](#lock-error-retry-of-short-writes)).
-  - `pdbplus.peeringdb.requests` and `pdbplus.peeringdb.retries` (counters)
-    and `pdbplus.peeringdb.rate_limit_wait_ms` (histogram): upstream calls.
+  - `pdbplus.sync.lock_retries` (counter): retries of short primary writes after a SQLite lock error, by `op` (see [Lock-error retry of short writes](#lock-error-retry-of-short-writes)).
+  - `pdbplus.peeringdb.requests` and `pdbplus.peeringdb.retries` (counters) and `pdbplus.peeringdb.rate_limit_wait_ms` (histogram): upstream calls.
   - `pdbplus.role.transitions` (counter) — LiteFS promote/demote events.
   - `pdbplus.csp.reports` (counter): CSP violation reports by `directive` (a known directive name, else `other`).
-  - `pdbplus.build.info` (gauge, `InitBuildInfoGauge`): the value 1 with
-    the attribute `service.version`, on every machine.
+  - `pdbplus.build.info` (gauge, `InitBuildInfoGauge`): the value 1 with the attribute `service.version`, on every machine.
   - `pdbplus.data.type.count` (gauge, `InitObjectCountGauges`): object count per type, from an atomic cache that each successful sync updates, so no request runs a live `COUNT(*)`.
     Only the primary reports it: the cache of a replica is never updated.
-  - `pdbplus.sync.freshness` (gauge, seconds, `InitFreshnessGauge`):
-    time since the last successful sync, read from the `sync_status` table.
+  - `pdbplus.sync.freshness` (gauge, seconds, `InitFreshnessGauge`): time since the last successful sync, read from the `sync_status` table.
   - `pdbplus.scratch.free` (gauge, bytes, `InitScratchFreeGauge`): the free space of the file system of `PDBPLUS_SCRATCH_DIR` (statfs at each collection; registered only when the setting is not empty).
     On Fly.io the directory of the primary is on its LiteFS volume.
     No value when statfs fails, for example on a machine where the directory does not exist yet.
@@ -1258,9 +1165,7 @@ Span batching uses the OTel SDK batch-processor defaults (5s schedule delay, 512
   - The LiteFS metrics are not app instruments.
     Fly.io scrapes the LiteFS metrics endpoint of each machine (`[[metrics]]` in `fly.toml`, port 20202) into the Fly.io managed Prometheus, as `litefs_*` series with the labels `app`, `instance`, `region` and `host`; `litefs_is_primary` tells the primary from the replicas.
     LiteFS 0.5 creates `litefs_db_commit_count`, `litefs_db_ltx_bytes`, `litefs_db_ltx_count` and `litefs_db_lag_seconds` only at the first commit, LTX apply or retention pass after it starts, and never increments `litefs_http_frame_send_count`.
-  - Per-request response heap-delta histogram
-    (`pdbplus.response.heap_delta`, exported to Prometheus as
-    `pdbplus_response_heap_delta_bytes`).
+  - Per-request response heap-delta histogram (`pdbplus.response.heap_delta`, exported to Prometheus as `pdbplus_response_heap_delta_bytes`).
 
   Explicit views reshape instruments for cost control: `http.server.request.body.size` and `http.server.response.body.size` are dropped (low debugging value, high cardinality), and `http.server.request.duration` is capped at a 5-boundary bucket set and keeps only the `http.route`, `http.response.status_code`, `network.protocol.version` and `user_agent.synthetic.type` attributes.
   The ConnectRPC interceptor records no `rpc.server.*` metrics (`otelconnect.WithoutMetrics()`); `http.server.request.duration` covers ConnectRPC latency, with one `http.route` value per service.
@@ -1373,8 +1278,7 @@ At 128 MiB, that is 209,715 entries.
 
 ### Request lifecycle
 
-1. Client sends `GET /api/<type>?<filters>&limit=0` (or any other
-   combination that could produce a large response).
+1. Client sends `GET /api/<type>?<filters>&limit=0` (or any other combination that could produce a large response).
 2. The handler parses filters, `?since`, `limit` and `skip`.
 3. **Pre-flight count:** the handler runs `tc.Count(ctx, client, opts)`, a filtered `SELECT COUNT(*)` using the same predicate chain as the upcoming `tc.List` call.
    Both closures are produced by the generic `wireEntity` helper from a single shared predicate builder, so the budget check and the served response can never disagree on filter semantics.
@@ -1386,9 +1290,7 @@ At 128 MiB, that is 209,715 entries.
 5. `tc.List` loads the result rows.
    A `?depth=` list of a type with sets loads its rows in chunks of 250 ids (`tc.ListDepth`) and renders one row at a time as the stream pulls it.
    The first chunk loads before the first byte is sent.
-6. `StreamListResponse` emits the envelope token-by-token with
-   `http.Flusher.Flush()` every 100 rows, bounding intermediate
-   allocations.
+6. `StreamListResponse` emits the envelope token-by-token with `http.Flusher.Flush()` every 100 rows, bounding intermediate allocations.
 
 **Global admission (shared in-flight pool).**
 The per-request check treats each request in isolation, so two concurrent near-budget responses could jointly materialise ~2× the budget.
@@ -1421,8 +1323,7 @@ A detail request with filter keys checks the row first (one primary-key query); 
 Streaming + budget apply to **pdbcompat only**.
 Other surfaces have their own memory stories:
 
-- **grpcserver** already streams via batched keyset pagination
-  (500-row chunks) through `StreamEntities`; no slice materialisation.
+- **grpcserver** already streams via batched keyset pagination (500-row chunks) through `StreamEntities`; no slice materialisation.
 - **entrest** pages with `page` and `per_page` (at most 100 top-level rows per page).
   Each eager-loaded edge list is limited to 1000 rows per page.
   `RESTFieldRedact` buffers one page at a time.
@@ -1441,14 +1342,8 @@ Adding a new entity type requires:
 
 1. `internal/pdbcompat/rowsize.go` — add a `typicalRowBytes` entry with `Depth0` + `Depth2` (run `go test -run=NONE -bench=BenchmarkRowSize ./internal/pdbcompat -benchtime=20x -count=3` against a seeded fixture, double the measured mean, round UP to the nearest 64 bytes).
    Follow the procedure in the `typicalRowBytes` godoc.
-2. `internal/pdbcompat/registry_funcs.go` — add a `wireEntity` entry to
-   `init()` naming the entity's query constructor, serializer, and depth
-   getter (the generic helper preserves the `applyStatusMatrix` and
-   `EmptyResult` invariants and derives List and Count from one shared
-   predicate builder).
+2. `internal/pdbcompat/registry_funcs.go` -- add a `wireEntity` entry to `init()` naming the entity's query constructor, serializer, and depth getter (the generic helper preserves the `applyStatusMatrix` and `EmptyResult` invariants and derives List and Count from one shared predicate builder).
 3. New row in the per-entity sizing table above.
-4. Extend `internal/pdbcompat/stream_integration_test.go` with an
-   under-budget smoke case and an over-budget 413 assertion mirroring
-   `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
+4. Extend `internal/pdbcompat/stream_integration_test.go` with an under-budget smoke case and an over-budget 413 assertion mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
 
 See `internal/pdbcompat/stream.go`, `rowsize.go`, `budget.go`, and `telemetry.go` for the reference implementation.

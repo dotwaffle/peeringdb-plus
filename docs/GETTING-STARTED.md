@@ -17,7 +17,7 @@ For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 | C compiler (gcc or clang) | any recent | Only for the race-detector tests in `mise run test` and `mise run check`. The server build does not use cgo. |
 | A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
-Mise installs Go 1.27.2 and every contributor tool, including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum, golangci-lint, and govulncheck.
+Mise installs Go 1.27.3 and every contributor tool, including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum, golangci-lint, and govulncheck.
 The committed lockfile records exact tool versions and release checksums.
 
 The server does not need cgo.
@@ -65,9 +65,7 @@ With no configuration, the binary uses the defaults from `internal/config/config
 - Listens on `:8080`.
   The listener accepts HTTP/1.1 and h2c (HTTP/2 without TLS). gRPC clients need h2c.
 - Stores data in `./peeringdb-plus.db` in the current working directory.
-- Syncs from `https://api.peeringdb.com` with a 1-hour interval (15 minutes if
-  `PDBPLUS_PEERINGDB_API_KEY` is set — the authenticated rate-limit budget
-  comfortably absorbs the 4× frequency).
+- Syncs from `https://api.peeringdb.com` with a 1-hour interval (15 minutes if `PDBPLUS_PEERINGDB_API_KEY` is set -- the authenticated rate-limit budget comfortably absorbs the 4× frequency).
 - Uses sync mode `incremental`.
   On an empty database, the first sync is always a full fetch.
   A full fetch also runs every `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`).
@@ -250,8 +248,8 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
 
 ## Common setup issues
 
-- **`go: go.mod requires go >= 1.27.2`** — Run `mise install --locked`.
-  `go.mod` pins Go 1.27.2; `mise.toml` tracks the 1.27 line and `mise.lock` holds the exact patch.
+- **`go: go.mod requires go >= 1.27.3`** — Run `mise install --locked`.
+  `go.mod` pins Go 1.27.3; `mise.toml` tracks the 1.27 line and `mise.lock` holds the exact patch.
 - **`/readyz` stays 503.**
   Look for `sync failed, retrying` and `sync cycle failed` in the server log.
   A failed sync tries again after 30 seconds, 2 minutes, and 8 minutes.
@@ -285,16 +283,12 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
 
 ## Next steps
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): system overview, component diagram,
-  data flow, and the key abstractions you'll touch when making changes.
-- [CONFIGURATION.md](CONFIGURATION.md): the full list of environment variables,
-  including OpenTelemetry, LiteFS, and Fly.io-specific knobs not covered here.
-- [API.md](API.md): surface-by-surface contract notes, including documented
-  divergences from upstream PeeringDB.
+- [ARCHITECTURE.md](ARCHITECTURE.md): system overview, component diagram, data flow, and the key abstractions you'll touch when making changes.
+- [CONFIGURATION.md](CONFIGURATION.md): the full list of environment variables, including OpenTelemetry, LiteFS, and Fly.io-specific knobs not covered here.
+- [API.md](API.md): surface-by-surface contract notes, including documented divergences from upstream PeeringDB.
 - `cmd/peeringdb-plus/main.go`: the HTTP wiring, middleware chain, and graceful shutdown logic.
   Good entry point for understanding how requests flow through the binary.
 - `schema/peeringdb.json` and `ent/schema/`: the curated PeeringDB schema and the entgo schemas generated from it.
   Hand-edited methods are in sibling files, for example `ent/schema/poc_policy.go`.
   Code generation builds the ent client and the GraphQL and REST layers from these schemas.
-- `internal/sync/`: the PeeringDB sync worker, including full vs incremental
-  modes and the memory guardrail.
+- `internal/sync/`: the PeeringDB sync worker, including full vs incremental modes and the memory guardrail.

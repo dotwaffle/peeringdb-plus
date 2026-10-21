@@ -73,7 +73,7 @@ func upstreamFieldName(field string) string {
 //
 // A key in tc.UpstreamIgnored is unknown, as upstream ignores it.
 func resolveLocalField(tc TypeConfig, field string) (string, FieldType, bool) {
-	if tc.UpstreamIgnored[field] {
+	if tc.UpstreamIgnored[field] || modelFilterExcluded(tc.Name, field) {
 		return "", 0, false
 	}
 	if ft, ok := tc.Fields[field]; ok {
