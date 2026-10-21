@@ -1,0 +1,74 @@
+[
+  {
+    "file": "e8425f059c96b044.mjs",
+    "url": "https://esm.sh/monaco-editor@0.52.2/es2022/esm/vs/editor/editor.worker.mjs",
+    "upstreamIntegrity": "sha384-LGEq3INvprDIOq155tYHwcyn18nE587u4Jl2VOXcinETPKXLOMBqQIflEIMiiiW8",
+    "integrity": "sha384-1h29/LwzmbYXE43PTXVteCCg1N8mx+veYHWOewTY9xhXy/DzhiBsJHJhhBzkGwLB"
+  },
+  {
+    "file": "9d3493270fc89c07.mjs",
+    "url": "https://esm.sh/node/process.mjs",
+    "upstreamIntegrity": "sha384-rSvZxzbQlvnecvHZ7q2RoZAz4OR+c4t5H4NC7JNLYb6YxMjWbwnfBKxYC3H1N5tK",
+    "integrity": "sha384-iw74GJT2eCXsAFEf5tLzFW8CAYEJKyxNQowK+Wsf+XdjFzZqqpV3MxO7g84eNm3+"
+  },
+  {
+    "file": "4482af8fc17462a7.mjs",
+    "url": "https://esm.sh/node/events.mjs",
+    "upstreamIntegrity": "sha384-dwszbvTvRSGJ4nBlT4YJ6JG+pkZTOkgDTmChKqVSVRZ3kWt8IGUwM3TLfQcUEojH",
+    "integrity": "sha384-dIC/cy8Kiv1IrLcXxYzt9OSDepU9ihXQXxfMXVH6dQvl2foKtgBJ+Vv2GTU0fQoN"
+  },
+  {
+    "file": "5a6b2a422712fc8f.mjs",
+    "url": "https://esm.sh/node/async_hooks.mjs",
+    "upstreamIntegrity": "sha384-hZODh/PQnvY3IF4FtNJuW8kv34D4KD12zn8PxDV/msb6KqlrEKUpEeiC2EfP9ezY",
+    "integrity": "sha384-hZODh/PQnvY3IF4FtNJuW8kv34D4KD12zn8PxDV/msb6KqlrEKUpEeiC2EfP9ezY"
+  },
+  {
+    "file": "54186365b6107d9b.mjs",
+    "url": "https://esm.sh/node/tty.mjs",
+    "upstreamIntegrity": "sha384-DR5Ni3oJ346E4ymxfySw8VOMWcxgxPCo7jnsB+WzPi0LWP8PHqsttFCylJsUOH4g",
+    "integrity": "sha384-DR5Ni3oJ346E4ymxfySw8VOMWcxgxPCo7jnsB+WzPi0LWP8PHqsttFCylJsUOH4g"
+  },
+  {
+    "file": "07aa32f158d0c602.mjs",
+    "url": "https://esm.sh/monaco-editor@0.52.2/es2022/esm/vs/language/json/json.worker.bundle.mjs",
+    "upstreamIntegrity": "sha384-YqhX6pU7lvIoEheXKChO9PKTdwoTMnDyf4ISt1xB6PG/AY8EYunOE4GQJuv9WGri",
+    "integrity": "sha384-qOwUGIuho3Xc8XiLMdtCTNI2L5QJKPkTWI/D3O4K1R5CTk393DfyRGbeLW1lB5rI"
+  },
+  {
+    "file": "f1ffcb013dc52c99.mjs",
+    "url": "https://esm.sh/monaco-graphql@1.9.0/X-ZGdyYXBocWxAMTYuMTQuMixtb25hY28tZWRpdG9yQDAuNTIuMixwcmV0dGllckAzLjkuMTA/es2022/esm/graphql.worker.bundle.mjs",
+    "upstreamIntegrity": "sha384-LEPqaQ89h8cLHboECj0W6NhE7cYEm/tzXHPzr7INm6XAIEwji488Mx1GCEEdfoYU",
+    "integrity": "sha384-nfweE2nEw3ywNdujiHH/y/hdLnO3NTeCyPn1vI5e040x1I6WbRHvQzza6sqD6rxk"
+  },
+  {
+    "file": "912dec9229588774.mjs",
+    "url": "https://esm.sh/graphql@16.14.2/es2022/graphql.mjs",
+    "upstreamIntegrity": "sha384-K3ARQkEcUXaFMLUFyzrze/Kt3W1CtpUjq0TOk1Ean+4xkCOb27HURRmwMfvqDeB/",
+    "integrity": "sha384-slDb3c6GaQsM9dC5gBh7Spxceo/CgOTxJO/T2XemVInnmzoS4T32DeVM/jmFoyKc"
+  },
+  {
+    "file": "603a20819fcb2d02.mjs",
+    "url": "https://esm.sh/monaco-editor@0.52.2/es2022/esm/vs/editor/common/standalone/standaloneEnums.mjs",
+    "upstreamIntegrity": "sha384-ffeRj63xzIYyZTP/NU7LJOLFfateO4Xe5jGaPVSWmz2FkeNTkZNpesWGpUhYfHta",
+    "integrity": "sha384-oP5oCF40rhUWI9Rkrkbv5IVsVDMZH4B3bnzTsHST41iabH77rhKwzsDMGweyCJd6"
+  },
+  {
+    "file": "ee7adc8e766d5565.mjs",
+    "url": "https://esm.sh/prettier@3.9.10/es2022/standalone.mjs",
+    "upstreamIntegrity": "sha384-4m9/3x8yY3KOwV0Ygn42v571cvoRkxGcEk2VxMBfhV2uQ6PeskT9ZS0JrMtjw90a",
+    "integrity": "sha384-PEEE0GW+taqL6mvJ7kyoR90z/fdsEYbDGjaptC3kWFL0hd0d/08WJIIS1oZQ9JpQ"
+  },
+  {
+    "file": "3ed08ebb8df5948a.mjs",
+    "url": "https://esm.sh/prettier@3.9.10/es2022/prettier.mjs",
+    "upstreamIntegrity": "sha384-J3RXIASwi9PUAkTPs4bM5O6zctsHEIfm14jpHDLkoe8VK77HS6CQCL8865JKQwuV",
+    "integrity": "sha384-pivo2pIuE4YK+e2JHQWytnNrshusUYVeqYGc/WrPl8wKYtmVdQ+u7Eba/qqT8rLc"
+  },
+  {
+    "file": "6f7c652d9f2f9b80.mjs",
+    "url": "https://esm.sh/prettier@3.9.10/es2022/parser-graphql.mjs",
+    "upstreamIntegrity": "sha384-W/x+BXZYykEX2QNSeER8J1PbRJ4ovuPyne/IMlsMC+GreSYNdLG2G8kjxZRPs3f3",
+    "integrity": "sha384-8BFUuVpT/bY6IPNNYat6QCUckjQSBF2Pvl/YsiGhqsLsXt7Ye8HC4dz/q458EN2K"
+  }
+]

@@ -70,6 +70,51 @@ Code-change-relevant directories:
 | `schema/` | Hand-curated `peeringdb.json` (the schema source of truth) |
 | `testdata/fixtures/` | JSON fixtures for 13 PeeringDB entity types, used by sync tests |
 
+## GraphQL playground assets
+
+The Go handler serves the GraphiQL 5 editor at `/graphql`.
+The main Web UI uses templ and htmx.
+The editor requires Chrome 127+, Firefox 138+, or Safari 18+ for import-map integrity support.
+Older browsers can ignore the module integrity map and are unsupported for this editor.
+
+`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 5.4.0.
+It uses GraphQL.js 16.14.2 to keep the editor on GraphQL 16 semantics.
+Each CDN module has a SHA-384 digest, including modules imported by other modules.
+The stylesheet has its own integrity attribute.
+The explicit `es2022` URLs prevent the CDN from selecting different bytes for different browser user agents.
+
+Monaco 0.52.2 matches the `@graphiql/react` dependency and the `monaco-graphql` peer range.
+Browsers do not accept an integrity option for worker scripts.
+The Go binary therefore embeds the worker modules and their dependencies from `internal/graphql/assets/`.
+The handler serves these files at `/graphql/assets/`.
+The vendored modules total about 1.12 MB, or 339 KB with gzip.
+The `licenses/` directory contains their license texts and third-party notices and is also embedded.
+
+To update these assets:
+
+1. Check the [GraphiQL migration guide](https://github.com/graphql/graphiql/blob/main/docs/migration/graphiql-5.0.0.md) and [CDN example](https://github.com/graphql/graphiql/blob/main/examples/graphiql-cdn/index.html).
+2. Select exact package versions and use the `es2022` CDN target.
+   Keep React and ReactDOM on the same version.
+   Check the Monaco peer constraints before changing its version.
+3. Download each CDN module and inspect its imports, including dynamic imports.
+   Pin each imported module and compute its SHA-384 digest from the response bytes.
+   Update the import map and stylesheet integrity in `playground.html`.
+4. Download the worker sources listed in `assets/sources.json`.
+   That manifest records each source URL, its upstream digest, and its served-file digest.
+   Map static imports to local filenames from the manifest and remove source-map directives.
+   Keep the worker dependency graph local.
+   Recompute the served-file digests after rewriting imports.
+5. Update the manifest and the upstream licenses in `assets/licenses/`.
+   Check the upstream source maps for bundled dependencies that need additional notices.
+6. Test the editor with a local fixture endpoint and an enforcing GraphQL CSP.
+   Verify introspection, queries, variables, headers, worker diagnostics, and documentation browsing.
+   Alter a CDN response in the browser test and confirm that integrity blocks it.
+   Verify that a blocked worker prevents worker diagnostics.
+
+No npm build runs during Go generation or deployment.
+The GraphQL CSP in `cmd/peeringdb-plus/main.go` allows the pinned CDN and same-origin workers.
+`PDBPLUS_CSP_ENFORCE` continues to control report-only versus enforcing mode.
+
 ## Build commands
 
 | Command | Description |
