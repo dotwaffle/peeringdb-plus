@@ -8,6 +8,25 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-10-21
+
+### Changed
+
+- Match PeeringDB 2.84.0 filter rules.
+  Contact name, phone, email and URL filters are ignored locally and through traversal.
+  Relation filters apply the expanded private-field exclusions and accept only exact ID aliases for repeated prefixes.
+  Contact output and visibility rules remain unchanged.
+- Upgrade the GraphQL editor to GraphiQL 5.4.0 and React 19.3.1.
+  CDN modules have integrity checks, and Monaco workers are embedded locally.
+  The GraphQL CSP no longer needs `unsafe-eval`.
+  The editor requires Chrome 127+, Firefox 138+, or Safari 18+ for module integrity support.
+- Upgrade Go to 1.27.3, SQLite to 1.61.0 with libc 1.79.0, and gqlgen to 0.17.97.
+  Update Buf, golangci-lint, rumdl, the CI mise pin, and flag-icons.
+
+### Security
+
+- Go 1.27.3 fixes GO-2026-6809 in certificate verification, which the upstream HTTP client reaches.
+
 ## [1.42.1] - 2026-10-16
 
 ### Fixed
@@ -1437,7 +1456,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.42.1...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.0...HEAD
+[1.43.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.42.1...v1.43.0
 [1.42.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.42.0...v1.42.1
 [1.42.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.41.0...v1.42.0
 [1.41.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.40.0...v1.41.0
