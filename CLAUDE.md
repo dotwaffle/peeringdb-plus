@@ -10,7 +10,7 @@ Built in Go using entgo as the ORM.
 
 ### Constraints
 
-- **Language**: Go 1.27.2
+- **Language**: Go 1.27.3
 - **ORM**: entgo (non-negotiable — ecosystem drives GraphQL/gRPC/REST generation)
 - **Storage**: SQLite + LiteFS (enables edge distribution without a central database)
 - **Platform**: Fly.io (LiteFS dependency, global edge deployment)

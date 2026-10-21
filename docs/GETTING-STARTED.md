@@ -17,7 +17,7 @@ For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
 | C compiler (gcc or clang) | any recent | Only for the race-detector tests in `mise run test` and `mise run check`. The server build does not use cgo. |
 | A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
-Mise installs Go 1.27.2 and every contributor tool, including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum, golangci-lint, and govulncheck.
+Mise installs Go 1.27.3 and every contributor tool, including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum, golangci-lint, and govulncheck.
 The committed lockfile records exact tool versions and release checksums.
 
 The server does not need cgo.
@@ -250,8 +250,8 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
 
 ## Common setup issues
 
-- **`go: go.mod requires go >= 1.27.2`** — Run `mise install --locked`.
-  `go.mod` pins Go 1.27.2; `mise.toml` tracks the 1.27 line and `mise.lock` holds the exact patch.
+- **`go: go.mod requires go >= 1.27.3`** — Run `mise install --locked`.
+  `go.mod` pins Go 1.27.3; `mise.toml` tracks the 1.27 line and `mise.lock` holds the exact patch.
 - **`/readyz` stays 503.**
   Look for `sync failed, retrying` and `sync cycle failed` in the server log.
   A failed sync tries again after 30 seconds, 2 minutes, and 8 minutes.

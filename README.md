@@ -51,7 +51,7 @@ See [`docs/API.md`](docs/API.md) for each API, with filter semantics, ordering, 
 
 ### Local (Go)
 
-You need Go 1.27.2 or later.
+You need Go 1.27.3 or later.
 You can also use mise, as shown in [Development](#development).
 
 ```bash
@@ -205,7 +205,7 @@ The server also reads the standard `OTEL_*` environment variables through OpenTe
 
 ## Technology
 
-- **Language:** Go 1.27.2
+- **Language:** Go 1.27.3
 - **ORM / codegen:** [entgo](https://entgo.io/).
   `cmd/pdb-schema-generate` generates the ent schemas from `schema/peeringdb.json`. entgql and entrest generate the GraphQL and REST layers.
   The protobuf definitions in `proto/peeringdb/v1/` are hand-maintained, and `buf generate` makes the Go code from them.

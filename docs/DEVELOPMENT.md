@@ -14,7 +14,7 @@ For environment variables and runtime configuration, see [CONFIGURATION.md](CONF
   `mise run check` runs `mise run test`.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
-Mise installs Go 1.27.2 and all contributor tools from the committed cross-platform lockfile.
+Mise installs Go 1.27.3 and all contributor tools from the committed cross-platform lockfile.
 
 The SQLite driver (`modernc.org/sqlite`) is pure Go.
 The server binary does not need cgo, and the Docker images build with `CGO_ENABLED=0`.
