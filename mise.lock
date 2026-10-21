@@ -29,31 +29,31 @@ url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/3849248
 provenance = "github-attestations"
 
 [[tools.buf]]
-version = "1.73.0"
+version = "1.74.0"
 backend = "aqua:bufbuild/buf"
 
 [tools.buf."platforms.linux-arm64"]
-checksum = "sha256:e928fa64061ddb5144d93df30fe48f3451231b0e77ea5ade684cb7b53037cc66"
-url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Linux-aarch64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280183"
+checksum = "sha256:54a5d5500992deb3239bfee61c9f0ef7646b6f6b231d2c255fdfc16eeb50564c"
+url = "https://github.com/bufbuild/buf/releases/download/v1.74.0/buf-Linux-aarch64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/641110968"
 provenance = "minisign"
 
 [tools.buf."platforms.linux-x64"]
-checksum = "sha256:f8092c1be08d5606a8d22b4ae0e4079dd690154cebb4894dc5e24a5046093aff"
-url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280270"
+checksum = "sha256:cc482285b2c388c93f8bed0a972330695c1c8dd121d5ece460d25ceed93f21ac"
+url = "https://github.com/bufbuild/buf/releases/download/v1.74.0/buf-Linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/641111222"
 provenance = "minisign"
 
 [tools.buf."platforms.macos-arm64"]
-checksum = "sha256:7eb1b167b729815b470e88d85cc1dbcb5d16bfbe73af248c9ed20cfbc4de060b"
-url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280123"
+checksum = "sha256:4bc72e8d823e3b0e27df1715dec2c0c7a1a533bc07b67f98f8fdfbc4007a82ca"
+url = "https://github.com/bufbuild/buf/releases/download/v1.74.0/buf-Darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/641110844"
 provenance = "minisign"
 
 [tools.buf."platforms.macos-x64"]
-checksum = "sha256:12ededc2a5b55eee89be6f35b5f290938eb4c710109d47746d29fb5fc6c4d66c"
-url = "https://github.com/bufbuild/buf/releases/download/v1.73.0/buf-Darwin-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/557280115"
+checksum = "sha256:1a8d6778176f8d6dfc9182342109a44a8dfafb73f91f5d297276f25960589483"
+url = "https://github.com/bufbuild/buf/releases/download/v1.74.0/buf-Darwin-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/641110851"
 provenance = "minisign"
 
 [[tools.go]]
@@ -77,31 +77,31 @@ checksum = "sha256:b6f8e931e4ab497fcde6da8ae4499a58f9d258e55c8a80824a516eae5950a
 url = "https://dl.google.com/go/go1.27.3.darwin-amd64.tar.gz"
 
 [[tools.golangci-lint]]
-version = "2.14.0"
+version = "2.15.0"
 backend = "aqua:golangci/golangci-lint"
 
 [tools.golangci-lint."platforms.linux-arm64"]
-checksum = "sha256:ee7ec5f3453d15ddf106fae5a4d6c71737712348a979d1fe9cd52ec7ea299bae"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.14.0/golangci-lint-2.14.0-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/585813674"
+checksum = "sha256:b4d8f17068b35ee6060cc2f69a16fb48740d706fbba81661c318649c114a6998"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/647132775"
 provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.linux-x64"]
-checksum = "sha256:ab90aeb7b066f92a33415b638a50fe5344bbb75a0d32ad30cc248d88f81032ab"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.14.0/golangci-lint-2.14.0-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/585813815"
+checksum = "sha256:9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/647132535"
 provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.macos-arm64"]
-checksum = "sha256:5ef5f36a7147e91dc58ef9ef4d11bb7bad5ead0c76eb6c01327a73c641d1dcc3"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.14.0/golangci-lint-2.14.0-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/585813591"
+checksum = "sha256:d1e409481a8ca846c4bc97e781eb5cb1bd5c23353a0b3977a1cbda1b1b6447d5"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/647132534"
 provenance = "github-attestations"
 
 [tools.golangci-lint."platforms.macos-x64"]
-checksum = "sha256:a5667c1c3536be1740133213e1e822bfb8f0d98ea12903174d6d5f635e4ed68d"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.14.0/golangci-lint-2.14.0-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/585813755"
+checksum = "sha256:767b899a28285e88ded2823d5dcc4bc5ef681173eb2d80f029a7b17ee4ece3b8"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.15.0/golangci-lint-2.15.0-darwin-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/647132753"
 provenance = "github-attestations"
 
 [[tools.gotestsum]]
