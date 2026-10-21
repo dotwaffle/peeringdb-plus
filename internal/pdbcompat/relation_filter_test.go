@@ -297,14 +297,15 @@ func TestRelationSeedPrefix(t *testing.T) {
 }
 
 // TestStripRelationPrefix locks the prefix rules of make_relation_filter
-// (2.83.0 models.py:224-227) on the field segment of a relation key.
+// (2.84.0 models.py:223-232) on the field segment of a relation key.
 func TestStripRelationPrefix(t *testing.T) {
 	t.Parallel()
 	tests := []struct{ prefix, field, want string }{
 		{"ixlan", "ixlan", "id"},
-		{"ixlan", "ixlan_mtu", "mtu"},
-		{"ixlan", "ixlan_ixlan", "id"},
-		{"netixlan", "netixlan_net", "net"},
+		{"ixlan", "ixlan_id", "id"},
+		{"ixlan", "ixlan_mtu", "ixlan_mtu"},
+		{"ixlan", "ixlan_ixlan", "ixlan_ixlan"},
+		{"netixlan", "netixlan_net", "netixlan_net"},
 		{"ixlan", "mtu", "mtu"},
 		{"ixlan", "id", "id"},
 	}
@@ -403,6 +404,7 @@ func TestParseFilters_RelationKeyUnknownField(t *testing.T) {
 	}{
 		{peeringdb.TypeFac, "net__bogus", errInvalidQuery},
 		{peeringdb.TypeNet, "netfac__name", errInvalidQuery},
+		{peeringdb.TypeIX, "ixlan__ixlan_ixf_ixp_member_list_url", errInvalidQuery},
 		{peeringdb.TypeNet, "netixlan__netixlan_net_id", errInvalidQuery},
 		{peeringdb.TypeFac, "net__isnull", errIsNullValue},
 	} {
@@ -413,7 +415,7 @@ func TestParseFilters_RelationKeyUnknownField(t *testing.T) {
 	}
 	for _, tt := range []struct{ typ, key string }{
 		{peeringdb.TypeFac, "net__notes_private"},
-		{peeringdb.TypeIX, "ixlan__ixlan_ixf_ixp_member_list_url"},
+		{peeringdb.TypeIX, "ixlan__ixf_ixp_member_list_url"},
 		{peeringdb.TypeNet, "ix__ixlan_set"},
 	} {
 		ctx := WithUnknownFields(t.Context())

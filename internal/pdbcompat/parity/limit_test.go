@@ -475,14 +475,10 @@ func TestParity_Limit(t *testing.T) {
 
 	t.Run("list_depth_ignored_keys_not_truncated", func(t *testing.T) {
 		t.Parallel()
-		// upstream: 2.83.0 models.py:1259-1264 (org_flags) and
-		// models.py:2621-2622 (the ix_set reverse relation of org) are
-		// filters upstream, so upstream answers from its live query and
-		// truncates. The mirror ignores these keys (registered rows
-		// DIVERGENCE_unserialized_model_columns_silent_ignore and
-		// DIVERGENCE_reverse_set_keys_silent_ignore), and an ignored key
-		// does not make the list live, so the mirror serves the
-		// unfiltered list in full, as it does at depth 0.
+		// PeeringDB 2.84.0 excludes org_flags, so it agrees with the mirror.
+		// The ix_set case retains the reverse-set divergence. Upstream
+		// filters it and truncates (2.83.0 models.py:2621-2622).
+		// The mirror ignores that key and returns the full list.
 		c := testutil.SetupClient(t)
 		ctx := t.Context()
 		orgs := make([]*ent.OrganizationCreate, 0, 260)

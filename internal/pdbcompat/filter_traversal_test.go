@@ -49,9 +49,9 @@ func TestParseFilters_Traversal_Table(t *testing.T) {
 			wantPreds: 1,
 		},
 		{
-			name:        "Path B fallback 1-hop: net?poc__name=X (not in Allowlists but via edge)",
+			name:        "Path B fallback 1-hop: net?poc__role=X (not in Allowlists but via edge)",
 			tc:          netTC,
-			params:      url.Values{"poc__name": {"NOC"}},
+			params:      url.Values{"poc__role": {"NOC"}},
 			wantPreds:   1,
 			wantUnknown: nil,
 		},
@@ -382,18 +382,13 @@ func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
 		cases string
 	}{
 		{
-			name:  "net filtered by poc name (O2M child=pocs)",
-			cases: "net?poc__name=NOC",
+			name:  "net filtered by poc role (O2M child=pocs)",
+			cases: "net?poc__role=NOC",
 			run: func(t *testing.T) {
-				// Seed Poc(id=500) is "NOC Contact" on Network(id=10); the
-				// second Public-tier poc on Network2 (id=11) does not exist
-				// — UsersPoc2 is Users-gated so the ent Privacy filter + our
-				// status filter conspire to exclude it from an anonymous
-				// caller. But this test runs in-context with no tier, so
-				// the raw edges apply. Use an exact match to keep the
-				// assertion deterministic regardless of fold-column priming.
+				// The public contact has role NOC. Contacts on Network2
+				// are Users-only, so the anonymous traversal excludes them.
 				preds, _, err := ParseFiltersCtx(WithUnknownFields(ctx), url.Values{
-					"poc__name": {"NOC Contact"},
+					"poc__role": {"NOC"},
 				}, Registry[peeringdb.TypeNet])
 				if err != nil {
 					t.Fatalf("ParseFiltersCtx: %v", err)
@@ -410,7 +405,7 @@ func TestBuildTraversal_SingleHop_O2M_Integration(t *testing.T) {
 					t.Fatalf("Network.Query: %v (O2M regression: subquery emits invalid SQL)", err)
 				}
 				if len(nets) != 1 {
-					t.Errorf("expected 1 network with poc.name='NOC Contact', got %d", len(nets))
+					t.Errorf("expected 1 network with poc.role='NOC', got %d", len(nets))
 					return
 				}
 				if nets[0].ID != 10 {

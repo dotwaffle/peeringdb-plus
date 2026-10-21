@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
@@ -17,7 +18,7 @@ import (
 // subquery reproduces the poc row-level privacy policy (poc.visible). The
 // traversal builds a raw SQL subquery against the pocs table that does NOT
 // pass through ent's PocQuery, so the poc Privacy policy would never
-// fire — letting an anonymous caller use net?pocs__<field>=... as a boolean
+// fire, letting an anonymous caller use net?pocs__<field>=... as a boolean
 // oracle to read or enumerate Users-tier (hidden) contact PII that the policy
 // hides on the direct /api/poc surface. applyVisibilityGate closes that leak.
 //
@@ -53,29 +54,29 @@ func TestTraversal_PocVisibilityGate(t *testing.T) {
 	}
 
 	// Anonymous callers must not reach a hidden poc's PII through the
-	// traversal subquery. Before the gate, the hidden poc's email matches
+	// traversal subquery. Before the gate, the hidden poc's ID matches
 	// and leaks r.Network.
-	t.Run("hidden_poc_email_not_leaked_to_anon", func(t *testing.T) {
-		got := matchedNetIDs(t, privctx.TierPublic, "poc__email", "users-noc@example.invalid")
+	t.Run("hidden_poc_id_not_leaked_to_anon", func(t *testing.T) {
+		got := matchedNetIDs(t, privctx.TierPublic, "poc__id", strconv.Itoa(r.UsersPoc.ID))
 		if slices.Contains(got, r.Network.ID) {
-			t.Fatalf("anon traversal leaked network %d via hidden poc email; got %v", r.Network.ID, got)
+			t.Fatalf("anon traversal leaked network %d via hidden poc ID; got %v", r.Network.ID, got)
 		}
 	})
 
-	// Users-tier callers still reach the hidden poc — proving the filter
+	// Users-tier callers still reach the hidden poc, proving the filter
 	// resolves and that the gate (not a silent-ignore) is what excludes it
 	// for anonymous callers above.
-	t.Run("hidden_poc_email_visible_to_users", func(t *testing.T) {
-		got := matchedNetIDs(t, privctx.TierUsers, "poc__email", "users-noc@example.invalid")
+	t.Run("hidden_poc_id_visible_to_users", func(t *testing.T) {
+		got := matchedNetIDs(t, privctx.TierUsers, "poc__id", strconv.Itoa(r.UsersPoc.ID))
 		if !slices.Contains(got, r.Network.ID) {
-			t.Fatalf("TierUsers traversal should match network %d via hidden poc email; got %v", r.Network.ID, got)
+			t.Fatalf("TierUsers traversal should match network %d via hidden poc ID; got %v", r.Network.ID, got)
 		}
 	})
 
 	// The gate must not over-filter: a Public poc remains traversal-matchable
 	// by anonymous callers.
 	t.Run("public_poc_still_filterable_by_anon", func(t *testing.T) {
-		got := matchedNetIDs(t, privctx.TierPublic, "poc__name", "NOC Contact")
+		got := matchedNetIDs(t, privctx.TierPublic, "poc__id", strconv.Itoa(r.Poc.ID))
 		if !slices.Contains(got, r.Network.ID) {
 			t.Fatalf("anon traversal should still match network %d via its Public poc; got %v", r.Network.ID, got)
 		}
@@ -110,8 +111,8 @@ func TestTraversal_PocVisibilityGate(t *testing.T) {
 		SaveX(t.Context())
 	for name, tier := range map[string]privctx.Tier{"anon": privctx.TierPublic, "users": privctx.TierUsers} {
 		t.Run("private_poc_hidden_from_"+name, func(t *testing.T) {
-			if got := matchedNetIDs(t, tier, "poc__email", "private-noc@example.invalid"); len(got) != 0 {
-				t.Errorf("traversal leaked networks %v via a Private poc email", got)
+			if got := matchedNetIDs(t, tier, "poc__id", "9500"); len(got) != 0 {
+				t.Errorf("traversal leaked networks %v via a Private poc ID", got)
 			}
 			if got := matchedNetIDs(t, tier, "poc__visible", "Private"); len(got) != 0 {
 				t.Errorf("traversal enumerated networks %v with a Private poc", got)
