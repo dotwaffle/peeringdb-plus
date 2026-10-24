@@ -8,6 +8,20 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.43.1] - 2026-10-24
+
+### Changed
+
+- GraphQL query documents are limited to 15,000 parser tokens.
+  A larger query fails with `exceeded token limit of 15000` before validation.
+- Upgrade gqlgen to 0.17.98 (introspection now honors `includeDeprecated` on arguments and input fields), automemlimit to 1.0.1, Buf to 1.75.0, and the CI mise pin.
+
+### Security
+
+- Upgrade gqlparser to 2.5.64.
+  The query parser in 2.5.63 had no nesting bound, so one unauthenticated `POST /graphql` with a deeply nested query could exhaust the memory of a machine or stop the process with a fatal stack overflow.
+  The parser now rejects more than 1000 nesting levels.
+
 ## [1.43.0] - 2026-10-21
 
 ### Changed
