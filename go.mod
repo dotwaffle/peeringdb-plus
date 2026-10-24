@@ -12,7 +12,7 @@ require (
 	entgo.io/contrib v0.7.1-0.20260726130719-793ca36770f6
 	entgo.io/ent v0.14.6
 	github.com/99designs/gqlgen v0.17.98
-	github.com/KimMachineGun/automemlimit v1.0.0
+	github.com/KimMachineGun/automemlimit v1.0.1
 	github.com/XSAM/otelsql v0.44.0
 	github.com/a-h/templ v0.3.1070
 	github.com/charmbracelet/colorprofile v0.4.3

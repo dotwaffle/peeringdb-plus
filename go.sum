@@ -22,8 +22,8 @@ github.com/99designs/gqlgen v0.17.98 h1:t7UTlygkXMx1tJmKyR0LxttcufXnJ7fF6fAaeHSo
 github.com/99designs/gqlgen v0.17.98/go.mod h1:tIoiUl+cgIT7nayvObZkKDgplxd1pHcUAmEXAyv+8f4=
 github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20OEh60=
 github.com/DATA-DOG/go-sqlmock v1.5.0/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
-github.com/KimMachineGun/automemlimit v1.0.0 h1:+MqlvDE/pkJNjk1rU+O14QsH8k10nJAD0frB0lsxyvw=
-github.com/KimMachineGun/automemlimit v1.0.0/go.mod h1:n+BSXxQWDFS1DKh67Rqo0lgTsowsg6x65ak5uyngML0=
+github.com/KimMachineGun/automemlimit v1.0.1 h1:87PowSIJFht5TmyyZKJNR4y2v7Cm9OdCzsSMR8jXJHM=
+github.com/KimMachineGun/automemlimit v1.0.1/go.mod h1:n+BSXxQWDFS1DKh67Rqo0lgTsowsg6x65ak5uyngML0=
 github.com/XSAM/otelsql v0.44.0 h1:KxCiv26Fh4okTPlgROE2BWk+lgi20pdgMGxuSwgbRls=
 github.com/XSAM/otelsql v0.44.0/go.mod h1:FySZIr4R4WWMqvIjf2Iah7C0LAlpKvs9XRkaX7rE608=
 github.com/a-h/templ v0.3.1070 h1:3iCOXHXqFXa99OQzgkUOLJbNzv/QjFGLwKZkBAg+ADA=
