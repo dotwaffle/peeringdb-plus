@@ -11,7 +11,7 @@ require (
 	connectrpc.com/otelconnect v0.12.0
 	entgo.io/contrib v0.7.1-0.20260726130719-793ca36770f6
 	entgo.io/ent v0.14.6
-	github.com/99designs/gqlgen v0.17.97
+	github.com/99designs/gqlgen v0.17.98
 	github.com/KimMachineGun/automemlimit v1.0.0
 	github.com/XSAM/otelsql v0.44.0
 	github.com/a-h/templ v0.3.1070
@@ -27,7 +27,7 @@ require (
 	github.com/oyyblin/gqlgen-depth-limit-extension v0.1.0
 	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.12.1
-	github.com/vektah/gqlparser/v2 v2.5.63
+	github.com/vektah/gqlparser/v2 v2.5.64
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
 	go.opentelemetry.io/contrib/exporters/autoexport v0.72.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
@@ -50,7 +50,7 @@ require (
 	ariga.io/atlas v1.3.0 // indirect
 	connectrpc.com/connect/v2 v2.0.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/agnivade/levenshtein v1.2.1 // indirect
+	github.com/agnivade/levenshtein v1.2.2 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

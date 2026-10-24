@@ -133,7 +133,7 @@ version = "1.9.0"
 backend = "go:golang.org/x/vuln/cmd/govulncheck"
 
 [[tools.gqlgen]]
-version = "0.17.97"
+version = "0.17.98"
 backend = "go:github.com/99designs/gqlgen"
 
 [[tools.protoc-gen-connect-go]]
