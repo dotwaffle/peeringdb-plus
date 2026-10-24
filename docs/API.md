@@ -226,6 +226,7 @@ The handler lives in `internal/graphql/handler.go`.
 |-------|-------|-------------|
 | Request body | 1 MB | `http.MaxBytesReader` wrap at the route + global `MaxBytesBody` middleware |
 | Parser tokens | 15,000 per query document | `handler.Server.SetParserTokenLimit` in `internal/graphql/handler.go`; the parser also stops at 1000 nesting levels (gqlparser) |
+| Overlapping fields | Overlap cost 1,000,000 | `validationRules` in `internal/graphql/overlap.go`: an estimate of the field-merge checks (fields that share a response name, weighted by their arguments) before the `OverlappingFieldsCanBeMerged` rule runs; about 1000 copies of one field |
 | Query complexity | 1,000,000 (weighted) | `gqlgen.extension.FixedComplexityLimit(graph.ComplexityLimit)` — per-field costs weighted by row materialization via `graph.ComplexityLimits()`, not a raw field count |
 | Query depth | 15 | `gqlgen-depth-limit-extension` |
 | Page size | 1000 (default 100) | `validatePageSize` and `ValidateOffsetLimit` in `graph/pagination.go` |
@@ -253,7 +254,7 @@ Errors are returned in standard GraphQL format with an `extensions.code` field p
 | `NOT_FOUND` | `ent.IsNotFound(err)` |
 | `VALIDATION_ERROR` | `ent.IsValidationError(err)` |
 | `CONSTRAINT_ERROR` | `ent.IsConstraintError(err)` |
-| `INTERNAL_ERROR` | Any other error. This includes a query that does not parse or validate, a query over the token, complexity or depth limit, and a page-size argument out of range (for example `first: 5000` or `limit: 0`) |
+| `INTERNAL_ERROR` | Any other error. This includes a query that does not parse or validate, a query over the token, overlap, complexity or depth limit, and a page-size argument out of range (for example `first: 5000` or `limit: 0`) |
 
 An error from a resolver includes `path`, which points to the field.
 An error for the full request, for example a parse error or a complexity-limit error, has no `path`.
@@ -1776,6 +1777,7 @@ It enforces these limits:
 | Sync memory ceiling | Sync worker heap | `400MB` | `PDBPLUS_SYNC_MEMORY_LIMIT` |
 | Response memory budget | pdbcompat `/api/` | `128MiB` | `PDBPLUS_RESPONSE_MEMORY_LIMIT` |
 | GraphQL parser tokens | `POST /graphql` | `15,000` | `parserTokenLimit` (hardcoded) |
+| GraphQL overlap cost | `POST /graphql` | `1,000,000` | `overlapBudget` (hardcoded) |
 | GraphQL query complexity | `POST /graphql` | `1,000,000` (weighted) | `FixedComplexityLimit(graph.ComplexityLimit)` |
 | GraphQL query depth | `POST /graphql` | `15` | `FixedDepthLimit` (hardcoded) |
 | GraphQL page size | `first`, `last`, `limit` | `100`, maximum `1000` (a larger value is an error) | `graph/pagination.go` (hardcoded) |

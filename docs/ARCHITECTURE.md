@@ -1329,6 +1329,7 @@ Other surfaces have their own memory stories:
   `RESTFieldRedact` buffers one page at a time.
 - **GraphQL** has a parser token limit (15,000), a depth limit (15) and a complexity limit.
   The token limit applies during the parse, before the other two.
+  Validation also has an overlap budget: the `OverlappingFieldsCanBeMerged` rule compares every pair of fields that share a response name, so `internal/graphql/overlap.go` estimates that work and rejects a query over the budget before the rule runs.
   The complexity cost counts fan-out: `graph/complexity.go` weights connection fields by the requested page size and unpaginated edge lists by the average cardinality per parent.
   So the limit bounds the rows that a query loads, not the fields it names.
 - **Web UI** renders on the server with bounded htmx fragments.

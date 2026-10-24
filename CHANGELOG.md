@@ -8,6 +8,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Security
+
+- GraphQL validation rejects a query with too many fields that share a response name.
+  The field-merge validation rule compares every pair of such fields, so 15,000 copies of one field took about 11 seconds of CPU before execution started.
+  The server now estimates that work first and rejects a query with an overlap cost over 1,000,000 (about 1000 copies of one field), with the message `too many fields or fragment spreads share a response name`.
+
 ## [1.43.1] - 2026-10-24
 
 ### Changed

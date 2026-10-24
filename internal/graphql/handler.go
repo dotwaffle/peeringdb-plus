@@ -26,7 +26,8 @@ import (
 const parserTokenLimit = 15_000
 
 // NewHandler creates the gqlgen GraphQL handler with parser token,
-// complexity and depth limits. Introspection is always enabled.
+// overlap budget, complexity and depth limits. Introspection is always
+// enabled.
 func NewHandler(resolver *graph.Resolver) http.Handler {
 	srv := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
@@ -36,6 +37,7 @@ func NewHandler(resolver *graph.Resolver) http.Handler {
 	)
 
 	srv.SetParserTokenLimit(parserTokenLimit)
+	srv.SetValidationRulesFn(validationRules)
 
 	// Query complexity limit. The budget approximates "fields of rows
 	// materialized": graph.ComplexityLimits weights connection fields by
