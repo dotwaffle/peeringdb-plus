@@ -8,6 +8,8 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.43.2] - 2026-10-24
+
 ### Security
 
 - GraphQL validation rejects a query with too many fields that share a response name.
