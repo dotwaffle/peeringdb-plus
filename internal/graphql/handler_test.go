@@ -265,3 +265,58 @@ func TestDepthLimit_RejectsDeep(t *testing.T) {
 		t.Errorf("no error mentions depth; errors: %+v", resp.Errors)
 	}
 }
+
+func TestParserTokenLimit(t *testing.T) {
+	t.Parallel()
+	client := testutil.SetupClient(t)
+	resolver := graph.NewResolver(client, nil)
+	h := NewHandler(resolver)
+
+	// Each list item is one token; the rest of the query counts 16.
+	// A list keeps validation linear: repeated fields are compared
+	// pairwise.
+	query := func(tokens int) string {
+		return "{ organizationsList(where: {idIn: [" +
+			strings.Repeat("1 ", tokens-16) + "]}) { id } }"
+	}
+
+	tests := []struct {
+		name    string
+		query   string
+		wantErr string
+	}{
+		{name: "at limit", query: query(parserTokenLimit)},
+		{name: "over limit", query: query(parserTokenLimit + 1), wantErr: "exceeded token limit"},
+		{
+			// gqlparser v2.5.64 bounds nesting before the token limit
+			// applies. v2.5.63 recursed once per level without a bound.
+			name:    "deep nesting",
+			query:   strings.Repeat("{a", 100_000) + strings.Repeat("}", 100_000),
+			wantErr: "exceeded maximum nesting depth",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			resp := postGQL(t, h, tc.query)
+			if tc.wantErr == "" {
+				for _, gqlErr := range resp.Errors {
+					if strings.Contains(gqlErr.Message, "token limit") {
+						t.Fatalf("query within the limit rejected: %+v", gqlErr)
+					}
+				}
+				return
+			}
+			found := false
+			for _, gqlErr := range resp.Errors {
+				if strings.Contains(gqlErr.Message, tc.wantErr) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("no error contains %q; errors: %+v", tc.wantErr, resp.Errors)
+			}
+		})
+	}
+}

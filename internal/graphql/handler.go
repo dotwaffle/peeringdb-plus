@@ -17,8 +17,16 @@ import (
 	"github.com/oyyblin/gqlgen-depth-limit-extension/depth"
 )
 
-// NewHandler creates the gqlgen GraphQL handler with complexity and depth limits.
-// Introspection is always enabled.
+// parserTokenLimit is the maximum number of lexer tokens in one query
+// document. The complexity and depth limits run after the parse, so the
+// parse itself needs its own bound: without one, a 1 MiB body builds an AST
+// of about 500k nodes before any other limit applies. 15000 is the value
+// that the gqlparser advisories recommend; the GraphiQL introspection query
+// uses a few hundred tokens.
+const parserTokenLimit = 15_000
+
+// NewHandler creates the gqlgen GraphQL handler with parser token,
+// complexity and depth limits. Introspection is always enabled.
 func NewHandler(resolver *graph.Resolver) http.Handler {
 	srv := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
@@ -26,6 +34,8 @@ func NewHandler(resolver *graph.Resolver) http.Handler {
 			Complexity: graph.ComplexityLimits(),
 		}),
 	)
+
+	srv.SetParserTokenLimit(parserTokenLimit)
 
 	// Query complexity limit. The budget approximates "fields of rows
 	// materialized": graph.ComplexityLimits weights connection fields by
