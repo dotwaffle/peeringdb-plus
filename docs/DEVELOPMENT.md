@@ -6,7 +6,7 @@ For environment variables and runtime configuration, see [CONFIGURATION.md](CONF
 
 ## Prerequisites
 
-- **mise 2026.7.12+**.
+- **mise 2026.10.22+**.
 - Git and a local clone of this repository.
 - A C compiler, for example gcc or clang.
   The race detector needs cgo.
@@ -122,15 +122,16 @@ The GraphQL CSP in `cmd/peeringdb-plus/main.go` allows the pinned CDN and same-o
 | `mise run build` | Build all packages with `-trimpath` |
 | `mise run test` | Run all tests through gotestsum with compact failure-focused output and the race detector |
 | `mise run generate` | Run the full codegen pipeline in order |
-| `mise run lint` | Run actionlint, golangci-lint, and rumdl |
+| `mise run lint` | Run jactionlint with the correctness profile, golangci-lint, and rumdl |
 | `mise run format` | Format Go sources with `golangci-lint fmt` (`gofmt -s`) |
 | `mise run vulncheck` | Check the Go vulnerability database |
 | `mise run check` | Run the canonical local validation sweep |
 
 ## Toolchain updates
 
-`mise.toml` is the version policy.
-For the binary tools (actionlint, buf, go, golangci-lint, gotestsum, rumdl, tailwindcss), `mise.lock` records release URLs and checksums for Linux and macOS on amd64 and arm64.
+`mise.toml` uses `latest` for independent tools and exact versions for generators coupled to Go modules.
+The version 3 lockfile records request bindings and repository identity pins for Packslip tools.
+For the binary tools (jactionlint, buf, go, golangci-lint, gotestsum, rumdl, tailwindcss), `mise.lock` records release URLs and checksums for Linux and macOS on amd64 and arm64.
 The `go:` tools (gqlgen, govulncheck, protoc-gen-go, protoc-gen-connect-go, templ) have a version only in the lock. mise builds them from source.
 After changing a tool pin, refresh and verify the lock:
 
