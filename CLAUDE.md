@@ -468,7 +468,14 @@ Locked by `TestParity_Traversal/prepare_query_distance_*` + `TestDistanceSearch_
 
 **Name search (`internal/pdbcompat/name_search.go`).**
 `resolveNameSearch` resolves `name_search` in a pre-pass of `parseListFilters` after the distance pre-pass (upstream: `prepare_query`, then `name_search`, 2.83.0 `rest.py:488-553`), exact key, last value; its keys go in the `consumed` set.
-On the 6 indexed types it matches words (substring of the index fields per type, `nameSearchFields`), digits (net ASN prefix + text) or a partial IP (live netixlan address range), `ok` rows only; words bind as ONE JSON array and every column goes through `coalesce` (else a NULL column passes `NOT EXISTS`).
+On the 6 indexed types it matches words (wildcard and phrase clauses over `nameSearchFields`), digits (net ASN prefix + text phrase prefix) or a partial IP (live netixlan address range), `ok` rows only; words bind as ONE JSON array and every column goes through `coalesce` (else a NULL column passes `NOT EXISTS`).
+`nameSearchQuery` keeps the required wildcard words, or all alternatives with `anyWord`, plus the cleaned phrase term.
+Terms next to explicit or implicit AND are required, as in Lucene's classic parser.
+`name_search_text.go` adds whole-name and auxiliary word phrase prefixes.
+`internal/sqlitesearch.NewDriver` registers deterministic Unicode lowercase and word-token functions on each application driver.
+Both database.Open and testutil use this driver.
+No global SQLite function registry is used.
+Lucene word-break details, expansion limits and the 1000-hit cap remain registered divergences.
 It owns `id__in` when both are present: upstream unions the search ids into `id__in` (`rest.py:685-690`); an `EXISTS (... LIMIT 1)` gate keeps the empty result when nothing matches (without `LIMIT 1` SQLite sorts the page in a temp B-tree).
 `none` (7 types without an index, or a value such as `AND` that can match nothing) sets `emptyResult` before the loop, and the loop then reads only `isPrepareQueryKey` keys (`rest.py:550-553` returns before the filter loop, after `prepare_query`); they are not unknown keys either.
 A `name_search` value error does the same and is returned after the loop, so a `prepare_query` error wins (`TestParity_NameSearch/prepare_query_errors_win`).

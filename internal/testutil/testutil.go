@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"entgo.io/ent/dialect"
-	"modernc.org/sqlite"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/enttest"
+	"github.com/dotwaffle/peeringdb-plus/internal/sqlitesearch"
 )
 
 func init() {
-	sql.Register("sqlite3", &sqlite.Driver{})
+	sql.Register("sqlite3", sqlitesearch.NewDriver())
 }
 
 // dbCounter provides unique database names for parallel tests.
