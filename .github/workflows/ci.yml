@@ -86,7 +86,7 @@ jobs:
       - name: Set up tools
         uses: jdx/mise-action@v5
         with:
-          version: 2026.10.18
+          version: 2026.10.22
           install_args: --locked
           cache_key: mise-${{ runner.os }}-${{ runner.arch }}-{{version}}-{{file_hash}}
 

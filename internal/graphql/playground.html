@@ -55,7 +55,7 @@
       // Workers and their dependencies are embedded in the Go binary.
       globalThis.MonacoEnvironment = {
         getWorker(_workerId, label) {
-          const workers = {"editor": "e8425f059c96b044.mjs", "json": "07aa32f158d0c602.mjs", "graphql": "f1ffcb013dc52c99.mjs"};
+          const workers = {"editor": "e8425f059c96b044.mjs", "json": "07aa32f158d0c602.mjs", "graphql": "06969fae109476d4.mjs"};
           const name = workers[label] || workers.editor;
           return new Worker('/graphql/assets/' + name, { type: 'module', name: label });
         },

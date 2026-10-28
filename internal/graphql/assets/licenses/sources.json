@@ -66,9 +66,9 @@
   },
   {
     "package": "vscode-languageserver-types",
-    "version": "3.18.4",
-    "tarball": "https://registry.npmjs.org/vscode-languageserver-types/-/vscode-languageserver-types-3.18.4.tgz",
-    "integrity": "sha512-nQsacoiijvl0fRf2q28uFDrAVwRhdCa3QveiF7/CX0r18mLR5FU/1WskSsCKOjmEbtteKUnY8x8Yzxop+k0zwg==",
+    "version": "3.18.5",
+    "tarball": "https://registry.npmjs.org/vscode-languageserver-types/-/vscode-languageserver-types-3.18.5.tgz",
+    "integrity": "sha512-kPd6+JQNz3HMJvjKlqUxERSlZHAntl/aGpsk7ImwIh0ewDKDcjgAEyVSYciPiOJD3ftbK9IrfiqUeTZLSbCizw==",
     "files": [
       "vscode-languageserver-types-License.txt",
       "vscode-languageserver-types-thirdpartynotices.txt"

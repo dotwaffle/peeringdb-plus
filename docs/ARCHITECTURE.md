@@ -923,7 +923,8 @@ A revival with a newer `updated` value, a tombstone that replaces a tombstone, a
 #### Run points
 
 - In each sync transaction, after the upsert pass and the poc scrub.
-  Class B runs first, then class A. Both statements check the guard and the network status again against the state after the upsert pass.
+  Class B runs first, then class A.
+  Both statements check the guard and the network status again against the state after the upsert pass.
   A failed statement fails the cycle, and the retries use the `gone` memo.
 - When the scheduler starts on the primary, after `scrubPocContactsAtStartup` (`cascadeNetIxLansAtStartup`).
   The run holds the sync `running` latch.
